@@ -1,0 +1,48 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "CRM-BACKEND/package.json",
+      "use": "@vercel/node",
+      "config": {
+        "includeFiles": ["CRM-BACKEND/**"]
+      }
+    },
+    {
+      "src": "CRM-FRONTEND/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
+    },
+    {
+      "src": "CRM-MOBILE/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "CRM-BACKEND/src/index.js"
+    },
+    {
+      "src": "/mobile/(.*)",
+      "dest": "CRM-MOBILE/dist/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "CRM-FRONTEND/dist/$1"
+    }
+  ],
+  "env": {
+    "NODE_ENV": "production"
+  },
+  "functions": {
+    "CRM-BACKEND/src/index.js": {
+      "maxDuration": 30
+    }
+  }
+}
