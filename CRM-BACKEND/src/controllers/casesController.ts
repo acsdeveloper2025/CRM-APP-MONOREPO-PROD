@@ -1255,9 +1255,18 @@ export const exportCases = async (req: AuthenticatedRequest, res: Response) => {
     }
 
     if (clientId) {
-      whereConditions.push(`c."clientId" = $${paramIndex}`);
-      queryParams.push(clientId);
-      paramIndex++;
+      // Convert clientId to client name by looking up in clients table
+      const client = await pool.connect();
+      try {
+        const clientRes = await client.query('SELECT name FROM clients WHERE id = $1', [parseInt(clientId as string)]);
+        if (clientRes.rows.length > 0) {
+          whereConditions.push(`c."client" = $${paramIndex}`);
+          queryParams.push(clientRes.rows[0].name);
+          paramIndex++;
+        }
+      } finally {
+        client.release();
+      }
     }
 
     if (priority) {
@@ -1312,8 +1321,8 @@ export const exportCases = async (req: AuthenticatedRequest, res: Response) => {
           ELSE NULL
         END as pending_duration_seconds
       FROM cases c
-      LEFT JOIN clients cl ON c."clientId" = cl.id
-      LEFT JOIN products p ON c."productId" = p.id
+      LEFT JOIN clients cl ON c."client" = cl.name
+      LEFT JOIN products p ON c."product" = p.name
       LEFT JOIN "verificationTypes" vt ON c."verificationTypeId" = vt.id
       LEFT JOIN users u ON c."assignedTo" = u.id
       LEFT JOIN users bu ON c."createdByBackendUser" = bu.id
