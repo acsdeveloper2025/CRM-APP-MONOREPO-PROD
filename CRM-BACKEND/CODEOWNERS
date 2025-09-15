@@ -1,0 +1,18 @@
+# Global Owners
+* @crm-team
+
+# Backend specific
+/src/ @crm-backend-team
+/prisma/ @crm-backend-team @crm-database-team
+/scripts/ @crm-backend-team
+
+# Configuration files
+/.github/ @crm-devops-team
+/package.json @crm-backend-team
+/package-lock.json @crm-backend-team
+/.env.example @crm-backend-team
+/docker* @crm-devops-team
+
+# Documentation
+/README.md @crm-team
+/docs/ @crm-team

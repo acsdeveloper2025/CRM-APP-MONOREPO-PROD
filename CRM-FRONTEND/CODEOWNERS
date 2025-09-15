@@ -1,0 +1,27 @@
+# Global Owners
+* @acs-team
+
+# Frontend specific
+/src/ @acs-frontend-team
+/public/ @acs-frontend-team @acs-design-team
+
+# Component library
+/src/components/ @acs-frontend-team @acs-design-team
+
+# Configuration files
+/.github/ @acs-devops-team
+/package.json @acs-frontend-team
+/package-lock.json @acs-frontend-team
+/.env.example @acs-frontend-team
+/next.config.js @acs-frontend-team
+/tailwind.config.js @acs-frontend-team @acs-design-team
+/docker* @acs-devops-team
+
+# Testing
+/cypress/ @acs-frontend-team @acs-qa-team
+/playwright/ @acs-frontend-team @acs-qa-team
+/__tests__/ @acs-frontend-team
+
+# Documentation
+/README.md @acs-team
+/docs/ @acs-team
