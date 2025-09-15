@@ -1,0 +1,257 @@
+/**
+ * Comprehensive NOC Form Validation and Default Handling
+ * 
+ * This module provides validation and default value handling for all NOC verification form types.
+ * Ensures that every database field has an appropriate value, preventing null/undefined issues.
+ */
+
+import { NOC_FIELD_MAPPING, ensureAllNocFieldsPopulated } from './nocFormFieldMapping';
+
+export interface FormValidationResult {
+  isValid: boolean;
+  missingFields: string[];
+  warnings: string[];
+  fieldCoverage: {
+    totalFields: number;
+    populatedFields: number;
+    defaultedFields: number;
+    coveragePercentage: number;
+  };
+}
+
+/**
+ * Comprehensive validation for NOC verification forms
+ * Validates form data and ensures all database fields are properly populated
+ * 
+ * @param formData - Raw form data from mobile app
+ * @param formType - Type of NOC form (POSITIVE, SHIFTED, NSP, ENTRY_RESTRICTED, UNTRACEABLE)
+ * @returns Validation result with detailed field coverage information
+ */
+export function validateAndPrepareNocForm(
+  formData: any, 
+  formType: string
+): { validationResult: FormValidationResult; preparedData: Record<string, any> } {
+  
+  const warnings: string[] = [];
+  const missingFields: string[] = [];
+  
+  // Get required fields for this form type
+  const requiredFields = getRequiredFieldsByFormType(formType);
+  
+  // Check for missing required fields
+  for (const field of requiredFields) {
+    if (!formData[field] || formData[field] === null || formData[field] === '' || formData[field] === undefined) {
+      missingFields.push(field);
+    }
+  }
+  
+  // Check for form-specific conditional validations
+  const conditionalWarnings = validateConditionalFields(formData, formType);
+  warnings.push(...conditionalWarnings);
+  
+  // Map form data to database fields
+  const mappedData: Record<string, any> = {};
+  for (const [mobileField, value] of Object.entries(formData)) {
+    const dbColumn = NOC_FIELD_MAPPING[mobileField];
+    
+    // Skip fields that should be ignored
+    if (dbColumn === null) {
+      continue;
+    }
+    
+    // Use the mapped column name or the original field name if no mapping exists
+    const columnName = dbColumn || mobileField;
+    mappedData[columnName] = processFieldValue(mobileField, value);
+  }
+  
+  // Ensure all database fields are populated with appropriate defaults
+  const preparedData = ensureAllNocFieldsPopulated(mappedData, formType);
+  
+  // Calculate field coverage statistics
+  const totalFields = Object.keys(preparedData).length;
+  const populatedFields = Object.values(preparedData).filter(value => 
+    value !== null && value !== undefined
+  ).length;
+  const defaultedFields = Object.values(preparedData).filter(value => value === null).length;
+  const coveragePercentage = Math.round((populatedFields / totalFields) * 100);
+  
+  const validationResult: FormValidationResult = {
+    isValid: missingFields.length === 0,
+    missingFields,
+    warnings,
+    fieldCoverage: {
+      totalFields,
+      populatedFields,
+      defaultedFields,
+      coveragePercentage
+    }
+  };
+  
+  return { validationResult, preparedData };
+}
+
+/**
+ * Gets required fields for a specific NOC form type
+ */
+function getRequiredFieldsByFormType(formType: string): string[] {
+  const requiredFieldsByType: Record<string, string[]> = {
+    'POSITIVE': [
+      'addressLocatable', 'addressRating', 'nocStatus', 'nocType', 'nocNumber',
+      'nocIssuingAuthority', 'nocValidityStatus', 'propertyType', 'projectName',
+      'projectStatus', 'builderName', 'contactPerson', 'metPersonName',
+      'designation', 'locality', 'addressStructure', 'politicalConnection',
+      'dominatedArea', 'feedbackFromNeighbour', 'otherObservation', 'finalStatus'
+    ],
+    'SHIFTED': [
+      'addressLocatable', 'addressRating', 'metPersonName', 'designation',
+      'shiftedPeriod', 'currentLocation', 'locality', 'addressStructure',
+      'politicalConnection', 'dominatedArea', 'feedbackFromNeighbour',
+      'otherObservation', 'finalStatus'
+    ],
+    'NSP': [
+      'addressLocatable', 'addressRating', 'nocStatus', 'metPersonName',
+      'designation', 'locality', 'addressStructure', 'politicalConnection',
+      'dominatedArea', 'feedbackFromNeighbour', 'otherObservation', 'finalStatus'
+    ],
+    'ENTRY_RESTRICTED': [
+      'addressLocatable', 'addressRating', 'nameOfMetPerson', 'metPersonType',
+      'metPersonConfirmation', 'locality', 'addressStructure', 'politicalConnection',
+      'dominatedArea', 'feedbackFromNeighbour', 'otherObservation', 'finalStatus'
+    ],
+    'UNTRACEABLE': [
+      'callRemark', 'locality', 'landmark1', 'landmark2', 'dominatedArea',
+      'otherObservation', 'finalStatus'
+    ]
+  };
+  
+  return requiredFieldsByType[formType] || requiredFieldsByType['POSITIVE'];
+}
+
+/**
+ * Validates conditional fields based on form type and field values
+ */
+function validateConditionalFields(formData: any, formType: string): string[] {
+  const warnings: string[] = [];
+  
+  if (formType === 'POSITIVE') {
+    // NOC validity conditional validation
+    if (formData.nocValidityStatus === 'Valid' && !formData.nocExpiryDate) {
+      warnings.push('nocExpiryDate should be specified when NOC validity status is Valid');
+    }
+    
+    // NOC number conditional validation
+    if (formData.nocStatus === 'Available' && !formData.nocNumber) {
+      warnings.push('nocNumber should be specified when NOC status is Available');
+    }
+    
+    // Project validation
+    if (formData.projectStatus === 'Completed' && !formData.completedUnits) {
+      warnings.push('completedUnits should be specified when project status is Completed');
+    }
+    
+    // Builder license validation
+    if (formData.builderName && !formData.builderLicenseNumber) {
+      warnings.push('builderLicenseNumber should be specified when builder name is provided');
+    }
+    
+    // Environmental clearance validation
+    if (formData.environmentalClearance === 'Required' && !formData.projectApprovalStatus) {
+      warnings.push('projectApprovalStatus should be specified when environmental clearance is required');
+    }
+    
+    // TPC conditional validation
+    if (formData.tpcMetPerson1 && !formData.nameOfTpc1) {
+      warnings.push('nameOfTpc1 should be specified when tpcMetPerson1 is selected');
+    }
+    
+    // Units validation
+    if (formData.totalUnits && formData.completedUnits && formData.completedUnits > formData.totalUnits) {
+      warnings.push('completedUnits should not exceed totalUnits');
+    }
+    
+    // Date validation
+    if (formData.nocIssueDate && formData.nocExpiryDate) {
+      const issueDate = new Date(formData.nocIssueDate);
+      const expiryDate = new Date(formData.nocExpiryDate);
+      if (expiryDate <= issueDate) {
+        warnings.push('nocExpiryDate should be after nocIssueDate');
+      }
+    }
+  }
+  
+  if (formType === 'NSP') {
+    // NOC status conditional validation
+    if (formData.nocStatus === 'Not Available' && !formData.otherObservation) {
+      warnings.push('otherObservation should be specified when NOC status is Not Available');
+    }
+  }
+  
+  // Common validations for all forms
+  if (formData.finalStatus === 'Hold' && !formData.holdReason) {
+    warnings.push('holdReason should be specified when finalStatus is Hold');
+  }
+  
+  return warnings;
+}
+
+/**
+ * Processes field values based on field type and validation rules
+ */
+function processFieldValue(fieldName: string, value: any): any {
+  // Handle null/undefined values
+  if (value === null || value === undefined) {
+    return null;
+  }
+  
+  // Handle empty strings
+  if (typeof value === 'string' && value.trim() === '') {
+    return null;
+  }
+  
+  // Handle numeric fields
+  const numericFields = [
+    'totalUnits', 'completedUnits', 'projectArea', 'addressFloor', 'addressStructure'
+  ];
+  
+  if (numericFields.includes(fieldName)) {
+    const num = Number(value);
+    return isNaN(num) ? null : num;
+  }
+  
+  // Handle date fields
+  const dateFields = ['nocIssueDate', 'nocExpiryDate', 'completionDate'];
+  if (dateFields.includes(fieldName)) {
+    if (typeof value === 'string' && value.trim() !== '') {
+      const date = new Date(value);
+      return isNaN(date.getTime()) ? null : value;
+    }
+    return null;
+  }
+  
+  // Default: convert to string and trim, return null if empty
+  const trimmedValue = String(value).trim();
+  return trimmedValue === '' ? null : trimmedValue;
+}
+
+/**
+ * Generates a comprehensive field coverage report for debugging
+ */
+export function generateNocFieldCoverageReport(
+  formData: any, 
+  preparedData: Record<string, any>, 
+  formType: string
+): string {
+  const originalFields = Object.keys(formData).length;
+  const finalFields = Object.keys(preparedData).length;
+  const populatedFields = Object.values(preparedData).filter(v => v !== null && v !== undefined).length;
+  const nullFields = Object.values(preparedData).filter(v => v === null).length;
+  
+  return `
+📊 Field Coverage Report for ${formType} NOC Verification:
+   Original form fields: ${originalFields}
+   Final database fields: ${finalFields}
+   Populated fields: ${populatedFields}
+   Null fields: ${nullFields}
+   Coverage: ${Math.round((populatedFields / finalFields) * 100)}%
+  `;
+}

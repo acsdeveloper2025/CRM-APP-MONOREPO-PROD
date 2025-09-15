@@ -1,0 +1,271 @@
+# =====================================================
+# CRM MONOREPO - COMPREHENSIVE .GITIGNORE
+# Industry Standard Configuration
+# =====================================================
+
+# =====================================================
+# DEPENDENCIES & NODE MODULES
+# =====================================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# =====================================================
+# RUNTIME DATA & PROCESS FILES
+# =====================================================
+pids
+*.pid
+*.seed
+*.pid.lock
+.grunt
+
+# =====================================================
+# COVERAGE & TESTING
+# =====================================================
+lib-cov
+coverage/
+*.lcov
+.nyc_output
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+
+# =====================================================
+# LOGS & DEBUG FILES
+# =====================================================
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# =====================================================
+# ENVIRONMENT & CONFIG FILES
+# =====================================================
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.*.local
+
+# =====================================================
+# BUILD OUTPUTS & DIST
+# =====================================================
+build/
+dist/
+out/
+.next/
+.nuxt/
+.vuepress/dist
+.serverless/
+.fusebox/
+.dynamodb/
+.tern-port
+
+# =====================================================
+# CACHE & TEMPORARY FILES
+# =====================================================
+.cache/
+.parcel-cache/
+.tmp/
+.temp/
+*.tmp
+*.temp
+.sass-cache/
+.connect.lock
+.typings/
+
+# =====================================================
+# EDITOR & IDE FILES
+# =====================================================
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.swp
+*.swo
+*~
+
+# JetBrains IDEs
+.idea/
+*.iws
+*.iml
+*.ipr
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+[._]*.s[a-v][a-z]
+[._]*.sw[a-p]
+[._]s[a-rt-v][a-z]
+[._]ss[a-gi-z]
+[._]sw[a-p]
+
+# =====================================================
+# OPERATING SYSTEM FILES
+# =====================================================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# =====================================================
+# DATABASE FILES
+# =====================================================
+*.sqlite
+*.sqlite3
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# =====================================================
+# SECURITY & SENSITIVE FILES
+# =====================================================
+*.pem
+*.key
+*.crt
+*.csr
+*.p12
+*.pfx
+.aws/
+.ssh/
+secrets/
+private/
+
+# =====================================================
+# MOBILE DEVELOPMENT (React Native/Capacitor)
+# =====================================================
+# iOS
+ios/build/
+ios/Pods/
+ios/*.xcworkspace/xcuserdata/
+ios/*.xcodeproj/xcuserdata/
+ios/*.xcodeproj/project.xcworkspace/xcuserdata/
+ios/fastlane/report.xml
+ios/fastlane/Preview.html
+ios/fastlane/screenshots
+ios/fastlane/test_output
+
+# Android
+android/app/build/
+android/build/
+android/.gradle/
+android/captures/
+android/gradlew
+android/gradlew.bat
+android/local.properties
+*.keystore
+*.jks
+
+# =====================================================
+# PACKAGE MANAGERS
+# =====================================================
+# npm
+package-lock.json
+npm-shrinkwrap.json
+
+# Yarn
+yarn.lock
+.yarn/
+.yarnrc.yml
+
+# pnpm
+pnpm-lock.yaml
+.pnpm-store/
+
+# =====================================================
+# MONOREPO SPECIFIC
+# =====================================================
+# Lerna
+lerna-debug.log*
+
+# Rush
+common/temp/
+common/scripts/
+.rush/
+
+# =====================================================
+# BACKUP & TEMPORARY FILES
+# =====================================================
+*.backup
+*.backup.*
+*.bak
+*.orig
+*.rej
+*~
+.#*
+#*#
+
+# =====================================================
+# UPLOADS & USER CONTENT
+# =====================================================
+uploads/
+user-uploads/
+public/uploads/
+static/uploads/
+
+# =====================================================
+# DOCUMENTATION BUILD
+# =====================================================
+docs/build/
+docs/.vuepress/dist/
+.docusaurus/
+
+# =====================================================
+# CUSTOM PROJECT FILES
+# =====================================================
+# Add any project-specific files here
+fix-admin-password.js
+test-login.js
+check-admin.js
