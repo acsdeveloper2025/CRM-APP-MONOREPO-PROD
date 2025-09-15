@@ -63,9 +63,9 @@ export const getClients = async (req: AuthenticatedRequest, res: Response) => {
 
     // Add search filter if provided
     if (search) {
-      whereConditions.push(`(name ILIKE $${paramIndex} OR code ILIKE $${paramIndex + 1})`);
-      queryParams.push(`%${search}%`, `%${search}%`);
-      paramIndex += 2;
+      whereConditions.push(`(name ILIKE $${paramIndex})`);
+      queryParams.push(`%${search}%`);
+      paramIndex += 1;
     }
 
     const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
@@ -79,11 +79,11 @@ export const getClients = async (req: AuthenticatedRequest, res: Response) => {
 
     // Get clients with pagination
     const offset = (Number(page) - 1) * Number(limit);
-    const sortCol = ['name', 'code', 'createdAt', 'updatedAt'].includes(String(sortBy)) ? String(sortBy) : 'name';
+    const sortCol = ['name', 'createdAt', 'updatedAt'].includes(String(sortBy)) ? String(sortBy) : 'name';
     const sortDir = String(sortOrder).toLowerCase() === 'desc' ? 'DESC' : 'ASC';
 
     const clientsRes = await query(
-      `SELECT id, name, code, "createdAt", "updatedAt"
+      `SELECT id, name, "createdAt", "updatedAt"
        FROM clients
        ${whereClause}
        ORDER BY "${sortCol}" ${sortDir}

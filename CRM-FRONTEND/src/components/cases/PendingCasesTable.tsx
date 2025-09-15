@@ -146,47 +146,47 @@ export const PendingCasesTable: React.FC<PendingCasesTableProps> = ({
 
   if (isLoading) {
     return (
-      <div className="border rounded-lg">
+      <div className="border rounded-lg bg-black">
         <Table>
           <TableHeader>
-            <TableRow>
-              <TableHead>Case ID</TableHead>
-              <TableHead>Customer</TableHead>
-              <TableHead>Client</TableHead>
-              <TableHead>Verification Type</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Priority</TableHead>
-              <TableHead>Assigned To</TableHead>
-              <TableHead>Time Elapsed</TableHead>
-              <TableHead className="w-[120px]">Actions</TableHead>
+            <TableRow className="bg-black border-gray-700">
+              <TableHead className="text-white">Case ID</TableHead>
+              <TableHead className="text-white">Customer</TableHead>
+              <TableHead className="text-white">Client</TableHead>
+              <TableHead className="text-white">Verification Type</TableHead>
+              <TableHead className="text-white">Status</TableHead>
+              <TableHead className="text-white">Priority</TableHead>
+              <TableHead className="text-white">Assigned To</TableHead>
+              <TableHead className="text-white">Time Elapsed</TableHead>
+              <TableHead className="w-[120px] text-white">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {[1, 2, 3, 4, 5].map((item) => (
-              <TableRow key={item}>
+              <TableRow key={item} className="bg-black border-gray-700">
                 <TableCell>
-                  <div className="h-4 bg-muted rounded animate-pulse"></div>
+                  <div className="h-4 bg-gray-600 rounded animate-pulse"></div>
                 </TableCell>
                 <TableCell>
-                  <div className="h-4 bg-muted rounded animate-pulse"></div>
+                  <div className="h-4 bg-gray-600 rounded animate-pulse"></div>
                 </TableCell>
                 <TableCell>
-                  <div className="h-4 bg-muted rounded animate-pulse"></div>
+                  <div className="h-4 bg-gray-600 rounded animate-pulse"></div>
                 </TableCell>
                 <TableCell>
-                  <div className="h-4 bg-muted rounded animate-pulse"></div>
+                  <div className="h-4 bg-gray-600 rounded animate-pulse"></div>
                 </TableCell>
                 <TableCell>
-                  <div className="h-4 bg-muted rounded animate-pulse"></div>
+                  <div className="h-4 bg-gray-600 rounded animate-pulse"></div>
                 </TableCell>
                 <TableCell>
-                  <div className="h-4 bg-muted rounded animate-pulse"></div>
+                  <div className="h-4 bg-gray-600 rounded animate-pulse"></div>
                 </TableCell>
                 <TableCell>
-                  <div className="h-4 bg-muted rounded animate-pulse"></div>
+                  <div className="h-4 bg-gray-600 rounded animate-pulse"></div>
                 </TableCell>
                 <TableCell>
-                  <div className="h-4 bg-muted rounded animate-pulse"></div>
+                  <div className="h-4 bg-gray-600 rounded animate-pulse"></div>
                 </TableCell>
                 <TableCell>
                   <div className="h-4 bg-muted rounded animate-pulse"></div>
@@ -213,19 +213,19 @@ export const PendingCasesTable: React.FC<PendingCasesTableProps> = ({
 
   return (
     <>
-      <div className="border rounded-lg">
+      <div className="border rounded-lg bg-black">
         <Table>
           <TableHeader>
-            <TableRow>
-              <TableHead>Case ID</TableHead>
-              <TableHead>Customer</TableHead>
-              <TableHead>Client</TableHead>
-              <TableHead>Verification Type</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Priority</TableHead>
-              <TableHead>Assigned To</TableHead>
-              <TableHead>Time Elapsed</TableHead>
-              <TableHead className="w-[120px]">Actions</TableHead>
+            <TableRow className="bg-black border-gray-700">
+              <TableHead className="text-white">Case ID</TableHead>
+              <TableHead className="text-white">Customer</TableHead>
+              <TableHead className="text-white">Client</TableHead>
+              <TableHead className="text-white">Verification Type</TableHead>
+              <TableHead className="text-white">Status</TableHead>
+              <TableHead className="text-white">Priority</TableHead>
+              <TableHead className="text-white">Assigned To</TableHead>
+              <TableHead className="text-white">Time Elapsed</TableHead>
+              <TableHead className="w-[120px] text-white">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -241,22 +241,24 @@ export const PendingCasesTable: React.FC<PendingCasesTableProps> = ({
                 <TableRow
                   key={caseItem.id}
                   className={cn(
-                    // Age-based highlighting with stronger colors and better contrast
-                    ageHighlight === 'red' && urgent && 'bg-red-100 border-l-4 border-l-red-600 text-red-900 dark:bg-red-900/20 dark:border-l-red-400 dark:text-red-300',
-                    ageHighlight === 'red' && !urgent && 'bg-red-50 border-l-4 border-l-red-500 text-red-800 dark:bg-red-900/10 dark:border-l-red-500 dark:text-red-400',
-                    ageHighlight === 'yellow' && urgent && 'bg-yellow-100 border-l-4 border-l-yellow-600 text-yellow-900 dark:bg-yellow-900/20 dark:border-l-yellow-400 dark:text-yellow-300',
-                    ageHighlight === 'yellow' && !urgent && 'bg-yellow-50 border-l-4 border-l-yellow-500 text-yellow-800 dark:bg-yellow-900/10 dark:border-l-yellow-500 dark:text-yellow-400',
+                    // Base black background with white text
+                    'bg-black text-white border-gray-700',
+                    // Age-based highlighting with darker colors for black background
+                    ageHighlight === 'red' && urgent && 'bg-red-900 border-l-4 border-l-red-400 text-red-100',
+                    ageHighlight === 'red' && !urgent && 'bg-red-800 border-l-4 border-l-red-500 text-red-200',
+                    ageHighlight === 'yellow' && urgent && 'bg-yellow-900 border-l-4 border-l-yellow-400 text-yellow-100',
+                    ageHighlight === 'yellow' && !urgent && 'bg-yellow-800 border-l-4 border-l-yellow-500 text-yellow-200',
                     // Fallback for cases without age highlighting but urgent
-                    ageHighlight === 'none' && urgent && 'bg-orange-50 border-l-4 border-l-orange-500 text-orange-800 dark:bg-orange-900/10 dark:border-l-orange-500 dark:text-orange-400',
+                    ageHighlight === 'none' && urgent && 'bg-orange-900 border-l-4 border-l-orange-500 text-orange-100',
                     // Default styling for normal cases
-                    ageHighlight === 'none' && !urgent && 'hover:bg-muted/50'
+                    ageHighlight === 'none' && !urgent && 'hover:bg-gray-800'
                   )}
                 >
                   <TableCell className="font-medium">
                     <div className="flex items-center space-x-2">
                       <Link
                         to={`/cases/${caseItem.caseId || caseItem.id}`}
-                        className="text-blue-600 hover:text-blue-800 hover:underline font-semibold"
+                        className="text-blue-300 hover:text-blue-100 hover:underline font-semibold"
                       >
                         #{caseItem.caseId || caseItem.id?.slice(-8) || 'N/A'}
                       </Link>
