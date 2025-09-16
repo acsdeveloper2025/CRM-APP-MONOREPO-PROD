@@ -45,12 +45,14 @@ class WebSocketService {
     const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
     const isLocalNetwork = hostname.startsWith('10.') || hostname.startsWith('192.168.') || hostname.startsWith('172.');
     const isStaticIP = hostname === 'PUBLIC_STATIC_IP';
+    const isDomain = hostname === 'example.com' || hostname === 'www.example.com';
 
     console.log('🔌 Frontend WebSocket - URL Detection:', {
       hostname,
       isLocalhost,
       isLocalNetwork,
       isStaticIP,
+      isDomain,
       VITE_WS_URL: import.meta.env.VITE_WS_URL
     });
 
@@ -69,14 +71,21 @@ class WebSocketService {
       return url;
     }
 
-    // 3. Check if we're on the static IP (external access)
+    // 3. Check if we're on the domain name (production access)
+    if (isDomain) {
+      const url = 'wss://example.com:3000';
+      console.log('🌐 Frontend WebSocket - Using domain URL:', url);
+      return url;
+    }
+
+    // 4. Check if we're on the static IP (external access)
     if (isStaticIP) {
       const url = 'ws://PUBLIC_STATIC_IP:3000';
       console.log('🌐 Frontend WebSocket - Using static IP URL:', url);
       return url;
     }
 
-    // 4. Fallback to environment variable or localhost
+    // 5. Fallback to environment variable or localhost
     const fallbackUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:3000';
     console.log('🔄 Frontend WebSocket - Using fallback URL:', fallbackUrl);
     return fallbackUrl;
