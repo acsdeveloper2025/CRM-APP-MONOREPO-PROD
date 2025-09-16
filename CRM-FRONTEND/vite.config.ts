@@ -15,6 +15,14 @@ export default defineConfig({
     strictPort: true, // Fail if port 5173 is not available instead of trying other ports
     host: '0.0.0.0', // Bind to all network interfaces for both localhost and network access
     cors: true, // Enable CORS for cross-origin requests
+    allowedHosts: [
+      'localhost',
+      '127.0.0.1',
+      '10.100.100.30',
+      'PUBLIC_STATIC_IP',
+      'example.com',
+      'www.example.com'
+    ],
   },
   build: {
     rollupOptions: {

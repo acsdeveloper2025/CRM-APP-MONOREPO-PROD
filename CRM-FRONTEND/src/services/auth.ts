@@ -103,7 +103,7 @@ export class AuthService {
 
     // 2. Check if we're on the local network IP (hairpin NAT workaround)
     if (isLocalNetwork) {
-      return 'http://10.100.100.30:3000/api';
+      return 'http://PUBLIC_STATIC_IP:3000/api';
     }
 
     // 3. Check if we're on the static IP (external access)
