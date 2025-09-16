@@ -48,7 +48,7 @@ class ApiService {
 
     // 2. Check if we're on the local network IP (hairpin NAT workaround)
     if (isLocalNetwork) {
-      const url = 'http://10.100.100.30:3000/api';
+      const url = 'http://103.14.234.36:3000/api';
       console.log('🏠 Frontend API Service - Using local network API URL (hairpin NAT workaround):', url);
       return url;
     }
