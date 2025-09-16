@@ -9,6 +9,27 @@ import { createAuditLog } from '../utils/auditLogger';
 import { config } from '../config';
 import { query } from '@/config/database';
 
+/**
+ * Get the appropriate API base URL based on request headers
+ */
+function getApiBaseUrl(req: Request): string {
+  const host = req.get('host');
+  const protocol = req.get('x-forwarded-proto') || (req.secure ? 'https' : 'http');
+
+  // Check if request is coming from domain
+  if (host && (host.includes('example.com') || host.includes('www.example.com'))) {
+    return 'https://example.com/api';
+  }
+
+  // Check if request is coming from static IP
+  if (host && host.includes('PUBLIC_STATIC_IP')) {
+    return `http://PUBLIC_STATIC_IP:3000/api`;
+  }
+
+  // Default to localhost or environment variable
+  return process.env.API_BASE_URL || 'http://localhost:3000/api';
+}
+
 // Configure multer for file uploads
 const storage = multer.diskStorage({
   destination: async (req, file, cb) => {
@@ -288,7 +309,7 @@ export class MobileAttachmentController {
         originalName: att.originalName,
         mimeType: att.mimeType,
         size: att.fileSize,
-        url: `/api/attachments/${att.id}/serve`, // Use secure API endpoint
+        url: `${getApiBaseUrl(req)}/attachments/${att.id}/serve`, // Use secure API endpoint
         thumbnailUrl: null, // Not available in current schema
         uploadedAt: new Date(att.createdAt).toISOString(),
         geoLocation: undefined, // Not available in current schema
@@ -586,7 +607,7 @@ export class MobileAttachmentController {
           processingStatus: attachment.processingStatus,
           thumbnailPath: attachment.thumbnailPath,
           compressedPath: attachment.compressedPath,
-          downloadUrl: `/api/mobile/attachments/${attachment.id}/content`,
+          downloadUrl: `${getApiBaseUrl(req)}/mobile/attachments/${attachment.id}/content`,
         });
       });
 
