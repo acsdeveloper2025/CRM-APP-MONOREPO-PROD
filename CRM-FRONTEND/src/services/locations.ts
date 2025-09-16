@@ -17,6 +17,39 @@ import type {
 } from '@/types/location';
 import type { ApiResponse, PaginationQuery } from '@/types/api';
 
+// Smart API URL selection
+const getApiBaseUrl = () => {
+  const hostname = window.location.hostname;
+  const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
+  const isLocalNetwork = hostname.startsWith('10.') || hostname.startsWith('192.168.') || hostname.startsWith('172.');
+  const isStaticIP = hostname === '103.14.234.36';
+  const isDomain = hostname === 'crm.allcheckservices.com' || hostname === 'www.crm.allcheckservices.com';
+
+  // Priority order for API URL selection:
+  // 1. Check if we're on localhost (development)
+  if (isLocalhost) {
+    return 'http://localhost:3000/api';
+  }
+
+  // 2. Check if we're on the local network IP (hairpin NAT workaround)
+  if (isLocalNetwork) {
+    return 'http://103.14.234.36:3000/api';
+  }
+
+  // 3. Check if we're on the domain name (production access)
+  if (isDomain) {
+    return 'https://crm.allcheckservices.com/api';
+  }
+
+  // 4. Check if we're on the static IP (external access)
+  if (isStaticIP) {
+    return 'http://103.14.234.36:3000/api';
+  }
+
+  // 5. Fallback to environment variable or localhost
+  return import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
+};
+
 export interface LocationQuery extends PaginationQuery {
   search?: string;
   state?: string;
@@ -138,7 +171,8 @@ export class LocationsService {
     const formData = new FormData();
     formData.append('file', file);
     
-    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/cities/bulk-import`, {
+    const apiBaseUrl = getApiBaseUrl();
+    const response = await fetch(`${apiBaseUrl}/cities/bulk-import`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
@@ -153,7 +187,8 @@ export class LocationsService {
     const formData = new FormData();
     formData.append('file', file);
     
-    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/pincodes/bulk-import`, {
+    const apiBaseUrl = getApiBaseUrl();
+    const response = await fetch(`${apiBaseUrl}/pincodes/bulk-import`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
@@ -169,7 +204,8 @@ export class LocationsService {
     const formData = new FormData();
     formData.append('file', file);
 
-    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/countries/bulk-import`, {
+    const apiBaseUrl = getApiBaseUrl();
+    const response = await fetch(`${apiBaseUrl}/countries/bulk-import`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
@@ -185,7 +221,8 @@ export class LocationsService {
     const formData = new FormData();
     formData.append('file', file);
 
-    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/states/bulk-import`, {
+    const apiBaseUrl = getApiBaseUrl();
+    const response = await fetch(`${apiBaseUrl}/states/bulk-import`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
