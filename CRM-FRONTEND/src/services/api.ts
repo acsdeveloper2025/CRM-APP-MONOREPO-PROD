@@ -25,12 +25,14 @@ class ApiService {
     const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
     const isLocalNetwork = hostname.startsWith('10.') || hostname.startsWith('192.168.') || hostname.startsWith('172.');
     const isStaticIP = hostname === '103.14.234.36';
+    const isDomain = hostname === 'crm.allcheckservices.com' || hostname === 'www.crm.allcheckservices.com';
 
     console.log('🌐 Frontend API Service - URL Detection:', {
       hostname,
       isLocalhost,
       isLocalNetwork,
       isStaticIP,
+      isDomain,
       VITE_API_BASE_URL: import.meta.env.VITE_API_BASE_URL,
       VITE_API_BASE_URL_STATIC_IP: import.meta.env.VITE_API_BASE_URL_STATIC_IP,
       VITE_API_BASE_URL_DEVICE: import.meta.env.VITE_API_BASE_URL_DEVICE
@@ -51,14 +53,21 @@ class ApiService {
       return url;
     }
 
-    // 3. Check if we're on the static IP (external access)
+    // 3. Check if we're on the domain name (production access)
+    if (isDomain) {
+      const url = 'https://crm.allcheckservices.com:3000/api';
+      console.log('🌐 Frontend API Service - Using domain API URL:', url);
+      return url;
+    }
+
+    // 4. Check if we're on the static IP (external access)
     if (isStaticIP) {
       const url = 'http://103.14.234.36:3000/api';
       console.log('🌐 Frontend API Service - Using static IP API URL:', url);
       return url;
     }
 
-    // 4. Fallback to environment variable or localhost
+    // 5. Fallback to environment variable or localhost
     const fallbackUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
     console.log('🔄 Frontend API Service - Using fallback API URL:', fallbackUrl);
     return fallbackUrl;

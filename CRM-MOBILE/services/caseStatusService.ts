@@ -94,11 +94,13 @@ class CaseStatusService {
     const hostname = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
     const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
     const isLocalNetwork = hostname.startsWith('10.') || hostname.startsWith('192.168.') || hostname.startsWith('172.');
+    const isDomain = hostname === 'crm.allcheckservices.com' || hostname === 'www.crm.allcheckservices.com';
 
     console.log('🌐 Case Status Service - API URL Detection:', {
       hostname,
       isLocalhost,
       isLocalNetwork,
+      isDomain,
       MODE: import.meta.env.MODE,
       VITE_API_BASE_URL_STATIC_IP: import.meta.env.VITE_API_BASE_URL_STATIC_IP,
       VITE_API_BASE_URL_DEVICE: import.meta.env.VITE_API_BASE_URL_DEVICE,
@@ -113,6 +115,11 @@ class CaseStatusService {
       // Use local network IP to avoid hairpin NAT issues
       const url = import.meta.env.VITE_API_BASE_URL_DEVICE || 'http://103.14.234.36:3000/api';
       console.log('🏠 Case Status Service - Using local network API URL (hairpin NAT workaround):', url);
+      return url;
+    } else if (isDomain) {
+      // Use domain for production access
+      const url = 'https://crm.allcheckservices.com:3000/api';
+      console.log('🌐 Case Status Service - Using domain API URL:', url);
       return url;
     } else {
       // Use static IP for external access
