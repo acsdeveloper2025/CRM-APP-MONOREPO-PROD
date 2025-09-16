@@ -116,6 +116,39 @@ export const CaseAttachmentsSection: React.FC<CaseAttachmentsSectionProps> = ({ 
     setSelectedFiles(prev => prev.filter((_, i) => i !== index));
   };
 
+  // Smart API URL selection
+  const getApiBaseUrl = () => {
+    const hostname = window.location.hostname;
+    const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
+    const isLocalNetwork = hostname.startsWith('10.') || hostname.startsWith('192.168.') || hostname.startsWith('172.');
+    const isStaticIP = hostname === 'PUBLIC_STATIC_IP';
+    const isDomain = hostname === 'example.com' || hostname === 'www.example.com';
+
+    // Priority order for API URL selection:
+    // 1. Check if we're on localhost (development)
+    if (isLocalhost) {
+      return 'http://localhost:3000/api';
+    }
+
+    // 2. Check if we're on the local network IP (hairpin NAT workaround)
+    if (isLocalNetwork) {
+      return 'http://PUBLIC_STATIC_IP:3000/api';
+    }
+
+    // 3. Check if we're on the domain name (production access)
+    if (isDomain) {
+      return 'https://example.com/api';
+    }
+
+    // 4. Check if we're on the static IP (external access)
+    if (isStaticIP) {
+      return 'http://PUBLIC_STATIC_IP:3000/api';
+    }
+
+    // 5. Fallback to environment variable or localhost
+    return import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
+  };
+
   const uploadFiles = async () => {
     if (selectedFiles.length === 0) return;
 
@@ -128,7 +161,8 @@ export const CaseAttachmentsSection: React.FC<CaseAttachmentsSectionProps> = ({ 
       formData.append('caseId', caseId);
       formData.append('category', 'DOCUMENT');
 
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/attachments/upload`, {
+      const apiBaseUrl = getApiBaseUrl();
+      const response = await fetch(`${apiBaseUrl}/attachments/upload`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
@@ -152,7 +186,8 @@ export const CaseAttachmentsSection: React.FC<CaseAttachmentsSectionProps> = ({ 
 
   const deleteAttachment = async (attachmentId: string) => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/attachments/${attachmentId}`, {
+      const apiBaseUrl = getApiBaseUrl();
+      const response = await fetch(`${apiBaseUrl}/attachments/${attachmentId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
@@ -172,7 +207,8 @@ export const CaseAttachmentsSection: React.FC<CaseAttachmentsSectionProps> = ({ 
 
   const downloadAttachment = async (attachment: Attachment) => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/attachments/${attachment.id}/download`, {
+      const apiBaseUrl = getApiBaseUrl();
+      const response = await fetch(`${apiBaseUrl}/attachments/${attachment.id}/download`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
@@ -350,7 +386,7 @@ export const CaseAttachmentsSection: React.FC<CaseAttachmentsSectionProps> = ({ 
             <div className="flex justify-center">
               {previewAttachment.mimeType.startsWith('image/') ? (
                 <img
-                  src={`${import.meta.env.VITE_API_BASE_URL}/attachments/${previewAttachment.id}/serve`}
+                  src={`${getApiBaseUrl()}/attachments/${previewAttachment.id}/serve`}
                   alt={previewAttachment.originalName}
                   className="max-w-full max-h-[60vh] object-contain"
                   onError={(e) => {
