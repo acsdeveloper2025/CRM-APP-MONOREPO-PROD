@@ -118,7 +118,7 @@ class CaseStatusService {
       return url;
     } else if (isDomain) {
       // Use domain for production access
-      const url = 'https://crm.allcheckservices.com:3000/api';
+      const url = 'https://crm.allcheckservices.com/api';
       console.log('🌐 Case Status Service - Using domain API URL:', url);
       return url;
     } else {
