@@ -76,19 +76,23 @@ export const setGoogleMapsApiKey = (apiKey: string): void => {
  * Validate environment configuration
  */
 export const validateEnvironmentConfig = (config: EnvironmentConfig): boolean => {
-  if (!config.googleMaps.apiKey) {
-    console.warn('Google Maps API key is not configured. Please set VITE_GOOGLE_MAPS_API_KEY environment variable.');
-    return false;
-  }
+  let isValid = true;
 
-  if (config.googleMaps.apiKey.startsWith('AIzaSy')) {
-    console.log('Using configured Google Maps API key');
+  // Google Maps API key is optional - warn but don't fail validation
+  if (!config.googleMaps.apiKey || config.googleMaps.apiKey.includes('Dummy_Key')) {
+    console.warn('Google Maps API key is not configured. Map features will be limited. Set VITE_GOOGLE_MAPS_API_KEY for full functionality.');
+    // Don't set isValid = false for missing Google Maps key
+  } else if (config.googleMaps.apiKey.startsWith('AIzaSy')) {
+    console.log('✅ Using configured Google Maps API key');
   } else {
-    console.warn('Google Maps API key format appears invalid');
-    return false;
+    console.warn('Google Maps API key format appears invalid. Map features may not work correctly.');
+    // Don't fail validation for invalid format either
   }
 
-  return true;
+  // Add validation for critical configuration here if needed
+  // For now, we'll be lenient and only warn about optional features
+
+  return isValid;
 };
 
 export default getEnvironmentConfig;

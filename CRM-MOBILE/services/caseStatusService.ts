@@ -88,6 +88,41 @@ class CaseStatusService {
 
 
   /**
+   * Get smart API base URL with fallback logic
+   */
+  private static getApiBaseUrl(): string {
+    const hostname = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
+    const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
+    const isLocalNetwork = hostname.startsWith('10.') || hostname.startsWith('192.168.') || hostname.startsWith('172.');
+
+    console.log('🌐 Case Status Service - API URL Detection:', {
+      hostname,
+      isLocalhost,
+      isLocalNetwork,
+      MODE: import.meta.env.MODE,
+      VITE_API_BASE_URL_STATIC_IP: import.meta.env.VITE_API_BASE_URL_STATIC_IP,
+      VITE_API_BASE_URL_DEVICE: import.meta.env.VITE_API_BASE_URL_DEVICE,
+      VITE_API_BASE_URL: import.meta.env.VITE_API_BASE_URL
+    });
+
+    if (isLocalhost) {
+      const url = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
+      console.log('🏠 Case Status Service - Using localhost API URL:', url);
+      return url;
+    } else if (isLocalNetwork) {
+      // Use local network IP to avoid hairpin NAT issues
+      const url = import.meta.env.VITE_API_BASE_URL_DEVICE || 'http://103.14.234.36:3000/api';
+      console.log('🏠 Case Status Service - Using local network API URL (hairpin NAT workaround):', url);
+      return url;
+    } else {
+      // Use static IP for external access
+      const url = import.meta.env.VITE_API_BASE_URL_STATIC_IP || 'http://103.14.234.36:3000/api';
+      console.log('🌐 Case Status Service - Using static IP API URL:', url);
+      return url;
+    }
+  }
+
+  /**
    * Sync status update with backend
    */
   private static async syncStatusWithBackend(
@@ -96,7 +131,7 @@ class CaseStatusService {
     metadata: Record<string, any>
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL_DEVICE || import.meta.env.VITE_API_BASE_URL || 'http://103.14.234.36:3000/api';
+      const API_BASE_URL = this.getApiBaseUrl();
       const authToken = await AuthStorageService.getCurrentAccessToken();
 
       if (!authToken) {

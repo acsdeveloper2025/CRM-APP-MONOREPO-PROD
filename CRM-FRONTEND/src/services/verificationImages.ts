@@ -124,8 +124,38 @@ class VerificationImagesService {
       }
 
       try {
+        // Smart API URL selection
+        const getApiBaseUrl = () => {
+          const hostname = window.location.hostname;
+          const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
+          const isLocalNetwork = hostname.startsWith('10.') || hostname.startsWith('192.168.') || hostname.startsWith('172.');
+          const isStaticIP = hostname === '103.14.234.36';
+
+          // Priority order for API URL selection:
+          // 1. Check if we're on localhost (development)
+          if (isLocalhost) {
+            return 'http://localhost:3000/api';
+          }
+
+          // 2. Check if we're on the local network IP (hairpin NAT workaround)
+          if (isLocalNetwork) {
+            return 'http://103.14.234.36:3000/api';
+          }
+
+          // 3. Check if we're on the static IP (external access)
+          if (isStaticIP) {
+            return 'http://103.14.234.36:3000/api';
+          }
+
+          // 4. Fallback to environment variable or localhost
+          return import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
+        };
+
+        const apiBaseUrl = getApiBaseUrl();
+        console.log('🖼️ Verification Images - Using API URL:', apiBaseUrl);
+
         // Fetch the image as blob with authentication
-        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/cases/verification-images/${imageId}/serve`, {
+        const response = await fetch(`${apiBaseUrl}/cases/verification-images/${imageId}/serve`, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
           },
@@ -146,13 +176,40 @@ class VerificationImagesService {
       } catch (error) {
         console.error('Error fetching image:', error);
         // Fallback to direct URL (might not work with auth)
-        const baseUrl = import.meta.env.VITE_API_BASE_URL.replace('/api', '');
+        const baseUrl = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api').replace('/api', '');
         return `${baseUrl}${imageUrl}`;
       }
     }
 
     // Fallback to direct URL (for backward compatibility)
-    const baseUrl = import.meta.env.VITE_API_BASE_URL.replace('/api', '');
+    const getApiBaseUrl = () => {
+      const hostname = window.location.hostname;
+      const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
+      const isLocalNetwork = hostname.startsWith('10.') || hostname.startsWith('192.168.') || hostname.startsWith('172.');
+      const isStaticIP = hostname === '103.14.234.36';
+
+      // Priority order for API URL selection:
+      // 1. Check if we're on localhost (development)
+      if (isLocalhost) {
+        return 'http://localhost:3000/api';
+      }
+
+      // 2. Check if we're on the local network IP (hairpin NAT workaround)
+      if (isLocalNetwork) {
+        return 'http://103.14.234.36:3000/api';
+      }
+
+      // 3. Check if we're on the static IP (external access)
+      if (isStaticIP) {
+        return 'http://103.14.234.36:3000/api';
+      }
+
+      // 4. Fallback to environment variable or localhost
+      return import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
+    };
+
+    const baseUrl = getApiBaseUrl().replace('/api', '');
+    console.log('🖼️ Verification Images - Fallback using base URL:', baseUrl);
     return `${baseUrl}${imageUrl}`;
   }
 

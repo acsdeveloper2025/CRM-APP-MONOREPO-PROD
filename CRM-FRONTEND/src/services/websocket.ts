@@ -20,8 +20,8 @@ class WebSocketService {
   private latency: number = 0;
 
   constructor() {
-    // Use environment variable for WebSocket URL with fallback
-    const wsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:3000';
+    // Smart WebSocket URL selection
+    const wsUrl = this.getWebSocketUrl();
     console.log('🔌 WebSocket URL configured:', wsUrl);
 
     this.config = {
@@ -38,6 +38,48 @@ class WebSocketService {
       lastConnected: null,
       reconnectAttempts: 0,
     };
+  }
+
+  private getWebSocketUrl(): string {
+    const hostname = window.location.hostname;
+    const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
+    const isLocalNetwork = hostname.startsWith('10.') || hostname.startsWith('192.168.') || hostname.startsWith('172.');
+    const isStaticIP = hostname === '103.14.234.36';
+
+    console.log('🔌 Frontend WebSocket - URL Detection:', {
+      hostname,
+      isLocalhost,
+      isLocalNetwork,
+      isStaticIP,
+      VITE_WS_URL: import.meta.env.VITE_WS_URL
+    });
+
+    // Priority order for WebSocket URL selection:
+    // 1. Check if we're on localhost (development)
+    if (isLocalhost) {
+      const url = 'ws://localhost:3000';
+      console.log('🏠 Frontend WebSocket - Using localhost URL:', url);
+      return url;
+    }
+
+    // 2. Check if we're on the local network IP (hairpin NAT workaround)
+    if (isLocalNetwork) {
+      const url = 'ws://10.100.100.30:3000';
+      console.log('🏠 Frontend WebSocket - Using local network URL (hairpin NAT workaround):', url);
+      return url;
+    }
+
+    // 3. Check if we're on the static IP (external access)
+    if (isStaticIP) {
+      const url = 'ws://103.14.234.36:3000';
+      console.log('🌐 Frontend WebSocket - Using static IP URL:', url);
+      return url;
+    }
+
+    // 4. Fallback to environment variable or localhost
+    const fallbackUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:3000';
+    console.log('🔄 Frontend WebSocket - Using fallback URL:', fallbackUrl);
+    return fallbackUrl;
   }
 
   // Connection management

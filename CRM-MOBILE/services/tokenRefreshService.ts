@@ -16,7 +16,28 @@ export interface RefreshResult {
 }
 
 class TokenRefreshService {
-  private static readonly API_BASE_URL = import.meta.env.VITE_API_BASE_URL_DEVICE || import.meta.env.VITE_API_BASE_URL || 'http://103.14.234.36:3000/api';
+  /**
+   * Get smart API base URL with fallback logic
+   */
+  private static getApiBaseUrl(): string {
+    const hostname = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
+    const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
+
+    if (isLocalhost) {
+      const url = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
+      console.log('🏠 Token Refresh Service - Using localhost API URL:', url);
+      return url;
+    } else {
+      const staticUrl = import.meta.env.VITE_API_BASE_URL_STATIC_IP;
+      const networkUrl = import.meta.env.VITE_API_BASE_URL_NETWORK;
+      const deviceUrl = import.meta.env.VITE_API_BASE_URL_DEVICE;
+
+      const url = staticUrl || networkUrl || deviceUrl || 'http://localhost:3000/api';
+      console.log('🌐 Token Refresh Service - Using network API URL:', url);
+      return url;
+    }
+  }
+
   private static refreshInProgress = false;
   private static refreshPromise: Promise<RefreshResult> | null = null;
 
@@ -58,7 +79,7 @@ class TokenRefreshService {
         };
       }
 
-      const response = await fetch(`${this.API_BASE_URL}/mobile/auth/refresh`, {
+      const response = await fetch(`${this.getApiBaseUrl()}/mobile/auth/refresh`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

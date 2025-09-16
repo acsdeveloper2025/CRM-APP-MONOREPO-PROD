@@ -1,7 +1,9 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { webSocketService } from '@/services/websocket';
 import { authService } from '@/services/auth';
 import { apiService } from '@/services/api';
+import { caseKeys } from '@/hooks/useCases';
 import type {
   WebSocketEventHandlers,
   ConnectionStatus,
@@ -28,6 +30,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     onBroadcast,
   } = options;
 
+  const queryClient = useQueryClient();
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>(
     webSocketService.getConnectionStatus()
   );
@@ -90,13 +93,23 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
 
   // Handle case updates
   const handleCaseUpdate = useCallback((update: CaseUpdate) => {
+    console.log('🔄 WebSocket case update received:', update);
+
+    // Invalidate case queries to refresh the UI
+    queryClient.invalidateQueries({ queryKey: caseKeys.all });
+
     onCaseUpdate?.(update);
-  }, [onCaseUpdate]);
+  }, [onCaseUpdate, queryClient]);
 
   // Handle case status updates
   const handleCaseStatusUpdate = useCallback((update: CaseStatusUpdate) => {
+    console.log('🔄 WebSocket case status update received:', update);
+
+    // Invalidate case queries to refresh the UI
+    queryClient.invalidateQueries({ queryKey: caseKeys.all });
+
     onCaseStatusUpdate?.(update);
-  }, [onCaseStatusUpdate]);
+  }, [onCaseStatusUpdate, queryClient]);
 
   // Handle system broadcasts
   const handleBroadcast = useCallback((broadcast: SystemBroadcast) => {

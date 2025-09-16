@@ -5,6 +5,7 @@ import { getEnvironmentConfig } from '../config/environment';
 import retryService from './retryService';
 import progressTrackingService from './progressTrackingService';
 import compressionService from './compressionService';
+import { secureStorageService } from './secureStorageService';
 
 export interface VerificationFormData {
   [key: string]: any;
@@ -64,7 +65,27 @@ export interface VerificationSubmissionResult {
  * Service for submitting verification forms to the backend
  */
 class VerificationFormService {
-  private static readonly API_BASE_URL = import.meta.env.VITE_API_BASE_URL_DEVICE || import.meta.env.VITE_API_BASE_URL || 'http://103.14.234.36:3000/api';
+  /**
+   * Get smart API base URL with fallback logic
+   */
+  private static getApiBaseUrl(): string {
+    const hostname = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
+    const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
+
+    if (isLocalhost) {
+      const url = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
+      console.log('🏠 Verification Form Service - Using localhost API URL:', url);
+      return url;
+    } else {
+      const staticUrl = import.meta.env.VITE_API_BASE_URL_STATIC_IP;
+      const networkUrl = import.meta.env.VITE_API_BASE_URL_NETWORK;
+      const deviceUrl = import.meta.env.VITE_API_BASE_URL_DEVICE;
+
+      const url = staticUrl || networkUrl || deviceUrl || 'http://localhost:3000/api';
+      console.log('🌐 Verification Form Service - Using network API URL:', url);
+      return url;
+    }
+  }
 
   /**
    * Submit residence verification form with enhanced error recovery, progress tracking, and compression
@@ -160,7 +181,7 @@ class VerificationFormService {
       progressTrackingService.updateStepProgress(submissionId, 'submit_form', 0, 'IN_PROGRESS');
 
       const result = await this.submitToBackendWithRetry(
-        `${this.API_BASE_URL}/mobile/cases/${caseId}/verification/residence`,
+        `${this.getApiBaseUrl()}/mobile/cases/${caseId}/verification/residence`,
         submissionData,
         'VERIFICATION_SUBMISSION',
         'HIGH',
@@ -364,12 +385,12 @@ class VerificationFormService {
         imageCount: images.length,
         hasGeoLocation: !!geoLocation,
         submissionDataSize: JSON.stringify(submissionData).length,
-        endpoint: `${this.API_BASE_URL}/mobile/cases/${caseId}/verification/${verificationType}`
+        endpoint: `${this.getApiBaseUrl()}/mobile/cases/${caseId}/verification/${verificationType}`
       });
 
       // Submit to backend with enhanced retry mechanism
       const result = await this.submitToBackendWithRetry(
-        `${this.API_BASE_URL}/mobile/cases/${caseId}/verification/${verificationType}`,
+        `${this.getApiBaseUrl()}/mobile/cases/${caseId}/verification/${verificationType}`,
         submissionData,
         'VERIFICATION_SUBMISSION',
         'HIGH',
@@ -455,6 +476,16 @@ class VerificationFormService {
         progressTrackingService.updateStepProgress(submissionId, 'submit_form', 100, 'COMPLETED');
         progressTrackingService.updateStepProgress(submissionId, 'confirmation', 100, 'COMPLETED');
 
+        // Clear secure attachments after successful case submission
+        try {
+          console.log(`🗑️ Clearing secure attachments for completed case: ${caseId}`);
+          await secureStorageService.clearCaseAttachments(caseId);
+          console.log(`✅ Secure attachments cleared for case: ${caseId}`);
+        } catch (error) {
+          console.warn(`⚠️ Failed to clear attachments for case ${caseId}:`, error);
+          // Don't fail the submission if attachment cleanup fails
+        }
+
         return {
           success: true,
           caseId: result.data?.caseId,
@@ -513,7 +544,7 @@ class VerificationFormService {
       }
 
       // Upload to backend
-      const uploadResponse = await fetch(`${this.API_BASE_URL}/mobile/cases/${caseId}/attachments`, {
+      const uploadResponse = await fetch(`${this.getApiBaseUrl()}/mobile/cases/${caseId}/attachments`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${authToken}`,
@@ -686,6 +717,21 @@ class VerificationFormService {
           success: false,
           error: result.message || 'Verification submission failed'
         };
+      }
+
+      // Clear secure attachments after successful case submission
+      try {
+        // Extract caseId from URL (format: /mobile/cases/{caseId}/verification/{type})
+        const caseIdMatch = url.match(/\/mobile\/cases\/([^\/]+)\/verification/);
+        if (caseIdMatch && caseIdMatch[1]) {
+          const caseId = caseIdMatch[1];
+          console.log(`🗑️ Clearing secure attachments for completed case: ${caseId}`);
+          await secureStorageService.clearCaseAttachments(caseId);
+          console.log(`✅ Secure attachments cleared for case: ${caseId}`);
+        }
+      } catch (error) {
+        console.warn(`⚠️ Failed to clear attachments:`, error);
+        // Don't fail the submission if attachment cleanup fails
       }
 
       return {

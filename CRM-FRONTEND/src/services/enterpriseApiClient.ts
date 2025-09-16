@@ -1,6 +1,49 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000';
+// Smart API URL selection function
+function getApiBaseUrl(): string {
+  const hostname = window.location.hostname;
+  const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
+  const isLocalNetwork = hostname.startsWith('10.') || hostname.startsWith('192.168.') || hostname.startsWith('172.');
+  const isStaticIP = hostname === '103.14.234.36';
+
+  console.log('🌐 Enterprise API Client - URL Detection:', {
+    hostname,
+    isLocalhost,
+    isLocalNetwork,
+    isStaticIP
+  });
+
+  // Priority order for API URL selection:
+  // 1. Check if we're on localhost (development)
+  if (isLocalhost) {
+    const url = 'http://localhost:3000';
+    console.log('🏠 Enterprise API Client - Using localhost URL:', url);
+    return url;
+  }
+
+  // 2. Check if we're on the local network IP (hairpin NAT workaround)
+  if (isLocalNetwork) {
+    const url = 'http://103.14.234.36:3000';
+    console.log('🏠 Enterprise API Client - Using local network URL (hairpin NAT workaround):', url);
+    return url;
+  }
+
+  // 3. Check if we're on the static IP (external access)
+  if (isStaticIP) {
+    const url = 'http://103.14.234.36:3000';
+    console.log('🌐 Enterprise API Client - Using static IP URL:', url);
+    return url;
+  }
+
+  // 4. Fallback to environment variable or localhost
+  const fallbackUrl = import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || 'http://localhost:3000';
+  console.log('🔄 Enterprise API Client - Using fallback URL:', fallbackUrl);
+  return fallbackUrl;
+}
+
+const API_BASE_URL = getApiBaseUrl();
+console.log('🏢 Enterprise API Client - Using base URL:', API_BASE_URL);
 
 interface CacheEntry {
   data: any;
