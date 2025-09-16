@@ -130,6 +130,7 @@ class VerificationImagesService {
           const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
           const isLocalNetwork = hostname.startsWith('10.') || hostname.startsWith('192.168.') || hostname.startsWith('172.');
           const isStaticIP = hostname === 'PUBLIC_STATIC_IP';
+          const isDomain = hostname === 'example.com' || hostname === 'www.example.com';
 
           // Priority order for API URL selection:
           // 1. Check if we're on localhost (development)
@@ -142,12 +143,17 @@ class VerificationImagesService {
             return 'http://PUBLIC_STATIC_IP:3000/api';
           }
 
-          // 3. Check if we're on the static IP (external access)
+          // 3. Check if we're on the domain name (production access)
+          if (isDomain) {
+            return 'https://example.com/api';
+          }
+
+          // 4. Check if we're on the static IP (external access)
           if (isStaticIP) {
             return 'http://PUBLIC_STATIC_IP:3000/api';
           }
 
-          // 4. Fallback to environment variable or localhost
+          // 5. Fallback to environment variable or localhost
           return import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
         };
 
@@ -187,6 +193,7 @@ class VerificationImagesService {
       const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
       const isLocalNetwork = hostname.startsWith('10.') || hostname.startsWith('192.168.') || hostname.startsWith('172.');
       const isStaticIP = hostname === 'PUBLIC_STATIC_IP';
+      const isDomain = hostname === 'example.com' || hostname === 'www.example.com';
 
       // Priority order for API URL selection:
       // 1. Check if we're on localhost (development)
@@ -199,12 +206,17 @@ class VerificationImagesService {
         return 'http://PUBLIC_STATIC_IP:3000/api';
       }
 
-      // 3. Check if we're on the static IP (external access)
+      // 3. Check if we're on the domain name (production access)
+      if (isDomain) {
+        return 'https://example.com/api';
+      }
+
+      // 4. Check if we're on the static IP (external access)
       if (isStaticIP) {
         return 'http://PUBLIC_STATIC_IP:3000/api';
       }
 
-      // 4. Fallback to environment variable or localhost
+      // 5. Fallback to environment variable or localhost
       return import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
     };
 
