@@ -268,8 +268,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
         // 3. Check if we're on the domain name (production access)
         if (isDomain) {
+          // For domain access, always use HTTPS for API calls (even if mobile app is HTTP)
+          // This ensures secure API communication
           const url = 'https://crm.allcheckservices.com/api';
-          console.log('🌐 AuthContext using domain API URL:', url);
+          console.log('🌐 AuthContext using domain API URL (HTTPS):', url);
           return url;
         }
 

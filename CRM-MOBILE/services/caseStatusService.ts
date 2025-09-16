@@ -117,9 +117,9 @@ class CaseStatusService {
       console.log('🏠 Case Status Service - Using local network API URL (hairpin NAT workaround):', url);
       return url;
     } else if (isDomain) {
-      // Use domain for production access
+      // Use domain for production access - always use HTTPS for secure API communication
       const url = 'https://crm.allcheckservices.com/api';
-      console.log('🌐 Case Status Service - Using domain API URL:', url);
+      console.log('🌐 Case Status Service - Using domain API URL (HTTPS):', url);
       return url;
     } else {
       // Use static IP for external access
