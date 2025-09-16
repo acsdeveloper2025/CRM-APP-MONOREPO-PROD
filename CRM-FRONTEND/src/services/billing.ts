@@ -8,6 +8,39 @@ import type {
 } from '@/types/billing';
 import type { ApiResponse, PaginationQuery } from '@/types/api';
 
+// Smart API URL selection
+const getApiBaseUrl = () => {
+  const hostname = window.location.hostname;
+  const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
+  const isLocalNetwork = hostname.startsWith('10.') || hostname.startsWith('192.168.') || hostname.startsWith('172.');
+  const isStaticIP = hostname === 'PUBLIC_STATIC_IP';
+  const isDomain = hostname === 'example.com' || hostname === 'www.example.com';
+
+  // Priority order for API URL selection:
+  // 1. Check if we're on localhost (development)
+  if (isLocalhost) {
+    return 'http://localhost:3000/api';
+  }
+
+  // 2. Check if we're on the local network IP (hairpin NAT workaround)
+  if (isLocalNetwork) {
+    return 'http://PUBLIC_STATIC_IP:3000/api';
+  }
+
+  // 3. Check if we're on the domain name (production access)
+  if (isDomain) {
+    return 'https://example.com/api';
+  }
+
+  // 4. Check if we're on the static IP (external access)
+  if (isStaticIP) {
+    return 'http://PUBLIC_STATIC_IP:3000/api';
+  }
+
+  // 5. Fallback to environment variable or localhost
+  return import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
+};
+
 export interface InvoiceQuery extends PaginationQuery {
   clientId?: string;
   status?: string;
@@ -54,7 +87,8 @@ export class BillingService {
   }
 
   async downloadInvoicePDF(id: string): Promise<Blob> {
-    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/invoices/${id}/download`, {
+    const apiBaseUrl = getApiBaseUrl();
+    const response = await fetch(`${apiBaseUrl}/invoices/${id}/download`, {
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
       },
@@ -121,7 +155,8 @@ export class BillingService {
   }
 
   async downloadInvoiceReport(query: InvoiceQuery = {}): Promise<Blob> {
-    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/reports/invoices/download`, {
+    const apiBaseUrl = getApiBaseUrl();
+    const response = await fetch(`${apiBaseUrl}/reports/invoices/download`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
@@ -133,7 +168,8 @@ export class BillingService {
   }
 
   async downloadCommissionReport(query: CommissionQuery = {}): Promise<Blob> {
-    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/reports/commissions/download`, {
+    const apiBaseUrl = getApiBaseUrl();
+    const response = await fetch(`${apiBaseUrl}/reports/commissions/download`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
