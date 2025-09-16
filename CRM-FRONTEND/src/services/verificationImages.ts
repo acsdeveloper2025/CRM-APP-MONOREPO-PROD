@@ -97,7 +97,8 @@ class VerificationImagesService {
    * Download verification image
    */
   async downloadVerificationImage(imageId: number): Promise<Blob> {
-    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/cases/verification-images/${imageId}/serve`, {
+    const apiBaseUrl = getApiBaseUrl();
+    const response = await fetch(`${apiBaseUrl}/cases/verification-images/${imageId}/serve`, {
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
       },
@@ -182,7 +183,8 @@ class VerificationImagesService {
       } catch (error) {
         console.error('Error fetching image:', error);
         // Fallback to direct URL (might not work with auth)
-        const baseUrl = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api').replace('/api', '');
+        const apiBaseUrl = getApiBaseUrl();
+        const baseUrl = apiBaseUrl.replace('/api', '');
         return `${baseUrl}${imageUrl}`;
       }
     }
@@ -240,7 +242,8 @@ class VerificationImagesService {
 
       try {
         // Fetch the thumbnail as blob with authentication
-        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/cases/verification-images/${imageId}/thumbnail`, {
+        const apiBaseUrl = getApiBaseUrl();
+        const response = await fetch(`${apiBaseUrl}/cases/verification-images/${imageId}/thumbnail`, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
           },
@@ -261,13 +264,15 @@ class VerificationImagesService {
       } catch (error) {
         console.error('Error fetching thumbnail:', error);
         // Fallback to direct URL (might not work with auth)
-        const baseUrl = import.meta.env.VITE_API_BASE_URL.replace('/api', '');
+        const apiBaseUrl = getApiBaseUrl();
+        const baseUrl = apiBaseUrl.replace('/api', '');
         return `${baseUrl}${thumbnailUrl}`;
       }
     }
 
     // Fallback to direct URL (for backward compatibility)
-    const baseUrl = import.meta.env.VITE_API_BASE_URL.replace('/api', '');
+    const apiBaseUrl = getApiBaseUrl();
+    const baseUrl = apiBaseUrl.replace('/api', '');
     return `${baseUrl}${thumbnailUrl}`;
   }
 
