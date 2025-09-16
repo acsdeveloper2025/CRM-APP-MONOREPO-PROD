@@ -232,18 +232,47 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
 
       // Make real API call to backend
-      // Simple API URL selection based on platform
+      // Smart API URL selection - same logic as apiService
       const getApiBaseUrl = () => {
-        // Check if running on physical device vs simulator/web
-        const isPhysicalDevice = typeof window !== 'undefined' &&
-          (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1');
+        const hostname = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
+        const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
 
-        if (isPhysicalDevice) {
-          // Use your Mac's IP for physical device
-          return import.meta.env.VITE_API_BASE_URL_DEVICE || 'http://10.100.100.30:3000/api';
+        console.log('🔍 AuthContext API URL Detection:', {
+          hostname,
+          isLocalhost,
+          VITE_API_BASE_URL_STATIC_IP: import.meta.env.VITE_API_BASE_URL_STATIC_IP,
+          VITE_API_BASE_URL_DEVICE: import.meta.env.VITE_API_BASE_URL_DEVICE,
+          VITE_API_BASE_URL: import.meta.env.VITE_API_BASE_URL
+        });
+
+        // Priority order for API URL selection:
+        // 1. Smart Static IP selection with fallback
+        // For local machine accessing via network IP, use local network instead of static IP
+        // This works around the hairpin NAT issue
+        if (hostname === '10.100.100.30' && import.meta.env.VITE_API_BASE_URL_DEVICE) {
+          const url = import.meta.env.VITE_API_BASE_URL_DEVICE;
+          console.log('🏠 AuthContext using local network API URL (hairpin NAT workaround):', url);
+          return url;
         }
-        // Use localhost for simulator/web
-        return import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
+
+        // 2. Use Static IP URL if available (PRIMARY for internet access)
+        if (import.meta.env.VITE_API_BASE_URL_STATIC_IP) {
+          const url = import.meta.env.VITE_API_BASE_URL_STATIC_IP;
+          console.log('🌍 AuthContext using Static IP API URL:', url);
+          return url;
+        }
+
+        // 2. Use network URL if not on localhost (local network access)
+        if (!isLocalhost && import.meta.env.VITE_API_BASE_URL_DEVICE) {
+          const url = import.meta.env.VITE_API_BASE_URL_DEVICE;
+          console.log('📱 AuthContext using local network API URL:', url);
+          return url;
+        }
+
+        // 3. Use localhost URL for local development
+        const url = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
+        console.log('🏠 AuthContext using localhost API URL:', url);
+        return url;
       };
 
       const API_BASE_URL = getApiBaseUrl();

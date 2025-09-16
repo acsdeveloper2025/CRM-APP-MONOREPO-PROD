@@ -104,7 +104,7 @@ class VersionService {
 
       const currentVersion = this.getCurrentVersion();
 
-      const response = await apiService.post('/mobile/version/check', {
+      const response = await apiService.post('/mobile/auth/version-check', {
         currentVersion: currentVersion.current,
         platform: this.getPlatform(),
         buildNumber: currentVersion.buildNumber,

@@ -17,6 +17,7 @@ import {
   BugIcon
 } from './Icons';
 import versionService, { UpdateInfo } from '../services/versionService';
+import { useAuth } from '../context/AuthContext';
 
 interface UpdateModalProps {
   updateInfo: UpdateInfo;
@@ -281,12 +282,19 @@ interface UpdateManagerProps {
 }
 
 export const UpdateManager: React.FC<UpdateManagerProps> = ({ children }) => {
+  const { isAuthenticated } = useAuth();
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [showBanner, setShowBanner] = useState(false);
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
+    // Only check for updates if user is authenticated
+    if (!isAuthenticated) {
+      console.log('🔄 Skipping update check - user not authenticated');
+      return;
+    }
+
     // Start auto-checking for updates
     versionService.startAutoCheck();
 
@@ -300,7 +308,7 @@ export const UpdateManager: React.FC<UpdateManagerProps> = ({ children }) => {
       clearInterval(interval);
       versionService.stopAutoCheck();
     };
-  }, []);
+  }, [isAuthenticated]);
 
   const checkForUpdates = async () => {
     const update = await versionService.checkForUpdates();

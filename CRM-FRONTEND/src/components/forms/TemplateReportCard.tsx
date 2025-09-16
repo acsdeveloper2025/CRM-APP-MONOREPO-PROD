@@ -51,7 +51,7 @@ export const TemplateReportCard: React.FC<TemplateReportCardProps> = ({
 
       const token = localStorage.getItem('accessToken');
       const response = await fetch(
-        `http://10.100.100.30:3000/api/template-reports/cases/${caseId}/submissions/${submissionId}`,
+        `http://PUBLIC_STATIC_IP:3000/api/template-reports/cases/${caseId}/submissions/${submissionId}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -91,7 +91,7 @@ export const TemplateReportCard: React.FC<TemplateReportCardProps> = ({
 
       const token = localStorage.getItem('accessToken');
       const response = await fetch(
-        `http://10.100.100.30:3000/api/template-reports/cases/${caseId}/submissions/${submissionId}/generate`,
+        `http://PUBLIC_STATIC_IP:3000/api/template-reports/cases/${caseId}/submissions/${submissionId}/generate`,
         {
           method: 'POST',
           headers: {

@@ -5,8 +5,12 @@ class ApiService {
   private api: AxiosInstance;
 
   constructor() {
+    // Smart URL selection based on environment
+    const baseURL = this.getOptimalApiUrl();
+    console.log('🔗 API Service initialized with URL:', baseURL);
+
     this.api = axios.create({
-      baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api',
+      baseURL,
       timeout: parseInt(import.meta.env.VITE_API_TIMEOUT) || 30000, // Increased timeout for territory assignments
       headers: {
         'Content-Type': 'application/json',
@@ -14,6 +18,27 @@ class ApiService {
     });
 
     this.setupInterceptors();
+  }
+
+  private getOptimalApiUrl(): string {
+    // Priority order for API URL selection:
+    // 1. Check if we're on localhost (development)
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      return 'http://localhost:3000/api';
+    }
+
+    // 2. Check if we're on the local network IP (same machine accessing via network IP)
+    if (window.location.hostname === '10.100.100.30') {
+      return 'http://PUBLIC_STATIC_IP:3000/api';
+    }
+
+    // 3. Check if we're on the static IP (external access)
+    if (window.location.hostname === 'PUBLIC_STATIC_IP') {
+      return 'http://PUBLIC_STATIC_IP:3000/api';
+    }
+
+    // 4. Fallback to environment variable or localhost
+    return import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
   }
 
   private setupInterceptors() {

@@ -1,0 +1,39 @@
+version: "2"
+authtoken: YOUR_NGROK_AUTH_TOKEN
+
+tunnels:
+  # Frontend Web Application
+  frontend:
+    addr: 5173
+    proto: http
+    bind_tls: true
+    hostname: your-custom-domain.ngrok.io  # Optional: use custom domain
+    inspect: true
+    
+  # Backend API
+  backend:
+    addr: 3000
+    proto: http
+    bind_tls: true
+    hostname: api-your-custom-domain.ngrok.io  # Optional: use custom domain
+    inspect: true
+    
+  # WebSocket
+  websocket:
+    addr: 3001
+    proto: http
+    bind_tls: true
+    hostname: ws-your-custom-domain.ngrok.io  # Optional: use custom domain
+    inspect: true
+
+# Global configuration
+web_addr: localhost:4040
+log_level: info
+log_format: logfmt
+log: /var/log/ngrok.log
+
+# Security headers
+headers:
+  - "X-Frame-Options: DENY"
+  - "X-Content-Type-Options: nosniff"
+  - "Referrer-Policy: strict-origin-when-cross-origin"
