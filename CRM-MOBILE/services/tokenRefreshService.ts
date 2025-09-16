@@ -16,7 +16,7 @@ export interface RefreshResult {
 }
 
 class TokenRefreshService {
-  private static readonly API_BASE_URL = import.meta.env.VITE_API_BASE_URL_DEVICE || import.meta.env.VITE_API_BASE_URL || 'http://10.100.100.30:3000/api';
+  private static readonly API_BASE_URL = import.meta.env.VITE_API_BASE_URL_DEVICE || import.meta.env.VITE_API_BASE_URL || 'http://103.14.234.36:3000/api';
   private static refreshInProgress = false;
   private static refreshPromise: Promise<RefreshResult> | null = null;
 
