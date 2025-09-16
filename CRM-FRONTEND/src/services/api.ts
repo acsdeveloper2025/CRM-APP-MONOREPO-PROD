@@ -55,7 +55,7 @@ class ApiService {
 
     // 3. Check if we're on the domain name (production access)
     if (isDomain) {
-      const url = 'https://example.com:3000/api';
+      const url = 'https://example.com/api';
       console.log('🌐 Frontend API Service - Using domain API URL:', url);
       return url;
     }

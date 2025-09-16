@@ -73,7 +73,7 @@ class WebSocketService {
 
     // 3. Check if we're on the domain name (production access)
     if (isDomain) {
-      const url = 'wss://example.com:3000';
+      const url = 'wss://example.com';
       console.log('🌐 Frontend WebSocket - Using domain URL:', url);
       return url;
     }
