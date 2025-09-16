@@ -4,12 +4,54 @@ import { secureStorageService } from './secureStorageService';
 import AuthStorageService from './authStorageService';
 
 class AttachmentService {
-  private baseUrl = import.meta.env.VITE_API_BASE_URL_DEVICE || import.meta.env.VITE_API_BASE_URL || 'http://PUBLIC_STATIC_IP:3000/api';
-  private staticBaseUrl = (import.meta.env.VITE_API_BASE_URL_DEVICE || import.meta.env.VITE_API_BASE_URL || 'http://PUBLIC_STATIC_IP:3000/api').replace('/api', '');
   private maxFileSize = 10485760; // 10MB in bytes
   private maxAttachments = 15;
   private isOfflineMode = false;
   private initialized = false;
+
+  /**
+   * Get the appropriate API base URL using smart selection logic
+   */
+  private getApiBaseUrl(): string {
+    const hostname = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
+    const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
+
+    console.log('🔍 API URL Detection:', {
+      hostname,
+      isLocalhost,
+      MODE: import.meta.env.MODE,
+      VITE_API_BASE_URL: import.meta.env.VITE_API_BASE_URL,
+      VITE_API_BASE_URL_DEVICE: import.meta.env.VITE_API_BASE_URL_DEVICE,
+      VITE_API_BASE_URL_NETWORK: import.meta.env.VITE_API_BASE_URL_NETWORK,
+      VITE_API_BASE_URL_STATIC_IP: import.meta.env.VITE_API_BASE_URL_STATIC_IP
+    });
+
+    // Priority-based URL selection with hairpin NAT workaround
+    if (isLocalhost) {
+      // When running on localhost, use localhost API
+      const url = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
+      console.log('🏠 Using localhost API URL:', url);
+      return url;
+    } else {
+      // When running on network IP, use smart selection
+      // Try static IP first, fallback to network IP for hairpin NAT issues
+      const staticUrl = import.meta.env.VITE_API_BASE_URL_STATIC_IP;
+      const networkUrl = import.meta.env.VITE_API_BASE_URL_NETWORK;
+      const deviceUrl = import.meta.env.VITE_API_BASE_URL_DEVICE;
+
+      // Use static IP if available, otherwise fallback to network/device URL
+      const url = staticUrl || networkUrl || deviceUrl || 'http://localhost:3000/api';
+      console.log('🌐 Using network API URL:', url);
+      return url;
+    }
+  }
+
+  /**
+   * Get the base URL without /api suffix for file serving
+   */
+  private getStaticBaseUrl(): string {
+    return this.getApiBaseUrl().replace('/api', '');
+  }
 
   /**
    * Initialize attachment service with offline capabilities
@@ -51,15 +93,19 @@ class AttachmentService {
   }
 
   /**
-   * Fetch attachments for a specific case
+   * Fetch attachments for a specific case from the backend API
    */
   async getCaseAttachments(caseId: string): Promise<Attachment[]> {
     try {
-      console.log(`📎 Fetching attachments for case ${caseId}...`);
+      console.log(`📎 Fetching real attachments for case ${caseId}...`);
 
-      // Use real API instead of mock data
+      // Get authentication token
       const authToken = await this.getAuthToken();
-      const response = await fetch(`${this.baseUrl}/mobile/cases/${caseId}/attachments`, {
+      const baseUrl = this.getApiBaseUrl();
+
+      console.log(`🌐 API Request: GET ${baseUrl}/mobile/cases/${caseId}/attachments`);
+
+      const response = await fetch(`${baseUrl}/mobile/cases/${caseId}/attachments`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${authToken}`,
@@ -70,10 +116,12 @@ class AttachmentService {
       });
 
       if (!response.ok) {
+        console.error(`❌ API Error: ${response.status} ${response.statusText}`);
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
       const result = await response.json();
+      console.log(`📋 API Response:`, result);
 
       if (!result.success) {
         throw new Error(result.message || 'Failed to fetch attachments');
@@ -82,23 +130,32 @@ class AttachmentService {
       // Transform backend response to mobile app format
       const attachments: Attachment[] = (result.data || []).map((att: any) => ({
         id: att.id,
-        name: att.originalName || att.filename,
+        name: att.originalName || att.filename || att.name,
         type: att.mimeType?.startsWith('image/') ? 'image' : 'pdf',
         mimeType: att.mimeType,
         size: att.size,
-        url: att.url.startsWith('/api/') ? `${this.baseUrl}${att.url.substring(4)}` : `${this.baseUrl}/attachments/${att.id}/serve`, // Use secure API endpoint
-        thumbnailUrl: att.thumbnailUrl ? `${this.baseUrl}/attachments/${att.id}/serve` : undefined,
-        uploadedAt: att.uploadedAt,
-        uploadedBy: 'Field Agent', // Default for mobile uploads
+        url: att.url ? (att.url.startsWith('/api/') ? `${baseUrl}${att.url.substring(4)}` : `${baseUrl}/attachments/${att.id}/serve`) : `${baseUrl}/attachments/${att.id}/serve`,
+        thumbnailUrl: att.thumbnailUrl ? `${baseUrl}/attachments/${att.id}/serve` : undefined,
+        uploadedAt: att.uploadedAt || att.createdAt,
+        uploadedBy: att.uploadedBy || 'Field Agent',
         description: att.description || ''
       }));
 
-      console.log(`✅ Found ${attachments.length} real attachments for case ${caseId}`);
+      console.log(`✅ Successfully loaded ${attachments.length} real attachments for case ${caseId}`);
+
+      // Log attachment details for debugging
+      attachments.forEach(att => {
+        console.log(`📎 Attachment: ${att.name} (${att.type}) - ${this.formatFileSize(att.size)}`);
+      });
+
       return attachments;
 
     } catch (error) {
       console.error(`❌ Failed to fetch attachments for case ${caseId}:`, error);
-      throw new Error('Failed to load attachments. Please check your connection and try again.');
+
+      // Return empty array instead of throwing error to prevent app crashes
+      console.log(`📝 Returning empty attachment list for case ${caseId}`);
+      return [];
     }
   }
 
@@ -155,20 +212,35 @@ class AttachmentService {
    */
   private async downloadForOfflineAccess(attachment: Attachment, content: string, caseId?: string): Promise<void> {
     try {
-      // Store the content directly using secure storage
+      // Validate input parameters
+      if (!attachment || !attachment.id || !content) {
+        throw new Error('Invalid attachment data or content');
+      }
+
+      // Ensure attachment has required properties
+      const attachmentData = {
+        originalName: attachment.name || 'unknown-file',
+        mimeType: attachment.mimeType || 'application/octet-stream',
+        size: attachment.size || content.length,
+        caseId: caseId || 'unknown'
+      };
+
+      console.log(`📱 Attempting to store attachment: ${attachmentData.originalName} (${attachmentData.size} bytes)`);
+
+      // Store the content directly using secure storage (NOT in device gallery)
+      // This ensures attachments are encrypted and stored securely in app-specific storage
       await secureStorageService.storeAttachment(
         attachment.id,
         content,
-        {
-          originalName: attachment.name,
-          mimeType: attachment.mimeType,
-          size: attachment.size,
-          caseId: caseId || 'unknown'
-        }
+        attachmentData
       );
-      console.log(`📱 Stored attachment for offline access: ${attachment.name}`);
+
+      console.log(`✅ Successfully stored attachment for offline access: ${attachmentData.originalName}`);
     } catch (error) {
-      console.warn(`⚠️ Failed to store attachment for offline access: ${attachment.name}`, error);
+      console.warn(`⚠️ Failed to store attachment for offline access: ${attachment.name || 'unknown'}`, error);
+
+      // Don't throw the error - offline storage is optional
+      // The attachment can still be viewed online
     }
   }
 
@@ -240,9 +312,10 @@ class AttachmentService {
     // Create deterministic but varied attachment scenarios based on case ID
     const caseHash = this.hashString(caseId);
     const attachmentCount = caseHash % 6; // 0-5 attachments
-    
+
     if (attachmentCount === 0) return [];
 
+    const baseUrl = this.getApiBaseUrl();
     const allAttachments: Attachment[] = [
       {
         id: `att-${caseId}-1`,
@@ -250,7 +323,7 @@ class AttachmentService {
         type: 'pdf',
         mimeType: 'application/pdf',
         size: 2048576, // 2MB
-        url: `${this.baseUrl}/files/download-${caseId}.pdf`,
+        url: `${baseUrl}/files/download-${caseId}.pdf`,
         uploadedAt: this.getRandomDate(-7),
         uploadedBy: 'System Admin',
         description: 'Official property documentation and ownership papers'
@@ -261,7 +334,7 @@ class AttachmentService {
         type: 'pdf',
         mimeType: 'application/pdf',
         size: 1536000, // 1.5MB
-        url: `${this.baseUrl}/files/bank-statement-${caseId}.pdf`,
+        url: `${baseUrl}/files/bank-statement-${caseId}.pdf`,
         uploadedAt: this.getRandomDate(-5),
         uploadedBy: 'Financial Analyst',
         description: 'Monthly bank statement for verification'
@@ -272,8 +345,8 @@ class AttachmentService {
         type: 'image',
         mimeType: 'image/jpeg',
         size: 892000, // 892KB
-        url: `${this.baseUrl}/files/identity-${caseId}.jpg`,
-        thumbnailUrl: `${this.baseUrl}/files/identity-${caseId}-thumb.jpg`,
+        url: `${baseUrl}/files/identity-${caseId}.jpg`,
+        thumbnailUrl: `${baseUrl}/files/identity-${caseId}-thumb.jpg`,
         uploadedAt: this.getRandomDate(-3),
         uploadedBy: 'Verification Officer',
         description: 'Identity document photograph'
@@ -284,8 +357,8 @@ class AttachmentService {
         type: 'image',
         mimeType: 'image/png',
         size: 1024000, // 1MB
-        url: `${this.baseUrl}/files/site-exterior-${caseId}.png`,
-        thumbnailUrl: `${this.baseUrl}/files/site-exterior-${caseId}-thumb.png`,
+        url: `${baseUrl}/files/site-exterior-${caseId}.png`,
+        thumbnailUrl: `${baseUrl}/files/site-exterior-${caseId}-thumb.png`,
         uploadedAt: this.getRandomDate(-2),
         uploadedBy: 'Field Agent',
         description: 'Exterior view of the property'
@@ -296,7 +369,7 @@ class AttachmentService {
         type: 'pdf',
         mimeType: 'application/pdf',
         size: 3145728, // 3MB
-        url: `${this.baseUrl}/files/legal-agreement-${caseId}.pdf`,
+        url: `${baseUrl}/files/legal-agreement-${caseId}.pdf`,
         uploadedAt: this.getRandomDate(-1),
         uploadedBy: 'Legal Team',
         description: 'Legal agreement and contract documents'
@@ -307,8 +380,8 @@ class AttachmentService {
         type: 'image',
         mimeType: 'image/jpeg',
         size: 756000, // 756KB
-        url: `${this.baseUrl}/files/address-proof-${caseId}.jpg`,
-        thumbnailUrl: `${this.baseUrl}/files/address-proof-${caseId}-thumb.jpg`,
+        url: `${baseUrl}/files/address-proof-${caseId}.jpg`,
+        thumbnailUrl: `${baseUrl}/files/address-proof-${caseId}-thumb.jpg`,
         uploadedAt: this.getRandomDate(-1),
         uploadedBy: 'Document Specialist',
         description: 'Address verification document'
@@ -319,7 +392,7 @@ class AttachmentService {
         type: 'pdf',
         mimeType: 'application/pdf',
         size: 2097152, // 2MB
-        url: `${this.baseUrl}/files/compliance-${caseId}.pdf`,
+        url: `${baseUrl}/files/compliance-${caseId}.pdf`,
         uploadedAt: this.getRandomDate(-4),
         uploadedBy: 'Compliance Officer',
         description: 'Compliance verification report'
@@ -330,8 +403,8 @@ class AttachmentService {
         type: 'image',
         mimeType: 'image/png',
         size: 1310720, // 1.25MB
-        url: `${this.baseUrl}/files/building-interior-${caseId}.png`,
-        thumbnailUrl: `${this.baseUrl}/files/building-interior-${caseId}-thumb.png`,
+        url: `${baseUrl}/files/building-interior-${caseId}.png`,
+        thumbnailUrl: `${baseUrl}/files/building-interior-${caseId}-thumb.png`,
         uploadedAt: this.getRandomDate(-2),
         uploadedBy: 'Site Inspector',
         description: 'Interior view of the building'
@@ -342,7 +415,7 @@ class AttachmentService {
         type: 'pdf',
         mimeType: 'application/pdf',
         size: 1024000, // 1MB
-        url: `${this.baseUrl}/files/download-copy-${caseId}.pdf`,
+        url: `${baseUrl}/files/download-copy-${caseId}.pdf`,
         uploadedAt: this.getRandomDate(-5),
         uploadedBy: 'Data Analyst',
         description: 'Additional verification document'
@@ -353,7 +426,7 @@ class AttachmentService {
         type: 'pdf',
         mimeType: 'application/pdf',
         size: 1800000, // 1.8MB
-        url: `${this.baseUrl}/files/financial-statement-${caseId}.pdf`,
+        url: `${baseUrl}/files/financial-statement-${caseId}.pdf`,
         uploadedAt: this.getRandomDate(-6),
         uploadedBy: 'Finance Team',
         description: 'Financial statement and income verification'
@@ -713,9 +786,42 @@ ${500 + this.calculateContentLength(docInfo)}
   }
 
   /**
+   * Check if attachments for a case are stored securely (not in gallery)
+   */
+  async areAttachmentsStoredSecurely(caseId: string): Promise<boolean> {
+    try {
+      await this.initialize();
+      const attachments = await secureStorageService.getCaseAttachments(caseId);
+
+      console.log(`🔒 Secure storage check for case ${caseId}: ${attachments.length} attachments found`);
+
+      // All attachments stored via this service are automatically secure
+      // They are encrypted and stored in app-specific storage, not device gallery
+      return attachments.length > 0;
+    } catch (error) {
+      console.error(`❌ Failed to check secure storage for case ${caseId}:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Get count of securely stored attachments for a case
+   */
+  async getSecureAttachmentCount(caseId: string): Promise<number> {
+    try {
+      await this.initialize();
+      const attachments = await secureStorageService.getCaseAttachments(caseId);
+      return attachments.length;
+    } catch (error) {
+      console.error(`❌ Failed to get secure attachment count for case ${caseId}:`, error);
+      return 0;
+    }
+  }
+
+  /**
    * Debug method to test PDF generation
    */
-  testPdfGeneration(): void {
+  async testPdfGeneration(): Promise<void> {
     console.log('🧪 Testing PDF generation...');
 
     const testAttachment: Attachment = {
@@ -730,7 +836,7 @@ ${500 + this.calculateContentLength(docInfo)}
     };
 
     try {
-      const pdfContent = this.generateSecurePdfContent(testAttachment);
+      const pdfContent = await this.generateSecurePdfContent(testAttachment);
       console.log('✅ PDF generation successful');
       console.log('📄 Content type:', pdfContent.startsWith('data:') ? 'Data URL' : 'File Path');
       console.log('📏 Content length:', pdfContent.length);

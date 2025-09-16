@@ -178,7 +178,12 @@ const App: React.FC = () => {
   try {
     return (
       <ErrorBoundary>
-        <BrowserRouter>
+        <BrowserRouter
+          future={{
+            v7_startTransition: true,
+            v7_relativeSplatPath: true
+          }}
+        >
           <SafeAreaProvider>
             <ResponsiveLayoutProvider>
               <AuthProvider>

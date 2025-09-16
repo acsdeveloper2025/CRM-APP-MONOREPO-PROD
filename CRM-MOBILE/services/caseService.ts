@@ -5,8 +5,27 @@ import { apiService } from './apiService';
 
 const LOCAL_STORAGE_KEY = 'caseflow_cases';
 
-// Backend API configuration
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL_DEVICE || import.meta.env.VITE_API_BASE_URL || 'http://PUBLIC_STATIC_IP:3000/api';
+/**
+ * Get smart API base URL with fallback logic
+ */
+function getApiBaseUrl(): string {
+  const hostname = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
+  const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
+
+  if (isLocalhost) {
+    const url = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
+    console.log('🏠 Case Service - Using localhost API URL:', url);
+    return url;
+  } else {
+    const staticUrl = import.meta.env.VITE_API_BASE_URL_STATIC_IP;
+    const networkUrl = import.meta.env.VITE_API_BASE_URL_NETWORK;
+    const deviceUrl = import.meta.env.VITE_API_BASE_URL_DEVICE;
+
+    const url = staticUrl || networkUrl || deviceUrl || 'http://localhost:3000/api';
+    console.log('🌐 Case Service - Using network API URL:', url);
+    return url;
+  }
+}
 
 // Backend case interface for API responses
 interface BackendCase {
@@ -394,7 +413,7 @@ class CaseService {
         return { success: false, message: 'No authentication token available' };
       }
 
-      const response = await fetch(`${API_BASE_URL}/cases?limit=1`, {
+      const response = await fetch(`${getApiBaseUrl()}/cases?limit=1`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,

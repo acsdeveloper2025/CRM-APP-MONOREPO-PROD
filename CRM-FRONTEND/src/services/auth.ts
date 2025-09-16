@@ -89,12 +89,41 @@ export class AuthService {
     return user ? roles.includes(user.role) : false;
   }
 
+  private getApiBaseUrl(): string {
+    const hostname = window.location.hostname;
+    const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
+    const isLocalNetwork = hostname.startsWith('10.') || hostname.startsWith('192.168.') || hostname.startsWith('172.');
+    const isStaticIP = hostname === 'PUBLIC_STATIC_IP';
+
+    // Priority order for API URL selection:
+    // 1. Check if we're on localhost (development)
+    if (isLocalhost) {
+      return 'http://localhost:3000/api';
+    }
+
+    // 2. Check if we're on the local network IP (hairpin NAT workaround)
+    if (isLocalNetwork) {
+      return 'http://10.100.100.30:3000/api';
+    }
+
+    // 3. Check if we're on the static IP (external access)
+    if (isStaticIP) {
+      return 'http://PUBLIC_STATIC_IP:3000/api';
+    }
+
+    // 4. Fallback to environment variable or localhost
+    return import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
+  }
+
   async refreshUserData(): Promise<User | null> {
     try {
       const token = this.getToken();
       if (!token) return null;
 
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api'}/auth/me`, {
+      const apiBaseUrl = this.getApiBaseUrl();
+      console.log('🔄 Auth Service - Refreshing user data with URL:', apiBaseUrl);
+
+      const response = await fetch(`${apiBaseUrl}/auth/me`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -117,7 +146,10 @@ export class AuthService {
 
   async resetRateLimit(): Promise<{ success: boolean; message: string }> {
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api'}/auth/reset-rate-limit`, {
+      const apiBaseUrl = this.getApiBaseUrl();
+      console.log('🔄 Auth Service - Resetting rate limit with URL:', apiBaseUrl);
+
+      const response = await fetch(`${apiBaseUrl}/auth/reset-rate-limit`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -141,7 +173,10 @@ export class AuthService {
   async resetUserRateLimit(userId: string, ip?: string): Promise<{ success: boolean; message: string }> {
     try {
       const token = this.getToken();
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api'}/auth/reset-user-rate-limit/${userId}`, {
+      const apiBaseUrl = this.getApiBaseUrl();
+      console.log('🔄 Auth Service - Resetting user rate limit with URL:', apiBaseUrl);
+
+      const response = await fetch(`${apiBaseUrl}/auth/reset-user-rate-limit/${userId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

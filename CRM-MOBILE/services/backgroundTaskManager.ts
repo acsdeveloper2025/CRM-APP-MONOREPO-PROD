@@ -63,13 +63,21 @@ class BackgroundTaskManager {
   }
 
   /**
-   * Request notification permissions
+   * Request notification permissions (only if enabled in environment)
    */
   private async requestNotificationPermissions(): Promise<void> {
+    // Check if push notifications are enabled in environment
+    const notificationsEnabled = import.meta.env.VITE_ENABLE_PUSH_NOTIFICATIONS === 'true';
+
+    if (!notificationsEnabled) {
+      console.log('📱 Push notifications disabled in environment configuration');
+      return;
+    }
+
     try {
       const permission = await LocalNotifications.requestPermissions();
       if (permission.display !== 'granted') {
-        console.warn('⚠️ Notification permissions not granted');
+        console.warn('⚠️ Notification permissions not granted. Some features may be limited.');
       } else {
         console.log('✅ Notification permissions granted');
       }
@@ -308,11 +316,25 @@ class BackgroundTaskManager {
       if ('memory' in performance) {
         const memInfo = (performance as any).memory;
         const memUsage = memInfo.usedJSHeapSize / memInfo.totalJSHeapSize;
-        
-        if (memUsage > 0.8) {
-          console.warn('⚠️ High memory usage detected:', memUsage);
-          // Trigger cache cleanup
+
+        // Use environment variable for memory threshold, default to 0.85
+        const memoryThreshold = parseFloat(import.meta.env.VITE_MEMORY_WARNING_THRESHOLD || '0.85');
+
+        if (memUsage > memoryThreshold) {
+          console.warn(`⚠️ High memory usage detected: ${(memUsage * 100).toFixed(1)}% (threshold: ${(memoryThreshold * 100).toFixed(1)}%)`);
+
+          // Trigger immediate cache cleanup for high memory usage
           await this.runTaskImmediately('cache_optimization');
+
+          // Force garbage collection if available (Chrome DevTools)
+          if (typeof window !== 'undefined' && 'gc' in window) {
+            try {
+              (window as any).gc();
+              console.log('🧹 Forced garbage collection completed');
+            } catch (e) {
+              // Ignore if gc is not available
+            }
+          }
         }
       }
 

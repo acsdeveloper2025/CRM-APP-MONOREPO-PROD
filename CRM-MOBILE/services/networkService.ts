@@ -201,26 +201,25 @@ class NetworkService {
       const getApiBaseUrl = () => {
         const hostname = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
         const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
+        const isLocalNetwork = hostname.startsWith('10.') || hostname.startsWith('192.168.') || hostname.startsWith('172.');
 
         // Priority order for API URL selection:
-        // 1. Smart Static IP selection with fallback
-        // For local machine accessing via network IP, use local network instead of static IP
-        // This works around the hairpin NAT issue
-        if (hostname === '10.100.100.30' && import.meta.env.VITE_API_BASE_URL_DEVICE) {
+        // 1. Use localhost for local development
+        if (isLocalhost) {
+          return import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
+        }
+
+        // 2. Use local network IP for local network access (hairpin NAT workaround)
+        if (isLocalNetwork && import.meta.env.VITE_API_BASE_URL_DEVICE) {
           return import.meta.env.VITE_API_BASE_URL_DEVICE;
         }
 
-        // 2. Use Static IP URL if available (PRIMARY for internet access)
+        // 3. Use Static IP URL if available (PRIMARY for internet access)
         if (import.meta.env.VITE_API_BASE_URL_STATIC_IP) {
           return import.meta.env.VITE_API_BASE_URL_STATIC_IP;
         }
 
-        // 2. Use network URL if not on localhost (local network access)
-        if (!isLocalhost && import.meta.env.VITE_API_BASE_URL_DEVICE) {
-          return import.meta.env.VITE_API_BASE_URL_DEVICE;
-        }
-
-        // 3. Use localhost URL for local development
+        // 4. Fallback to localhost
         return import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
       };
 

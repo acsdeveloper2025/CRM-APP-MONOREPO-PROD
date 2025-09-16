@@ -21,24 +21,47 @@ class ApiService {
   }
 
   private getOptimalApiUrl(): string {
+    const hostname = window.location.hostname;
+    const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
+    const isLocalNetwork = hostname.startsWith('10.') || hostname.startsWith('192.168.') || hostname.startsWith('172.');
+    const isStaticIP = hostname === 'PUBLIC_STATIC_IP';
+
+    console.log('🌐 Frontend API Service - URL Detection:', {
+      hostname,
+      isLocalhost,
+      isLocalNetwork,
+      isStaticIP,
+      VITE_API_BASE_URL: import.meta.env.VITE_API_BASE_URL,
+      VITE_API_BASE_URL_STATIC_IP: import.meta.env.VITE_API_BASE_URL_STATIC_IP,
+      VITE_API_BASE_URL_DEVICE: import.meta.env.VITE_API_BASE_URL_DEVICE
+    });
+
     // Priority order for API URL selection:
     // 1. Check if we're on localhost (development)
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-      return 'http://localhost:3000/api';
+    if (isLocalhost) {
+      const url = 'http://localhost:3000/api';
+      console.log('🏠 Frontend API Service - Using localhost API URL:', url);
+      return url;
     }
 
-    // 2. Check if we're on the local network IP (same machine accessing via network IP)
-    if (window.location.hostname === '10.100.100.30') {
-      return 'http://PUBLIC_STATIC_IP:3000/api';
+    // 2. Check if we're on the local network IP (hairpin NAT workaround)
+    if (isLocalNetwork) {
+      const url = 'http://10.100.100.30:3000/api';
+      console.log('🏠 Frontend API Service - Using local network API URL (hairpin NAT workaround):', url);
+      return url;
     }
 
     // 3. Check if we're on the static IP (external access)
-    if (window.location.hostname === 'PUBLIC_STATIC_IP') {
-      return 'http://PUBLIC_STATIC_IP:3000/api';
+    if (isStaticIP) {
+      const url = 'http://PUBLIC_STATIC_IP:3000/api';
+      console.log('🌐 Frontend API Service - Using static IP API URL:', url);
+      return url;
     }
 
     // 4. Fallback to environment variable or localhost
-    return import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
+    const fallbackUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
+    console.log('🔄 Frontend API Service - Using fallback API URL:', fallbackUrl);
+    return fallbackUrl;
   }
 
   private setupInterceptors() {
