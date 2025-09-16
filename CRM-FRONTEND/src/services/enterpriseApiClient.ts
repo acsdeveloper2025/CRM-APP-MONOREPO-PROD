@@ -6,12 +6,14 @@ function getApiBaseUrl(): string {
   const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
   const isLocalNetwork = hostname.startsWith('10.') || hostname.startsWith('192.168.') || hostname.startsWith('172.');
   const isStaticIP = hostname === '103.14.234.36';
+  const isDomain = hostname === 'crm.allcheckservices.com' || hostname === 'www.crm.allcheckservices.com';
 
   console.log('🌐 Enterprise API Client - URL Detection:', {
     hostname,
     isLocalhost,
     isLocalNetwork,
-    isStaticIP
+    isStaticIP,
+    isDomain
   });
 
   // Priority order for API URL selection:
@@ -29,14 +31,21 @@ function getApiBaseUrl(): string {
     return url;
   }
 
-  // 3. Check if we're on the static IP (external access)
-  if (isStaticIP) {
-    const url = 'http://103.14.234.36:3000';
-    console.log('🌐 Enterprise API Client - Using static IP URL:', url);
+  // 3. Check if we're on the domain name (production access)
+  if (isDomain) {
+    const url = 'https://crm.allcheckservices.com';
+    console.log('🌐 Enterprise API Client - Using domain URL:', url);
     return url;
   }
 
-  // 4. Fallback to environment variable or localhost
+  // 4. Check if we're on the static IP (external access)
+  if (isStaticIP) {
+    const url = 'http://103.14.234.36:3000';
+    console.log('🌍 Enterprise API Client - Using static IP URL:', url);
+    return url;
+  }
+
+  // 5. Fallback to environment variable or localhost
   const fallbackUrl = import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || 'http://localhost:3000';
   console.log('🔄 Enterprise API Client - Using fallback URL:', fallbackUrl);
   return fallbackUrl;
