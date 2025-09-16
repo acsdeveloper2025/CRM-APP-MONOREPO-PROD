@@ -10,6 +10,27 @@ import { config } from '../config';
 import { query } from '@/config/database';
 import { queueCaseRevocationNotification } from '../queues/notificationQueue';
 
+/**
+ * Get the appropriate API base URL based on request headers
+ */
+function getApiBaseUrl(req: Request): string {
+  const host = req.get('host');
+  const protocol = req.get('x-forwarded-proto') || (req.secure ? 'https' : 'http');
+
+  // Check if request is coming from domain
+  if (host && (host.includes('crm.allcheckservices.com') || host.includes('www.crm.allcheckservices.com'))) {
+    return 'https://crm.allcheckservices.com/api';
+  }
+
+  // Check if request is coming from static IP
+  if (host && host.includes('103.14.234.36')) {
+    return `http://103.14.234.36:3000/api`;
+  }
+
+  // Default to localhost or environment variable
+  return process.env.API_BASE_URL || 'http://localhost:3000/api';
+}
+
 export class MobileCaseController {
   // Get cases for mobile app with optimized response
   static async getMobileCases(req: Request, res: Response) {
@@ -368,20 +389,23 @@ export class MobileCaseController {
           name: caseItem.verificationTypeName || '', // Verification Type
           code: caseItem.verificationTypeCode || '',
         } : undefined,
-        attachments: attRes2.rows.map((att: any) => ({
-          id: att.id,
-          filename: att.filename,
-          originalName: att.originalName,
-          mimeType: att.mimeType,
-          size: att.size,
-          url: `${process.env.API_BASE_URL || 'http://localhost:3000'}/api/attachments/${att.id}/serve`,
-          downloadUrl: `${process.env.API_BASE_URL || 'http://localhost:3000'}/api/attachments/${att.id}/download`,
-          uploadedAt: new Date(att.uploadedAt).toISOString(),
-          uploadedBy: att.uploadedBy,
-          type: att.mimeType.startsWith('image/') ? 'image' : 'document',
-          isImage: att.mimeType.startsWith('image/'),
-          caseId: att.caseId,
-        })),
+        attachments: attRes2.rows.map((att: any) => {
+          const apiBaseUrl = getApiBaseUrl(req);
+          return {
+            id: att.id,
+            filename: att.filename,
+            originalName: att.originalName,
+            mimeType: att.mimeType,
+            size: att.size,
+            url: `${apiBaseUrl}/attachments/${att.id}/serve`,
+            downloadUrl: `${apiBaseUrl}/attachments/${att.id}/download`,
+            uploadedAt: new Date(att.uploadedAt).toISOString(),
+            uploadedBy: att.uploadedBy,
+            type: att.mimeType.startsWith('image/') ? 'image' : 'document',
+            isImage: att.mimeType.startsWith('image/'),
+            caseId: att.caseId,
+          };
+        }),
         formData: (caseItem as any).verificationData || null,
         syncStatus: 'SYNCED',
       };
