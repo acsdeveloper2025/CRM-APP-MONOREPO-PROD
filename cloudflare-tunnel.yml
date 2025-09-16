@@ -1,0 +1,32 @@
+tunnel: YOUR_TUNNEL_ID
+credentials-file: /home/crmapp/.cloudflared/YOUR_TUNNEL_ID.json
+
+ingress:
+  # Frontend Web Application
+  - hostname: crm.yourdomain.com
+    service: http://localhost:5173
+    originRequest:
+      httpHostHeader: crm.yourdomain.com
+      
+  # Backend API
+  - hostname: api.yourdomain.com
+    service: http://localhost:3000
+    originRequest:
+      httpHostHeader: api.yourdomain.com
+      
+  # WebSocket
+  - hostname: ws.yourdomain.com
+    service: http://localhost:3001
+    originRequest:
+      httpHostHeader: ws.yourdomain.com
+      
+  # Catch-all rule (required)
+  - service: http_status:404
+
+# Optional: Add WAF rules and security
+warp-routing:
+  enabled: false
+  
+# Logging
+loglevel: info
+logfile: /var/log/cloudflared.log

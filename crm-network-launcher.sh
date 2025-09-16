@@ -366,17 +366,53 @@ check_dependencies() {
     return 0
 }
 
-# Get current network IP
-print_header "📡 Network Detection"
-NETWORK_IP=$(get_local_ip)
+# Get current network IP and static IP configuration
+print_header "📡 Network Detection & Static IP Configuration"
+LOCAL_NETWORK_IP=$(get_local_ip)
+STATIC_IP="PUBLIC_STATIC_IP"
 
-if [ -z "$NETWORK_IP" ]; then
-    print_warning "Could not automatically detect network IP address"
-    echo "Please enter your network IP address manually:"
-    read -p "Network IP: " NETWORK_IP
+if [ -z "$LOCAL_NETWORK_IP" ]; then
+    print_warning "Could not automatically detect local network IP address"
+    echo "Please enter your local network IP address manually:"
+    read -p "Local Network IP: " LOCAL_NETWORK_IP
 fi
 
-print_status "Network IP: $NETWORK_IP"
+print_status "Local Network IP: $LOCAL_NETWORK_IP"
+print_status "Static Internet IP: $STATIC_IP"
+
+# Ask user which IP configuration to use
+echo ""
+print_info "Choose network configuration:"
+echo "1. Local Network Only (${LOCAL_NETWORK_IP})"
+echo "2. Internet Access via Static IP (${STATIC_IP})"
+echo "3. Both Local and Internet Access"
+echo ""
+read -p "Enter your choice (1-3): " IP_CHOICE
+
+case $IP_CHOICE in
+    1)
+        NETWORK_IP="$LOCAL_NETWORK_IP"
+        USE_STATIC_IP=false
+        print_status "Using Local Network IP: $NETWORK_IP"
+        ;;
+    2)
+        NETWORK_IP="$STATIC_IP"
+        USE_STATIC_IP=true
+        print_status "Using Static Internet IP: $NETWORK_IP"
+        ;;
+    3)
+        NETWORK_IP="$STATIC_IP"
+        USE_STATIC_IP=true
+        print_status "Using Static Internet IP for primary access: $NETWORK_IP"
+        print_status "Local network access will also be available: $LOCAL_NETWORK_IP"
+        ;;
+    *)
+        print_warning "Invalid choice. Defaulting to Local Network Only."
+        NETWORK_IP="$LOCAL_NETWORK_IP"
+        USE_STATIC_IP=false
+        ;;
+esac
+
 echo ""
 
 # Validate directories
@@ -520,14 +556,29 @@ if [ -f "$BACKEND_ENV" ]; then
         print_info "Backend .env backup created: ${BACKEND_ENV}.backup.$(date +%Y%m%d)"
     fi
 
-    # Update CORS_ORIGIN to include both localhost and network IP
-    sed -i.tmp "s|CORS_ORIGIN=.*|CORS_ORIGIN=http://localhost:5173,http://localhost:5180,http://127.0.0.1:5173,http://127.0.0.1:5180,http://$NETWORK_IP:5173,http://$NETWORK_IP:5180|g" "$BACKEND_ENV"
+    # Configure CORS based on IP choice
+    if [ "$USE_STATIC_IP" = true ]; then
+        if [ "$IP_CHOICE" = "3" ]; then
+            # Both local and internet access
+            CORS_ORIGINS="http://localhost:5173,http://localhost:5180,http://127.0.0.1:5173,http://127.0.0.1:5180,http://$LOCAL_NETWORK_IP:5173,http://$LOCAL_NETWORK_IP:5180,http://$STATIC_IP:5173,http://$STATIC_IP:5180"
+            WS_CORS_ORIGINS="http://localhost:5173,http://localhost:5180,http://127.0.0.1:5173,http://127.0.0.1:5180,http://$LOCAL_NETWORK_IP:5173,http://$LOCAL_NETWORK_IP:5180,http://$STATIC_IP:5173,http://$STATIC_IP:5180"
+        else
+            # Static IP only
+            CORS_ORIGINS="http://localhost:5173,http://localhost:5180,http://127.0.0.1:5173,http://127.0.0.1:5180,http://$STATIC_IP:5173,http://$STATIC_IP:5180"
+            WS_CORS_ORIGINS="http://localhost:5173,http://localhost:5180,http://127.0.0.1:5173,http://127.0.0.1:5180,http://$STATIC_IP:5173,http://$STATIC_IP:5180"
+        fi
+    else
+        # Local network only
+        CORS_ORIGINS="http://localhost:5173,http://localhost:5180,http://127.0.0.1:5173,http://127.0.0.1:5180,http://$LOCAL_NETWORK_IP:5173,http://$LOCAL_NETWORK_IP:5180"
+        WS_CORS_ORIGINS="http://localhost:5173,http://localhost:5180,http://127.0.0.1:5173,http://127.0.0.1:5180,http://$LOCAL_NETWORK_IP:5173,http://$LOCAL_NETWORK_IP:5180"
+    fi
 
-    # Update WebSocket CORS_ORIGIN to include both localhost and network IP
-    sed -i.tmp "s|WS_CORS_ORIGIN=.*|WS_CORS_ORIGIN=http://localhost:5173,http://localhost:5180,http://127.0.0.1:5173,http://127.0.0.1:5180,http://$NETWORK_IP:5173,http://$NETWORK_IP:5180|g" "$BACKEND_ENV"
+    # Update CORS_ORIGIN and WebSocket CORS_ORIGIN
+    sed -i.tmp "s|CORS_ORIGIN=.*|CORS_ORIGIN=$CORS_ORIGINS|g" "$BACKEND_ENV"
+    sed -i.tmp "s|WS_CORS_ORIGIN=.*|WS_CORS_ORIGIN=$WS_CORS_ORIGINS|g" "$BACKEND_ENV"
 
     rm -f "$BACKEND_ENV.tmp"
-    print_status "Backend CORS and WebSocket CORS updated to support both localhost and $NETWORK_IP"
+    print_status "Backend CORS and WebSocket CORS updated for chosen configuration"
 else
     print_error "Backend .env file not found at $BACKEND_ENV"
     exit 1
@@ -561,10 +612,25 @@ if [ -f "$MOBILE_ENV" ]; then
         print_info "Mobile .env backup created: ${MOBILE_ENV}.backup.$(date +%Y%m%d)"
     fi
 
-    # Update API URLs
-    sed -i.tmp "s|VITE_API_BASE_URL_DEVICE=.*|VITE_API_BASE_URL_DEVICE=http://$NETWORK_IP:3000/api|g" "$MOBILE_ENV"
+    # Update API URLs based on configuration choice
+    if [ "$USE_STATIC_IP" = true ]; then
+        # Update for static IP access
+        sed -i.tmp "s|VITE_API_BASE_URL_STATIC_IP=.*|VITE_API_BASE_URL_STATIC_IP=http://$STATIC_IP:3000/api|g" "$MOBILE_ENV"
+        sed -i.tmp "s|VITE_API_BASE_URL_PRODUCTION=.*|VITE_API_BASE_URL_PRODUCTION=http://$STATIC_IP:3000/api|g" "$MOBILE_ENV"
+
+        if [ "$IP_CHOICE" = "3" ]; then
+            # Also update local network URL for dual access
+            sed -i.tmp "s|VITE_API_BASE_URL_DEVICE=.*|VITE_API_BASE_URL_DEVICE=http://$LOCAL_NETWORK_IP:3000/api|g" "$MOBILE_ENV"
+        fi
+
+        print_status "Mobile app configured for Static IP internet access: $STATIC_IP"
+    else
+        # Update for local network only
+        sed -i.tmp "s|VITE_API_BASE_URL_DEVICE=.*|VITE_API_BASE_URL_DEVICE=http://$LOCAL_NETWORK_IP:3000/api|g" "$MOBILE_ENV"
+        print_status "Mobile app configured for local network access: $LOCAL_NETWORK_IP"
+    fi
+
     rm -f "$MOBILE_ENV.tmp"
-    print_status "Mobile app API URL updated to use $NETWORK_IP"
 else
     print_error "Mobile .env file not found at $MOBILE_ENV"
     exit 1
@@ -710,8 +776,20 @@ validate_ip_updates() {
     local env_files=$(find . -name ".env" -not -path "./node_modules/*" -not -path "*/.git/*" 2>/dev/null)
     for env_file in $env_files; do
         if [ -f "$env_file" ]; then
-            # Check for any remaining old IP patterns (excluding localhost)
-            local old_ips=$(grep -E "(192\.168\.[0-9]+\.[0-9]+|172\.[0-9]+\.[0-9]+\.[0-9]+|10\.[0-9]+\.[0-9]+\.[0-9]+)" "$env_file" | grep -v "$NETWORK_IP" | grep -v "localhost" | grep -v "127.0.0.1" || true)
+            # Check for any remaining old IP patterns (excluding current configuration IPs and localhost)
+            local old_ips=""
+
+            if [ "$USE_STATIC_IP" = true ] && [ "$IP_CHOICE" = "3" ]; then
+                # Dual access mode - allow both static IP and local network IP
+                old_ips=$(grep -E "(192\.168\.[0-9]+\.[0-9]+|172\.[0-9]+\.[0-9]+\.[0-9]+|10\.[0-9]+\.[0-9]+\.[0-9]+)" "$env_file" | grep -v "$STATIC_IP" | grep -v "$LOCAL_NETWORK_IP" | grep -v "localhost" | grep -v "127.0.0.1" || true)
+            elif [ "$USE_STATIC_IP" = true ]; then
+                # Static IP only mode - allow static IP
+                old_ips=$(grep -E "(192\.168\.[0-9]+\.[0-9]+|172\.[0-9]+\.[0-9]+\.[0-9]+|10\.[0-9]+\.[0-9]+\.[0-9]+)" "$env_file" | grep -v "$STATIC_IP" | grep -v "localhost" | grep -v "127.0.0.1" || true)
+            else
+                # Local network only mode - allow local network IP
+                old_ips=$(grep -E "(192\.168\.[0-9]+\.[0-9]+|172\.[0-9]+\.[0-9]+\.[0-9]+|10\.[0-9]+\.[0-9]+\.[0-9]+)" "$env_file" | grep -v "$LOCAL_NETWORK_IP" | grep -v "localhost" | grep -v "127.0.0.1" || true)
+            fi
+
             if [ -n "$old_ips" ]; then
                 print_warning "  Found old IPs in $env_file:"
                 echo "$old_ips" | sed 's/^/    /'
@@ -734,7 +812,19 @@ validate_ip_updates() {
 
     for file in "${critical_files[@]}"; do
         if [ -f "$file" ]; then
-            local old_ips=$(grep -E "(192\.168\.[0-9]+\.[0-9]+|172\.[0-9]+\.[0-9]+\.[0-9]+|10\.[0-9]+\.[0-9]+\.[0-9]+)" "$file" | grep -v "$NETWORK_IP" | grep -v "localhost" | grep -v "127.0.0.1" || true)
+            local old_ips=""
+
+            if [ "$USE_STATIC_IP" = true ] && [ "$IP_CHOICE" = "3" ]; then
+                # Dual access mode - allow both static IP and local network IP
+                old_ips=$(grep -E "(192\.168\.[0-9]+\.[0-9]+|172\.[0-9]+\.[0-9]+\.[0-9]+|10\.[0-9]+\.[0-9]+\.[0-9]+)" "$file" | grep -v "$STATIC_IP" | grep -v "$LOCAL_NETWORK_IP" | grep -v "localhost" | grep -v "127.0.0.1" || true)
+            elif [ "$USE_STATIC_IP" = true ]; then
+                # Static IP only mode - allow static IP
+                old_ips=$(grep -E "(192\.168\.[0-9]+\.[0-9]+|172\.[0-9]+\.[0-9]+\.[0-9]+|10\.[0-9]+\.[0-9]+\.[0-9]+)" "$file" | grep -v "$STATIC_IP" | grep -v "localhost" | grep -v "127.0.0.1" || true)
+            else
+                # Local network only mode - allow local network IP
+                old_ips=$(grep -E "(192\.168\.[0-9]+\.[0-9]+|172\.[0-9]+\.[0-9]+\.[0-9]+|10\.[0-9]+\.[0-9]+\.[0-9]+)" "$file" | grep -v "$LOCAL_NETWORK_IP" | grep -v "localhost" | grep -v "127.0.0.1" || true)
+            fi
+
             if [ -n "$old_ips" ]; then
                 print_warning "  Found old IPs in $file:"
                 echo "$old_ips" | sed 's/^/    /'
@@ -985,16 +1075,37 @@ echo "• Mobile:          http://localhost:$MOBILE_PORT"
 echo "• Backend API:     http://localhost:$BACKEND_PORT"
 echo ""
 
-print_info "📍 Network Access:"
-echo "• Frontend:        http://$NETWORK_IP:$FRONTEND_PORT"
-echo "• Mobile:          http://$NETWORK_IP:$MOBILE_PORT"
-echo "• Backend API:     http://$NETWORK_IP:$BACKEND_PORT"
-echo ""
+if [ "$USE_STATIC_IP" = true ]; then
+    print_info "🌍 Internet Access (Static IP):"
+    echo "• Frontend:        http://$STATIC_IP:$FRONTEND_PORT"
+    echo "• Mobile:          http://$STATIC_IP:$MOBILE_PORT"
+    echo "• Backend API:     http://$STATIC_IP:$BACKEND_PORT"
+    echo ""
 
-print_info "📱 For mobile devices on the same network:"
-echo "• Open browser and go to: http://$NETWORK_IP:$MOBILE_PORT"
-echo "• The mobile app will automatically connect to: http://$NETWORK_IP:$BACKEND_PORT/api"
-echo ""
+    if [ "$IP_CHOICE" = "3" ]; then
+        print_info "📍 Local Network Access:"
+        echo "• Frontend:        http://$LOCAL_NETWORK_IP:$FRONTEND_PORT"
+        echo "• Mobile:          http://$LOCAL_NETWORK_IP:$MOBILE_PORT"
+        echo "• Backend API:     http://$LOCAL_NETWORK_IP:$BACKEND_PORT"
+        echo ""
+    fi
+
+    print_info "📱 For mobile devices anywhere on the internet:"
+    echo "• Open browser and go to: http://$STATIC_IP:$MOBILE_PORT"
+    echo "• The mobile app will automatically connect to: http://$STATIC_IP:$BACKEND_PORT/api"
+    echo ""
+else
+    print_info "📍 Local Network Access:"
+    echo "• Frontend:        http://$LOCAL_NETWORK_IP:$FRONTEND_PORT"
+    echo "• Mobile:          http://$LOCAL_NETWORK_IP:$MOBILE_PORT"
+    echo "• Backend API:     http://$LOCAL_NETWORK_IP:$BACKEND_PORT"
+    echo ""
+
+    print_info "📱 For mobile devices on the same local network:"
+    echo "• Open browser and go to: http://$LOCAL_NETWORK_IP:$MOBILE_PORT"
+    echo "• The mobile app will automatically connect to: http://$LOCAL_NETWORK_IP:$BACKEND_PORT/api"
+    echo ""
+fi
 
 print_header "📊 Monitoring & Control:"
 echo "• View Backend logs:   tail -f logs/backend.log"
@@ -1009,9 +1120,19 @@ print_header "💡 Important Notes:"
 echo "• FIXED PORTS: Backend(3000), Frontend(5173), Mobile(5180) - NEVER CHANGE"
 echo "• Port conflicts are automatically resolved by stopping existing services"
 echo "• Make sure your firewall allows connections on ports 3000, 5173, and 5180"
-echo "• All devices must be on the same network to access via IP address"
+
+if [ "$USE_STATIC_IP" = true ]; then
+    echo "• 🌍 INTERNET ACCESS: Your CRM is accessible from anywhere via Static IP: $STATIC_IP"
+    echo "• 🔒 SECURITY: Ensure your firewall/router properly forwards ports to this machine"
+    if [ "$IP_CHOICE" = "3" ]; then
+        echo "• 📍 DUAL ACCESS: Both local network ($LOCAL_NETWORK_IP) and internet ($STATIC_IP) access enabled"
+    fi
+else
+    echo "• 📍 LOCAL NETWORK: Devices must be on the same network to access via IP: $LOCAL_NETWORK_IP"
+fi
+
 echo "• Temporary configuration backups created and cleaned up automatically"
-echo "• All hardcoded IP addresses updated to current network IP: $NETWORK_IP"
+echo "• All hardcoded IP addresses updated to chosen configuration"
 echo "• Use Ctrl+C to stop this script (services will continue running)"
 echo ""
 

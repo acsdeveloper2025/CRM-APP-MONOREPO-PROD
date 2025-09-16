@@ -20,8 +20,9 @@ class WebSocketService {
   private latency: number = 0;
 
   constructor() {
-    // Explicitly force the correct WebSocket URL to avoid any caching issues
-    const wsUrl = 'ws://localhost:3000';
+    // Use environment variable for WebSocket URL with fallback
+    const wsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:3000';
+    console.log('🔌 WebSocket URL configured:', wsUrl);
 
     this.config = {
       url: wsUrl,
