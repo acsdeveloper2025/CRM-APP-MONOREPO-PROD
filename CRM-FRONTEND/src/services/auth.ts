@@ -94,25 +94,49 @@ export class AuthService {
     const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
     const isLocalNetwork = hostname.startsWith('10.') || hostname.startsWith('192.168.') || hostname.startsWith('172.');
     const isStaticIP = hostname === 'PUBLIC_STATIC_IP';
+    const isDomain = hostname === 'example.com' || hostname === 'www.example.com';
+
+    console.log('🔐 Auth Service - API URL Detection:', {
+      hostname,
+      isLocalhost,
+      isLocalNetwork,
+      isStaticIP,
+      isDomain
+    });
 
     // Priority order for API URL selection:
     // 1. Check if we're on localhost (development)
     if (isLocalhost) {
-      return 'http://localhost:3000/api';
+      const url = 'http://localhost:3000/api';
+      console.log('🏠 Auth Service - Using localhost API URL:', url);
+      return url;
     }
 
     // 2. Check if we're on the local network IP (hairpin NAT workaround)
     if (isLocalNetwork) {
-      return 'http://PUBLIC_STATIC_IP:3000/api';
+      const url = 'http://PUBLIC_STATIC_IP:3000/api';
+      console.log('🏠 Auth Service - Using local network API URL (hairpin NAT workaround):', url);
+      return url;
     }
 
-    // 3. Check if we're on the static IP (external access)
+    // 3. Check if we're on the domain name (production access)
+    if (isDomain) {
+      const url = 'https://example.com/api';
+      console.log('🌐 Auth Service - Using domain API URL:', url);
+      return url;
+    }
+
+    // 4. Check if we're on the static IP (external access)
     if (isStaticIP) {
-      return 'http://PUBLIC_STATIC_IP:3000/api';
+      const url = 'http://PUBLIC_STATIC_IP:3000/api';
+      console.log('🌍 Auth Service - Using static IP API URL:', url);
+      return url;
     }
 
-    // 4. Fallback to environment variable or localhost
-    return import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
+    // 5. Fallback to environment variable or localhost
+    const fallbackUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
+    console.log('⚠️ Auth Service - Using fallback API URL:', fallbackUrl);
+    return fallbackUrl;
   }
 
   async refreshUserData(): Promise<User | null> {
