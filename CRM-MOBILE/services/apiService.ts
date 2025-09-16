@@ -51,10 +51,10 @@ class ApiService {
     });
 
     // Priority order for API URL selection:
-    // 1. Production URL if in production mode (uses static IP)
-    if (import.meta.env.MODE === 'production' && import.meta.env.VITE_API_BASE_URL_PRODUCTION) {
-      const url = import.meta.env.VITE_API_BASE_URL_PRODUCTION;
-      console.log('🚀 Using production API URL (Static IP):', url);
+    // 1. Localhost access (highest priority for development)
+    if (isLocalhost && import.meta.env.VITE_API_BASE_URL) {
+      const url = import.meta.env.VITE_API_BASE_URL;
+      console.log('🏠 Using localhost API URL:', url);
       return url;
     }
 
@@ -68,7 +68,22 @@ class ApiService {
       return url;
     }
 
-    // 3. Use Static IP URL if available (PRIMARY for internet access)
+    // 3. Domain access (for HTTPS domain access)
+    const isDomain = hostname === 'crm.allcheckservices.com' || hostname === 'www.crm.allcheckservices.com';
+    if (isDomain) {
+      const url = 'https://crm.allcheckservices.com/api';
+      console.log('🌐 Using domain API URL:', url);
+      return url;
+    }
+
+    // 4. Production URL if in production mode (uses static IP)
+    if (import.meta.env.MODE === 'production' && import.meta.env.VITE_API_BASE_URL_PRODUCTION) {
+      const url = import.meta.env.VITE_API_BASE_URL_PRODUCTION;
+      console.log('🚀 Using production API URL (Static IP):', url);
+      return url;
+    }
+
+    // 5. Use Static IP URL if available (for internet access)
     if (import.meta.env.VITE_API_BASE_URL_STATIC_IP) {
       const url = import.meta.env.VITE_API_BASE_URL_STATIC_IP;
       console.log('🌍 Using Static IP API URL:', url);
