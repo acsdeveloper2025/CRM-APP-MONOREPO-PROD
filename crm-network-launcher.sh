@@ -710,9 +710,45 @@ update_critical_files() {
         "CRM-MOBILE/services/apiService.ts"
         "CRM-MOBILE/services/networkService.ts"
         "CRM-MOBILE/services/tokenRefreshService.ts"
+        "CRM-MOBILE/services/attachmentService.ts"
+        "CRM-MOBILE/services/caseStatusService.ts"
+        "CRM-MOBILE/services/verificationFormService.ts"
+        "CRM-MOBILE/services/caseService.ts"
+        "CRM-MOBILE/services/websocketService.ts"
         "CRM-FRONTEND/src/services/api.ts"
         "CRM-FRONTEND/src/services/auth.ts"
+        "CRM-FRONTEND/src/services/websocket.ts"
+        "CRM-FRONTEND/src/services/enterpriseApiClient.ts"
+        "CRM-FRONTEND/src/services/verificationImages.ts"
     )
+
+    print_info "🔍 Validating smart URL selection implementations..."
+
+    # Check if files have proper smart URL selection logic
+    local validation_errors=0
+    for file in "${critical_files[@]}"; do
+        if [ -f "$file" ]; then
+            # Check for proper local network detection
+            if ! grep -q "isLocalNetwork.*startsWith.*10\." "$file" && ! grep -q "hostname.*startsWith.*10\." "$file"; then
+                if grep -q "10\.100\.100\.30" "$file"; then
+                    print_warning "  ⚠️  $file: Contains hardcoded IP but missing generic local network detection"
+                    validation_errors=$((validation_errors + 1))
+                fi
+            fi
+
+            # Check for hairpin NAT workaround comments
+            if grep -q "10\.100\.100\.30" "$file" && ! grep -q "hairpin.*NAT" "$file"; then
+                print_warning "  ⚠️  $file: Missing hairpin NAT workaround documentation"
+            fi
+        fi
+    done
+
+    if [ $validation_errors -gt 0 ]; then
+        print_warning "Found $validation_errors files that may need smart URL selection updates"
+        print_info "These files should use generic local network detection instead of hardcoded IPs"
+    else
+        print_status "✅ All critical files have proper smart URL selection logic"
+    fi
 
     local updated_count=0
 
@@ -806,8 +842,16 @@ validate_ip_updates() {
         "CRM-MOBILE/services/apiService.ts"
         "CRM-MOBILE/services/networkService.ts"
         "CRM-MOBILE/services/tokenRefreshService.ts"
+        "CRM-MOBILE/services/attachmentService.ts"
+        "CRM-MOBILE/services/caseStatusService.ts"
+        "CRM-MOBILE/services/verificationFormService.ts"
+        "CRM-MOBILE/services/caseService.ts"
+        "CRM-MOBILE/services/websocketService.ts"
         "CRM-FRONTEND/src/services/api.ts"
         "CRM-FRONTEND/src/services/auth.ts"
+        "CRM-FRONTEND/src/services/websocket.ts"
+        "CRM-FRONTEND/src/services/enterpriseApiClient.ts"
+        "CRM-FRONTEND/src/services/verificationImages.ts"
     )
 
     for file in "${critical_files[@]}"; do

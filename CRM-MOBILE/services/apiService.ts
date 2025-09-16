@@ -58,10 +58,11 @@ class ApiService {
       return url;
     }
 
-    // 2. Smart Static IP selection with fallback
-    // For local machine accessing via network IP, use local network instead of static IP
+    // 2. Smart local network detection with fallback
+    // For local machine accessing via local network IP, use local network instead of static IP
     // This works around the hairpin NAT issue
-    if (hostname === '10.100.100.30' && import.meta.env.VITE_API_BASE_URL_DEVICE) {
+    const isLocalNetwork = hostname.startsWith('10.') || hostname.startsWith('192.168.') || hostname.startsWith('172.');
+    if (isLocalNetwork && import.meta.env.VITE_API_BASE_URL_DEVICE) {
       const url = import.meta.env.VITE_API_BASE_URL_DEVICE;
       console.log('🏠 Using local network API URL (hairpin NAT workaround):', url);
       return url;

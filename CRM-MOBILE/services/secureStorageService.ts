@@ -94,6 +94,11 @@ export class SecureStorageService {
       // Generate checksum for data integrity
       const checksum = await this.generateChecksum(data);
 
+      // Validate checksum was generated successfully
+      if (!checksum || checksum.length === 0) {
+        throw new Error('Failed to generate data checksum');
+      }
+
       // Encrypt the attachment data
       const { encryptedData, salt } = encryptionService.encryptData(data, attachmentId);
 
@@ -287,14 +292,104 @@ export class SecureStorageService {
   }
 
   /**
+   * Get all attachments for a specific case
+   */
+  async getCaseAttachments(caseId: string): Promise<EncryptedAttachment[]> {
+    try {
+      const attachments: EncryptedAttachment[] = [];
+
+      // Get all keys to find case-specific attachments
+      const keys = await Preferences.keys();
+
+      for (const key of keys.keys) {
+        if (key.startsWith(this.METADATA_PREFIX)) {
+          try {
+            const result = await Preferences.get({ key });
+            if (result.value) {
+              const metadata: EncryptedAttachment = JSON.parse(result.value);
+              if (metadata.caseId === caseId) {
+                attachments.push(metadata);
+              }
+            }
+          } catch (error) {
+            console.warn(`⚠️ Failed to parse metadata for key ${key}:`, error);
+          }
+        }
+      }
+
+      console.log(`📋 Found ${attachments.length} attachments for case ${caseId}`);
+      return attachments;
+    } catch (error) {
+      console.error(`❌ Failed to get case attachments for ${caseId}:`, error);
+      return [];
+    }
+  }
+
+  /**
+   * Update storage statistics after cleanup
+   */
+  private async updateStorageStatsAfterCleanup(clearedCount: number): Promise<void> {
+    try {
+      const stats = await this.getStorageStats();
+      const updatedStats: StorageStats = {
+        ...stats,
+        totalAttachments: Math.max(0, stats.totalAttachments - clearedCount),
+        lastCleanup: new Date().toISOString()
+      };
+
+      await Preferences.set({
+        key: this.STORAGE_STATS_KEY,
+        value: JSON.stringify(updatedStats)
+      });
+
+      console.log(`📊 Updated storage stats: ${updatedStats.totalAttachments} attachments remaining`);
+    } catch (error) {
+      console.warn('⚠️ Failed to update storage stats after cleanup:', error);
+    }
+  }
+
+  /**
    * Generate checksum for data integrity
    */
   private async generateChecksum(data: string): Promise<string> {
-    const encoder = new TextEncoder();
-    const dataBuffer = encoder.encode(data);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    try {
+      // Check if Web Crypto API is available
+      if (typeof crypto !== 'undefined' && crypto.subtle && crypto.subtle.digest) {
+        const encoder = new TextEncoder();
+        const dataBuffer = encoder.encode(data);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer);
+
+        // Check if digest was successful
+        if (hashBuffer && hashBuffer.byteLength > 0) {
+          const hashArray = Array.from(new Uint8Array(hashBuffer));
+          return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+      }
+
+      // Fallback to simple hash if Web Crypto API is not available
+      console.warn('⚠️ Web Crypto API not available, using fallback hash');
+      return this.generateFallbackHash(data);
+    } catch (error) {
+      console.warn('⚠️ Crypto digest failed, using fallback hash:', error);
+      return this.generateFallbackHash(data);
+    }
+  }
+
+  /**
+   * Fallback hash function for environments without Web Crypto API
+   */
+  private generateFallbackHash(data: string): string {
+    let hash = 0;
+    if (data.length === 0) return hash.toString(16);
+
+    for (let i = 0; i < data.length; i++) {
+      const char = data.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+
+    // Convert to positive hex string
+    return Math.abs(hash).toString(16).padStart(8, '0');
   }
 
   /**
@@ -374,6 +469,48 @@ export class SecureStorageService {
   clearCache(): void {
     this.cache.clear();
     console.log('🧹 Cache cleared');
+  }
+
+  /**
+   * Clear all attachments for a specific case after submission
+   */
+  async clearCaseAttachments(caseId: string): Promise<void> {
+    try {
+      console.log(`🗑️ Clearing all attachments for case: ${caseId}`);
+
+      const attachments = await this.getCaseAttachments(caseId);
+      let clearedCount = 0;
+
+      for (const attachment of attachments) {
+        try {
+          // Remove encrypted data
+          await Preferences.remove({
+            key: this.ATTACHMENT_PREFIX + attachment.id
+          });
+
+          // Remove metadata
+          await Preferences.remove({
+            key: this.METADATA_PREFIX + attachment.id
+          });
+
+          // Remove from cache
+          this.cache.delete(attachment.id);
+
+          clearedCount++;
+          console.log(`✅ Cleared attachment: ${attachment.originalName}`);
+        } catch (error) {
+          console.warn(`⚠️ Failed to clear attachment ${attachment.id}:`, error);
+        }
+      }
+
+      // Update storage statistics
+      await this.updateStorageStatsAfterCleanup(clearedCount);
+
+      console.log(`🎯 Successfully cleared ${clearedCount} attachments for case ${caseId}`);
+    } catch (error) {
+      console.error(`❌ Failed to clear case attachments for ${caseId}:`, error);
+      throw error;
+    }
   }
 
   /**

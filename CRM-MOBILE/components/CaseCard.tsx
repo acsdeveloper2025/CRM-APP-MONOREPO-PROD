@@ -545,7 +545,13 @@ const CaseCard: React.FC<CaseCardProps> = ({ caseData, isReorderable = false, is
                     </p>
                   </div>
               </div>
-              {timestamp.value && <p className="text-xs text-gray-400 text-right shrink-0 ml-2">{`${timestamp.label}`}<br/>{`${timestamp.value}`}</p>}
+              {timestamp.value && (
+                <p className="text-xs text-gray-400 text-right shrink-0 ml-2">
+                  {timestamp.label}
+                  <br />
+                  {timestamp.value}
+                </p>
+              )}
           </div>
           <div className="flex justify-end items-center mt-2">
             <div className="flex items-center gap-3">

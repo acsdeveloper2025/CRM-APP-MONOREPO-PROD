@@ -494,6 +494,29 @@ export class MobileCaseController {
         }
       }
 
+      // Emit WebSocket events to notify frontend about case status change
+      try {
+        const { emitCaseStatusChanged, emitCaseUpdate } = await import('../websocket/server');
+        const username = (req as any).user?.username || 'Mobile User';
+
+        // Emit case status change notification
+        emitCaseStatusChanged(actualCaseId, existingCase.status, status, username);
+
+        // Emit general case update notification
+        emitCaseUpdate(require('../websocket/server').getSocketIO(), actualCaseId, {
+          type: 'STATUS_UPDATE',
+          status: status,
+          updatedBy: username,
+          source: 'MOBILE_APP',
+          caseNumber: existingCase.caseId,
+        });
+
+        console.log(`🔔 WebSocket notifications sent for case ${actualCaseId} status change: ${existingCase.status} -> ${status}`);
+      } catch (error) {
+        console.error('Error sending WebSocket notifications:', error);
+        // Don't fail the case update if WebSocket notification fails
+      }
+
       res.json({
         success: true,
         message: 'Case status updated successfully',
