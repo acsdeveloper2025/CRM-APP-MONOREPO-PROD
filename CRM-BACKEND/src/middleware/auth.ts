@@ -37,6 +37,45 @@ export const authenticateToken = (
     return;
   }
 
+  verifyTokenAndSetUser(token, req, res, next);
+};
+
+// Flexible authentication that supports both header and query parameter
+export const authenticateTokenFlexible = (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+): void => {
+  // Try Authorization header first
+  const authHeader = req.headers.authorization;
+  let token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+
+  // If no header token, try query parameter (for image serving)
+  if (!token) {
+    token = req.query.token as string;
+  }
+
+  if (!token) {
+    const response: ApiResponse = {
+      success: false,
+      message: 'Access token required',
+      error: {
+        code: 'UNAUTHORIZED',
+      },
+    };
+    res.status(401).json(response);
+    return;
+  }
+
+  verifyTokenAndSetUser(token, req, res, next);
+};
+
+const verifyTokenAndSetUser = (
+  token: string,
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+): void => {
   // Development bypass
   if (config.nodeEnv === 'development' && token === 'dev-token') {
     req.user = {
