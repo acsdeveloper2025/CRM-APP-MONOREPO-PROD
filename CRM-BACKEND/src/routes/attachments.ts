@@ -1,6 +1,6 @@
 import express from 'express';
 import { body, query, param } from 'express-validator';
-import { authenticateToken, requireFieldOrHigher } from '@/middleware/auth';
+import { authenticateToken, authenticateTokenFlexible, requireFieldOrHigher } from '@/middleware/auth';
 import { validate } from '@/middleware/validation';
 import { uploadRateLimit } from '@/middleware/rateLimiter';
 import {
@@ -17,11 +17,6 @@ import {
 } from '@/controllers/attachmentsController';
 
 const router = express.Router();
-
-// Apply authentication and rate limiting
-router.use(authenticateToken);
-router.use(requireFieldOrHigher);
-router.use(uploadRateLimit);
 
 // Validation schemas
 const caseAttachmentsValidation = [
@@ -69,20 +64,38 @@ const bulkDeleteValidation = [
 ];
 
 // File upload routes
-router.post('/upload', uploadAttachment);
+router.post('/upload',
+  authenticateToken,
+  requireFieldOrHigher,
+  uploadRateLimit,
+  uploadAttachment
+);
 
-router.post('/bulk-upload', bulkUploadAttachments);
+router.post('/bulk-upload',
+  authenticateToken,
+  requireFieldOrHigher,
+  uploadRateLimit,
+  bulkUploadAttachments
+);
 
 // File retrieval routes
 router.get('/case/:caseId',
+  authenticateToken,
+  requireFieldOrHigher,
   caseAttachmentsValidation,
   validate,
   getAttachmentsByCase
 );
 
-router.get('/types', getSupportedFileTypes);
+router.get('/types',
+  authenticateToken,
+  requireFieldOrHigher,
+  getSupportedFileTypes
+);
 
 router.get('/:id',
+  authenticateToken,
+  requireFieldOrHigher,
   [param('id').trim().notEmpty().withMessage('Attachment ID is required')],
   validate,
   getAttachmentById
@@ -90,13 +103,17 @@ router.get('/:id',
 
 // File download route
 router.post('/:id/download',
+  authenticateToken,
+  requireFieldOrHigher,
   [param('id').trim().notEmpty().withMessage('Attachment ID is required')],
   validate,
   downloadAttachment
 );
 
-// File serve route for preview (GET)
+// File serve route for preview (GET) - uses flexible auth for image tags
 router.get('/:id/serve',
+  authenticateTokenFlexible,
+  requireFieldOrHigher,
   [param('id').trim().notEmpty().withMessage('Attachment ID is required')],
   validate,
   serveAttachment
@@ -104,18 +121,24 @@ router.get('/:id/serve',
 
 // File management routes
 router.put('/:id',
+  authenticateToken,
+  requireFieldOrHigher,
   updateAttachmentValidation,
   validate,
   updateAttachment
 );
 
 router.delete('/:id',
+  authenticateToken,
+  requireFieldOrHigher,
   [param('id').trim().notEmpty().withMessage('Attachment ID is required')],
   validate,
   deleteAttachment
 );
 
 router.post('/bulk-delete',
+  authenticateToken,
+  requireFieldOrHigher,
   bulkDeleteValidation,
   validate,
   bulkDeleteAttachments
