@@ -4,15 +4,14 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useCaseAttachments } from '@/hooks/useCases';
-import { 
-  Upload, 
-  FileText, 
-  Image, 
-  Download, 
-  Eye, 
-  Trash2, 
+import {
+  Upload,
+  FileText,
+  Image,
+  Download,
+  Eye,
+  Trash2,
   Plus,
-  AlertCircle,
   Paperclip
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -386,7 +385,7 @@ export const CaseAttachmentsSection: React.FC<CaseAttachmentsSectionProps> = ({ 
             <div className="flex justify-center">
               {previewAttachment.mimeType.startsWith('image/') ? (
                 <img
-                  src={`${getApiBaseUrl()}/attachments/${previewAttachment.id}/serve`}
+                  src={`${getApiBaseUrl()}/attachments/${previewAttachment.id}/serve?token=${localStorage.getItem('accessToken')}`}
                   alt={previewAttachment.originalName}
                   className="max-w-full max-h-[60vh] object-contain"
                   onError={(e) => {

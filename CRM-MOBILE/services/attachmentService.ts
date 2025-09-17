@@ -446,7 +446,7 @@ class AttachmentService {
 
     try {
       // Get authentication token
-      const token = await AuthStorageService.getAccessToken();
+      const token = await AuthStorageService.getCurrentAccessToken();
       if (!token) {
         throw new Error('No authentication token available');
       }
@@ -720,7 +720,7 @@ ${500 + this.calculateContentLength(docInfo)}
 
     try {
       // Get authentication token
-      const token = await AuthStorageService.getAccessToken();
+      const token = await AuthStorageService.getCurrentAccessToken();
       if (!token) {
         throw new Error('No authentication token available');
       }
