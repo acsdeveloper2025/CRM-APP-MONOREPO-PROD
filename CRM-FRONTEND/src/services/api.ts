@@ -27,49 +27,49 @@ class ApiService {
     const isStaticIP = hostname === '103.14.234.36';
     const isDomain = hostname === 'crm.allcheckservices.com' || hostname === 'www.crm.allcheckservices.com';
 
-    console.log('🌐 Frontend API Service - URL Detection:', {
-      hostname,
-      isLocalhost,
-      isLocalNetwork,
-      isStaticIP,
-      isDomain,
-      VITE_API_BASE_URL: import.meta.env.VITE_API_BASE_URL,
-      VITE_API_BASE_URL_STATIC_IP: import.meta.env.VITE_API_BASE_URL_STATIC_IP,
-      VITE_API_BASE_URL_DEVICE: import.meta.env.VITE_API_BASE_URL_DEVICE
-    });
+    // Log only in development mode
+    if (import.meta.env.DEV) {
+      console.log('🌐 Frontend API Service - URL Detection:', {
+        hostname,
+        isLocalhost,
+        isLocalNetwork,
+        isStaticIP,
+        isDomain
+      });
+    }
 
     // Priority order for API URL selection:
     // 1. Check if we're on localhost (development)
     if (isLocalhost) {
       const url = 'http://localhost:3000/api';
-      console.log('🏠 Frontend API Service - Using localhost API URL:', url);
+      if (import.meta.env.DEV) console.log('🏠 Frontend API Service - Using localhost API URL:', url);
       return url;
     }
 
     // 2. Check if we're on the local network IP (hairpin NAT workaround)
     if (isLocalNetwork) {
       const url = 'http://103.14.234.36:3000/api';
-      console.log('🏠 Frontend API Service - Using local network API URL (hairpin NAT workaround):', url);
+      if (import.meta.env.DEV) console.log('🏠 Frontend API Service - Using local network API URL (hairpin NAT workaround):', url);
       return url;
     }
 
     // 3. Check if we're on the domain name (production access)
     if (isDomain) {
       const url = 'https://crm.allcheckservices.com/api';
-      console.log('🌐 Frontend API Service - Using domain API URL:', url);
+      if (import.meta.env.DEV) console.log('🌐 Frontend API Service - Using domain API URL:', url);
       return url;
     }
 
     // 4. Check if we're on the static IP (external access)
     if (isStaticIP) {
       const url = 'http://103.14.234.36:3000/api';
-      console.log('🌐 Frontend API Service - Using static IP API URL:', url);
+      if (import.meta.env.DEV) console.log('🌐 Frontend API Service - Using static IP API URL:', url);
       return url;
     }
 
     // 5. Fallback to environment variable or localhost
     const fallbackUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
-    console.log('🔄 Frontend API Service - Using fallback API URL:', fallbackUrl);
+    if (import.meta.env.DEV) console.log('🔄 Frontend API Service - Using fallback API URL:', fallbackUrl);
     return fallbackUrl;
   }
 

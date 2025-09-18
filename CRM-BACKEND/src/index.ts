@@ -8,7 +8,7 @@ import { connectRedis, disconnectRedis } from '@/config/redis';
 import { initializeQueues, closeQueues } from '@/config/queue';
 import { initializeWebSocket } from '@/websocket/server';
 import { EnterpriseCacheService } from './services/enterpriseCacheService';
-import { runMigrations } from '@/migrations/migrate';
+// Migrations removed for production - use database import instead
 
 const server = createServer(app);
 

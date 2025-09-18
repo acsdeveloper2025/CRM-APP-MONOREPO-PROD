@@ -43,5 +43,19 @@ export default defineConfig({
     },
     sourcemap: false,
     chunkSizeWarningLimit: 1200,
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: true,
+        drop_debugger: true,
+        pure_funcs: ['console.log', 'console.info', 'console.debug', 'console.warn']
+      },
+      mangle: true,
+      format: {
+        comments: false
+      }
+    },
+    target: ['es2020', 'chrome80', 'safari13'],
+    cssCodeSplit: true,
   },
 })

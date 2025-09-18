@@ -11,16 +11,18 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { toast } from 'react-hot-toast';
-import { 
-  FiUser, 
-  FiLock, 
-  FiBell, 
-  FiMoon, 
-  FiSun, 
+import {
+  FiUser,
+  FiLock,
+  FiBell,
+  FiMoon,
+  FiSun,
   FiMonitor,
   FiSave,
-  FiRefreshCw
+  FiRefreshCw,
+  FiSettings
 } from 'react-icons/fi';
+import { CacheClearer } from '@/components/admin/CacheClearer';
 
 interface UserSettings {
   profile: {
@@ -139,7 +141,7 @@ export const SettingsPage: React.FC = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="profile" className="flex items-center space-x-2">
             <FiUser className="h-4 w-4" />
             <span>Profile</span>
@@ -155,6 +157,10 @@ export const SettingsPage: React.FC = () => {
           <TabsTrigger value="preferences" className="flex items-center space-x-2">
             <FiMonitor className="h-4 w-4" />
             <span>Preferences</span>
+          </TabsTrigger>
+          <TabsTrigger value="admin" className="flex items-center space-x-2">
+            <FiSettings className="h-4 w-4" />
+            <span>Admin</span>
           </TabsTrigger>
         </TabsList>
 
