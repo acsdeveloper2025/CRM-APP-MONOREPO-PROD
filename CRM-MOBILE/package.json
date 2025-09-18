@@ -26,6 +26,7 @@
     "@capacitor/push-notifications": "^7.0.2",
     "@capacitor/splash-screen": "^7.0.2",
     "@capacitor/status-bar": "^7.0.2",
+    "@capgo/capacitor-native-biometric": "^7.1.13",
     "@googlemaps/js-api-loader": "^1.16.10",
     "@ionic/pwa-elements": "^3.3.0",
     "@react-native-async-storage/async-storage": "^2.2.0",
