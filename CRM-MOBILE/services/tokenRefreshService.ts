@@ -17,25 +17,21 @@ export interface RefreshResult {
 
 class TokenRefreshService {
   /**
-   * Get smart API base URL with fallback logic
+   * Get API base URL - Static IP only, no fallbacks
    */
   private static getApiBaseUrl(): string {
-    const hostname = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
-    const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
+    console.log('🌐 Token Refresh Service - Static IP Only');
 
-    if (isLocalhost) {
-      const url = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
-      console.log('🏠 Token Refresh Service - Using localhost API URL:', url);
-      return url;
-    } else {
-      const staticUrl = import.meta.env.VITE_API_BASE_URL_STATIC_IP;
-      const networkUrl = import.meta.env.VITE_API_BASE_URL_NETWORK;
-      const deviceUrl = import.meta.env.VITE_API_BASE_URL_DEVICE;
-
-      const url = staticUrl || networkUrl || deviceUrl || 'http://localhost:3000/api';
-      console.log('🌐 Token Refresh Service - Using network API URL:', url);
+    // Mobile app uses static IP exclusively
+    if (import.meta.env.VITE_API_BASE_URL_STATIC_IP) {
+      const url = import.meta.env.VITE_API_BASE_URL_STATIC_IP;
+      console.log('🌍 Token Refresh Service - Using Static IP API URL:', url);
       return url;
     }
+
+    // If static IP not configured, throw error
+    console.error('❌ Static IP not configured for Token Refresh Service');
+    throw new Error('VITE_API_BASE_URL_STATIC_IP must be configured for mobile app');
   }
 
   private static refreshInProgress = false;

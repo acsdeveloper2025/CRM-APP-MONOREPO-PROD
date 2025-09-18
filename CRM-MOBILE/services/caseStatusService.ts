@@ -88,45 +88,21 @@ class CaseStatusService {
 
 
   /**
-   * Get smart API base URL with fallback logic
+   * Get API base URL - Static IP only, no fallbacks
    */
   private static getApiBaseUrl(): string {
-    const hostname = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
-    const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
-    const isLocalNetwork = hostname.startsWith('10.') || hostname.startsWith('192.168.') || hostname.startsWith('172.');
-    const isDomain = hostname === 'crm.allcheckservices.com' || hostname === 'www.crm.allcheckservices.com';
+    console.log('🌐 Case Status Service - Static IP Only');
 
-    console.log('🌐 Case Status Service - API URL Detection:', {
-      hostname,
-      isLocalhost,
-      isLocalNetwork,
-      isDomain,
-      MODE: import.meta.env.MODE,
-      VITE_API_BASE_URL_STATIC_IP: import.meta.env.VITE_API_BASE_URL_STATIC_IP,
-      VITE_API_BASE_URL_DEVICE: import.meta.env.VITE_API_BASE_URL_DEVICE,
-      VITE_API_BASE_URL: import.meta.env.VITE_API_BASE_URL
-    });
-
-    if (isLocalhost) {
-      const url = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
-      console.log('🏠 Case Status Service - Using localhost API URL:', url);
-      return url;
-    } else if (isLocalNetwork) {
-      // Use local network IP to avoid hairpin NAT issues
-      const url = import.meta.env.VITE_API_BASE_URL_DEVICE || 'http://103.14.234.36:3000/api';
-      console.log('🏠 Case Status Service - Using local network API URL (hairpin NAT workaround):', url);
-      return url;
-    } else if (isDomain) {
-      // Use domain for production access - always use HTTPS for secure API communication
-      const url = 'https://crm.allcheckservices.com/api';
-      console.log('🌐 Case Status Service - Using domain API URL (HTTPS):', url);
-      return url;
-    } else {
-      // Use static IP for external access
-      const url = import.meta.env.VITE_API_BASE_URL_STATIC_IP || 'http://103.14.234.36:3000/api';
-      console.log('🌐 Case Status Service - Using static IP API URL:', url);
+    // Mobile app uses static IP exclusively
+    if (import.meta.env.VITE_API_BASE_URL_STATIC_IP) {
+      const url = import.meta.env.VITE_API_BASE_URL_STATIC_IP;
+      console.log('🌍 Case Status Service - Using Static IP API URL:', url);
       return url;
     }
+
+    // If static IP not configured, throw error
+    console.error('❌ Static IP not configured for Case Status Service');
+    throw new Error('VITE_API_BASE_URL_STATIC_IP must be configured for mobile app');
   }
 
   /**

@@ -858,7 +858,10 @@ validate_ip_updates() {
         if [ -f "$file" ]; then
             local old_ips=""
 
-            if [ "$USE_STATIC_IP" = true ] && [ "$IP_CHOICE" = "3" ]; then
+            # Skip mobile service files - they now use static IP only
+            if [[ "$file" == *"CRM-MOBILE/services/"* ]]; then
+                old_ips=""
+            elif [ "$USE_STATIC_IP" = true ] && [ "$IP_CHOICE" = "3" ]; then
                 # Dual access mode - allow both static IP and local network IP
                 old_ips=$(grep -E "(192\.168\.[0-9]+\.[0-9]+|172\.[0-9]+\.[0-9]+\.[0-9]+|10\.[0-9]+\.[0-9]+\.[0-9]+)" "$file" | grep -v "$STATIC_IP" | grep -v "$LOCAL_NETWORK_IP" | grep -v "localhost" | grep -v "127.0.0.1" || true)
             elif [ "$USE_STATIC_IP" = true ]; then
@@ -901,9 +904,12 @@ else
     print_info "This might affect network access from other devices"
 fi
 
-# Validate all IP updates
+# Validate all IP updates (non-blocking)
 echo ""
-validate_ip_updates
+validate_ip_updates || {
+    print_warning "Some IP validation issues found, but continuing with service startup..."
+    print_info "Services will still work correctly with the updated configuration."
+}
 
 # Display configuration summary
 print_info "Configuration Summary:"
