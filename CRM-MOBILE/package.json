@@ -4,8 +4,6 @@
   "version": "4.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "dev:network": "vite --host 0.0.0.0",
     "build": "vite build",
     "preview": "vite preview",
     "preview:network": "vite preview --host 0.0.0.0"
@@ -47,18 +45,12 @@
     "react-router-dom": "^6.8.0"
   },
   "devDependencies": {
-    "@eslint/js": "^9.32.0",
     "@types/node": "^22.14.0",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
     "@types/react-native": "^0.72.8",
-    "@typescript-eslint/eslint-plugin": "^8.39.0",
-    "@typescript-eslint/parser": "^8.39.0",
     "@vitejs/plugin-react": "^4.2.0",
     "autoprefixer": "^10.4.0",
-    "eslint": "^9.32.0",
-    "eslint-plugin-react": "^7.37.5",
-    "eslint-plugin-react-hooks": "^5.2.0",
     "postcss": "^8.4.0",
     "tailwindcss": "^3.4.0",
     "terser": "^5.44.0",

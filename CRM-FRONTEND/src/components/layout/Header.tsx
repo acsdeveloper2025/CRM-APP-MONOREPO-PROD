@@ -1,8 +1,10 @@
 import React from 'react';
-import { Menu, Bell, Moon, Sun, LogOut, User, Settings } from 'lucide-react';
+import { Menu, Bell, Moon, Sun, LogOut, User, Settings, Trash2 } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useQueryClient } from '@tanstack/react-query';
+import { useCacheClearer } from '@/utils/clearCache';
 import { NotificationCenter } from '@/components/realtime/NotificationCenter';
 import { ConnectionStatus } from '@/components/realtime/ConnectionStatus';
 import { Button } from '@/components/ui/button';
@@ -24,9 +26,17 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const location = useLocation();
+  const queryClient = useQueryClient();
+  const { clearCache } = useCacheClearer();
 
   const handleLogout = async () => {
     await logout();
+  };
+
+  const handleClearCache = async () => {
+    if (confirm('Are you sure you want to clear all cache? This will reload the page.')) {
+      await clearCache(queryClient, 'all');
+    }
   };
 
   const getUserInitials = (name: string) => {
@@ -132,6 +142,10 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
               <DropdownMenuItem>
                 <Settings className="mr-2 h-4 w-4" />
                 <span>Settings</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleClearCache}>
+                <Trash2 className="mr-2 h-4 w-4" />
+                <span>Clear Cache</span>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleLogout}>

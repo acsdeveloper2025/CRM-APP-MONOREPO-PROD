@@ -36,7 +36,7 @@ import reportsRoutes from '@/routes/reports';
 import enhancedAnalyticsRoutes from '@/routes/enhancedAnalytics';
 import exportsRoutes from '@/routes/exports';
 import auditLogsRoutes from '@/routes/audit-logs';
-import geolocationRoutes from '@/routes/geolocation';
+// Geolocation routes removed for production
 import formRoutes from '@/routes/forms';
 import notificationRoutes from '@/routes/notifications';
 import mobileRoutes from '@/routes/mobile';
@@ -163,7 +163,7 @@ app.use('/api/reports', reportsRoutes);
 app.use('/api/enhanced-analytics', enhancedAnalyticsRoutes);
 app.use('/api/exports', exportsRoutes);
 app.use('/api/audit-logs', auditLogsRoutes);
-app.use('/api/geolocation', geolocationRoutes);
+// Geolocation routes removed for production
 app.use('/api/forms', formRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/security', securityRoutes);
