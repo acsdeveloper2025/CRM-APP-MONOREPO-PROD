@@ -4,27 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "dev:network": "vite --host 0.0.0.0",
     "build": "vite build",
-    "lint": "eslint . --max-warnings=0",
     "preview": "vite preview",
-    "preview:network": "vite preview --host 0.0.0.0",
-    "test": "vitest",
-    "test:coverage": "vitest --coverage",
-    "test:e2e": "./tests/run-tests.sh full",
-    "test:e2e:smoke": "./tests/run-tests.sh smoke",
-    "test:e2e:mobile": "./tests/run-tests.sh mobile",
-    "test:e2e:api": "./tests/run-tests.sh api",
-    "test:e2e:accessibility": "./tests/run-tests.sh accessibility",
-    "test:e2e:performance": "./tests/run-tests.sh performance",
-    "test:e2e:debug": "./tests/run-tests.sh full --headless=false --debug",
-    "test:e2e:headed": "playwright test --headed",
-    "test:e2e:ui": "playwright test --ui",
-    "playwright:install": "playwright install",
-    "playwright:codegen": "playwright codegen",
-    "playwright:report": "playwright show-report",
-    "playwright:trace": "playwright show-trace"
+    "preview:network": "vite preview --host 0.0.0.0"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.1",
@@ -76,23 +58,13 @@
     "zod": "^4.0.17"
   },
   "devDependencies": {
-    "@eslint/js": "^9.32.0",
-    "@playwright/test": "^1.40.0",
-    "@tailwindcss/postcss": "^4.1.11",
+    "@tailwindcss/postcss": "^4.1.13",
     "@types/node": "^24.2.1",
-    "@faker-js/faker": "^8.3.1",
-    "allure-playwright": "^2.10.0",
     "@types/react": "^19.1.9",
     "@types/react-dom": "^19.1.7",
     "@vitejs/plugin-react": "^4.7.0",
-    "cypress-axe": "^1.6.0",
-    "cypress-multi-reporters": "^2.0.5",
-    "eslint": "^9.32.0",
-    "eslint-plugin-react-hooks": "^5.2.0",
-    "eslint-plugin-react-refresh": "^0.4.20",
-    "globals": "^16.3.0",
+    "terser": "^5.44.0",
     "typescript": "~5.8.3",
-    "typescript-eslint": "^8.39.0",
     "vite": "^7.1.0"
   }
 }

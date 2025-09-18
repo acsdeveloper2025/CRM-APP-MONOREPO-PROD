@@ -9,8 +9,10 @@ const validatePorts = () => {
   const configuredPort = parseInt(process.env.PORT || '3000', 10);
 
   if (configuredPort !== requiredPort) {
-    console.error(`❌ Port mismatch: Backend must run on port ${requiredPort}, but PORT=${configuredPort} was configured.`);
-    console.error(`   Please update your environment to use PORT=${requiredPort} or remove the PORT environment variable.`);
+    if (process.env.NODE_ENV !== 'production') {
+      console.error(`❌ Port mismatch: Backend must run on port ${requiredPort}, but PORT=${configuredPort} was configured.`);
+      console.error(`   Please update your environment to use PORT=${requiredPort} or remove the PORT environment variable.`);
+    }
     process.exit(1);
   }
 };
@@ -27,9 +29,9 @@ export const config = {
   databaseUrl: process.env.DATABASE_URL || '',
   
   // JWT
-  jwtSecret: process.env.JWT_SECRET || 'fallback-secret-change-in-production',
+  jwtSecret: process.env.JWT_SECRET || 'production-jwt-secret-change-me',
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
-  jwtRefreshSecret: process.env.JWT_REFRESH_SECRET || 'fallback-refresh-secret',
+  jwtRefreshSecret: process.env.JWT_REFRESH_SECRET || 'production-refresh-secret-change-me',
   jwtRefreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '30d',
   
   // Redis
@@ -90,7 +92,7 @@ export const config = {
   
   // Security
   bcryptRounds: parseInt(process.env.BCRYPT_ROUNDS || '12', 10),
-  sessionSecret: process.env.SESSION_SECRET || 'fallback-session-secret',
+  sessionSecret: process.env.SESSION_SECRET || 'production-session-secret-change-me',
   
   // Email
   smtpHost: process.env.SMTP_HOST || '',
