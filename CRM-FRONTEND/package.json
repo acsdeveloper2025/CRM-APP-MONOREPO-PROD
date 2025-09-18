@@ -58,12 +58,10 @@
     "zod": "^4.0.17"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4.1.13",
     "@types/node": "^24.2.1",
     "@types/react": "^19.1.9",
     "@types/react-dom": "^19.1.7",
     "@vitejs/plugin-react": "^4.7.0",
-    "terser": "^5.44.0",
     "typescript": "~5.8.3",
     "vite": "^7.1.0"
   }
