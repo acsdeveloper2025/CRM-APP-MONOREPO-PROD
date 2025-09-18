@@ -42,6 +42,12 @@ const config: CapacitorConfig = {
     Filesystem: {
       iosDocumentPath: 'DOCUMENTS',
       androidDocumentPath: 'DOCUMENTS'
+    },
+    NativeBiometric: {
+      useFallback: true,
+      fallbackTitle: 'Use Passcode',
+      fallbackSubtitle: 'Use your device passcode to authenticate',
+      disableBackup: false
     }
   }
 };

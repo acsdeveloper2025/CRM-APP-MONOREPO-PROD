@@ -34,87 +34,21 @@ class ApiService {
   }
 
   /**
-   * Get API base URL based on environment and network context
+   * Get API base URL - Static IP only, no fallbacks
    */
   private getApiBaseUrl(): string {
-    // Check if running on physical device vs simulator/web
-    const hostname = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
-    const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
+    console.log('🔍 Mobile App API Configuration - Static IP Only');
 
-    console.log('🔍 API URL Detection:', {
-      hostname,
-      isLocalhost,
-      MODE: import.meta.env.MODE,
-      VITE_API_BASE_URL: import.meta.env.VITE_API_BASE_URL,
-      VITE_API_BASE_URL_DEVICE: import.meta.env.VITE_API_BASE_URL_DEVICE,
-      VITE_API_BASE_URL_PRODUCTION: import.meta.env.VITE_API_BASE_URL_PRODUCTION
-    });
-
-    // Priority order for API URL selection:
-    // 1. Localhost access (highest priority for development)
-    if (isLocalhost && import.meta.env.VITE_API_BASE_URL) {
-      const url = import.meta.env.VITE_API_BASE_URL;
-      console.log('🏠 Using localhost API URL:', url);
-      return url;
-    }
-
-    // 2. Smart local network detection with fallback
-    // For local machine accessing via local network IP, use local network instead of static IP
-    // This works around the hairpin NAT issue
-    const isLocalNetwork = hostname.startsWith('10.') || hostname.startsWith('192.168.') || hostname.startsWith('172.');
-    if (isLocalNetwork && import.meta.env.VITE_API_BASE_URL_DEVICE) {
-      const url = import.meta.env.VITE_API_BASE_URL_DEVICE;
-      console.log('🏠 Using local network API URL (hairpin NAT workaround):', url);
-      return url;
-    }
-
-    // 3. Domain access (for HTTPS domain access)
-    const isDomain = hostname === 'example.com' || hostname === 'www.example.com';
-    if (isDomain) {
-      const url = 'https://example.com/api';
-      console.log('🌐 Using domain API URL:', url);
-      return url;
-    }
-
-    // 4. Production URL if in production mode (uses static IP)
-    if (import.meta.env.MODE === 'production' && import.meta.env.VITE_API_BASE_URL_PRODUCTION) {
-      const url = import.meta.env.VITE_API_BASE_URL_PRODUCTION;
-      console.log('🚀 Using production API URL (Static IP):', url);
-      return url;
-    }
-
-    // 5. Use Static IP URL if available (for internet access)
+    // Mobile app uses static IP exclusively
     if (import.meta.env.VITE_API_BASE_URL_STATIC_IP) {
       const url = import.meta.env.VITE_API_BASE_URL_STATIC_IP;
       console.log('🌍 Using Static IP API URL:', url);
       return url;
     }
 
-    // 3. Use Cloudflare tunnel URL if available (backup for internet access)
-    if (import.meta.env.VITE_API_BASE_URL_CLOUDFLARE) {
-      const url = import.meta.env.VITE_API_BASE_URL_CLOUDFLARE;
-      console.log('☁️ Using Cloudflare tunnel API URL:', url);
-      return url;
-    }
-
-    // 4. Use Ngrok URL if available (backup for internet access)
-    if (import.meta.env.VITE_API_BASE_URL_NGROK) {
-      const url = import.meta.env.VITE_API_BASE_URL_NGROK;
-      console.log('🌐 Using Ngrok API URL:', url);
-      return url;
-    }
-
-    // 5. Use network URL if not on localhost (local network access)
-    if (!isLocalhost && import.meta.env.VITE_API_BASE_URL_DEVICE) {
-      const url = import.meta.env.VITE_API_BASE_URL_DEVICE;
-      console.log('📱 Using local network API URL:', url);
-      return url;
-    }
-
-    // 6. Use localhost URL for local development
-    const url = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
-    console.log('🏠 Using localhost API URL:', url);
-    return url;
+    // If static IP not configured, throw error
+    console.error('❌ Static IP not configured for mobile app');
+    throw new Error('VITE_API_BASE_URL_STATIC_IP must be configured for mobile app');
   }
 
   /**

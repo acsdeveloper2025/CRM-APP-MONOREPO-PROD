@@ -10,40 +10,21 @@ class AttachmentService {
   private initialized = false;
 
   /**
-   * Get the appropriate API base URL using smart selection logic
+   * Get API base URL - Static IP only, no fallbacks
    */
   private getApiBaseUrl(): string {
-    const hostname = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
-    const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
+    console.log('🔍 Attachment Service - Static IP Only');
 
-    console.log('🔍 API URL Detection:', {
-      hostname,
-      isLocalhost,
-      MODE: import.meta.env.MODE,
-      VITE_API_BASE_URL: import.meta.env.VITE_API_BASE_URL,
-      VITE_API_BASE_URL_DEVICE: import.meta.env.VITE_API_BASE_URL_DEVICE,
-      VITE_API_BASE_URL_NETWORK: import.meta.env.VITE_API_BASE_URL_NETWORK,
-      VITE_API_BASE_URL_STATIC_IP: import.meta.env.VITE_API_BASE_URL_STATIC_IP
-    });
-
-    // Priority-based URL selection with hairpin NAT workaround
-    if (isLocalhost) {
-      // When running on localhost, use localhost API
-      const url = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
-      console.log('🏠 Using localhost API URL:', url);
-      return url;
-    } else {
-      // When running on network IP, use smart selection
-      // Try static IP first, fallback to network IP for hairpin NAT issues
-      const staticUrl = import.meta.env.VITE_API_BASE_URL_STATIC_IP;
-      const networkUrl = import.meta.env.VITE_API_BASE_URL_NETWORK;
-      const deviceUrl = import.meta.env.VITE_API_BASE_URL_DEVICE;
-
-      // Use static IP if available, otherwise fallback to network/device URL
-      const url = staticUrl || networkUrl || deviceUrl || 'http://localhost:3000/api';
-      console.log('🌐 Using network API URL:', url);
+    // Mobile app uses static IP exclusively
+    if (import.meta.env.VITE_API_BASE_URL_STATIC_IP) {
+      const url = import.meta.env.VITE_API_BASE_URL_STATIC_IP;
+      console.log('🌍 Attachment Service - Using Static IP API URL:', url);
       return url;
     }
+
+    // If static IP not configured, throw error
+    console.error('❌ Static IP not configured for Attachment Service');
+    throw new Error('VITE_API_BASE_URL_STATIC_IP must be configured for mobile app');
   }
 
   /**

@@ -55,29 +55,20 @@ class WebSocketService {
   }
 
   /**
-   * Get WebSocket URL based on environment configuration
+   * Get WebSocket URL - Static IP only, no fallbacks
    */
   private getWebSocketConfig(): WebSocketConfig {
-    const hostname = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
-    const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
+    console.log('🔌 WebSocket Service - Static IP Only');
 
     let wsUrl: string;
 
-    // Priority order for WebSocket URL selection:
-    // 1. Use Static IP WebSocket URL if available (PRIMARY for internet access)
+    // Mobile app uses static IP WebSocket exclusively
     if (import.meta.env.VITE_WS_URL) {
       wsUrl = import.meta.env.VITE_WS_URL;
       console.log('🔌 Using Static IP WebSocket URL:', wsUrl);
-    }
-    // 2. Use network WebSocket URL if not on localhost (local network access)
-    else if (!isLocalhost && import.meta.env.VITE_WS_URL_NETWORK) {
-      wsUrl = import.meta.env.VITE_WS_URL_NETWORK;
-      console.log('🔌 Using Network WebSocket URL:', wsUrl);
-    }
-    // 3. Use localhost WebSocket URL for local development
-    else {
-      wsUrl = 'ws://localhost:3000';
-      console.log('🔌 Using Localhost WebSocket URL:', wsUrl);
+    } else {
+      console.error('❌ Static IP WebSocket not configured');
+      throw new Error('VITE_WS_URL must be configured for mobile app');
     }
 
     return {
