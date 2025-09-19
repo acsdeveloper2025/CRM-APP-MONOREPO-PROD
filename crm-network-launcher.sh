@@ -41,6 +41,84 @@ if [ "$1" = "--version" ] || [ "$1" = "-v" ]; then
     exit 0
 fi
 
+# Function to generate configuration from templates
+generate_config_from_template() {
+    local template_file="$1"
+    local output_file="$2"
+    local domain_name="${DOMAIN_NAME:-crm.allcheckservices.com}"
+    local db_host="${DB_HOST:-localhost}"
+    local db_port="${DB_PORT:-5432}"
+    local db_name="${DB_NAME:-acs_db}"
+    local db_user="${DB_USER:-acs_user}"
+    local db_password="${DB_PASSWORD:-acs_password}"
+    local redis_host="${REDIS_HOST:-localhost}"
+    local redis_port="${REDIS_PORT:-6379}"
+    local redis_password="${REDIS_PASSWORD:-}"
+
+    if [ ! -f "$template_file" ]; then
+        print_warning "Template file not found: $template_file"
+        return 1
+    fi
+
+    print_info "Generating configuration: $output_file"
+
+    # Copy template and replace placeholders
+    cp "$template_file" "$output_file"
+
+    # Replace common placeholders
+    sed -i "s|{{STATIC_IP}}|$STATIC_IP|g" "$output_file"
+    sed -i "s|{{LOCAL_NETWORK_IP}}|$LOCAL_NETWORK_IP|g" "$output_file"
+    sed -i "s|{{DOMAIN_NAME}}|$domain_name|g" "$output_file"
+    sed -i "s|{{DB_HOST}}|$db_host|g" "$output_file"
+    sed -i "s|{{DB_PORT}}|$db_port|g" "$output_file"
+    sed -i "s|{{DB_NAME}}|$db_name|g" "$output_file"
+    sed -i "s|{{DB_USER}}|$db_user|g" "$output_file"
+    sed -i "s|{{DB_PASSWORD}}|$db_password|g" "$output_file"
+    sed -i "s|{{REDIS_HOST}}|$redis_host|g" "$output_file"
+    sed -i "s|{{REDIS_PORT}}|$redis_port|g" "$output_file"
+    sed -i "s|{{REDIS_PASSWORD}}|$redis_password|g" "$output_file"
+
+    # Generate secure secrets if not provided
+    local jwt_secret="${JWT_SECRET:-$(openssl rand -base64 64 | tr -d '\n')}"
+    local jwt_refresh_secret="${JWT_REFRESH_SECRET:-$(openssl rand -base64 64 | tr -d '\n')}"
+    local session_secret="${SESSION_SECRET:-$(openssl rand -base64 32 | tr -d '\n')}"
+
+    sed -i "s|{{JWT_SECRET}}|$jwt_secret|g" "$output_file"
+    sed -i "s|{{JWT_REFRESH_SECRET}}|$jwt_refresh_secret|g" "$output_file"
+    sed -i "s|{{SESSION_SECRET}}|$session_secret|g" "$output_file"
+
+    # Configure URLs based on deployment type
+    if [ "$USE_STATIC_IP" = true ]; then
+        local api_base_url="http://$STATIC_IP/api"
+        local ws_url="ws://$STATIC_IP"
+        local cors_origins="http://localhost:5173,http://localhost:5180,http://127.0.0.1:5173,http://127.0.0.1:5180,http://$STATIC_IP:5173,http://$STATIC_IP:5180,http://$STATIC_IP,https://$domain_name,capacitor://localhost,http://capacitor.localhost"
+    else
+        local api_base_url="http://$LOCAL_NETWORK_IP:3000/api"
+        local ws_url="ws://$LOCAL_NETWORK_IP:3000"
+        local cors_origins="http://localhost:5173,http://localhost:5180,http://127.0.0.1:5173,http://127.0.0.1:5180,http://$LOCAL_NETWORK_IP:5173,http://$LOCAL_NETWORK_IP:5180"
+    fi
+
+    sed -i "s|{{API_BASE_URL}}|$api_base_url|g" "$output_file"
+    sed -i "s|{{WS_URL}}|$ws_url|g" "$output_file"
+    sed -i "s|{{CORS_ORIGINS}}|$cors_origins|g" "$output_file"
+    sed -i "s|{{WS_CORS_ORIGINS}}|$cors_origins|g" "$output_file"
+
+    # Replace other placeholders with environment variables or defaults
+    sed -i "s|{{GOOGLE_MAPS_API_KEY}}|${GOOGLE_MAPS_API_KEY:-your-google-maps-api-key-here}|g" "$output_file"
+    sed -i "s|{{GEMINI_API_KEY}}|${GEMINI_API_KEY:-your-gemini-api-key-here}|g" "$output_file"
+    sed -i "s|{{FCM_SERVER_KEY}}|${FCM_SERVER_KEY:-your-fcm-server-key-here}|g" "$output_file"
+    sed -i "s|{{APNS_KEY_ID}}|${APNS_KEY_ID:-your-apns-key-id-here}|g" "$output_file"
+    sed -i "s|{{APNS_TEAM_ID}}|${APNS_TEAM_ID:-your-apns-team-id-here}|g" "$output_file"
+    sed -i "s|{{SMTP_HOST}}|${SMTP_HOST:-smtp.example.com}|g" "$output_file"
+    sed -i "s|{{SMTP_PORT}}|${SMTP_PORT:-587}|g" "$output_file"
+    sed -i "s|{{SMTP_USER}}|${SMTP_USER:-your-email@example.com}|g" "$output_file"
+    sed -i "s|{{SMTP_PASS}}|${SMTP_PASS:-your-email-password}|g" "$output_file"
+    sed -i "s|{{QR_CODE_BASE_URL}}|${QR_CODE_BASE_URL:-https://$domain_name/verify}|g" "$output_file"
+    sed -i "s|{{BUILD_DATE}}|$(date +%Y-%m-%d)|g" "$output_file"
+
+    print_status "Configuration generated: $output_file"
+}
+
 # Function to clean up old backup files (keep only last 7 days)
 cleanup_old_backups() {
     print_info "Cleaning up old backup files (keeping last 7 days)..."
@@ -369,7 +447,25 @@ check_dependencies() {
 # Get current network IP and static IP configuration
 print_header "📡 Network Detection & Static IP Configuration"
 LOCAL_NETWORK_IP=$(get_local_ip)
-STATIC_IP="103.14.234.36"
+
+# Check if STATIC_IP is provided as environment variable or detect from system
+if [ -n "$STATIC_IP" ]; then
+    print_info "Using provided static IP: $STATIC_IP"
+elif [ -n "$SERVER_IP" ]; then
+    STATIC_IP="$SERVER_IP"
+    print_info "Using server IP as static IP: $STATIC_IP"
+else
+    # Try to detect public IP or use default
+    DETECTED_IP=$(curl -s ifconfig.me 2>/dev/null || curl -s ipinfo.io/ip 2>/dev/null || echo "")
+    if [ -n "$DETECTED_IP" ]; then
+        STATIC_IP="$DETECTED_IP"
+        print_info "Auto-detected public IP: $STATIC_IP"
+    else
+        STATIC_IP="103.14.234.36"
+        print_warning "Could not detect public IP, using default: $STATIC_IP"
+        print_info "You can override this by setting STATIC_IP environment variable"
+    fi
+fi
 
 if [ -z "$LOCAL_NETWORK_IP" ]; then
     print_warning "Could not automatically detect local network IP address"
@@ -550,7 +646,13 @@ update_all_env_files
 
 # Update Backend .env file with specific CORS settings
 BACKEND_ENV="CRM-BACKEND/.env"
-if [ -f "$BACKEND_ENV" ]; then
+BACKEND_TEMPLATE="CRM-BACKEND/.env.template"
+
+# Check if template exists and use it for fresh configuration
+if [ -f "$BACKEND_TEMPLATE" ] && [ ! -f "$BACKEND_ENV" ]; then
+    print_info "Using backend template to generate configuration"
+    generate_config_from_template "$BACKEND_TEMPLATE" "$BACKEND_ENV"
+elif [ -f "$BACKEND_ENV" ]; then
     # Create smart backup
     if create_smart_backup "$BACKEND_ENV"; then
         print_info "Backend .env backup created: ${BACKEND_ENV}.backup.$(date +%Y%m%d)"
@@ -560,12 +662,12 @@ if [ -f "$BACKEND_ENV" ]; then
     if [ "$USE_STATIC_IP" = true ]; then
         if [ "$IP_CHOICE" = "3" ]; then
             # Both local and internet access
-            CORS_ORIGINS="http://localhost:5173,http://localhost:5180,http://127.0.0.1:5173,http://127.0.0.1:5180,http://$LOCAL_NETWORK_IP:5173,http://$LOCAL_NETWORK_IP:5180,http://$STATIC_IP:5173,http://$STATIC_IP:5180"
-            WS_CORS_ORIGINS="http://localhost:5173,http://localhost:5180,http://127.0.0.1:5173,http://127.0.0.1:5180,http://$LOCAL_NETWORK_IP:5173,http://$LOCAL_NETWORK_IP:5180,http://$STATIC_IP:5173,http://$STATIC_IP:5180"
+            CORS_ORIGINS="http://localhost:5173,http://localhost:5180,http://127.0.0.1:5173,http://127.0.0.1:5180,http://$LOCAL_NETWORK_IP:5173,http://$LOCAL_NETWORK_IP:5180,http://$STATIC_IP:5173,http://$STATIC_IP:5180,http://$STATIC_IP,https://crm.allcheckservices.com,capacitor://localhost,http://capacitor.localhost"
+            WS_CORS_ORIGINS="http://localhost:5173,http://localhost:5180,http://127.0.0.1:5173,http://127.0.0.1:5180,http://$LOCAL_NETWORK_IP:5173,http://$LOCAL_NETWORK_IP:5180,http://$STATIC_IP:5173,http://$STATIC_IP:5180,http://$STATIC_IP,https://crm.allcheckservices.com,capacitor://localhost,http://capacitor.localhost"
         else
             # Static IP only
-            CORS_ORIGINS="http://localhost:5173,http://localhost:5180,http://127.0.0.1:5173,http://127.0.0.1:5180,http://$STATIC_IP:5173,http://$STATIC_IP:5180"
-            WS_CORS_ORIGINS="http://localhost:5173,http://localhost:5180,http://127.0.0.1:5173,http://127.0.0.1:5180,http://$STATIC_IP:5173,http://$STATIC_IP:5180"
+            CORS_ORIGINS="http://localhost:5173,http://localhost:5180,http://127.0.0.1:5173,http://127.0.0.1:5180,http://$STATIC_IP:5173,http://$STATIC_IP:5180,http://$STATIC_IP,https://crm.allcheckservices.com,capacitor://localhost,http://capacitor.localhost"
+            WS_CORS_ORIGINS="http://localhost:5173,http://localhost:5180,http://127.0.0.1:5173,http://127.0.0.1:5180,http://$STATIC_IP:5173,http://$STATIC_IP:5180,http://$STATIC_IP,https://crm.allcheckservices.com,capacitor://localhost,http://capacitor.localhost"
         fi
     else
         # Local network only
@@ -577,36 +679,72 @@ if [ -f "$BACKEND_ENV" ]; then
     sed -i.tmp "s|CORS_ORIGIN=.*|CORS_ORIGIN=$CORS_ORIGINS|g" "$BACKEND_ENV"
     sed -i.tmp "s|WS_CORS_ORIGIN=.*|WS_CORS_ORIGIN=$WS_CORS_ORIGINS|g" "$BACKEND_ENV"
 
+    # Add STATIC_IP environment variable for backend controllers
+    if ! grep -q "STATIC_IP=" "$BACKEND_ENV"; then
+        echo "STATIC_IP=$STATIC_IP" >> "$BACKEND_ENV"
+    else
+        sed -i.tmp "s|STATIC_IP=.*|STATIC_IP=$STATIC_IP|g" "$BACKEND_ENV"
+    fi
+
     rm -f "$BACKEND_ENV.tmp"
     print_status "Backend CORS and WebSocket CORS updated for chosen configuration"
 else
-    print_error "Backend .env file not found at $BACKEND_ENV"
+    print_error "Backend .env file not found at $BACKEND_ENV and no template available"
     exit 1
 fi
 
 # Update Frontend .env file
 FRONTEND_ENV="CRM-FRONTEND/.env"
-if [ -f "$FRONTEND_ENV" ]; then
+FRONTEND_TEMPLATE="CRM-FRONTEND/.env.template"
+
+# Check if template exists and use it for fresh configuration
+if [ -f "$FRONTEND_TEMPLATE" ] && [ ! -f "$FRONTEND_ENV" ]; then
+    print_info "Using frontend template to generate configuration"
+    generate_config_from_template "$FRONTEND_TEMPLATE" "$FRONTEND_ENV"
+elif [ -f "$FRONTEND_ENV" ]; then
     # Create smart backup
     if create_smart_backup "$FRONTEND_ENV"; then
         print_info "Frontend .env backup created: ${FRONTEND_ENV}.backup.$(date +%Y%m%d)"
     fi
 
+    # Update API URLs based on configuration
+    if [ "$USE_STATIC_IP" = true ]; then
+        API_URL="http://$STATIC_IP/api"
+        WS_URL="ws://$STATIC_IP"
+    else
+        API_URL="http://$NETWORK_IP:3000/api"
+        WS_URL="ws://$NETWORK_IP:3000"
+    fi
+
     # Update API URLs
-    sed -i.tmp "s|VITE_API_BASE_URL_NETWORK=.*|VITE_API_BASE_URL_NETWORK=http://$NETWORK_IP:3000/api|g" "$FRONTEND_ENV"
-    sed -i.tmp "s|VITE_WS_URL_NETWORK=.*|VITE_WS_URL_NETWORK=ws://$NETWORK_IP:3000|g" "$FRONTEND_ENV"
-    sed -i.tmp "s|VITE_API_BASE_URL=.*|VITE_API_BASE_URL=http://$NETWORK_IP:3000/api|g" "$FRONTEND_ENV"
-    sed -i.tmp "s|VITE_WS_URL=.*|VITE_WS_URL=ws://$NETWORK_IP:3000|g" "$FRONTEND_ENV"
+    sed -i.tmp "s|VITE_API_BASE_URL_NETWORK=.*|VITE_API_BASE_URL_NETWORK=$API_URL|g" "$FRONTEND_ENV"
+    sed -i.tmp "s|VITE_WS_URL_NETWORK=.*|VITE_WS_URL_NETWORK=$WS_URL|g" "$FRONTEND_ENV"
+    sed -i.tmp "s|VITE_API_BASE_URL=.*|VITE_API_BASE_URL=$API_URL|g" "$FRONTEND_ENV"
+    sed -i.tmp "s|VITE_WS_URL=.*|VITE_WS_URL=$WS_URL|g" "$FRONTEND_ENV"
+
+    # Add STATIC_IP environment variable for frontend services
+    if ! grep -q "VITE_STATIC_IP=" "$FRONTEND_ENV"; then
+        echo "VITE_STATIC_IP=$STATIC_IP" >> "$FRONTEND_ENV"
+    else
+        sed -i.tmp "s|VITE_STATIC_IP=.*|VITE_STATIC_IP=$STATIC_IP|g" "$FRONTEND_ENV"
+    fi
+
     rm -f "$FRONTEND_ENV.tmp"
     print_status "Frontend API URLs updated to use $NETWORK_IP"
 else
-    print_error "Frontend .env file not found at $FRONTEND_ENV"
+    print_error "Frontend .env file not found at $FRONTEND_ENV and no template available"
     exit 1
 fi
 
 # Update Mobile .env file
 MOBILE_ENV="CRM-MOBILE/.env"
-if [ -f "$MOBILE_ENV" ]; then
+MOBILE_TEMPLATE="CRM-MOBILE/.env.template"
+
+# Check if template exists and use it for fresh configuration
+if [ -f "$MOBILE_TEMPLATE" ] && [ ! -f "$MOBILE_ENV" ]; then
+    print_info "Using mobile template to generate configuration"
+    generate_config_from_template "$MOBILE_TEMPLATE" "$MOBILE_ENV"
+elif [ -f "$MOBILE_ENV" ]; then
     # Create smart backup
     if create_smart_backup "$MOBILE_ENV"; then
         print_info "Mobile .env backup created: ${MOBILE_ENV}.backup.$(date +%Y%m%d)"
@@ -614,9 +752,14 @@ if [ -f "$MOBILE_ENV" ]; then
 
     # Update API URLs based on configuration choice
     if [ "$USE_STATIC_IP" = true ]; then
-        # Update for static IP access
-        sed -i.tmp "s|VITE_API_BASE_URL_STATIC_IP=.*|VITE_API_BASE_URL_STATIC_IP=http://$STATIC_IP:3000/api|g" "$MOBILE_ENV"
-        sed -i.tmp "s|VITE_API_BASE_URL_PRODUCTION=.*|VITE_API_BASE_URL_PRODUCTION=http://$STATIC_IP:3000/api|g" "$MOBILE_ENV"
+        # Update for static IP access (using nginx proxy on port 80)
+        API_URL="http://$STATIC_IP/api"
+        WS_URL="ws://$STATIC_IP"
+
+        sed -i.tmp "s|VITE_API_BASE_URL_STATIC_IP=.*|VITE_API_BASE_URL_STATIC_IP=$API_URL|g" "$MOBILE_ENV"
+        sed -i.tmp "s|VITE_API_BASE_URL_PRODUCTION=.*|VITE_API_BASE_URL_PRODUCTION=$API_URL|g" "$MOBILE_ENV"
+        sed -i.tmp "s|VITE_WS_URL=.*|VITE_WS_URL=$WS_URL|g" "$MOBILE_ENV"
+        sed -i.tmp "s|VITE_WS_URL_NETWORK=.*|VITE_WS_URL_NETWORK=$WS_URL|g" "$MOBILE_ENV"
 
         if [ "$IP_CHOICE" = "3" ]; then
             # Also update local network URL for dual access
@@ -627,12 +770,14 @@ if [ -f "$MOBILE_ENV" ]; then
     else
         # Update for local network only
         sed -i.tmp "s|VITE_API_BASE_URL_DEVICE=.*|VITE_API_BASE_URL_DEVICE=http://$LOCAL_NETWORK_IP:3000/api|g" "$MOBILE_ENV"
+        sed -i.tmp "s|VITE_WS_URL=.*|VITE_WS_URL=ws://$LOCAL_NETWORK_IP:3000|g" "$MOBILE_ENV"
+        sed -i.tmp "s|VITE_WS_URL_NETWORK=.*|VITE_WS_URL_NETWORK=ws://$LOCAL_NETWORK_IP:3000|g" "$MOBILE_ENV"
         print_status "Mobile app configured for local network access: $LOCAL_NETWORK_IP"
     fi
 
     rm -f "$MOBILE_ENV.tmp"
 else
-    print_error "Mobile .env file not found at $MOBILE_ENV"
+    print_error "Mobile .env file not found at $MOBILE_ENV and no template available"
     exit 1
 fi
 

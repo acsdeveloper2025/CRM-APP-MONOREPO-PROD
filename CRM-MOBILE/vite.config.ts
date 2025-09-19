@@ -20,8 +20,7 @@ export default defineConfig(({ mode }) => {
         allowedHosts: [
           'localhost',
           '127.0.0.1',
-          '10.100.100.30',
-          '103.14.234.36',
+          process.env.VITE_STATIC_IP || '103.14.234.36',
           'crm.allcheckservices.com',
           'www.crm.allcheckservices.com'
         ]

@@ -232,60 +232,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
 
       // Make real API call to backend
-      // Smart API URL selection - same logic as apiService
+      // Mobile app uses static IP exclusively - no fallbacks
       const getApiBaseUrl = () => {
-        const hostname = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
-        const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
-        const isLocalNetwork = hostname.startsWith('10.') || hostname.startsWith('192.168.') || hostname.startsWith('172.');
-        const isStaticIP = hostname === '103.14.234.36';
-        const isDomain = hostname === 'crm.allcheckservices.com' || hostname === 'www.crm.allcheckservices.com';
+        console.log('🔍 Mobile App AuthContext - Static IP Only Configuration');
 
-        console.log('🔍 AuthContext API URL Detection:', {
-          hostname,
-          isLocalhost,
-          isLocalNetwork,
-          isStaticIP,
-          isDomain,
-          VITE_API_BASE_URL_STATIC_IP: import.meta.env.VITE_API_BASE_URL_STATIC_IP,
-          VITE_API_BASE_URL_DEVICE: import.meta.env.VITE_API_BASE_URL_DEVICE,
-          VITE_API_BASE_URL: import.meta.env.VITE_API_BASE_URL
-        });
-
-        // Priority order for API URL selection:
-        // 1. Use localhost for local development
-        if (isLocalhost) {
-          const url = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
-          console.log('🏠 AuthContext using localhost API URL:', url);
-          return url;
-        }
-
-        // 2. Use local network IP for local network access (hairpin NAT workaround)
-        if (isLocalNetwork && import.meta.env.VITE_API_BASE_URL_DEVICE) {
-          const url = import.meta.env.VITE_API_BASE_URL_DEVICE;
-          console.log('🏠 AuthContext using local network API URL (hairpin NAT workaround):', url);
-          return url;
-        }
-
-        // 3. Check if we're on the domain name (production access)
-        if (isDomain) {
-          // For domain access, always use HTTPS for API calls (even if mobile app is HTTP)
-          // This ensures secure API communication
-          const url = 'https://crm.allcheckservices.com/api';
-          console.log('🌐 AuthContext using domain API URL (HTTPS):', url);
-          return url;
-        }
-
-        // 4. Use Static IP URL if available (for internet access)
+        // Mobile app uses static IP exclusively
         if (import.meta.env.VITE_API_BASE_URL_STATIC_IP) {
           const url = import.meta.env.VITE_API_BASE_URL_STATIC_IP;
           console.log('🌍 AuthContext using Static IP API URL:', url);
           return url;
         }
 
-        // 5. Fallback to localhost
-        const url = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
-        console.log('🔄 AuthContext using fallback API URL:', url);
-        return url;
+        // If static IP not configured, throw error
+        console.error('❌ Static IP not configured for mobile app');
+        throw new Error('VITE_API_BASE_URL_STATIC_IP must be configured for mobile app');
       };
 
       const API_BASE_URL = getApiBaseUrl();

@@ -21,9 +21,10 @@ function getApiBaseUrl(req: Request): string {
     return 'https://crm.allcheckservices.com/api';
   }
 
-  // Check if request is coming from static IP
-  if (host && host.includes('103.14.234.36')) {
-    return `http://103.14.234.36:3000/api`;
+  // Check if request is coming from static IP (configurable)
+  const staticIP = process.env.STATIC_IP;
+  if (staticIP && host && host.includes(staticIP)) {
+    return `http://${staticIP}:3000/api`;
   }
 
   // Default to localhost or environment variable

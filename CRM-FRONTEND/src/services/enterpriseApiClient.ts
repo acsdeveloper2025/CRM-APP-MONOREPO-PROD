@@ -3,9 +3,10 @@ import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 // Smart API URL selection function
 function getApiBaseUrl(): string {
   const hostname = window.location.hostname;
+    const staticIP = import.meta.env.VITE_STATIC_IP || '103.14.234.36';
   const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
   const isLocalNetwork = hostname.startsWith('10.') || hostname.startsWith('192.168.') || hostname.startsWith('172.');
-  const isStaticIP = hostname === '103.14.234.36';
+  const isStaticIP = hostname === staticIP;
   const isDomain = hostname === 'crm.allcheckservices.com' || hostname === 'www.crm.allcheckservices.com';
 
   console.log('🌐 Enterprise API Client - URL Detection:', {
@@ -26,7 +27,7 @@ function getApiBaseUrl(): string {
 
   // 2. Check if we're on the local network IP (hairpin NAT workaround)
   if (isLocalNetwork) {
-    const url = 'http://103.14.234.36:3000';
+    const url = `http://${staticIP}:3000`;
     console.log('🏠 Enterprise API Client - Using local network URL (hairpin NAT workaround):', url);
     return url;
   }
@@ -40,7 +41,7 @@ function getApiBaseUrl(): string {
 
   // 4. Check if we're on the static IP (external access)
   if (isStaticIP) {
-    const url = 'http://103.14.234.36:3000';
+    const url = `http://${staticIP}:3000`;
     console.log('🌍 Enterprise API Client - Using static IP URL:', url);
     return url;
   }
