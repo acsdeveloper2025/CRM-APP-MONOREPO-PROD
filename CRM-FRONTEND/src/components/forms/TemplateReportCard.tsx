@@ -51,7 +51,7 @@ export const TemplateReportCard: React.FC<TemplateReportCardProps> = ({
 
       const token = localStorage.getItem('accessToken');
       const response = await fetch(
-        `http://PUBLIC_STATIC_IP:3000/api/template-reports/cases/${caseId}/submissions/${submissionId}`,
+        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api'}/template-reports/cases/${caseId}/submissions/${submissionId}`.replace('/api/api', '/api'),
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -91,7 +91,7 @@ export const TemplateReportCard: React.FC<TemplateReportCardProps> = ({
 
       const token = localStorage.getItem('accessToken');
       const response = await fetch(
-        `http://PUBLIC_STATIC_IP:3000/api/template-reports/cases/${caseId}/submissions/${submissionId}/generate`,
+        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api'}/template-reports/cases/${caseId}/submissions/${submissionId}/generate`.replace('/api/api', '/api'),
         {
           method: 'POST',
           headers: {

@@ -130,17 +130,23 @@ install_postgresql() {
 # Install Redis
 install_redis() {
     print_header "Installing Redis"
-    
+
     if command -v redis-server >/dev/null 2>&1; then
         print_info "Redis already installed"
         return
     fi
-    
+
     sudo apt install -y redis-server
+
+    # Configure Redis for production security
+    print_info "Configuring Redis security..."
+    sudo sed -i 's/^# requirepass foobared/requirepass redis_production_password_change_me/' /etc/redis/redis.conf
+    sudo sed -i 's/^bind 127.0.0.1 ::1/bind 127.0.0.1/' /etc/redis/redis.conf
+
     sudo systemctl start redis-server
     sudo systemctl enable redis-server
-    
-    print_success "Redis installed and started"
+
+    print_success "Redis installed, configured, and started"
 }
 
 # Install Nginx
