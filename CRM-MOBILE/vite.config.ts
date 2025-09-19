@@ -20,8 +20,7 @@ export default defineConfig(({ mode }) => {
         allowedHosts: [
           'localhost',
           '127.0.0.1',
-          '10.100.100.30',
-          'PUBLIC_STATIC_IP',
+          process.env.VITE_STATIC_IP || 'PUBLIC_STATIC_IP',
           'example.com',
           'www.example.com'
         ]

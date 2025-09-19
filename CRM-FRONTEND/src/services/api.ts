@@ -24,7 +24,8 @@ class ApiService {
     const hostname = window.location.hostname;
     const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
     const isLocalNetwork = hostname.startsWith('10.') || hostname.startsWith('192.168.') || hostname.startsWith('172.');
-    const isStaticIP = hostname === 'PUBLIC_STATIC_IP';
+    const staticIP = import.meta.env.VITE_STATIC_IP || 'PUBLIC_STATIC_IP';
+    const isStaticIP = hostname === staticIP;
     const isDomain = hostname === 'example.com' || hostname === 'www.example.com';
 
     // Log only in development mode
@@ -48,7 +49,7 @@ class ApiService {
 
     // 2. Check if we're on the local network IP (hairpin NAT workaround)
     if (isLocalNetwork) {
-      const url = 'http://PUBLIC_STATIC_IP:3000/api';
+      const url = `http://${staticIP}:3000/api`;
       if (import.meta.env.DEV) console.log('🏠 Frontend API Service - Using local network API URL (hairpin NAT workaround):', url);
       return url;
     }
@@ -62,7 +63,7 @@ class ApiService {
 
     // 4. Check if we're on the static IP (external access)
     if (isStaticIP) {
-      const url = 'http://PUBLIC_STATIC_IP:3000/api';
+      const url = `http://${staticIP}:3000/api`;
       if (import.meta.env.DEV) console.log('🌐 Frontend API Service - Using static IP API URL:', url);
       return url;
     }

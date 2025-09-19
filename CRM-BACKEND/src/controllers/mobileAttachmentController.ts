@@ -21,9 +21,10 @@ function getApiBaseUrl(req: Request): string {
     return 'https://example.com/api';
   }
 
-  // Check if request is coming from static IP
-  if (host && host.includes('PUBLIC_STATIC_IP')) {
-    return `http://PUBLIC_STATIC_IP:3000/api`;
+  // Check if request is coming from static IP (configurable)
+  const staticIP = process.env.STATIC_IP;
+  if (staticIP && host && host.includes(staticIP)) {
+    return `http://${staticIP}:3000/api`;
   }
 
   // Default to localhost or environment variable
