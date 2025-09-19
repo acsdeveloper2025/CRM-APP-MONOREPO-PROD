@@ -52,10 +52,10 @@ export const config = {
     bundleId: process.env.APNS_BUNDLE_ID || 'com.example.crm',
   },
   
-  // CORS - Support both web app (5173) and mobile app (5174)
+  // CORS - Support both web app and mobile app with configurable origins
   corsOrigin: process.env.CORS_ORIGIN
     ? process.env.CORS_ORIGIN.split(',').map(origin => origin.trim())
-    : ['http://localhost:5173', 'http://localhost:5174'],
+    : ['http://localhost:5173', 'http://localhost:5180', 'capacitor://localhost'],
   
   // Rate Limiting - Very generous limits for field agents processing 100+ cases/day
   rateLimitWindowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000', 10), // 15 minutes
@@ -101,7 +101,7 @@ export const config = {
   smtpPass: process.env.SMTP_PASS || '',
   
   // QR Code
-  qrCodeBaseUrl: process.env.QR_CODE_BASE_URL || 'https://localhost:3000/verify',
+  qrCodeBaseUrl: process.env.QR_CODE_BASE_URL || 'https://crm.allcheckservices.com/verify',
   
   // Background Jobs
   queueRedisUrl: process.env.QUEUE_REDIS_URL || 'redis://localhost:6379',
