@@ -324,8 +324,24 @@ main() {
     
     # Find backup
     if ! find_latest_backup; then
-        print_error "Cannot proceed with rollback - no backup found"
-        exit 1
+        print_warning "No backup found - this might be the first deployment"
+        print_info "Attempting to rollback to previous release instead..."
+
+        # Try to find previous release
+        if [ -d "/opt/crm-app/releases" ]; then
+            PREV_RELEASE=$(ls -1t /opt/crm-app/releases | head -2 | tail -1)
+            if [ -n "$PREV_RELEASE" ] && [ -d "/opt/crm-app/releases/$PREV_RELEASE" ]; then
+                print_info "Found previous release: $PREV_RELEASE"
+                rm -f /opt/crm-app/current
+                ln -sf "/opt/crm-app/releases/$PREV_RELEASE" /opt/crm-app/current
+                print_status "Rolled back to previous release: $PREV_RELEASE"
+                exit 0
+            fi
+        fi
+
+        print_warning "No previous release found either - skipping rollback"
+        print_info "This is likely the first deployment attempt"
+        exit 0
     fi
     
     # Execute rollback steps

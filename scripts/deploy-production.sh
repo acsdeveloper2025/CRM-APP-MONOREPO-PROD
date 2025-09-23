@@ -15,8 +15,10 @@ NC='\033[0m' # No Color
 
 # Configuration
 DEPLOYMENT_INFO_FILE="$1"
-PROJECT_ROOT="/opt/crm-app/current"
-BACKUP_DIR="/opt/crm-app/shared/backups"
+CRM_ROOT="/opt/crm-app"
+PROJECT_ROOT="$CRM_ROOT/current"
+RELEASES_DIR="$CRM_ROOT/releases"
+BACKUP_DIR="$CRM_ROOT/shared/backups"
 LOG_DIR="/var/log/crm-app"
 LOG_FILE="$LOG_DIR/deployment.log"
 MAX_BACKUPS=5
@@ -24,7 +26,7 @@ MAX_BACKUPS=5
 # Ensure required directories exist
 mkdir -p "$BACKUP_DIR"
 mkdir -p "$LOG_DIR"
-mkdir -p "/opt/crm-app/releases"
+mkdir -p "$RELEASES_DIR"
 
 # Utility functions
 print_header() {
@@ -303,32 +305,62 @@ start_services() {
     fi
 }
 
+# Create new release
+create_release() {
+    print_header "📦 Creating New Release"
+
+    # Create timestamped release directory
+    RELEASE_NAME="$(date +%Y%m%d_%H%M%S)_${COMMIT_SHA:0:8}"
+    NEW_RELEASE_DIR="$RELEASES_DIR/$RELEASE_NAME"
+
+    print_info "Creating release: $RELEASE_NAME"
+    mkdir -p "$NEW_RELEASE_DIR"
+
+    # Copy current codebase to new release
+    if [ -L "$PROJECT_ROOT" ]; then
+        CURRENT_RELEASE=$(readlink "$PROJECT_ROOT")
+        if [ -d "$CURRENT_RELEASE" ]; then
+            print_info "Copying from current release: $CURRENT_RELEASE"
+            cp -r "$CURRENT_RELEASE"/* "$NEW_RELEASE_DIR/"
+        fi
+    fi
+
+    # Update symlink to point to new release
+    rm -f "$PROJECT_ROOT"
+    ln -sf "$NEW_RELEASE_DIR" "$PROJECT_ROOT"
+
+    print_status "New release created: $NEW_RELEASE_DIR"
+    print_status "Current symlink updated to: $NEW_RELEASE_DIR"
+}
+
 # Main deployment function
 main() {
     print_header "🚀 CRM Production Deployment Started"
     print_header "======================================"
-    
+
     # Initialize
     create_directories
     parse_deployment_info
-    
+
     # Pre-deployment
     create_backup
+    create_release
     stop_services
-    
+
     # Deployment
     update_code
     install_dependencies
     build_applications
     clear_caches
-    
+
     # Post-deployment
     start_services
-    
+
     print_header "🎉 Deployment Completed Successfully!"
     print_status "Deployment completed at $(date)"
     print_status "Commit: $COMMIT_SHA"
     print_status "Author: $AUTHOR"
+    print_status "Release: $RELEASE_NAME"
 }
 
 # Execute main function
