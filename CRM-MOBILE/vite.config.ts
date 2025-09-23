@@ -38,6 +38,9 @@ export default defineConfig(({ mode }) => {
           'react-native': 'react-native-web',
           'react-native-svg': 'react-native-svg-web',
           '@react-native-async-storage/async-storage': path.resolve(__dirname, 'polyfills/AsyncStorage.ts'),
+          '@react-native-community/netinfo': path.resolve(__dirname, 'polyfills/NetInfo.ts'),
+          'react-native-device-info': path.resolve(__dirname, 'polyfills/DeviceInfo.ts'),
+          'react-native-sqlite-storage': path.resolve(__dirname, 'polyfills/SQLite.ts'),
           'expo-clipboard': path.resolve(__dirname, 'polyfills/Clipboard.ts'),
         },
         extensions: ['.web.js', '.web.ts', '.web.tsx', '.js', '.ts', '.tsx', '.json']
