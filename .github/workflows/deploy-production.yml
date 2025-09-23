@@ -167,8 +167,8 @@ jobs:
 
       - name: 📋 Create Deployment Info
         run: |
-          # Clean commit message by removing ANSI color codes and control characters
-          CLEAN_MESSAGE=$(echo '${{ github.event.head_commit.message }}' | sed 's/\x1b\[[0-9;]*m//g' | tr -d '\000-\037' | head -1)
+          # Clean commit message by removing ANSI color codes, control characters, and escape quotes
+          CLEAN_MESSAGE=$(printf '%s' "${{ github.event.head_commit.message }}" | sed 's/\x1b\[[0-9;]*m//g' | tr -d '\000-\037' | sed "s/'/\\\\'/g" | head -1)
 
           cat > deployment-info.json << EOF
           {
