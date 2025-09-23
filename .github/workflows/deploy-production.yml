@@ -167,11 +167,14 @@ jobs:
 
       - name: 📋 Create Deployment Info
         run: |
+          # Clean commit message by removing ANSI color codes and control characters
+          CLEAN_MESSAGE=$(echo '${{ github.event.head_commit.message }}' | sed 's/\x1b\[[0-9;]*m//g' | tr -d '\000-\037' | head -1)
+
           cat > deployment-info.json << EOF
           {
             "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
             "commit_sha": "${{ github.sha }}",
-            "commit_message": "${{ github.event.head_commit.message }}",
+            "commit_message": "${CLEAN_MESSAGE}",
             "author": "${{ github.event.head_commit.author.name }}",
             "branch": "${{ github.ref_name }}",
             "workflow_run_id": "${{ github.run_id }}",
