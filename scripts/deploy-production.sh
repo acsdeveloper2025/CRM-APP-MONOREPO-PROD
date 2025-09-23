@@ -13,45 +13,94 @@ BLUE='\033[0;34m'
 CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
+# Utility functions (will be updated with logging after LOG_FILE is set)
+print_header() {
+    if [ -n "$LOG_FILE" ]; then
+        echo -e "${CYAN}$1${NC}" | tee -a "$LOG_FILE"
+    else
+        echo -e "${CYAN}$1${NC}"
+    fi
+}
+
+print_success() {
+    if [ -n "$LOG_FILE" ]; then
+        echo -e "${GREEN}✅ $1${NC}" | tee -a "$LOG_FILE"
+    else
+        echo -e "${GREEN}✅ $1${NC}"
+    fi
+}
+
+print_warning() {
+    if [ -n "$LOG_FILE" ]; then
+        echo -e "${YELLOW}⚠️  $1${NC}" | tee -a "$LOG_FILE"
+    else
+        echo -e "${YELLOW}⚠️  $1${NC}"
+    fi
+}
+
+print_error() {
+    if [ -n "$LOG_FILE" ]; then
+        echo -e "${RED}❌ $1${NC}" | tee -a "$LOG_FILE"
+    else
+        echo -e "${RED}❌ $1${NC}"
+    fi
+}
+
+print_info() {
+    if [ -n "$LOG_FILE" ]; then
+        echo -e "${BLUE}ℹ️  $1${NC}" | tee -a "$LOG_FILE"
+    else
+        echo -e "${BLUE}ℹ️  $1${NC}"
+    fi
+}
+
+print_status() {
+    if [ -n "$LOG_FILE" ]; then
+        echo -e "${GREEN}$1${NC}" | tee -a "$LOG_FILE"
+    else
+        echo -e "${GREEN}$1${NC}"
+    fi
+}
+
 # Configuration
 DEPLOYMENT_INFO_FILE="$1"
+
+# Production deployment paths - for production server only
 CRM_ROOT="/opt/crm-app"
 PROJECT_ROOT="$CRM_ROOT/current"
 RELEASES_DIR="$CRM_ROOT/releases"
 BACKUP_DIR="$CRM_ROOT/shared/backups"
 LOG_DIR="/var/log/crm-app"
 LOG_FILE="$LOG_DIR/deployment.log"
+
+# Check if running as authorized production user
+if [ "$USER" = "root" ]; then
+    print_success "Running as root user"
+    SUDO_CMD=""
+elif [ "$USER" = "admin1" ]; then
+    print_success "Running as admin1 user"
+    SUDO_CMD="sudo"
+else
+    print_error "This script must be run as 'root' or 'admin1' user"
+    print_info "Current user: $USER"
+    print_info "Switch to root: su -"
+    print_info "Or run as admin1: su - admin1"
+    exit 1
+fi
 MAX_BACKUPS=5
 
 # Ensure required directories exist
-mkdir -p "$BACKUP_DIR"
-mkdir -p "$LOG_DIR"
-mkdir -p "$RELEASES_DIR"
+$SUDO_CMD mkdir -p "$BACKUP_DIR"
+$SUDO_CMD mkdir -p "$LOG_DIR"
+$SUDO_CMD mkdir -p "$RELEASES_DIR"
 
-# Utility functions
-print_header() {
-    echo -e "${CYAN}$1${NC}" | tee -a "$LOG_FILE"
-}
+# Set proper ownership if running as admin1
+if [ "$USER" = "admin1" ]; then
+    $SUDO_CMD chown -R admin1:admin1 "$CRM_ROOT" 2>/dev/null || true
+    $SUDO_CMD chown -R admin1:admin1 "$LOG_DIR" 2>/dev/null || true
+fi
 
-print_status() {
-    echo -e "${GREEN}✅ $1${NC}" | tee -a "$LOG_FILE"
-}
 
-print_warning() {
-    echo -e "${YELLOW}⚠️  $1${NC}" | tee -a "$LOG_FILE"
-}
-
-print_error() {
-    echo -e "${RED}❌ $1${NC}" | tee -a "$LOG_FILE"
-}
-
-print_info() {
-    echo -e "${BLUE}ℹ️  $1${NC}" | tee -a "$LOG_FILE"
-}
-
-print_success() {
-    echo -e "${GREEN}✅ $1${NC}" | tee -a "$LOG_FILE"
-}
 
 # Error handling
 handle_error() {
@@ -337,9 +386,9 @@ create_release() {
         print_warning "SSH clone failed, copying from current deployment..."
         print_info "SSH clone error was logged above"
         # Copy from current deployment and initialize as git repo
-        if [ -L "/opt/crm-app/current" ] && [ -d "/opt/crm-app/current" ]; then
+        if [ -L "$PROJECT_ROOT" ] && [ -d "$PROJECT_ROOT" ]; then
             # Copy from current symlinked deployment
-            cp -r "/opt/crm-app/current/." "$RELEASE_NAME/"
+            cp -r "$PROJECT_ROOT/." "$RELEASE_NAME/"
             cd "$RELEASE_NAME"
             # Ensure it's a git repository
             if [ ! -d ".git" ]; then

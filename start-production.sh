@@ -39,16 +39,16 @@ print_header "🚀 CRM Production Environment Startup"
 print_header "====================================="
 echo ""
 
-# Check if running as appropriate user (admin1, root, or current user)
+# Check if running as authorized production user
 CURRENT_USER=$(whoami)
 if [ "$CURRENT_USER" = "admin1" ] || [ "$CURRENT_USER" = "root" ]; then
     print_status "Running as production user: $CURRENT_USER"
-elif [ "$CURRENT_USER" = "mayurkulkarni" ]; then
-    print_warning "Running as development user '$CURRENT_USER'"
-    print_info "Continuing with current user permissions..."
 else
-    print_warning "Running as user '$CURRENT_USER' - ensure proper permissions"
-    print_info "Production users: admin1, root"
+    print_error "This script must be run as 'root' or 'admin1' user"
+    print_info "Current user: $CURRENT_USER"
+    print_info "Switch to root: su -"
+    print_info "Or run as admin1: su - admin1"
+    exit 1
 fi
 
 # Check system services
