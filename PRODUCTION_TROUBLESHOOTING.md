@@ -52,28 +52,41 @@ tail -f /var/log/crm-app/backend.log
 # Check if backend is built
 ls -la /opt/crm-app/current/CRM-BACKEND/dist/
 
+# Check if dist/index.js exists
+ls -la /opt/crm-app/current/CRM-BACKEND/dist/index.js
+
 # Check database connection
 PGPASSWORD=acs_password psql -h localhost -U acs_user -d acs_db -c "SELECT 1;"
 ```
 
 **✅ Solutions:**
 
-1. **Build Backend:**
+1. **Use Correct Start Command:**
+```bash
+cd /opt/crm-app/current/CRM-BACKEND
+# Use start:prod (builds first, then starts)
+npm run start:prod
+# NOT npm run start (assumes already built)
+```
+
+2. **Manual Build if Needed:**
 ```bash
 cd /opt/crm-app/current/CRM-BACKEND
 npm run build
+npm run start
 ```
 
-2. **Check Database:**
+3. **Check Database:**
 ```bash
 sudo systemctl status postgresql
 sudo systemctl restart postgresql
 ```
 
-3. **Restart Backend:**
+4. **Check TypeScript Compilation:**
 ```bash
 cd /opt/crm-app/current/CRM-BACKEND
-npm run start
+# Check for TypeScript errors
+npx tsc --noEmit
 ```
 
 ### **Database Connection Failed**
