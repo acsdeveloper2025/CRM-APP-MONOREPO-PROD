@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { dataCleanupService, CleanupResult } from '../services/dataCleanupService';
 import { useCases } from '../context/CaseContext';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import AsyncStorage from '../polyfills/AsyncStorage';
 
 interface CleanupStats {
   lastCleanup: string;

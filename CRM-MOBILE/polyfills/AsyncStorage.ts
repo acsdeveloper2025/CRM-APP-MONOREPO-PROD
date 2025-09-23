@@ -46,6 +46,36 @@ const AsyncStorage = {
     }
   },
 
+  async multiRemove(keys: string[]): Promise<void> {
+    try {
+      for (const key of keys) {
+        localStorage.removeItem(key);
+      }
+    } catch (error) {
+      console.warn('AsyncStorage multiRemove error:', error);
+    }
+  },
+
+  async multiGet(keys: string[]): Promise<[string, string | null][]> {
+    try {
+      return keys.map(key => [key, localStorage.getItem(key)]);
+    } catch (error) {
+      console.warn('AsyncStorage multiGet error:', error);
+      return keys.map(key => [key, null]);
+    }
+  },
+
+  async multiSet(keyValuePairs: [string, string][]): Promise<void> {
+    try {
+      for (const [key, value] of keyValuePairs) {
+        localStorage.setItem(key, value);
+      }
+    } catch (error) {
+      console.warn('AsyncStorage multiSet error:', error);
+      throw error;
+    }
+  },
+
   // Mobile-specific method to get storage info
   async getStorageInfo(): Promise<{ platform: string; estimatedSize?: number }> {
     try {
