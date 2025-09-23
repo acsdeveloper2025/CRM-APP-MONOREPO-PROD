@@ -1,5 +1,6 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import NetInfo from '@react-native-community/netinfo';
+import AsyncStorage from '../../polyfills/AsyncStorage';
+// Note: NetInfo is not available in web environment
+// This would need to be replaced with Capacitor Network plugin or web APIs
 import { Case, SyncStatus, OfflineAction, SyncMetrics } from '../types';
 import { apiClient } from './ApiClient';
 import { DatabaseService } from './DatabaseService';

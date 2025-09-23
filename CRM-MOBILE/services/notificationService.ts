@@ -1,7 +1,7 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import AsyncStorage from '../polyfills/AsyncStorage';
 import { Platform } from 'react-native';
-import messaging, { FirebaseMessagingTypes } from '@react-native-firebase/messaging';
-import PushNotification from 'react-native-push-notification';
+// Note: Firebase messaging and push notifications are not available in web environment
+// These would need to be replaced with web push notifications or Capacitor alternatives
 import { apiService } from './apiService';
 
 export interface NotificationData {

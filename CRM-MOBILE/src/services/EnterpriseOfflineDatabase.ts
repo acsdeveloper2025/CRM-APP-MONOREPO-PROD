@@ -1,9 +1,9 @@
-import SQLite from 'react-native-sqlite-storage';
+// Note: SQLite is not available in web environment
+// This would need to be replaced with IndexedDB, WebSQL, or a web-compatible database solution
 import { Case, FormSubmission, Attachment, SyncAction } from '../types';
 
-// Enable debugging in development
-SQLite.DEBUG(process.env.NODE_ENV === 'development');
-SQLite.enablePromise(true);
+// Web-compatible database would be initialized here
+// For example: IndexedDB, Dexie.js, or similar web database solution
 
 interface DatabaseConfig {
   name: string;
