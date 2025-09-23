@@ -112,32 +112,52 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: ${{ matrix.path }}/package-lock.json
 
       - name: 📦 Install Dependencies
         working-directory: ${{ matrix.path }}
         run: |
           echo "🔧 Installing dependencies for ${{ matrix.component }}..."
-          if [ -f "package-lock.json" ]; then
-            echo "📋 Found package-lock.json, using npm ci..."
-            if [ "${{ matrix.component }}" = "mobile" ]; then
-              npm ci --legacy-peer-deps --prefer-offline --no-audit
-            else
-              npm ci --prefer-offline --no-audit
-            fi
+
+          # Clear npm cache to prevent corruption issues
+          echo "🧹 Clearing npm cache..."
+          npm cache clean --force
+
+          # Remove node_modules and package-lock if they exist
+          rm -rf node_modules package-lock.json
+
+          # Install dependencies with retry logic
+          echo "📦 Installing dependencies..."
+          if [ "${{ matrix.component }}" = "mobile" ]; then
+            # Mobile app needs legacy peer deps
+            npm install --legacy-peer-deps --no-audit --no-fund --maxsockets 1
           else
-            echo "📋 No package-lock.json found, using npm install..."
-            if [ "${{ matrix.component }}" = "mobile" ]; then
-              npm install --legacy-peer-deps --prefer-offline --no-audit
-            else
-              npm install --prefer-offline --no-audit
-            fi
+            # Backend and frontend
+            npm install --no-audit --no-fund --maxsockets 1
           fi
 
       - name: 🏗️ Build Component
         working-directory: ${{ matrix.path }}
         run: |
           echo "🏗️ Building ${{ matrix.component }}..."
-          ${{ matrix.build_cmd }}
+
+          # Build with retry logic
+          for i in 1 2 3; do
+            echo "🔄 Build attempt $i/3..."
+            if ${{ matrix.build_cmd }}; then
+              echo "✅ Build successful on attempt $i"
+              break
+            else
+              echo "❌ Build failed on attempt $i"
+              if [ $i -eq 3 ]; then
+                echo "💥 All build attempts failed"
+                exit 1
+              fi
+              echo "⏳ Waiting 10 seconds before retry..."
+              sleep 10
+            fi
+          done
 
       - name: 🧪 Run Tests
         if: github.event.inputs.skip_tests != 'true'
