@@ -3,7 +3,7 @@
  * Manages automatic deletion of case data older than 45 days
  */
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import AsyncStorage from '../polyfills/AsyncStorage';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { Preferences } from '@capacitor/preferences';
