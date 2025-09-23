@@ -1,7 +1,7 @@
 import { Platform } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import DeviceInfo from 'react-native-device-info';
-import NetInfo from '@react-native-community/netinfo';
+import AsyncStorage from '../../polyfills/AsyncStorage';
+// Note: DeviceInfo and NetInfo are not available in web environment
+// These would need to be replaced with Capacitor Device and Network plugins
 
 interface PerformanceMetric {
   id: string;
