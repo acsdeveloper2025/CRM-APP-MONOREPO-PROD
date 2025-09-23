@@ -112,8 +112,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          cache-dependency-path: ${{ matrix.path }}/package-lock.json
 
       - name: 📦 Install Dependencies
         working-directory: ${{ matrix.path }}
