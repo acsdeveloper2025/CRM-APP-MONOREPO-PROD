@@ -1,8 +1,27 @@
-import AsyncStorage from '../polyfills/AsyncStorage';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
-// Note: Firebase messaging and push notifications are not available in web environment
-// These would need to be replaced with web push notifications or Capacitor alternatives
+import { Capacitor } from '@capacitor/core';
 import { apiService } from './apiService';
+
+// Platform detection
+const isNative = Capacitor.isNativePlatform();
+
+// Conditionally load Firebase and push notification libraries for native only
+let messaging: any = null;
+let PushNotification: any = null;
+let FirebaseMessagingTypes: any = null;
+
+if (isNative) {
+  try {
+    const firebaseMessaging = require('@react-native-firebase/messaging');
+    messaging = firebaseMessaging.default;
+    FirebaseMessagingTypes = firebaseMessaging.FirebaseMessagingTypes;
+    PushNotification = require('react-native-push-notification').default;
+    console.log('📱 Native notification libraries loaded');
+  } catch (error) {
+    console.warn('Native notification libraries not available:', error);
+  }
+}
 
 export interface NotificationData {
   id: string;
@@ -82,16 +101,31 @@ class NotificationService {
    */
   private async requestPermission(): Promise<void> {
     try {
-      const authStatus = await messaging().requestPermission();
-      const enabled =
-        authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
-        authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+      if (isNative && messaging) {
+        const authStatus = await messaging().requestPermission();
+        const enabled =
+          authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
+          authStatus === messaging.AuthorizationStatus.PROVISIONAL;
 
-      if (enabled) {
-        console.log('✅ Notification permission granted');
+        if (enabled) {
+          console.log('✅ Notification permission granted');
+        } else {
+          console.warn('⚠️ Notification permission denied');
+          throw new Error('Notification permission denied');
+        }
       } else {
-        console.warn('⚠️ Notification permission denied');
-        throw new Error('Notification permission denied');
+        // Web environment - use Notification API
+        if ('Notification' in window) {
+          const permission = await Notification.requestPermission();
+          if (permission === 'granted') {
+            console.log('✅ Web notification permission granted');
+          } else {
+            console.warn('⚠️ Web notification permission denied');
+            throw new Error('Web notification permission denied');
+          }
+        } else {
+          console.warn('⚠️ Notifications not supported in this environment');
+        }
       }
     } catch (error) {
       console.error('❌ Failed to request notification permission:', error);
@@ -104,12 +138,16 @@ class NotificationService {
    */
   private async getFCMToken(): Promise<void> {
     try {
-      const token = await messaging().getToken();
-      this.fcmToken = token;
-      console.log('📱 FCM Token obtained:', token.substring(0, 20) + '...');
+      if (isNative && messaging) {
+        const token = await messaging().getToken();
+        this.fcmToken = token;
+        console.log('📱 FCM Token obtained:', token.substring(0, 20) + '...');
 
-      // Register token with backend
-      await this.registerTokenWithBackend(token);
+        // Register token with backend
+        await this.registerTokenWithBackend(token);
+      } else {
+        console.log('🌐 Web environment - FCM token not applicable');
+      }
     } catch (error) {
       console.error('❌ Failed to get FCM token:', error);
       throw error;
@@ -141,74 +179,82 @@ class NotificationService {
    * Configure push notifications
    */
   private configurePushNotifications(): void {
-    PushNotification.configure({
-      onRegister: (token) => {
-        console.log('📱 Push notification token:', token);
-      },
+    if (isNative && PushNotification) {
+      PushNotification.configure({
+        onRegister: (token: any) => {
+          console.log('📱 Push notification token:', token);
+        },
 
-      onNotification: (notification) => {
-        console.log('📬 Push notification received:', notification);
-        this.handleNotificationReceived(notification);
-      },
+        onNotification: (notification: any) => {
+          console.log('📬 Push notification received:', notification);
+          this.handleNotificationReceived(notification);
+        },
 
-      onAction: (notification) => {
-        console.log('👆 Notification action:', notification.action);
-        this.handleNotificationAction(notification);
-      },
+        onAction: (notification: any) => {
+          console.log('👆 Notification action:', notification.action);
+          this.handleNotificationAction(notification);
+        },
 
-      onRegistrationError: (err) => {
-        console.error('❌ Push notification registration error:', err);
-      },
+        onRegistrationError: (err: any) => {
+          console.error('❌ Push notification registration error:', err);
+        },
 
-      permissions: {
-        alert: true,
-        badge: true,
-        sound: true,
-      },
+        permissions: {
+          alert: true,
+          badge: true,
+          sound: true,
+        },
 
-      popInitialNotification: true,
-      requestPermissions: true,
-    });
+        popInitialNotification: true,
+        requestPermissions: true,
+      });
+    } else {
+      console.log('🌐 Web environment - using web notifications');
+    }
   }
 
   /**
    * Set up Firebase message handlers
    */
   private setupMessageHandlers(): void {
-    // Handle background messages
-    messaging().setBackgroundMessageHandler(async (remoteMessage) => {
-      console.log('📬 Background message received:', remoteMessage);
-      await this.processRemoteMessage(remoteMessage);
-    });
-
-    // Handle foreground messages
-    messaging().onMessage(async (remoteMessage) => {
-      console.log('📬 Foreground message received:', remoteMessage);
-      await this.processRemoteMessage(remoteMessage);
-      this.showLocalNotification(remoteMessage);
-    });
-
-    // Handle notification opened app
-    messaging().onNotificationOpenedApp((remoteMessage) => {
-      console.log('📱 Notification opened app:', remoteMessage);
-      this.handleNotificationTap(remoteMessage);
-    });
-
-    // Check if app was opened from a notification
-    messaging()
-      .getInitialNotification()
-      .then((remoteMessage) => {
-        if (remoteMessage) {
-          console.log('📱 App opened from notification:', remoteMessage);
-          this.handleNotificationTap(remoteMessage);
-        }
+    if (isNative && messaging) {
+      // Handle background messages
+      messaging().setBackgroundMessageHandler(async (remoteMessage: any) => {
+        console.log('📬 Background message received:', remoteMessage);
+        await this.processRemoteMessage(remoteMessage);
       });
+
+      // Handle foreground messages
+      messaging().onMessage(async (remoteMessage: any) => {
+        console.log('📬 Foreground message received:', remoteMessage);
+        await this.processRemoteMessage(remoteMessage);
+        this.showLocalNotification(remoteMessage);
+      });
+
+      // Handle notification opened app
+      messaging().onNotificationOpenedApp((remoteMessage: any) => {
+        console.log('📱 Notification opened app:', remoteMessage);
+        this.handleNotificationTap(remoteMessage);
+      });
+
+      // Check if app was opened from a notification
+      messaging()
+        .getInitialNotification()
+        .then((remoteMessage: any) => {
+          if (remoteMessage) {
+            console.log('📱 App opened from notification:', remoteMessage);
+            this.handleNotificationTap(remoteMessage);
+          }
+        });
+    } else {
+      console.log('🌐 Web environment - Firebase messaging not available');
+    }
   }
 
   /**
    * Process remote message and store notification
    */
-  private async processRemoteMessage(remoteMessage: FirebaseMessagingTypes.RemoteMessage): Promise<void> {
+  private async processRemoteMessage(remoteMessage: any): Promise<void> {
     try {
       const notificationData: NotificationData = {
         id: remoteMessage.messageId || Date.now().toString(),
@@ -234,7 +280,7 @@ class NotificationService {
   /**
    * Show local notification for foreground messages
    */
-  private showLocalNotification(remoteMessage: FirebaseMessagingTypes.RemoteMessage): void {
+  private showLocalNotification(remoteMessage: any): void {
     PushNotification.localNotification({
       title: remoteMessage.notification?.title || 'Notification',
       message: remoteMessage.notification?.body || '',
@@ -462,13 +508,13 @@ class NotificationService {
     try {
       let deviceId = await AsyncStorage.getItem('deviceId');
       if (!deviceId) {
-        deviceId = `${Platform.OS}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        deviceId = `${Platform.OS}_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
         await AsyncStorage.setItem('deviceId', deviceId);
       }
       return deviceId;
     } catch (error) {
       console.error('❌ Failed to get device ID:', error);
-      return `${Platform.OS}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      return `${Platform.OS}_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
     }
   }
 

@@ -223,16 +223,21 @@ install_dependencies() {
         if [ -d "$PROJECT_ROOT/$component" ]; then
             print_info "Installing dependencies for $component..."
             cd "$PROJECT_ROOT/$component"
-            
+
             # Clear npm cache
             npm cache clean --force
-            
+
             # Remove node_modules and package-lock.json for fresh install
             rm -rf node_modules package-lock.json
-            
-            # Install dependencies
-            npm install --production=false
-            
+
+            # Install dependencies with special handling for mobile
+            if [ "$component" = "CRM-MOBILE" ]; then
+                print_info "Installing mobile dependencies with legacy peer deps support..."
+                npm install --production=false --legacy-peer-deps
+            else
+                npm install --production=false
+            fi
+
             print_status "$component dependencies installed"
         fi
     done
