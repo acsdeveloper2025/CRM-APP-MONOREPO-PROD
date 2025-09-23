@@ -94,6 +94,83 @@ fi
 
 echo ""
 
+# Stop existing services first
+print_header "🛑 Stopping Existing Services"
+
+# Function to stop services on specific ports
+stop_existing_services() {
+    local ports=("3000" "5173" "5180")
+
+    for port in "${ports[@]}"; do
+        print_info "Checking port $port..."
+
+        # Find processes using the port (try multiple methods)
+        local pids=""
+
+        # Method 1: lsof (most reliable)
+        if command -v lsof >/dev/null 2>&1; then
+            pids=$(lsof -ti:$port 2>/dev/null)
+        fi
+
+        # Method 2: netstat + ps (fallback)
+        if [ -z "$pids" ] && command -v netstat >/dev/null 2>&1; then
+            pids=$(netstat -tlnp 2>/dev/null | grep ":$port " | awk '{print $7}' | cut -d'/' -f1 | grep -v '^-$' | head -1)
+        fi
+
+        # Method 3: ss command (modern alternative)
+        if [ -z "$pids" ] && command -v ss >/dev/null 2>&1; then
+            pids=$(ss -tlnp 2>/dev/null | grep ":$port " | sed 's/.*pid=\([0-9]*\).*/\1/' | head -1)
+        fi
+
+        if [ -n "$pids" ]; then
+            print_info "Found processes on port $port: $pids"
+
+            # Kill the processes
+            for pid in $pids; do
+                # Skip if not a valid PID
+                if ! [[ "$pid" =~ ^[0-9]+$ ]]; then
+                    continue
+                fi
+
+                print_info "Stopping process $pid on port $port..."
+                kill -TERM $pid 2>/dev/null || true
+
+                # Wait a moment for graceful shutdown
+                sleep 2
+
+                # Force kill if still running
+                if kill -0 $pid 2>/dev/null; then
+                    print_info "Force killing process $pid..."
+                    kill -KILL $pid 2>/dev/null || true
+                fi
+            done
+
+            print_status "Port $port cleared"
+        else
+            print_status "Port $port is available"
+        fi
+    done
+
+    # Also kill any CRM-related processes
+    print_info "Stopping any remaining CRM processes..."
+    pkill -f "CRM-BACKEND" 2>/dev/null || true
+    pkill -f "CRM-FRONTEND" 2>/dev/null || true
+    pkill -f "CRM-MOBILE" 2>/dev/null || true
+    pkill -f "crm-backend" 2>/dev/null || true
+    pkill -f "crm-frontend" 2>/dev/null || true
+    pkill -f "caseflow-mobile" 2>/dev/null || true
+
+    # Wait for processes to fully terminate
+    sleep 3
+
+    print_status "All existing services stopped"
+}
+
+# Stop existing services
+stop_existing_services
+
+echo ""
+
 # Start CRM applications
 print_header "🚀 Starting CRM Applications"
 
