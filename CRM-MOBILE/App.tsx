@@ -179,6 +179,7 @@ const App: React.FC = () => {
     return (
       <ErrorBoundary>
         <BrowserRouter
+          basename={import.meta.env.PROD ? '/mobile' : ''}
           future={{
             v7_startTransition: true,
             v7_relativeSplatPath: true
