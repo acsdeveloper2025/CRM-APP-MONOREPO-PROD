@@ -112,12 +112,18 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: ${{ matrix.path }}/package-lock.json
 
       - name: 📦 Install Dependencies
         working-directory: ${{ matrix.path }}
         run: |
           echo "🔧 Installing dependencies for ${{ matrix.component }}..."
-          npm install --prefer-offline --no-audit
+          if [ "${{ matrix.component }}" = "mobile" ]; then
+            npm ci --legacy-peer-deps --prefer-offline --no-audit
+          else
+            npm ci --prefer-offline --no-audit
+          fi
 
       - name: 🏗️ Build Component
         working-directory: ${{ matrix.path }}
