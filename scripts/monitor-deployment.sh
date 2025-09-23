@@ -14,7 +14,7 @@ CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 # Configuration
-PROJECT_ROOT="/home/admin1/Downloads/CRM-APP-MONOREPO-PROD"
+PROJECT_ROOT="/opt/crm-app/current"
 LOG_FILE="/home/admin1/logs/monitoring.log"
 ALERT_LOG="/home/admin1/logs/alerts.log"
 CHECK_INTERVAL=60  # seconds

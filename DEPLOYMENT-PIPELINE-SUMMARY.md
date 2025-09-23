@@ -43,7 +43,7 @@ Go to GitHub Repository → Settings → Secrets and add:
 - `PRODUCTION_SSH_KEY` - SSH private key for server access
 - `PRODUCTION_HOST` - Server IP (49.50.119.155)
 - `PRODUCTION_USER` - SSH username (admin1)
-- `PRODUCTION_PATH` - Project path (/home/admin1/Downloads/CRM-APP-MONOREPO-PROD)
+- `PRODUCTION_PATH` - Project path (/opt/crm-app/current)
 
 ### 3. Test Deployment
 ```bash
