@@ -322,15 +322,26 @@ create_release() {
     else
         print_warning "SSH clone failed, copying from current deployment..."
         # Copy from current deployment and initialize as git repo
-        if [ -d "/home/admin1/Downloads/CRM-APP-MONOREPO-PROD" ]; then
-            cp -r "/home/admin1/Downloads/CRM-APP-MONOREPO-PROD" "$RELEASE_NAME"
+        if [ -L "/opt/crm-app/current" ] && [ -d "/opt/crm-app/current" ]; then
+            # Copy from current symlinked deployment
+            cp -r "/opt/crm-app/current/." "$RELEASE_NAME/"
             cd "$RELEASE_NAME"
             # Ensure it's a git repository
             if [ ! -d ".git" ]; then
                 git init
                 git remote add origin git@github.com:acsdeveloper2025/CRM-APP-MONOREPO-PROD.git
             fi
-            print_success "Copied from existing deployment"
+            print_success "Copied from current deployment"
+        elif [ -d "/home/admin1/Downloads/CRM-APP-MONOREPO-PROD" ]; then
+            # Fallback to old Downloads location if it still exists
+            cp -r "/home/admin1/Downloads/CRM-APP-MONOREPO-PROD/." "$RELEASE_NAME/"
+            cd "$RELEASE_NAME"
+            # Ensure it's a git repository
+            if [ ! -d ".git" ]; then
+                git init
+                git remote add origin git@github.com:acsdeveloper2025/CRM-APP-MONOREPO-PROD.git
+            fi
+            print_success "Copied from legacy deployment location"
         else
             print_error "Failed to clone repository and no existing deployment found"
             return 1
