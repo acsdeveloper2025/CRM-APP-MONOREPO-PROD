@@ -1,27 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
-import { Capacitor } from '@capacitor/core';
 import { apiService } from './apiService';
 
-// Platform detection
-const isNative = Capacitor.isNativePlatform();
-
-// Conditionally load Firebase and push notification libraries for native only
-let messaging: any = null;
-let PushNotification: any = null;
-let FirebaseMessagingTypes: any = null;
-
-if (isNative) {
-  try {
-    const firebaseMessaging = require('@react-native-firebase/messaging');
-    messaging = firebaseMessaging.default;
-    FirebaseMessagingTypes = firebaseMessaging.FirebaseMessagingTypes;
-    PushNotification = require('react-native-push-notification').default;
-    console.log('📱 Native notification libraries loaded');
-  } catch (error) {
-    console.warn('Native notification libraries not available:', error);
-  }
-}
+// Import notification libraries with platform detection via aliases
+import messaging from '@react-native-firebase/messaging';
+import PushNotification from 'react-native-push-notification';
 
 export interface NotificationData {
   id: string;
@@ -101,31 +84,16 @@ class NotificationService {
    */
   private async requestPermission(): Promise<void> {
     try {
-      if (isNative && messaging) {
-        const authStatus = await messaging().requestPermission();
-        const enabled =
-          authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
-          authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+      const authStatus = await messaging().requestPermission();
+      const enabled =
+        authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
+        authStatus === messaging.AuthorizationStatus.PROVISIONAL;
 
-        if (enabled) {
-          console.log('✅ Notification permission granted');
-        } else {
-          console.warn('⚠️ Notification permission denied');
-          throw new Error('Notification permission denied');
-        }
+      if (enabled) {
+        console.log('✅ Notification permission granted');
       } else {
-        // Web environment - use Notification API
-        if ('Notification' in window) {
-          const permission = await Notification.requestPermission();
-          if (permission === 'granted') {
-            console.log('✅ Web notification permission granted');
-          } else {
-            console.warn('⚠️ Web notification permission denied');
-            throw new Error('Web notification permission denied');
-          }
-        } else {
-          console.warn('⚠️ Notifications not supported in this environment');
-        }
+        console.warn('⚠️ Notification permission denied');
+        throw new Error('Notification permission denied');
       }
     } catch (error) {
       console.error('❌ Failed to request notification permission:', error);
@@ -138,16 +106,12 @@ class NotificationService {
    */
   private async getFCMToken(): Promise<void> {
     try {
-      if (isNative && messaging) {
-        const token = await messaging().getToken();
-        this.fcmToken = token;
-        console.log('📱 FCM Token obtained:', token.substring(0, 20) + '...');
+      const token = await messaging().getToken();
+      this.fcmToken = token;
+      console.log('📱 FCM Token obtained:', token.substring(0, 20) + '...');
 
-        // Register token with backend
-        await this.registerTokenWithBackend(token);
-      } else {
-        console.log('🌐 Web environment - FCM token not applicable');
-      }
+      // Register token with backend
+      await this.registerTokenWithBackend(token);
     } catch (error) {
       console.error('❌ Failed to get FCM token:', error);
       throw error;
@@ -179,76 +143,68 @@ class NotificationService {
    * Configure push notifications
    */
   private configurePushNotifications(): void {
-    if (isNative && PushNotification) {
-      PushNotification.configure({
-        onRegister: (token: any) => {
-          console.log('📱 Push notification token:', token);
-        },
+    PushNotification.configure({
+      onRegister: (token: any) => {
+        console.log('📱 Push notification token:', token);
+      },
 
-        onNotification: (notification: any) => {
-          console.log('📬 Push notification received:', notification);
-          this.handleNotificationReceived(notification);
-        },
+      onNotification: (notification: any) => {
+        console.log('📬 Push notification received:', notification);
+        this.handleNotificationReceived(notification);
+      },
 
-        onAction: (notification: any) => {
-          console.log('👆 Notification action:', notification.action);
-          this.handleNotificationAction(notification);
-        },
+      onAction: (notification: any) => {
+        console.log('👆 Notification action:', notification.action);
+        this.handleNotificationAction(notification);
+      },
 
-        onRegistrationError: (err: any) => {
-          console.error('❌ Push notification registration error:', err);
-        },
+      onRegistrationError: (err: any) => {
+        console.error('❌ Push notification registration error:', err);
+      },
 
-        permissions: {
-          alert: true,
-          badge: true,
-          sound: true,
-        },
+      permissions: {
+        alert: true,
+        badge: true,
+        sound: true,
+      },
 
-        popInitialNotification: true,
-        requestPermissions: true,
-      });
-    } else {
-      console.log('🌐 Web environment - using web notifications');
-    }
+      popInitialNotification: true,
+      requestPermissions: true,
+    });
   }
 
   /**
    * Set up Firebase message handlers
    */
   private setupMessageHandlers(): void {
-    if (isNative && messaging) {
-      // Handle background messages
-      messaging().setBackgroundMessageHandler(async (remoteMessage: any) => {
-        console.log('📬 Background message received:', remoteMessage);
-        await this.processRemoteMessage(remoteMessage);
-      });
+    // Handle background messages
+    messaging().setBackgroundMessageHandler(async (remoteMessage: any) => {
+      console.log('📬 Background message received:', remoteMessage);
+      await this.processRemoteMessage(remoteMessage);
+    });
 
-      // Handle foreground messages
-      messaging().onMessage(async (remoteMessage: any) => {
-        console.log('📬 Foreground message received:', remoteMessage);
-        await this.processRemoteMessage(remoteMessage);
-        this.showLocalNotification(remoteMessage);
-      });
+    // Handle foreground messages
+    messaging().onMessage(async (remoteMessage: any) => {
+      console.log('📬 Foreground message received:', remoteMessage);
+      await this.processRemoteMessage(remoteMessage);
+      this.showLocalNotification(remoteMessage);
+    });
 
-      // Handle notification opened app
-      messaging().onNotificationOpenedApp((remoteMessage: any) => {
-        console.log('📱 Notification opened app:', remoteMessage);
-        this.handleNotificationTap(remoteMessage);
-      });
+    // Handle notification opened app
+    messaging().onNotificationOpenedApp((remoteMessage: any) => {
+      console.log('📱 Notification opened app:', remoteMessage);
+      this.handleNotificationTap(remoteMessage);
+    });
 
-      // Check if app was opened from a notification
-      messaging()
-        .getInitialNotification()
-        .then((remoteMessage: any) => {
-          if (remoteMessage) {
-            console.log('📱 App opened from notification:', remoteMessage);
-            this.handleNotificationTap(remoteMessage);
-          }
-        });
-    } else {
-      console.log('🌐 Web environment - Firebase messaging not available');
-    }
+    // Check if app was opened from a notification
+    messaging()
+      .getInitialNotification()
+      .then((remoteMessage: any) => {
+        if (remoteMessage) {
+          console.log('📱 App opened from notification:', remoteMessage);
+          this.handleNotificationTap(remoteMessage);
+        }
+      });
   }
 
   /**
