@@ -49,6 +49,10 @@ print_info() {
     echo -e "${BLUE}ℹ️  $1${NC}" | tee -a "$LOG_FILE"
 }
 
+print_success() {
+    echo -e "${GREEN}✅ $1${NC}" | tee -a "$LOG_FILE"
+}
+
 # Error handling
 handle_error() {
     local exit_code=$?
