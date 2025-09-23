@@ -112,14 +112,12 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          cache-dependency-path: ${{ matrix.path }}/package-lock.json
 
       - name: 📦 Install Dependencies
         working-directory: ${{ matrix.path }}
         run: |
           echo "🔧 Installing dependencies for ${{ matrix.component }}..."
-          npm ci --prefer-offline --no-audit
+          npm install --prefer-offline --no-audit
 
       - name: 🏗️ Build Component
         working-directory: ${{ matrix.path }}
