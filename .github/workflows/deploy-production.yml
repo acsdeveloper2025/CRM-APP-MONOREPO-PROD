@@ -117,6 +117,7 @@ jobs:
 
       - name: 📦 Install Dependencies
         working-directory: ${{ matrix.path }}
+        timeout-minutes: 10
         run: |
           echo "🔧 Installing dependencies for ${{ matrix.component }}..."
 
@@ -127,18 +128,50 @@ jobs:
           # Remove node_modules and package-lock if they exist
           rm -rf node_modules package-lock.json
 
-          # Install dependencies with retry logic
+          # Install dependencies with retry logic and timeout
           echo "📦 Installing dependencies..."
-          if [ "${{ matrix.component }}" = "mobile" ]; then
-            # Mobile app needs legacy peer deps
-            npm install --legacy-peer-deps --no-audit --no-fund --maxsockets 1
-          else
-            # Backend and frontend
-            npm install --no-audit --no-fund --maxsockets 1
-          fi
+
+          install_with_retry() {
+            local max_attempts=3
+            local attempt=1
+
+            while [ $attempt -le $max_attempts ]; do
+              echo "🔄 Attempt $attempt of $max_attempts..."
+
+              if [ "${{ matrix.component }}" = "mobile" ]; then
+                # Mobile app needs legacy peer deps
+                if timeout 300 npm install --legacy-peer-deps --no-audit --no-fund --maxsockets 1; then
+                  echo "✅ Dependencies installed successfully"
+                  return 0
+                fi
+              else
+                # Backend and frontend
+                if timeout 300 npm install --no-audit --no-fund --maxsockets 1; then
+                  echo "✅ Dependencies installed successfully"
+                  return 0
+                fi
+              fi
+
+              echo "❌ Attempt $attempt failed"
+              if [ $attempt -lt $max_attempts ]; then
+                echo "🧹 Cleaning up for retry..."
+                npm cache clean --force
+                rm -rf node_modules package-lock.json
+                sleep 5
+              fi
+
+              attempt=$((attempt + 1))
+            done
+
+            echo "❌ All attempts failed"
+            return 1
+          }
+
+          install_with_retry
 
       - name: 🏗️ Build Component
         working-directory: ${{ matrix.path }}
+        timeout-minutes: 15
         run: |
           echo "🏗️ Building ${{ matrix.component }}..."
 
