@@ -14,8 +14,12 @@ CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 # Configuration
-PROJECT_ROOT="/home/admin1/Downloads/CRM-APP-MONOREPO-PROD"
-LOG_FILE="/home/admin1/logs/health-check.log"
+PROJECT_ROOT="/opt/crm-app/current"
+LOG_DIR="/var/log/crm-app"
+LOG_FILE="$LOG_DIR/health-check.log"
+
+# Ensure log directory exists
+mkdir -p "$LOG_DIR"
 TIMEOUT=30
 MAX_RETRIES=5
 

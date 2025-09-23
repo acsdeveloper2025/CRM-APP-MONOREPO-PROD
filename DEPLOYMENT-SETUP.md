@@ -21,7 +21,7 @@ Go to your GitHub repository → Settings → Secrets and variables → Actions,
 | `PRODUCTION_SSH_KEY` | Private SSH key for server access | `-----BEGIN OPENSSH PRIVATE KEY-----...` |
 | `PRODUCTION_HOST` | Production server IP or domain | `SERVER_IP` or `example.com` |
 | `PRODUCTION_USER` | SSH username | `admin1` |
-| `PRODUCTION_PATH` | Full path to project directory | `/home/admin1/Downloads/CRM-APP-MONOREPO-PROD` |
+| `PRODUCTION_PATH` | Full path to project directory | `/opt/crm-app/current` |
 
 ### How to Generate SSH Key
 
@@ -73,13 +73,13 @@ sudo mkdir -p /home/admin1/logs
 sudo chown admin1:admin1 /home/admin1/logs
 
 # Ensure project directory exists and has correct permissions
-sudo chown -R admin1:admin1 /home/admin1/Downloads/CRM-APP-MONOREPO-PROD
+sudo chown -R admin1:admin1 /opt/crm-app/current
 ```
 
 ### Make Scripts Executable
 
 ```bash
-cd /home/admin1/Downloads/CRM-APP-MONOREPO-PROD
+cd /opt/crm-app/current
 chmod +x scripts/*.sh
 chmod +x start-production.sh
 ```
@@ -137,7 +137,7 @@ tail -f /home/admin1/logs/deployment.log
 You can also run the deployment manually on the server:
 
 ```bash
-cd /home/admin1/Downloads/CRM-APP-MONOREPO-PROD
+cd /opt/crm-app/current
 
 # Create a mock deployment info file
 cat > /tmp/deployment-info.json << EOF
@@ -214,12 +214,12 @@ ls -la /home/admin1/backups/
 
 ### Log Files
 
-- **Deployment**: `/home/admin1/logs/deployment.log`
-- **Health Check**: `/home/admin1/logs/health-check.log`
-- **Rollback**: `/home/admin1/logs/rollback.log`
-- **Backend**: `/home/admin1/Downloads/CRM-APP-MONOREPO-PROD/logs/backend.log`
-- **Frontend**: `/home/admin1/Downloads/CRM-APP-MONOREPO-PROD/logs/frontend.log`
-- **Mobile**: `/home/admin1/Downloads/CRM-APP-MONOREPO-PROD/logs/mobile.log`
+- **Deployment**: `/var/log/crm-app/deployment.log`
+- **Health Check**: `/var/log/crm-app/health-check.log`
+- **Rollback**: `/var/log/crm-app/rollback.log`
+- **Backend**: `/opt/crm-app/current/logs/backend.log`
+- **Frontend**: `/opt/crm-app/current/logs/frontend.log`
+- **Mobile**: `/opt/crm-app/current/logs/mobile.log`
 
 ### Monitor Deployment
 
@@ -231,7 +231,7 @@ tail -f /home/admin1/logs/deployment.log
 ps aux | grep node
 
 # Check service logs
-tail -f /home/admin1/Downloads/CRM-APP-MONOREPO-PROD/logs/backend.log
+tail -f /opt/crm-app/current/logs/backend.log
 ```
 
 ## 🔧 Step 8: Customization
