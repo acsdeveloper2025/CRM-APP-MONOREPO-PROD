@@ -151,7 +151,7 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.PRODUCTION_SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -p ${{ secrets.PRODUCTION_SSH_PORT || '22' }} -H ${{ secrets.PRODUCTION_HOST }} >> ~/.ssh/known_hosts
+          ssh-keyscan -p ${{ secrets.PRODUCTION_SSH_PORT || '2232' }} -H ${{ secrets.PRODUCTION_HOST }} >> ~/.ssh/known_hosts
 
       - name: 📋 Create Deployment Info
         run: |
@@ -175,7 +175,7 @@ jobs:
       - name: 📤 Transfer Files to Server
         run: |
           echo "📤 Transferring deployment files to production server..."
-          scp -r -P ${{ secrets.PRODUCTION_SSH_PORT || '22' }} -o StrictHostKeyChecking=no \
+          scp -r -P ${{ secrets.PRODUCTION_SSH_PORT || '2232' }} -o StrictHostKeyChecking=no \
             deployment-info.json \
             scripts/deploy-production.sh \
             scripts/health-check.sh \
@@ -185,7 +185,7 @@ jobs:
       - name: 🚀 Execute Deployment
         run: |
           echo "🚀 Starting production deployment..."
-          ssh -p ${{ secrets.PRODUCTION_SSH_PORT || '22' }} -o StrictHostKeyChecking=no ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'EOF'
+          ssh -p ${{ secrets.PRODUCTION_SSH_PORT || '2232' }} -o StrictHostKeyChecking=no ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'EOF'
             set -e
             
             # Move to deployment directory
@@ -203,7 +203,7 @@ jobs:
       - name: 🏥 Health Check
         run: |
           echo "🏥 Running post-deployment health checks..."
-          ssh -p ${{ secrets.PRODUCTION_SSH_PORT || '22' }} -o StrictHostKeyChecking=no ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'EOF'
+          ssh -p ${{ secrets.PRODUCTION_SSH_PORT || '2232' }} -o StrictHostKeyChecking=no ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'EOF'
             /tmp/health-check.sh
           EOF
 
@@ -235,12 +235,12 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.PRODUCTION_SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ secrets.PRODUCTION_HOST }} >> ~/.ssh/known_hosts
+          ssh-keyscan -p ${{ secrets.PRODUCTION_SSH_PORT || '2232' }} -H ${{ secrets.PRODUCTION_HOST }} >> ~/.ssh/known_hosts
 
       - name: 🔄 Execute Rollback
         run: |
           echo "🔄 Executing rollback due to deployment failure..."
-          ssh -p ${{ secrets.PRODUCTION_SSH_PORT || '22' }} -o StrictHostKeyChecking=no ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'EOF'
+          ssh -p ${{ secrets.PRODUCTION_SSH_PORT || '2232' }} -o StrictHostKeyChecking=no ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'EOF'
             /tmp/rollback.sh
           EOF
 
