@@ -315,7 +315,27 @@ create_release() {
     # Clone the repository to new release directory
     print_info "Cloning repository to new release..."
     cd "$RELEASES_DIR"
-    git clone https://github.com/acsdeveloper2025/CRM-APP-MONOREPO-PROD.git "$RELEASE_NAME"
+
+    # Try SSH first, fallback to copying from current deployment
+    if git clone git@github.com:acsdeveloper2025/CRM-APP-MONOREPO-PROD.git "$RELEASE_NAME" 2>/dev/null; then
+        print_success "Repository cloned successfully via SSH"
+    else
+        print_warning "SSH clone failed, copying from current deployment..."
+        # Copy from current deployment and initialize as git repo
+        if [ -d "/home/admin1/Downloads/CRM-APP-MONOREPO-PROD" ]; then
+            cp -r "/home/admin1/Downloads/CRM-APP-MONOREPO-PROD" "$RELEASE_NAME"
+            cd "$RELEASE_NAME"
+            # Ensure it's a git repository
+            if [ ! -d ".git" ]; then
+                git init
+                git remote add origin git@github.com:acsdeveloper2025/CRM-APP-MONOREPO-PROD.git
+            fi
+            print_success "Copied from existing deployment"
+        else
+            print_error "Failed to clone repository and no existing deployment found"
+            return 1
+        fi
+    fi
 
     # Update symlink to point to new release
     rm -f "$PROJECT_ROOT"
