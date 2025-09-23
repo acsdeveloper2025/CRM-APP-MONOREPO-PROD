@@ -192,7 +192,7 @@ start_service() {
     }
     
     # Start the service in background
-    nohup $command > "../logs/${name}.log" 2>&1 &
+    nohup bash -c "$command" > "../logs/${name}.log" 2>&1 &
     local pid=$!
     
     # Store PID
