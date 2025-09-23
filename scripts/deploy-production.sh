@@ -178,20 +178,16 @@ stop_services() {
 # Update code
 update_code() {
     print_header "📥 Updating Code"
-    
+
     cd "$PROJECT_ROOT"
-    
-    # Fetch latest changes
-    print_info "Fetching latest changes..."
-    git fetch origin main
-    
+
     # Reset to specific commit
     print_info "Resetting to commit: $COMMIT_SHA"
     git reset --hard "$COMMIT_SHA"
-    
+
     # Clean untracked files
     git clean -fd
-    
+
     print_status "Code updated successfully"
 }
 
@@ -316,14 +312,10 @@ create_release() {
     print_info "Creating release: $RELEASE_NAME"
     mkdir -p "$NEW_RELEASE_DIR"
 
-    # Copy current codebase to new release
-    if [ -L "$PROJECT_ROOT" ]; then
-        CURRENT_RELEASE=$(readlink "$PROJECT_ROOT")
-        if [ -d "$CURRENT_RELEASE" ]; then
-            print_info "Copying from current release: $CURRENT_RELEASE"
-            cp -r "$CURRENT_RELEASE"/* "$NEW_RELEASE_DIR/"
-        fi
-    fi
+    # Clone the repository to new release directory
+    print_info "Cloning repository to new release..."
+    cd "$RELEASES_DIR"
+    git clone https://github.com/acsdeveloper2025/CRM-APP-MONOREPO-PROD.git "$RELEASE_NAME"
 
     # Update symlink to point to new release
     rm -f "$PROJECT_ROOT"
