@@ -7,19 +7,10 @@ export const validateMobileVersion = (req: Request, res: Response, next: NextFun
     const appVersion = req.headers['x-app-version'] as string;
     const platform = req.headers['x-platform'] as string;
 
-    console.log(`📱 Mobile request received:`, {
+    console.log(`📱 Received headers:`, {
       'x-app-version': appVersion,
       'x-platform': platform,
-      'x-client-type': req.headers['x-client-type'],
-      'x-device-id': req.headers['x-device-id'],
-      'user-agent': req.headers['user-agent'],
-      'content-type': req.headers['content-type'],
-      'origin': req.headers['origin'],
-      'referer': req.headers['referer'],
-      'ip': req.ip,
-      'method': req.method,
-      'url': req.url,
-      'timestamp': new Date().toISOString()
+      'user-agent': req.headers['user-agent']
     });
 
     if (!appVersion) {

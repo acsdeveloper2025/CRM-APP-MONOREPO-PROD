@@ -269,3 +269,10 @@ docs/.vuepress/dist/
 fix-admin-password.js
 test-login.js
 check-admin.js
+test-mobile-login.js
+
+# =====================================================
+# MOBILE APK FILES
+# =====================================================
+*.apk
+CaseFlow-Mobile-*.apk
