@@ -3,7 +3,7 @@
 # CRM Production Startup Script
 # Domain: crm.allcheckservices.com
 # Static IP: 49.50.119.155
-# System User: admin1
+# System Users: admin1, root (or current user with appropriate permissions)
 
 set -e
 
@@ -39,10 +39,16 @@ print_header "🚀 CRM Production Environment Startup"
 print_header "====================================="
 echo ""
 
-# Check if running as admin1
-if [ "$USER" != "admin1" ]; then
-    print_error "This script must be run as user 'admin1'"
-    exit 1
+# Check if running as appropriate user (admin1, root, or current user)
+CURRENT_USER=$(whoami)
+if [ "$CURRENT_USER" = "admin1" ] || [ "$CURRENT_USER" = "root" ]; then
+    print_status "Running as production user: $CURRENT_USER"
+elif [ "$CURRENT_USER" = "mayurkulkarni" ]; then
+    print_warning "Running as development user '$CURRENT_USER'"
+    print_info "Continuing with current user permissions..."
+else
+    print_warning "Running as user '$CURRENT_USER' - ensure proper permissions"
+    print_info "Production users: admin1, root"
 fi
 
 # Check system services
