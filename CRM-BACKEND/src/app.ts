@@ -53,6 +53,9 @@ import templateReportsRoutes from '@/routes/templateReports';
 
 const app = express();
 
+// Trust proxy for X-Forwarded-For headers from Nginx (specific to localhost)
+app.set('trust proxy', ['127.0.0.1', '::1']);
+
 // Security middleware
 app.use(helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' },
