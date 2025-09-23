@@ -14,9 +14,9 @@ CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 # Configuration
-PROJECT_ROOT="/home/admin1/Downloads/CRM-APP-MONOREPO-PROD"
-BACKUP_DIR="/home/admin1/backups"
-LOG_DIR="/home/admin1/logs"
+PROJECT_ROOT="/opt/crm-app/current"
+BACKUP_DIR="/opt/crm-app/shared/backups"
+LOG_DIR="/var/log/crm-app"
 
 # Utility functions
 print_header() {

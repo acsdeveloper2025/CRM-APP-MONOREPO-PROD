@@ -15,10 +15,16 @@ NC='\033[0m' # No Color
 
 # Configuration
 DEPLOYMENT_INFO_FILE="$1"
-PROJECT_ROOT="/home/admin1/Downloads/CRM-APP-MONOREPO-PROD"
-BACKUP_DIR="/home/admin1/backups"
-LOG_FILE="/home/admin1/logs/deployment.log"
+PROJECT_ROOT="/opt/crm-app/current"
+BACKUP_DIR="/opt/crm-app/shared/backups"
+LOG_DIR="/var/log/crm-app"
+LOG_FILE="$LOG_DIR/deployment.log"
 MAX_BACKUPS=5
+
+# Ensure required directories exist
+mkdir -p "$BACKUP_DIR"
+mkdir -p "$LOG_DIR"
+mkdir -p "/opt/crm-app/releases"
 
 # Utility functions
 print_header() {

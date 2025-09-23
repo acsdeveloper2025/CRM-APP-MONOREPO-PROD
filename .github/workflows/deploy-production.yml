@@ -201,7 +201,7 @@ jobs:
             set -e
             
             # Move to deployment directory
-            cd ${{ secrets.PRODUCTION_PATH }}
+            cd /opt/crm-app/current
             
             # Make scripts executable
             chmod +x /tmp/deploy-production.sh
