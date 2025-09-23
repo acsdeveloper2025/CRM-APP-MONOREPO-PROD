@@ -1,5 +1,5 @@
 import { Linking } from 'react-native';
-import { NavigationContainerRef } from '@react-navigation/native';
+// Note: This service is designed for React Router DOM navigation, not React Navigation
 
 export interface DeepLinkData {
   type: 'case' | 'notification' | 'form' | 'settings';
@@ -10,7 +10,7 @@ export interface DeepLinkData {
 
 class DeepLinkingService {
   private static instance: DeepLinkingService;
-  private navigationRef: NavigationContainerRef<any> | null = null;
+  private navigate: ((path: string) => void) | null = null;
   private pendingLink: string | null = null;
 
   private constructor() {}

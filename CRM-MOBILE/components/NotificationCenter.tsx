@@ -10,7 +10,7 @@ import {
   Modal,
   Pressable,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Bell, X, Trash2, CheckCircle, AlertCircle, Info, Clock } from 'lucide-react';
 import { notificationService, NotificationData } from '../services/notificationService';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -112,30 +112,33 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
     );
   };
 
-  const getNotificationIcon = (type: string) => {
+  const getNotificationIcon = (type: string, priority?: string) => {
+    const color = getNotificationColor(type, priority);
+    const size = 20;
+
     switch (type) {
       case 'CASE_ASSIGNED':
-        return 'person-add';
+        return <CheckCircle size={size} color={color} />;
       case 'CASE_REASSIGNED':
-        return 'swap-horizontal';
+        return <Clock size={size} color={color} />;
       case 'CASE_REMOVED':
-        return 'person-remove';
+        return <X size={size} color={color} />;
       case 'CASE_COMPLETED':
-        return 'checkmark-circle';
+        return <CheckCircle size={size} color={color} />;
       case 'CASE_REVOKED':
-        return 'close-circle';
+        return <X size={size} color={color} />;
       case 'CASE_APPROVED':
-        return 'thumbs-up';
+        return <CheckCircle size={size} color={color} />;
       case 'CASE_REJECTED':
-        return 'thumbs-down';
+        return <X size={size} color={color} />;
       case 'SYSTEM_MAINTENANCE':
-        return 'construct';
+        return <Info size={size} color={color} />;
       case 'APP_UPDATE':
-        return 'download';
+        return <Info size={size} color={color} />;
       case 'EMERGENCY_ALERT':
-        return 'warning';
+        return <AlertCircle size={size} color={color} />;
       default:
-        return 'notifications';
+        return <Bell size={size} color={color} />;
     }
   };
 
@@ -173,11 +176,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
       <View style={styles.notificationContent}>
         <View style={styles.notificationHeader}>
           <View style={styles.iconContainer}>
-            <Ionicons
-              name={getNotificationIcon(item.type) as any}
-              size={20}
-              color={getNotificationColor(item.type, item.priority)}
-            />
+            {getNotificationIcon(item.type, item.priority)}
           </View>
           <View style={styles.notificationInfo}>
             <Text style={styles.notificationTitle} numberOfLines={2}>
@@ -237,7 +236,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
                 style={styles.headerButton}
                 onPress={handleMarkAllAsRead}
               >
-                <Ionicons name="checkmark-done" size={20} color="#3b82f6" />
+                <CheckCircle size={20} color="#3b82f6" />
                 <Text style={styles.headerButtonText}>Mark All Read</Text>
               </TouchableOpacity>
             )}
@@ -245,14 +244,14 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
               style={styles.headerButton}
               onPress={handleClearAll}
             >
-              <Ionicons name="trash" size={20} color="#ef4444" />
+              <Trash2 size={20} color="#ef4444" />
               <Text style={[styles.headerButtonText, { color: '#ef4444' }]}>Clear</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.closeButton}
               onPress={onClose}
             >
-              <Ionicons name="close" size={24} color="#6b7280" />
+              <X size={24} color="#6b7280" />
             </TouchableOpacity>
           </View>
         </View>
@@ -264,7 +263,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
           </View>
         ) : notifications.length === 0 ? (
           <View style={styles.centerContainer}>
-            <Ionicons name="notifications-off" size={48} color="#d1d5db" />
+            <Bell size={48} color="#d1d5db" />
             <Text style={styles.emptyText}>No notifications</Text>
             <Text style={styles.emptySubtext}>
               You'll see notifications here when you receive them
