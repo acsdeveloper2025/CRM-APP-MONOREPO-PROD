@@ -19,17 +19,28 @@ if (isNative) {
   }
 }
 
+// Web Firebase configuration from environment variables
+const webFirebaseConfig = {
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
+};
+
 const FirebaseApp = {
   initializeApp: (config?: any) => {
     if (isNative && RNFirebaseApp) {
-      // Native app - use React Native Firebase
+      // Native app - use React Native Firebase (config from google-services.json)
       return RNFirebaseApp.initializeApp(config);
     } else {
-      // Web app - Firebase would need to be initialized differently
-      console.log('🌐 Web Firebase App initialization (not implemented)');
+      // Web app - use web Firebase config
+      console.log('🌐 Web Firebase App initialization with config:', webFirebaseConfig);
       return Promise.resolve({
         name: 'web-app',
-        options: config || {}
+        options: config || webFirebaseConfig
       });
     }
   },
@@ -40,7 +51,7 @@ const FirebaseApp = {
     } else {
       return {
         name: name || 'web-app',
-        options: {}
+        options: webFirebaseConfig
       };
     }
   }

@@ -6,8 +6,14 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0 --port 5180",
     "build": "vite build",
+    "build:prod": "vite build --mode production",
     "preview": "vite preview",
-    "preview:network": "vite preview --host 0.0.0.0"
+    "preview:network": "vite preview --host 0.0.0.0",
+    "setup-firebase": "./scripts/setup-firebase.sh",
+    "android": "npx cap run android",
+    "android:build": "npm run build:prod && npx cap sync android && npx cap run android",
+    "ios": "npx cap run ios",
+    "ios:build": "npm run build:prod && npx cap sync ios && npx cap run ios"
   },
   "dependencies": {
     "@capacitor/android": "^7.4.2",

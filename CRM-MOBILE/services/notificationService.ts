@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import { apiService } from './apiService';
+import { validateFirebaseConfig, debugFirebaseConfig } from '../utils/firebaseConfig';
 
 // Import notification libraries with platform detection via aliases
 import messaging from '@react-native-firebase/messaging';
@@ -55,6 +56,15 @@ class NotificationService {
   public async initialize(): Promise<void> {
     try {
       if (this.isInitialized) return;
+
+      // Validate Firebase configuration
+      console.log('📱 Initializing notification service...');
+      const isFirebaseConfigValid = validateFirebaseConfig();
+      if (!isFirebaseConfigValid) {
+        console.error('❌ Firebase configuration is invalid');
+        debugFirebaseConfig();
+        throw new Error('Firebase configuration is invalid. Please check your setup.');
+      }
 
       // Request permission for notifications
       await this.requestPermission();
