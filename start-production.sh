@@ -136,9 +136,9 @@ start_service() {
 }
 
 # Start all services
-start_service "backend" "CRM-BACKEND" "npm run dev" "3000" || exit 1
-start_service "frontend" "CRM-FRONTEND" "npm run dev" "5173" || exit 1
-start_service "mobile" "CRM-MOBILE" "npm run dev" "5180" || exit 1
+start_service "backend" "CRM-BACKEND" "npm run start" "3000" || exit 1
+start_service "frontend" "CRM-FRONTEND" "npm run preview -- --host 0.0.0.0 --port 5173" "5173" || exit 1
+start_service "mobile" "CRM-MOBILE" "npm run preview -- --host 0.0.0.0 --port 5180" "5180" || exit 1
 
 echo ""
 
