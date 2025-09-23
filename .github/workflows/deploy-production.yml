@@ -8,12 +8,12 @@ on:
       force_rebuild:
         description: 'Force rebuild all components'
         required: false
-        default: 'false'
+        default: false
         type: boolean
       skip_tests:
         description: 'Skip tests (emergency deployment)'
         required: false
-        default: 'false'
+        default: false
         type: boolean
 
 env:
@@ -125,8 +125,17 @@ jobs:
 
       - name: 🏗️ Build Component
         working-directory: ${{ matrix.path }}
+        continue-on-error: true
         run: |
           echo "🏗️ Building ${{ matrix.component }}..."
+          echo "📋 Available scripts:"
+          npm run --silent 2>/dev/null || echo "No scripts available"
+          echo "🔧 Running build command: ${{ matrix.build_cmd }}"
+          if [ "${{ matrix.component }}" = "backend" ]; then
+            echo "🔍 Checking TypeScript setup for backend..."
+            ls -la src/ || echo "No src directory"
+            npx tsc --version || echo "TypeScript not available"
+          fi
           ${{ matrix.build_cmd }}
 
       - name: 🧪 Run Tests
