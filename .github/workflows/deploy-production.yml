@@ -117,10 +117,20 @@ jobs:
         working-directory: ${{ matrix.path }}
         run: |
           echo "🔧 Installing dependencies for ${{ matrix.component }}..."
-          if [ "${{ matrix.component }}" = "mobile" ]; then
-            npm ci --legacy-peer-deps --prefer-offline --no-audit
+          if [ -f "package-lock.json" ]; then
+            echo "📋 Found package-lock.json, using npm ci..."
+            if [ "${{ matrix.component }}" = "mobile" ]; then
+              npm ci --legacy-peer-deps --prefer-offline --no-audit
+            else
+              npm ci --prefer-offline --no-audit
+            fi
           else
-            npm ci --prefer-offline --no-audit
+            echo "📋 No package-lock.json found, using npm install..."
+            if [ "${{ matrix.component }}" = "mobile" ]; then
+              npm install --legacy-peer-deps --prefer-offline --no-audit
+            else
+              npm install --prefer-offline --no-audit
+            fi
           fi
 
       - name: 🏗️ Build Component
