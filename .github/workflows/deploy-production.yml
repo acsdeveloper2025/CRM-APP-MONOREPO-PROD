@@ -167,25 +167,35 @@ jobs:
 
       - name: 📋 Create Deployment Info
         run: |
-          # Clean commit message by removing ANSI color codes, control characters, and escape quotes
-          CLEAN_MESSAGE=$(printf '%s' "${{ github.event.head_commit.message }}" | sed 's/\x1b\[[0-9;]*m//g' | tr -d '\000-\037' | sed "s/'/\\\\'/g" | head -1)
+          # Clean commit message by removing problematic characters
+          CLEAN_MESSAGE=$(printf '%s' "${{ github.event.head_commit.message }}" | tr -d '\000-\037\177' | sed 's/"/\\"/g' | head -1)
 
-          cat > deployment-info.json << EOF
-          {
-            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
-            "commit_sha": "${{ github.sha }}",
-            "commit_message": "${CLEAN_MESSAGE}",
-            "author": "${{ github.event.head_commit.author.name }}",
-            "branch": "${{ github.ref_name }}",
-            "workflow_run_id": "${{ github.run_id }}",
-            "components": {
-              "backend": ${{ needs.pre-deployment.outputs.backend_changed }},
-              "frontend": ${{ needs.pre-deployment.outputs.frontend_changed }},
-              "mobile": ${{ needs.pre-deployment.outputs.mobile_changed }}
-            },
-            "force_rebuild": ${{ github.event.inputs.force_rebuild || false }}
-          }
-          EOF
+          # Use jq to create valid JSON safely
+          jq -n \
+            --arg timestamp "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --arg commit_sha "${{ github.sha }}" \
+            --arg commit_message "$CLEAN_MESSAGE" \
+            --arg author "${{ github.event.head_commit.author.name }}" \
+            --arg branch "${{ github.ref_name }}" \
+            --arg workflow_run_id "${{ github.run_id }}" \
+            --argjson backend "${{ needs.pre-deployment.outputs.backend_changed }}" \
+            --argjson frontend "${{ needs.pre-deployment.outputs.frontend_changed }}" \
+            --argjson mobile "${{ needs.pre-deployment.outputs.mobile_changed }}" \
+            --argjson force_rebuild "${{ github.event.inputs.force_rebuild || false }}" \
+            '{
+              timestamp: $timestamp,
+              commit_sha: $commit_sha,
+              commit_message: $commit_message,
+              author: $author,
+              branch: $branch,
+              workflow_run_id: $workflow_run_id,
+              components: {
+                backend: $backend,
+                frontend: $frontend,
+                mobile: $mobile
+              },
+              force_rebuild: $force_rebuild
+            }' > deployment-info.json
 
       - name: 📤 Transfer Files to Server
         run: |
