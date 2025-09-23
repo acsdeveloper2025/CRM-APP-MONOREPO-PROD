@@ -26,6 +26,12 @@ export default defineConfig(({ mode }) => {
           'www.example.com'
         ]
       },
+      preview: {
+        port: 5180,
+        strictPort: true,
+        host: '0.0.0.0',
+        cors: true
+      },
       define: {
         'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
         'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
