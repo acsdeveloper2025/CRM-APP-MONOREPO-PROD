@@ -135,6 +135,9 @@ parse_deployment_info() {
     FRONTEND_CHANGED=$(jq -r '.components.frontend' "$DEPLOYMENT_INFO_FILE")
     MOBILE_CHANGED=$(jq -r '.components.mobile' "$DEPLOYMENT_INFO_FILE")
     FORCE_REBUILD=$(jq -r '.force_rebuild' "$DEPLOYMENT_INFO_FILE")
+
+    # Force rebuild all components for now
+    FORCE_REBUILD="true"
     
     print_info "Deployment Info:"
     print_info "  Commit: $COMMIT_SHA"
@@ -143,7 +146,7 @@ parse_deployment_info() {
     print_info "  Backend Changed: $BACKEND_CHANGED"
     print_info "  Frontend Changed: $FRONTEND_CHANGED"
     print_info "  Mobile Changed: $MOBILE_CHANGED"
-    print_info "  Force Rebuild: $FORCE_REBUILD"
+    print_info "  Force Rebuild: $FORCE_REBUILD (FORCED FOR ALL COMPONENTS)"
 }
 
 # Create backup
