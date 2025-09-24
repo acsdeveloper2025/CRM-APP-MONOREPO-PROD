@@ -2,6 +2,10 @@
 
 This is a mobile application for field verification case flow management in banking and financial institutions.
 
+## Production Deployment
+
+The mobile app is configured for production deployment at `/mobile/` endpoint on the main domain (https://example.com/mobile/).
+
 ## Run Locally
 
 **Prerequisites:** Node.js
