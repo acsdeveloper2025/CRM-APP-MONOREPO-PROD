@@ -126,13 +126,26 @@ export const uploadAttachment = async (req: AuthenticatedRequest, res: Response)
       // Import query function
       const { query } = await import('@/config/database');
 
-      // Get case UUID for mobile compatibility
-      const caseResult = await query('SELECT id FROM cases WHERE "caseId" = $1', [caseId]);
+      // Get case UUID and verify access for mobile compatibility
+      let caseQuery: string;
+      let caseParams: any[];
+
+      if (req.user?.role === 'FIELD_AGENT') {
+        // Field agents can only upload to cases assigned to them
+        caseQuery = 'SELECT id FROM cases WHERE "caseId" = $1 AND "assignedTo" = $2';
+        caseParams = [caseId, req.user.id];
+      } else {
+        // Admin/Manager can upload to any case
+        caseQuery = 'SELECT id FROM cases WHERE "caseId" = $1';
+        caseParams = [caseId];
+      }
+
+      const caseResult = await query(caseQuery, caseParams);
 
       if (caseResult.rows.length === 0) {
         return res.status(404).json({
           success: false,
-          message: 'Case not found',
+          message: req.user?.role === 'FIELD_AGENT' ? 'Case not found or not assigned to you' : 'Case not found',
           error: { code: 'CASE_NOT_FOUND' },
         });
       }
@@ -217,26 +230,52 @@ export const getAttachmentsByCase = async (req: AuthenticatedRequest, res: Respo
   try {
     const { caseId } = req.params;
     const { category, limit = 50 } = req.query;
+    const userId = req.user?.id;
+    const userRole = req.user?.role;
 
     // Import query function
     const { query } = await import('@/config/database');
 
-    // Build query with optional category filter
-    let queryText = `
-      SELECT
-        id,
-        filename,
-        "originalName",
-        "mimeType",
-        "fileSize" as size,
-        "filePath",
-        "uploadedBy",
-        "createdAt" as "uploadedAt",
-        "caseId"
-      FROM attachments
-      WHERE "caseId" = $1
-    `;
-    const queryParams = [caseId];
+    // Build query with proper access control and optional category filter
+    let queryText: string;
+    let queryParams: any[];
+
+    if (userRole === 'FIELD_AGENT') {
+      // Field agents can only see attachments for cases assigned to them
+      queryText = `
+        SELECT
+          a.id,
+          a.filename,
+          a."originalName",
+          a."mimeType",
+          a."fileSize" as size,
+          a."filePath",
+          a."uploadedBy",
+          a."createdAt" as "uploadedAt",
+          a."caseId"
+        FROM attachments a
+        JOIN cases c ON a.case_id = c.id
+        WHERE a."caseId" = $1 AND c."assignedTo" = $2
+      `;
+      queryParams = [caseId, userId];
+    } else {
+      // Admin/Manager can see all attachments for the case
+      queryText = `
+        SELECT
+          id,
+          filename,
+          "originalName",
+          "mimeType",
+          "fileSize" as size,
+          "filePath",
+          "uploadedBy",
+          "createdAt" as "uploadedAt",
+          "caseId"
+        FROM attachments
+        WHERE "caseId" = $1
+      `;
+      queryParams = [caseId];
+    }
 
     queryText += ` ORDER BY "createdAt" DESC LIMIT $${queryParams.length + 1}`;
     queryParams.push(limit.toString());
@@ -268,21 +307,64 @@ export const getAttachmentsByCase = async (req: AuthenticatedRequest, res: Respo
 export const getAttachmentById = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const attachment = attachments.find(att => att.id === id);
+    const userId = req.user?.id;
+    const userRole = req.user?.role;
 
-    if (!attachment) {
+    // Import query function
+    const { query } = await import('@/config/database');
+
+    // Get attachment with case assignment check for field agents
+    let attachmentQuery: string;
+    let queryParams: any[];
+
+    if (userRole === 'FIELD_AGENT') {
+      // Field agents can only access attachments for cases assigned to them
+      attachmentQuery = `
+        SELECT a.id, a.filename, a."originalName", a."mimeType", a."fileSize",
+               a."filePath", a."uploadedBy", a."createdAt", a."caseId"
+        FROM attachments a
+        JOIN cases c ON a.case_id = c.id
+        WHERE a.id = $1 AND c."assignedTo" = $2
+      `;
+      queryParams = [id, userId];
+    } else {
+      // Admin/Manager can access any attachment
+      attachmentQuery = `
+        SELECT id, filename, "originalName", "mimeType", "fileSize",
+               "filePath", "uploadedBy", "createdAt", "caseId"
+        FROM attachments
+        WHERE id = $1
+      `;
+      queryParams = [id];
+    }
+
+    const result = await query(attachmentQuery, queryParams);
+
+    if (result.rows.length === 0) {
       return res.status(404).json({
         success: false,
-        message: 'Attachment not found',
+        message: userRole === 'FIELD_AGENT' ? 'Attachment not found or access denied' : 'Attachment not found',
         error: { code: 'NOT_FOUND' },
       });
     }
+
+    const attachment = result.rows[0];
 
     logger.info(`Retrieved attachment ${id}`, { userId: req.user?.id });
 
     res.json({
       success: true,
-      data: attachment,
+      data: {
+        id: attachment.id,
+        filename: attachment.filename,
+        originalName: attachment.originalName,
+        mimeType: attachment.mimeType,
+        size: attachment.fileSize,
+        filePath: attachment.filePath,
+        uploadedBy: attachment.uploadedBy,
+        uploadedAt: attachment.createdAt,
+        caseId: attachment.caseId
+      },
     });
   } catch (error) {
     logger.error('Error getting attachment:', error);
@@ -298,28 +380,45 @@ export const getAttachmentById = async (req: AuthenticatedRequest, res: Response
 export const deleteAttachment = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { id } = req.params;
+    const userId = req.user?.id;
+    const userRole = req.user?.role;
 
     // Import query function
     const { query } = await import('@/config/database');
 
-    // Get attachment details before deletion
-    const attachmentResult = await query(
-      'SELECT filename, "filePath", "uploadedBy", "caseId" FROM attachments WHERE id = $1',
-      [id]
-    );
+    // Get attachment details with case assignment check
+    let attachmentQuery: string;
+    let queryParams: any[];
+
+    if (userRole === 'FIELD_AGENT') {
+      // Field agents can only delete attachments for cases assigned to them
+      attachmentQuery = `
+        SELECT a.filename, a."filePath", a."uploadedBy", a."caseId"
+        FROM attachments a
+        JOIN cases c ON a.case_id = c.id
+        WHERE a.id = $1 AND c."assignedTo" = $2
+      `;
+      queryParams = [id, userId];
+    } else {
+      // Admin/Manager can delete any attachment
+      attachmentQuery = 'SELECT filename, "filePath", "uploadedBy", "caseId" FROM attachments WHERE id = $1';
+      queryParams = [id];
+    }
+
+    const attachmentResult = await query(attachmentQuery, queryParams);
 
     if (attachmentResult.rows.length === 0) {
       return res.status(404).json({
         success: false,
-        message: 'Attachment not found',
+        message: userRole === 'FIELD_AGENT' ? 'Attachment not found or access denied' : 'Attachment not found',
         error: { code: 'NOT_FOUND' },
       });
     }
 
     const attachment = attachmentResult.rows[0];
 
-    // Check if user has permission to delete (owner or admin)
-    if (attachment.uploadedBy !== req.user?.id && req.user?.role !== 'ADMIN') {
+    // Additional permission check: owner or admin can delete
+    if (userRole !== 'ADMIN' && attachment.uploadedBy !== userId) {
       return res.status(403).json({
         success: false,
         message: 'You do not have permission to delete this attachment',
@@ -411,20 +510,37 @@ export const updateAttachment = async (req: AuthenticatedRequest, res: Response)
 export const downloadAttachment = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { id } = req.params;
+    const userId = req.user?.id;
+    const userRole = req.user?.role;
 
     // Import query function
     const { query } = await import('@/config/database');
 
-    // Get attachment details from database
-    const attachmentResult = await query(
-      'SELECT filename, "originalName", "mimeType", "fileSize", "caseId" FROM attachments WHERE id = $1',
-      [id]
-    );
+    // Get attachment details with case assignment check
+    let attachmentQuery: string;
+    let queryParams: any[];
+
+    if (userRole === 'FIELD_AGENT') {
+      // Field agents can only download attachments for cases assigned to them
+      attachmentQuery = `
+        SELECT a.filename, a."originalName", a."mimeType", a."fileSize", a."caseId"
+        FROM attachments a
+        JOIN cases c ON a.case_id = c.id
+        WHERE a.id = $1 AND c."assignedTo" = $2
+      `;
+      queryParams = [id, userId];
+    } else {
+      // Admin/Manager can download any attachment
+      attachmentQuery = 'SELECT filename, "originalName", "mimeType", "fileSize", "caseId" FROM attachments WHERE id = $1';
+      queryParams = [id];
+    }
+
+    const attachmentResult = await query(attachmentQuery, queryParams);
 
     if (attachmentResult.rows.length === 0) {
       return res.status(404).json({
         success: false,
-        message: 'Attachment not found',
+        message: userRole === 'FIELD_AGENT' ? 'Attachment not found or access denied' : 'Attachment not found',
         error: { code: 'NOT_FOUND' },
       });
     }
@@ -470,20 +586,37 @@ export const downloadAttachment = async (req: AuthenticatedRequest, res: Respons
 export const serveAttachment = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { id } = req.params;
+    const userId = req.user?.id;
+    const userRole = req.user?.role;
 
     // Import query function
     const { query } = await import('@/config/database');
 
-    // Get attachment details from database
-    const attachmentResult = await query(
-      'SELECT filename, "originalName", "mimeType", "fileSize", "caseId" FROM attachments WHERE id = $1',
-      [id]
-    );
+    // Get attachment details with case assignment check
+    let attachmentQuery: string;
+    let queryParams: any[];
+
+    if (userRole === 'FIELD_AGENT') {
+      // Field agents can only serve attachments for cases assigned to them
+      attachmentQuery = `
+        SELECT a.filename, a."originalName", a."mimeType", a."fileSize", a."caseId"
+        FROM attachments a
+        JOIN cases c ON a.case_id = c.id
+        WHERE a.id = $1 AND c."assignedTo" = $2
+      `;
+      queryParams = [id, userId];
+    } else {
+      // Admin/Manager can serve any attachment
+      attachmentQuery = 'SELECT filename, "originalName", "mimeType", "fileSize", "caseId" FROM attachments WHERE id = $1';
+      queryParams = [id];
+    }
+
+    const attachmentResult = await query(attachmentQuery, queryParams);
 
     if (attachmentResult.rows.length === 0) {
       return res.status(404).json({
         success: false,
-        message: 'Attachment not found',
+        message: userRole === 'FIELD_AGENT' ? 'Attachment not found or access denied' : 'Attachment not found',
         error: { code: 'NOT_FOUND' },
       });
     }

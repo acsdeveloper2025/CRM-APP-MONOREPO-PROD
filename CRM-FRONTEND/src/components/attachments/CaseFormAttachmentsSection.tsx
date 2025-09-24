@@ -3,16 +3,20 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { 
-  Upload, 
-  FileText, 
-  Image, 
-  Download, 
-  Eye, 
-  Trash2, 
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import {
+  Upload,
+  FileText,
+  Image,
+  Download,
+  Eye,
+  Trash2,
   Plus,
   AlertCircle,
-  Paperclip
+  Paperclip,
+  ArrowRight,
+  CheckCircle,
+  Clock
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import toast from 'react-hot-toast';
@@ -32,6 +36,7 @@ interface CaseFormAttachmentsSectionProps {
   onAttachmentsChange: (attachments: CaseFormAttachment[]) => void;
   maxFiles?: number;
   maxFileSize?: number;
+  onValidationChange?: (hasValidationErrors: boolean) => void;
 }
 
 const MAX_FILES = 10;
@@ -50,13 +55,20 @@ export const CaseFormAttachmentsSection: React.FC<CaseFormAttachmentsSectionProp
   attachments,
   onAttachmentsChange,
   maxFiles = MAX_FILES,
-  maxFileSize = MAX_FILE_SIZE
+  maxFileSize = MAX_FILE_SIZE,
+  onValidationChange
 }) => {
   const [dragOver, setDragOver] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [previewAttachment, setPreviewAttachment] = useState<CaseFormAttachment | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Notify parent about validation state
+  React.useEffect(() => {
+    const hasValidationErrors = selectedFiles.length > 0;
+    onValidationChange?.(hasValidationErrors);
+  }, [selectedFiles.length, onValidationChange]);
 
   const validateFile = (file: File): string | null => {
     if (!ALLOWED_TYPES.includes(file.type)) {
@@ -200,9 +212,33 @@ export const CaseFormAttachmentsSection: React.FC<CaseFormAttachmentsSectionProp
           <Paperclip className="h-5 w-5" />
           <span>Attachments</span>
           <Badge variant="secondary">{attachments.length}</Badge>
+          {selectedFiles.length > 0 && (
+            <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
+              <Clock className="h-3 w-3 mr-1" />
+              {selectedFiles.length} pending
+            </Badge>
+          )}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Two-Step Process Indicator */}
+        {selectedFiles.length > 0 && (
+          <Alert className="border-yellow-200 bg-yellow-50">
+            <AlertCircle className="h-4 w-4 text-yellow-600" />
+            <AlertDescription className="text-yellow-800">
+              <div className="flex items-center space-x-2">
+                <span className="font-medium">Step 1:</span>
+                <span>Files selected</span>
+                <ArrowRight className="h-4 w-4" />
+                <span className="font-medium">Step 2:</span>
+                <span>Click "Add Files" to attach them</span>
+              </div>
+              <div className="mt-2 text-sm">
+                ⚠️ Files must be added before submitting the form
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
         {/* File Upload Area */}
         <div
           className={cn(
@@ -244,16 +280,21 @@ export const CaseFormAttachmentsSection: React.FC<CaseFormAttachmentsSectionProp
         {selectedFiles.length > 0 && (
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <h4 className="font-medium text-sm">Selected Files</h4>
+              <div className="flex items-center space-x-2">
+                <h4 className="font-medium text-sm text-yellow-700">📋 Selected Files (Step 1)</h4>
+                <Badge variant="outline" className="bg-yellow-100 text-yellow-700 border-yellow-300">
+                  {selectedFiles.length} pending
+                </Badge>
+              </div>
               <div className="space-x-2">
                 <Button
                   type="button"
                   size="sm"
                   onClick={addFiles}
-                  className="h-8"
+                  className="h-8 bg-green-600 hover:bg-green-700 text-white animate-pulse"
                 >
                   <Plus className="h-4 w-4 mr-1" />
-                  Add Files
+                  Add Files (Step 2)
                 </Button>
                 <Button
                   type="button"
@@ -268,11 +309,12 @@ export const CaseFormAttachmentsSection: React.FC<CaseFormAttachmentsSectionProp
             </div>
             <div className="space-y-2">
               {selectedFiles.map((file, index) => (
-                <div key={index} className="flex items-center space-x-3 p-3 border rounded-lg bg-blue-50">
+                <div key={index} className="flex items-center space-x-3 p-3 border-2 border-dashed border-yellow-300 rounded-lg bg-yellow-50">
+                  <Clock className="h-4 w-4 text-yellow-600" />
                   {getFileIcon(file.type.startsWith('image/') ? 'image' : 'pdf')}
                   <div className="flex-1">
-                    <div className="font-medium text-sm">{file.name}</div>
-                    <div className="text-xs text-muted-foreground">{formatFileSize(file.size)}</div>
+                    <div className="font-medium text-sm text-yellow-800">{file.name}</div>
+                    <div className="text-xs text-yellow-600">{formatFileSize(file.size)} • Waiting to be added</div>
                   </div>
                   <Button
                     type="button"
@@ -292,14 +334,21 @@ export const CaseFormAttachmentsSection: React.FC<CaseFormAttachmentsSectionProp
         {/* Attached Files */}
         {attachments.length > 0 && (
           <div className="space-y-2">
-            <h4 className="font-medium text-sm">Attached Files</h4>
+            <div className="flex items-center space-x-2">
+              <h4 className="font-medium text-sm text-green-700">✅ Attached Files (Ready for Submission)</h4>
+              <Badge variant="outline" className="bg-green-100 text-green-700 border-green-300">
+                <CheckCircle className="h-3 w-3 mr-1" />
+                {attachments.length} attached
+              </Badge>
+            </div>
             <div className="space-y-2">
               {attachments.map((attachment) => (
-                <div key={attachment.id} className="flex items-center space-x-3 p-3 border rounded-lg">
+                <div key={attachment.id} className="flex items-center space-x-3 p-3 border-2 border-green-200 rounded-lg bg-green-50">
+                  <CheckCircle className="h-4 w-4 text-green-600" />
                   {getFileIcon(attachment.type)}
                   <div className="flex-1">
-                    <div className="font-medium text-sm">{attachment.name}</div>
-                    <div className="text-xs text-muted-foreground">{formatFileSize(attachment.size)}</div>
+                    <div className="font-medium text-sm text-green-800">{attachment.name}</div>
+                    <div className="text-xs text-green-600">{formatFileSize(attachment.size)} • Ready for submission</div>
                   </div>
                   <div className="flex space-x-1">
                     {attachment.type === 'image' && attachment.preview && (

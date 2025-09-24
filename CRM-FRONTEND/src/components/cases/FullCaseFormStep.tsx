@@ -31,6 +31,7 @@ import { CaseFormAttachmentsSection, type CaseFormAttachment } from '@/component
 import type { CustomerInfoData } from './CustomerInfoStep';
 import { rateTypesService } from '@/services/rateTypes';
 import { useQuery } from '@tanstack/react-query';
+import toast from 'react-hot-toast';
 
 const fullCaseFormSchema = z.object({
   // Customer Information (new fields)
@@ -130,6 +131,7 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
 
   // Attachments state
   const [attachments, setAttachments] = useState<CaseFormAttachment[]>([]);
+  const [hasAttachmentValidationErrors, setHasAttachmentValidationErrors] = useState(false);
 
   // Watch for client selection to fetch products
   const selectedClientId = form.watch('clientId');
@@ -206,6 +208,10 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
   }, [editMode, initialData, products, areas, form]);
 
   const handleSubmit = (data: FullCaseFormData) => {
+    if (hasAttachmentValidationErrors) {
+      toast.error('Please add all selected files before submitting the form');
+      return;
+    }
     onSubmit(data, attachments);
   };
 
@@ -720,6 +726,7 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
           <CaseFormAttachmentsSection
             attachments={attachments}
             onAttachmentsChange={setAttachments}
+            onValidationChange={setHasAttachmentValidationErrors}
           />
 
           {/* Form Actions */}
@@ -731,11 +738,20 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
               </Button>
             )}
 
-            <Button type="submit" disabled={isSubmitting}>
+            <Button
+              type="submit"
+              disabled={isSubmitting || hasAttachmentValidationErrors}
+              className={hasAttachmentValidationErrors ? 'opacity-50' : ''}
+            >
               {isSubmitting ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   {editMode ? 'Updating Case...' : 'Creating Case...'}
+                </>
+              ) : hasAttachmentValidationErrors ? (
+                <>
+                  <Send className="h-4 w-4 mr-2" />
+                  Add Files First
                 </>
               ) : (
                 <>
