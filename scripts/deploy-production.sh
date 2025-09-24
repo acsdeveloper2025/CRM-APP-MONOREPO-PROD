@@ -347,9 +347,9 @@ clear_caches() {
 # Start services
 start_services() {
     print_header "🚀 Starting Services"
-    
+
     cd "$PROJECT_ROOT"
-    
+
     # Use the existing production startup script
     if [ -f "start-production.sh" ]; then
         print_info "Starting services using production script..."
@@ -377,15 +377,20 @@ create_release() {
     print_info "Cloning repository to new release..."
     cd "$RELEASES_DIR"
 
-    # Try SSH first, fallback to copying from current deployment
-    print_info "Attempting SSH clone..."
+    # Try HTTPS first (more reliable), then SSH, then fallback to copying
+    print_info "Attempting HTTPS clone..."
 
-    # Set up SSH environment
-    export GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
-
-    if git clone git@github.com:acsdeveloper2025/CRM-APP-MONOREPO-PROD.git "$RELEASE_NAME"; then
-        print_success "Repository cloned successfully via SSH"
+    if git clone https://github.com/acsdeveloper2025/CRM-APP-MONOREPO-PROD.git "$RELEASE_NAME"; then
+        print_success "Repository cloned successfully via HTTPS"
     else
+        print_info "HTTPS clone failed, attempting SSH clone..."
+
+        # Set up SSH environment
+        export GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+
+        if git clone git@github.com:acsdeveloper2025/CRM-APP-MONOREPO-PROD.git "$RELEASE_NAME"; then
+            print_success "Repository cloned successfully via SSH"
+        else
         print_warning "SSH clone failed, copying from current deployment..."
         print_info "SSH clone error was logged above"
         # Copy from current deployment and initialize as git repo
