@@ -232,20 +232,31 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
 
       // Make real API call to backend
-      // Mobile app uses static IP exclusively - no fallbacks
+      // Environment-aware API URL configuration
       const getApiBaseUrl = () => {
-        console.log('🔍 Mobile App AuthContext - Static IP Only Configuration');
+        console.log('🔍 Mobile App AuthContext - Environment-aware Configuration');
 
-        // Mobile app uses static IP exclusively
-        if (import.meta.env.VITE_API_BASE_URL_STATIC_IP) {
-          const url = import.meta.env.VITE_API_BASE_URL_STATIC_IP;
-          console.log('🌍 AuthContext using Static IP API URL:', url);
-          return url;
+        // Check if we're in production mode
+        const isProduction = import.meta.env.PROD;
+
+        if (isProduction) {
+          // Production: Use domain-based API URL
+          const productionUrl = 'https://crm.allcheckservices.com/api';
+          console.log('🌍 AuthContext using Production API URL:', productionUrl);
+          return productionUrl;
+        } else {
+          // Development: Try static IP first, then fallback to localhost
+          if (import.meta.env.VITE_API_BASE_URL_STATIC_IP) {
+            const url = import.meta.env.VITE_API_BASE_URL_STATIC_IP;
+            console.log('🌍 AuthContext using Static IP API URL:', url);
+            return url;
+          }
+
+          // Fallback to localhost for development
+          const devUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
+          console.log('🌍 AuthContext using Development API URL:', devUrl);
+          return devUrl;
         }
-
-        // If static IP not configured, throw error
-        console.error('❌ Static IP not configured for mobile app');
-        throw new Error('VITE_API_BASE_URL_STATIC_IP must be configured for mobile app');
       };
 
       const API_BASE_URL = getApiBaseUrl();
