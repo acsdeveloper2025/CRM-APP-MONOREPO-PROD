@@ -342,7 +342,7 @@ JWT_REFRESH_EXPIRES_IN=30d
 CORS_ORIGIN=https://example.com
 LOG_LEVEL=info
 REDIS_URL=redis://localhost:6379
-GOOGLE_MAPS_API_KEY=your-google-maps-api-key-here
+GOOGLE_MAPS_API_KEY=YOUR_GOOGLE_MAPS_KEY
 GEMINI_API_KEY=your-gemini-api-key-here
 EOF
         print_status "Backend .env file created"
@@ -355,6 +355,7 @@ EOF
         print_info "Creating frontend .env file..."
         cat > "$PROJECT_ROOT/CRM-FRONTEND/.env" << 'EOF'
 VITE_API_BASE_URL=https://example.com/api
+VITE_GOOGLE_MAPS_API_KEY=YOUR_GOOGLE_MAPS_KEY
 NODE_ENV=production
 EOF
         print_status "Frontend .env file created"
@@ -367,6 +368,7 @@ EOF
         print_info "Creating mobile .env.production file..."
         cat > "$PROJECT_ROOT/CRM-MOBILE/.env.production" << 'EOF'
 VITE_API_BASE_URL=https://example.com/api
+VITE_GOOGLE_MAPS_API_KEY=YOUR_GOOGLE_MAPS_KEY
 VITE_APP_ENVIRONMENT=production
 NODE_ENV=production
 EOF
