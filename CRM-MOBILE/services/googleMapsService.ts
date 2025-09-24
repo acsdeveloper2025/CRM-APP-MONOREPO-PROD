@@ -116,14 +116,23 @@ class GoogleMapsService {
         location: { lat: location.latitude, lng: location.longitude }
       });
 
-      if (response.results && response.results.length > 0) {
+      // Check if response is valid and has results
+      if (response && response.results && response.results.length > 0) {
         const result = response.results[0];
         return this.parseAddressComponents(result);
       }
 
+      // Handle case where API returns empty results
+      console.warn('No geocoding results found for location:', location);
       return null;
     } catch (error) {
       console.error('Reverse geocoding failed:', error);
+
+      // Check if it's an API key issue
+      if (error instanceof Error && error.message.includes('API key')) {
+        console.error('Google Maps API key issue. Please configure VITE_GOOGLE_MAPS_API_KEY in .env file');
+      }
+
       return null;
     }
   }

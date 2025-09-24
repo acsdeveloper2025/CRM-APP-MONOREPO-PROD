@@ -158,7 +158,21 @@ class RetryService {
       }
 
       const data = await response.json();
-      
+
+      // Enhanced response validation for verification submissions
+      if (request.type === 'VERIFICATION_SUBMISSION') {
+        // Validate that verification response has expected structure
+        if (data && (data.success === true || response.status === 200)) {
+          console.log(`✅ Verification submission successful for request ${requestId}:`, {
+            status: response.status,
+            hasData: !!data,
+            dataKeys: data ? Object.keys(data) : []
+          });
+        } else {
+          console.warn(`⚠️ Verification response structure unexpected for request ${requestId}:`, data);
+        }
+      }
+
       // Update progress
       this.updateProgress(requestId, {
         requestId,
@@ -172,16 +186,19 @@ class RetryService {
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      
+
       // Update request with error info
       request.attempts += 1;
       request.lastAttempt = new Date().toISOString();
       request.error = errorMessage;
 
-      // Don't retry rate limited requests - mark as permanently failed
-      if (errorMessage.includes('RATE_LIMITED')) {
+      // Enhanced error categorization for better retry logic
+      const isRetryableError = this.categorizeError(errorMessage, request.type);
+
+      // Don't retry non-retryable errors - mark as permanently failed
+      if (!isRetryableError) {
         request.attempts = RetryService.DEFAULT_CONFIG.maxAttempts; // Mark as max attempts reached
-        console.warn(`⚠️ Rate limited request ${requestId} marked as permanently failed`);
+        console.warn(`⚠️ Non-retryable error for request ${requestId}: ${errorMessage}`);
       }
 
       // Calculate next retry time
@@ -206,6 +223,55 @@ class RetryService {
       console.error(`❌ Request ${requestId} failed (attempt ${request.attempts}):`, errorMessage);
       return { success: false, error: errorMessage };
     }
+  }
+
+  /**
+   * Categorize errors to determine if they should be retried
+   */
+  private categorizeError(errorMessage: string, requestType: string): boolean {
+    // Non-retryable errors (permanent failures)
+    const nonRetryablePatterns = [
+      'RATE_LIMITED',
+      'validation',
+      'not found',
+      'access denied',
+      'forbidden',
+      'unauthorized',
+      'case not assigned',
+      'invalid credentials',
+      'malformed request',
+      'bad request'
+    ];
+
+    // Check if error matches non-retryable patterns
+    const isNonRetryable = nonRetryablePatterns.some(pattern =>
+      errorMessage.toLowerCase().includes(pattern.toLowerCase())
+    );
+
+    if (isNonRetryable) {
+      return false;
+    }
+
+    // Special handling for verification submissions
+    if (requestType === 'VERIFICATION_SUBMISSION') {
+      // These are typically retryable for verification submissions
+      const retryablePatterns = [
+        'network error',
+        'timeout',
+        'connection',
+        'server error',
+        'internal server error',
+        'service unavailable',
+        'gateway timeout'
+      ];
+
+      return retryablePatterns.some(pattern =>
+        errorMessage.toLowerCase().includes(pattern.toLowerCase())
+      ) || !isNonRetryable; // Default to retryable if not explicitly non-retryable
+    }
+
+    // Default: retry unless explicitly non-retryable
+    return true;
   }
 
   /**
@@ -330,6 +396,49 @@ class RetryService {
     const failed = this.retryQueue.filter(r => r.attempts >= RetryService.DEFAULT_CONFIG.maxAttempts).length;
 
     return { pending, retrying: 0, failed };
+  }
+
+  /**
+   * Get pending requests from retry queue
+   */
+  async getPendingRequests(): Promise<RetryRequest[]> {
+    return this.retryQueue.filter(r => r.attempts < RetryService.DEFAULT_CONFIG.maxAttempts);
+  }
+
+  /**
+   * Retry a specific request by ID
+   */
+  async retrySpecificRequest(requestId: string): Promise<{ success: boolean; data?: any; error?: string }> {
+    const request = this.retryQueue.find(r => r.id === requestId);
+
+    if (!request) {
+      return { success: false, error: 'Request not found in retry queue' };
+    }
+
+    if (request.attempts >= RetryService.DEFAULT_CONFIG.maxAttempts) {
+      return { success: false, error: 'Request has exceeded maximum retry attempts' };
+    }
+
+    console.log(`🔄 Manually retrying request ${requestId}...`);
+
+    try {
+      const result = await this.executeRequest(request);
+
+      if (result.success) {
+        // Remove successful request from queue
+        this.retryQueue = this.retryQueue.filter(r => r.id !== requestId);
+        await this.saveRetryQueue();
+        console.log(`✅ Manual retry successful for request ${requestId}`);
+      }
+
+      return result;
+    } catch (error) {
+      console.error(`❌ Manual retry failed for request ${requestId}:`, error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Manual retry failed'
+      };
+    }
   }
 
   /**

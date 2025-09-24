@@ -329,6 +329,8 @@ class VerificationFormService {
     geoLocation?: { latitude: number; longitude: number; accuracy?: number }
   ): Promise<VerificationSubmissionResult> {
     try {
+      // Debug logging to identify parameter values
+      console.log('Debug - Function parameters:', { caseId, verificationType, typeof_caseId: typeof caseId });
       console.log(`📋 Submitting ${verificationType} verification for case ${caseId}...`);
 
       // Validate minimum requirements
@@ -393,10 +395,34 @@ class VerificationFormService {
         `${caseId}-${verificationType}-${Date.now()}`
       );
 
+      // Enhanced response validation and error handling
       if (result.success) {
-        console.log(`✅ ${verificationType.charAt(0).toUpperCase() + verificationType.slice(1)} verification submitted successfully for case ${caseId}`);
+        // Validate that the response contains expected data structure
+        const responseData = result.data;
+        const hasValidCaseId = responseData?.caseId || responseData?.data?.caseId;
+
+        if (hasValidCaseId) {
+          console.log(`✅ ${verificationType.charAt(0).toUpperCase() + verificationType.slice(1)} verification submitted successfully for case ${caseId}`);
+          console.log(`📋 Response data:`, {
+            caseId: responseData?.caseId || responseData?.data?.caseId,
+            status: responseData?.status || responseData?.data?.status,
+            completedAt: responseData?.completedAt || responseData?.data?.completedAt
+          });
+        } else {
+          // Success response but missing expected data - this might be the source of the error
+          console.warn(`⚠️ ${verificationType.charAt(0).toUpperCase() + verificationType.slice(1)} verification submitted but response missing caseId. Full response:`, responseData);
+          // Still treat as success since backend processed it successfully
+        }
       } else {
         console.error(`❌ ${verificationType.charAt(0).toUpperCase() + verificationType.slice(1)} verification submission failed for case ${caseId}:`, result.error);
+
+        // Enhanced error analysis
+        if (result.error && typeof result.error === 'string') {
+          if (result.error.includes('caseId is not defined')) {
+            console.error('🔍 Detected "caseId is not defined" error - this may be a false positive if backend logs show success');
+            console.error('🔍 Function parameters were valid:', { caseId, verificationType, typeof_caseId: typeof caseId });
+          }
+        }
       }
 
       return result;
@@ -472,29 +498,61 @@ class VerificationFormService {
         progressTrackingService.updateStepProgress(submissionId, 'submit_form', 100, 'COMPLETED');
         progressTrackingService.updateStepProgress(submissionId, 'confirmation', 100, 'COMPLETED');
 
+        // Enhanced response data extraction to handle different response structures
+        const responseData = result.data;
+        let extractedCaseId: string | undefined;
+        let extractedStatus: string | undefined;
+        let extractedCompletedAt: string | undefined;
+
+        // Try different response structure patterns
+        if (responseData?.data) {
+          // Backend returns { success: true, data: { caseId, status, completedAt } }
+          extractedCaseId = responseData.data.caseId;
+          extractedStatus = responseData.data.status;
+          extractedCompletedAt = responseData.data.completedAt;
+        } else if (responseData?.caseId) {
+          // Direct response structure
+          extractedCaseId = responseData.caseId;
+          extractedStatus = responseData.status;
+          extractedCompletedAt = responseData.completedAt;
+        } else {
+          // Fallback: use the original caseId parameter if response doesn't contain it
+          extractedCaseId = caseId;
+          console.warn(`⚠️ Response missing caseId, using original parameter: ${caseId}`);
+        }
+
         // Clear secure attachments after successful case submission
         try {
-          console.log(`🗑️ Clearing secure attachments for completed case: ${caseId}`);
-          await secureStorageService.clearCaseAttachments(caseId);
-          console.log(`✅ Secure attachments cleared for case: ${caseId}`);
+          console.log(`🗑️ Clearing secure attachments for completed case: ${extractedCaseId}`);
+          await secureStorageService.clearCaseAttachments(extractedCaseId || caseId);
+          console.log(`✅ Secure attachments cleared for case: ${extractedCaseId || caseId}`);
         } catch (error) {
-          console.warn(`⚠️ Failed to clear attachments for case ${caseId}:`, error);
+          console.warn(`⚠️ Failed to clear attachments for case ${extractedCaseId || caseId}:`, error);
           // Don't fail the submission if attachment cleanup fails
         }
 
         return {
           success: true,
-          caseId: result.data?.caseId,
-          status: result.data?.status,
-          completedAt: result.data?.completedAt
+          caseId: extractedCaseId,
+          status: extractedStatus,
+          completedAt: extractedCompletedAt
         };
       } else {
+        // Enhanced error handling for resubmission
+        const errorMessage = result.error || 'Submission failed';
+
+        // Check if this is a network/retry-able error
+        const isRetryableError = !errorMessage.includes('validation') &&
+                                !errorMessage.includes('not found') &&
+                                !errorMessage.includes('access denied') &&
+                                !errorMessage.includes('forbidden');
+
         return {
           success: false,
-          error: result.error || 'Submission failed',
+          error: errorMessage,
           retryInfo: {
             requestId: result.requestId,
-            willRetry: true
+            willRetry: isRetryableError
           }
         };
       }
@@ -741,6 +799,61 @@ class VerificationFormService {
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Network error occurred'
+      };
+    }
+  }
+
+  /**
+   * Retry a failed verification submission
+   */
+  static async retryVerificationSubmission(
+    caseId: string,
+    verificationType: 'residence' | 'office' | 'business' | 'builder' | 'residence-cum-office' | 'dsa-connector' | 'property-individual' | 'property-apf' | 'noc'
+  ): Promise<VerificationSubmissionResult> {
+    try {
+      console.log(`🔄 Retrying ${verificationType} verification for case ${caseId}...`);
+
+      // Get the retry service instance
+      const retryService = (await import('./retryService')).default;
+
+      // Find pending verification requests for this case
+      const pendingRequests = await retryService.getPendingRequests();
+      const verificationRequest = pendingRequests.find(req =>
+        req.type === 'VERIFICATION_SUBMISSION' &&
+        req.url.includes(caseId) &&
+        req.url.includes(verificationType)
+      );
+
+      if (verificationRequest) {
+        console.log(`📋 Found pending verification request for case ${caseId}, forcing retry...`);
+
+        // Force retry the specific request
+        const result = await retryService.retrySpecificRequest(verificationRequest.id);
+
+        if (result.success) {
+          return {
+            success: true,
+            caseId: result.data?.caseId || caseId,
+            status: result.data?.status,
+            completedAt: result.data?.completedAt
+          };
+        } else {
+          return {
+            success: false,
+            error: result.error || 'Retry failed'
+          };
+        }
+      } else {
+        return {
+          success: false,
+          error: 'No pending verification request found for this case'
+        };
+      }
+    } catch (error) {
+      console.error(`❌ Error retrying ${verificationType} verification for case ${caseId}:`, error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Retry error occurred'
       };
     }
   }
