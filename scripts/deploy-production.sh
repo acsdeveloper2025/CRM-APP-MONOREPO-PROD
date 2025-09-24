@@ -378,6 +378,32 @@ EOF
     print_status "Environment files setup completed"
 }
 
+# Configure nginx for mobile app
+configure_nginx() {
+    print_header "🌐 Configuring Nginx"
+
+    # Fix mobile app proxy configuration to prevent redirect loop
+    print_info "Ensuring mobile app nginx configuration is correct..."
+
+    # Check if the mobile proxy configuration needs fixing
+    if grep -q "proxy_pass http://crm_mobile/;" /etc/nginx/sites-enabled/* 2>/dev/null; then
+        print_info "Fixing mobile app proxy configuration..."
+        sed -i 's|proxy_pass http://crm_mobile/;|proxy_pass http://crm_mobile/mobile/;|' /etc/nginx/sites-enabled/*
+
+        # Test nginx configuration
+        if nginx -t; then
+            print_info "Reloading nginx configuration..."
+            systemctl reload nginx
+            print_status "Nginx configuration updated successfully"
+        else
+            print_error "Nginx configuration test failed!"
+            return 1
+        fi
+    else
+        print_info "Mobile app nginx configuration is already correct"
+    fi
+}
+
 # Clear caches
 clear_caches() {
     print_header "🧹 Clearing Caches"
@@ -501,6 +527,7 @@ main() {
     update_code
     install_dependencies
     setup_environment_files
+    configure_nginx
     build_applications
     clear_caches
 
