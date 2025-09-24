@@ -4,6 +4,40 @@ import type { ApiResponse } from '@/types/api';
 // Cache for blob URLs to avoid re-fetching
 const blobUrlCache = new Map<string, string>();
 
+// Smart API URL selection function (moved to top level to avoid scope issues)
+const getApiBaseUrl = (): string => {
+  const hostname = window.location.hostname;
+  const staticIP = import.meta.env.VITE_STATIC_IP || '103.14.234.36';
+  const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
+  const isLocalNetwork = hostname.startsWith('10.') || hostname.startsWith('192.168.') || hostname.startsWith('172.');
+  const isStaticIP = hostname === staticIP;
+  const isDomain = hostname === 'crm.allcheckservices.com' || hostname === 'www.crm.allcheckservices.com';
+
+  // Priority order for API URL selection:
+  // 1. Check if we're on localhost (development)
+  if (isLocalhost) {
+    return 'http://localhost:3000/api';
+  }
+
+  // 2. Check if we're on the local network IP (hairpin NAT workaround)
+  if (isLocalNetwork) {
+    return `http://${staticIP}:3000/api`;
+  }
+
+  // 3. Check if we're on the domain name (production access)
+  if (isDomain) {
+    return 'https://crm.allcheckservices.com/api';
+  }
+
+  // 4. Check if we're on the static IP (external access)
+  if (isStaticIP) {
+    return `http://${staticIP}:3000/api`;
+  }
+
+  // 5. Fallback to environment variable or localhost
+  return import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
+};
+
 export interface VerificationImage {
   id: number;
   filename: string;
@@ -125,40 +159,6 @@ class VerificationImagesService {
       }
 
       try {
-        // Smart API URL selection
-        const getApiBaseUrl = () => {
-          const hostname = window.location.hostname;
-    const staticIP = import.meta.env.VITE_STATIC_IP || '103.14.234.36';
-          const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
-          const isLocalNetwork = hostname.startsWith('10.') || hostname.startsWith('192.168.') || hostname.startsWith('172.');
-          const isStaticIP = hostname === staticIP;
-          const isDomain = hostname === 'crm.allcheckservices.com' || hostname === 'www.crm.allcheckservices.com';
-
-          // Priority order for API URL selection:
-          // 1. Check if we're on localhost (development)
-          if (isLocalhost) {
-            return 'http://localhost:3000/api';
-          }
-
-          // 2. Check if we're on the local network IP (hairpin NAT workaround)
-          if (isLocalNetwork) {
-            return `http://${staticIP}:3000/api`;
-          }
-
-          // 3. Check if we're on the domain name (production access)
-          if (isDomain) {
-            return 'https://crm.allcheckservices.com/api';
-          }
-
-          // 4. Check if we're on the static IP (external access)
-          if (isStaticIP) {
-            return `http://${staticIP}:3000/api`;
-          }
-
-          // 5. Fallback to environment variable or localhost
-          return import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
-        };
-
         const apiBaseUrl = getApiBaseUrl();
         console.log('🖼️ Verification Images - Using API URL:', apiBaseUrl);
 
@@ -191,39 +191,6 @@ class VerificationImagesService {
     }
 
     // Fallback to direct URL (for backward compatibility)
-    const getApiBaseUrl = () => {
-      const hostname = window.location.hostname;
-    const staticIP = import.meta.env.VITE_STATIC_IP || '103.14.234.36';
-      const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
-      const isLocalNetwork = hostname.startsWith('10.') || hostname.startsWith('192.168.') || hostname.startsWith('172.');
-      const isStaticIP = hostname === staticIP;
-      const isDomain = hostname === 'crm.allcheckservices.com' || hostname === 'www.crm.allcheckservices.com';
-
-      // Priority order for API URL selection:
-      // 1. Check if we're on localhost (development)
-      if (isLocalhost) {
-        return 'http://localhost:3000/api';
-      }
-
-      // 2. Check if we're on the local network IP (hairpin NAT workaround)
-      if (isLocalNetwork) {
-        return `http://${staticIP}:3000/api`;
-      }
-
-      // 3. Check if we're on the domain name (production access)
-      if (isDomain) {
-        return 'https://crm.allcheckservices.com/api';
-      }
-
-      // 4. Check if we're on the static IP (external access)
-      if (isStaticIP) {
-        return `http://${staticIP}:3000/api`;
-      }
-
-      // 5. Fallback to environment variable or localhost
-      return import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
-    };
-
     const baseUrl = getApiBaseUrl().replace('/api', '');
     console.log('🖼️ Verification Images - Fallback using base URL:', baseUrl);
     return `${baseUrl}${imageUrl}`;

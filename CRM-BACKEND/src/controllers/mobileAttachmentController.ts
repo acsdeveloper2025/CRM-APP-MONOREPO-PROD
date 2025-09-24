@@ -302,7 +302,34 @@ export class MobileAttachmentController {
       }
 
       const actualCaseId = existingCase.id; // Use the actual UUID from the database
-      const attRes = await query(`SELECT id, filename, "originalName", "mimeType", "fileSize", "filePath", "createdAt" FROM attachments WHERE case_id = $1 ORDER BY "createdAt" DESC`, [actualCaseId]);
+
+      // For field agents, ensure they can only see attachments for cases assigned to them
+      // For other roles (admin, manager), show all attachments for the case
+      let attachmentQuery: string;
+      let attachmentParams: any[];
+
+      if (userRole === 'FIELD_AGENT') {
+        // Double-check assignment and filter attachments by case assignment
+        attachmentQuery = `
+          SELECT a.id, a.filename, a."originalName", a."mimeType", a."fileSize", a."filePath", a."createdAt"
+          FROM attachments a
+          JOIN cases c ON a.case_id = c.id
+          WHERE a.case_id = $1 AND c."assignedTo" = $2
+          ORDER BY a."createdAt" DESC
+        `;
+        attachmentParams = [actualCaseId, userId];
+      } else {
+        // Admin/Manager can see all attachments for the case
+        attachmentQuery = `
+          SELECT id, filename, "originalName", "mimeType", "fileSize", "filePath", "createdAt"
+          FROM attachments
+          WHERE case_id = $1
+          ORDER BY "createdAt" DESC
+        `;
+        attachmentParams = [actualCaseId];
+      }
+
+      const attRes = await query(attachmentQuery, attachmentParams);
 
       const mobileAttachments: MobileAttachmentResponse[] = attRes.rows.map((att: any) => ({
         id: att.id,
@@ -338,34 +365,44 @@ export class MobileAttachmentController {
   static async getAttachmentContent(req: Request, res: Response) {
     try {
       const { attachmentId } = req.params;
-      const userId = (req as any).user?.userId;
+      const userId = (req as any).user?.id;
       const userRole = (req as any).user?.role;
 
-      const attRes = await query(
-        `SELECT a.id, a.filename, a."originalName", a."mimeType", a.size, a.url, a."thumbnailUrl", a."uploadedAt", a."caseId", c."assignedToId"
-         FROM attachments a JOIN cases c ON c.id = a."caseId" WHERE a.id = $1`,
-        [attachmentId]
-      );
+      // Get attachment with case assignment check
+      let attachmentQuery: string;
+      let queryParams: any[];
+
+      if (userRole === 'FIELD_AGENT') {
+        // Field agents can only access attachments for cases assigned to them
+        attachmentQuery = `
+          SELECT a.id, a.filename, a."originalName", a."mimeType", a."fileSize", a."filePath",
+                 a."uploadedBy", a."createdAt", a."caseId", c."assignedTo"
+          FROM attachments a
+          JOIN cases c ON a.case_id = c.id
+          WHERE a.id = $1 AND c."assignedTo" = $2
+        `;
+        queryParams = [attachmentId, userId];
+      } else {
+        // Admin/Manager can access any attachment
+        attachmentQuery = `
+          SELECT a.id, a.filename, a."originalName", a."mimeType", a."fileSize", a."filePath",
+                 a."uploadedBy", a."createdAt", a."caseId", c."assignedTo"
+          FROM attachments a
+          JOIN cases c ON a.case_id = c.id
+          WHERE a.id = $1
+        `;
+        queryParams = [attachmentId];
+      }
+
+      const attRes = await query(attachmentQuery, queryParams);
       const attachment: any = attRes.rows[0];
 
       if (!attachment) {
         return res.status(404).json({
           success: false,
-          message: 'Attachment not found',
+          message: userRole === 'FIELD_AGENT' ? 'Attachment not found or access denied' : 'Attachment not found',
           error: {
             code: 'ATTACHMENT_NOT_FOUND',
-            timestamp: new Date().toISOString(),
-          },
-        });
-      }
-
-      // Check access permissions
-      if (userRole === 'FIELD' && attachment.case.assignedToId !== userId) {
-        return res.status(403).json({
-          success: false,
-          message: 'Access denied',
-          error: {
-            code: 'ACCESS_DENIED',
             timestamp: new Date().toISOString(),
           },
         });
@@ -424,20 +461,42 @@ export class MobileAttachmentController {
   static async deleteAttachment(req: Request, res: Response) {
     try {
       const { attachmentId } = req.params;
-      const userId = (req as any).user?.userId;
+      const userId = (req as any).user?.id;
       const userRole = (req as any).user?.role;
 
-      const attRes = await query(
-        `SELECT a.id, a.filename, a."originalName", a."mimeType", a.size, a.url, a."thumbnailUrl", a."uploadedAt", a."caseId", c."assignedToId", c.status
-         FROM attachments a JOIN cases c ON c.id = a."caseId" WHERE a.id = $1`,
-        [attachmentId]
-      );
+      // Get attachment with case assignment check
+      let attachmentQuery: string;
+      let queryParams: any[];
+
+      if (userRole === 'FIELD_AGENT') {
+        // Field agents can only delete attachments for cases assigned to them
+        attachmentQuery = `
+          SELECT a.id, a.filename, a."originalName", a."mimeType", a."fileSize", a."filePath",
+                 a."uploadedBy", a."createdAt", a."caseId", c."assignedTo", c.status
+          FROM attachments a
+          JOIN cases c ON a.case_id = c.id
+          WHERE a.id = $1 AND c."assignedTo" = $2
+        `;
+        queryParams = [attachmentId, userId];
+      } else {
+        // Admin/Manager can delete any attachment
+        attachmentQuery = `
+          SELECT a.id, a.filename, a."originalName", a."mimeType", a."fileSize", a."filePath",
+                 a."uploadedBy", a."createdAt", a."caseId", c."assignedTo", c.status
+          FROM attachments a
+          JOIN cases c ON a.case_id = c.id
+          WHERE a.id = $1
+        `;
+        queryParams = [attachmentId];
+      }
+
+      const attRes = await query(attachmentQuery, queryParams);
       const attachment: any = attRes.rows[0];
 
       if (!attachment) {
         return res.status(404).json({
           success: false,
-          message: 'Attachment not found',
+          message: userRole === 'FIELD_AGENT' ? 'Attachment not found or access denied' : 'Attachment not found',
           error: {
             code: 'ATTACHMENT_NOT_FOUND',
             timestamp: new Date().toISOString(),
@@ -445,20 +504,8 @@ export class MobileAttachmentController {
         });
       }
 
-      // Check access permissions
-      if (userRole === 'FIELD' && attachment.case.assignedToId !== userId) {
-        return res.status(403).json({
-          success: false,
-          message: 'Access denied',
-          error: {
-            code: 'ACCESS_DENIED',
-            timestamp: new Date().toISOString(),
-          },
-        });
-      }
-
       // Prevent deletion if case is completed
-      if (attachment.case.status === 'COMPLETED') {
+      if (attachment.status === 'COMPLETED') {
         return res.status(400).json({
           success: false,
           message: 'Cannot delete attachments from completed cases',
@@ -524,6 +571,8 @@ export class MobileAttachmentController {
   static async getBatchAttachments(req: Request, res: Response): Promise<void> {
     try {
       const { caseIds } = req.body;
+      const userId = (req as any).user?.id;
+      const userRole = (req as any).user?.role;
 
       if (!Array.isArray(caseIds) || caseIds.length === 0) {
         res.status(400).json({
@@ -555,29 +604,62 @@ export class MobileAttachmentController {
       // Create placeholders for the IN clause
       const placeholders = caseIds.map((_, index) => `$${index + 1}`).join(', ');
 
-      const attachmentsSql = `
-        SELECT
-          a.id,
-          a."caseId",
-          a.filename,
-          a."originalName",
-          a."mimeType",
-          a."fileSize",
-          a."uploadedAt",
-          a."uploadedBy",
-          a.metadata,
-          a."isProcessed",
-          a."processingStatus",
-          a."thumbnailPath",
-          a."compressedPath",
-          u.name as "uploaderName"
-        FROM attachments a
-        LEFT JOIN users u ON u.id = a."uploadedBy"
-        WHERE a."caseId" IN (${placeholders})
-        ORDER BY a."caseId", a."uploadedAt" DESC
-      `;
+      // Build query with proper access control
+      let attachmentsSql: string;
+      let queryParams: any[];
 
-      const attachmentsResult = await query(attachmentsSql, caseIds);
+      if (userRole === 'FIELD_AGENT') {
+        // Field agents can only see attachments for cases assigned to them
+        attachmentsSql = `
+          SELECT
+            a.id,
+            a."caseId",
+            a.filename,
+            a."originalName",
+            a."mimeType",
+            a."fileSize",
+            a."uploadedAt",
+            a."uploadedBy",
+            a.metadata,
+            a."isProcessed",
+            a."processingStatus",
+            a."thumbnailPath",
+            a."compressedPath",
+            u.name as "uploaderName"
+          FROM attachments a
+          LEFT JOIN users u ON u.id = a."uploadedBy"
+          JOIN cases c ON a.case_id = c.id
+          WHERE a."caseId" IN (${placeholders}) AND c."assignedTo" = $${caseIds.length + 1}
+          ORDER BY a."caseId", a."uploadedAt" DESC
+        `;
+        queryParams = [...caseIds, userId];
+      } else {
+        // Admin/Manager can see all attachments
+        attachmentsSql = `
+          SELECT
+            a.id,
+            a."caseId",
+            a.filename,
+            a."originalName",
+            a."mimeType",
+            a."fileSize",
+            a."uploadedAt",
+            a."uploadedBy",
+            a.metadata,
+            a."isProcessed",
+            a."processingStatus",
+            a."thumbnailPath",
+            a."compressedPath",
+            u.name as "uploaderName"
+          FROM attachments a
+          LEFT JOIN users u ON u.id = a."uploadedBy"
+          WHERE a."caseId" IN (${placeholders})
+          ORDER BY a."caseId", a."uploadedAt" DESC
+        `;
+        queryParams = caseIds;
+      }
+
+      const attachmentsResult = await query(attachmentsSql, queryParams);
 
       // Group attachments by case ID
       const attachmentsByCase: Record<string, any[]> = {};
