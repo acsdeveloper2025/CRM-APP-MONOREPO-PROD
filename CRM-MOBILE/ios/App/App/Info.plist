@@ -61,5 +61,35 @@
 	<string>This app needs local network access to communicate with verification services.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>This app may need microphone access for video verification features.</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<false/>
+		<key>NSExceptionDomains</key>
+		<dict>
+			<key>crm.allcheckservices.com</key>
+			<dict>
+				<key>NSExceptionRequiresForwardSecrecy</key>
+				<false/>
+				<key>NSExceptionMinimumTLSVersion</key>
+				<string>TLSv1.2</string>
+				<key>NSIncludesSubdomains</key>
+				<true/>
+				<key>NSExceptionAllowsInsecureHTTPLoads</key>
+				<false/>
+			</dict>
+		</dict>
+	</dict>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.caseflow.mobile</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>caseflow</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>
