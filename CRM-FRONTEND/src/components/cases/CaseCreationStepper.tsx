@@ -96,6 +96,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
   const [deduplicationResult, setDeduplicationResult] = useState<DeduplicationResult | null>(null);
   const [showDeduplicationDialog, setShowDeduplicationDialog] = useState(false);
   const [deduplicationCompleted, setDeduplicationCompleted] = useState(false);
+  const [deduplicationRationale, setDeduplicationRationale] = useState<string>('Case created through two-step workflow');
 
   // Fetch pincodes for code lookup
   const { data: pincodesResponse } = usePincodes();
@@ -136,7 +137,10 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
 
   const performDeduplicationSearch = async (data: CustomerInfoData) => {
     setIsSearching(true);
-    
+
+    // Store customer info immediately when search is performed
+    setCustomerInfo(data);
+
     try {
       const criteria = deduplicationService.cleanCriteria({
         customerName: data.customerName,
@@ -151,7 +155,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
       }
 
       const result = await deduplicationService.searchDuplicates(criteria);
-      
+
       if (result.success && result.data.duplicatesFound.length > 0) {
         setDeduplicationResult(result.data);
         setShowDeduplicationDialog(true);
@@ -186,6 +190,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
     // Reset deduplication when customer data changes
     setDeduplicationCompleted(false);
     setDeduplicationResult(null);
+    setDeduplicationRationale('Case created through two-step workflow');
   };
 
   const handleBackToCustomerInfo = () => {
@@ -194,6 +199,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
     // Reset deduplication when going back to customer info
     setDeduplicationCompleted(false);
     setDeduplicationResult(null);
+    setDeduplicationRationale('Case created through two-step workflow');
   };
 
   const handleCaseFormSubmit = async (data: FullCaseFormData, attachments: any[] = []) => {
@@ -238,7 +244,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
         // Deduplication fields
         panNumber: customerInfo.panNumber,
         deduplicationDecision: 'CREATE_NEW',
-        deduplicationRationale: 'Case created through two-step workflow',
+        deduplicationRationale: deduplicationRationale,
       };
 
       let result;
@@ -307,11 +313,53 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
     }
   };
 
-  const handleCreateNewFromDialog = (rationale: string) => {
-    if (customerInfo) {
-      proceedToCaseDetails(customerInfo);
+  const handleCreateNewFromDialog = async (rationale: string) => {
+    console.log('🚀 Create New Case Anyway button clicked with rationale:', rationale);
+
+    if (!customerInfo) {
+      console.error('❌ No customer info available');
+      toast.error('Customer information is missing');
+      return;
+    }
+
+    try {
+      // Record the deduplication decision for creating new case (but don't block UI on this)
+      if (deduplicationResult) {
+        console.log('📝 Recording deduplication decision...');
+        const decision = {
+          caseId: 'NEW_CASE_PLACEHOLDER', // This will be updated by the backend
+          decision: 'CREATE_NEW' as const,
+          rationale,
+          selectedExistingCaseId: undefined // No existing case selected
+        };
+
+        // Don't await this - let it happen in background
+        deduplicationService.recordDeduplicationDecision(
+          decision,
+          deduplicationResult.duplicatesFound,
+          deduplicationResult.searchCriteria
+        ).catch(error => {
+          console.error('Error recording deduplication decision (background):', error);
+        });
+      }
+
+      // Immediately proceed to next step
+      console.log('✅ Proceeding to case details step...');
+      setDeduplicationRationale(rationale);
       setShowDeduplicationDialog(false);
       setDeduplicationResult(null);
+      proceedToCaseDetails(customerInfo);
+      toast.success('Proceeding to create new case despite duplicates');
+
+    } catch (error) {
+      console.error('Error in handleCreateNewFromDialog:', error);
+      toast.error('An error occurred, but proceeding to create case anyway');
+
+      // Still proceed even if there's an error
+      setDeduplicationRationale(rationale);
+      setShowDeduplicationDialog(false);
+      setDeduplicationResult(null);
+      proceedToCaseDetails(customerInfo);
     }
   };
 
