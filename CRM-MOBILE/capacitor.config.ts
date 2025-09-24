@@ -5,7 +5,12 @@ const config: CapacitorConfig = {
   appName: 'CaseFlow Mobile',
   webDir: 'dist',
   server: {
-    androidScheme: 'https'
+    androidScheme: 'https',
+    iosScheme: 'https'
+  },
+  ios: {
+    scheme: 'CaseFlow Mobile',
+    contentInset: 'automatic'
   },
   plugins: {
     Camera: {
