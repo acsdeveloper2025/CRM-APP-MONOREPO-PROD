@@ -324,6 +324,60 @@ build_applications() {
     fi
 }
 
+# Setup environment files
+setup_environment_files() {
+    print_header "⚙️ Setting Up Environment Files"
+
+    # Backend environment
+    if [ ! -f "$PROJECT_ROOT/CRM-BACKEND/.env" ]; then
+        print_info "Creating backend .env file..."
+        cat > "$PROJECT_ROOT/CRM-BACKEND/.env" << 'EOF'
+NODE_ENV=production
+PORT=3000
+DATABASE_URL=postgresql://acs_user:acs_password@localhost:5432/acs_db
+JWT_SECRET=your-super-secret-jwt-key-here-change-in-production
+JWT_EXPIRES_IN=7d
+JWT_REFRESH_SECRET=your-refresh-secret-key-here-change-in-production
+JWT_REFRESH_EXPIRES_IN=30d
+CORS_ORIGIN=https://crm.allcheckservices.com
+LOG_LEVEL=info
+REDIS_URL=redis://localhost:6379
+GOOGLE_MAPS_API_KEY=your-google-maps-api-key-here
+GEMINI_API_KEY=your-gemini-api-key-here
+EOF
+        print_status "Backend .env file created"
+    else
+        print_info "Backend .env file already exists"
+    fi
+
+    # Frontend environment
+    if [ ! -f "$PROJECT_ROOT/CRM-FRONTEND/.env" ]; then
+        print_info "Creating frontend .env file..."
+        cat > "$PROJECT_ROOT/CRM-FRONTEND/.env" << 'EOF'
+VITE_API_BASE_URL=https://crm.allcheckservices.com/api
+NODE_ENV=production
+EOF
+        print_status "Frontend .env file created"
+    else
+        print_info "Frontend .env file already exists"
+    fi
+
+    # Mobile environment
+    if [ ! -f "$PROJECT_ROOT/CRM-MOBILE/.env.production" ]; then
+        print_info "Creating mobile .env.production file..."
+        cat > "$PROJECT_ROOT/CRM-MOBILE/.env.production" << 'EOF'
+VITE_API_BASE_URL=https://crm.allcheckservices.com/api
+VITE_APP_ENVIRONMENT=production
+NODE_ENV=production
+EOF
+        print_status "Mobile .env.production file created"
+    else
+        print_info "Mobile .env.production file already exists"
+    fi
+
+    print_status "Environment files setup completed"
+}
+
 # Clear caches
 clear_caches() {
     print_header "🧹 Clearing Caches"
@@ -445,6 +499,7 @@ main() {
     # Deployment
     update_code
     install_dependencies
+    setup_environment_files
     build_applications
     clear_caches
 
