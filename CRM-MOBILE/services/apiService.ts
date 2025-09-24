@@ -34,21 +34,32 @@ class ApiService {
   }
 
   /**
-   * Get API base URL - Static IP only, no fallbacks
+   * Get API base URL - Environment-aware configuration
    */
   private getApiBaseUrl(): string {
-    console.log('🔍 Mobile App API Configuration - Static IP Only');
+    console.log('🔍 Mobile App API Configuration');
 
-    // Mobile app uses static IP exclusively
-    if (import.meta.env.VITE_API_BASE_URL_STATIC_IP) {
-      const url = import.meta.env.VITE_API_BASE_URL_STATIC_IP;
-      console.log('🌍 Using Static IP API URL:', url);
-      return url;
+    // Check if we're in production mode
+    const isProduction = import.meta.env.PROD;
+
+    if (isProduction) {
+      // Production: Use domain-based API URL
+      const productionUrl = 'https://crm.allcheckservices.com/api';
+      console.log('🌍 Using Production API URL:', productionUrl);
+      return productionUrl;
+    } else {
+      // Development: Try static IP first, then fallback to localhost
+      if (import.meta.env.VITE_API_BASE_URL_STATIC_IP) {
+        const url = import.meta.env.VITE_API_BASE_URL_STATIC_IP;
+        console.log('🌍 Using Static IP API URL:', url);
+        return url;
+      }
+
+      // Fallback to localhost for development
+      const devUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
+      console.log('🌍 Using Development API URL:', devUrl);
+      return devUrl;
     }
-
-    // If static IP not configured, throw error
-    console.error('❌ Static IP not configured for mobile app');
-    throw new Error('VITE_API_BASE_URL_STATIC_IP must be configured for mobile app');
   }
 
   /**
