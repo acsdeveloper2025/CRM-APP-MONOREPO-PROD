@@ -87,7 +87,7 @@ else
     print_info "Or run as admin1: su - admin1"
     exit 1
 fi
-MAX_BACKUPS=5
+MAX_BACKUPS=3
 
 # Ensure required directories exist
 $SUDO_CMD mkdir -p "$BACKUP_DIR"
@@ -509,6 +509,62 @@ create_release() {
     print_status "Current symlink updated to: $NEW_RELEASE_DIR"
 }
 
+# Cleanup old releases and backups
+cleanup_old_deployments() {
+    print_header "🧹 Cleaning Up Old Deployments"
+
+    # Keep only the latest 3 releases
+    print_info "Cleaning up old releases (keeping latest 3)..."
+    cd "$RELEASES_DIR"
+
+    # Count current releases
+    local release_count=$(ls -1 | wc -l)
+    print_info "Current releases: $release_count"
+
+    if [ "$release_count" -gt 3 ]; then
+        # Remove old releases (keep latest 3)
+        local releases_to_remove=$(ls -1t | tail -n +4)
+        if [ -n "$releases_to_remove" ]; then
+            echo "$releases_to_remove" | xargs -r rm -rf
+            local removed_count=$(echo "$releases_to_remove" | wc -l)
+            print_status "Removed $removed_count old releases"
+        fi
+    else
+        print_info "No old releases to remove (have $release_count, keeping 3)"
+    fi
+
+    # Clean up old backups (already handled in create_backup, but ensure consistency)
+    print_info "Cleaning up old backups (keeping latest $MAX_BACKUPS)..."
+    cd "$BACKUP_DIR"
+
+    # Count current backups
+    local backup_count=$(ls -1 | grep "crm-backup-" | wc -l)
+    print_info "Current backups: $backup_count"
+
+    if [ "$backup_count" -gt "$MAX_BACKUPS" ]; then
+        # Remove old backups
+        local backups_to_remove=$(ls -t | grep "crm-backup-" | tail -n +$((MAX_BACKUPS + 1)))
+        if [ -n "$backups_to_remove" ]; then
+            echo "$backups_to_remove" | xargs -r rm -rf
+            local removed_backup_count=$(echo "$backups_to_remove" | wc -l)
+            print_status "Removed $removed_backup_count old backups"
+        fi
+    else
+        print_info "No old backups to remove (have $backup_count, keeping $MAX_BACKUPS)"
+    fi
+
+    # Show disk space savings
+    print_info "Checking disk space after cleanup..."
+    local releases_size=$(du -sh "$RELEASES_DIR" | cut -f1)
+    local backups_size=$(du -sh "$BACKUP_DIR" | cut -f1)
+    print_status "Current releases size: $releases_size"
+    print_status "Current backups size: $backups_size"
+
+    # Show overall disk usage
+    local disk_usage=$(df -h / | tail -1 | awk '{print $5}')
+    print_status "Overall disk usage: $disk_usage"
+}
+
 # Main deployment function
 main() {
     print_header "🚀 CRM Production Deployment Started"
@@ -533,6 +589,9 @@ main() {
 
     # Post-deployment
     start_services
+
+    # Cleanup after successful deployment
+    cleanup_old_deployments
 
     print_header "🎉 Deployment Completed Successfully!"
     print_status "Deployment completed at $(date)"
