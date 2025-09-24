@@ -257,7 +257,6 @@ jobs:
             deployment-info.json \
             scripts/deploy-production.sh \
             scripts/health-check.sh \
-
             ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }}:/tmp/
 
       - name: 🚀 Execute Deployment
@@ -273,7 +272,6 @@ jobs:
             chmod +x /tmp/deploy-production.sh
             chmod +x /tmp/health-check.sh
 
-            
             # Execute deployment
             /tmp/deploy-production.sh /tmp/deployment-info.json
           EOF
