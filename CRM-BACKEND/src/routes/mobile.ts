@@ -17,6 +17,17 @@ const router = Router();
 // Apply mobile-specific rate limiting - GENEROUS limits for field agents
 router.use(mobileRateLimit(10000, 15 * 60 * 1000)); // 10,000 requests per 15 minutes for high-volume field operations
 
+// Mobile Health Check Route
+router.get('/health', (req, res) => {
+  res.json({
+    status: 'OK',
+    service: 'mobile-api',
+    timestamp: new Date().toISOString(),
+    version: '4.0.1',
+    environment: process.env.NODE_ENV || 'development'
+  });
+});
+
 // Mobile Authentication Routes
 router.post('/auth/login', MobileAuthController.mobileLogin);
 router.post('/auth/refresh', MobileAuthController.refreshToken);
