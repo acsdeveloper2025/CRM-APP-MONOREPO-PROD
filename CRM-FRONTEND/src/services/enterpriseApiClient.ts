@@ -105,7 +105,7 @@ class EnterpriseApiClient {
     this.client.interceptors.request.use(
       (config) => {
         // Add auth token
-        const token = localStorage.getItem('authToken');
+        const token = localStorage.getItem('crm_auth_token');
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
         }
@@ -138,7 +138,9 @@ class EnterpriseApiClient {
 
         // Handle 401 unauthorized
         if (error.response?.status === 401) {
-          localStorage.removeItem('authToken');
+          localStorage.removeItem('crm_auth_token');
+          localStorage.removeItem('crm_refresh_token');
+          localStorage.removeItem('crm_user_data');
           window.location.href = '/login';
           return Promise.reject(error);
         }
