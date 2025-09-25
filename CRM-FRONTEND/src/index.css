@@ -1,51 +1,108 @@
 @import "tailwindcss";
 
-@theme {
-  /* Core colors */
-  --color-background: #ffffff;
-  --color-foreground: #0f172a;
-  --color-card: #ffffff;
-  --color-card-foreground: #0f172a;
-  --color-popover: #ffffff;
-  --color-popover-foreground: #0f172a;
-  --color-primary: #00a950;
-  --color-primary-foreground: #ffffff;
-  --color-secondary: #f1f5f9;
-  --color-secondary-foreground: #0f172a;
-  --color-muted: #f1f5f9;
-  --color-muted-foreground: #64748b;
-  --color-accent: #f0fdf4;
-  --color-accent-foreground: #166534;
-  --color-destructive: #ef4444;
-  --color-destructive-foreground: #f8fafc;
-  --color-border: #e2e8f0;
-  --color-input: #e2e8f0;
-  --color-ring: #00a950;
-
-  /* Additional semantic colors */
-  --color-success: #00a950;
+/* Unified Color System CSS Variables */
+:root {
+  /* Light theme colors */
+  --color-primary: #3b82f6;
+  --color-primary-hover: #2563eb;
+  --color-primary-active: #1d4ed8;
+  --color-secondary: #64748b;
+  --color-success: #22c55e;
   --color-warning: #f59e0b;
-  --color-info: #3b82f6;
+  --color-error: #ef4444;
+  --color-info: #0ea5e9;
 
-  /* Status colors for badges and indicators */
-  --color-status-pending: #3b82f6;
-  --color-status-pending-bg: #dbeafe;
-  --color-status-in-progress: #f59e0b;
-  --color-status-in-progress-bg: #fef3c7;
-  --color-status-completed: #00a950;
-  --color-status-completed-bg: #dcfce7;
-  --color-status-cancelled: #ef4444;
-  --color-status-cancelled-bg: #fee2e2;
+  /* Background colors */
+  --color-background-primary: #ffffff;
+  --color-background-secondary: #fafafa;
+  --color-background-tertiary: #f5f5f5;
+
+  /* Surface colors */
+  --color-surface-primary: #ffffff;
+  --color-surface-secondary: #fafafa;
+  --color-surface-elevated: #ffffff;
+
+  /* Border colors */
+  --color-border-primary: #e5e5e5;
+  --color-border-secondary: #d4d4d4;
+  --color-border-focus: #3b82f6;
+
+  /* Text colors */
+  --color-text-primary: #171717;
+  --color-text-secondary: #525252;
+  --color-text-tertiary: #737373;
+  --color-text-inverse: #ffffff;
+  --color-text-disabled: #a3a3a3;
+
+  /* Status colors */
+  --color-status-pending: #f59e0b;
+  --color-status-in-progress: #3b82f6;
+  --color-status-completed: #22c55e;
+  --color-status-approved: #059669;
+  --color-status-rejected: #ef4444;
+  --color-status-rework-required: #f97316;
 
   /* Priority colors */
   --color-priority-low: #6b7280;
-  --color-priority-low-bg: #f9fafb;
-  --color-priority-medium: #3b82f6;
-  --color-priority-medium-bg: #dbeafe;
-  --color-priority-high: #f59e0b;
-  --color-priority-high-bg: #fef3c7;
+  --color-priority-medium: #f59e0b;
+  --color-priority-high: #f97316;
   --color-priority-urgent: #ef4444;
-  --color-priority-urgent-bg: #fee2e2;
+  --color-priority-critical: #dc2626;
+
+  /* Role colors */
+  --color-role-super-admin: #7c3aed;
+  --color-role-admin: #2563eb;
+  --color-role-manager: #059669;
+  --color-role-backend-user: #0891b2;
+  --color-role-field-agent: #ea580c;
+  --color-role-report-person: #7c2d12;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+}
+
+/* Dark theme colors */
+[data-theme="dark"] {
+  --color-primary: #60a5fa;
+  --color-primary-hover: #3b82f6;
+  --color-primary-active: #2563eb;
+  --color-secondary: #94a3b8;
+  --color-success: #4ade80;
+  --color-warning: #fbbf24;
+  --color-error: #f87171;
+  --color-info: #38bdf8;
+
+  /* Background colors */
+  --color-background-primary: #171717;
+  --color-background-secondary: #262626;
+  --color-background-tertiary: #404040;
+
+  /* Surface colors */
+  --color-surface-primary: #262626;
+  --color-surface-secondary: #404040;
+  --color-surface-elevated: #525252;
+
+  /* Border colors */
+  --color-border-primary: #404040;
+  --color-border-secondary: #525252;
+  --color-border-focus: #60a5fa;
+
+  /* Text colors */
+  --color-text-primary: #f5f5f5;
+  --color-text-secondary: #d4d4d4;
+  --color-text-tertiary: #a3a3a3;
+  --color-text-inverse: #171717;
+  --color-text-disabled: #737373;
+
+  /* Shadows for dark theme */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.3), 0 2px 4px -2px rgb(0 0 0 / 0.3);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.3), 0 4px 6px -4px rgb(0 0 0 / 0.3);
+}
+
+@theme {
 
   /* Spacing and sizing */
   --radius: 0.5rem;
@@ -285,7 +342,7 @@ body {
   }
 }
 
-/* Additional responsive utilities */
+/* Enhanced responsive utilities */
 .container-responsive {
   width: 100%;
   max-width: 1280px;
@@ -302,6 +359,90 @@ body {
 @media (min-width: 1024px) {
   .container-responsive {
     padding: 0 2rem;
+  }
+}
+
+/* Touch-friendly interactive elements */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+  touch-action: manipulation;
+}
+
+@media (min-width: 640px) {
+  .touch-target {
+    min-height: 40px;
+    min-width: 40px;
+  }
+}
+
+/* Responsive text utilities */
+.text-responsive-xs {
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+
+@media (min-width: 640px) {
+  .text-responsive-xs {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+  }
+}
+
+.text-responsive-sm {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+@media (min-width: 640px) {
+  .text-responsive-sm {
+    font-size: 1rem;
+    line-height: 1.5rem;
+  }
+}
+
+.text-responsive-base {
+  font-size: 1rem;
+  line-height: 1.5rem;
+}
+
+@media (min-width: 640px) {
+  .text-responsive-base {
+    font-size: 1.125rem;
+    line-height: 1.75rem;
+  }
+}
+
+/* Responsive spacing utilities */
+.space-responsive-x > * + * {
+  margin-left: 0.5rem;
+}
+
+@media (min-width: 640px) {
+  .space-responsive-x > * + * {
+    margin-left: 1rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .space-responsive-x > * + * {
+    margin-left: 1.5rem;
+  }
+}
+
+.space-responsive-y > * + * {
+  margin-top: 0.75rem;
+}
+
+@media (min-width: 640px) {
+  .space-responsive-y > * + * {
+    margin-top: 1rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .space-responsive-y > * + * {
+    margin-top: 1.5rem;
   }
 }
 

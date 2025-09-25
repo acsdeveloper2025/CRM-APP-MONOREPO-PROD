@@ -67,26 +67,28 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
 
   return (
     <header className="bg-card shadow-sm border-b border-border backdrop-blur-sm sticky top-0 z-40">
-      <div className="flex items-center justify-between h-16 px-4 sm:px-6 lg:px-8">
+      <div className="flex items-center justify-between h-14 sm:h-16 px-3 sm:px-4 lg:px-6 xl:px-8">
         {/* Mobile menu button */}
         <Button
           variant="ghost"
           size="icon"
-          className="lg:hidden"
+          className="lg:hidden h-9 w-9 sm:h-10 sm:w-10"
           onClick={onMenuClick}
         >
-          <Menu className="h-6 w-6" />
+          <Menu className="h-5 w-5 sm:h-6 sm:w-6" />
         </Button>
 
         {/* Page title - dynamic based on route */}
-        <div className="flex-1 lg:flex-none">
-          <h1 className="text-2xl font-semibold text-foreground">{getPageTitle()}</h1>
+        <div className="flex-1 lg:flex-none min-w-0">
+          <h1 className="text-lg sm:text-xl lg:text-2xl font-semibold text-foreground truncate">
+            {getPageTitle()}
+          </h1>
         </div>
 
         {/* Right side actions */}
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-1 sm:space-x-2 lg:space-x-4">
           {/* Connection Status */}
-          <div className="hidden sm:flex">
+          <div className="hidden md:flex">
             <ConnectionStatus showText />
           </div>
 
@@ -95,15 +97,15 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
             variant="ghost"
             size="icon"
             onClick={toggleTheme}
-            className="hidden sm:flex"
+            className="hidden sm:flex h-8 w-8 sm:h-9 sm:w-9 lg:h-10 lg:w-10"
             title={`Switch to ${theme === 'light' ? 'dark' : theme === 'dark' ? 'system' : 'light'} theme`}
           >
             {theme === 'dark' ? (
-              <Sun className="h-5 w-5" />
+              <Sun className="h-4 w-4 sm:h-5 sm:w-5" />
             ) : theme === 'light' ? (
-              <Moon className="h-5 w-5" />
+              <Moon className="h-4 w-4 sm:h-5 sm:w-5" />
             ) : (
-              <Settings className="h-5 w-5" />
+              <Settings className="h-4 w-4 sm:h-5 sm:w-5" />
             )}
           </Button>
 
@@ -113,10 +115,10 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
           {/* User menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                <Avatar className="h-8 w-8">
+              <Button variant="ghost" className="relative h-8 w-8 sm:h-9 sm:w-9 lg:h-10 lg:w-10 rounded-full">
+                <Avatar className="h-7 w-7 sm:h-8 sm:w-8 lg:h-9 lg:w-9">
                   <AvatarImage src={user?.profilePhotoUrl} alt={user?.name} />
-                  <AvatarFallback>
+                  <AvatarFallback className="text-xs sm:text-sm">
                     {user?.name ? getUserInitials(user.name) : 'U'}
                   </AvatarFallback>
                 </Avatar>

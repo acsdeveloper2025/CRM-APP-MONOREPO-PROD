@@ -21,7 +21,7 @@ import {
 import { MoreHorizontal, Eye, Download, FileText, MapPin, Calendar } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 import type { Case } from '@/types/case';
-import { cn } from '@/utils/cn';
+import { cn } from '@/lib/utils';
 
 interface CompletedCaseTableProps {
   cases: Case[];

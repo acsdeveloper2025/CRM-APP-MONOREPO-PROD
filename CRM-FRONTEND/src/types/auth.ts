@@ -1,28 +1,9 @@
-export type Role = 'ADMIN' | 'BACKEND_USER' | 'FIELD_AGENT' | 'MANAGER' | 'SUPER_ADMIN' | 'REPORT_PERSON';
+import { USER_ROLES, type UserRole } from './constants';
 
-export interface User {
-  id: string;
-  name: string;
-  username: string;
-  email: string;
-  role: Role;
-  roleId?: string;
-  roleName?: string;
-  permissions?: {
-    [resource: string]: {
-      [action: string]: boolean;
-    };
-  };
-  employeeId: string;
-  designation: string;
-  department: string;
-  departmentId?: string;
-  departmentName?: string;
-  profilePhotoUrl?: string;
-  isActive?: boolean;
-  lastLogin?: string;
-  createdAt?: string;
-}
+export type Role = UserRole;
+
+// Re-export User interface from user.ts to avoid duplication
+export type { User } from './user';
 
 export interface LoginRequest {
   username: string;
