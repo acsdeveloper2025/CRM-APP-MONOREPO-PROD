@@ -29,9 +29,9 @@ export default defineConfig({
         manualChunks: (id) => {
           // Vendor chunks for better caching
           if (id.includes('node_modules')) {
-            // React ecosystem
+            // Keep React in main vendor chunk to ensure it's loaded first
             if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
-              return 'react-vendor';
+              return 'vendor';
             }
 
             // UI library chunks
@@ -59,7 +59,7 @@ export default defineConfig({
               return 'charts-vendor';
             }
 
-            // Other vendor libraries
+            // Other vendor libraries - this will include React dependencies
             return 'vendor';
           }
 
