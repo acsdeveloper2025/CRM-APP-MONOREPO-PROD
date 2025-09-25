@@ -78,7 +78,7 @@ class ApiService {
     // Request interceptor to add auth token
     this.api.interceptors.request.use(
       (config) => {
-        const token = localStorage.getItem('accessToken');
+        const token = localStorage.getItem('crm_auth_token');
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
         }
@@ -97,8 +97,9 @@ class ApiService {
       (error) => {
         if (error.response?.status === 401) {
           // Token expired or invalid
-          localStorage.removeItem('accessToken');
-          localStorage.removeItem('authUser');
+          localStorage.removeItem('crm_auth_token');
+          localStorage.removeItem('crm_refresh_token');
+          localStorage.removeItem('crm_user_data');
           window.location.href = '/login';
         }
         return Promise.reject(error);
