@@ -14,8 +14,12 @@ import toast from 'react-hot-toast';
 
 export function SecurityUXPage() {
   const { theme, actualTheme, setTheme, toggleTheme } = useTheme();
-  const { currentBreakpoint, isMobile, isTablet, isDesktop, windowSize } = useResponsive();
+  const { isMobile, isTablet, isDesktop, screenWidth, screenHeight } = useResponsive();
   const { errors, isLoading, handleError, handleAsyncOperation, clearErrors } = useErrorHandling();
+
+  // Derive current breakpoint from responsive state
+  const currentBreakpoint = isMobile ? 'mobile' : isTablet ? 'tablet' : 'desktop';
+  const windowSize = { width: screenWidth, height: screenHeight };
   
   const [demoLoading, setDemoLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);

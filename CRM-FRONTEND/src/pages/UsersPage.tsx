@@ -179,12 +179,12 @@ export function UsersPage() {
   const roles = Array.isArray(rolesData?.data) ? rolesData.data : [];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6 animate-fade-in">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">User Management</h1>
-          <p className="text-muted-foreground">
+      <div className="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight truncate">User Management</h1>
+          <p className="mt-1 sm:mt-2 text-sm sm:text-base text-muted-foreground">
             Manage users, roles, permissions, and monitor user activities
           </p>
         </div>
@@ -209,45 +209,50 @@ export function UsersPage() {
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-            <div className="flex items-center justify-between">
-              <TabsList>
-                <TabsTrigger value="users">
-                  Users
+            <div className="flex flex-col space-y-4 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
+              <TabsList className="w-full sm:w-auto">
+                <TabsTrigger value="users" className="flex-1 sm:flex-none">
+                  <span className="hidden sm:inline">Users</span>
+                  <span className="sm:hidden">Users</span>
                   {stats.users.total > 0 && (
-                    <Badge variant="secondary" className="ml-2">
+                    <Badge variant="secondary" className="ml-1 sm:ml-2">
                       {stats.users.total}
                     </Badge>
                   )}
                 </TabsTrigger>
-                <TabsTrigger value="activities">
-                  Activities
+                <TabsTrigger value="activities" className="flex-1 sm:flex-none">
+                  <span className="hidden sm:inline">Activities</span>
+                  <span className="sm:hidden">Activity</span>
                   {stats.activities.total > 0 && (
-                    <Badge variant="secondary" className="ml-2">
+                    <Badge variant="secondary" className="ml-1 sm:ml-2">
                       {stats.activities.total}
                     </Badge>
                   )}
                 </TabsTrigger>
-                <TabsTrigger value="sessions">
-                  Sessions
+                <TabsTrigger value="sessions" className="flex-1 sm:flex-none">
+                  <span className="hidden sm:inline">Sessions</span>
+                  <span className="sm:hidden">Sessions</span>
                   {stats.sessions.total > 0 && (
-                    <Badge variant="secondary" className="ml-2">
+                    <Badge variant="secondary" className="ml-1 sm:ml-2">
                       {stats.sessions.total}
                     </Badge>
                   )}
                 </TabsTrigger>
-                <TabsTrigger value="permissions">
-                  Permissions
+                <TabsTrigger value="permissions" className="flex-1 sm:flex-none">
+                  <span className="hidden sm:inline">Permissions</span>
+                  <span className="sm:hidden">Perms</span>
                 </TabsTrigger>
               </TabsList>
 
               {/* Actions */}
-              <div className="flex items-center space-x-2">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                 {activeTab === 'users' && (
                   <>
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => setShowBulkImport(true)}
+                      className="w-full sm:w-auto"
                     >
                       <Upload className="h-4 w-4 mr-2" />
                       Import
@@ -256,6 +261,7 @@ export function UsersPage() {
                       variant="outline"
                       size="sm"
                       onClick={() => handleExportUsers('EXCEL')}
+                      className="w-full sm:w-auto"
                     >
                       <Download className="h-4 w-4 mr-2" />
                       Export
@@ -263,6 +269,7 @@ export function UsersPage() {
                     <Button
                       size="sm"
                       onClick={() => setShowCreateUser(true)}
+                      className="w-full sm:w-auto"
                     >
                       <Plus className="h-4 w-4 mr-2" />
                       Add User
@@ -274,8 +281,8 @@ export function UsersPage() {
 
             {/* Filters */}
             {(activeTab === 'users' || activeTab === 'activities') && (
-              <div className="flex items-center space-x-4">
-                <div className="relative flex-1">
+              <div className="space-y-4">
+                <div className="relative">
                   <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder="Search users..."
@@ -284,11 +291,11 @@ export function UsersPage() {
                     className="pl-8"
                   />
                 </div>
-                
+
                 {activeTab === 'users' && (
-                  <>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     <Select value={selectedRole} onValueChange={setSelectedRole}>
-                      <SelectTrigger className="w-48">
+                      <SelectTrigger>
                         <SelectValue placeholder="Filter by role" />
                       </SelectTrigger>
                       <SelectContent>
@@ -302,7 +309,7 @@ export function UsersPage() {
                     </Select>
 
                     <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
-                      <SelectTrigger className="w-48">
+                      <SelectTrigger>
                         <SelectValue placeholder="Filter by department" />
                       </SelectTrigger>
                       <SelectContent>
@@ -316,7 +323,7 @@ export function UsersPage() {
                     </Select>
 
                     <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                      <SelectTrigger className="w-48">
+                      <SelectTrigger>
                         <SelectValue placeholder="Filter by status" />
                       </SelectTrigger>
                       <SelectContent>
@@ -325,13 +332,15 @@ export function UsersPage() {
                         <SelectItem value="inactive">Inactive</SelectItem>
                       </SelectContent>
                     </Select>
-                  </>
+                  </div>
                 )}
 
                 {(searchQuery || selectedRole !== 'all' || selectedDepartment !== 'all' || selectedStatus !== 'all') && (
-                  <Button variant="outline" size="sm" onClick={clearFilters}>
-                    Clear Filters
-                  </Button>
+                  <div className="flex justify-end">
+                    <Button variant="outline" size="sm" onClick={clearFilters}>
+                      Clear Filters
+                    </Button>
+                  </div>
                 )}
               </div>
             )}

@@ -121,23 +121,23 @@ export const DashboardPage: React.FC = () => {
   ];
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-4 sm:space-y-6 animate-fade-in">
       {/* Page Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
-          <p className="mt-2 text-muted-foreground">
+      <div className="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground truncate">Dashboard</h1>
+          <p className="mt-1 sm:mt-2 text-sm sm:text-base text-muted-foreground">
             Welcome back! Here's what's happening with your cases today.
           </p>
         </div>
-        <Button variant="outline" className="flex items-center space-x-2 hover:shadow-md transition-all duration-200">
+        <Button variant="outline" size="sm" className="flex items-center space-x-2 hover:shadow-md transition-all duration-200 w-full sm:w-auto">
           <Download className="h-4 w-4" />
           <span>Export Report</span>
         </Button>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-4">
         <StatsCard
           title="Total Cases"
           value={stats.totalCases}

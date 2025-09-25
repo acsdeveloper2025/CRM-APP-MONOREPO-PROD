@@ -1,6 +1,6 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { cn } from '@/utils/cn';
+import { cn } from '@/lib/utils';
 import type { LucideIcon } from 'lucide-react';
 
 interface StatsCardProps {
@@ -33,15 +33,15 @@ export const StatsCard: React.FC<StatsCardProps> = ({
   };
 
   return (
-    <Card className={cn('', className)}>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        <Icon className={cn('h-4 w-4', color)} />
+    <Card className={cn('hover:shadow-md transition-all duration-200', className)}>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-4 sm:px-6 pt-4 sm:pt-6">
+        <CardTitle className="text-sm sm:text-base font-medium truncate pr-2">{title}</CardTitle>
+        <Icon className={cn('h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0', color)} />
       </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-bold">{formatValue(value)}</div>
+      <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
+        <div className="text-xl sm:text-2xl font-bold">{formatValue(value)}</div>
         {(description || trend) && (
-          <div className="flex items-center space-x-2 text-xs text-muted-foreground mt-1">
+          <div className="flex items-center space-x-2 text-xs sm:text-sm text-muted-foreground mt-1">
             {trend && (
               <span
                 className={cn(
@@ -52,7 +52,7 @@ export const StatsCard: React.FC<StatsCardProps> = ({
                 {trend.isPositive ? '+' : ''}{trend.value}%
               </span>
             )}
-            {description && <span>{description}</span>}
+            {description && <span className="truncate">{description}</span>}
           </div>
         )}
       </CardContent>

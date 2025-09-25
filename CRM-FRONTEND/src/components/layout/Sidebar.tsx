@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { navigationItems } from '@/constants/navigation';
 import type { NavigationItem } from '@/constants/navigation';
-import { cn } from '@/utils/cn';
+import { cn } from '@/lib/utils';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -75,8 +75,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       <div key={item.id}>
         <div
           className={cn(
-            'flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200',
-            level > 0 && 'ml-6 mr-2 border-l-2 border-border pl-4',
+            'flex items-center px-3 sm:px-4 py-2.5 sm:py-2 text-sm font-medium rounded-lg transition-all duration-200 min-h-[44px] sm:min-h-[40px]',
+            level > 0 && 'ml-4 sm:ml-6 mr-2 border-l-2 border-border pl-3 sm:pl-4',
             isActive
               ? 'bg-primary text-primary-foreground shadow-sm'
               : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground hover:shadow-sm'
@@ -87,12 +87,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
               onClick={() => toggleExpanded(item.id)}
               className="flex items-center w-full text-left"
             >
-              <item.icon className="mr-3 h-5 w-5" />
-              <span className="flex-1">{item.label}</span>
+              <item.icon className="mr-2 sm:mr-3 h-5 w-5 flex-shrink-0" />
+              <span className="flex-1 truncate">{item.label}</span>
               {isExpanded ? (
-                <ChevronDown className="h-4 w-4" />
+                <ChevronDown className="h-4 w-4 flex-shrink-0" />
               ) : (
-                <ChevronRight className="h-4 w-4" />
+                <ChevronRight className="h-4 w-4 flex-shrink-0" />
               )}
             </button>
           ) : (
@@ -101,8 +101,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
               className="flex items-center w-full"
               onClick={onClose}
             >
-              <item.icon className="mr-3 h-5 w-5" />
-              <span>{item.label}</span>
+              <item.icon className="mr-2 sm:mr-3 h-5 w-5 flex-shrink-0" />
+              <span className="truncate">{item.label}</span>
             </Link>
           )}
         </div>
@@ -129,7 +129,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       {/* Sidebar */}
       <div
         className={cn(
-          'fixed inset-y-0 left-0 z-50 w-64 bg-card shadow-lg border-r border-border transform transition-all duration-300 ease-in-out lg:translate-x-0',
+          'fixed inset-y-0 left-0 z-50 w-64 sm:w-72 lg:w-64 bg-card shadow-lg border-r border-border transform transition-all duration-300 ease-in-out lg:translate-x-0',
           isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         )}
       >

@@ -19,6 +19,10 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  MobileTableCard,
+  MobileTableField,
+} from '@/components/ui/responsive-table';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -228,7 +232,8 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
         </div>
       )}
 
-      <div className="rounded-md border">
+      {/* Desktop Table */}
+      <div className="hidden md:block rounded-md border overflow-auto">
         <Table>
           <TableHeader>
             <TableRow>
@@ -240,10 +245,10 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
               </TableHead>
               <TableHead>User</TableHead>
               <TableHead>Role</TableHead>
-              <TableHead>Department</TableHead>
+              <TableHead className="hidden lg:table-cell">Department</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Last Login</TableHead>
-              <TableHead>Created</TableHead>
+              <TableHead className="hidden xl:table-cell">Last Login</TableHead>
+              <TableHead className="hidden xl:table-cell">Created</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -253,7 +258,7 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
                 <TableCell>
                   <Checkbox
                     checked={selectedUsers.includes(user.id)}
-                    onCheckedChange={(checked) => 
+                    onCheckedChange={(checked) =>
                       handleSelectUser(user.id, checked as boolean)
                     }
                   />
@@ -280,7 +285,7 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
                     {getUserRoleBadge(user.roleName || user.role)}
                   </div>
                 </TableCell>
-                <TableCell>
+                <TableCell className="hidden lg:table-cell">
                   <div>
                     <div className="font-medium">{user.departmentName || 'No Department'}</div>
                     <div className="text-sm text-muted-foreground">{user.designation}</div>
@@ -289,7 +294,7 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
                 <TableCell>
                   {getStatusBadge(user.isActive ?? false)}
                 </TableCell>
-                <TableCell>
+                <TableCell className="hidden xl:table-cell">
                   {(user.lastLogin || user.lastLoginAt) ? (
                     <div className="text-sm">
                       {new Date(user.lastLogin || user.lastLoginAt!).toLocaleString()}
@@ -298,7 +303,7 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
                     <span className="text-sm text-muted-foreground">Never</span>
                   )}
                 </TableCell>
-                <TableCell>
+                <TableCell className="hidden xl:table-cell">
                   {new Date(user.createdAt!).toLocaleDateString()}
                 </TableCell>
                 <TableCell className="text-right">
@@ -334,14 +339,14 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
 
                       <DropdownMenuSeparator />
                       {user.isActive ? (
-                        <DropdownMenuItem 
+                        <DropdownMenuItem
                           onClick={() => deactivateUserMutation.mutate(user.id)}
                         >
                           <UserX className="mr-2 h-4 w-4" />
                           Deactivate
                         </DropdownMenuItem>
                       ) : (
-                        <DropdownMenuItem 
+                        <DropdownMenuItem
                           onClick={() => activateUserMutation.mutate(user.id)}
                         >
                           <UserCheck className="mr-2 h-4 w-4" />
@@ -363,6 +368,133 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
             ))}
           </TableBody>
         </Table>
+      </div>
+
+      {/* Mobile Card Layout */}
+      <div className="md:hidden space-y-4">
+        {data.map((user) => (
+          <MobileTableCard key={user.id}>
+            <div className="flex items-start justify-between mb-3">
+              <div className="flex items-center space-x-3 flex-1 min-w-0">
+                <Checkbox
+                  checked={selectedUsers.includes(user.id)}
+                  onCheckedChange={(checked) =>
+                    handleSelectUser(user.id, checked as boolean)
+                  }
+                />
+                <Avatar className="h-10 w-10 flex-shrink-0">
+                  <AvatarImage src={user.profilePhotoUrl} alt={user.name} />
+                  <AvatarFallback>
+                    {user.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium truncate">{user.name}</div>
+                  <div className="text-sm text-muted-foreground truncate">
+                    {user.username} • {user.employeeId}
+                  </div>
+                  <div className="text-sm text-muted-foreground truncate">{user.email}</div>
+                </div>
+              </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="h-8 w-8 p-0 flex-shrink-0">
+                    <span className="sr-only">Open menu</span>
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                  <DropdownMenuItem onClick={() => handleViewDetails(user)}>
+                    <Eye className="mr-2 h-4 w-4" />
+                    View Details
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleEdit(user)}>
+                    <Edit className="mr-2 h-4 w-4" />
+                    Edit User
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleResetPassword(user)}>
+                    <Key className="mr-2 h-4 w-4" />
+                    Reset Password
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleResetRateLimit(user)}>
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    Clear Rate Limit
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate(`/users/${user.id}/permissions`)}>
+                    <Shield className="mr-2 h-4 w-4" />
+                    Manage Permissions
+                  </DropdownMenuItem>
+
+                  <DropdownMenuSeparator />
+                  {user.isActive ? (
+                    <DropdownMenuItem
+                      onClick={() => deactivateUserMutation.mutate(user.id)}
+                    >
+                      <UserX className="mr-2 h-4 w-4" />
+                      Deactivate
+                    </DropdownMenuItem>
+                  ) : (
+                    <DropdownMenuItem
+                      onClick={() => activateUserMutation.mutate(user.id)}
+                    >
+                      <UserCheck className="mr-2 h-4 w-4" />
+                      Activate
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => handleDelete(user)}
+                    className="text-destructive"
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete User
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <MobileTableField
+                label="Role"
+                value={getUserRoleBadge(user.roleName || user.role)}
+              />
+              <MobileTableField
+                label="Status"
+                value={getStatusBadge(user.isActive ?? false)}
+              />
+              <MobileTableField
+                label="Department"
+                value={
+                  <div>
+                    <div className="font-medium">{user.departmentName || 'No Department'}</div>
+                    {user.designation && (
+                      <div className="text-sm text-muted-foreground">{user.designation}</div>
+                    )}
+                  </div>
+                }
+              />
+              <MobileTableField
+                label="Last Login"
+                value={
+                  (user.lastLogin || user.lastLoginAt) ? (
+                    <div className="text-sm">
+                      {new Date(user.lastLogin || user.lastLoginAt!).toLocaleDateString()}
+                    </div>
+                  ) : (
+                    <span className="text-sm text-muted-foreground">Never</span>
+                  )
+                }
+              />
+            </div>
+
+            <MobileTableField
+              label="Created"
+              className="mt-3"
+              value={new Date(user.createdAt!).toLocaleDateString()}
+            />
+          </MobileTableCard>
+        ))}
       </div>
 
       {/* Edit Dialog */}

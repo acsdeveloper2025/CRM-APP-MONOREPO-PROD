@@ -1,29 +1,32 @@
-export interface Client {
-  id: number; // Changed from string (UUID) to number (SERIAL)
+import { BaseEntity } from './index';
+
+export interface Client extends Omit<BaseEntity, 'id'> {
+  id: number; // Numeric ID for clients (SERIAL)
   name: string;
   code: string;
-  createdAt: string;
-  updatedAt: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  isActive?: boolean;
   products?: Product[];
   verificationTypes?: VerificationType[];
 }
 
-export interface Product {
-  id: number; // Changed from string (UUID) to number (SERIAL)
+export interface Product extends Omit<BaseEntity, 'id'> {
+  id: number; // Numeric ID for products (SERIAL)
   name: string;
   code: string;
-  createdAt: string;
-  updatedAt: string;
-  // Many-to-many: related via ClientProduct and ProductVerificationType
+  description?: string;
+  isActive?: boolean;
   verificationTypes?: VerificationType[];
 }
 
-export interface VerificationType {
-  id: number; // Changed from string (UUID) to number (SERIAL)
+export interface VerificationType extends Omit<BaseEntity, 'id'> {
+  id: number; // Numeric ID for verification types (SERIAL)
   name: string;
   code: string;
-  createdAt: string;
-  updatedAt: string;
+  description?: string;
+  isActive?: boolean;
 }
 
 export interface CreateClientData {

@@ -8,6 +8,10 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  MobileTableCard,
+  MobileTableField,
+} from '@/components/ui/responsive-table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -21,7 +25,7 @@ import {
 import { MoreHorizontal, Eye, Edit, UserCheck } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import type { Case } from '@/types/case';
-import { cn } from '@/utils/cn';
+import { cn } from '@/lib/utils';
 import { UserSelectionModal } from './UserSelectionModal';
 
 interface CaseTableProps {
@@ -188,24 +192,26 @@ export const CaseTable: React.FC<CaseTableProps> = ({
   }
 
   return (
-    <div className="border rounded-lg">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Case ID</TableHead>
-            <TableHead>Customer</TableHead>
-            <TableHead>Client</TableHead>
-            <TableHead>Product</TableHead>
-            <TableHead>Verification Type</TableHead>
-            <TableHead>Area</TableHead>
-            <TableHead>Rate Type</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Priority</TableHead>
-            <TableHead>Assigned To</TableHead>
-            <TableHead>Updated</TableHead>
-            <TableHead className="w-[70px]"></TableHead>
-          </TableRow>
-        </TableHeader>
+    <>
+      {/* Desktop Table */}
+      <div className="hidden md:block border rounded-lg overflow-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Case ID</TableHead>
+              <TableHead>Customer</TableHead>
+              <TableHead className="hidden lg:table-cell">Client</TableHead>
+              <TableHead className="hidden xl:table-cell">Product</TableHead>
+              <TableHead className="hidden lg:table-cell">Verification Type</TableHead>
+              <TableHead className="hidden xl:table-cell">Area</TableHead>
+              <TableHead className="hidden xl:table-cell">Rate Type</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="hidden lg:table-cell">Priority</TableHead>
+              <TableHead className="hidden lg:table-cell">Assigned To</TableHead>
+              <TableHead className="hidden xl:table-cell">Updated</TableHead>
+              <TableHead className="w-[70px]"></TableHead>
+            </TableRow>
+          </TableHeader>
         <TableBody>
           {cases.map((caseItem) => (
             <TableRow key={caseItem.id}>
@@ -223,22 +229,22 @@ export const CaseTable: React.FC<CaseTableProps> = ({
                   <div className="text-sm text-muted-foreground">{caseItem.customerPhone || caseItem.applicantPhone}</div>
                 </div>
               </TableCell>
-              <TableCell>
+              <TableCell className="hidden lg:table-cell">
                 <div className="text-sm">
                   {caseItem.clientName || caseItem.client?.name}
                 </div>
               </TableCell>
-              <TableCell>
+              <TableCell className="hidden xl:table-cell">
                 <div className="text-sm">
                   {caseItem.productName || 'N/A'}
                 </div>
               </TableCell>
-              <TableCell>
+              <TableCell className="hidden lg:table-cell">
                 <div className="text-sm">
                   {caseItem.verificationTypeName || caseItem.verificationType || 'N/A'}
                 </div>
               </TableCell>
-              <TableCell>
+              <TableCell className="hidden xl:table-cell">
                 <div className="text-sm">
                   <Badge variant="outline" className="text-xs">
                     {caseItem.areaType === 'local' ? 'Local' :
@@ -248,7 +254,7 @@ export const CaseTable: React.FC<CaseTableProps> = ({
                   </Badge>
                 </div>
               </TableCell>
-              <TableCell>
+              <TableCell className="hidden xl:table-cell">
                 <div className="text-sm">
                   {caseItem.rateTypeName || 'N/A'}
                 </div>
@@ -258,17 +264,17 @@ export const CaseTable: React.FC<CaseTableProps> = ({
                   {caseItem.status.replace('_', ' ')}
                 </Badge>
               </TableCell>
-              <TableCell>
+              <TableCell className="hidden lg:table-cell">
                 <Badge className={cn('text-xs', getPriorityColor(caseItem.priority))}>
                   {getPriorityLabel(caseItem.priority)}
                 </Badge>
               </TableCell>
-              <TableCell>
+              <TableCell className="hidden lg:table-cell">
                 <div className="text-sm">
                   {caseItem.assignedToName || caseItem.assignedTo?.name || 'Unassigned'}
                 </div>
               </TableCell>
-              <TableCell>
+              <TableCell className="hidden xl:table-cell">
                 <div className="text-sm text-muted-foreground">
                   {formatDistanceToNow(new Date(caseItem.updatedAt), { addSuffix: true })}
                 </div>
@@ -314,6 +320,100 @@ export const CaseTable: React.FC<CaseTableProps> = ({
           ))}
         </TableBody>
       </Table>
+      </div>
+
+      {/* Mobile Card Layout */}
+      <div className="md:hidden space-y-3">
+        {cases.map((caseItem) => (
+          <MobileTableCard key={caseItem.id}>
+            <div className="flex justify-between items-start mb-3">
+              <Link
+                to={`/cases/${caseItem.caseId || caseItem.id}`}
+                className="text-lg font-semibold text-primary hover:underline"
+              >
+                #{caseItem.caseId || caseItem.id?.slice(-8) || 'N/A'}
+              </Link>
+              <div className="flex space-x-2">
+                <Badge className={cn('text-xs', getStatusColor(caseItem.status))}>
+                  {caseItem.status.replace('_', ' ')}
+                </Badge>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon-sm">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                    <DropdownMenuItem asChild>
+                      <Link to={`/cases/${caseItem.caseId || caseItem.id}`}>
+                        <Eye className="mr-2 h-4 w-4" />
+                        View Details
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to={`/cases/new?edit=${caseItem.caseId || caseItem.id}`}>
+                        <Edit className="mr-2 h-4 w-4" />
+                        Edit Case
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    {onAssignCase && (
+                      <DropdownMenuItem onClick={() => handleOpenUserModal(caseItem)}>
+                        <UserCheck className="mr-2 h-4 w-4" />
+                        Assign to Field Agent
+                      </DropdownMenuItem>
+                    )}
+                    {onUpdateStatus && caseItem.status !== 'COMPLETED' && (
+                      <DropdownMenuItem onClick={() => onUpdateStatus(caseItem.id, 'COMPLETED')}>
+                        Mark Complete
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </div>
+
+            <MobileTableField
+              label="Customer"
+              value={
+                <div>
+                  <div className="font-medium">{caseItem.customerName || caseItem.applicantName}</div>
+                  <div className="text-xs text-muted-foreground">{caseItem.customerPhone || caseItem.applicantPhone}</div>
+                </div>
+              }
+            />
+            <MobileTableField
+              label="Client"
+              value={caseItem.clientName || caseItem.client?.name || 'N/A'}
+            />
+            <MobileTableField
+              label="Product"
+              value={caseItem.productName || 'N/A'}
+            />
+            <MobileTableField
+              label="Verification"
+              value={caseItem.verificationTypeName || caseItem.verificationType || 'N/A'}
+            />
+            <MobileTableField
+              label="Priority"
+              value={
+                <Badge className={cn('text-xs', getPriorityColor(caseItem.priority))}>
+                  {getPriorityLabel(caseItem.priority)}
+                </Badge>
+              }
+            />
+            <MobileTableField
+              label="Assigned To"
+              value={caseItem.assignedToName || caseItem.assignedTo?.name || 'Unassigned'}
+            />
+            <MobileTableField
+              label="Updated"
+              value={formatDistanceToNow(new Date(caseItem.updatedAt), { addSuffix: true })}
+            />
+          </MobileTableCard>
+        ))}
+      </div>
 
       {/* User Selection Modal */}
       <UserSelectionModal
@@ -323,6 +423,6 @@ export const CaseTable: React.FC<CaseTableProps> = ({
         currentAssignedUserId={selectedCaseForAssignment?.assignedTo}
         title="Assign Case to Field Agent"
       />
-    </div>
+    </>
   );
 };

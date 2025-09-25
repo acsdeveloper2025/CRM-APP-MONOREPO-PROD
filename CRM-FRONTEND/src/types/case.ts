@@ -1,33 +1,43 @@
-export type CaseStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'APPROVED' | 'REJECTED' | 'REWORK_REQUIRED';
+import { CASE_STATUS, CASE_PRIORITY, type CaseStatusType, type CasePriorityType } from './constants';
+
+export type CaseStatus = CaseStatusType;
+export type CasePriority = CasePriorityType;
 
 export interface Case {
-  id: string;
-  caseId?: number;
-  caseNumber?: string;
+  // Primary identifiers
+  id: string; // UUID for internal use
+  caseId?: number; // Numeric case ID for display
+  caseNumber?: string; // Formatted case number
+
+  // Basic case information
   title?: string;
   description?: string;
+  status: CaseStatus;
+  priority: CasePriority;
+  notes?: string;
+  trigger?: string;
+
+  // Customer information
   customerName?: string;
   customerPhone?: string;
   customerEmail?: string;
   customerCallingCode?: string;
+
+  // Address information
+  address?: string;
   addressStreet?: string;
   addressCity?: string;
   addressState?: string;
   addressPincode?: string;
-  address?: string;
   pincode?: string;
   latitude?: number;
   longitude?: number;
-  status: CaseStatus;
+
+  // Verification information
   verificationType?: string;
   verificationOutcome?: string;
-  assignedAt?: string;
-  updatedAt: string;
-  createdAt: string;
-  completedAt?: string;
-  priority: number | string;
-  notes?: string;
-  trigger?: string;
+
+  // Assignment information
   assignedToId?: string;
   assignedTo?: {
     id: string;
@@ -35,38 +45,47 @@ export interface Case {
     username?: string;
     employeeId?: string;
   };
-  assignedToName?: string; // Name of assigned user
-  clientId: string | number;
+  assignedToName?: string;
+  assignedAt?: string;
+
+  // Related entities (using consistent ID types)
+  clientId: number; // Numeric ID for clients
   client?: {
-    id: string | number;
+    id: number;
     name: string;
     code?: string;
   };
   clientName?: string;
   clientCode?: string;
-  productId?: string | number;
+
+  productId?: number; // Numeric ID for products
   product?: {
-    id: string | number;
+    id: number;
     name: string;
     code?: string;
   };
   productName?: string;
   productCode?: string;
-  verificationTypeId?: string | number;
+
+  verificationTypeId?: number; // Numeric ID for verification types
   verificationTypeName?: string;
   verificationTypeCode?: string;
-  rateTypeId?: string | number;
+
+  rateTypeId?: number; // Numeric ID for rate types
   rateType?: {
-    id: string | number;
+    id: number;
     name: string;
     description?: string;
     amount?: number;
     currency?: string;
   };
-  // Rate management fields for case table display
+
+  // Rate management fields
   rateTypeName?: string;
   rateTypeDescription?: string;
   areaType?: 'local' | 'ogl' | 'outstation' | 'standard';
+
+  // Audit fields
   createdBy?: string;
   createdByBackendUser?: {
     id: string;
@@ -74,6 +93,10 @@ export interface Case {
     employeeId?: string;
   };
   updatedBy?: string;
+  createdAt: string;
+  updatedAt: string;
+  completedAt?: string;
+
   // Applicant information
   applicantName?: string;
   applicantPhone?: string;
@@ -84,23 +107,14 @@ export interface Case {
   bankAccountNumber?: string;
   bankIfscCode?: string;
   backendContactNumber?: string;
-  createdByBackendUser?: string;
+
   // Deduplication fields
   deduplicationChecked?: boolean;
   deduplicationDecision?: string;
   deduplicationRationale?: string;
-  // Sorting and duration fields
+
+  // Performance fields
   pendingDurationSeconds?: number;
-  // Legacy nested objects (for backward compatibility)
-  client?: {
-    id: string;
-    name: string;
-    code: string;
-  };
-  verificationTypeRef?: {
-    id: string;
-    name: string;
-  };
 }
 
 export interface CaseFilters {
