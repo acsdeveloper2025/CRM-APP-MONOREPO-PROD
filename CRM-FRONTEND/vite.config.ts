@@ -54,9 +54,9 @@ export default defineConfig({
               return 'utils-vendor';
             }
 
-            // Chart/visualization libraries
+            // Chart/visualization libraries - move to main vendor to ensure React is available
             if (id.includes('recharts') || id.includes('chart.js') || id.includes('d3')) {
-              return 'charts-vendor';
+              return 'vendor';
             }
 
             // Other vendor libraries - this will include React dependencies
