@@ -1,41 +1,58 @@
-export interface Country {
-  id: string;
+import { BaseEntity, BaseFilters } from './index';
+
+export interface Country extends Omit<BaseEntity, 'id'> {
+  id: number; // Numeric ID for countries
   name: string;
   code: string;
   continent: string;
-  createdAt: string;
-  updatedAt: string;
   states?: State[];
 }
 
-export interface State {
-  id: string;
+export interface State extends Omit<BaseEntity, 'id'> {
+  id: number; // Numeric ID for states
   name: string;
   code: string;
+  countryId: number;
   country: string;
-  createdAt: string;
-  updatedAt: string;
   cities?: City[];
   cityCount?: number;
 }
 
-export interface City {
-  id: string;
+export interface City extends Omit<BaseEntity, 'id'> {
+  id: number; // Numeric ID for cities
   name: string;
+  stateId: number;
   state: string;
+  countryId: number;
   country: string;
-  createdAt: string;
-  updatedAt: string;
   pincodes?: Pincode[];
   pincodeCount?: number;
 }
 
-export interface PincodeArea {
-  id: string;
+export interface Pincode extends Omit<BaseEntity, 'id'> {
+  id: number; // Numeric ID for pincodes
+  code: string;
+  cityId: number;
+  city?: string;
+  state?: string;
+  country?: string;
+  areas?: PincodeArea[];
+}
+
+export interface PincodeArea extends Omit<BaseEntity, 'id'> {
+  id: number; // Numeric ID for areas
   name: string;
   displayOrder: number;
-  createdAt?: string;
-  updatedAt?: string;
+  pincodeId?: number;
+}
+
+export interface LocationFilters extends BaseFilters {
+  countryId?: number;
+  stateId?: number;
+  cityId?: number;
+  pincodeId?: number;
+  continent?: string;
+  isActive?: boolean;
 }
 
 export interface Pincode {

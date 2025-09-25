@@ -1,5 +1,26 @@
-// Form Types and Enums
-export const FormType = {
+import {
+  FORM_TYPES,
+  VERIFICATION_OUTCOMES,
+  FORM_SUBMISSION_STATUS,
+  VALIDATION_STATUS,
+  FORM_FIELD_TYPES,
+  type FormType as FormTypeConstant,
+  type VerificationOutcome as VerificationOutcomeConstant,
+  type FormSubmissionStatus,
+  type ValidationStatusType,
+  type FormFieldType as FormFieldTypeConstant
+} from './constants';
+
+// Re-export types from constants for consistency
+export type FormType = FormTypeConstant;
+export type VerificationType = FormTypeConstant;
+export type VerificationOutcome = VerificationOutcomeConstant;
+export type FormSubmissionStatusType = FormSubmissionStatus;
+export type ValidationStatus = ValidationStatusType;
+export type FormFieldType = FormFieldTypeConstant;
+
+// Form-specific enums for detailed form types
+export const DetailedFormType = {
   // Residence Forms
   RESIDENCE_POSITIVE: 'residence-positive',
   RESIDENCE_SHIFTED: 'residence-shifted',
@@ -29,25 +50,25 @@ export const FormType = {
   RESIDENCE_CUM_OFFICE_UNTRACEABLE: 'residence-cum-office-untraceable',
 } as const;
 
-export type FormType = typeof FormType[keyof typeof FormType];
+export type DetailedFormType = typeof DetailedFormType[keyof typeof DetailedFormType];
 
-export const VerificationType = {
-  RESIDENCE: 'Residence',
-  OFFICE: 'Office',
-  BUSINESS: 'Business',
-  RESIDENCE_CUM_OFFICE: 'Residence-cum-office',
-  BUILDER: 'Builder',
-  NOC: 'NOC',
-  CONNECTOR: 'DSA/DST & Connector',
-  PROPERTY_APF: 'Property APF',
-  PROPERTY_INDIVIDUAL: 'Property Individual',
+// Verification type display names
+export const VerificationTypeDisplayNames = {
+  [FORM_TYPES.RESIDENCE]: 'Residence',
+  [FORM_TYPES.OFFICE]: 'Office',
+  [FORM_TYPES.BUSINESS]: 'Business',
+  [FORM_TYPES.RESIDENCE_CUM_OFFICE]: 'Residence-cum-office',
+  [FORM_TYPES.BUILDER]: 'Builder',
+  [FORM_TYPES.NOC]: 'NOC',
+  [FORM_TYPES.DSA_CONNECTOR]: 'DSA/DST & Connector',
+  [FORM_TYPES.PROPERTY_APF]: 'Property APF',
+  [FORM_TYPES.PROPERTY_INDIVIDUAL]: 'Property Individual',
 } as const;
 
-export type VerificationType = typeof VerificationType[keyof typeof VerificationType];
-
-export const VerificationOutcome = {
-  POSITIVE: 'Positive',
-  SHIFTED: 'Shifted',
+// Verification outcome display names
+export const VerificationOutcomeDisplayNames = {
+  [VERIFICATION_OUTCOMES.POSITIVE]: 'Positive',
+  [VERIFICATION_OUTCOMES.SHIFTED]: 'Shifted',
   NSP: 'NSP',
   ENTRY_RESTRICTED: 'Entry Restricted',
   UNTRACEABLE: 'Untraceable',

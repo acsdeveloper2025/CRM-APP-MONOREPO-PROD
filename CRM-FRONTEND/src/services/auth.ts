@@ -1,4 +1,5 @@
 import { apiService } from './api';
+import { STORAGE_KEYS } from '@/types/constants';
 import type { LoginRequest, LoginResponse, User } from '@/types/auth';
 
 interface UuidLoginRequest {
@@ -14,9 +15,9 @@ export class AuthService {
 
     if (response.success && response.data) {
       // Store token and user data
-      localStorage.setItem('accessToken', response.data.tokens.accessToken);
-      localStorage.setItem('refreshToken', response.data.tokens.refreshToken);
-      localStorage.setItem('authUser', JSON.stringify(response.data.user));
+      localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, response.data.tokens.accessToken);
+      localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, response.data.tokens.refreshToken);
+      localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(response.data.user));
     }
 
     return {
@@ -31,9 +32,9 @@ export class AuthService {
 
     if (response.success && response.data) {
       // Store token and user data
-      localStorage.setItem('accessToken', response.data.tokens.accessToken);
-      localStorage.setItem('refreshToken', response.data.tokens.refreshToken);
-      localStorage.setItem('authUser', JSON.stringify(response.data.user));
+      localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, response.data.tokens.accessToken);
+      localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, response.data.tokens.refreshToken);
+      localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(response.data.user));
     }
 
     return {
@@ -50,14 +51,14 @@ export class AuthService {
       // Continue with logout even if API call fails
     } finally {
       // Clear local storage
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
-      localStorage.removeItem('authUser');
+      localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+      localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
+      localStorage.removeItem(STORAGE_KEYS.USER_DATA);
     }
   }
 
   getCurrentUser(): User | null {
-    const userStr = localStorage.getItem('authUser');
+    const userStr = localStorage.getItem(STORAGE_KEYS.USER_DATA);
     if (userStr) {
       try {
         return JSON.parse(userStr);
@@ -70,7 +71,7 @@ export class AuthService {
   }
 
   getToken(): string | null {
-    return localStorage.getItem('accessToken');
+    return localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
   }
 
   isAuthenticated(): boolean {

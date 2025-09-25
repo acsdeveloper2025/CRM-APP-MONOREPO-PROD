@@ -1,40 +1,7 @@
-import { apiService } from './api';
-import type { Case } from '@/types/case';
+import { BaseApiService } from './base';
+import { API_ENDPOINTS } from '@/types/constants';
+import type { Case, CaseFilters } from '@/types/case';
 import type { ApiResponse, PaginationQuery } from '@/types/api';
-
-// Smart API URL selection
-const getApiBaseUrl = () => {
-  const hostname = window.location.hostname;
-    const staticIP = import.meta.env.VITE_STATIC_IP || 'PUBLIC_STATIC_IP';
-  const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
-  const isLocalNetwork = hostname.startsWith('10.') || hostname.startsWith('192.168.') || hostname.startsWith('172.');
-  const isStaticIP = hostname === staticIP;
-  const isDomain = hostname === 'example.com' || hostname === 'www.example.com';
-
-  // Priority order for API URL selection:
-  // 1. Check if we're on localhost (development)
-  if (isLocalhost) {
-    return 'http://localhost:3000/api';
-  }
-
-  // 2. Check if we're on the local network IP (hairpin NAT workaround)
-  if (isLocalNetwork) {
-    return `http://${staticIP}:3000/api`;
-  }
-
-  // 3. Check if we're on the domain name (production access)
-  if (isDomain) {
-    return 'https://example.com/api';
-  }
-
-  // 4. Check if we're on the static IP (external access)
-  if (isStaticIP) {
-    return `http://${staticIP}:3000/api`;
-  }
-
-  // 5. Fallback to environment variable or localhost
-  return import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
-};
 
 export interface CaseListQuery extends PaginationQuery {
   status?: string;
@@ -78,17 +45,21 @@ export interface CreateCaseData {
   deduplicationRationale?: string;
 }
 
-export class CasesService {
+export class CasesService extends BaseApiService {
+  constructor() {
+    super('/cases');
+  }
+
   async getCases(query: CaseListQuery = {}): Promise<ApiResponse<Case[]>> {
-    return apiService.get('/cases', query);
+    return this.get('', query);
   }
 
   async getCaseById(id: string): Promise<ApiResponse<Case>> {
-    return apiService.get(`/cases/${id}`);
+    return this.get(`/${id}`);
   }
 
   async createCase(data: CreateCaseData): Promise<ApiResponse<Case>> {
-    return apiService.post('/cases', data);
+    return this.post('', data);
   }
 
   async createCaseWithAttachments(data: CreateCaseData, attachments: File[]): Promise<ApiResponse<Case>> {

@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Eye, Clock, User, Building2 } from 'lucide-react';
 import { format } from 'date-fns';
 import type { Case } from '@/types/case';
-import { cn } from '@/utils/cn';
+import { cn } from '@/lib/utils';
 
 interface PendingReviewTableProps {
   cases: Case[];

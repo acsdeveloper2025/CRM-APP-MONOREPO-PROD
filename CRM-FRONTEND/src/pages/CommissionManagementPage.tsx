@@ -10,21 +10,21 @@ import { FieldUserAssignmentsTab } from '@/components/commission/FieldUserAssign
 
 export const CommissionManagementPage: React.FC = () => {
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="space-y-4 sm:space-y-6 animate-fade-in">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Commission Management</h1>
-          <p className="text-muted-foreground mt-1">
+      <div className="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground truncate">Commission Management</h1>
+          <p className="text-sm sm:text-base text-muted-foreground mt-1">
             Manage field employee commissions, rate assignments, and payments
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+          <Button variant="outline" size="sm" className="w-full sm:w-auto">
             <Download className="h-4 w-4 mr-2" />
             Export Report
           </Button>
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" className="w-full sm:w-auto">
             <FileText className="h-4 w-4 mr-2" />
             Documentation
           </Button>

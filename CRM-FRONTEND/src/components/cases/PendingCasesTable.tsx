@@ -21,7 +21,7 @@ import {
 import { MoreHorizontal, Eye, Play, UserCheck, Clock, AlertTriangle, Building2, User, ArrowUp } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import type { Case } from '@/types/case';
-import { cn } from '@/utils/cn';
+import { cn } from '@/lib/utils';
 import { UserSelectionModal } from './UserSelectionModal';
 
 interface PendingCasesTableProps {
