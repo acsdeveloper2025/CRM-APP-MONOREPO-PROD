@@ -19,6 +19,8 @@ interface CaseFiltersProps {
   onFiltersChange: (filters: CaseListQuery) => void;
   onClearFilters: () => void;
   isLoading?: boolean;
+  searchValue?: string;
+  onSearchChange?: (value: string) => void;
 }
 
 export const CaseFilters: React.FC<CaseFiltersProps> = ({
@@ -26,23 +28,14 @@ export const CaseFilters: React.FC<CaseFiltersProps> = ({
   onFiltersChange,
   onClearFilters,
   isLoading,
+  searchValue = '',
+  onSearchChange,
 }) => {
-  // Local state for search input to prevent focus loss
-  const [searchValue, setSearchValue] = useState(filters.search || '');
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  // Debounce search value to prevent excessive API calls
-  const debouncedSearchValue = useDebounce(searchValue, 300);
-
-  // Update filters when debounced search value changes
-  useEffect(() => {
-    if (debouncedSearchValue !== filters.search) {
-      onFiltersChange({
-        ...filters,
-        search: debouncedSearchValue || undefined,
-      });
-    }
-  }, [debouncedSearchValue, filters.search]);
+  // Use external search value if provided, otherwise use internal state
+  const currentSearchValue = searchValue;
+  const handleSearchChange = onSearchChange || (() => {});
 
   // Memoize the filter change handler to prevent unnecessary re-renders
   const handleFilterChange = useCallback((key: keyof CaseListQuery, value: string | number | undefined) => {
@@ -60,21 +53,21 @@ export const CaseFilters: React.FC<CaseFiltersProps> = ({
 
   // Update local search value when filters are cleared
   useEffect(() => {
-    if (!filters.search && searchValue) {
-      setSearchValue('');
+    if (!filters.search && currentSearchValue) {
+      handleSearchChange('');
     }
-  }, [filters.search, searchValue]);
+  }, [filters.search, currentSearchValue, handleSearchChange]);
 
   // Handle search input change with focus preservation
-  const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchValue(e.target.value);
+  const handleSearchInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    handleSearchChange(e.target.value);
     // Ensure focus is maintained
     setTimeout(() => {
       if (searchInputRef.current && document.activeElement !== searchInputRef.current) {
         searchInputRef.current.focus();
       }
     }, 0);
-  }, []);
+  }, [handleSearchChange]);
 
   const hasActiveFilters = Object.values(filters).some(value => 
     value !== undefined && value !== '' && value !== null
@@ -112,8 +105,8 @@ export const CaseFilters: React.FC<CaseFiltersProps> = ({
                 ref={searchInputRef}
                 id="search"
                 placeholder="Search cases..."
-                value={searchValue}
-                onChange={handleSearchChange}
+                value={currentSearchValue}
+                onChange={handleSearchInputChange}
                 className="pl-10"
                 disabled={isLoading}
               />

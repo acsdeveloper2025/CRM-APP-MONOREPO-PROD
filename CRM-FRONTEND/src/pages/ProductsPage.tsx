@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Plus, Search, Filter, Download, Upload } from 'lucide-react';
+import { Plus, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { SearchWithActions } from '@/components/ui/search-layout';
+import { useSearchInput } from '@/components/ui/search-input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { productsService } from '@/services/products';
@@ -10,13 +11,15 @@ import { ProductsTable } from '@/components/clients/ProductsTable';
 import { CreateProductDialog } from '@/components/clients/CreateProductDialog';
 
 export function ProductsPage() {
-  const [searchQuery, setSearchQuery] = useState('');
   const [showCreateProduct, setShowCreateProduct] = useState(false);
+
+  // Use standardized search with debouncing
+  const { debouncedSearchValue, setSearchValue } = useSearchInput('', 400);
 
   // Fetch products data
   const { data: productsData, isLoading: productsLoading } = useQuery({
-    queryKey: ['products', searchQuery],
-    queryFn: () => productsService.getProducts({ search: searchQuery }),
+    queryKey: ['products', debouncedSearchValue],
+    queryFn: () => productsService.getProducts({ search: debouncedSearchValue }),
   });
 
   // Fetch product stats
@@ -91,35 +94,32 @@ export function ProductsPage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {/* Search and Actions */}
-            <div className="flex items-center justify-between">
-              <div className="relative">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search products..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-8 w-64"
-                />
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                >
-                  <Upload className="h-4 w-4 mr-2" />
-                  Import
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={() => setShowCreateProduct(true)}
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Product
-                </Button>
-              </div>
-            </div>
+            {/* Standardized Search and Actions */}
+            <SearchWithActions
+              onSearch={setSearchValue}
+              placeholder="Search products..."
+              isLoading={productsLoading}
+              actions={
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full sm:w-auto min-h-[44px] sm:min-h-[40px]"
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    Import
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => setShowCreateProduct(true)}
+                    className="w-full sm:w-auto min-h-[44px] sm:min-h-[40px]"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Product
+                  </Button>
+                </>
+              }
+            />
 
             {/* Products Table */}
             <ProductsTable

@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Check, User, FileText } from 'lucide-react';
+import { Check, User, FileText, Target } from 'lucide-react';
 import { CustomerInfoStep, type CustomerInfoData } from './CustomerInfoStep';
 import { FullCaseFormStep, type FullCaseFormData } from './FullCaseFormStep';
+import { CaseWithTasksCreationForm } from './CaseWithTasksCreationForm';
+
 import { DeduplicationDialog } from './DeduplicationDialog';
 import { deduplicationService, type DeduplicationResult } from '@/services/deduplication';
 import { casesService, type CreateCaseData } from '@/services/cases';
@@ -22,7 +24,8 @@ interface CaseCreationStepperProps {
   };
 }
 
-type Step = 'customer-info' | 'case-details';
+type Step = 'mode-selection' | 'customer-info' | 'case-details' | 'multi-task-details';
+type CaseCreationMode = 'single-task' | 'multi-task';
 
 // Helper function to map verification type names to backend expected values
 const mapVerificationType = (verificationType: string): string => {
@@ -83,6 +86,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
   const [currentStep, setCurrentStep] = useState<Step>(
     editMode ? 'case-details' : 'customer-info'
   );
+  const [caseCreationMode, setCaseCreationMode] = useState<CaseCreationMode>('multi-task');
   const [customerInfo, setCustomerInfo] = useState<CustomerInfoData | null>(
     initialData?.customerInfo || null
   );
@@ -118,7 +122,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
     }
   }, [editMode, initialData]);
 
-  const steps = [
+  const steps = editMode ? [
     {
       id: 'customer-info' as const,
       title: 'Customer Information',
@@ -131,6 +135,21 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
       title: 'Case Details',
       description: 'Complete case information',
       icon: FileText,
+      completed: false,
+    },
+  ] : [
+    {
+      id: 'customer-info' as const,
+      title: 'Customer Information',
+      description: 'Enter customer details',
+      icon: User,
+      completed: currentStep === 'multi-task-details' || (currentStep === 'customer-info' && customerInfo !== null),
+    },
+    {
+      id: 'multi-task-details' as const,
+      title: 'Case & Task Details',
+      description: 'Configure case and verification task',
+      icon: Target,
       completed: false,
     },
   ];
@@ -175,7 +194,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
 
   const proceedToCaseDetails = (data: CustomerInfoData) => {
     setCustomerInfo(data);
-    setCurrentStep('case-details');
+    setCurrentStep('multi-task-details');
   };
 
   const handleSearchExisting = (data: CustomerInfoData) => {
@@ -200,6 +219,14 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
     setDeduplicationCompleted(false);
     setDeduplicationResult(null);
     setDeduplicationRationale('Case created through two-step workflow');
+  };
+
+
+
+  const handleMultiTaskCaseCreation = (caseId: string) => {
+    if (onSuccess) {
+      onSuccess(caseId);
+    }
   };
 
   const handleCaseFormSubmit = async (data: FullCaseFormData, attachments: any[] = []) => {
@@ -476,6 +503,15 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
             isSubmitting={isSubmitting}
             initialData={caseFormData || initialData?.caseFormData || {}}
             editMode={editMode}
+          />
+        )}
+
+        {currentStep === 'multi-task-details' && customerInfo && (
+          <CaseWithTasksCreationForm
+            customerInfo={customerInfo}
+            onSubmit={handleMultiTaskCaseCreation}
+            onBack={handleBackToCustomerInfo}
+            isSubmitting={isSubmitting}
           />
         )}
       </div>

@@ -1,49 +1,64 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Plus, Search, Filter, Download, Upload } from 'lucide-react';
+import { Plus, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { TabSearchLayout } from '@/components/ui/search-layout';
+import { useSearchInput } from '@/components/ui/search-input';
 import { clientsService } from '@/services/clients';
+import { documentTypesService } from '@/services/documentTypes';
 import { ClientsTable } from '@/components/clients/ClientsTable';
 import { ProductsTable } from '@/components/clients/ProductsTable';
 import { VerificationTypesTable } from '@/components/clients/VerificationTypesTable';
+import { DocumentTypesTable } from '@/components/document-types/DocumentTypesTable';
 import { CreateClientDialog } from '@/components/clients/CreateClientDialog';
 import { CreateProductDialog } from '@/components/clients/CreateProductDialog';
 import { CreateVerificationTypeDialog } from '@/components/clients/CreateVerificationTypeDialog';
+import { CreateDocumentTypeDialog } from '@/components/document-types/CreateDocumentTypeDialog';
 import { BulkImportDialog } from '@/components/clients/BulkImportDialog';
 
 export function ClientsPage() {
   const [activeTab, setActiveTab] = useState('clients');
-  const [searchQuery, setSearchQuery] = useState('');
   const [showCreateClient, setShowCreateClient] = useState(false);
   const [showCreateProduct, setShowCreateProduct] = useState(false);
   const [showCreateVerificationType, setShowCreateVerificationType] = useState(false);
+  const [showCreateDocumentType, setShowCreateDocumentType] = useState(false);
   const [showBulkImport, setShowBulkImport] = useState(false);
   const [bulkImportType, setBulkImportType] = useState<'clients' | 'products'>('clients');
 
+  // Use standardized search with debouncing
+  const { debouncedSearchValue, setSearchValue, clearSearch } = useSearchInput('', 400);
+
+  // Clear search when switching tabs
+  useEffect(() => {
+    clearSearch();
+  }, [activeTab, clearSearch]);
 
   // Fetch data based on active tab
-  const { data: clientsData, isLoading: clientsLoading, error: clientsError } = useQuery({
-    queryKey: ['clients', searchQuery],
-    queryFn: () => clientsService.getClients({ search: searchQuery }),
+  const { data: clientsData, isLoading: clientsLoading } = useQuery({
+    queryKey: ['clients', debouncedSearchValue],
+    queryFn: () => clientsService.getClients({ search: debouncedSearchValue }),
     enabled: activeTab === 'clients',
   });
 
-
-
   const { data: productsData, isLoading: productsLoading } = useQuery({
-    queryKey: ['products', searchQuery],
-    queryFn: () => clientsService.getProducts({ search: searchQuery }),
+    queryKey: ['products', debouncedSearchValue],
+    queryFn: () => clientsService.getProducts({ search: debouncedSearchValue }),
     enabled: activeTab === 'products',
   });
 
   const { data: verificationTypesData, isLoading: verificationTypesLoading } = useQuery({
-    queryKey: ['verification-types', searchQuery],
-    queryFn: () => clientsService.getVerificationTypes({ search: searchQuery }),
+    queryKey: ['verification-types', debouncedSearchValue],
+    queryFn: () => clientsService.getVerificationTypes({ search: debouncedSearchValue }),
     enabled: activeTab === 'verification-types',
+  });
+
+  const { data: documentTypesData, isLoading: documentTypesLoading } = useQuery({
+    queryKey: ['document-types', debouncedSearchValue],
+    queryFn: () => documentTypesService.getDocumentTypes({ search: debouncedSearchValue }),
+    enabled: activeTab === 'document-types',
   });
 
   const handleBulkImport = (type: 'clients' | 'products') => {
@@ -56,6 +71,7 @@ export function ClientsPage() {
       clients: clientsData?.data?.length || 0,
       products: productsData?.data?.length || 0,
       verificationTypes: verificationTypesData?.data?.length || 0,
+      documentTypes: documentTypesData?.data?.length || 0,
     };
   };
 
@@ -75,9 +91,9 @@ export function ClientsPage() {
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
+      {/* Stats Cards - Following responsive grid pattern */}
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+        <Card className="transition-all duration-200 hover:shadow-md">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Clients</CardTitle>
           </CardHeader>
@@ -88,7 +104,7 @@ export function ClientsPage() {
             </p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="transition-all duration-200 hover:shadow-md">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Products</CardTitle>
           </CardHeader>
@@ -99,7 +115,7 @@ export function ClientsPage() {
             </p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="transition-all duration-200 hover:shadow-md sm:col-span-2 lg:col-span-1">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Verification Types</CardTitle>
           </CardHeader>
@@ -124,119 +140,167 @@ export function ClientsPage() {
             </div>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-4 sm:p-6">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-            <div className="flex items-center justify-between">
-              <TabsList>
-                <TabsTrigger value="clients">
-                  Clients
-                  {stats.clients > 0 && (
-                    <Badge variant="secondary" className="ml-2">
-                      {stats.clients}
-                    </Badge>
+            {/* Standardized Tab Search Layout */}
+            <TabSearchLayout
+              searchProps={{
+                onSearch: setSearchValue,
+                placeholder: "Search...",
+                isLoading: clientsLoading || productsLoading || verificationTypesLoading || documentTypesLoading,
+              }}
+              tabs={
+                <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 lg:w-auto lg:grid-cols-4 min-w-max">
+                  <TabsTrigger value="clients" className="text-xs sm:text-sm whitespace-nowrap">
+                    <span className="hidden sm:inline">Clients</span>
+                    <span className="sm:hidden">Clients</span>
+                    {stats.clients > 0 && (
+                      <Badge variant="secondary" className="ml-1 sm:ml-2 text-xs">
+                        {stats.clients}
+                      </Badge>
+                    )}
+                  </TabsTrigger>
+                  <TabsTrigger value="products" className="text-xs sm:text-sm whitespace-nowrap">
+                    <span className="hidden sm:inline">Products</span>
+                    <span className="sm:hidden">Products</span>
+                    {stats.products > 0 && (
+                      <Badge variant="secondary" className="ml-1 sm:ml-2 text-xs">
+                        {stats.products}
+                      </Badge>
+                    )}
+                  </TabsTrigger>
+                  <TabsTrigger value="verification-types" className="text-xs sm:text-sm whitespace-nowrap">
+                    <span className="hidden sm:inline">Verification Types</span>
+                    <span className="sm:hidden">Verify</span>
+                    {stats.verificationTypes > 0 && (
+                      <Badge variant="secondary" className="ml-1 sm:ml-2 text-xs">
+                        {stats.verificationTypes}
+                      </Badge>
+                    )}
+                  </TabsTrigger>
+                  <TabsTrigger value="document-types" className="text-xs sm:text-sm whitespace-nowrap">
+                    <span className="hidden sm:inline">Document Types</span>
+                    <span className="sm:hidden">Docs</span>
+                    {stats.documentTypes > 0 && (
+                      <Badge variant="secondary" className="ml-1 sm:ml-2 text-xs">
+                        {stats.documentTypes}
+                      </Badge>
+                    )}
+                  </TabsTrigger>
+                </TabsList>
+              }
+              actions={
+                <>
+                  {activeTab === 'clients' && (
+                    <>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleBulkImport('clients')}
+                        className="w-full sm:w-auto min-h-[44px] sm:min-h-[40px]"
+                      >
+                        <Upload className="h-4 w-4 mr-2" />
+                        <span className="hidden sm:inline">Import</span>
+                        <span className="sm:hidden">Import Clients</span>
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={() => setShowCreateClient(true)}
+                        className="w-full sm:w-auto min-h-[44px] sm:min-h-[40px]"
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        <span className="hidden sm:inline">Add Client</span>
+                        <span className="sm:hidden">Add Client</span>
+                      </Button>
+                    </>
                   )}
-                </TabsTrigger>
-                <TabsTrigger value="products">
-                  Products
-                  {stats.products > 0 && (
-                    <Badge variant="secondary" className="ml-2">
-                      {stats.products}
-                    </Badge>
-                  )}
-                </TabsTrigger>
-                <TabsTrigger value="verification-types">
-                  Verification Types
-                  {stats.verificationTypes > 0 && (
-                    <Badge variant="secondary" className="ml-2">
-                      {stats.verificationTypes}
-                    </Badge>
-                  )}
-                </TabsTrigger>
-              </TabsList>
 
-              {/* Search and Actions */}
-              <div className="flex items-center space-x-2">
-                <div className="relative">
-                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-8 w-64"
-                  />
-                </div>
-                
-                {activeTab === 'clients' && (
-                  <>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleBulkImport('clients')}
-                    >
-                      <Upload className="h-4 w-4 mr-2" />
-                      Import
-                    </Button>
-                    <Button
-                      size="sm"
-                      onClick={() => setShowCreateClient(true)}
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Client
-                    </Button>
-                  </>
-                )}
-                
-                {activeTab === 'products' && (
-                  <>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleBulkImport('products')}
-                    >
-                      <Upload className="h-4 w-4 mr-2" />
-                      Import
-                    </Button>
+                  {activeTab === 'products' && (
+                    <>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleBulkImport('products')}
+                        className="w-full sm:w-auto min-h-[44px] sm:min-h-[40px]"
+                      >
+                        <Upload className="h-4 w-4 mr-2" />
+                        <span className="hidden sm:inline">Import</span>
+                        <span className="sm:hidden">Import Products</span>
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={() => setShowCreateProduct(true)}
+                        className="w-full sm:w-auto min-h-[44px] sm:min-h-[40px]"
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        <span className="hidden sm:inline">Add Product</span>
+                        <span className="sm:hidden">Add Product</span>
+                      </Button>
+                    </>
+                  )}
+
+                  {activeTab === 'verification-types' && (
                     <Button
                       size="sm"
-                      onClick={() => setShowCreateProduct(true)}
+                      onClick={() => setShowCreateVerificationType(true)}
+                      className="w-full sm:w-auto min-h-[44px] sm:min-h-[40px]"
                     >
                       <Plus className="h-4 w-4 mr-2" />
-                      Add Product
+                      <span className="hidden sm:inline">Add Type</span>
+                      <span className="sm:hidden">Add Verification Type</span>
                     </Button>
-                  </>
-                )}
-                
-                {activeTab === 'verification-types' && (
-                  <Button
-                    size="sm"
-                    onClick={() => setShowCreateVerificationType(true)}
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Type
-                  </Button>
-                )}
+                  )}
+
+                  {activeTab === 'document-types' && (
+                    <Button
+                      size="sm"
+                      onClick={() => setShowCreateDocumentType(true)}
+                      className="w-full sm:w-auto min-h-[44px] sm:min-h-[40px]"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      <span className="hidden sm:inline">Add Document Type</span>
+                      <span className="sm:hidden">Add Document</span>
+                    </Button>
+                  )}
+                </>
+              }
+            />
+
+            {/* Tab Content - Responsive with overflow handling */}
+            <TabsContent value="clients" className="space-y-4 overflow-x-auto">
+              <div className="min-w-[800px] lg:min-w-0">
+                <ClientsTable
+                  data={clientsData?.data || []}
+                  isLoading={clientsLoading}
+                />
               </div>
-            </div>
-
-            <TabsContent value="clients" className="space-y-4">
-              <ClientsTable
-                data={clientsData?.data || []}
-                isLoading={clientsLoading}
-              />
             </TabsContent>
 
-            <TabsContent value="products" className="space-y-4">
-              <ProductsTable
-                data={productsData?.data || []}
-                isLoading={productsLoading}
-              />
+            <TabsContent value="products" className="space-y-4 overflow-x-auto">
+              <div className="min-w-[800px] lg:min-w-0">
+                <ProductsTable
+                  data={productsData?.data || []}
+                  isLoading={productsLoading}
+                />
+              </div>
             </TabsContent>
 
-            <TabsContent value="verification-types" className="space-y-4">
-              <VerificationTypesTable
-                data={verificationTypesData?.data || []}
-                isLoading={verificationTypesLoading}
-              />
+            <TabsContent value="verification-types" className="space-y-4 overflow-x-auto">
+              <div className="min-w-[600px] lg:min-w-0">
+                <VerificationTypesTable
+                  data={verificationTypesData?.data || []}
+                  isLoading={verificationTypesLoading}
+                />
+              </div>
+            </TabsContent>
+
+            <TabsContent value="document-types" className="space-y-4 overflow-x-auto">
+              <div className="min-w-[700px] lg:min-w-0">
+                <DocumentTypesTable
+                  data={documentTypesData?.data || []}
+                  isLoading={documentTypesLoading}
+                />
+              </div>
             </TabsContent>
           </Tabs>
         </CardContent>
@@ -256,6 +320,11 @@ export function ClientsPage() {
       <CreateVerificationTypeDialog
         open={showCreateVerificationType}
         onOpenChange={setShowCreateVerificationType}
+      />
+
+      <CreateDocumentTypeDialog
+        open={showCreateDocumentType}
+        onOpenChange={setShowCreateDocumentType}
       />
       
       <BulkImportDialog

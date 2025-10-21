@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Plus, Search, Filter, Download, Upload } from 'lucide-react';
+import { Plus, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { SearchWithActions } from '@/components/ui/search-layout';
+import { useSearchInput } from '@/components/ui/search-input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { verificationTypesService } from '@/services/verificationTypes';
@@ -10,13 +11,15 @@ import { VerificationTypesTable } from '@/components/clients/VerificationTypesTa
 import { CreateVerificationTypeDialog } from '@/components/clients/CreateVerificationTypeDialog';
 
 export function VerificationTypesPage() {
-  const [searchQuery, setSearchQuery] = useState('');
   const [showCreateVerificationType, setShowCreateVerificationType] = useState(false);
+
+  // Use standardized search with debouncing
+  const { debouncedSearchValue, setSearchValue } = useSearchInput('', 400);
 
   // Fetch verification types data
   const { data: verificationTypesData, isLoading: verificationTypesLoading } = useQuery({
-    queryKey: ['verification-types', searchQuery],
-    queryFn: () => verificationTypesService.getVerificationTypes({ search: searchQuery }),
+    queryKey: ['verification-types', debouncedSearchValue],
+    queryFn: () => verificationTypesService.getVerificationTypes({ search: debouncedSearchValue }),
   });
 
   // Fetch verification types stats
@@ -91,35 +94,32 @@ export function VerificationTypesPage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {/* Search and Actions */}
-            <div className="flex items-center justify-between">
-              <div className="relative">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search verification types..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-8 w-64"
-                />
-              </div>
-              
-              <div className="flex items-center space-x-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                >
-                  <Upload className="h-4 w-4 mr-2" />
-                  Import
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={() => setShowCreateVerificationType(true)}
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Type
-                </Button>
-              </div>
-            </div>
+            {/* Standardized Search and Actions */}
+            <SearchWithActions
+              onSearch={setSearchValue}
+              placeholder="Search verification types..."
+              isLoading={verificationTypesLoading}
+              actions={
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full sm:w-auto min-h-[44px] sm:min-h-[40px]"
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    Import
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => setShowCreateVerificationType(true)}
+                    className="w-full sm:w-auto min-h-[44px] sm:min-h-[40px]"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Type
+                  </Button>
+                </>
+              }
+            />
 
             {/* Verification Types Table */}
             <VerificationTypesTable

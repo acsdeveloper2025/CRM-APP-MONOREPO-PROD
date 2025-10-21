@@ -9,9 +9,14 @@ import { useCases, useUpdateCaseStatus, useAssignCase, useRefreshCases } from '@
 import { Download, Plus, RefreshCw } from 'lucide-react';
 import type { CaseListQuery } from '@/services/cases';
 import { casesService } from '@/services/cases';
+import { useSearchInput } from '@/components/ui/search-input';
 
 export const CasesPage: React.FC = () => {
   const navigate = useNavigate();
+
+  // Use standardized search with debouncing
+  const { debouncedSearchValue, setSearchValue } = useSearchInput('', 400);
+
   const [filters, setFilters] = useState<CaseListQuery>({
     page: 1,
     limit: 20,
@@ -19,8 +24,14 @@ export const CasesPage: React.FC = () => {
     sortOrder: 'desc', // Changed to desc for newest cases first
   });
 
+  // Merge search with other filters for the query
+  const queryFilters = {
+    ...filters,
+    search: debouncedSearchValue || undefined,
+  };
+
   // Add error handling
-  const { data: casesData, isLoading, error, refetch } = useCases(filters);
+  const { data: casesData, isLoading, error, refetch } = useCases(queryFilters);
   const updateStatusMutation = useUpdateCaseStatus();
   const assignCaseMutation = useAssignCase();
   const { refreshCases } = useRefreshCases();
@@ -34,6 +45,7 @@ export const CasesPage: React.FC = () => {
   };
 
   const handleFiltersChange = (newFilters: CaseListQuery) => {
+    console.log('🔍 Cases Page - Filters changed:', newFilters); // Debug log
     setFilters({
       ...newFilters,
       page: 1, // Reset to first page when filters change
@@ -41,11 +53,13 @@ export const CasesPage: React.FC = () => {
   };
 
   const handleClearFilters = () => {
+    console.log('🧹 Cases Page - Clearing filters'); // Debug log
+    setSearchValue(''); // Clear search
     setFilters({
       page: 1,
       limit: filters.limit,
       sortBy: 'caseId',
-      sortOrder: 'asc',
+      sortOrder: 'desc',
     });
   };
 
@@ -143,6 +157,8 @@ export const CasesPage: React.FC = () => {
         onFiltersChange={handleFiltersChange}
         onClearFilters={handleClearFilters}
         isLoading={isLoading}
+        searchValue={debouncedSearchValue}
+        onSearchChange={setSearchValue}
       />
 
       {/* Cases Table */}
