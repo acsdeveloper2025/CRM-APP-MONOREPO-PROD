@@ -54,6 +54,36 @@ export type {
   VerificationType
 } from './client';
 
+// Document Type Management Types
+export type {
+  DocumentType,
+  DocumentCategory,
+  ClientDocumentType,
+  ProductDocumentType,
+  CreateDocumentTypeData,
+  UpdateDocumentTypeData,
+  DocumentTypeFilters,
+  DocumentTypeStats,
+  AssignDocumentTypesToClientData,
+  AssignDocumentTypesToProductData,
+  ClientDocumentTypeAssignment,
+  ProductDocumentTypeAssignment,
+  BulkDocumentTypeOperation,
+  DocumentTypeImportData,
+  DocumentValidationResult,
+  ValidateDocumentRequest,
+  DocumentTypeExportData,
+  CommonDocumentType
+} from './documentType';
+
+// Document Type Constants
+export {
+  DOCUMENT_CATEGORIES,
+  COMMON_DOCUMENT_TYPES,
+  DOCUMENT_TYPE_DISPLAY_NAMES,
+  DOCUMENT_TYPE_COLORS
+} from './documentType';
+
 // Form Types
 export type {
   FormType,

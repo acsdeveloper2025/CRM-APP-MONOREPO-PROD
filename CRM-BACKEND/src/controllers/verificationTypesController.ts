@@ -14,17 +14,30 @@ export const getVerificationTypes = async (req: AuthenticatedRequest, res: Respo
       sortOrder = 'asc' 
     } = req.query;
 
-    // Build where clause
-    const whereClause: any = {};
+    // Build where clause for search
+    let whereClause = '';
+    let queryParams: any[] = [];
+    let paramIndex = 1;
 
-    // Get total count
-    const countRes = await query<{ count: string }>(`SELECT COUNT(*)::text as count FROM "verificationTypes"`);
+    if (search && String(search).trim()) {
+      const searchTerm = `%${String(search).trim()}%`;
+      whereClause = `WHERE name ILIKE $${paramIndex} OR code ILIKE $${paramIndex} OR description ILIKE $${paramIndex}`;
+      queryParams.push(searchTerm);
+      paramIndex++;
+    }
+
+    // Get total count with search filter
+    const countQuery = `SELECT COUNT(*)::text as count FROM "verificationTypes" ${whereClause}`;
+    const countRes = await query<{ count: string }>(countQuery, queryParams);
     const totalCount = Number(countRes.rows[0]?.count || 0);
 
-    // Get verification types with pagination
+    // Get verification types with pagination and search
     const sortCol = ['name', 'code', 'category', 'basePrice', 'estimatedTime', 'createdAt', 'updatedAt'].includes(String(sortBy)) ? String(sortBy) : 'name';
     const sortDir = String(sortOrder).toLowerCase() === 'desc' ? 'DESC' : 'ASC';
-    const vtRes = await query(`SELECT * FROM "verificationTypes" ORDER BY "${sortCol}" ${sortDir} LIMIT $1 OFFSET $2`, [Number(limit), (Number(page) - 1) * Number(limit)]);
+
+    const dataQuery = `SELECT * FROM "verificationTypes" ${whereClause} ORDER BY "${sortCol}" ${sortDir} LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
+    const dataParams = [...queryParams, Number(limit), (Number(page) - 1) * Number(limit)];
+    const vtRes = await query(dataQuery, dataParams);
     const verificationTypes = vtRes.rows;
 
     logger.info(`Retrieved ${verificationTypes.length} verification types from database`, {

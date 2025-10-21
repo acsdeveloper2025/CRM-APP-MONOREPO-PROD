@@ -3,6 +3,9 @@ import { AuthenticatedRequest } from '../middleware/auth';
 import { logger } from '../utils/logger';
 import { pool, query } from '../config/database';
 import { EnterpriseCacheService, CacheKeys } from '../services/enterpriseCacheService';
+import { VerificationTasksController } from './verificationTasksController';
+import { CreateVerificationTaskData } from '../types/verificationTask';
+import { createAuditLog } from '../utils/auditLogger';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
@@ -1466,4 +1469,444 @@ export const exportCases = async (req: AuthenticatedRequest, res: Response) => {
       error: process.env.NODE_ENV === 'development' ? error : undefined
     });
   }
-};;
+};
+
+// =====================================================
+// ENHANCED MULTI-VERIFICATION CASE CREATION
+// =====================================================
+
+/**
+ * Create case with multiple verification tasks
+ * POST /api/cases/with-multiple-tasks
+ */
+export const createCaseWithMultipleTasks = async (req: AuthenticatedRequest, res: Response) => {
+  const { case_details, verification_tasks } = req.body;
+  const userId = req.user?.id;
+
+  if (!case_details) {
+    return res.status(400).json({
+      success: false,
+      message: 'case_details is required',
+      error: { code: 'INVALID_INPUT' }
+    });
+  }
+
+  if (!verification_tasks || !Array.isArray(verification_tasks) || verification_tasks.length === 0) {
+    return res.status(400).json({
+      success: false,
+      message: 'verification_tasks array is required and must not be empty',
+      error: { code: 'INVALID_INPUT' }
+    });
+  }
+
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    // Extract case details
+    const {
+      customerName,
+      customerPhone,
+      customerCallingCode,
+      customerEmail,
+      clientId,
+      productId,
+      priority = 'MEDIUM',
+      address,
+      pincode,
+      applicantType,
+      backendContactNumber,
+      trigger
+    } = case_details;
+
+    // Validate required case fields
+    if (!customerName || !clientId || !productId) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({
+        success: false,
+        message: 'customerName, clientId, and productId are required in case_details',
+        error: { code: 'INVALID_CASE_DATA' }
+      });
+    }
+
+    // Create the main case (without verificationTypeId for multi-task cases)
+    const insertCaseQuery = `
+      INSERT INTO cases (
+        "customerName", "customerPhone", "customerCallingCode", "customerEmail",
+        "clientId", "productId", address, pincode, priority, trigger,
+        "applicantType", "backendContactNumber", status, "createdByBackendUser",
+        has_multiple_tasks, total_tasks_count, completed_tasks_count,
+        case_completion_percentage, "createdAt", "updatedAt"
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, NOW(), NOW())
+      RETURNING *
+    `;
+
+    const caseValues = [
+      customerName,
+      customerPhone,
+      customerCallingCode,
+      customerEmail,
+      clientId,
+      productId,
+      address,
+      pincode,
+      priority,
+      trigger,
+      applicantType,
+      backendContactNumber,
+      'PENDING', // Initial status
+      userId,
+      true, // has_multiple_tasks
+      verification_tasks.length, // total_tasks_count
+      0, // completed_tasks_count
+      0.0 // case_completion_percentage
+    ];
+
+    const caseResult = await client.query(insertCaseQuery, caseValues);
+    const newCase = caseResult.rows[0];
+
+    logger.info('Multi-task case created:', {
+      caseId: newCase.id,
+      customerName,
+      tasksCount: verification_tasks.length,
+      userId
+    });
+
+    // Create verification tasks
+    const createdTasks = [];
+    let totalEstimatedAmount = 0;
+
+    for (const taskData of verification_tasks) {
+      const {
+        verification_type_id,
+        task_title,
+        task_description,
+        priority: taskPriority = 'MEDIUM',
+        assigned_to,
+        rate_type_id,
+        estimated_amount,
+        address: taskAddress,
+        pincode: taskPincode,
+        document_type,
+        document_number,
+        document_details,
+        estimated_completion_date
+      } = taskData;
+
+      // Validate required task fields
+      if (!verification_type_id || !task_title) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({
+          success: false,
+          message: 'verification_type_id and task_title are required for each task',
+          error: { code: 'INVALID_TASK_DATA' }
+        });
+      }
+
+      // Insert verification task
+      const taskResult = await client.query(`
+        INSERT INTO verification_tasks (
+          case_id, verification_type_id, task_title, task_description,
+          priority, assigned_to, assigned_by, assigned_at,
+          rate_type_id, estimated_amount, address, pincode,
+          document_type, document_number, document_details,
+          estimated_completion_date, status, created_by
+        ) VALUES (
+          $1, $2, $3, $4, $5, $6, $7,
+          CASE WHEN $6 IS NOT NULL THEN NOW() ELSE NULL END,
+          $8, $9, $10, $11, $12, $13, $14, $15,
+          CASE WHEN $6 IS NOT NULL THEN 'ASSIGNED' ELSE 'PENDING' END,
+          $16
+        ) RETURNING *
+      `, [
+        newCase.id, verification_type_id, task_title, task_description,
+        taskPriority, assigned_to, userId,
+        rate_type_id, estimated_amount, taskAddress || address, taskPincode || pincode,
+        document_type, document_number, JSON.stringify(document_details),
+        estimated_completion_date, userId
+      ]);
+
+      const task = taskResult.rows[0];
+      createdTasks.push(task);
+      totalEstimatedAmount += estimated_amount || 0;
+
+      // Create assignment history if assigned
+      if (assigned_to) {
+        await client.query(`
+          INSERT INTO task_assignment_history (
+            verification_task_id, case_id, assigned_to, assigned_by,
+            assignment_reason, task_status_before, task_status_after
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+        `, [
+          task.id, newCase.id, assigned_to, userId,
+          'Initial assignment during case creation', 'PENDING', 'ASSIGNED'
+        ]);
+      }
+
+      // Create audit log for task creation
+      await createAuditLog({
+        userId: userId!,
+        action: 'CREATE_VERIFICATION_TASK',
+        entityType: 'VERIFICATION_TASK',
+        entityId: task.id,
+        details: {
+          caseId: newCase.id,
+          taskTitle: task_title,
+          verificationType: verification_type_id,
+          assignedTo: assigned_to
+        }
+      });
+    }
+
+    // Create audit log for case creation
+    await createAuditLog({
+      userId: userId!,
+      action: 'CREATE_CASE_WITH_MULTIPLE_TASKS',
+      entityType: 'CASE',
+      entityId: newCase.id,
+      details: {
+        customerName,
+        clientId,
+        productId,
+        tasksCount: verification_tasks.length,
+        totalEstimatedAmount
+      }
+    });
+
+    await client.query('COMMIT');
+
+    // Fetch created case with populated data
+    const populatedCaseResult = await pool.query(`
+      SELECT
+        c.*,
+        cl.name as client_name,
+        p.name as product_name,
+        u.name as created_by_name
+      FROM cases c
+      LEFT JOIN clients cl ON c."clientId" = cl.id
+      LEFT JOIN products p ON c."productId" = p.id
+      LEFT JOIN users u ON c."createdByBackendUser" = u.id
+      WHERE c.id = $1
+    `, [newCase.id]);
+
+    const populatedCase = populatedCaseResult.rows[0];
+
+    // Fetch created tasks with populated data
+    const populatedTasksResult = await pool.query(`
+      SELECT
+        vt.*,
+        vtype.name as verification_type_name,
+        u_assigned.name as assigned_to_name,
+        rt.name as rate_type_name
+      FROM verification_tasks vt
+      LEFT JOIN "verificationTypes" vtype ON vt.verification_type_id = vtype.id
+      LEFT JOIN users u_assigned ON vt.assigned_to = u_assigned.id
+      LEFT JOIN "rateTypes" rt ON vt.rate_type_id = rt.id
+      WHERE vt.case_id = $1
+      ORDER BY vt.created_at ASC
+    `, [newCase.id]);
+
+    res.status(201).json({
+      success: true,
+      data: {
+        case: populatedCase,
+        verification_tasks: populatedTasksResult.rows,
+        summary: {
+          case_id: newCase.id,
+          case_number: newCase.caseId,
+          customer_name: customerName,
+          total_tasks: verification_tasks.length,
+          total_estimated_amount: totalEstimatedAmount,
+          assigned_tasks: createdTasks.filter(t => t.assigned_to).length,
+          pending_tasks: createdTasks.filter(t => !t.assigned_to).length
+        }
+      },
+      message: 'Case with multiple verification tasks created successfully'
+    });
+
+  } catch (error) {
+    await client.query('ROLLBACK');
+    logger.error('Error creating case with multiple tasks:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to create case with multiple tasks',
+      error: { code: 'INTERNAL_ERROR' }
+    });
+  } finally {
+    client.release();
+  }
+};
+
+/**
+ * Get case summary with verification tasks
+ * GET /api/cases/:caseId/summary
+ */
+export const getCaseSummaryWithTasks = async (req: AuthenticatedRequest, res: Response) => {
+  const { caseId } = req.params;
+
+  try {
+    // Get case information
+    const caseResult = await pool.query(`
+      SELECT
+        c.*,
+        cl.name as client_name,
+        p.name as product_name,
+        u.name as created_by_name
+      FROM cases c
+      LEFT JOIN clients cl ON c."clientId" = cl.id
+      LEFT JOIN products p ON c."productId" = p.id
+      LEFT JOIN users u ON c."createdByBackendUser" = u.id
+      WHERE c.id = $1
+    `, [caseId]);
+
+    if (caseResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Case not found',
+        error: { code: 'CASE_NOT_FOUND' }
+      });
+    }
+
+    const caseInfo = caseResult.rows[0];
+
+    // Get task summary
+    const taskSummaryResult = await pool.query(`
+      SELECT
+        COUNT(*) as total_tasks,
+        COUNT(CASE WHEN status = 'PENDING' THEN 1 END) as pending_tasks,
+        COUNT(CASE WHEN status = 'ASSIGNED' THEN 1 END) as assigned_tasks,
+        COUNT(CASE WHEN status = 'IN_PROGRESS' THEN 1 END) as in_progress_tasks,
+        COUNT(CASE WHEN status = 'COMPLETED' THEN 1 END) as completed_tasks,
+        COUNT(CASE WHEN status = 'CANCELLED' THEN 1 END) as cancelled_tasks,
+        COUNT(CASE WHEN status = 'ON_HOLD' THEN 1 END) as on_hold_tasks
+      FROM verification_tasks
+      WHERE case_id = $1
+    `, [caseId]);
+
+    const taskSummary = taskSummaryResult.rows[0];
+
+    // Get financial summary
+    const financialSummaryResult = await pool.query(`
+      SELECT
+        COALESCE(SUM(estimated_amount), 0) as total_estimated_amount,
+        COALESCE(SUM(actual_amount), 0) as total_actual_amount,
+        COALESCE(SUM(CASE WHEN status = 'COMPLETED' THEN actual_amount ELSE 0 END), 0) as completed_amount,
+        COALESCE(SUM(CASE WHEN status != 'COMPLETED' AND status != 'CANCELLED' THEN estimated_amount ELSE 0 END), 0) as pending_amount
+      FROM verification_tasks
+      WHERE case_id = $1
+    `, [caseId]);
+
+    const financialSummary = financialSummaryResult.rows[0];
+
+    // Get commission summary
+    const commissionSummaryResult = await pool.query(`
+      SELECT
+        COALESCE(SUM(calculated_commission), 0) as total_commission,
+        COALESCE(SUM(CASE WHEN status = 'PAID' THEN calculated_commission ELSE 0 END), 0) as paid_commission,
+        COALESCE(SUM(CASE WHEN status = 'PENDING' OR status = 'CALCULATED' OR status = 'APPROVED' THEN calculated_commission ELSE 0 END), 0) as pending_commission
+      FROM task_commission_calculations
+      WHERE case_id = $1
+    `, [caseId]);
+
+    const commissionSummary = commissionSummaryResult.rows[0];
+
+    // Get recent activities
+    const recentActivitiesResult = await pool.query(`
+      SELECT
+        'TASK_CREATED' as type,
+        vt.id as task_id,
+        vt.task_title,
+        u.name as user_name,
+        vt.created_at as timestamp,
+        NULL as details
+      FROM verification_tasks vt
+      LEFT JOIN users u ON vt.created_by = u.id
+      WHERE vt.case_id = $1
+
+      UNION ALL
+
+      SELECT
+        'TASK_ASSIGNED' as type,
+        tah.verification_task_id as task_id,
+        vt.task_title,
+        u.name as user_name,
+        tah.assigned_at as timestamp,
+        json_build_object('assigned_to', u_assigned.name, 'reason', tah.assignment_reason) as details
+      FROM task_assignment_history tah
+      JOIN verification_tasks vt ON tah.verification_task_id = vt.id
+      LEFT JOIN users u ON tah.assigned_by = u.id
+      LEFT JOIN users u_assigned ON tah.assigned_to = u_assigned.id
+      WHERE tah.case_id = $1
+
+      UNION ALL
+
+      SELECT
+        'TASK_COMPLETED' as type,
+        vt.id as task_id,
+        vt.task_title,
+        u.name as user_name,
+        vt.completed_at as timestamp,
+        json_build_object('outcome', vt.verification_outcome, 'amount', vt.actual_amount) as details
+      FROM verification_tasks vt
+      LEFT JOIN users u ON vt.assigned_to = u.id
+      WHERE vt.case_id = $1 AND vt.status = 'COMPLETED'
+
+      ORDER BY timestamp DESC
+      LIMIT 10
+    `, [caseId]);
+
+    res.json({
+      success: true,
+      data: {
+        case: {
+          id: caseInfo.id,
+          case_number: caseInfo.caseId,
+          customer_name: caseInfo.customerName,
+          customer_phone: caseInfo.customerPhone,
+          customer_email: caseInfo.customerEmail,
+          client_name: caseInfo.client_name,
+          product_name: caseInfo.product_name,
+          status: caseInfo.status,
+          priority: caseInfo.priority,
+          address: caseInfo.address,
+          pincode: caseInfo.pincode,
+          has_multiple_tasks: caseInfo.has_multiple_tasks,
+          total_tasks_count: parseInt(caseInfo.total_tasks_count || '0'),
+          completed_tasks_count: parseInt(caseInfo.completed_tasks_count || '0'),
+          case_completion_percentage: parseFloat(caseInfo.case_completion_percentage || '0'),
+          created_at: caseInfo.createdAt,
+          created_by_name: caseInfo.created_by_name
+        },
+        task_summary: {
+          total_tasks: parseInt(taskSummary.total_tasks),
+          pending_tasks: parseInt(taskSummary.pending_tasks),
+          assigned_tasks: parseInt(taskSummary.assigned_tasks),
+          in_progress_tasks: parseInt(taskSummary.in_progress_tasks),
+          completed_tasks: parseInt(taskSummary.completed_tasks),
+          cancelled_tasks: parseInt(taskSummary.cancelled_tasks),
+          on_hold_tasks: parseInt(taskSummary.on_hold_tasks)
+        },
+        financial_summary: {
+          total_estimated_amount: parseFloat(financialSummary.total_estimated_amount),
+          total_actual_amount: parseFloat(financialSummary.total_actual_amount),
+          completed_amount: parseFloat(financialSummary.completed_amount),
+          pending_amount: parseFloat(financialSummary.pending_amount),
+          total_commission: parseFloat(commissionSummary.total_commission),
+          paid_commission: parseFloat(commissionSummary.paid_commission),
+          pending_commission: parseFloat(commissionSummary.pending_commission)
+        },
+        recent_activities: recentActivitiesResult.rows
+      },
+      message: 'Case summary retrieved successfully'
+    });
+
+  } catch (error) {
+    logger.error('Error getting case summary:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get case summary',
+      error: { code: 'INTERNAL_ERROR' }
+    });
+  }
+};

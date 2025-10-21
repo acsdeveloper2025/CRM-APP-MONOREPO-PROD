@@ -1,4 +1,5 @@
 import { BaseEntity } from './index';
+import { DocumentType } from './documentType';
 
 export interface Client extends Omit<BaseEntity, 'id'> {
   id: number; // Numeric ID for clients (SERIAL)
@@ -10,6 +11,7 @@ export interface Client extends Omit<BaseEntity, 'id'> {
   isActive?: boolean;
   products?: Product[];
   verificationTypes?: VerificationType[];
+  documentTypes?: DocumentType[];
 }
 
 export interface Product extends Omit<BaseEntity, 'id'> {
@@ -34,6 +36,7 @@ export interface CreateClientData {
   code: string;
   productIds?: number[]; // Changed from string[] to number[]
   verificationTypeIds?: number[]; // Changed from string[] to number[]
+  documentTypeIds?: number[];
 }
 
 export interface UpdateClientData {
@@ -41,6 +44,7 @@ export interface UpdateClientData {
   code?: string;
   productIds?: number[]; // Changed from string[] to number[]
   verificationTypeIds?: number[]; // Changed from string[] to number[]
+  documentTypeIds?: number[];
 }
 
 export interface CreateProductData {

@@ -29,6 +29,7 @@ import toast from 'react-hot-toast';
 import { clientsService } from '@/services/clients';
 import { productsService } from '@/services/products';
 import { verificationTypesService } from '@/services/verificationTypes';
+import { documentTypesService } from '@/services/documentTypes';
 
 const createClientSchema = z.object({
   name: z.string().min(1, 'Client name is required').max(100, 'Name too long'),
@@ -37,7 +38,8 @@ const createClientSchema = z.object({
     .max(10, 'Client code must be at most 10 characters')
     .regex(/^[A-Z0-9_]+$/, 'Client code must contain only uppercase letters, numbers, and underscores'),
   productIds: z.array(z.string()).optional(),
-  verificationTypeIds: z.array(z.string()).optional(),
+  verificationTypeIds: z.array(z.number()).optional(),
+  documentTypeIds: z.array(z.number()).optional(),
 });
 
 type CreateClientFormData = z.infer<typeof createClientSchema>;
@@ -57,6 +59,7 @@ export function CreateClientDialog({ open, onOpenChange }: CreateClientDialogPro
       code: '',
       productIds: [],
       verificationTypeIds: [],
+      documentTypeIds: [],
     },
   });
 
@@ -71,6 +74,13 @@ export function CreateClientDialog({ open, onOpenChange }: CreateClientDialogPro
   const { data: verificationTypesData } = useQuery({
     queryKey: ['verification-types'],
     queryFn: () => verificationTypesService.getVerificationTypes(),
+    enabled: open,
+  });
+
+  // Fetch document types for selection
+  const { data: documentTypesData } = useQuery({
+    queryKey: ['document-types'],
+    queryFn: () => documentTypesService.getDocumentTypes({ isActive: true }),
     enabled: open,
   });
 
@@ -240,13 +250,14 @@ export function CreateClientDialog({ open, onOpenChange }: CreateClientDialogPro
                           <div key={product.id} className="flex items-center space-x-2">
                             <Checkbox
                               id={`product-${product.id}`}
-                              checked={field.value?.includes(product.id) || false}
+                              checked={field.value?.includes(String(product.id)) || false}
                               onCheckedChange={(checked) => {
                                 const currentIds = field.value || [];
+                                const productIdStr = String(product.id);
                                 if (checked) {
-                                  field.onChange([...currentIds, product.id]);
+                                  field.onChange([...currentIds, productIdStr]);
                                 } else {
-                                  field.onChange(currentIds.filter(id => id !== product.id));
+                                  field.onChange(currentIds.filter(id => id !== productIdStr));
                                 }
                               }}
                             />
@@ -317,6 +328,59 @@ export function CreateClientDialog({ open, onOpenChange }: CreateClientDialogPro
                     ) : (
                       <div className="text-sm text-muted-foreground">
                         No verification types available. Create verification types first.
+                      </div>
+                    )}
+                  </ScrollArea>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Document Types Selection */}
+            <FormField
+              control={form.control}
+              name="documentTypeIds"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Document Types</FormLabel>
+                  <FormDescription>
+                    Select document types to assign to this client (optional)
+                  </FormDescription>
+                  <ScrollArea className="h-32 w-full border rounded-md p-3">
+                    {documentTypesData?.data?.length ? (
+                      <div className="space-y-2">
+                        {documentTypesData.data.map((documentType) => (
+                          <div key={documentType.id} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`dtype-${documentType.id}`}
+                              checked={field.value?.includes(documentType.id) || false}
+                              onCheckedChange={(checked) => {
+                                const currentIds = field.value || [];
+                                if (checked) {
+                                  field.onChange([...currentIds, documentType.id]);
+                                } else {
+                                  field.onChange(currentIds.filter(id => id !== documentType.id));
+                                }
+                              }}
+                            />
+                            <label
+                              htmlFor={`dtype-${documentType.id}`}
+                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                            >
+                              {documentType.name}
+                              <Badge variant="outline" className="ml-2 text-xs">
+                                {documentType.code}
+                              </Badge>
+                              <Badge variant="secondary" className="ml-1 text-xs">
+                                {documentType.category}
+                              </Badge>
+                            </label>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-sm text-muted-foreground">
+                        No document types available. Create document types first.
                       </div>
                     )}
                   </ScrollArea>

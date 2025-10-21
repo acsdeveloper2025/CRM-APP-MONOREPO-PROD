@@ -3,6 +3,8 @@ import { logger } from '@/config/logger';
 import { AuthenticatedRequest } from '@/middleware/auth';
 import { query, withTransaction } from '@/config/database';
 
+
+
 // GET /api/clients - List clients with pagination and filters
 export const getClients = async (req: AuthenticatedRequest, res: Response) => {
   try {
@@ -83,7 +85,7 @@ export const getClients = async (req: AuthenticatedRequest, res: Response) => {
     const sortDir = String(sortOrder).toLowerCase() === 'desc' ? 'DESC' : 'ASC';
 
     const clientsRes = await query(
-      `SELECT id, name, "createdAt", "updatedAt"
+      `SELECT id, name, code, "createdAt", "updatedAt"
        FROM clients
        ${whereClause}
        ORDER BY "${sortCol}" ${sortDir}
@@ -202,6 +204,15 @@ export const getClientById = async (req: AuthenticatedRequest, res: Response) =>
       [Number(id)]
     );
 
+    // Load document types through client relationships
+    const dtRes = await query(
+      `SELECT dt.id, dt.name, dt.code, dt.category
+       FROM "clientDocumentTypes" cdt
+       JOIN "documentTypes" dt ON cdt."documentTypeId" = dt.id
+       WHERE cdt."clientId" = $1`,
+      [Number(id)]
+    );
+
     const casesRes2 = await query(`SELECT "caseId", status FROM cases WHERE "clientId" = $1`, [Number(id)]);
 
     // Transform response data
@@ -209,6 +220,7 @@ export const getClientById = async (req: AuthenticatedRequest, res: Response) =>
       ...client,
       products: prodRes.rows,
       verificationTypes: vtRes.rows,
+      documentTypes: dtRes.rows,
       cases: casesRes2.rows,
     };
 
@@ -235,7 +247,8 @@ export const createClient = async (req: AuthenticatedRequest, res: Response) => 
       name,
       code,
       productIds = [],
-      verificationTypeIds = []
+      verificationTypeIds = [],
+      documentTypeIds = []
     } = req.body;
 
     // Check if client code already exists
@@ -268,6 +281,18 @@ export const createClient = async (req: AuthenticatedRequest, res: Response) => 
           success: false,
           message: 'One or more verification types not found',
           error: { code: 'VERIFICATION_TYPES_NOT_FOUND' },
+        });
+      }
+    }
+
+    // Verify document types exist if provided
+    if (documentTypeIds.length > 0) {
+      const dtCheck = await query(`SELECT id FROM "documentTypes" WHERE id = ANY($1::integer[])`, [documentTypeIds.map(Number)]);
+      if (dtCheck.rowCount !== documentTypeIds.length) {
+        return res.status(400).json({
+          success: false,
+          message: 'One or more document types not found',
+          error: { code: 'DOCUMENT_TYPES_NOT_FOUND' },
         });
       }
     }
@@ -313,6 +338,22 @@ export const createClient = async (req: AuthenticatedRequest, res: Response) => 
         }
       }
 
+      // Create client-document type relationships if provided
+      if (documentTypeIds.length > 0) {
+        const uniqueDocumentTypeIds = Array.from(new Set(documentTypeIds.map(Number)));
+        // Verify document types
+        const dtCheck = await cx.query(`SELECT id FROM "documentTypes" WHERE id = ANY($1::integer[])`, [uniqueDocumentTypeIds]);
+        if (dtCheck.rowCount !== uniqueDocumentTypeIds.length) {
+          throw Object.assign(new Error('One or more document types not found'), { code: 'DOCUMENT_TYPES_NOT_FOUND' });
+        }
+        for (const dtId of uniqueDocumentTypeIds) {
+          await cx.query(
+            `INSERT INTO "clientDocumentTypes" ("clientId", "documentTypeId", "isActive", "createdAt", "updatedAt") VALUES ($1, $2, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+            [created.id, Number(dtId)]
+          );
+        }
+      }
+
       // Load includes
       const prodRes2 = await cx.query(
         `SELECT p.id, p.name, p.code FROM "clientProducts" cp JOIN products p ON p.id = cp."productId" WHERE cp."clientId" = $1`,
@@ -329,7 +370,16 @@ export const createClient = async (req: AuthenticatedRequest, res: Response) => 
         [created.id]
       );
 
-      return { ...created, clientProducts: prodRes2.rows, clientVerificationTypes: vtRes2.rows } as any;
+      // Load document types through client relationships
+      const dtRes2 = await cx.query(
+        `SELECT dt.id, dt.name, dt.code, dt.category
+         FROM "clientDocumentTypes" cdt
+         JOIN "documentTypes" dt ON cdt."documentTypeId" = dt.id
+         WHERE cdt."clientId" = $1`,
+        [created.id]
+      );
+
+      return { ...created, clientProducts: prodRes2.rows, clientVerificationTypes: vtRes2.rows, clientDocumentTypes: dtRes2.rows } as any;
     });
 
     // Transform response data
@@ -337,6 +387,7 @@ export const createClient = async (req: AuthenticatedRequest, res: Response) => 
       ...(newClient as any),
       products: (newClient as any).clientProducts,
       verificationTypes: (newClient as any).clientVerificationTypes,
+      documentTypes: (newClient as any).clientDocumentTypes,
     } as any;
 
     logger.info(`Created new client: ${newClient.id}`, {
@@ -345,6 +396,7 @@ export const createClient = async (req: AuthenticatedRequest, res: Response) => 
       clientCode: code,
       productCount: productIds.length,
       verificationTypeCount: verificationTypeIds.length,
+      documentTypeCount: documentTypeIds.length,
     });
 
     res.status(201).json({
@@ -374,7 +426,7 @@ export const createClient = async (req: AuthenticatedRequest, res: Response) => 
 export const updateClient = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const updateData = req.body as { name?: string; code?: string; productIds?: string[]; verificationTypeIds?: string[] };
+    const updateData = req.body as { name?: string; code?: string; productIds?: string[]; verificationTypeIds?: string[]; documentTypeIds?: string[] };
 
     // Check if client exists
     const existRes = await query(`SELECT id, code FROM clients WHERE id = $1`, [id]);
@@ -418,7 +470,7 @@ export const updateClient = async (req: AuthenticatedRequest, res: Response) => 
           await cx.query(
             `INSERT INTO "clientProducts" ("clientId", "productId", "isActive", "createdAt")
              VALUES ($1, $2, true, CURRENT_TIMESTAMP)
-             ON CONFLICT DO NOTHING`,
+             ON CONFLICT ("clientId", "productId") DO NOTHING`,
             [Number(id), pid]
           );
         }
@@ -461,6 +513,28 @@ export const updateClient = async (req: AuthenticatedRequest, res: Response) => 
         }
       }
 
+      // Sync document type mappings if provided
+      if (Array.isArray(updateData.documentTypeIds)) {
+        const dtIds = updateData.documentTypeIds;
+        if (dtIds.length > 0) {
+          const numericDtIds = dtIds.map(Number);
+          const dtCheck = await cx.query(`SELECT id FROM "documentTypes" WHERE id = ANY($1::integer[])`, [numericDtIds]);
+          if (dtCheck.rowCount !== dtIds.length) {
+            throw Object.assign(new Error('One or more document types not found'), { code: 'DOCUMENT_TYPES_NOT_FOUND' });
+          }
+        }
+        const numericDtIds = dtIds.map(Number);
+        await cx.query(`DELETE FROM "clientDocumentTypes" WHERE "clientId" = $1 AND "documentTypeId" <> ALL($2::integer[])`, [Number(id), numericDtIds]);
+        for (const dtId of Array.from(new Set(numericDtIds))) {
+          await cx.query(
+            `INSERT INTO "clientDocumentTypes" ("clientId", "documentTypeId", "is_active", "createdAt")
+             VALUES ($1, $2, true, CURRENT_TIMESTAMP)
+             ON CONFLICT ("clientId", "documentTypeId") DO NOTHING`,
+            [Number(id), dtId]
+          );
+        }
+      }
+
       // Load includes
       const prodRes3 = await cx.query(
         `SELECT p.id, p.name, p.code FROM "clientProducts" cp JOIN products p ON p.id = cp."productId" WHERE cp."clientId" = $1`,
@@ -477,13 +551,23 @@ export const updateClient = async (req: AuthenticatedRequest, res: Response) => 
         [Number(id)]
       );
 
-      return { id, clientProducts: prodRes3.rows, clientVerificationTypes: vtRes3.rows } as any;
+      // Load document types through client relationships
+      const dtRes3 = await cx.query(
+        `SELECT dt.id, dt.name, dt.code, dt.category
+         FROM "clientDocumentTypes" cdt
+         JOIN "documentTypes" dt ON cdt."documentTypeId" = dt.id
+         WHERE cdt."clientId" = $1`,
+        [Number(id)]
+      );
+
+      return { id, clientProducts: prodRes3.rows, clientVerificationTypes: vtRes3.rows, clientDocumentTypes: dtRes3.rows } as any;
     });
 
     const responseData = {
       ...(result as any),
       products: (result as any).clientProducts,
       verificationTypes: (result as any).clientVerificationTypes,
+      documentTypes: (result as any).clientDocumentTypes,
     } as any;
 
     logger.info(`Updated client: ${id}`, { userId: req.user?.id, clientId: id, updates: Object.keys(updateData) });
@@ -496,6 +580,10 @@ export const updateClient = async (req: AuthenticatedRequest, res: Response) => 
 
     if (error?.code === 'VERIFICATION_TYPES_NOT_FOUND') {
       return res.status(400).json({ success: false, message: 'One or more verification types not found', error: { code: 'VERIFICATION_TYPES_NOT_FOUND' } });
+    }
+
+    if (error?.code === 'DOCUMENT_TYPES_NOT_FOUND') {
+      return res.status(400).json({ success: false, message: 'One or more document types not found', error: { code: 'DOCUMENT_TYPES_NOT_FOUND' } });
     }
 
     logger.error('Error updating client:', error);

@@ -30,6 +30,7 @@ import toast from 'react-hot-toast';
 import { clientsService } from '@/services/clients';
 import { productsService } from '@/services/products';
 import { verificationTypesService } from '@/services/verificationTypes';
+import { documentTypesService } from '@/services/documentTypes';
 import type { Client } from '@/types/client';
 
 const editClientSchema = z.object({
@@ -39,7 +40,8 @@ const editClientSchema = z.object({
     .max(10, 'Client code must be at most 10 characters')
     .regex(/^[A-Z0-9_]+$/, 'Client code must contain only uppercase letters, numbers, and underscores'),
   productIds: z.array(z.string()).optional(),
-  verificationTypeIds: z.array(z.string()).optional(),
+  verificationTypeIds: z.array(z.number()).optional(),
+  documentTypeIds: z.array(z.number()).optional(),
 });
 
 type EditClientFormData = z.infer<typeof editClientSchema>;
@@ -60,6 +62,7 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
       code: '',
       productIds: [],
       verificationTypeIds: [],
+      documentTypeIds: [],
     },
   });
 
@@ -77,6 +80,13 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
     enabled: open,
   });
 
+  // Fetch document types for selection
+  const { data: documentTypesData } = useQuery({
+    queryKey: ['document-types'],
+    queryFn: () => documentTypesService.getDocumentTypes({ isActive: true }),
+    enabled: open,
+  });
+
   // Fetch client details with current associations
   const { data: clientData } = useQuery({
     queryKey: ['client', client?.id],
@@ -91,8 +101,9 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
       form.reset({
         name: clientDetails.name,
         code: clientDetails.code,
-        productIds: clientDetails.products?.map((p: any) => p.id) || [],
+        productIds: clientDetails.products?.map((p: any) => String(p.id)) || [],
         verificationTypeIds: clientDetails.verificationTypes?.map((v: any) => v.id) || [],
+        documentTypeIds: clientDetails.documentTypes?.map((d: any) => d.id) || [],
       });
     }
   }, [clientData, form]);
@@ -105,6 +116,7 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
         code: data.code,
         productIds: data.productIds,
         verificationTypeIds: data.verificationTypeIds,
+        documentTypeIds: data.documentTypeIds,
       });
     },
     onSuccess: () => {
@@ -126,7 +138,10 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
 
   const products = productsData?.data || [];
   const verificationTypes = verificationTypesData?.data || [];
+  const documentTypes = documentTypesData?.data || [];
   const currentProducts = clientData?.data?.products || [];
+  const currentVerificationTypes = clientData?.data?.verificationTypes || [];
+  const currentDocumentTypes = clientData?.data?.documentTypes || [];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -141,10 +156,11 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <Tabs defaultValue="basic" className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
+              <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="basic">Basic Info</TabsTrigger>
                 <TabsTrigger value="products">Products</TabsTrigger>
                 <TabsTrigger value="verification-types">Verification Types</TabsTrigger>
+                <TabsTrigger value="document-types">Document Types</TabsTrigger>
               </TabsList>
 
               <TabsContent value="basic" className="space-y-4">
@@ -211,13 +227,14 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
                               <div key={product.id} className="flex items-center space-x-2">
                                 <Checkbox
                                   id={`product-${product.id}`}
-                                  checked={field.value?.includes(product.id) || false}
+                                  checked={field.value?.includes(String(product.id)) || false}
                                   onCheckedChange={(checked) => {
                                     const currentIds = field.value || [];
+                                    const productIdStr = String(product.id);
                                     if (checked) {
-                                      field.onChange([...currentIds, product.id]);
+                                      field.onChange([...currentIds, productIdStr]);
                                     } else {
-                                      field.onChange(currentIds.filter(id => id !== product.id));
+                                      field.onChange(currentIds.filter(id => id !== productIdStr));
                                     }
                                   }}
                                 />
@@ -289,6 +306,81 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
                         ) : (
                           <div className="text-sm text-muted-foreground">
                             No verification types available. Create verification types first.
+                          </div>
+                        )}
+                      </ScrollArea>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </TabsContent>
+
+              <TabsContent value="document-types" className="space-y-4">
+                <div>
+                  <h4 className="text-sm font-medium mb-2">Current Document Types</h4>
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {currentDocumentTypes.map((documentType: any) => (
+                      <Badge key={documentType.id} variant="secondary">
+                        {documentType.name}
+                        <span className="ml-1 text-xs">({documentType.category})</span>
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+
+                <FormField
+                  control={form.control}
+                  name="documentTypeIds"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Available Document Types</FormLabel>
+                      <FormDescription>
+                        Select document types to assign to this client
+                      </FormDescription>
+                      <ScrollArea className="h-48 w-full border rounded-md p-3">
+                        {documentTypesData?.data?.length ? (
+                          <div className="space-y-2">
+                            {documentTypesData.data.map((documentType) => (
+                              <div key={documentType.id} className="flex items-center space-x-2">
+                                <Checkbox
+                                  id={`dtype-${documentType.id}`}
+                                  checked={field.value?.includes(documentType.id) || false}
+                                  onCheckedChange={(checked) => {
+                                    const currentIds = field.value || [];
+                                    if (checked) {
+                                      field.onChange([...currentIds, documentType.id]);
+                                    } else {
+                                      field.onChange(currentIds.filter(id => id !== documentType.id));
+                                    }
+                                  }}
+                                />
+                                <label
+                                  htmlFor={`dtype-${documentType.id}`}
+                                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex-1"
+                                >
+                                  <div className="flex items-center justify-between">
+                                    <div>
+                                      <div>{documentType.name}</div>
+                                      <div className="text-xs text-muted-foreground">
+                                        {documentType.code} • {documentType.category}
+                                      </div>
+                                    </div>
+                                    <div className="flex gap-1">
+                                      {documentType.isGovernmentIssued && (
+                                        <Badge variant="outline" className="text-xs">Govt</Badge>
+                                      )}
+                                      {documentType.requiresVerification && (
+                                        <Badge variant="outline" className="text-xs">Verify</Badge>
+                                      )}
+                                    </div>
+                                  </div>
+                                </label>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-sm text-muted-foreground">
+                            No document types available. Create document types first.
                           </div>
                         )}
                       </ScrollArea>

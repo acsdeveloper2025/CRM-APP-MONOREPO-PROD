@@ -1,6 +1,6 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Building2, Package, CheckCircle, Calendar, Code } from 'lucide-react';
+import { Building2, Package, CheckCircle, Calendar, Code, Shield, FileText } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -36,6 +36,8 @@ export function ClientDetailsDialog({ client, open, onOpenChange }: ClientDetail
 
   const clientData = clientDetails?.data || client;
   const products = clientProducts?.data || [];
+  const verificationTypes = clientData.verificationTypes || [];
+  const documentTypes = clientData.documentTypes || [];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -152,6 +154,81 @@ export function ClientDetailsDialog({ client, open, onOpenChange }: ClientDetail
             </CardContent>
           </Card>
 
+          {/* Verification Types */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center space-x-2">
+                <Shield className="h-5 w-5" />
+                <span>Verification Types</span>
+                <Badge variant="secondary">{verificationTypes.length}</Badge>
+              </CardTitle>
+              <CardDescription>
+                Verification types available through this client's products
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {verificationTypes.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Shield className="mx-auto h-12 w-12 mb-4 opacity-50" />
+                  <p>No verification types found for this client</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  {verificationTypes.map((vt: any) => (
+                    <div key={vt.id} className="flex items-center justify-between p-3 rounded-lg border">
+                      <div className="space-y-1">
+                        <p className="font-medium">{vt.name}</p>
+                        <Badge variant="outline" className="text-xs">
+                          {vt.code}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Document Types */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center space-x-2">
+                <FileText className="h-5 w-5" />
+                <span>Document Types</span>
+                <Badge variant="secondary">{documentTypes.length}</Badge>
+              </CardTitle>
+              <CardDescription>
+                Document types assigned to this client
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {documentTypes.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <FileText className="mx-auto h-12 w-12 mb-4 opacity-50" />
+                  <p>No document types assigned to this client</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  {documentTypes.map((dt: any) => (
+                    <div key={dt.id} className="flex items-center justify-between p-3 rounded-lg border">
+                      <div className="space-y-1">
+                        <p className="font-medium">{dt.name}</p>
+                        <div className="flex items-center space-x-2">
+                          <Badge variant="outline" className="text-xs">
+                            {dt.code}
+                          </Badge>
+                          <Badge variant="secondary" className="text-xs">
+                            {dt.category}
+                          </Badge>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           {/* Statistics */}
           <Card>
             <CardHeader>
@@ -164,14 +241,12 @@ export function ClientDetailsDialog({ client, open, onOpenChange }: ClientDetail
                   <p className="text-sm text-muted-foreground">Products</p>
                 </div>
                 <div className="space-y-2">
-                  <p className="text-2xl font-bold text-primary">
-                    {products.reduce((acc, product) => acc + (product.verificationTypes?.length || 0), 0)}
-                  </p>
+                  <p className="text-2xl font-bold text-primary">{verificationTypes.length}</p>
                   <p className="text-sm text-muted-foreground">Verification Types</p>
                 </div>
                 <div className="space-y-2">
-                  <p className="text-2xl font-bold text-primary">0</p>
-                  <p className="text-sm text-muted-foreground">Active Cases</p>
+                  <p className="text-2xl font-bold text-primary">{documentTypes.length}</p>
+                  <p className="text-sm text-muted-foreground">Document Types</p>
                 </div>
               </div>
             </CardContent>

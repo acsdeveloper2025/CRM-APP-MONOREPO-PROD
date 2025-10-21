@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Plus, Search, Download, Upload, Users, UserCheck, UserX, Shield } from 'lucide-react';
+import { Plus, Upload, Users, UserCheck, UserX, Shield, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { SearchLayout } from '@/components/ui/search-layout';
+import { useSearchInput } from '@/components/ui/search-input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -26,18 +27,20 @@ import type { Role } from '@/types/auth';
 
 export function UsersPage() {
   const [activeTab, setActiveTab] = useState('users');
-  const [searchQuery, setSearchQuery] = useState('');
   const [selectedRole, setSelectedRole] = useState<string>('all');
   const [selectedDepartment, setSelectedDepartment] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [showCreateUser, setShowCreateUser] = useState(false);
   const [showBulkImport, setShowBulkImport] = useState(false);
 
+  // Use standardized search with debouncing
+  const { debouncedSearchValue, setSearchValue } = useSearchInput('', 400);
+
   // Fetch users data
   const { data: usersData, isLoading: usersLoading } = useQuery({
-    queryKey: ['users', searchQuery, selectedRole, selectedDepartment, selectedStatus],
+    queryKey: ['users', debouncedSearchValue, selectedRole, selectedDepartment, selectedStatus],
     queryFn: () => usersService.getUsers({
-      search: searchQuery,
+      search: debouncedSearchValue,
       role: selectedRole !== 'all' ? selectedRole as Role : undefined,
       department: selectedDepartment !== 'all' ? selectedDepartment : undefined,
       isActive: selectedStatus === 'active' ? true : selectedStatus === 'inactive' ? false : undefined,
@@ -47,9 +50,9 @@ export function UsersPage() {
 
   // Fetch user activities
   const { data: activitiesData, isLoading: activitiesLoading } = useQuery({
-    queryKey: ['user-activities', searchQuery],
+    queryKey: ['user-activities', debouncedSearchValue],
     queryFn: () => usersService.getUserActivities({
-      search: searchQuery,
+      search: debouncedSearchValue,
       limit: 50,
     }),
     enabled: activeTab === 'activities',
@@ -93,7 +96,7 @@ export function UsersPage() {
   const handleExportUsers = async (format: 'CSV' | 'EXCEL' = 'EXCEL') => {
     try {
       const blob = await usersService.exportUsers({
-        search: searchQuery,
+        search: debouncedSearchValue,
         role: selectedRole !== 'all' ? selectedRole as Role : undefined,
         department: selectedDepartment !== 'all' ? selectedDepartment : undefined,
         isActive: selectedStatus === 'active' ? true : selectedStatus === 'inactive' ? false : undefined,
@@ -111,7 +114,7 @@ export function UsersPage() {
   };
 
   const clearFilters = () => {
-    setSearchQuery('');
+    setSearchValue('');
     setSelectedRole('all');
     setSelectedDepartment('all');
     setSelectedStatus('all');
@@ -279,70 +282,62 @@ export function UsersPage() {
               </div>
             </div>
 
-            {/* Filters */}
+            {/* Standardized Search and Filters */}
             {(activeTab === 'users' || activeTab === 'activities') && (
-              <div className="space-y-4">
-                <div className="relative">
-                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search users..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-8"
-                  />
-                </div>
+              <SearchLayout
+                searchProps={{
+                  onSearch: setSearchValue,
+                  placeholder: "Search users...",
+                  isLoading: usersLoading || activitiesLoading,
+                }}
+                filters={
+                  activeTab === 'users' ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      <Select value={selectedRole} onValueChange={setSelectedRole}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Filter by role" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Roles</SelectItem>
+                          {roles.map((role) => (
+                            <SelectItem key={role.id} value={role.name}>
+                              {role.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
 
-                {activeTab === 'users' && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <Select value={selectedRole} onValueChange={setSelectedRole}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Filter by role" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Roles</SelectItem>
-                        {roles.map((role) => (
-                          <SelectItem key={role.id} value={role.name}>
-                            {role.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Filter by department" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Departments</SelectItem>
+                          {departments.map((dept) => (
+                            <SelectItem key={dept.id} value={dept.name}>
+                              {dept.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
 
-                    <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Filter by department" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Departments</SelectItem>
-                        {departments.map((dept) => (
-                          <SelectItem key={dept.id} value={dept.name}>
-                            {dept.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-
-                    <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Filter by status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Status</SelectItem>
-                        <SelectItem value="active">Active</SelectItem>
-                        <SelectItem value="inactive">Inactive</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-
-                {(searchQuery || selectedRole !== 'all' || selectedDepartment !== 'all' || selectedStatus !== 'all') && (
-                  <div className="flex justify-end">
-                    <Button variant="outline" size="sm" onClick={clearFilters}>
-                      Clear Filters
-                    </Button>
-                  </div>
-                )}
-              </div>
+                      <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Filter by status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Status</SelectItem>
+                          <SelectItem value="active">Active</SelectItem>
+                          <SelectItem value="inactive">Inactive</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  ) : null
+                }
+                showClearFilters={true}
+                hasActiveFilters={debouncedSearchValue !== '' || selectedRole !== 'all' || selectedDepartment !== 'all' || selectedStatus !== 'all'}
+                onClearFilters={clearFilters}
+              />
             )}
 
             <TabsContent value="users" className="space-y-4">

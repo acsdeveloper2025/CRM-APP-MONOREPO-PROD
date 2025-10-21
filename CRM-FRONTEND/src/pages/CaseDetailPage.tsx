@@ -10,8 +10,9 @@ import { ReassignCaseModal } from '@/components/cases/ReassignCaseModal';
 import { EnhancedCaseStatus } from '@/components/cases/EnhancedCaseStatus';
 import { FormViewer } from '@/components/forms/FormViewer';
 import { OptimizedFormSubmissionViewer } from '@/components/forms/OptimizedFormSubmissionViewer';
-import { ArrowLeft, MapPin, Phone, Mail, Calendar, User, Building2, FileText, Edit, UserCheck, FormInput, Camera, Clock } from 'lucide-react';
+import { ArrowLeft, MapPin, Phone, Mail, Calendar, User, Building2, FileText, Edit, UserCheck, FormInput, Camera, Clock, CheckSquare } from 'lucide-react';
 import { CaseAttachmentsSection } from '@/components/attachments/CaseAttachmentsSection';
+import { VerificationTasksManager } from '@/components/verification-tasks';
 import { formatDistanceToNow } from 'date-fns';
 
 // Helper function to safely format dates
@@ -179,7 +180,7 @@ export const CaseDetailPage: React.FC = () => {
         {/* Main Content */}
         <div className="lg:col-span-2">
           <Tabs defaultValue="details" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="details" className="flex items-center space-x-2">
                 <FileText className="h-4 w-4" />
                 <span>Case Details</span>
@@ -196,6 +197,10 @@ export const CaseDetailPage: React.FC = () => {
                     {formSubmissions.length}
                   </Badge>
                 )}
+              </TabsTrigger>
+              <TabsTrigger value="verification-tasks" className="flex items-center space-x-2">
+                <CheckSquare className="h-4 w-4" />
+                <span>Verification Tasks</span>
               </TabsTrigger>
               <TabsTrigger value="attachments" className="flex items-center space-x-2">
                 <Camera className="h-4 w-4" />
@@ -340,6 +345,15 @@ export const CaseDetailPage: React.FC = () => {
                   </Card>
                 )}
               </div>
+            </TabsContent>
+
+            <TabsContent value="verification-tasks">
+              <VerificationTasksManager
+                caseId={id!}
+                caseNumber={caseItem?.caseId?.toString()}
+                customerName={caseItem?.customerName}
+                readonly={caseItem?.status === 'COMPLETED'}
+              />
             </TabsContent>
 
             <TabsContent value="attachments">

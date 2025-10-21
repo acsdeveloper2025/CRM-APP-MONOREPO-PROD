@@ -19,6 +19,8 @@ import usersRoutes from '@/routes/users';
 import dashboardRoutes from '@/routes/dashboard';
 import productsRoutes from '@/routes/products';
 import verificationTypesRoutes from '@/routes/verification-types';
+import documentTypesRoutes from './routes/document-types';
+import clientDocumentTypesRoutes from './routes/client-document-types';
 import invoicesRoutes from '@/routes/invoices';
 import commissionsRoutes from '@/routes/commissions';
 import commissionManagementRoutes from './routes/commissionManagement';
@@ -48,6 +50,7 @@ import ratesRoutes from '@/routes/rates';
 import territoryAssignmentsRoutes from '@/routes/territoryAssignments';
 import healthRoutes from '@/routes/health';
 import aiReportsRoutes from '@/routes/aiReports';
+import verificationTasksRoutes from '@/routes/verificationTasks';
 import templateReportsRoutes from '@/routes/templateReports';
 
 
@@ -143,12 +146,14 @@ app.use('/api', healthRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/cases', caseRoutes);
 app.use('/api/clients', clientRoutes);
+// app.use('/api/clients', clientDocumentTypesRoutes);
 app.use('/api/attachments', attachmentRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/products', productsRoutes);
 app.use('/api/verification-types', verificationTypesRoutes);
+app.use('/api/document-types', documentTypesRoutes);
 app.use('/api/invoices', invoicesRoutes);
 app.use('/api/commissions', commissionsRoutes);
 app.use('/api/commission-management', commissionManagementRoutes);
@@ -177,6 +182,9 @@ app.use('/api/rates', ratesRoutes);
 app.use('/api/territory-assignments', territoryAssignmentsRoutes);
 app.use('/api/ai-reports', aiReportsRoutes);
 app.use('/api/template-reports', templateReportsRoutes);
+
+// Multi-verification task routes
+app.use('/api', verificationTasksRoutes);
 
 // Temporary AI test endpoint
 app.get('/api/ai-test', async (req, res) => {

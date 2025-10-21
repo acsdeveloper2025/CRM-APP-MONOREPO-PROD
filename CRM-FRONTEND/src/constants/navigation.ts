@@ -113,6 +113,13 @@ export const navigationItems: NavigationItem[] = [
         permission: { resource: 'clients', action: 'read' },
       },
       {
+        id: 'document-types',
+        label: 'Document Types',
+        href: '/document-types',
+        icon: FileText,
+        permission: { resource: 'clients', action: 'read' },
+      },
+      {
         id: 'rate-management',
         label: 'Rate Management',
         href: '/rate-management',
