@@ -1,0 +1,426 @@
+import { useState, useEffect, useCallback } from 'react';
+import { toast } from 'react-hot-toast';
+import {
+  VerificationTask,
+  CreateVerificationTaskRequest,
+  UpdateVerificationTaskRequest,
+  AssignVerificationTaskRequest,
+  CompleteVerificationTaskRequest,
+  VerificationTaskFilters,
+  TaskStatus,
+  TaskPriority
+} from '../types/verificationTask';
+import { VerificationTasksService } from '../services/verificationTasks';
+
+interface UseVerificationTasksState {
+  tasks: VerificationTask[];
+  loading: boolean;
+  error: string | null;
+  selectedTasks: string[];
+  filters: VerificationTaskFilters;
+  summary: {
+    totalTasks: number;
+    completedTasks: number;
+    completionPercentage: number;
+  };
+}
+
+interface UseVerificationTasksActions {
+  // Data fetching
+  fetchTasksForCase: (caseId: string) => Promise<void>;
+  fetchTaskById: (taskId: string) => Promise<VerificationTask | null>;
+  refreshTasks: () => Promise<void>;
+  
+  // Task management
+  createMultipleTasks: (caseId: string, tasks: CreateVerificationTaskRequest[]) => Promise<boolean>;
+  updateTask: (taskId: string, updateData: UpdateVerificationTaskRequest) => Promise<boolean>;
+  assignTask: (taskId: string, assignmentData: AssignVerificationTaskRequest) => Promise<boolean>;
+  completeTask: (taskId: string, completionData: CompleteVerificationTaskRequest) => Promise<boolean>;
+  startTask: (taskId: string) => Promise<boolean>;
+  cancelTask: (taskId: string, reason?: string) => Promise<boolean>;
+  
+  // Bulk operations
+  bulkAssignTasks: (taskIds: string[], assignedTo: string, reason?: string) => Promise<boolean>;
+  selectTask: (taskId: string) => void;
+  selectAllTasks: () => void;
+  clearSelection: () => void;
+  
+  // Filtering and sorting
+  setFilters: (filters: Partial<VerificationTaskFilters>) => void;
+  clearFilters: () => void;
+  filterTasksByStatus: (status: TaskStatus) => VerificationTask[];
+  filterTasksByPriority: (priority: TaskPriority) => VerificationTask[];
+  
+  // Utility functions
+  getTasksByStatus: (status: TaskStatus) => VerificationTask[];
+  getTasksByAssignee: (userId: string) => VerificationTask[];
+  calculateProgress: () => { completed: number; total: number; percentage: number };
+}
+
+export function useVerificationTasks(initialCaseId?: string): UseVerificationTasksState & UseVerificationTasksActions {
+  const [state, setState] = useState<UseVerificationTasksState>({
+    tasks: [],
+    loading: false,
+    error: null,
+    selectedTasks: [],
+    filters: {},
+    summary: {
+      totalTasks: 0,
+      completedTasks: 0,
+      completionPercentage: 0
+    }
+  });
+
+  const [currentCaseId, setCurrentCaseId] = useState<string | undefined>(initialCaseId);
+
+  // Update summary when tasks change
+  useEffect(() => {
+    const totalTasks = state.tasks.length;
+    const completedTasks = state.tasks.filter(task => task.status === 'COMPLETED').length;
+    const completionPercentage = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
+
+    setState(prev => ({
+      ...prev,
+      summary: {
+        totalTasks,
+        completedTasks,
+        completionPercentage
+      }
+    }));
+  }, [state.tasks]);
+
+  // Fetch tasks for a case
+  const fetchTasksForCase = useCallback(async (caseId: string) => {
+    setState(prev => ({ ...prev, loading: true, error: null }));
+    setCurrentCaseId(caseId);
+
+    try {
+      const response = await VerificationTasksService.getTasksForCase(caseId, state.filters);
+      setState(prev => ({
+        ...prev,
+        tasks: response.tasks,
+        loading: false
+      }));
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Failed to fetch tasks';
+      setState(prev => ({
+        ...prev,
+        error: errorMessage,
+        loading: false
+      }));
+      toast.error(errorMessage);
+    }
+  }, [state.filters]);
+
+  // Fetch single task by ID
+  const fetchTaskById = useCallback(async (taskId: string): Promise<VerificationTask | null> => {
+    try {
+      const response = await VerificationTasksService.getTaskById(taskId);
+      return response.data as VerificationTask;
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Failed to fetch task';
+      toast.error(errorMessage);
+      return null;
+    }
+  }, []);
+
+  // Refresh current tasks
+  const refreshTasks = useCallback(async () => {
+    if (currentCaseId) {
+      await fetchTasksForCase(currentCaseId);
+    }
+  }, [currentCaseId, fetchTasksForCase]);
+
+  // Create multiple tasks
+  const createMultipleTasks = useCallback(async (
+    caseId: string, 
+    tasks: CreateVerificationTaskRequest[]
+  ): Promise<boolean> => {
+    setState(prev => ({ ...prev, loading: true }));
+
+    try {
+      const response = await VerificationTasksService.createMultipleTasksForCase(caseId, tasks);
+      toast.success(response.message);
+      
+      // Refresh tasks if this is the current case
+      if (caseId === currentCaseId) {
+        await fetchTasksForCase(caseId);
+      }
+      
+      return true;
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Failed to create tasks';
+      toast.error(errorMessage);
+      setState(prev => ({ ...prev, loading: false }));
+      return false;
+    }
+  }, [currentCaseId, fetchTasksForCase]);
+
+  // Update task
+  const updateTask = useCallback(async (
+    taskId: string, 
+    updateData: UpdateVerificationTaskRequest
+  ): Promise<boolean> => {
+    try {
+      const response = await VerificationTasksService.updateTask(taskId, updateData);
+      toast.success(response.message);
+      
+      // Update task in local state
+      setState(prev => ({
+        ...prev,
+        tasks: prev.tasks.map(task => 
+          task.id === taskId ? { ...task, ...updateData } : task
+        )
+      }));
+      
+      return true;
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Failed to update task';
+      toast.error(errorMessage);
+      return false;
+    }
+  }, []);
+
+  // Assign task
+  const assignTask = useCallback(async (
+    taskId: string, 
+    assignmentData: AssignVerificationTaskRequest
+  ): Promise<boolean> => {
+    try {
+      const response = await VerificationTasksService.assignTask(taskId, assignmentData);
+      toast.success(response.message);
+      
+      // Update task in local state
+      setState(prev => ({
+        ...prev,
+        tasks: prev.tasks.map(task => 
+          task.id === taskId 
+            ? { 
+                ...task, 
+                assignedTo: assignmentData.assignedTo,
+                status: 'ASSIGNED' as TaskStatus,
+                assignedAt: new Date().toISOString()
+              } 
+            : task
+        )
+      }));
+      
+      return true;
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Failed to assign task';
+      toast.error(errorMessage);
+      return false;
+    }
+  }, []);
+
+  // Complete task
+  const completeTask = useCallback(async (
+    taskId: string, 
+    completionData: CompleteVerificationTaskRequest
+  ): Promise<boolean> => {
+    try {
+      const response = await VerificationTasksService.completeTask(taskId, completionData);
+      toast.success(response.message);
+      
+      // Update task in local state
+      setState(prev => ({
+        ...prev,
+        tasks: prev.tasks.map(task => 
+          task.id === taskId 
+            ? { 
+                ...task, 
+                status: 'COMPLETED' as TaskStatus,
+                verificationOutcome: completionData.verificationOutcome,
+                actualAmount: completionData.actualAmount,
+                completedAt: new Date().toISOString()
+              } 
+            : task
+        )
+      }));
+      
+      return true;
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Failed to complete task';
+      toast.error(errorMessage);
+      return false;
+    }
+  }, []);
+
+  // Start task
+  const startTask = useCallback(async (taskId: string): Promise<boolean> => {
+    try {
+      const response = await VerificationTasksService.startTask(taskId);
+      toast.success('Task started successfully');
+      
+      // Update task in local state
+      setState(prev => ({
+        ...prev,
+        tasks: prev.tasks.map(task => 
+          task.id === taskId 
+            ? { 
+                ...task, 
+                status: 'IN_PROGRESS' as TaskStatus,
+                startedAt: new Date().toISOString()
+              } 
+            : task
+        )
+      }));
+      
+      return true;
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Failed to start task';
+      toast.error(errorMessage);
+      return false;
+    }
+  }, []);
+
+  // Cancel task
+  const cancelTask = useCallback(async (taskId: string, reason?: string): Promise<boolean> => {
+    try {
+      const response = await VerificationTasksService.cancelTask(taskId, reason);
+      toast.success(response.message);
+      
+      // Update task in local state
+      setState(prev => ({
+        ...prev,
+        tasks: prev.tasks.map(task => 
+          task.id === taskId 
+            ? { ...task, status: 'CANCELLED' as TaskStatus } 
+            : task
+        )
+      }));
+      
+      return true;
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Failed to cancel task';
+      toast.error(errorMessage);
+      return false;
+    }
+  }, []);
+
+  // Bulk assign tasks
+  const bulkAssignTasks = useCallback(async (
+    taskIds: string[], 
+    assignedTo: string, 
+    reason?: string
+  ): Promise<boolean> => {
+    try {
+      const response = await VerificationTasksService.bulkAssignTasks(taskIds, assignedTo, reason);
+      toast.success(response.message);
+      
+      // Update tasks in local state
+      setState(prev => ({
+        ...prev,
+        tasks: prev.tasks.map(task => 
+          taskIds.includes(task.id)
+            ? { 
+                ...task, 
+                assignedTo,
+                status: 'ASSIGNED' as TaskStatus,
+                assignedAt: new Date().toISOString()
+              } 
+            : task
+        ),
+        selectedTasks: [] // Clear selection after bulk operation
+      }));
+      
+      return true;
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Failed to assign tasks';
+      toast.error(errorMessage);
+      return false;
+    }
+  }, []);
+
+  // Selection management
+  const selectTask = useCallback((taskId: string) => {
+    setState(prev => ({
+      ...prev,
+      selectedTasks: prev.selectedTasks.includes(taskId)
+        ? prev.selectedTasks.filter(id => id !== taskId)
+        : [...prev.selectedTasks, taskId]
+    }));
+  }, []);
+
+  const selectAllTasks = useCallback(() => {
+    setState(prev => ({
+      ...prev,
+      selectedTasks: prev.tasks.map(task => task.id)
+    }));
+  }, []);
+
+  const clearSelection = useCallback(() => {
+    setState(prev => ({ ...prev, selectedTasks: [] }));
+  }, []);
+
+  // Filtering
+  const setFilters = useCallback((newFilters: Partial<VerificationTaskFilters>) => {
+    setState(prev => ({
+      ...prev,
+      filters: { ...prev.filters, ...newFilters }
+    }));
+  }, []);
+
+  const clearFilters = useCallback(() => {
+    setState(prev => ({ ...prev, filters: {} }));
+  }, []);
+
+  // Utility functions
+  const filterTasksByStatus = useCallback((status: TaskStatus) => {
+    return state.tasks.filter(task => task.status === status);
+  }, [state.tasks]);
+
+  const filterTasksByPriority = useCallback((priority: TaskPriority) => {
+    return state.tasks.filter(task => task.priority === priority);
+  }, [state.tasks]);
+
+  const getTasksByStatus = useCallback((status: TaskStatus) => {
+    return state.tasks.filter(task => task.status === status);
+  }, [state.tasks]);
+
+  const getTasksByAssignee = useCallback((userId: string) => {
+    return state.tasks.filter(task => task.assignedTo === userId);
+  }, [state.tasks]);
+
+  const calculateProgress = useCallback(() => {
+    const total = state.tasks.length;
+    const completed = state.tasks.filter(task => task.status === 'COMPLETED').length;
+    const percentage = total > 0 ? (completed / total) * 100 : 0;
+    
+    return { completed, total, percentage };
+  }, [state.tasks]);
+
+  // Auto-fetch tasks on mount if caseId is provided
+  useEffect(() => {
+    if (initialCaseId) {
+      fetchTasksForCase(initialCaseId);
+    }
+  }, [initialCaseId, fetchTasksForCase]);
+
+  return {
+    // State
+    ...state,
+    
+    // Actions
+    fetchTasksForCase,
+    fetchTaskById,
+    refreshTasks,
+    createMultipleTasks,
+    updateTask,
+    assignTask,
+    completeTask,
+    startTask,
+    cancelTask,
+    bulkAssignTasks,
+    selectTask,
+    selectAllTasks,
+    clearSelection,
+    setFilters,
+    clearFilters,
+    filterTasksByStatus,
+    filterTasksByPriority,
+    getTasksByStatus,
+    getTasksByAssignee,
+    calculateProgress
+  };
+}

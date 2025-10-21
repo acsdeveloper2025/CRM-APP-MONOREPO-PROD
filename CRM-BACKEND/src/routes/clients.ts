@@ -44,10 +44,16 @@ const createClientValidation = [
     .withMessage('verificationTypeIds must be an array of IDs'),
   body('verificationTypeIds.*')
     .optional()
-    .isString()
-    .trim()
-    .notEmpty()
-    .withMessage('Each verificationTypeId must be a non-empty string'),
+    .isInt({ min: 1 })
+    .withMessage('Each verificationTypeId must be a positive integer'),
+  body('documentTypeIds')
+    .optional()
+    .isArray()
+    .withMessage('documentTypeIds must be an array of IDs'),
+  body('documentTypeIds.*')
+    .optional()
+    .isInt({ min: 1 })
+    .withMessage('Each documentTypeId must be a positive integer'),
 ];
 
 const updateClientValidation = [
@@ -81,6 +87,14 @@ const updateClientValidation = [
     .optional()
     .isInt({ min: 1 })
     .withMessage('Each verificationTypeId must be a positive integer'),
+  body('documentTypeIds')
+    .optional()
+    .isArray()
+    .withMessage('documentTypeIds must be an array of IDs'),
+  body('documentTypeIds.*')
+    .optional()
+    .isInt({ min: 1 })
+    .withMessage('Each documentTypeId must be a positive integer'),
 ];
 
 // GET /api/clients - Get all clients

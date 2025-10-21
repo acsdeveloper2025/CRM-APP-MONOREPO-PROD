@@ -33,6 +33,7 @@ import { SecurityUXPage } from '@/pages/SecurityUXPage';
 import { SettingsPage } from '@/pages/SettingsPage';
 import { ProductsPage } from '@/pages/ProductsPage';
 import { VerificationTypesPage } from '@/pages/VerificationTypesPage';
+import { DocumentTypesPage } from '@/pages/DocumentTypesPage';
 
 import { RateManagementPage } from '@/pages/RateManagementPage';
 
@@ -186,6 +187,18 @@ export const AppRoutes: React.FC = () => {
           <ProtectedRoute requiredRoles={['ADMIN', 'SUPER_ADMIN']}>
             <Layout>
               <VerificationTypesPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Document Types routes */}
+      <Route
+        path="/document-types"
+        element={
+          <ProtectedRoute requiredRoles={['ADMIN', 'SUPER_ADMIN']}>
+            <Layout>
+              <DocumentTypesPage />
             </Layout>
           </ProtectedRoute>
         }

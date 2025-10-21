@@ -8,7 +8,11 @@
     "dev": "ts-node -r module-alias/register src/index.ts",
     "start": "node -r module-alias/register dist/index.js",
     "start:prod": "npm run build && npm start",
-    "clean-and-seed": "node scripts/clean-and-seed-cases.js"
+    "clean-and-seed": "node scripts/clean-and-seed-cases.js",
+    "migrate": "ts-node scripts/run-migrations.ts run",
+    "migrate:data": "ts-node scripts/run-migrations.ts data",
+    "migrate:status": "ts-node scripts/run-migrations.ts status",
+    "migrate:rollback": "ts-node scripts/run-migrations.ts rollback"
   },
   "repository": {
     "type": "git",
@@ -33,7 +37,7 @@
   },
   "homepage": "https://github.com/acsdeveloper2025/CRM-APP-MONOREPO#readme",
   "_moduleAliases": {
-    "@": "dist"
+    "@": "src"
   },
   "engines": {
     "node": ">=18.0.0",
@@ -50,7 +54,7 @@
     "bull": "^4.16.5",
     "bullmq": "^5.56.9",
     "cors": "^2.8.5",
-    "dotenv": "^17.2.1",
+    "dotenv": "^17.2.2",
     "exceljs": "^4.4.0",
     "express": "^5.1.0",
     "express-rate-limit": "^8.0.1",

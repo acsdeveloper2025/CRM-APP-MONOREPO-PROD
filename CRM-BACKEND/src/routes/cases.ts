@@ -18,7 +18,9 @@ import {
   reassignCase,
   getCaseAssignmentHistory,
   getFieldAgentWorkload,
-  exportCases
+  exportCases,
+  createCaseWithMultipleTasks,
+  getCaseSummaryWithTasks
 } from '@/controllers/casesController';
 import { VerificationAttachmentController } from '@/controllers/verificationAttachmentController';
 
@@ -303,6 +305,34 @@ router.post('/',
 // Note: No validation middleware here as multer handles form data parsing
 router.post('/with-attachments',
   createCaseWithAttachments
+);
+
+// Multi-verification case creation
+router.post('/with-multiple-tasks',
+  EnterpriseRateLimit.roleBasedLimiter(EnterpriseRateLimits.byRole),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.caseUpdate),
+  [
+    body('case_details').isObject().withMessage('case_details is required'),
+    body('case_details.customerName').trim().notEmpty().withMessage('Customer name is required'),
+    body('case_details.clientId').isInt({ min: 1 }).withMessage('Valid client ID is required'),
+    body('case_details.productId').isInt({ min: 1 }).withMessage('Valid product ID is required'),
+    body('verification_tasks').isArray({ min: 1 }).withMessage('At least one verification task is required'),
+    body('verification_tasks.*.verification_type_id').isInt({ min: 1 }).withMessage('Valid verification type ID is required'),
+    body('verification_tasks.*.task_title').trim().notEmpty().withMessage('Task title is required')
+  ],
+  validate,
+  validateCaseCreationAccess,
+  createCaseWithMultipleTasks
+);
+
+// Get case summary with tasks
+router.get('/:id/summary',
+  EnterpriseRateLimit.roleBasedLimiter(EnterpriseRateLimits.byRole),
+  EnterpriseCache.create(EnterpriseCacheConfigs.caseDetails),
+  [param('id').trim().notEmpty().withMessage('Case ID is required')],
+  validate,
+  validateCaseAccess,
+  getCaseSummaryWithTasks
 );
 
 // Export cases to Excel - MUST be before /:id route
