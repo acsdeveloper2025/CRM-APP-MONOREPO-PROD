@@ -165,7 +165,7 @@ export const CaseAttachmentsSection: React.FC<CaseAttachmentsSectionProps> = ({ 
       const response = await fetch(`${apiBaseUrl}/attachments/upload`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
+          'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`,
         },
         body: formData,
       });
@@ -211,7 +211,7 @@ export const CaseAttachmentsSection: React.FC<CaseAttachmentsSectionProps> = ({ 
       const response = await fetch(`${apiBaseUrl}/attachments/${attachment.id}/download`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
+          'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`,
         },
       });
 

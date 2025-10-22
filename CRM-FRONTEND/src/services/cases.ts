@@ -1,4 +1,5 @@
 import { BaseApiService, getApiBaseUrl } from './base';
+import { attachmentsService } from './attachments';
 import type { Case } from '@/types/case';
 import type { ApiResponse, PaginationQuery } from '@/types/api';
 
@@ -128,42 +129,18 @@ export class CasesService extends BaseApiService {
   }
 
   async getCaseAttachments(id: string): Promise<ApiResponse<any[]>> {
-    return this.get(`/attachments/case/${id}`);
+    // Delegate to attachments service which uses the correct /api/attachments base path
+    return attachmentsService.getAttachmentsByCase(id);
   }
 
   async uploadCaseAttachments(caseId: string, files: File[]): Promise<ApiResponse<any>> {
-    const formData = new FormData();
-    formData.append('caseId', caseId);
-
-    files.forEach((file) => {
-      formData.append('files', file);
-    });
-
-    const apiBaseUrl = getApiBaseUrl();
-    const response = await fetch(`${apiBaseUrl}/attachments/upload`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`,
-      },
-      body: formData,
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ message: 'Upload failed' }));
-      throw new Error(errorData.message || `HTTP ${response.status}`);
-    }
-
-    return response.json();
+    // Delegate to attachments service which uses the correct /api/attachments base path
+    return attachmentsService.uploadAttachments({ caseId, files });
   }
 
   async downloadAttachment(id: string): Promise<Blob> {
-    const apiBaseUrl = getApiBaseUrl();
-    const response = await fetch(`${apiBaseUrl}/attachments/${id}`, {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`,
-      },
-    });
-    return response.blob();
+    // Delegate to attachments service which uses the correct /api/attachments base path
+    return attachmentsService.downloadAttachment(id);
   }
 
   async getCaseHistory(id: string): Promise<ApiResponse<any[]>> {
