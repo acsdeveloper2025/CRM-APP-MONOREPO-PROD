@@ -91,7 +91,7 @@ export class BillingService {
     const apiBaseUrl = getApiBaseUrl();
     const response = await fetch(`${apiBaseUrl}/invoices/${id}/download`, {
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
+        'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`,
       },
     });
     return response.blob();
@@ -160,7 +160,7 @@ export class BillingService {
     const response = await fetch(`${apiBaseUrl}/reports/invoices/download`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
+        'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(query),
@@ -173,7 +173,7 @@ export class BillingService {
     const response = await fetch(`${apiBaseUrl}/reports/commissions/download`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
+        'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(query),
