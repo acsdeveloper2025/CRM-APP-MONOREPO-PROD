@@ -49,7 +49,7 @@ export const TemplateReportCard: React.FC<TemplateReportCardProps> = ({
       setLoading(true);
       setError(null);
 
-      const token = localStorage.getItem('accessToken');
+      const token = localStorage.getItem('crm_auth_token');
       const response = await fetch(
         `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api'}/template-reports/cases/${caseId}/submissions/${submissionId}`.replace('/api/api', '/api'),
         {
@@ -89,7 +89,7 @@ export const TemplateReportCard: React.FC<TemplateReportCardProps> = ({
       setGenerating(true);
       setError(null);
 
-      const token = localStorage.getItem('accessToken');
+      const token = localStorage.getItem('crm_auth_token');
       const response = await fetch(
         `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api'}/template-reports/cases/${caseId}/submissions/${submissionId}/generate`.replace('/api/api', '/api'),
         {
