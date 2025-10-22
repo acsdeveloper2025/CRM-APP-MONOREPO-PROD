@@ -1570,6 +1570,25 @@ export const createCaseWithMultipleTasks = async (req: AuthenticatedRequest, res
       0.0 // case_completion_percentage
     ];
 
+    // Debug logging
+    logger.info('Creating multi-task case with values:', {
+      customerName,
+      customerPhone,
+      customerCallingCode,
+      clientId,
+      productId,
+      firstTaskVerificationTypeId,
+      address: address || null,
+      pincode: pincode || firstTaskPincode || null,
+      priority,
+      trigger: trigger || firstTaskTrigger,
+      applicantType: applicantType || firstTaskApplicantType,
+      backendContactNumber: backendContactNumber || 'N/A',
+      userId,
+      tasksCount: verification_tasks.length,
+      firstTask: verification_tasks[0]
+    });
+
     const caseResult = await client.query(insertCaseQuery, caseValues);
     const newCase = caseResult.rows[0];
 
