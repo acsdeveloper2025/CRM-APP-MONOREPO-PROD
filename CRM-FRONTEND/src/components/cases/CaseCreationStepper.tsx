@@ -335,7 +335,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
             task_title: `${getVerificationTypeName(task.verificationTypeId!)} - Task ${index + 1}`,
             task_description: task.trigger,
             priority: task.priority,
-            assigned_to: task.assignedTo,
+            assignedTo: task.assignedTo, // Use camelCase for consistency
             rate_type_id: task.rateTypeId ? parseInt(task.rateTypeId) : undefined,
             address: task.address,
             pincode: getPincodeCode(task.pincodeId),

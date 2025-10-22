@@ -1610,6 +1610,7 @@ export const createCaseWithMultipleTasks = async (req: AuthenticatedRequest, res
         task_description,
         priority: taskPriority = 'MEDIUM',
         assigned_to,
+        assignedTo, // Support camelCase for consistency
         rate_type_id,
         estimated_amount,
         address: taskAddress,
@@ -1619,6 +1620,9 @@ export const createCaseWithMultipleTasks = async (req: AuthenticatedRequest, res
         document_details,
         estimated_completion_date
       } = taskData;
+
+      // Support both camelCase (assignedTo) and snake_case (assigned_to) for backward compatibility
+      const taskAssignedTo = assignedTo || assigned_to;
 
       // Validate required task fields
       if (!verification_type_id || !task_title) {
@@ -1647,7 +1651,7 @@ export const createCaseWithMultipleTasks = async (req: AuthenticatedRequest, res
         ) RETURNING *
       `, [
         newCase.id, verification_type_id, task_title, task_description,
-        taskPriority, assigned_to, userId,
+        taskPriority, taskAssignedTo, userId,
         rate_type_id, estimated_amount, taskAddress || address, taskPincode || pincode,
         document_type, document_number, JSON.stringify(document_details),
         estimated_completion_date, userId
@@ -1658,14 +1662,14 @@ export const createCaseWithMultipleTasks = async (req: AuthenticatedRequest, res
       totalEstimatedAmount += estimated_amount || 0;
 
       // Create assignment history if assigned
-      if (assigned_to) {
+      if (taskAssignedTo) {
         await client.query(`
           INSERT INTO task_assignment_history (
             verification_task_id, case_id, assigned_to, assigned_by,
             assignment_reason, task_status_before, task_status_after
           ) VALUES ($1, $2, $3, $4, $5, $6, $7)
         `, [
-          task.id, newCase.id, assigned_to, userId,
+          task.id, newCase.id, taskAssignedTo, userId,
           'Initial assignment during case creation', 'PENDING', 'ASSIGNED'
         ]);
       }
@@ -1680,7 +1684,7 @@ export const createCaseWithMultipleTasks = async (req: AuthenticatedRequest, res
           caseId: newCase.id,
           taskTitle: task_title,
           verificationType: verification_type_id,
-          assignedTo: assigned_to
+          assignedTo: taskAssignedTo
         }
       });
     }
