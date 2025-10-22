@@ -468,7 +468,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
             const uploadResponse = await fetch(`${apiBaseUrl}/attachments/upload`, {
               method: 'POST',
               headers: {
-                'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
+                'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`,
               },
               body: formData,
             });

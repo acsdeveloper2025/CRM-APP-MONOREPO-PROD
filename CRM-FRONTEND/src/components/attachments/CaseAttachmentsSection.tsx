@@ -190,7 +190,7 @@ export const CaseAttachmentsSection: React.FC<CaseAttachmentsSectionProps> = ({ 
       const response = await fetch(`${apiBaseUrl}/attachments/${attachmentId}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
+          'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`,
         },
       });
 
@@ -386,7 +386,7 @@ export const CaseAttachmentsSection: React.FC<CaseAttachmentsSectionProps> = ({ 
             <div className="flex justify-center">
               {previewAttachment.mimeType.startsWith('image/') ? (
                 <img
-                  src={`${getApiBaseUrl()}/attachments/${previewAttachment.id}/serve?token=${localStorage.getItem('accessToken')}`}
+                  src={`${getApiBaseUrl()}/attachments/${previewAttachment.id}/serve?token=${localStorage.getItem('crm_auth_token')}`}
                   alt={previewAttachment.originalName}
                   className="max-w-full max-h-[60vh] object-contain"
                   onError={(e) => {
