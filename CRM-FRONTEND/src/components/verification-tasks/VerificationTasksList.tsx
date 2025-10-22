@@ -147,7 +147,7 @@ export const VerificationTasksList: React.FC<VerificationTasksListProps> = ({
               <TableHead className="w-12">
                 <Checkbox
                   checked={allSelected}
-                  indeterminate={someSelected}
+                  {...(someSelected ? { indeterminate: true } : {})}
                   onCheckedChange={onSelectAll}
                 />
               </TableHead>
