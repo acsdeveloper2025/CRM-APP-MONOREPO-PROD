@@ -33,7 +33,7 @@ export interface UpdateAttachmentData {
 
 class AttachmentsService extends BaseApiService {
   constructor() {
-    super('/api/attachments');
+    super('/attachments');
   }
 
   /**
