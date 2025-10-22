@@ -138,7 +138,7 @@ export class ClientsService {
     const response = await fetch(`${apiBaseUrl}/clients/bulk-import`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
+        'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`,
       },
       body: formData,
     });
@@ -154,7 +154,7 @@ export class ClientsService {
     const response = await fetch(`${apiBaseUrl}/products/bulk-import`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
+        'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`,
       },
       body: formData,
     });

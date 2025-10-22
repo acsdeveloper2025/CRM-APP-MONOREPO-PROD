@@ -237,7 +237,7 @@ export class UsersService {
     const response = await fetch(`${apiBaseUrl}/users/export?format=${format}`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
+        'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(query),
@@ -250,7 +250,7 @@ export class UsersService {
     const response = await fetch(`${apiBaseUrl}/users/import-template`, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
+        'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`,
       },
     });
     return response.blob();

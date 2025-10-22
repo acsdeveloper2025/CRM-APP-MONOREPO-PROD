@@ -73,6 +73,9 @@ export interface CreateVerificationTaskRequest {
   estimated_amount?: number;
   address?: string;
   pincode?: string;
+  area_id?: number;
+  applicant_type?: string;
+  trigger?: string;
   document_type?: string;
   document_number?: string;
   document_details?: Record<string, any>;

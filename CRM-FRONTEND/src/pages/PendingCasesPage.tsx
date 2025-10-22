@@ -46,14 +46,13 @@ export const PendingCasesPage: React.FC = () => {
   }, [debouncedSearchTerm]);
 
   const { data: casesData, isLoading, error, refetch } = usePendingCases();
-  const { data: fieldUsersData } = useFieldUsers();
+  const { data: fieldUsers } = useFieldUsers(); // fieldUsers is already the array from the select function
   const { data: clientsData } = useClients();
   const updateStatusMutation = useUpdateCaseStatus();
   const assignCaseMutation = useAssignCase();
   const { refreshCases } = useRefreshCases();
 
   const rawCases = casesData?.data || [];
-  const fieldUsers = fieldUsersData?.data || [];
   const clients = clientsData?.data || [];
 
   // Helper function to check if a case is overdue
