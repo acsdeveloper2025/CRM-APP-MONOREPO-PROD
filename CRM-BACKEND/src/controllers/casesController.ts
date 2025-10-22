@@ -1624,6 +1624,16 @@ export const createCaseWithMultipleTasks = async (req: AuthenticatedRequest, res
       // Support both camelCase (assignedTo) and snake_case (assigned_to) for backward compatibility
       const taskAssignedTo = assignedTo || assigned_to;
 
+      // Debug logging for task data
+      logger.info('Processing task:', {
+        verification_type_id,
+        task_title,
+        taskAssignedTo,
+        assignedTo,
+        assigned_to,
+        taskData
+      });
+
       // Validate required task fields
       if (!verification_type_id || !task_title) {
         await client.query('ROLLBACK');
@@ -1635,31 +1645,67 @@ export const createCaseWithMultipleTasks = async (req: AuthenticatedRequest, res
       }
 
       // Insert verification task
-      const taskResult = await client.query(`
-        INSERT INTO verification_tasks (
-          case_id, verification_type_id, task_title, task_description,
-          priority, assigned_to, assigned_by, assigned_at,
-          rate_type_id, estimated_amount, address, pincode,
-          document_type, document_number, document_details,
-          estimated_completion_date, status, created_by
-        ) VALUES (
-          $1, $2, $3, $4, $5, $6, $7,
-          CASE WHEN $6 IS NOT NULL THEN NOW() ELSE NULL::timestamp with time zone END,
-          $8, $9, $10, $11, $12, $13, $14, $15,
-          CASE WHEN $6 IS NOT NULL THEN 'ASSIGNED'::text ELSE 'PENDING'::text END,
-          $16
-        ) RETURNING *
-      `, [
-        newCase.id, verification_type_id, task_title, task_description,
-        taskPriority, taskAssignedTo, userId,
-        rate_type_id, estimated_amount, taskAddress || address, taskPincode || pincode,
-        document_type, document_number, JSON.stringify(document_details),
-        estimated_completion_date, userId
-      ]);
+      logger.info('Inserting task with values:', {
+        case_id: newCase.id,
+        verification_type_id,
+        task_title,
+        task_description,
+        taskPriority,
+        taskAssignedTo,
+        userId,
+        rate_type_id,
+        estimated_amount,
+        address: taskAddress || address,
+        pincode: taskPincode || pincode,
+        document_type,
+        document_number
+      });
+
+      let taskResult;
+      try {
+        taskResult = await client.query(`
+          INSERT INTO verification_tasks (
+            case_id, verification_type_id, task_title, task_description,
+            priority, assigned_to, assigned_by, assigned_at,
+            rate_type_id, estimated_amount, address, pincode,
+            document_type, document_number, document_details,
+            estimated_completion_date, status, created_by
+          ) VALUES (
+            $1, $2, $3, $4, $5, $6::uuid, $7,
+            CASE WHEN $6 IS NOT NULL THEN NOW() ELSE NULL::timestamp with time zone END,
+            $8, $9, $10, $11, $12, $13, $14, $15,
+            CASE WHEN $6 IS NOT NULL THEN 'ASSIGNED'::text ELSE 'PENDING'::text END,
+            $16
+          ) RETURNING *
+        `, [
+          newCase.id, verification_type_id, task_title, task_description,
+          taskPriority, taskAssignedTo || null, userId,
+          rate_type_id, estimated_amount, taskAddress || address, taskPincode || pincode,
+          document_type, document_number, JSON.stringify(document_details),
+          estimated_completion_date, userId
+        ]);
+      } catch (taskError: any) {
+        logger.error('ERROR inserting verification task:', {
+          error: taskError.message,
+          code: taskError.code,
+          detail: taskError.detail,
+          constraint: taskError.constraint,
+          values: {
+            case_id: newCase.id,
+            verification_type_id,
+            task_title,
+            taskAssignedTo,
+            userId
+          }
+        });
+        throw taskError; // Re-throw to trigger rollback
+      }
 
       const task = taskResult.rows[0];
       createdTasks.push(task);
       totalEstimatedAmount += estimated_amount || 0;
+
+      logger.info('Task created successfully:', { taskId: task.id, taskNumber: task.task_number });
 
       // Create assignment history if assigned
       if (taskAssignedTo) {
