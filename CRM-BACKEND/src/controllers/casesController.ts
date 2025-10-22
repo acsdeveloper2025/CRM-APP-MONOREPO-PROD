@@ -1532,9 +1532,9 @@ export const createCaseWithMultipleTasks = async (req: AuthenticatedRequest, res
 
     // For multi-task cases, use the verification type and applicant type of the first task
     const firstTaskVerificationTypeId = verification_tasks[0].verification_type_id;
-    const firstTaskApplicantType = verification_tasks[0].applicant_type;
+    const firstTaskApplicantType = verification_tasks[0].applicant_type || 'APPLICANT'; // Default to APPLICANT
     const firstTaskPincode = verification_tasks[0].pincode;
-    const firstTaskTrigger = verification_tasks[0].trigger;
+    const firstTaskTrigger = verification_tasks[0].task_description || verification_tasks[0].trigger || 'Multi-task verification';
 
     // Create the main case (with verificationTypeId and applicantType from first task for multi-task cases)
     const insertCaseQuery = `
@@ -1558,9 +1558,9 @@ export const createCaseWithMultipleTasks = async (req: AuthenticatedRequest, res
       address || null,
       pincode || firstTaskPincode || null,
       priority,
-      trigger || firstTaskTrigger || null,
-      applicantType || firstTaskApplicantType, // Use first task's applicant type if not provided in case_details
-      backendContactNumber,
+      trigger || firstTaskTrigger, // Use first task's trigger if not provided in case_details (NOT NULL field)
+      applicantType || firstTaskApplicantType, // Use first task's applicant type if not provided in case_details (NOT NULL field)
+      backendContactNumber || 'N/A', // Default to 'N/A' if not provided (NOT NULL field)
       'PENDING', // Initial status
       userId,
       true, // has_multiple_tasks
@@ -1731,13 +1731,22 @@ export const createCaseWithMultipleTasks = async (req: AuthenticatedRequest, res
       message: 'Case with multiple verification tasks created successfully'
     });
 
-  } catch (error) {
+  } catch (error: any) {
     await client.query('ROLLBACK');
-    logger.error('Error creating case with multiple tasks:', error);
+    logger.error('Error creating case with multiple tasks:', {
+      error: error.message,
+      stack: error.stack,
+      detail: error.detail,
+      code: error.code,
+      constraint: error.constraint
+    });
     res.status(500).json({
       success: false,
       message: 'Failed to create case with multiple tasks',
-      error: { code: 'INTERNAL_ERROR' }
+      error: {
+        code: 'INTERNAL_ERROR',
+        details: error.message || 'Unknown error'
+      }
     });
   } finally {
     client.release();
