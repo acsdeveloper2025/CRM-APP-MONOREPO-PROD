@@ -1739,14 +1739,29 @@ export const createCaseWithMultipleTasks = async (req: AuthenticatedRequest, res
       stack: error.stack,
       detail: error.detail,
       code: error.code,
-      constraint: error.constraint
+      constraint: error.constraint,
+      requestBody: req.body
     });
+
+    // Return detailed error for debugging
+    const errorDetails: any = {
+      message: error.message || 'Unknown error',
+      code: error.code,
+      detail: error.detail,
+      constraint: error.constraint
+    };
+
+    // In development, include stack trace
+    if (process.env.NODE_ENV !== 'production') {
+      errorDetails.stack = error.stack;
+    }
+
     res.status(500).json({
       success: false,
       message: 'Failed to create case with multiple tasks',
       error: {
         code: 'INTERNAL_ERROR',
-        details: error.message || 'Unknown error'
+        details: errorDetails
       }
     });
   } finally {
