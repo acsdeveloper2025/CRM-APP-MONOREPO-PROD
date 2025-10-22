@@ -339,7 +339,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
             rate_type_id: task.rateTypeId ? parseInt(task.rateTypeId) : undefined,
             address: task.address,
             pincode: getPincodeCode(task.pincodeId),
-            applicant_type: task.applicantType,
+            applicantType: task.applicantType, // Use camelCase for consistency with single task endpoint
             trigger: task.trigger,
             document_type: task.documentType || undefined,
             document_number: task.documentNumber || undefined,

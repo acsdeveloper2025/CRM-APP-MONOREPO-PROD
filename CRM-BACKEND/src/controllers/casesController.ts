@@ -1532,7 +1532,8 @@ export const createCaseWithMultipleTasks = async (req: AuthenticatedRequest, res
 
     // For multi-task cases, use the verification type and applicant type of the first task
     const firstTaskVerificationTypeId = verification_tasks[0].verification_type_id;
-    const firstTaskApplicantType = verification_tasks[0].applicant_type || 'APPLICANT'; // Default to APPLICANT
+    // Support both camelCase (applicantType) and snake_case (applicant_type) for backward compatibility
+    const firstTaskApplicantType = verification_tasks[0].applicantType || verification_tasks[0].applicant_type || 'APPLICANT';
     const firstTaskPincode = verification_tasks[0].pincode;
     const firstTaskTrigger = verification_tasks[0].task_description || verification_tasks[0].trigger || 'Multi-task verification';
 
