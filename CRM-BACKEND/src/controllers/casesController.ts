@@ -1530,11 +1530,17 @@ export const createCaseWithMultipleTasks = async (req: AuthenticatedRequest, res
       });
     }
 
-    // Create the main case (without verificationTypeId for multi-task cases)
+    // For multi-task cases, use the verification type and applicant type of the first task
+    const firstTaskVerificationTypeId = verification_tasks[0].verification_type_id;
+    const firstTaskApplicantType = verification_tasks[0].applicant_type;
+    const firstTaskPincode = verification_tasks[0].pincode;
+    const firstTaskTrigger = verification_tasks[0].trigger;
+
+    // Create the main case (with verificationTypeId and applicantType from first task for multi-task cases)
     const insertCaseQuery = `
       INSERT INTO cases (
-        "customerName", "customerPhone", "customerCallingCode", "customerEmail",
-        "clientId", "productId", address, pincode, priority, trigger,
+        "customerName", "customerPhone", "customerCallingCode",
+        "clientId", "productId", "verificationTypeId", address, pincode, priority, trigger,
         "applicantType", "backendContactNumber", status, "createdByBackendUser",
         has_multiple_tasks, total_tasks_count, completed_tasks_count,
         case_completion_percentage, "createdAt", "updatedAt"
@@ -1546,14 +1552,14 @@ export const createCaseWithMultipleTasks = async (req: AuthenticatedRequest, res
       customerName,
       customerPhone,
       customerCallingCode,
-      customerEmail,
       clientId,
       productId,
-      address,
-      pincode,
+      firstTaskVerificationTypeId,
+      address || null,
+      pincode || firstTaskPincode || null,
       priority,
-      trigger,
-      applicantType,
+      trigger || firstTaskTrigger || null,
+      applicantType || firstTaskApplicantType, // Use first task's applicant type if not provided in case_details
       backendContactNumber,
       'PENDING', // Initial status
       userId,
@@ -1614,9 +1620,9 @@ export const createCaseWithMultipleTasks = async (req: AuthenticatedRequest, res
           estimated_completion_date, status, created_by
         ) VALUES (
           $1, $2, $3, $4, $5, $6, $7,
-          CASE WHEN $6 IS NOT NULL THEN NOW() ELSE NULL END,
+          CASE WHEN $6 IS NOT NULL THEN NOW() ELSE NULL::timestamp with time zone END,
           $8, $9, $10, $11, $12, $13, $14, $15,
-          CASE WHEN $6 IS NOT NULL THEN 'ASSIGNED' ELSE 'PENDING' END,
+          CASE WHEN $6 IS NOT NULL THEN 'ASSIGNED'::text ELSE 'PENDING'::text END,
           $16
         ) RETURNING *
       `, [

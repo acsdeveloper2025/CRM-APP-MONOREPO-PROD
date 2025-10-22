@@ -134,7 +134,7 @@ class VerificationImagesService {
     const apiBaseUrl = getApiBaseUrl();
     const response = await fetch(`${apiBaseUrl}/cases/verification-images/${imageId}/serve`, {
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
+        'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`,
       },
     });
 
@@ -165,7 +165,7 @@ class VerificationImagesService {
         // Fetch the image as blob with authentication
         const response = await fetch(`${apiBaseUrl}/cases/verification-images/${imageId}/serve`, {
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
+            'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`,
           },
         });
 
@@ -214,7 +214,7 @@ class VerificationImagesService {
         const apiBaseUrl = getApiBaseUrl();
         const response = await fetch(`${apiBaseUrl}/cases/verification-images/${imageId}/thumbnail`, {
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
+            'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`,
           },
         });
 

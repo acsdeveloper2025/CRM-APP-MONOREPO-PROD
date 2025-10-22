@@ -93,7 +93,7 @@ export class DashboardService {
     const response = await fetch(`${apiBaseUrl}/dashboard/export`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
+        'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(query),

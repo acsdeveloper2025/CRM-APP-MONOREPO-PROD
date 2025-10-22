@@ -1,6 +1,5 @@
-import { BaseApiService } from './base';
-import { API_ENDPOINTS } from '@/types/constants';
-import type { Case, CaseFilters } from '@/types/case';
+import { BaseApiService, getApiBaseUrl } from './base';
+import type { Case } from '@/types/case';
 import type { ApiResponse, PaginationQuery } from '@/types/api';
 
 export interface CaseListQuery extends PaginationQuery {
@@ -82,7 +81,7 @@ export class CasesService extends BaseApiService {
     const response = await fetch(`${apiBaseUrl}/cases/with-attachments`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
+        'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`,
         // Don't set Content-Type - let browser set it with boundary for multipart/form-data
       },
       body: formData,
@@ -96,50 +95,79 @@ export class CasesService extends BaseApiService {
     return response.json();
   }
 
+  async createCaseWithMultipleTasks(payload: any): Promise<ApiResponse<any>> {
+    return this.post('/with-multiple-tasks', payload);
+  }
+
   async updateCaseDetails(id: string, data: CreateCaseData): Promise<ApiResponse<Case>> {
-    return apiService.put(`/cases/${id}`, data);
+    return this.put(`/${id}`, data);
   }
 
   async updateCaseStatus(id: string, status: string): Promise<ApiResponse<Case>> {
-    return apiService.put(`/cases/${id}/status`, { status });
+    return this.put(`/${id}/status`, { status });
   }
 
   async updateCasePriority(id: string, priority: string): Promise<ApiResponse<Case>> {
-    return apiService.put(`/cases/${id}/priority`, { priority });
+    return this.put(`/${id}/priority`, { priority });
   }
 
   async updateCase(id: string, data: CaseUpdateData): Promise<ApiResponse<Case>> {
-    return apiService.put(`/cases/${id}`, data);
+    return this.put(`/${id}`, data);
   }
 
   async assignCase(id: string, assignedToId: string, reason?: string): Promise<ApiResponse<Case>> {
-    return apiService.put(`/cases/${id}/assign`, { assignedToId, reason });
+    return this.put(`/${id}/assign`, { assignedToId, reason });
   }
 
   async addCaseNote(id: string, note: string): Promise<ApiResponse<Case>> {
-    return apiService.post(`/cases/${id}/notes`, { note });
+    return this.post(`/${id}/notes`, { note });
   }
 
   async completeCase(id: string, data: any): Promise<ApiResponse<Case>> {
-    return apiService.post(`/cases/${id}/complete`, data);
+    return this.post(`/${id}/complete`, data);
   }
 
   async getCaseAttachments(id: string): Promise<ApiResponse<any[]>> {
-    return apiService.get(`/attachments/case/${id}`);
+    return this.get(`/attachments/case/${id}`);
+  }
+
+  async uploadCaseAttachments(caseId: string, files: File[]): Promise<ApiResponse<any>> {
+    const formData = new FormData();
+    formData.append('caseId', caseId);
+
+    files.forEach((file) => {
+      formData.append('files', file);
+    });
+
+    const apiBaseUrl = getApiBaseUrl();
+    const response = await fetch(`${apiBaseUrl}/attachments/upload`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`,
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: 'Upload failed' }));
+      throw new Error(errorData.message || `HTTP ${response.status}`);
+    }
+
+    return response.json();
   }
 
   async downloadAttachment(id: string): Promise<Blob> {
     const apiBaseUrl = getApiBaseUrl();
     const response = await fetch(`${apiBaseUrl}/attachments/${id}`, {
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
+        'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`,
       },
     });
     return response.blob();
   }
 
   async getCaseHistory(id: string): Promise<ApiResponse<any[]>> {
-    return apiService.get(`/cases/${id}/history`);
+    return this.get(`/${id}/history`);
   }
 
   async getCasesByStatus(status: string): Promise<ApiResponse<Case[]>> {
@@ -185,15 +213,15 @@ export class CasesService extends BaseApiService {
   }
 
   async approveCase(id: string, feedback?: string): Promise<ApiResponse<Case>> {
-    return apiService.post(`/cases/${id}/approve`, { feedback });
+    return this.post(`/${id}/approve`, { feedback });
   }
 
   async rejectCase(id: string, reason: string): Promise<ApiResponse<Case>> {
-    return apiService.post(`/cases/${id}/reject`, { reason });
+    return this.post(`/${id}/reject`, { reason });
   }
 
   async requestRework(id: string, feedback: string): Promise<ApiResponse<Case>> {
-    return apiService.post(`/cases/${id}/rework`, { feedback });
+    return this.post(`/${id}/rework`, { feedback });
   }
 
   async exportCases(params: {
@@ -218,7 +246,7 @@ export class CasesService extends BaseApiService {
     const response = await fetch(`${apiBaseUrl}/cases/export?${queryParams}`, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
+        'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`,
       },
     });
 

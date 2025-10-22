@@ -504,7 +504,7 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
                             <SelectValue placeholder="Select pincode" />
                           </SelectTrigger>
                         </FormControl>
-                        <SelectContent>
+                        <SelectContent position="popper" className="max-h-[300px] overflow-y-auto">
                           {pincodes?.map((pincode) => (
                             <SelectItem key={pincode.id} value={pincode.id.toString()}>
                               {pincode.code}

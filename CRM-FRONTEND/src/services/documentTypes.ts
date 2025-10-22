@@ -96,7 +96,7 @@ class DocumentTypesService {
     const response = await fetch(`${apiService.getBaseUrl()}/document-types/import`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
+        'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`,
       },
       body: formData,
     });

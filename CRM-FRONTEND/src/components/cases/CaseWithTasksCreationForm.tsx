@@ -151,7 +151,8 @@ const taskSchema = z.object({
 
 const formSchema = z.object({
   caseDetails: caseDetailsSchema,
-  verificationTasks: z.array(taskSchema).min(1, 'At least one verification task is required'),
+  // verificationTasks are managed separately in state, not in the form
+  // verificationTasks: z.array(taskSchema).min(1, 'At least one verification task is required'),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -221,7 +222,7 @@ export const CaseWithTasksCreationForm: React.FC<CaseWithTasksCreationFormProps>
         backendContactNumber: '',
         ...initialData.caseDetails,
       },
-      verificationTasks: initialData.verificationTasks || [],
+      // verificationTasks are managed separately in the tasks state
     },
   });
 
@@ -239,7 +240,7 @@ export const CaseWithTasksCreationForm: React.FC<CaseWithTasksCreationFormProps>
   const verificationTypes = verificationTypesResponse?.data || [];
   const products = productsResponse?.data || [];
   const pincodes = pincodesResponse?.data || [];
-  const users = fieldUsers?.data || [];
+  const users = fieldUsers || []; // fieldUsers is already the array from the select function
 
   // Helper function to get user display name
   const getUserDisplayName = (user: any) => {
@@ -258,9 +259,30 @@ export const CaseWithTasksCreationForm: React.FC<CaseWithTasksCreationFormProps>
 
   // Task management functions
   const updateTask = (taskId: string, field: keyof TaskFormData, value: any) => {
-    setTasks(tasks.map(task =>
-      task.id === taskId ? { ...task, [field]: value } : task
-    ));
+    console.log('📝 updateTask called:', {
+      taskId,
+      field,
+      value,
+      valueType: typeof value,
+      valueRepr: `${typeof value}:${JSON.stringify(value)}`
+    });
+    setTasks(tasks.map(task => {
+      if (task.id === taskId) {
+        const updated = { ...task, [field]: value };
+        console.log('✅ Task updated:', {
+          taskId,
+          field,
+          oldValue: task[field],
+          newValue: value,
+          valueType: typeof value,
+          valueRepr: `${typeof value}:${JSON.stringify(value)}`,
+          updatedPincode: updated.pincode,
+          updatedPincodeType: typeof updated.pincode
+        });
+        return updated;
+      }
+      return task;
+    }));
   };
 
   const addTask = () => {
@@ -316,19 +338,26 @@ export const CaseWithTasksCreationForm: React.FC<CaseWithTasksCreationFormProps>
           productId: parseInt(data.caseDetails.productId),
           backendContactNumber: data.caseDetails.backendContactNumber,
         },
-        verification_tasks: validTasks.map(task => ({
-          verification_type_id: task.verificationTypeId!,
-          priority: task.priority,
-          assigned_to: task.assignedTo && task.assignedTo !== 'unassigned' ? task.assignedTo : undefined,
-          rate_type_id: parseInt(task.rateTypeId!),
-          address: task.address || undefined,
-          pincode: task.pincode!,
-          area_id: parseInt(task.areaId!),
-          applicant_type: task.applicantType!,
-          trigger: task.trigger!,
-          document_type: task.documentType || undefined,
-          document_number: task.documentNumber || undefined,
-        })),
+        verification_tasks: validTasks.map((task, index) => {
+          // Get verification type name for task title
+          const verificationType = verificationTypes.find(vt => vt.id === task.verificationTypeId);
+          const taskTitle = `${verificationType?.name || 'Verification'} - Task ${index + 1}`;
+
+          return {
+            verification_type_id: task.verificationTypeId!,
+            task_title: taskTitle,
+            priority: task.priority,
+            assigned_to: task.assignedTo && task.assignedTo !== 'unassigned' ? task.assignedTo : undefined,
+            rate_type_id: parseInt(task.rateTypeId!),
+            address: task.address || undefined,
+            pincode: task.pincode!,
+            area_id: parseInt(task.areaId!),
+            applicant_type: task.applicantType!,
+            trigger: task.trigger!,
+            document_type: task.documentType || undefined,
+            document_number: task.documentNumber || undefined,
+          };
+        }),
       };
 
       // Create case with tasks
@@ -565,12 +594,19 @@ export const CaseWithTasksCreationForm: React.FC<CaseWithTasksCreationFormProps>
                         <Select
                           value={task.pincode || ''}
                           onValueChange={(value) => {
-                            updateTask(task.id, 'pincode', value);
-                            updateTask(task.id, 'areaId', ''); // Reset area when pincode changes
+                            console.log('🔍 Pincode onValueChange called:', { taskId: task.id, value, valueType: typeof value, currentPincode: task.pincode });
+                            // Force state update by creating new tasks array
+                            setTasks(prevTasks => prevTasks.map(t =>
+                              t.id === task.id
+                                ? { ...t, pincode: String(value), areaId: '' }
+                                : t
+                            ));
                           }}
                         >
                           <SelectTrigger>
-                            <SelectValue placeholder="Select pincode" />
+                            <SelectValue placeholder="Select pincode">
+                              {task.pincode ? pincodes.find(p => p.id.toString() === task.pincode)?.code : 'Select pincode'}
+                            </SelectValue>
                           </SelectTrigger>
                           <SelectContent>
                             {pincodes.map((pincode) => (

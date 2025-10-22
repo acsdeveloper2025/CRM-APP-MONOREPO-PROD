@@ -176,27 +176,27 @@ export class LocationsService {
     const response = await fetch(`${apiBaseUrl}/cities/bulk-import`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
+        'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`,
       },
       body: formData,
     });
-    
+
     return response.json();
   }
 
   async bulkImportPincodes(file: File): Promise<ApiResponse<any>> {
     const formData = new FormData();
     formData.append('file', file);
-    
+
     const apiBaseUrl = getApiBaseUrl();
     const response = await fetch(`${apiBaseUrl}/pincodes/bulk-import`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
+        'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`,
       },
       body: formData,
     });
-    
+
     return response.json();
   }
 
@@ -209,7 +209,7 @@ export class LocationsService {
     const response = await fetch(`${apiBaseUrl}/countries/bulk-import`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
+        'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`,
       },
       body: formData,
     });
@@ -226,7 +226,7 @@ export class LocationsService {
     const response = await fetch(`${apiBaseUrl}/states/bulk-import`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
+        'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`,
       },
       body: formData,
     });

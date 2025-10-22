@@ -91,7 +91,7 @@ export class ReportsService {
     const response = await fetch(`${apiBaseUrl}/bank-bills/${id}/download`, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
+        'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`,
       },
     });
     return response.blob();
@@ -123,7 +123,7 @@ export class ReportsService {
     const response = await fetch(`${apiBaseUrl}/mis-reports/${id}/download?format=${format}`, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
+        'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`,
       },
     });
     return response.blob();
@@ -169,7 +169,7 @@ export class ReportsService {
     const response = await fetch(`${apiBaseUrl}/mis-reports/bulk-download?format=${format}`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
+        'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ reportIds }),
@@ -192,7 +192,7 @@ export class ReportsService {
     const response = await fetch(`${apiBaseUrl}/bank-bills/export?format=${format}`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
+        'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(query),
@@ -205,7 +205,7 @@ export class ReportsService {
     const response = await fetch(`${apiBaseUrl}/mis-reports/export?format=${format}`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
+        'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(query),
