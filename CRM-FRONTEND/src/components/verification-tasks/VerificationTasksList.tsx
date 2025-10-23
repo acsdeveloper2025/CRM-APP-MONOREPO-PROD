@@ -17,16 +17,15 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { 
-  MoreHorizontal, 
-  UserCheck, 
-  CheckCircle, 
-  Play, 
-  X, 
+import {
+  MoreHorizontal,
+  UserCheck,
+  CheckCircle,
+  Play,
+  X,
   Eye,
   Clock,
-  AlertTriangle,
-  DollarSign
+  AlertTriangle
 } from 'lucide-react';
 import { VerificationTask, TaskStatus, TaskPriority } from '@/types/verificationTask';
 import { formatDistanceToNow } from 'date-fns';
@@ -98,12 +97,6 @@ export const VerificationTasksList: React.FC<VerificationTasksListProps> = ({
     );
   };
 
-  // Format currency
-  const formatCurrency = (amount?: number) => {
-    if (!amount) return '-';
-    return `₹${amount.toLocaleString('en-IN')}`;
-  };
-
   // Format date
   const formatDate = (dateString?: string) => {
     if (!dateString) return '-';
@@ -121,8 +114,8 @@ export const VerificationTasksList: React.FC<VerificationTasksListProps> = ({
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        <span className="ml-2 text-gray-600">Loading tasks...</span>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <span className="ml-2">Loading tasks...</span>
       </div>
     );
   }
@@ -130,8 +123,8 @@ export const VerificationTasksList: React.FC<VerificationTasksListProps> = ({
   if (tasks.length === 0) {
     return (
       <div className="text-center py-8">
-        <div className="text-gray-500 mb-2">No verification tasks found</div>
-        <p className="text-sm text-gray-400">
+        <div className="mb-2">No verification tasks found</div>
+        <p className="text-sm text-muted-foreground">
           Create new tasks to get started with verification workflows
         </p>
       </div>
@@ -152,19 +145,24 @@ export const VerificationTasksList: React.FC<VerificationTasksListProps> = ({
                 />
               </TableHead>
             )}
-            <TableHead>Task</TableHead>
-            <TableHead>Type</TableHead>
+            <TableHead>Task #</TableHead>
+            <TableHead>Case #</TableHead>
+            <TableHead>Customer</TableHead>
+            <TableHead>Verification Type</TableHead>
+            <TableHead>Trigger</TableHead>
+            <TableHead>Pincode</TableHead>
+            <TableHead>Address</TableHead>
+            <TableHead>Rate Type</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Priority</TableHead>
             <TableHead>Assigned To</TableHead>
-            <TableHead>Amount</TableHead>
             <TableHead>Created</TableHead>
             <TableHead className="w-12">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {tasks.map((task) => (
-            <TableRow key={task.id} className="hover:bg-gray-50">
+            <TableRow key={task.id} className="hover:bg-muted/50">
               {!readonly && (
                 <TableCell>
                   <Checkbox
@@ -174,71 +172,85 @@ export const VerificationTasksList: React.FC<VerificationTasksListProps> = ({
                 </TableCell>
               )}
               
+              {/* Task Number */}
               <TableCell>
-                <div>
-                  <div className="font-medium text-gray-900">
-                    {task.taskTitle}
-                  </div>
-                  <div className="text-sm text-gray-500">
-                    #{task.taskNumber}
-                  </div>
-                  {task.taskDescription && (
-                    <div className="text-xs text-gray-400 mt-1 max-w-xs truncate">
-                      {task.taskDescription}
-                    </div>
-                  )}
+                <div className="font-medium">
+                  #{task.taskNumber}
                 </div>
               </TableCell>
-              
+
+              {/* Case Number */}
               <TableCell>
-                <span className="text-sm text-gray-600">
-                  {task.verificationTypeName || 'Unknown Type'}
+                <div className="font-medium">
+                  {task.caseNumber ? `#${task.caseNumber}` : '-'}
+                </div>
+              </TableCell>
+
+              {/* Customer Name */}
+              <TableCell className="font-medium">
+                {task.customerName || '-'}
+              </TableCell>
+
+              {/* Verification Type */}
+              <TableCell>
+                <span className="text-sm text-muted-foreground">
+                  {task.verificationTypeName || '-'}
                 </span>
               </TableCell>
-              
+
+              {/* Trigger */}
+              <TableCell>
+                <div className="max-w-xs truncate text-sm text-muted-foreground" title={task.trigger}>
+                  {task.trigger || '-'}
+                </div>
+              </TableCell>
+
+              {/* Pincode */}
+              <TableCell>
+                {task.pincode || '-'}
+              </TableCell>
+
+              {/* Address */}
+              <TableCell>
+                <div className="max-w-xs truncate text-sm text-muted-foreground" title={task.address}>
+                  {task.address || '-'}
+                </div>
+              </TableCell>
+
+              {/* Rate Type */}
+              <TableCell>
+                <span className="text-sm text-muted-foreground">
+                  {task.rateTypeName || '-'}
+                </span>
+              </TableCell>
+
               <TableCell>
                 {getStatusBadge(task.status)}
               </TableCell>
-              
+
               <TableCell>
                 {getPriorityBadge(task.priority)}
               </TableCell>
-              
+
               <TableCell>
-                <div className="text-sm">
+                <div>
                   {task.assignedToName ? (
-                    <span className="text-gray-900">{task.assignedToName}</span>
+                    <span>{task.assignedToName}</span>
                   ) : (
-                    <span className="text-gray-400 italic">Unassigned</span>
+                    <span className="text-muted-foreground italic">Unassigned</span>
                   )}
                   {task.assignedAt && (
-                    <div className="text-xs text-gray-500">
+                    <div className="text-xs text-muted-foreground mt-1">
                       {formatDate(task.assignedAt)}
                     </div>
                   )}
                 </div>
               </TableCell>
-              
+
               <TableCell>
-                <div className="text-sm">
-                  <div className="flex items-center space-x-1">
-                    <DollarSign className="h-3 w-3 text-gray-400" />
-                    <span className="text-gray-600">
-                      {formatCurrency(task.estimatedAmount)}
-                    </span>
-                  </div>
-                  {task.actualAmount && (
-                    <div className="text-xs text-green-600 mt-1">
-                      Actual: {formatCurrency(task.actualAmount)}
-                    </div>
-                  )}
-                </div>
-              </TableCell>
-              
-              <TableCell>
-                <div className="text-sm text-gray-600">
+                <span className="text-sm text-muted-foreground">
                   {formatDate(task.createdAt)}
-                </div>
+                </span>
               </TableCell>
               
               <TableCell>

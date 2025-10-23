@@ -6,9 +6,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { UserCheck, AlertCircle, User } from 'lucide-react';
-import { AssignVerificationTaskRequest, TaskPriority } from '@/types/verificationTask';
-import { useUsers } from '@/hooks/useUsers';
+import { UserCheck, AlertCircle, User, Loader2 } from 'lucide-react';
+import { AssignVerificationTaskRequest, TaskPriority, VerificationTask } from '@/types/verificationTask';
+import { useFieldUsersByPincode } from '@/hooks/useUsers';
 import { useVerificationTasks } from '@/hooks/useVerificationTasks';
 
 interface TaskAssignmentModalProps {
@@ -27,20 +27,22 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
   const [priority, setPriority] = useState<TaskPriority>('MEDIUM');
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [task, setTask] = useState<VerificationTask | null>(null);
 
-  const { data: usersData } = useUsers();
   const { fetchTaskById } = useVerificationTasks();
 
-  const fieldUsers = usersData?.data?.filter(user => user.role === 'FIELD_USER') || [];
+  // Fetch field users filtered by the task's pincode
+  const { data: fieldUsers = [], isLoading: loadingUsers } = useFieldUsersByPincode(task?.pincode);
 
   // Fetch task details
   useEffect(() => {
     const loadTaskDetails = async () => {
-      const task = await fetchTaskById(taskId);
-      if (task) {
-        setPriority(task.priority);
-        if (task.assignedTo) {
-          setAssignedTo(task.assignedTo);
+      const taskData = await fetchTaskById(taskId);
+      if (taskData) {
+        setTask(taskData);
+        setPriority(taskData.priority);
+        if (taskData.assignedTo) {
+          setAssignedTo(taskData.assignedTo);
         }
       }
     };
@@ -123,7 +125,7 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
                     Task ID: {taskId.slice(0, 8)}...
                   </p>
                   <p className="text-xs text-gray-600 mt-1">
-                    Assigning task to field user
+                    {task?.pincode ? `Pincode: ${task.pincode}` : 'Assigning task to field user'}
                   </p>
                 </div>
                 <Badge className={getPriorityColor(priority)}>
@@ -139,6 +141,11 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
             <div className="space-y-2">
               <Label htmlFor="assignedTo">
                 Assign To <span className="text-red-500">*</span>
+                {task?.pincode && (
+                  <span className="text-xs text-gray-500 ml-2">
+                    (Showing users assigned to pincode {task.pincode})
+                  </span>
+                )}
               </Label>
               <Select
                 value={assignedTo}
@@ -146,9 +153,10 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
                   setAssignedTo(value);
                   clearError('assignedTo');
                 }}
+                disabled={loadingUsers || !task}
               >
                 <SelectTrigger className={errors.assignedTo ? 'border-red-500' : ''}>
-                  <SelectValue placeholder="Select a field user">
+                  <SelectValue placeholder={loadingUsers ? "Loading field users..." : "Select a field user"}>
                     {assignedTo && (
                       <div className="flex items-center space-x-2">
                         <User className="h-4 w-4" />
@@ -160,9 +168,20 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  {fieldUsers.length === 0 ? (
-                    <div className="p-2 text-sm text-gray-500">
-                      No field users available
+                  {loadingUsers ? (
+                    <div className="p-4 text-center">
+                      <Loader2 className="h-4 w-4 animate-spin mx-auto mb-2" />
+                      <p className="text-sm text-gray-500">Loading field users...</p>
+                    </div>
+                  ) : fieldUsers.length === 0 ? (
+                    <div className="p-4 text-center">
+                      <AlertCircle className="h-4 w-4 text-yellow-500 mx-auto mb-2" />
+                      <p className="text-sm text-gray-900 font-medium">No field users available</p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {task?.pincode
+                          ? `No field users are assigned to pincode ${task.pincode}`
+                          : 'No pincode specified for this task'}
+                      </p>
                     </div>
                   ) : (
                     fieldUsers.map((user) => (
@@ -171,7 +190,9 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
                           <User className="h-4 w-4" />
                           <div>
                             <div className="font-medium">{user.name}</div>
-                            <div className="text-xs text-gray-500">{user.email}</div>
+                            {user.employeeId && (
+                              <div className="text-xs text-gray-500">ID: {user.employeeId}</div>
+                            )}
                           </div>
                         </div>
                       </SelectItem>

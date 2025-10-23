@@ -41,6 +41,16 @@ export const useFieldUsers = () => {
   });
 };
 
+// Get field users by pincode
+export const useFieldUsersByPincode = (pincodeCode?: string) => {
+  return useQuery({
+    queryKey: [...userKeys.fieldUsers(), 'by-pincode', pincodeCode],
+    queryFn: () => usersService.getFieldUsersByPincode(pincodeCode!),
+    select: (data) => data.data || [],
+    enabled: !!pincodeCode,
+  });
+};
+
 // Search users
 export const useSearchUsers = (searchQuery: string) => {
   return useQuery({

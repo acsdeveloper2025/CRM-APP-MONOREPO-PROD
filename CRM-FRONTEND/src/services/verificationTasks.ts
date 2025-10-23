@@ -38,18 +38,20 @@ export class VerificationTasksService {
    * Get all verification tasks for a case
    */
   static async getTasksForCase(
-    caseId: string, 
+    caseId: string,
     filters?: VerificationTaskFilters
   ): Promise<TasksForCaseResponse> {
     const params = new URLSearchParams();
-    
+
     if (filters?.status) params.append('status', filters.status);
     if (filters?.assignedTo) params.append('assigned_to', filters.assignedTo);
     if (filters?.verificationTypeId) params.append('verification_type_id', filters.verificationTypeId.toString());
     if (filters?.priority) params.append('priority', filters.priority);
 
     const response = await apiService.get(`/cases/${caseId}/verification-tasks?${params.toString()}`);
-    return response.data;
+    // apiService.get returns { success, data, message }
+    // We return the full response to match TasksForCaseResponse type
+    return response as TasksForCaseResponse;
   }
 
   /**

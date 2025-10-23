@@ -38,7 +38,11 @@ export interface VerificationTask {
   pincode?: string;
   latitude?: number;
   longitude?: number;
-  
+
+  // Task Context
+  trigger?: string;
+  applicantType?: string;
+
   // Document Information (for document verification tasks)
   documentType?: string;
   documentNumber?: string;
