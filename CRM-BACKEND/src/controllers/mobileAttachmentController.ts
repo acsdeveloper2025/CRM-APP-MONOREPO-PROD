@@ -446,7 +446,9 @@ export class MobileAttachmentController {
         });
       }
 
-      const filePath = path.join(process.cwd(), 'uploads', 'mobile', attachment.filename);
+      // Use the filePath from database, removing leading slash if present
+      const dbFilePath = attachment.filePath.startsWith('/') ? attachment.filePath.substring(1) : attachment.filePath;
+      const filePath = path.join(process.cwd(), dbFilePath);
 
       try {
         await fs.access(filePath);
@@ -457,6 +459,7 @@ export class MobileAttachmentController {
           error: {
             code: 'FILE_NOT_FOUND',
             timestamp: new Date().toISOString(),
+            filePath: dbFilePath, // Include path for debugging
           },
         });
       }
