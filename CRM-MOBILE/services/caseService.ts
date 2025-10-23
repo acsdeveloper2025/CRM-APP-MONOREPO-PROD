@@ -51,6 +51,8 @@ interface BackendCase {
   priority?: string;
   trigger?: string;
   address?: string;
+  verificationTaskId?: string; // Verification Task UUID
+  verificationTaskNumber?: string; // Verification Task Number (e.g., VT-000127)
   status: string;
   assignedAt: string; // Backend sends this as creation time
   updatedAt: string;
@@ -134,6 +136,10 @@ const mapBackendCaseToMobile = (backendCase: BackendCase): Case => {
 
     // Field 2: Case ID
     caseId: backendCase.caseId,
+
+    // Verification Task Information
+    verificationTaskId: backendCase.verificationTaskId,
+    verificationTaskNumber: backendCase.verificationTaskNumber,
 
     // Field 3: Client
     clientId: backendCase.clientId,
