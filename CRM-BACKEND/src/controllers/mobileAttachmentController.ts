@@ -362,6 +362,11 @@ export class MobileAttachmentController {
 
       const attRes = await query(attachmentQuery, attachmentParams);
 
+      console.log(`📎 Mobile Get Attachments - Case: ${caseId}, User: ${userId}, Role: ${userRole}, TaskId: ${userTaskId}, Found: ${attRes.rows.length} attachments`);
+      console.log(`📋 Query used:`, attachmentQuery);
+      console.log(`📋 Query params:`, attachmentParams);
+      console.log(`📋 Results:`, attRes.rows);
+
       const mobileAttachments: MobileAttachmentResponse[] = attRes.rows.map((att: any) => ({
         id: att.id,
         filename: att.filename,
@@ -373,6 +378,8 @@ export class MobileAttachmentController {
         uploadedAt: new Date(att.createdAt).toISOString(),
         geoLocation: undefined, // Not available in current schema
       }));
+
+      console.log(`✅ Returning ${mobileAttachments.length} attachments to mobile app`);
 
       res.json({
         success: true,
