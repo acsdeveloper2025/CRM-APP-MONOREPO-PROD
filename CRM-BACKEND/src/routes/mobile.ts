@@ -59,6 +59,7 @@ router.post('/cases/:caseId/attachments',
   MobileAttachmentController.uploadFiles
 );
 router.get('/cases/:caseId/attachments', authenticateToken, validateMobileVersion, MobileAttachmentController.getCaseAttachments);
+router.get('/cases/:caseId/attachments/:attachmentId', authenticateToken, validateMobileVersion, MobileAttachmentController.getAttachmentContent);
 router.get('/attachments/:attachmentId/content', authenticateToken, validateMobileVersion, MobileAttachmentController.getAttachmentContent);
 router.delete('/attachments/:attachmentId', authenticateToken, validateMobileVersion, MobileAttachmentController.deleteAttachment);
 
