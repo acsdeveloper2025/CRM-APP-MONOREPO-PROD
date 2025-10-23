@@ -44,23 +44,44 @@ print_info() {
     echo -e "${BLUE}ℹ️  $1${NC}" | tee -a "$LOG_FILE"
 }
 
-# Check if a service is running
+# Check if a service is running (PM2-based)
 check_service_process() {
     local service_name=$1
-    local pid_file="$PROJECT_ROOT/logs/${service_name}.pid"
-    
-    if [ -f "$pid_file" ]; then
-        local pid=$(cat "$pid_file")
-        if kill -0 "$pid" 2>/dev/null; then
-            print_status "$service_name process is running (PID: $pid)"
+    local pm2_name="crm-${service_name}"
+
+    # Check if PM2 is available
+    if command -v pm2 >/dev/null 2>&1; then
+        # Check if process exists in PM2
+        local pm2_status=$(pm2 jlist 2>/dev/null | jq -r ".[] | select(.name==\"$pm2_name\") | .pm2_env.status" 2>/dev/null)
+
+        if [ "$pm2_status" = "online" ]; then
+            local pid=$(pm2 jlist 2>/dev/null | jq -r ".[] | select(.name==\"$pm2_name\") | .pid" 2>/dev/null)
+            print_status "$service_name process is running via PM2 (PID: $pid)"
             return 0
+        elif [ -n "$pm2_status" ]; then
+            print_error "$service_name process is in PM2 but status is: $pm2_status"
+            return 1
         else
-            print_error "$service_name process is not running (stale PID file)"
+            print_error "$service_name process not found in PM2"
             return 1
         fi
     else
-        print_error "$service_name PID file not found"
-        return 1
+        # Fallback to PID file check if PM2 is not available
+        local pid_file="$PROJECT_ROOT/logs/${service_name}.pid"
+
+        if [ -f "$pid_file" ]; then
+            local pid=$(cat "$pid_file")
+            if kill -0 "$pid" 2>/dev/null; then
+                print_status "$service_name process is running (PID: $pid)"
+                return 0
+            else
+                print_error "$service_name process is not running (stale PID file)"
+                return 1
+            fi
+        else
+            print_error "$service_name PID file not found"
+            return 1
+        fi
     fi
 }
 
