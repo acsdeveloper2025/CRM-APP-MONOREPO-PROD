@@ -212,26 +212,45 @@ if command -v pm2 >/dev/null 2>&1; then
         # Save PM2 process list
         pm2 save --force >/dev/null 2>&1
 
-        # Wait for services to start
-        sleep 5
-
-        # Verify services are running
-        local all_running=true
+        # Wait for services to start with retry logic
+        print_info "Waiting for services to start (max 60 seconds)..."
+        local max_wait=60
+        local wait_interval=5
+        local elapsed=0
+        local all_running=false
         local services=("crm-backend" "crm-frontend" "crm-mobile")
 
-        for service in "${services[@]}"; do
-            local status=$(pm2 jlist 2>/dev/null | jq -r ".[] | select(.name==\"$service\") | .pm2_env.status" 2>/dev/null)
-            if [ "$status" = "online" ]; then
-                local pid=$(pm2 jlist 2>/dev/null | jq -r ".[] | select(.name==\"$service\") | .pid" 2>/dev/null)
-                print_status "$service started successfully (PID: $pid)"
-            else
-                print_error "$service failed to start (status: $status)"
-                all_running=false
+        while [ $elapsed -lt $max_wait ]; do
+            sleep $wait_interval
+            elapsed=$((elapsed + wait_interval))
+
+            all_running=true
+            for service in "${services[@]}"; do
+                local status=$(pm2 jlist 2>/dev/null | jq -r ".[] | select(.name==\"$service\") | .pm2_env.status" 2>/dev/null)
+                if [ "$status" != "online" ]; then
+                    all_running=false
+                    break
+                fi
+            done
+
+            if [ "$all_running" = true ]; then
+                break
             fi
+
+            print_info "Services still starting... (${elapsed}s elapsed)"
         done
 
-        if [ "$all_running" = false ]; then
-            print_error "Some services failed to start"
+        # Final verification
+        if [ "$all_running" = true ]; then
+            for service in "${services[@]}"; do
+                local pid=$(pm2 jlist 2>/dev/null | jq -r ".[] | select(.name==\"$service\") | .pid" 2>/dev/null)
+                print_status "$service started successfully (PID: $pid)"
+            done
+        else
+            print_error "Services failed to start within ${max_wait} seconds"
+            print_info "Current PM2 status:"
+            pm2 list
+            print_info "Recent logs:"
             pm2 logs --lines 50 --nostream
             exit 1
         fi
