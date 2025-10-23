@@ -106,8 +106,13 @@ export class MobileAttachmentController {
         caseSql = `SELECT id, "caseId" FROM cases WHERE "caseId" = $1`;
       }
 
+      // For FIELD_AGENT: Check task-level assignment
       if (userRole === 'FIELD_AGENT') {
-        caseSql += ` AND "assignedTo" = $2`;
+        caseSql += ` AND EXISTS (
+          SELECT 1 FROM verification_tasks vt
+          WHERE vt.case_id = cases.id
+          AND vt.assigned_to = $2
+        )`;
         where.push(userId);
       }
 
@@ -279,8 +284,13 @@ export class MobileAttachmentController {
         caseSql = `SELECT id, "caseId" FROM cases WHERE "caseId" = $1`;
       }
 
+      // For FIELD_AGENT: Check task-level assignment
       if (userRole === 'FIELD_AGENT') {
-        caseSql += ` AND "assignedTo" = $2`;
+        caseSql += ` AND EXISTS (
+          SELECT 1 FROM verification_tasks vt
+          WHERE vt.case_id = cases.id
+          AND vt.assigned_to = $2
+        )`;
         caseVals.push(userId);
       }
 
@@ -303,18 +313,22 @@ export class MobileAttachmentController {
 
       const actualCaseId = existingCase.id; // Use the actual UUID from the database
 
-      // For field agents, ensure they can only see attachments for cases assigned to them
+      // For field agents, ensure they can only see attachments for cases with assigned tasks
       // For other roles (admin, manager), show all attachments for the case
       let attachmentQuery: string;
       let attachmentParams: any[];
 
       if (userRole === 'FIELD_AGENT') {
-        // Double-check assignment and filter attachments by case assignment
+        // Filter attachments by task-level assignment
         attachmentQuery = `
           SELECT a.id, a.filename, a."originalName", a."mimeType", a."fileSize", a."filePath", a."createdAt"
           FROM attachments a
-          JOIN cases c ON a.case_id = c.id
-          WHERE a.case_id = $1 AND c."assignedTo" = $2
+          WHERE a.case_id = $1
+          AND EXISTS (
+            SELECT 1 FROM verification_tasks vt
+            WHERE vt.case_id = a.case_id
+            AND vt.assigned_to = $2
+          )
           ORDER BY a."createdAt" DESC
         `;
         attachmentParams = [actualCaseId, userId];
@@ -373,13 +387,18 @@ export class MobileAttachmentController {
       let queryParams: any[];
 
       if (userRole === 'FIELD_AGENT') {
-        // Field agents can only access attachments for cases assigned to them
+        // Field agents can only access attachments for cases with assigned tasks
         attachmentQuery = `
           SELECT a.id, a.filename, a."originalName", a."mimeType", a."fileSize", a."filePath",
                  a."uploadedBy", a."createdAt", a."caseId", c."assignedTo"
           FROM attachments a
           JOIN cases c ON a.case_id = c.id
-          WHERE a.id = $1 AND c."assignedTo" = $2
+          WHERE a.id = $1
+          AND EXISTS (
+            SELECT 1 FROM verification_tasks vt
+            WHERE vt.case_id = c.id
+            AND vt.assigned_to = $2
+          )
         `;
         queryParams = [attachmentId, userId];
       } else {
@@ -469,13 +488,18 @@ export class MobileAttachmentController {
       let queryParams: any[];
 
       if (userRole === 'FIELD_AGENT') {
-        // Field agents can only delete attachments for cases assigned to them
+        // Field agents can only delete attachments for cases with assigned tasks
         attachmentQuery = `
           SELECT a.id, a.filename, a."originalName", a."mimeType", a."fileSize", a."filePath",
                  a."uploadedBy", a."createdAt", a."caseId", c."assignedTo", c.status
           FROM attachments a
           JOIN cases c ON a.case_id = c.id
-          WHERE a.id = $1 AND c."assignedTo" = $2
+          WHERE a.id = $1
+          AND EXISTS (
+            SELECT 1 FROM verification_tasks vt
+            WHERE vt.case_id = c.id
+            AND vt.assigned_to = $2
+          )
         `;
         queryParams = [attachmentId, userId];
       } else {
@@ -609,7 +633,7 @@ export class MobileAttachmentController {
       let queryParams: any[];
 
       if (userRole === 'FIELD_AGENT') {
-        // Field agents can only see attachments for cases assigned to them
+        // Field agents can only see attachments for cases with assigned tasks
         attachmentsSql = `
           SELECT
             a.id,
@@ -629,7 +653,12 @@ export class MobileAttachmentController {
           FROM attachments a
           LEFT JOIN users u ON u.id = a."uploadedBy"
           JOIN cases c ON a.case_id = c.id
-          WHERE a."caseId" IN (${placeholders}) AND c."assignedTo" = $${caseIds.length + 1}
+          WHERE a."caseId" IN (${placeholders})
+          AND EXISTS (
+            SELECT 1 FROM verification_tasks vt
+            WHERE vt.case_id = c.id
+            AND vt.assigned_to = $${caseIds.length + 1}
+          )
           ORDER BY a."caseId", a."uploadedAt" DESC
         `;
         queryParams = [...caseIds, userId];
