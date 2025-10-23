@@ -333,3 +333,6 @@ echo "  • Frontend: logs/frontend.log"
 echo "  • Mobile: logs/mobile.log"
 echo ""
 print_status "🚀 CRM Production Environment is ready!"
+
+# Explicit exit to ensure script completes
+exit 0

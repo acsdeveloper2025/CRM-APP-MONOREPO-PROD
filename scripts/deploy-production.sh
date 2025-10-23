@@ -461,8 +461,20 @@ start_services() {
     if [ -f "start-production.sh" ]; then
         print_info "Starting services using production script..."
         chmod +x start-production.sh
-        ./start-production.sh
-        print_status "Services started successfully"
+
+        # Run startup script with timeout to prevent hanging
+        if timeout 120 ./start-production.sh; then
+            print_status "Services started successfully"
+        else
+            local exit_code=$?
+            if [ $exit_code -eq 124 ]; then
+                print_error "Startup script timed out after 120 seconds"
+                exit 1
+            else
+                print_error "Startup script failed with exit code: $exit_code"
+                exit 1
+            fi
+        fi
     else
         print_error "Production startup script not found!"
         exit 1
