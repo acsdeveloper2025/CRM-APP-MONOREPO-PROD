@@ -207,10 +207,10 @@ if command -v pm2 >/dev/null 2>&1; then
     # Check if ecosystem.config.js exists
     if [ -f "ecosystem.config.js" ]; then
         print_info "Starting services using PM2 ecosystem file..."
-        pm2 start ecosystem.config.js
+        pm2 start ecosystem.config.js >/dev/null 2>&1
 
         # Save PM2 process list
-        pm2 save --force
+        pm2 save --force >/dev/null 2>&1
 
         # Wait for services to start
         sleep 5
@@ -232,7 +232,7 @@ if command -v pm2 >/dev/null 2>&1; then
 
         if [ "$all_running" = false ]; then
             print_error "Some services failed to start"
-            pm2 logs --lines 50
+            pm2 logs --lines 50 --nostream
             exit 1
         fi
     else
