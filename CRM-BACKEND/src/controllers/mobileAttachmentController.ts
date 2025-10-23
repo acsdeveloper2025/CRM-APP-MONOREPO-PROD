@@ -340,12 +340,12 @@ export class MobileAttachmentController {
       let attachmentParams: any[];
 
       if (userRole === 'FIELD_AGENT' && userTaskId) {
-        // Filter attachments by specific verification task
+        // Filter attachments by specific verification task OR show attachments with NULL task_id (admin-uploaded/legacy)
         attachmentQuery = `
           SELECT a.id, a.filename, a."originalName", a."mimeType", a."fileSize", a."filePath", a."createdAt"
           FROM attachments a
           WHERE a.case_id = $1
-          AND a.verification_task_id = $2
+          AND (a.verification_task_id = $2 OR a.verification_task_id IS NULL)
           ORDER BY a."createdAt" DESC
         `;
         attachmentParams = [actualCaseId, userTaskId];
@@ -404,15 +404,20 @@ export class MobileAttachmentController {
       let queryParams: any[];
 
       if (userRole === 'FIELD_AGENT') {
-        // Field agents can only access attachments for their assigned task
+        // Field agents can only access attachments for their assigned task OR attachments with NULL task_id
         attachmentQuery = `
           SELECT a.id, a.filename, a."originalName", a."mimeType", a."fileSize", a."filePath",
                  a."uploadedBy", a."createdAt", a."caseId", c."assignedTo"
           FROM attachments a
           JOIN cases c ON a.case_id = c.id
-          JOIN verification_tasks vt ON vt.id = a.verification_task_id
+          LEFT JOIN verification_tasks vt ON vt.id = a.verification_task_id
           WHERE a.id = $1
-          AND vt.assigned_to = $2
+          AND (vt.assigned_to = $2 OR a.verification_task_id IS NULL)
+          AND EXISTS (
+            SELECT 1 FROM verification_tasks vt2
+            WHERE vt2.case_id = c.id
+            AND vt2.assigned_to = $2
+          )
         `;
         queryParams = [attachmentId, userId];
       } else {
@@ -502,15 +507,20 @@ export class MobileAttachmentController {
       let queryParams: any[];
 
       if (userRole === 'FIELD_AGENT') {
-        // Field agents can only delete attachments for their assigned task
+        // Field agents can only delete attachments for their assigned task OR attachments with NULL task_id
         attachmentQuery = `
           SELECT a.id, a.filename, a."originalName", a."mimeType", a."fileSize", a."filePath",
                  a."uploadedBy", a."createdAt", a."caseId", c."assignedTo", c.status
           FROM attachments a
           JOIN cases c ON a.case_id = c.id
-          JOIN verification_tasks vt ON vt.id = a.verification_task_id
+          LEFT JOIN verification_tasks vt ON vt.id = a.verification_task_id
           WHERE a.id = $1
-          AND vt.assigned_to = $2
+          AND (vt.assigned_to = $2 OR a.verification_task_id IS NULL)
+          AND EXISTS (
+            SELECT 1 FROM verification_tasks vt2
+            WHERE vt2.case_id = c.id
+            AND vt2.assigned_to = $2
+          )
         `;
         queryParams = [attachmentId, userId];
       } else {
