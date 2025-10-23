@@ -12,6 +12,53 @@ import {
 } from '../types/verificationTask';
 import { VerificationTasksService } from '../services/verificationTasks';
 
+/**
+ * Transform snake_case task data from backend to camelCase for frontend
+ */
+function transformTaskData(task: any): VerificationTask {
+  return {
+    id: task.id,
+    taskNumber: task.task_number,
+    caseId: task.case_id,
+    verificationTypeId: task.verification_type_id,
+    verificationTypeName: task.verification_type_name,
+    taskTitle: task.task_title,
+    taskDescription: task.task_description,
+    priority: task.priority,
+    assignedTo: task.assigned_to,
+    assignedToName: task.assigned_to_name,
+    assignedToEmployeeId: task.assigned_to_employee_id,
+    assignedBy: task.assigned_by,
+    assignedByName: task.assigned_by_name,
+    assignedAt: task.assigned_at,
+    status: task.status,
+    verificationOutcome: task.verification_outcome,
+    rateTypeId: task.rate_type_id,
+    rateTypeName: task.rate_type_name,
+    estimatedAmount: task.estimated_amount,
+    actualAmount: task.actual_amount,
+    address: task.address,
+    pincode: task.pincode,
+    latitude: task.latitude,
+    longitude: task.longitude,
+    trigger: task.trigger,
+    applicantType: task.applicant_type,
+    documentType: task.document_type,
+    documentNumber: task.document_number,
+    documentDetails: task.document_details,
+    estimatedCompletionDate: task.estimated_completion_date,
+    startedAt: task.started_at,
+    completedAt: task.completed_at,
+    commissionStatus: task.commission_status,
+    calculatedCommission: task.calculated_commission,
+    createdAt: task.created_at,
+    updatedAt: task.updated_at,
+    createdBy: task.created_by,
+    caseNumber: task.case_number,
+    customerName: task.customer_name
+  };
+}
+
 interface UseVerificationTasksState {
   tasks: VerificationTask[];
   loading: boolean;
@@ -96,13 +143,30 @@ export function useVerificationTasks(initialCaseId?: string): UseVerificationTas
 
     try {
       const response = await VerificationTasksService.getTasksForCase(caseId, state.filters);
+      console.log('📥 Verification tasks response:', response);
+
+      // Response structure: { success, data: { case_id, tasks: [...] }, message }
+      // Transform snake_case data from backend to camelCase
+      const tasksData = response.data.tasks || [];
+      console.log('📋 Tasks data (snake_case from backend):', tasksData.length, 'tasks');
+      if (tasksData.length > 0) {
+        console.log('📋 First task sample:', tasksData[0]);
+      }
+
+      const transformedTasks = tasksData.map(transformTaskData);
+      console.log('✅ Transformed tasks (camelCase for frontend):', transformedTasks.length, 'tasks');
+      if (transformedTasks.length > 0) {
+        console.log('✅ First transformed task sample:', transformedTasks[0]);
+      }
+
       setState(prev => ({
         ...prev,
-        tasks: response.tasks,
+        tasks: transformedTasks,
         loading: false
       }));
     } catch (error: any) {
-      const errorMessage = error.response?.data?.message || 'Failed to fetch tasks';
+      console.error('❌ Error fetching verification tasks:', error);
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch tasks';
       setState(prev => ({
         ...prev,
         error: errorMessage,
@@ -116,7 +180,8 @@ export function useVerificationTasks(initialCaseId?: string): UseVerificationTas
   const fetchTaskById = useCallback(async (taskId: string): Promise<VerificationTask | null> => {
     try {
       const response = await VerificationTasksService.getTaskById(taskId);
-      return response.data as VerificationTask;
+      // Transform the task data from snake_case to camelCase
+      return response.data ? transformTaskData(response.data) : null;
     } catch (error: any) {
       const errorMessage = error.response?.data?.message || 'Failed to fetch task';
       toast.error(errorMessage);
