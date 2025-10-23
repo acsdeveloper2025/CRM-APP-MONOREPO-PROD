@@ -115,8 +115,8 @@ class AttachmentService {
         type: att.mimeType?.startsWith('image/') ? 'image' : 'pdf',
         mimeType: att.mimeType,
         size: att.size,
-        url: att.url ? (att.url.startsWith('/api/') ? `${baseUrl}${att.url.substring(4)}` : `${baseUrl}/attachments/${att.id}/serve`) : `${baseUrl}/attachments/${att.id}/serve`,
-        thumbnailUrl: att.thumbnailUrl ? `${baseUrl}/attachments/${att.id}/serve` : undefined,
+        url: `${baseUrl}/mobile/cases/${caseId}/attachments/${att.id}`,
+        thumbnailUrl: undefined,
         uploadedAt: att.uploadedAt || att.createdAt,
         uploadedBy: att.uploadedBy || 'Field Agent',
         description: att.description || ''
