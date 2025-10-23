@@ -80,6 +80,8 @@ export interface MobileCaseResponse {
   backendContactNumber?: string; // Backend Contact Number
   createdByBackendUser?: string; // Created By Backend User name
   assignedToFieldUser?: string; // Assign to Field User name
+  verificationTaskId?: string; // Verification Task UUID
+  verificationTaskNumber?: string; // Verification Task Number (e.g., VT-000127)
   client: {
     id: number; // Changed from string to number to match database
     name: string;
