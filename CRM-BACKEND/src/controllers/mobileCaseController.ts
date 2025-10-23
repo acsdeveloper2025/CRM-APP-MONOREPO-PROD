@@ -180,6 +180,7 @@ export class MobileCaseController {
                -- For other roles: Show first task
                vtask.id as "verificationTaskId",
                vtask.task_number as "verificationTaskNumber",
+               vtask.address as "taskAddress",
                -- Attachment count
                COALESCE(att_count.attachment_count, 0) as "attachmentCount"
         FROM cases c
@@ -190,7 +191,7 @@ export class MobileCaseController {
         LEFT JOIN users cu ON cu.id = c."createdByBackendUser"
         LEFT JOIN users au ON au.id = c."assignedTo"
         LEFT JOIN LATERAL (
-          SELECT id, task_number
+          SELECT id, task_number, address
           FROM verification_tasks
           WHERE case_id = c.id
           AND (
@@ -252,8 +253,8 @@ export class MobileCaseController {
         customerCallingCode: caseItem.customerCallingCode, // Customer Calling Code
         customerPhone: caseItem.customerPhone,
         customerEmail: caseItem.customerEmail,
-        // Fix address mapping - use single address field from database
-        addressStreet: caseItem.address || '',
+        // Use task-level address (from verification_tasks) instead of case-level address
+        addressStreet: caseItem.taskAddress || caseItem.address || '',
         addressCity: '',
         addressState: '',
         addressPincode: caseItem.pincode || '',
@@ -348,7 +349,8 @@ export class MobileCaseController {
                cu.name as "createdByUserName",
                au.name as "assignedToUserName",
                vtask.id as "verificationTaskId",
-               vtask.task_number as "verificationTaskNumber"
+               vtask.task_number as "verificationTaskNumber",
+               vtask.address as "taskAddress"
         FROM cases c
         LEFT JOIN clients cl ON cl.id = c."clientId"
         LEFT JOIN products p ON p.id = c."productId"
@@ -356,7 +358,7 @@ export class MobileCaseController {
         LEFT JOIN users cu ON cu.id = c."createdByBackendUser"
         LEFT JOIN users au ON au.id = c."assignedTo"
         LEFT JOIN LATERAL (
-          SELECT id, task_number
+          SELECT id, task_number, address
           FROM verification_tasks
           WHERE case_id = c.id
           AND (
@@ -426,8 +428,8 @@ export class MobileCaseController {
         customerCallingCode: caseItem.customerCallingCode, // Customer Calling Code
         customerPhone: caseItem.customerPhone,
         customerEmail: caseItem.customerEmail,
-        // Fix address mapping - use single address field from database
-        addressStreet: caseItem.address || '',
+        // Use task-level address (from verification_tasks) instead of case-level address
+        addressStreet: caseItem.taskAddress || caseItem.address || '',
         addressCity: '',
         addressState: '',
         addressPincode: caseItem.pincode || '',
