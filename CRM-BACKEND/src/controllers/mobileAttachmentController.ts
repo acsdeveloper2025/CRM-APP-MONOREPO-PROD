@@ -106,7 +106,8 @@ export class MobileAttachmentController {
         caseSql = `SELECT id, "caseId" FROM cases WHERE "caseId" = $1`;
       }
 
-      // For FIELD_AGENT: Check task-level assignment
+      // For FIELD_AGENT: Check task-level assignment and get their task ID
+      let userTaskId: string | null = null;
       if (userRole === 'FIELD_AGENT') {
         caseSql += ` AND EXISTS (
           SELECT 1 FROM verification_tasks vt
@@ -118,6 +119,15 @@ export class MobileAttachmentController {
 
       const caseRes = await query(caseSql, where);
       const existingCase = caseRes.rows[0];
+
+      // Get the field agent's assigned task ID for this case
+      if (userRole === 'FIELD_AGENT' && existingCase) {
+        const taskRes = await query(
+          `SELECT id FROM verification_tasks WHERE case_id = $1 AND assigned_to = $2 LIMIT 1`,
+          [existingCase.id, userId]
+        );
+        userTaskId = taskRes.rows[0]?.id || null;
+      }
 
       if (!existingCase) {
         // Clean up uploaded files
@@ -184,10 +194,10 @@ export class MobileAttachmentController {
             thumbnailUrl = `/uploads/mobile/thumbnails/thumb_${path.basename(file.path)}`;
           }
 
-          // Save attachment to database
+          // Save attachment to database with verification_task_id for field agents
           const attRes = await query(
-            `INSERT INTO attachments (case_id, "caseId", filename, "originalName", "mimeType", "fileSize", "filePath", "uploadedBy", "createdAt")
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
+            `INSERT INTO attachments (case_id, "caseId", filename, "originalName", "mimeType", "fileSize", "filePath", "uploadedBy", verification_task_id, "createdAt")
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
              RETURNING id, filename, "originalName", "mimeType", "fileSize", "filePath", "createdAt"`,
             [
               actualCaseId, // case_id (UUID)
@@ -198,6 +208,7 @@ export class MobileAttachmentController {
               file.size,
               `/uploads/mobile/${file.filename}`,
               userId,
+              userTaskId, // verification_task_id (null for non-field-agents)
             ]
           );
           const attachment = attRes.rows[0];
@@ -313,25 +324,31 @@ export class MobileAttachmentController {
 
       const actualCaseId = existingCase.id; // Use the actual UUID from the database
 
-      // For field agents, ensure they can only see attachments for cases with assigned tasks
+      // Get the field agent's assigned task ID for this case
+      let userTaskId: string | null = null;
+      if (userRole === 'FIELD_AGENT') {
+        const taskRes = await query(
+          `SELECT id FROM verification_tasks WHERE case_id = $1 AND assigned_to = $2 LIMIT 1`,
+          [actualCaseId, userId]
+        );
+        userTaskId = taskRes.rows[0]?.id || null;
+      }
+
+      // For field agents, ensure they can only see attachments for their assigned task
       // For other roles (admin, manager), show all attachments for the case
       let attachmentQuery: string;
       let attachmentParams: any[];
 
-      if (userRole === 'FIELD_AGENT') {
-        // Filter attachments by task-level assignment
+      if (userRole === 'FIELD_AGENT' && userTaskId) {
+        // Filter attachments by specific verification task
         attachmentQuery = `
           SELECT a.id, a.filename, a."originalName", a."mimeType", a."fileSize", a."filePath", a."createdAt"
           FROM attachments a
           WHERE a.case_id = $1
-          AND EXISTS (
-            SELECT 1 FROM verification_tasks vt
-            WHERE vt.case_id = a.case_id
-            AND vt.assigned_to = $2
-          )
+          AND a.verification_task_id = $2
           ORDER BY a."createdAt" DESC
         `;
-        attachmentParams = [actualCaseId, userId];
+        attachmentParams = [actualCaseId, userTaskId];
       } else {
         // Admin/Manager can see all attachments for the case
         attachmentQuery = `
@@ -387,18 +404,15 @@ export class MobileAttachmentController {
       let queryParams: any[];
 
       if (userRole === 'FIELD_AGENT') {
-        // Field agents can only access attachments for cases with assigned tasks
+        // Field agents can only access attachments for their assigned task
         attachmentQuery = `
           SELECT a.id, a.filename, a."originalName", a."mimeType", a."fileSize", a."filePath",
                  a."uploadedBy", a."createdAt", a."caseId", c."assignedTo"
           FROM attachments a
           JOIN cases c ON a.case_id = c.id
+          JOIN verification_tasks vt ON vt.id = a.verification_task_id
           WHERE a.id = $1
-          AND EXISTS (
-            SELECT 1 FROM verification_tasks vt
-            WHERE vt.case_id = c.id
-            AND vt.assigned_to = $2
-          )
+          AND vt.assigned_to = $2
         `;
         queryParams = [attachmentId, userId];
       } else {
@@ -488,18 +502,15 @@ export class MobileAttachmentController {
       let queryParams: any[];
 
       if (userRole === 'FIELD_AGENT') {
-        // Field agents can only delete attachments for cases with assigned tasks
+        // Field agents can only delete attachments for their assigned task
         attachmentQuery = `
           SELECT a.id, a.filename, a."originalName", a."mimeType", a."fileSize", a."filePath",
                  a."uploadedBy", a."createdAt", a."caseId", c."assignedTo", c.status
           FROM attachments a
           JOIN cases c ON a.case_id = c.id
+          JOIN verification_tasks vt ON vt.id = a.verification_task_id
           WHERE a.id = $1
-          AND EXISTS (
-            SELECT 1 FROM verification_tasks vt
-            WHERE vt.case_id = c.id
-            AND vt.assigned_to = $2
-          )
+          AND vt.assigned_to = $2
         `;
         queryParams = [attachmentId, userId];
       } else {
