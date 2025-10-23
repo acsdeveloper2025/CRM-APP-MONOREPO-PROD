@@ -862,6 +862,12 @@ const CaseCard: React.FC<CaseCardProps> = ({ caseData, isReorderable = false, is
                     <p>#{caseData.caseId || caseData.id?.slice(-8) || 'N/A'}</p>
                 </div>
 
+                {/* 2.5. Verification Task ID */}
+                <div>
+                    <h4 className="font-bold text-sm text-medium-text">Verification Task ID</h4>
+                    <p>{caseData.verificationTaskNumber ? `#${caseData.verificationTaskNumber}` : 'N/A'}</p>
+                </div>
+
                 {/* 3. Client */}
                 <div>
                     <h4 className="font-bold text-sm text-medium-text">Client *</h4>

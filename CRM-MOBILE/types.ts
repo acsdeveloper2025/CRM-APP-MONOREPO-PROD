@@ -1773,6 +1773,10 @@ export interface Case {
   // Field 2: Case ID (already available as id)
   caseId?: number; // Backend auto-increment case ID
 
+  // Verification Task Information
+  verificationTaskId?: string; // Verification Task UUID
+  verificationTaskNumber?: string; // Verification Task Number (e.g., VT-000127)
+
   // Field 3: Client
   clientId?: number; // Client ID from backend
   clientName?: string; // Client name from backend JOIN
