@@ -37,7 +37,7 @@
   },
   "homepage": "https://github.com/acsdeveloper2025/CRM-APP-MONOREPO#readme",
   "_moduleAliases": {
-    "@": "src"
+    "@": "dist"
   },
   "engines": {
     "node": ">=18.0.0",
