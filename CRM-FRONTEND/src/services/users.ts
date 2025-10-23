@@ -281,6 +281,49 @@ export class UsersService {
     return this.getUsers({ role: 'FIELD_AGENT', isActive: true });
   }
 
+  async getFieldUsersByPincode(pincodeCode: string): Promise<ApiResponse<User[]>> {
+    try {
+      // Use territory assignments API to get field agents assigned to this pincode
+      const response = await apiService.get('/territory-assignments/field-agents', {
+        pincodeId: pincodeCode,
+        isActive: true,
+        limit: 100
+      });
+
+      // Extract unique users from the territory assignments response
+      if (response.data && Array.isArray(response.data)) {
+        const users = response.data.map((assignment: any) => ({
+          id: assignment.userId,
+          name: assignment.userName,
+          username: assignment.username,
+          employeeId: assignment.employeeId,
+          role: 'FIELD_AGENT' as Role,
+          isActive: assignment.isActive
+        }));
+
+        // Remove duplicates based on user ID
+        const uniqueUsers = Array.from(
+          new Map(users.map(user => [user.id, user])).values()
+        );
+
+        return {
+          success: true,
+          data: uniqueUsers,
+          message: 'Field users retrieved successfully'
+        };
+      }
+
+      return {
+        success: true,
+        data: [],
+        message: 'No field users found for this pincode'
+      };
+    } catch (error) {
+      console.error('Error fetching field users by pincode:', error);
+      throw error;
+    }
+  }
+
   // Department and designation management
   async getDepartments(): Promise<ApiResponse<string[]>> {
     return apiService.get('/users/departments');
