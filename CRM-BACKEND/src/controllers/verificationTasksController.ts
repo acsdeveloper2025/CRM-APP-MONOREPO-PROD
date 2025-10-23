@@ -327,13 +327,14 @@ export class VerificationTasksController {
 
       const whereClause = whereConditions.join(' AND ');
 
-      // Get case information
+      // Get case information including trigger and applicant_type
       const caseResult = await pool.query(`
-        SELECT 
+        SELECT
           c.id, c."caseId" as case_number, c."customerName" as customer_name,
+          c.trigger, c."applicantType" as applicant_type,
           c.has_multiple_tasks, c.total_tasks_count, c.completed_tasks_count,
           c.case_completion_percentage
-        FROM cases c 
+        FROM cases c
         WHERE c.id = $1
       `, [actualCaseId]);
 
@@ -372,6 +373,9 @@ export class VerificationTasksController {
       const tasks = tasksResult.rows.map(row => ({
         id: row.id,
         task_number: row.task_number,
+        case_id: row.case_id,
+        case_number: caseInfo.case_number,
+        customer_name: caseInfo.customer_name,
         verification_type_id: row.verification_type_id,
         verification_type_name: row.verification_type_name,
         task_title: row.task_title,
@@ -381,12 +385,18 @@ export class VerificationTasksController {
         assigned_to: row.assigned_to,
         assigned_to_name: row.assigned_to_name,
         assigned_to_employee_id: row.assigned_to_employee_id,
+        assigned_by: row.assigned_by,
         assigned_by_name: row.assigned_by_name,
         verification_outcome: row.verification_outcome,
+        rate_type_id: row.rate_type_id,
+        rate_type_name: row.rate_type_name,
         estimated_amount: parseFloat(row.estimated_amount || '0'),
         actual_amount: parseFloat(row.actual_amount || '0'),
         address: row.address,
         pincode: row.pincode,
+        // Use task-level trigger/applicant_type if available, otherwise fall back to case-level
+        trigger: row.trigger || caseInfo.trigger,
+        applicant_type: row.applicant_type || caseInfo.applicant_type,
         document_type: row.document_type,
         document_number: row.document_number,
         document_details: row.document_details,
