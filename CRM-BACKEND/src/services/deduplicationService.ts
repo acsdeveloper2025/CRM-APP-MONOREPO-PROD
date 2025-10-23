@@ -163,6 +163,16 @@ export class DeduplicationService {
     performedBy: string
   ): Promise<void> {
     try {
+      // Skip recording if this is a CREATE_NEW decision with placeholder caseId
+      // The decision will be recorded when the actual case is created
+      if (decision.decision === 'CREATE_NEW' && decision.caseId === 'NEW_CASE_PLACEHOLDER') {
+        logger.info('Skipping deduplication audit for CREATE_NEW with placeholder caseId', {
+          decision,
+          performedBy
+        });
+        return;
+      }
+
       const query = `
         INSERT INTO "caseDeduplicationAudit" (
           "caseId",
@@ -185,8 +195,8 @@ export class DeduplicationService {
 
       // Update the case with deduplication info
       const updateCaseQuery = `
-        UPDATE cases 
-        SET 
+        UPDATE cases
+        SET
           "deduplicationChecked" = true,
           "deduplicationDecision" = $1,
           "deduplicationRationale" = $2,

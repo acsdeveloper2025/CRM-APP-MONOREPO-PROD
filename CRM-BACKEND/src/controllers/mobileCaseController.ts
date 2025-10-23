@@ -58,10 +58,12 @@ export class MobileCaseController {
       const where: any = {};
 
       // Role-based filtering
+      // For FIELD_AGENT: Filter by task-level assignment (verification_tasks.assigned_to)
+      // For other roles: Filter by case-level assignment if specified
       if (userRole === 'FIELD_AGENT') {
-        where.assignedTo = userId;
+        where.hasAssignedTask = userId;  // Task-level assignment
       } else if (assignedTo) {
-        where.assignedTo = assignedTo;
+        where.assignedTo = assignedTo;  // Case-level assignment
       }
 
       if (status) {
@@ -102,7 +104,23 @@ export class MobileCaseController {
       // Build dynamic SQL for where
       const vals: any[] = [];
       const wh: string[] = [];
-      if (where.assignedTo) { vals.push(where.assignedTo); wh.push(`c."assignedTo" = $${vals.length}`); }
+
+      // For FIELD_AGENT: Use EXISTS subquery to filter by task assignment
+      if (where.hasAssignedTask) {
+        vals.push(where.hasAssignedTask);
+        wh.push(`EXISTS (
+          SELECT 1 FROM verification_tasks vt
+          WHERE vt.case_id = c.id
+          AND vt.assigned_to = $${vals.length}
+        )`);
+      }
+
+      // For other roles: Use case-level assignment
+      if (where.assignedTo) {
+        vals.push(where.assignedTo);
+        wh.push(`c."assignedTo" = $${vals.length}`);
+      }
+
       if (where.status) { vals.push(where.status); wh.push(`c.status = $${vals.length}`); }
       if (where.priority) { vals.push(where.priority); wh.push(`c.priority = $${vals.length}`); }
       if (where.updatedAt?.gt) { vals.push(where.updatedAt.gt); wh.push(`c."updatedAt" > $${vals.length}`); }
@@ -120,6 +138,10 @@ export class MobileCaseController {
         whereSql,
         vals
       });
+
+      // For FIELD_AGENT: Add userId to vals for LATERAL JOIN to filter their assigned task
+      const userIdForTaskFilter = userRole === 'FIELD_AGENT' ? userId : null;
+      const taskFilterParamIndex = vals.length + 1;
 
       const listSql = `
         SELECT c.*,
@@ -153,6 +175,11 @@ export class MobileCaseController {
                au.id as "assignedToUserId",
                au.name as "assignedToUserName",
                au.email as "assignedToUserEmail",
+               -- Verification Task Information
+               -- For FIELD_AGENT: Show their assigned task
+               -- For other roles: Show first task
+               vtask.id as "verificationTaskId",
+               vtask.task_number as "verificationTaskNumber",
                -- Attachment count
                COALESCE(att_count.attachment_count, 0) as "attachmentCount"
         FROM cases c
@@ -162,6 +189,19 @@ export class MobileCaseController {
         LEFT JOIN "rateTypes" rt ON rt.id = c."rateTypeId"
         LEFT JOIN users cu ON cu.id = c."createdByBackendUser"
         LEFT JOIN users au ON au.id = c."assignedTo"
+        LEFT JOIN LATERAL (
+          SELECT id, task_number
+          FROM verification_tasks
+          WHERE case_id = c.id
+          AND (
+            $${taskFilterParamIndex} IS NULL  -- For non-field-agents, show first task
+            OR assigned_to = $${taskFilterParamIndex}  -- For field agents, show their task
+          )
+          ORDER BY
+            CASE WHEN assigned_to = $${taskFilterParamIndex} THEN 0 ELSE 1 END,  -- Prioritize user's task
+            created_at ASC
+          LIMIT 1
+        ) vtask ON true
         LEFT JOIN (
           SELECT "caseId", COUNT(*) as attachment_count
           FROM attachments
@@ -169,10 +209,11 @@ export class MobileCaseController {
         ) att_count ON att_count."caseId" = c."caseId"
         ${whereSql}
         ORDER BY c.priority DESC, c."createdAt" DESC
-        LIMIT $${vals.length + 1} OFFSET $${vals.length + 2}`;
-      console.log('📊 Mobile Cases Query:', { whereSql, vals, take, skip });
-      const casesRes = await query(listSql, [...vals, take, skip]);
+        LIMIT $${vals.length + 2} OFFSET $${vals.length + 3}`;
+      console.log('📊 Mobile Cases Query:', { whereSql, vals, userIdForTaskFilter, take, skip });
+      const casesRes = await query(listSql, [...vals, userIdForTaskFilter, take, skip]);
 
+      // Count query - use same filtering logic as main query
       const countRes = await query<{ count: string }>(`SELECT COUNT(*)::text as count FROM cases c ${whereSql}`, vals);
       const totalCount = Number(countRes.rows[0]?.count || 0);
       const cases = casesRes.rows as any[];
@@ -230,6 +271,8 @@ export class MobileCaseController {
         backendContactNumber: caseItem.backendContactNumber, // Backend Contact Number
         createdByBackendUser: caseItem.createdByUserName, // Created By Backend User
         assignedToFieldUser: caseItem.assignedToUserName, // Assign to Field User
+        verificationTaskId: caseItem.verificationTaskId, // Verification Task UUID
+        verificationTaskNumber: caseItem.verificationTaskNumber, // Verification Task Number (e.g., VT-000127)
         client: {
           id: caseItem.clientId || 0, // Use number instead of string
           name: caseItem.clientName || '', // Client
@@ -290,28 +333,55 @@ export class MobileCaseController {
       const userRole = (req as any).user?.role;
 
       const where: any = { id: caseId };
-      
-      // Role-based access control
-      if (userRole === 'FIELD_AGENT') {
-        where.assignedTo = userId;
-      }
 
+      // Role-based access control
+      // For FIELD_AGENT: Check if they have an assigned task for this case
+      // For other roles: No additional filtering
       const vals2: any[] = [caseId];
+      const userIdForTaskFilter = userRole === 'FIELD_AGENT' ? userId : null;
+
       let caseSql = `
         SELECT c.*,
                cl.id as "clientId", cl.name as "clientName", cl.code as "clientCode",
                p.id as "productId", p.name as "productName", p.code as "productCode",
                vt.id as "verificationTypeId", vt.name as "verificationTypeName", vt.code as "verificationTypeCode",
                cu.name as "createdByUserName",
-               au.name as "assignedToUserName"
+               au.name as "assignedToUserName",
+               vtask.id as "verificationTaskId",
+               vtask.task_number as "verificationTaskNumber"
         FROM cases c
         LEFT JOIN clients cl ON cl.id = c."clientId"
         LEFT JOIN products p ON p.id = c."productId"
         LEFT JOIN "verificationTypes" vt ON vt.id = c."verificationTypeId"
         LEFT JOIN users cu ON cu.id = c."createdByBackendUser"
         LEFT JOIN users au ON au.id = c."assignedTo"
+        LEFT JOIN LATERAL (
+          SELECT id, task_number
+          FROM verification_tasks
+          WHERE case_id = c.id
+          AND (
+            $2 IS NULL  -- For non-field-agents, show first task
+            OR assigned_to = $2  -- For field agents, show their task
+          )
+          ORDER BY
+            CASE WHEN assigned_to = $2 THEN 0 ELSE 1 END,  -- Prioritize user's task
+            created_at ASC
+          LIMIT 1
+        ) vtask ON true
         WHERE c.id = $1`;
-      if (userRole === 'FIELD_AGENT') { caseSql += ` AND c."assignedTo" = $2`; vals2.push(userId); }
+
+      // For FIELD_AGENT: Add task-level access control
+      if (userRole === 'FIELD_AGENT') {
+        caseSql += ` AND EXISTS (
+          SELECT 1 FROM verification_tasks vt
+          WHERE vt.case_id = c.id
+          AND vt.assigned_to = $2
+        )`;
+        vals2.push(userId);
+      } else {
+        vals2.push(null);  // For non-field-agents, pass NULL for task filter
+      }
+
       const caseRes = await query(caseSql, vals2);
       const caseItem = caseRes.rows[0];
 
@@ -375,6 +445,8 @@ export class MobileCaseController {
         backendContactNumber: caseItem.backendContactNumber, // Backend Contact Number
         createdByBackendUser: caseItem.createdByUserName, // Created By Backend User
         assignedToFieldUser: caseItem.assignedToUserName, // Assign to Field User
+        verificationTaskId: caseItem.verificationTaskId, // Verification Task UUID
+        verificationTaskNumber: caseItem.verificationTaskNumber, // Verification Task Number (e.g., VT-000127)
         client: {
           id: caseItem.clientId || 0, // Use number instead of string
           name: caseItem.clientName || '', // Client
