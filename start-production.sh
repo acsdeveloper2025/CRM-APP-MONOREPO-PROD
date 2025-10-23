@@ -97,73 +97,96 @@ echo ""
 # Stop existing services first
 print_header "🛑 Stopping Existing Services"
 
-# Function to stop services on specific ports
+# Function to stop services using PM2
 stop_existing_services() {
-    local ports=("3000" "5173" "5180")
+    # Check if PM2 is available
+    if command -v pm2 >/dev/null 2>&1; then
+        print_info "Using PM2 to stop services..."
 
-    for port in "${ports[@]}"; do
-        print_info "Checking port $port..."
+        local services=("crm-backend" "crm-frontend" "crm-mobile")
 
-        # Find processes using the port (try multiple methods)
-        local pids=""
+        for service in "${services[@]}"; do
+            # Check if process exists in PM2
+            if pm2 jlist 2>/dev/null | jq -e ".[] | select(.name==\"$service\")" >/dev/null 2>&1; then
+                print_info "Stopping $service via PM2..."
+                pm2 stop "$service" >/dev/null 2>&1 || true
+                pm2 delete "$service" >/dev/null 2>&1 || true
+                print_status "$service stopped"
+            else
+                print_info "$service not found in PM2"
+            fi
+        done
 
-        # Method 1: lsof (most reliable)
-        if command -v lsof >/dev/null 2>&1; then
-            pids=$(lsof -ti:$port 2>/dev/null)
-        fi
+        print_status "All PM2 services stopped"
+    else
+        print_warning "PM2 not available, using port-based cleanup..."
 
-        # Method 2: netstat + ps (fallback)
-        if [ -z "$pids" ] && command -v netstat >/dev/null 2>&1; then
-            pids=$(netstat -tlnp 2>/dev/null | grep ":$port " | awk '{print $7}' | cut -d'/' -f1 | grep -v '^-$' | head -1)
-        fi
+        local ports=("3000" "5173" "5180")
 
-        # Method 3: ss command (modern alternative)
-        if [ -z "$pids" ] && command -v ss >/dev/null 2>&1; then
-            pids=$(ss -tlnp 2>/dev/null | grep ":$port " | sed 's/.*pid=\([0-9]*\).*/\1/' | head -1)
-        fi
+        for port in "${ports[@]}"; do
+            print_info "Checking port $port..."
 
-        if [ -n "$pids" ]; then
-            print_info "Found processes on port $port: $pids"
+            # Find processes using the port (try multiple methods)
+            local pids=""
 
-            # Kill the processes
-            for pid in $pids; do
-                # Skip if not a valid PID
-                if ! [[ "$pid" =~ ^[0-9]+$ ]]; then
-                    continue
-                fi
+            # Method 1: lsof (most reliable)
+            if command -v lsof >/dev/null 2>&1; then
+                pids=$(lsof -ti:$port 2>/dev/null)
+            fi
 
-                print_info "Stopping process $pid on port $port..."
-                kill -TERM $pid 2>/dev/null || true
+            # Method 2: netstat + ps (fallback)
+            if [ -z "$pids" ] && command -v netstat >/dev/null 2>&1; then
+                pids=$(netstat -tlnp 2>/dev/null | grep ":$port " | awk '{print $7}' | cut -d'/' -f1 | grep -v '^-$' | head -1)
+            fi
 
-                # Wait a moment for graceful shutdown
-                sleep 2
+            # Method 3: ss command (modern alternative)
+            if [ -z "$pids" ] && command -v ss >/dev/null 2>&1; then
+                pids=$(ss -tlnp 2>/dev/null | grep ":$port " | sed 's/.*pid=\([0-9]*\).*/\1/' | head -1)
+            fi
 
-                # Force kill if still running
-                if kill -0 $pid 2>/dev/null; then
-                    print_info "Force killing process $pid..."
-                    kill -KILL $pid 2>/dev/null || true
-                fi
-            done
+            if [ -n "$pids" ]; then
+                print_info "Found processes on port $port: $pids"
 
-            print_status "Port $port cleared"
-        else
-            print_status "Port $port is available"
-        fi
-    done
+                # Kill the processes
+                for pid in $pids; do
+                    # Skip if not a valid PID
+                    if ! [[ "$pid" =~ ^[0-9]+$ ]]; then
+                        continue
+                    fi
 
-    # Also kill any CRM-related processes
-    print_info "Stopping any remaining CRM processes..."
-    pkill -f "CRM-BACKEND" 2>/dev/null || true
-    pkill -f "CRM-FRONTEND" 2>/dev/null || true
-    pkill -f "CRM-MOBILE" 2>/dev/null || true
-    pkill -f "crm-backend" 2>/dev/null || true
-    pkill -f "crm-frontend" 2>/dev/null || true
-    pkill -f "caseflow-mobile" 2>/dev/null || true
+                    print_info "Stopping process $pid on port $port..."
+                    kill -TERM $pid 2>/dev/null || true
 
-    # Wait for processes to fully terminate
-    sleep 3
+                    # Wait a moment for graceful shutdown
+                    sleep 2
 
-    print_status "All existing services stopped"
+                    # Force kill if still running
+                    if kill -0 $pid 2>/dev/null; then
+                        print_info "Force killing process $pid..."
+                        kill -KILL $pid 2>/dev/null || true
+                    fi
+                done
+
+                print_status "Port $port cleared"
+            else
+                print_status "Port $port is available"
+            fi
+        done
+
+        # Also kill any CRM-related processes
+        print_info "Stopping any remaining CRM processes..."
+        pkill -f "CRM-BACKEND" 2>/dev/null || true
+        pkill -f "CRM-FRONTEND" 2>/dev/null || true
+        pkill -f "CRM-MOBILE" 2>/dev/null || true
+        pkill -f "crm-backend" 2>/dev/null || true
+        pkill -f "crm-frontend" 2>/dev/null || true
+        pkill -f "caseflow-mobile" 2>/dev/null || true
+
+        # Wait for processes to fully terminate
+        sleep 3
+
+        print_status "All existing services stopped"
+    fi
 }
 
 # Stop existing services
@@ -177,45 +200,88 @@ print_header "🚀 Starting CRM Applications"
 # Create logs directory
 mkdir -p logs
 
-# Function to start a service
-start_service() {
-    local name=$1
-    local dir=$2
-    local command=$3
-    local port=$4
+# Check if PM2 is available
+if command -v pm2 >/dev/null 2>&1; then
+    print_info "Using PM2 to start services..."
 
-    print_info "Starting $name on port $port..."
-    
-    cd "$dir" || {
-        print_error "Failed to change to $dir directory"
-        return 1
-    }
-    
-    # Start the service in background
-    nohup bash -c "$command" > "../logs/${name}.log" 2>&1 &
-    local pid=$!
-    
-    # Store PID
-    echo $pid > "../logs/${name}.pid"
-    
-    # Wait for service to start
-    sleep 3
-    
-    if kill -0 "$pid" 2>/dev/null; then
-        print_status "$name started successfully (PID: $pid)"
-        cd - > /dev/null
-        return 0
+    # Check if ecosystem.config.js exists
+    if [ -f "ecosystem.config.js" ]; then
+        print_info "Starting services using PM2 ecosystem file..."
+        pm2 start ecosystem.config.js
+
+        # Save PM2 process list
+        pm2 save --force
+
+        # Wait for services to start
+        sleep 5
+
+        # Verify services are running
+        local all_running=true
+        local services=("crm-backend" "crm-frontend" "crm-mobile")
+
+        for service in "${services[@]}"; do
+            local status=$(pm2 jlist 2>/dev/null | jq -r ".[] | select(.name==\"$service\") | .pm2_env.status" 2>/dev/null)
+            if [ "$status" = "online" ]; then
+                local pid=$(pm2 jlist 2>/dev/null | jq -r ".[] | select(.name==\"$service\") | .pid" 2>/dev/null)
+                print_status "$service started successfully (PID: $pid)"
+            else
+                print_error "$service failed to start (status: $status)"
+                all_running=false
+            fi
+        done
+
+        if [ "$all_running" = false ]; then
+            print_error "Some services failed to start"
+            pm2 logs --lines 50
+            exit 1
+        fi
     else
-        print_error "$name failed to start"
-        cd - > /dev/null
-        return 1
+        print_error "ecosystem.config.js not found"
+        exit 1
     fi
-}
+else
+    print_warning "PM2 not available, using manual process management..."
 
-# Start all services
-start_service "backend" "CRM-BACKEND" "npm run start:prod" "3000" || exit 1
-start_service "frontend" "CRM-FRONTEND" "npm run build && npm run preview -- --host 0.0.0.0 --port 5173" "5173" || exit 1
-start_service "mobile" "CRM-MOBILE" "npm run build && npm run preview:network -- --port 5180" "5180" || exit 1
+    # Function to start a service
+    start_service() {
+        local name=$1
+        local dir=$2
+        local command=$3
+        local port=$4
+
+        print_info "Starting $name on port $port..."
+
+        cd "$dir" || {
+            print_error "Failed to change to $dir directory"
+            return 1
+        }
+
+        # Start the service in background
+        nohup bash -c "$command" > "../logs/${name}.log" 2>&1 &
+        local pid=$!
+
+        # Store PID
+        echo $pid > "../logs/${name}.pid"
+
+        # Wait for service to start
+        sleep 3
+
+        if kill -0 "$pid" 2>/dev/null; then
+            print_status "$name started successfully (PID: $pid)"
+            cd - > /dev/null
+            return 0
+        else
+            print_error "$name failed to start"
+            cd - > /dev/null
+            return 1
+        fi
+    }
+
+    # Start all services
+    start_service "backend" "CRM-BACKEND" "npm run start:prod" "3000" || exit 1
+    start_service "frontend" "CRM-FRONTEND" "npm run build && npm run preview -- --host 0.0.0.0 --port 5173" "5173" || exit 1
+    start_service "mobile" "CRM-MOBILE" "npm run build && npm run preview:network -- --port 5180" "5180" || exit 1
+fi
 
 echo ""
 

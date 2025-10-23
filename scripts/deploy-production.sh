@@ -194,41 +194,66 @@ EOF
 # Stop services
 stop_services() {
     print_header "🛑 Stopping Services"
-    
-    local services=("backend" "frontend" "mobile")
-    
-    for service in "${services[@]}"; do
-        local pid_file="$PROJECT_ROOT/logs/${service}.pid"
-        
-        if [ -f "$pid_file" ]; then
-            local pid=$(cat "$pid_file")
-            if kill -0 "$pid" 2>/dev/null; then
-                print_info "Stopping $service (PID: $pid)..."
-                kill "$pid"
-                
-                # Wait for graceful shutdown
-                local count=0
-                while kill -0 "$pid" 2>/dev/null && [ $count -lt 30 ]; do
-                    sleep 1
-                    count=$((count + 1))
-                done
-                
-                # Force kill if still running
-                if kill -0 "$pid" 2>/dev/null; then
-                    print_warning "Force killing $service..."
-                    kill -9 "$pid"
-                fi
-                
-                rm -f "$pid_file"
+
+    # Check if PM2 is available
+    if command -v pm2 >/dev/null 2>&1; then
+        print_info "Using PM2 to stop services..."
+
+        local services=("crm-backend" "crm-frontend" "crm-mobile")
+
+        for service in "${services[@]}"; do
+            # Check if process exists in PM2
+            if pm2 jlist 2>/dev/null | jq -e ".[] | select(.name==\"$service\")" >/dev/null 2>&1; then
+                print_info "Stopping $service via PM2..."
+                pm2 stop "$service" >/dev/null 2>&1 || true
+                pm2 delete "$service" >/dev/null 2>&1 || true
                 print_status "$service stopped"
             else
-                print_info "$service was not running"
-                rm -f "$pid_file"
+                print_info "$service not found in PM2"
             fi
-        else
-            print_info "$service PID file not found"
-        fi
-    done
+        done
+
+        # Save PM2 process list
+        pm2 save --force >/dev/null 2>&1 || true
+    else
+        # Fallback to PID file method
+        print_info "PM2 not available, using PID files..."
+
+        local services=("backend" "frontend" "mobile")
+
+        for service in "${services[@]}"; do
+            local pid_file="$PROJECT_ROOT/logs/${service}.pid"
+
+            if [ -f "$pid_file" ]; then
+                local pid=$(cat "$pid_file")
+                if kill -0 "$pid" 2>/dev/null; then
+                    print_info "Stopping $service (PID: $pid)..."
+                    kill "$pid"
+
+                    # Wait for graceful shutdown
+                    local count=0
+                    while kill -0 "$pid" 2>/dev/null && [ $count -lt 30 ]; do
+                        sleep 1
+                        count=$((count + 1))
+                    done
+
+                    # Force kill if still running
+                    if kill -0 "$pid" 2>/dev/null; then
+                        print_warning "Force killing $service..."
+                        kill -9 "$pid"
+                    fi
+
+                    rm -f "$pid_file"
+                    print_status "$service stopped"
+                else
+                    print_info "$service was not running"
+                    rm -f "$pid_file"
+                fi
+            else
+                print_info "$service PID file not found"
+            fi
+        done
+    fi
 }
 
 # Update code
