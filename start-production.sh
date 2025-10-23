@@ -214,11 +214,11 @@ if command -v pm2 >/dev/null 2>&1; then
 
         # Wait for services to start with retry logic
         print_info "Waiting for services to start (max 60 seconds)..."
-        local max_wait=60
-        local wait_interval=5
-        local elapsed=0
-        local all_running=false
-        local services=("crm-backend" "crm-frontend" "crm-mobile")
+        max_wait=60
+        wait_interval=5
+        elapsed=0
+        all_running=false
+        services=("crm-backend" "crm-frontend" "crm-mobile")
 
         while [ $elapsed -lt $max_wait ]; do
             sleep $wait_interval
@@ -226,7 +226,7 @@ if command -v pm2 >/dev/null 2>&1; then
 
             all_running=true
             for service in "${services[@]}"; do
-                local status=$(pm2 jlist 2>/dev/null | jq -r ".[] | select(.name==\"$service\") | .pm2_env.status" 2>/dev/null)
+                status=$(pm2 jlist 2>/dev/null | jq -r ".[] | select(.name==\"$service\") | .pm2_env.status" 2>/dev/null)
                 if [ "$status" != "online" ]; then
                     all_running=false
                     break
@@ -243,7 +243,7 @@ if command -v pm2 >/dev/null 2>&1; then
         # Final verification
         if [ "$all_running" = true ]; then
             for service in "${services[@]}"; do
-                local pid=$(pm2 jlist 2>/dev/null | jq -r ".[] | select(.name==\"$service\") | .pid" 2>/dev/null)
+                pid=$(pm2 jlist 2>/dev/null | jq -r ".[] | select(.name==\"$service\") | .pid" 2>/dev/null)
                 print_status "$service started successfully (PID: $pid)"
             done
         else
