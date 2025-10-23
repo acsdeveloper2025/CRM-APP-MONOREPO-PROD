@@ -262,14 +262,19 @@ update_code() {
 
     cd "$PROJECT_ROOT"
 
-    # Reset to specific commit
-    print_info "Resetting to commit: $COMMIT_SHA"
-    git reset --hard "$COMMIT_SHA"
+    # Check if this is a git repository
+    if [ -d ".git" ]; then
+        print_info "Fetching latest changes from repository..."
+        git fetch origin
 
-    # Clean untracked files
-    git clean -fd
+        # Checkout specific commit
+        print_info "Checking out commit: $COMMIT_SHA"
+        git checkout "$COMMIT_SHA"
 
-    print_status "Code updated successfully"
+        print_status "Code updated successfully"
+    else
+        print_info "Not a git repository, code already synced from release"
+    fi
 }
 
 # Install dependencies
@@ -513,8 +518,8 @@ create_release() {
             print_warning "SSH clone failed, copying from current deployment..."
             print_info "SSH clone error was logged above"
             # Copy from current deployment and initialize as git repo
-            if [ -L "$PROJECT_ROOT" ] && [ -d "$PROJECT_ROOT" ]; then
-                # Copy from current symlinked deployment
+            if [ -d "$PROJECT_ROOT" ]; then
+                # Copy from current deployment
                 cp -r "$PROJECT_ROOT/." "$RELEASE_NAME/"
                 cd "$RELEASE_NAME"
                 # Ensure it's a git repository
@@ -540,12 +545,28 @@ create_release() {
         fi
     fi
 
-    # Update symlink to point to new release
-    rm -f "$PROJECT_ROOT"
-    ln -sf "$NEW_RELEASE_DIR" "$PROJECT_ROOT"
+    # Sync release to current directory (preserve directory structure, update files only)
+    print_info "Syncing release to current directory..."
+
+    # Ensure current directory exists
+    mkdir -p "$PROJECT_ROOT"
+
+    # Use rsync to sync files without deleting directories
+    # This preserves uploads, logs, and other runtime directories
+    print_info "Using rsync to sync files (preserving existing directories)..."
+    rsync -av --exclude='node_modules' \
+              --exclude='dist' \
+              --exclude='build' \
+              --exclude='.env' \
+              --exclude='.env.local' \
+              --exclude='.env.production' \
+              --exclude='uploads' \
+              --exclude='logs' \
+              --exclude='*.log' \
+              "$NEW_RELEASE_DIR/" "$PROJECT_ROOT/"
 
     print_status "New release created: $NEW_RELEASE_DIR"
-    print_status "Current symlink updated to: $NEW_RELEASE_DIR"
+    print_status "Code synced to: $PROJECT_ROOT"
 }
 
 # Cleanup old releases and backups
