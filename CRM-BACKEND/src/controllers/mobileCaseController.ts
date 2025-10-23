@@ -194,11 +194,11 @@ export class MobileCaseController {
           FROM verification_tasks
           WHERE case_id = c.id
           AND (
-            $${taskFilterParamIndex} IS NULL  -- For non-field-agents, show first task
-            OR assigned_to = $${taskFilterParamIndex}  -- For field agents, show their task
+            $${taskFilterParamIndex}::uuid IS NULL  -- For non-field-agents, show first task
+            OR assigned_to = $${taskFilterParamIndex}::uuid  -- For field agents, show their task
           )
           ORDER BY
-            CASE WHEN assigned_to = $${taskFilterParamIndex} THEN 0 ELSE 1 END,  -- Prioritize user's task
+            CASE WHEN assigned_to = $${taskFilterParamIndex}::uuid THEN 0 ELSE 1 END,  -- Prioritize user's task
             created_at ASC
           LIMIT 1
         ) vtask ON true
@@ -360,11 +360,11 @@ export class MobileCaseController {
           FROM verification_tasks
           WHERE case_id = c.id
           AND (
-            $2 IS NULL  -- For non-field-agents, show first task
-            OR assigned_to = $2  -- For field agents, show their task
+            $2::uuid IS NULL  -- For non-field-agents, show first task
+            OR assigned_to = $2::uuid  -- For field agents, show their task
           )
           ORDER BY
-            CASE WHEN assigned_to = $2 THEN 0 ELSE 1 END,  -- Prioritize user's task
+            CASE WHEN assigned_to = $2::uuid THEN 0 ELSE 1 END,  -- Prioritize user's task
             created_at ASC
           LIMIT 1
         ) vtask ON true
