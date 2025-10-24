@@ -2,6 +2,7 @@ import express from 'express';
 import { body, query, param } from 'express-validator';
 import { authenticateToken } from '@/middleware/auth';
 import { handleValidationErrors } from '@/middleware/validation';
+import { EnterpriseCache, EnterpriseCacheConfigs, CacheInvalidationPatterns } from '../middleware/enterpriseCache';
 import {
   getVerificationTypes,
   getVerificationTypeById,
@@ -92,8 +93,9 @@ const listVerificationTypesValidation = [
 //     .withMessage('Code is required and must be between 2 and 50 characters'),
 // ];
 
-// Core CRUD routes
+// Core CRUD routes (CACHED)
 router.get('/',
+  EnterpriseCache.create(EnterpriseCacheConfigs.verificationTypes),
   listVerificationTypesValidation,
   handleValidationErrors,
   getVerificationTypes
@@ -101,9 +103,13 @@ router.get('/',
 
 // TODO: Implement these endpoints
 // router.get('/categories', getVerificationTypeCategories);
-router.get('/stats', getVerificationTypeStats);
+router.get('/stats',
+  EnterpriseCache.create(EnterpriseCacheConfigs.analytics),
+  getVerificationTypeStats
+);
 
 router.post('/',
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.verificationTypeUpdate),
   createVerificationTypeValidation,
   handleValidationErrors,
   createVerificationType
@@ -117,12 +123,14 @@ router.post('/',
 // );
 
 router.get('/:id',
+  EnterpriseCache.create(EnterpriseCacheConfigs.verificationTypes),
   [param('id').isInt({ min: 1 }).withMessage('Verification type ID must be a positive integer')],
   handleValidationErrors,
   getVerificationTypeById
 );
 
 router.put('/:id',
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.verificationTypeUpdate),
   [param('id').isInt({ min: 1 }).withMessage('Verification type ID must be a positive integer')],
   updateVerificationTypeValidation,
   handleValidationErrors,
@@ -130,6 +138,7 @@ router.put('/:id',
 );
 
 router.delete('/:id',
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.verificationTypeUpdate),
   [param('id').isInt({ min: 1 }).withMessage('Verification type ID must be a positive integer')],
   handleValidationErrors,
   deleteVerificationType

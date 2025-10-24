@@ -3,6 +3,7 @@ import { body, query, param } from 'express-validator';
 import { authenticateToken } from '@/middleware/auth';
 import { validate } from '@/middleware/validation';
 import { addClientFiltering } from '@/middleware/clientAccess';
+import { EnterpriseCache, EnterpriseCacheConfigs, CacheInvalidationPatterns } from '../middleware/enterpriseCache';
 import {
   getClients,
   getClientById,
@@ -97,9 +98,10 @@ const updateClientValidation = [
     .withMessage('Each documentTypeId must be a positive integer'),
 ];
 
-// GET /api/clients - Get all clients
+// GET /api/clients - Get all clients (CACHED)
 router.get('/',
   authenticateToken,
+  EnterpriseCache.create(EnterpriseCacheConfigs.clientList),
   validate([
     query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
     query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('Limit must be between 1 and 100'),
@@ -109,18 +111,20 @@ router.get('/',
   getClients
 );
 
-// GET /api/clients/:id - Get client by ID
+// GET /api/clients/:id - Get client by ID (CACHED)
 router.get('/:id',
   authenticateToken,
+  EnterpriseCache.create(EnterpriseCacheConfigs.clientList),
   validate([
     param('id').isInt({ min: 1 }).withMessage('Client ID must be a positive integer'),
   ]),
   getClientById
 );
 
-// GET /api/clients/:id/verification-types - Get verification types by client
+// GET /api/clients/:id/verification-types - Get verification types by client (CACHED)
 router.get('/:id/verification-types',
   authenticateToken,
+  EnterpriseCache.create(EnterpriseCacheConfigs.verificationTypes),
   validate([
     param('id').isInt({ min: 1 }).withMessage('Client ID must be a positive integer'),
     query('isActive').optional().isBoolean().withMessage('isActive must be a boolean')
@@ -128,16 +132,18 @@ router.get('/:id/verification-types',
   getClientVerificationTypes
 );
 
-// POST /api/clients - Create new client
+// POST /api/clients - Create new client (INVALIDATES CACHE)
 router.post('/',
   authenticateToken,
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.clientUpdate),
   validate(createClientValidation),
   createClient
 );
 
-// PUT /api/clients/:id - Update client
+// PUT /api/clients/:id - Update client (INVALIDATES CACHE)
 router.put('/:id',
   authenticateToken,
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.clientUpdate),
   validate([
     param('id').trim().notEmpty().withMessage('Client ID is required'),
     ...updateClientValidation,
@@ -145,9 +151,10 @@ router.put('/:id',
   updateClient
 );
 
-// DELETE /api/clients/:id - Delete client
+// DELETE /api/clients/:id - Delete client (INVALIDATES CACHE)
 router.delete('/:id',
   authenticateToken,
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.clientUpdate),
   validate([
     param('id').trim().notEmpty().withMessage('Client ID is required'),
   ]),
