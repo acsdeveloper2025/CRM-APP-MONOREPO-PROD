@@ -154,11 +154,9 @@ export class CacheWarmingService {
       const pendingResult = await pool.query(`
         SELECT
           c.id, c."caseId", c."customerName", c.status, c.priority,
-          c."createdAt", c."updatedAt", c."assignedTo",
-          u.username as "assignedToUsername",
+          c."createdAt", c."updatedAt",
           cl.name as "clientName"
         FROM cases c
-        LEFT JOIN users u ON c."assignedTo" = u.id
         LEFT JOIN clients cl ON c."clientId" = cl.id
         WHERE c.status = 'PENDING'
         ORDER BY c."createdAt" DESC
@@ -172,11 +170,9 @@ export class CacheWarmingService {
       const inProgressResult = await pool.query(`
         SELECT
           c.id, c."caseId", c."customerName", c.status, c.priority,
-          c."createdAt", c."updatedAt", c."assignedTo",
-          u.username as "assignedToUsername",
+          c."createdAt", c."updatedAt",
           cl.name as "clientName"
         FROM cases c
-        LEFT JOIN users u ON c."assignedTo" = u.id
         LEFT JOIN clients cl ON c."clientId" = cl.id
         WHERE c.status = 'IN_PROGRESS'
         ORDER BY c."createdAt" DESC
@@ -212,18 +208,19 @@ export class CacheWarmingService {
       await EnterpriseCacheService.set('analytics:case-stats', stats, 900); // 15 minutes
       logger.debug(`✓ Warmed case stats cache`);
 
-      // Cache field agent workload
+      // Cache field agent workload (based on task-level assignments)
       const workloadResult = await pool.query(`
         SELECT
           u.id,
           u.username,
           u.name,
-          COUNT(c.id) as "totalCases",
-          COUNT(CASE WHEN c.status = 'PENDING' THEN 1 END) as "pendingCases",
-          COUNT(CASE WHEN c.status = 'IN_PROGRESS' THEN 1 END) as "inProgressCases",
-          COUNT(CASE WHEN c.status = 'COMPLETED' THEN 1 END) as "completedCases"
+          COUNT(DISTINCT vt.case_id) as "totalCases",
+          COUNT(DISTINCT CASE WHEN c.status = 'PENDING' THEN vt.case_id END) as "pendingCases",
+          COUNT(DISTINCT CASE WHEN c.status = 'IN_PROGRESS' THEN vt.case_id END) as "inProgressCases",
+          COUNT(DISTINCT CASE WHEN c.status = 'COMPLETED' THEN vt.case_id END) as "completedCases"
         FROM users u
-        LEFT JOIN cases c ON u.id = c."assignedTo"
+        LEFT JOIN verification_tasks vt ON u.id = vt.assigned_to
+        LEFT JOIN cases c ON vt.case_id = c.id
         WHERE u.role = 'FIELD_AGENT' AND u."isActive" = true
         GROUP BY u.id, u.username, u.name
         ORDER BY "totalCases" DESC

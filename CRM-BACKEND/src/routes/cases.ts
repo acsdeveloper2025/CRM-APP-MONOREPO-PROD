@@ -394,43 +394,47 @@ router.put('/:id',
 //   updateCasePriority
 // );
 
-router.put('/:id/assign',
-  [param('id').trim().notEmpty().withMessage('Case ID is required')],
-  assignValidation,
-  validate,
-  validateCaseAccess,
-  assignCase
-);
+// DEPRECATED: Case-level assignment routes removed
+// All assignments are now handled at the verification task level
+// Use /api/verification-tasks/:taskId/assign instead
 
-// Bulk assignment routes
-router.post('/bulk/assign',
-  bulkAssignValidation,
-  validate,
-  bulkAssignCases
-);
+// router.put('/:id/assign',
+//   [param('id').trim().notEmpty().withMessage('Case ID is required')],
+//   assignValidation,
+//   validate,
+//   validateCaseAccess,
+//   assignCase
+// );
 
-router.get('/bulk/assign/:batchId/status',
-  [param('batchId').trim().notEmpty().withMessage('Batch ID is required')],
-  validate,
-  getBulkAssignmentStatus
-);
+// // Bulk assignment routes
+// router.post('/bulk/assign',
+//   bulkAssignValidation,
+//   validate,
+//   bulkAssignCases
+// );
 
-// Reassignment route
-router.post('/:id/reassign',
-  [param('id').trim().notEmpty().withMessage('Case ID is required')],
-  reassignValidation,
-  validate,
-  validateCaseAccess,
-  reassignCase
-);
+// router.get('/bulk/assign/:batchId/status',
+//   [param('batchId').trim().notEmpty().withMessage('Batch ID is required')],
+//   validate,
+//   getBulkAssignmentStatus
+// );
 
-// Assignment history route
-router.get('/:id/assignment-history',
-  [param('id').trim().notEmpty().withMessage('Case ID is required')],
-  validate,
-  validateCaseAccess,
-  getCaseAssignmentHistory
-);
+// // Reassignment route
+// router.post('/:id/reassign',
+//   [param('id').trim().notEmpty().withMessage('Case ID is required')],
+//   reassignValidation,
+//   validate,
+//   validateCaseAccess,
+//   reassignCase
+// );
+
+// // Assignment history route
+// router.get('/:id/assignment-history',
+//   [param('id').trim().notEmpty().withMessage('Case ID is required')],
+//   validate,
+//   validateCaseAccess,
+//   getCaseAssignmentHistory
+// );
 
 // Analytics routes
 router.get('/analytics/field-agent-workload',

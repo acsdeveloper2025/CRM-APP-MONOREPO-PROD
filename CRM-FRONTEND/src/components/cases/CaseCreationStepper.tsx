@@ -352,26 +352,37 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
           // Upload attachments for each task if any
           // Extract caseId (integer) from response - must use integer for backend
           const caseId = response.data?.case?.caseId ? String(response.data.case.caseId) : null;
+          const createdTasks = response.data?.verification_tasks || [];
           let totalAttachments = 0;
 
           console.log('📎 Multi-task case created, preparing to upload attachments:', {
             caseId,
             caseIdType: typeof response.data?.case?.caseId,
             tasksWithAttachments: tasks.filter(t => t.attachments && t.attachments.length > 0).length,
+            createdTasksCount: createdTasks.length,
             responseData: response.data
           });
 
-          if (caseId) {
-            for (const task of tasks) {
-              if (task.attachments && task.attachments.length > 0) {
+          if (caseId && createdTasks.length > 0) {
+            // Match frontend tasks with backend tasks by index (they're in the same order)
+            for (let i = 0; i < tasks.length; i++) {
+              const frontendTask = tasks[i];
+              const backendTask = createdTasks[i];
+
+              if (frontendTask.attachments && frontendTask.attachments.length > 0 && backendTask) {
                 try {
-                  const files = task.attachments.map(att => att.file);
-                  console.log(`📎 Uploading ${files.length} files for task ${task.id}`);
-                  await casesService.uploadCaseAttachments(caseId, files);
+                  const files = frontendTask.attachments.map(att => att.file);
+                  const taskId = backendTask.id; // UUID of the created verification task
+
+                  console.log(`📎 Uploading ${files.length} files for task ${i + 1} (ID: ${taskId})`);
+
+                  // Upload attachments with verification_task_id
+                  await casesService.uploadCaseAttachments(caseId, files, taskId);
                   totalAttachments += files.length;
                 } catch (error: any) {
                   console.error('❌ Error uploading task attachments:', {
-                    taskId: task.id,
+                    taskIndex: i,
+                    taskId: backendTask?.id,
                     error: error.message || error,
                     stack: error.stack
                   });
@@ -380,9 +391,9 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
               }
             }
           } else {
-            console.error('❌ No caseId found in multi-task response:', response.data);
+            console.error('❌ No caseId or tasks found in multi-task response:', response.data);
             if (tasks.some(t => t.attachments && t.attachments.length > 0)) {
-              toast.error('Case created but caseId not found for attachment upload');
+              toast.error('Case created but caseId/tasks not found for attachment upload');
             }
           }
 
