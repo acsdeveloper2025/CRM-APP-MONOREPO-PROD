@@ -8,6 +8,7 @@ import { connectRedis, disconnectRedis } from '@/config/redis';
 import { initializeQueues, closeQueues } from '@/config/queue';
 import { initializeWebSocket } from '@/websocket/server';
 import { EnterpriseCacheService } from './services/enterpriseCacheService';
+import { CacheWarmingService } from './services/cacheWarmingService';
 // Migrations removed for production - use database import instead
 
 const server = createServer(app);
@@ -37,15 +38,27 @@ const startServer = async (): Promise<void> => {
     // Initialize enterprise cache service
     await EnterpriseCacheService.initialize();
 
+    // Warm cache with frequently accessed data (improves hit rate)
+    await CacheWarmingService.warmAllCaches();
+
     // Initialize job queues
     await initializeQueues();
-    
+
     // Start the server with strict port enforcement - bind to all interfaces for mobile access
     server.listen(config.port, '0.0.0.0', () => {
       logger.info(`Server running on port ${config.port}`);
       logger.info(`Server accessible on all network interfaces (0.0.0.0:${config.port})`);
       logger.info(`Environment: ${config.nodeEnv}`);
       logger.info(`WebSocket server running on port ${config.port}`);
+
+      // Schedule periodic cache refresh (every 10 minutes)
+      setInterval(async () => {
+        try {
+          await CacheWarmingService.refreshCaches();
+        } catch (error) {
+          logger.error('Periodic cache refresh failed:', error);
+        }
+      }, 10 * 60 * 1000); // 10 minutes
     });
 
     // Handle port already in use error

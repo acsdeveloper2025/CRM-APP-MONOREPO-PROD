@@ -3,6 +3,7 @@ import { body, query, param } from 'express-validator';
 import { authenticateToken } from '@/middleware/auth';
 import { handleValidationErrors } from '@/middleware/validation';
 import { addProductFiltering } from '@/middleware/productAccess';
+import { EnterpriseCache, EnterpriseCacheConfigs, CacheInvalidationPatterns } from '../middleware/enterpriseCache';
 import {
   getProducts,
   getProductById,
@@ -135,8 +136,9 @@ const clientProductsValidation = [
     .withMessage('isActive must be a boolean'),
 ];
 
-// Core CRUD routes
+// Core CRUD routes (CACHED)
 router.get('/',
+  EnterpriseCache.create(EnterpriseCacheConfigs.products),
   listProductsValidation,
   handleValidationErrors,
   addProductFiltering,
@@ -145,9 +147,13 @@ router.get('/',
 
 // TODO: Implement these endpoints
 // router.get('/categories', getProductCategories);
-router.get('/stats', getProductStats);
+router.get('/stats',
+  EnterpriseCache.create(EnterpriseCacheConfigs.analytics),
+  getProductStats
+);
 
 router.post('/',
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.productUpdate),
   createProductValidation,
   handleValidationErrors,
   createProduct
@@ -161,12 +167,14 @@ router.post('/',
 // );
 
 router.get('/:id',
+  EnterpriseCache.create(EnterpriseCacheConfigs.products),
   [param('id').isInt({ min: 1 }).withMessage('Product ID must be a positive integer')],
   handleValidationErrors,
   getProductById
 );
 
 router.put('/:id',
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.productUpdate),
   [param('id').isInt({ min: 1 }).withMessage('Product ID must be a positive integer')],
   updateProductValidation,
   handleValidationErrors,
@@ -174,13 +182,15 @@ router.put('/:id',
 );
 
 router.delete('/:id',
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.productUpdate),
   [param('id').isInt({ min: 1 }).withMessage('Product ID must be a positive integer')],
   handleValidationErrors,
   deleteProduct
 );
 
-// Get verification types for a product
+// Get verification types for a product (CACHED)
 router.get('/:id/verification-types',
+  EnterpriseCache.create(EnterpriseCacheConfigs.verificationTypes),
   [
     param('id').isInt({ min: 1 }).withMessage('Product ID must be a positive integer'),
     query('isActive').optional().isBoolean().withMessage('isActive must be a boolean')

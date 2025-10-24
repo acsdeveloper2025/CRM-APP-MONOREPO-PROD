@@ -11,6 +11,7 @@ import { validateMobileVersion, mobileRateLimit } from '../middleware/mobileVali
 import { createAuditLog, createMobileAuditLogs } from '../controllers/auditLogsController';
 import { body } from 'express-validator';
 import { validate } from '../middleware/validation';
+import { EnterpriseCache, EnterpriseCacheConfigs } from '../middleware/enterpriseCache';
 
 const router = Router();
 
@@ -38,16 +39,16 @@ router.post('/auth/notifications/register', authenticateToken, MobileAuthControl
 
 
 
-// Mobile Case Management Routes
-router.get('/cases', authenticateToken, validateMobileVersion, MobileCaseController.getMobileCases);
-router.get('/cases/:caseId', authenticateToken, validateMobileVersion, MobileCaseController.getMobileCase);
+// Mobile Case Management Routes (CACHED)
+router.get('/cases', authenticateToken, validateMobileVersion, EnterpriseCache.create(EnterpriseCacheConfigs.mobileSync), MobileCaseController.getMobileCases);
+router.get('/cases/:caseId', authenticateToken, validateMobileVersion, EnterpriseCache.create(EnterpriseCacheConfigs.caseDetails), MobileCaseController.getMobileCase);
 router.put('/cases/:caseId/status', authenticateToken, validateMobileVersion, MobileCaseController.updateCaseStatus);
 router.put('/cases/:caseId/priority', authenticateToken, validateMobileVersion, MobileCaseController.updateCasePriority);
 router.post('/cases/:caseId/revoke', authenticateToken, validateMobileVersion, MobileCaseController.revokeCase);
 
-// Mobile Auto-save Routes
+// Mobile Auto-save Routes (CACHED)
 router.post('/cases/:caseId/auto-save', authenticateToken, validateMobileVersion, MobileCaseController.autoSaveForm);
-router.get('/cases/:caseId/auto-save/:formType', authenticateToken, validateMobileVersion, MobileCaseController.getAutoSavedForm);
+router.get('/cases/:caseId/auto-save/:formType', authenticateToken, validateMobileVersion, EnterpriseCache.create(EnterpriseCacheConfigs.caseDetails), MobileCaseController.getAutoSavedForm);
 
 // Mobile Attachment Routes
 // Note: More specific routes must come before parameterized routes
