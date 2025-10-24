@@ -196,12 +196,19 @@ export class MobileSyncController {
 
       // Role-based filtering
       if (userRole === 'FIELD_AGENT') {
-        where.assignedTo = userId;
+        where.hasAssignedTask = userId;
       }
 
       const vals: any[] = [];
       const wh: string[] = [];
-      if (where.assignedTo) { vals.push(where.assignedTo); wh.push(`c."assignedTo" = $${vals.length}`); }
+      if (where.hasAssignedTask) {
+        vals.push(where.hasAssignedTask);
+        wh.push(`EXISTS (
+          SELECT 1 FROM verification_tasks vt
+          WHERE vt.case_id = c.id
+          AND vt.assigned_to = $${vals.length}
+        )`);
+      }
       if (where.updatedAt?.gt) { vals.push(where.updatedAt.gt); wh.push(`c."updatedAt" > $${vals.length}`); }
       const whereSql = wh.length ? `WHERE ${wh.join(' AND ')}` : '';
       vals.push(Number(limit));
@@ -211,14 +218,12 @@ export class MobileSyncController {
                 cl.id as "clientId", cl.name as "clientName", cl.code as "clientCode",
                 p.id as "productId", p.name as "productName", p.code as "productCode",
                 vt.id as "verificationTypeId", vt.name as "verificationTypeName", vt.code as "verificationTypeCode",
-                cu.name as "createdByUserName",
-                au.name as "assignedToUserName"
+                cu.name as "createdByUserName"
          FROM cases c
          LEFT JOIN clients cl ON cl.id = c."clientId"
          LEFT JOIN products p ON p.id = c."productId"
          LEFT JOIN "verificationTypes" vt ON vt.id = c."verificationTypeId"
          LEFT JOIN users cu ON cu.id = c."createdBy"
-         LEFT JOIN users au ON au.id = c."assignedTo"
          ${whereSql}
          ORDER BY c."updatedAt" ASC
          LIMIT $${vals.length}`,
@@ -255,7 +260,7 @@ export class MobileSyncController {
         applicantType: caseItem.applicantType, // Applicant Type
         backendContactNumber: caseItem.backendContactNumber, // Backend Contact Number
         createdByBackendUser: caseItem.createdByUserName, // Created By Backend User
-        assignedToFieldUser: caseItem.assignedToUserName, // Assign to Field User
+        assignedToFieldUser: '', // Task-level assignment - would need LATERAL JOIN to get this
         client: {
           id: caseItem.clientId || 0, // Use number instead of string
           name: caseItem.clientName || '', // Client
@@ -373,14 +378,16 @@ export class MobileSyncController {
     switch (action) {
       case 'UPDATE':
         // Check if case exists and user has access
-        const where: any = { id };
-        if (userRole === 'FIELD_AGENT') {
-          where.assignedTo = userId;
-        }
-
         const vals9: any[] = [id];
         let exSql7 = `SELECT id, "updatedAt" FROM cases WHERE id = $1`;
-        if (userRole === 'FIELD_AGENT') { exSql7 += ` AND "assignedTo" = $2`; vals9.push(userId); }
+        if (userRole === 'FIELD_AGENT') {
+          exSql7 += ` AND EXISTS (
+            SELECT 1 FROM verification_tasks vt
+            WHERE vt.case_id = cases.id
+            AND vt.assigned_to = $2
+          )`;
+          vals9.push(userId);
+        }
         const exRes7 = await query(exSql7, vals9);
         const existingCase = exRes7.rows[0];
         if (!existingCase) {
