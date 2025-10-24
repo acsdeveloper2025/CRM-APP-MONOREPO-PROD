@@ -518,7 +518,11 @@ export const getCaseById = async (req: AuthenticatedRequest, res: Response) => {
 
 // POST /api/cases - Create new case
 export const createCase = async (req: AuthenticatedRequest, res: Response) => {
+  const client = await pool.connect();
+
   try {
+    await client.query('BEGIN');
+
     const {
       customerName,
       customerPhone,
@@ -545,6 +549,7 @@ export const createCase = async (req: AuthenticatedRequest, res: Response) => {
       );
 
       if (rateTypeRes.rowCount === 0) {
+        await client.query('ROLLBACK');
         return res.status(400).json({
           success: false,
           message: 'Invalid or inactive rate type',
@@ -561,6 +566,7 @@ export const createCase = async (req: AuthenticatedRequest, res: Response) => {
         );
 
         if (assignmentRes.rowCount === 0) {
+          await client.query('ROLLBACK');
           return res.status(400).json({
             success: false,
             message: 'Rate type is not assigned to this client/product/verification type combination',
@@ -600,25 +606,93 @@ export const createCase = async (req: AuthenticatedRequest, res: Response) => {
       req.user?.id
     ];
 
-    const result = await pool.query(insertQuery, values);
+    const result = await client.query(insertQuery, values);
+    const newCase = result.rows[0];
+
+    // Create verification task if case has verification type
+    if (verificationTypeId && verificationTypeId.trim() !== '') {
+      const taskTitle = `${applicantType || 'APPLICANT'} Verification`;
+      const taskDescription = `Verification task for ${customerName}`;
+      const taskStatus = assignedToId ? 'ASSIGNED' : 'PENDING';
+
+      await client.query(`
+        INSERT INTO verification_tasks (
+          case_id, verification_type_id, task_title, task_description,
+          priority, assigned_to, assigned_by, assigned_at,
+          rate_type_id, address, pincode,
+          status, created_by
+        ) VALUES (
+          $1, $2, $3, $4, $5, $6::uuid, $7,
+          CASE WHEN $6 IS NOT NULL THEN NOW() ELSE NULL::timestamp with time zone END,
+          $8, $9, $10, $11, $12
+        )
+      `, [
+        newCase.id, // case_id (UUID)
+        Number(verificationTypeId), // verification_type_id
+        taskTitle, // task_title
+        taskDescription, // task_description
+        priority, // priority
+        assignedToId || null, // assigned_to
+        req.user?.id, // assigned_by
+        rateTypeId && rateTypeId.trim() !== '' ? Number(rateTypeId) : null, // rate_type_id
+        address, // address
+        pincode, // pincode
+        taskStatus, // status
+        req.user?.id // created_by
+      ]);
+
+      // Create assignment history if assigned
+      if (assignedToId) {
+        await client.query(`
+          INSERT INTO task_assignment_history (
+            verification_task_id, case_id, assigned_to, assigned_by,
+            assignment_reason, task_status_before, task_status_after
+          )
+          SELECT id, $1, $2, $3, $4, $5, $6
+          FROM verification_tasks
+          WHERE case_id = $1
+          ORDER BY created_at DESC
+          LIMIT 1
+        `, [
+          newCase.id, // case_id
+          assignedToId, // assigned_to
+          req.user?.id, // assigned_by
+          'Initial assignment during case creation', // assignment_reason
+          'PENDING', // task_status_before
+          'ASSIGNED' // task_status_after
+        ]);
+      }
+
+      logger.info('Verification task created for single case', {
+        caseId: newCase.id,
+        verificationTypeId,
+        assignedToId,
+        userId: req.user?.id
+      });
+    }
+
+    await client.query('COMMIT');
 
     logger.info('Case created', {
       userId: req.user?.id,
-      caseId: result.rows[0].caseId,
+      caseId: newCase.caseId,
     });
 
     res.status(201).json({
       success: true,
-      data: result.rows[0],
+      data: newCase,
       message: 'Case created successfully',
     });
   } catch (error) {
+    await client.query('ROLLBACK');
     logger.error('Error creating case:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to create case',
       error: { code: 'INTERNAL_ERROR' },
     });
+  } finally {
+    client.release();
   }
 };
 
@@ -1024,7 +1098,9 @@ export const createCaseWithAttachments = async (req: AuthenticatedRequest, res: 
         pincode,
         priority = 'MEDIUM',
         trigger,
-        applicantType = 'APPLICANT'
+        applicantType = 'APPLICANT',
+        assignedToId,
+        rateTypeId
       } = req.body;
 
       // Validate required fields
@@ -1065,8 +1141,8 @@ export const createCaseWithAttachments = async (req: AuthenticatedRequest, res: 
           "customerName", "customerPhone", "customerCallingCode",
           "clientId", "productId", "verificationTypeId",
           address, pincode, priority, trigger, "applicantType",
-          status, "createdByBackendUser", "backendContactNumber", "createdAt", "updatedAt"
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, NOW(), NOW())
+          status, "createdByBackendUser", "backendContactNumber", "assignedTo", "rateTypeId", "createdAt", "updatedAt"
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, NOW(), NOW())
         RETURNING *
       `;
 
@@ -1084,13 +1160,77 @@ export const createCaseWithAttachments = async (req: AuthenticatedRequest, res: 
         applicantType,
         'PENDING',
         req.user?.id,
-        customerPhone // Use customer phone as backend contact number for now
+        customerPhone, // Use customer phone as backend contact number for now
+        assignedToId || null,
+        rateTypeId || null
       ];
 
       const caseResult = await client.query(insertCaseQuery, caseValues);
       const newCase = caseResult.rows[0];
       const caseId = newCase.caseId;
       const caseUUID = newCase.id; // Get the UUID for mobile compatibility
+
+      // Step 1.5: Create verification task if case has verification type
+      if (verificationTypeId) {
+        const taskTitle = `${applicantType || 'APPLICANT'} Verification`;
+        const taskDescription = `Verification task for ${customerName}`;
+        const taskStatus = assignedToId ? 'ASSIGNED' : 'PENDING';
+
+        await client.query(`
+          INSERT INTO verification_tasks (
+            case_id, verification_type_id, task_title, task_description,
+            priority, assigned_to, assigned_by, assigned_at,
+            rate_type_id, address, pincode,
+            status, created_by
+          ) VALUES (
+            $1, $2, $3, $4, $5, $6::uuid, $7,
+            CASE WHEN $6 IS NOT NULL THEN NOW() ELSE NULL::timestamp with time zone END,
+            $8, $9, $10, $11, $12
+          )
+        `, [
+          caseUUID, // case_id (UUID)
+          verificationTypeId, // verification_type_id
+          taskTitle, // task_title
+          taskDescription, // task_description
+          priority, // priority
+          assignedToId || null, // assigned_to
+          req.user?.id, // assigned_by
+          rateTypeId || null, // rate_type_id
+          address, // address
+          pincode, // pincode
+          taskStatus, // status
+          req.user?.id // created_by
+        ]);
+
+        // Create assignment history if assigned
+        if (assignedToId) {
+          await client.query(`
+            INSERT INTO task_assignment_history (
+              verification_task_id, case_id, assigned_to, assigned_by,
+              assignment_reason, task_status_before, task_status_after
+            )
+            SELECT id, $1, $2, $3, $4, $5, $6
+            FROM verification_tasks
+            WHERE case_id = $1
+            ORDER BY created_at DESC
+            LIMIT 1
+          `, [
+            caseUUID, // case_id
+            assignedToId, // assigned_to
+            req.user?.id, // assigned_by
+            'Initial assignment during case creation', // assignment_reason
+            'PENDING', // task_status_before
+            'ASSIGNED' // task_status_after
+          ]);
+        }
+
+        logger.info('Verification task created for case with attachments', {
+          caseId: caseUUID,
+          verificationTypeId,
+          assignedToId,
+          userId: req.user?.id
+        });
+      }
 
       // Step 2: Process uploaded files if any
       const files = req.files as Express.Multer.File[];
