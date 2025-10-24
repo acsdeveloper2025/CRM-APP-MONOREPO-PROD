@@ -3,6 +3,7 @@ import { body, query, param } from 'express-validator';
 import { authenticateToken } from '@/middleware/auth';
 import { validate } from '@/middleware/validation';
 import { logger } from '@/config/logger';
+import { EnterpriseCache, EnterpriseCacheConfigs, CacheInvalidationPatterns } from '../middleware/enterpriseCache';
 import {
   getUsers,
   getUserById,
@@ -270,53 +271,62 @@ const productIdValidation = [
     .withMessage('Product ID must be a positive integer'),
 ];
 
-// Core CRUD routes
-router.get('/', 
-  authenticateToken, 
-  listUsersValidation, 
-  validate, 
+// Core CRUD routes (CACHED)
+router.get('/',
+  authenticateToken,
+  EnterpriseCache.create(EnterpriseCacheConfigs.usersList),
+  listUsersValidation,
+  validate,
   getUsers
 );
 
-router.get('/search', 
-  authenticateToken, 
-  searchValidation, 
-  validate, 
+router.get('/search',
+  authenticateToken,
+  EnterpriseCache.create(EnterpriseCacheConfigs.usersList),
+  searchValidation,
+  validate,
   searchUsers
 );
 
-router.get('/stats', 
-  authenticateToken, 
+router.get('/stats',
+  authenticateToken,
+  EnterpriseCache.create(EnterpriseCacheConfigs.analytics),
   getUserStats
 );
 
-router.get('/departments', 
-  authenticateToken, 
+router.get('/departments',
+  authenticateToken,
+  EnterpriseCache.create(EnterpriseCacheConfigs.analytics),
   getDepartments
 );
 
 router.get('/designations',
   authenticateToken,
+  EnterpriseCache.create(EnterpriseCacheConfigs.analytics),
   getDesignations
 );
 
 router.get('/activities',
   authenticateToken,
+  EnterpriseCache.create(EnterpriseCacheConfigs.analytics),
   getUserActivities
 );
 
 router.get('/sessions',
   authenticateToken,
+  EnterpriseCache.create(EnterpriseCacheConfigs.analytics),
   getUserSessions
 );
 
 router.get('/roles/permissions',
   authenticateToken,
+  EnterpriseCache.create(EnterpriseCacheConfigs.analytics),
   getRolePermissions
 );
 
 router.post('/',
   authenticateToken,
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.userUpdate),
   createUserValidation,
   validate,
   createUser
@@ -324,6 +334,7 @@ router.post('/',
 
 router.post('/bulk-operation',
   authenticateToken,
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.userUpdate),
   bulkOperationValidation,
   validate,
   bulkUserOperation

@@ -252,18 +252,18 @@ export class EnterpriseCache {
   }
 }
 
-// Enterprise cache configurations
+// Enterprise cache configurations - OPTIMIZED FOR HIGH HIT RATES
 export const EnterpriseCacheConfigs = {
-  // User data caching
+  // User data caching - INCREASED TTL
   userData: {
-    ttl: 300, // 5 minutes
+    ttl: 1800, // 30 minutes (users don't change frequently)
     keyGenerator: (req: Request) => CacheKeys.user((req as any).user?.id),
     condition: (req: Request) => req.method === 'GET',
   },
 
-  // Case list caching
+  // Case list caching - INCREASED TTL
   caseList: {
-    ttl: 60, // 1 minute
+    ttl: 300, // 5 minutes (was 1 minute - too aggressive)
     keyGenerator: (req: Request) => {
       const userId = (req as any).user?.id;
       const page = req.query.page || 1;
@@ -273,16 +273,16 @@ export const EnterpriseCacheConfigs = {
     varyBy: ['X-User-Role'],
   },
 
-  // Case details caching
+  // Case details caching - INCREASED TTL
   caseDetails: {
-    ttl: 300, // 5 minutes
+    ttl: 900, // 15 minutes (was 5 minutes)
     keyGenerator: (req: Request) => CacheKeys.case(req.params.id),
     condition: (req: Request) => req.method === 'GET',
   },
 
-  // Analytics caching
+  // Analytics caching - INCREASED TTL
   analytics: {
-    ttl: 900, // 15 minutes
+    ttl: 1800, // 30 minutes (was 15 minutes)
     keyGenerator: (req: Request) => {
       const path = req.path.replace('/api/', '');
       const query = JSON.stringify(req.query);
@@ -290,16 +290,54 @@ export const EnterpriseCacheConfigs = {
     },
   },
 
-  // Field agent workload caching
+  // Field agent workload caching - INCREASED TTL
   workload: {
-    ttl: 180, // 3 minutes
+    ttl: 600, // 10 minutes (was 3 minutes)
     keyGenerator: () => CacheKeys.fieldAgentWorkload(),
   },
 
-  // Mobile sync data caching
+  // Mobile sync data caching - INCREASED TTL
   mobileSync: {
-    ttl: 30, // 30 seconds
+    ttl: 120, // 2 minutes (was 30 seconds - too aggressive)
     keyGenerator: (req: Request) => CacheKeys.mobileSync((req as any).user?.id),
+    condition: (req: Request) => req.method === 'GET',
+  },
+
+  // Client list caching - NEW
+  clientList: {
+    ttl: 3600, // 1 hour (clients rarely change)
+    keyGenerator: () => 'clients:list',
+    condition: (req: Request) => req.method === 'GET',
+  },
+
+  // Verification types caching - NEW
+  verificationTypes: {
+    ttl: 3600, // 1 hour (verification types rarely change)
+    keyGenerator: () => 'verification-types:list',
+    condition: (req: Request) => req.method === 'GET',
+  },
+
+  // Products caching - NEW
+  products: {
+    ttl: 3600, // 1 hour (products rarely change)
+    keyGenerator: () => 'products:list',
+    condition: (req: Request) => req.method === 'GET',
+  },
+
+  // Rate types caching - NEW
+  rateTypes: {
+    ttl: 3600, // 1 hour (rate types rarely change)
+    keyGenerator: () => 'rate-types:list',
+    condition: (req: Request) => req.method === 'GET',
+  },
+
+  // Users list caching - NEW
+  usersList: {
+    ttl: 600, // 10 minutes
+    keyGenerator: (req: Request) => {
+      const role = req.query.role || 'all';
+      return `users:list:${role}`;
+    },
     condition: (req: Request) => req.method === 'GET',
   },
 };
@@ -311,16 +349,37 @@ export const CacheInvalidationPatterns = {
     'analytics:*',
     CacheKeys.fieldAgentWorkload(),
   ],
-  
+
   userUpdate: [
     'api_cache:{userId}:*',
     CacheKeys.user('{userId}'),
+    'users:*',
   ],
-  
+
   assignmentUpdate: [
     'api_cache:*:*cases*',
     'analytics:*',
     CacheKeys.fieldAgentWorkload(),
     CacheKeys.mobileSync('{userId}'),
+  ],
+
+  clientUpdate: [
+    'clients:*',
+    'api_cache:*:*clients*',
+  ],
+
+  verificationTypeUpdate: [
+    'verification-types:*',
+    'api_cache:*:*verification-types*',
+  ],
+
+  productUpdate: [
+    'products:*',
+    'api_cache:*:*products*',
+  ],
+
+  rateTypeUpdate: [
+    'rate-types:*',
+    'api_cache:*:*rate-types*',
   ],
 };
