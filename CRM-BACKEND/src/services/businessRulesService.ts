@@ -149,16 +149,12 @@ class BusinessRulesService {
     return { type: 'UPDATE_PRIORITY', caseId, priority, success: true };
   }
 
+  // DEPRECATED: Case-level assignment removed
+  // All assignments are now handled at the verification task level
   private async assignCaseToUser(caseId: string, userId: string): Promise<any> {
-    const query = `
-      UPDATE cases 
-      SET "assignedTo" = $1, "updatedAt" = CURRENT_TIMESTAMP 
-      WHERE id = $2
-      RETURNING *
-    `;
-    
-    const result = await this.pool.query(query, [userId, caseId]);
-    return { type: 'ASSIGN_TO_USER', caseId, userId, success: true };
+    // This method is deprecated and should not be used
+    // Use verification task assignment instead
+    return { type: 'ASSIGN_TO_USER', caseId, userId, success: false, error: 'Case-level assignment is deprecated. Use task-level assignment instead.' };
   }
 
   private async addCaseNote(caseId: string, note: string): Promise<any> {

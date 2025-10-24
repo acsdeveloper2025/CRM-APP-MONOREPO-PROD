@@ -59,11 +59,11 @@ export class MobileCaseController {
 
       // Role-based filtering
       // For FIELD_AGENT: Filter by task-level assignment (verification_tasks.assigned_to)
-      // For other roles: Filter by case-level assignment if specified
+      // For other roles: Filter by task-level assignment if specified
       if (userRole === 'FIELD_AGENT') {
         where.hasAssignedTask = userId;  // Task-level assignment
       } else if (assignedTo) {
-        where.assignedTo = assignedTo;  // Case-level assignment
+        where.hasAssignedTask = assignedTo;  // Task-level assignment
       }
 
       if (status) {
@@ -105,7 +105,7 @@ export class MobileCaseController {
       const vals: any[] = [];
       const wh: string[] = [];
 
-      // For FIELD_AGENT: Use EXISTS subquery to filter by task assignment
+      // Filter by task-level assignment (for both FIELD_AGENT and other roles)
       if (where.hasAssignedTask) {
         vals.push(where.hasAssignedTask);
         wh.push(`EXISTS (
@@ -113,12 +113,6 @@ export class MobileCaseController {
           WHERE vt.case_id = c.id
           AND vt.assigned_to = $${vals.length}
         )`);
-      }
-
-      // For other roles: Use case-level assignment
-      if (where.assignedTo) {
-        vals.push(where.assignedTo);
-        wh.push(`c."assignedTo" = $${vals.length}`);
       }
 
       if (where.status) { vals.push(where.status); wh.push(`c.status = $${vals.length}`); }
@@ -171,16 +165,15 @@ export class MobileCaseController {
                cu.id as "createdByUserId",
                cu.name as "createdByUserName",
                cu.email as "createdByUserEmail",
-               -- Field 9: Assign to Field User
-               au.id as "assignedToUserId",
-               au.name as "assignedToUserName",
-               au.email as "assignedToUserEmail",
                -- Verification Task Information
                -- For FIELD_AGENT: Show their assigned task
                -- For other roles: Show first task
                vtask.id as "verificationTaskId",
                vtask.task_number as "verificationTaskNumber",
                vtask.address as "taskAddress",
+               vtask.trigger as "taskTrigger",
+               vtask.assigned_to as "taskAssignedTo",
+               vtask.assigned_user_name,
                -- Attachment count
                COALESCE(att_count.attachment_count, 0) as "attachmentCount"
         FROM cases c
@@ -189,18 +182,18 @@ export class MobileCaseController {
         LEFT JOIN "verificationTypes" vt ON vt.id = c."verificationTypeId"
         LEFT JOIN "rateTypes" rt ON rt.id = c."rateTypeId"
         LEFT JOIN users cu ON cu.id = c."createdByBackendUser"
-        LEFT JOIN users au ON au.id = c."assignedTo"
         LEFT JOIN LATERAL (
-          SELECT id, task_number, address
-          FROM verification_tasks
-          WHERE case_id = c.id
+          SELECT vt.id, vt.task_number, vt.address, vt.trigger, vt.assigned_to, u.name as assigned_user_name
+          FROM verification_tasks vt
+          LEFT JOIN users u ON u.id = vt.assigned_to
+          WHERE vt.case_id = c.id
           AND (
             $${taskFilterParamIndex}::uuid IS NULL  -- For non-field-agents, show first task
-            OR assigned_to = $${taskFilterParamIndex}::uuid  -- For field agents, show their task
+            OR vt.assigned_to = $${taskFilterParamIndex}::uuid  -- For field agents, show their task
           )
           ORDER BY
-            CASE WHEN assigned_to = $${taskFilterParamIndex}::uuid THEN 0 ELSE 1 END,  -- Prioritize user's task
-            created_at ASC
+            CASE WHEN vt.assigned_to = $${taskFilterParamIndex}::uuid THEN 0 ELSE 1 END,  -- Prioritize user's task
+            vt.created_at ASC
           LIMIT 1
         ) vtask ON true
         LEFT JOIN (
@@ -254,7 +247,7 @@ export class MobileCaseController {
         customerPhone: caseItem.customerPhone,
         customerEmail: caseItem.customerEmail,
         // Use task-level address (from verification_tasks) instead of case-level address
-        addressStreet: caseItem.taskAddress || caseItem.address || '',
+        addressStreet: caseItem.taskAddress || '',
         addressCity: '',
         addressState: '',
         addressPincode: caseItem.pincode || '',
@@ -265,13 +258,13 @@ export class MobileCaseController {
         assignedAt: new Date(caseItem.createdAt).toISOString(),
         updatedAt: new Date(caseItem.updatedAt).toISOString(),
         completedAt: caseItem.completedAt ? new Date(caseItem.completedAt).toISOString() : undefined,
-        notes: caseItem.trigger, // TRIGGER field
+        notes: caseItem.taskTrigger || caseItem.trigger || '', // Use task-level trigger instead of case-level trigger
         verificationType: caseItem.verificationTypeName || caseItem.verificationType,
         verificationOutcome: caseItem.verificationOutcome,
         applicantType: caseItem.applicantType, // Applicant Type
         backendContactNumber: caseItem.backendContactNumber, // Backend Contact Number
         createdByBackendUser: caseItem.createdByUserName, // Created By Backend User
-        assignedToFieldUser: caseItem.assignedToUserName, // Assign to Field User
+        assignedToFieldUser: caseItem.assigned_user_name, // Use task-level assigned user
         verificationTaskId: caseItem.verificationTaskId, // Verification Task UUID
         verificationTaskNumber: caseItem.verificationTaskNumber, // Verification Task Number (e.g., VT-000127)
         client: {
@@ -347,27 +340,29 @@ export class MobileCaseController {
                p.id as "productId", p.name as "productName", p.code as "productCode",
                vt.id as "verificationTypeId", vt.name as "verificationTypeName", vt.code as "verificationTypeCode",
                cu.name as "createdByUserName",
-               au.name as "assignedToUserName",
                vtask.id as "verificationTaskId",
                vtask.task_number as "verificationTaskNumber",
-               vtask.address as "taskAddress"
+               vtask.address as "taskAddress",
+               vtask.trigger as "taskTrigger",
+               vtask.assigned_to as "taskAssignedTo",
+               vtask.assigned_user_name
         FROM cases c
         LEFT JOIN clients cl ON cl.id = c."clientId"
         LEFT JOIN products p ON p.id = c."productId"
         LEFT JOIN "verificationTypes" vt ON vt.id = c."verificationTypeId"
         LEFT JOIN users cu ON cu.id = c."createdByBackendUser"
-        LEFT JOIN users au ON au.id = c."assignedTo"
         LEFT JOIN LATERAL (
-          SELECT id, task_number, address
-          FROM verification_tasks
-          WHERE case_id = c.id
+          SELECT vt.id, vt.task_number, vt.address, vt.trigger, vt.assigned_to, u.name as assigned_user_name
+          FROM verification_tasks vt
+          LEFT JOIN users u ON u.id = vt.assigned_to
+          WHERE vt.case_id = c.id
           AND (
             $2::uuid IS NULL  -- For non-field-agents, show first task
-            OR assigned_to = $2::uuid  -- For field agents, show their task
+            OR vt.assigned_to = $2::uuid  -- For field agents, show their task
           )
           ORDER BY
-            CASE WHEN assigned_to = $2::uuid THEN 0 ELSE 1 END,  -- Prioritize user's task
-            created_at ASC
+            CASE WHEN vt.assigned_to = $2::uuid THEN 0 ELSE 1 END,  -- Prioritize user's task
+            vt.created_at ASC
           LIMIT 1
         ) vtask ON true
         WHERE c.id = $1`;
@@ -429,7 +424,7 @@ export class MobileCaseController {
         customerPhone: caseItem.customerPhone,
         customerEmail: caseItem.customerEmail,
         // Use task-level address (from verification_tasks) instead of case-level address
-        addressStreet: caseItem.taskAddress || caseItem.address || '',
+        addressStreet: caseItem.taskAddress || '',
         addressCity: '',
         addressState: '',
         addressPincode: caseItem.pincode || '',
@@ -440,13 +435,13 @@ export class MobileCaseController {
         assignedAt: new Date(caseItem.createdAt).toISOString(),
         updatedAt: new Date(caseItem.updatedAt).toISOString(),
         completedAt: caseItem.completedAt ? new Date(caseItem.completedAt).toISOString() : undefined,
-        notes: caseItem.trigger, // TRIGGER field
+        notes: caseItem.taskTrigger || caseItem.trigger || '', // Use task-level trigger instead of case-level trigger
         verificationType: caseItem.verificationTypeName || caseItem.verificationType,
         verificationOutcome: caseItem.verificationOutcome,
         applicantType: caseItem.applicantType, // Applicant Type
         backendContactNumber: caseItem.backendContactNumber, // Backend Contact Number
         createdByBackendUser: caseItem.createdByUserName, // Created By Backend User
-        assignedToFieldUser: caseItem.assignedToUserName, // Assign to Field User
+        assignedToFieldUser: caseItem.assigned_user_name, // Use task-level assigned user
         verificationTaskId: caseItem.verificationTaskId, // Verification Task UUID
         verificationTaskNumber: caseItem.verificationTaskNumber, // Verification Task Number (e.g., VT-000127)
         client: {
@@ -534,7 +529,11 @@ export class MobileCaseController {
       }
 
       if (userRole === 'FIELD_AGENT') {
-        exSql += ` AND "assignedTo" = $2`;
+        exSql += ` AND EXISTS (
+          SELECT 1 FROM verification_tasks vt
+          WHERE vt.case_id = cases.id
+          AND vt.assigned_to = $2
+        )`;
         vals3.push(userId);
       }
 
@@ -661,7 +660,14 @@ export class MobileCaseController {
 
       const vals6: any[] = [caseId];
       let exSql4 = `SELECT id FROM cases WHERE id = $1`;
-      if (userRole === 'FIELD_AGENT') { exSql4 += ` AND "assignedTo" = $2`; vals6.push(userId); }
+      if (userRole === 'FIELD_AGENT') {
+        exSql4 += ` AND EXISTS (
+          SELECT 1 FROM verification_tasks vt
+          WHERE vt.case_id = cases.id
+          AND vt.assigned_to = $2
+        )`;
+        vals6.push(userId);
+      }
       const exRes4 = await query(exSql4, vals6);
       const existingCase = exRes4.rows[0];
       if (!existingCase) {
@@ -740,7 +746,11 @@ export class MobileCaseController {
       }
 
       if (userRole === 'FIELD_AGENT') {
-        exSql3 += ` AND "assignedTo" = $2`;
+        exSql3 += ` AND EXISTS (
+          SELECT 1 FROM verification_tasks vt
+          WHERE vt.case_id = cases.id
+          AND vt.assigned_to = $2
+        )`;
         vals5.push(userId);
       }
 
@@ -820,7 +830,11 @@ export class MobileCaseController {
       }
 
       if (userRole === 'FIELD_AGENT') {
-        exSql5 += ` AND "assignedTo" = $2`;
+        exSql5 += ` AND EXISTS (
+          SELECT 1 FROM verification_tasks vt
+          WHERE vt.case_id = cases.id
+          AND vt.assigned_to = $2
+        )`;
         vals7.push(userId);
       }
 
@@ -898,15 +912,18 @@ export class MobileCaseController {
 
       // Validate case exists and user has access
       const caseQuery = await query(`
-        SELECT id, "caseId", "customerName", "assignedTo", status, "createdByBackendUser"
-        FROM cases
-        WHERE id = $1
-      `, [caseId]);
+        SELECT c.id, c."caseId", c."customerName", c.status, c."createdByBackendUser",
+               vt.assigned_to
+        FROM cases c
+        LEFT JOIN verification_tasks vt ON vt.case_id = c.id
+        WHERE c.id = $1
+        ${userRole === 'FIELD_AGENT' ? 'AND vt.assigned_to = $2' : ''}
+      `, userRole === 'FIELD_AGENT' ? [caseId, userId] : [caseId]);
 
       if (caseQuery.rows.length === 0) {
         return res.status(404).json({
           success: false,
-          message: 'Case not found',
+          message: 'Case not found or access denied',
           error: {
             code: 'CASE_NOT_FOUND',
             timestamp: new Date().toISOString(),
@@ -915,18 +932,6 @@ export class MobileCaseController {
       }
 
       const caseData = caseQuery.rows[0];
-
-      // Check if user is assigned to this case
-      if (userRole === 'FIELD_AGENT' && caseData.assignedTo !== userId) {
-        return res.status(403).json({
-          success: false,
-          message: 'You can only revoke cases assigned to you',
-          error: {
-            code: 'INSUFFICIENT_PERMISSIONS',
-            timestamp: new Date().toISOString(),
-          },
-        });
-      }
 
       // Check if case can be revoked (not already completed)
       if (caseData.status === 'COMPLETED') {

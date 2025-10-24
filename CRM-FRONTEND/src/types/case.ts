@@ -37,16 +37,17 @@ export interface Case {
   verificationType?: string;
   verificationOutcome?: string;
 
-  // Assignment information
-  assignedToId?: string;
-  assignedTo?: {
-    id: string;
-    name: string;
-    username?: string;
-    employeeId?: string;
-  };
-  assignedToName?: string;
-  assignedAt?: string;
+  // DEPRECATED: Case-level assignment fields removed
+  // All assignments are now handled at the verification task level
+  // assignedToId?: string;
+  // assignedTo?: {
+  //   id: string;
+  //   name: string;
+  //   username?: string;
+  //   employeeId?: string;
+  // };
+  // assignedToName?: string;
+  // assignedAt?: string;
 
   // Related entities (using consistent ID types)
   clientId: number; // Numeric ID for clients

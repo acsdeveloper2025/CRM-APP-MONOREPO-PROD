@@ -442,6 +442,8 @@ export class MobileAttachmentController {
       const attRes = await query(attachmentQuery, queryParams);
       const attachment: any = attRes.rows[0];
 
+      console.log('📎 Attachment object:', JSON.stringify(attachment, null, 2));
+
       if (!attachment) {
         return res.status(404).json({
           success: false,
@@ -474,7 +476,7 @@ export class MobileAttachmentController {
       // Set appropriate headers
       res.setHeader('Content-Type', attachment.mimeType);
       res.setHeader('Content-Disposition', `inline; filename="${attachment.originalName}"`);
-      res.setHeader('Content-Length', attachment.size.toString());
+      res.setHeader('Content-Length', (attachment.fileSize || attachment.size || 0).toString());
 
       // Stream the file
       const fileStream = require('fs').createReadStream(filePath);

@@ -111,17 +111,26 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
     const params: any[] = [];
     let paramIndex = 1;
 
-    // Role-based filtering - FIELD_AGENT users can only see their assigned cases
+    // Role-based filtering - FIELD_AGENT users can only see cases with their assigned tasks
     const userRole = req.user?.role;
     const userId = req.user?.id;
 
     if (userRole === 'FIELD_AGENT') {
-      conditions.push(`c."assignedTo" = $${paramIndex}`);
+      // Filter by task-level assignment
+      conditions.push(`EXISTS (
+        SELECT 1 FROM verification_tasks vt
+        WHERE vt.case_id = c.id
+        AND vt.assigned_to = $${paramIndex}
+      )`);
       params.push(userId);
       paramIndex++;
     } else if (assignedTo) {
-      // For other roles, apply assignedTo filter only if explicitly provided
-      conditions.push(`c."assignedTo" = $${paramIndex}`);
+      // For other roles, filter by task-level assignment if explicitly provided
+      conditions.push(`EXISTS (
+        SELECT 1 FROM verification_tasks vt
+        WHERE vt.case_id = c.id
+        AND vt.assigned_to = $${paramIndex}
+      )`);
       params.push(assignedTo);
       paramIndex++;
     }
@@ -240,9 +249,6 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
         -- Client information (Field 3: Client)
         cl.name as "clientName",
         cl.code as "clientCode",
-        -- Assigned user information (Field 9: Assign to Field User)
-        assigned_user.name as "assignedToName",
-        assigned_user.email as "assignedToEmail",
         -- Product information (Field 4: Product)
         p.name as "productName",
         p.code as "productCode",
@@ -262,22 +268,14 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
         -- Created by backend user information (Field 7: Created By Backend User)
         created_user.name as "createdByBackendUserName",
         created_user.email as "createdByBackendUserEmail",
-        -- Calculate pending/in-progress duration for frontend display
+        -- Calculate pending/in-progress duration for frontend display (based on case creation time)
         CASE
           WHEN c.status IN ('PENDING', 'IN_PROGRESS') THEN
-            COALESCE(
-              EXTRACT(EPOCH FROM (NOW() - (
-                SELECT MAX(cah."assignedAt")
-                FROM case_assignment_history cah
-                WHERE cah.case_id = c.id
-              ))),
-              EXTRACT(EPOCH FROM (NOW() - c."createdAt"))
-            )
+            EXTRACT(EPOCH FROM (NOW() - c."createdAt"))
           ELSE NULL
         END as "pendingDurationSeconds"
       FROM cases c
       LEFT JOIN clients cl ON c."clientId" = cl.id
-      LEFT JOIN users assigned_user ON c."assignedTo" = assigned_user.id
       LEFT JOIN users created_user ON c."createdByBackendUser" = created_user.id
       LEFT JOIN products p ON c."productId" = p.id
       LEFT JOIN "verificationTypes" vt ON c."verificationTypeId" = vt.id
@@ -303,7 +301,6 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
       // Provide flat fields for frontend compatibility
       clientName: row.clientName,
       clientCode: row.clientCode,
-      assignedToName: row.assignedToName,
       productName: row.productName,
       productCode: row.productCode,
       // Transform client data to nested object
@@ -405,9 +402,6 @@ export const getCaseById = async (req: AuthenticatedRequest, res: Response) => {
         -- Client information (Field 3: Client)
         cl.name as "clientName",
         cl.code as "clientCode",
-        -- Assigned user information (Field 9: Assign to Field User)
-        assigned_user.name as "assignedToName",
-        assigned_user.email as "assignedToEmail",
         -- Product information (Field 4: Product)
         p.name as "productName",
         p.code as "productCode",
@@ -429,7 +423,6 @@ export const getCaseById = async (req: AuthenticatedRequest, res: Response) => {
         created_user.email as "createdByBackendUserEmail"
       FROM cases c
       LEFT JOIN clients cl ON c."clientId" = cl.id
-      LEFT JOIN users assigned_user ON c."assignedTo" = assigned_user.id
       LEFT JOIN users created_user ON c."createdByBackendUser" = created_user.id
       LEFT JOIN products p ON c."productId" = p.id
       LEFT JOIN "verificationTypes" vt ON c."verificationTypeId" = vt.id
@@ -439,9 +432,13 @@ export const getCaseById = async (req: AuthenticatedRequest, res: Response) => {
 
     const queryParams = [isNumeric ? parseInt(id) : id];
 
-    // Add role-based filtering for FIELD_AGENT
+    // Add role-based filtering for FIELD_AGENT - filter by task-level assignment
     if (userRole === 'FIELD_AGENT') {
-      caseQuery += ` AND c."assignedTo" = $2`;
+      caseQuery += ` AND EXISTS (
+        SELECT 1 FROM verification_tasks vt
+        WHERE vt.case_id = c.id
+        AND vt.assigned_to = $2
+      )`;
       queryParams.push(userId);
     }
 
@@ -530,14 +527,14 @@ export const createCase = async (req: AuthenticatedRequest, res: Response) => {
       clientId,
       productId,
       verificationTypeId,
-      address,
       pincode,
       priority = 'MEDIUM',
       trigger,
       applicantType = 'APPLICANT',
       backendContactNumber,
       assignedToId,
-      rateTypeId
+      rateTypeId,
+      address // Task-level address
     } = req.body;
 
     // Validate rate type if provided
@@ -580,10 +577,10 @@ export const createCase = async (req: AuthenticatedRequest, res: Response) => {
       INSERT INTO cases (
         "customerName", "customerPhone", "customerCallingCode",
         "clientId", "productId", "verificationTypeId",
-        address, pincode, priority, trigger, "applicantType",
+        pincode, priority, trigger, "applicantType",
         "backendContactNumber", "assignedTo", "rateTypeId",
         status, "createdByBackendUser", "createdAt", "updatedAt"
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, NOW(), NOW())
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, NOW(), NOW())
       RETURNING *
     `;
 
@@ -594,7 +591,6 @@ export const createCase = async (req: AuthenticatedRequest, res: Response) => {
       clientId && clientId.trim() !== '' ? Number(clientId) : null, // Convert string to integer, handle empty strings
       productId && productId.trim() !== '' ? Number(productId) : null, // Convert string to integer, handle empty strings
       verificationTypeId && verificationTypeId.trim() !== '' ? Number(verificationTypeId) : null, // Convert string to integer, handle empty strings
-      address,
       pincode,
       priority,
       trigger,
@@ -708,7 +704,6 @@ export const updateCase = async (req: AuthenticatedRequest, res: Response) => {
       clientId,
       productId,
       verificationTypeId,
-      address,
       pincode,
       priority,
       trigger,
@@ -750,11 +745,6 @@ export const updateCase = async (req: AuthenticatedRequest, res: Response) => {
     if (verificationTypeId !== undefined) {
       updateFields.push(`"verificationTypeId" = $${paramIndex}`);
       values.push(verificationTypeId);
-      paramIndex++;
-    }
-    if (address !== undefined) {
-      updateFields.push(`address = $${paramIndex}`);
-      values.push(address);
       paramIndex++;
     }
     if (pincode !== undefined) {
@@ -1140,9 +1130,9 @@ export const createCaseWithAttachments = async (req: AuthenticatedRequest, res: 
         INSERT INTO cases (
           "customerName", "customerPhone", "customerCallingCode",
           "clientId", "productId", "verificationTypeId",
-          address, pincode, priority, trigger, "applicantType",
-          status, "createdByBackendUser", "backendContactNumber", "assignedTo", "rateTypeId", "createdAt", "updatedAt"
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, NOW(), NOW())
+          pincode, priority, trigger, "applicantType",
+          status, "createdByBackendUser", "backendContactNumber", "rateTypeId", "createdAt", "updatedAt"
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, NOW(), NOW())
         RETURNING *
       `;
 
@@ -1153,7 +1143,6 @@ export const createCaseWithAttachments = async (req: AuthenticatedRequest, res: 
         clientId,
         productId,
         verificationTypeId,
-        address,
         pincode,
         priority,
         trigger,
@@ -1161,7 +1150,6 @@ export const createCaseWithAttachments = async (req: AuthenticatedRequest, res: 
         'PENDING',
         req.user?.id,
         customerPhone, // Use customer phone as backend contact number for now
-        assignedToId || null,
         rateTypeId || null
       ];
 
@@ -1439,7 +1427,6 @@ export const exportCases = async (req: AuthenticatedRequest, res: Response) => {
         c."customerName" as customer_name,
         c."customerPhone" as customer_phone,
         c."customerCallingCode" as customer_calling_code,
-        c.address,
         c.pincode,
         cl.name as client_name,
         cl.code as client_code,
@@ -1653,7 +1640,6 @@ export const createCaseWithMultipleTasks = async (req: AuthenticatedRequest, res
       clientId,
       productId,
       priority = 'MEDIUM',
-      address,
       pincode,
       applicantType,
       backendContactNumber,
@@ -1681,11 +1667,11 @@ export const createCaseWithMultipleTasks = async (req: AuthenticatedRequest, res
     const insertCaseQuery = `
       INSERT INTO cases (
         "customerName", "customerPhone", "customerCallingCode",
-        "clientId", "productId", "verificationTypeId", address, pincode, priority, trigger,
+        "clientId", "productId", "verificationTypeId", pincode, priority, trigger,
         "applicantType", "backendContactNumber", status, "createdByBackendUser",
         has_multiple_tasks, total_tasks_count, completed_tasks_count,
         case_completion_percentage, "createdAt", "updatedAt"
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, NOW(), NOW())
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, NOW(), NOW())
       RETURNING *
     `;
 
@@ -1696,7 +1682,6 @@ export const createCaseWithMultipleTasks = async (req: AuthenticatedRequest, res
       clientId,
       productId,
       firstTaskVerificationTypeId,
-      address || null,
       pincode || firstTaskPincode || null,
       priority,
       trigger || firstTaskTrigger, // Use first task's trigger if not provided in case_details (NOT NULL field)
@@ -1718,7 +1703,6 @@ export const createCaseWithMultipleTasks = async (req: AuthenticatedRequest, res
       clientId,
       productId,
       firstTaskVerificationTypeId,
-      address: address || null,
       pincode: pincode || firstTaskPincode || null,
       priority,
       trigger: trigger || firstTaskTrigger,
@@ -1755,6 +1739,7 @@ export const createCaseWithMultipleTasks = async (req: AuthenticatedRequest, res
         estimated_amount,
         address: taskAddress,
         pincode: taskPincode,
+        trigger: taskTrigger,
         document_type,
         document_number,
         document_details,
@@ -1795,13 +1780,13 @@ export const createCaseWithMultipleTasks = async (req: AuthenticatedRequest, res
         userId,
         rate_type_id,
         estimated_amount,
-        address: taskAddress || address,
+        address: taskAddress,
         pincode: taskPincode || pincode,
         document_type,
         document_number
       });
 
-      let taskResult;
+      let taskResult: any;
       try {
         taskResult = await client.query(`
           INSERT INTO verification_tasks (
@@ -1809,20 +1794,20 @@ export const createCaseWithMultipleTasks = async (req: AuthenticatedRequest, res
             priority, assigned_to, assigned_by, assigned_at,
             rate_type_id, estimated_amount, address, pincode,
             document_type, document_number, document_details,
-            estimated_completion_date, status, created_by
+            estimated_completion_date, trigger, status, created_by
           ) VALUES (
             $1, $2, $3, $4, $5, $6::uuid, $7,
             CASE WHEN $6 IS NOT NULL THEN NOW() ELSE NULL::timestamp with time zone END,
-            $8, $9, $10, $11, $12, $13, $14, $15,
+            $8, $9, $10, $11, $12, $13, $14, $15, $16,
             CASE WHEN $6 IS NOT NULL THEN 'ASSIGNED'::text ELSE 'PENDING'::text END,
-            $16
+            $17
           ) RETURNING *
         `, [
           newCase.id, verification_type_id, task_title, task_description,
           taskPriority, taskAssignedTo || null, userId,
-          rate_type_id, estimated_amount, taskAddress || address, taskPincode || pincode,
+          rate_type_id, estimated_amount, taskAddress, taskPincode || pincode,
           document_type, document_number, JSON.stringify(document_details),
-          estimated_completion_date, userId
+          estimated_completion_date, taskTrigger || task_description, userId
         ]);
       } catch (taskError: any) {
         logger.error('ERROR inserting verification task:', {

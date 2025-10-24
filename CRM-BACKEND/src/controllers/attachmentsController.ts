@@ -105,7 +105,7 @@ export const uploadAttachment = async (req: AuthenticatedRequest, res: Response)
       }
 
       const files = req.files as Express.Multer.File[];
-      const { caseId, description, category = 'DOCUMENT', isPublic = false } = req.body;
+      const { caseId, description, category = 'DOCUMENT', isPublic = false, verification_task_id } = req.body;
 
       if (!files || files.length === 0) {
         return res.status(400).json({
@@ -183,8 +183,9 @@ export const uploadAttachment = async (req: AuthenticatedRequest, res: Response)
             "filePath",
             "uploadedBy",
             "caseId",
-            case_id
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            case_id,
+            verification_task_id
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
           RETURNING id, filename, "originalName", "mimeType", "fileSize" as size, "filePath", "uploadedBy", "createdAt" as "uploadedAt", "caseId"`,
           [
             file.filename,
@@ -194,7 +195,8 @@ export const uploadAttachment = async (req: AuthenticatedRequest, res: Response)
             `/uploads/attachments/case_${caseId}/${file.filename}`,
             req.user?.id,
             caseId,
-            caseUUID  // Add the case UUID for mobile compatibility
+            caseUUID,  // Add the case UUID for mobile compatibility
+            verification_task_id || null  // Add verification_task_id if provided
           ]
         );
 

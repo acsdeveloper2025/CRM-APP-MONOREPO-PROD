@@ -328,7 +328,7 @@ install_dependencies() {
 # Build applications
 build_applications() {
     print_header "🏗️ Building Applications"
-    
+
     # Build backend
     if [ "$BACKEND_CHANGED" = "true" ] || [ "$FORCE_REBUILD" = "true" ]; then
         print_info "Building backend..."
@@ -336,7 +336,7 @@ build_applications() {
         npm run build
         print_status "Backend built successfully"
     fi
-    
+
     # Build frontend
     if [ "$FRONTEND_CHANGED" = "true" ] || [ "$FORCE_REBUILD" = "true" ]; then
         print_info "Building frontend..."
@@ -344,7 +344,7 @@ build_applications() {
         npm run build
         print_status "Frontend built successfully"
     fi
-    
+
     # Build mobile
     if [ "$MOBILE_CHANGED" = "true" ] || [ "$FORCE_REBUILD" = "true" ]; then
         print_info "Building mobile..."
@@ -352,6 +352,54 @@ build_applications() {
         npm run build
         print_status "Mobile built successfully"
     fi
+}
+
+# Run database migrations
+run_database_migrations() {
+    print_header "🗄️ Running Database Migrations"
+
+    cd "$PROJECT_ROOT/CRM-BACKEND"
+
+    # Check if migrations directory exists
+    if [ ! -d "migrations" ]; then
+        print_warning "Migrations directory not found, skipping migrations"
+        return 0
+    fi
+
+    # Count migration files
+    local migration_count=$(find migrations -name "*.sql" 2>/dev/null | wc -l)
+    print_info "Found $migration_count migration file(s)"
+
+    # Check migration status
+    print_info "Checking migration status..."
+    if npm run migrate:status 2>&1 | tee -a "$LOG_FILE"; then
+        print_status "Migration status check completed"
+    else
+        print_warning "Could not check migration status (this is normal for first run)"
+    fi
+
+    # Execute pending migrations
+    print_info "Executing pending migrations..."
+    if npm run migrate 2>&1 | tee -a "$LOG_FILE"; then
+        print_status "✅ Database migrations completed successfully"
+    else
+        local exit_code=$?
+        print_error "❌ Database migration failed with exit code: $exit_code"
+        print_error "Deployment HALTED - Services will NOT be started"
+        print_error "Database backup available at: $(cat /tmp/current_backup_path 2>/dev/null || echo 'Unknown')"
+        print_error ""
+        print_error "To rollback:"
+        print_error "  1. Restore database: PGPASSWORD=example_db_password psql -h localhost -U example_db_user -d acs_db < BACKUP_PATH/database.sql"
+        print_error "  2. Restore code: cp -r BACKUP_PATH/code/* $PROJECT_ROOT/"
+        print_error "  3. Restart services: cd $PROJECT_ROOT && ./start-production.sh"
+        exit 1
+    fi
+
+    # Verify migration success
+    print_info "Verifying migration status..."
+    npm run migrate:status 2>&1 | tee -a "$LOG_FILE"
+
+    print_status "Database migrations completed"
 }
 
 # Setup environment files
@@ -645,6 +693,10 @@ main() {
     setup_environment_files
     configure_nginx
     build_applications
+
+    # Database migrations (NEW)
+    run_database_migrations
+
     clear_caches
 
     # Post-deployment

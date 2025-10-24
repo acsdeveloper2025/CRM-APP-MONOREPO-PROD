@@ -23,6 +23,7 @@ export interface UploadAttachmentData {
   description?: string;
   category?: 'PHOTO' | 'DOCUMENT' | 'VIDEO' | 'AUDIO' | 'OTHER';
   isPublic?: boolean;
+  verification_task_id?: string;
 }
 
 export interface UpdateAttachmentData {
@@ -67,6 +68,10 @@ class AttachmentsService extends BaseApiService {
 
     if (data.isPublic !== undefined) {
       formData.append('isPublic', data.isPublic.toString());
+    }
+
+    if (data.verification_task_id) {
+      formData.append('verification_task_id', data.verification_task_id);
     }
 
     data.files.forEach((file) => {

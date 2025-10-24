@@ -29,6 +29,7 @@ jobs:
       backend_changed: ${{ steps.changes.outputs.backend }}
       frontend_changed: ${{ steps.changes.outputs.frontend }}
       mobile_changed: ${{ steps.changes.outputs.mobile }}
+      migrations_changed: ${{ steps.changes.outputs.migrations }}
       deploy_needed: ${{ steps.changes.outputs.deploy_needed }}
     
     steps:
@@ -47,21 +48,29 @@ jobs:
           else
             echo "backend=false" >> $GITHUB_OUTPUT
           fi
-          
+
           if git diff --name-only HEAD~1 HEAD | grep -E '^CRM-FRONTEND/'; then
             echo "frontend=true" >> $GITHUB_OUTPUT
             echo "🔄 Frontend changes detected"
           else
             echo "frontend=false" >> $GITHUB_OUTPUT
           fi
-          
+
           if git diff --name-only HEAD~1 HEAD | grep -E '^CRM-MOBILE/'; then
             echo "mobile=true" >> $GITHUB_OUTPUT
             echo "🔄 Mobile changes detected"
           else
             echo "mobile=false" >> $GITHUB_OUTPUT
           fi
-          
+
+          # Check for database migration changes
+          if git diff --name-only HEAD~1 HEAD | grep -E '^CRM-BACKEND/migrations/.*\.sql$'; then
+            echo "migrations=true" >> $GITHUB_OUTPUT
+            echo "🗄️ Database migrations detected"
+          else
+            echo "migrations=false" >> $GITHUB_OUTPUT
+          fi
+
           # Check if any deployment-relevant files changed
           if git diff --name-only HEAD~1 HEAD | grep -E '\.(js|ts|tsx|json|yml|yaml|sh)$'; then
             echo "deploy_needed=true" >> $GITHUB_OUTPUT
@@ -79,6 +88,7 @@ jobs:
           echo "| Backend | ${{ steps.changes.outputs.backend == 'true' && '🔄 Deploy' || '⏭️ Skip' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Frontend | ${{ steps.changes.outputs.frontend == 'true' && '🔄 Deploy' || '⏭️ Skip' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Mobile | ${{ steps.changes.outputs.mobile == 'true' && '🔄 Deploy' || '⏭️ Skip' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Database | ${{ steps.changes.outputs.migrations == 'true' && '🗄️ Migrate' || '⏭️ Skip' }} |" >> $GITHUB_STEP_SUMMARY
 
   # Build and test components
   build-and-test:
@@ -291,6 +301,10 @@ jobs:
           echo "- **Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Author:** ${{ github.event.head_commit.author.name }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Status:** ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🗄️ Database Migrations" >> $GITHUB_STEP_SUMMARY
+          echo "- **Migrations Detected:** ${{ needs.pre-deployment.outputs.migrations_changed == 'true' && 'Yes' || 'No' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Check deployment logs for migration execution details" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 🔗 Quick Links" >> $GITHUB_STEP_SUMMARY
           echo "- [Production Site](https://example.com)" >> $GITHUB_STEP_SUMMARY
