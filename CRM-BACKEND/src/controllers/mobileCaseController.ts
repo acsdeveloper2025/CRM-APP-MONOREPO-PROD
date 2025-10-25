@@ -184,7 +184,8 @@ export class MobileCaseController {
         LEFT JOIN users cu ON cu.id = c."createdByBackendUser"
         LEFT JOIN LATERAL (
           SELECT vt.id, vt.task_number, vt.address, vt.trigger, vt.priority, vt.applicant_type,
-                 vt.assigned_to, u.name as assigned_user_name,
+                 vt.assigned_to, vt.assigned_at, vt.created_at as task_created_at,
+                 u.name as assigned_user_name,
                  rt.name as rate_type_name, rt.description as rate_type_description
           FROM verification_tasks vt
           LEFT JOIN users u ON u.id = vt.assigned_to
@@ -257,7 +258,7 @@ export class MobileCaseController {
         longitude: caseItem.longitude,
         status: caseItem.status ? caseItem.status.toUpperCase().replace(/\s+/g, '_') : 'ASSIGNED',
         priority: caseItem.taskPriority || caseItem.priority || 'MEDIUM', // Use task-level priority first, fallback to case-level
-        assignedAt: new Date(caseItem.createdAt).toISOString(),
+        assignedAt: caseItem.assigned_at ? new Date(caseItem.assigned_at).toISOString() : new Date(caseItem.task_created_at || caseItem.createdAt).toISOString(),
         updatedAt: new Date(caseItem.updatedAt).toISOString(),
         completedAt: caseItem.completedAt ? new Date(caseItem.completedAt).toISOString() : undefined,
         notes: caseItem.taskTrigger || caseItem.trigger || '', // Use task-level trigger instead of case-level trigger
@@ -357,7 +358,8 @@ export class MobileCaseController {
         LEFT JOIN users cu ON cu.id = c."createdByBackendUser"
         LEFT JOIN LATERAL (
           SELECT vt.id, vt.task_number, vt.address, vt.trigger, vt.priority, vt.applicant_type,
-                 vt.assigned_to, u.name as assigned_user_name
+                 vt.assigned_to, vt.assigned_at, vt.created_at as task_created_at,
+                 u.name as assigned_user_name
           FROM verification_tasks vt
           LEFT JOIN users u ON u.id = vt.assigned_to
           WHERE vt.case_id = c.id
@@ -436,7 +438,7 @@ export class MobileCaseController {
         longitude: caseItem.longitude,
         status: caseItem.status ? caseItem.status.toUpperCase().replace(/\s+/g, '_') : 'ASSIGNED',
         priority: caseItem.taskPriority || caseItem.priority || 'MEDIUM', // Use task-level priority first, fallback to case-level
-        assignedAt: new Date(caseItem.createdAt).toISOString(),
+        assignedAt: caseItem.assigned_at ? new Date(caseItem.assigned_at).toISOString() : new Date(caseItem.task_created_at || caseItem.createdAt).toISOString(),
         updatedAt: new Date(caseItem.updatedAt).toISOString(),
         completedAt: caseItem.completedAt ? new Date(caseItem.completedAt).toISOString() : undefined,
         notes: caseItem.taskTrigger || caseItem.trigger || '', // Use task-level trigger instead of case-level trigger
