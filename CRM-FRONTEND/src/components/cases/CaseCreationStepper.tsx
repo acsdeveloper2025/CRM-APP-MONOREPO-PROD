@@ -283,10 +283,10 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
             try {
               const files = task.attachments.map(att => att.file);
               // Extract caseId (integer) from response - must use integer for backend
-              const caseId = response.data?.caseId ? String(response.data.caseId) : null;
+              const caseId = response.data?.case?.caseId ? String(response.data.case.caseId) : null;
               console.log('📎 Uploading attachments:', {
                 caseId,
-                caseIdType: typeof response.data?.caseId,
+                caseIdType: typeof response.data?.case?.caseId,
                 fileCount: files.length,
                 responseData: response.data
               });
@@ -301,7 +301,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
               console.error('❌ Error uploading attachments:', {
                 error: error.message || error,
                 stack: error.stack,
-                caseId: response.data?.caseId
+                caseId: response.data?.case?.caseId
               });
               toast.error(`Case created but attachments failed: ${error.message || 'Unknown error'}`);
             }
@@ -309,8 +309,8 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
             toast.success('Case created successfully!');
           }
 
-          if (onSuccess && response.data?.caseId) {
-            onSuccess(response.data.caseId.toString());
+          if (onSuccess && response.data?.case?.caseId) {
+            onSuccess(response.data.case.caseId.toString());
           }
         } else {
           toast.error(response.message || 'Failed to create case');
