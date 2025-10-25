@@ -185,6 +185,7 @@ export class MobileCaseController {
         LEFT JOIN LATERAL (
           SELECT vt.id, vt.task_number, vt.address, vt.trigger, vt.priority, vt.applicant_type,
                  vt.assigned_to, vt.assigned_at, vt.created_at as task_created_at,
+                 vt.status as task_status, vt.completed_at as task_completed_at,
                  u.name as assigned_user_name,
                  rt.name as rate_type_name, rt.description as rate_type_description
           FROM verification_tasks vt
@@ -256,11 +257,14 @@ export class MobileCaseController {
         addressPincode: caseItem.pincode || '',
         latitude: caseItem.latitude,
         longitude: caseItem.longitude,
-        status: caseItem.status ? caseItem.status.toUpperCase().replace(/\s+/g, '_') : 'ASSIGNED',
+        // CRITICAL FIX: Use task-level status instead of case-level status for field agents
+        // This ensures field agents see their individual task status, not the overall case status
+        status: caseItem.task_status ? caseItem.task_status.toUpperCase().replace(/\s+/g, '_') : 'ASSIGNED',
         priority: caseItem.taskPriority || caseItem.priority || 'MEDIUM', // Use task-level priority first, fallback to case-level
         assignedAt: caseItem.assigned_at ? new Date(caseItem.assigned_at).toISOString() : new Date(caseItem.task_created_at || caseItem.createdAt).toISOString(),
         updatedAt: new Date(caseItem.updatedAt).toISOString(),
-        completedAt: caseItem.completedAt ? new Date(caseItem.completedAt).toISOString() : undefined,
+        // CRITICAL FIX: Use task-level completedAt instead of case-level completedAt
+        completedAt: caseItem.task_completed_at ? new Date(caseItem.task_completed_at).toISOString() : undefined,
         notes: caseItem.taskTrigger || caseItem.trigger || '', // Use task-level trigger instead of case-level trigger
         verificationType: caseItem.verificationTypeName || caseItem.verificationType,
         verificationOutcome: caseItem.verificationOutcome,
@@ -359,6 +363,7 @@ export class MobileCaseController {
         LEFT JOIN LATERAL (
           SELECT vt.id, vt.task_number, vt.address, vt.trigger, vt.priority, vt.applicant_type,
                  vt.assigned_to, vt.assigned_at, vt.created_at as task_created_at,
+                 vt.status as task_status, vt.completed_at as task_completed_at,
                  u.name as assigned_user_name
           FROM verification_tasks vt
           LEFT JOIN users u ON u.id = vt.assigned_to
@@ -436,11 +441,13 @@ export class MobileCaseController {
         addressPincode: caseItem.pincode || '',
         latitude: caseItem.latitude,
         longitude: caseItem.longitude,
-        status: caseItem.status ? caseItem.status.toUpperCase().replace(/\s+/g, '_') : 'ASSIGNED',
+        // CRITICAL FIX: Use task-level status instead of case-level status for field agents
+        status: caseItem.task_status ? caseItem.task_status.toUpperCase().replace(/\s+/g, '_') : 'ASSIGNED',
         priority: caseItem.taskPriority || caseItem.priority || 'MEDIUM', // Use task-level priority first, fallback to case-level
         assignedAt: caseItem.assigned_at ? new Date(caseItem.assigned_at).toISOString() : new Date(caseItem.task_created_at || caseItem.createdAt).toISOString(),
         updatedAt: new Date(caseItem.updatedAt).toISOString(),
-        completedAt: caseItem.completedAt ? new Date(caseItem.completedAt).toISOString() : undefined,
+        // CRITICAL FIX: Use task-level completedAt instead of case-level completedAt
+        completedAt: caseItem.task_completed_at ? new Date(caseItem.task_completed_at).toISOString() : undefined,
         notes: caseItem.taskTrigger || caseItem.trigger || '', // Use task-level trigger instead of case-level trigger
         verificationType: caseItem.verificationTypeName || caseItem.verificationType,
         verificationOutcome: caseItem.verificationOutcome,
