@@ -3642,12 +3642,13 @@ export class MobileFormController {
   static async submitDsaConnectorVerification(req: Request, res: Response) {
     try {
       const { caseId } = req.params;
-      const { formData, attachmentIds, geoLocation, photos, images }: MobileFormSubmissionRequest = req.body;
+      const { verificationTaskId, formData, geoLocation, photos, images }: MobileFormSubmissionRequest = req.body;
       const userId = (req as any).user?.id;
       const userRole = (req as any).user?.role;
 
       console.log(`📱 DSA/DST Connector verification submission for case: ${caseId}`);
       console.log(`   - User: ${userId} (${userRole})`);
+      console.log(`   - Verification Task ID: ${verificationTaskId}`);
       console.log(`   - Images: ${images?.length || 0}`);
       console.log(`   - Form data keys: ${Object.keys(formData || {}).join(', ')}`);
       console.log(`   - Form data outcome: ${formData?.outcome || formData?.finalStatus || 'Not specified'}`);
@@ -3658,6 +3659,17 @@ export class MobileFormController {
           message: 'User authentication required',
           error: {
             code: 'AUTHENTICATION_REQUIRED',
+            timestamp: new Date().toISOString(),
+          },
+        });
+      }
+
+      if (!verificationTaskId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Verification task ID is required',
+          error: {
+            code: 'MISSING_TASK_ID',
             timestamp: new Date().toISOString(),
           },
         });
@@ -3685,8 +3697,8 @@ export class MobileFormController {
         });
       }
 
-      // Validate case exists and user has access
-      const caseQuery = await query(`SELECT id, "caseId", "customerName", "assignedTo", "backendContactNumber" as "systemContact" FROM cases WHERE id = $1`, [caseId]);
+      // Validate case exists
+      const caseQuery = await query(`SELECT id, "caseId", "customerName", "backendContactNumber" as "systemContact" FROM cases WHERE id = $1`, [caseId]);
       if (caseQuery.rows.length === 0) {
         return res.status(404).json({
           success: false,
@@ -3701,19 +3713,35 @@ export class MobileFormController {
       const existingCase = caseQuery.rows[0];
       const actualCaseId = existingCase.id;
 
-      // Validate user assignment (allow admin users to submit for any case)
-      if (userRole !== 'ADMIN' && existingCase.assignedTo !== userId) {
-        return res.status(403).json({
+      console.log(`✅ Case found: ${actualCaseId} (Case #${existingCase.caseId})`);
+
+      // Verify verification task exists and belongs to this case
+      const taskSql = `
+        SELECT vt.*, vtype.name as verification_type_name, vtype.id as verification_type_id
+        FROM verification_tasks vt
+        LEFT JOIN "verificationTypes" vtype ON vt.verification_type_id = vtype.id
+        WHERE vt.id = $1 AND vt.case_id = $2
+      `;
+      const taskRes = await query(taskSql, [verificationTaskId, actualCaseId]);
+      const task = taskRes.rows[0];
+
+      if (!task) {
+        return res.status(404).json({
           success: false,
-          message: 'You are not assigned to this case',
-          error: {
-            code: 'CASE_NOT_ASSIGNED',
-            timestamp: new Date().toISOString(),
-          },
+          message: 'Verification task not found or does not belong to this case',
+          error: { code: 'TASK_NOT_FOUND', timestamp: new Date().toISOString(), verificationTaskId, caseId: actualCaseId },
         });
       }
 
-      console.log(`✅ Case found: ${actualCaseId} (Case #${existingCase.caseId})`);
+      if (userRole === 'FIELD_AGENT' && task.assigned_to !== userId) {
+        return res.status(403).json({
+          success: false,
+          message: 'This verification task is not assigned to you',
+          error: { code: 'TASK_NOT_ASSIGNED', timestamp: new Date().toISOString(), verificationTaskId },
+        });
+      }
+
+      console.log(`✅ Verification task validated: ${task.task_number} (Type: ${task.verification_type_name})`);
 
       // Determine form type and verification outcome based on form data
       const { formType, verificationOutcome } = detectBusinessFormType(formData); // Use business detection for DSA/DST Connector (similar structure)
@@ -3796,10 +3824,11 @@ export class MobileFormController {
         actualCaseId,
         'DSA_CONNECTOR',
         submissionId,
-        userId
+        userId,
+        verificationTaskId
       );
 
-      console.log(`✅ Processed ${uploadedImages.length} verification images for DSA/DST Connector verification`);
+      console.log(`✅ Processed ${uploadedImages.length} verification images for DSA/DST Connector verification (Task: ${task.task_number})`);
 
       // Prepare verification data (excluding old attachment references)
       const verificationData = {
@@ -3824,6 +3853,13 @@ export class MobileFormController {
         },
       };
 
+      // Update verification task status to COMPLETED
+      await query(`
+        UPDATE verification_tasks
+        SET status = 'COMPLETED', completed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+        WHERE id = $1
+      `, [verificationTaskId]);
+
       // Update case with verification data using detected verification outcome
       await query(`UPDATE cases SET status = 'COMPLETED', "completedAt" = CURRENT_TIMESTAMP, "verificationData" = $1, "verificationType" = 'DSA_CONNECTOR', "verificationOutcome" = $2, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $3`, [JSON.stringify(verificationData), verificationOutcome, actualCaseId]);
       const caseUpd = await query(`SELECT id, "caseId", status, "completedAt", "customerName", "backendContactNumber" FROM cases WHERE id = $1`, [actualCaseId]);
@@ -3842,6 +3878,7 @@ export class MobileFormController {
       const dbInsertData = {
         // Core case information
         case_id: actualCaseId,
+        verification_task_id: verificationTaskId,
         caseId: parseInt(updatedCase.caseId) || null,
         form_type: formType,
         verification_outcome: verificationOutcome,
@@ -3979,12 +4016,13 @@ export class MobileFormController {
   static async submitPropertyIndividualVerification(req: Request, res: Response) {
     try {
       const { caseId } = req.params;
-      const { formData, attachmentIds, geoLocation, photos, images }: MobileFormSubmissionRequest = req.body;
+      const { verificationTaskId, formData, geoLocation, photos, images }: MobileFormSubmissionRequest = req.body;
       const userId = (req as any).user?.id;
       const userRole = (req as any).user?.role;
 
       console.log(`📱 Property Individual verification submission for case: ${caseId}`);
       console.log(`   - User: ${userId} (${userRole})`);
+      console.log(`   - Verification Task ID: ${verificationTaskId}`);
       console.log(`   - Images: ${images?.length || 0}`);
       console.log(`   - Form data keys: ${Object.keys(formData || {}).join(', ')}`);
       console.log(`   - Form data outcome: ${formData?.outcome || formData?.finalStatus || 'Not specified'}`);
@@ -3995,6 +4033,17 @@ export class MobileFormController {
           message: 'User authentication required',
           error: {
             code: 'AUTHENTICATION_REQUIRED',
+            timestamp: new Date().toISOString(),
+          },
+        });
+      }
+
+      if (!verificationTaskId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Verification task ID is required',
+          error: {
+            code: 'MISSING_TASK_ID',
             timestamp: new Date().toISOString(),
           },
         });
@@ -4022,8 +4071,8 @@ export class MobileFormController {
         });
       }
 
-      // Validate case exists and user has access
-      const caseQuery = await query(`SELECT id, "caseId", "customerName", "assignedTo", "backendContactNumber" as "systemContact" FROM cases WHERE id = $1`, [caseId]);
+      // Validate case exists
+      const caseQuery = await query(`SELECT id, "caseId", "customerName", "backendContactNumber" as "systemContact" FROM cases WHERE id = $1`, [caseId]);
       if (caseQuery.rows.length === 0) {
         return res.status(404).json({
           success: false,
@@ -4038,19 +4087,35 @@ export class MobileFormController {
       const existingCase = caseQuery.rows[0];
       const actualCaseId = existingCase.id;
 
-      // Validate user assignment (allow admin users to submit for any case)
-      if (userRole !== 'ADMIN' && existingCase.assignedTo !== userId) {
-        return res.status(403).json({
+      console.log(`✅ Case found: ${actualCaseId} (Case #${existingCase.caseId})`);
+
+      // Verify verification task exists and belongs to this case
+      const taskSql = `
+        SELECT vt.*, vtype.name as verification_type_name, vtype.id as verification_type_id
+        FROM verification_tasks vt
+        LEFT JOIN "verificationTypes" vtype ON vt.verification_type_id = vtype.id
+        WHERE vt.id = $1 AND vt.case_id = $2
+      `;
+      const taskRes = await query(taskSql, [verificationTaskId, actualCaseId]);
+      const task = taskRes.rows[0];
+
+      if (!task) {
+        return res.status(404).json({
           success: false,
-          message: 'You are not assigned to this case',
-          error: {
-            code: 'CASE_NOT_ASSIGNED',
-            timestamp: new Date().toISOString(),
-          },
+          message: 'Verification task not found or does not belong to this case',
+          error: { code: 'TASK_NOT_FOUND', timestamp: new Date().toISOString(), verificationTaskId, caseId: actualCaseId },
         });
       }
 
-      console.log(`✅ Case found: ${actualCaseId} (Case #${existingCase.caseId})`);
+      if (userRole === 'FIELD_AGENT' && task.assigned_to !== userId) {
+        return res.status(403).json({
+          success: false,
+          message: 'This verification task is not assigned to you',
+          error: { code: 'TASK_NOT_ASSIGNED', timestamp: new Date().toISOString(), verificationTaskId },
+        });
+      }
+
+      console.log(`✅ Verification task validated: ${task.task_number} (Type: ${task.verification_type_name})`);
 
       // Determine form type and verification outcome based on form data
       const { formType, verificationOutcome } = detectPropertyIndividualFormType(formData);
@@ -4133,10 +4198,11 @@ export class MobileFormController {
         actualCaseId,
         'PROPERTY_INDIVIDUAL',
         submissionId,
-        userId
+        userId,
+        verificationTaskId
       );
 
-      console.log(`✅ Processed ${uploadedImages.length} verification images for Property Individual verification`);
+      console.log(`✅ Processed ${uploadedImages.length} verification images for Property Individual verification (Task: ${task.task_number})`);
 
       // Prepare verification data (excluding old attachment references)
       const verificationData = {
@@ -4161,6 +4227,13 @@ export class MobileFormController {
         },
       };
 
+      // Update verification task status to COMPLETED
+      await query(`
+        UPDATE verification_tasks
+        SET status = 'COMPLETED', completed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+        WHERE id = $1
+      `, [verificationTaskId]);
+
       // Update case with verification data using detected verification outcome
       await query(`UPDATE cases SET status = 'COMPLETED', "completedAt" = CURRENT_TIMESTAMP, "verificationData" = $1, "verificationType" = 'PROPERTY_INDIVIDUAL', "verificationOutcome" = $2, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $3`, [JSON.stringify(verificationData), verificationOutcome, actualCaseId]);
       const caseUpd = await query(`SELECT id, "caseId", status, "completedAt", "customerName", "backendContactNumber" FROM cases WHERE id = $1`, [actualCaseId]);
@@ -4170,6 +4243,7 @@ export class MobileFormController {
       const dbInsertData = {
         // Core case information
         case_id: actualCaseId,
+        verification_task_id: verificationTaskId,
         caseId: parseInt(updatedCase.caseId) || null,
         form_type: formType,
         verification_outcome: verificationOutcome,
@@ -4288,12 +4362,13 @@ export class MobileFormController {
   static async submitPropertyApfVerification(req: Request, res: Response) {
     try {
       const { caseId } = req.params;
-      const { formData, attachmentIds, geoLocation, photos, images }: MobileFormSubmissionRequest = req.body;
+      const { verificationTaskId, formData, geoLocation, photos, images }: MobileFormSubmissionRequest = req.body;
       const userId = (req as any).user?.id;
       const userRole = (req as any).user?.role;
 
       console.log(`📱 Property APF verification submission for case: ${caseId}`);
       console.log(`   - User: ${userId} (${userRole})`);
+      console.log(`   - Verification Task ID: ${verificationTaskId}`);
       console.log(`   - Images: ${images?.length || 0}`);
       console.log(`   - Form data keys: ${Object.keys(formData || {}).join(', ')}`);
       console.log(`   - Form data outcome: ${formData?.outcome || formData?.finalStatus || 'Not specified'}`);
@@ -4304,6 +4379,17 @@ export class MobileFormController {
           message: 'User authentication required',
           error: {
             code: 'AUTHENTICATION_REQUIRED',
+            timestamp: new Date().toISOString(),
+          },
+        });
+      }
+
+      if (!verificationTaskId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Verification task ID is required',
+          error: {
+            code: 'MISSING_TASK_ID',
             timestamp: new Date().toISOString(),
           },
         });
@@ -4331,8 +4417,8 @@ export class MobileFormController {
         });
       }
 
-      // Validate case exists and user has access
-      const caseQuery = await query(`SELECT id, "caseId", "customerName", "assignedTo", "backendContactNumber" as "systemContact" FROM cases WHERE id = $1`, [caseId]);
+      // Validate case exists
+      const caseQuery = await query(`SELECT id, "caseId", "customerName", "backendContactNumber" as "systemContact" FROM cases WHERE id = $1`, [caseId]);
       if (caseQuery.rows.length === 0) {
         return res.status(404).json({
           success: false,
@@ -4347,19 +4433,35 @@ export class MobileFormController {
       const existingCase = caseQuery.rows[0];
       const actualCaseId = existingCase.id;
 
-      // Validate user assignment (allow admin users to submit for any case)
-      if (userRole !== 'ADMIN' && existingCase.assignedTo !== userId) {
-        return res.status(403).json({
+      console.log(`✅ Case found: ${actualCaseId} (Case #${existingCase.caseId})`);
+
+      // Verify verification task exists and belongs to this case
+      const taskSql = `
+        SELECT vt.*, vtype.name as verification_type_name, vtype.id as verification_type_id
+        FROM verification_tasks vt
+        LEFT JOIN "verificationTypes" vtype ON vt.verification_type_id = vtype.id
+        WHERE vt.id = $1 AND vt.case_id = $2
+      `;
+      const taskRes = await query(taskSql, [verificationTaskId, actualCaseId]);
+      const task = taskRes.rows[0];
+
+      if (!task) {
+        return res.status(404).json({
           success: false,
-          message: 'You are not assigned to this case',
-          error: {
-            code: 'CASE_NOT_ASSIGNED',
-            timestamp: new Date().toISOString(),
-          },
+          message: 'Verification task not found or does not belong to this case',
+          error: { code: 'TASK_NOT_FOUND', timestamp: new Date().toISOString(), verificationTaskId, caseId: actualCaseId },
         });
       }
 
-      console.log(`✅ Case found: ${actualCaseId} (Case #${existingCase.caseId})`);
+      if (userRole === 'FIELD_AGENT' && task.assigned_to !== userId) {
+        return res.status(403).json({
+          success: false,
+          message: 'This verification task is not assigned to you',
+          error: { code: 'TASK_NOT_ASSIGNED', timestamp: new Date().toISOString(), verificationTaskId },
+        });
+      }
+
+      console.log(`✅ Verification task validated: ${task.task_number} (Type: ${task.verification_type_name})`);
 
       // Determine form type and verification outcome based on form data
       const { formType, verificationOutcome } = detectBusinessFormType(formData); // Use business detection for Property APF (similar structure)
@@ -4442,10 +4544,11 @@ export class MobileFormController {
         actualCaseId,
         'PROPERTY_APF',
         submissionId,
-        userId
+        userId,
+        verificationTaskId
       );
 
-      console.log(`✅ Processed ${uploadedImages.length} verification images for Property APF verification`);
+      console.log(`✅ Processed ${uploadedImages.length} verification images for Property APF verification (Task: ${task.task_number})`);
 
       // Prepare verification data (excluding old attachment references)
       const verificationData = {
@@ -4470,6 +4573,13 @@ export class MobileFormController {
         },
       };
 
+      // Update verification task status to COMPLETED
+      await query(`
+        UPDATE verification_tasks
+        SET status = 'COMPLETED', completed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+        WHERE id = $1
+      `, [verificationTaskId]);
+
       // Update case with verification data using detected verification outcome
       await query(`UPDATE cases SET status = 'COMPLETED', "completedAt" = CURRENT_TIMESTAMP, "verificationData" = $1, "verificationType" = 'PROPERTY_APF', "verificationOutcome" = $2, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $3`, [JSON.stringify(verificationData), verificationOutcome, actualCaseId]);
       const caseUpd = await query(`SELECT id, "caseId", status, "completedAt", "customerName", "backendContactNumber" FROM cases WHERE id = $1`, [actualCaseId]);
@@ -4479,6 +4589,7 @@ export class MobileFormController {
       const dbInsertData = {
         // Core case information
         case_id: actualCaseId,
+        verification_task_id: verificationTaskId,
         caseId: parseInt(updatedCase.caseId) || null,
         form_type: formType,
         verification_outcome: verificationOutcome,
@@ -4616,12 +4727,13 @@ export class MobileFormController {
   static async submitNocVerification(req: Request, res: Response) {
     try {
       const { caseId } = req.params;
-      const { formData, attachmentIds, geoLocation, photos, images }: MobileFormSubmissionRequest = req.body;
+      const { verificationTaskId, formData, geoLocation, photos, images }: MobileFormSubmissionRequest = req.body;
       const userId = (req as any).user?.id;
       const userRole = (req as any).user?.role;
 
       console.log(`📱 NOC verification submission for case: ${caseId}`);
       console.log(`   - User: ${userId} (${userRole})`);
+      console.log(`   - Verification Task ID: ${verificationTaskId}`);
       console.log(`   - Images: ${images?.length || 0}`);
       console.log(`   - Form data keys: ${Object.keys(formData || {}).join(', ')}`);
       console.log(`   - Form data outcome: ${formData?.outcome || formData?.finalStatus || 'Not specified'}`);
@@ -4632,6 +4744,17 @@ export class MobileFormController {
           message: 'User authentication required',
           error: {
             code: 'AUTHENTICATION_REQUIRED',
+            timestamp: new Date().toISOString(),
+          },
+        });
+      }
+
+      if (!verificationTaskId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Verification task ID is required',
+          error: {
+            code: 'MISSING_TASK_ID',
             timestamp: new Date().toISOString(),
           },
         });
@@ -4659,8 +4782,8 @@ export class MobileFormController {
         });
       }
 
-      // Validate case exists and user has access
-      const caseQuery = await query(`SELECT id, "caseId", "customerName", "assignedTo", "backendContactNumber" as "systemContact" FROM cases WHERE id = $1`, [caseId]);
+      // Validate case exists
+      const caseQuery = await query(`SELECT id, "caseId", "customerName", "backendContactNumber" as "systemContact" FROM cases WHERE id = $1`, [caseId]);
       if (caseQuery.rows.length === 0) {
         return res.status(404).json({
           success: false,
@@ -4675,19 +4798,35 @@ export class MobileFormController {
       const existingCase = caseQuery.rows[0];
       const actualCaseId = existingCase.id;
 
-      // Validate user assignment (allow admin users to submit for any case)
-      if (userRole !== 'ADMIN' && existingCase.assignedTo !== userId) {
-        return res.status(403).json({
+      console.log(`✅ Case found: ${actualCaseId} (Case #${existingCase.caseId})`);
+
+      // Verify verification task exists and belongs to this case
+      const taskSql = `
+        SELECT vt.*, vtype.name as verification_type_name, vtype.id as verification_type_id
+        FROM verification_tasks vt
+        LEFT JOIN "verificationTypes" vtype ON vt.verification_type_id = vtype.id
+        WHERE vt.id = $1 AND vt.case_id = $2
+      `;
+      const taskRes = await query(taskSql, [verificationTaskId, actualCaseId]);
+      const task = taskRes.rows[0];
+
+      if (!task) {
+        return res.status(404).json({
           success: false,
-          message: 'You are not assigned to this case',
-          error: {
-            code: 'CASE_NOT_ASSIGNED',
-            timestamp: new Date().toISOString(),
-          },
+          message: 'Verification task not found or does not belong to this case',
+          error: { code: 'TASK_NOT_FOUND', timestamp: new Date().toISOString(), verificationTaskId, caseId: actualCaseId },
         });
       }
 
-      console.log(`✅ Case found: ${actualCaseId} (Case #${existingCase.caseId})`);
+      if (userRole === 'FIELD_AGENT' && task.assigned_to !== userId) {
+        return res.status(403).json({
+          success: false,
+          message: 'This verification task is not assigned to you',
+          error: { code: 'TASK_NOT_ASSIGNED', timestamp: new Date().toISOString(), verificationTaskId },
+        });
+      }
+
+      console.log(`✅ Verification task validated: ${task.task_number} (Type: ${task.verification_type_name})`);
 
       // Determine form type and verification outcome based on form data
       const { formType, verificationOutcome } = detectBusinessFormType(formData); // Use business detection for NOC (similar structure)
@@ -4770,10 +4909,11 @@ export class MobileFormController {
         actualCaseId,
         'NOC',
         submissionId,
-        userId
+        userId,
+        verificationTaskId
       );
 
-      console.log(`✅ Processed ${uploadedImages.length} verification images for NOC verification`);
+      console.log(`✅ Processed ${uploadedImages.length} verification images for NOC verification (Task: ${task.task_number})`);
 
       // Prepare verification data (excluding old attachment references)
       const verificationData = {
@@ -4798,6 +4938,13 @@ export class MobileFormController {
         },
       };
 
+      // Update verification task status to COMPLETED
+      await query(`
+        UPDATE verification_tasks
+        SET status = 'COMPLETED', completed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+        WHERE id = $1
+      `, [verificationTaskId]);
+
       // Update case with verification data using detected verification outcome
       await query(`UPDATE cases SET status = 'COMPLETED', "completedAt" = CURRENT_TIMESTAMP, "verificationData" = $1, "verificationType" = 'NOC', "verificationOutcome" = $2, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $3`, [JSON.stringify(verificationData), verificationOutcome, actualCaseId]);
       const caseUpd = await query(`SELECT id, "caseId", status, "completedAt", "customerName", "backendContactNumber" FROM cases WHERE id = $1`, [actualCaseId]);
@@ -4807,6 +4954,7 @@ export class MobileFormController {
       const dbInsertData = {
         // Core case information
         case_id: actualCaseId,
+        verification_task_id: verificationTaskId,
         caseId: parseInt(updatedCase.caseId) || null,
         form_type: formType,
         verification_outcome: verificationOutcome,
