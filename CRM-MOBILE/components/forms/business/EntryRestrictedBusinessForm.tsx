@@ -344,6 +344,7 @@ const EntryRestrictedBusinessForm: React.FC<EntryRestrictedBusinessFormProps> = 
                         // Submit verification form to backend
                         const result = await VerificationFormService.submitBusinessVerification(
                             caseData.id,
+                            caseData.verificationTaskId!,
                             formData,
                             allImages,
                             geoLocation

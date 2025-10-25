@@ -248,6 +248,7 @@ const UntraceablePropertyIndividualForm: React.FC<UntraceablePropertyIndividualF
                         // Submit verification form to backend
                         const result = await VerificationFormService.submitPropertyIndividualVerification(
                             caseData.id,
+                            caseData.verificationTaskId!,
                             formData,
                             allImages,
                             geoLocation

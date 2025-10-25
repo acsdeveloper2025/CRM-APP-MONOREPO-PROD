@@ -591,6 +591,7 @@ const PositiveNegativePropertyApfForm: React.FC<PositiveNegativePropertyApfFormP
                         // Submit verification form to backend
                         const result = await VerificationFormService.submitPropertyApfVerification(
                             caseData.id,
+                            caseData.verificationTaskId!,
                             formData,
                             allImages,
                             geoLocation

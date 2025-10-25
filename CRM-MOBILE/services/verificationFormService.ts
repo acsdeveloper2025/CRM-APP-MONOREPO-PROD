@@ -12,6 +12,7 @@ export interface VerificationFormData {
 }
 
 export interface VerificationSubmissionRequest {
+  verificationTaskId: string; // Required for multi-task architecture
   formData: VerificationFormData;
   attachmentIds: string[]; // Keep for backward compatibility
   geoLocation?: {
@@ -88,6 +89,7 @@ class VerificationFormService {
    */
   static async submitResidenceVerification(
     caseId: string,
+    verificationTaskId: string,
     formData: VerificationFormData,
     images: CapturedImage[],
     geoLocation?: { latitude: number; longitude: number; accuracy?: number },
@@ -166,6 +168,7 @@ class VerificationFormService {
 
       // Step 4: Prepare submission data with embedded images (new approach)
       const submissionData: VerificationSubmissionRequest = {
+        verificationTaskId, // Required for multi-task architecture
         formData: compressionService.decompressFormData(compressedData.formData.compressed),
         attachmentIds: [], // Empty for new approach
         geoLocation,
@@ -227,11 +230,12 @@ class VerificationFormService {
    */
   static async submitOfficeVerification(
     caseId: string,
+    verificationTaskId: string,
     formData: VerificationFormData,
     images: CapturedImage[],
     geoLocation?: { latitude: number; longitude: number; accuracy?: number }
   ): Promise<VerificationSubmissionResult> {
-    return this.submitVerificationForm(caseId, 'office', formData, images, geoLocation);
+    return this.submitVerificationForm(caseId, verificationTaskId, 'office', formData, images, geoLocation);
   }
 
   /**
@@ -239,11 +243,12 @@ class VerificationFormService {
    */
   static async submitBusinessVerification(
     caseId: string,
+    verificationTaskId: string,
     formData: VerificationFormData,
     images: CapturedImage[],
     geoLocation?: { latitude: number; longitude: number; accuracy?: number }
   ): Promise<VerificationSubmissionResult> {
-    return this.submitVerificationForm(caseId, 'business', formData, images, geoLocation);
+    return this.submitVerificationForm(caseId, verificationTaskId, 'business', formData, images, geoLocation);
   }
 
   /**
@@ -251,11 +256,12 @@ class VerificationFormService {
    */
   static async submitBuilderVerification(
     caseId: string,
+    verificationTaskId: string,
     formData: VerificationFormData,
     images: CapturedImage[],
     geoLocation?: { latitude: number; longitude: number; accuracy?: number }
   ): Promise<VerificationSubmissionResult> {
-    return this.submitVerificationForm(caseId, 'builder', formData, images, geoLocation);
+    return this.submitVerificationForm(caseId, verificationTaskId, 'builder', formData, images, geoLocation);
   }
 
   /**
@@ -263,11 +269,12 @@ class VerificationFormService {
    */
   static async submitResidenceCumOfficeVerification(
     caseId: string,
+    verificationTaskId: string,
     formData: VerificationFormData,
     images: CapturedImage[],
     geoLocation?: { latitude: number; longitude: number; accuracy?: number }
   ): Promise<VerificationSubmissionResult> {
-    return this.submitVerificationForm(caseId, 'residence-cum-office', formData, images, geoLocation);
+    return this.submitVerificationForm(caseId, verificationTaskId, 'residence-cum-office', formData, images, geoLocation);
   }
 
   /**
@@ -275,11 +282,12 @@ class VerificationFormService {
    */
   static async submitDsaConnectorVerification(
     caseId: string,
+    verificationTaskId: string,
     formData: VerificationFormData,
     images: CapturedImage[],
     geoLocation?: { latitude: number; longitude: number; accuracy?: number }
   ): Promise<VerificationSubmissionResult> {
-    return this.submitVerificationForm(caseId, 'dsa-connector', formData, images, geoLocation);
+    return this.submitVerificationForm(caseId, verificationTaskId, 'dsa-connector', formData, images, geoLocation);
   }
 
   /**
@@ -287,11 +295,12 @@ class VerificationFormService {
    */
   static async submitPropertyIndividualVerification(
     caseId: string,
+    verificationTaskId: string,
     formData: VerificationFormData,
     images: CapturedImage[],
     geoLocation?: { latitude: number; longitude: number; accuracy?: number }
   ): Promise<VerificationSubmissionResult> {
-    return this.submitVerificationForm(caseId, 'property-individual', formData, images, geoLocation);
+    return this.submitVerificationForm(caseId, verificationTaskId, 'property-individual', formData, images, geoLocation);
   }
 
   /**
@@ -299,11 +308,12 @@ class VerificationFormService {
    */
   static async submitPropertyApfVerification(
     caseId: string,
+    verificationTaskId: string,
     formData: VerificationFormData,
     images: CapturedImage[],
     geoLocation?: { latitude: number; longitude: number; accuracy?: number }
   ): Promise<VerificationSubmissionResult> {
-    return this.submitVerificationForm(caseId, 'property-apf', formData, images, geoLocation);
+    return this.submitVerificationForm(caseId, verificationTaskId, 'property-apf', formData, images, geoLocation);
   }
 
   /**
@@ -311,11 +321,12 @@ class VerificationFormService {
    */
   static async submitNocVerification(
     caseId: string,
+    verificationTaskId: string,
     formData: VerificationFormData,
     images: CapturedImage[],
     geoLocation?: { latitude: number; longitude: number; accuracy?: number }
   ): Promise<VerificationSubmissionResult> {
-    return this.submitVerificationForm(caseId, 'noc', formData, images, geoLocation);
+    return this.submitVerificationForm(caseId, verificationTaskId, 'noc', formData, images, geoLocation);
   }
 
   /**
@@ -323,6 +334,7 @@ class VerificationFormService {
    */
   private static async submitVerificationForm(
     caseId: string,
+    verificationTaskId: string,
     verificationType: string,
     formData: VerificationFormData,
     images: CapturedImage[],
@@ -364,6 +376,7 @@ class VerificationFormService {
 
       // Prepare submission data with embedded images
       const submissionData: VerificationSubmissionRequest = {
+        verificationTaskId, // Required for multi-task architecture
         formData,
         attachmentIds: [], // Empty for new approach
         geoLocation,
