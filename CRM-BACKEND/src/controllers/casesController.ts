@@ -1479,7 +1479,6 @@ export const createCase = [
         customerName,
         customerPhone,
         customerCallingCode = '+91',
-        customerEmail,
         clientId,
         productId,
         backendContactNumber,
@@ -1642,14 +1641,14 @@ export const createCase = [
 
       const insertCaseQuery = `
         INSERT INTO cases (
-          "customerName", "customerPhone", "customerCallingCode", "customerEmail",
+          "customerName", "customerPhone", "customerCallingCode",
           "clientId", "productId", "verificationTypeId",
           pincode, priority, trigger, "applicantType",
           "backendContactNumber", status, "createdByBackendUser",
           "has_multiple_tasks", "total_tasks_count", "completed_tasks_count", "case_completion_percentage",
           "createdAt", "updatedAt"
         ) VALUES (
-          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, NOW(), NOW()
+          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, NOW(), NOW()
         ) RETURNING *
       `;
 
@@ -1657,7 +1656,6 @@ export const createCase = [
         customerName,
         customerPhone,
         customerCallingCode,
-        customerEmail || null,
         clientId,
         productId,
         firstTaskVerificationTypeId,
