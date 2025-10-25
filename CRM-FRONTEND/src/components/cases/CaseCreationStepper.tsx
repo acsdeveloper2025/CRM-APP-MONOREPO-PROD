@@ -282,26 +282,32 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
           if (task.attachments && task.attachments.length > 0) {
             try {
               const files = task.attachments.map(att => att.file);
-              // Extract caseId (integer) from response - must use integer for backend
+              // Extract caseId (integer) and taskId (UUID) from response
               const caseId = response.data?.case?.caseId ? String(response.data.case.caseId) : null;
+              const createdTasks = response.data?.tasks || [];
+              const taskId = createdTasks.length > 0 ? createdTasks[0].id : null;
+
               console.log('📎 Uploading attachments:', {
                 caseId,
+                taskId,
                 caseIdType: typeof response.data?.case?.caseId,
                 fileCount: files.length,
                 responseData: response.data
               });
-              if (caseId) {
-                await casesService.uploadCaseAttachments(caseId, files);
+
+              if (caseId && taskId) {
+                await casesService.uploadCaseAttachments(caseId, files, taskId);
                 toast.success(`Case created successfully with ${task.attachments.length} attachment(s)!`);
               } else {
-                console.error('❌ No caseId found in response:', response.data);
-                toast.error('Case created but caseId not found for attachment upload');
+                console.error('❌ No caseId or taskId found in response:', response.data);
+                toast.error('Case created but caseId/taskId not found for attachment upload');
               }
             } catch (error: any) {
               console.error('❌ Error uploading attachments:', {
                 error: error.message || error,
                 stack: error.stack,
-                caseId: response.data?.case?.caseId
+                caseId: response.data?.case?.caseId,
+                taskId: response.data?.tasks?.[0]?.id
               });
               toast.error(`Case created but attachments failed: ${error.message || 'Unknown error'}`);
             }
@@ -352,7 +358,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
           // Upload attachments for each task if any
           // Extract caseId (integer) from response - must use integer for backend
           const caseId = response.data?.case?.caseId ? String(response.data.case.caseId) : null;
-          const createdTasks = response.data?.verification_tasks || [];
+          const createdTasks = response.data?.tasks || [];
           let totalAttachments = 0;
 
           console.log('📎 Multi-task case created, preparing to upload attachments:', {
