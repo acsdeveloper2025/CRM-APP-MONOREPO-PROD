@@ -10,7 +10,6 @@ import {
   getCases,
   getCaseById,
   createCase,
-  createCaseWithAttachments,
   updateCase,
   assignCase,
   bulkAssignCases,
@@ -19,7 +18,6 @@ import {
   getCaseAssignmentHistory,
   getFieldAgentWorkload,
   exportCases,
-  createCaseWithMultipleTasks,
   getCaseSummaryWithTasks
 } from '@/controllers/casesController';
 import { VerificationAttachmentController } from '@/controllers/verificationAttachmentController';
@@ -292,37 +290,15 @@ router.get('/',
   getCases
 );
 
-router.post('/',
+// ============================================================================
+// UNIFIED CASE CREATION ENDPOINT
+// Replaces: POST /, POST /with-attachments, POST /with-multiple-tasks
+// ============================================================================
+router.post('/create',
   EnterpriseRateLimit.roleBasedLimiter(EnterpriseRateLimits.byRole),
   EnterpriseCache.invalidate(CacheInvalidationPatterns.caseUpdate),
-  createCaseValidation,
-  validate,
   validateCaseCreationAccess,
   createCase
-);
-
-// Create case with attachments in single request
-// Note: No validation middleware here as multer handles form data parsing
-router.post('/with-attachments',
-  createCaseWithAttachments
-);
-
-// Multi-verification case creation
-router.post('/with-multiple-tasks',
-  EnterpriseRateLimit.roleBasedLimiter(EnterpriseRateLimits.byRole),
-  EnterpriseCache.invalidate(CacheInvalidationPatterns.caseUpdate),
-  [
-    body('case_details').isObject().withMessage('case_details is required'),
-    body('case_details.customerName').trim().notEmpty().withMessage('Customer name is required'),
-    body('case_details.clientId').isInt({ min: 1 }).withMessage('Valid client ID is required'),
-    body('case_details.productId').isInt({ min: 1 }).withMessage('Valid product ID is required'),
-    body('verification_tasks').isArray({ min: 1 }).withMessage('At least one verification task is required'),
-    body('verification_tasks.*.verification_type_id').isInt({ min: 1 }).withMessage('Valid verification type ID is required'),
-    body('verification_tasks.*.task_title').trim().notEmpty().withMessage('Task title is required')
-  ],
-  validate,
-  validateCaseCreationAccess,
-  createCaseWithMultipleTasks
 );
 
 // Get case summary with tasks
