@@ -317,6 +317,11 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
       clientCode: row.clientCode,
       productName: row.productName,
       productCode: row.productCode,
+      // Transform task statistics (ensure proper field names)
+      totalTasks: row.totalTasks || 0,
+      completedTasks: row.completedTasks || 0,
+      pendingTasks: row.pendingTasks || 0,
+      inProgressTasks: row.inProgressTasks || 0,
       // Transform client data to nested object
       client: row.clientName ? {
         id: row.clientId,
