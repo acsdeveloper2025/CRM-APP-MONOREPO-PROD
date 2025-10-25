@@ -368,6 +368,7 @@ const EntryRestrictedResidenceForm: React.FC<EntryRestrictedResidenceFormProps> 
                         // Submit verification form to backend
                         const result = await VerificationFormService.submitResidenceVerification(
                             caseData.id,
+                            caseData.verificationTaskId!,
                             formData,
                             allImages,
                             geoLocation

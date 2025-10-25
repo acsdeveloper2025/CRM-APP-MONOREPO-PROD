@@ -422,6 +422,7 @@ const NspDsaForm: React.FC<NspDsaFormProps> = ({ caseData }) => {
                         // Submit verification form to backend
                         const result = await VerificationFormService.submitDsaConnectorVerification(
                             caseData.id,
+                            caseData.verificationTaskId!,
                             formData,
                             allImages,
                             geoLocation

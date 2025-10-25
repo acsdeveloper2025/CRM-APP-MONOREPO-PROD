@@ -490,6 +490,8 @@ const PositiveOfficeForm: React.FC<PositiveOfficeFormProps> = ({ caseData }) => 
                         // Submit verification form to backend
                         const result = await VerificationFormService.submitOfficeVerification(
                             caseData.id,
+                            caseData.verificationTaskId!,
+                            caseData.verificationTaskId!,
                             formData,
                             allImages,
                             geoLocation

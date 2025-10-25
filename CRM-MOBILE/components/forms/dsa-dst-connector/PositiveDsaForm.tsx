@@ -496,6 +496,7 @@ const PositiveDsaForm: React.FC<PositiveDsaFormProps> = ({ caseData }) => {
                         // Submit verification form to backend
                         const result = await VerificationFormService.submitDsaConnectorVerification(
                             caseData.id,
+                            caseData.verificationTaskId!,
                             formData,
                             allImages,
                             geoLocation

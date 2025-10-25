@@ -362,6 +362,7 @@ const EntryRestrictedResiCumOfficeForm: React.FC<EntryRestrictedResiCumOfficeFor
                         // Submit verification form to backend
                         const result = await VerificationFormService.submitResidenceCumOfficeVerification(
                             caseData.id,
+                            caseData.verificationTaskId!,
                             formData,
                             allImages,
                             geoLocation

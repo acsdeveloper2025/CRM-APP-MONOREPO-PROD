@@ -301,6 +301,7 @@ const UntraceableBusinessForm: React.FC<UntraceableBusinessFormProps> = ({ caseD
                         // Submit verification form to backend
                         const result = await VerificationFormService.submitBusinessVerification(
                             caseData.id,
+                            caseData.verificationTaskId!,
                             formData,
                             allImages,
                             geoLocation

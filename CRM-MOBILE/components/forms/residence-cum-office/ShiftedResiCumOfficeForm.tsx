@@ -376,6 +376,7 @@ const ShiftedResiCumOfficeForm: React.FC<ShiftedResiCumOfficeFormProps> = ({ cas
                         // Submit verification form to backend
                         const result = await VerificationFormService.submitResidenceCumOfficeVerification(
                             caseData.id,
+                            caseData.verificationTaskId!,
                             formData,
                             allImages,
                             geoLocation

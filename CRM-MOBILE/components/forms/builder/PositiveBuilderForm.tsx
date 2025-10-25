@@ -448,6 +448,7 @@ const PositiveBuilderForm: React.FC<PositiveBuilderFormProps> = ({ caseData }) =
                         // Submit verification form to backend
                         const result = await VerificationFormService.submitBuilderVerification(
                             caseData.id,
+                            caseData.verificationTaskId!,
                             formData,
                             allImages,
                             geoLocation

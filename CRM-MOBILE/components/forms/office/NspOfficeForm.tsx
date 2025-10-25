@@ -345,6 +345,7 @@ const NspOfficeForm: React.FC<NspOfficeFormProps> = ({ caseData }) => {
                         // Submit verification form to backend
                         const result = await VerificationFormService.submitOfficeVerification(
                             caseData.id,
+                            caseData.verificationTaskId!,
                             formData,
                             allImages,
                             geoLocation

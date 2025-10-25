@@ -346,6 +346,7 @@ const EntryRestrictedDsaForm: React.FC<EntryRestrictedDsaFormProps> = ({ caseDat
                         // Submit verification form to backend
                         const result = await VerificationFormService.submitDsaConnectorVerification(
                             caseData.id,
+                            caseData.verificationTaskId!,
                             formData,
                             allImages,
                             geoLocation

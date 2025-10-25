@@ -452,6 +452,7 @@ const ShiftedResidenceForm: React.FC<ShiftedResidenceFormProps> = ({ caseData })
                         // Submit verification form to backend
                         const result = await VerificationFormService.submitResidenceVerification(
                             caseData.id,
+                            caseData.verificationTaskId!,
                             formData,
                             allImages,
                             geoLocation

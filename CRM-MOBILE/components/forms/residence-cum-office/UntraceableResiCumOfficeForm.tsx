@@ -305,6 +305,7 @@ const UntraceableResiCumOfficeForm: React.FC<UntraceableResiCumOfficeFormProps> 
                         // Submit verification form to backend
                         const result = await VerificationFormService.submitResidenceCumOfficeVerification(
                             caseData.id,
+                            caseData.verificationTaskId!,
                             formData,
                             allImages,
                             geoLocation

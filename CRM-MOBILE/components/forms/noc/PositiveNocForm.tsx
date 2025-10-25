@@ -350,6 +350,7 @@ const PositiveNocForm: React.FC<PositiveNocFormProps> = ({ caseData }) => {
                         // Submit verification form to backend
                         const result = await VerificationFormService.submitNocVerification(
                             caseData.id,
+                            caseData.verificationTaskId!,
                             formData,
                             allImages,
                             geoLocation
