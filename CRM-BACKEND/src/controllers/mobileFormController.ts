@@ -1583,8 +1583,13 @@ export class MobileFormController {
         vals.push(caseId);
       }
 
+      // FIXED: For FIELD_AGENT, check if they have ANY tasks assigned for this case
+      // (removed invalid cases.assignedTo reference)
       if (userRole === 'FIELD_AGENT') {
-        caseSql += ` AND "assignedTo" = $2`;
+        caseSql += ` AND EXISTS (
+          SELECT 1 FROM verification_tasks vt
+          WHERE vt.case_id = cases.id AND vt.assigned_to = $2
+        )`;
         vals.push(userId);
       }
 
@@ -1605,162 +1610,171 @@ export class MobileFormController {
         });
       }
 
-      // Get form submissions from verification reports and images
+      // MULTI-TASK ARCHITECTURE: Get ALL form submissions for ALL verification tasks in this case
       const formSubmissions: FormSubmissionData[] = [];
 
-      // Determine verification type and get appropriate reports
-      const verificationType = caseData.verificationType || 'RESIDENCE';
-      console.log('Processing verification type:', verificationType);
+      // Get all verification tasks for this case
+      const tasksSql = `
+        SELECT
+          vt.id as task_id,
+          vt.task_number,
+          vt.verification_type_id,
+          vt.assigned_to,
+          vt.status as task_status,
+          vtype.name as verification_type_name,
+          u.name as assigned_to_name,
+          u."employeeId" as assigned_to_employee_id
+        FROM verification_tasks vt
+        LEFT JOIN "verificationTypes" vtype ON vt.verification_type_id = vtype.id
+        LEFT JOIN users u ON vt.assigned_to = u.id
+        WHERE vt.case_id = $1
+        ORDER BY vt.created_at ASC
+      `;
 
-      // Get verification reports based on type
-      let reportData = null;
-      let reportTableName = '';
+      const tasksRes = await query(tasksSql, [caseData.id]);
+      const tasks = tasksRes.rows;
 
-      if (verificationType === 'RESIDENCE') {
-        reportTableName = 'residenceVerificationReports';
-        const residenceReportSql = `SELECT * FROM "residenceVerificationReports" WHERE case_id = $1`;
-        const residenceRes = await query(residenceReportSql, [caseData.id]);
-        reportData = residenceRes.rows[0];
-      } else if (verificationType === 'OFFICE') {
-        reportTableName = 'officeVerificationReports';
-        const officeReportSql = `SELECT * FROM "officeVerificationReports" WHERE case_id = $1`;
-        const officeRes = await query(officeReportSql, [caseData.id]);
-        reportData = officeRes.rows[0];
-      } else if (verificationType === 'BUSINESS') {
-        reportTableName = 'businessVerificationReports';
-        const businessReportSql = `SELECT * FROM "businessVerificationReports" WHERE case_id = $1`;
-        const businessRes = await query(businessReportSql, [caseData.id]);
-        reportData = businessRes.rows[0];
-      } else if (verificationType === 'PROPERTY_APF') {
-        reportTableName = 'propertyApfVerificationReports';
-        const propertyApfReportSql = `SELECT * FROM "propertyApfVerificationReports" WHERE case_id = $1`;
-        const propertyApfRes = await query(propertyApfReportSql, [caseData.id]);
-        reportData = propertyApfRes.rows[0];
-      } else if (verificationType === 'PROPERTY_INDIVIDUAL') {
-        reportTableName = 'propertyIndividualVerificationReports';
-        const propertyIndividualReportSql = `SELECT * FROM "propertyIndividualVerificationReports" WHERE case_id = $1`;
-        const propertyIndividualRes = await query(propertyIndividualReportSql, [caseData.id]);
-        reportData = propertyIndividualRes.rows[0];
-      } else if (verificationType === 'DSA/DST & Connector' || verificationType === 'CONNECTOR' || verificationType === 'DSA_CONNECTOR') {
-        reportTableName = 'dsaConnectorVerificationReports';
-        const dsaConnectorReportSql = `SELECT * FROM "dsaConnectorVerificationReports" WHERE case_id = $1`;
-        const dsaConnectorRes = await query(dsaConnectorReportSql, [caseData.id]);
-        reportData = dsaConnectorRes.rows[0];
-      } else if (verificationType === 'NOC') {
-        reportTableName = 'nocVerificationReports';
-        const nocReportSql = `SELECT * FROM "nocVerificationReports" WHERE case_id = $1`;
-        const nocRes = await query(nocReportSql, [caseData.id]);
-        reportData = nocRes.rows[0];
-      } else if (verificationType === 'BUILDER') {
-        reportTableName = 'builderVerificationReports';
-        const builderReportSql = `SELECT * FROM "builderVerificationReports" WHERE case_id = $1`;
-        const builderRes = await query(builderReportSql, [caseData.id]);
-        reportData = builderRes.rows[0];
-      } else if (verificationType === 'Residence-cum-office' || verificationType === 'RESIDENCE_CUM_OFFICE') {
-        reportTableName = 'residenceCumOfficeVerificationReports';
-        const residenceCumOfficeReportSql = `SELECT * FROM "residenceCumOfficeVerificationReports" WHERE case_id = $1`;
-        const residenceCumOfficeRes = await query(residenceCumOfficeReportSql, [caseData.id]);
-        reportData = residenceCumOfficeRes.rows[0];
-      } else {
-        // Fallback to residence for unknown types
-        reportTableName = 'residenceVerificationReports';
-        const residenceReportSql = `SELECT * FROM "residenceVerificationReports" WHERE case_id = $1`;
-        const residenceRes = await query(residenceReportSql, [caseData.id]);
-        reportData = residenceRes.rows[0];
-      }
+      console.log(`Found ${tasks.length} verification tasks for case ${caseId}`);
 
-      console.log(`Found report data in ${reportTableName}:`, !!reportData);
+      // For each task, fetch its form submission (if exists)
+      for (const task of tasks) {
+        const verificationType = task.verification_type_name || 'RESIDENCE';
+        console.log(`Processing task ${task.task_number} - Type: ${verificationType}`);
 
-      if (reportData) {
-        const report = reportData;
+        // Determine which report table to query based on verification type
+        let reportTableName = '';
+        let reportSql = '';
 
-        // Get verification images
-        const imagesSql = `
-          SELECT * FROM verification_attachments
-          WHERE case_id = $1
-          ORDER BY "createdAt"
-        `;
-        const imagesRes = await query(imagesSql, [caseData.id]);
+        if (verificationType === 'RESIDENCE' || verificationType === 'Residence') {
+          reportTableName = 'residenceVerificationReports';
+        } else if (verificationType === 'OFFICE' || verificationType === 'Office') {
+          reportTableName = 'officeVerificationReports';
+        } else if (verificationType === 'BUSINESS' || verificationType === 'Business') {
+          reportTableName = 'businessVerificationReports';
+        } else if (verificationType === 'PROPERTY_APF' || verificationType === 'Property APF') {
+          reportTableName = 'propertyApfVerificationReports';
+        } else if (verificationType === 'PROPERTY_INDIVIDUAL' || verificationType === 'Property Individual') {
+          reportTableName = 'propertyIndividualVerificationReports';
+        } else if (verificationType.includes('DSA') || verificationType.includes('Connector')) {
+          reportTableName = 'dsaConnectorVerificationReports';
+        } else if (verificationType === 'NOC') {
+          reportTableName = 'nocVerificationReports';
+        } else if (verificationType === 'BUILDER' || verificationType === 'Builder') {
+          reportTableName = 'builderVerificationReports';
+        } else if (verificationType.includes('Residence-cum-office') || verificationType === 'RESIDENCE_CUM_OFFICE') {
+          reportTableName = 'residenceCumOfficeVerificationReports';
+        } else {
+          // Fallback to residence for unknown types
+          reportTableName = 'residenceVerificationReports';
+        }
 
-        // Get user info
-        const userSql = `SELECT name, username FROM users WHERE id = $1`;
-        const userRes = await query(userSql, [report.verified_by]);
-        const userName = userRes.rows[0]?.name || userRes.rows[0]?.username || 'Unknown User';
+        // Query for reports with this verification_task_id
+        reportSql = `SELECT * FROM "${reportTableName}" WHERE verification_task_id = $1`;
+        const reportRes = await query(reportSql, [task.task_id]);
 
-        // Get the actual submission ID from verification images
-        const actualSubmissionId = imagesRes.rows.length > 0 ? imagesRes.rows[0].submissionId : `${verificationType.toLowerCase()}_${Date.now()}`;
+        console.log(`Found ${reportRes.rows.length} reports in ${reportTableName} for task ${task.task_number}`);
 
-        // Create comprehensive form submission
-        const submission: FormSubmissionData = {
-          id: actualSubmissionId,
-          caseId,
-          formType: report.form_type || 'POSITIVE', // Use the actual form type from database
-          verificationType: verificationType,
-          outcome: report.verification_outcome || 'Unknown',
-          status: 'SUBMITTED',
-          submittedAt: report.verification_date ? `${report.verification_date}T00:00:00.000Z` : new Date().toISOString(),
-          submittedBy: report.verified_by,
-          submittedByName: userName,
+        // Process each report (there should be only one per task, but handle multiple just in case)
+        for (const reportData of reportRes.rows) {
 
-          // Create comprehensive form sections using all available data
-          sections: MobileFormController.createComprehensiveFormSectionsFromReport(report, verificationType, report.form_type || 'POSITIVE'),
+          const report = reportData;
 
-          // Convert verification images to photos format
-          photos: imagesRes.rows.map((img, index) => ({
-            id: img.id,
-            attachmentId: img.id,
-            type: (img.photoType === 'selfie' ? 'selfie' : 'verification') as 'verification' | 'selfie',
-            url: `/api/verification-attachments/${img.id}/download`,
-            thumbnailUrl: `/api/verification-attachments/${img.id}/thumbnail`,
-            filename: img.filename,
-            size: img.fileSize,
-            capturedAt: img.createdAt,
+          // FIXED: Get verification images for THIS SPECIFIC TASK only
+          const imagesSql = `
+            SELECT * FROM verification_attachments
+            WHERE case_id = $1 AND verification_task_id = $2
+            ORDER BY "createdAt"
+          `;
+          const imagesRes = await query(imagesSql, [caseData.id, task.task_id]);
+
+          // Get user info
+          const userSql = `SELECT name, username FROM users WHERE id = $1`;
+          const userRes = await query(userSql, [report.verified_by]);
+          const userName = userRes.rows[0]?.name || userRes.rows[0]?.username || 'Unknown User';
+
+          // Get the actual submission ID from verification images
+          const actualSubmissionId = imagesRes.rows.length > 0 ? imagesRes.rows[0].submissionId : `${verificationType.toLowerCase()}_${Date.now()}`;
+
+          // Create comprehensive form submission WITH TASK INFORMATION
+          const submission: FormSubmissionData = {
+            id: actualSubmissionId,
+            caseId,
+            formType: report.form_type || 'POSITIVE', // Use the actual form type from database
+            verificationType: verificationType,
+            outcome: report.verification_outcome || 'Unknown',
+            status: 'SUBMITTED',
+            submittedAt: report.verification_date ? `${report.verification_date}T00:00:00.000Z` : new Date().toISOString(),
+            submittedBy: report.verified_by,
+            submittedByName: userName,
+
+            // NEW: Add task information to submission
+            verificationTaskId: task.task_id,
+            verificationTaskNumber: task.task_number,
+            verificationTypeName: task.verification_type_name,
+            assignedTo: task.assigned_to,
+            assignedToName: task.assigned_to_name,
+            taskStatus: task.task_status,
+
+            // Create comprehensive form sections using all available data
+            sections: MobileFormController.createComprehensiveFormSectionsFromReport(report, verificationType, report.form_type || 'POSITIVE'),
+
+            // Convert verification images to photos format
+            photos: imagesRes.rows.map((img, index) => ({
+              id: img.id,
+              attachmentId: img.id,
+              type: (img.photoType === 'selfie' ? 'selfie' : 'verification') as 'verification' | 'selfie',
+              url: `/api/verification-attachments/${img.id}/download`,
+              thumbnailUrl: `/api/verification-attachments/${img.id}/thumbnail`,
+              filename: img.filename,
+              size: img.fileSize,
+              capturedAt: img.createdAt,
+              geoLocation: {
+                latitude: 0, // TODO: Add geo data if available
+                longitude: 0,
+                accuracy: 0,
+                timestamp: img.createdAt,
+                address: 'Location captured during verification'
+              },
+              metadata: {
+                fileSize: img.fileSize,
+                mimeType: 'image/jpeg',
+                dimensions: { width: 0, height: 0 }, // TODO: Add if available
+                capturedAt: img.createdAt
+              }
+            })),
+
+            attachments: [], // No separate attachments for this form type
+
             geoLocation: {
-              latitude: 0, // TODO: Add geo data if available
+              latitude: 0, // TODO: Add actual geo data
               longitude: 0,
               accuracy: 0,
-              timestamp: img.createdAt,
-              address: 'Location captured during verification'
+              timestamp: report.verification_date ? `${report.verification_date}T00:00:00.000Z` : new Date().toISOString(),
+              address: 'Verification location'
             },
+
             metadata: {
-              fileSize: img.fileSize,
-              mimeType: 'image/jpeg',
-              dimensions: { width: 0, height: 0 }, // TODO: Add if available
-              capturedAt: img.createdAt
-            }
-          })),
-
-          attachments: [], // No separate attachments for this form type
-
-          geoLocation: {
-            latitude: 0, // TODO: Add actual geo data
-            longitude: 0,
-            accuracy: 0,
-            timestamp: report.verification_date ? `${report.verification_date}T00:00:00.000Z` : new Date().toISOString(),
-            address: 'Verification location'
-          },
-
-          metadata: {
-            submissionTimestamp: report.verification_date ? `${report.verification_date}T00:00:00.000Z` : new Date().toISOString(),
-            deviceInfo: {
-              platform: 'ANDROID' as const, // Default for mobile submissions
-              model: 'Mobile Device',
-              osVersion: 'Unknown',
-              appVersion: '4.0.0',
+              submissionTimestamp: report.verification_date ? `${report.verification_date}T00:00:00.000Z` : new Date().toISOString(),
+              deviceInfo: {
+                platform: 'ANDROID' as const, // Default for mobile submissions
+                model: 'Mobile Device',
+                osVersion: 'Unknown',
+                appVersion: '4.0.0',
+              },
+              networkInfo: {
+                type: 'WIFI' as const,
+              },
+              formVersion: '1.0',
+              submissionAttempts: 1,
+              isOfflineSubmission: false
             },
-            networkInfo: {
-              type: 'WIFI' as const,
-            },
-            formVersion: '1.0',
-            submissionAttempts: 1,
-            isOfflineSubmission: false
-          },
 
-          validationStatus: 'VALID',
-          validationErrors: [],
-        };
+            validationStatus: 'VALID',
+            validationErrors: [],
+          };
 
-        formSubmissions.push(submission);
+          formSubmissions.push(submission);
+        }
       }
 
       res.json({
