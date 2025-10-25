@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Plus, Upload, FileText } from 'lucide-react';
+import { Plus, Upload, FileText, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SearchWithActions } from '@/components/ui/search-layout';
 import { useSearchInput } from '@/components/ui/search-input';
