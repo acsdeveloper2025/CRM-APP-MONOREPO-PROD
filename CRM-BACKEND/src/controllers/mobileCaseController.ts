@@ -78,7 +78,6 @@ export class MobileCaseController {
         where.OR = [
           { customerName: { contains: search, mode: 'insensitive' } },
           { customerPhone: { contains: search } },
-          { customerEmail: { contains: search, mode: 'insensitive' } },
           { title: { contains: search, mode: 'insensitive' } },
           { description: { contains: search, mode: 'insensitive' } },
         ];
@@ -247,7 +246,6 @@ export class MobileCaseController {
         customerName: caseItem.customerName || caseItem.applicantName, // Customer Name
         customerCallingCode: caseItem.customerCallingCode, // Customer Calling Code
         customerPhone: caseItem.customerPhone,
-        customerEmail: caseItem.customerEmail,
         // Use task-level address (from verification_tasks) instead of case-level address
         addressStreet: caseItem.taskAddress || '',
         addressCity: '',
@@ -426,7 +424,6 @@ export class MobileCaseController {
         customerName: caseItem.customerName || caseItem.applicantName, // Customer Name
         customerCallingCode: caseItem.customerCallingCode, // Customer Calling Code
         customerPhone: caseItem.customerPhone,
-        customerEmail: caseItem.customerEmail,
         // Use task-level address (from verification_tasks) instead of case-level address
         addressStreet: caseItem.taskAddress || '',
         addressCity: '',
