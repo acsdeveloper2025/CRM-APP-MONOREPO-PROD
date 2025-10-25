@@ -400,6 +400,7 @@ const ShiftedOfficeForm: React.FC<ShiftedOfficeFormProps> = ({ caseData }) => {
                         // Submit verification form to backend
                         const result = await VerificationFormService.submitOfficeVerification(
                             caseData.id,
+                            caseData.verificationTaskId!,
                             formData,
                             allImages,
                             geoLocation

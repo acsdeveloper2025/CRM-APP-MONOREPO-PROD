@@ -304,6 +304,7 @@ const UntraceableResidenceForm: React.FC<UntraceableResidenceFormProps> = ({ cas
                         // Submit verification form to backend
                         const result = await VerificationFormService.submitResidenceVerification(
                             caseData.id,
+                            caseData.verificationTaskId!,
                             formData,
                             allImages,
                             geoLocation

@@ -436,6 +436,7 @@ const NspBuilderForm: React.FC<NspBuilderFormProps> = ({ caseData }) => {
                         // Submit verification form to backend
                         const result = await VerificationFormService.submitBuilderVerification(
                             caseData.id,
+                            caseData.verificationTaskId!,
                             formData,
                             allImages,
                             geoLocation

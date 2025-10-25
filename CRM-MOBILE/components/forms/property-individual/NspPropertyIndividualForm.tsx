@@ -335,6 +335,7 @@ const NspPropertyIndividualForm: React.FC<NspPropertyIndividualFormProps> = ({ c
                         // Submit verification form to backend
                         const result = await VerificationFormService.submitPropertyIndividualVerification(
                             caseData.id,
+                            caseData.verificationTaskId!,
                             formData,
                             allImages,
                             geoLocation

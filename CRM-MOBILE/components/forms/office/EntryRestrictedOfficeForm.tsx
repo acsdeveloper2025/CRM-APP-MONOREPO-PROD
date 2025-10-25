@@ -346,6 +346,7 @@ const EntryRestrictedOfficeForm: React.FC<EntryRestrictedOfficeFormProps> = ({ c
                         // Submit verification form to backend
                         const result = await VerificationFormService.submitOfficeVerification(
                             caseData.id,
+                            caseData.verificationTaskId!,
                             formData,
                             allImages,
                             geoLocation

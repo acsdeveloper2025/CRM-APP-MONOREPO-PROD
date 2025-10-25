@@ -301,6 +301,7 @@ const UntraceableOfficeForm: React.FC<UntraceableOfficeFormProps> = ({ caseData 
                         // Submit verification form to backend
                         const result = await VerificationFormService.submitOfficeVerification(
                             caseData.id,
+                            caseData.verificationTaskId!,
                             formData,
                             allImages,
                             geoLocation
