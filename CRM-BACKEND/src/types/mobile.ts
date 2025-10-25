@@ -132,6 +132,7 @@ export interface MobileFileUploadRequest {
 
 export interface MobileFormSubmissionRequest {
   caseId: string;
+  verificationTaskId: string; // ✅ Required for multi-task support - links submission to specific verification task
   formType: 'RESIDENCE' | 'OFFICE' | 'BUSINESS' | 'BUILDER' | 'RESIDENCE_CUM_OFFICE' | 'DSA_CONNECTOR' | 'PROPERTY_INDIVIDUAL' | 'PROPERTY_APF' | 'NOC';
   formData: {
     [key: string]: any;
