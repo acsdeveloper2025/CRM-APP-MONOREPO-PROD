@@ -209,22 +209,22 @@ export const getChartData = async (req: AuthenticatedRequest, res: Response) => 
 // GET /api/dashboard/recent-activities - Get recent activities
 export const getRecentActivities = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    // Get recent cases as activities from database
-    const recentCasesQuery = `
+    // Get recent verification tasks as activities from database
+    const recentActivitiesQuery = `
       SELECT
-        c."caseId" as id,
-        'CASE_UPDATED' as type,
-        CONCAT('Case ', c."caseId", ' - ', c."customerName") as description,
-        c."assignedTo" as "userId",
-        c."updatedAt" as timestamp,
+        vt.id,
+        'TASK_UPDATED' as type,
+        CONCAT('Task ', vt.task_number, ' - ', vt.task_title) as description,
+        vt.assigned_to as "userId",
+        vt.updated_at as timestamp,
         u.name as "userName"
-      FROM cases c
-      LEFT JOIN users u ON c."assignedTo" = u.id
-      ORDER BY c."updatedAt" DESC
+      FROM verification_tasks vt
+      LEFT JOIN users u ON vt.assigned_to = u.id
+      ORDER BY vt.updated_at DESC
       LIMIT 10
     `;
 
-    const result = await pool.query(recentCasesQuery);
+    const result = await pool.query(recentActivitiesQuery);
     const activities = result.rows.map(activity => ({
       id: activity.id,
       type: activity.type,
