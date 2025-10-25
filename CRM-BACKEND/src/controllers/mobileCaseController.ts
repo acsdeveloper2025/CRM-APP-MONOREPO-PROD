@@ -172,6 +172,8 @@ export class MobileCaseController {
                vtask.task_number as "verificationTaskNumber",
                vtask.address as "taskAddress",
                vtask.trigger as "taskTrigger",
+               vtask.priority as "taskPriority",
+               vtask.applicant_type as "taskApplicantType",
                vtask.assigned_to as "taskAssignedTo",
                vtask.assigned_user_name,
                -- Attachment count
@@ -254,14 +256,14 @@ export class MobileCaseController {
         latitude: caseItem.latitude,
         longitude: caseItem.longitude,
         status: caseItem.status ? caseItem.status.toUpperCase().replace(/\s+/g, '_') : 'ASSIGNED',
-        priority: caseItem.priority || 2, // Priority
+        priority: caseItem.taskPriority || caseItem.priority || 'MEDIUM', // Use task-level priority first, fallback to case-level
         assignedAt: new Date(caseItem.createdAt).toISOString(),
         updatedAt: new Date(caseItem.updatedAt).toISOString(),
         completedAt: caseItem.completedAt ? new Date(caseItem.completedAt).toISOString() : undefined,
         notes: caseItem.taskTrigger || caseItem.trigger || '', // Use task-level trigger instead of case-level trigger
         verificationType: caseItem.verificationTypeName || caseItem.verificationType,
         verificationOutcome: caseItem.verificationOutcome,
-        applicantType: caseItem.applicantType, // Applicant Type
+        applicantType: caseItem.taskApplicantType || caseItem.applicantType, // Use task-level applicant type first, fallback to case-level
         backendContactNumber: caseItem.backendContactNumber, // Backend Contact Number
         createdByBackendUser: caseItem.createdByUserName, // Created By Backend User
         assignedToFieldUser: caseItem.assigned_user_name, // Use task-level assigned user
@@ -344,6 +346,8 @@ export class MobileCaseController {
                vtask.task_number as "verificationTaskNumber",
                vtask.address as "taskAddress",
                vtask.trigger as "taskTrigger",
+               vtask.priority as "taskPriority",
+               vtask.applicant_type as "taskApplicantType",
                vtask.assigned_to as "taskAssignedTo",
                vtask.assigned_user_name
         FROM cases c
@@ -431,14 +435,14 @@ export class MobileCaseController {
         latitude: caseItem.latitude,
         longitude: caseItem.longitude,
         status: caseItem.status ? caseItem.status.toUpperCase().replace(/\s+/g, '_') : 'ASSIGNED',
-        priority: caseItem.priority || 2, // Priority
+        priority: caseItem.taskPriority || caseItem.priority || 'MEDIUM', // Use task-level priority first, fallback to case-level
         assignedAt: new Date(caseItem.createdAt).toISOString(),
         updatedAt: new Date(caseItem.updatedAt).toISOString(),
         completedAt: caseItem.completedAt ? new Date(caseItem.completedAt).toISOString() : undefined,
         notes: caseItem.taskTrigger || caseItem.trigger || '', // Use task-level trigger instead of case-level trigger
         verificationType: caseItem.verificationTypeName || caseItem.verificationType,
         verificationOutcome: caseItem.verificationOutcome,
-        applicantType: caseItem.applicantType, // Applicant Type
+        applicantType: caseItem.taskApplicantType || caseItem.applicantType, // Use task-level applicant type first, fallback to case-level
         backendContactNumber: caseItem.backendContactNumber, // Backend Contact Number
         createdByBackendUser: caseItem.createdByUserName, // Created By Backend User
         assignedToFieldUser: caseItem.assigned_user_name, // Use task-level assigned user
