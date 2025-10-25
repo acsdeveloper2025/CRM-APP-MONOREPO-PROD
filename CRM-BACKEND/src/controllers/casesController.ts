@@ -273,13 +273,27 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
           WHEN c.status IN ('PENDING', 'IN_PROGRESS') THEN
             EXTRACT(EPOCH FROM (NOW() - c."createdAt"))
           ELSE NULL
-        END as "pendingDurationSeconds"
+        END as "pendingDurationSeconds",
+        -- NEW: Verification task statistics for multi-task architecture
+        COALESCE(task_stats.total_tasks, 0) as "totalTasks",
+        COALESCE(task_stats.completed_tasks, 0) as "completedTasks",
+        COALESCE(task_stats.pending_tasks, 0) as "pendingTasks",
+        COALESCE(task_stats.in_progress_tasks, 0) as "inProgressTasks"
       FROM cases c
       LEFT JOIN clients cl ON c."clientId" = cl.id
       LEFT JOIN users created_user ON c."createdByBackendUser" = created_user.id
       LEFT JOIN products p ON c."productId" = p.id
       LEFT JOIN "verificationTypes" vt ON c."verificationTypeId" = vt.id
       LEFT JOIN "rateTypes" rt ON c."rateTypeId" = rt.id
+      LEFT JOIN LATERAL (
+        SELECT
+          COUNT(*) as total_tasks,
+          COUNT(*) FILTER (WHERE status = 'COMPLETED') as completed_tasks,
+          COUNT(*) FILTER (WHERE status = 'PENDING') as pending_tasks,
+          COUNT(*) FILTER (WHERE status = 'IN_PROGRESS') as in_progress_tasks
+        FROM verification_tasks
+        WHERE case_id = c.id
+      ) task_stats ON true
       ${whereClause}
       ${orderByClause}
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
