@@ -159,7 +159,6 @@ export class EnterpriseMobileSyncService {
         c."caseId",
         c."customerName",
         c."customerPhone",
-        c."customerEmail",
         c.address,
         c.city,
         c.state,
@@ -177,7 +176,7 @@ export class EnterpriseMobileSyncService {
         assigned_by.name as "assignedByName",
         -- Get attachment count
         (SELECT COUNT(*) FROM attachments a WHERE a."caseId" = c.id) as "attachmentCount",
-        -- Get form submission count  
+        -- Get form submission count
         (SELECT COUNT(*) FROM form_submissions fs WHERE fs."caseId" = c.id) as "formSubmissionCount"
       FROM cases c
       INNER JOIN case_assignment_history cah ON c.id = cah."caseUUID"
