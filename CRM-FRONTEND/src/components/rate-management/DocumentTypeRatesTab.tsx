@@ -1,0 +1,369 @@
+import React, { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { clientsService } from '@/services/clients';
+import { productsService } from '@/services/products';
+import { documentTypeRatesService } from '@/services/documentTypeRates';
+import { apiService } from '@/services/api';
+import toast from 'react-hot-toast';
+import { Trash2, Edit, Plus, IndianRupee } from 'lucide-react';
+import type { DocumentType } from '@/types/documentTypeRates';
+
+export function DocumentTypeRatesTab() {
+  const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
+  const [selectedProductId, setSelectedProductId] = useState<number | null>(null);
+  const [selectedDocumentTypeId, setSelectedDocumentTypeId] = useState<number | null>(null);
+  const [amount, setAmount] = useState<string>('');
+  const [currency, setCurrency] = useState<string>('INR');
+  const [editingRateId, setEditingRateId] = useState<number | null>(null);
+
+  const queryClient = useQueryClient();
+
+  // Fetch clients
+  const { data: clientsData } = useQuery({
+    queryKey: ['clients'],
+    queryFn: () => clientsService.getClients({ limit: 100 }),
+  });
+
+  // Fetch products for selected client
+  const { data: productsData } = useQuery({
+    queryKey: ['client-products', selectedClientId],
+    queryFn: () => productsService.getProductsByClient(selectedClientId!),
+    enabled: !!selectedClientId,
+  });
+
+  // Fetch document types
+  const { data: documentTypesData } = useQuery({
+    queryKey: ['document-types'],
+    queryFn: async () => {
+      const response = await apiService.get<DocumentType[]>('/document-types', { limit: 100 });
+      return response;
+    },
+  });
+
+  // Fetch configured document type rates
+  const { data: ratesData, isLoading: ratesLoading } = useQuery({
+    queryKey: ['document-type-rates', selectedClientId, selectedProductId],
+    queryFn: () => documentTypeRatesService.getDocumentTypeRates({
+      clientId: selectedClientId || undefined,
+      productId: selectedProductId || undefined,
+      isActive: true,
+      limit: 100,
+    }),
+    enabled: !!(selectedClientId || selectedProductId),
+  });
+
+  // Create/Update mutation
+  const saveRateMutation = useMutation({
+    mutationFn: async (data: { clientId: number; productId: number; documentTypeId: number; amount: number; currency: string }) => {
+      return documentTypeRatesService.createOrUpdateDocumentTypeRate(data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['document-type-rates'] });
+      queryClient.invalidateQueries({ queryKey: ['rate-management-stats'] });
+      toast.success(editingRateId ? 'Rate updated successfully' : 'Rate created successfully');
+      resetForm();
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Failed to save rate');
+    },
+  });
+
+  // Delete mutation
+  const deleteRateMutation = useMutation({
+    mutationFn: (rateId: number) => documentTypeRatesService.deleteDocumentTypeRate(rateId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['document-type-rates'] });
+      queryClient.invalidateQueries({ queryKey: ['rate-management-stats'] });
+      toast.success('Rate deleted successfully');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Failed to delete rate');
+    },
+  });
+
+  const clients = clientsData?.data || [];
+  const products = productsData?.data || [];
+  const documentTypes = documentTypesData?.data || [];
+  const rates = ratesData?.data || [];
+
+  const handleClientChange = (clientId: string) => {
+    setSelectedClientId(Number(clientId));
+    setSelectedProductId(null);
+    resetForm();
+  };
+
+  const handleProductChange = (productId: string) => {
+    setSelectedProductId(Number(productId));
+    resetForm();
+  };
+
+  const handleDocumentTypeChange = (documentTypeId: string) => {
+    setSelectedDocumentTypeId(Number(documentTypeId));
+  };
+
+  const resetForm = () => {
+    setSelectedDocumentTypeId(null);
+    setAmount('');
+    setCurrency('INR');
+    setEditingRateId(null);
+  };
+
+  const handleSaveRate = async () => {
+    if (!selectedClientId || !selectedProductId || !selectedDocumentTypeId) {
+      toast.error('Please select client, product, and document type');
+      return;
+    }
+
+    const amountNum = parseFloat(amount);
+    if (!amount || isNaN(amountNum) || amountNum < 0) {
+      toast.error('Please enter a valid positive amount');
+      return;
+    }
+
+    await saveRateMutation.mutateAsync({
+      clientId: selectedClientId,
+      productId: selectedProductId,
+      documentTypeId: selectedDocumentTypeId,
+      amount: amountNum,
+      currency,
+    });
+  };
+
+  const handleEditRate = (rate: any) => {
+    setSelectedClientId(rate.clientId);
+    setSelectedProductId(rate.productId);
+    setSelectedDocumentTypeId(rate.documentTypeId);
+    setAmount(rate.amount.toString());
+    setCurrency(rate.currency);
+    setEditingRateId(rate.id);
+  };
+
+  const handleDeleteRate = async (rateId: number) => {
+    if (confirm('Are you sure you want to delete this rate?')) {
+      await deleteRateMutation.mutateAsync(rateId);
+    }
+  };
+
+  const canSave = selectedClientId && selectedProductId && selectedDocumentTypeId && amount;
+
+  return (
+    <div className="space-y-6">
+      {/* Rate Configuration Form */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Plus className="h-5 w-5" />
+            {editingRateId ? 'Edit Document Type Rate' : 'Add Document Type Rate'}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Client Selection */}
+            <div className="space-y-2">
+              <Label htmlFor="client-select">Client *</Label>
+              <Select value={selectedClientId ? String(selectedClientId) : ""} onValueChange={handleClientChange}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a client" />
+                </SelectTrigger>
+                <SelectContent>
+                  {clients.map((client) => (
+                    <SelectItem key={client.id} value={String(client.id)}>
+                      {client.name} ({client.code})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Product Selection */}
+            <div className="space-y-2">
+              <Label htmlFor="product-select">Product *</Label>
+              <Select
+                value={selectedProductId ? String(selectedProductId) : ""}
+                onValueChange={handleProductChange}
+                disabled={!selectedClientId}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a product" />
+                </SelectTrigger>
+                <SelectContent>
+                  {products.map((product) => (
+                    <SelectItem key={product.id} value={String(product.id)}>
+                      {product.name} ({product.code})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Document Type Selection */}
+            <div className="space-y-2">
+              <Label htmlFor="document-type-select">Document Type *</Label>
+              <Select
+                value={selectedDocumentTypeId ? String(selectedDocumentTypeId) : ""}
+                onValueChange={handleDocumentTypeChange}
+                disabled={!selectedProductId}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a document type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {documentTypes.map((docType) => (
+                    <SelectItem key={docType.id} value={String(docType.id)}>
+                      {docType.name} ({docType.code})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Amount Input */}
+            <div className="space-y-2">
+              <Label htmlFor="amount-input">Amount *</Label>
+              <div className="relative">
+                <IndianRupee className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
+                <Input
+                  id="amount-input"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  className="pl-10"
+                  disabled={!selectedDocumentTypeId}
+                />
+              </div>
+            </div>
+
+            {/* Currency Selection */}
+            <div className="space-y-2">
+              <Label htmlFor="currency-select">Currency</Label>
+              <Select value={currency} onValueChange={setCurrency}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="INR">INR (₹)</SelectItem>
+                  <SelectItem value="USD">USD ($)</SelectItem>
+                  <SelectItem value="EUR">EUR (€)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="space-y-2">
+              <Label>&nbsp;</Label>
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleSaveRate}
+                  disabled={!canSave || saveRateMutation.isPending}
+                  className="flex-1"
+                >
+                  {saveRateMutation.isPending ? 'Saving...' : editingRateId ? 'Update Rate' : 'Save Rate'}
+                </Button>
+                {editingRateId && (
+                  <Button variant="outline" onClick={resetForm}>
+                    Cancel
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Configured Rates Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Configured Document Type Rates</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {ratesLoading ? (
+            <div className="text-center py-8 text-gray-500">Loading rates...</div>
+          ) : rates.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              No document type rates configured yet. Add your first rate above.
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Client</TableHead>
+                  <TableHead>Product</TableHead>
+                  <TableHead>Document Type</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead className="text-right">Rate</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {rates.map((rate) => (
+                  <TableRow key={rate.id}>
+                    <TableCell className="font-medium">{rate.clientName}</TableCell>
+                    <TableCell>{rate.productName}</TableCell>
+                    <TableCell>{rate.documentTypeName}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline">{rate.documentTypeCategory || 'N/A'}</Badge>
+                    </TableCell>
+                    <TableCell className="text-right font-mono">
+                      {rate.currency} {rate.amount.toFixed(2)}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={rate.isActive ? 'default' : 'secondary'}>
+                        {rate.isActive ? 'Active' : 'Inactive'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEditRate(rate)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeleteRate(rate.id)}
+                          disabled={deleteRateMutation.isPending}
+                        >
+                          <Trash2 className="h-4 w-4 text-red-500" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+

@@ -8,6 +8,7 @@ import { RateTypesTab } from '@/components/rate-management/RateTypesTab';
 import { RateTypeAssignmentTab } from '@/components/rate-management/RateTypeAssignmentTab';
 import { RateAssignmentTab } from '@/components/rate-management/RateAssignmentTab';
 import { RateViewReportTab } from '@/components/rate-management/RateViewReportTab';
+import { DocumentTypeRatesTab } from '@/components/rate-management/DocumentTypeRatesTab';
 
 export function RateManagementPage() {
   const [activeTab, setActiveTab] = useState('rate-types');
@@ -20,7 +21,8 @@ export function RateManagementPage() {
 
   const stats = statsData?.data || {
     rateTypes: { total: 0, active: 0, inactive: 0 },
-    rates: { total: 0, active: 0, inactive: 0, averageAmount: 0 }
+    rates: { total: 0, active: 0, inactive: 0, averageAmount: 0 },
+    documentTypeRates: { totalRates: 0, totalClients: 0, totalProducts: 0, totalDocumentTypes: 0, averageRate: 0, minRate: 0, maxRate: 0 }
   };
 
   return (
@@ -36,7 +38,7 @@ export function RateManagementPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-5">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Rate Types</CardTitle>
@@ -58,7 +60,7 @@ export function RateManagementPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Configured Rates</CardTitle>
+            <CardTitle className="text-sm font-medium">Verification Rates</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.rates.total}</div>
@@ -77,6 +79,18 @@ export function RateManagementPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Document Rates</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.documentTypeRates?.totalRates || 0}</div>
+            <p className="text-xs text-muted-foreground mt-2">
+              {stats.documentTypeRates?.totalDocumentTypes || 0} document types
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Average Rate</CardTitle>
           </CardHeader>
           <CardContent>
@@ -84,7 +98,7 @@ export function RateManagementPage() {
               ₹{stats.rates.averageAmount?.toFixed(0) || '0'}
             </div>
             <p className="text-xs text-muted-foreground mt-2">
-              Across all rate types
+              Verification services
             </p>
           </CardContent>
         </Card>
@@ -115,7 +129,7 @@ export function RateManagementPage() {
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="rate-types" className="text-sm">
                 1. Create Rate Types
               </TabsTrigger>
@@ -127,6 +141,9 @@ export function RateManagementPage() {
               </TabsTrigger>
               <TabsTrigger value="rate-view-report" className="text-sm">
                 4. Rate View/Report
+              </TabsTrigger>
+              <TabsTrigger value="document-type-rates" className="text-sm">
+                5. Document Type Rates
               </TabsTrigger>
             </TabsList>
 
@@ -170,6 +187,16 @@ export function RateManagementPage() {
                   <RateViewReportTab />
                 </div>
               </TabsContent>
+
+              <TabsContent value="document-type-rates" className="space-y-4">
+                <div className="border rounded-lg p-4">
+                  <h3 className="text-lg font-semibold mb-2">Document Type Rates</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Configure pricing for document verification services (independent of rate types)
+                  </p>
+                  <DocumentTypeRatesTab />
+                </div>
+              </TabsContent>
             </div>
           </Tabs>
         </CardContent>
@@ -182,7 +209,7 @@ export function RateManagementPage() {
           <CardDescription>Follow these steps to set up rates for verification services</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 md:grid-cols-4">
+          <div className="grid gap-4 md:grid-cols-5">
             <div className="flex items-start gap-3">
               <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">
                 1
@@ -227,6 +254,18 @@ export function RateManagementPage() {
                 <h4 className="font-semibold">View & Manage</h4>
                 <p className="text-sm text-muted-foreground">
                   Monitor and update rates with comprehensive reporting
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
+                5
+              </div>
+              <div>
+                <h4 className="font-semibold">Document Type Rates</h4>
+                <p className="text-sm text-muted-foreground">
+                  Set pricing for document verification (simpler, no rate types)
                 </p>
               </div>
             </div>
