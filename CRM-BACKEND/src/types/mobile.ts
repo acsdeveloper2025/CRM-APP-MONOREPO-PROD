@@ -69,7 +69,7 @@ export interface MobileCaseResponse {
   latitude?: number;
   longitude?: number;
   status: string;
-  priority: number;
+  priority: string; // Priority level: LOW, MEDIUM, HIGH, URGENT
   assignedAt: string;
   updatedAt: string;
   completedAt?: string;
