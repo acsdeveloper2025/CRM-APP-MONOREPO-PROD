@@ -2,6 +2,7 @@
 import { rateTypesService, type RateType, type CreateRateTypeData, type UpdateRateTypeData } from './rateTypes';
 import { rateTypeAssignmentsService, type RateTypeAssignmentStatus, type BulkAssignRateTypesData } from './rateTypeAssignments';
 import { ratesService, type Rate, type AvailableRateType, type CreateOrUpdateRateData } from './rates';
+import { documentTypeRatesService, type DocumentTypeRate, type CreateDocumentTypeRateData, type DocumentTypeRateStats } from './documentTypeRates';
 import type { ApiResponse } from '@/types/api';
 
 export interface RateManagementWorkflow {
@@ -199,15 +200,40 @@ export class RateManagementService {
     }
   }
 
+  // Tab 5: Document Type Rates Management
+  async getDocumentTypeRates(filters?: {
+    clientId?: number;
+    productId?: number;
+    documentTypeId?: number;
+    search?: string;
+    isActive?: boolean;
+  }) {
+    return documentTypeRatesService.getDocumentTypeRates(filters);
+  }
+
+  async createOrUpdateDocumentTypeRate(data: CreateDocumentTypeRateData): Promise<ApiResponse<void>> {
+    return documentTypeRatesService.createOrUpdateDocumentTypeRate(data);
+  }
+
+  async deleteDocumentTypeRate(rateId: number): Promise<ApiResponse<void>> {
+    return documentTypeRatesService.deleteDocumentTypeRate(rateId);
+  }
+
+  async getDocumentTypeRateStats(): Promise<ApiResponse<DocumentTypeRateStats>> {
+    return documentTypeRatesService.getDocumentTypeRateStats();
+  }
+
   // Statistics and reporting
   async getRateManagementStats(): Promise<ApiResponse<{
     rateTypes: { total: number; active: number; inactive: number };
     rates: { total: number; active: number; inactive: number; averageAmount: number };
+    documentTypeRates?: DocumentTypeRateStats;
   }>> {
     try {
-      const [rateTypeStats, rateStats] = await Promise.all([
+      const [rateTypeStats, rateStats, documentTypeRateStats] = await Promise.all([
         rateTypesService.getRateTypeStats(),
-        ratesService.getRateStats()
+        ratesService.getRateStats(),
+        documentTypeRatesService.getDocumentTypeRateStats()
       ]);
 
       if (!rateTypeStats.success || !rateStats.success) {
@@ -223,7 +249,8 @@ export class RateManagementService {
         message: 'Statistics retrieved successfully',
         data: {
           rateTypes: rateTypeStats.data!,
-          rates: rateStats.data!
+          rates: rateStats.data!,
+          documentTypeRates: documentTypeRateStats.data
         }
       };
     } catch (error) {
@@ -239,7 +266,7 @@ export class RateManagementService {
 export const rateManagementService = new RateManagementService();
 
 // Re-export individual services for direct access if needed
-export { rateTypesService, rateTypeAssignmentsService, ratesService };
+export { rateTypesService, rateTypeAssignmentsService, ratesService, documentTypeRatesService };
 
 // Re-export types
 export type {
@@ -251,5 +278,8 @@ export type {
   Rate,
   AvailableRateType,
   CreateOrUpdateRateData,
-  CombinationSelection
+  CombinationSelection,
+  DocumentTypeRate,
+  CreateDocumentTypeRateData,
+  DocumentTypeRateStats
 };
