@@ -59,7 +59,7 @@ export class CasesService extends BaseApiService {
   }
 
   async createCase(data: CreateCaseData): Promise<ApiResponse<Case>> {
-    return this.post('', data);
+    return this.post('/create', data);
   }
 
   async createCaseWithAttachments(data: CreateCaseData, attachments: File[]): Promise<ApiResponse<Case>> {
@@ -79,7 +79,7 @@ export class CasesService extends BaseApiService {
 
     // Use fetch directly for FormData to avoid setting Content-Type header
     const apiBaseUrl = getApiBaseUrl();
-    const response = await fetch(`${apiBaseUrl}/cases/with-attachments`, {
+    const response = await fetch(`${apiBaseUrl}/cases/create`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`,
@@ -97,7 +97,7 @@ export class CasesService extends BaseApiService {
   }
 
   async createCaseWithMultipleTasks(payload: any): Promise<ApiResponse<any>> {
-    return this.post('/with-multiple-tasks', payload);
+    return this.post('/create', payload);
   }
 
   async updateCaseDetails(id: string, data: CreateCaseData): Promise<ApiResponse<Case>> {
