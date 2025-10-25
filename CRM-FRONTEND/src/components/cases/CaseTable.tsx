@@ -131,7 +131,7 @@ export const CaseTable: React.FC<CaseTableProps> = ({
               <TableHead>Rate Type</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Priority</TableHead>
-              <TableHead>Assigned To</TableHead>
+              <TableHead>Verification Tasks</TableHead>
               <TableHead>Updated</TableHead>
               <TableHead className="w-[70px]"></TableHead>
             </TableRow>
@@ -207,7 +207,7 @@ export const CaseTable: React.FC<CaseTableProps> = ({
               <TableHead className="hidden xl:table-cell">Rate Type</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="hidden lg:table-cell">Priority</TableHead>
-              <TableHead className="hidden lg:table-cell">Assigned To</TableHead>
+              <TableHead className="hidden lg:table-cell">Verification Tasks</TableHead>
               <TableHead className="hidden xl:table-cell">Updated</TableHead>
               <TableHead className="w-[70px]"></TableHead>
             </TableRow>
@@ -270,8 +270,13 @@ export const CaseTable: React.FC<CaseTableProps> = ({
                 </Badge>
               </TableCell>
               <TableCell className="hidden lg:table-cell">
-                <div className="text-sm">
-                  {caseItem.assignedToName || caseItem.assignedTo?.name || 'Unassigned'}
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium">{caseItem.totalTasks || 0}</span>
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <span className="text-green-600">✓ {caseItem.completedTasks || 0}</span>
+                    <span>|</span>
+                    <span className="text-yellow-600">⏳ {(caseItem.pendingTasks || 0) + (caseItem.inProgressTasks || 0)}</span>
+                  </div>
                 </div>
               </TableCell>
               <TableCell className="hidden xl:table-cell">

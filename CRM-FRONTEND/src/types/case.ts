@@ -116,6 +116,12 @@ export interface Case {
 
   // Performance fields
   pendingDurationSeconds?: number;
+
+  // NEW: Multi-task architecture - verification task statistics
+  totalTasks?: number;
+  completedTasks?: number;
+  pendingTasks?: number;
+  inProgressTasks?: number;
 }
 
 export interface CaseFilters {
