@@ -30,19 +30,26 @@ export const getDashboardData = async (req: AuthenticatedRequest, res: Response)
     }
 
     // Get cases from database with filters
-    let casesQuery = 'SELECT * FROM cases WHERE "createdAt" >= $1';
+    let casesQuery = 'SELECT DISTINCT c.* FROM cases c';
     const queryParams: any[] = [startDate];
     let paramIndex = 2;
 
+    // Join with verification_tasks if filtering by userId
+    if (userId) {
+      casesQuery += ' INNER JOIN verification_tasks vt ON c.id = vt.case_id';
+    }
+
+    casesQuery += ' WHERE c."createdAt" >= $1';
+
     if (clientId) {
-      casesQuery += ` AND "clientId" = $${paramIndex}`;
+      casesQuery += ` AND c."clientId" = $${paramIndex}`;
       queryParams.push(parseInt(clientId as string));
       paramIndex++;
     }
 
     if (userId) {
-      casesQuery += ` AND "assignedTo" = $${paramIndex}`;
-      queryParams.push(parseInt(userId as string));
+      casesQuery += ` AND vt.assigned_to = $${paramIndex}`;
+      queryParams.push(userId as string); // UUID, not integer
       paramIndex++;
     }
 
@@ -134,16 +141,16 @@ export const getChartData = async (req: AuthenticatedRequest, res: Response) => 
       return acc;
     }, {});
 
-    // Get user performance from database
+    // Get user performance from database (based on verification tasks)
     const userPerformanceQuery = `
       SELECT
         u.name,
         u.id,
-        COUNT(c."caseId") as "totalCases",
-        COUNT(CASE WHEN c.status = 'COMPLETED' THEN 1 END) as "completedCases",
-        COUNT(CASE WHEN c.status = 'APPROVED' THEN 1 END) as "approvedCases"
+        COUNT(DISTINCT vt.case_id) as "totalCases",
+        COUNT(DISTINCT CASE WHEN vt.status = 'COMPLETED' THEN vt.case_id END) as "completedCases",
+        COUNT(DISTINCT CASE WHEN vt.verification_outcome = 'APPROVED' THEN vt.case_id END) as "approvedCases"
       FROM users u
-      LEFT JOIN cases c ON u.id = c."assignedTo"
+      LEFT JOIN verification_tasks vt ON u.id = vt.assigned_to
       WHERE u."isActive" = true
       GROUP BY u.id, u.name
       ORDER BY "totalCases" DESC
@@ -276,22 +283,22 @@ export const getPerformanceMetrics = async (req: AuthenticatedRequest, res: Resp
     const completedCases = parseInt(metrics.completedCases) || 0;
     const avgTurnaroundDays = parseFloat(metrics.avgTurnaroundDays) || 0;
 
-    // Get user-specific metrics
+    // Get user-specific metrics (based on verification tasks)
     const userMetricsQuery = `
       SELECT
         u.name,
         u.id,
-        COUNT(c."caseId") as "assignedCases",
-        COUNT(CASE WHEN c.status = 'COMPLETED' OR c.status = 'APPROVED' THEN 1 END) as "completedCases",
+        COUNT(DISTINCT vt.case_id) as "assignedCases",
+        COUNT(DISTINCT CASE WHEN vt.status = 'COMPLETED' THEN vt.case_id END) as "completedCases",
         AVG(CASE
-          WHEN c."completedAt" IS NOT NULL
-          THEN EXTRACT(EPOCH FROM (c."completedAt" - c."createdAt")) / 86400
+          WHEN vt.completed_at IS NOT NULL
+          THEN EXTRACT(EPOCH FROM (vt.completed_at - vt.created_at)) / 86400
         END) as "avgTurnaroundDays"
       FROM users u
-      LEFT JOIN cases c ON u.id = c."assignedTo"
+      LEFT JOIN verification_tasks vt ON u.id = vt.assigned_to
       WHERE u."isActive" = true
       GROUP BY u.id, u.name
-      HAVING COUNT(c."caseId") > 0
+      HAVING COUNT(DISTINCT vt.case_id) > 0
       ORDER BY "completedCases" DESC
       LIMIT 10
     `;
@@ -365,22 +372,24 @@ export const getDashboardStats = async (req: AuthenticatedRequest, res: Response
         break;
     }
 
-    // Build role-based filtering condition
-    const roleFilter = effectiveUserId ? ` AND "assignedTo" = '${effectiveUserId}'` : '';
+    // Build role-based filtering condition for verification tasks
+    const taskFilter = effectiveUserId
+      ? ` AND EXISTS (SELECT 1 FROM verification_tasks vt WHERE vt.case_id = c.id AND vt.assigned_to = '${effectiveUserId}')`
+      : '';
 
     // Get comprehensive statistics from database
     const statsQuery = `
       SELECT
-        (SELECT COUNT(*) FROM cases WHERE "createdAt" >= $1${roleFilter}) as "totalCases",
-        (SELECT COUNT(*) FROM cases WHERE "createdAt" >= $1 AND status = 'PENDING'${roleFilter}) as "pendingCases",
-        (SELECT COUNT(*) FROM cases WHERE "createdAt" >= $1 AND status = 'IN_PROGRESS'${roleFilter}) as "inProgressCases",
-        (SELECT COUNT(*) FROM cases WHERE "createdAt" >= $1 AND (status = 'COMPLETED' OR status = 'APPROVED')${roleFilter}) as "completedCases",
-        (SELECT COUNT(*) FROM cases WHERE "createdAt" >= $1 AND status = 'REJECTED'${roleFilter}) as "rejectedCases",
+        (SELECT COUNT(DISTINCT c.id) FROM cases c WHERE c."createdAt" >= $1${taskFilter}) as "totalCases",
+        (SELECT COUNT(DISTINCT c.id) FROM cases c WHERE c."createdAt" >= $1 AND c.status = 'PENDING'${taskFilter}) as "pendingCases",
+        (SELECT COUNT(DISTINCT c.id) FROM cases c WHERE c."createdAt" >= $1 AND c.status = 'IN_PROGRESS'${taskFilter}) as "inProgressCases",
+        (SELECT COUNT(DISTINCT c.id) FROM cases c WHERE c."createdAt" >= $1 AND (c.status = 'COMPLETED' OR c.status = 'APPROVED')${taskFilter}) as "completedCases",
+        (SELECT COUNT(DISTINCT c.id) FROM cases c WHERE c."createdAt" >= $1 AND c.status = 'REJECTED'${taskFilter}) as "rejectedCases",
         (SELECT COUNT(*) FROM clients WHERE "isActive" = true) as "totalClients",
         (SELECT COUNT(*) FROM users WHERE "isActive" = true) as "activeUsers",
-        (SELECT AVG(EXTRACT(EPOCH FROM ("updatedAt" - "createdAt")) / 86400)
-         FROM cases
-         WHERE status IN ('COMPLETED', 'APPROVED') AND "createdAt" >= $1${roleFilter}) as "avgTurnaroundDays"
+        (SELECT AVG(EXTRACT(EPOCH FROM (c."updatedAt" - c."createdAt")) / 86400)
+         FROM cases c
+         WHERE c.status IN ('COMPLETED', 'APPROVED') AND c."createdAt" >= $1${taskFilter}) as "avgTurnaroundDays"
     `;
 
     const result = await pool.query(statsQuery, [startDate]);
@@ -461,28 +470,34 @@ export const getCaseStatusDistribution = async (req: AuthenticatedRequest, res: 
     // Build query with filters
     let statusQuery = `
       SELECT
-        status,
-        COUNT(*) as count,
-        ROUND((COUNT(*) * 100.0 / SUM(COUNT(*)) OVER()), 2) as percentage
-      FROM cases
-      WHERE "createdAt" >= $1
+        c.status,
+        COUNT(DISTINCT c.id) as count,
+        ROUND((COUNT(DISTINCT c.id) * 100.0 / SUM(COUNT(DISTINCT c.id)) OVER()), 2) as percentage
+      FROM cases c
     `;
     const queryParams: any[] = [startDate];
     let paramIndex = 2;
 
+    // Join with verification_tasks if filtering by userId
+    if (effectiveUserId) {
+      statusQuery += ` INNER JOIN verification_tasks vt ON c.id = vt.case_id`;
+    }
+
+    statusQuery += ` WHERE c."createdAt" >= $1`;
+
     if (clientId) {
-      statusQuery += ` AND "clientId" = $${paramIndex}`;
+      statusQuery += ` AND c."clientId" = $${paramIndex}`;
       queryParams.push(parseInt(clientId as string));
       paramIndex++;
     }
 
     if (effectiveUserId) {
-      statusQuery += ` AND "assignedTo" = $${paramIndex}`;
+      statusQuery += ` AND vt.assigned_to = $${paramIndex}`;
       queryParams.push(effectiveUserId);
       paramIndex++;
     }
 
-    statusQuery += ` GROUP BY status ORDER BY count DESC`;
+    statusQuery += ` GROUP BY c.status ORDER BY count DESC`;
 
     const result = await pool.query(statusQuery, queryParams);
 
@@ -543,36 +558,42 @@ export const getMonthlyTrends = async (req: AuthenticatedRequest, res: Response)
     // Build query with filters
     let trendsQuery = `
       SELECT
-        DATE_TRUNC('month', "createdAt") as month,
-        COUNT(*) as "totalCases",
-        COUNT(CASE WHEN status = 'COMPLETED' OR status = 'APPROVED' THEN 1 END) as "completedCases",
-        COUNT(CASE WHEN status = 'PENDING' THEN 1 END) as "pendingCases",
-        COUNT(CASE WHEN status = 'IN_PROGRESS' THEN 1 END) as "inProgressCases",
-        COUNT(CASE WHEN status = 'REJECTED' THEN 1 END) as "rejectedCases",
+        DATE_TRUNC('month', c."createdAt") as month,
+        COUNT(DISTINCT c.id) as "totalCases",
+        COUNT(DISTINCT CASE WHEN c.status = 'COMPLETED' OR c.status = 'APPROVED' THEN c.id END) as "completedCases",
+        COUNT(DISTINCT CASE WHEN c.status = 'PENDING' THEN c.id END) as "pendingCases",
+        COUNT(DISTINCT CASE WHEN c.status = 'IN_PROGRESS' THEN c.id END) as "inProgressCases",
+        COUNT(DISTINCT CASE WHEN c.status = 'REJECTED' THEN c.id END) as "rejectedCases",
         AVG(CASE
-          WHEN status IN ('COMPLETED', 'APPROVED')
-          THEN EXTRACT(EPOCH FROM ("updatedAt" - "createdAt")) / 86400
+          WHEN c.status IN ('COMPLETED', 'APPROVED')
+          THEN EXTRACT(EPOCH FROM (c."updatedAt" - c."createdAt")) / 86400
         END) as "avgTurnaroundDays"
-      FROM cases
-      WHERE "createdAt" >= $1
+      FROM cases c
     `;
     const queryParams: any[] = [startDate];
     let paramIndex = 2;
 
+    // Join with verification_tasks if filtering by userId
+    if (effectiveUserId) {
+      trendsQuery += ` INNER JOIN verification_tasks vt ON c.id = vt.case_id`;
+    }
+
+    trendsQuery += ` WHERE c."createdAt" >= $1`;
+
     if (clientId) {
-      trendsQuery += ` AND "clientId" = $${paramIndex}`;
+      trendsQuery += ` AND c."clientId" = $${paramIndex}`;
       queryParams.push(parseInt(clientId as string));
       paramIndex++;
     }
 
     if (effectiveUserId) {
-      trendsQuery += ` AND "assignedTo" = $${paramIndex}`;
+      trendsQuery += ` AND vt.assigned_to = $${paramIndex}`;
       queryParams.push(effectiveUserId);
       paramIndex++;
     }
 
     trendsQuery += `
-      GROUP BY DATE_TRUNC('month', "createdAt")
+      GROUP BY DATE_TRUNC('month', c."createdAt")
       ORDER BY month ASC
     `;
 
