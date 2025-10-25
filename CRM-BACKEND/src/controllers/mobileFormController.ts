@@ -37,6 +37,61 @@ import { logger } from '../utils/logger';
 
 export class MobileFormController {
   /**
+   * Helper function to update case status based on ALL verification tasks
+   * Case should only be COMPLETED when ALL tasks are completed
+   */
+  private static async updateCaseStatusBasedOnTasks(caseId: string): Promise<void> {
+    try {
+      // Get task statistics for this case
+      const taskStatsQuery = `
+        SELECT
+          COUNT(*) as total_tasks,
+          COUNT(*) FILTER (WHERE status = 'COMPLETED') as completed_tasks,
+          COUNT(*) FILTER (WHERE status = 'CANCELLED') as cancelled_tasks
+        FROM verification_tasks
+        WHERE case_id = $1
+      `;
+      const taskStatsResult = await query(taskStatsQuery, [caseId]);
+      const stats = taskStatsResult.rows[0];
+
+      const totalTasks = parseInt(stats.total_tasks);
+      const completedTasks = parseInt(stats.completed_tasks);
+      const cancelledTasks = parseInt(stats.cancelled_tasks);
+
+      // Determine case status based on task completion
+      let caseStatus = 'IN_PROGRESS';
+      let completedAt = null;
+
+      // Case is COMPLETED only if ALL tasks are either COMPLETED or CANCELLED
+      if (totalTasks > 0 && (completedTasks + cancelledTasks) === totalTasks) {
+        caseStatus = 'COMPLETED';
+        completedAt = new Date();
+      }
+
+      // Update case status
+      await query(`
+        UPDATE cases
+        SET
+          status = $1,
+          "completedAt" = $2,
+          "updatedAt" = CURRENT_TIMESTAMP
+        WHERE id = $3
+      `, [caseStatus, completedAt, caseId]);
+
+      logger.info('Case status updated based on tasks', {
+        caseId,
+        totalTasks,
+        completedTasks,
+        cancelledTasks,
+        newStatus: caseStatus
+      });
+    } catch (error) {
+      logger.error('Failed to update case status based on tasks:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Helper function to send case completion notifications to backend users
    */
   private static async sendCaseCompletionNotification(
@@ -2033,8 +2088,11 @@ export class MobileFormController {
         WHERE id = $1
       `, [verificationTaskId]);
 
-      // Update case with verification data using detected verification outcome
-      await query(`UPDATE cases SET status = 'COMPLETED', "completedAt" = CURRENT_TIMESTAMP, "verificationData" = $1, "verificationType" = 'RESIDENCE', "verificationOutcome" = $2, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $3`, [JSON.stringify(verificationData), verificationOutcome, actualCaseId]);
+      // Update case status based on ALL tasks (only mark as COMPLETED if all tasks are done)
+      await MobileFormController.updateCaseStatusBasedOnTasks(actualCaseId);
+
+      // Update case with verification data (without changing status)
+      await query(`UPDATE cases SET "verificationData" = $1, "verificationType" = 'RESIDENCE', "verificationOutcome" = $2, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $3`, [JSON.stringify(verificationData), verificationOutcome, actualCaseId]);
       const caseUpd = await query(`SELECT id, "caseId", status, "completedAt", "customerName", "backendContactNumber" FROM cases WHERE id = $1`, [actualCaseId]);
       const updatedCase = caseUpd.rows[0];
 
@@ -2406,8 +2464,11 @@ export class MobileFormController {
         WHERE id = $1
       `, [verificationTaskId]);
 
-      // Update case with verification data using detected verification outcome
-      await query(`UPDATE cases SET status = 'COMPLETED', "completedAt" = CURRENT_TIMESTAMP, "verificationData" = $1, "verificationType" = 'OFFICE', "verificationOutcome" = $2, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $3`, [JSON.stringify(verificationData), verificationOutcome, actualCaseId]);
+      // Update case status based on ALL tasks (only mark as COMPLETED if all tasks are done)
+      await MobileFormController.updateCaseStatusBasedOnTasks(actualCaseId);
+
+      // Update case with verification data (without changing status)
+      await query(`UPDATE cases SET "verificationData" = $1, "verificationType" = 'OFFICE', "verificationOutcome" = $2, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $3`, [JSON.stringify(verificationData), verificationOutcome, actualCaseId]);
       const caseUpd = await query(`SELECT id, "caseId", status, "completedAt", "customerName", "backendContactNumber" FROM cases WHERE id = $1`, [actualCaseId]);
       const updatedCase = caseUpd.rows[0];
 
@@ -2772,8 +2833,11 @@ export class MobileFormController {
         WHERE id = $1
       `, [verificationTaskId]);
 
-      // Update case with verification data using detected verification outcome
-      await query(`UPDATE cases SET status = 'COMPLETED', "completedAt" = CURRENT_TIMESTAMP, "verificationData" = $1, "verificationType" = 'BUSINESS', "verificationOutcome" = $2, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $3`, [JSON.stringify(verificationData), verificationOutcome, actualCaseId]);
+      // Update case status based on ALL tasks (only mark as COMPLETED if all tasks are done)
+      await MobileFormController.updateCaseStatusBasedOnTasks(actualCaseId);
+
+      // Update case with verification data (without changing status)
+      await query(`UPDATE cases SET "verificationData" = $1, "verificationType" = 'BUSINESS', "verificationOutcome" = $2, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $3`, [JSON.stringify(verificationData), verificationOutcome, actualCaseId]);
       const caseUpd = await query(`SELECT id, "caseId", status, "completedAt", "customerName", "backendContactNumber" FROM cases WHERE id = $1`, [actualCaseId]);
       const updatedCase = caseUpd.rows[0];
 
@@ -3154,8 +3218,11 @@ export class MobileFormController {
         WHERE id = $1
       `, [verificationTaskId]);
 
-      // Update case with verification data using detected verification outcome
-      await query(`UPDATE cases SET status = 'COMPLETED', "completedAt" = CURRENT_TIMESTAMP, "verificationData" = $1, "verificationType" = 'BUILDER', "verificationOutcome" = $2, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $3`, [JSON.stringify(verificationData), verificationOutcome, actualCaseId]);
+      // Update case status based on ALL tasks (only mark as COMPLETED if all tasks are done)
+      await MobileFormController.updateCaseStatusBasedOnTasks(actualCaseId);
+
+      // Update case with verification data (without changing status)
+      await query(`UPDATE cases SET "verificationData" = $1, "verificationType" = 'BUILDER', "verificationOutcome" = $2, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $3`, [JSON.stringify(verificationData), verificationOutcome, actualCaseId]);
       const caseUpd = await query(`SELECT id, "caseId", status, "completedAt", "customerName", "backendContactNumber" FROM cases WHERE id = $1`, [actualCaseId]);
       const updatedCase = caseUpd.rows[0];
 
@@ -3528,8 +3595,11 @@ export class MobileFormController {
         WHERE id = $1
       `, [verificationTaskId]);
 
-      // Update case with verification data using detected verification outcome
-      await query(`UPDATE cases SET status = 'COMPLETED', "completedAt" = CURRENT_TIMESTAMP, "verificationData" = $1, "verificationType" = 'RESIDENCE_CUM_OFFICE', "verificationOutcome" = $2, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $3`, [JSON.stringify(verificationData), verificationOutcome, actualCaseId]);
+      // Update case status based on ALL tasks (only mark as COMPLETED if all tasks are done)
+      await MobileFormController.updateCaseStatusBasedOnTasks(actualCaseId);
+
+      // Update case with verification data (without changing status)
+      await query(`UPDATE cases SET "verificationData" = $1, "verificationType" = 'RESIDENCE_CUM_OFFICE', "verificationOutcome" = $2, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $3`, [JSON.stringify(verificationData), verificationOutcome, actualCaseId]);
       const caseUpd = await query(`SELECT id, "caseId", status, "completedAt", "customerName", "backendContactNumber" FROM cases WHERE id = $1`, [actualCaseId]);
       const updatedCase = caseUpd.rows[0];
 
@@ -3874,8 +3944,11 @@ export class MobileFormController {
         WHERE id = $1
       `, [verificationTaskId]);
 
-      // Update case with verification data using detected verification outcome
-      await query(`UPDATE cases SET status = 'COMPLETED', "completedAt" = CURRENT_TIMESTAMP, "verificationData" = $1, "verificationType" = 'DSA_CONNECTOR', "verificationOutcome" = $2, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $3`, [JSON.stringify(verificationData), verificationOutcome, actualCaseId]);
+      // Update case status based on ALL tasks (only mark as COMPLETED if all tasks are done)
+      await MobileFormController.updateCaseStatusBasedOnTasks(actualCaseId);
+
+      // Update case with verification data (without changing status)
+      await query(`UPDATE cases SET "verificationData" = $1, "verificationType" = 'DSA_CONNECTOR', "verificationOutcome" = $2, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $3`, [JSON.stringify(verificationData), verificationOutcome, actualCaseId]);
       const caseUpd = await query(`SELECT id, "caseId", status, "completedAt", "customerName", "backendContactNumber" FROM cases WHERE id = $1`, [actualCaseId]);
       const updatedCase = caseUpd.rows[0];
 
@@ -4248,8 +4321,11 @@ export class MobileFormController {
         WHERE id = $1
       `, [verificationTaskId]);
 
-      // Update case with verification data using detected verification outcome
-      await query(`UPDATE cases SET status = 'COMPLETED', "completedAt" = CURRENT_TIMESTAMP, "verificationData" = $1, "verificationType" = 'PROPERTY_INDIVIDUAL', "verificationOutcome" = $2, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $3`, [JSON.stringify(verificationData), verificationOutcome, actualCaseId]);
+      // Update case status based on ALL tasks (only mark as COMPLETED if all tasks are done)
+      await MobileFormController.updateCaseStatusBasedOnTasks(actualCaseId);
+
+      // Update case with verification data (without changing status)
+      await query(`UPDATE cases SET "verificationData" = $1, "verificationType" = 'PROPERTY_INDIVIDUAL', "verificationOutcome" = $2, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $3`, [JSON.stringify(verificationData), verificationOutcome, actualCaseId]);
       const caseUpd = await query(`SELECT id, "caseId", status, "completedAt", "customerName", "backendContactNumber" FROM cases WHERE id = $1`, [actualCaseId]);
       const updatedCase = caseUpd.rows[0];
 
@@ -4594,8 +4670,11 @@ export class MobileFormController {
         WHERE id = $1
       `, [verificationTaskId]);
 
-      // Update case with verification data using detected verification outcome
-      await query(`UPDATE cases SET status = 'COMPLETED', "completedAt" = CURRENT_TIMESTAMP, "verificationData" = $1, "verificationType" = 'PROPERTY_APF', "verificationOutcome" = $2, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $3`, [JSON.stringify(verificationData), verificationOutcome, actualCaseId]);
+      // Update case status based on ALL tasks (only mark as COMPLETED if all tasks are done)
+      await MobileFormController.updateCaseStatusBasedOnTasks(actualCaseId);
+
+      // Update case with verification data (without changing status)
+      await query(`UPDATE cases SET "verificationData" = $1, "verificationType" = 'PROPERTY_APF', "verificationOutcome" = $2, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $3`, [JSON.stringify(verificationData), verificationOutcome, actualCaseId]);
       const caseUpd = await query(`SELECT id, "caseId", status, "completedAt", "customerName", "backendContactNumber" FROM cases WHERE id = $1`, [actualCaseId]);
       const updatedCase = caseUpd.rows[0];
 
@@ -4959,8 +5038,11 @@ export class MobileFormController {
         WHERE id = $1
       `, [verificationTaskId]);
 
-      // Update case with verification data using detected verification outcome
-      await query(`UPDATE cases SET status = 'COMPLETED', "completedAt" = CURRENT_TIMESTAMP, "verificationData" = $1, "verificationType" = 'NOC', "verificationOutcome" = $2, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $3`, [JSON.stringify(verificationData), verificationOutcome, actualCaseId]);
+      // Update case status based on ALL tasks (only mark as COMPLETED if all tasks are done)
+      await MobileFormController.updateCaseStatusBasedOnTasks(actualCaseId);
+
+      // Update case with verification data (without changing status)
+      await query(`UPDATE cases SET "verificationData" = $1, "verificationType" = 'NOC', "verificationOutcome" = $2, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $3`, [JSON.stringify(verificationData), verificationOutcome, actualCaseId]);
       const caseUpd = await query(`SELECT id, "caseId", status, "completedAt", "customerName", "backendContactNumber" FROM cases WHERE id = $1`, [actualCaseId]);
       const updatedCase = caseUpd.rows[0];
 
