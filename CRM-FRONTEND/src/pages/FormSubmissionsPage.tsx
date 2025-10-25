@@ -13,7 +13,8 @@ import {
   User,
   AlertCircle,
   Eye,
-  FileText
+  FileText,
+  CheckCircle2
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -143,6 +144,20 @@ export const FormSubmissionsPage: React.FC = () => {
               </CardHeader>
               <CardContent className="pt-0">
                 <div className="space-y-3">
+                  {/* NEW: Task Information */}
+                  {submission.verificationTaskNumber && (
+                    <div className="flex items-center space-x-2 text-sm">
+                      <CheckCircle2 className="h-4 w-4 text-blue-600" />
+                      <span className="font-medium text-blue-600">
+                        Task {submission.verificationTaskNumber}
+                      </span>
+                      {submission.verificationTypeName && (
+                        <Badge variant="outline" className="text-xs">
+                          {submission.verificationTypeName}
+                        </Badge>
+                      )}
+                    </div>
+                  )}
                   <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                     <Clock className="h-4 w-4" />
                     <span>
