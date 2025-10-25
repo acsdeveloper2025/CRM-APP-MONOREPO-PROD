@@ -241,11 +241,12 @@ export class EnhancedCasesService {
   
   /**
    * Create case with multiple verification tasks
+   * Uses unified /cases/create endpoint
    */
   static async createCaseWithMultipleTasks(
     caseData: CreateCaseWithMultipleTasksRequest
   ): Promise<CreateCaseWithMultipleTasksResponse> {
-    const response = await apiService.post('/cases/with-multiple-tasks', caseData);
+    const response = await apiService.post('/cases/create', caseData);
     return response.data;
   }
 

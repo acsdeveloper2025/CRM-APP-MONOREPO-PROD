@@ -170,34 +170,34 @@ export class CasesService extends BaseApiService {
   }
 
   /**
-   * Create new case
+   * Create new case (uses unified /create endpoint)
    */
   async createCase(data: CreateCaseData): Promise<ApiResponse<Case>> {
-    return this.post('', data);
+    return this.post('/create', data);
   }
 
   /**
-   * Create case with file attachments
+   * Create case with file attachments (uses unified /create endpoint)
    */
   async createCaseWithAttachments(
-    data: CreateCaseData, 
+    data: CreateCaseData,
     attachments: File[]
   ): Promise<ApiResponse<Case>> {
     const formData = new FormData();
-    
+
     // Add case data
     Object.entries(data).forEach(([key, value]) => {
       if (value !== undefined && value !== null) {
         formData.append(key, String(value));
       }
     });
-    
+
     // Add attachments
     attachments.forEach((file, index) => {
       formData.append(`attachments`, file);
     });
 
-    return this.post('/with-attachments', formData, {
+    return this.post('/create', formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     });
   }
