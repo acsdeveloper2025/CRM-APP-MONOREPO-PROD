@@ -615,12 +615,12 @@ export const createCase = async (req: AuthenticatedRequest, res: Response) => {
         INSERT INTO verification_tasks (
           case_id, verification_type_id, task_title, task_description,
           priority, assigned_to, assigned_by, assigned_at,
-          rate_type_id, address, pincode,
+          rate_type_id, address, pincode, applicant_type,
           status, created_by
         ) VALUES (
           $1, $2, $3, $4, $5, $6::uuid, $7,
           CASE WHEN $6 IS NOT NULL THEN NOW() ELSE NULL::timestamp with time zone END,
-          $8, $9, $10, $11, $12
+          $8, $9, $10, $11, $12, $13
         )
       `, [
         newCase.id, // case_id (UUID)
@@ -633,6 +633,7 @@ export const createCase = async (req: AuthenticatedRequest, res: Response) => {
         rateTypeId && rateTypeId.trim() !== '' ? Number(rateTypeId) : null, // rate_type_id
         address, // address
         pincode, // pincode
+        applicantType || null, // applicant_type
         taskStatus, // status
         req.user?.id // created_by
       ]);
@@ -1168,12 +1169,12 @@ export const createCaseWithAttachments = async (req: AuthenticatedRequest, res: 
           INSERT INTO verification_tasks (
             case_id, verification_type_id, task_title, task_description,
             priority, assigned_to, assigned_by, assigned_at,
-            rate_type_id, address, pincode,
+            rate_type_id, address, pincode, applicant_type,
             status, created_by
           ) VALUES (
             $1, $2, $3, $4, $5, $6::uuid, $7,
             CASE WHEN $6 IS NOT NULL THEN NOW() ELSE NULL::timestamp with time zone END,
-            $8, $9, $10, $11, $12
+            $8, $9, $10, $11, $12, $13
           )
         `, [
           caseUUID, // case_id (UUID)
@@ -1186,6 +1187,7 @@ export const createCaseWithAttachments = async (req: AuthenticatedRequest, res: 
           rateTypeId || null, // rate_type_id
           address, // address
           pincode, // pincode
+          applicantType || null, // applicant_type
           taskStatus, // status
           req.user?.id // created_by
         ]);
@@ -1743,19 +1745,25 @@ export const createCaseWithMultipleTasks = async (req: AuthenticatedRequest, res
         document_type,
         document_number,
         document_details,
-        estimated_completion_date
+        estimated_completion_date,
+        applicant_type,
+        applicantType // Support camelCase for consistency
       } = taskData;
 
       // Support both camelCase (assignedTo) and snake_case (assigned_to) for backward compatibility
       const taskAssignedTo = assignedTo || assigned_to;
+      const taskApplicantType = applicantType || applicant_type;
 
       // Debug logging for task data
       logger.info('Processing task:', {
         verification_type_id,
         task_title,
         taskAssignedTo,
+        taskApplicantType,
         assignedTo,
         assigned_to,
+        applicantType,
+        applicant_type,
         taskData
       });
 
@@ -1777,6 +1785,7 @@ export const createCaseWithMultipleTasks = async (req: AuthenticatedRequest, res
         task_description,
         taskPriority,
         taskAssignedTo,
+        taskApplicantType,
         userId,
         rate_type_id,
         estimated_amount,
@@ -1794,20 +1803,20 @@ export const createCaseWithMultipleTasks = async (req: AuthenticatedRequest, res
             priority, assigned_to, assigned_by, assigned_at,
             rate_type_id, estimated_amount, address, pincode,
             document_type, document_number, document_details,
-            estimated_completion_date, trigger, status, created_by
+            estimated_completion_date, trigger, applicant_type, status, created_by
           ) VALUES (
             $1, $2, $3, $4, $5, $6::uuid, $7,
             CASE WHEN $6 IS NOT NULL THEN NOW() ELSE NULL::timestamp with time zone END,
-            $8, $9, $10, $11, $12, $13, $14, $15, $16,
+            $8, $9, $10, $11, $12, $13, $14, $15, $16, $17,
             CASE WHEN $6 IS NOT NULL THEN 'ASSIGNED'::text ELSE 'PENDING'::text END,
-            $17
+            $18
           ) RETURNING *
         `, [
           newCase.id, verification_type_id, task_title, task_description,
           taskPriority, taskAssignedTo || null, userId,
           rate_type_id, estimated_amount, taskAddress, taskPincode || pincode,
           document_type, document_number, JSON.stringify(document_details),
-          estimated_completion_date, taskTrigger || task_description, userId
+          estimated_completion_date, taskTrigger || task_description, taskApplicantType || null, userId
         ]);
       } catch (taskError: any) {
         logger.error('ERROR inserting verification task:', {
