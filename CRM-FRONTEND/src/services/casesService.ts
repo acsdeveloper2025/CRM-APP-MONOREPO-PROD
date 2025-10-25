@@ -173,7 +173,37 @@ export class CasesService extends BaseApiService {
    * Create new case (uses unified /create endpoint)
    */
   async createCase(data: CreateCaseData): Promise<ApiResponse<Case>> {
-    return this.post('/create', data);
+    // Transform old format to new unified format
+    const unifiedPayload = {
+      case_details: {
+        customerName: data.customerName,
+        customerPhone: data.customerPhone,
+        customerCallingCode: data.customerCallingCode,
+        customerEmail: (data as any).customerEmail,
+        clientId: data.clientId,
+        productId: data.productId,
+        backendContactNumber: data.backendContactNumber,
+        priority: data.priority,
+        pincode: data.pincode,
+        deduplicationDecision: data.deduplicationDecision,
+        deduplicationRationale: data.deduplicationRationale,
+        panNumber: data.panNumber,
+      },
+      verification_tasks: [{
+        verification_type_id: data.verificationTypeId ? parseInt(data.verificationTypeId) : 0,
+        task_title: `${data.verificationType || 'Verification'} Task`,
+        task_description: data.trigger,
+        priority: data.priority,
+        assigned_to: data.assignedToId || undefined,
+        rate_type_id: data.rateTypeId,
+        address: data.address,
+        pincode: data.pincode,
+        applicant_type: data.applicantType,
+        trigger: data.trigger,
+      }]
+    };
+
+    return this.post('/create', unifiedPayload);
   }
 
   /**
@@ -185,12 +215,38 @@ export class CasesService extends BaseApiService {
   ): Promise<ApiResponse<Case>> {
     const formData = new FormData();
 
-    // Add case data
-    Object.entries(data).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
-        formData.append(key, String(value));
-      }
-    });
+    // Transform to unified format
+    const unifiedPayload = {
+      case_details: {
+        customerName: data.customerName,
+        customerPhone: data.customerPhone,
+        customerCallingCode: data.customerCallingCode,
+        customerEmail: (data as any).customerEmail,
+        clientId: data.clientId,
+        productId: data.productId,
+        backendContactNumber: data.backendContactNumber,
+        priority: data.priority,
+        pincode: data.pincode,
+        deduplicationDecision: data.deduplicationDecision,
+        deduplicationRationale: data.deduplicationRationale,
+        panNumber: data.panNumber,
+      },
+      verification_tasks: [{
+        verification_type_id: data.verificationTypeId ? parseInt(data.verificationTypeId) : 0,
+        task_title: `${data.verificationType || 'Verification'} Task`,
+        task_description: data.trigger,
+        priority: data.priority,
+        assigned_to: data.assignedToId || undefined,
+        rate_type_id: data.rateTypeId,
+        address: data.address,
+        pincode: data.pincode,
+        applicant_type: data.applicantType,
+        trigger: data.trigger,
+      }]
+    };
+
+    // Add unified payload as JSON string
+    formData.append('data', JSON.stringify(unifiedPayload));
 
     // Add attachments
     attachments.forEach((file, index) => {
