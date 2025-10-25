@@ -148,16 +148,16 @@ export class MobileCaseController {
                p.name as "productName",
                p.code as "productCode",
                -- Field 5: Verification Type
-               vt.id as "verificationTypeId",
-               vt.name as "verificationTypeName",
-               vt.code as "verificationTypeCode",
-               -- Rate type information (for Area and Rate Type columns)
-               rt.name as "rateTypeName",
-               rt.description as "rateTypeDescription",
+               vtype.id as "verificationTypeId",
+               vtype.name as "verificationTypeName",
+               vtype.code as "verificationTypeCode",
+               -- Rate type information (for Area and Rate Type columns) - from task level
+               vtask.rate_type_name as "rateTypeName",
+               vtask.rate_type_description as "rateTypeDescription",
                -- Area information derived from rate type (local/ogl classification)
                CASE
-                 WHEN LOWER(rt.name) LIKE '%local%' OR LOWER(rt.description) LIKE '%local%' THEN 'local'
-                 WHEN LOWER(rt.name) LIKE '%ogl%' OR LOWER(rt.description) LIKE '%ogl%' THEN 'ogl'
+                 WHEN LOWER(vtask.rate_type_name) LIKE '%local%' OR LOWER(vtask.rate_type_description) LIKE '%local%' THEN 'local'
+                 WHEN LOWER(vtask.rate_type_name) LIKE '%ogl%' OR LOWER(vtask.rate_type_description) LIKE '%ogl%' THEN 'ogl'
                  ELSE 'standard'
                END as "areaType",
                -- Field 7: Created By Backend User
@@ -180,13 +180,15 @@ export class MobileCaseController {
         FROM cases c
         LEFT JOIN clients cl ON cl.id = c."clientId"
         LEFT JOIN products p ON p.id = c."productId"
-        LEFT JOIN "verificationTypes" vt ON vt.id = c."verificationTypeId"
-        LEFT JOIN "rateTypes" rt ON rt.id = c."rateTypeId"
+        LEFT JOIN "verificationTypes" vtype ON vtype.id = c."verificationTypeId"
         LEFT JOIN users cu ON cu.id = c."createdByBackendUser"
         LEFT JOIN LATERAL (
-          SELECT vt.id, vt.task_number, vt.address, vt.trigger, vt.assigned_to, u.name as assigned_user_name
+          SELECT vt.id, vt.task_number, vt.address, vt.trigger, vt.priority, vt.applicant_type,
+                 vt.assigned_to, u.name as assigned_user_name,
+                 rt.name as rate_type_name, rt.description as rate_type_description
           FROM verification_tasks vt
           LEFT JOIN users u ON u.id = vt.assigned_to
+          LEFT JOIN "rateTypes" rt ON rt.id = vt.rate_type_id
           WHERE vt.case_id = c.id
           AND (
             $${taskFilterParamIndex}::uuid IS NULL  -- For non-field-agents, show first task
@@ -338,7 +340,7 @@ export class MobileCaseController {
         SELECT c.*,
                cl.id as "clientId", cl.name as "clientName", cl.code as "clientCode",
                p.id as "productId", p.name as "productName", p.code as "productCode",
-               vt.id as "verificationTypeId", vt.name as "verificationTypeName", vt.code as "verificationTypeCode",
+               vtype.id as "verificationTypeId", vtype.name as "verificationTypeName", vtype.code as "verificationTypeCode",
                cu.name as "createdByUserName",
                vtask.id as "verificationTaskId",
                vtask.task_number as "verificationTaskNumber",
@@ -351,10 +353,11 @@ export class MobileCaseController {
         FROM cases c
         LEFT JOIN clients cl ON cl.id = c."clientId"
         LEFT JOIN products p ON p.id = c."productId"
-        LEFT JOIN "verificationTypes" vt ON vt.id = c."verificationTypeId"
+        LEFT JOIN "verificationTypes" vtype ON vtype.id = c."verificationTypeId"
         LEFT JOIN users cu ON cu.id = c."createdByBackendUser"
         LEFT JOIN LATERAL (
-          SELECT vt.id, vt.task_number, vt.address, vt.trigger, vt.assigned_to, u.name as assigned_user_name
+          SELECT vt.id, vt.task_number, vt.address, vt.trigger, vt.priority, vt.applicant_type,
+                 vt.assigned_to, u.name as assigned_user_name
           FROM verification_tasks vt
           LEFT JOIN users u ON u.id = vt.assigned_to
           WHERE vt.case_id = c.id
