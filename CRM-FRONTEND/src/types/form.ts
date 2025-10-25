@@ -113,6 +113,14 @@ export interface FormSubmission {
   submittedBy: string;
   submittedByName: string;
 
+  // NEW: Multi-task architecture - link submission to specific verification task
+  verificationTaskId?: string;
+  verificationTaskNumber?: string;
+  verificationTypeName?: string;
+  assignedTo?: string;
+  assignedToName?: string;
+  taskStatus?: string;
+
   // Form field data organized by sections
   sections: FormSection[];
 
