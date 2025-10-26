@@ -275,6 +275,260 @@ export class VerificationTasksController {
   }
 
   /**
+   * Get all verification tasks across all cases with filtering
+   * GET /api/verification-tasks
+   */
+  static async getAllTasks(req: AuthenticatedRequest, res: Response): Promise<void> {
+    const {
+      page = 1,
+      limit = 50,
+      sortBy = 'created_at',
+      sortOrder = 'desc',
+      status,
+      priority,
+      assignedTo,
+      verificationTypeId,
+      clientId,
+      productId,
+      search,
+      dateFrom,
+      dateTo
+    } = req.query;
+
+    try {
+      const offset = (Number(page) - 1) * Number(limit);
+
+      // Build WHERE conditions
+      const conditions: string[] = [];
+      const params: any[] = [];
+      let paramIndex = 1;
+
+      // Role-based filtering - FIELD_AGENT users can only see their assigned tasks
+      const userRole = req.user?.role;
+      const userId = req.user?.id;
+
+      if (userRole === 'FIELD_AGENT') {
+        conditions.push(`vt.assigned_to = $${paramIndex}`);
+        params.push(userId);
+        paramIndex++;
+      } else if (assignedTo) {
+        conditions.push(`vt.assigned_to = $${paramIndex}`);
+        params.push(assignedTo);
+        paramIndex++;
+      }
+
+      // Status filter (can be multiple statuses separated by comma)
+      if (status) {
+        const statuses = (status as string).split(',');
+        const statusPlaceholders = statuses.map((_, idx) => `$${paramIndex + idx}`).join(',');
+        conditions.push(`vt.status IN (${statusPlaceholders})`);
+        params.push(...statuses);
+        paramIndex += statuses.length;
+      }
+
+      // Priority filter
+      if (priority) {
+        conditions.push(`vt.priority = $${paramIndex}`);
+        params.push(priority);
+        paramIndex++;
+      }
+
+      // Verification type filter
+      if (verificationTypeId) {
+        conditions.push(`vt.verification_type_id = $${paramIndex}`);
+        params.push(verificationTypeId);
+        paramIndex++;
+      }
+
+      // Client filter
+      if (clientId) {
+        conditions.push(`c."clientId" = $${paramIndex}`);
+        params.push(parseInt(clientId as string));
+        paramIndex++;
+      }
+
+      // Product filter
+      if (productId) {
+        conditions.push(`c."productId" = $${paramIndex}`);
+        params.push(parseInt(productId as string));
+        paramIndex++;
+      }
+
+      // Search filter (customer name, task title, address, task number)
+      if (search) {
+        conditions.push(`(
+          c."customerName" ILIKE $${paramIndex} OR
+          vt.task_title ILIKE $${paramIndex} OR
+          vt.address ILIKE $${paramIndex} OR
+          vt.task_number ILIKE $${paramIndex}
+        )`);
+        params.push(`%${search}%`);
+        paramIndex++;
+      }
+
+      // Date range filter
+      if (dateFrom) {
+        conditions.push(`vt.created_at >= $${paramIndex}`);
+        params.push(dateFrom);
+        paramIndex++;
+      }
+
+      if (dateTo) {
+        conditions.push(`vt.created_at <= $${paramIndex}`);
+        params.push(dateTo);
+        paramIndex++;
+      }
+
+      const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+      // Validate sortBy to prevent SQL injection
+      const allowedSortFields = ['created_at', 'updated_at', 'assigned_at', 'priority', 'status', 'task_number'];
+      const safeSortBy = allowedSortFields.includes(sortBy as string) ? sortBy : 'created_at';
+      const safeSortOrder = sortOrder === 'asc' ? 'ASC' : 'DESC';
+
+      // Get total count
+      const countResult = await pool.query(`
+        SELECT COUNT(*) as total
+        FROM verification_tasks vt
+        LEFT JOIN cases c ON vt.case_id = c.id
+        ${whereClause}
+      `, params);
+
+      const totalTasks = parseInt(countResult.rows[0].total);
+
+      // Get tasks with populated data
+      const tasksResult = await pool.query(`
+        SELECT
+          vt.*,
+          c."caseId" as case_number,
+          c."customerName" as customer_name,
+          c.status as case_status,
+          cl.name as client_name,
+          p.name as product_name,
+          vtype.name as verification_type_name,
+          u_assigned.name as assigned_to_name,
+          u_assigned."employeeId" as assigned_to_employee_id,
+          u_created.name as assigned_by_name,
+          rt.name as rate_type_name,
+          tcc.status as commission_status,
+          tcc.calculated_commission
+        FROM verification_tasks vt
+        LEFT JOIN cases c ON vt.case_id = c.id
+        LEFT JOIN clients cl ON c."clientId" = cl.id
+        LEFT JOIN products p ON c."productId" = p.id
+        LEFT JOIN "verificationTypes" vtype ON vt.verification_type_id = vtype.id
+        LEFT JOIN users u_assigned ON vt.assigned_to = u_assigned.id
+        LEFT JOIN users u_created ON vt.assigned_by = u_created.id
+        LEFT JOIN "rateTypes" rt ON vt.rate_type_id = rt.id
+        LEFT JOIN task_commission_calculations tcc ON vt.id = tcc.verification_task_id
+        ${whereClause}
+        ORDER BY vt.${safeSortBy} ${safeSortOrder}
+        LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+      `, [...params, Number(limit), offset]);
+
+      const tasks = tasksResult.rows.map(row => ({
+        id: row.id,
+        taskNumber: row.task_number,
+        caseId: row.case_id,
+        caseNumber: row.case_number,
+        customerName: row.customer_name,
+        caseStatus: row.case_status,
+        client: row.client_name ? { name: row.client_name } : null,
+        product: row.product_name ? { name: row.product_name } : null,
+        verificationType: {
+          id: row.verification_type_id,
+          name: row.verification_type_name
+        },
+        taskTitle: row.task_title,
+        taskDescription: row.task_description,
+        status: row.status,
+        priority: row.priority,
+        assignedTo: row.assigned_to ? {
+          id: row.assigned_to,
+          name: row.assigned_to_name,
+          employeeId: row.assigned_to_employee_id
+        } : null,
+        assignedBy: row.assigned_by ? {
+          id: row.assigned_by,
+          name: row.assigned_by_name
+        } : null,
+        verificationOutcome: row.verification_outcome,
+        rateType: row.rate_type_name ? {
+          id: row.rate_type_id,
+          name: row.rate_type_name
+        } : null,
+        estimatedAmount: parseFloat(row.estimated_amount || '0'),
+        actualAmount: parseFloat(row.actual_amount || '0'),
+        address: row.address,
+        pincode: row.pincode,
+        trigger: row.trigger,
+        applicantType: row.applicant_type,
+        documentType: row.document_type,
+        documentNumber: row.document_number,
+        documentDetails: row.document_details,
+        assignedAt: row.assigned_at,
+        startedAt: row.started_at,
+        completedAt: row.completed_at,
+        estimatedCompletionDate: row.estimated_completion_date,
+        commissionStatus: row.commission_status,
+        calculatedCommission: parseFloat(row.calculated_commission || '0'),
+        createdAt: row.created_at,
+        updatedAt: row.updated_at
+      }));
+
+      // Calculate statistics
+      const statsResult = await pool.query(`
+        SELECT
+          COUNT(*) FILTER (WHERE vt.status = 'PENDING') as pending_count,
+          COUNT(*) FILTER (WHERE vt.status = 'ASSIGNED') as assigned_count,
+          COUNT(*) FILTER (WHERE vt.status = 'IN_PROGRESS') as in_progress_count,
+          COUNT(*) FILTER (WHERE vt.status = 'COMPLETED') as completed_count,
+          COUNT(*) FILTER (WHERE vt.status = 'CANCELLED') as cancelled_count,
+          COUNT(*) FILTER (WHERE vt.status = 'ON_HOLD') as on_hold_count,
+          COUNT(*) FILTER (WHERE vt.priority = 'URGENT') as urgent_count,
+          COUNT(*) FILTER (WHERE vt.priority = 'HIGH') as high_priority_count
+        FROM verification_tasks vt
+        LEFT JOIN cases c ON vt.case_id = c.id
+        ${whereClause}
+      `, params);
+
+      const stats = statsResult.rows[0];
+
+      res.json({
+        success: true,
+        data: {
+          tasks,
+          pagination: {
+            page: Number(page),
+            limit: Number(limit),
+            total: totalTasks,
+            totalPages: Math.ceil(totalTasks / Number(limit))
+          },
+          statistics: {
+            pending: parseInt(stats.pending_count || '0'),
+            assigned: parseInt(stats.assigned_count || '0'),
+            inProgress: parseInt(stats.in_progress_count || '0'),
+            completed: parseInt(stats.completed_count || '0'),
+            cancelled: parseInt(stats.cancelled_count || '0'),
+            onHold: parseInt(stats.on_hold_count || '0'),
+            urgent: parseInt(stats.urgent_count || '0'),
+            highPriority: parseInt(stats.high_priority_count || '0')
+          }
+        },
+        message: 'Verification tasks retrieved successfully'
+      });
+
+    } catch (error) {
+      logger.error('Error getting all verification tasks:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get verification tasks',
+        error: { code: 'INTERNAL_ERROR' }
+      });
+    }
+  }
+
+  /**
    * Get all verification tasks for a case
    * GET /api/cases/:caseId/verification-tasks
    */
