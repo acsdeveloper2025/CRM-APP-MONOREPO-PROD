@@ -11,6 +11,18 @@ const router = express.Router();
 // =====================================================
 
 /**
+ * Get all verification tasks across all cases with filtering
+ * GET /api/verification-tasks
+ * Query params: page, limit, sortBy, sortOrder, status, priority, assignedTo,
+ *               verificationTypeId, clientId, productId, search, dateFrom, dateTo
+ */
+router.get(
+  '/verification-tasks',
+  authenticateToken,
+  VerificationTasksController.getAllTasks
+);
+
+/**
  * Create multiple verification tasks for a case
  * POST /api/cases/:caseId/verification-tasks
  */

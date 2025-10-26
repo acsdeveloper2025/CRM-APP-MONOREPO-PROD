@@ -465,7 +465,7 @@ export function useVerificationTasks(initialCaseId?: string): UseVerificationTas
   return {
     // State
     ...state,
-    
+
     // Actions
     fetchTasksForCase,
     fetchTaskById,
@@ -487,5 +487,85 @@ export function useVerificationTasks(initialCaseId?: string): UseVerificationTas
     getTasksByStatus,
     getTasksByAssignee,
     calculateProgress
+  };
+}
+
+/**
+ * Hook for fetching all verification tasks across all cases
+ * Used for task-centric views (Pending Tasks, In Progress Tasks, All Tasks)
+ */
+export function useAllVerificationTasks(filters?: {
+  page?: number;
+  limit?: number;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+  status?: string;
+  priority?: string;
+  assignedTo?: string;
+  verificationTypeId?: number;
+  clientId?: number;
+  productId?: number;
+  search?: string;
+  dateFrom?: string;
+  dateTo?: string;
+}) {
+  const [tasks, setTasks] = useState<VerificationTask[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 50,
+    total: 0,
+    totalPages: 0
+  });
+  const [statistics, setStatistics] = useState({
+    pending: 0,
+    assigned: 0,
+    inProgress: 0,
+    completed: 0,
+    cancelled: 0,
+    onHold: 0,
+    urgent: 0,
+    highPriority: 0
+  });
+
+  const fetchTasks = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await VerificationTasksService.getAllTasks(filters);
+
+      // Transform tasks from snake_case to camelCase
+      const transformedTasks = response.data.tasks.map(transformTaskData);
+
+      setTasks(transformedTasks);
+      setPagination(response.data.pagination);
+      setStatistics(response.data.statistics);
+      setLoading(false);
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.message || err.message || 'Failed to fetch tasks';
+      setError(errorMessage);
+      setLoading(false);
+      toast.error(errorMessage);
+    }
+  }, [filters]);
+
+  // Fetch tasks when filters change
+  useEffect(() => {
+    fetchTasks();
+  }, [fetchTasks]);
+
+  const refreshTasks = useCallback(() => {
+    fetchTasks();
+  }, [fetchTasks]);
+
+  return {
+    tasks,
+    loading,
+    error,
+    pagination,
+    statistics,
+    refreshTasks
   };
 }
