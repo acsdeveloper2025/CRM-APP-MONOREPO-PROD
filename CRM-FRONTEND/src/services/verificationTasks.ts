@@ -20,7 +20,67 @@ import {
  * Handles all API calls related to verification tasks
  */
 export class VerificationTasksService {
-  
+
+  /**
+   * Get all verification tasks across all cases with filtering
+   */
+  static async getAllTasks(filters?: {
+    page?: number;
+    limit?: number;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+    status?: string;
+    priority?: string;
+    assignedTo?: string;
+    verificationTypeId?: number;
+    clientId?: number;
+    productId?: number;
+    search?: string;
+    dateFrom?: string;
+    dateTo?: string;
+  }): Promise<{
+    success: boolean;
+    data: {
+      tasks: VerificationTask[];
+      pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+      };
+      statistics: {
+        pending: number;
+        assigned: number;
+        inProgress: number;
+        completed: number;
+        cancelled: number;
+        onHold: number;
+        urgent: number;
+        highPriority: number;
+      };
+    };
+    message: string;
+  }> {
+    const params = new URLSearchParams();
+
+    if (filters?.page) params.append('page', filters.page.toString());
+    if (filters?.limit) params.append('limit', filters.limit.toString());
+    if (filters?.sortBy) params.append('sortBy', filters.sortBy);
+    if (filters?.sortOrder) params.append('sortOrder', filters.sortOrder);
+    if (filters?.status) params.append('status', filters.status);
+    if (filters?.priority) params.append('priority', filters.priority);
+    if (filters?.assignedTo) params.append('assignedTo', filters.assignedTo);
+    if (filters?.verificationTypeId) params.append('verificationTypeId', filters.verificationTypeId.toString());
+    if (filters?.clientId) params.append('clientId', filters.clientId.toString());
+    if (filters?.productId) params.append('productId', filters.productId.toString());
+    if (filters?.search) params.append('search', filters.search);
+    if (filters?.dateFrom) params.append('dateFrom', filters.dateFrom);
+    if (filters?.dateTo) params.append('dateTo', filters.dateTo);
+
+    const response = await apiService.get(`/verification-tasks?${params.toString()}`);
+    return response as any;
+  }
+
   /**
    * Create multiple verification tasks for a case
    */
