@@ -549,7 +549,21 @@ export function useAllVerificationTasks(filters?: {
       setLoading(false);
       toast.error(errorMessage);
     }
-  }, [filters]);
+  }, [
+    filters?.page,
+    filters?.limit,
+    filters?.sortBy,
+    filters?.sortOrder,
+    filters?.status,
+    filters?.priority,
+    filters?.assignedTo,
+    filters?.verificationTypeId,
+    filters?.clientId,
+    filters?.productId,
+    filters?.search,
+    filters?.dateFrom,
+    filters?.dateTo
+  ]);
 
   // Fetch tasks when filters change
   useEffect(() => {

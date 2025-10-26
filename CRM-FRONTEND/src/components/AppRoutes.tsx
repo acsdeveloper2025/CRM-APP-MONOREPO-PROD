@@ -18,6 +18,8 @@ import { CompletedCasesPage } from '@/pages/CompletedCasesPage';
 import { InProgressCasesPage } from '@/pages/InProgressCasesPage';
 import { PendingTasksPage } from '@/pages/PendingTasksPage';
 import { InProgressTasksPage } from '@/pages/InProgressTasksPage';
+import { AllTasksPage } from '@/pages/AllTasksPage';
+import { TaskDetailPage } from '@/pages/TaskDetailPage';
 import { NewCasePage } from '@/pages/NewCasePage';
 import { ClientsPage } from '@/pages/ClientsPage';
 import { UsersPage } from '@/pages/UsersPage';
@@ -151,6 +153,28 @@ export const AppRoutes: React.FC = () => {
           <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND', 'SUPER_ADMIN']}>
             <Layout>
               <NewCasePage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Task Management Routes */}
+      <Route
+        path="/tasks"
+        element={
+          <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND', 'SUPER_ADMIN']}>
+            <Layout>
+              <AllTasksPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/tasks/:taskId"
+        element={
+          <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND', 'SUPER_ADMIN']}>
+            <Layout>
+              <TaskDetailPage />
             </Layout>
           </ProtectedRoute>
         }
