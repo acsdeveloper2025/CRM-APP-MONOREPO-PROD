@@ -1034,4 +1034,233 @@ export class MobileCaseController {
       });
     }
   }
+
+  /**
+   * Update verification task status (for mobile app)
+   * PUT /api/mobile/verification-tasks/:taskId/status
+   */
+  static async updateTaskStatus(req: Request, res: Response) {
+    try {
+      const { taskId } = req.params;
+      const { status } = req.body;
+      const userId = (req as any).user?.id;
+
+      if (!status) {
+        return res.status(400).json({
+          success: false,
+          message: 'Status is required',
+          error: { code: 'INVALID_INPUT' }
+        });
+      }
+
+      // Validate status
+      const validStatuses = ['PENDING', 'ASSIGNED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'ON_HOLD'];
+      if (!validStatuses.includes(status)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid status',
+          error: { code: 'INVALID_STATUS' }
+        });
+      }
+
+      // Update task status
+      const updateFields: string[] = ['status = $1', 'updated_at = NOW()'];
+      const queryParams: any[] = [status];
+      let paramIndex = 2;
+
+      // Set started_at when status changes to IN_PROGRESS
+      if (status === 'IN_PROGRESS') {
+        updateFields.push(`started_at = COALESCE(started_at, NOW())`);
+      }
+
+      // Set completed_at when status changes to COMPLETED
+      if (status === 'COMPLETED') {
+        updateFields.push(`completed_at = NOW()`);
+      }
+
+      queryParams.push(taskId);
+
+      const updateQuery = `
+        UPDATE verification_tasks
+        SET ${updateFields.join(', ')}
+        WHERE id = $${paramIndex}
+        RETURNING *
+      `;
+
+      const result = await query(updateQuery, queryParams);
+
+      if (result.rows.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: 'Verification task not found',
+          error: { code: 'TASK_NOT_FOUND' }
+        });
+      }
+
+      const updatedTask = result.rows[0];
+
+      // Create audit log
+      await createAuditLog({
+        userId: userId!,
+        action: 'UPDATE_TASK_STATUS',
+        entityType: 'VERIFICATION_TASK',
+        entityId: taskId,
+        details: { status, previousStatus: updatedTask.status }
+      });
+
+      console.log(`✅ Task ${updatedTask.task_number} status updated to ${status}`);
+
+      res.json({
+        success: true,
+        message: 'Task status updated successfully',
+        data: updatedTask
+      });
+
+    } catch (error) {
+      console.error('Update task status error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+        error: {
+          code: 'TASK_STATUS_UPDATE_FAILED',
+          timestamp: new Date().toISOString(),
+        },
+      });
+    }
+  }
+
+  /**
+   * Start working on a verification task (for mobile app)
+   * POST /api/mobile/verification-tasks/:taskId/start
+   */
+  static async startTask(req: Request, res: Response) {
+    try {
+      const { taskId } = req.params;
+      const userId = (req as any).user?.id;
+
+      // Update task status to IN_PROGRESS and set started_at
+      const result = await query(`
+        UPDATE verification_tasks
+        SET
+          status = 'IN_PROGRESS',
+          started_at = COALESCE(started_at, NOW()),
+          updated_at = NOW()
+        WHERE id = $1
+        RETURNING *
+      `, [taskId]);
+
+      if (result.rows.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: 'Verification task not found',
+          error: { code: 'TASK_NOT_FOUND' }
+        });
+      }
+
+      const updatedTask = result.rows[0];
+
+      // Create audit log
+      await createAuditLog({
+        userId: userId!,
+        action: 'START_TASK',
+        entityType: 'VERIFICATION_TASK',
+        entityId: taskId,
+        details: { taskNumber: updatedTask.task_number }
+      });
+
+      console.log(`✅ Task ${updatedTask.task_number} started by user ${userId}`);
+
+      res.json({
+        success: true,
+        message: 'Task started successfully',
+        data: updatedTask
+      });
+
+    } catch (error) {
+      console.error('Start task error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to start task',
+        error: {
+          code: 'TASK_START_FAILED',
+          timestamp: new Date().toISOString(),
+        },
+      });
+    }
+  }
+
+  /**
+   * Complete a verification task (for mobile app)
+   * POST /api/mobile/verification-tasks/:taskId/complete
+   */
+  static async completeTask(req: Request, res: Response) {
+    try {
+      const { taskId } = req.params;
+      const { verificationOutcome, actualAmount } = req.body;
+      const userId = (req as any).user?.id;
+
+      if (!verificationOutcome) {
+        return res.status(400).json({
+          success: false,
+          message: 'Verification outcome is required',
+          error: { code: 'INVALID_INPUT' }
+        });
+      }
+
+      // Update task to completed
+      const result = await query(`
+        UPDATE verification_tasks
+        SET
+          status = 'COMPLETED',
+          verification_outcome = $1,
+          actual_amount = COALESCE($2, estimated_amount),
+          completed_at = NOW(),
+          updated_at = NOW()
+        WHERE id = $3
+        RETURNING *
+      `, [verificationOutcome, actualAmount, taskId]);
+
+      if (result.rows.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: 'Verification task not found',
+          error: { code: 'TASK_NOT_FOUND' }
+        });
+      }
+
+      const completedTask = result.rows[0];
+
+      // Create audit log
+      await createAuditLog({
+        userId: userId!,
+        action: 'COMPLETE_TASK',
+        entityType: 'VERIFICATION_TASK',
+        entityId: taskId,
+        details: {
+          taskNumber: completedTask.task_number,
+          verificationOutcome,
+          actualAmount
+        }
+      });
+
+      console.log(`✅ Task ${completedTask.task_number} completed by user ${userId}`);
+
+      res.json({
+        success: true,
+        message: 'Task completed successfully',
+        data: completedTask
+      });
+
+    } catch (error) {
+      console.error('Complete task error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to complete task',
+        error: {
+          code: 'TASK_COMPLETION_FAILED',
+          timestamp: new Date().toISOString(),
+        },
+      });
+    }
+  }
 }
