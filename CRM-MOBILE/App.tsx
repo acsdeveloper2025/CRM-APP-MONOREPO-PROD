@@ -1,4 +1,4 @@
-import React, { useEffect, useState, Suspense, lazy } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { CaseProvider } from './context/CaseContext';
@@ -16,16 +16,16 @@ import { dataCleanupService } from './services/dataCleanupService';
 import { backgroundTaskManager } from './services/backgroundTaskManager';
 import { initializeAppPermissions } from './utils/permissions';
 
-// Lazy load screens for better code splitting
-const NewLoginScreen = lazy(() => import('./screens/NewLoginScreen'));
-const DashboardScreen = lazy(() => import('./screens/DashboardScreen'));
-const CaseListScreen = lazy(() => import('./screens/CaseListScreen'));
-const AssignedCasesScreen = lazy(() => import('./screens/AssignedCasesScreen'));
-const InProgressCasesScreen = lazy(() => import('./screens/InProgressCasesScreen'));
-const CompletedCasesScreen = lazy(() => import('./screens/CompletedCasesScreen'));
-const SavedCasesScreen = lazy(() => import('./screens/SavedCasesScreen'));
-const ProfileScreen = lazy(() => import('./screens/ProfileScreen'));
-const DigitalIdCardScreen = lazy(() => import('./screens/DigitalIdCardScreen'));
+// Import screens - using regular imports for small screens to avoid lazy loading issues
+import NewLoginScreen from './screens/NewLoginScreen';
+import DashboardScreen from './screens/DashboardScreen';
+import CaseListScreen from './screens/CaseListScreen';
+import AssignedCasesScreen from './screens/AssignedCasesScreen';
+import InProgressCasesScreen from './screens/InProgressCasesScreen';
+import CompletedCasesScreen from './screens/CompletedCasesScreen';
+import SavedCasesScreen from './screens/SavedCasesScreen';
+import ProfileScreen from './screens/ProfileScreen';
+import DigitalIdCardScreen from './screens/DigitalIdCardScreen';
 
 const AppNavigator: React.FC = () => {
   const { isAuthenticated, isLoading, authStatus } = useAuth();
