@@ -8,6 +8,7 @@ import PriorityInput from './PriorityInput';
 import { useCaseAutoSaveStatus } from '../hooks/useCaseAutoSaveStatus';
 import CaseTimeline from './CaseTimeline';
 import AttachmentsModal from './AttachmentsModal';
+import { VerificationTaskService } from '../services/verificationTaskService';
 import PositiveResidenceForm from './forms/residence/PositiveResidenceForm';
 import { attachmentService } from '../services/attachmentService';
 import ShiftedResidenceForm from './forms/residence/ShiftedResidenceForm';
@@ -238,14 +239,26 @@ const CaseCard: React.FC<CaseCardProps> = ({ caseData, isReorderable = false, is
     setAcceptMessage(null);
 
     try {
-      console.log(`🎯 Accepting case ${caseData.id}...`);
+      console.log(`🎯 Starting verification task ${caseData.verificationTaskId}...`);
 
-      // Call the enhanced updateCaseStatus which handles optimistic UI, offline support, and audit logging
+      // Check if we have a verification task ID
+      if (!caseData.verificationTaskId) {
+        throw new Error('No verification task ID found');
+      }
+
+      // Start the verification task (ASSIGNED → IN_PROGRESS)
+      const result = await VerificationTaskService.startTask(caseData.verificationTaskId);
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to start task');
+      }
+
+      // Update local case status to reflect task status change
       await updateCaseStatus(caseData.id, CaseStatus.InProgress);
 
       // Show success feedback
       setShowAcceptSuccess(true);
-      setAcceptMessage('Case accepted successfully!');
+      setAcceptMessage('Task started successfully!');
 
       // Clear success state after animation
       setTimeout(() => {
@@ -253,11 +266,11 @@ const CaseCard: React.FC<CaseCardProps> = ({ caseData, isReorderable = false, is
         setAcceptMessage(null);
       }, 2000);
 
-      console.log(`✅ Case ${caseData.id} accepted successfully`);
+      console.log(`✅ Task ${caseData.verificationTaskId} started successfully`);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to accept case';
+      const errorMessage = error instanceof Error ? error.message : 'Failed to start task';
       setAcceptMessage(errorMessage);
-      console.error(`❌ Error accepting case ${caseData.id}:`, error);
+      console.error(`❌ Error starting task:`, error);
 
       // Clear error message after 5 seconds
       setTimeout(() => setAcceptMessage(null), 5000);
