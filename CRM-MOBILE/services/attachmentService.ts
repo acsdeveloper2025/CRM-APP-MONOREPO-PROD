@@ -84,7 +84,14 @@ class AttachmentService {
       const authToken = await this.getAuthToken();
       const baseUrl = this.getApiBaseUrl();
 
+      // Validate case ID format
+      if (!caseId || caseId.trim() === '') {
+        console.warn(`⚠️ Invalid case ID: ${caseId}`);
+        return [];
+      }
+
       console.log(`🌐 API Request: GET ${baseUrl}/mobile/cases/${caseId}/attachments`);
+      console.log(`📝 Case ID format: ${caseId} (length: ${caseId.length})`);
 
       const response = await fetch(`${baseUrl}/mobile/cases/${caseId}/attachments`, {
         method: 'GET',
@@ -96,8 +103,19 @@ class AttachmentService {
         }
       });
 
+      console.log(`📊 API Response Status: ${response.status} ${response.statusText}`);
+
       if (!response.ok) {
+        const errorText = await response.text();
         console.error(`❌ API Error: ${response.status} ${response.statusText}`);
+        console.error(`❌ Error Details: ${errorText}`);
+
+        // Return empty array for 404 instead of throwing error
+        if (response.status === 404) {
+          console.log(`📝 Case not found or no attachments. Returning empty list.`);
+          return [];
+        }
+
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
@@ -105,7 +123,8 @@ class AttachmentService {
       console.log(`📋 API Response:`, result);
 
       if (!result.success) {
-        throw new Error(result.message || 'Failed to fetch attachments');
+        console.warn(`⚠️ API returned success=false: ${result.message}`);
+        return [];
       }
 
       // Transform backend response to mobile app format
@@ -115,7 +134,7 @@ class AttachmentService {
         type: att.mimeType?.startsWith('image/') ? 'image' : 'pdf',
         mimeType: att.mimeType,
         size: att.size,
-        url: `${baseUrl}/mobile/cases/${caseId}/attachments/${att.id}`,
+        url: `${baseUrl}/attachments/${att.id}/content`,
         thumbnailUrl: undefined,
         uploadedAt: att.uploadedAt || att.createdAt,
         uploadedBy: att.uploadedBy || 'Field Agent',
