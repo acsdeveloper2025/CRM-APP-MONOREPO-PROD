@@ -1036,6 +1036,84 @@ export class MobileCaseController {
   }
 
   /**
+   * Get verification task status (for mobile app)
+   * GET /api/mobile/verification-tasks/:taskId/status
+   */
+  static async getTaskStatus(req: Request, res: Response) {
+    try {
+      const { taskId } = req.params;
+      const userId = (req as any).user?.id;
+      const userRole = (req as any).user?.role;
+
+      console.log(`📊 Getting task status for task: ${taskId}, user: ${userId}`);
+
+      // Query task status
+      const result = await query(`
+        SELECT
+          id,
+          task_number,
+          status,
+          verification_outcome,
+          started_at,
+          completed_at,
+          assigned_to,
+          assigned_at,
+          case_id
+        FROM verification_tasks
+        WHERE id = $1
+      `, [taskId]);
+
+      if (result.rows.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: 'Verification task not found',
+          error: { code: 'TASK_NOT_FOUND' }
+        });
+      }
+
+      const task = result.rows[0];
+
+      // For field agents, verify they are assigned to this task
+      if (userRole === 'FIELD_AGENT' && task.assigned_to !== userId) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied. You are not assigned to this task.',
+          error: { code: 'ACCESS_DENIED' }
+        });
+      }
+
+      console.log(`✅ Task status retrieved: ${task.status}`);
+
+      return res.status(200).json({
+        success: true,
+        message: 'Task status retrieved successfully',
+        data: {
+          id: task.id,
+          taskNumber: task.task_number,
+          status: task.status,
+          verificationOutcome: task.verification_outcome,
+          startedAt: task.started_at,
+          completedAt: task.completed_at,
+          assignedTo: task.assigned_to,
+          assignedAt: task.assigned_at,
+          caseId: task.case_id
+        }
+      });
+
+    } catch (error) {
+      console.error('Get task status error:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+        error: {
+          code: 'TASK_STATUS_RETRIEVAL_FAILED',
+          timestamp: new Date().toISOString(),
+        },
+      });
+    }
+  }
+
+  /**
    * Update verification task status (for mobile app)
    * PUT /api/mobile/verification-tasks/:taskId/status
    */

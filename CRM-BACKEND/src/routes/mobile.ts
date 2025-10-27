@@ -47,6 +47,7 @@ router.put('/cases/:caseId/priority', authenticateToken, validateMobileVersion, 
 router.post('/cases/:caseId/revoke', authenticateToken, validateMobileVersion, MobileCaseController.revokeCase);
 
 // Mobile Verification Task Routes
+router.get('/verification-tasks/:taskId/status', authenticateToken, validateMobileVersion, MobileCaseController.getTaskStatus);
 router.put('/verification-tasks/:taskId/status', authenticateToken, validateMobileVersion, MobileCaseController.updateTaskStatus);
 router.post('/verification-tasks/:taskId/start', authenticateToken, validateMobileVersion, MobileCaseController.startTask);
 router.post('/verification-tasks/:taskId/complete', authenticateToken, validateMobileVersion, MobileCaseController.completeTask);
