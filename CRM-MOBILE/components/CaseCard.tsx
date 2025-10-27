@@ -839,7 +839,8 @@ const CaseCard: React.FC<CaseCardProps> = ({ caseData, isReorderable = false, is
               </div>
             )}
           </div>
-      </div>
+        </div>
+      )}
 
       <div className="mt-4 pt-4 border-t border-dark-border">
         {isAssigned ? (
