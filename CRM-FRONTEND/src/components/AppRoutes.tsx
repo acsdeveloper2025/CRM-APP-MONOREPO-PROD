@@ -18,6 +18,7 @@ import { CompletedCasesPage } from '@/pages/CompletedCasesPage';
 import { InProgressCasesPage } from '@/pages/InProgressCasesPage';
 import { PendingTasksPage } from '@/pages/PendingTasksPage';
 import { InProgressTasksPage } from '@/pages/InProgressTasksPage';
+import { CompletedTasksPage } from '@/pages/CompletedTasksPage';
 import { AllTasksPage } from '@/pages/AllTasksPage';
 import { TaskDetailPage } from '@/pages/TaskDetailPage';
 import { NewCasePage } from '@/pages/NewCasePage';
@@ -116,7 +117,7 @@ export const AppRoutes: React.FC = () => {
         }
       />
       <Route
-        path="/cases/pending"
+        path="/tasks/pending"
         element={
           <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND', 'SUPER_ADMIN']}>
             <Layout>
@@ -127,11 +128,22 @@ export const AppRoutes: React.FC = () => {
       />
 
       <Route
-        path="/cases/in-progress"
+        path="/tasks/in-progress"
         element={
           <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND', 'SUPER_ADMIN']}>
             <Layout>
               <InProgressTasksPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/tasks/completed"
+        element={
+          <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND', 'SUPER_ADMIN']}>
+            <Layout>
+              <CompletedTasksPage />
             </Layout>
           </ProtectedRoute>
         }
