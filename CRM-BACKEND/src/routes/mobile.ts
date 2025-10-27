@@ -46,6 +46,11 @@ router.put('/cases/:caseId/status', authenticateToken, validateMobileVersion, Mo
 router.put('/cases/:caseId/priority', authenticateToken, validateMobileVersion, MobileCaseController.updateCasePriority);
 router.post('/cases/:caseId/revoke', authenticateToken, validateMobileVersion, MobileCaseController.revokeCase);
 
+// Mobile Verification Task Routes
+router.put('/verification-tasks/:taskId/status', authenticateToken, validateMobileVersion, MobileCaseController.updateTaskStatus);
+router.post('/verification-tasks/:taskId/start', authenticateToken, validateMobileVersion, MobileCaseController.startTask);
+router.post('/verification-tasks/:taskId/complete', authenticateToken, validateMobileVersion, MobileCaseController.completeTask);
+
 // Mobile Auto-save Routes (CACHED)
 router.post('/cases/:caseId/auto-save', authenticateToken, validateMobileVersion, MobileCaseController.autoSaveForm);
 router.get('/cases/:caseId/auto-save/:formType', authenticateToken, validateMobileVersion, EnterpriseCache.create(EnterpriseCacheConfigs.caseDetails), MobileCaseController.getAutoSavedForm);
