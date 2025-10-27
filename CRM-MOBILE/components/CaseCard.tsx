@@ -95,7 +95,7 @@ const verificationOptionsMap: { [key in VerificationType]?: React.ReactElement[]
 };
 
 const CaseCard: React.FC<CaseCardProps> = ({ caseData, isReorderable = false, isFirst, isLast }) => {
-  const { updateCaseStatus, updateVerificationOutcome, revokeCase, reorderInProgressCase } = useCases();
+  const { updateCaseStatus, updateVerificationOutcome, revokeCase, reorderInProgressCase, updateCaseSubmissionStatus, verifyCaseSubmissionStatus } = useCases();
   const [isExpanded, setIsExpanded] = useState(false);
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
   const [isRevokeModalOpen, setIsRevokeModalOpen] = useState(false);
@@ -189,18 +189,17 @@ const CaseCard: React.FC<CaseCardProps> = ({ caseData, isReorderable = false, is
     setSubmissionMessage(null);
 
     try {
-      // Note: Case submission should be handled by the verification form components
-      // using VerificationFormService. This is a fallback for cases that don't have
-      // proper form submission implemented yet.
-      console.warn('handleSubmitCase: Cases should be submitted through verification forms using VerificationFormService');
+      console.log('📤 Opening verification form for submission...');
 
-      // For now, just update the case status locally
-      // The actual submission should happen through the form's Submit button
-      setSubmissionMessage('Please use the Submit button in the verification form to complete this case.');
+      // Expand the case card to show the verification form
+      setIsExpanded(true);
+
+      // Show guidance message
+      setSubmissionMessage('Please use the Submit button in the verification form below to complete this case.');
       setTimeout(() => setSubmissionMessage(null), 5000);
 
     } catch (error) {
-      setSubmissionMessage('Submission failed - please try again');
+      setSubmissionMessage('Failed to open form - please try again');
     } finally {
       setIsSubmitting(false);
     }
@@ -211,17 +210,47 @@ const CaseCard: React.FC<CaseCardProps> = ({ caseData, isReorderable = false, is
     setSubmissionMessage(null);
 
     try {
-      // Note: Case resubmission should be handled by the verification form components
-      // using VerificationFormService. This is a fallback for cases that don't have
-      // proper form submission implemented yet.
-      console.warn('handleResubmitCase: Cases should be resubmitted through verification forms using VerificationFormService');
+      console.log('🔄 Opening verification form for resubmission...');
 
-      // For now, just show guidance message
-      setSubmissionMessage('Please use the Submit button in the verification form to resubmit this case.');
+      // Expand the case card to show the verification form
+      setIsExpanded(true);
+
+      // Show guidance message
+      setSubmissionMessage('Please review the form below and click Submit to resubmit this case.');
       setTimeout(() => setSubmissionMessage(null), 5000);
 
     } catch (error) {
-      setSubmissionMessage('Resubmission failed - please try again');
+      setSubmissionMessage('Failed to open form - please try again');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  /**
+   * Verify submission status by checking backend
+   */
+  const handleVerifySubmission = async () => {
+    setIsSubmitting(true);
+    setSubmissionMessage(null);
+
+    try {
+      console.log('🔍 Verifying submission status with backend...');
+
+      const result = await verifyCaseSubmissionStatus(caseData.id);
+
+      if (result.submitted) {
+        setSubmissionMessage(`✅ Verified: Case successfully submitted. Task status: ${result.taskStatus}`);
+        // Update local status to success
+        await updateCaseSubmissionStatus(caseData.id, 'success');
+      } else {
+        setSubmissionMessage(`⚠️ Not submitted: ${result.error || 'Task not completed on server'}`);
+      }
+
+      setTimeout(() => setSubmissionMessage(null), 8000);
+
+    } catch (error) {
+      setSubmissionMessage('Verification failed - please try again');
+      setTimeout(() => setSubmissionMessage(null), 5000);
     } finally {
       setIsSubmitting(false);
     }
@@ -654,25 +683,47 @@ const CaseCard: React.FC<CaseCardProps> = ({ caseData, isReorderable = false, is
             </div>
           )}
 
-          {/* Re-submit Button */}
+          {/* Action Buttons */}
           {(caseData.submissionStatus === 'failed' || caseData.submissionStatus === 'pending' || caseData.isSaved) && (
-            <button
-              onClick={caseData.submissionStatus === 'failed' ? handleResubmitCase : handleSubmitCase}
-              disabled={isSubmitting}
-              className="px-4 py-2 text-sm font-semibold rounded-md bg-blue-600 hover:bg-blue-500 disabled:bg-blue-800 disabled:opacity-50 text-white transition-colors flex items-center gap-2"
-            >
-              {isSubmitting ? (
-                <>
-                  <span className="animate-spin">⏳</span>
-                  <span>{caseData.submissionStatus === 'failed' ? 'Resubmitting...' : 'Submitting...'}</span>
-                </>
-              ) : (
-                <>
-                  <span>🔄</span>
-                  <span>{caseData.submissionStatus === 'failed' ? 'Re-submit Case' : 'Submit Case'}</span>
-                </>
-              )}
-            </button>
+            <div className="flex gap-2 flex-wrap">
+              {/* Re-submit Button */}
+              <button
+                onClick={caseData.submissionStatus === 'failed' ? handleResubmitCase : handleSubmitCase}
+                disabled={isSubmitting}
+                className="px-4 py-2 text-sm font-semibold rounded-md bg-blue-600 hover:bg-blue-500 disabled:bg-blue-800 disabled:opacity-50 text-white transition-colors flex items-center gap-2"
+              >
+                {isSubmitting ? (
+                  <>
+                    <span className="animate-spin">⏳</span>
+                    <span>{caseData.submissionStatus === 'failed' ? 'Resubmitting...' : 'Submitting...'}</span>
+                  </>
+                ) : (
+                  <>
+                    <span>🔄</span>
+                    <span>{caseData.submissionStatus === 'failed' ? 'Re-submit Case' : 'Submit Case'}</span>
+                  </>
+                )}
+              </button>
+
+              {/* Verify Submission Button */}
+              <button
+                onClick={handleVerifySubmission}
+                disabled={isSubmitting}
+                className="px-4 py-2 text-sm font-semibold rounded-md bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 disabled:opacity-50 text-white transition-colors flex items-center gap-2"
+              >
+                {isSubmitting ? (
+                  <>
+                    <span className="animate-spin">⏳</span>
+                    <span>Checking...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>🔍</span>
+                    <span>Verify Status</span>
+                  </>
+                )}
+              </button>
+            </div>
           )}
         </div>
       )}

@@ -33,7 +33,7 @@ const getEnumOptions = (enumObject: object) => Object.values(enumObject).map(val
 ));
 
 const PositiveResidenceForm: React.FC<PositiveResidenceFormProps> = ({ caseData }) => {
-  const { updateResidenceReport, updateCaseStatus, toggleSaveCase } = useCases();
+  const { updateResidenceReport, updateCaseStatus, toggleSaveCase, updateCaseSubmissionStatus } = useCases();
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionError, setSubmissionError] = useState<string | null>(null);
@@ -514,6 +514,9 @@ const PositiveResidenceForm: React.FC<PositiveResidenceFormProps> = ({ caseData 
                             accuracy: report.images[0].geoLocation.accuracy
                         } : undefined;
 
+                        // Update submission status to 'submitting'
+                        await updateCaseSubmissionStatus(caseData.id, 'submitting');
+
                         // Submit verification form to backend
                         const result = await VerificationFormService.submitResidenceVerification(
                             caseData.id,
@@ -524,6 +527,8 @@ const PositiveResidenceForm: React.FC<PositiveResidenceFormProps> = ({ caseData 
                         );
 
                         if (result.success) {
+                            // Update submission status to 'success'
+                            await updateCaseSubmissionStatus(caseData.id, 'success');
 
                             // Mark auto-save as completed
                             if ((window as any).markAutoSaveFormCompleted) {
@@ -533,11 +538,16 @@ const PositiveResidenceForm: React.FC<PositiveResidenceFormProps> = ({ caseData 
                             setIsConfirmModalOpen(false);
                             console.log('✅ Residence verification submitted successfully');
                         } else {
+                            // Update submission status to 'failed' with error message
+                            await updateCaseSubmissionStatus(caseData.id, 'failed', result.error);
                             setSubmissionError(result.error || 'Failed to submit verification form');
                         }
                     } catch (error) {
                         console.error('❌ Verification submission error:', error);
-                        setSubmissionError(error instanceof Error ? error.message : 'Unknown error occurred');
+                        const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+                        // Update submission status to 'failed' with error message
+                        await updateCaseSubmissionStatus(caseData.id, 'failed', errorMessage);
+                        setSubmissionError(errorMessage);
                     } finally {
                         setIsSubmitting(false);
                     }
