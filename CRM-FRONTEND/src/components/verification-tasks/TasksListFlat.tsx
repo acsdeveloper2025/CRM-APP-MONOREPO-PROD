@@ -19,7 +19,7 @@ import {
   ExternalLink
 } from 'lucide-react';
 import { VerificationTask, TaskStatus, TaskPriority } from '@/types/verificationTask';
-import { formatDistanceToNow } from 'date-fns';
+import { format } from 'date-fns';
 
 interface TasksListFlatProps {
   tasks: VerificationTask[];
@@ -124,42 +124,39 @@ export const TasksListFlat: React.FC<TasksListFlatProps> = ({
   }
 
   return (
-    <div className="grid grid-cols-1 gap-4">
+    <div className="space-y-4">
       {tasks.map((task) => {
         const StatusIcon = getStatusIcon(task.status);
         const statusColor = getStatusColor(task.status);
         const priorityColor = getPriorityColor(task.priority);
 
         return (
-          <Card 
-            key={task.id} 
-            className="hover:shadow-lg transition-all duration-200 border-l-4"
-            style={{
-              borderLeftColor: task.priority === 'URGENT' ? '#dc2626' : 
-                               task.priority === 'HIGH' ? '#ea580c' : 
-                               task.priority === 'MEDIUM' ? '#2563eb' : '#6b7280'
-            }}
+          <Card
+            key={task.id}
+            className="hover:shadow-md transition-shadow duration-200"
           >
             <CardContent className="p-6">
-              <div className="flex items-start justify-between">
-                <div className="flex-1 space-y-3">
-                  {/* Header: Status, Priority, Task Number */}
-                  <div className="flex items-center flex-wrap gap-2">
-                    <Badge className={`${statusColor} border`}>
-                      <StatusIcon className="h-3 w-3 mr-1" />
-                      {getStatusLabel(task.status)}
-                    </Badge>
-                    <Badge className={`${priorityColor} border`}>
-                      {task.priority}
-                    </Badge>
-                    <span className="text-sm font-semibold text-gray-900 bg-gray-100 px-2 py-1 rounded">
-                      {task.taskNumber}
-                    </span>
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1 space-y-4">
+                  {/* Header Row */}
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center flex-wrap gap-2">
+                      <Badge className={`${statusColor} border`}>
+                        <StatusIcon className="h-3 w-3 mr-1" />
+                        {getStatusLabel(task.status)}
+                      </Badge>
+                      <Badge className={`${priorityColor} border`}>
+                        {task.priority}
+                      </Badge>
+                      <span className="text-xs font-mono text-muted-foreground bg-muted px-2 py-1 rounded">
+                        {task.taskNumber}
+                      </span>
+                    </div>
                   </div>
 
-                  {/* Task Title */}
+                  {/* Task Title & Description */}
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                    <h3 className="text-base font-semibold text-foreground mb-1">
                       {task.taskTitle}
                     </h3>
                     {task.taskDescription && (
@@ -169,93 +166,103 @@ export const TasksListFlat: React.FC<TasksListFlatProps> = ({
                     )}
                   </div>
 
-                  {/* Case Reference */}
-                  <div className="flex items-center space-x-4 text-sm">
-                    <div className="flex items-center text-muted-foreground">
-                      <FileText className="h-4 w-4 mr-1" />
-                      <span className="font-medium">Case:</span>
+                  {/* Case & Customer Info */}
+                  <div className="flex items-center gap-4 text-sm pb-3 border-b">
+                    <div className="flex items-center gap-1.5 text-muted-foreground">
+                      <FileText className="h-4 w-4" />
+                      <span>Case:</span>
                       <Button
                         variant="link"
                         size="sm"
-                        className="h-auto p-0 ml-1 text-blue-600 hover:text-blue-800"
+                        className="h-auto p-0 text-primary hover:underline"
                         onClick={() => onViewCase?.(task.caseId)}
                       >
                         {task.caseNumber}
                       </Button>
                     </div>
-                    <div className="flex items-center text-muted-foreground">
-                      <User className="h-4 w-4 mr-1" />
-                      <span className="font-medium">{task.customerName}</span>
+                    <div className="flex items-center gap-1.5 text-muted-foreground">
+                      <User className="h-4 w-4" />
+                      <span className="font-medium text-foreground">{task.customerName}</span>
                     </div>
                   </div>
 
                   {/* Task Details Grid */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 pt-2 border-t">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {task.verificationTypeName && (
-                      <div className="flex items-center text-sm">
-                        <Building2 className="h-4 w-4 mr-2 text-gray-400 flex-shrink-0" />
-                        <div>
+                      <div className="flex items-start gap-2">
+                        <Building2 className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
+                        <div className="min-w-0">
                           <p className="text-xs text-muted-foreground">Verification Type</p>
-                          <p className="font-medium text-gray-900">{task.verificationTypeName}</p>
+                          <p className="text-sm font-medium text-foreground">{task.verificationTypeName}</p>
                         </div>
                       </div>
                     )}
 
                     {task.address && (
-                      <div className="flex items-center text-sm">
-                        <MapPin className="h-4 w-4 mr-2 text-gray-400 flex-shrink-0" />
+                      <div className="flex items-start gap-2">
+                        <MapPin className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
                         <div className="min-w-0">
                           <p className="text-xs text-muted-foreground">Address</p>
-                          <p className="font-medium text-gray-900 truncate" title={task.address}>
+                          <p className="text-sm font-medium text-foreground truncate" title={task.address}>
                             {task.address}
                           </p>
                         </div>
                       </div>
                     )}
 
+                    {/* Task Status */}
+                    <div className="flex items-start gap-2">
+                      <Clock className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-xs text-muted-foreground">Task Status</p>
+                        <p className="text-sm font-medium text-foreground">{getStatusLabel(task.status)}</p>
+                      </div>
+                    </div>
+
+                    {/* Assigned To */}
                     {(task.assignedToName || task.status === 'PENDING' || task.status === 'ASSIGNED') && (
-                      <div className="flex items-center text-sm">
-                        <UserCheck className="h-4 w-4 mr-2 text-gray-400 flex-shrink-0" />
-                        <div>
+                      <div className="flex items-start gap-2">
+                        <UserCheck className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
+                        <div className="min-w-0">
                           <p className="text-xs text-muted-foreground">Assigned To</p>
                           {task.assignedToName ? (
-                            <p className="font-medium text-gray-900">{task.assignedToName}</p>
+                            <p className="text-sm font-medium text-foreground">{task.assignedToName}</p>
                           ) : (
-                            <p className="font-medium text-orange-600">Unassigned</p>
+                            <p className="text-sm font-medium text-orange-600">Unassigned</p>
                           )}
                         </div>
                       </div>
                     )}
 
                     {task.estimatedAmount !== undefined && task.estimatedAmount !== null && (
-                      <div className="flex items-center text-sm">
-                        <DollarSign className="h-4 w-4 mr-2 text-gray-400 flex-shrink-0" />
-                        <div>
+                      <div className="flex items-start gap-2">
+                        <DollarSign className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
+                        <div className="min-w-0">
                           <p className="text-xs text-muted-foreground">Estimated Amount</p>
-                          <p className="font-medium text-gray-900">₹{task.estimatedAmount.toFixed(2)}</p>
+                          <p className="text-sm font-medium text-foreground">₹{task.estimatedAmount.toFixed(2)}</p>
                         </div>
                       </div>
                     )}
 
                     {task.assignedAt && (
-                      <div className="flex items-center text-sm">
-                        <Calendar className="h-4 w-4 mr-2 text-gray-400 flex-shrink-0" />
-                        <div>
-                          <p className="text-xs text-muted-foreground">Assigned</p>
-                          <p className="font-medium text-gray-900">
-                            {formatDistanceToNow(new Date(task.assignedAt), { addSuffix: true })}
+                      <div className="flex items-start gap-2">
+                        <Calendar className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
+                        <div className="min-w-0">
+                          <p className="text-xs text-muted-foreground">Assignment Date & Time</p>
+                          <p className="text-sm font-medium text-foreground">
+                            {format(new Date(task.assignedAt), 'dd MMM yyyy, hh:mm a')}
                           </p>
                         </div>
                       </div>
                     )}
 
                     {task.createdAt && !task.assignedAt && (
-                      <div className="flex items-center text-sm">
-                        <Calendar className="h-4 w-4 mr-2 text-gray-400 flex-shrink-0" />
-                        <div>
-                          <p className="text-xs text-muted-foreground">Created</p>
-                          <p className="font-medium text-gray-900">
-                            {formatDistanceToNow(new Date(task.createdAt), { addSuffix: true })}
+                      <div className="flex items-start gap-2">
+                        <Calendar className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
+                        <div className="min-w-0">
+                          <p className="text-xs text-muted-foreground">Created Date & Time</p>
+                          <p className="text-sm font-medium text-foreground">
+                            {format(new Date(task.createdAt), 'dd MMM yyyy, hh:mm a')}
                           </p>
                         </div>
                       </div>
@@ -264,14 +271,13 @@ export const TasksListFlat: React.FC<TasksListFlatProps> = ({
                 </div>
 
                 {/* Action Buttons */}
-                <div className="flex flex-col space-y-2 ml-6">
+                <div className="flex flex-col gap-2 shrink-0">
                   {!task.assignedTo && task.status === 'PENDING' && (
                     <Button
                       size="sm"
                       onClick={() => onAssignTask(task.id)}
-                      className="whitespace-nowrap"
                     >
-                      <UserCheck className="h-4 w-4 mr-1" />
+                      <UserCheck className="h-4 w-4 mr-2" />
                       Assign
                     </Button>
                   )}
@@ -280,10 +286,9 @@ export const TasksListFlat: React.FC<TasksListFlatProps> = ({
                       variant="outline"
                       size="sm"
                       onClick={() => onViewTask(task.id)}
-                      className="whitespace-nowrap"
                     >
-                      <Eye className="h-4 w-4 mr-1" />
-                      View Task
+                      <Eye className="h-4 w-4 mr-2" />
+                      View
                     </Button>
                   )}
                   {onViewCase && (
@@ -291,10 +296,9 @@ export const TasksListFlat: React.FC<TasksListFlatProps> = ({
                       variant="ghost"
                       size="sm"
                       onClick={() => onViewCase(task.caseId)}
-                      className="whitespace-nowrap"
                     >
-                      <ExternalLink className="h-4 w-4 mr-1" />
-                      View Case
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                      Case
                     </Button>
                   )}
                 </div>
