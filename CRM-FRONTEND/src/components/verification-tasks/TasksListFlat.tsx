@@ -213,20 +213,16 @@ export const TasksListFlat: React.FC<TasksListFlatProps> = ({
                       </div>
                     )}
 
-                    {task.assignedToName ? (
+                    {(task.assignedToName || task.status === 'PENDING' || task.status === 'ASSIGNED') && (
                       <div className="flex items-center text-sm">
                         <UserCheck className="h-4 w-4 mr-2 text-gray-400 flex-shrink-0" />
                         <div>
                           <p className="text-xs text-muted-foreground">Assigned To</p>
-                          <p className="font-medium text-gray-900">{task.assignedToName}</p>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex items-center text-sm">
-                        <UserCheck className="h-4 w-4 mr-2 text-gray-400 flex-shrink-0" />
-                        <div>
-                          <p className="text-xs text-muted-foreground">Assigned To</p>
-                          <p className="font-medium text-orange-600">Unassigned</p>
+                          {task.assignedToName ? (
+                            <p className="font-medium text-gray-900">{task.assignedToName}</p>
+                          ) : (
+                            <p className="font-medium text-orange-600">Unassigned</p>
+                          )}
                         </div>
                       </div>
                     )}
