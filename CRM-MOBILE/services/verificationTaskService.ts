@@ -31,12 +31,11 @@ export class VerificationTaskService {
    */
   private static async getHeaders(): Promise<HeadersInit> {
     const authToken = await AuthStorageService.getCurrentAccessToken();
-    const envConfig = getEnvironmentConfig();
 
     return {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${authToken}`,
-      'X-App-Version': envConfig.app.version,
+      'X-App-Version': '4.0.1',
       'X-Platform': 'WEB',
       'X-Client-Type': 'mobile',
     };
