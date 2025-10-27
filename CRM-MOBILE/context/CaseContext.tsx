@@ -68,6 +68,9 @@ interface CaseContextType {
   setCasePriority: (caseId: string, priority: number | null) => void;
   getCasePriority: (caseId: string) => number | null;
   getCasesWithPriorities: () => Case[];
+  // Submission status management
+  updateCaseSubmissionStatus: (caseId: string, status: 'pending' | 'submitting' | 'success' | 'failed', error?: string) => Promise<void>;
+  verifyCaseSubmissionStatus: (caseId: string) => Promise<{ submitted: boolean; taskStatus?: string; error?: string }>;
 }
 
 const CaseContext = createContext<CaseContextType | undefined>(undefined);
@@ -1119,6 +1122,125 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, [cases]);
 
+  /**
+   * Update case submission status (pending/submitting/success/failed)
+   * This is used to track the status of form submissions to the backend
+   */
+  const updateCaseSubmissionStatus = async (
+    caseId: string,
+    status: 'pending' | 'submitting' | 'success' | 'failed',
+    error?: string
+  ) => {
+    try {
+      console.log(`📊 Updating submission status for case ${caseId}: ${status}`);
+
+      // Update local state immediately for responsive UI
+      setCases(prevCases => prevCases.map(c =>
+        c.id === caseId
+          ? {
+              ...c,
+              submissionStatus: status,
+              submissionError: error,
+              lastSubmissionAttempt: new Date().toISOString()
+            }
+          : c
+      ));
+
+      // Persist to local storage (caseService handles this)
+      await caseService.updateCase(caseId, {
+        submissionStatus: status,
+        submissionError: error,
+        lastSubmissionAttempt: new Date().toISOString()
+      });
+
+      console.log(`✅ Submission status updated successfully for case ${caseId}`);
+    } catch (err) {
+      console.error(`❌ Failed to update submission status for case ${caseId}:`, err);
+      setError('Failed to update submission status.');
+    }
+  };
+
+  /**
+   * Verify if a case was successfully submitted to the backend
+   * Checks the verification task status on the server
+   */
+  const verifyCaseSubmissionStatus = async (caseId: string): Promise<{
+    submitted: boolean;
+    taskStatus?: string;
+    error?: string;
+  }> => {
+    try {
+      console.log(`🔍 Verifying submission status for case ${caseId}...`);
+
+      // Find the case to get verification task ID
+      const caseData = cases.find(c => c.id === caseId);
+      if (!caseData) {
+        return {
+          submitted: false,
+          error: 'Case not found'
+        };
+      }
+
+      if (!caseData.verificationTaskId) {
+        return {
+          submitted: false,
+          error: 'No verification task ID found for this case'
+        };
+      }
+
+      // Call backend to check task status
+      const authToken = await (await import('../services/authStorageService')).default.getCurrentAccessToken();
+      const apiBaseUrl = import.meta.env.PROD
+        ? 'https://crm.allcheckservices.com/api'
+        : (import.meta.env.VITE_API_BASE_URL_STATIC_IP || import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api');
+
+      const response = await fetch(`${apiBaseUrl}/mobile/verification-tasks/${caseData.verificationTaskId}/status`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+          'Content-Type': 'application/json',
+          'X-App-Version': '4.0.1',
+          'X-Platform': 'WEB',
+          'X-Client-Type': 'mobile',
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+
+      if (result.success && result.data) {
+        const taskStatus = result.data.status;
+        const isSubmitted = taskStatus === 'COMPLETED';
+
+        console.log(`✅ Verification status check: Task ${caseData.verificationTaskId} is ${taskStatus}`);
+
+        // Update local submission status based on server status
+        if (isSubmitted && caseData.submissionStatus !== 'success') {
+          await updateCaseSubmissionStatus(caseId, 'success');
+        }
+
+        return {
+          submitted: isSubmitted,
+          taskStatus: taskStatus
+        };
+      } else {
+        return {
+          submitted: false,
+          error: result.message || 'Failed to verify submission status'
+        };
+      }
+    } catch (err) {
+      console.error(`❌ Error verifying submission status for case ${caseId}:`, err);
+      return {
+        submitted: false,
+        error: err instanceof Error ? err.message : 'Unknown error occurred'
+      };
+    }
+  };
+
   return (
     <CaseContext.Provider value={{
       cases,
@@ -1178,6 +1300,8 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setCasePriority,
       getCasePriority,
       getCasesWithPriorities,
+      updateCaseSubmissionStatus,
+      verifyCaseSubmissionStatus,
     }}>
       {children}
     </CaseContext.Provider>
