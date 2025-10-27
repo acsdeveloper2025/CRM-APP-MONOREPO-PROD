@@ -71,12 +71,13 @@ export const PendingTasksPage: React.FC = () => {
   };
 
   const handleViewTask = (taskId: string) => {
-    // Navigate to task details page (to be implemented)
-    console.log('View task:', taskId);
+    navigate(`/tasks/${taskId}`);
   };
 
   const handleViewCase = (caseId: string) => {
-    navigate(`/cases/${caseId}`);
+    if (caseId) {
+      navigate(`/cases/${caseId}`);
+    }
   };
 
   const handleFilterChange = (key: string, value: any) => {

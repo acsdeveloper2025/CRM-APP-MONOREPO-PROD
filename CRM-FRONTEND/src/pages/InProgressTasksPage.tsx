@@ -79,11 +79,13 @@ export const InProgressTasksPage: React.FC = () => {
   };
 
   const handleViewTask = (taskId: string) => {
-    console.log('View task:', taskId);
+    navigate(`/tasks/${taskId}`);
   };
 
   const handleViewCase = (caseId: string) => {
-    navigate(`/cases/${caseId}`);
+    if (caseId) {
+      navigate(`/cases/${caseId}`);
+    }
   };
 
   const handleFilterChange = (key: string, value: any) => {

@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { TasksGroupedByCase } from '@/components/verification-tasks/TasksGroupedByCase';
+import { TasksListFlat } from '@/components/verification-tasks/TasksListFlat';
 import { TaskAssignmentModal } from '@/components/verification-tasks/TaskAssignmentModal';
 import { useAllVerificationTasks } from '@/hooks/useVerificationTasks';
 import { useFieldUsers } from '@/hooks/useUsers';
@@ -75,7 +75,9 @@ export const AllTasksPage: React.FC = () => {
   };
 
   const handleViewCase = (caseId: string) => {
-    navigate(`/cases/${caseId}`);
+    if (caseId) {
+      navigate(`/cases/${caseId}`);
+    }
   };
 
   const handleFilterChange = (key: string, value: any) => {
@@ -353,7 +355,7 @@ export const AllTasksPage: React.FC = () => {
         </Card>
       )}
 
-      <TasksGroupedByCase
+      <TasksListFlat
         tasks={tasks}
         loading={loading}
         onAssignTask={handleAssignTask}
