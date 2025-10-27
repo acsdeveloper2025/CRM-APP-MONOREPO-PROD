@@ -319,7 +319,7 @@ const CaseCard: React.FC<CaseCardProps> = ({ caseData, isReorderable = false, is
           return 'border-l-4 border-yellow-500 bg-yellow-900/20';
         case 'pending':
         default:
-          return 'border-l-4 border-orange-500 bg-orange-900/20';
+          return 'border-l-4 border-red-500 bg-red-900/20'; // Red for pending - action required
       }
     }
 
@@ -664,9 +664,9 @@ const CaseCard: React.FC<CaseCardProps> = ({ caseData, isReorderable = false, is
               )}
 
               {caseData.submissionStatus === 'pending' && (
-                <div className="flex items-center gap-2 text-orange-400 text-sm">
-                  <span>⏸️</span>
-                  <span>Pending submission</span>
+                <div className="flex items-center gap-2 text-red-400 text-sm">
+                  <span>⚠️</span>
+                  <span>Pending submission - Action required</span>
                 </div>
               )}
             </div>
