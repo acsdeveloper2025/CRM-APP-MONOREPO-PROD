@@ -198,10 +198,11 @@ const CaseCard: React.FC<CaseCardProps> = ({ caseData, isReorderable = false, is
       // Update submission status to 'submitting'
       await updateCaseSubmissionStatus(caseData.id, 'submitting');
 
-      // Retry the verification submission
+      // Retry the verification submission with verificationTaskId
       const result = await VerificationFormService.retryVerificationSubmission(
         caseData.id,
-        verificationType
+        verificationType,
+        caseData.verificationTaskId
       );
 
       if (result.success) {
@@ -239,10 +240,11 @@ const CaseCard: React.FC<CaseCardProps> = ({ caseData, isReorderable = false, is
       // Update submission status to 'submitting'
       await updateCaseSubmissionStatus(caseData.id, 'submitting');
 
-      // Retry the verification submission
+      // Retry the verification submission with verificationTaskId
       const result = await VerificationFormService.retryVerificationSubmission(
         caseData.id,
-        verificationType
+        verificationType,
+        caseData.verificationTaskId
       );
 
       if (result.success) {

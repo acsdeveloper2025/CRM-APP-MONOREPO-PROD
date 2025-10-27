@@ -819,54 +819,165 @@ class VerificationFormService {
   /**
    * Retry a failed verification submission
    */
+  /**
+   * Resubmit a verification form using auto-saved data
+   * This retrieves the auto-saved form data and creates a new submission
+   */
   static async retryVerificationSubmission(
     caseId: string,
-    verificationType: 'residence' | 'office' | 'business' | 'builder' | 'residence-cum-office' | 'dsa-connector' | 'property-individual' | 'property-apf' | 'noc'
+    verificationType: 'residence' | 'office' | 'business' | 'builder' | 'residence-cum-office' | 'dsa-connector' | 'property-individual' | 'property-apf' | 'noc',
+    verificationTaskId?: string
   ): Promise<VerificationSubmissionResult> {
     try {
-      console.log(`🔄 Retrying ${verificationType} verification for case ${caseId}...`);
+      console.log(`🔄 Resubmitting ${verificationType} verification for case ${caseId}...`);
 
-      // Get the retry service instance
-      const retryService = (await import('./retryService')).default;
+      // Import auto-save service
+      const { autoSaveService } = await import('./autoSaveService');
 
-      // Find pending verification requests for this case
-      const pendingRequests = await retryService.getPendingRequests();
-      const verificationRequest = pendingRequests.find(req =>
-        req.type === 'VERIFICATION_SUBMISSION' &&
-        req.url.includes(caseId) &&
-        req.url.includes(verificationType)
-      );
+      // Determine the form type from verification type
+      const formTypeMap: Record<string, string> = {
+        'residence': 'RESIDENCE',
+        'office': 'OFFICE',
+        'business': 'BUSINESS',
+        'builder': 'BUILDER',
+        'residence-cum-office': 'RESIDENCE_CUM_OFFICE',
+        'dsa-connector': 'DSA_CONNECTOR',
+        'property-individual': 'PROPERTY_INDIVIDUAL',
+        'property-apf': 'PROPERTY_APF',
+        'noc': 'NOC'
+      };
 
-      if (verificationRequest) {
-        console.log(`📋 Found pending verification request for case ${caseId}, forcing retry...`);
+      const formType = formTypeMap[verificationType];
+      if (!formType) {
+        return {
+          success: false,
+          error: `Invalid verification type: ${verificationType}`
+        };
+      }
 
-        // Force retry the specific request
-        const result = await retryService.retrySpecificRequest(verificationRequest.id);
+      // Retrieve auto-saved data
+      console.log(`📂 Retrieving auto-saved data for case ${caseId}, form type ${formType}...`);
+      const autoSavedData = await autoSaveService.getFormData(caseId, formType);
 
-        if (result.success) {
-          return {
-            success: true,
-            caseId: result.data?.caseId || caseId,
-            status: result.data?.status,
-            completedAt: result.data?.completedAt
-          };
-        } else {
-          return {
-            success: false,
-            error: result.error || 'Retry failed'
-          };
-        }
+      if (!autoSavedData) {
+        return {
+          success: false,
+          error: 'No auto-saved data found for this case. Please fill out the form again.'
+        };
+      }
+
+      console.log(`✅ Found auto-saved data from ${autoSavedData.lastSaved}`);
+      console.log(`   - Form data keys: ${Object.keys(autoSavedData.formData || {}).join(', ')}`);
+      console.log(`   - Images: ${autoSavedData.images?.length || 0}`);
+
+      // Use provided verificationTaskId or try to get it from auto-saved data
+      const taskId = verificationTaskId || autoSavedData.formData?.verificationTaskId;
+
+      if (!taskId) {
+        return {
+          success: false,
+          error: 'No verification task ID found. Cannot submit verification.'
+        };
+      }
+
+      // Prepare the submission payload
+      const submissionPayload = {
+        verificationTaskId: taskId,
+        formData: autoSavedData.formData,
+        images: autoSavedData.images || [],
+        geoLocation: autoSavedData.formData?.geoLocation || null,
+        photos: autoSavedData.images || []
+      };
+
+      console.log(`📤 Submitting verification with ${submissionPayload.images.length} images...`);
+
+      // Submit the verification using the appropriate method
+      const result = await this.submitVerification(caseId, verificationType, submissionPayload);
+
+      if (result.success) {
+        console.log(`✅ Verification resubmitted successfully for case ${caseId}`);
+
+        // Mark the auto-saved data as completed
+        await autoSaveService.markFormCompleted(caseId, formType);
+
+        return {
+          success: true,
+          caseId: result.caseId || caseId,
+          status: result.status,
+          completedAt: result.completedAt
+        };
       } else {
         return {
           success: false,
-          error: 'No pending verification request found for this case'
+          error: result.error || 'Submission failed'
         };
       }
+
     } catch (error) {
-      console.error(`❌ Error retrying ${verificationType} verification for case ${caseId}:`, error);
+      console.error(`❌ Error resubmitting ${verificationType} verification for case ${caseId}:`, error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Retry error occurred'
+        error: error instanceof Error ? error.message : 'Resubmission error occurred'
+      };
+    }
+  }
+
+  /**
+   * Generic method to submit verification to the backend
+   * This is used by retryVerificationSubmission to actually submit the form
+   */
+  private static async submitVerification(
+    caseId: string,
+    verificationType: string,
+    payload: any
+  ): Promise<VerificationSubmissionResult> {
+    try {
+      const token = await AuthStorageService.getToken();
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      const apiBaseUrl = this.getApiBaseUrl();
+      const endpoint = `${apiBaseUrl}/api/mobile/cases/${caseId}/verification/${verificationType}`;
+
+      console.log(`📤 Submitting to: ${endpoint}`);
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'X-App-Version': '4.0.1'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || `HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      if (result.success) {
+        return {
+          success: true,
+          caseId: result.data?.caseId || caseId,
+          status: result.data?.status,
+          completedAt: result.data?.completedAt,
+          submissionId: result.data?.submissionId
+        };
+      } else {
+        return {
+          success: false,
+          error: result.message || 'Submission failed'
+        };
+      }
+
+    } catch (error) {
+      console.error(`❌ Error submitting ${verificationType} verification:`, error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Network error occurred'
       };
     }
   }
