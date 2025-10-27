@@ -1,5 +1,5 @@
 import { getEnvironmentConfig } from '../config/environment';
-import { AuthStorageService } from './authStorageService';
+import AuthStorageService from './authStorageService';
 
 /**
  * Service for managing verification tasks in the mobile app
