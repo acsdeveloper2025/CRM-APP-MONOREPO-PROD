@@ -59,9 +59,9 @@ const DashboardScreen: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   
-  const assignedCount = cases.filter(c => c.status === CaseStatus.Assigned).length;
-  const inProgressCount = cases.filter(c => c.status === CaseStatus.InProgress).length;
-  const completedCount = cases.filter(c => c.status === CaseStatus.Completed).length;
+  const assignedCount = cases.filter(c => (c.taskStatus || c.status) === CaseStatus.Assigned).length;
+  const inProgressCount = cases.filter(c => (c.taskStatus || c.status) === CaseStatus.InProgress).length;
+  const completedCount = cases.filter(c => (c.taskStatus || c.status) === CaseStatus.Completed).length;
   const savedCount = cases.filter(c => c.isSaved).length;
 
   return (

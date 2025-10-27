@@ -26,7 +26,7 @@ const AcceptCaseButton: React.FC<AcceptCaseButtonProps> = ({
   const [showSuccess, setShowSuccess] = useState(false);
 
   const handleAcceptCase = async () => {
-    if (isAccepting || caseData.status !== CaseStatus.Assigned) {
+    if (isAccepting || (caseData.taskStatus || caseData.status) !== CaseStatus.Assigned) {
       return;
     }
 
@@ -90,7 +90,7 @@ const AcceptCaseButton: React.FC<AcceptCaseButtonProps> = ({
   };
 
   // Don't render if case is not assigned
-  if (caseData.status !== CaseStatus.Assigned) {
+  if ((caseData.taskStatus || caseData.status) !== CaseStatus.Assigned) {
     return null;
   }
 
