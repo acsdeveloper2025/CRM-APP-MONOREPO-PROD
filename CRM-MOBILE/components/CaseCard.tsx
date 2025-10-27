@@ -189,17 +189,40 @@ const CaseCard: React.FC<CaseCardProps> = ({ caseData, isReorderable = false, is
     setSubmissionMessage(null);
 
     try {
-      console.log('📤 Opening verification form for submission...');
+      console.log('📤 Submitting case from completed tab...');
 
-      // Expand the case card to show the verification form
-      setIsExpanded(true);
+      // Import the retry service to resubmit the case
+      const { default: VerificationFormService } = await import('../services/verificationFormService');
 
-      // Show guidance message
-      setSubmissionMessage('Please use the Submit button in the verification form below to complete this case.');
-      setTimeout(() => setSubmissionMessage(null), 5000);
+      // Determine verification type from case data
+      const verificationType = caseData.verificationType?.toLowerCase().replace(/\s+/g, '-') as any;
+
+      // Update submission status to 'submitting'
+      await updateCaseSubmissionStatus(caseData.id, 'submitting');
+
+      // Retry the verification submission
+      const result = await VerificationFormService.retryVerificationSubmission(
+        caseData.id,
+        verificationType
+      );
+
+      if (result.success) {
+        // Update submission status to 'success'
+        await updateCaseSubmissionStatus(caseData.id, 'success');
+        setSubmissionMessage('✅ Case submitted successfully!');
+        setTimeout(() => setSubmissionMessage(null), 5000);
+      } else {
+        // Update submission status to 'failed' with error message
+        await updateCaseSubmissionStatus(caseData.id, 'failed', result.error);
+        setSubmissionMessage(`❌ Submission failed: ${result.error}`);
+        setTimeout(() => setSubmissionMessage(null), 8000);
+      }
 
     } catch (error) {
-      setSubmissionMessage('Failed to open form - please try again');
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      await updateCaseSubmissionStatus(caseData.id, 'failed', errorMessage);
+      setSubmissionMessage(`❌ Submission failed: ${errorMessage}`);
+      setTimeout(() => setSubmissionMessage(null), 8000);
     } finally {
       setIsSubmitting(false);
     }
@@ -210,17 +233,40 @@ const CaseCard: React.FC<CaseCardProps> = ({ caseData, isReorderable = false, is
     setSubmissionMessage(null);
 
     try {
-      console.log('🔄 Opening verification form for resubmission...');
+      console.log('🔄 Resubmitting case from completed tab...');
 
-      // Expand the case card to show the verification form
-      setIsExpanded(true);
+      // Import the retry service to resubmit the case
+      const { default: VerificationFormService } = await import('../services/verificationFormService');
 
-      // Show guidance message
-      setSubmissionMessage('Please review the form below and click Submit to resubmit this case.');
-      setTimeout(() => setSubmissionMessage(null), 5000);
+      // Determine verification type from case data
+      const verificationType = caseData.verificationType?.toLowerCase().replace(/\s+/g, '-') as any;
+
+      // Update submission status to 'submitting'
+      await updateCaseSubmissionStatus(caseData.id, 'submitting');
+
+      // Retry the verification submission
+      const result = await VerificationFormService.retryVerificationSubmission(
+        caseData.id,
+        verificationType
+      );
+
+      if (result.success) {
+        // Update submission status to 'success'
+        await updateCaseSubmissionStatus(caseData.id, 'success');
+        setSubmissionMessage('✅ Case resubmitted successfully!');
+        setTimeout(() => setSubmissionMessage(null), 5000);
+      } else {
+        // Update submission status to 'failed' with error message
+        await updateCaseSubmissionStatus(caseData.id, 'failed', result.error);
+        setSubmissionMessage(`❌ Resubmission failed: ${result.error}`);
+        setTimeout(() => setSubmissionMessage(null), 8000);
+      }
 
     } catch (error) {
-      setSubmissionMessage('Failed to open form - please try again');
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      await updateCaseSubmissionStatus(caseData.id, 'failed', errorMessage);
+      setSubmissionMessage(`❌ Resubmission failed: ${errorMessage}`);
+      setTimeout(() => setSubmissionMessage(null), 8000);
     } finally {
       setIsSubmitting(false);
     }
@@ -675,8 +721,10 @@ const CaseCard: React.FC<CaseCardProps> = ({ caseData, isReorderable = false, is
           {/* Submission Message */}
           {submissionMessage && (
             <div className={`mb-3 p-2 rounded text-sm ${
-              submissionMessage.includes('success')
+              submissionMessage.includes('✅') || submissionMessage.includes('success')
                 ? 'bg-green-900/20 border border-green-500/30 text-green-400'
+                : submissionMessage.includes('⚠️')
+                ? 'bg-yellow-900/20 border border-yellow-500/30 text-yellow-400'
                 : 'bg-red-900/20 border border-red-500/30 text-red-400'
             }`}>
               {submissionMessage}
@@ -728,7 +776,9 @@ const CaseCard: React.FC<CaseCardProps> = ({ caseData, isReorderable = false, is
         </div>
       )}
 
-      <div className={`transition-all duration-500 ease-in-out ${isExpanded ? 'max-h-[8000px] mt-4' : 'max-h-0 overflow-hidden'}`}>
+      {/* For security reasons, do NOT render forms in Completed or Saved tabs */}
+      {caseData.status !== CaseStatus.Completed && !caseData.isSaved && (
+        <div className={`transition-all duration-500 ease-in-out ${isExpanded ? 'max-h-[8000px] mt-4' : 'max-h-0 overflow-hidden'}`}>
           {isInProgress && verificationOutcomeOptions && (
               <div className="mb-4" onClick={(e) => e.stopPropagation()}>
                   <SelectField
