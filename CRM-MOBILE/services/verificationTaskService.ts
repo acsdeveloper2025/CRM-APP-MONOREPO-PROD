@@ -1,4 +1,3 @@
-import { getEnvironmentConfig } from '../config/environment';
 import AuthStorageService from './authStorageService';
 
 /**
@@ -7,11 +6,24 @@ import AuthStorageService from './authStorageService';
  */
 export class VerificationTaskService {
   /**
-   * Get the API base URL from environment config
+   * Get the API base URL - Environment-aware configuration
    */
   private static getApiBaseUrl(): string {
-    const envConfig = getEnvironmentConfig();
-    return envConfig.api.baseUrl;
+    // Check if we're in production mode
+    const isProduction = import.meta.env.PROD;
+
+    if (isProduction) {
+      // Production: Use domain-based API URL
+      return 'https://example.com/api';
+    } else {
+      // Development: Try static IP first, then fallback to localhost
+      if (import.meta.env.VITE_API_BASE_URL_STATIC_IP) {
+        return import.meta.env.VITE_API_BASE_URL_STATIC_IP;
+      }
+
+      // Fallback to localhost for development
+      return import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
+    }
   }
 
   /**
