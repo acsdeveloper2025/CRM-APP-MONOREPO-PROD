@@ -383,8 +383,6 @@ const ShiftedResiCumOfficeForm: React.FC<ShiftedResiCumOfficeFormProps> = ({ cas
                         );
 
                         if (result.success) {
-                            // Update local case status
-                            updateCaseStatus(caseData.id, CaseStatus.Completed);
                             
                             // Mark auto-save as completed
                             if ((window as any).markAutoSaveFormCompleted) {
