@@ -234,6 +234,17 @@ export const TasksListFlat: React.FC<TasksListFlatProps> = ({
                       </div>
                     )}
 
+                    {/* Assigned By */}
+                    {task.assignedByName && (
+                      <div className="flex items-start gap-2">
+                        <User className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
+                        <div className="min-w-0">
+                          <p className="text-xs text-muted-foreground">Assigned By</p>
+                          <p className="text-sm font-medium text-foreground">{task.assignedByName}</p>
+                        </div>
+                      </div>
+                    )}
+
                     {task.estimatedAmount !== undefined && task.estimatedAmount !== null && (
                       <div className="flex items-start gap-2">
                         <DollarSign className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
