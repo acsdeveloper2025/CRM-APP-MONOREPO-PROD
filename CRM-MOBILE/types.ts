@@ -1756,6 +1756,7 @@ export interface Case {
     contact: string;
   };
   status: CaseStatus;
+  taskStatus?: CaseStatus; // Task-level status (from verification_tasks table)
   isSaved: boolean;
   createdAt: string; // Case Assignment Date/Time
   updatedAt: string; // Last Update Date/Time

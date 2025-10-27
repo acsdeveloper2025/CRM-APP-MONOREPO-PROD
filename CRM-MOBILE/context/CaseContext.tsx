@@ -1054,7 +1054,7 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
         // If we have a local case with a different status, preserve the local status
         // unless the server case has been updated more recently
-        if (localCase && localCase.status !== serverCase.status) {
+        if (localCase && (localCase.status !== serverCase.status || localCase.taskStatus !== serverCase.taskStatus)) {
           const localUpdatedAt = new Date(localCase.updatedAt || localCase.createdAt);
           const serverUpdatedAt = new Date(serverCase.updatedAt || serverCase.createdAt);
 
@@ -1063,6 +1063,7 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             return {
               ...serverCase,
               status: localCase.status,
+              taskStatus: localCase.taskStatus,
               updatedAt: localCase.updatedAt,
               inProgressAt: localCase.inProgressAt,
               completedAt: localCase.completedAt,
