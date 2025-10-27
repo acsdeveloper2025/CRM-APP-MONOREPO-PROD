@@ -227,47 +227,7 @@ const CaseCard: React.FC<CaseCardProps> = ({ caseData, isReorderable = false, is
     }
   };
 
-  const handleResubmitCase = async () => {
-    setIsSubmitting(true);
-    setSubmissionMessage(null);
 
-    try {
-      console.log('🔄 Resubmitting case from completed tab...');
-
-      // Determine verification type from case data
-      const verificationType = caseData.verificationType?.toLowerCase().replace(/\s+/g, '-') as any;
-
-      // Update submission status to 'submitting'
-      await updateCaseSubmissionStatus(caseData.id, 'submitting');
-
-      // Retry the verification submission with verificationTaskId
-      const result = await VerificationFormService.retryVerificationSubmission(
-        caseData.id,
-        verificationType,
-        caseData.verificationTaskId
-      );
-
-      if (result.success) {
-        // Update submission status to 'success'
-        await updateCaseSubmissionStatus(caseData.id, 'success');
-        setSubmissionMessage('✅ Case resubmitted successfully!');
-        setTimeout(() => setSubmissionMessage(null), 5000);
-      } else {
-        // Update submission status to 'failed' with error message
-        await updateCaseSubmissionStatus(caseData.id, 'failed', result.error);
-        setSubmissionMessage(`❌ Resubmission failed: ${result.error}`);
-        setTimeout(() => setSubmissionMessage(null), 8000);
-      }
-
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      await updateCaseSubmissionStatus(caseData.id, 'failed', errorMessage);
-      setSubmissionMessage(`❌ Resubmission failed: ${errorMessage}`);
-      setTimeout(() => setSubmissionMessage(null), 8000);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
 
   /**
    * Verify submission status by checking backend
@@ -728,24 +688,24 @@ const CaseCard: React.FC<CaseCardProps> = ({ caseData, isReorderable = false, is
             </div>
           )}
 
-          {/* Action Buttons */}
-          {(caseData.submissionStatus === 'failed' || caseData.submissionStatus === 'pending' || caseData.isSaved) && (
+          {/* Action Buttons - Only show Submit button for pending submissions */}
+          {caseData.submissionStatus === 'pending' && (
             <div className="flex gap-2 flex-wrap">
-              {/* Re-submit Button */}
+              {/* Submit Button */}
               <button
-                onClick={caseData.submissionStatus === 'failed' ? handleResubmitCase : handleSubmitCase}
+                onClick={handleSubmitCase}
                 disabled={isSubmitting}
                 className="px-4 py-2 text-sm font-semibold rounded-md bg-blue-600 hover:bg-blue-500 disabled:bg-blue-800 disabled:opacity-50 text-white transition-colors flex items-center gap-2"
               >
                 {isSubmitting ? (
                   <>
                     <span className="animate-spin">⏳</span>
-                    <span>{caseData.submissionStatus === 'failed' ? 'Resubmitting...' : 'Submitting...'}</span>
+                    <span>Submitting...</span>
                   </>
                 ) : (
                   <>
-                    <span>🔄</span>
-                    <span>{caseData.submissionStatus === 'failed' ? 'Re-submit Case' : 'Submit Case'}</span>
+                    <span>📤</span>
+                    <span>Submit Case</span>
                   </>
                 )}
               </button>
