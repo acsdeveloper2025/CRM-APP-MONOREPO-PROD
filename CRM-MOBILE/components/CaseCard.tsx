@@ -9,6 +9,7 @@ import { useCaseAutoSaveStatus } from '../hooks/useCaseAutoSaveStatus';
 import CaseTimeline from './CaseTimeline';
 import AttachmentsModal from './AttachmentsModal';
 import { VerificationTaskService } from '../services/verificationTaskService';
+import VerificationFormService from '../services/verificationFormService';
 import PositiveResidenceForm from './forms/residence/PositiveResidenceForm';
 import { attachmentService } from '../services/attachmentService';
 import ShiftedResidenceForm from './forms/residence/ShiftedResidenceForm';
@@ -191,9 +192,6 @@ const CaseCard: React.FC<CaseCardProps> = ({ caseData, isReorderable = false, is
     try {
       console.log('📤 Submitting case from completed tab...');
 
-      // Import the retry service to resubmit the case
-      const { default: VerificationFormService } = await import('../services/verificationFormService');
-
       // Determine verification type from case data
       const verificationType = caseData.verificationType?.toLowerCase().replace(/\s+/g, '-') as any;
 
@@ -234,9 +232,6 @@ const CaseCard: React.FC<CaseCardProps> = ({ caseData, isReorderable = false, is
 
     try {
       console.log('🔄 Resubmitting case from completed tab...');
-
-      // Import the retry service to resubmit the case
-      const { default: VerificationFormService } = await import('../services/verificationFormService');
 
       // Determine verification type from case data
       const verificationType = caseData.verificationType?.toLowerCase().replace(/\s+/g, '-') as any;
