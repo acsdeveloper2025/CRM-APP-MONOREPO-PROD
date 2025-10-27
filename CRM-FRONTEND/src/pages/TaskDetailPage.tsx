@@ -324,7 +324,10 @@ export const TaskDetailPage: React.FC = () => {
                           {item.assignedFromName && ` (from ${item.assignedFromName})`}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          By {item.assignedByName} • {format(new Date(item.assignedAt), 'PPp')}
+                          By {item.assignedByName} • {format(new Date(item.assignedAt), 'dd MMM yyyy, hh:mm a')}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Status: {item.taskStatusAfter}
                         </p>
                         {item.assignmentReason && (
                           <p className="text-xs text-muted-foreground mt-1">
@@ -342,6 +345,27 @@ export const TaskDetailPage: React.FC = () => {
 
         {/* Sidebar */}
         <div className="space-y-6">
+          {/* Task Status */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Task Status</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Current Status</p>
+                <div className="mt-1">
+                  {getStatusBadge(task.status)}
+                </div>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Priority</p>
+                <div className="mt-1">
+                  {getPriorityBadge(task.priority)}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Assignment Details */}
           <Card>
             <CardHeader>
@@ -365,8 +389,8 @@ export const TaskDetailPage: React.FC = () => {
                   )}
                   {task.assignedAt && (
                     <div>
-                      <p className="text-sm font-medium text-muted-foreground">Assigned At</p>
-                      <p className="text-sm">{format(new Date(task.assignedAt), 'PPp')}</p>
+                      <p className="text-sm font-medium text-muted-foreground">Assignment Date & Time</p>
+                      <p className="text-sm">{format(new Date(task.assignedAt), 'dd MMM yyyy, hh:mm a')}</p>
                     </div>
                   )}
                 </>
@@ -384,54 +408,68 @@ export const TaskDetailPage: React.FC = () => {
             <CardContent className="space-y-3">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Created</p>
-                <p className="text-sm">{format(new Date(task.createdAt), 'PPp')}</p>
+                <p className="text-sm">{format(new Date(task.createdAt), 'dd MMM yyyy, hh:mm a')}</p>
               </div>
+              {task.assignedAt && (
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Assigned</p>
+                  <p className="text-sm">{format(new Date(task.assignedAt), 'dd MMM yyyy, hh:mm a')}</p>
+                </div>
+              )}
               {task.startedAt && (
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Started</p>
-                  <p className="text-sm">{format(new Date(task.startedAt), 'PPp')}</p>
+                  <p className="text-sm">{format(new Date(task.startedAt), 'dd MMM yyyy, hh:mm a')}</p>
                 </div>
               )}
               {task.completedAt && (
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Completed</p>
-                  <p className="text-sm">{format(new Date(task.completedAt), 'PPp')}</p>
+                  <p className="text-sm">{format(new Date(task.completedAt), 'dd MMM yyyy, hh:mm a')}</p>
                 </div>
               )}
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Last Updated</p>
+                <p className="text-sm">{format(new Date(task.updatedAt), 'dd MMM yyyy, hh:mm a')}</p>
+              </div>
             </CardContent>
           </Card>
 
-          {/* Financial */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Financial</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {task.estimatedAmount !== undefined && task.estimatedAmount !== null && (
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Estimated Amount</p>
-                  <p className="text-sm">₹{task.estimatedAmount.toFixed(2)}</p>
-                </div>
-              )}
-              {task.actualAmount !== undefined && task.actualAmount !== null && (
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Actual Amount</p>
-                  <p className="text-sm">₹{task.actualAmount.toFixed(2)}</p>
-                </div>
-              )}
-              {task.calculatedCommission !== undefined && task.calculatedCommission !== null && (
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Commission</p>
-                  <p className="text-sm">₹{task.calculatedCommission.toFixed(2)}</p>
-                  {task.commissionStatus && (
-                    <Badge variant="secondary" className="mt-1">
-                      {task.commissionStatus}
-                    </Badge>
-                  )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          {/* Financial - Only show if there's actual financial data */}
+          {((task.estimatedAmount !== undefined && task.estimatedAmount !== null && task.estimatedAmount > 0) ||
+            (task.actualAmount !== undefined && task.actualAmount !== null && task.actualAmount > 0) ||
+            (task.calculatedCommission !== undefined && task.calculatedCommission !== null && task.calculatedCommission > 0)) && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Financial</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {task.estimatedAmount !== undefined && task.estimatedAmount !== null && task.estimatedAmount > 0 && (
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Estimated Amount</p>
+                    <p className="text-sm">₹{task.estimatedAmount.toFixed(2)}</p>
+                  </div>
+                )}
+                {task.actualAmount !== undefined && task.actualAmount !== null && task.actualAmount > 0 && (
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Actual Amount</p>
+                    <p className="text-sm">₹{task.actualAmount.toFixed(2)}</p>
+                  </div>
+                )}
+                {task.calculatedCommission !== undefined && task.calculatedCommission !== null && task.calculatedCommission > 0 && (
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Commission</p>
+                    <p className="text-sm">₹{task.calculatedCommission.toFixed(2)}</p>
+                    {task.commissionStatus && (
+                      <Badge variant="secondary" className="mt-1">
+                        {task.commissionStatus}
+                      </Badge>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </div>
