@@ -96,7 +96,7 @@ const verificationOptionsMap: { [key in VerificationType]?: React.ReactElement[]
 };
 
 const CaseCard: React.FC<CaseCardProps> = ({ caseData, isReorderable = false, isFirst, isLast }) => {
-  const { updateCaseStatus, updateVerificationOutcome, revokeCase, reorderInProgressCase, updateCaseSubmissionStatus, verifyCaseSubmissionStatus } = useCases();
+  const { updateCaseStatus, updateVerificationOutcome, revokeCase, reorderInProgressCase, updateCaseSubmissionStatus, verifyCaseSubmissionStatus, fetchCases } = useCases();
   const [isExpanded, setIsExpanded] = useState(false);
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
   const [isRevokeModalOpen, setIsRevokeModalOpen] = useState(false);
@@ -285,8 +285,9 @@ const CaseCard: React.FC<CaseCardProps> = ({ caseData, isReorderable = false, is
         throw new Error(result.error || 'Failed to start task');
       }
 
-      // Update local case status to reflect task status change
-      await updateCaseStatus(caseData.id, CaseStatus.InProgress);
+      // Refresh cases from backend to get updated task status
+      // The backend has already updated the task status, we just need to fetch the latest data
+      fetchCases();
 
       // Show success feedback
       setShowAcceptSuccess(true);
