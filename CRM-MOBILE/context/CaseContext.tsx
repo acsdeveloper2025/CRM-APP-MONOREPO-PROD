@@ -1134,24 +1134,29 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       console.log(`📊 Updating submission status for case ${caseId}: ${status}`);
 
+      // Prepare updates
+      const updates: any = {
+        submissionStatus: status,
+        submissionError: error,
+        lastSubmissionAttempt: new Date().toISOString()
+      };
+
+      // If submission is successful, clear the isSaved flag
+      // This ensures the case doesn't appear in the "Saved" tab anymore
+      if (status === 'success') {
+        updates.isSaved = false;
+        console.log(`🔓 Clearing isSaved flag for successfully submitted case ${caseId}`);
+      }
+
       // Update local state immediately for responsive UI
       setCases(prevCases => prevCases.map(c =>
         c.id === caseId
-          ? {
-              ...c,
-              submissionStatus: status,
-              submissionError: error,
-              lastSubmissionAttempt: new Date().toISOString()
-            }
+          ? { ...c, ...updates }
           : c
       ));
 
       // Persist to local storage (caseService handles this)
-      await caseService.updateCase(caseId, {
-        submissionStatus: status,
-        submissionError: error,
-        lastSubmissionAttempt: new Date().toISOString()
-      });
+      await caseService.updateCase(caseId, updates);
 
       console.log(`✅ Submission status updated successfully for case ${caseId}`);
     } catch (err) {
