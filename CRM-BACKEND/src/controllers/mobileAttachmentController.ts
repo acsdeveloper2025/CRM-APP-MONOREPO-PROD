@@ -373,7 +373,7 @@ export class MobileAttachmentController {
         originalName: att.originalName,
         mimeType: att.mimeType,
         size: att.fileSize,
-        url: `${getApiBaseUrl(req)}/attachments/${att.id}/serve`, // Use secure API endpoint
+        url: `${getApiBaseUrl(req)}/attachments/${att.id}/content`, // Use correct endpoint
         thumbnailUrl: null, // Not available in current schema
         uploadedAt: new Date(att.createdAt).toISOString(),
         geoLocation: undefined, // Not available in current schema
@@ -752,7 +752,7 @@ export class MobileAttachmentController {
           processingStatus: attachment.processingStatus,
           thumbnailPath: attachment.thumbnailPath,
           compressedPath: attachment.compressedPath,
-          downloadUrl: `${getApiBaseUrl(req)}/mobile/attachments/${attachment.id}/content`,
+          downloadUrl: `${getApiBaseUrl(req)}/attachments/${attachment.id}/content`,
         });
       });
 
