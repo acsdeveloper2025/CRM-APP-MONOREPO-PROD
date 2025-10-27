@@ -407,19 +407,19 @@ export const TaskDetailPage: React.FC = () => {
               <CardTitle className="text-base">Financial</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {task.estimatedAmount !== undefined && (
+              {task.estimatedAmount !== undefined && task.estimatedAmount !== null && (
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Estimated Amount</p>
                   <p className="text-sm">₹{task.estimatedAmount.toFixed(2)}</p>
                 </div>
               )}
-              {task.actualAmount !== undefined && (
+              {task.actualAmount !== undefined && task.actualAmount !== null && (
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Actual Amount</p>
                   <p className="text-sm">₹{task.actualAmount.toFixed(2)}</p>
                 </div>
               )}
-              {task.calculatedCommission !== undefined && (
+              {task.calculatedCommission !== undefined && task.calculatedCommission !== null && (
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Commission</p>
                   <p className="text-sm">₹{task.calculatedCommission.toFixed(2)}</p>
