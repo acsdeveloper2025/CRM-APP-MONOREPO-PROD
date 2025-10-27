@@ -16,7 +16,8 @@ import {
   CheckCircle,
   Clock,
   DollarSign,
-  PlayCircle
+  PlayCircle,
+  List
 } from 'lucide-react';
 
 export interface NavigationItem {
@@ -41,6 +42,43 @@ export const navigationItems: NavigationItem[] = [
     permission: { resource: 'cases', action: 'read' }, // Using cases permission for dashboard access
   },
   {
+    id: 'tasks',
+    label: 'Task Management',
+    href: '/tasks',
+    icon: CheckSquare,
+    permission: { resource: 'cases', action: 'read' },
+    children: [
+      {
+        id: 'tasks-pending',
+        label: 'Pending Tasks',
+        href: '/tasks/pending',
+        icon: Clock,
+        permission: { resource: 'cases', action: 'read' },
+      },
+      {
+        id: 'tasks-in-progress',
+        label: 'In Progress Tasks',
+        href: '/tasks/in-progress',
+        icon: PlayCircle,
+        permission: { resource: 'cases', action: 'read' },
+      },
+      {
+        id: 'tasks-completed',
+        label: 'Completed Tasks',
+        href: '/tasks/completed',
+        icon: CheckCircle,
+        permission: { resource: 'cases', action: 'read' },
+      },
+      {
+        id: 'tasks-all',
+        label: 'All Tasks',
+        href: '/tasks',
+        icon: List,
+        permission: { resource: 'cases', action: 'read' },
+      },
+    ],
+  },
+  {
     id: 'cases',
     label: 'Case Management',
     href: '/cases',
@@ -62,24 +100,10 @@ export const navigationItems: NavigationItem[] = [
         permission: { resource: 'cases', action: 'create' },
       },
       {
-        id: 'cases-in-progress',
-        label: 'In Progress Cases',
-        href: '/cases/in-progress',
-        icon: PlayCircle,
-        permission: { resource: 'cases', action: 'read' },
-      },
-      {
         id: 'cases-completed',
         label: 'Completed Cases',
         href: '/cases/completed',
         icon: CheckCircle,
-        permission: { resource: 'cases', action: 'read' },
-      },
-      {
-        id: 'cases-pending',
-        label: 'Pending Cases',
-        href: '/cases/pending',
-        icon: Clock,
         permission: { resource: 'cases', action: 'read' },
       },
     ],
