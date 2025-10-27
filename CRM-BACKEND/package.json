@@ -9,6 +9,7 @@
     "start": "node -r module-alias/register dist/index.js",
     "start:prod": "npm run build && npm start",
     "clean-and-seed": "node scripts/clean-and-seed-cases.js",
+    "verify-cleanup": "node scripts/verify-cleanup.js",
     "migrate": "ts-node scripts/run-migrations.ts run",
     "migrate:data": "ts-node scripts/run-migrations.ts data",
     "migrate:status": "ts-node scripts/run-migrations.ts status",

@@ -71,10 +71,24 @@ const mapBackendCaseToMobile = (backendCase: BackendCase): Case => {
   };
 
   // Map backend status to mobile CaseStatus
+  // This maps task status from verification_tasks table
   const statusMap: { [key: string]: CaseStatus } = {
     'PENDING': CaseStatus.Assigned,
+    'ASSIGNED': CaseStatus.Assigned,
     'IN_PROGRESS': CaseStatus.InProgress,
-    'COMPLETED': CaseStatus.Completed
+    'COMPLETED': CaseStatus.Completed,
+    'CANCELLED': CaseStatus.Assigned,
+    'ON_HOLD': CaseStatus.InProgress,
+  };
+
+  // Map backend status to task status (preserves task-level status)
+  const taskStatusMap: { [key: string]: CaseStatus } = {
+    'PENDING': CaseStatus.Assigned,
+    'ASSIGNED': CaseStatus.Assigned,
+    'IN_PROGRESS': CaseStatus.InProgress,
+    'COMPLETED': CaseStatus.Completed,
+    'CANCELLED': CaseStatus.Assigned,
+    'ON_HOLD': CaseStatus.InProgress,
   };
 
   // Map backend verification type to mobile VerificationType
@@ -111,6 +125,7 @@ const mapBackendCaseToMobile = (backendCase: BackendCase): Case => {
       contact: backendCase.customerPhone || backendCase.customerCallingCode || ''
     },
     status: statusMap[backendCase.status] || CaseStatus.Assigned,
+    taskStatus: taskStatusMap[backendCase.status] || CaseStatus.Assigned, // Preserve task-level status
     isSaved: false,
     createdAt: backendCase.assignedAt, // Backend sends assignedAt as creation time
     updatedAt: backendCase.updatedAt,

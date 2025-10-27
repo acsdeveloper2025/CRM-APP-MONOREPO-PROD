@@ -43,7 +43,7 @@ const InProgressCasesScreen: React.FC = () => {
   return (
     <CaseListScreen
       title="In Progress Cases"
-      filter={(c) => c.status === CaseStatus.InProgress && !c.isSaved}
+      filter={(c) => (c.taskStatus || c.status) === CaseStatus.InProgress && !c.isSaved}
       sort={sortFunction}
       isReorderable={sortMode === 'order'}
       emptyMessage="No cases are currently in progress."

@@ -139,8 +139,8 @@ const CaseCard: React.FC<CaseCardProps> = ({ caseData, isReorderable = false, is
   const [isFormScrollable, setIsFormScrollable] = useState(false);
   const formContentRef = useRef<HTMLDivElement>(null);
   
-  const isAssigned = caseData.status === CaseStatus.Assigned;
-  const isInProgress = caseData.status === CaseStatus.InProgress;
+  const isAssigned = (caseData.taskStatus || caseData.status) === CaseStatus.Assigned;
+  const isInProgress = (caseData.taskStatus || caseData.status) === CaseStatus.InProgress;
 
 
 
@@ -263,7 +263,7 @@ const CaseCard: React.FC<CaseCardProps> = ({ caseData, isReorderable = false, is
    * Enhanced Accept button handler with optimistic UI and offline support
    */
   const handleAcceptCase = async () => {
-    if (isAccepting || caseData.status !== CaseStatus.Assigned) {
+    if (isAccepting || (caseData.taskStatus || caseData.status) !== CaseStatus.Assigned) {
       return;
     }
 
@@ -312,7 +312,8 @@ const CaseCard: React.FC<CaseCardProps> = ({ caseData, isReorderable = false, is
   };
 
   const getStatusColor = () => {
-    if (caseData.status === CaseStatus.Completed) {
+    const currentStatus = caseData.taskStatus || caseData.status;
+    if (currentStatus === CaseStatus.Completed) {
       switch (caseData.submissionStatus) {
         case 'success':
           return 'border-l-4 border-green-500 bg-green-900/20';
@@ -332,7 +333,7 @@ const CaseCard: React.FC<CaseCardProps> = ({ caseData, isReorderable = false, is
       [CaseStatus.Completed]: 'border-l-4 border-green-500',
     };
 
-    return statusColor[caseData.status];
+    return statusColor[currentStatus];
   };
   
   const verificationOutcomeOptions = useMemo(() => verificationOptionsMap[caseData.verificationType], [caseData.verificationType]);
@@ -363,7 +364,8 @@ const CaseCard: React.FC<CaseCardProps> = ({ caseData, isReorderable = false, is
       if (caseData.isSaved) {
           return { label: 'Saved', value: formatDate(caseData.savedAt) };
       }
-      switch (caseData.status) {
+      const currentStatus = caseData.taskStatus || caseData.status;
+      switch (currentStatus) {
           case CaseStatus.Assigned:
               return { label: 'Assigned', value: formatDate(caseData.createdAt) };
           case CaseStatus.InProgress:
@@ -557,8 +559,8 @@ const CaseCard: React.FC<CaseCardProps> = ({ caseData, isReorderable = false, is
     <>
     <div className={`bg-dark-card rounded-lg shadow-lg mb-4 mx-4 p-4 transition-all duration-300 ${getStatusColor()} ${hasAutoSaveData ? 'ring-2 ring-yellow-400 bg-yellow-900/20 border-yellow-400/50' : ''}`}>
       <div
-        className={`flex justify-between items-start ${(caseData.status !== CaseStatus.Assigned && caseData.status !== CaseStatus.Completed && !caseData.isSaved) ? 'cursor-pointer' : ''}`}
-        onClick={(caseData.status !== CaseStatus.Assigned && caseData.status !== CaseStatus.Completed && !caseData.isSaved) ? () => setIsExpanded(!isExpanded) : undefined}
+        className={`flex justify-between items-start ${((caseData.taskStatus || caseData.status) !== CaseStatus.Assigned && (caseData.taskStatus || caseData.status) !== CaseStatus.Completed && !caseData.isSaved) ? 'cursor-pointer' : ''}`}
+        onClick={((caseData.taskStatus || caseData.status) !== CaseStatus.Assigned && (caseData.taskStatus || caseData.status) !== CaseStatus.Completed && !caseData.isSaved) ? () => setIsExpanded(!isExpanded) : undefined}
       >
         <div className="flex-1">
           <div className="flex justify-between items-start">
@@ -601,7 +603,7 @@ const CaseCard: React.FC<CaseCardProps> = ({ caseData, isReorderable = false, is
           <div className="flex justify-end items-center mt-2">
             <div className="flex items-center gap-3">
               {/* Show attachment button for In Progress cases */}
-              {caseData.status === CaseStatus.InProgress && (
+              {(caseData.taskStatus || caseData.status) === CaseStatus.InProgress && (
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -619,7 +621,7 @@ const CaseCard: React.FC<CaseCardProps> = ({ caseData, isReorderable = false, is
                 </button>
               )}
               {/* Show priority input only for In Progress cases */}
-              {caseData.status === CaseStatus.InProgress && !caseData.isSaved && (
+              {(caseData.taskStatus || caseData.status) === CaseStatus.InProgress && !caseData.isSaved && (
                 <PriorityInput caseId={caseData.id} />
               )}
             </div>
@@ -628,12 +630,12 @@ const CaseCard: React.FC<CaseCardProps> = ({ caseData, isReorderable = false, is
       </div>
 
       {/* Show comprehensive timeline for completed cases */}
-      {caseData.status === CaseStatus.Completed && (
+      {(caseData.taskStatus || caseData.status) === CaseStatus.Completed && (
         <CaseTimeline caseData={caseData} compact={true} />
       )}
 
       {/* Submission status and re-submit functionality for completed cases */}
-      {caseData.status === CaseStatus.Completed && (
+      {(caseData.taskStatus || caseData.status) === CaseStatus.Completed && (
         <div className="mt-3">
           {/* Submission Status Indicator */}
           {caseData.submissionStatus && (
@@ -734,7 +736,7 @@ const CaseCard: React.FC<CaseCardProps> = ({ caseData, isReorderable = false, is
       )}
 
       {/* For security reasons, do NOT render forms in Completed or Saved tabs */}
-      {caseData.status !== CaseStatus.Completed && !caseData.isSaved && (
+      {(caseData.taskStatus || caseData.status) !== CaseStatus.Completed && !caseData.isSaved && (
         <div className={`transition-all duration-500 ease-in-out ${isExpanded ? 'max-h-[8000px] mt-4' : 'max-h-0 overflow-hidden'}`}>
           {isInProgress && verificationOutcomeOptions && (
               <div className="mb-4" onClick={(e) => e.stopPropagation()}>
@@ -890,7 +892,7 @@ const CaseCard: React.FC<CaseCardProps> = ({ caseData, isReorderable = false, is
             </div>
 
             <div className="flex items-center gap-2">
-              {caseData.isSaved && caseData.status !== CaseStatus.Completed && (
+              {caseData.isSaved && (caseData.taskStatus || caseData.status) !== CaseStatus.Completed && (
                   <button
                       onClick={async (e) => {
                           e.stopPropagation();
@@ -905,7 +907,7 @@ const CaseCard: React.FC<CaseCardProps> = ({ caseData, isReorderable = false, is
               )}
 
               {/* Only show expand/collapse button for non-completed and non-saved cases */}
-              {!(caseData.status === CaseStatus.Completed || caseData.isSaved) && (
+              {!((caseData.taskStatus || caseData.status) === CaseStatus.Completed || caseData.isSaved) && (
                 <button onClick={() => setIsExpanded(!isExpanded)} className="flex items-center text-medium-text p-2 rounded-md hover:bg-white/10">
                     {isExpanded ? <ChevronUpIcon /> : <ChevronDownIcon />}
                     <span className="text-xs ml-1">
