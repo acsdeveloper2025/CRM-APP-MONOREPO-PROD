@@ -113,7 +113,8 @@ export class SecureStorageService {
       }
 
       // Generate checksum for data integrity (use backend checksum if provided)
-      const checksum = metadata.checksum || await this.generateChecksum(data);
+      // Use EncryptionService for consistent checksum generation
+      const checksum = metadata.checksum || encryptionService.generateChecksum(data);
 
       // Validate checksum was generated successfully
       if (!checksum || checksum.length === 0) {
@@ -208,9 +209,14 @@ export class SecureStorageService {
         attachmentId
       );
 
-      // Verify data integrity
-      const checksum = await this.generateChecksum(decryptedData);
+      // Verify data integrity using EncryptionService for consistent checksum
+      const checksum = encryptionService.generateChecksum(decryptedData);
       if (checksum !== metadata.checksum) {
+        console.error(`❌ Checksum mismatch for ${attachmentId}:`, {
+          expected: metadata.checksum,
+          actual: checksum,
+          dataLength: decryptedData.length
+        });
         throw new Error('Data integrity check failed');
       }
 
@@ -369,49 +375,7 @@ export class SecureStorageService {
     }
   }
 
-  /**
-   * Generate checksum for data integrity
-   */
-  private async generateChecksum(data: string): Promise<string> {
-    try {
-      // Check if Web Crypto API is available
-      if (typeof crypto !== 'undefined' && crypto.subtle && crypto.subtle.digest) {
-        const encoder = new TextEncoder();
-        const dataBuffer = encoder.encode(data);
-        const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer);
 
-        // Check if digest was successful
-        if (hashBuffer && hashBuffer.byteLength > 0) {
-          const hashArray = Array.from(new Uint8Array(hashBuffer));
-          return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-        }
-      }
-
-      // Fallback to simple hash if Web Crypto API is not available
-      console.warn('⚠️ Web Crypto API not available, using fallback hash');
-      return this.generateFallbackHash(data);
-    } catch (error) {
-      console.warn('⚠️ Crypto digest failed, using fallback hash:', error);
-      return this.generateFallbackHash(data);
-    }
-  }
-
-  /**
-   * Fallback hash function for environments without Web Crypto API
-   */
-  private generateFallbackHash(data: string): string {
-    let hash = 0;
-    if (data.length === 0) return hash.toString(16);
-
-    for (let i = 0; i < data.length; i++) {
-      const char = data.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash; // Convert to 32-bit integer
-    }
-
-    // Convert to positive hex string
-    return Math.abs(hash).toString(16).padStart(8, '0');
-  }
 
   /**
    * Check if cache entry is still valid
