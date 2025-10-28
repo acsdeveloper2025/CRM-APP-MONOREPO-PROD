@@ -36,9 +36,29 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
     }
 
     const caseData = caseResult.rows[0];
-    const verificationType = caseData.verificationType;
+
+    // FIXED: Find the verification task ID using the submissionId from verification_attachments
+    const taskQuery = `
+      SELECT DISTINCT vt.id as task_id, vt.verification_type_id, vtype.name as verification_type_name
+      FROM verification_tasks vt
+      LEFT JOIN "verificationTypes" vtype ON vt.verification_type_id = vtype.id
+      LEFT JOIN verification_attachments va ON va.verification_task_id = vt.id
+      WHERE vt.case_id = $1 AND va."submissionId" = $2
+      LIMIT 1
+    `;
+    const taskResult = await pool.query(taskQuery, [caseData.id, submissionId]);
+
+    if (taskResult.rows.length === 0) {
+      logger.error('Verification task not found for submission', { caseId, submissionId });
+      return res.status(404).json({ error: 'Verification task not found for this submission' });
+    }
+
+    const taskData = taskResult.rows[0];
+    const verificationTaskId = taskData.task_id;
+    const verificationType = taskData.verification_type_name || caseData.verificationType;
+
     let outcome = caseData.verificationOutcome;
-    let formData = caseData.verificationData?.formData || caseData.verificationData?.verification || {};
+    let formData: any = {};
 
     // Extract address from verificationData
     const address = caseData.verificationData?.address ||
@@ -46,16 +66,18 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
                     caseData.verificationData?.verification?.address ||
                     'Address not available';
 
-    // Get verification report data based on verification type
-    if (verificationType === 'RESIDENCE') {
+    // Get verification report data based on verification type using verification_task_id
+    const typeUpper = verificationType.toUpperCase();
+
+    if (typeUpper.includes('RESIDENCE') && !typeUpper.includes('OFFICE')) {
       const residenceQuery = `
         SELECT * FROM "residenceVerificationReports"
-        WHERE "caseId" = $1
+        WHERE verification_task_id = $1
         ORDER BY created_at DESC
         LIMIT 1
       `;
 
-      const residenceResult = await pool.query(residenceQuery, [parseInt(caseId)]);
+      const residenceResult = await pool.query(residenceQuery, [verificationTaskId]);
 
       if (residenceResult.rows.length > 0) {
         const residenceData = residenceResult.rows[0];
@@ -104,15 +126,15 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           premisesStatus: residenceData.premises_status
         };
       }
-    } else if (verificationType === 'OFFICE') {
+    } else if (typeUpper.includes('OFFICE') && !typeUpper.includes('RESIDENCE')) {
       const officeQuery = `
         SELECT * FROM "officeVerificationReports"
-        WHERE "caseId" = $1
+        WHERE verification_task_id = $1
         ORDER BY created_at DESC
         LIMIT 1
       `;
 
-      const officeResult = await pool.query(officeQuery, [parseInt(caseId)]);
+      const officeResult = await pool.query(officeQuery, [verificationTaskId]);
 
       if (officeResult.rows.length > 0) {
         const officeData = officeResult.rows[0];
@@ -176,6 +198,339 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           officeExistence: officeData.office_existence
         };
       }
+    } else if (typeUpper.includes('BUSINESS')) {
+      const businessQuery = `
+        SELECT * FROM "businessVerificationReports"
+        WHERE verification_task_id = $1
+        ORDER BY created_at DESC
+        LIMIT 1
+      `;
+
+      const businessResult = await pool.query(businessQuery, [verificationTaskId]);
+
+      if (businessResult.rows.length > 0) {
+        const businessData = businessResult.rows[0];
+        outcome = businessData.verification_outcome;
+
+        // Map business verification data to form data structure
+        formData = {
+          customerName: businessData.customer_name,
+          businessType: businessData.business_type,
+          businessName: businessData.business_name,
+          addressLocatable: businessData.address_locatable,
+          addressRating: businessData.address_rating,
+          businessStatus: businessData.business_status,
+          metPersonName: businessData.met_person_name,
+          metPersonDesignation: businessData.met_person_designation,
+          metPersonStatus: businessData.met_person_status,
+          businessPeriod: businessData.business_period,
+          businessActivity: businessData.business_activity,
+          totalEmployees: businessData.total_employees,
+          approxArea: businessData.approx_area,
+          businessBoardStatus: businessData.business_board_status,
+          nameOnBusinessBoard: businessData.name_on_business_board,
+          locality: businessData.locality,
+          addressStructure: businessData.address_structure,
+          addressFloor: businessData.address_floor,
+          addressStructureColor: businessData.address_structure_color,
+          doorColor: businessData.door_color,
+          tpcMetPerson1: businessData.tpc_met_person1,
+          nameOfTpc1: businessData.tpc_name1,
+          tpcConfirmation1: businessData.tpc_confirmation1,
+          tpcMetPerson2: businessData.tpc_met_person2,
+          nameOfTpc2: businessData.tpc_name2,
+          tpcConfirmation2: businessData.tpc_confirmation2,
+          landmark1: businessData.landmark1,
+          landmark2: businessData.landmark2,
+          dominatedArea: businessData.dominated_area,
+          feedbackFromNeighbour: businessData.feedback_from_neighbour,
+          politicalConnection: businessData.political_connection,
+          otherObservation: businessData.other_observation,
+          finalStatus: businessData.final_status
+        };
+      }
+    } else if (typeUpper.includes('RESIDENCE') && typeUpper.includes('OFFICE')) {
+      const residenceCumOfficeQuery = `
+        SELECT * FROM "residenceCumOfficeVerificationReports"
+        WHERE verification_task_id = $1
+        ORDER BY created_at DESC
+        LIMIT 1
+      `;
+
+      const residenceCumOfficeResult = await pool.query(residenceCumOfficeQuery, [verificationTaskId]);
+
+      if (residenceCumOfficeResult.rows.length > 0) {
+        const rcData = residenceCumOfficeResult.rows[0];
+        outcome = rcData.verification_outcome;
+
+        // Map residence cum office verification data to form data structure
+        formData = {
+          customerName: rcData.customer_name,
+          addressLocatable: rcData.address_locatable,
+          addressRating: rcData.address_rating,
+          houseStatus: rcData.house_status,
+          metPersonName: rcData.met_person_name,
+          metPersonRelation: rcData.met_person_relation,
+          metPersonStatus: rcData.met_person_status,
+          stayingPeriod: rcData.staying_period,
+          stayingStatus: rcData.staying_status,
+          totalFamilyMembers: rcData.total_family_members,
+          totalEarning: rcData.total_earning,
+          workingStatus: rcData.working_status,
+          companyName: rcData.company_name,
+          approxArea: rcData.approx_area,
+          doorNamePlateStatus: rcData.door_nameplate_status,
+          nameOnDoorPlate: rcData.name_on_door_plate,
+          societyNamePlateStatus: rcData.society_nameplate_status,
+          nameOnSocietyBoard: rcData.name_on_society_board,
+          localityType: rcData.locality,
+          addressStructure: rcData.address_structure,
+          addressFloor: rcData.address_floor,
+          addressStructureColor: rcData.address_structure_color,
+          doorColor: rcData.door_color,
+          landmark1: rcData.landmark1,
+          landmark2: rcData.landmark2,
+          dominatedArea: rcData.dominated_area,
+          feedbackFromNeighbour: rcData.feedback_from_neighbour,
+          politicalConnection: rcData.political_connection,
+          otherObservation: rcData.other_observation,
+          finalStatus: rcData.final_status
+        };
+      }
+    } else if (typeUpper.includes('BUILDER')) {
+      const builderQuery = `
+        SELECT * FROM "builderVerificationReports"
+        WHERE verification_task_id = $1
+        ORDER BY created_at DESC
+        LIMIT 1
+      `;
+
+      const builderResult = await pool.query(builderQuery, [verificationTaskId]);
+
+      if (builderResult.rows.length > 0) {
+        const builderData = builderResult.rows[0];
+        outcome = builderData.verification_outcome;
+
+        // Map builder verification data to form data structure
+        formData = {
+          customerName: builderData.customer_name,
+          builderName: builderData.builder_name,
+          projectName: builderData.project_name,
+          addressLocatable: builderData.address_locatable,
+          addressRating: builderData.address_rating,
+          projectStatus: builderData.project_status,
+          metPersonName: builderData.met_person_name,
+          metPersonDesignation: builderData.met_person_designation,
+          metPersonStatus: builderData.met_person_status,
+          projectStartDate: builderData.project_start_date,
+          projectCompletionDate: builderData.project_completion_date,
+          totalUnits: builderData.total_units,
+          soldUnits: builderData.sold_units,
+          approxArea: builderData.approx_area,
+          projectBoardStatus: builderData.project_board_status,
+          nameOnProjectBoard: builderData.name_on_project_board,
+          locality: builderData.locality,
+          addressStructure: builderData.address_structure,
+          tpcMetPerson1: builderData.tpc_met_person1,
+          nameOfTpc1: builderData.tpc_name1,
+          tpcConfirmation1: builderData.tpc_confirmation1,
+          tpcMetPerson2: builderData.tpc_met_person2,
+          nameOfTpc2: builderData.tpc_name2,
+          tpcConfirmation2: builderData.tpc_confirmation2,
+          landmark1: builderData.landmark1,
+          landmark2: builderData.landmark2,
+          dominatedArea: builderData.dominated_area,
+          feedbackFromNeighbour: builderData.feedback_from_neighbour,
+          politicalConnection: builderData.political_connection,
+          otherObservation: builderData.other_observation,
+          finalStatus: builderData.final_status
+        };
+      }
+    } else if (typeUpper.includes('NOC')) {
+      const nocQuery = `
+        SELECT * FROM "nocVerificationReports"
+        WHERE verification_task_id = $1
+        ORDER BY created_at DESC
+        LIMIT 1
+      `;
+
+      const nocResult = await pool.query(nocQuery, [verificationTaskId]);
+
+      if (nocResult.rows.length > 0) {
+        const nocData = nocResult.rows[0];
+        outcome = nocData.verification_outcome;
+
+        // Map NOC verification data to form data structure
+        formData = {
+          customerName: nocData.customer_name,
+          addressLocatable: nocData.address_locatable,
+          addressRating: nocData.address_rating,
+          propertyStatus: nocData.property_status,
+          metPersonName: nocData.met_person_name,
+          metPersonRelation: nocData.met_person_relation,
+          metPersonStatus: nocData.met_person_status,
+          ownershipStatus: nocData.ownership_status,
+          propertyType: nocData.property_type,
+          approxArea: nocData.approx_area,
+          locality: nocData.locality,
+          addressStructure: nocData.address_structure,
+          addressFloor: nocData.address_floor,
+          tpcMetPerson1: nocData.tpc_met_person1,
+          nameOfTpc1: nocData.tpc_name1,
+          tpcConfirmation1: nocData.tpc_confirmation1,
+          tpcMetPerson2: nocData.tpc_met_person2,
+          nameOfTpc2: nocData.tpc_name2,
+          tpcConfirmation2: nocData.tpc_confirmation2,
+          landmark1: nocData.landmark1,
+          landmark2: nocData.landmark2,
+          dominatedArea: nocData.dominated_area,
+          feedbackFromNeighbour: nocData.feedback_from_neighbour,
+          politicalConnection: nocData.political_connection,
+          otherObservation: nocData.other_observation,
+          finalStatus: nocData.final_status
+        };
+      }
+    } else if (typeUpper.includes('DSA') || typeUpper.includes('CONNECTOR')) {
+      const dsaQuery = `
+        SELECT * FROM "dsaConnectorVerificationReports"
+        WHERE verification_task_id = $1
+        ORDER BY created_at DESC
+        LIMIT 1
+      `;
+
+      const dsaResult = await pool.query(dsaQuery, [verificationTaskId]);
+
+      if (dsaResult.rows.length > 0) {
+        const dsaData = dsaResult.rows[0];
+        outcome = dsaData.verification_outcome;
+
+        // Map DSA/Connector verification data to form data structure
+        formData = {
+          customerName: dsaData.customer_name,
+          dsaName: dsaData.dsa_name,
+          addressLocatable: dsaData.address_locatable,
+          addressRating: dsaData.address_rating,
+          officeStatus: dsaData.office_status,
+          metPersonName: dsaData.met_person_name,
+          metPersonDesignation: dsaData.met_person_designation,
+          metPersonStatus: dsaData.met_person_status,
+          businessPeriod: dsaData.business_period,
+          totalEmployees: dsaData.total_employees,
+          approxArea: dsaData.approx_area,
+          officeBoardStatus: dsaData.office_board_status,
+          nameOnOfficeBoard: dsaData.name_on_office_board,
+          locality: dsaData.locality,
+          addressStructure: dsaData.address_structure,
+          addressFloor: dsaData.address_floor,
+          tpcMetPerson1: dsaData.tpc_met_person1,
+          nameOfTpc1: dsaData.tpc_name1,
+          tpcConfirmation1: dsaData.tpc_confirmation1,
+          tpcMetPerson2: dsaData.tpc_met_person2,
+          nameOfTpc2: dsaData.tpc_name2,
+          tpcConfirmation2: dsaData.tpc_confirmation2,
+          landmark1: dsaData.landmark1,
+          landmark2: dsaData.landmark2,
+          dominatedArea: dsaData.dominated_area,
+          feedbackFromNeighbour: dsaData.feedback_from_neighbour,
+          politicalConnection: dsaData.political_connection,
+          otherObservation: dsaData.other_observation,
+          finalStatus: dsaData.final_status
+        };
+      }
+    } else if (typeUpper.includes('PROPERTY') && typeUpper.includes('APF')) {
+      const propertyApfQuery = `
+        SELECT * FROM "propertyApfVerificationReports"
+        WHERE verification_task_id = $1
+        ORDER BY created_at DESC
+        LIMIT 1
+      `;
+
+      const propertyApfResult = await pool.query(propertyApfQuery, [verificationTaskId]);
+
+      if (propertyApfResult.rows.length > 0) {
+        const propertyData = propertyApfResult.rows[0];
+        outcome = propertyData.verification_outcome;
+
+        // Map Property APF verification data to form data structure
+        formData = {
+          customerName: propertyData.customer_name,
+          addressLocatable: propertyData.address_locatable,
+          addressRating: propertyData.address_rating,
+          propertyStatus: propertyData.property_status,
+          propertyType: propertyData.property_type,
+          metPersonName: propertyData.met_person_name,
+          metPersonRelation: propertyData.met_person_relation,
+          metPersonStatus: propertyData.met_person_status,
+          ownershipStatus: propertyData.ownership_status,
+          propertyAge: propertyData.property_age,
+          approxArea: propertyData.approx_area,
+          locality: propertyData.locality,
+          addressStructure: propertyData.address_structure,
+          addressFloor: propertyData.address_floor,
+          tpcMetPerson1: propertyData.tpc_met_person1,
+          nameOfTpc1: propertyData.tpc_name1,
+          tpcConfirmation1: propertyData.tpc_confirmation1,
+          tpcMetPerson2: propertyData.tpc_met_person2,
+          nameOfTpc2: propertyData.tpc_name2,
+          tpcConfirmation2: propertyData.tpc_confirmation2,
+          landmark1: propertyData.landmark1,
+          landmark2: propertyData.landmark2,
+          dominatedArea: propertyData.dominated_area,
+          feedbackFromNeighbour: propertyData.feedback_from_neighbour,
+          politicalConnection: propertyData.political_connection,
+          otherObservation: propertyData.other_observation,
+          finalStatus: propertyData.final_status
+        };
+      }
+    } else if (typeUpper.includes('PROPERTY') && typeUpper.includes('INDIVIDUAL')) {
+      const propertyIndividualQuery = `
+        SELECT * FROM "propertyIndividualVerificationReports"
+        WHERE verification_task_id = $1
+        ORDER BY created_at DESC
+        LIMIT 1
+      `;
+
+      const propertyIndividualResult = await pool.query(propertyIndividualQuery, [verificationTaskId]);
+
+      if (propertyIndividualResult.rows.length > 0) {
+        const propertyData = propertyIndividualResult.rows[0];
+        outcome = propertyData.verification_outcome;
+
+        // Map Property Individual verification data to form data structure
+        formData = {
+          customerName: propertyData.customer_name,
+          addressLocatable: propertyData.address_locatable,
+          addressRating: propertyData.address_rating,
+          propertyStatus: propertyData.property_status,
+          propertyType: propertyData.property_type,
+          metPersonName: propertyData.met_person_name,
+          metPersonRelation: propertyData.met_person_relation,
+          metPersonStatus: propertyData.met_person_status,
+          ownershipStatus: propertyData.ownership_status,
+          propertyAge: propertyData.property_age,
+          approxArea: propertyData.approx_area,
+          locality: propertyData.locality,
+          addressStructure: propertyData.address_structure,
+          addressFloor: propertyData.address_floor,
+          tpcMetPerson1: propertyData.tpc_met_person1,
+          nameOfTpc1: propertyData.tpc_name1,
+          tpcConfirmation1: propertyData.tpc_confirmation1,
+          tpcMetPerson2: propertyData.tpc_met_person2,
+          nameOfTpc2: propertyData.tpc_name2,
+          tpcConfirmation2: propertyData.tpc_confirmation2,
+          landmark1: propertyData.landmark1,
+          landmark2: propertyData.landmark2,
+          dominatedArea: propertyData.dominated_area,
+          feedbackFromNeighbour: propertyData.feedback_from_neighbour,
+          politicalConnection: propertyData.political_connection,
+          otherObservation: propertyData.other_observation,
+          finalStatus: propertyData.final_status
+        };
+      }
+    } else {
+      // Fallback for unknown verification types
+      formData = caseData.verificationData?.formData || caseData.verificationData?.verification || {};
+      logger.warn(`Unknown verification type ${verificationType}, using fallback data`);
     }
 
     // Prepare data for template generation
