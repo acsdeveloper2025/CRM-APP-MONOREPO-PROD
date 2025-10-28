@@ -175,6 +175,10 @@ export class MobileCaseController {
                vtask.applicant_type as "taskApplicantType",
                vtask.assigned_to as "taskAssignedTo",
                vtask.assigned_user_name,
+               vtask.task_status,
+               vtask.task_completed_at,
+               vtask.assigned_at,
+               vtask.task_created_at,
                -- Attachment count
                COALESCE(att_count.attachment_count, 0) as "attachmentCount"
         FROM cases c
