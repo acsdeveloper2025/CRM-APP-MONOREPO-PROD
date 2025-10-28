@@ -42,6 +42,9 @@ class AttachmentSyncService {
     try {
       console.log(`📦 Starting attachment sync for ${cases.length} cases...`);
 
+      // Ensure encryption service is initialized before syncing
+      await secureStorageService.ensureInitialized();
+
       for (const caseItem of cases) {
         try {
           const result = await this.syncAttachmentsForCase(caseItem);
