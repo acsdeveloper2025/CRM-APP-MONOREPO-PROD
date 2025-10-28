@@ -191,6 +191,16 @@ class VerificationFormService {
         progressTrackingService.markSubmissionCompleted(submissionId);
         console.log(`✅ Residence verification submitted successfully for case ${caseId}`);
 
+        // Clean up offline attachments after successful submission
+        try {
+          const { attachmentSyncService } = await import('./attachmentSyncService');
+          await attachmentSyncService.clearAttachmentsForCase(caseId);
+          console.log(`🗑️ Cleared offline attachments for case ${caseId}`);
+        } catch (error) {
+          console.warn('⚠️ Failed to clear offline attachments:', error);
+          // Don't fail the submission if cleanup fails
+        }
+
         unsubscribe();
         return {
           ...result,
@@ -425,6 +435,16 @@ class VerificationFormService {
           // Success response but missing expected data - this might be the source of the error
           console.warn(`⚠️ ${verificationType.charAt(0).toUpperCase() + verificationType.slice(1)} verification submitted but response missing caseId. Full response:`, responseData);
           // Still treat as success since backend processed it successfully
+        }
+
+        // Clean up offline attachments after successful submission
+        try {
+          const { attachmentSyncService } = await import('./attachmentSyncService');
+          await attachmentSyncService.clearAttachmentsForCase(caseId);
+          console.log(`🗑️ Cleared offline attachments for case ${caseId}`);
+        } catch (error) {
+          console.warn('⚠️ Failed to clear offline attachments:', error);
+          // Don't fail the submission if cleanup fails
         }
       } else {
         console.error(`❌ ${verificationType.charAt(0).toUpperCase() + verificationType.slice(1)} verification submission failed for case ${caseId}:`, result.error);
