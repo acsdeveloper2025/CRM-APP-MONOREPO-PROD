@@ -25,12 +25,12 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
 
     // Get case details
     const caseQuery = `
-      SELECT id, "customerName", "verificationData", "verificationType", "verificationOutcome", status, address
-      FROM cases 
+      SELECT id, "customerName", "verificationData", "verificationType", "verificationOutcome", status
+      FROM cases
       WHERE "caseId" = $1
     `;
     const caseResult = await pool.query(caseQuery, [parseInt(caseId)]);
-    
+
     if (caseResult.rows.length === 0) {
       return res.status(404).json({ error: 'Case not found' });
     }
@@ -39,6 +39,12 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
     const verificationType = caseData.verificationType;
     let outcome = caseData.verificationOutcome;
     let formData = caseData.verificationData?.formData || caseData.verificationData?.verification || {};
+
+    // Extract address from verificationData
+    const address = caseData.verificationData?.address ||
+                    caseData.verificationData?.formData?.address ||
+                    caseData.verificationData?.verification?.address ||
+                    'Address not available';
 
     // Get verification report data based on verification type
     if (verificationType === 'RESIDENCE') {
@@ -180,7 +186,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
       caseDetails: {
         caseId: caseData.id,
         customerName: caseData.customerName,
-        address: caseData.address
+        address: address
       }
     };
 
