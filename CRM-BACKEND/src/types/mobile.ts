@@ -117,6 +117,11 @@ export interface MobileAttachmentResponse {
     accuracy: number;
     timestamp: string;
   };
+  // Base64-encoded attachment data for offline sync
+  // Only included when includeAttachmentData=true in sync request
+  base64Data?: string;
+  // Checksum for data integrity verification
+  checksum?: string;
 }
 
 export interface MobileFileUploadRequest {
