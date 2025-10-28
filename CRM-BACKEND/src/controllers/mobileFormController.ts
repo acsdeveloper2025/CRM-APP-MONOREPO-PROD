@@ -1700,26 +1700,32 @@ export class MobileFormController {
         let reportTableName = '';
         let reportSql = '';
 
-        if (verificationType === 'RESIDENCE' || verificationType === 'Residence') {
-          reportTableName = 'residenceVerificationReports';
-        } else if (verificationType === 'OFFICE' || verificationType === 'Office') {
-          reportTableName = 'officeVerificationReports';
-        } else if (verificationType === 'BUSINESS' || verificationType === 'Business') {
-          reportTableName = 'businessVerificationReports';
-        } else if (verificationType === 'PROPERTY_APF' || verificationType === 'Property APF') {
-          reportTableName = 'propertyApfVerificationReports';
-        } else if (verificationType === 'PROPERTY_INDIVIDUAL' || verificationType === 'Property Individual') {
-          reportTableName = 'propertyIndividualVerificationReports';
-        } else if (verificationType.includes('DSA') || verificationType.includes('Connector')) {
-          reportTableName = 'dsaConnectorVerificationReports';
-        } else if (verificationType === 'NOC') {
-          reportTableName = 'nocVerificationReports';
-        } else if (verificationType === 'BUILDER' || verificationType === 'Builder') {
-          reportTableName = 'builderVerificationReports';
-        } else if (verificationType.includes('Residence-cum-office') || verificationType === 'RESIDENCE_CUM_OFFICE') {
+        // Match verification type names (handle both short and full names)
+        // IMPORTANT: Check combined types BEFORE individual types
+        const typeUpper = verificationType.toUpperCase();
+
+        if (typeUpper.includes('RESIDENCE') && typeUpper.includes('OFFICE')) {
+          // Residence cum office - must check FIRST before individual residence/office
           reportTableName = 'residenceCumOfficeVerificationReports';
+        } else if (typeUpper.includes('RESIDENCE')) {
+          reportTableName = 'residenceVerificationReports';
+        } else if (typeUpper.includes('OFFICE')) {
+          reportTableName = 'officeVerificationReports';
+        } else if (typeUpper.includes('BUSINESS')) {
+          reportTableName = 'businessVerificationReports';
+        } else if (typeUpper.includes('BUILDER')) {
+          reportTableName = 'builderVerificationReports';
+        } else if (typeUpper.includes('NOC')) {
+          reportTableName = 'nocVerificationReports';
+        } else if (typeUpper.includes('DSA') || typeUpper.includes('CONNECTOR')) {
+          reportTableName = 'dsaConnectorVerificationReports';
+        } else if (typeUpper.includes('PROPERTY') && typeUpper.includes('APF')) {
+          reportTableName = 'propertyApfVerificationReports';
+        } else if (typeUpper.includes('PROPERTY') && typeUpper.includes('INDIVIDUAL')) {
+          reportTableName = 'propertyIndividualVerificationReports';
         } else {
           // Fallback to residence for unknown types
+          console.warn(`Unknown verification type: ${verificationType}, falling back to residenceVerificationReports`);
           reportTableName = 'residenceVerificationReports';
         }
 
