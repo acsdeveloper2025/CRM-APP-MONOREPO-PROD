@@ -4,6 +4,7 @@ import path from 'path';
 import fs from 'fs/promises';
 import sharp from 'sharp';
 import { v4 as uuidv4 } from 'uuid';
+import crypto from 'crypto';
 import { MobileFileUploadRequest, MobileAttachmentResponse } from '../types/mobile';
 import { createAuditLog } from '../utils/auditLogger';
 import { config } from '../config';
@@ -29,6 +30,29 @@ function getApiBaseUrl(req: Request): string {
 
   // Default to localhost or environment variable
   return process.env.API_BASE_URL || 'http://localhost:3000/api';
+}
+
+/**
+ * Generate base64-encoded attachment data with checksum for offline sync
+ * @param filePath - Absolute path to the attachment file
+ * @returns Object containing base64 data and SHA-256 checksum
+ */
+async function generateBase64WithChecksum(filePath: string): Promise<{ base64Data: string; checksum: string }> {
+  try {
+    // Read file as buffer
+    const fileBuffer = await fs.readFile(filePath);
+
+    // Generate base64 encoding
+    const base64Data = fileBuffer.toString('base64');
+
+    // Generate SHA-256 checksum for data integrity
+    const checksum = crypto.createHash('sha256').update(fileBuffer).digest('hex');
+
+    return { base64Data, checksum };
+  } catch (error) {
+    console.error(`❌ Failed to generate base64 for file: ${filePath}`, error);
+    throw new Error(`Failed to encode attachment: ${error.message}`);
+  }
 }
 
 // Configure multer for file uploads
@@ -367,19 +391,49 @@ export class MobileAttachmentController {
       console.log(`📋 Query params:`, attachmentParams);
       console.log(`📋 Results:`, attRes.rows);
 
-      const mobileAttachments: MobileAttachmentResponse[] = attRes.rows.map((att: any) => ({
-        id: att.id,
-        filename: att.filename,
-        originalName: att.originalName,
-        mimeType: att.mimeType,
-        size: att.fileSize,
-        url: `${getApiBaseUrl(req)}/mobile/attachments/${att.id}/content`, // Use mobile endpoint
-        thumbnailUrl: null, // Not available in current schema
-        uploadedAt: new Date(att.createdAt).toISOString(),
-        geoLocation: undefined, // Not available in current schema
-      }));
+      // Check if client wants base64 data for offline sync
+      const includeAttachmentData = req.query.includeAttachmentData === 'true';
 
-      console.log(`✅ Returning ${mobileAttachments.length} attachments to mobile app`);
+      // Build attachment responses
+      const mobileAttachments: MobileAttachmentResponse[] = [];
+
+      for (const att of attRes.rows) {
+        const attachmentResponse: MobileAttachmentResponse = {
+          id: att.id,
+          filename: att.filename,
+          originalName: att.originalName,
+          mimeType: att.mimeType,
+          size: att.fileSize,
+          url: `${getApiBaseUrl(req)}/mobile/attachments/${att.id}/content`, // Use mobile endpoint
+          thumbnailUrl: null, // Not available in current schema
+          uploadedAt: new Date(att.createdAt).toISOString(),
+          geoLocation: undefined, // Not available in current schema
+        };
+
+        // Include base64 data if requested (for offline sync)
+        if (includeAttachmentData) {
+          try {
+            // Construct file path
+            const dbFilePath = att.filePath.startsWith('/') ? att.filePath.substring(1) : att.filePath;
+            const filePath = path.join(process.cwd(), dbFilePath);
+
+            // Generate base64 data with checksum
+            const { base64Data, checksum } = await generateBase64WithChecksum(filePath);
+
+            attachmentResponse.base64Data = base64Data;
+            attachmentResponse.checksum = checksum;
+
+            console.log(`📦 Included base64 data for attachment ${att.id} (${att.originalName}), size: ${base64Data.length} chars`);
+          } catch (error) {
+            console.error(`⚠️ Failed to generate base64 for attachment ${att.id}:`, error);
+            // Continue without base64 data - client can fetch it later if needed
+          }
+        }
+
+        mobileAttachments.push(attachmentResponse);
+      }
+
+      console.log(`✅ Returning ${mobileAttachments.length} attachments to mobile app${includeAttachmentData ? ' (with base64 data)' : ''}`);
 
       res.json({
         success: true,
@@ -414,7 +468,7 @@ export class MobileAttachmentController {
         // Field agents can only access attachments for their assigned task OR attachments with NULL task_id
         attachmentQuery = `
           SELECT a.id, a.filename, a."originalName", a."mimeType", a."fileSize", a."filePath",
-                 a."uploadedBy", a."createdAt", a."caseId", c."assignedTo"
+                 a."uploadedBy", a."createdAt", a."caseId", a.case_id
           FROM attachments a
           JOIN cases c ON a.case_id = c.id
           LEFT JOIN verification_tasks vt ON vt.id = a.verification_task_id
@@ -431,7 +485,7 @@ export class MobileAttachmentController {
         // Admin/Manager can access any attachment
         attachmentQuery = `
           SELECT a.id, a.filename, a."originalName", a."mimeType", a."fileSize", a."filePath",
-                 a."uploadedBy", a."createdAt", a."caseId", c."assignedTo"
+                 a."uploadedBy", a."createdAt", a."caseId", a.case_id
           FROM attachments a
           JOIN cases c ON a.case_id = c.id
           WHERE a.id = $1
