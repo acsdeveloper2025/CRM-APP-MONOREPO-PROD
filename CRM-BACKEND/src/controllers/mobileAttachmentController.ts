@@ -373,7 +373,7 @@ export class MobileAttachmentController {
         originalName: att.originalName,
         mimeType: att.mimeType,
         size: att.fileSize,
-        url: `${getApiBaseUrl(req)}/attachments/${att.id}/content`, // Use correct endpoint
+        url: `${getApiBaseUrl(req)}/mobile/attachments/${att.id}/content`, // Use mobile endpoint
         thumbnailUrl: null, // Not available in current schema
         uploadedAt: new Date(att.createdAt).toISOString(),
         geoLocation: undefined, // Not available in current schema
