@@ -86,13 +86,23 @@ export class SecureStorageService {
       mimeType: string;
       size: number;
       caseId: string;
+      checksum?: string; // Optional checksum from backend for verification
     }
   ): Promise<void> {
     try {
       console.log(`💾 Storing attachment: ${metadata.originalName} (${metadata.size} bytes)`);
 
-      // Generate checksum for data integrity
-      const checksum = await this.generateChecksum(data);
+      // If backend provided checksum, verify data integrity before storing
+      if (metadata.checksum) {
+        const isValid = encryptionService.verifyChecksum(data, metadata.checksum);
+        if (!isValid) {
+          throw new Error('Backend checksum verification failed - data may be corrupted');
+        }
+        console.log(`✅ Backend checksum verified for ${metadata.originalName}`);
+      }
+
+      // Generate checksum for data integrity (use backend checksum if provided)
+      const checksum = metadata.checksum || await this.generateChecksum(data);
 
       // Validate checksum was generated successfully
       if (!checksum || checksum.length === 0) {

@@ -216,6 +216,41 @@ export class EncryptionService {
   }
 
   /**
+   * Generate SHA-256 checksum for data integrity verification
+   */
+  generateChecksum(data: string): string {
+    try {
+      const hash = CryptoJS.SHA256(data);
+      return hash.toString(CryptoJS.enc.Hex);
+    } catch (error) {
+      console.error('❌ Failed to generate checksum:', error);
+      throw new Error('Checksum generation failed');
+    }
+  }
+
+  /**
+   * Verify data integrity using checksum
+   */
+  verifyChecksum(data: string, expectedChecksum: string): boolean {
+    try {
+      const actualChecksum = this.generateChecksum(data);
+      const isValid = actualChecksum === expectedChecksum;
+
+      if (!isValid) {
+        console.warn('⚠️ Checksum verification failed!', {
+          expected: expectedChecksum,
+          actual: actualChecksum
+        });
+      }
+
+      return isValid;
+    } catch (error) {
+      console.error('❌ Checksum verification error:', error);
+      return false;
+    }
+  }
+
+  /**
    * Validate encryption/decryption functionality
    */
   async validateEncryption(): Promise<boolean> {
@@ -223,10 +258,10 @@ export class EncryptionService {
       const testData = 'CaseFlow Mobile Encryption Test';
       const { encryptedData, salt } = this.encryptData(testData, 'test-attachment');
       const decryptedData = this.decryptData(encryptedData, salt, 'test-attachment');
-      
+
       const isValid = decryptedData === testData;
       console.log(isValid ? '✅ Encryption validation passed' : '❌ Encryption validation failed');
-      
+
       return isValid;
     } catch (error) {
       console.error('❌ Encryption validation error:', error);

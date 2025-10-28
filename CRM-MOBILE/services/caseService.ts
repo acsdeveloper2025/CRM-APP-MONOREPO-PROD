@@ -373,6 +373,27 @@ class CaseService {
       await this.writeToStorage(freshCases);
       console.log(`💾 Saved ${freshCases.length} fresh cases to storage`);
 
+      // Automatically download and encrypt attachments for offline access
+      try {
+        const { attachmentSyncService } = await import('./attachmentSyncService');
+        console.log('📦 Starting automatic attachment sync...');
+
+        const syncResult = await attachmentSyncService.syncAttachmentsForCases(freshCases);
+
+        if (syncResult.success) {
+          console.log(`✅ All attachments synced successfully: ${syncResult.syncedCount}/${syncResult.totalAttachments}`);
+        } else {
+          console.warn(`⚠️ Attachment sync completed with errors: ${syncResult.syncedCount}/${syncResult.totalAttachments} synced, ${syncResult.failedCount} failed`);
+          if (syncResult.errors.length > 0) {
+            console.warn('Attachment sync errors:', syncResult.errors);
+          }
+        }
+      } catch (error) {
+        console.error('❌ Failed to sync attachments:', error);
+        // Don't fail the entire sync if attachment sync fails
+        // Cases are still available, just without offline attachments
+      }
+
       return freshCases;
     } else {
       // Simulate sync for mock data

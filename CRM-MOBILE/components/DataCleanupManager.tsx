@@ -19,6 +19,7 @@ const DataCleanupManager: React.FC = () => {
   const [showLogs, setShowLogs] = useState(false);
   const [cleanupLogs, setCleanupLogs] = useState<CleanupResult[]>([]);
   const [isCacheClearing, setIsCacheClearing] = useState(false);
+  const [isAttachmentClearing, setIsAttachmentClearing] = useState(false);
 
   const { syncCases } = useCases();
 
@@ -117,6 +118,38 @@ const DataCleanupManager: React.FC = () => {
     }
   };
 
+  const handleClearAttachmentCache = async () => {
+    const confirmed = window.confirm(
+      '⚠️ Clear Attachment Cache?\n\n' +
+      'This will delete all offline attachments stored on this device.\n\n' +
+      'Attachments will be re-downloaded automatically when you sync cases.\n\n' +
+      'Do you want to continue?'
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setIsAttachmentClearing(true);
+    try {
+      console.log('🗑️ Clearing attachment cache...');
+
+      // Import attachment sync service dynamically
+      const { attachmentSyncService } = await import('../services/attachmentSyncService');
+
+      // Clear all attachments
+      await attachmentSyncService.clearAllAttachments();
+
+      console.log('✅ Attachment cache cleared successfully');
+      alert('✅ Attachment cache cleared!\n\nAll offline attachments have been deleted.\n\nAttachments will be re-downloaded when you sync cases.');
+    } catch (error) {
+      console.error('❌ Failed to clear attachment cache:', error);
+      alert('❌ Failed to clear attachment cache. Please try again.');
+    } finally {
+      setIsAttachmentClearing(false);
+    }
+  };
+
   const formatBytes = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
@@ -202,7 +235,7 @@ const DataCleanupManager: React.FC = () => {
         <div className="flex flex-col sm:flex-row gap-4">
           <button
             onClick={handleManualCleanup}
-            disabled={isLoading || isCacheClearing}
+            disabled={isLoading || isCacheClearing || isAttachmentClearing}
             className="flex-1 px-4 py-2 bg-brand-primary hover:bg-brand-secondary text-white rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isLoading ? '🧹 Cleaning...' : '🧹 Run Manual Cleanup'}
@@ -210,7 +243,7 @@ const DataCleanupManager: React.FC = () => {
 
           <button
             onClick={handleClearCacheAndSync}
-            disabled={isLoading || isCacheClearing}
+            disabled={isLoading || isCacheClearing || isAttachmentClearing}
             className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isCacheClearing ? '🔄 Syncing...' : '🔄 Clear Cache & Sync'}
@@ -219,6 +252,14 @@ const DataCleanupManager: React.FC = () => {
 
         {/* Secondary Actions Row */}
         <div className="flex flex-col sm:flex-row gap-4">
+          <button
+            onClick={handleClearAttachmentCache}
+            disabled={isLoading || isCacheClearing || isAttachmentClearing}
+            className="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isAttachmentClearing ? '🗑️ Clearing...' : '🗑️ Clear Attachment Cache'}
+          </button>
+
           <button
             onClick={() => setShowLogs(!showLogs)}
             className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-semibold transition-colors"
