@@ -115,7 +115,19 @@ const mapBackendCaseToMobile = (backendCase: BackendCase): Case => {
     'Property Individual Verification': VerificationType.PropertyIndividual
   };
 
-  return {
+  // Debug logging for case 19
+  if (backendCase.caseId === 19) {
+    console.log('🔍 DEBUG Case 19 - Backend Data:', {
+      caseId: backendCase.caseId,
+      backendStatus: backendCase.status,
+      customerName: backendCase.customerName,
+      verificationTaskId: backendCase.verificationTaskId,
+      verificationTaskNumber: backendCase.verificationTaskNumber,
+      fullBackendCase: backendCase
+    });
+  }
+
+  const result = {
     // Core mobile app fields
     id: backendCase.id, // Use the actual UUID from backend
     title: `${backendCase.verificationType || 'Verification'} - ${backendCase.customerName}`,
@@ -217,6 +229,20 @@ const mapBackendCaseToMobile = (backendCase: BackendCase): Case => {
     // Attachments will be loaded separately when needed (no mock data)
     attachments: []
   };
+
+  // Debug logging for case 19 after mapping
+  if (backendCase.caseId === 19) {
+    console.log('🔍 DEBUG Case 19 - After Mapping:', {
+      caseId: result.caseId,
+      status: result.status,
+      taskStatus: result.taskStatus,
+      statusFromMap: statusMap[backendCase.status],
+      taskStatusFromMap: taskStatusMap[backendCase.status],
+      backendStatus: backendCase.status
+    });
+  }
+
+  return result;
 };
 
 // Helper function to generate realistic attachments
