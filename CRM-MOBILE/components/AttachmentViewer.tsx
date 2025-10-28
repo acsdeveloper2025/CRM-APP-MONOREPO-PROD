@@ -19,13 +19,18 @@ const AttachmentViewer: React.FC<AttachmentViewerProps> = ({ attachment, isVisib
   const [pdfLoaded, setPdfLoaded] = useState(false);
   const [imageScale, setImageScale] = useState(1);
   const [imagePosition, setImagePosition] = useState({ x: 0, y: 0 });
+  const [blobUrl, setBlobUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (isVisible && attachment) {
       loadAttachmentContent();
     }
-    // Reset state when modal closes
+    // Reset state when modal closes and cleanup blob URL
     if (!isVisible) {
+      if (blobUrl) {
+        URL.revokeObjectURL(blobUrl);
+        setBlobUrl(null);
+      }
       setContent(null);
       setError(null);
       setImageScale(1);
@@ -35,12 +40,27 @@ const AttachmentViewer: React.FC<AttachmentViewerProps> = ({ attachment, isVisib
     }
   }, [isVisible, attachment]);
 
+  // Cleanup blob URL on unmount
+  useEffect(() => {
+    return () => {
+      if (blobUrl) {
+        URL.revokeObjectURL(blobUrl);
+      }
+    };
+  }, [blobUrl]);
+
   const loadAttachmentContent = async () => {
     setLoading(true);
     setError(null);
     setContent(null);
     setPdfError(null);
     setPdfLoaded(false);
+
+    // Cleanup previous blob URL
+    if (blobUrl) {
+      URL.revokeObjectURL(blobUrl);
+      setBlobUrl(null);
+    }
 
     try {
       console.log(`🔄 Loading attachment: ${attachment.name} (${attachment.type})`);
@@ -49,17 +69,43 @@ const AttachmentViewer: React.FC<AttachmentViewerProps> = ({ attachment, isVisib
       // Log content type for debugging
       if (attachmentContent.startsWith('data:')) {
         console.log(`✅ Data URL loaded for ${attachment.name}:`, attachmentContent.substring(0, 50) + '...');
+
+        // For PDFs, convert data URL to Blob URL to avoid Chrome blocking
+        if (attachment.type === 'application/pdf') {
+          console.log('🔄 Converting PDF data URL to Blob URL...');
+          const blob = dataURLtoBlob(attachmentContent);
+          const url = URL.createObjectURL(blob);
+          setBlobUrl(url);
+          setContent(url);
+          console.log('✅ PDF Blob URL created');
+        } else {
+          // For images, data URL works fine
+          setContent(attachmentContent);
+        }
       } else {
         console.log(`✅ File path loaded for ${attachment.name}:`, attachmentContent);
+        setContent(attachmentContent);
       }
-
-      setContent(attachmentContent);
     } catch (err) {
       console.error(`❌ Failed to load attachment ${attachment.name}:`, err);
       setError(err instanceof Error ? err.message : 'Failed to load attachment');
     } finally {
       setLoading(false);
     }
+  };
+
+  // Helper function to convert data URL to Blob
+  const dataURLtoBlob = (dataURL: string): Blob => {
+    const parts = dataURL.split(',');
+    const mimeMatch = parts[0].match(/:(.*?);/);
+    const mime = mimeMatch ? mimeMatch[1] : 'application/pdf';
+    const bstr = atob(parts[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) {
+      u8arr[n] = bstr.charCodeAt(n);
+    }
+    return new Blob([u8arr], { type: mime });
   };
 
   const handleImageZoom = (delta: number) => {
