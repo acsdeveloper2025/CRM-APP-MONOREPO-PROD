@@ -45,8 +45,9 @@ async function generateBase64WithChecksum(filePath: string): Promise<{ base64Dat
     // Generate base64 encoding
     const base64Data = fileBuffer.toString('base64');
 
-    // Generate SHA-256 checksum for data integrity
-    const checksum = crypto.createHash('sha256').update(fileBuffer).digest('hex');
+    // Generate SHA-256 checksum from base64 data (not raw buffer)
+    // This ensures the checksum matches what the mobile app will verify
+    const checksum = crypto.createHash('sha256').update(base64Data).digest('hex');
 
     return { base64Data, checksum };
   } catch (error) {
