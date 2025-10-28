@@ -277,6 +277,9 @@ export class MobileFormController {
   private static createBasicFormSections(formData: any, verificationType: string): FormSection[] {
     const sections: FormSection[] = [];
 
+    // Normalize verification type for consistent comparison
+    const normalizedType = MobileFormController.normalizeVerificationType(verificationType);
+
     // Customer Information Section
     if (formData.customerName || formData.bankName || formData.product) {
       sections.push({
@@ -310,7 +313,7 @@ export class MobileFormController {
     }
 
     // Personal Details Section (for residence verification)
-    if (verificationType === 'RESIDENCE' && (formData.metPersonName || formData.relation || formData.totalFamilyMembers)) {
+    if (normalizedType === 'RESIDENCE' && (formData.metPersonName || formData.relation || formData.totalFamilyMembers)) {
       sections.push({
         id: 'personal_details',
         title: 'Personal Details',
@@ -389,10 +392,36 @@ export class MobileFormController {
     }
   }
 
+  // Helper function to normalize verification type names for comparison
+  private static normalizeVerificationType(verificationType: string): string {
+    const typeUpper = verificationType.toUpperCase();
+
+    // Check for combined types first
+    if (typeUpper.includes('RESIDENCE') && typeUpper.includes('OFFICE')) {
+      return 'RESIDENCE_CUM_OFFICE';
+    }
+
+    // Check for individual types
+    if (typeUpper.includes('RESIDENCE')) return 'RESIDENCE';
+    if (typeUpper.includes('OFFICE')) return 'OFFICE';
+    if (typeUpper.includes('BUSINESS')) return 'BUSINESS';
+    if (typeUpper.includes('BUILDER')) return 'BUILDER';
+    if (typeUpper.includes('NOC')) return 'NOC';
+    if (typeUpper.includes('DSA') || typeUpper.includes('CONNECTOR')) return 'DSA_CONNECTOR';
+    if (typeUpper.includes('PROPERTY') && typeUpper.includes('APF')) return 'PROPERTY_APF';
+    if (typeUpper.includes('PROPERTY') && typeUpper.includes('INDIVIDUAL')) return 'PROPERTY_INDIVIDUAL';
+
+    // Default fallback
+    return 'RESIDENCE';
+  }
+
   // Convert database report to form data format
   private static convertReportToFormData(report: any, verificationType: string): any {
     console.log(`Converting report to form data for ${verificationType}:`, Object.keys(report));
     const formData: any = {};
+
+    // Normalize verification type for consistent comparison
+    const normalizedType = MobileFormController.normalizeVerificationType(verificationType);
 
     // Map common fields
     formData.customerName = report.customer_name;
@@ -418,7 +447,7 @@ export class MobileFormController {
     formData.otherObservation = report.other_observation;
 
     // Map verification type specific fields
-    if (verificationType === 'RESIDENCE') {
+    if (normalizedType === 'RESIDENCE') {
       formData.houseStatus = report.house_status;
       formData.metPersonRelation = report.met_person_relation;
       formData.metPersonStatus = report.met_person_status;
@@ -460,7 +489,7 @@ export class MobileFormController {
       formData.applicantStayingStatus = report.applicant_staying_status;
       formData.contactPerson = report.contact_person;
       formData.alternateContact = report.alternate_contact;
-    } else if (verificationType === 'OFFICE') {
+    } else if (normalizedType === 'OFFICE') {
       formData.designation = report.designation;
       formData.applicantDesignation = report.applicant_designation;
       formData.officeStatus = report.office_status;
@@ -484,7 +513,7 @@ export class MobileFormController {
       formData.tpcMetPerson2 = report.tpc_met_person2;
       formData.tpcName2 = report.tpc_name2;
       formData.tpcConfirmation2 = report.tpc_confirmation2;
-    } else if (verificationType === 'BUSINESS') {
+    } else if (normalizedType === 'BUSINESS') {
       // Basic Information
       formData.designation = report.designation;
       formData.applicantDesignation = report.applicant_designation;
@@ -550,7 +579,7 @@ export class MobileFormController {
       formData.otherExtraRemark = report.other_extra_remark;
       formData.holdReason = report.hold_reason;
       formData.recommendationStatus = report.recommendation_status;
-    } else if (verificationType === 'PROPERTY_APF') {
+    } else if (normalizedType === 'PROPERTY_APF') {
       // Basic Information
       formData.customerName = report.customer_name;
       formData.metPersonName = report.met_person_name;
@@ -711,7 +740,7 @@ export class MobileFormController {
       formData.recommendationStatus = report.recommendation_status;
       formData.doorColor = report.door_color;
       formData.holdReason = report.hold_reason;
-    } else if (verificationType === 'PROPERTY_INDIVIDUAL') {
+    } else if (normalizedType === 'PROPERTY_INDIVIDUAL') {
       // Basic Information
       formData.customerName = report.customer_name;
       formData.metPersonName = report.met_person_name;
@@ -841,7 +870,7 @@ export class MobileFormController {
       formData.holdReason = report.hold_reason;
       formData.recommendationStatus = report.recommendation_status;
       formData.remarks = report.remarks;
-    } else if (verificationType === 'NOC') {
+    } else if (normalizedType === 'NOC') {
       // Basic Information
       formData.customerName = report.customer_name;
       formData.metPersonName = report.met_person_name;
@@ -935,7 +964,7 @@ export class MobileFormController {
       formData.holdReason = report.hold_reason;
       formData.recommendationStatus = report.recommendation_status;
       formData.remarks = report.remarks;
-    } else if (verificationType === 'BUILDER') {
+    } else if (normalizedType === 'BUILDER') {
       // Basic Information
       formData.customerName = report.customer_name;
       formData.metPersonName = report.met_person_name;
@@ -1013,7 +1042,7 @@ export class MobileFormController {
       formData.holdReason = report.hold_reason;
       formData.recommendationStatus = report.recommendation_status;
       formData.remarks = report.remarks;
-    } else if (verificationType === 'DSA_CONNECTOR' || verificationType === 'CONNECTOR') {
+    } else if (normalizedType === 'DSA_CONNECTOR') {
       // Basic Information
       formData.customerName = report.customer_name;
       formData.metPersonName = report.met_person_name;
@@ -1128,7 +1157,7 @@ export class MobileFormController {
       formData.holdReason = report.hold_reason;
       formData.recommendationStatus = report.recommendation_status;
       formData.remarks = report.remarks;
-    } else if (verificationType === 'RESIDENCE_CUM_OFFICE' || verificationType === 'Residence-cum-office') {
+    } else if (normalizedType === 'RESIDENCE_CUM_OFFICE') {
       // Basic Information
       formData.customerName = report.customer_name;
       formData.metPersonName = report.met_person_name;
