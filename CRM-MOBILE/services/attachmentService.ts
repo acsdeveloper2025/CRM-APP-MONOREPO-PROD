@@ -134,7 +134,7 @@ class AttachmentService {
         type: att.mimeType?.startsWith('image/') ? 'image' : 'pdf',
         mimeType: att.mimeType,
         size: att.size,
-        url: `${baseUrl}/attachments/${att.id}/content`,
+        url: att.url || `${baseUrl}/mobile/attachments/${att.id}/content`, // Use backend URL or fallback to mobile endpoint
         thumbnailUrl: undefined,
         uploadedAt: att.uploadedAt || att.createdAt,
         uploadedBy: att.uploadedBy || 'Field Agent',
