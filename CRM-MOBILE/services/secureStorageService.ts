@@ -105,20 +105,11 @@ export class SecureStorageService {
 
       // If backend provided checksum, verify data integrity before storing
       if (metadata.checksum) {
-        console.log(`🔍 Verifying checksum for ${metadata.originalName}...`);
-        console.log(`   Backend checksum: ${metadata.checksum}`);
-        console.log(`   Data length: ${data.length} characters`);
-        console.log(`   Data preview: ${data.substring(0, 100)}...`);
-
         const isValid = encryptionService.verifyChecksum(data, metadata.checksum);
         if (!isValid) {
-          console.error(`❌ Checksum mismatch for ${metadata.originalName}`);
-          // For now, just warn instead of throwing - browser environment may have encoding issues
-          console.warn('⚠️ Skipping checksum verification in browser environment');
-          // throw new Error('Backend checksum verification failed - data may be corrupted');
-        } else {
-          console.log(`✅ Backend checksum verified for ${metadata.originalName}`);
+          throw new Error('Backend checksum verification failed - data may be corrupted');
         }
+        console.log(`✅ Backend checksum verified for ${metadata.originalName}`);
       }
 
       // Generate checksum for data integrity (use backend checksum if provided)

@@ -136,10 +136,27 @@ class AttachmentSyncService {
             continue;
           }
 
+          // Verify checksum BEFORE converting to data URL
+          // Backend checksum is calculated from base64 string only
+          if (attachment.checksum) {
+            const { encryptionService } = await import('./encryptionService');
+            const isValid = encryptionService.getInstance().verifyChecksum(
+              attachment.base64Data,
+              attachment.checksum
+            );
+            if (!isValid) {
+              console.error(`❌ Checksum verification failed for ${attachment.originalName}`);
+              failedCount++;
+              errors.push(`${attachment.originalName}: Checksum verification failed`);
+              continue;
+            }
+            console.log(`✅ Checksum verified for ${attachment.originalName}`);
+          }
+
           // Convert base64 to data URL format for storage
           const dataUrl = `data:${attachment.mimeType};base64,${attachment.base64Data}`;
 
-          // Store attachment securely with encryption
+          // Store attachment securely with encryption (without checksum verification since we already did it)
           await secureStorageService.storeAttachment(
             attachment.id,
             dataUrl,
@@ -148,7 +165,8 @@ class AttachmentSyncService {
               mimeType: attachment.mimeType,
               size: attachment.size,
               caseId: caseItem.id,
-              checksum: attachment.checksum // Backend checksum for verification
+              // Don't pass checksum here since we already verified it above
+              // and the data format is different now (data URL vs base64)
             }
           );
 
