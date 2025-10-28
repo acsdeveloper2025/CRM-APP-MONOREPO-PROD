@@ -86,7 +86,9 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setLoading(true);
     setError(null);
     try {
-      const data = await caseService.getCases();
+      // Force fresh data from API to ensure we get the latest task status
+      // This prevents showing stale cached data after sign in/out
+      const data = await caseService.getCases(true);
       const sortedCases = data.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
       setCases(sortedCases);
 
