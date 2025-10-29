@@ -11,6 +11,8 @@ export interface NotificationData {
   type: NotificationType;
   caseId?: string;
   caseNumber?: string;
+  taskId?: string;
+  taskNumber?: string;
   data?: Record<string, any>;
   actionUrl?: string;
   actionType?: string;
@@ -162,9 +164,9 @@ export class NotificationService {
   private static async createNotificationRecord(data: NotificationData): Promise<string> {
     const insertQuery = `
       INSERT INTO notifications (
-        user_id, title, message, type, case_id, case_number,
+        user_id, title, message, type, case_id, case_number, task_id, task_number,
         data, action_url, action_type, priority, expires_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
       RETURNING id
     `;
 
@@ -175,6 +177,8 @@ export class NotificationService {
       data.type,
       data.caseId || null,
       data.caseNumber || null,
+      data.taskId || null,
+      data.taskNumber || null,
       JSON.stringify(data.data || {}),
       data.actionUrl || null,
       data.actionType || 'NAVIGATE',
@@ -277,6 +281,8 @@ export class NotificationService {
           type: data.type,
           caseId: data.caseId,
           caseNumber: data.caseNumber,
+          taskId: data.taskId,
+          taskNumber: data.taskNumber,
           actionUrl: data.actionUrl,
           actionType: data.actionType,
           ...data.data
