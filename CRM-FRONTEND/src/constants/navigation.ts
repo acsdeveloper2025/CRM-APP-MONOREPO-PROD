@@ -77,6 +77,13 @@ export const navigationItems: NavigationItem[] = [
         permission: { resource: 'cases', action: 'read' },
       },
       {
+        id: 'tat-monitoring',
+        label: 'TAT Monitoring',
+        href: '/case-management/tat-monitoring',
+        icon: Clock,
+        permission: { resource: 'cases', action: 'read' },
+      },
+      {
         id: 'tasks-in-progress',
         label: 'In Progress Tasks',
         href: '/tasks/in-progress',
