@@ -81,13 +81,19 @@ export function NotificationCenter() {
 
     // Handle navigation based on notification type and action
     if (notification.actionUrl) {
-      if (notification.actionType === 'OPEN_CASE' && notification.caseId) {
+      if (notification.actionType === 'OPEN_TASK' && notification.taskId) {
+        // Navigate to task details page
+        navigate(`/verification-tasks/${notification.taskId}`);
+      } else if (notification.actionType === 'OPEN_CASE' && notification.caseId) {
         // Navigate to case details page
         navigate(`/cases/${notification.caseId}`);
       } else if (notification.actionType === 'NAVIGATE') {
         // Navigate to specified URL
         navigate(notification.actionUrl);
       }
+    } else if (notification.taskId) {
+      // Fallback: navigate to task details if taskId is available
+      navigate(`/verification-tasks/${notification.taskId}`);
     } else if (notification.caseId) {
       // Fallback: navigate to case details if caseId is available
       navigate(`/cases/${notification.caseId}`);
@@ -189,9 +195,14 @@ export function NotificationCenter() {
                       <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
                         {notification.message}
                       </p>
-                      {(notification.caseNumber || notification.customerName) && (
+                      {(notification.taskNumber || notification.caseNumber || notification.customerName) && (
                         <div className="flex items-center space-x-2 mt-1">
-                          {notification.caseNumber && (
+                          {notification.taskNumber && (
+                            <Badge variant="outline" className="text-xs">
+                              Task: {notification.taskNumber}
+                            </Badge>
+                          )}
+                          {!notification.taskNumber && notification.caseNumber && (
                             <Badge variant="outline" className="text-xs">
                               Case: {notification.caseNumber}
                             </Badge>
