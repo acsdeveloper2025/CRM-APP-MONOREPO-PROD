@@ -33,9 +33,9 @@ export const TATMonitoringPage: React.FC = () => {
     sortOrder,
   });
 
-  // Fetch all overdue tasks (>0 days)
+  // Fetch all overdue tasks (>2 days)
   const { data: allData, isLoading: allLoading } = useOverdueTasks({
-    threshold: 0,
+    threshold: 2,
     page: allPage,
     limit: 20,
     sortBy,
@@ -269,7 +269,7 @@ export const TATMonitoringPage: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-orange-600">{allPagination.totalCount}</div>
-            <p className="text-xs text-muted-foreground">All tasks past TAT</p>
+            <p className="text-xs text-muted-foreground">Tasks overdue by more than 2 days</p>
           </CardContent>
         </Card>
       </div>
@@ -289,7 +289,7 @@ export const TATMonitoringPage: React.FC = () => {
               </TabsTrigger>
               <TabsTrigger value="all" className="flex items-center space-x-2">
                 <Clock className="h-4 w-4" />
-                <span>All Overdue Tasks</span>
+                <span>All Overdue Tasks (&gt;2 Days)</span>
               </TabsTrigger>
             </TabsList>
             <TabsContent value="critical" className="mt-6">

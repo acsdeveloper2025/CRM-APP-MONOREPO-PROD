@@ -740,7 +740,7 @@ export const getOverdueTasks = async (req: AuthenticatedRequest, res: Response) 
           ELSE
             EXTRACT(EPOCH FROM (NOW() - vt.created_at)) / 86400
         END
-      ) > $${paramIndex}
+      ) >= $${paramIndex}
     `;
     queryParams.push(thresholdDays);
     paramIndex++;
@@ -779,7 +779,7 @@ export const getOverdueTasks = async (req: AuthenticatedRequest, res: Response) 
           ELSE
             EXTRACT(EPOCH FROM (NOW() - vt.created_at)) / 86400
         END
-      ) > $${countParamIndex}
+      ) >= $${countParamIndex}
     `;
     countParams.push(thresholdDays);
 
