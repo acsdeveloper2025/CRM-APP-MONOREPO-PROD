@@ -7,7 +7,7 @@ export default defineConfig(({ mode }) => {
     const isProduction = mode === 'production';
 
     return {
-      base: isProduction ? '/mobile/' : '/',
+      base: '/',
       plugins: [
         react({
           jsxRuntime: 'automatic'
