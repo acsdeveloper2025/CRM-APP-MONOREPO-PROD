@@ -265,20 +265,20 @@ export class VerificationTasksController {
 
         // Send notification for each assigned task
         for (const task of createdTasks) {
-          if (task.assigned_to) {
+          if (task.assignedTo) {
             // Get verification type name
             const vtQuery = `
               SELECT name FROM "verificationTypes" WHERE id = $1
             `;
-            const vtResult = await client.query(vtQuery, [task.verification_type_id]);
+            const vtResult = await client.query(vtQuery, [task.verificationTypeId]);
             const verificationType = vtResult.rows[0]?.name || 'Unknown';
 
             await queueCaseAssignmentNotification({
-              userId: task.assigned_to,
+              userId: task.assignedTo,
               caseId: actualCaseId,
               caseNumber: caseData.case_number,
               taskId: task.id,
-              taskNumber: task.task_number,
+              taskNumber: task.taskNumber,
               customerName: caseData.customerName,
               verificationType: verificationType,
               assignmentType: 'assignment',
