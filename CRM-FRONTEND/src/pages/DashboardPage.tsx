@@ -31,13 +31,13 @@ export const DashboardPage: React.FC = () => {
     monthlyRevenue: 125000,
   };
 
-  const stats = statsData?.data || {
+  const stats = statsData?.data?.stats || {
     totalCases: 0,
     pendingCases: 0,
     inProgressCases: 0,
     completedCases: 0,
     activeUsers: 0,
-    activeClients: 0
+    totalClients: 0
   };
 
   const tatStats = tatStatsData?.data || {
@@ -174,7 +174,7 @@ export const DashboardPage: React.FC = () => {
           icon={CheckSquare}
           trend={{ value: 15, isPositive: true }}
           color="text-yellow-600"
-          onClick={() => navigate('/cases/in-progress')}
+          onClick={() => navigate('/tasks/in-progress')}
           className="cursor-pointer"
         />
         <StatsCard
@@ -184,12 +184,12 @@ export const DashboardPage: React.FC = () => {
           icon={CheckSquare}
           trend={{ value: 25, isPositive: true }}
           color="text-green-600"
-          onClick={() => navigate('/cases/completed')}
+          onClick={() => navigate('/tasks/completed')}
           className="cursor-pointer"
         />
         <StatsCard
           title="Active Clients"
-          value={stats.activeClients}
+          value={stats.totalClients}
           description="from last month"
           icon={Building2}
           trend={{ value: 5, isPositive: true }}
