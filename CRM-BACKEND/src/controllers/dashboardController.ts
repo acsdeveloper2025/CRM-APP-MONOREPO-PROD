@@ -675,3 +675,242 @@ export const getMonthlyTrends = async (req: AuthenticatedRequest, res: Response)
     });
   }
 };
+
+// GET /api/dashboard/overdue-tasks - Get overdue verification tasks
+export const getOverdueTasks = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { threshold = '1', page = 1, limit = 50, sortBy = 'days_overdue', sortOrder = 'desc' } = req.query;
+
+    // Role-based filtering - FIELD_AGENT users can only see their own tasks
+    const userRole = req.user?.role;
+    const currentUserId = req.user?.id;
+    const effectiveUserId = userRole === 'FIELD_AGENT' ? currentUserId : null;
+
+    const thresholdDays = parseInt(threshold as string);
+    const pageNum = parseInt(page as string);
+    const limitNum = parseInt(limit as string);
+    const offset = (pageNum - 1) * limitNum;
+
+    // Build query to get overdue tasks
+    let overdueQuery = `
+      SELECT
+        vt.id,
+        vt.task_number,
+        vt.task_title,
+        vt.status,
+        vt.priority,
+        vt.assigned_at,
+        vt.created_at,
+        vt.estimated_completion_date,
+        c.id as case_id,
+        c."caseId" as case_number,
+        c."customerName" as customer_name,
+        vtype.name as verification_type_name,
+        u.name as assigned_to_name,
+        u."employeeId" as assigned_to_employee_id,
+        CASE
+          WHEN vt.assigned_at IS NOT NULL THEN
+            EXTRACT(EPOCH FROM (NOW() - vt.assigned_at)) / 86400
+          ELSE
+            EXTRACT(EPOCH FROM (NOW() - vt.created_at)) / 86400
+        END as days_overdue
+      FROM verification_tasks vt
+      INNER JOIN cases c ON vt.case_id = c.id
+      LEFT JOIN "verificationTypes" vtype ON vt.verification_type_id = vtype.id
+      LEFT JOIN users u ON vt.assigned_to = u.id
+      WHERE vt.status IN ('PENDING', 'ASSIGNED', 'IN_PROGRESS')
+    `;
+
+    const queryParams: any[] = [];
+    let paramIndex = 1;
+
+    // Add user filter for field agents
+    if (effectiveUserId) {
+      overdueQuery += ` AND vt.assigned_to = $${paramIndex}`;
+      queryParams.push(effectiveUserId);
+      paramIndex++;
+    }
+
+    // Add threshold filter
+    overdueQuery += `
+      AND (
+        CASE
+          WHEN vt.assigned_at IS NOT NULL THEN
+            EXTRACT(EPOCH FROM (NOW() - vt.assigned_at)) / 86400
+          ELSE
+            EXTRACT(EPOCH FROM (NOW() - vt.created_at)) / 86400
+        END
+      ) > $${paramIndex}
+    `;
+    queryParams.push(thresholdDays);
+    paramIndex++;
+
+    // Add sorting
+    const validSortColumns = ['days_overdue', 'task_number', 'customer_name', 'status', 'priority', 'created_at'];
+    const sortColumn = validSortColumns.includes(sortBy as string) ? sortBy : 'days_overdue';
+    const sortDirection = sortOrder === 'asc' ? 'ASC' : 'DESC';
+    overdueQuery += ` ORDER BY ${sortColumn} ${sortDirection}`;
+
+    // Add pagination
+    overdueQuery += ` LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
+    queryParams.push(limitNum, offset);
+
+    // Get total count
+    let countQuery = `
+      SELECT COUNT(*) as total
+      FROM verification_tasks vt
+      WHERE vt.status IN ('PENDING', 'ASSIGNED', 'IN_PROGRESS')
+    `;
+
+    const countParams: any[] = [];
+    let countParamIndex = 1;
+
+    if (effectiveUserId) {
+      countQuery += ` AND vt.assigned_to = $${countParamIndex}`;
+      countParams.push(effectiveUserId);
+      countParamIndex++;
+    }
+
+    countQuery += `
+      AND (
+        CASE
+          WHEN vt.assigned_at IS NOT NULL THEN
+            EXTRACT(EPOCH FROM (NOW() - vt.assigned_at)) / 86400
+          ELSE
+            EXTRACT(EPOCH FROM (NOW() - vt.created_at)) / 86400
+        END
+      ) > $${countParamIndex}
+    `;
+    countParams.push(thresholdDays);
+
+    const [tasksResult, countResult] = await Promise.all([
+      pool.query(overdueQuery, queryParams),
+      pool.query(countQuery, countParams)
+    ]);
+
+    const tasks = tasksResult.rows.map(task => ({
+      id: task.id,
+      taskNumber: task.task_number,
+      taskTitle: task.task_title,
+      status: task.status,
+      priority: task.priority,
+      assignedAt: task.assigned_at,
+      createdAt: task.created_at,
+      estimatedCompletionDate: task.estimated_completion_date,
+      caseId: task.case_id,
+      caseNumber: task.case_number,
+      customerName: task.customer_name,
+      verificationTypeName: task.verification_type_name,
+      assignedToName: task.assigned_to_name,
+      assignedToEmployeeId: task.assigned_to_employee_id,
+      daysOverdue: Math.floor(parseFloat(task.days_overdue)),
+    }));
+
+    const totalCount = parseInt(countResult.rows[0].total);
+    const totalPages = Math.ceil(totalCount / limitNum);
+
+    logger.info('Overdue tasks retrieved', {
+      userId: req.user?.id,
+      threshold: thresholdDays,
+      totalCount,
+      page: pageNum,
+    });
+
+    res.json({
+      success: true,
+      data: {
+        tasks,
+        pagination: {
+          page: pageNum,
+          limit: limitNum,
+          totalCount,
+          totalPages,
+        },
+        threshold: thresholdDays,
+      },
+      message: 'Overdue tasks retrieved successfully',
+    });
+  } catch (error) {
+    logger.error('Error retrieving overdue tasks:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to retrieve overdue tasks',
+      error: { code: 'INTERNAL_ERROR' },
+    });
+  }
+};
+
+// GET /api/dashboard/tat-stats - Get TAT statistics
+export const getTATStats = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    // Role-based filtering - FIELD_AGENT users can only see their own stats
+    const userRole = req.user?.role;
+    const currentUserId = req.user?.id;
+    const effectiveUserId = userRole === 'FIELD_AGENT' ? currentUserId : null;
+
+    let statsQuery = `
+      SELECT
+        COUNT(*) FILTER (WHERE
+          vt.status IN ('PENDING', 'ASSIGNED', 'IN_PROGRESS')
+          AND (
+            CASE
+              WHEN vt.assigned_at IS NOT NULL THEN
+                EXTRACT(EPOCH FROM (NOW() - vt.assigned_at)) / 86400
+              ELSE
+                EXTRACT(EPOCH FROM (NOW() - vt.created_at)) / 86400
+            END
+          ) > 1
+        ) as critical_overdue,
+        COUNT(*) FILTER (WHERE
+          vt.status IN ('PENDING', 'ASSIGNED', 'IN_PROGRESS')
+          AND (
+            CASE
+              WHEN vt.assigned_at IS NOT NULL THEN
+                EXTRACT(EPOCH FROM (NOW() - vt.assigned_at)) / 86400
+              ELSE
+                EXTRACT(EPOCH FROM (NOW() - vt.created_at)) / 86400
+            END
+          ) > 0
+        ) as total_overdue,
+        COUNT(*) FILTER (WHERE vt.status IN ('PENDING', 'ASSIGNED', 'IN_PROGRESS')) as total_active_tasks
+      FROM verification_tasks vt
+    `;
+
+    const queryParams: any[] = [];
+    if (effectiveUserId) {
+      statsQuery += ` WHERE vt.assigned_to = $1`;
+      queryParams.push(effectiveUserId);
+    }
+
+    const result = await pool.query(statsQuery, queryParams);
+    const stats = result.rows[0];
+
+    const tatStats = {
+      criticalOverdue: parseInt(stats.critical_overdue) || 0,
+      totalOverdue: parseInt(stats.total_overdue) || 0,
+      totalActiveTasks: parseInt(stats.total_active_tasks) || 0,
+      overduePercentage: stats.total_active_tasks > 0
+        ? Math.round((parseInt(stats.total_overdue) / parseInt(stats.total_active_tasks)) * 100)
+        : 0,
+    };
+
+    logger.info('TAT stats retrieved', {
+      userId: req.user?.id,
+      criticalOverdue: tatStats.criticalOverdue,
+      totalOverdue: tatStats.totalOverdue,
+    });
+
+    res.json({
+      success: true,
+      data: tatStats,
+      message: 'TAT statistics retrieved successfully',
+    });
+  } catch (error) {
+    logger.error('Error retrieving TAT stats:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to retrieve TAT statistics',
+      error: { code: 'INTERNAL_ERROR' },
+    });
+  }
+};

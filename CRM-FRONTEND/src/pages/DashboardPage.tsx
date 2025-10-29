@@ -5,16 +5,19 @@ import { StatsCard } from '@/components/dashboard/StatsCard';
 import { CaseStatusChart } from '@/components/dashboard/CaseStatusChart';
 import { MonthlyTrendsChart } from '@/components/dashboard/MonthlyTrendsChart';
 import { RecentActivities } from '@/components/dashboard/RecentActivities';
-import { useDashboardStats, useRecentActivities, useCaseStatusDistribution, useMonthlyTrends } from '@/hooks/useDashboard';
-import { FileText, Building2, CheckSquare, Receipt, Users, Download, Plus, CheckCircle } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { useDashboardStats, useRecentActivities, useCaseStatusDistribution, useMonthlyTrends, useTATStats } from '@/hooks/useDashboard';
+import { FileText, Building2, CheckSquare, Receipt, Users, Download, Plus, CheckCircle, Clock, AlertTriangle } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 
 export const DashboardPage: React.FC = () => {
+  const navigate = useNavigate();
+
   // Fetch dashboard data
   const { data: statsData } = useDashboardStats();
   const { data: activitiesData, isLoading: activitiesLoading } = useRecentActivities(10);
   const { data: caseDistributionData, isLoading: distributionLoading } = useCaseStatusDistribution();
   const { data: trendsData, isLoading: trendsLoading } = useMonthlyTrends();
+  const { data: tatStatsData } = useTATStats();
 
   // Mock data fallback for development
   const mockStats = {
@@ -35,6 +38,13 @@ export const DashboardPage: React.FC = () => {
     completedCases: 0,
     activeUsers: 0,
     activeClients: 0
+  };
+
+  const tatStats = tatStatsData?.data || {
+    criticalOverdue: 0,
+    totalOverdue: 0,
+    totalActiveTasks: 0,
+    overduePercentage: 0
   };
 
   // Mock data removed - using real API data only
@@ -137,7 +147,7 @@ export const DashboardPage: React.FC = () => {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-5">
         <StatsCard
           title="Total Cases"
           value={stats.totalCases}
@@ -145,6 +155,17 @@ export const DashboardPage: React.FC = () => {
           icon={FileText}
           trend={{ value: 20.1, isPositive: true }}
           color="text-blue-600"
+          onClick={() => navigate('/cases')}
+          className="cursor-pointer"
+        />
+        <StatsCard
+          title="TAT Overdue"
+          value={tatStats.criticalOverdue}
+          description={`${tatStats.totalOverdue} total overdue`}
+          icon={AlertTriangle}
+          color="text-red-600"
+          onClick={() => navigate('/case-management/tat-monitoring')}
+          className="cursor-pointer"
         />
         <StatsCard
           title="In Progress"
@@ -153,6 +174,8 @@ export const DashboardPage: React.FC = () => {
           icon={CheckSquare}
           trend={{ value: 15, isPositive: true }}
           color="text-yellow-600"
+          onClick={() => navigate('/cases/in-progress')}
+          className="cursor-pointer"
         />
         <StatsCard
           title="Completed"
@@ -161,6 +184,8 @@ export const DashboardPage: React.FC = () => {
           icon={CheckSquare}
           trend={{ value: 25, isPositive: true }}
           color="text-green-600"
+          onClick={() => navigate('/cases/completed')}
+          className="cursor-pointer"
         />
         <StatsCard
           title="Active Clients"
@@ -169,6 +194,8 @@ export const DashboardPage: React.FC = () => {
           icon={Building2}
           trend={{ value: 5, isPositive: true }}
           color="text-purple-600"
+          onClick={() => navigate('/clients')}
+          className="cursor-pointer"
         />
       </div>
 

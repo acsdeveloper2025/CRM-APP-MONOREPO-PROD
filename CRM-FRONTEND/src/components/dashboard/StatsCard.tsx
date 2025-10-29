@@ -14,6 +14,7 @@ interface StatsCardProps {
   };
   color?: string;
   className?: string;
+  onClick?: () => void;
 }
 
 export const StatsCard: React.FC<StatsCardProps> = ({
@@ -24,6 +25,7 @@ export const StatsCard: React.FC<StatsCardProps> = ({
   trend,
   color = 'text-blue-600',
   className,
+  onClick,
 }) => {
   const formatValue = (val: string | number) => {
     if (typeof val === 'number') {
@@ -33,10 +35,17 @@ export const StatsCard: React.FC<StatsCardProps> = ({
   };
 
   return (
-    <Card className={cn('hover:shadow-md transition-all duration-200', className)}>
+    <Card
+      className={cn(
+        'hover:shadow-md transition-all duration-200',
+        onClick && 'cursor-pointer hover:scale-105',
+        className
+      )}
+      onClick={onClick}
+    >
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-4 sm:px-6 pt-4 sm:pt-6">
         <CardTitle className="text-sm sm:text-base font-medium truncate pr-2">{title}</CardTitle>
-        <Icon className={cn('h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0', color)} />
+        <Icon className={cn('h-4 w-4 sm:h-5 sm:w-5 shrink-0', color)} />
       </CardHeader>
       <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
         <div className="text-xl sm:text-2xl font-bold">{formatValue(value)}</div>

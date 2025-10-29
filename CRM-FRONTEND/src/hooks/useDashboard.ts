@@ -16,6 +16,8 @@ export const dashboardKeys = {
   topPerformers: (query: DashboardQuery) => [...dashboardKeys.all, 'top-performers', query] as const,
   upcomingDeadlines: () => [...dashboardKeys.all, 'upcoming-deadlines'] as const,
   alerts: () => [...dashboardKeys.all, 'alerts'] as const,
+  overdueTasks: (params: any) => [...dashboardKeys.all, 'overdue-tasks', params] as const,
+  tatStats: () => [...dashboardKeys.all, 'tat-stats'] as const,
 };
 
 // Queries
@@ -104,5 +106,27 @@ export const useAlerts = () => {
     queryKey: dashboardKeys.alerts(),
     queryFn: () => dashboardService.getAlerts(),
     staleTime: 1 * 60 * 1000, // 1 minute
+  });
+};
+
+export const useOverdueTasks = (params: {
+  threshold?: number;
+  page?: number;
+  limit?: number;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+} = {}) => {
+  return useQuery({
+    queryKey: dashboardKeys.overdueTasks(params),
+    queryFn: () => dashboardService.getOverdueTasks(params),
+    staleTime: 2 * 60 * 1000, // 2 minutes
+  });
+};
+
+export const useTATStats = () => {
+  return useQuery({
+    queryKey: dashboardKeys.tatStats(),
+    queryFn: () => dashboardService.getTATStats(),
+    staleTime: 2 * 60 * 1000, // 2 minutes
   });
 };
