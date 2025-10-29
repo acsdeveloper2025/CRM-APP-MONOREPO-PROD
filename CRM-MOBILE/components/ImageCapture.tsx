@@ -246,13 +246,13 @@ const ImageCapture: React.FC<ImageCaptureProps> = ({
             enhancedLocation = await Promise.race([
               enhancedGeolocationService.getCurrentLocation({
                 enableHighAccuracy: true,
-                timeout: 6000, // Reduced timeout to prevent hanging
+                timeout: 12000, // Increased timeout for better GPS acquisition (12 seconds)
                 includeAddress: true,
                 validateLocation: true,
                 fallbackToNominatim: true
               }),
               new Promise<never>((_, reject) =>
-                setTimeout(() => reject(new Error('Enhanced geolocation timeout')), 7000)
+                setTimeout(() => reject(new Error('Enhanced geolocation timeout')), 15000) // 15 second timeout
               )
             ]);
 
@@ -268,10 +268,10 @@ const ImageCapture: React.FC<ImageCaptureProps> = ({
               const position = await Promise.race([
                 Geolocation.getCurrentPosition({
                   enableHighAccuracy: true,
-                  timeout: 4000, // Reduced timeout
+                  timeout: 10000, // Increased timeout for GPS acquisition (10 seconds)
                 }),
                 new Promise<never>((_, reject) =>
-                  setTimeout(() => reject(new Error('Basic geolocation timeout')), 5000)
+                  setTimeout(() => reject(new Error('Basic geolocation timeout')), 12000) // 12 second timeout
                 )
               ]);
               latitude = position.coords.latitude;
@@ -279,7 +279,7 @@ const ImageCapture: React.FC<ImageCaptureProps> = ({
               accuracy = position.coords.accuracy;
               console.log('✅ Basic geolocation successful');
             } catch (fallbackError) {
-              console.warn('All geolocation methods failed, proceeding without location:', fallbackError);
+              console.info('All geolocation methods failed, proceeding without location:', fallbackError);
             }
           }
         } else {
