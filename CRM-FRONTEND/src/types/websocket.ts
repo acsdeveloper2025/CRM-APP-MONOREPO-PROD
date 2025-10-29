@@ -55,6 +55,14 @@ export interface NotificationEvent {
   type: 'info' | 'success' | 'warning' | 'error';
   title: string;
   message: string;
+  caseId?: string;
+  caseNumber?: string;
+  taskId?: string;
+  taskNumber?: string;
+  customerName?: string;
+  actionUrl?: string;
+  actionType?: string;
+  priority?: string;
   data?: any;
   timestamp: string;
   read?: boolean;

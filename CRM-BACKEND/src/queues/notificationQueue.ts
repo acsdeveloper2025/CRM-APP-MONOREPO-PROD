@@ -21,6 +21,8 @@ export interface CaseAssignmentNotificationJobData {
   userId: string;
   caseId: string;
   caseNumber: string;
+  taskId?: string;
+  taskNumber?: string;
   customerName: string;
   verificationType: string;
   assignmentType: 'assignment' | 'reassignment';
@@ -153,17 +155,23 @@ notificationQueue.process('case-assignment', 10, async (job) => {
   });
 
   try {
+    // Use task number if available, otherwise fall back to case number
+    const displayNumber = data.taskNumber || data.caseNumber;
+    const displayType = data.taskNumber ? 'task' : 'case';
+
     const notification: NotificationData = {
       userId: data.userId,
-      title: data.assignmentType === 'assignment' 
-        ? 'New Case Assigned' 
-        : 'Case Reassigned',
+      title: data.assignmentType === 'assignment'
+        ? `New ${displayType === 'task' ? 'Task' : 'Case'} Assigned`
+        : `${displayType === 'task' ? 'Task' : 'Case'} Reassigned`,
       message: data.assignmentType === 'assignment'
-        ? `You have been assigned case ${data.caseNumber} for ${data.customerName}`
-        : `Case ${data.caseNumber} has been reassigned to you`,
+        ? `You have been assigned ${displayType} ${displayNumber} for ${data.customerName}`
+        : `${displayType === 'task' ? 'Task' : 'Case'} ${displayNumber} has been reassigned to you`,
       type: data.assignmentType === 'assignment' ? 'CASE_ASSIGNED' : 'CASE_REASSIGNED',
       caseId: data.caseId,
       caseNumber: data.caseNumber,
+      taskId: data.taskId,
+      taskNumber: data.taskNumber,
       data: {
         customerName: data.customerName,
         verificationType: data.verificationType,
@@ -171,8 +179,9 @@ notificationQueue.process('case-assignment', 10, async (job) => {
         reason: data.reason,
         assignmentType: data.assignmentType,
       },
-      actionUrl: `/mobile/cases/${data.caseId}`,
-      actionType: 'OPEN_CASE',
+      // Navigate to task if taskId is available, otherwise to case
+      actionUrl: data.taskId ? `/mobile/tasks/${data.taskId}` : `/mobile/cases/${data.caseId}`,
+      actionType: data.taskId ? 'OPEN_TASK' : 'OPEN_CASE',
       priority: 'HIGH',
     };
 

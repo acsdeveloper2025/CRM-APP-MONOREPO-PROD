@@ -70,7 +70,12 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
       }
 
       // Handle navigation
-      if (notification.actionType === 'OPEN_CASE' && notification.caseId && onNavigateToCase) {
+      if (notification.actionType === 'OPEN_TASK' && notification.taskId) {
+        // Navigate to task form
+        console.log('Navigate to task:', notification.taskId);
+        // TODO: Implement task navigation when task detail screen is ready
+        onClose();
+      } else if (notification.actionType === 'OPEN_CASE' && notification.caseId && onNavigateToCase) {
         onNavigateToCase(notification.caseId);
         onClose();
       } else if (notification.actionUrl) {
@@ -185,7 +190,10 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
             <Text style={styles.notificationMessage} numberOfLines={3}>
               {item.message}
             </Text>
-            {item.caseNumber && (
+            {item.taskNumber && (
+              <Text style={styles.caseNumber}>Task: {item.taskNumber}</Text>
+            )}
+            {!item.taskNumber && item.caseNumber && (
               <Text style={styles.caseNumber}>Case: {item.caseNumber}</Text>
             )}
           </View>

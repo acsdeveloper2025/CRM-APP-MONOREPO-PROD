@@ -250,6 +250,48 @@ export class VerificationTasksController {
         createdTasks.map(t => t.id)
       );
 
+      // Send notifications for assigned tasks
+      try {
+        // Get case details for notifications
+        const caseQuery = `
+          SELECT c.id, c."caseId" as case_number, c."customerName"
+          FROM cases c
+          WHERE c.id = $1
+        `;
+        const caseResult = await client.query(caseQuery, [actualCaseId]);
+        const caseData = caseResult.rows[0];
+
+        const { queueCaseAssignmentNotification } = await import('../queues/notificationQueue');
+
+        // Send notification for each assigned task
+        for (const task of createdTasks) {
+          if (task.assigned_to) {
+            // Get verification type name
+            const vtQuery = `
+              SELECT name FROM "verificationTypes" WHERE id = $1
+            `;
+            const vtResult = await client.query(vtQuery, [task.verification_type_id]);
+            const verificationType = vtResult.rows[0]?.name || 'Unknown';
+
+            await queueCaseAssignmentNotification({
+              userId: task.assigned_to,
+              caseId: actualCaseId,
+              caseNumber: caseData.case_number,
+              taskId: task.id,
+              taskNumber: task.task_number,
+              customerName: caseData.customerName,
+              verificationType: verificationType,
+              assignmentType: 'assignment',
+              assignedBy: userId,
+              reason: 'Task created and assigned',
+            });
+          }
+        }
+      } catch (notifError) {
+        logger.error('Failed to send task creation notifications:', notifError);
+        // Don't fail the request if notification fails
+      }
+
       res.status(201).json({
         success: true,
         data: {
@@ -885,6 +927,43 @@ export class VerificationTasksController {
       });
 
       await client.query('COMMIT');
+
+      // Send notification to assigned user
+      try {
+        // Get case and user details for notification
+        const caseQuery = `
+          SELECT c.id, c."caseId" as case_number, c."customerName"
+          FROM cases c
+          WHERE c.id = $1
+        `;
+        const caseResult = await client.query(caseQuery, [currentTask.case_id]);
+        const caseData = caseResult.rows[0];
+
+        // Get verification type name
+        const vtQuery = `
+          SELECT name FROM "verificationTypes" WHERE id = $1
+        `;
+        const vtResult = await client.query(vtQuery, [currentTask.verification_type_id]);
+        const verificationType = vtResult.rows[0]?.name || 'Unknown';
+
+        // Queue notification
+        const { queueCaseAssignmentNotification } = await import('../queues/notificationQueue');
+        await queueCaseAssignmentNotification({
+          userId: assignedTo,
+          caseId: currentTask.case_id,
+          caseNumber: caseData.case_number,
+          taskId: taskId,
+          taskNumber: updatedTask.task_number,
+          customerName: caseData.customerName,
+          verificationType: verificationType,
+          assignmentType: previousAssignee ? 'reassignment' : 'assignment',
+          assignedBy: userId,
+          reason: assignmentReason,
+        });
+      } catch (notifError) {
+        logger.error('Failed to send task assignment notification:', notifError);
+        // Don't fail the request if notification fails
+      }
 
       res.json({
         success: true,
