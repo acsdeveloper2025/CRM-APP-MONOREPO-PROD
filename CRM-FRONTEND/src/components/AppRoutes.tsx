@@ -21,6 +21,7 @@ import { InProgressTasksPage } from '@/pages/InProgressTasksPage';
 import { CompletedTasksPage } from '@/pages/CompletedTasksPage';
 import { AllTasksPage } from '@/pages/AllTasksPage';
 import { TaskDetailPage } from '@/pages/TaskDetailPage';
+import { TATMonitoringPage } from '@/pages/TATMonitoringPage';
 import { NewCasePage } from '@/pages/NewCasePage';
 import { ClientsPage } from '@/pages/ClientsPage';
 import { UsersPage } from '@/pages/UsersPage';
@@ -191,8 +192,28 @@ export const AppRoutes: React.FC = () => {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/verification-tasks/:taskId"
+        element={
+          <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND', 'SUPER_ADMIN']}>
+            <Layout>
+              <TaskDetailPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
 
-
+      {/* TAT Monitoring Route */}
+      <Route
+        path="/case-management/tat-monitoring"
+        element={
+          <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND', 'SUPER_ADMIN']}>
+            <Layout>
+              <TATMonitoringPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
 
       {/* Clients routes */}
       <Route

@@ -87,6 +87,21 @@ export class DashboardService {
     return apiService.get('/dashboard/alerts');
   }
 
+  // TAT Monitoring
+  async getOverdueTasks(params: {
+    threshold?: number;
+    page?: number;
+    limit?: number;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+  } = {}): Promise<ApiResponse<any>> {
+    return apiService.get('/dashboard/overdue-tasks', params);
+  }
+
+  async getTATStats(): Promise<ApiResponse<any>> {
+    return apiService.get('/dashboard/tat-stats');
+  }
+
   // Export dashboard data
   async exportDashboardReport(query: DashboardQuery = {}): Promise<Blob> {
     const apiBaseUrl = getApiBaseUrl();

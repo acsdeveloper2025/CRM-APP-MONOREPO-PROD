@@ -9,7 +9,9 @@ import {
   getPerformanceMetrics,
   getDashboardStats,
   getCaseStatusDistribution,
-  getMonthlyTrends
+  getMonthlyTrends,
+  getOverdueTasks,
+  getTATStats
 } from '@/controllers/dashboardController';
 
 const router = express.Router();
@@ -128,11 +130,45 @@ router.get('/recent-activities',
   getRecentActivities
 );
 
-router.get('/performance-metrics', 
-  authenticateToken, 
-  dashboardQueryValidation, 
-  validate, 
+router.get('/performance-metrics',
+  authenticateToken,
+  dashboardQueryValidation,
+  validate,
   getPerformanceMetrics
+);
+
+// TAT Monitoring routes
+router.get('/overdue-tasks',
+  authenticateToken,
+  [
+    query('threshold')
+      .optional()
+      .isInt({ min: 0 })
+      .withMessage('Threshold must be a positive integer'),
+    query('page')
+      .optional()
+      .isInt({ min: 1 })
+      .withMessage('Page must be a positive integer'),
+    query('limit')
+      .optional()
+      .isInt({ min: 1, max: 100 })
+      .withMessage('Limit must be between 1 and 100'),
+    query('sortBy')
+      .optional()
+      .isIn(['days_overdue', 'task_number', 'customer_name', 'status', 'priority', 'created_at'])
+      .withMessage('Invalid sort column'),
+    query('sortOrder')
+      .optional()
+      .isIn(['asc', 'desc'])
+      .withMessage('Sort order must be asc or desc'),
+  ],
+  validate,
+  getOverdueTasks
+);
+
+router.get('/tat-stats',
+  authenticateToken,
+  getTATStats
 );
 
 // TODO: Implement remaining dashboard functions
