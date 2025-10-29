@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Case, ResidenceReportData, AddressLocatable, AddressRating, HouseStatus, Relation,
   WorkingStatus, StayingStatus, DocumentShownStatus, DocumentType, TPCMetPerson, TPCConfirmation,
@@ -15,6 +16,7 @@ import ReadOnlyIndicator from '../../ReadOnlyIndicator';
 import AutoSaveFormWrapper from '../../AutoSaveFormWrapper';
 import { FORM_TYPES } from '../../../constants/formTypes';
 import VerificationFormService from '../../../services/verificationFormService';
+import { handleSuccessfulSubmission } from '../../../utils/formSubmissionHelpers';
 import {
   createImageChangeHandler,
   createSelfieImageChangeHandler,
@@ -33,10 +35,12 @@ const getEnumOptions = (enumObject: object) => Object.values(enumObject).map(val
 ));
 
 const PositiveResidenceForm: React.FC<PositiveResidenceFormProps> = ({ caseData }) => {
-  const { updateResidenceReport, updateCaseStatus, toggleSaveCase, updateCaseSubmissionStatus } = useCases();
+  const navigate = useNavigate();
+  const { updateResidenceReport, toggleSaveCase, updateCaseSubmissionStatus, fetchCases } = useCases();
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionError, setSubmissionError] = useState<string | null>(null);
+  const [submissionSuccess, setSubmissionSuccess] = useState(false);
   const report = caseData.residenceReport;
   const isReadOnly = caseData.status === CaseStatus.Completed || caseData.isSaved;
   const MIN_IMAGES = 5;
@@ -181,8 +185,7 @@ const PositiveResidenceForm: React.FC<PositiveResidenceFormProps> = ({ caseData 
     politicalConnection: getEnumOptions(PoliticalConnection),
     dominatedArea: getEnumOptions(DominatedArea),
     feedbackFromNeighbour: getEnumOptions(FeedbackFromNeighbour),
-    finalStatus: getEnumOptions(FinalStatus),
-  }), []);
+    finalStatus: getEnumOptions(FinalStatus)}), []);
 
   return (
     <AutoSaveFormWrapper
@@ -457,6 +460,11 @@ const PositiveResidenceForm: React.FC<PositiveResidenceFormProps> = ({ caseData 
                     {isSubmitting ? 'Submitting...' : 'Submit'}
                 </button>
                 {!isFormValid && <p className="text-xs text-red-400 text-center mt-2">Please fill all required fields and capture at least {MIN_IMAGES} photos to submit.</p>}
+                {submissionSuccess && (
+                    <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-md">
+                        <p className="text-green-600 text-sm font-medium">✅ Case submitted successfully! Redirecting to completed cases...</p>
+                    </div>
+                )}
                 {submissionError && (
                     <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-md">
                         <p className="text-red-600 text-sm">{submissionError}</p>
@@ -527,16 +535,22 @@ const PositiveResidenceForm: React.FC<PositiveResidenceFormProps> = ({ caseData 
                         );
 
                         if (result.success) {
-                            // Update submission status to 'success'
-                            await updateCaseSubmissionStatus(caseData.id, 'success');
-
+                            
                             // Mark auto-save as completed
                             if ((window as any).markAutoSaveFormCompleted) {
                                 (window as any).markAutoSaveFormCompleted();
                             }
-
+                            
                             setIsConfirmModalOpen(false);
-                            console.log('✅ Residence verification submitted successfully');
+                            console.log('✅ Verification submitted successfully');
+                            
+                            // Handle post-submission: update status, refresh list, navigate
+                            await handleSuccessfulSubmission(
+                                caseData.id,
+                                fetchCases,
+                                navigate,
+                                setSubmissionSuccess
+                            );
                         } else {
                             // Update submission status to 'failed' with error message
                             await updateCaseSubmissionStatus(caseData.id, 'failed', result.error);
