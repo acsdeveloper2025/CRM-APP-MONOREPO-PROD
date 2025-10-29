@@ -10,6 +10,32 @@ import { AuthenticatedRequest } from '../middleware/auth';
  */
 
 /**
+ * Helper function to normalize verification type names for template matching
+ * Converts full database names like "Business Verification" to short codes like "BUSINESS"
+ */
+function normalizeVerificationType(verificationType: string): string {
+  const typeUpper = verificationType.toUpperCase();
+
+  // Check for combined types first
+  if (typeUpper.includes('RESIDENCE') && typeUpper.includes('OFFICE')) {
+    return 'RESIDENCE_CUM_OFFICE';
+  }
+
+  // Check for individual types
+  if (typeUpper.includes('RESIDENCE')) return 'RESIDENCE';
+  if (typeUpper.includes('OFFICE')) return 'OFFICE';
+  if (typeUpper.includes('BUSINESS')) return 'BUSINESS';
+  if (typeUpper.includes('BUILDER')) return 'BUILDER';
+  if (typeUpper.includes('NOC')) return 'NOC';
+  if (typeUpper.includes('DSA') || typeUpper.includes('CONNECTOR')) return 'DSA_CONNECTOR';
+  if (typeUpper.includes('PROPERTY') && typeUpper.includes('APF')) return 'PROPERTY_APF';
+  if (typeUpper.includes('PROPERTY') && typeUpper.includes('INDIVIDUAL')) return 'PROPERTY_INDIVIDUAL';
+
+  // Default fallback
+  return 'RESIDENCE';
+}
+
+/**
  * Generate template-based report for a form submission
  */
 export async function generateTemplateReport(req: AuthenticatedRequest, res: Response) {
@@ -533,9 +559,17 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
       logger.warn(`Unknown verification type ${verificationType}, using fallback data`);
     }
 
+    // CRITICAL FIX: Normalize verification type for template service
+    // Database stores "Business Verification", but templates expect "BUSINESS"
+    const normalizedVerificationType = normalizeVerificationType(verificationType);
+    logger.info('Normalized verification type for template generation', {
+      original: verificationType,
+      normalized: normalizedVerificationType
+    });
+
     // Prepare data for template generation
     const reportData = {
-      verificationType,
+      verificationType: normalizedVerificationType,
       outcome,
       formData,
       caseDetails: {

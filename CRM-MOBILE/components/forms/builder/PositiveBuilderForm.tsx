@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Case, PositiveBuilderReportData, AddressLocatable, AddressRating, OfficeStatusOffice, DesignationShiftedOffice,
   BusinessType, OwnershipTypeBusiness, AddressStatusBusiness, SightStatus, TPCMetPerson, TPCConfirmation,
@@ -13,6 +14,7 @@ import PermissionStatus from '../../PermissionStatus';
 import AutoSaveFormWrapper from '../../AutoSaveFormWrapper';
 import { FORM_TYPES } from '../../../constants/formTypes';
 import VerificationFormService from '../../../services/verificationFormService';
+import { handleSuccessfulSubmission } from '../../../utils/formSubmissionHelpers';
 import {
   createImageChangeHandler,
   createSelfieImageChangeHandler,
@@ -31,10 +33,12 @@ const getEnumOptions = (enumObject: object) => Object.values(enumObject).map(val
 ));
 
 const PositiveBuilderForm: React.FC<PositiveBuilderFormProps> = ({ caseData }) => {
-  const { updatePositiveBuilderReport, updateCaseStatus, toggleSaveCase } = useCases();
+  const navigate = useNavigate();
+  const { updatePositiveBuilderReport, toggleSaveCase , fetchCases } = useCases();
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionError, setSubmissionError] = useState<string | null>(null);
+  const [submissionSuccess, setSubmissionSuccess] = useState(false);
   const report = caseData.positiveBuilderReport;
   const isReadOnly = caseData.status === CaseStatus.Completed || caseData.isSaved;
   const MIN_IMAGES = 5;
@@ -159,8 +163,7 @@ const PositiveBuilderForm: React.FC<PositiveBuilderFormProps> = ({ caseData }) =
     politicalConnection: getEnumOptions(PoliticalConnection),
     dominatedArea: getEnumOptions(DominatedArea),
     feedbackFromNeighbour: getEnumOptions(FeedbackFromNeighbour),
-    finalStatus: getEnumOptions(FinalStatus),
-  }), []);
+    finalStatus: getEnumOptions(FinalStatus)}), []);
 
   return (
     <AutoSaveFormWrapper
@@ -409,6 +412,11 @@ const PositiveBuilderForm: React.FC<PositiveBuilderFormProps> = ({ caseData }) =
                     {isSubmitting ? 'Submitting...' : 'Submit'}
                 </button>
                 {!isFormValid && <p className="text-xs text-red-400 text-center mt-2">Please fill all fields and capture at least {MIN_IMAGES} photos to submit.</p>}
+                {submissionSuccess && (
+                    <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-md">
+                        <p className="text-green-600 text-sm font-medium">✅ Case submitted successfully! Redirecting to completed cases...</p>
+                    </div>
+                )}
             </div>
             <ConfirmationModal
                 isOpen={isConfirmModalOpen}
@@ -462,7 +470,15 @@ const PositiveBuilderForm: React.FC<PositiveBuilderFormProps> = ({ caseData }) =
                             }
                             
                             setIsConfirmModalOpen(false);
-                            console.log('✅ Builder verification submitted successfully');
+                            console.log('✅ Verification submitted successfully');
+                            
+                            // Handle post-submission: update status, refresh list, navigate
+                            await handleSuccessfulSubmission(
+                                caseData.id,
+                                fetchCases,
+                                navigate,
+                                setSubmissionSuccess
+                            );
                         } else {
                             setSubmissionError(result.error || 'Failed to submit verification form');
                         }

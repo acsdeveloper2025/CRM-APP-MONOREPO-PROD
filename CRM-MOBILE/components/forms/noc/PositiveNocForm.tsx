@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Case, PositiveNocReportData, AddressLocatable, AddressRating, OfficeStatusOffice, DesignationNoc,
   LocalityTypeResiCumOffice, PoliticalConnection, DominatedArea, FeedbackFromNeighbour, FinalStatus, CaseStatus, CapturedImage
@@ -12,6 +13,7 @@ import PermissionStatus from '../../PermissionStatus';
 import AutoSaveFormWrapper from '../../AutoSaveFormWrapper';
 import { FORM_TYPES } from '../../../constants/formTypes';
 import VerificationFormService from '../../../services/verificationFormService';
+import { handleSuccessfulSubmission } from '../../../utils/formSubmissionHelpers';
 import {
   createImageChangeHandler,
   createSelfieImageChangeHandler,
@@ -30,10 +32,12 @@ const getEnumOptions = (enumObject: object) => Object.values(enumObject).map(val
 ));
 
 const PositiveNocForm: React.FC<PositiveNocFormProps> = ({ caseData }) => {
-  const { updatePositiveNocReport, updateCaseStatus, toggleSaveCase } = useCases();
+  const navigate = useNavigate();
+  const { updatePositiveNocReport, toggleSaveCase , fetchCases } = useCases();
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionError, setSubmissionError] = useState<string | null>(null);
+  const [submissionSuccess, setSubmissionSuccess] = useState(false);
   const report = caseData.positiveNocReport;
   const isReadOnly = caseData.status === CaseStatus.Completed || caseData.isSaved;
   const MIN_IMAGES = 5;
@@ -130,8 +134,7 @@ const PositiveNocForm: React.FC<PositiveNocFormProps> = ({ caseData }) => {
     politicalConnection: getEnumOptions(PoliticalConnection),
     dominatedArea: getEnumOptions(DominatedArea),
     feedbackFromNeighbour: getEnumOptions(FeedbackFromNeighbour),
-    finalStatus: getEnumOptions(FinalStatus),
-  }), []);
+    finalStatus: getEnumOptions(FinalStatus)}), []);
 
   return (
     <AutoSaveFormWrapper
@@ -306,6 +309,11 @@ const PositiveNocForm: React.FC<PositiveNocFormProps> = ({ caseData }) => {
                     className="w-full px-6 py-3 text-sm font-semibold rounded-md bg-brand-primary hover:bg-brand-secondary text-white transition-colors disabled:bg-gray-500 disabled:cursor-not-allowed"
                 >{isSubmitting ? 'Submitting...' : 'Submit'}</button>
                 {!isFormValid && <p className="text-xs text-red-400 text-center mt-2">Please fill all required fields and capture at least {MIN_IMAGES} photos to submit.</p>}
+                {submissionSuccess && (
+                    <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-md">
+                        <p className="text-green-600 text-sm font-medium">✅ Case submitted successfully! Redirecting to completed cases...</p>
+                    </div>
+                )}
                 {submissionError && (
                     <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-md">
                         <p className="text-red-600 text-sm">{submissionError}</p>
@@ -364,7 +372,15 @@ const PositiveNocForm: React.FC<PositiveNocFormProps> = ({ caseData }) => {
                             }
                             
                             setIsConfirmModalOpen(false);
-                            console.log('✅ Noc verification submitted successfully');
+                            console.log('✅ Verification submitted successfully');
+                            
+                            // Handle post-submission: update status, refresh list, navigate
+                            await handleSuccessfulSubmission(
+                                caseData.id,
+                                fetchCases,
+                                navigate,
+                                setSubmissionSuccess
+                            );
                         } else {
                             setSubmissionError(result.error || 'Failed to submit verification form');
                         }
