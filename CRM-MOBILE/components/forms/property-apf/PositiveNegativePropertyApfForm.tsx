@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Case, PositivePropertyApfReportData, NspPropertyApfReportData, AddressLocatable, AddressRating,
   BuildingStatusApf, RelationshipApf, TPCMetPerson, TPCConfirmation,
@@ -14,6 +15,7 @@ import PermissionStatus from '../../PermissionStatus';
 import AutoSaveFormWrapper from '../../AutoSaveFormWrapper';
 import { FORM_TYPES } from '../../../constants/formTypes';
 import VerificationFormService from '../../../services/verificationFormService';
+import { handleSuccessfulSubmission } from '../../../utils/formSubmissionHelpers';
 import {
   createImageChangeHandler,
   createSelfieImageChangeHandler,
@@ -51,10 +53,12 @@ const getEnumOptions = (enumObject: object) => Object.values(enumObject).map(val
 ));
 
 const PositiveNegativePropertyApfForm: React.FC<PositiveNegativePropertyApfFormProps> = ({ caseData }) => {
-  const { updatePositivePropertyApfReport, updateNspPropertyApfReport, updateCaseStatus, toggleSaveCase } = useCases();
+  const navigate = useNavigate();
+  const { updatePositivePropertyApfReport, updateNspPropertyApfReport, updateCaseStatus, toggleSaveCase , fetchCases } = useCases();
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionError, setSubmissionError] = useState<string | null>(null);
+  const [submissionSuccess, setSubmissionSuccess] = useState(false);
   const verificationStatus = VerificationStatus.Positive; // Default to Positive, determined by form outcome
   const [constructionActivity, setConstructionActivity] = useState<ConstructionActivity>(ConstructionActivity.Seen);
   const [companyNameBoard, setCompanyNameBoard] = useState<CompanyNameBoard>(CompanyNameBoard.NotSighted);
@@ -547,6 +551,11 @@ const PositiveNegativePropertyApfForm: React.FC<PositiveNegativePropertyApfFormP
                     className="w-full px-6 py-3 text-sm font-semibold rounded-md bg-brand-primary hover:bg-brand-secondary text-white transition-colors disabled:bg-gray-500 disabled:cursor-not-allowed"
                 >{isSubmitting ? 'Submitting...' : 'Submit'}</button>
                 {!isFormValid && <p className="text-xs text-red-400 text-center mt-2">Please fill all required fields and capture at least {MIN_IMAGES} photos to submit.</p>}
+                {submissionSuccess && (
+                    <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-md">
+                        <p className="text-green-600 text-sm font-medium">✅ Case submitted successfully! Redirecting to completed cases...</p>
+                    </div>
+                )}
                 {submissionError && (
                     <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-md">
                         <p className="text-red-600 text-sm">{submissionError}</p>
@@ -605,7 +614,16 @@ const PositiveNegativePropertyApfForm: React.FC<PositiveNegativePropertyApfFormP
                             }
                             
                             setIsConfirmModalOpen(false);
-                            console.log('✅ Property apf verification submitted successfully');
+                            console.log('✅ Verification submitted successfully');
+                            
+                            // Handle post-submission: update status, refresh list, navigate
+                            await handleSuccessfulSubmission(
+                                caseData.id,
+                                updateCaseStatus,
+                                fetchCases,
+                                navigate,
+                                setSubmissionSuccess
+                            );
                         } else {
                             setSubmissionError(result.error || 'Failed to submit verification form');
                         }

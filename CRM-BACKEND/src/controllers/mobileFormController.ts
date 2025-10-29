@@ -257,11 +257,13 @@ export class MobileFormController {
   // Helper method to organize form data into sections for display
   private static organizeFormDataIntoSections(formData: any, verificationType: string, formType?: string): FormSection[] {
 
+    // CRITICAL FIX: Normalize verification type to match VERIFICATION_TYPE_FIELDS keys
+    const normalizedType = MobileFormController.normalizeVerificationType(verificationType);
 
     // If we have form type, use comprehensive mapping
     if (formType) {
       try {
-        const sections = createComprehensiveFormSections(formData, verificationType, formType);
+        const sections = createComprehensiveFormSections(formData, normalizedType, formType);
         return sections;
       } catch (error) {
         console.error('Error creating comprehensive form sections:', error);
@@ -270,7 +272,7 @@ export class MobileFormController {
     }
 
     // Fallback to basic form sections
-    return this.createBasicFormSections(formData, verificationType);
+    return this.createBasicFormSections(formData, normalizedType);
   }
 
   // Fallback method for basic form sections
@@ -377,11 +379,16 @@ export class MobileFormController {
     console.log(`Creating comprehensive sections from report for ${verificationType} - ${formType}`);
 
     try {
+      // CRITICAL FIX: Normalize verification type to match VERIFICATION_TYPE_FIELDS keys
+      // Database stores "Business Verification", but VERIFICATION_TYPE_FIELDS uses "BUSINESS"
+      const normalizedType = MobileFormController.normalizeVerificationType(verificationType);
+      console.log(`Normalized verification type: ${verificationType} -> ${normalizedType}`);
+
       // Convert database report to form data format
       const formData = MobileFormController.convertReportToFormData(report, verificationType);
 
-      // Use comprehensive form field mapping
-      const sections = createComprehensiveFormSections(formData, verificationType, formType);
+      // Use comprehensive form field mapping with NORMALIZED type
+      const sections = createComprehensiveFormSections(formData, normalizedType, formType);
       console.log(`Generated ${sections.length} comprehensive sections from report`);
       return sections;
     } catch (error) {
