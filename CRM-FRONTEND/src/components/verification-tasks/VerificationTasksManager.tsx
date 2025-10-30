@@ -9,7 +9,6 @@ import { VerificationTasksList } from './VerificationTasksList';
 import { CreateTaskModal } from './CreateTaskModal';
 import { TaskAssignmentModal } from './TaskAssignmentModal';
 import { TaskCompletionModal } from './TaskCompletionModal';
-import { TaskFilters } from './TaskFilters';
 import { TaskSummaryCards } from './TaskSummaryCards';
 import { BulkActionsToolbar } from './BulkActionsToolbar';
 import { 
@@ -215,14 +214,6 @@ export const VerificationTasksManager: React.FC<VerificationTasksManagerProps> =
         assignedCount={assignedTasks.length}
         inProgressCount={inProgressTasks.length}
       />
-
-      {/* Filters */}
-      {showFilters && (
-        <TaskFilters
-          onFiltersChange={setFilters}
-          onClearFilters={clearFilters}
-        />
-      )}
 
       {/* Bulk Actions */}
       {selectedTasks.length > 0 && !readonly && (

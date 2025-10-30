@@ -1,9 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Plus, Upload } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { SearchWithActions } from '@/components/ui/search-layout';
-import { useSearchInput } from '@/components/ui/search-input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { verificationTypesService } from '@/services/verificationTypes';
@@ -13,13 +11,9 @@ import { CreateVerificationTypeDialog } from '@/components/clients/CreateVerific
 export function VerificationTypesPage() {
   const [showCreateVerificationType, setShowCreateVerificationType] = useState(false);
 
-  // Use standardized search with debouncing
-  const { debouncedSearchValue, setSearchValue } = useSearchInput('', 400);
-
-  // Fetch verification types data
   const { data: verificationTypesData, isLoading: verificationTypesLoading } = useQuery({
-    queryKey: ['verification-types', debouncedSearchValue],
-    queryFn: () => verificationTypesService.getVerificationTypes({ search: debouncedSearchValue }),
+    queryKey: ['verification-types'],
+    queryFn: () => verificationTypesService.getVerificationTypes({}),
   });
 
   // Fetch verification types stats
@@ -94,32 +88,15 @@ export function VerificationTypesPage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {/* Standardized Search and Actions */}
-            <SearchWithActions
-              onSearch={setSearchValue}
-              placeholder="Search verification types..."
-              isLoading={verificationTypesLoading}
-              actions={
-                <>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full sm:w-auto min-h-[44px] sm:min-h-[40px]"
-                  >
-                    <Upload className="h-4 w-4 mr-2" />
-                    Import
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={() => setShowCreateVerificationType(true)}
-                    className="w-full sm:w-auto min-h-[44px] sm:min-h-[40px]"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Type
-                  </Button>
-                </>
-              }
-            />
+            <div className="flex items-center justify-end gap-2">
+              <Button
+                size="sm"
+                onClick={() => setShowCreateVerificationType(true)}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Type
+              </Button>
+            </div>
 
             {/* Verification Types Table */}
             <VerificationTypesTable
