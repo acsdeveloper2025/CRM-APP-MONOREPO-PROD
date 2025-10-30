@@ -2,13 +2,15 @@ import express from 'express';
 import { body, query, param } from 'express-validator';
 import { authenticateToken } from '@/middleware/auth';
 import { validate } from '@/middleware/validation';
+import { upload } from '@/middleware/upload';
 import {
   getCities,
   getCityById,
   createCity,
   updateCity,
   deleteCity,
-  getCitiesStats
+  getCitiesStats,
+  bulkImportCities
 } from '@/controllers/citiesController';
 import * as PincodesController from '../controllers/pincodesController';
 
@@ -102,6 +104,11 @@ router.post('/',
   createCityValidation,
   validate,
   createCity
+);
+
+router.post('/bulk-import',
+  upload.single('file'),
+  bulkImportCities
 );
 
 router.get('/:id', 

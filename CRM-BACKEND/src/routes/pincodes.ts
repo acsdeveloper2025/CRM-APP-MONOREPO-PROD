@@ -2,6 +2,7 @@ import express from 'express';
 import { body, query, param } from 'express-validator';
 import { authenticateToken } from '@/middleware/auth';
 import { validate } from '@/middleware/validation';
+import { upload } from '@/middleware/upload';
 import {
   getPincodes,
   getPincodeById,
@@ -260,9 +261,8 @@ router.post('/',
   createPincode
 );
 
-router.post('/bulk-import', 
-  bulkImportValidation, 
-  validate, 
+router.post('/bulk-import',
+  upload.single('file'),
   bulkImportPincodes
 );
 

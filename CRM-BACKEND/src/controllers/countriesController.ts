@@ -428,13 +428,102 @@ export const getCountriesStats = async (req: AuthenticatedRequest, res: Response
 };
 
 // POST /api/countries/bulk-import - Bulk import countries
-export const bulkImportCountries = async (req: AuthenticatedRequest, res: Response) => {
+export const bulkImportCountries = async (req: AuthenticatedRequest & { file?: Express.Multer.File }, res: Response) => {
   try {
-    // This would handle file upload and parsing in a real implementation
-    res.status(501).json({
-      success: false,
-      message: 'Bulk import not implemented yet',
-      error: { code: 'NOT_IMPLEMENTED' },
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'No file uploaded',
+        error: { code: 'NO_FILE' },
+      });
+    }
+
+    const { parseCSV, validateCSVRow } = await import('@/utils/csvParser');
+    const rows = await parseCSV(req.file.buffer);
+
+    const results = {
+      total: rows.length,
+      created: 0,
+      updated: 0,
+      failed: 0,
+      errors: [] as Array<{ row: number; data: any; error: string }>,
+    };
+
+    // Process each row
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+
+      try {
+        // Validate required fields
+        const validationError = validateCSVRow(row, ['name', 'code', 'continent']);
+        if (validationError) {
+          results.failed++;
+          results.errors.push({
+            row: i + 1,
+            data: row,
+            error: validationError,
+          });
+          continue;
+        }
+
+        const { name, code, continent } = row;
+
+        // Validate continent
+        const validContinents = ['Africa', 'Antarctica', 'Asia', 'Europe', 'North America', 'Oceania', 'South America'];
+        if (!validContinents.includes(continent)) {
+          results.failed++;
+          results.errors.push({
+            row: i + 1,
+            data: row,
+            error: `Invalid continent: ${continent}. Must be one of: ${validContinents.join(', ')}`,
+          });
+          continue;
+        }
+
+        // Check if country already exists
+        const existingCountry = await query(
+          'SELECT id FROM countries WHERE code = $1 OR name = $2',
+          [code.toUpperCase(), name]
+        );
+
+        if (existingCountry.rows.length > 0) {
+          // Update existing country
+          await query(
+            `UPDATE countries
+             SET name = $1, continent = $2, "updatedAt" = NOW()
+             WHERE code = $3`,
+            [name, continent, code.toUpperCase()]
+          );
+          results.updated++;
+        } else {
+          // Create new country
+          await query(
+            `INSERT INTO countries (name, code, continent)
+             VALUES ($1, $2, $3)`,
+            [name, code.toUpperCase(), continent]
+          );
+          results.created++;
+        }
+      } catch (error: any) {
+        results.failed++;
+        results.errors.push({
+          row: i + 1,
+          data: row,
+          error: error.message || 'Unknown error',
+        });
+        logger.error(`Error importing country at row ${i + 1}:`, error);
+      }
+    }
+
+    logger.info('Bulk import countries completed', {
+      userId: req.user?.id,
+      results,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: `Bulk import completed: ${results.created} created, ${results.updated} updated, ${results.failed} failed`,
+      data: results,
     });
   } catch (error) {
     logger.error('Error bulk importing countries:', error);
