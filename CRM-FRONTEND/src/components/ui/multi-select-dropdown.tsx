@@ -178,11 +178,11 @@ export function MultiSelectDropdown({
       {/* Dropdown Content */}
       {isOpen && (
         <div className={cn(
-          "absolute z-50 w-full mt-1 bg-white border rounded-md shadow-lg max-h-80 overflow-hidden",
+          "absolute z-50 w-full mt-1 bg-popover border border-border rounded-md shadow-lg max-h-80 overflow-hidden",
           dropdownClassName
         )}>
           {/* Search Input */}
-          <div className="p-2 border-b">
+          <div className="p-2 border-b border-border bg-popover">
             <div className="relative">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
@@ -190,16 +190,16 @@ export function MultiSelectDropdown({
                 placeholder={searchPlaceholder}
                 value={internalSearchQuery}
                 onChange={(e) => handleSearch(e.target.value)}
-                className="pl-8"
+                className="pl-8 bg-background text-foreground"
               />
             </div>
           </div>
 
           {/* Options List */}
-          <div className="max-h-60 overflow-y-auto">
+          <div className="max-h-60 overflow-y-auto bg-popover">
             {isLoading ? (
               <div className="flex items-center justify-center p-4">
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                <Loader2 className="h-4 w-4 animate-spin mr-2 text-muted-foreground" />
                 <span className="text-sm text-muted-foreground">Loading...</span>
               </div>
             ) : filteredOptions.length === 0 ? (
@@ -214,19 +214,19 @@ export function MultiSelectDropdown({
                     key={option.id}
                     onClick={() => !option.disabled && handleToggleOption(option.id)}
                     className={cn(
-                      "flex items-center gap-2 p-2 cursor-pointer hover:bg-muted/50",
+                      "flex items-center gap-2 p-2 cursor-pointer hover:bg-accent hover:text-accent-foreground transition-colors",
                       option.disabled && "opacity-50 cursor-not-allowed",
-                      isSelected && "bg-blue-50"
+                      isSelected && "bg-accent/50"
                     )}
                   >
                     <div className={cn(
-                      "w-4 h-4 border rounded flex items-center justify-center",
-                      isSelected ? "bg-primary border-primary" : "border-border"
+                      "w-4 h-4 border rounded flex items-center justify-center shrink-0",
+                      isSelected ? "bg-primary border-primary" : "border-input bg-background"
                     )}>
                       {isSelected && <Check className="h-3 w-3 text-primary-foreground" />}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium text-foreground truncate">{option.label}</div>
+                      <div className="text-sm font-medium text-popover-foreground truncate">{option.label}</div>
                       {option.description && (
                         <div className="text-xs text-muted-foreground truncate">
                           {option.description}
@@ -241,7 +241,7 @@ export function MultiSelectDropdown({
 
           {/* Footer with selection count */}
           {filteredOptions.length > 0 && (
-            <div className="p-2 border-t bg-muted text-xs text-muted-foreground">
+            <div className="p-2 border-t border-border bg-muted/50 text-xs text-muted-foreground">
               {selectedValues.length} of {options.length} items selected
               {filteredOptions.length < options.length && (
                 <span> • Showing {filteredOptions.length} filtered results</span>
