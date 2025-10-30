@@ -473,12 +473,18 @@ export const updateClient = async (req: AuthenticatedRequest, res: Response) => 
         const numericIds = ids.map(Number);
         await cx.query(`DELETE FROM "clientProducts" WHERE "clientId" = $1 AND "productId" <> ALL($2::integer[])`, [Number(id), numericIds]);
         for (const pid of Array.from(new Set(numericIds))) {
-          await cx.query(
-            `INSERT INTO "clientProducts" ("clientId", "productId", "isActive", "createdAt")
-             VALUES ($1, $2, true, CURRENT_TIMESTAMP)
-             ON CONFLICT ("clientId", "productId") DO NOTHING`,
+          // Check if relationship already exists
+          const existingRel = await cx.query(
+            `SELECT id FROM "clientProducts" WHERE "clientId" = $1 AND "productId" = $2`,
             [Number(id), pid]
           );
+          if (existingRel.rowCount === 0) {
+            await cx.query(
+              `INSERT INTO "clientProducts" ("clientId", "productId", "isActive", "createdAt")
+               VALUES ($1, $2, true, CURRENT_TIMESTAMP)`,
+              [Number(id), pid]
+            );
+          }
         }
       }
 
@@ -508,12 +514,18 @@ export const updateClient = async (req: AuthenticatedRequest, res: Response) => 
           // Add new product-verification type relationships
           for (const productId of productIds) {
             for (const vtId of numericVtIds) {
-              await cx.query(
-                `INSERT INTO "productVerificationTypes" ("productId", "verificationTypeId", "isActive", "createdAt", "updatedAt")
-                 VALUES ($1, $2, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-                 ON CONFLICT ("productId", "verificationTypeId") DO NOTHING`,
+              // Check if relationship already exists
+              const existingRel = await cx.query(
+                `SELECT id FROM "productVerificationTypes" WHERE "productId" = $1 AND "verificationTypeId" = $2`,
                 [productId, vtId]
               );
+              if (existingRel.rowCount === 0) {
+                await cx.query(
+                  `INSERT INTO "productVerificationTypes" ("productId", "verificationTypeId", "isActive", "createdAt", "updatedAt")
+                   VALUES ($1, $2, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+                  [productId, vtId]
+                );
+              }
             }
           }
         }
