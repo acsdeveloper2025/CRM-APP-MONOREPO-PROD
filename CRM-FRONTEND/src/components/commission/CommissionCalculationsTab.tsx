@@ -1,6 +1,24 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Calculator, Search, Download, Eye, CheckCircle, XCircle, Calendar, Filter } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Calculator, Search, Download, Eye, Calendar, Filter } from 'lucide-react';
 import { commissionManagementApi } from '../../services/commissionManagementApi';
 import { CommissionCalculation } from '../../types/commission';
 
@@ -26,7 +44,7 @@ export const CommissionCalculationsTab: React.FC = () => {
       setLoading(true);
       const response = await commissionManagementApi.getCommissionCalculations({
         page: currentPage,
-        limit: 50, // Increased for better monthly view
+        limit: 20, // Standard pagination limit
         search: searchTerm,
         status: filterStatus || undefined,
         startDate: dateRange.startDate || undefined,
@@ -104,36 +122,34 @@ export const CommissionCalculationsTab: React.FC = () => {
   };
 
   const getStatusBadge = (status: string) => {
-    const statusConfig = {
-      'CALCULATED': { color: 'bg-blue-100 text-blue-800 border-blue-200', icon: Calculator },
-      'APPROVED': { color: 'bg-green-100 text-green-800 border-green-200', icon: CheckCircle },
-      'PAID': { color: 'bg-emerald-100 text-emerald-800 border-emerald-200', icon: CheckCircle },
-      'REJECTED': { color: 'bg-red-100 text-red-800 border-red-200', icon: XCircle },
-      'PENDING': { color: 'bg-amber-100 text-amber-800 border-amber-200', icon: Calculator }
-    };
-
-    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig['PENDING'];
-    const Icon = config.icon;
+    // Use standardized badge colors matching CaseTable pattern
+    const colorClass = status === 'PENDING' || status === 'CALCULATED'
+      ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300'
+      : status === 'APPROVED' || status === 'PAID'
+      ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300'
+      : status === 'REJECTED'
+      ? 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300'
+      : 'bg-muted text-muted-foreground';
 
     return (
-      <span className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-md border ${config.color}`}>
-        <Icon className="h-3 w-3" />
+      <Badge className={colorClass}>
         {status}
-      </span>
+      </Badge>
     );
   };
 
   const getRateTypeBadge = (rateType: string) => {
-    const colors: { [key: string]: string } = {
-      'Local': 'bg-blue-50 text-blue-700 border-blue-200',
-      'OGL': 'bg-purple-50 text-purple-700 border-purple-200',
-      'Out of Geolocation': 'bg-purple-50 text-purple-700 border-purple-200'
-    };
+    // Use standardized badge colors matching CaseTable pattern
+    const colorClass = rateType === 'Local'
+      ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300'
+      : rateType === 'OGL' || rateType === 'Out of Geolocation'
+      ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-300'
+      : 'bg-muted text-muted-foreground';
 
     return (
-      <span className={`inline-flex px-2.5 py-1 text-xs font-medium rounded-md border ${colors[rateType] || 'bg-gray-50 text-gray-700 border-gray-200'}`}>
+      <Badge variant="outline" className={colorClass}>
         {rateType}
-      </span>
+      </Badge>
     );
   };
 
@@ -151,22 +167,20 @@ export const CommissionCalculationsTab: React.FC = () => {
       {Object.keys(monthlySummary).length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {Object.entries(monthlySummary).slice(0, 3).map(([month, data]) => (
-            <Card key={month} className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200">
+            <Card key={month}>
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-600 flex items-center gap-1">
+                    <p className="text-sm font-medium text-muted-foreground flex items-center gap-1">
                       <Calendar className="h-4 w-4" />
                       {month}
                     </p>
-                    <p className="text-2xl font-bold text-gray-900 mt-1">
+                    <p className="text-2xl font-bold text-foreground mt-1">
                       {data.currency} {data.total.toFixed(2)}
                     </p>
-                    <p className="text-xs text-gray-500 mt-1">{data.count} commissions</p>
+                    <p className="text-xs text-muted-foreground mt-1">{data.count} commissions</p>
                   </div>
-                  <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
-                    <Calculator className="h-6 w-6 text-blue-600" />
-                  </div>
+                  <Calculator className="h-10 w-10 text-muted-foreground" />
                 </div>
               </CardContent>
             </Card>
@@ -175,243 +189,216 @@ export const CommissionCalculationsTab: React.FC = () => {
       )}
 
       <Card>
-        <CardHeader className="border-b bg-gradient-to-r from-gray-50 to-gray-100">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <CardTitle className="flex items-center gap-2 text-xl">
-              <Calculator className="h-6 w-6 text-blue-600" />
-              Monthly Commission Payments
-            </CardTitle>
-            <button
-              onClick={exportCalculations}
-              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-sm"
-            >
-              <Download className="h-4 w-4" />
-              Export to CSV
-            </button>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Calculator className="h-5 w-5" />
+                Commission Calculations ({filteredCalculations.length})
+              </CardTitle>
+              <CardDescription>
+                Monthly commission payments for field users
+              </CardDescription>
+            </div>
+            <Button onClick={exportCalculations}>
+              <Download className="h-4 w-4 mr-2" />
+              Export CSV
+            </Button>
           </div>
         </CardHeader>
-        <CardContent className="p-6">
+        <CardContent className="p-4">
           {/* Filters */}
-          <div className="flex flex-wrap gap-3 mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+          <div className="flex flex-wrap gap-4 mb-6">
             <div className="relative flex-1 min-w-[200px]">
-              <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Input
                 placeholder="Search by task, user, client..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                className="pl-10"
               />
             </div>
 
-            <div className="relative min-w-[150px]">
-              <Filter className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-              <select
-                value={filterMonth}
-                onChange={(e) => setFilterMonth(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none bg-white transition-all"
-              >
-                <option value="">All Months</option>
+            <Select value={filterMonth} onValueChange={setFilterMonth}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="All Months" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">All Months</SelectItem>
                 {availableMonths.map(month => (
-                  <option key={month} value={month}>{month}</option>
+                  <SelectItem key={month} value={month}>{month}</SelectItem>
                 ))}
-              </select>
-            </div>
+              </SelectContent>
+            </Select>
 
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className="px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all min-w-[140px]"
-            >
-              <option value="">All Statuses</option>
-              <option value="PENDING">Pending</option>
-              <option value="APPROVED">Approved</option>
-              <option value="PAID">Paid</option>
-              <option value="REJECTED">Rejected</option>
-            </select>
+            <Select value={filterStatus} onValueChange={setFilterStatus}>
+              <SelectTrigger className="w-[150px]">
+                <SelectValue placeholder="All Statuses" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">All Statuses</SelectItem>
+                <SelectItem value="PENDING">Pending</SelectItem>
+                <SelectItem value="APPROVED">Approved</SelectItem>
+                <SelectItem value="PAID">Paid</SelectItem>
+                <SelectItem value="REJECTED">Rejected</SelectItem>
+              </SelectContent>
+            </Select>
 
-            <input
+            <Input
               type="date"
               value={dateRange.startDate}
               onChange={(e) => setDateRange({ ...dateRange, startDate: e.target.value })}
-              className="px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-              placeholder="Start Date"
+              className="w-[150px]"
             />
 
-            <input
+            <Input
               type="date"
               value={dateRange.endDate}
               onChange={(e) => setDateRange({ ...dateRange, endDate: e.target.value })}
-              className="px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-              placeholder="End Date"
+              className="w-[150px]"
             />
           </div>
 
           {/* Calculations Table */}
-          <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
-                <tr>
-                  <th className="px-4 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                    Task ID
-                  </th>
-                  <th className="px-4 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                    Field User
-                  </th>
-                  <th className="px-4 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                    Client
-                  </th>
-                  <th className="px-4 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                    Product
-                  </th>
-                  <th className="px-4 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                    Rate Type
-                  </th>
-                  <th className="px-4 py-4 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                    Commission
-                  </th>
-                  <th className="px-4 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                    Month
-                  </th>
-                  <th className="px-4 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-4 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-100">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Task ID</TableHead>
+                <TableHead>Field User</TableHead>
+                <TableHead>Client</TableHead>
+                <TableHead>Product</TableHead>
+                <TableHead>Rate Type</TableHead>
+                <TableHead className="text-right">Commission</TableHead>
+                <TableHead>Month</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
                 {filteredCalculations.length === 0 ? (
-                  <tr>
-                    <td colSpan={9} className="px-6 py-16 text-center">
-                      <div className="flex flex-col items-center justify-center text-gray-500">
-                        <Calculator className="h-12 w-12 text-gray-300 mb-3" />
-                        <p className="text-lg font-medium">No commission calculations found</p>
-                        <p className="text-sm mt-1">Try adjusting your filters or date range</p>
+                  <TableRow>
+                    <TableCell colSpan={9} className="h-64 text-center">
+                      <div className="flex flex-col items-center justify-center text-muted-foreground">
+                        <Calculator className="h-12 w-12 mb-4" />
+                        <p className="text-lg font-semibold">No commission calculations found</p>
+                        <p className="text-sm mt-2">Try adjusting your filters or date range</p>
                       </div>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ) : (
-                  filteredCalculations.map((calculation, index) => (
-                    <tr
-                      key={calculation.id}
-                      className={`hover:bg-blue-50 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}
-                    >
-                      <td className="px-4 py-4 whitespace-nowrap">
-                        <div className="flex flex-col">
-                          <span className="text-sm font-semibold text-blue-600">
+                  filteredCalculations.map((calculation) => (
+                    <TableRow key={calculation.id}>
+                      <TableCell>
+                        <div>
+                          <div className="font-medium text-foreground">
                             {calculation.task_number || 'N/A'}
-                          </span>
+                          </div>
                           {calculation.verification_type_name && (
-                            <span className="text-xs text-gray-500 mt-0.5">
+                            <div className="text-sm text-muted-foreground">
                               {calculation.verification_type_name}
-                            </span>
+                            </div>
                           )}
                         </div>
-                      </td>
-                      <td className="px-4 py-4 whitespace-nowrap">
-                        <div className="flex flex-col">
-                          <span className="text-sm font-medium text-gray-900">
+                      </TableCell>
+                      <TableCell>
+                        <div>
+                          <div className="font-medium text-foreground">
                             {calculation.user_name || 'N/A'}
-                          </span>
-                          <span className="text-xs text-gray-500">
+                          </div>
+                          <div className="text-sm text-muted-foreground">
                             {calculation.user_email || ''}
-                          </span>
+                          </div>
                         </div>
-                      </td>
-                      <td className="px-4 py-4 whitespace-nowrap">
-                        <span className="text-sm font-medium text-gray-900">
+                      </TableCell>
+                      <TableCell>
+                        <div className="font-medium text-foreground">
                           {calculation.client_name || 'N/A'}
-                        </span>
-                      </td>
-                      <td className="px-4 py-4 whitespace-nowrap">
-                        <span className="text-sm text-gray-700">
-                          {calculation.product_name || 'N/A'}
-                        </span>
-                      </td>
-                      <td className="px-4 py-4 whitespace-nowrap">
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {calculation.product_name || 'N/A'}
+                      </TableCell>
+                      <TableCell>
                         {getRateTypeBadge(calculation.rate_type_name || 'N/A')}
-                      </td>
-                      <td className="px-4 py-4 whitespace-nowrap text-right">
-                        <div className="flex flex-col items-end">
-                          <span className="text-sm font-bold text-gray-900">
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div>
+                          <div className="font-semibold">
                             {calculation.currency} {Number(calculation.commission_amount).toFixed(2)}
-                          </span>
+                          </div>
                           {calculation.base_amount && (
-                            <span className="text-xs text-gray-500 mt-0.5">
+                            <div className="text-sm text-muted-foreground">
                               Base: {calculation.currency} {Number(calculation.base_amount).toFixed(2)}
-                            </span>
+                            </div>
                           )}
                         </div>
-                      </td>
-                      <td className="px-4 py-4 whitespace-nowrap text-center">
-                        <div className="flex items-center justify-center gap-1">
-                          <Calendar className="h-3.5 w-3.5 text-gray-400" />
-                          <span className="text-sm font-medium text-gray-700">
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                          <span className="text-sm">
                             {formatMonth(calculation.created_at)}
                           </span>
                         </div>
-                      </td>
-                      <td className="px-4 py-4 whitespace-nowrap text-center">
+                      </TableCell>
+                      <TableCell>
                         {getStatusBadge(calculation.status)}
-                      </td>
-                      <td className="px-4 py-4 whitespace-nowrap text-center">
-                        <button
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="ghost"
+                          size="sm"
                           onClick={() => {
                             console.log('View calculation:', calculation.id);
                           }}
-                          className="inline-flex items-center justify-center p-2 text-blue-600 hover:text-blue-900 hover:bg-blue-100 rounded-lg transition-colors"
                           title="View Details"
                         >
                           <Eye className="h-4 w-4" />
-                        </button>
-                      </td>
-                    </tr>
+                        </Button>
+                      </TableCell>
+                    </TableRow>
                   ))
                 )}
-              </tbody>
-            </table>
-          </div>
+              </TableBody>
+            </Table>
 
-          {/* Summary and Pagination */}
-          <div className="flex flex-col sm:flex-row justify-between items-center mt-6 pt-4 border-t border-gray-200 gap-4">
-            <div className="flex items-center gap-4">
-              <div className="text-sm text-gray-600">
-                Showing <span className="font-semibold text-gray-900">{filteredCalculations.length}</span> of{' '}
-                <span className="font-semibold text-gray-900">{calculations.length}</span> commissions
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between mt-6 pt-4 border-t">
+              <div className="text-sm text-muted-foreground">
+                Showing <span className="font-medium text-foreground">{filteredCalculations.length}</span> of{' '}
+                <span className="font-medium text-foreground">{calculations.length}</span> commissions
+                {filterMonth && (
+                  <Badge variant="outline" className="ml-2">
+                    {filterMonth}
+                  </Badge>
+                )}
               </div>
-              {filterMonth && (
-                <div className="text-sm text-gray-600 bg-blue-50 px-3 py-1 rounded-full border border-blue-200">
-                  Filtered by: <span className="font-semibold text-blue-700">{filterMonth}</span>
-                </div>
-              )}
-            </div>
-
-            {totalPages > 1 && (
-              <div className="flex items-center gap-3">
-                <span className="text-sm text-gray-600">
-                  Page <span className="font-semibold">{currentPage}</span> of <span className="font-semibold">{totalPages}</span>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">
+                  Page {currentPage} of {totalPages}
                 </span>
                 <div className="flex gap-2">
-                  <button
+                  <Button
+                    variant="outline"
+                    size="sm"
                     onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                     disabled={currentPage === 1}
-                    className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors font-medium text-sm"
                   >
                     Previous
-                  </button>
-                  <button
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
                     onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                     disabled={currentPage === totalPages}
-                    className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors font-medium text-sm"
                   >
                     Next
-                  </button>
+                  </Button>
                 </div>
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
