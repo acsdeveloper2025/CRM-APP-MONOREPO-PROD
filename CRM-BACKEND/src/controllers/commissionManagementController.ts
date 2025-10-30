@@ -695,12 +695,20 @@ export const getCommissionCalculations = async (req: AuthenticatedRequest, res: 
         c.name as client_name,
         rt.name as rate_type_name,
         cases."customerName" as customer_name,
-        cases."caseId" as case_number_display
+        cases."caseId" as case_number_display,
+        vt.task_number,
+        vt.task_title,
+        vt.verification_outcome,
+        vt.completed_at as task_completed_at,
+        vtype.name as verification_type_name,
+        vt.status as task_status
       FROM commission_calculations cc
       LEFT JOIN users u ON cc.user_id = u.id
       LEFT JOIN clients c ON cc.client_id = c.id
       LEFT JOIN "rateTypes" rt ON cc.rate_type_id = rt.id
       LEFT JOIN cases ON cc.case_id = cases.id
+      LEFT JOIN verification_tasks vt ON cc.verification_task_id = vt.id
+      LEFT JOIN "verificationTypes" vtype ON vt.verification_type_id = vtype.id
       ${whereClause ? `WHERE ${whereClause}` : ''}
       ORDER BY cc.created_at DESC
       LIMIT $${paramCount - 1} OFFSET $${paramCount}
@@ -1034,6 +1042,150 @@ export const autoCalculateCommissionForCase = async (caseId: string): Promise<bo
 
   } catch (error) {
     console.error(`❌ Error auto-calculating commission for case ${caseId}:`, error);
+    return false;
+  }
+};
+
+// Auto-calculate commission when verification task is completed (called internally)
+export const autoCalculateCommissionForTask = async (taskId: string): Promise<boolean> => {
+  try {
+    console.log(`🧮 Auto-calculating commission for completed verification task: ${taskId}`);
+
+    // Get task details
+    const taskQuery = `
+      SELECT
+        vt.id,
+        vt.task_number,
+        vt.case_id,
+        vt.assigned_to as user_id,
+        vt.rate_type_id,
+        vt.actual_amount as base_amount,
+        vt.completed_at as task_completed_at,
+        vt.status,
+        vt.verification_outcome,
+        c."clientId" as client_id,
+        c."caseId" as case_number,
+        rt.name as rate_type_name
+      FROM verification_tasks vt
+      LEFT JOIN cases c ON vt.case_id = c.id
+      LEFT JOIN "rateTypes" rt ON vt.rate_type_id = rt.id
+      WHERE vt.id = $1 AND vt.status = 'COMPLETED'
+    `;
+
+    const taskResult = await query(taskQuery, [taskId]);
+
+    if (taskResult.rows.length === 0) {
+      console.log(`⚠️ Task not found or not completed: ${taskId}`);
+      return false;
+    }
+
+    const taskData = taskResult.rows[0];
+
+    if (!taskData.rate_type_id) {
+      console.log(`⚠️ No rate type assigned for task: ${taskId}`);
+      return false;
+    }
+
+    if (!taskData.user_id) {
+      console.log(`⚠️ No user assigned to task: ${taskId}`);
+      return false;
+    }
+
+    // Get field user commission assignment
+    const assignmentQuery = `
+      SELECT
+        commission_amount,
+        currency,
+        is_active
+      FROM field_user_commission_assignments
+      WHERE user_id = $1
+        AND rate_type_id = $2
+        AND is_active = true
+        AND (client_id IS NULL OR client_id = $3)
+        AND effective_from <= CURRENT_TIMESTAMP
+        AND (effective_to IS NULL OR effective_to >= CURRENT_TIMESTAMP)
+      ORDER BY client_id DESC NULLS LAST
+      LIMIT 1
+    `;
+
+    const assignmentResult = await query(assignmentQuery, [
+      taskData.user_id,
+      taskData.rate_type_id,
+      taskData.client_id
+    ]);
+
+    if (assignmentResult.rows.length === 0) {
+      console.log(`⚠️ No commission assignment found for user ${taskData.user_id} and rate type ${taskData.rate_type_id}`);
+      return false;
+    }
+
+    const assignment = assignmentResult.rows[0];
+
+    // Check if commission already calculated for this task
+    const existingQuery = `
+      SELECT id FROM commission_calculations
+      WHERE verification_task_id = $1 AND user_id = $2
+    `;
+
+    const existingResult = await query(existingQuery, [taskId, taskData.user_id]);
+
+    if (existingResult.rows.length > 0) {
+      console.log(`ℹ️ Commission already calculated for task: ${taskId}`);
+      return true;
+    }
+
+    // Calculate commission
+    const commissionAmount = parseFloat(assignment.commission_amount);
+    const baseAmount = parseFloat(taskData.base_amount) || 0;
+
+    // Insert commission calculation
+    const insertQuery = `
+      INSERT INTO commission_calculations (
+        id,
+        verification_task_id,
+        case_id,
+        case_number,
+        user_id,
+        client_id,
+        rate_type_id,
+        base_amount,
+        commission_amount,
+        calculated_commission,
+        currency,
+        calculation_method,
+        status,
+        case_completed_at,
+        created_at,
+        updated_at
+      ) VALUES (
+        gen_random_uuid(),
+        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+      ) RETURNING id, commission_amount, currency
+    `;
+
+    const insertResult = await query(insertQuery, [
+      taskId,
+      taskData.case_id,
+      taskData.case_number,
+      taskData.user_id,
+      taskData.client_id,
+      taskData.rate_type_id,
+      baseAmount,
+      commissionAmount,
+      commissionAmount, // calculated_commission
+      assignment.currency,
+      'FIXED_AMOUNT',
+      'CALCULATED',
+      taskData.task_completed_at
+    ]);
+
+    const calculation = insertResult.rows[0];
+    console.log(`✅ Commission calculated successfully for task ${taskId}: ${calculation.currency} ${calculation.commission_amount}`);
+
+    return true;
+
+  } catch (error) {
+    console.error(`❌ Error auto-calculating commission for task ${taskId}:`, error);
     return false;
   }
 };
