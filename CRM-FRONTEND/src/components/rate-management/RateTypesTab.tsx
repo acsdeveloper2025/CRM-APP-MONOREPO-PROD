@@ -113,8 +113,8 @@ export function RateTypesTab() {
               <div key={type} className="text-center p-3 border rounded-lg">
                 <div className="font-medium text-sm">{type}</div>
                 <div className="text-xs text-muted-foreground mt-1">
-                  {type.startsWith('Local') ? 'Local Area' : 
-                   type.startsWith('OGL') ? 'Out of Gujarat/Local' : 
+                  {type.startsWith('Local') ? 'Local Area' :
+                   type.startsWith('OGL') ? 'Out of Geolocation' :
                    'Outstation'}
                 </div>
               </div>
