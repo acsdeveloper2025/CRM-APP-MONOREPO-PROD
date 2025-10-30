@@ -14,9 +14,8 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { SearchableSelect, SearchableSelectOption } from '@/components/ui/searchable-select';
 import { UnifiedSearchInput } from '@/components/ui/unified-search-input';
-import { UnifiedFilterPanel, FilterGrid } from '@/components/ui/unified-search-filter-layout';
-import { useUnifiedSearch } from '@/hooks/useUnifiedSearch';
-import { useUnifiedFilters } from '@/hooks/useUnifiedFilters';
+import { UnifiedFilterPanel, FilterGrid } from '@/components/ui/unified-filter-panel';
+import { useUnifiedSearch, useUnifiedFilters } from '@/hooks/useUnifiedSearch';
 import { commissionManagementApi } from '../../services/commissionManagementApi';
 import { FieldUserCommissionAssignment, CreateFieldUserCommissionAssignmentData } from '../../types/commission';
 import { User } from '../../types/user';
@@ -59,16 +58,19 @@ export const FieldUserAssignmentsTab: React.FC = () => {
   const {
     filters,
     setFilter,
-    clearFilter,
-    clearAllFilters,
+    clearFilters,
     hasActiveFilters,
-    activeFilterCount,
   } = useUnifiedFilters({
     syncWithUrl: true,
   });
 
   const filterUserId = filters.userId || '';
   const filterRateTypeId = filters.rateTypeId || '';
+
+  // Count active filters
+  const activeFilterCount = Object.keys(filters).filter(
+    key => filters[key as keyof typeof filters] !== undefined
+  ).length;
 
   const [formData, setFormData] = useState<FieldUserAssignmentFormData>({
     userId: '',
@@ -236,7 +238,7 @@ export const FieldUserAssignmentsTab: React.FC = () => {
           <UnifiedFilterPanel
             hasActiveFilters={hasActiveFilters}
             activeFilterCount={activeFilterCount}
-            onClearAll={clearAllFilters}
+            onClearAll={clearFilters}
           >
             <FilterGrid columns={2}>
               <div className="space-y-2">
