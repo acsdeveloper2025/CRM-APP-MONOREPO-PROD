@@ -51,7 +51,7 @@ export const getProducts = async (req: AuthenticatedRequest, res: Response) => {
 
     // Add search filter if provided
     if (search) {
-      whereSql.push(`(name ILIKE $${paramIndex} OR code ILIKE $${paramIndex + 1})`);
+      whereSql.push(`(COALESCE(name, '') ILIKE $${paramIndex} OR COALESCE(code, '') ILIKE $${paramIndex + 1})`);
       values.push(`%${String(search)}%`, `%${String(search)}%`);
       paramIndex += 2;
     }

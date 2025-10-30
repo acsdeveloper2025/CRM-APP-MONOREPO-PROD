@@ -48,8 +48,8 @@ export const getCountries = async (req: AuthenticatedRequest, res: Response) => 
 
     if (search) {
       paramCount++;
-      sql += ` AND (LOWER(name) LIKE $${paramCount} OR LOWER(code) LIKE $${paramCount})`;
-      params.push(`%${(search as string).toLowerCase()}%`);
+      sql += ` AND (COALESCE(name, '') ILIKE $${paramCount} OR COALESCE(code, '') ILIKE $${paramCount})`;
+      params.push(`%${search}%`);
     }
 
     // Apply sorting
@@ -88,8 +88,8 @@ export const getCountries = async (req: AuthenticatedRequest, res: Response) => 
 
     if (search) {
       countParamCount++;
-      countSql += ` AND (LOWER(name) LIKE $${countParamCount} OR LOWER(code) LIKE $${countParamCount})`;
-      countParams.push(`%${(search as string).toLowerCase()}%`);
+      countSql += ` AND (COALESCE(name, '') ILIKE $${countParamCount} OR COALESCE(code, '') ILIKE $${countParamCount})`;
+      countParams.push(`%${search}%`);
     }
 
     const countResult = await query<{ count: string }>(countSql, countParams);

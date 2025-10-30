@@ -43,9 +43,10 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
 
     if (search) {
       conditions.push(`(
-        u.name ILIKE $${paramIndex} OR 
-        u.email ILIKE $${paramIndex} OR 
-        u.username ILIKE $${paramIndex}
+        COALESCE(u.name, '') ILIKE $${paramIndex} OR
+        COALESCE(u.email, '') ILIKE $${paramIndex} OR
+        COALESCE(u.username, '') ILIKE $${paramIndex} OR
+        COALESCE(u."employeeId", '') ILIKE $${paramIndex}
       )`);
       params.push(`%${search}%`);
       paramIndex++;

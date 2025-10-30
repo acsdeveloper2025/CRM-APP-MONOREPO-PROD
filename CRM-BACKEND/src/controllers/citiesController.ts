@@ -62,8 +62,8 @@ export const getCities = async (req: AuthenticatedRequest, res: Response) => {
 
     if (search) {
       paramCount++;
-      sql += ` AND (LOWER(c.name) LIKE $${paramCount} OR LOWER(s.name) LIKE $${paramCount} OR LOWER(co.name) LIKE $${paramCount})`;
-      params.push(`%${(search as string).toLowerCase()}%`);
+      sql += ` AND (COALESCE(c.name, '') ILIKE $${paramCount} OR COALESCE(s.name, '') ILIKE $${paramCount} OR COALESCE(co.name, '') ILIKE $${paramCount})`;
+      params.push(`%${search}%`);
     }
 
     // Apply sorting

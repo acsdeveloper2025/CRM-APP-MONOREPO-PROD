@@ -21,7 +21,7 @@ export const getVerificationTypes = async (req: AuthenticatedRequest, res: Respo
 
     if (search && String(search).trim()) {
       const searchTerm = `%${String(search).trim()}%`;
-      whereClause = `WHERE name ILIKE $${paramIndex} OR code ILIKE $${paramIndex} OR description ILIKE $${paramIndex}`;
+      whereClause = `WHERE COALESCE(name, '') ILIKE $${paramIndex} OR COALESCE(code, '') ILIKE $${paramIndex} OR COALESCE(description, '') ILIKE $${paramIndex}`;
       queryParams.push(searchTerm);
       paramIndex++;
     }

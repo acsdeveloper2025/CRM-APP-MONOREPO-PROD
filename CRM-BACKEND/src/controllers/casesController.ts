@@ -142,12 +142,15 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
       paramIndex++;
     }
 
-    // Search filter (customer name, case ID, address)
+    // Search filter (customer name, case ID, address, phone, trigger, applicant type)
     if (search) {
       conditions.push(`(
-        c."customerName" ILIKE $${paramIndex} OR
-        c."caseId"::text ILIKE $${paramIndex} OR
-        c.address ILIKE $${paramIndex}
+        COALESCE(c."customerName", '') ILIKE $${paramIndex} OR
+        COALESCE(c."caseId"::text, '') ILIKE $${paramIndex} OR
+        COALESCE(c.address, '') ILIKE $${paramIndex} OR
+        COALESCE(c."customerPhone", '') ILIKE $${paramIndex} OR
+        COALESCE(c.trigger, '') ILIKE $${paramIndex} OR
+        COALESCE(c."applicantType", '') ILIKE $${paramIndex}
       )`);
       params.push(`%${search}%`);
       paramIndex++;

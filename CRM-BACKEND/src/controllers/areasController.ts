@@ -36,7 +36,7 @@ export const getAreas = async (req: AuthenticatedRequest, res: Response) => {
     // Apply search filter
     if (search) {
       paramCount++;
-      whereConditions.push(`a.name ILIKE $${paramCount}`);
+      whereConditions.push(`COALESCE(a.name, '') ILIKE $${paramCount}`);
       params.push(`%${search}%`);
     }
 
