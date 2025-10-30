@@ -2,14 +2,50 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { PendingCasesTable } from '@/components/cases/PendingCasesTable';
 import { usePendingCases, useUpdateCaseStatus, useAssignCase, useRefreshCases } from '@/hooks/useCases';
+import { useUnifiedSearch, useUnifiedFilters } from '@/hooks/useUnifiedSearch';
+import { UnifiedSearchFilterLayout, FilterGrid } from '@/components/ui/unified-search-filter-layout';
 import { Download, RefreshCw, Clock, AlertTriangle, Flag, ArrowUp } from 'lucide-react';
 import { casesService } from '@/services/cases';
+
+interface PendingCaseFilters {
+  priority?: string;
+  client?: string;
+}
 
 export const PendingCasesPage: React.FC = () => {
   const [flagOverdueCases, setFlagOverdueCases] = useState(true);
   const [reviewUrgentFirst, setReviewUrgentFirst] = useState(true);
+
+  // Unified search with 800ms debounce
+  const {
+    searchValue,
+    debouncedSearchValue,
+    setSearchValue,
+    clearSearch,
+    isDebouncing,
+  } = useUnifiedSearch({
+    syncWithUrl: true,
+  });
+
+  // Unified filters with URL sync
+  const {
+    filters: activeFilters,
+    setFilter,
+    clearFilters,
+    hasActiveFilters,
+  } = useUnifiedFilters<PendingCaseFilters>({
+    syncWithUrl: true,
+  });
 
   const { data: casesData, isLoading, error, refetch } = usePendingCases();
   const updateStatusMutation = useUpdateCaseStatus();
