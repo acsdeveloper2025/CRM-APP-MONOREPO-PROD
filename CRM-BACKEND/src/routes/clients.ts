@@ -145,7 +145,7 @@ router.put('/:id',
   authenticateToken,
   EnterpriseCache.invalidate(CacheInvalidationPatterns.clientUpdate),
   validate([
-    param('id').trim().notEmpty().withMessage('Client ID is required'),
+    param('id').isInt({ min: 1 }).withMessage('Client ID must be a positive integer'),
     ...updateClientValidation,
   ]),
   updateClient
@@ -156,7 +156,7 @@ router.delete('/:id',
   authenticateToken,
   EnterpriseCache.invalidate(CacheInvalidationPatterns.clientUpdate),
   validate([
-    param('id').trim().notEmpty().withMessage('Client ID is required'),
+    param('id').isInt({ min: 1 }).withMessage('Client ID must be a positive integer'),
   ]),
   deleteClient
 );
@@ -165,7 +165,7 @@ router.delete('/:id',
 router.get('/:id/products',
   authenticateToken,
   validate([
-    param('id').trim().notEmpty().withMessage('Client ID is required'),
+    param('id').isInt({ min: 1 }).withMessage('Client ID must be a positive integer'),
     query('isActive').optional().isBoolean().withMessage('isActive must be a boolean')
   ]),
   getClientProducts
