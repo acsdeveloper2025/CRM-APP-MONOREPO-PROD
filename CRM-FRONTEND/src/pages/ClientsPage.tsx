@@ -36,29 +36,25 @@ export function ClientsPage() {
     clearSearch();
   }, [activeTab, clearSearch]);
 
-  // Fetch data based on active tab
+  // Fetch all data for stats cards (always enabled)
   const { data: clientsData, isLoading: clientsLoading } = useQuery({
     queryKey: ['clients', debouncedSearchValue],
     queryFn: () => clientsService.getClients({ search: debouncedSearchValue }),
-    enabled: activeTab === 'clients',
   });
 
   const { data: productsData, isLoading: productsLoading } = useQuery({
     queryKey: ['products', debouncedSearchValue],
     queryFn: () => clientsService.getProducts({ search: debouncedSearchValue }),
-    enabled: activeTab === 'products',
   });
 
   const { data: verificationTypesData, isLoading: verificationTypesLoading } = useQuery({
     queryKey: ['verification-types', debouncedSearchValue],
     queryFn: () => clientsService.getVerificationTypes({ search: debouncedSearchValue }),
-    enabled: activeTab === 'verification-types',
   });
 
   const { data: documentTypesData, isLoading: documentTypesLoading } = useQuery({
     queryKey: ['document-types', debouncedSearchValue],
     queryFn: () => documentTypesService.getDocumentTypes({ search: debouncedSearchValue }),
-    enabled: activeTab === 'document-types',
   });
 
   const handleBulkImport = (type: 'clients' | 'products') => {
@@ -92,7 +88,7 @@ export function ClientsPage() {
       </div>
 
       {/* Stats Cards - Following responsive grid pattern */}
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="transition-all duration-200 hover:shadow-md">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Clients</CardTitle>
@@ -115,7 +111,7 @@ export function ClientsPage() {
             </p>
           </CardContent>
         </Card>
-        <Card className="transition-all duration-200 hover:shadow-md sm:col-span-2 lg:col-span-1">
+        <Card className="transition-all duration-200 hover:shadow-md">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Verification Types</CardTitle>
           </CardHeader>
@@ -123,6 +119,17 @@ export function ClientsPage() {
             <div className="text-2xl font-bold">{stats.verificationTypes}</div>
             <p className="text-xs text-muted-foreground">
               Available verification types
+            </p>
+          </CardContent>
+        </Card>
+        <Card className="transition-all duration-200 hover:shadow-md">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Document Types</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.documentTypes}</div>
+            <p className="text-xs text-muted-foreground">
+              Available document types
             </p>
           </CardContent>
         </Card>
