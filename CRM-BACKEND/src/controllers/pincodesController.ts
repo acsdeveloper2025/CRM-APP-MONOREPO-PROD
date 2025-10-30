@@ -636,17 +636,18 @@ export const searchPincodes = async (req: AuthenticatedRequest, res: Response) =
 };
 
 // POST /api/pincodes/bulk-import - Bulk import pincodes
-export const bulkImportPincodes = async (req: AuthenticatedRequest, res: Response) => {
+export const bulkImportPincodes = async (req: AuthenticatedRequest & { file?: Express.Multer.File }, res: Response) => {
   try {
-    const { pincodes } = req.body;
-
-    if (!Array.isArray(pincodes) || pincodes.length === 0) {
+    if (!req.file) {
       return res.status(400).json({
         success: false,
-        message: 'Pincodes array is required and must not be empty',
-        error: { code: 'INVALID_INPUT' },
+        message: 'No file uploaded',
+        error: { code: 'NO_FILE' },
       });
     }
+
+    const { parseCSV, validateCSVRow } = await import('@/utils/csvParser');
+    const pincodes = await parseCSV(req.file.buffer);
 
     const results = {
       total: pincodes.length,
