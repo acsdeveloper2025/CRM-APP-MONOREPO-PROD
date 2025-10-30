@@ -1214,30 +1214,18 @@ export class VerificationTasksController {
     actualAmount: number
   ): Promise<void> {
     try {
-      // Get rate type information
-      const rateResult = await client.query(
-        'SELECT * FROM "rateTypes" WHERE id = $1',
-        [task.rate_type_id]
-      );
+      // Import the commission calculation function
+      const { autoCalculateCommissionForTask } = await import('./commissionManagementController');
 
-      if (rateResult.rows.length === 0) return;
+      // Calculate commission using the unified commission system
+      await autoCalculateCommissionForTask(taskId);
 
-      const rateType = rateResult.rows[0];
-      const commissionAmount = parseFloat(rateType.commissionAmount || '0');
-
-      // Insert commission calculation
-      await client.query(`
-        INSERT INTO task_commission_calculations (
-          verification_task_id, case_id, task_number, user_id,
-          client_id, rate_type_id, base_amount, commission_amount,
-          calculated_commission, calculation_method, task_completed_at,
-          verification_outcome, status
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), $11, $12)
-      `, [
-        taskId, task.case_id, task.task_number, task.assigned_to,
-        task.clientId, task.rate_type_id, actualAmount, commissionAmount,
-        commissionAmount, 'FIXED_AMOUNT', task.verification_outcome, 'CALCULATED'
-      ]);
+      logger.info('Commission calculated for completed task', {
+        taskId,
+        taskNumber: task.task_number,
+        assignedTo: task.assigned_to,
+        actualAmount
+      });
 
     } catch (error) {
       logger.error('Error calculating task commission:', error);
