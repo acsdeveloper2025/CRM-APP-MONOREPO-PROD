@@ -10,14 +10,27 @@ import { InvoicesTable } from '@/components/billing/InvoicesTable';
 import { CommissionsTable } from '@/components/billing/CommissionsTable';
 import { CreateInvoiceDialog } from '@/components/billing/CreateInvoiceDialog';
 import { CommissionSummaryCard } from '@/components/billing/CommissionSummaryCard';
+import { useUnifiedSearch } from '@/hooks/useUnifiedSearch';
+import { UnifiedSearchInput } from '@/components/ui/unified-search-input';
 
 export function BillingPage() {
   const [activeTab, setActiveTab] = useState('invoices');
   const [showCreateInvoice, setShowCreateInvoice] = useState(false);
 
+  // Unified search with 800ms debounce
+  const {
+    searchValue,
+    debouncedSearchValue,
+    setSearchValue,
+    clearSearch,
+    isDebouncing,
+  } = useUnifiedSearch({
+    syncWithUrl: true,
+  });
+
   const { data: invoicesData, isLoading: invoicesLoading } = useQuery({
-    queryKey: ['invoices'],
-    queryFn: () => billingService.getInvoices({}),
+    queryKey: ['invoices', debouncedSearchValue],
+    queryFn: () => billingService.getInvoices({ search: debouncedSearchValue || undefined }),
     enabled: activeTab === 'invoices',
   });
 
