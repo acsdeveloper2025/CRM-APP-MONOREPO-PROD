@@ -782,18 +782,30 @@ export const getPincodesByCity = async (req: AuthenticatedRequest, res: Response
       SELECT
         p.id,
         p.code,
-        p.area,
         p."cityId" as "cityId",
         c.name as "cityName",
         s.name as state,
         co.name as country,
         p."createdAt" as "createdAt",
-        p."updatedAt" as "updatedAt"
+        p."updatedAt" as "updatedAt",
+        COALESCE(
+          JSON_AGG(
+            JSON_BUILD_OBJECT(
+              'id', a.id,
+              'name', a.name,
+              'displayOrder', pa."displayOrder"
+            ) ORDER BY pa."displayOrder"
+          ) FILTER (WHERE a.id IS NOT NULL),
+          '[]'::json
+        ) as areas
       FROM pincodes p
       JOIN cities c ON p."cityId" = c.id
       JOIN states s ON c."stateId" = s.id
       JOIN countries co ON c."countryId" = co.id
+      LEFT JOIN "pincodeAreas" pa ON p.id = pa."pincodeId"
+      LEFT JOIN areas a ON pa."areaId" = a.id
       WHERE p."cityId" = $1
+      GROUP BY p.id, c.name, s.name, co.name
       ORDER BY p.code
       LIMIT $2
     `, [cityId, limitNum]);
@@ -808,7 +820,11 @@ export const getPincodesByCity = async (req: AuthenticatedRequest, res: Response
       data: result.rows.map(pincode => ({
         ...pincode,
         id: pincode.id.toString(), // Convert integer ID to string
-        cityId: pincode.cityId ? pincode.cityId.toString() : null // Convert integer cityId to string if exists
+        cityId: pincode.cityId ? pincode.cityId.toString() : null, // Convert integer cityId to string if exists
+        areas: Array.isArray(pincode.areas) ? pincode.areas.map((area: any) => ({
+          ...area,
+          id: area.id ? area.id.toString() : null
+        })) : []
       })),
     });
   } catch (error) {
