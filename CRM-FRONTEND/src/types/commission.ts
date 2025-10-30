@@ -85,8 +85,15 @@ export interface CommissionCalculation {
   user_email?: string;
   client_name?: string;
   rate_type_name?: string;
+  product_name?: string;
   case_title?: string;
   customer_name?: string;
+  task_number?: string;
+  task_title?: string;
+  verification_outcome?: string;
+  task_completed_at?: string;
+  verification_type_name?: string;
+  task_status?: string;
   approved_by_name?: string;
   paid_by_name?: string;
 }

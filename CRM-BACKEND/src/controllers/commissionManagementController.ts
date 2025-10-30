@@ -694,6 +694,7 @@ export const getCommissionCalculations = async (req: AuthenticatedRequest, res: 
         u.email as user_email,
         c.name as client_name,
         rt.name as rate_type_name,
+        p.name as product_name,
         cases."customerName" as customer_name,
         cases."caseId" as case_number_display,
         vt.task_number,
@@ -707,6 +708,7 @@ export const getCommissionCalculations = async (req: AuthenticatedRequest, res: 
       LEFT JOIN clients c ON cc.client_id = c.id
       LEFT JOIN "rateTypes" rt ON cc.rate_type_id = rt.id
       LEFT JOIN cases ON cc.case_id = cases.id
+      LEFT JOIN products p ON cases."productId" = p.id
       LEFT JOIN verification_tasks vt ON cc.verification_task_id = vt.id
       LEFT JOIN "verificationTypes" vtype ON vt.verification_type_id = vtype.id
       ${whereClause ? `WHERE ${whereClause}` : ''}
