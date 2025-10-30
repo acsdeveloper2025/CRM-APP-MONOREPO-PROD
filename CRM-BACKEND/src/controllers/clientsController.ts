@@ -626,10 +626,43 @@ export const deleteClient = async (req: AuthenticatedRequest, res: Response) => 
       });
     }
 
-    // Delete client (cascade will handle related records via FK if set)
-    await query(`DELETE FROM clients WHERE id = $1`, [id]);
+    // Check if client has any cases (cannot delete if cases exist)
+    const casesCheck = await query(
+      `SELECT COUNT(*) as count FROM cases WHERE "clientId" = $1`,
+      [id]
+    );
 
-    logger.info(`Deleted client: ${id}`, { 
+    if (parseInt(casesCheck.rows[0].count) > 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot delete client with existing cases. Please delete or reassign all cases first.',
+        error: {
+          code: 'CLIENT_HAS_CASES',
+          caseCount: casesCheck.rows[0].count
+        }
+      });
+    }
+
+    // Delete client and related records in a transaction
+    await withTransaction(async (cx) => {
+      // Delete related records first (foreign keys with NO ACTION or RESTRICT need manual deletion)
+      // Order matters: delete child records before parent records
+      await cx.query(`DELETE FROM rates WHERE "clientId" = $1`, [id]);
+      await cx.query(`DELETE FROM "documentTypeRates" WHERE "clientId" = $1`, [id]);
+      await cx.query(`DELETE FROM "rateTypeAssignments" WHERE "clientId" = $1`, [id]);
+      await cx.query(`DELETE FROM "clientProducts" WHERE "clientId" = $1`, [id]);
+
+      // These have CASCADE but we delete them explicitly for clarity
+      await cx.query(`DELETE FROM "clientDocumentTypes" WHERE "clientId" = $1`, [id]);
+      await cx.query(`DELETE FROM "userClientAssignments" WHERE "clientId" = $1`, [id]);
+      await cx.query(`DELETE FROM commission_calculations WHERE client_id = $1`, [id]);
+      await cx.query(`DELETE FROM field_user_commission_assignments WHERE client_id = $1`, [id]);
+
+      // Finally delete the client
+      await cx.query(`DELETE FROM clients WHERE id = $1`, [id]);
+    });
+
+    logger.info(`Deleted client: ${id}`, {
       userId: req.user?.id,
       clientId: id,
       clientName: existingClient.name
