@@ -292,14 +292,14 @@ export function UsersPage() {
                   <div className="space-y-2">
                     <Label>Role</Label>
                     <Select
-                      value={filterRole}
-                      onValueChange={(value) => setFilter('role', value)}
+                      value={filterRole || 'all'}
+                      onValueChange={(value) => setFilter('role', value === 'all' ? undefined : value)}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="All Roles" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">All Roles</SelectItem>
+                        <SelectItem value="all">All Roles</SelectItem>
                         <SelectItem value="ADMIN">Admin</SelectItem>
                         <SelectItem value="MANAGER">Manager</SelectItem>
                         <SelectItem value="FIELD_AGENT">Field Agent</SelectItem>
@@ -312,14 +312,14 @@ export function UsersPage() {
                   <div className="space-y-2">
                     <Label>Status</Label>
                     <Select
-                      value={filterStatus}
-                      onValueChange={(value) => setFilter('status', value)}
+                      value={filterStatus || 'all'}
+                      onValueChange={(value) => setFilter('status', value === 'all' ? undefined : value)}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="All Status" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">All Status</SelectItem>
+                        <SelectItem value="all">All Status</SelectItem>
                         <SelectItem value="active">Active</SelectItem>
                         <SelectItem value="inactive">Inactive</SelectItem>
                       </SelectContent>
