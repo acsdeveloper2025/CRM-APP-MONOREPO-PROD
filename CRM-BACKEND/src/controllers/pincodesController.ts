@@ -74,7 +74,7 @@ export const getPincodes = async (req: AuthenticatedRequest, res: Response) => {
         COALESCE(p.code, '') ILIKE $${paramCount} OR
         COALESCE(c.name, '') ILIKE $${paramCount} OR
         COALESCE(s.name, '') ILIKE $${paramCount} OR
-        COALESCE(p.area, '') ILIKE $${paramCount}
+        COALESCE(a.name, '') ILIKE $${paramCount}
       )`;
       params.push(`%${search}%`);
     }
@@ -161,7 +161,15 @@ export const getPincodes = async (req: AuthenticatedRequest, res: Response) => {
 
     res.json({
       success: true,
-      data: result.rows,
+      data: result.rows.map(pincode => ({
+        ...pincode,
+        id: pincode.id.toString(),
+        cityId: pincode.cityId ? pincode.cityId.toString() : null,
+        areas: Array.isArray(pincode.areas) ? pincode.areas.map((area: any) => ({
+          ...area,
+          id: area.id ? area.id.toString() : null
+        })) : []
+      })),
       pagination: {
         page: pageNum,
         limit: limitNum,
