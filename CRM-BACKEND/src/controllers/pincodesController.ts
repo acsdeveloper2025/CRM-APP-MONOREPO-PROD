@@ -638,11 +638,126 @@ export const searchPincodes = async (req: AuthenticatedRequest, res: Response) =
 // POST /api/pincodes/bulk-import - Bulk import pincodes
 export const bulkImportPincodes = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    // TODO: Implement database-driven bulk import
-    res.status(501).json({
-      success: false,
-      message: 'Bulk import not implemented yet - requires database integration',
-      error: { code: 'NOT_IMPLEMENTED' },
+    const { pincodes } = req.body;
+
+    if (!Array.isArray(pincodes) || pincodes.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Pincodes array is required and must not be empty',
+        error: { code: 'INVALID_INPUT' },
+      });
+    }
+
+    const results = {
+      total: pincodes.length,
+      created: 0,
+      updated: 0,
+      failed: 0,
+      errors: [] as Array<{ row: number; code: string; error: string }>,
+    };
+
+    // Process each pincode
+    for (let i = 0; i < pincodes.length; i++) {
+      const pincodeData = pincodes[i];
+
+      try {
+        const { code, area, cityName, state, country, district, region } = pincodeData;
+
+        // Find or create country
+        let countryResult = await query(
+          'SELECT id FROM countries WHERE LOWER(name) = LOWER($1)',
+          [country || 'India']
+        );
+
+        let countryId: number;
+        if (countryResult.rows.length === 0) {
+          const newCountry = await query(
+            'INSERT INTO countries (name, code, "isActive") VALUES ($1, $2, true) RETURNING id',
+            [country || 'India', (country || 'India').substring(0, 3).toUpperCase()]
+          );
+          countryId = newCountry.rows[0].id;
+        } else {
+          countryId = countryResult.rows[0].id;
+        }
+
+        // Find or create state
+        let stateResult = await query(
+          'SELECT id FROM states WHERE LOWER(name) = LOWER($1) AND "countryId" = $2',
+          [state, countryId]
+        );
+
+        let stateId: number;
+        if (stateResult.rows.length === 0) {
+          const newState = await query(
+            'INSERT INTO states (name, code, "countryId", "isActive") VALUES ($1, $2, $3, true) RETURNING id',
+            [state, state.substring(0, 3).toUpperCase(), countryId]
+          );
+          stateId = newState.rows[0].id;
+        } else {
+          stateId = stateResult.rows[0].id;
+        }
+
+        // Find or create city
+        let cityResult = await query(
+          'SELECT id FROM cities WHERE LOWER(name) = LOWER($1) AND "stateId" = $2',
+          [cityName, stateId]
+        );
+
+        let cityId: number;
+        if (cityResult.rows.length === 0) {
+          const newCity = await query(
+            'INSERT INTO cities (name, "stateId", "countryId", "isActive") VALUES ($1, $2, $3, true) RETURNING id',
+            [cityName, stateId, countryId]
+          );
+          cityId = newCity.rows[0].id;
+        } else {
+          cityId = cityResult.rows[0].id;
+        }
+
+        // Check if pincode already exists
+        const existingPincode = await query(
+          'SELECT id FROM pincodes WHERE code = $1',
+          [code]
+        );
+
+        if (existingPincode.rows.length > 0) {
+          // Update existing pincode
+          await query(
+            `UPDATE pincodes
+             SET area = $1, "cityId" = $2, district = $3, region = $4, "updatedAt" = NOW()
+             WHERE code = $5`,
+            [area, cityId, district || null, region || null, code]
+          );
+          results.updated++;
+        } else {
+          // Create new pincode
+          await query(
+            `INSERT INTO pincodes (code, area, "cityId", district, region, "isActive")
+             VALUES ($1, $2, $3, $4, $5, true)`,
+            [code, area, cityId, district || null, region || null]
+          );
+          results.created++;
+        }
+      } catch (error: any) {
+        results.failed++;
+        results.errors.push({
+          row: i + 1,
+          code: pincodeData.code,
+          error: error.message || 'Unknown error',
+        });
+        logger.error(`Error importing pincode at row ${i + 1}:`, error);
+      }
+    }
+
+    logger.info('Bulk import completed', {
+      userId: req.user?.id,
+      results,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: `Bulk import completed: ${results.created} created, ${results.updated} updated, ${results.failed} failed`,
+      data: results,
     });
   } catch (error) {
     logger.error('Error in bulk import:', error);
