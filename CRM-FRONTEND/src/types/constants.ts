@@ -216,7 +216,7 @@ export type CommissionStatus = typeof COMMISSION_STATUS[keyof typeof COMMISSION_
 // Rate Types
 export const RATE_TYPES = {
   LOCAL: 'LOCAL',
-  OGL: 'OGL', // Out of Gujarat
+  OGL: 'OGL', // Out of Geolocation
   OUTSTATION: 'OUTSTATION',
   STANDARD: 'STANDARD'
 } as const;
