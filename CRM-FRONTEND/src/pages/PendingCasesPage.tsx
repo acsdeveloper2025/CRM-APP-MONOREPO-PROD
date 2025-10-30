@@ -2,58 +2,21 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { PendingCasesTable } from '@/components/cases/PendingCasesTable';
-import { CasePagination } from '@/components/cases/CasePagination';
 import { usePendingCases, useUpdateCaseStatus, useAssignCase, useRefreshCases } from '@/hooks/useCases';
-import { useFieldUsers } from '@/hooks/useUsers';
-import { useClients } from '@/hooks/useClients';
-import { Download, RefreshCw, Search, Filter, X, Clock, AlertTriangle, Flag, ArrowUp } from 'lucide-react';
-import { useDebounce } from '@/hooks/useDebounce';
-import type { CaseListQuery } from '@/services/cases';
+import { Download, RefreshCw, Clock, AlertTriangle, Flag, ArrowUp } from 'lucide-react';
 import { casesService } from '@/services/cases';
 
 export const PendingCasesPage: React.FC = () => {
-  const [filters, setFilters] = useState<CaseListQuery>({
-    page: 1,
-    limit: 20,
-    sortBy: 'pendingDuration',
-    sortOrder: 'desc', // Longest pending first
-  });
-  const [searchTerm, setSearchTerm] = useState('');
-  const [showFilters, setShowFilters] = useState(false);
   const [flagOverdueCases, setFlagOverdueCases] = useState(true);
   const [reviewUrgentFirst, setReviewUrgentFirst] = useState(true);
 
-  // Debounce search term
-  const debouncedSearchTerm = useDebounce(searchTerm, 300);
-
-  // Update filters when search term changes
-  React.useEffect(() => {
-    setFilters(prev => ({
-      ...prev,
-      search: debouncedSearchTerm || undefined,
-      page: 1, // Reset to first page when searching
-    }));
-  }, [debouncedSearchTerm]);
-
   const { data: casesData, isLoading, error, refetch } = usePendingCases();
-  const { data: fieldUsers } = useFieldUsers(); // fieldUsers is already the array from the select function
-  const { data: clientsData } = useClients();
   const updateStatusMutation = useUpdateCaseStatus();
   const assignCaseMutation = useAssignCase();
   const { refreshCases } = useRefreshCases();
 
   const rawCases = casesData?.data || [];
-  const clients = clientsData?.data || [];
 
   // Helper function to check if a case is overdue
   const isOverdue = React.useCallback((assignedAt?: string) => {
@@ -116,30 +79,6 @@ export const PendingCasesPage: React.FC = () => {
     return diffInHours > 48; // More than 2 days
   }).length;
 
-  const handleFiltersChange = (newFilters: Partial<CaseListQuery>) => {
-    setFilters(prev => ({
-      ...prev,
-      ...newFilters,
-      page: 1, // Reset to first page when filters change
-    }));
-  };
-
-  const handleClearFilters = () => {
-    setFilters({
-      page: 1,
-      limit: 20,
-    });
-    setSearchTerm('');
-  };
-
-  const handlePageChange = (page: number) => {
-    setFilters(prev => ({ ...prev, page }));
-  };
-
-  const handleItemsPerPageChange = (limit: number) => {
-    setFilters(prev => ({ ...prev, limit, page: 1 }));
-  };
-
   const handleUpdateStatus = async (caseId: string, status: string) => {
     await updateStatusMutation.mutateAsync({ id: caseId, status });
     refetch();
@@ -162,12 +101,6 @@ export const PendingCasesPage: React.FC = () => {
     try {
       const { blob, filename } = await casesService.exportCases({
         exportType: 'pending',
-        search: filters.search,
-        assignedTo: filters.assignedTo,
-        clientId: filters.clientId,
-        priority: filters.priority,
-        dateFrom: filters.dateFrom,
-        dateTo: filters.dateTo
       });
 
       const url = window.URL.createObjectURL(blob);
@@ -271,121 +204,32 @@ export const PendingCasesPage: React.FC = () => {
         </Card>
       </div>
 
-      {/* Search and Filters */}
+      {/* Auto-highlight Controls */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Search & Filters</CardTitle>
-            <div className="flex items-center space-x-2">
-              {/* Auto-highlight toggles */}
-              <Button
-                variant={flagOverdueCases ? "default" : "outline"}
-                size="sm"
-                onClick={() => setFlagOverdueCases(!flagOverdueCases)}
-                className={flagOverdueCases ? "bg-red-600 hover:bg-red-700" : ""}
-              >
-                <Flag className="h-4 w-4 mr-2" />
-                Flag Overdue Cases
-              </Button>
-              <Button
-                variant={reviewUrgentFirst ? "default" : "outline"}
-                size="sm"
-                onClick={() => setReviewUrgentFirst(!reviewUrgentFirst)}
-                className={reviewUrgentFirst ? "bg-orange-600 hover:bg-orange-700" : ""}
-              >
-                <ArrowUp className="h-4 w-4 mr-2" />
-                Review Urgent First
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowFilters(!showFilters)}
-              >
-                <Filter className="h-4 w-4 mr-2" />
-                {showFilters ? 'Hide Filters' : 'Show Filters'}
-              </Button>
-            </div>
-          </div>
+          <CardTitle>Display Options</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Search Bar */}
+        <CardContent>
           <div className="flex items-center space-x-2">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-              <Input
-                placeholder="Search by case ID, customer name, or phone..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            {(searchTerm || Object.keys(filters).length > 3) && (
-              <Button variant="outline" size="sm" onClick={handleClearFilters}>
-                <X className="h-4 w-4 mr-2" />
-                Clear
-              </Button>
-            )}
+            <Button
+              variant={flagOverdueCases ? "default" : "outline"}
+              size="sm"
+              onClick={() => setFlagOverdueCases(!flagOverdueCases)}
+              className={flagOverdueCases ? "bg-red-600 hover:bg-red-700" : ""}
+            >
+              <Flag className="h-4 w-4 mr-2" />
+              Flag Overdue Cases
+            </Button>
+            <Button
+              variant={reviewUrgentFirst ? "default" : "outline"}
+              size="sm"
+              onClick={() => setReviewUrgentFirst(!reviewUrgentFirst)}
+              className={reviewUrgentFirst ? "bg-orange-600 hover:bg-orange-700" : ""}
+            >
+              <ArrowUp className="h-4 w-4 mr-2" />
+              Review Urgent First
+            </Button>
           </div>
-
-          {/* Advanced Filters */}
-          {showFilters && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t">
-              <div className="space-y-2">
-                <Label htmlFor="status-filter">Status</Label>
-                <Select
-                  value={filters.status || ''}
-                  onValueChange={(value) => handleFiltersChange({ status: value || undefined })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="All statuses" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">All Pending</SelectItem>
-                    <SelectItem value="PENDING">Pending</SelectItem>
-                    <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="client-filter">Client</Label>
-                <Select
-                  value={filters.clientId?.toString() || ''}
-                  onValueChange={(value) => handleFiltersChange({ clientId: value || undefined })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="All clients" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {clients.map((client) => (
-                      <SelectItem key={client.id} value={client.id.toString()}>
-                        {client.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="priority-filter">Priority</Label>
-                <Select
-                  value={filters.priority?.toString() || ''}
-                  onValueChange={(value) => handleFiltersChange({ priority: value ? Number(value) : undefined })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="All priorities" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1">Low (1)</SelectItem>
-                    <SelectItem value="2">Medium (2)</SelectItem>
-                    <SelectItem value="3">High (3)</SelectItem>
-                    <SelectItem value="4">Urgent (4)</SelectItem>
-                    <SelectItem value="5">Critical (5)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          )}
         </CardContent>
       </Card>
 

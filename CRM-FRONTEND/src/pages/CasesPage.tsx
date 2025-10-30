@@ -2,36 +2,24 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CaseFilters } from '@/components/cases/CaseFilters';
 import { CaseTable } from '@/components/cases/CaseTable';
 import { CasePagination } from '@/components/cases/CasePagination';
 import { useCases, useUpdateCaseStatus, useAssignCase, useRefreshCases } from '@/hooks/useCases';
 import { Download, Plus, RefreshCw } from 'lucide-react';
 import type { CaseListQuery } from '@/services/cases';
 import { casesService } from '@/services/cases';
-import { useSearchInput } from '@/components/ui/search-input';
 
 export const CasesPage: React.FC = () => {
   const navigate = useNavigate();
-
-  // Use standardized search with debouncing
-  const { debouncedSearchValue, setSearchValue } = useSearchInput('', 400);
 
   const [filters, setFilters] = useState<CaseListQuery>({
     page: 1,
     limit: 20,
     sortBy: 'caseId',
-    sortOrder: 'desc', // Changed to desc for newest cases first
+    sortOrder: 'desc',
   });
 
-  // Merge search with other filters for the query
-  const queryFilters = {
-    ...filters,
-    search: debouncedSearchValue || undefined,
-  };
-
-  // Add error handling
-  const { data: casesData, isLoading, error, refetch } = useCases(queryFilters);
+  const { data: casesData, isLoading, error, refetch } = useCases(filters);
   const updateStatusMutation = useUpdateCaseStatus();
   const assignCaseMutation = useAssignCase();
   const { refreshCases } = useRefreshCases();
@@ -42,25 +30,6 @@ export const CasesPage: React.FC = () => {
     limit: 20,
     total: 0,
     totalPages: 0,
-  };
-
-  const handleFiltersChange = (newFilters: CaseListQuery) => {
-    console.log('🔍 Cases Page - Filters changed:', newFilters); // Debug log
-    setFilters({
-      ...newFilters,
-      page: 1, // Reset to first page when filters change
-    });
-  };
-
-  const handleClearFilters = () => {
-    console.log('🧹 Cases Page - Clearing filters'); // Debug log
-    setSearchValue(''); // Clear search
-    setFilters({
-      page: 1,
-      limit: filters.limit,
-      sortBy: 'caseId',
-      sortOrder: 'desc',
-    });
   };
 
   const handlePageChange = (page: number) => {
@@ -93,13 +62,6 @@ export const CasesPage: React.FC = () => {
     try {
       const { blob, filename } = await casesService.exportCases({
         exportType: 'all',
-        status: filters.status !== 'all' ? filters.status : undefined,
-        search: filters.search,
-        assignedTo: filters.assignedTo,
-        clientId: filters.clientId,
-        priority: filters.priority,
-        dateFrom: filters.dateFrom,
-        dateTo: filters.dateTo
       });
 
       const url = window.URL.createObjectURL(blob);
@@ -150,16 +112,6 @@ export const CasesPage: React.FC = () => {
           </Button>
         </div>
       </div>
-
-      {/* Filters */}
-      <CaseFilters
-        filters={filters}
-        onFiltersChange={handleFiltersChange}
-        onClearFilters={handleClearFilters}
-        isLoading={isLoading}
-        searchValue={debouncedSearchValue}
-        onSearchChange={setSearchValue}
-      />
 
       {/* Cases Table */}
       <Card>
