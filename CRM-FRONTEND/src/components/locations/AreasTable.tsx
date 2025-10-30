@@ -216,26 +216,41 @@ export function AreasTable({ data, isLoading }: AreasTableProps) {
       <AlertDialog open={!!areaToDelete} onOpenChange={() => setAreaToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogTitle>
+              {areaToDelete?.usageCount && areaToDelete.usageCount > 0
+                ? 'Cannot Delete Area'
+                : 'Are you sure?'}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the area
-              "{areaToDelete?.name}".
-              {areaToDelete?.usageCount && areaToDelete.usageCount > 1 && (
-                <span className="block mt-2 text-amber-600">
-                  Warning: This area is used in {areaToDelete.usageCount} pincode(s).
-                </span>
+              {areaToDelete?.usageCount && areaToDelete.usageCount > 0 ? (
+                <>
+                  Cannot delete area "{areaToDelete?.name}" because it is currently assigned to{' '}
+                  <strong>{areaToDelete.usageCount}</strong> pincode(s).
+                  <span className="block mt-2 text-amber-600 font-medium">
+                    Please remove this area from all pincodes before deleting it.
+                  </span>
+                </>
+              ) : (
+                <>
+                  This action cannot be undone. This will permanently delete the area
+                  "{areaToDelete?.name}".
+                </>
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={confirmDelete}
-              className="bg-red-600 hover:bg-red-700"
-              disabled={deleteMutation.isPending}
-            >
-              {deleteMutation.isPending ? 'Deleting...' : 'Delete Area'}
-            </AlertDialogAction>
+            <AlertDialogCancel>
+              {areaToDelete?.usageCount && areaToDelete.usageCount > 0 ? 'Close' : 'Cancel'}
+            </AlertDialogCancel>
+            {(!areaToDelete?.usageCount || areaToDelete.usageCount === 0) && (
+              <AlertDialogAction
+                onClick={confirmDelete}
+                className="bg-red-600 hover:bg-red-700"
+                disabled={deleteMutation.isPending}
+              >
+                {deleteMutation.isPending ? 'Deleting...' : 'Delete Area'}
+              </AlertDialogAction>
+            )}
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
