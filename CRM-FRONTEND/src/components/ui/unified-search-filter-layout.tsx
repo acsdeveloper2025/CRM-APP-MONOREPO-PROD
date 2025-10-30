@@ -313,3 +313,30 @@ export const SearchOnlyLayout: React.FC<SearchOnlyLayoutProps> = ({
   );
 };
 
+/**
+ * Filter grid layout component for organizing filter controls
+ */
+export interface FilterGridProps {
+  children: ReactNode;
+  className?: string;
+  columns?: 1 | 2 | 3 | 4;
+}
+
+export const FilterGrid: React.FC<FilterGridProps> = ({
+  children,
+  className,
+  columns = 3,
+}) => {
+  const gridCols = {
+    1: 'grid-cols-1',
+    2: 'grid-cols-1 md:grid-cols-2',
+    3: 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3',
+    4: 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4',
+  };
+
+  return (
+    <div className={cn('grid gap-4', gridCols[columns], className)}>
+      {children}
+    </div>
+  );
+};
