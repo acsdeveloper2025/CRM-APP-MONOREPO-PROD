@@ -2,6 +2,7 @@ import express from 'express';
 import { body, query, param } from 'express-validator';
 import { authenticateToken } from '@/middleware/auth';
 import { handleValidationErrors } from '@/middleware/validation';
+import { upload } from '@/middleware/upload';
 import {
   getCountries,
   getCountryById,
@@ -116,9 +117,8 @@ router.post('/',
   createCountry
 );
 
-router.post('/bulk-import', 
-  bulkImportValidation, 
-  handleValidationErrors, 
+router.post('/bulk-import',
+  upload.single('file'),
   bulkImportCountries
 );
 
