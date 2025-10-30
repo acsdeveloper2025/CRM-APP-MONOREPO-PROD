@@ -662,7 +662,18 @@ export const bulkImportPincodes = async (req: AuthenticatedRequest & { file?: Ex
       const pincodeData = pincodes[i];
 
       try {
-        const { code, area, cityName, state, country, district, region } = pincodeData;
+        const { code, area, cityName, state, country } = pincodeData;
+
+        // Validate required fields
+        if (!code || !area || !cityName || !state) {
+          results.failed++;
+          results.errors.push({
+            row: i + 1,
+            code: code || 'N/A',
+            error: 'Missing required fields (code, area, cityName, state)',
+          });
+          continue;
+        }
 
         // Find or create country
         let countryResult = await query(
@@ -715,35 +726,81 @@ export const bulkImportPincodes = async (req: AuthenticatedRequest & { file?: Ex
           cityId = cityResult.rows[0].id;
         }
 
+        // Find or create area
+        let areaResult = await query(
+          'SELECT id FROM areas WHERE LOWER(name) = LOWER($1)',
+          [area]
+        );
+
+        let areaId: number;
+        if (areaResult.rows.length === 0) {
+          const newArea = await query(
+            'INSERT INTO areas (name, "isActive") VALUES ($1, true) RETURNING id',
+            [area]
+          );
+          areaId = newArea.rows[0].id;
+        } else {
+          areaId = areaResult.rows[0].id;
+        }
+
         // Check if pincode already exists
         const existingPincode = await query(
           'SELECT id FROM pincodes WHERE code = $1',
           [code]
         );
 
+        let pincodeId: number;
         if (existingPincode.rows.length > 0) {
           // Update existing pincode
           await query(
-            `UPDATE pincodes
-             SET area = $1, "cityId" = $2, district = $3, region = $4, "updatedAt" = NOW()
-             WHERE code = $5`,
-            [area, cityId, district || null, region || null, code]
+            `UPDATE pincodes SET "cityId" = $1, "updatedAt" = NOW() WHERE code = $2`,
+            [cityId, code]
           );
+          pincodeId = existingPincode.rows[0].id;
+
+          // Check if area is already associated with this pincode
+          const existingAssociation = await query(
+            'SELECT id FROM "pincodeAreas" WHERE "pincodeId" = $1 AND "areaId" = $2',
+            [pincodeId, areaId]
+          );
+
+          if (existingAssociation.rows.length === 0) {
+            // Get current max display order
+            const maxOrderResult = await query(
+              'SELECT COALESCE(MAX("displayOrder"), 0) as "maxOrder" FROM "pincodeAreas" WHERE "pincodeId" = $1',
+              [pincodeId]
+            );
+            const nextOrder = maxOrderResult.rows[0].maxOrder + 1;
+
+            // Add new area association
+            await query(
+              'INSERT INTO "pincodeAreas" ("pincodeId", "areaId", "displayOrder") VALUES ($1, $2, $3)',
+              [pincodeId, areaId, nextOrder]
+            );
+          }
+
           results.updated++;
         } else {
           // Create new pincode
-          await query(
-            `INSERT INTO pincodes (code, area, "cityId", district, region, "isActive")
-             VALUES ($1, $2, $3, $4, $5, true)`,
-            [code, area, cityId, district || null, region || null]
+          const newPincode = await query(
+            `INSERT INTO pincodes (code, "cityId", "isActive") VALUES ($1, $2, true) RETURNING id`,
+            [code, cityId]
           );
+          pincodeId = newPincode.rows[0].id;
+
+          // Associate area with pincode
+          await query(
+            'INSERT INTO "pincodeAreas" ("pincodeId", "areaId", "displayOrder") VALUES ($1, $2, 1)',
+            [pincodeId, areaId]
+          );
+
           results.created++;
         }
       } catch (error: any) {
         results.failed++;
         results.errors.push({
           row: i + 1,
-          code: pincodeData.code,
+          code: pincodeData.code || 'N/A',
           error: error.message || 'Unknown error',
         });
         logger.error(`Error importing pincode at row ${i + 1}:`, error);
