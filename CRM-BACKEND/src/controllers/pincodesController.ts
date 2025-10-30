@@ -791,7 +791,7 @@ export const bulkImportPincodes = async (req: AuthenticatedRequest & { file?: Ex
         } else {
           // Create new pincode
           const newPincode = await query(
-            `INSERT INTO pincodes (code, "cityId", "isActive") VALUES ($1, $2, true) RETURNING id`,
+            `INSERT INTO pincodes (code, "cityId") VALUES ($1, $2) RETURNING id`,
             [code, cityId]
           );
           pincodeId = newPincode.rows[0].id;
