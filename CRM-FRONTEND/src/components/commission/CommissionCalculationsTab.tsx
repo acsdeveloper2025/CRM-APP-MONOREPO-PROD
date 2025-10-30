@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import {
   Table,
@@ -11,33 +10,19 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Calculator, Search, Download, Eye, Calendar, Filter, X } from 'lucide-react';
+import { Calculator, Download, Calendar } from 'lucide-react';
 import { commissionManagementApi } from '../../services/commissionManagementApi';
 import { CommissionCalculation } from '../../types/commission';
 
 export const CommissionCalculationsTab: React.FC = () => {
   const [calculations, setCalculations] = useState<CommissionCalculation[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState('');
-  const [filterMonth, setFilterMonth] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [dateRange, setDateRange] = useState({
-    startDate: '',
-    endDate: ''
-  });
 
   useEffect(() => {
     loadCalculations();
-  }, [currentPage, searchTerm, filterStatus, dateRange]);
+  }, [currentPage]);
 
   const loadCalculations = async () => {
     try {
@@ -45,10 +30,6 @@ export const CommissionCalculationsTab: React.FC = () => {
       const response = await commissionManagementApi.getCommissionCalculations({
         page: currentPage,
         limit: 20, // Standard pagination limit
-        search: searchTerm,
-        status: filterStatus || undefined,
-        startDate: dateRange.startDate || undefined,
-        endDate: dateRange.endDate || undefined
       });
 
       setCalculations(response.data);
@@ -67,31 +48,10 @@ export const CommissionCalculationsTab: React.FC = () => {
     return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
   };
 
-  // Get unique months from calculations for filter
-  const availableMonths = useMemo(() => {
-    const months = new Set<string>();
-    calculations.forEach(calc => {
-      if (calc.created_at) {
-        months.add(formatMonth(calc.created_at));
-      }
-    });
-    return Array.from(months).sort((a, b) => {
-      const dateA = new Date(a);
-      const dateB = new Date(b);
-      return dateB.getTime() - dateA.getTime();
-    });
-  }, [calculations]);
-
-  // Filter calculations by selected month
-  const filteredCalculations = useMemo(() => {
-    if (!filterMonth) return calculations;
-    return calculations.filter(calc => formatMonth(calc.created_at) === filterMonth);
-  }, [calculations, filterMonth]);
-
   // Calculate monthly summary
   const monthlySummary = useMemo(() => {
     const summary: { [key: string]: { total: number; count: number; currency: string } } = {};
-    filteredCalculations.forEach(calc => {
+    calculations.forEach(calc => {
       const month = formatMonth(calc.created_at);
       if (!summary[month]) {
         summary[month] = { total: 0, count: 0, currency: calc.currency };
@@ -100,15 +60,11 @@ export const CommissionCalculationsTab: React.FC = () => {
       summary[month].count += 1;
     });
     return summary;
-  }, [filteredCalculations]);
+  }, [calculations]);
 
   const exportCalculations = async () => {
     try {
-      const blob = await commissionManagementApi.exportCommissionCalculations({
-        status: filterStatus || undefined,
-        startDate: dateRange.startDate || undefined,
-        endDate: dateRange.endDate || undefined
-      });
+      const blob = await commissionManagementApi.exportCommissionCalculations({});
 
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -119,23 +75,6 @@ export const CommissionCalculationsTab: React.FC = () => {
     } catch (error) {
       console.error('Error exporting calculations:', error);
     }
-  };
-
-  const getStatusBadge = (status: string) => {
-    // Use standardized badge colors matching CaseTable pattern
-    const colorClass = status === 'PENDING' || status === 'CALCULATED'
-      ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300'
-      : status === 'APPROVED' || status === 'PAID'
-      ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300'
-      : status === 'REJECTED'
-      ? 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300'
-      : 'bg-muted text-muted-foreground';
-
-    return (
-      <Badge className={colorClass}>
-        {status}
-      </Badge>
-    );
   };
 
   const getRateTypeBadge = (rateType: string) => {
@@ -194,7 +133,7 @@ export const CommissionCalculationsTab: React.FC = () => {
             <div>
               <CardTitle className="flex items-center gap-2">
                 <Calculator className="h-5 w-5" />
-                Commission Calculations ({filteredCalculations.length})
+                Commission Calculations ({calculations.length})
               </CardTitle>
               <CardDescription>
                 Monthly commission payments for field users
@@ -207,80 +146,6 @@ export const CommissionCalculationsTab: React.FC = () => {
           </div>
         </CardHeader>
         <CardContent className="p-4">
-          {/* Filters */}
-          <div className="flex flex-wrap gap-4 mb-6">
-            <div className="relative flex-1 min-w-[200px]">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-              <Input
-                placeholder="Search by task, user, client..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Select value={filterMonth || undefined} onValueChange={(value) => setFilterMonth(value)}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="All Months" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableMonths.map(month => (
-                    <SelectItem key={month} value={month}>{month}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {filterMonth && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setFilterMonth('')}
-                  className="h-9 px-2"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              )}
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Select value={filterStatus || undefined} onValueChange={(value) => setFilterStatus(value)}>
-                <SelectTrigger className="w-[150px]">
-                  <SelectValue placeholder="All Statuses" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="PENDING">Pending</SelectItem>
-                  <SelectItem value="APPROVED">Approved</SelectItem>
-                  <SelectItem value="PAID">Paid</SelectItem>
-                  <SelectItem value="REJECTED">Rejected</SelectItem>
-                </SelectContent>
-              </Select>
-              {filterStatus && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setFilterStatus('')}
-                  className="h-9 px-2"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              )}
-            </div>
-
-            <Input
-              type="date"
-              value={dateRange.startDate}
-              onChange={(e) => setDateRange({ ...dateRange, startDate: e.target.value })}
-              className="w-[150px]"
-            />
-
-            <Input
-              type="date"
-              value={dateRange.endDate}
-              onChange={(e) => setDateRange({ ...dateRange, endDate: e.target.value })}
-              className="w-[150px]"
-            />
-          </div>
-
           {/* Calculations Table */}
           <Table>
             <TableHeader>
@@ -292,23 +157,21 @@ export const CommissionCalculationsTab: React.FC = () => {
                 <TableHead>Rate Type</TableHead>
                 <TableHead className="text-right">Commission</TableHead>
                 <TableHead>Month</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-                {filteredCalculations.length === 0 ? (
+                {calculations.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="h-64 text-center">
+                    <TableCell colSpan={7} className="h-64 text-center">
                       <div className="flex flex-col items-center justify-center text-muted-foreground">
                         <Calculator className="h-12 w-12 mb-4" />
                         <p className="text-lg font-semibold">No commission calculations found</p>
-                        <p className="text-sm mt-2">Try adjusting your filters or date range</p>
+                        <p className="text-sm mt-2">Complete verification tasks to generate commissions</p>
                       </div>
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredCalculations.map((calculation) => (
+                  calculations.map((calculation) => (
                     <TableRow key={calculation.id}>
                       <TableCell>
                         <div>
@@ -363,21 +226,6 @@ export const CommissionCalculationsTab: React.FC = () => {
                           </span>
                         </div>
                       </TableCell>
-                      <TableCell>
-                        {getStatusBadge(calculation.status)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            console.log('View calculation:', calculation.id);
-                          }}
-                          title="View Details"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
                     </TableRow>
                   ))
                 )}
@@ -388,13 +236,7 @@ export const CommissionCalculationsTab: React.FC = () => {
           {totalPages > 1 && (
             <div className="flex items-center justify-between mt-6 pt-4 border-t">
               <div className="text-sm text-muted-foreground">
-                Showing <span className="font-medium text-foreground">{filteredCalculations.length}</span> of{' '}
-                <span className="font-medium text-foreground">{calculations.length}</span> commissions
-                {filterMonth && (
-                  <Badge variant="outline" className="ml-2">
-                    {filterMonth}
-                  </Badge>
-                )}
+                Showing <span className="font-medium text-foreground">{calculations.length}</span> commissions
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground">
