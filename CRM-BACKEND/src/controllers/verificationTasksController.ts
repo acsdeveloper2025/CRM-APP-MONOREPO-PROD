@@ -396,13 +396,16 @@ export class VerificationTasksController {
         paramIndex++;
       }
 
-      // Search filter (customer name, task title, address, task number)
+      // Search filter (customer name, task title, address, task number, trigger, applicant type)
       if (search) {
         conditions.push(`(
-          c."customerName" ILIKE $${paramIndex} OR
-          vt.task_title ILIKE $${paramIndex} OR
-          vt.address ILIKE $${paramIndex} OR
-          vt.task_number ILIKE $${paramIndex}
+          COALESCE(c."customerName", '') ILIKE $${paramIndex} OR
+          COALESCE(vt.task_title, '') ILIKE $${paramIndex} OR
+          COALESCE(vt.address, '') ILIKE $${paramIndex} OR
+          COALESCE(vt.task_number, '') ILIKE $${paramIndex} OR
+          COALESCE(vt.trigger, '') ILIKE $${paramIndex} OR
+          COALESCE(vt.applicant_type, '') ILIKE $${paramIndex} OR
+          COALESCE(c."caseId"::text, '') ILIKE $${paramIndex}
         )`);
         params.push(`%${search}%`);
         paramIndex++;

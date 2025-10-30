@@ -49,7 +49,7 @@ export const getStates = async (req: AuthenticatedRequest, res: Response) => {
 
     if (search) {
       paramCount++;
-      sql += ` AND (s.name ILIKE $${paramCount} OR s.code ILIKE $${paramCount})`;
+      sql += ` AND (COALESCE(s.name, '') ILIKE $${paramCount} OR COALESCE(s.code, '') ILIKE $${paramCount})`;
       params.push(`%${search}%`);
     }
 

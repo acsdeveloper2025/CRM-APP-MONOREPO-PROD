@@ -65,7 +65,7 @@ export const getClients = async (req: AuthenticatedRequest, res: Response) => {
 
     // Add search filter if provided
     if (search) {
-      whereConditions.push(`(name ILIKE $${paramIndex})`);
+      whereConditions.push(`(COALESCE(name, '') ILIKE $${paramIndex} OR COALESCE(code, '') ILIKE $${paramIndex})`);
       queryParams.push(`%${search}%`);
       paramIndex += 1;
     }

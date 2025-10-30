@@ -60,26 +60,26 @@ export function LocationsPage() {
   });
 
   const { data: statesData, isLoading: statesLoading } = useQuery({
-    queryKey: ['states'],
-    queryFn: () => locationsService.getStates({}),
+    queryKey: ['states', debouncedSearchValue],
+    queryFn: () => locationsService.getStates({ search: debouncedSearchValue || undefined }),
     enabled: activeTab === 'states',
   });
 
   const { data: citiesData, isLoading: citiesLoading } = useQuery({
-    queryKey: ['cities'],
-    queryFn: () => locationsService.getCities({}),
+    queryKey: ['cities', debouncedSearchValue],
+    queryFn: () => locationsService.getCities({ search: debouncedSearchValue || undefined }),
     enabled: activeTab === 'cities',
   });
 
   const { data: pincodesData, isLoading: pincodesLoading } = useQuery({
-    queryKey: ['pincodes'],
-    queryFn: () => locationsService.getPincodes({}),
+    queryKey: ['pincodes', debouncedSearchValue],
+    queryFn: () => locationsService.getPincodes({ search: debouncedSearchValue || undefined }),
     enabled: activeTab === 'pincodes',
   });
 
   const { data: areasData, isLoading: areasLoading } = useQuery({
-    queryKey: ['areas'],
-    queryFn: () => locationsService.getAreas({}),
+    queryKey: ['areas', debouncedSearchValue],
+    queryFn: () => locationsService.getAreas({ search: debouncedSearchValue || undefined }),
     enabled: activeTab === 'areas',
   });
 
@@ -99,8 +99,6 @@ export function LocationsPage() {
   };
 
   const stats = getTabStats();
-  const stateNames = stateNamesData?.data || [];
-  const countryNames = countryNamesData?.data || [];
 
   const continents = ['Africa', 'Antarctica', 'Asia', 'Europe', 'North America', 'Oceania', 'South America'];
 
