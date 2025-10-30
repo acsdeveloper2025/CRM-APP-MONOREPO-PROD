@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useDebouncedSearch } from '@/hooks/useDebounce';
+import { useQuery, useMutation, useQueryClient } from '@tanstack:react-query';
 import {
   Table,
   TableBody,
@@ -29,8 +28,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { MoreHorizontal, Edit, Trash2, Shield, Users, Search, RefreshCw } from 'lucide-react';
+import { MoreHorizontal, Edit, Trash2, Shield, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { rolesService } from '@/services/roles';
 import { RoleData } from '@/types/user';
@@ -42,13 +40,12 @@ interface RolesTableProps {
 }
 
 export function RolesTable({ onEditRole }: RolesTableProps) {
-  const { searchValue, debouncedSearchValue, setSearchValue, isSearching } = useDebouncedSearch('', 300);
   const [deleteRole, setDeleteRole] = useState<RoleData | null>(null);
   const queryClient = useQueryClient();
 
   const { data: rolesData, isLoading } = useQuery({
-    queryKey: ['roles', { search: debouncedSearchValue }],
-    queryFn: () => rolesService.getRoles({ search: debouncedSearchValue, limit: 100 }),
+    queryKey: ['roles'],
+    queryFn: () => rolesService.getRoles({ limit: 100 }),
   });
 
   const deleteMutation = useMutation({
@@ -97,24 +94,7 @@ export function RolesTable({ onEditRole }: RolesTableProps) {
     );
   }
 
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center space-x-2">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search roles..."
-            value={searchValue}
-            onChange={(e) => setSearchValue(e.target.value)}
-            className="pl-8"
-          />
-          {isSearching && (
-            <div className="absolute right-2 top-2.5">
-              <RefreshCw className="h-4 w-4 animate-spin text-muted-foreground" />
-            </div>
-          )}
-        </div>
-      </div>
+
 
       <div className="rounded-md border">
         <Table>
@@ -135,7 +115,7 @@ export function RolesTable({ onEditRole }: RolesTableProps) {
               <TableRow>
                 <TableCell colSpan={8} className="text-center py-8">
                   <div className="text-muted-foreground">
-                    {debouncedSearchValue ? `No roles found matching "${debouncedSearchValue}"` : 'No roles found'}
+                    No roles found
                   </div>
                 </TableCell>
               </TableRow>

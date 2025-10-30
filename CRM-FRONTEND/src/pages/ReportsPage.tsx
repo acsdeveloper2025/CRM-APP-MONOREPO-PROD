@@ -1,19 +1,10 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Plus, Search, Download, FileText, BarChart3, TrendingUp, Clock, DollarSign } from 'lucide-react';
+import { Plus, Download, FileText, BarChart3, TrendingUp, Clock, DollarSign } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { DatePickerWithRange } from '@/components/ui/date-range-picker';
 import { reportsService } from '@/services/reports';
 import { BankBillsTable } from '@/components/reports/BankBillsTable';
 import { MISReportsTable } from '@/components/reports/MISReportsTable';
@@ -22,78 +13,45 @@ import { CreateBankBillDialog } from '@/components/reports/CreateBankBillDialog'
 import { GenerateReportDialog } from '@/components/reports/GenerateReportDialog';
 import { TurnaroundTimeChart } from '@/components/reports/TurnaroundTimeChart';
 import { CompletionRateChart } from '@/components/reports/CompletionRateChart';
-import { addDays, format as formatDate } from 'date-fns';
 
 export function ReportsPage() {
   const [activeTab, setActiveTab] = useState('overview');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedStatus, setSelectedStatus] = useState<string>('all');
-  const [selectedClient, setSelectedClient] = useState<string>('all');
-  const [dateRange, setDateRange] = useState<{ from: Date; to: Date }>({
-    from: addDays(new Date(), -30),
-    to: new Date(),
-  });
   const [showCreateBankBill, setShowCreateBankBill] = useState(false);
   const [showGenerateReport, setShowGenerateReport] = useState(false);
 
-  // Fetch bank bills data
   const { data: bankBillsData, isLoading: bankBillsLoading } = useQuery({
-    queryKey: ['bank-bills', searchQuery, selectedStatus, selectedClient, dateRange],
-    queryFn: () => reportsService.getBankBills({
-      search: searchQuery,
-      status: selectedStatus !== 'all' ? selectedStatus : undefined,
-      clientId: selectedClient !== 'all' ? selectedClient : undefined,
-      dateFrom: dateRange.from ? formatDate(dateRange.from, 'yyyy-MM-dd') : undefined,
-      dateTo: dateRange.to ? formatDate(dateRange.to, 'yyyy-MM-dd') : undefined,
-    }),
+    queryKey: ['bank-bills'],
+    queryFn: () => reportsService.getBankBills({}),
     enabled: activeTab === 'bank-bills',
   });
 
-  // Fetch MIS reports data
   const { data: misReportsData, isLoading: misReportsLoading } = useQuery({
-    queryKey: ['mis-reports', searchQuery, dateRange],
-    queryFn: () => reportsService.getMISReports({
-      search: searchQuery,
-      dateFrom: dateRange.from ? formatDate(dateRange.from, 'yyyy-MM-dd') : undefined,
-      dateTo: dateRange.to ? formatDate(dateRange.to, 'yyyy-MM-dd') : undefined,
-    }),
+    queryKey: ['mis-reports'],
+    queryFn: () => reportsService.getMISReports({}),
     enabled: activeTab === 'mis-reports',
   });
 
-  // Fetch report summaries
   const { data: reportSummariesData } = useQuery({
     queryKey: ['report-summaries'],
     queryFn: () => reportsService.getReportSummaries(),
     enabled: activeTab === 'overview',
   });
 
-  // Fetch dashboard data
   const { data: dashboardData } = useQuery({
-    queryKey: ['reports-dashboard', dateRange],
-    queryFn: () => reportsService.getReportsDashboardData({
-      dateFrom: dateRange.from ? formatDate(dateRange.from, 'yyyy-MM-dd') : undefined,
-      dateTo: dateRange.to ? formatDate(dateRange.to, 'yyyy-MM-dd') : undefined,
-    }),
+    queryKey: ['reports-dashboard'],
+    queryFn: () => reportsService.getReportsDashboardData({}),
     enabled: activeTab === 'overview',
   });
 
-  // Fetch turnaround time data
   const { data: turnaroundData } = useQuery({
-    queryKey: ['turnaround-time', dateRange],
-    queryFn: () => reportsService.getTurnaroundTimeReport({
-      dateFrom: dateRange.from ? formatDate(dateRange.from, 'yyyy-MM-dd') : undefined,
-      dateTo: dateRange.to ? formatDate(dateRange.to, 'yyyy-MM-dd') : undefined,
-    }),
+    queryKey: ['turnaround-time'],
+    queryFn: () => reportsService.getTurnaroundTimeReport({}),
     enabled: activeTab === 'analytics',
   });
 
-  // Fetch completion rate data
   const { data: completionData } = useQuery({
-    queryKey: ['completion-rate', dateRange],
-    queryFn: () => reportsService.getCompletionRateReport({
-      dateFrom: dateRange.from ? formatDate(dateRange.from, 'yyyy-MM-dd') : undefined,
-      dateTo: dateRange.to ? formatDate(dateRange.to, 'yyyy-MM-dd') : undefined,
-    }),
+    queryKey: ['completion-rate'],
+    queryFn: () => reportsService.getCompletionRateReport({}),
     enabled: activeTab === 'analytics',
   });
 
@@ -103,21 +61,11 @@ export function ReportsPage() {
       let filename: string;
 
       if (type === 'bank-bills') {
-        blob = await reportsService.exportBankBills({
-          search: searchQuery,
-          status: selectedStatus || undefined,
-          clientId: selectedClient || undefined,
-          dateFrom: dateRange.from ? formatDate(dateRange.from, 'yyyy-MM-dd') : undefined,
-          dateTo: dateRange.to ? formatDate(dateRange.to, 'yyyy-MM-dd') : undefined,
-        }, format);
-        filename = `bank_bills_${format.toLowerCase()}_${formatDate(new Date(), 'yyyy-MM-dd')}.${format === 'EXCEL' ? 'xlsx' : format.toLowerCase()}`;
+        blob = await reportsService.exportBankBills({}, format);
+        filename = `bank_bills_${format.toLowerCase()}_${new Date().toISOString().split('T')[0]}.${format === 'EXCEL' ? 'xlsx' : format.toLowerCase()}`;
       } else {
-        blob = await reportsService.exportMISReports({
-          search: searchQuery,
-          dateFrom: dateRange.from ? formatDate(dateRange.from, 'yyyy-MM-dd') : undefined,
-          dateTo: dateRange.to ? formatDate(dateRange.to, 'yyyy-MM-dd') : undefined,
-        }, format);
-        filename = `mis_reports_${format.toLowerCase()}_${formatDate(new Date(), 'yyyy-MM-dd')}.${format === 'EXCEL' ? 'xlsx' : format.toLowerCase()}`;
+        blob = await reportsService.exportMISReports({}, format);
+        filename = `mis_reports_${format.toLowerCase()}_${new Date().toISOString().split('T')[0]}.${format === 'EXCEL' ? 'xlsx' : format.toLowerCase()}`;
       }
 
       const url = window.URL.createObjectURL(blob);
@@ -129,16 +77,6 @@ export function ReportsPage() {
     } catch (error) {
       console.error('Failed to export data:', error);
     }
-  };
-
-  const clearFilters = () => {
-    setSearchQuery('');
-    setSelectedStatus('all');
-    setSelectedClient('all');
-    setDateRange({
-      from: addDays(new Date(), -30),
-      to: new Date(),
-    });
   };
 
   const getTabStats = () => {
@@ -261,46 +199,7 @@ export function ReportsPage() {
               </div>
             </div>
 
-            {/* Filters */}
-            {(activeTab === 'bank-bills' || activeTab === 'mis-reports') && (
-              <div className="flex items-center space-x-4">
-                <div className="relative flex-1">
-                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-8"
-                  />
-                </div>
-                
-                {activeTab === 'bank-bills' && (
-                  <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                    <SelectTrigger className="w-48">
-                      <SelectValue placeholder="Filter by status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Status</SelectItem>
-                      <SelectItem value="PENDING">Pending</SelectItem>
-                      <SelectItem value="PARTIALLY_PAID">Partially Paid</SelectItem>
-                      <SelectItem value="PAID">Paid</SelectItem>
-                      <SelectItem value="OVERDUE">Overdue</SelectItem>
-                    </SelectContent>
-                  </Select>
-                )}
 
-                <DatePickerWithRange
-                  date={dateRange}
-                  onDateChange={setDateRange}
-                />
-
-                {(searchQuery || selectedStatus !== 'all' || selectedClient !== 'all') && (
-                  <Button variant="outline" size="sm" onClick={clearFilters}>
-                    Clear Filters
-                  </Button>
-                )}
-              </div>
-            )}
 
             <TabsContent value="overview" className="space-y-4">
               <ReportSummaryCards summaries={reportSummariesData?.data || []} />
