@@ -1,35 +1,83 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { CompletedCaseTable } from '@/components/cases/CompletedCaseTable';
 import { CasePagination } from '@/components/cases/CasePagination';
 import { useCases, useRefreshCases } from '@/hooks/useCases';
+import { useUnifiedSearch, useUnifiedFilters } from '@/hooks/useUnifiedSearch';
+import { UnifiedSearchFilterLayout, FilterGrid } from '@/components/ui/unified-search-filter-layout';
 import { Download, RefreshCw, CheckCircle } from 'lucide-react';
 import type { CaseListQuery } from '@/services/cases';
 import { casesService } from '@/services/cases';
 
+interface CompletedCaseFilters {
+  priority?: string;
+  clientId?: string;
+}
+
 export const CompletedCasesPage: React.FC = () => {
-  const [filters, setFilters] = useState<CaseListQuery>({
-    status: 'COMPLETED',
+  // Unified search with 800ms debounce
+  const {
+    searchValue,
+    debouncedSearchValue,
+    setSearchValue,
+    clearSearch,
+    isDebouncing,
+  } = useUnifiedSearch({
+    syncWithUrl: true,
+  });
+
+  // Unified filters with URL sync
+  const {
+    filters: activeFilters,
+    setFilter,
+    clearFilters,
+    hasActiveFilters,
+  } = useUnifiedFilters<CompletedCaseFilters>({
+    syncWithUrl: true,
+  });
+
+  const [pagination, setPagination] = useState({
     page: 1,
     limit: 20,
     sortBy: 'completedAt',
-    sortOrder: 'desc',
+    sortOrder: 'desc' as const,
   });
 
-  const { data: casesData, isLoading, refetch } = useCases(filters);
+  // Build query with search and filters
+  const query: CaseListQuery = {
+    ...pagination,
+    status: 'COMPLETED',
+    search: debouncedSearchValue || undefined,
+    priority: activeFilters.priority ? parseInt(activeFilters.priority) : undefined,
+    clientId: activeFilters.clientId || undefined,
+  };
+
+  const { data: casesData, isLoading, refetch } = useCases(query);
   const { refreshCases } = useRefreshCases();
 
   const cases = casesData?.data || [];
-  const pagination = casesData?.pagination || { page: 1, limit: 20, total: 0, totalPages: 0 };
+  const paginationData = casesData?.pagination || { page: 1, limit: 20, total: 0, totalPages: 0 };
 
   const handlePageChange = (page: number) => {
-    setFilters(prev => ({ ...prev, page }));
+    setPagination(prev => ({ ...prev, page }));
   };
 
   const handleItemsPerPageChange = (limit: number) => {
-    setFilters(prev => ({ ...prev, limit, page: 1 }));
+    setPagination(prev => ({ ...prev, limit, page: 1 }));
   };
+
+  const activeFilterCount = Object.keys(activeFilters).filter(
+    key => activeFilters[key as keyof CompletedCaseFilters] !== undefined
+  ).length;
 
   const handleExport = async () => {
     try {

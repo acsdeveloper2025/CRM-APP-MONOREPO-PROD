@@ -1,35 +1,83 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { CaseTable } from '@/components/cases/CaseTable';
 import { CasePagination } from '@/components/cases/CasePagination';
 import { useCases, useRefreshCases } from '@/hooks/useCases';
+import { useUnifiedSearch, useUnifiedFilters } from '@/hooks/useUnifiedSearch';
+import { UnifiedSearchFilterLayout, FilterGrid } from '@/components/ui/unified-search-filter-layout';
 import { Download, RefreshCw, PlayCircle } from 'lucide-react';
 import type { CaseListQuery } from '@/services/cases';
 import { casesService } from '@/services/cases';
 
+interface InProgressCaseFilters {
+  priority?: string;
+  clientId?: string;
+}
+
 export const InProgressCasesPage: React.FC = () => {
-  const [filters, setFilters] = useState<CaseListQuery>({
-    status: 'IN_PROGRESS',
+  // Unified search with 800ms debounce
+  const {
+    searchValue,
+    debouncedSearchValue,
+    setSearchValue,
+    clearSearch,
+    isDebouncing,
+  } = useUnifiedSearch({
+    syncWithUrl: true,
+  });
+
+  // Unified filters with URL sync
+  const {
+    filters: activeFilters,
+    setFilter,
+    clearFilters,
+    hasActiveFilters,
+  } = useUnifiedFilters<InProgressCaseFilters>({
+    syncWithUrl: true,
+  });
+
+  const [pagination, setPagination] = useState({
     page: 1,
     limit: 20,
     sortBy: 'pendingDuration',
-    sortOrder: 'desc',
+    sortOrder: 'desc' as const,
   });
 
-  const { data: casesData, isLoading, refetch } = useCases(filters);
+  // Build query with search and filters
+  const query: CaseListQuery = {
+    ...pagination,
+    status: 'IN_PROGRESS',
+    search: debouncedSearchValue || undefined,
+    priority: activeFilters.priority ? parseInt(activeFilters.priority) : undefined,
+    clientId: activeFilters.clientId || undefined,
+  };
+
+  const { data: casesData, isLoading, refetch } = useCases(query);
   const { refreshCases } = useRefreshCases();
 
   const cases = casesData?.data || [];
-  const pagination = casesData?.pagination || { page: 1, limit: 20, total: 0, totalPages: 0 };
+  const paginationData = casesData?.pagination || { page: 1, limit: 20, total: 0, totalPages: 0 };
 
   const handlePageChange = (page: number) => {
-    setFilters(prev => ({ ...prev, page }));
+    setPagination(prev => ({ ...prev, page }));
   };
 
   const handleItemsPerPageChange = (limit: number) => {
-    setFilters(prev => ({ ...prev, limit, page: 1 }));
+    setPagination(prev => ({ ...prev, limit, page: 1 }));
   };
+
+  const activeFilterCount = Object.keys(activeFilters).filter(
+    key => activeFilters[key as keyof InProgressCaseFilters] !== undefined
+  ).length;
 
   const handleExport = async () => {
     try {
@@ -58,23 +106,76 @@ export const InProgressCasesPage: React.FC = () => {
             View and manage all cases currently being worked on
           </p>
         </div>
-        <div className="flex items-center space-x-2">
-          <Button variant="outline" onClick={async () => {
-            await refreshCases({
-              clearCache: true,
-              preserveFilters: true,
-              showToast: true
-            });
-          }} disabled={isLoading}>
-            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
-          <Button variant="outline" onClick={handleExport}>
-            <Download className="h-4 w-4 mr-2" />
-            Export
-          </Button>
-        </div>
       </div>
+
+      {/* Unified Search and Filter Layout */}
+      <UnifiedSearchFilterLayout
+        searchValue={searchValue}
+        onSearchChange={setSearchValue}
+        onSearchClear={clearSearch}
+        isSearchLoading={isDebouncing}
+        searchPlaceholder="Search in-progress cases..."
+        hasActiveFilters={hasActiveFilters}
+        activeFilterCount={activeFilterCount}
+        onClearFilters={clearFilters}
+        filterContent={
+          <FilterGrid columns={{ sm: 1, md: 2 }}>
+            {/* Priority Filter */}
+            <div className="space-y-2">
+              <Label htmlFor="priority">Priority</Label>
+              <Select
+                value={activeFilters.priority || 'all'}
+                onValueChange={(value) => setFilter('priority', value === 'all' ? undefined : value)}
+              >
+                <SelectTrigger id="priority">
+                  <SelectValue placeholder="All priorities" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Priorities</SelectItem>
+                  <SelectItem value="1">Low</SelectItem>
+                  <SelectItem value="2">Medium</SelectItem>
+                  <SelectItem value="3">High</SelectItem>
+                  <SelectItem value="4">Urgent</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Client Filter */}
+            <div className="space-y-2">
+              <Label htmlFor="client">Client</Label>
+              <Select
+                value={activeFilters.clientId || 'all'}
+                onValueChange={(value) => setFilter('clientId', value === 'all' ? undefined : value)}
+              >
+                <SelectTrigger id="client">
+                  <SelectValue placeholder="All clients" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Clients</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </FilterGrid>
+        }
+        actions={
+          <>
+            <Button variant="outline" onClick={async () => {
+              await refreshCases({
+                clearCache: true,
+                preserveFilters: true,
+                showToast: true
+              });
+            }} disabled={isLoading}>
+              <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+            <Button variant="outline" onClick={handleExport}>
+              <Download className="h-4 w-4 mr-2" />
+              Export
+            </Button>
+          </>
+        }
+      />
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -148,8 +249,8 @@ export const InProgressCasesPage: React.FC = () => {
             <div>
               <CardTitle>In Progress Cases</CardTitle>
               <CardDescription>
-                {pagination.total > 0
-                  ? `Showing ${pagination.total} in progress case${pagination.total === 1 ? '' : 's'}`
+                {paginationData.total > 0
+                  ? `Showing ${paginationData.total} in progress case${paginationData.total === 1 ? '' : 's'}`
                   : 'No in progress cases found'
                 }
               </CardDescription>
@@ -165,12 +266,12 @@ export const InProgressCasesPage: React.FC = () => {
       </Card>
 
       {/* Pagination */}
-      {pagination.total > 0 && (
+      {paginationData.total > 0 && (
         <CasePagination
-          currentPage={pagination.page}
-          totalPages={pagination.totalPages}
-          totalItems={pagination.total}
-          itemsPerPage={pagination.limit}
+          currentPage={paginationData.page}
+          totalPages={paginationData.totalPages}
+          totalItems={paginationData.total}
+          itemsPerPage={paginationData.limit}
           onPageChange={handlePageChange}
           onItemsPerPageChange={handleItemsPerPageChange}
           isLoading={isLoading}
