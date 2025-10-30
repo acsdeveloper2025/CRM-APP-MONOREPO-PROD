@@ -9,5 +9,4 @@ export { TaskAssignmentModal } from './TaskAssignmentModal';
 export { TaskCompletionModal } from './TaskCompletionModal';
 
 // Utility components
-export { TaskFilters } from './TaskFilters';
 export { BulkActionsToolbar } from './BulkActionsToolbar';

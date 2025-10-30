@@ -1,92 +1,49 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Plus, Search, Download, Receipt, DollarSign, TrendingUp, Calendar } from 'lucide-react';
+import { Plus, Download, Receipt, DollarSign, TrendingUp, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { DatePickerWithRange } from '@/components/ui/date-range-picker';
 import { billingService } from '@/services/billing';
 import { InvoicesTable } from '@/components/billing/InvoicesTable';
 import { CommissionsTable } from '@/components/billing/CommissionsTable';
 import { CreateInvoiceDialog } from '@/components/billing/CreateInvoiceDialog';
 import { CommissionSummaryCard } from '@/components/billing/CommissionSummaryCard';
-import { addDays, format } from 'date-fns';
 
 export function BillingPage() {
   const [activeTab, setActiveTab] = useState('invoices');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedStatus, setSelectedStatus] = useState<string>('all');
-  const [selectedClient, setSelectedClient] = useState<string>('all');
-  const [dateRange, setDateRange] = useState<{ from: Date; to: Date }>({
-    from: addDays(new Date(), -30),
-    to: new Date(),
-  });
   const [showCreateInvoice, setShowCreateInvoice] = useState(false);
 
-  // Fetch invoices data
   const { data: invoicesData, isLoading: invoicesLoading } = useQuery({
-    queryKey: ['invoices', searchQuery, selectedStatus, selectedClient, dateRange],
-    queryFn: () => billingService.getInvoices({
-      search: searchQuery,
-      status: selectedStatus !== 'all' ? selectedStatus : undefined,
-      clientId: selectedClient !== 'all' ? selectedClient : undefined,
-      dateFrom: dateRange.from ? format(dateRange.from, 'yyyy-MM-dd') : undefined,
-      dateTo: dateRange.to ? format(dateRange.to, 'yyyy-MM-dd') : undefined,
-    }),
+    queryKey: ['invoices'],
+    queryFn: () => billingService.getInvoices({}),
     enabled: activeTab === 'invoices',
   });
 
-  // Fetch commissions data
   const { data: commissionsData, isLoading: commissionsLoading } = useQuery({
-    queryKey: ['commissions', searchQuery, selectedStatus, selectedClient, dateRange],
-    queryFn: () => billingService.getCommissions({
-      search: searchQuery,
-      status: selectedStatus !== 'all' ? selectedStatus : undefined,
-      clientId: selectedClient !== 'all' ? selectedClient : undefined,
-      dateFrom: dateRange.from ? format(dateRange.from, 'yyyy-MM-dd') : undefined,
-      dateTo: dateRange.to ? format(dateRange.to, 'yyyy-MM-dd') : undefined,
-    }),
+    queryKey: ['commissions'],
+    queryFn: () => billingService.getCommissions({}),
     enabled: activeTab === 'commissions',
   });
 
-  // Fetch commission summary
   const { data: commissionSummaryData } = useQuery({
-    queryKey: ['commission-summary', dateRange],
-    queryFn: () => billingService.getCommissionSummary(
-      undefined,
-      `${format(dateRange.from, 'yyyy-MM-dd')}_${format(dateRange.to, 'yyyy-MM-dd')}`
-    ),
+    queryKey: ['commission-summary'],
+    queryFn: () => billingService.getCommissionSummary(undefined, undefined),
     enabled: activeTab === 'commissions',
   });
 
   const handleDownloadReport = async () => {
     try {
-      const query = {
-        search: searchQuery,
-        status: selectedStatus || undefined,
-        clientId: selectedClient || undefined,
-        dateFrom: dateRange.from ? format(dateRange.from, 'yyyy-MM-dd') : undefined,
-        dateTo: dateRange.to ? format(dateRange.to, 'yyyy-MM-dd') : undefined,
-      };
-
       let blob: Blob;
       let filename: string;
 
       if (activeTab === 'invoices') {
-        blob = await billingService.downloadInvoiceReport(query);
-        filename = `invoices_report_${format(new Date(), 'yyyy-MM-dd')}.pdf`;
+        blob = await billingService.downloadInvoiceReport({});
+        filename = `invoices_report_${new Date().toISOString().split('T')[0]}.pdf`;
       } else {
-        blob = await billingService.downloadCommissionReport(query);
-        filename = `commissions_report_${format(new Date(), 'yyyy-MM-dd')}.pdf`;
+        blob = await billingService.downloadCommissionReport({});
+        filename = `commissions_report_${new Date().toISOString().split('T')[0]}.pdf`;
       }
 
       const url = window.URL.createObjectURL(blob);
@@ -98,16 +55,6 @@ export function BillingPage() {
     } catch (error) {
       console.error('Failed to download report:', error);
     }
-  };
-
-  const clearFilters = () => {
-    setSearchQuery('');
-    setSelectedStatus('all');
-    setSelectedClient('all');
-    setDateRange({
-      from: addDays(new Date(), -30),
-      to: new Date(),
-    });
   };
 
   const getTabStats = () => {
@@ -256,53 +203,7 @@ export function BillingPage() {
               </div>
             </div>
 
-            {/* Filters */}
-            <div className="flex items-center space-x-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-8"
-                />
-              </div>
-              
-              <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                <SelectTrigger className="w-48">
-                  <SelectValue placeholder="Filter by status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  {activeTab === 'invoices' ? (
-                    <>
-                      <SelectItem value="DRAFT">Draft</SelectItem>
-                      <SelectItem value="SENT">Sent</SelectItem>
-                      <SelectItem value="PAID">Paid</SelectItem>
-                      <SelectItem value="OVERDUE">Overdue</SelectItem>
-                      <SelectItem value="CANCELLED">Cancelled</SelectItem>
-                    </>
-                  ) : (
-                    <>
-                      <SelectItem value="PENDING">Pending</SelectItem>
-                      <SelectItem value="APPROVED">Approved</SelectItem>
-                      <SelectItem value="PAID">Paid</SelectItem>
-                    </>
-                  )}
-                </SelectContent>
-              </Select>
 
-              <DatePickerWithRange
-                date={dateRange}
-                onDateChange={setDateRange}
-              />
-
-              {(searchQuery || selectedStatus !== 'all' || selectedClient !== 'all') && (
-                <Button variant="outline" size="sm" onClick={clearFilters}>
-                  Clear Filters
-                </Button>
-              )}
-            </div>
 
             <TabsContent value="invoices" className="space-y-4">
               <InvoicesTable

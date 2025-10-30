@@ -1,70 +1,30 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { TasksListFlat } from '@/components/verification-tasks/TasksListFlat';
 import { TaskAssignmentModal } from '@/components/verification-tasks/TaskAssignmentModal';
 import { useAllVerificationTasks } from '@/hooks/useVerificationTasks';
-import { useFieldUsers } from '@/hooks/useUsers';
-import { useClients } from '@/hooks/useClients';
-import { useVerificationTypes } from '@/hooks/useVerificationTypes';
-import { 
-  ListTodo, 
-  Clock, 
-  CheckCircle2, 
-  XCircle,
-  RefreshCw, 
-  Search, 
-  Filter, 
-  X,
+import {
+  ListTodo,
+  Clock,
+  CheckCircle2,
+  RefreshCw,
   Users,
   Download
 } from 'lucide-react';
-import { useDebounce } from '@/hooks/useDebounce';
 import { useNavigate } from 'react-router-dom';
 
 export const AllTasksPage: React.FC = () => {
   const navigate = useNavigate();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [showFilters, setShowFilters] = useState(true);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [filters, setFilters] = useState({
     page: 1,
     limit: 50,
     sortBy: 'created_at',
     sortOrder: 'desc' as 'asc' | 'desc',
-    status: undefined as string | undefined,
-    priority: undefined as string | undefined,
-    assignedTo: undefined as string | undefined,
-    verificationTypeId: undefined as number | undefined,
-    clientId: undefined as number | undefined,
   });
 
-  // Debounce search term
-  const debouncedSearchTerm = useDebounce(searchTerm, 300);
-
-  // Fetch tasks with filters
-  const { tasks, loading, error, pagination, statistics, refreshTasks } = useAllVerificationTasks({
-    ...filters,
-    search: debouncedSearchTerm || undefined,
-  });
-
-  // Fetch reference data
-  const { data: fieldUsersData } = useFieldUsers();
-  const { data: clientsData } = useClients();
-  const { data: verificationTypesData } = useVerificationTypes();
-
-  const fieldUsers = fieldUsersData || [];
-  const clients = clientsData?.data || [];
-  const verificationTypes = verificationTypesData?.data || [];
+  const { tasks, loading, error, pagination, statistics, refreshTasks } = useAllVerificationTasks(filters);
 
   const handleAssignTask = (taskId: string) => {
     setSelectedTaskId(taskId);
@@ -79,37 +39,6 @@ export const AllTasksPage: React.FC = () => {
       navigate(`/cases/${caseId}`);
     }
   };
-
-  const handleFilterChange = (key: string, value: any) => {
-    setFilters(prev => ({
-      ...prev,
-      [key]: value,
-      page: 1,
-    }));
-  };
-
-  const clearFilters = () => {
-    setFilters({
-      page: 1,
-      limit: 50,
-      sortBy: 'created_at',
-      sortOrder: 'desc',
-      status: undefined,
-      priority: undefined,
-      assignedTo: undefined,
-      verificationTypeId: undefined,
-      clientId: undefined,
-    });
-    setSearchTerm('');
-  };
-
-  const hasActiveFilters = 
-    filters.status || 
-    filters.priority || 
-    filters.assignedTo || 
-    filters.verificationTypeId || 
-    filters.clientId || 
-    searchTerm;
 
   return (
     <div className="container mx-auto py-6 space-y-6">
@@ -197,154 +126,7 @@ export const AllTasksPage: React.FC = () => {
         </Card>
       </div>
 
-      {/* Search and Filters */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Search & Filter</CardTitle>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowFilters(!showFilters)}
-            >
-              <Filter className="h-4 w-4 mr-2" />
-              {showFilters ? 'Hide' : 'Show'} Filters
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Search */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search by customer name, task title, address, or task number..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
 
-          {/* Filters */}
-          {showFilters && (
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 pt-4 border-t">
-              <div className="space-y-2">
-                <Label>Status</Label>
-                <Select
-                  value={filters.status || 'all'}
-                  onValueChange={(value) => handleFilterChange('status', value === 'all' ? undefined : value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="All Statuses" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Statuses</SelectItem>
-                    <SelectItem value="PENDING">Pending</SelectItem>
-                    <SelectItem value="ASSIGNED">Assigned</SelectItem>
-                    <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
-                    <SelectItem value="COMPLETED">Completed</SelectItem>
-                    <SelectItem value="CANCELLED">Cancelled</SelectItem>
-                    <SelectItem value="ON_HOLD">On Hold</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Priority</Label>
-                <Select
-                  value={filters.priority || 'all'}
-                  onValueChange={(value) => handleFilterChange('priority', value === 'all' ? undefined : value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="All Priorities" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Priorities</SelectItem>
-                    <SelectItem value="URGENT">Urgent</SelectItem>
-                    <SelectItem value="HIGH">High</SelectItem>
-                    <SelectItem value="MEDIUM">Medium</SelectItem>
-                    <SelectItem value="LOW">Low</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Assigned To</Label>
-                <Select
-                  value={filters.assignedTo || 'all'}
-                  onValueChange={(value) => handleFilterChange('assignedTo', value === 'all' ? undefined : value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="All Users" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Users</SelectItem>
-                    {fieldUsers.map((user) => (
-                      <SelectItem key={user.id} value={user.id}>
-                        {user.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Verification Type</Label>
-                <Select
-                  value={filters.verificationTypeId?.toString() || 'all'}
-                  onValueChange={(value) => handleFilterChange('verificationTypeId', value === 'all' ? undefined : parseInt(value))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="All Types" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Types</SelectItem>
-                    {verificationTypes.map((type) => (
-                      <SelectItem key={type.id} value={type.id.toString()}>
-                        {type.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Client</Label>
-                <Select
-                  value={filters.clientId?.toString() || 'all'}
-                  onValueChange={(value) => handleFilterChange('clientId', value === 'all' ? undefined : parseInt(value))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="All Clients" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Clients</SelectItem>
-                    {clients.map((client) => (
-                      <SelectItem key={client.id} value={client.id.toString()}>
-                        {client.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          )}
-
-          {/* Active Filters */}
-          {hasActiveFilters && (
-            <div className="flex items-center space-x-2 pt-2">
-              <span className="text-sm text-muted-foreground">Active filters:</span>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={clearFilters}
-              >
-                <X className="h-4 w-4 mr-1" />
-                Clear All
-              </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
 
       {/* Tasks List */}
       {error && (

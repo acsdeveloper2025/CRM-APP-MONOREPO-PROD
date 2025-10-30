@@ -1,21 +1,11 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Plus, Upload, Users, UserCheck, UserX, Shield, Download } from 'lucide-react';
+import { Plus, Upload, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { SearchLayout } from '@/components/ui/search-layout';
-import { useSearchInput } from '@/components/ui/search-input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { usersService } from '@/services/users';
-import { rolesService } from '@/services/roles';
 import { UsersTable } from '@/components/users/UsersTable';
 import { UserActivitiesTable } from '@/components/users/UserActivitiesTable';
 import { UserSessionsTable } from '@/components/users/UserSessionsTable';
@@ -23,84 +13,45 @@ import { CreateUserDialog } from '@/components/users/CreateUserDialog';
 import { BulkImportUsersDialog } from '@/components/users/BulkImportUsersDialog';
 import { UserStatsCards } from '@/components/users/UserStatsCards';
 import { RolePermissionsTable } from '@/components/users/RolePermissionsTable';
-import type { Role } from '@/types/auth';
 
 export function UsersPage() {
   const [activeTab, setActiveTab] = useState('users');
-  const [selectedRole, setSelectedRole] = useState<string>('all');
-  const [selectedDepartment, setSelectedDepartment] = useState<string>('all');
-  const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [showCreateUser, setShowCreateUser] = useState(false);
   const [showBulkImport, setShowBulkImport] = useState(false);
 
-  // Use standardized search with debouncing
-  const { debouncedSearchValue, setSearchValue } = useSearchInput('', 400);
-
-  // Fetch users data
   const { data: usersData, isLoading: usersLoading } = useQuery({
-    queryKey: ['users', debouncedSearchValue, selectedRole, selectedDepartment, selectedStatus],
-    queryFn: () => usersService.getUsers({
-      search: debouncedSearchValue,
-      role: selectedRole !== 'all' ? selectedRole as Role : undefined,
-      department: selectedDepartment !== 'all' ? selectedDepartment : undefined,
-      isActive: selectedStatus === 'active' ? true : selectedStatus === 'inactive' ? false : undefined,
-    }),
+    queryKey: ['users'],
+    queryFn: () => usersService.getUsers({}),
     enabled: activeTab === 'users',
   });
 
-  // Fetch user activities
   const { data: activitiesData, isLoading: activitiesLoading } = useQuery({
-    queryKey: ['user-activities', debouncedSearchValue],
-    queryFn: () => usersService.getUserActivities({
-      search: debouncedSearchValue,
-      limit: 50,
-    }),
+    queryKey: ['user-activities'],
+    queryFn: () => usersService.getUserActivities({ limit: 50 }),
     enabled: activeTab === 'activities',
   });
 
-  // Fetch user sessions
   const { data: sessionsData, isLoading: sessionsLoading } = useQuery({
     queryKey: ['user-sessions'],
-    queryFn: () => usersService.getUserSessions({
-      limit: 50,
-    }),
+    queryFn: () => usersService.getUserSessions({ limit: 50 }),
     enabled: activeTab === 'sessions',
   });
 
-  // Fetch user statistics
   const { data: userStatsData } = useQuery({
     queryKey: ['user-stats'],
     queryFn: () => usersService.getUserStats(),
     enabled: activeTab === 'users',
   });
 
-  // Fetch role permissions
   const { data: rolePermissionsData, isLoading: rolePermissionsLoading } = useQuery({
     queryKey: ['role-permissions'],
     queryFn: () => usersService.getRolePermissions(),
     enabled: activeTab === 'permissions',
   });
 
-  // Fetch departments for filter
-  const { data: departmentsData } = useQuery({
-    queryKey: ['departments'],
-    queryFn: () => usersService.getDepartments(),
-  });
-
-  // Fetch roles for filter
-  const { data: rolesData } = useQuery({
-    queryKey: ['roles', 'active'],
-    queryFn: () => rolesService.getActiveRoles(),
-  });
-
   const handleExportUsers = async (format: 'CSV' | 'EXCEL' = 'EXCEL') => {
     try {
-      const blob = await usersService.exportUsers({
-        search: debouncedSearchValue,
-        role: selectedRole !== 'all' ? selectedRole as Role : undefined,
-        department: selectedDepartment !== 'all' ? selectedDepartment : undefined,
-        isActive: selectedStatus === 'active' ? true : selectedStatus === 'inactive' ? false : undefined,
-      }, format);
+      const blob = await usersService.exportUsers({}, format);
 
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -111,13 +62,6 @@ export function UsersPage() {
     } catch (error) {
       console.error('Failed to export users:', error);
     }
-  };
-
-  const clearFilters = () => {
-    setSearchValue('');
-    setSelectedRole('all');
-    setSelectedDepartment('all');
-    setSelectedStatus('all');
   };
 
   const getTabStats = () => {
@@ -178,8 +122,6 @@ export function UsersPage() {
   }
 
   const stats = getTabStats();
-  const departments = Array.isArray(departmentsData?.data) ? departmentsData.data : [];
-  const roles = Array.isArray(rolesData?.data) ? rolesData.data : [];
 
   return (
     <div className="space-y-4 sm:space-y-6 animate-fade-in">
@@ -282,63 +224,7 @@ export function UsersPage() {
               </div>
             </div>
 
-            {/* Standardized Search and Filters */}
-            {(activeTab === 'users' || activeTab === 'activities') && (
-              <SearchLayout
-                searchProps={{
-                  onSearch: setSearchValue,
-                  placeholder: "Search users...",
-                  isLoading: usersLoading || activitiesLoading,
-                }}
-                filters={
-                  activeTab === 'users' ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                      <Select value={selectedRole} onValueChange={setSelectedRole}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Filter by role" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Roles</SelectItem>
-                          {roles.map((role) => (
-                            <SelectItem key={role.id} value={role.name}>
-                              {role.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
 
-                      <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Filter by department" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Departments</SelectItem>
-                          {departments.map((dept) => (
-                            <SelectItem key={dept.id} value={dept.name}>
-                              {dept.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-
-                      <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Filter by status" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Status</SelectItem>
-                          <SelectItem value="active">Active</SelectItem>
-                          <SelectItem value="inactive">Inactive</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  ) : null
-                }
-                showClearFilters={true}
-                hasActiveFilters={debouncedSearchValue !== '' || selectedRole !== 'all' || selectedDepartment !== 'all' || selectedStatus !== 'all'}
-                onClearFilters={clearFilters}
-              />
-            )}
 
             <TabsContent value="users" className="space-y-4">
               <UsersTable

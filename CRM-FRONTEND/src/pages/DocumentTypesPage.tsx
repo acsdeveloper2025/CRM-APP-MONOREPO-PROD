@@ -1,9 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Plus, Upload, FileText, Filter } from 'lucide-react';
+import { Plus, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { SearchWithActions } from '@/components/ui/search-layout';
-import { useSearchInput } from '@/components/ui/search-input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { documentTypesService } from '@/services/documentTypes';
@@ -13,14 +11,9 @@ import { CreateDocumentTypeDialog } from '@/components/document-types/CreateDocu
 export const DocumentTypesPage: React.FC = () => {
   const [showCreateDocumentType, setShowCreateDocumentType] = useState(false);
 
-  // Use standardized search with debouncing
-  const { debouncedSearchValue, setSearchValue } = useSearchInput('', 400);
-
-  // Fetch document types
   const { data: documentTypesData, isLoading: documentTypesLoading } = useQuery({
-    queryKey: ['document-types', { search: debouncedSearchValue }],
+    queryKey: ['document-types'],
     queryFn: () => documentTypesService.getDocumentTypes({
-      search: debouncedSearchValue,
       limit: 100,
       sortBy: 'sort_order',
       sortOrder: 'asc'
@@ -98,32 +91,15 @@ export const DocumentTypesPage: React.FC = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {/* Standardized Search and Actions */}
-            <SearchWithActions
-              onSearch={setSearchValue}
-              placeholder="Search document types..."
-              isLoading={documentTypesLoading}
-              actions={
-                <>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full sm:w-auto min-h-[44px] sm:min-h-[40px]"
-                  >
-                    <Upload className="h-4 w-4 mr-2" />
-                    Import
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={() => setShowCreateDocumentType(true)}
-                    className="w-full sm:w-auto min-h-[44px] sm:min-h-[40px]"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Document Type
-                  </Button>
-                </>
-              }
-            />
+            <div className="flex items-center justify-end gap-2">
+              <Button
+                size="sm"
+                onClick={() => setShowCreateDocumentType(true)}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Document Type
+              </Button>
+            </div>
 
             {/* Document Types Table */}
             <DocumentTypesTable

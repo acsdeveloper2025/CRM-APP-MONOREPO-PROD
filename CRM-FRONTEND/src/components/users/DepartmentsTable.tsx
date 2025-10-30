@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useDebouncedSearch } from '@/hooks/useDebounce';
 import {
   Table,
   TableBody,
@@ -29,8 +28,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { MoreHorizontal, Edit, Trash2, Users, Building, Search, Crown, RefreshCw } from 'lucide-react';
+import { MoreHorizontal, Edit, Trash2, Users, Building, Crown, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { departmentsService } from '@/services/departments';
 import { Department } from '@/types/user';
@@ -41,14 +39,13 @@ interface DepartmentsTableProps {
 }
 
 export function DepartmentsTable({ onEditDepartment }: DepartmentsTableProps) {
-  const { searchValue, debouncedSearchValue, setSearchValue, isSearching } = useDebouncedSearch('', 300);
   const [deleteDepartment, setDeleteDepartment] = useState<Department | null>(null);
   const queryClient = useQueryClient();
 
   const { data: departmentsData, isLoading, error } = useQuery({
-    queryKey: ['departments', { search: debouncedSearchValue }],
-    queryFn: () => departmentsService.getDepartments({ search: debouncedSearchValue, limit: 100 }),
-    staleTime: 0, // Always refetch
+    queryKey: ['departments'],
+    queryFn: () => departmentsService.getDepartments({ limit: 100 }),
+    staleTime: 0,
     refetchOnWindowFocus: true,
   });
 
@@ -93,21 +90,7 @@ export function DepartmentsTable({ onEditDepartment }: DepartmentsTableProps) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center space-x-2">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search departments..."
-            value={searchValue}
-            onChange={(e) => setSearchValue(e.target.value)}
-            className="pl-8"
-          />
-          {isSearching && (
-            <div className="absolute right-2 top-2.5">
-              <RefreshCw className="h-4 w-4 animate-spin text-muted-foreground" />
-            </div>
-          )}
-        </div>
+      <div className="flex items-center justify-end space-x-2">
         <Button
           variant="outline"
           size="sm"
@@ -138,7 +121,7 @@ export function DepartmentsTable({ onEditDepartment }: DepartmentsTableProps) {
               <TableRow>
                 <TableCell colSpan={7} className="text-center py-8">
                   <div className="text-muted-foreground">
-                    {debouncedSearchValue ? `No departments found matching "${debouncedSearchValue}"` : 'No departments found'}
+                    No departments found
                   </div>
                 </TableCell>
               </TableRow>

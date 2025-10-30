@@ -1,20 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import { Plus, Upload, MapPin, Building, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { TabSearchLayout } from '@/components/ui/search-layout';
-import { useSearchInput } from '@/components/ui/search-input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { locationsService } from '@/services/locations';
 import { CountriesTable } from '@/components/locations/CountriesTable';
 import { StatesTable } from '@/components/locations/StatesTable';
@@ -32,12 +23,6 @@ import { BulkImportLocationDialog } from '@/components/locations/BulkImportLocat
 export function LocationsPage() {
   console.log('LocationsPage component loaded');
   const [searchParams, setSearchParams] = useSearchParams();
-  const [selectedState, setSelectedState] = useState<string>('all');
-  const [selectedCountry, setSelectedCountry] = useState<string>('all');
-  const [selectedContinent, setSelectedContinent] = useState<string>('all');
-
-  // Use standardized search with debouncing
-  const { debouncedSearchValue, setSearchValue } = useSearchInput('', 400);
   const [showCreateCountry, setShowCreateCountry] = useState(false);
   const [showCreateState, setShowCreateState] = useState(false);
   const [showCreateCity, setShowCreateCity] = useState(false);
@@ -55,72 +40,39 @@ export function LocationsPage() {
     setSearchParams({ tab: newTab });
   };
 
-  // Fetch data based on active tab and filters
   const { data: countriesData, isLoading: countriesLoading } = useQuery({
-    queryKey: ['countries', debouncedSearchValue, selectedContinent],
-    queryFn: () => locationsService.getCountries({
-      search: debouncedSearchValue,
-      continent: selectedContinent !== 'all' ? selectedContinent : undefined,
-    }),
+    queryKey: ['countries'],
+    queryFn: () => locationsService.getCountries({}),
     enabled: activeTab === 'countries',
   });
 
   const { data: statesData, isLoading: statesLoading } = useQuery({
-    queryKey: ['states', debouncedSearchValue, selectedCountry],
-    queryFn: () => locationsService.getStates({
-      search: debouncedSearchValue,
-      country: selectedCountry !== 'all' ? selectedCountry : undefined,
-    }),
+    queryKey: ['states'],
+    queryFn: () => locationsService.getStates({}),
     enabled: activeTab === 'states',
   });
 
   const { data: citiesData, isLoading: citiesLoading } = useQuery({
-    queryKey: ['cities', debouncedSearchValue, selectedState, selectedCountry],
-    queryFn: () => locationsService.getCities({
-      search: debouncedSearchValue,
-      state: selectedState !== 'all' ? selectedState : undefined,
-      country: selectedCountry !== 'all' ? selectedCountry : undefined,
-    }),
+    queryKey: ['cities'],
+    queryFn: () => locationsService.getCities({}),
     enabled: activeTab === 'cities',
   });
 
   const { data: pincodesData, isLoading: pincodesLoading } = useQuery({
-    queryKey: ['pincodes', debouncedSearchValue],
-    queryFn: () => locationsService.getPincodes({ search: debouncedSearchValue }),
+    queryKey: ['pincodes'],
+    queryFn: () => locationsService.getPincodes({}),
     enabled: activeTab === 'pincodes',
   });
 
   const { data: areasData, isLoading: areasLoading } = useQuery({
-    queryKey: ['areas', debouncedSearchValue, selectedState, selectedCountry],
-    queryFn: () => locationsService.getAreas({
-      search: debouncedSearchValue,
-      state: selectedState !== 'all' ? selectedState : undefined,
-      country: selectedCountry !== 'all' ? selectedCountry : undefined,
-    }),
+    queryKey: ['areas'],
+    queryFn: () => locationsService.getAreas({}),
     enabled: activeTab === 'areas',
-  });
-
-  // Fetch filter data
-  const { data: stateNamesData } = useQuery({
-    queryKey: ['state-names'],
-    queryFn: () => locationsService.getStateNames(),
-  });
-
-  const { data: countryNamesData } = useQuery({
-    queryKey: ['country-names'],
-    queryFn: () => locationsService.getCountries(),
   });
 
   const handleBulkImport = (type: 'countries' | 'states' | 'cities' | 'pincodes') => {
     setBulkImportType(type);
     setShowBulkImport(true);
-  };
-
-  const clearFilters = () => {
-    setSearchValue('');
-    setSelectedState('all');
-    setSelectedCountry('all');
-    setSelectedContinent('all');
   };
 
   const getTabStats = () => {
@@ -217,15 +169,8 @@ export function LocationsPage() {
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
-            {/* Standardized Tab Search Layout */}
-            <TabSearchLayout
-              searchProps={{
-                onSearch: setSearchValue,
-                placeholder: "Search locations...",
-                isLoading: countriesLoading || statesLoading || citiesLoading || pincodesLoading || areasLoading,
-              }}
-              tabs={
-                <TabsList className="flex min-w-max space-x-1">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <TabsList className="flex min-w-max space-x-1">
                   <TabsTrigger value="countries" className="whitespace-nowrap">
                     Countries
                     <Badge variant="secondary" className="ml-2">
@@ -257,178 +202,107 @@ export function LocationsPage() {
                     </Badge>
                   </TabsTrigger>
                 </TabsList>
-              }
-              actions={
-                <>
-                  {activeTab === 'countries' && (
-                    <>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleBulkImport('countries')}
-                        className="w-full sm:w-auto min-h-[44px] sm:min-h-[40px]"
-                      >
-                        <Upload className="h-4 w-4 mr-2" />
-                        Import Countries
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={() => setShowCreateCountry(true)}
-                        className="w-full sm:w-auto min-h-[44px] sm:min-h-[40px]"
-                      >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add Country
-                      </Button>
-                    </>
-                  )}
 
-                  {activeTab === 'states' && (
-                    <>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleBulkImport('states')}
-                        className="w-full sm:w-auto min-h-[44px] sm:min-h-[40px]"
-                      >
-                        <Upload className="h-4 w-4 mr-2" />
-                        Import States
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={() => setShowCreateState(true)}
-                        className="w-full sm:w-auto min-h-[44px] sm:min-h-[40px]"
-                      >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add State
-                      </Button>
-                    </>
-                  )}
-
-                  {activeTab === 'cities' && (
-                    <>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleBulkImport('cities')}
-                        className="w-full sm:w-auto min-h-[44px] sm:min-h-[40px]"
-                      >
-                        <Upload className="h-4 w-4 mr-2" />
-                        Import Cities
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={() => setShowCreateCity(true)}
-                        className="w-full sm:w-auto min-h-[44px] sm:min-h-[40px]"
-                      >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add City
-                      </Button>
-                    </>
-                  )}
-
-                  {activeTab === 'pincodes' && (
-                    <>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleBulkImport('pincodes')}
-                        className="w-full sm:w-auto min-h-[44px] sm:min-h-[40px]"
-                      >
-                        <Upload className="h-4 w-4 mr-2" />
-                        Import Pincodes
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setShowCreatePincode(true)}
-                        className="w-full sm:w-auto min-h-[44px] sm:min-h-[40px]"
-                      >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Quick Add
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={() => setShowCascadingCreatePincode(true)}
-                        className="w-full sm:w-auto min-h-[44px] sm:min-h-[40px]"
-                      >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add Pincode
-                      </Button>
-                    </>
-                  )}
-
-                  {activeTab === 'areas' && (
+              <div className="flex flex-wrap gap-2">
+                {activeTab === 'countries' && (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleBulkImport('countries')}
+                    >
+                      <Upload className="h-4 w-4 mr-2" />
+                      Import
+                    </Button>
                     <Button
                       size="sm"
-                      onClick={() => setShowCreateArea(true)}
-                      className="w-full sm:w-auto min-h-[44px] sm:min-h-[40px]"
+                      onClick={() => setShowCreateCountry(true)}
                     >
                       <Plus className="h-4 w-4 mr-2" />
-                      Add Area
+                      Add Country
                     </Button>
-                  )}
-                </>
-              }
-              filters={
-                <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                  {activeTab === 'countries' && (
-                    <Select value={selectedContinent} onValueChange={setSelectedContinent}>
-                      <SelectTrigger className="w-full sm:w-48">
-                        <SelectValue placeholder="Filter by continent" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Continents</SelectItem>
-                        {continents.map((continent) => (
-                          <SelectItem key={continent} value={continent}>
-                            {continent}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
+                  </>
+                )}
 
-                  {(activeTab === 'states' || activeTab === 'cities') && (
-                    <Select value={selectedCountry} onValueChange={setSelectedCountry}>
-                      <SelectTrigger className="w-full sm:w-48">
-                        <SelectValue placeholder="Filter by country" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Countries</SelectItem>
-                        {countryNames.map((country) => (
-                          <SelectItem key={country.id} value={country.name}>
-                            <div className="flex items-center space-x-2">
-                              <span className="font-mono text-xs bg-muted px-1 rounded">
-                                {country.code}
-                              </span>
-                              <span>{country.name}</span>
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
+                {activeTab === 'states' && (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleBulkImport('states')}
+                    >
+                      <Upload className="h-4 w-4 mr-2" />
+                      Import
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => setShowCreateState(true)}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add State
+                    </Button>
+                  </>
+                )}
 
-                  {activeTab === 'cities' && (
-                    <Select value={selectedState} onValueChange={setSelectedState}>
-                      <SelectTrigger className="w-full sm:w-48">
-                        <SelectValue placeholder="Filter by state" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All States</SelectItem>
-                        {stateNames.map((state) => (
-                          <SelectItem key={state.id || state.name} value={state.name}>
-                            {state.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                </div>
-              }
-              showClearFilters={true}
-              hasActiveFilters={debouncedSearchValue !== '' || selectedState !== 'all' || selectedCountry !== 'all' || selectedContinent !== 'all'}
-              onClearFilters={clearFilters}
-            />
+                {activeTab === 'cities' && (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleBulkImport('cities')}
+                    >
+                      <Upload className="h-4 w-4 mr-2" />
+                      Import
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => setShowCreateCity(true)}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add City
+                    </Button>
+                  </>
+                )}
+
+                {activeTab === 'pincodes' && (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleBulkImport('pincodes')}
+                    >
+                      <Upload className="h-4 w-4 mr-2" />
+                      Import
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowCreatePincode(true)}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Quick Add
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => setShowCascadingCreatePincode(true)}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Pincode
+                    </Button>
+                  </>
+                )}
+
+                {activeTab === 'areas' && (
+                  <Button
+                    size="sm"
+                    onClick={() => setShowCreateArea(true)}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Area
+                  </Button>
+                )}
+              </div>
+            </div>
 
             <TabsContent value="countries" className="space-y-4">
               <CountriesTable
