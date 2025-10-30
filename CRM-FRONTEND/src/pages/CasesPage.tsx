@@ -2,30 +2,76 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { CaseTable } from '@/components/cases/CaseTable';
 import { CasePagination } from '@/components/cases/CasePagination';
 import { useCases, useUpdateCaseStatus, useAssignCase, useRefreshCases } from '@/hooks/useCases';
+import { useUnifiedSearch, useUnifiedFilters } from '@/hooks/useUnifiedSearch';
+import { UnifiedSearchFilterLayout, FilterGrid } from '@/components/ui/unified-search-filter-layout';
 import { Download, Plus, RefreshCw } from 'lucide-react';
 import type { CaseListQuery } from '@/services/cases';
 import { casesService } from '@/services/cases';
 
+interface CaseFilters {
+  status?: string;
+  priority?: string;
+  clientId?: string;
+}
+
 export const CasesPage: React.FC = () => {
   const navigate = useNavigate();
 
-  const [filters, setFilters] = useState<CaseListQuery>({
+  // Unified search with 800ms debounce
+  const {
+    searchValue,
+    debouncedSearchValue,
+    setSearchValue,
+    clearSearch,
+    isDebouncing,
+  } = useUnifiedSearch({
+    syncWithUrl: true,
+  });
+
+  // Unified filters with URL sync
+  const {
+    filters: activeFilters,
+    setFilter,
+    clearFilters,
+    hasActiveFilters,
+  } = useUnifiedFilters<CaseFilters>({
+    syncWithUrl: true,
+  });
+
+  const [pagination, setPagination] = useState({
     page: 1,
     limit: 20,
     sortBy: 'caseId',
-    sortOrder: 'desc',
+    sortOrder: 'desc' as const,
   });
 
-  const { data: casesData, isLoading, error, refetch } = useCases(filters);
+  // Build query with search and filters
+  const query: CaseListQuery = {
+    ...pagination,
+    search: debouncedSearchValue || undefined,
+    status: activeFilters.status || undefined,
+    priority: activeFilters.priority ? parseInt(activeFilters.priority) : undefined,
+    clientId: activeFilters.clientId || undefined,
+  };
+
+  const { data: casesData, isLoading, error, refetch } = useCases(query);
   const updateStatusMutation = useUpdateCaseStatus();
   const assignCaseMutation = useAssignCase();
   const { refreshCases } = useRefreshCases();
 
   const cases = casesData?.data || [];
-  const pagination = casesData?.pagination || {
+  const paginationData = casesData?.pagination || {
     page: 1,
     limit: 20,
     total: 0,
@@ -33,11 +79,11 @@ export const CasesPage: React.FC = () => {
   };
 
   const handlePageChange = (page: number) => {
-    setFilters(prev => ({ ...prev, page }));
+    setPagination(prev => ({ ...prev, page }));
   };
 
   const handleItemsPerPageChange = (limit: number) => {
-    setFilters(prev => ({ ...prev, limit, page: 1 }));
+    setPagination(prev => ({ ...prev, limit, page: 1 }));
   };
 
   const handleUpdateStatus = async (caseId: string, status: string) => {
@@ -87,6 +133,11 @@ export const CasesPage: React.FC = () => {
     navigate('/cases/new');
   };
 
+  // Count active filters
+  const activeFilterCount = Object.keys(activeFilters).filter(
+    key => activeFilters[key as keyof CaseFilters] !== undefined
+  ).length;
+
   return (
     <div className="space-y-4 sm:space-y-6 animate-fade-in">
       {/* Page Header */}
@@ -97,21 +148,96 @@ export const CasesPage: React.FC = () => {
             Manage and track all verification cases
           </p>
         </div>
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-          <Button variant="outline" onClick={handleRefresh} disabled={isLoading} className="w-full sm:w-auto">
-            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
-          <Button variant="outline" onClick={handleExport} className="w-full sm:w-auto">
-            <Download className="h-4 w-4 mr-2" />
-            Export
-          </Button>
-          <Button onClick={handleNewCase} className="w-full sm:w-auto">
-            <Plus className="h-4 w-4 mr-2" />
+      </div>
+
+      {/* Unified Search and Filter Layout */}
+      <UnifiedSearchFilterLayout
+        searchValue={searchValue}
+        onSearchChange={setSearchValue}
+        onSearchClear={clearSearch}
+        isSearchLoading={isDebouncing}
+        searchPlaceholder="Search cases by ID, customer name, or description..."
+        hasActiveFilters={hasActiveFilters}
+        activeFilterCount={activeFilterCount}
+        onClearFilters={clearFilters}
+        filterContent={
+          <FilterGrid columns={{ sm: 1, md: 2, lg: 3 }}>
+            {/* Status Filter */}
+            <div className="space-y-2">
+              <Label htmlFor="status">Status</Label>
+              <Select
+                value={activeFilters.status || 'all'}
+                onValueChange={(value) => setFilter('status', value === 'all' ? undefined : value)}
+              >
+                <SelectTrigger id="status">
+                  <SelectValue placeholder="All statuses" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="PENDING">Pending</SelectItem>
+                  <SelectItem value="ASSIGNED">Assigned</SelectItem>
+                  <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
+                  <SelectItem value="COMPLETED">Completed</SelectItem>
+                  <SelectItem value="CANCELLED">Cancelled</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Priority Filter */}
+            <div className="space-y-2">
+              <Label htmlFor="priority">Priority</Label>
+              <Select
+                value={activeFilters.priority || 'all'}
+                onValueChange={(value) => setFilter('priority', value === 'all' ? undefined : value)}
+              >
+                <SelectTrigger id="priority">
+                  <SelectValue placeholder="All priorities" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Priorities</SelectItem>
+                  <SelectItem value="1">Low</SelectItem>
+                  <SelectItem value="2">Medium</SelectItem>
+                  <SelectItem value="3">High</SelectItem>
+                  <SelectItem value="4">Urgent</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Client Filter */}
+            <div className="space-y-2">
+              <Label htmlFor="client">Client</Label>
+              <Select
+                value={activeFilters.clientId || 'all'}
+                onValueChange={(value) => setFilter('clientId', value === 'all' ? undefined : value)}
+              >
+                <SelectTrigger id="client">
+                  <SelectValue placeholder="All clients" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Clients</SelectItem>
+                  {/* TODO: Load clients from API */}
+                </SelectContent>
+              </Select>
+            </div>
+          </FilterGrid>
+        }
+        actions={
+          <>
+            <Button variant="outline" onClick={handleRefresh} disabled={isLoading}>
+              <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+            <Button variant="outline" onClick={handleExport}>
+              <Download className="h-4 w-4 mr-2" />
+              Export
+            </Button>
+            <Button onClick={handleNewCase}>
+              <Plus className="h-4 w-4 mr-2" />
             New Case
           </Button>
-        </div>
-      </div>
+        </>
+        }
+      />
 
       {/* Cases Table */}
       <Card>
@@ -120,8 +246,8 @@ export const CasesPage: React.FC = () => {
             <div>
               <CardTitle>Cases</CardTitle>
               <CardDescription>
-                {pagination.total > 0 
-                  ? `Showing ${pagination.total} case${pagination.total === 1 ? '' : 's'}`
+                {paginationData.total > 0
+                  ? `Showing ${paginationData.total} case${paginationData.total === 1 ? '' : 's'}`
                   : 'No cases found'
                 }
               </CardDescription>
@@ -139,12 +265,12 @@ export const CasesPage: React.FC = () => {
       </Card>
 
       {/* Pagination */}
-      {pagination.total > 0 && (
+      {paginationData.total > 0 && (
         <CasePagination
-          currentPage={pagination.page}
-          totalPages={pagination.totalPages}
-          totalItems={pagination.total}
-          itemsPerPage={pagination.limit}
+          currentPage={paginationData.page}
+          totalPages={paginationData.totalPages}
+          totalItems={paginationData.total}
+          itemsPerPage={paginationData.limit}
           onPageChange={handlePageChange}
           onItemsPerPageChange={handleItemsPerPageChange}
           isLoading={isLoading}
