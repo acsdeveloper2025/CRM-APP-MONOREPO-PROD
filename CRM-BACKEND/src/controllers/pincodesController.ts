@@ -64,17 +64,17 @@ export const getPincodes = async (req: AuthenticatedRequest, res: Response) => {
 
     if (state) {
       paramCount++;
-      sql += ` AND s.name ILIKE $${paramCount}`;
+      sql += ` AND COALESCE(s.name, '') ILIKE $${paramCount}`;
       params.push(`%${state}%`);
     }
 
     if (search) {
       paramCount++;
       sql += ` AND (
-        p.code ILIKE $${paramCount} OR
-        c.name ILIKE $${paramCount} OR
-        s.name ILIKE $${paramCount} OR
-        p.area ILIKE $${paramCount}
+        COALESCE(p.code, '') ILIKE $${paramCount} OR
+        COALESCE(c.name, '') ILIKE $${paramCount} OR
+        COALESCE(s.name, '') ILIKE $${paramCount} OR
+        COALESCE(p.area, '') ILIKE $${paramCount}
       )`;
       params.push(`%${search}%`);
     }

@@ -26,7 +26,7 @@ export const getDocumentTypes = async (req: AuthenticatedRequest, res: Response)
 
     // Build WHERE conditions
     if (search) {
-      conditions.push(`(dt.name ILIKE $${paramIndex} OR dt.code ILIKE $${paramIndex} OR dt.description ILIKE $${paramIndex})`);
+      conditions.push(`(COALESCE(dt.name, '') ILIKE $${paramIndex} OR COALESCE(dt.code, '') ILIKE $${paramIndex} OR COALESCE(dt.description, '') ILIKE $${paramIndex})`);
       params.push(`%${search}%`);
       paramIndex++;
     }
