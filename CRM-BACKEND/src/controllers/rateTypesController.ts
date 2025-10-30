@@ -128,7 +128,7 @@ export const createRateType = async (req: AuthenticatedRequest, res: Response) =
     }
 
     // Check if rate type name already exists
-    const dupRes = await query(`SELECT 1 FROM rateTypes WHERE name = $1`, [name]);
+    const dupRes = await query(`SELECT 1 FROM "rateTypes" WHERE name = $1`, [name]);
     if (dupRes.rowCount && dupRes.rowCount > 0) {
       return res.status(400).json({
         success: false,
