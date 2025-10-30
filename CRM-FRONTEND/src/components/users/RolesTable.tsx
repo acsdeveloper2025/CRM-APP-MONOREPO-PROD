@@ -94,8 +94,8 @@ export function RolesTable({ onEditRole }: RolesTableProps) {
     );
   }
 
-
-
+  return (
+    <>
       <div className="rounded-md border">
         <Table>
           <TableHeader>
@@ -230,6 +230,6 @@ export function RolesTable({ onEditRole }: RolesTableProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </>
   );
 }
