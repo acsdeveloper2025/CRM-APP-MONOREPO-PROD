@@ -180,41 +180,43 @@ export function LocationsPage() {
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <TabsList className="flex min-w-max space-x-1">
-                  <TabsTrigger value="countries" className="whitespace-nowrap">
-                    Countries
-                    <Badge variant="secondary" className="ml-2">
-                      {stats.countries}
-                    </Badge>
-                  </TabsTrigger>
-                  <TabsTrigger value="states" className="whitespace-nowrap">
-                    States
-                    <Badge variant="secondary" className="ml-2">
-                      {stats.states}
-                    </Badge>
-                  </TabsTrigger>
-                  <TabsTrigger value="cities" className="whitespace-nowrap">
-                    Cities
-                    <Badge variant="secondary" className="ml-2">
-                      {stats.cities}
-                    </Badge>
-                  </TabsTrigger>
-                  <TabsTrigger value="pincodes" className="whitespace-nowrap">
-                    Pincodes
-                    <Badge variant="secondary" className="ml-2">
-                      {stats.pincodes}
-                    </Badge>
-                  </TabsTrigger>
-                  <TabsTrigger value="areas" className="whitespace-nowrap">
-                    Areas
-                    <Badge variant="secondary" className="ml-2">
-                      {stats.areas}
-                    </Badge>
-                  </TabsTrigger>
-                </TabsList>
+            <div className="flex flex-col gap-4">
+              {/* Tab List and Action Buttons Row */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <TabsList className="flex min-w-max space-x-1">
+                    <TabsTrigger value="countries" className="whitespace-nowrap">
+                      Countries
+                      <Badge variant="secondary" className="ml-2">
+                        {stats.countries}
+                      </Badge>
+                    </TabsTrigger>
+                    <TabsTrigger value="states" className="whitespace-nowrap">
+                      States
+                      <Badge variant="secondary" className="ml-2">
+                        {stats.states}
+                      </Badge>
+                    </TabsTrigger>
+                    <TabsTrigger value="cities" className="whitespace-nowrap">
+                      Cities
+                      <Badge variant="secondary" className="ml-2">
+                        {stats.cities}
+                      </Badge>
+                    </TabsTrigger>
+                    <TabsTrigger value="pincodes" className="whitespace-nowrap">
+                      Pincodes
+                      <Badge variant="secondary" className="ml-2">
+                        {stats.pincodes}
+                      </Badge>
+                    </TabsTrigger>
+                    <TabsTrigger value="areas" className="whitespace-nowrap">
+                      Areas
+                      <Badge variant="secondary" className="ml-2">
+                        {stats.areas}
+                      </Badge>
+                    </TabsTrigger>
+                  </TabsList>
 
-              <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2">
                 {activeTab === 'countries' && (
                   <>
                     <Button
@@ -313,6 +315,20 @@ export function LocationsPage() {
                   </Button>
                 )}
               </div>
+            </div>
+
+            {/* Search Input Row */}
+            <div className="flex items-center gap-4">
+              <div className="flex-1">
+                <UnifiedSearchInput
+                  value={searchValue}
+                  onChange={setSearchValue}
+                  onClear={clearSearch}
+                  isLoading={isDebouncing}
+                  placeholder={`Search ${activeTab}...`}
+                />
+              </div>
+            </div>
             </div>
 
             <TabsContent value="countries" className="space-y-4">
