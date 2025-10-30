@@ -122,25 +122,29 @@ export function CascadingLocationSelector({
     form.setValue(stateField, '');
     form.setValue(cityField, '');
     if (showPincodeInput) form.setValue(pincodeField, '');
-    if (showAreasSelect) form.setValue(areasField, []);
+    // Only clear areas in create mode
+    if (showAreasSelect && mode === 'create') form.setValue(areasField, []);
   };
 
   const handleStateChange = (stateId: string) => {
     form.setValue(stateField, stateId);
     form.setValue(cityField, '');
     if (showPincodeInput) form.setValue(pincodeField, '');
-    if (showAreasSelect) form.setValue(areasField, []);
+    // Only clear areas in create mode
+    if (showAreasSelect && mode === 'create') form.setValue(areasField, []);
   };
 
   const handleCityChange = (cityId: string) => {
     form.setValue(cityField, cityId);
     if (showPincodeInput) form.setValue(pincodeField, '');
-    if (showAreasSelect) form.setValue(areasField, []);
+    // Only clear areas in create mode
+    if (showAreasSelect && mode === 'create') form.setValue(areasField, []);
   };
 
   const handlePincodeChange = (pincodeCode: string) => {
     form.setValue(pincodeField, pincodeCode);
-    if (showAreasSelect) form.setValue(areasField, []);
+    // Only clear areas in create mode
+    if (showAreasSelect && mode === 'create') form.setValue(areasField, []);
   };
 
 
@@ -181,12 +185,7 @@ export function CascadingLocationSelector({
               <SelectContent>
                 {countries.map((country) => (
                   <SelectItem key={country.id} value={country.id}>
-                    <div className="flex flex-col">
-                      <span>{country.name}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {country.code} • {country.continent}
-                      </span>
-                    </div>
+                    {country.name} ({country.code} • {country.continent})
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -220,12 +219,7 @@ export function CascadingLocationSelector({
               <SelectContent>
                 {states.map((state) => (
                   <SelectItem key={state.id} value={state.id}>
-                    <div className="flex flex-col">
-                      <span>{state.name}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {state.code} • {state.cityCount || 0} cities
-                      </span>
-                    </div>
+                    {state.name} ({state.code} • {state.cityCount || 0} cities)
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -259,12 +253,7 @@ export function CascadingLocationSelector({
               <SelectContent>
                 {cities.map((city) => (
                   <SelectItem key={city.id} value={city.id}>
-                    <div className="flex flex-col">
-                      <span>{city.name}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {city.state}, {city.country}
-                      </span>
-                    </div>
+                    {city.name} ({city.state}, {city.country})
                   </SelectItem>
                 ))}
               </SelectContent>

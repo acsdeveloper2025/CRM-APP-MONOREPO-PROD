@@ -170,12 +170,7 @@ export function EditPincodeDialog({ pincode, open, onOpenChange }: EditPincodeDi
                     <SelectContent>
                       {cities.map((city) => (
                         <SelectItem key={city.id} value={city.id}>
-                          <div className="flex flex-col">
-                            <span>{city.name}</span>
-                            <span className="text-xs text-muted-foreground">
-                              {city.state}, {city.country}
-                            </span>
-                          </div>
+                          {city.name} ({city.state}, {city.country})
                         </SelectItem>
                       ))}
                     </SelectContent>
