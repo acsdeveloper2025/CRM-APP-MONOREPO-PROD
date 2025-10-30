@@ -82,9 +82,9 @@ export function CreateRateTypeDialog({ open, onOpenChange }: CreateRateTypeDialo
     { name: 'Local', description: 'Local area verification rates' },
     { name: 'Local1', description: 'Local area verification rates - Type 1' },
     { name: 'Local2', description: 'Local area verification rates - Type 2' },
-    { name: 'OGL', description: 'Out of Gujarat/Local verification rates' },
-    { name: 'OGL1', description: 'Out of Gujarat/Local verification rates - Type 1' },
-    { name: 'OGL2', description: 'Out of Gujarat/Local verification rates - Type 2' },
+    { name: 'OGL', description: 'Out of Geolocation verification rates' },
+    { name: 'OGL1', description: 'Out of Geolocation verification rates - Type 1' },
+    { name: 'OGL2', description: 'Out of Geolocation verification rates - Type 2' },
     { name: 'Outstation', description: 'Outstation verification rates' },
   ];
 
