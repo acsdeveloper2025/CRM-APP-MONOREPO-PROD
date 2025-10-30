@@ -695,7 +695,7 @@ export const getCommissionCalculations = async (req: AuthenticatedRequest, res: 
         c.name as client_name,
         rt.name as rate_type_name,
         cases."customerName" as customer_name,
-        cases.address
+        cases."caseId" as case_number_display
       FROM commission_calculations cc
       LEFT JOIN users u ON cc.user_id = u.id
       LEFT JOIN clients c ON cc.client_id = c.id
