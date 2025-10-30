@@ -13,8 +13,11 @@ import { CreateUserDialog } from '@/components/users/CreateUserDialog';
 import { BulkImportUsersDialog } from '@/components/users/BulkImportUsersDialog';
 import { UserStatsCards } from '@/components/users/UserStatsCards';
 import { RolePermissionsTable } from '@/components/users/RolePermissionsTable';
-import { useUnifiedSearch } from '@/hooks/useUnifiedSearch';
+import { useUnifiedSearch, useUnifiedFilters } from '@/hooks/useUnifiedSearch';
 import { UnifiedSearchInput } from '@/components/ui/unified-search-input';
+import { UnifiedFilterPanel, FilterGrid } from '@/components/ui/unified-filter-panel';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export function UsersPage() {
   const [activeTab, setActiveTab] = useState('users');
@@ -32,21 +35,49 @@ export function UsersPage() {
     syncWithUrl: true,
   });
 
+  // Unified filters
+  const {
+    filters,
+    setFilter,
+    clearFilters,
+    hasActiveFilters,
+  } = useUnifiedFilters({
+    syncWithUrl: true,
+  });
+
+  const filterRole = filters.role || '';
+  const filterStatus = filters.status || '';
+
+  // Count active filters
+  const activeFilterCount = Object.keys(filters).filter(
+    key => filters[key as keyof typeof filters] !== undefined
+  ).length;
+
   const { data: usersData, isLoading: usersLoading } = useQuery({
-    queryKey: ['users', debouncedSearchValue],
-    queryFn: () => usersService.getUsers({ search: debouncedSearchValue || undefined }),
+    queryKey: ['users', debouncedSearchValue, filterRole, filterStatus],
+    queryFn: () => usersService.getUsers({
+      search: debouncedSearchValue || undefined,
+      role: filterRole || undefined,
+      isActive: filterStatus === 'active' ? true : filterStatus === 'inactive' ? false : undefined,
+    }),
     enabled: activeTab === 'users',
   });
 
   const { data: activitiesData, isLoading: activitiesLoading } = useQuery({
-    queryKey: ['user-activities'],
-    queryFn: () => usersService.getUserActivities({ limit: 50 }),
+    queryKey: ['user-activities', debouncedSearchValue],
+    queryFn: () => usersService.getUserActivities({
+      limit: 50,
+      search: debouncedSearchValue || undefined,
+    }),
     enabled: activeTab === 'activities',
   });
 
   const { data: sessionsData, isLoading: sessionsLoading } = useQuery({
-    queryKey: ['user-sessions'],
-    queryFn: () => usersService.getUserSessions({ limit: 50 }),
+    queryKey: ['user-sessions', debouncedSearchValue],
+    queryFn: () => usersService.getUserSessions({
+      limit: 50,
+      search: debouncedSearchValue || undefined,
+    }),
     enabled: activeTab === 'sessions',
   });
 
@@ -240,6 +271,63 @@ export function UsersPage() {
 
 
             <TabsContent value="users" className="space-y-4">
+              {/* Search Section */}
+              <div className="mb-6">
+                <UnifiedSearchInput
+                  value={searchValue}
+                  onChange={setSearchValue}
+                  onClear={clearSearch}
+                  isLoading={isDebouncing}
+                  placeholder="Search users by name, email, or phone..."
+                />
+              </div>
+
+              {/* Filter Section */}
+              <UnifiedFilterPanel
+                hasActiveFilters={hasActiveFilters}
+                activeFilterCount={activeFilterCount}
+                onClearAll={clearFilters}
+              >
+                <FilterGrid columns={2}>
+                  <div className="space-y-2">
+                    <Label>Role</Label>
+                    <Select
+                      value={filterRole}
+                      onValueChange={(value) => setFilter('role', value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="All Roles" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">All Roles</SelectItem>
+                        <SelectItem value="ADMIN">Admin</SelectItem>
+                        <SelectItem value="MANAGER">Manager</SelectItem>
+                        <SelectItem value="FIELD_AGENT">Field Agent</SelectItem>
+                        <SelectItem value="BACKEND_TEAM">Backend Team</SelectItem>
+                        <SelectItem value="CLIENT">Client</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Status</Label>
+                    <Select
+                      value={filterStatus}
+                      onValueChange={(value) => setFilter('status', value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="All Status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">All Status</SelectItem>
+                        <SelectItem value="active">Active</SelectItem>
+                        <SelectItem value="inactive">Inactive</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </FilterGrid>
+              </UnifiedFilterPanel>
+
               <UsersTable
                 data={Array.isArray(usersData?.data) ? usersData.data : []}
                 isLoading={usersLoading}
@@ -247,6 +335,17 @@ export function UsersPage() {
             </TabsContent>
 
             <TabsContent value="activities" className="space-y-4">
+              {/* Search Section */}
+              <div className="mb-6">
+                <UnifiedSearchInput
+                  value={searchValue}
+                  onChange={setSearchValue}
+                  onClear={clearSearch}
+                  isLoading={isDebouncing}
+                  placeholder="Search activities by user, action, or description..."
+                />
+              </div>
+
               <UserActivitiesTable
                 data={Array.isArray(activitiesData?.data) ? activitiesData.data : []}
                 isLoading={activitiesLoading}
@@ -254,6 +353,17 @@ export function UsersPage() {
             </TabsContent>
 
             <TabsContent value="sessions" className="space-y-4">
+              {/* Search Section */}
+              <div className="mb-6">
+                <UnifiedSearchInput
+                  value={searchValue}
+                  onChange={setSearchValue}
+                  onClear={clearSearch}
+                  isLoading={isDebouncing}
+                  placeholder="Search sessions by user, IP address, or device..."
+                />
+              </div>
+
               <UserSessionsTable
                 data={Array.isArray(sessionsData?.data) ? sessionsData.data : []}
                 isLoading={sessionsLoading}
@@ -261,6 +371,17 @@ export function UsersPage() {
             </TabsContent>
 
             <TabsContent value="permissions" className="space-y-4">
+              {/* Search Section */}
+              <div className="mb-6">
+                <UnifiedSearchInput
+                  value={searchValue}
+                  onChange={setSearchValue}
+                  onClear={clearSearch}
+                  isLoading={isDebouncing}
+                  placeholder="Search permissions by role or permission name..."
+                />
+              </div>
+
               <RolePermissionsTable
                 data={Array.isArray(rolePermissionsData?.data) ? rolePermissionsData.data : []}
                 isLoading={rolePermissionsLoading}
