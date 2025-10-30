@@ -35,8 +35,8 @@ export function BillingPage() {
   });
 
   const { data: commissionsData, isLoading: commissionsLoading } = useQuery({
-    queryKey: ['commissions'],
-    queryFn: () => billingService.getCommissions({}),
+    queryKey: ['commissions', debouncedSearchValue],
+    queryFn: () => billingService.getCommissions({ search: debouncedSearchValue || undefined }),
     enabled: activeTab === 'commissions',
   });
 

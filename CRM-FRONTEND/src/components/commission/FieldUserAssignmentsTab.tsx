@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, Search, Download } from 'lucide-react';
+import { Plus, Edit, Trash2, Download } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -13,6 +13,10 @@ import {
 } from '@/components/ui/responsive-table';
 import { Badge } from '@/components/ui/badge';
 import { SearchableSelect, SearchableSelectOption } from '@/components/ui/searchable-select';
+import { UnifiedSearchInput } from '@/components/ui/unified-search-input';
+import { UnifiedFilterPanel, FilterGrid } from '@/components/ui/unified-search-filter-layout';
+import { useUnifiedSearch } from '@/hooks/useUnifiedSearch';
+import { useUnifiedFilters } from '@/hooks/useUnifiedFilters';
 import { commissionManagementApi } from '../../services/commissionManagementApi';
 import { FieldUserCommissionAssignment, CreateFieldUserCommissionAssignmentData } from '../../types/commission';
 import { User } from '../../types/user';
@@ -37,11 +41,34 @@ export const FieldUserAssignmentsTab: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingAssignment, setEditingAssignment] = useState<FieldUserCommissionAssignment | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterUserId, setFilterUserId] = useState('');
-  const [filterRateTypeId, setFilterRateTypeId] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+
+  // Unified search with 800ms debounce
+  const {
+    searchValue,
+    debouncedSearchValue,
+    setSearchValue,
+    clearSearch,
+    isDebouncing,
+  } = useUnifiedSearch({
+    syncWithUrl: true,
+  });
+
+  // Unified filters
+  const {
+    filters,
+    setFilter,
+    clearFilter,
+    clearAllFilters,
+    hasActiveFilters,
+    activeFilterCount,
+  } = useUnifiedFilters({
+    syncWithUrl: true,
+  });
+
+  const filterUserId = filters.userId || '';
+  const filterRateTypeId = filters.rateTypeId || '';
 
   const [formData, setFormData] = useState<FieldUserAssignmentFormData>({
     userId: '',
@@ -52,7 +79,7 @@ export const FieldUserAssignmentsTab: React.FC = () => {
 
   useEffect(() => {
     loadData();
-  }, [currentPage, searchTerm, filterUserId, filterRateTypeId]);
+  }, [currentPage, debouncedSearchValue, filterUserId, filterRateTypeId]);
 
   const loadData = async () => {
     try {
@@ -62,7 +89,7 @@ export const FieldUserAssignmentsTab: React.FC = () => {
       const assignmentsResponse = await commissionManagementApi.getFieldUserCommissionAssignments({
         page: currentPage,
         limit: 20,
-        search: searchTerm,
+        search: debouncedSearchValue || undefined,
         userId: filterUserId || undefined,
         rateTypeId: filterRateTypeId ? Number(filterRateTypeId) : undefined
       });
@@ -194,77 +221,83 @@ export const FieldUserAssignmentsTab: React.FC = () => {
           </p>
         </CardHeader>
         <CardContent className="p-6">
-          {/* Search and Filter Section */}
-          <div className="space-y-4 mb-6">
-            <div className="flex flex-col gap-4">
-              <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center">
-                <div className="relative flex-1 sm:flex-initial">
-                  <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                  <Input
-                    placeholder="Search assignments..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 w-full sm:w-64"
-                  />
-                </div>
+          {/* Search Section */}
+          <div className="mb-6">
+            <UnifiedSearchInput
+              value={searchValue}
+              onChange={setSearchValue}
+              onClear={clearSearch}
+              isLoading={isDebouncing}
+              placeholder="Search assignments..."
+            />
+          </div>
 
-                <div className="w-full sm:w-48">
-                  <SearchableSelect
-                    options={[
-                      { value: '', label: 'All Users' },
-                      ...(users || []).map(user => ({
-                        value: user.id,
-                        label: user.name,
-                        description: user.email
-                      }))
-                    ]}
-                    value={filterUserId}
-                    onValueChange={setFilterUserId}
-                    placeholder="Filter by user..."
-                    searchPlaceholder="Search users..."
-                  />
-                </div>
-
-                <div className="w-full sm:w-48">
-                  <SearchableSelect
-                    options={[
-                      { value: '', label: 'All Rate Types' },
-                      ...(rateTypes || []).map(rateType => ({
-                        value: rateType.id.toString(),
-                        label: rateType.name,
-                        description: `Rate: ${rateType.rate_amount || 'Not set'}`
-                      }))
-                    ]}
-                    value={filterRateTypeId}
-                    onValueChange={setFilterRateTypeId}
-                    placeholder="Filter by rate type..."
-                    searchPlaceholder="Search rate types..."
-                  />
-                </div>
+          {/* Filter Section */}
+          <UnifiedFilterPanel
+            hasActiveFilters={hasActiveFilters}
+            activeFilterCount={activeFilterCount}
+            onClearAll={clearAllFilters}
+          >
+            <FilterGrid columns={2}>
+              <div className="space-y-2">
+                <Label>Field User</Label>
+                <SearchableSelect
+                  options={[
+                    { value: '', label: 'All Users' },
+                    ...(users || []).map(user => ({
+                      value: user.id,
+                      label: user.name,
+                      description: user.email
+                    }))
+                  ]}
+                  value={filterUserId}
+                  onValueChange={(value) => setFilter('userId', value)}
+                  placeholder="Filter by user..."
+                  searchPlaceholder="Search users..."
+                />
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-2">
-                <Button
-                  onClick={exportData}
-                  variant="outline"
-                  className="flex items-center gap-2 w-full sm:w-auto"
-                >
-                  <Download className="h-4 w-4" />
-                  Export
-                </Button>
-                <Button
-                  onClick={() => {
-                    setShowForm(true);
-                    setEditingAssignment(null);
-                    resetForm();
-                  }}
-                  className="flex items-center gap-2 w-full sm:w-auto"
-                >
-                  <Plus className="h-4 w-4" />
-                  Add Rate Assignment
-                </Button>
+              <div className="space-y-2">
+                <Label>Rate Type</Label>
+                <SearchableSelect
+                  options={[
+                    { value: '', label: 'All Rate Types' },
+                    ...(rateTypes || []).map(rateType => ({
+                      value: rateType.id.toString(),
+                      label: rateType.name,
+                      description: `Rate: ${rateType.rate_amount || 'Not set'}`
+                    }))
+                  ]}
+                  value={filterRateTypeId}
+                  onValueChange={(value) => setFilter('rateTypeId', value)}
+                  placeholder="Filter by rate type..."
+                  searchPlaceholder="Search rate types..."
+                />
               </div>
-            </div>
+            </FilterGrid>
+          </UnifiedFilterPanel>
+
+          {/* Action Buttons */}
+          <div className="flex flex-col sm:flex-row gap-2 mb-6">
+            <Button
+              onClick={exportData}
+              variant="outline"
+              className="flex items-center gap-2 w-full sm:w-auto"
+            >
+              <Download className="h-4 w-4" />
+              Export
+            </Button>
+            <Button
+              onClick={() => {
+                setShowForm(true);
+                setEditingAssignment(null);
+                resetForm();
+              }}
+              className="flex items-center gap-2 w-full sm:w-auto"
+            >
+              <Plus className="h-4 w-4" />
+              Add Rate Assignment
+            </Button>
           </div>
 
           {/* Desktop Table */}
