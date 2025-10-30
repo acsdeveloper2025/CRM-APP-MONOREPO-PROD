@@ -13,15 +13,28 @@ import { CreateBankBillDialog } from '@/components/reports/CreateBankBillDialog'
 import { GenerateReportDialog } from '@/components/reports/GenerateReportDialog';
 import { TurnaroundTimeChart } from '@/components/reports/TurnaroundTimeChart';
 import { CompletionRateChart } from '@/components/reports/CompletionRateChart';
+import { useUnifiedSearch } from '@/hooks/useUnifiedSearch';
+import { UnifiedSearchInput } from '@/components/ui/unified-search-input';
 
 export function ReportsPage() {
   const [activeTab, setActiveTab] = useState('overview');
   const [showCreateBankBill, setShowCreateBankBill] = useState(false);
   const [showGenerateReport, setShowGenerateReport] = useState(false);
 
+  // Unified search with 800ms debounce
+  const {
+    searchValue,
+    debouncedSearchValue,
+    setSearchValue,
+    clearSearch,
+    isDebouncing,
+  } = useUnifiedSearch({
+    syncWithUrl: true,
+  });
+
   const { data: bankBillsData, isLoading: bankBillsLoading } = useQuery({
-    queryKey: ['bank-bills'],
-    queryFn: () => reportsService.getBankBills({}),
+    queryKey: ['bank-bills', debouncedSearchValue],
+    queryFn: () => reportsService.getBankBills({ search: debouncedSearchValue || undefined }),
     enabled: activeTab === 'bank-bills',
   });
 

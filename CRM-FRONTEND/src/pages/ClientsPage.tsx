@@ -16,6 +16,8 @@ import { CreateProductDialog } from '@/components/clients/CreateProductDialog';
 import { CreateVerificationTypeDialog } from '@/components/clients/CreateVerificationTypeDialog';
 import { CreateDocumentTypeDialog } from '@/components/document-types/CreateDocumentTypeDialog';
 import { BulkImportDialog } from '@/components/clients/BulkImportDialog';
+import { useUnifiedSearch } from '@/hooks/useUnifiedSearch';
+import { UnifiedSearchInput } from '@/components/ui/unified-search-input';
 
 export function ClientsPage() {
   const [activeTab, setActiveTab] = useState('clients');
@@ -26,9 +28,20 @@ export function ClientsPage() {
   const [showBulkImport, setShowBulkImport] = useState(false);
   const [bulkImportType, setBulkImportType] = useState<'clients' | 'products'>('clients');
 
+  // Unified search with 800ms debounce
+  const {
+    searchValue,
+    debouncedSearchValue,
+    setSearchValue,
+    clearSearch,
+    isDebouncing,
+  } = useUnifiedSearch({
+    syncWithUrl: true,
+  });
+
   const { data: clientsData, isLoading: clientsLoading } = useQuery({
-    queryKey: ['clients'],
-    queryFn: () => clientsService.getClients({}),
+    queryKey: ['clients', debouncedSearchValue],
+    queryFn: () => clientsService.getClients({ search: debouncedSearchValue || undefined }),
   });
 
   const { data: productsData, isLoading: productsLoading } = useQuery({

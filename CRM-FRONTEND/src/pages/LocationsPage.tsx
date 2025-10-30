@@ -19,6 +19,8 @@ import { CreatePincodeDialog } from '@/components/locations/CreatePincodeDialog'
 import { CascadingCreatePincodeDialog } from '@/components/locations/CascadingCreatePincodeDialog';
 import { CreateAreaDialog } from '@/components/locations/CreateAreaDialog';
 import { BulkImportLocationDialog } from '@/components/locations/BulkImportLocationDialog';
+import { useUnifiedSearch } from '@/hooks/useUnifiedSearch';
+import { UnifiedSearchInput } from '@/components/ui/unified-search-input';
 
 export function LocationsPage() {
   console.log('LocationsPage component loaded');
@@ -40,9 +42,20 @@ export function LocationsPage() {
     setSearchParams({ tab: newTab });
   };
 
+  // Unified search with 800ms debounce
+  const {
+    searchValue,
+    debouncedSearchValue,
+    setSearchValue,
+    clearSearch,
+    isDebouncing,
+  } = useUnifiedSearch({
+    syncWithUrl: true,
+  });
+
   const { data: countriesData, isLoading: countriesLoading } = useQuery({
-    queryKey: ['countries'],
-    queryFn: () => locationsService.getCountries({}),
+    queryKey: ['countries', debouncedSearchValue],
+    queryFn: () => locationsService.getCountries({ search: debouncedSearchValue || undefined }),
     enabled: activeTab === 'countries',
   });
 

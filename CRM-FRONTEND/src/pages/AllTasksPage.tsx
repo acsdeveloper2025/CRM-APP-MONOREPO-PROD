@@ -1,9 +1,19 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { TasksListFlat } from '@/components/verification-tasks/TasksListFlat';
 import { TaskAssignmentModal } from '@/components/verification-tasks/TaskAssignmentModal';
 import { useAllVerificationTasks } from '@/hooks/useVerificationTasks';
+import { useUnifiedSearch, useUnifiedFilters } from '@/hooks/useUnifiedSearch';
+import { UnifiedSearchFilterLayout, FilterGrid } from '@/components/ui/unified-search-filter-layout';
 import {
   ListTodo,
   Clock,
@@ -14,17 +24,56 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
+interface TaskFilters {
+  status?: string;
+  priority?: string;
+}
+
 export const AllTasksPage: React.FC = () => {
   const navigate = useNavigate();
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
-  const [filters, setFilters] = useState({
+
+  // Unified search with 800ms debounce
+  const {
+    searchValue,
+    debouncedSearchValue,
+    setSearchValue,
+    clearSearch,
+    isDebouncing,
+  } = useUnifiedSearch({
+    syncWithUrl: true,
+  });
+
+  // Unified filters with URL sync
+  const {
+    filters: activeFilters,
+    setFilter,
+    clearFilters,
+    hasActiveFilters,
+  } = useUnifiedFilters<TaskFilters>({
+    syncWithUrl: true,
+  });
+
+  const [paginationState, setPaginationState] = useState({
     page: 1,
     limit: 50,
     sortBy: 'created_at',
     sortOrder: 'desc' as 'asc' | 'desc',
   });
 
-  const { tasks, loading, error, pagination, statistics, refreshTasks } = useAllVerificationTasks(filters);
+  // Build query with search and filters
+  const queryFilters = {
+    ...paginationState,
+    search: debouncedSearchValue || undefined,
+    status: activeFilters.status || undefined,
+    priority: activeFilters.priority || undefined,
+  };
+
+  const { tasks, loading, error, pagination, statistics, refreshTasks } = useAllVerificationTasks(queryFilters);
+
+  const activeFilterCount = Object.keys(activeFilters).filter(
+    key => activeFilters[key as keyof TaskFilters] !== undefined
+  ).length;
 
   const handleAssignTask = (taskId: string) => {
     setSelectedTaskId(taskId);
@@ -50,26 +99,83 @@ export const AllTasksPage: React.FC = () => {
             Comprehensive task management with advanced filtering and bulk actions
           </p>
         </div>
-        <div className="flex items-center space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {/* TODO: Export functionality */}}
-          >
-            <Download className="h-4 w-4 mr-2" />
-            Export
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => refreshTasks()}
-            disabled={loading}
-          >
-            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
-        </div>
       </div>
+
+      {/* Unified Search and Filter Layout */}
+      <UnifiedSearchFilterLayout
+        searchValue={searchValue}
+        onSearchChange={setSearchValue}
+        onSearchClear={clearSearch}
+        isSearchLoading={isDebouncing}
+        searchPlaceholder="Search tasks by ID, case ID, or description..."
+        hasActiveFilters={hasActiveFilters}
+        activeFilterCount={activeFilterCount}
+        onClearFilters={clearFilters}
+        filterContent={
+          <FilterGrid columns={{ sm: 1, md: 2 }}>
+            {/* Status Filter */}
+            <div className="space-y-2">
+              <Label htmlFor="status">Status</Label>
+              <Select
+                value={activeFilters.status || 'all'}
+                onValueChange={(value) => setFilter('status', value === 'all' ? undefined : value)}
+              >
+                <SelectTrigger id="status">
+                  <SelectValue placeholder="All statuses" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="PENDING">Pending</SelectItem>
+                  <SelectItem value="ASSIGNED">Assigned</SelectItem>
+                  <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
+                  <SelectItem value="COMPLETED">Completed</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Priority Filter */}
+            <div className="space-y-2">
+              <Label htmlFor="priority">Priority</Label>
+              <Select
+                value={activeFilters.priority || 'all'}
+                onValueChange={(value) => setFilter('priority', value === 'all' ? undefined : value)}
+              >
+                <SelectTrigger id="priority">
+                  <SelectValue placeholder="All priorities" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Priorities</SelectItem>
+                  <SelectItem value="1">Low</SelectItem>
+                  <SelectItem value="2">Medium</SelectItem>
+                  <SelectItem value="3">High</SelectItem>
+                  <SelectItem value="4">Urgent</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </FilterGrid>
+        }
+        actions={
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {/* TODO: Export functionality */}}
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Export
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refreshTasks()}
+              disabled={loading}
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+          </>
+        }
+      />
 
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
