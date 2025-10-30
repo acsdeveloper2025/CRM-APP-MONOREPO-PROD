@@ -11,6 +11,8 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Calculator, Download, Calendar } from 'lucide-react';
+import { UnifiedSearchInput } from '@/components/ui/unified-search-input';
+import { useUnifiedSearch } from '@/hooks/useUnifiedSearch';
 import { commissionManagementApi } from '../../services/commissionManagementApi';
 import { CommissionCalculation } from '../../types/commission';
 
@@ -20,9 +22,20 @@ export const CommissionCalculationsTab: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
+  // Unified search with 800ms debounce
+  const {
+    searchValue,
+    debouncedSearchValue,
+    setSearchValue,
+    clearSearch,
+    isDebouncing,
+  } = useUnifiedSearch({
+    syncWithUrl: true,
+  });
+
   useEffect(() => {
     loadCalculations();
-  }, [currentPage]);
+  }, [currentPage, debouncedSearchValue]);
 
   const loadCalculations = async () => {
     try {
@@ -30,6 +43,7 @@ export const CommissionCalculationsTab: React.FC = () => {
       const response = await commissionManagementApi.getCommissionCalculations({
         page: currentPage,
         limit: 20, // Standard pagination limit
+        search: debouncedSearchValue || undefined,
       });
 
       setCalculations(response.data);
@@ -146,6 +160,17 @@ export const CommissionCalculationsTab: React.FC = () => {
           </div>
         </CardHeader>
         <CardContent className="p-4">
+          {/* Search Section */}
+          <div className="mb-6">
+            <UnifiedSearchInput
+              value={searchValue}
+              onChange={setSearchValue}
+              onClear={clearSearch}
+              isLoading={isDebouncing}
+              placeholder="Search by field user, client, product, or task ID..."
+            />
+          </div>
+
           {/* Calculations Table */}
           <Table>
             <TableHeader>
