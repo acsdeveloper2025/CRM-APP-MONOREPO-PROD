@@ -35,10 +35,8 @@ const createClientValidation = [
     .withMessage('productIds must be an array of IDs'),
   body('productIds.*')
     .optional()
-    .isString()
-    .trim()
-    .notEmpty()
-    .withMessage('Each productId must be a non-empty string'),
+    .isInt({ min: 1 })
+    .withMessage('Each productId must be a positive integer'),
   body('verificationTypeIds')
     .optional()
     .isArray()
@@ -76,10 +74,8 @@ const updateClientValidation = [
     .withMessage('productIds must be an array of IDs'),
   body('productIds.*')
     .optional()
-    .isString()
-    .trim()
-    .notEmpty()
-    .withMessage('Each productId must be a non-empty string'),
+    .isInt({ min: 1 })
+    .withMessage('Each productId must be a positive integer'),
   body('verificationTypeIds')
     .optional()
     .isArray()

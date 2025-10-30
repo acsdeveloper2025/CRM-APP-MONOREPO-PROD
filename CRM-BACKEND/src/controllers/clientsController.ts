@@ -299,9 +299,9 @@ export const createClient = async (req: AuthenticatedRequest, res: Response) => 
 
     // Create client and relationships in a transaction
     const newClient = await withTransaction(async (cx) => {
-      // Create client
+      // Create client (id is auto-generated SERIAL)
       const clientIns = await cx.query(
-        `INSERT INTO clients (id, name, code, "createdAt", "updatedAt") VALUES (gen_random_uuid(), $1, $2, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING id, name, code, "createdAt", "updatedAt"`,
+        `INSERT INTO clients (name, code, "createdAt", "updatedAt") VALUES ($1, $2, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING id, name, code, "createdAt", "updatedAt"`,
         [name, code]
       );
       const created = clientIns.rows[0];
@@ -328,12 +328,18 @@ export const createClient = async (req: AuthenticatedRequest, res: Response) => 
 
         for (const productId of uniqueProductIds) {
           for (const verificationTypeId of uniqueVerificationTypeIds) {
-            await cx.query(
-              `INSERT INTO "productVerificationTypes" (id, "productId", "verificationTypeId", "isActive", "createdAt", "updatedAt")
-               VALUES (gen_random_uuid(), $1, $2, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-               ON CONFLICT ("productId", "verificationTypeId") DO NOTHING`,
+            // Check if relationship already exists
+            const existingRel = await cx.query(
+              `SELECT id FROM "productVerificationTypes" WHERE "productId" = $1 AND "verificationTypeId" = $2`,
               [productId, verificationTypeId]
             );
+            if (existingRel.rowCount === 0) {
+              await cx.query(
+                `INSERT INTO "productVerificationTypes" ("productId", "verificationTypeId", "isActive", "createdAt", "updatedAt")
+                 VALUES ($1, $2, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+                [productId, verificationTypeId]
+              );
+            }
           }
         }
       }
@@ -348,7 +354,7 @@ export const createClient = async (req: AuthenticatedRequest, res: Response) => 
         }
         for (const dtId of uniqueDocumentTypeIds) {
           await cx.query(
-            `INSERT INTO "clientDocumentTypes" ("clientId", "documentTypeId", "isActive", "createdAt", "updatedAt") VALUES ($1, $2, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+            `INSERT INTO "clientDocumentTypes" ("clientId", "documentTypeId", "is_active", "createdAt", "updatedAt") VALUES ($1, $2, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
             [created.id, Number(dtId)]
           );
         }
