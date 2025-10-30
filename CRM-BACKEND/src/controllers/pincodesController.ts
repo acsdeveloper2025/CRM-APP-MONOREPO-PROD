@@ -709,7 +709,7 @@ export const bulkImportPincodes = async (req: AuthenticatedRequest & { file?: Ex
         let stateId: number;
         if (stateResult.rows.length === 0) {
           const newState = await query(
-            'INSERT INTO states (name, code, "countryId", "isActive") VALUES ($1, $2, $3, true) RETURNING id',
+            'INSERT INTO states (name, code, "countryId") VALUES ($1, $2, $3) RETURNING id',
             [state, state.substring(0, 3).toUpperCase(), countryId]
           );
           stateId = newState.rows[0].id;
@@ -726,7 +726,7 @@ export const bulkImportPincodes = async (req: AuthenticatedRequest & { file?: Ex
         let cityId: number;
         if (cityResult.rows.length === 0) {
           const newCity = await query(
-            'INSERT INTO cities (name, "stateId", "countryId", "isActive") VALUES ($1, $2, $3, true) RETURNING id',
+            'INSERT INTO cities (name, "stateId", "countryId") VALUES ($1, $2, $3) RETURNING id',
             [cityName, stateId, countryId]
           );
           cityId = newCity.rows[0].id;
@@ -743,7 +743,7 @@ export const bulkImportPincodes = async (req: AuthenticatedRequest & { file?: Ex
         let areaId: number;
         if (areaResult.rows.length === 0) {
           const newArea = await query(
-            'INSERT INTO areas (name, "isActive") VALUES ($1, true) RETURNING id',
+            'INSERT INTO areas (name) VALUES ($1) RETURNING id',
             [area]
           );
           areaId = newArea.rows[0].id;
