@@ -32,6 +32,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { locationsService } from '@/services/locations';
+import { EditAreaDialog } from './EditAreaDialog';
 import { PincodeArea } from '@/types/location';
 import { formatDate } from '@/lib/utils';
 
@@ -46,6 +47,8 @@ interface AreaWithDetails extends PincodeArea {
 
 export function AreasTable({ data, isLoading }: AreasTableProps) {
   const [areaToDelete, setAreaToDelete] = useState<AreaWithDetails | null>(null);
+  const [areaToEdit, setAreaToEdit] = useState<AreaWithDetails | null>(null);
+  const [showEditDialog, setShowEditDialog] = useState(false);
   const queryClient = useQueryClient();
 
   const deleteMutation = useMutation({
@@ -60,6 +63,11 @@ export function AreasTable({ data, isLoading }: AreasTableProps) {
       toast.error(error.response?.data?.message || 'Failed to delete area');
     },
   });
+
+  const handleEdit = (area: AreaWithDetails) => {
+    setAreaToEdit(area);
+    setShowEditDialog(true);
+  };
 
   const handleDelete = (area: AreaWithDetails) => {
     setAreaToDelete(area);
@@ -174,7 +182,7 @@ export function AreasTable({ data, isLoading }: AreasTableProps) {
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleEdit(areaWithDetails)}>
                           <Edit className="mr-2 h-4 w-4" />
                           Edit Area
                         </DropdownMenuItem>
@@ -194,6 +202,15 @@ export function AreasTable({ data, isLoading }: AreasTableProps) {
           </TableBody>
         </Table>
       </div>
+
+      {/* Edit Dialog */}
+      {areaToEdit && (
+        <EditAreaDialog
+          area={areaToEdit}
+          open={showEditDialog}
+          onOpenChange={setShowEditDialog}
+        />
+      )}
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!areaToDelete} onOpenChange={() => setAreaToDelete(null)}>
