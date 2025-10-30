@@ -7,16 +7,30 @@ import { Badge } from '@/components/ui/badge';
 import { documentTypesService } from '@/services/documentTypes';
 import { DocumentTypesTable } from '@/components/document-types/DocumentTypesTable';
 import { CreateDocumentTypeDialog } from '@/components/document-types/CreateDocumentTypeDialog';
+import { useUnifiedSearch } from '@/hooks/useUnifiedSearch';
+import { UnifiedSearchInput } from '@/components/ui/unified-search-input';
 
 export const DocumentTypesPage: React.FC = () => {
   const [showCreateDocumentType, setShowCreateDocumentType] = useState(false);
 
+  // Unified search with 800ms debounce
+  const {
+    searchValue,
+    debouncedSearchValue,
+    setSearchValue,
+    clearSearch,
+    isDebouncing,
+  } = useUnifiedSearch({
+    syncWithUrl: true,
+  });
+
   const { data: documentTypesData, isLoading: documentTypesLoading } = useQuery({
-    queryKey: ['document-types'],
+    queryKey: ['document-types', debouncedSearchValue],
     queryFn: () => documentTypesService.getDocumentTypes({
       limit: 100,
       sortBy: 'sort_order',
-      sortOrder: 'asc'
+      sortOrder: 'asc',
+      search: debouncedSearchValue || undefined,
     }),
   });
 

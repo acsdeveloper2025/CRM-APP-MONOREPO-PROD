@@ -1,8 +1,18 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { TasksListFlat } from '@/components/verification-tasks/TasksListFlat';
 import { useAllVerificationTasks } from '@/hooks/useVerificationTasks';
+import { useUnifiedSearch, useUnifiedFilters } from '@/hooks/useUnifiedSearch';
+import { UnifiedSearchFilterLayout, FilterGrid } from '@/components/ui/unified-search-filter-layout';
 import {
   CheckCircle,
   RefreshCw,
@@ -11,9 +21,35 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
+interface CompletedTaskFilters {
+  priority?: string;
+}
+
 export const CompletedTasksPage: React.FC = () => {
   const navigate = useNavigate();
-  const [filters, setFilters] = useState({
+
+  // Unified search with 800ms debounce
+  const {
+    searchValue,
+    debouncedSearchValue,
+    setSearchValue,
+    clearSearch,
+    isDebouncing,
+  } = useUnifiedSearch({
+    syncWithUrl: true,
+  });
+
+  // Unified filters with URL sync
+  const {
+    filters: activeFilters,
+    setFilter,
+    clearFilters,
+    hasActiveFilters,
+  } = useUnifiedFilters<CompletedTaskFilters>({
+    syncWithUrl: true,
+  });
+
+  const [paginationState, setPaginationState] = useState({
     page: 1,
     limit: 50,
     sortBy: 'completed_at',
@@ -21,7 +57,17 @@ export const CompletedTasksPage: React.FC = () => {
     status: 'COMPLETED',
   });
 
-  const { tasks, loading, error, pagination, statistics, refreshTasks } = useAllVerificationTasks(filters);
+  const queryFilters = {
+    ...paginationState,
+    search: debouncedSearchValue || undefined,
+    priority: activeFilters.priority || undefined,
+  };
+
+  const { tasks, loading, error, pagination, statistics, refreshTasks } = useAllVerificationTasks(queryFilters);
+
+  const activeFilterCount = Object.keys(activeFilters).filter(
+    key => activeFilters[key as keyof CompletedTaskFilters] !== undefined
+  ).length;
 
   const handleViewTask = (taskId: string) => {
     navigate(`/tasks/${taskId}`);

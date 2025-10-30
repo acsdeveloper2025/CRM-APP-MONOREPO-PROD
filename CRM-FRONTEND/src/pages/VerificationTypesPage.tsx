@@ -7,13 +7,26 @@ import { Badge } from '@/components/ui/badge';
 import { verificationTypesService } from '@/services/verificationTypes';
 import { VerificationTypesTable } from '@/components/clients/VerificationTypesTable';
 import { CreateVerificationTypeDialog } from '@/components/clients/CreateVerificationTypeDialog';
+import { useUnifiedSearch } from '@/hooks/useUnifiedSearch';
+import { UnifiedSearchInput } from '@/components/ui/unified-search-input';
 
 export function VerificationTypesPage() {
   const [showCreateVerificationType, setShowCreateVerificationType] = useState(false);
 
+  // Unified search with 800ms debounce
+  const {
+    searchValue,
+    debouncedSearchValue,
+    setSearchValue,
+    clearSearch,
+    isDebouncing,
+  } = useUnifiedSearch({
+    syncWithUrl: true,
+  });
+
   const { data: verificationTypesData, isLoading: verificationTypesLoading } = useQuery({
-    queryKey: ['verification-types'],
-    queryFn: () => verificationTypesService.getVerificationTypes({}),
+    queryKey: ['verification-types', debouncedSearchValue],
+    queryFn: () => verificationTypesService.getVerificationTypes({ search: debouncedSearchValue || undefined }),
   });
 
   // Fetch verification types stats

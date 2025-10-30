@@ -1,9 +1,19 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { TasksListFlat } from '@/components/verification-tasks/TasksListFlat';
 import { TaskAssignmentModal } from '@/components/verification-tasks/TaskAssignmentModal';
 import { useAllVerificationTasks } from '@/hooks/useVerificationTasks';
+import { useUnifiedSearch, useUnifiedFilters } from '@/hooks/useUnifiedSearch';
+import { UnifiedSearchFilterLayout, FilterGrid } from '@/components/ui/unified-search-filter-layout';
 import {
   Play,
   Clock,
@@ -15,10 +25,36 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 
+interface InProgressTaskFilters {
+  priority?: string;
+}
+
 export const InProgressTasksPage: React.FC = () => {
   const navigate = useNavigate();
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
-  const [filters, setFilters] = useState({
+
+  // Unified search with 800ms debounce
+  const {
+    searchValue,
+    debouncedSearchValue,
+    setSearchValue,
+    clearSearch,
+    isDebouncing,
+  } = useUnifiedSearch({
+    syncWithUrl: true,
+  });
+
+  // Unified filters with URL sync
+  const {
+    filters: activeFilters,
+    setFilter,
+    clearFilters,
+    hasActiveFilters,
+  } = useUnifiedFilters<InProgressTaskFilters>({
+    syncWithUrl: true,
+  });
+
+  const [paginationState, setPaginationState] = useState({
     page: 1,
     limit: 50,
     sortBy: 'started_at',
@@ -26,7 +62,17 @@ export const InProgressTasksPage: React.FC = () => {
     status: 'IN_PROGRESS',
   });
 
-  const { tasks, loading, error, pagination, statistics, refreshTasks } = useAllVerificationTasks(filters);
+  const queryFilters = {
+    ...paginationState,
+    search: debouncedSearchValue || undefined,
+    priority: activeFilters.priority || undefined,
+  };
+
+  const { tasks, loading, error, pagination, statistics, refreshTasks } = useAllVerificationTasks(queryFilters);
+
+  const activeFilterCount = Object.keys(activeFilters).filter(
+    key => activeFilters[key as keyof InProgressTaskFilters] !== undefined
+  ).length;
 
   // Calculate statistics
   const activeAgents = new Set(tasks.map(t => t.assignedTo).filter(Boolean)).size;

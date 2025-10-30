@@ -13,15 +13,28 @@ import { CreateUserDialog } from '@/components/users/CreateUserDialog';
 import { BulkImportUsersDialog } from '@/components/users/BulkImportUsersDialog';
 import { UserStatsCards } from '@/components/users/UserStatsCards';
 import { RolePermissionsTable } from '@/components/users/RolePermissionsTable';
+import { useUnifiedSearch } from '@/hooks/useUnifiedSearch';
+import { UnifiedSearchInput } from '@/components/ui/unified-search-input';
 
 export function UsersPage() {
   const [activeTab, setActiveTab] = useState('users');
   const [showCreateUser, setShowCreateUser] = useState(false);
   const [showBulkImport, setShowBulkImport] = useState(false);
 
+  // Unified search with 800ms debounce
+  const {
+    searchValue,
+    debouncedSearchValue,
+    setSearchValue,
+    clearSearch,
+    isDebouncing,
+  } = useUnifiedSearch({
+    syncWithUrl: true,
+  });
+
   const { data: usersData, isLoading: usersLoading } = useQuery({
-    queryKey: ['users'],
-    queryFn: () => usersService.getUsers({}),
+    queryKey: ['users', debouncedSearchValue],
+    queryFn: () => usersService.getUsers({ search: debouncedSearchValue || undefined }),
     enabled: activeTab === 'users',
   });
 

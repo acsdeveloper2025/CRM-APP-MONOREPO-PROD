@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery } from '@tantml:react-query';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,13 +7,26 @@ import { Badge } from '@/components/ui/badge';
 import { productsService } from '@/services/products';
 import { ProductsTable } from '@/components/clients/ProductsTable';
 import { CreateProductDialog } from '@/components/clients/CreateProductDialog';
+import { useUnifiedSearch } from '@/hooks/useUnifiedSearch';
+import { UnifiedSearchInput } from '@/components/ui/unified-search-input';
 
 export function ProductsPage() {
   const [showCreateProduct, setShowCreateProduct] = useState(false);
 
+  // Unified search with 800ms debounce
+  const {
+    searchValue,
+    debouncedSearchValue,
+    setSearchValue,
+    clearSearch,
+    isDebouncing,
+  } = useUnifiedSearch({
+    syncWithUrl: true,
+  });
+
   const { data: productsData, isLoading: productsLoading } = useQuery({
-    queryKey: ['products'],
-    queryFn: () => productsService.getProducts({}),
+    queryKey: ['products', debouncedSearchValue],
+    queryFn: () => productsService.getProducts({ search: debouncedSearchValue || undefined }),
   });
 
   // Fetch product stats
