@@ -330,7 +330,7 @@ export function DocumentTypeRatesTab() {
                       <Badge variant="outline">{rate.documentTypeCategory || 'N/A'}</Badge>
                     </TableCell>
                     <TableCell className="text-right font-mono">
-                      {rate.currency} {rate.amount.toFixed(2)}
+                      {rate.currency} {Number(rate.amount).toFixed(2)}
                     </TableCell>
                     <TableCell>
                       <Badge variant={rate.isActive ? 'default' : 'secondary'}>
