@@ -683,17 +683,44 @@ export const bulkImportPincodes = async (req: AuthenticatedRequest & { file?: Ex
           continue;
         }
 
+        // Helper function to get continent for a country
+        const getContinent = (countryName: string): string => {
+          const continentMap: { [key: string]: string } = {
+            'India': 'Asia',
+            'China': 'Asia',
+            'Japan': 'Asia',
+            'USA': 'North America',
+            'United States': 'North America',
+            'UK': 'Europe',
+            'United Kingdom': 'Europe',
+            'Germany': 'Europe',
+            'France': 'Europe',
+            'Australia': 'Oceania',
+            'Brazil': 'South America',
+            'Canada': 'North America',
+            'Mexico': 'North America',
+            'South Africa': 'Africa',
+            'Egypt': 'Africa',
+            'Nigeria': 'Africa',
+          };
+          return continentMap[countryName] || 'Asia'; // Default to Asia
+        };
+
         // Find or create country
+        const countryName = country || 'India';
         let countryResult = await query(
           'SELECT id FROM countries WHERE LOWER(name) = LOWER($1)',
-          [country || 'India']
+          [countryName]
         );
 
         let countryId: number;
         if (countryResult.rows.length === 0) {
+          const countryCode = countryName.substring(0, 3).toUpperCase();
+          const continent = getContinent(countryName);
+
           const newCountry = await query(
             'INSERT INTO countries (name, code, continent) VALUES ($1, $2, $3) RETURNING id',
-            [country || 'India', (country || 'India').substring(0, 3).toUpperCase(), 'Asia']
+            [countryName, countryCode, continent]
           );
           countryId = newCountry.rows[0].id;
         } else {
