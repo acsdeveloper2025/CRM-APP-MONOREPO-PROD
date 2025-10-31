@@ -34,12 +34,17 @@ export function LocationsPage() {
   const [showBulkImport, setShowBulkImport] = useState(false);
   const [bulkImportType, setBulkImportType] = useState<'countries' | 'states' | 'cities' | 'pincodes'>('countries');
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(100); // Increased default page size
+
   // Get active tab from URL or default to 'countries'
   const activeTab = searchParams.get('tab') || 'countries';
 
   // Handle tab change and update URL
   const handleTabChange = (newTab: string) => {
     setSearchParams({ tab: newTab });
+    setCurrentPage(1); // Reset to page 1 when changing tabs
   };
 
   // Unified search with 800ms debounce
@@ -52,6 +57,11 @@ export function LocationsPage() {
   } = useUnifiedSearch({
     syncWithUrl: true,
   });
+
+  // Reset to page 1 when search changes
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearchValue]);
 
   const { data: countriesData, isLoading: countriesLoading } = useQuery({
     queryKey: ['countries', debouncedSearchValue],
@@ -72,14 +82,22 @@ export function LocationsPage() {
   });
 
   const { data: pincodesData, isLoading: pincodesLoading } = useQuery({
-    queryKey: ['pincodes', debouncedSearchValue],
-    queryFn: () => locationsService.getPincodes({ search: debouncedSearchValue || undefined }),
+    queryKey: ['pincodes', debouncedSearchValue, currentPage, pageSize],
+    queryFn: () => locationsService.getPincodes({
+      search: debouncedSearchValue || undefined,
+      page: currentPage,
+      limit: pageSize
+    }),
     enabled: activeTab === 'pincodes',
   });
 
   const { data: areasData, isLoading: areasLoading } = useQuery({
-    queryKey: ['areas', debouncedSearchValue],
-    queryFn: () => locationsService.getAreas({ search: debouncedSearchValue || undefined }),
+    queryKey: ['areas', debouncedSearchValue, currentPage, pageSize],
+    queryFn: () => locationsService.getAreas({
+      search: debouncedSearchValue || undefined,
+      page: currentPage,
+      limit: pageSize
+    }),
     enabled: activeTab === 'areas',
   });
 
@@ -93,8 +111,8 @@ export function LocationsPage() {
       countries: countriesData?.data?.length || 0,
       states: statesData?.data?.length || 0,
       cities: citiesData?.data?.length || 0,
-      pincodes: pincodesData?.data?.length || 0,
-      areas: areasData?.data?.length || 0,
+      pincodes: pincodesData?.pagination?.total || pincodesData?.data?.length || 0,
+      areas: areasData?.pagination?.total || areasData?.data?.length || 0,
     };
   };
 
@@ -357,6 +375,34 @@ export function LocationsPage() {
                 data={pincodesData?.data || []}
                 isLoading={pincodesLoading}
               />
+              {pincodesData?.pagination && (
+                <div className="flex items-center justify-between px-2">
+                  <div className="text-sm text-muted-foreground">
+                    Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, pincodesData.pagination.total)} of {pincodesData.pagination.total} pincodes
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                      disabled={!pincodesData.pagination.hasPrev}
+                    >
+                      Previous
+                    </Button>
+                    <div className="text-sm">
+                      Page {currentPage} of {pincodesData.pagination.pages}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(p => p + 1)}
+                      disabled={!pincodesData.pagination.hasNext}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              )}
             </TabsContent>
 
             <TabsContent value="areas" className="space-y-4">
@@ -364,6 +410,34 @@ export function LocationsPage() {
                 data={areasData?.data || []}
                 isLoading={areasLoading}
               />
+              {areasData?.pagination && (
+                <div className="flex items-center justify-between px-2">
+                  <div className="text-sm text-muted-foreground">
+                    Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, areasData.pagination.total)} of {areasData.pagination.total} areas
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                      disabled={!areasData.pagination.hasPrev}
+                    >
+                      Previous
+                    </Button>
+                    <div className="text-sm">
+                      Page {currentPage} of {areasData.pagination.pages}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(p => p + 1)}
+                      disabled={!areasData.pagination.hasNext}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              )}
             </TabsContent>
           </Tabs>
         </CardContent>
