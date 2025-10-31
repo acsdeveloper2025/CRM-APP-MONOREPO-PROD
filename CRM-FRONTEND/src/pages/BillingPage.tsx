@@ -16,6 +16,8 @@ import { UnifiedSearchInput } from '@/components/ui/unified-search-input';
 export function BillingPage() {
   const [activeTab, setActiveTab] = useState('invoices');
   const [showCreateInvoice, setShowCreateInvoice] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 20;
 
   // Unified search with 800ms debounce
   const {
@@ -28,15 +30,28 @@ export function BillingPage() {
     syncWithUrl: true,
   });
 
+  // Reset to page 1 when search changes or tab changes
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearchValue, activeTab]);
+
   const { data: invoicesData, isLoading: invoicesLoading } = useQuery({
-    queryKey: ['invoices', debouncedSearchValue],
-    queryFn: () => billingService.getInvoices({ search: debouncedSearchValue || undefined }),
+    queryKey: ['invoices', debouncedSearchValue, currentPage, pageSize],
+    queryFn: () => billingService.getInvoices({
+      search: debouncedSearchValue || undefined,
+      page: currentPage,
+      limit: pageSize,
+    }),
     enabled: activeTab === 'invoices',
   });
 
   const { data: commissionsData, isLoading: commissionsLoading } = useQuery({
-    queryKey: ['commissions', debouncedSearchValue],
-    queryFn: () => billingService.getCommissions({ search: debouncedSearchValue || undefined }),
+    queryKey: ['commissions', debouncedSearchValue, currentPage, pageSize],
+    queryFn: () => billingService.getCommissions({
+      search: debouncedSearchValue || undefined,
+      page: currentPage,
+      limit: pageSize,
+    }),
     enabled: activeTab === 'commissions',
   });
 
@@ -223,6 +238,34 @@ export function BillingPage() {
                 data={invoicesData?.data || []}
                 isLoading={invoicesLoading}
               />
+              {invoicesData?.pagination && (
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
+                  <div className="text-sm text-muted-foreground">
+                    Showing {invoicesData.data?.length || 0} of {invoicesData.pagination.total} invoices
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                      disabled={currentPage === 1}
+                    >
+                      Previous
+                    </Button>
+                    <div className="text-sm">
+                      Page {currentPage} of {invoicesData.pagination.totalPages || 1}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => prev + 1)}
+                      disabled={currentPage >= (invoicesData.pagination.totalPages || 1)}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              )}
             </TabsContent>
 
             <TabsContent value="commissions" className="space-y-4">
@@ -233,6 +276,34 @@ export function BillingPage() {
                 data={commissionsData?.data || []}
                 isLoading={commissionsLoading}
               />
+              {commissionsData?.pagination && (
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
+                  <div className="text-sm text-muted-foreground">
+                    Showing {commissionsData.data?.length || 0} of {commissionsData.pagination.total} commissions
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                      disabled={currentPage === 1}
+                    >
+                      Previous
+                    </Button>
+                    <div className="text-sm">
+                      Page {currentPage} of {commissionsData.pagination.totalPages || 1}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => prev + 1)}
+                      disabled={currentPage >= (commissionsData.pagination.totalPages || 1)}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              )}
             </TabsContent>
           </Tabs>
         </CardContent>

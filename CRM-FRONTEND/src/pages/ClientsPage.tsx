@@ -28,6 +28,13 @@ export function ClientsPage() {
   const [showBulkImport, setShowBulkImport] = useState(false);
   const [bulkImportType, setBulkImportType] = useState<'clients' | 'products'>('clients');
 
+  // Pagination state for each tab
+  const [clientsPage, setClientsPage] = useState(1);
+  const [productsPage, setProductsPage] = useState(1);
+  const [verificationTypesPage, setVerificationTypesPage] = useState(1);
+  const [documentTypesPage, setDocumentTypesPage] = useState(1);
+  const pageSize = 20;
+
   // Unified search with 800ms debounce
   const {
     searchValue,
@@ -40,23 +47,36 @@ export function ClientsPage() {
   });
 
   const { data: clientsData, isLoading: clientsLoading } = useQuery({
-    queryKey: ['clients', debouncedSearchValue],
-    queryFn: () => clientsService.getClients({ search: debouncedSearchValue || undefined }),
+    queryKey: ['clients', debouncedSearchValue, clientsPage, pageSize],
+    queryFn: () => clientsService.getClients({
+      search: debouncedSearchValue || undefined,
+      page: clientsPage,
+      limit: pageSize,
+    }),
   });
 
   const { data: productsData, isLoading: productsLoading } = useQuery({
-    queryKey: ['products'],
-    queryFn: () => clientsService.getProducts({}),
+    queryKey: ['products', productsPage, pageSize],
+    queryFn: () => clientsService.getProducts({
+      page: productsPage,
+      limit: pageSize,
+    }),
   });
 
   const { data: verificationTypesData, isLoading: verificationTypesLoading } = useQuery({
-    queryKey: ['verification-types'],
-    queryFn: () => clientsService.getVerificationTypes({}),
+    queryKey: ['verification-types', verificationTypesPage, pageSize],
+    queryFn: () => clientsService.getVerificationTypes({
+      page: verificationTypesPage,
+      limit: pageSize,
+    }),
   });
 
   const { data: documentTypesData, isLoading: documentTypesLoading } = useQuery({
-    queryKey: ['document-types'],
-    queryFn: () => documentTypesService.getDocumentTypes({}),
+    queryKey: ['document-types', documentTypesPage, pageSize],
+    queryFn: () => documentTypesService.getDocumentTypes({
+      page: documentTypesPage,
+      limit: pageSize,
+    }),
   });
 
   const handleBulkImport = (type: 'clients' | 'products') => {
@@ -66,10 +86,10 @@ export function ClientsPage() {
 
   const getTabStats = () => {
     return {
-      clients: clientsData?.data?.length || 0,
-      products: productsData?.data?.length || 0,
-      verificationTypes: verificationTypesData?.data?.length || 0,
-      documentTypes: documentTypesData?.data?.length || 0,
+      clients: clientsData?.pagination?.total || clientsData?.data?.length || 0,
+      products: productsData?.pagination?.total || productsData?.data?.length || 0,
+      verificationTypes: verificationTypesData?.pagination?.total || verificationTypesData?.data?.length || 0,
+      documentTypes: documentTypesData?.pagination?.total || documentTypesData?.data?.length || 0,
     };
   };
 
@@ -262,6 +282,35 @@ export function ClientsPage() {
                   isLoading={clientsLoading}
                 />
               </div>
+              {/* Pagination Controls */}
+              {clientsData?.pagination && (
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
+                  <div className="text-sm text-muted-foreground">
+                    Showing {clientsData.data?.length || 0} of {clientsData.pagination.total} clients
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setClientsPage(prev => Math.max(1, prev - 1))}
+                      disabled={clientsPage === 1}
+                    >
+                      Previous
+                    </Button>
+                    <div className="text-sm">
+                      Page {clientsPage} of {clientsData.pagination.totalPages || 1}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setClientsPage(prev => prev + 1)}
+                      disabled={clientsPage >= (clientsData.pagination.totalPages || 1)}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              )}
             </TabsContent>
 
             <TabsContent value="products" className="space-y-4 overflow-x-auto">
@@ -271,6 +320,35 @@ export function ClientsPage() {
                   isLoading={productsLoading}
                 />
               </div>
+              {/* Pagination Controls */}
+              {productsData?.pagination && (
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
+                  <div className="text-sm text-muted-foreground">
+                    Showing {productsData.data?.length || 0} of {productsData.pagination.total} products
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setProductsPage(prev => Math.max(1, prev - 1))}
+                      disabled={productsPage === 1}
+                    >
+                      Previous
+                    </Button>
+                    <div className="text-sm">
+                      Page {productsPage} of {productsData.pagination.totalPages || 1}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setProductsPage(prev => prev + 1)}
+                      disabled={productsPage >= (productsData.pagination.totalPages || 1)}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              )}
             </TabsContent>
 
             <TabsContent value="verification-types" className="space-y-4 overflow-x-auto">
@@ -280,6 +358,35 @@ export function ClientsPage() {
                   isLoading={verificationTypesLoading}
                 />
               </div>
+              {/* Pagination Controls */}
+              {verificationTypesData?.pagination && (
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
+                  <div className="text-sm text-muted-foreground">
+                    Showing {verificationTypesData.data?.length || 0} of {verificationTypesData.pagination.total} verification types
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setVerificationTypesPage(prev => Math.max(1, prev - 1))}
+                      disabled={verificationTypesPage === 1}
+                    >
+                      Previous
+                    </Button>
+                    <div className="text-sm">
+                      Page {verificationTypesPage} of {verificationTypesData.pagination.totalPages || 1}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setVerificationTypesPage(prev => prev + 1)}
+                      disabled={verificationTypesPage >= (verificationTypesData.pagination.totalPages || 1)}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              )}
             </TabsContent>
 
             <TabsContent value="document-types" className="space-y-4 overflow-x-auto">
@@ -289,6 +396,35 @@ export function ClientsPage() {
                   isLoading={documentTypesLoading}
                 />
               </div>
+              {/* Pagination Controls */}
+              {documentTypesData?.pagination && (
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
+                  <div className="text-sm text-muted-foreground">
+                    Showing {documentTypesData.data?.length || 0} of {documentTypesData.pagination.total} document types
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setDocumentTypesPage(prev => Math.max(1, prev - 1))}
+                      disabled={documentTypesPage === 1}
+                    >
+                      Previous
+                    </Button>
+                    <div className="text-sm">
+                      Page {documentTypesPage} of {documentTypesData.pagination.totalPages || 1}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setDocumentTypesPage(prev => prev + 1)}
+                      disabled={documentTypesPage >= (documentTypesData.pagination.totalPages || 1)}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              )}
             </TabsContent>
           </Tabs>
         </CardContent>

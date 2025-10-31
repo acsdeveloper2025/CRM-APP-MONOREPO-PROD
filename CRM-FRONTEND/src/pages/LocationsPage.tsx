@@ -64,20 +64,32 @@ export function LocationsPage() {
   }, [debouncedSearchValue]);
 
   const { data: countriesData, isLoading: countriesLoading } = useQuery({
-    queryKey: ['countries', debouncedSearchValue],
-    queryFn: () => locationsService.getCountries({ search: debouncedSearchValue || undefined }),
+    queryKey: ['countries', debouncedSearchValue, currentPage, pageSize],
+    queryFn: () => locationsService.getCountries({
+      search: debouncedSearchValue || undefined,
+      page: currentPage,
+      limit: pageSize,
+    }),
     enabled: activeTab === 'countries',
   });
 
   const { data: statesData, isLoading: statesLoading } = useQuery({
-    queryKey: ['states', debouncedSearchValue],
-    queryFn: () => locationsService.getStates({ search: debouncedSearchValue || undefined }),
+    queryKey: ['states', debouncedSearchValue, currentPage, pageSize],
+    queryFn: () => locationsService.getStates({
+      search: debouncedSearchValue || undefined,
+      page: currentPage,
+      limit: pageSize,
+    }),
     enabled: activeTab === 'states',
   });
 
   const { data: citiesData, isLoading: citiesLoading } = useQuery({
-    queryKey: ['cities', debouncedSearchValue],
-    queryFn: () => locationsService.getCities({ search: debouncedSearchValue || undefined }),
+    queryKey: ['cities', debouncedSearchValue, currentPage, pageSize],
+    queryFn: () => locationsService.getCities({
+      search: debouncedSearchValue || undefined,
+      page: currentPage,
+      limit: pageSize,
+    }),
     enabled: activeTab === 'cities',
   });
 
@@ -354,6 +366,34 @@ export function LocationsPage() {
                 data={countriesData?.data || []}
                 isLoading={countriesLoading}
               />
+              {countriesData?.pagination && (
+                <div className="flex items-center justify-between px-2">
+                  <div className="text-sm text-muted-foreground">
+                    Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, countriesData.pagination.total)} of {countriesData.pagination.total} countries
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                      disabled={currentPage === 1}
+                    >
+                      Previous
+                    </Button>
+                    <div className="text-sm">
+                      Page {currentPage} of {countriesData.pagination.totalPages || 1}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => prev + 1)}
+                      disabled={currentPage >= (countriesData.pagination.totalPages || 1)}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              )}
             </TabsContent>
 
             <TabsContent value="states" className="space-y-4">
@@ -361,6 +401,34 @@ export function LocationsPage() {
                 data={statesData?.data || []}
                 isLoading={statesLoading}
               />
+              {statesData?.pagination && (
+                <div className="flex items-center justify-between px-2">
+                  <div className="text-sm text-muted-foreground">
+                    Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, statesData.pagination.total)} of {statesData.pagination.total} states
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                      disabled={currentPage === 1}
+                    >
+                      Previous
+                    </Button>
+                    <div className="text-sm">
+                      Page {currentPage} of {statesData.pagination.totalPages || 1}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => prev + 1)}
+                      disabled={currentPage >= (statesData.pagination.totalPages || 1)}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              )}
             </TabsContent>
 
             <TabsContent value="cities" className="space-y-4">
@@ -368,6 +436,34 @@ export function LocationsPage() {
                 data={citiesData?.data || []}
                 isLoading={citiesLoading}
               />
+              {citiesData?.pagination && (
+                <div className="flex items-center justify-between px-2">
+                  <div className="text-sm text-muted-foreground">
+                    Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, citiesData.pagination.total)} of {citiesData.pagination.total} cities
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                      disabled={currentPage === 1}
+                    >
+                      Previous
+                    </Button>
+                    <div className="text-sm">
+                      Page {currentPage} of {citiesData.pagination.totalPages || 1}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => prev + 1)}
+                      disabled={currentPage >= (citiesData.pagination.totalPages || 1)}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              )}
             </TabsContent>
 
             <TabsContent value="pincodes" className="space-y-4">

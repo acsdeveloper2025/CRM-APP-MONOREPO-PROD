@@ -40,11 +40,16 @@ interface DepartmentsTableProps {
 
 export function DepartmentsTable({ onEditDepartment }: DepartmentsTableProps) {
   const [deleteDepartment, setDeleteDepartment] = useState<Department | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 20;
   const queryClient = useQueryClient();
 
   const { data: departmentsData, isLoading, error } = useQuery({
-    queryKey: ['departments'],
-    queryFn: () => departmentsService.getDepartments({ limit: 100 }),
+    queryKey: ['departments', currentPage, pageSize],
+    queryFn: () => departmentsService.getDepartments({
+      page: currentPage,
+      limit: pageSize,
+    }),
     staleTime: 0,
     refetchOnWindowFocus: true,
   });
@@ -205,6 +210,36 @@ export function DepartmentsTable({ onEditDepartment }: DepartmentsTableProps) {
           </TableBody>
         </Table>
       </div>
+
+      {/* Pagination Controls */}
+      {departmentsData?.pagination && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
+          <div className="text-sm text-muted-foreground">
+            Showing {departmentsData.data?.length || 0} of {departmentsData.pagination.total} departments
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              disabled={currentPage === 1}
+            >
+              Previous
+            </Button>
+            <div className="text-sm">
+              Page {currentPage} of {departmentsData.pagination.totalPages || departmentsData.pagination.pages || 1}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(prev => prev + 1)}
+              disabled={currentPage >= (departmentsData.pagination.totalPages || departmentsData.pagination.pages || 1)}
+            >
+              Next
+            </Button>
+          </div>
+        </div>
+      )}
 
       <AlertDialog open={!!deleteDepartment} onOpenChange={() => setDeleteDepartment(null)}>
         <AlertDialogContent>

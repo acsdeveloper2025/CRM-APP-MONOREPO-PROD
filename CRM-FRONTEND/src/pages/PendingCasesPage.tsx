@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -11,7 +12,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { PendingCasesTable } from '@/components/cases/PendingCasesTable';
-import { usePendingCases, useUpdateCaseStatus, useAssignCase, useRefreshCases } from '@/hooks/useCases';
+import { useUpdateCaseStatus, useAssignCase, useRefreshCases } from '@/hooks/useCases';
 import { useUnifiedSearch, useUnifiedFilters } from '@/hooks/useUnifiedSearch';
 import { UnifiedSearchFilterLayout, FilterGrid } from '@/components/ui/unified-search-filter-layout';
 import { Download, RefreshCw, Clock, AlertTriangle, Flag, ArrowUp } from 'lucide-react';
@@ -25,6 +26,8 @@ interface PendingCaseFilters {
 export const PendingCasesPage: React.FC = () => {
   const [flagOverdueCases, setFlagOverdueCases] = useState(true);
   const [reviewUrgentFirst, setReviewUrgentFirst] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 20;
 
   // Unified search with 800ms debounce
   const {
@@ -47,7 +50,23 @@ export const PendingCasesPage: React.FC = () => {
     syncWithUrl: true,
   });
 
-  const { data: casesData, isLoading, error, refetch } = usePendingCases();
+  // Reset to page 1 when search or filters change
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearchValue, activeFilters]);
+
+  const { data: casesData, isLoading, error, refetch } = useQuery({
+    queryKey: ['cases', 'pending', debouncedSearchValue, activeFilters, currentPage, pageSize],
+    queryFn: () => casesService.getCases({
+      status: 'PENDING',
+      search: debouncedSearchValue || undefined,
+      priority: activeFilters.priority || undefined,
+      clientId: activeFilters.client || undefined,
+      page: currentPage,
+      limit: pageSize,
+    }),
+  });
+
   const updateStatusMutation = useUpdateCaseStatus();
   const assignCaseMutation = useAssignCase();
   const { refreshCases } = useRefreshCases();
@@ -313,6 +332,36 @@ export const PendingCasesPage: React.FC = () => {
             flagOverdueCases={flagOverdueCases}
             reviewUrgentFirst={reviewUrgentFirst}
           />
+
+          {/* Pagination Controls */}
+          {casesData?.pagination && (
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-6">
+              <div className="text-sm text-muted-foreground">
+                Showing {casesData.data?.length || 0} of {casesData.pagination.total} pending cases
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                >
+                  Previous
+                </Button>
+                <div className="text-sm">
+                  Page {currentPage} of {casesData.pagination.totalPages || 1}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => prev + 1)}
+                  disabled={currentPage >= (casesData.pagination.totalPages || 1)}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

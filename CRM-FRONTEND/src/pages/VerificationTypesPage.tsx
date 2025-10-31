@@ -12,6 +12,8 @@ import { UnifiedSearchInput } from '@/components/ui/unified-search-input';
 
 export function VerificationTypesPage() {
   const [showCreateVerificationType, setShowCreateVerificationType] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 20;
 
   // Unified search with 800ms debounce
   const {
@@ -25,8 +27,12 @@ export function VerificationTypesPage() {
   });
 
   const { data: verificationTypesData, isLoading: verificationTypesLoading } = useQuery({
-    queryKey: ['verification-types', debouncedSearchValue],
-    queryFn: () => verificationTypesService.getVerificationTypes({ search: debouncedSearchValue || undefined }),
+    queryKey: ['verification-types', debouncedSearchValue, currentPage, pageSize],
+    queryFn: () => verificationTypesService.getVerificationTypes({
+      search: debouncedSearchValue || undefined,
+      page: currentPage,
+      limit: pageSize,
+    }),
   });
 
   // Fetch verification types stats
@@ -116,6 +122,36 @@ export function VerificationTypesPage() {
               data={verificationTypes}
               isLoading={verificationTypesLoading}
             />
+
+            {/* Pagination Controls */}
+            {verificationTypesData?.pagination && (
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
+                <div className="text-sm text-muted-foreground">
+                  Showing {verificationTypesData.data?.length || 0} of {verificationTypesData.pagination.total} verification types
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    Previous
+                  </Button>
+                  <div className="text-sm">
+                    Page {currentPage} of {verificationTypesData.pagination.totalPages || 1}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => prev + 1)}
+                    disabled={currentPage >= (verificationTypesData.pagination.totalPages || 1)}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>

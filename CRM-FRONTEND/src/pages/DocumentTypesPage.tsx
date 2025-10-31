@@ -12,6 +12,8 @@ import { UnifiedSearchInput } from '@/components/ui/unified-search-input';
 
 export const DocumentTypesPage: React.FC = () => {
   const [showCreateDocumentType, setShowCreateDocumentType] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 20;
 
   // Unified search with 800ms debounce
   const {
@@ -25,9 +27,10 @@ export const DocumentTypesPage: React.FC = () => {
   });
 
   const { data: documentTypesData, isLoading: documentTypesLoading } = useQuery({
-    queryKey: ['document-types', debouncedSearchValue],
+    queryKey: ['document-types', debouncedSearchValue, currentPage, pageSize],
     queryFn: () => documentTypesService.getDocumentTypes({
-      limit: 100,
+      page: currentPage,
+      limit: pageSize,
       sortBy: 'sort_order',
       sortOrder: 'asc',
       search: debouncedSearchValue || undefined,
@@ -120,6 +123,36 @@ export const DocumentTypesPage: React.FC = () => {
               data={documentTypes}
               isLoading={documentTypesLoading}
             />
+
+            {/* Pagination Controls */}
+            {documentTypesData?.pagination && (
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
+                <div className="text-sm text-muted-foreground">
+                  Showing {documentTypesData.data?.length || 0} of {documentTypesData.pagination.total} document types
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    Previous
+                  </Button>
+                  <div className="text-sm">
+                    Page {currentPage} of {documentTypesData.pagination.totalPages || 1}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => prev + 1)}
+                    disabled={currentPage >= (documentTypesData.pagination.totalPages || 1)}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
