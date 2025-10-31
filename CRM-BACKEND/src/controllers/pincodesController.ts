@@ -692,8 +692,8 @@ export const bulkImportPincodes = async (req: AuthenticatedRequest & { file?: Ex
         let countryId: number;
         if (countryResult.rows.length === 0) {
           const newCountry = await query(
-            'INSERT INTO countries (name, code, "isActive") VALUES ($1, $2, true) RETURNING id',
-            [country || 'India', (country || 'India').substring(0, 3).toUpperCase()]
+            'INSERT INTO countries (name, code, continent) VALUES ($1, $2, $3) RETURNING id',
+            [country || 'India', (country || 'India').substring(0, 3).toUpperCase(), 'Asia']
           );
           countryId = newCountry.rows[0].id;
         } else {
