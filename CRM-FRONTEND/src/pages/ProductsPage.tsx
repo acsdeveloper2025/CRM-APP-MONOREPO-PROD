@@ -12,6 +12,8 @@ import { UnifiedSearchInput } from '@/components/ui/unified-search-input';
 
 export function ProductsPage() {
   const [showCreateProduct, setShowCreateProduct] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 20;
 
   // Unified search with 800ms debounce
   const {
@@ -25,8 +27,12 @@ export function ProductsPage() {
   });
 
   const { data: productsData, isLoading: productsLoading } = useQuery({
-    queryKey: ['products', debouncedSearchValue],
-    queryFn: () => productsService.getProducts({ search: debouncedSearchValue || undefined }),
+    queryKey: ['products', debouncedSearchValue, currentPage, pageSize],
+    queryFn: () => productsService.getProducts({
+      search: debouncedSearchValue || undefined,
+      page: currentPage,
+      limit: pageSize,
+    }),
   });
 
   // Fetch product stats
@@ -116,6 +122,36 @@ export function ProductsPage() {
               data={products}
               isLoading={productsLoading}
             />
+
+            {/* Pagination Controls */}
+            {productsData?.pagination && (
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
+                <div className="text-sm text-muted-foreground">
+                  Showing {productsData.data?.length || 0} of {productsData.pagination.total} products
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    Previous
+                  </Button>
+                  <div className="text-sm">
+                    Page {currentPage} of {productsData.pagination.totalPages || 1}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => prev + 1)}
+                    disabled={currentPage >= (productsData.pagination.totalPages || 1)}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>

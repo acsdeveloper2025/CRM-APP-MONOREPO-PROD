@@ -57,16 +57,19 @@ export function DesignationList({ onEdit }: DesignationListProps) {
   const [departmentFilter, setDepartmentFilter] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [deleteConfirm, setDeleteConfirm] = useState<Designation | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 20;
   const queryClient = useQueryClient();
 
   // Fetch designations
   const { data: designationsData, isLoading } = useQuery({
-    queryKey: ['designations', debouncedSearchValue, departmentFilter, statusFilter],
+    queryKey: ['designations', debouncedSearchValue, departmentFilter, statusFilter, currentPage, pageSize],
     queryFn: () => designationsService.getDesignations({
       search: debouncedSearchValue || undefined,
       departmentId: departmentFilter === '__all__' || departmentFilter === '__none__' || !departmentFilter ? undefined : departmentFilter,
       isActive: statusFilter === '__all__' || !statusFilter ? undefined : statusFilter === 'active',
-      limit: 50,
+      page: currentPage,
+      limit: pageSize,
     }),
   });
 
@@ -262,6 +265,36 @@ export function DesignationList({ onEdit }: DesignationListProps) {
                   ))}
                 </TableBody>
               </Table>
+            </div>
+          )}
+
+          {/* Pagination Controls */}
+          {designationsData?.pagination && (
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 px-6">
+              <div className="text-sm text-muted-foreground">
+                Showing {designationsData.data?.length || 0} of {designationsData.pagination.total} designations
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                >
+                  Previous
+                </Button>
+                <div className="text-sm">
+                  Page {currentPage} of {designationsData.pagination.totalPages || 1}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => prev + 1)}
+                  disabled={currentPage >= (designationsData.pagination.totalPages || 1)}
+                >
+                  Next
+                </Button>
+              </div>
             </div>
           )}
         </CardContent>
