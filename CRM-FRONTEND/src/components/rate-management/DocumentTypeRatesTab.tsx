@@ -35,8 +35,15 @@ export function DocumentTypeRatesTab() {
   const [amount, setAmount] = useState<string>('');
   const [currency, setCurrency] = useState<string>('INR');
   const [editingRateId, setEditingRateId] = useState<number | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 20;
 
   const queryClient = useQueryClient();
+
+  // Reset to page 1 when filters change
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedClientId, selectedProductId]);
 
   // Fetch clients
   const { data: clientsData } = useQuery({
@@ -62,12 +69,13 @@ export function DocumentTypeRatesTab() {
 
   // Fetch configured document type rates
   const { data: ratesData, isLoading: ratesLoading } = useQuery({
-    queryKey: ['document-type-rates', selectedClientId, selectedProductId],
+    queryKey: ['document-type-rates', selectedClientId, selectedProductId, currentPage, pageSize],
     queryFn: () => documentTypeRatesService.getDocumentTypeRates({
       clientId: selectedClientId || undefined,
       productId: selectedProductId || undefined,
       isActive: true,
-      limit: 100,
+      page: currentPage,
+      limit: pageSize,
     }),
     enabled: !!(selectedClientId || selectedProductId),
   });
@@ -360,6 +368,36 @@ export function DocumentTypeRatesTab() {
                 ))}
               </TableBody>
             </Table>
+          )}
+
+          {/* Pagination Controls */}
+          {ratesData?.pagination && (
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
+              <div className="text-sm text-muted-foreground">
+                Showing {rates.length} of {ratesData.pagination.total} document type rates
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                >
+                  Previous
+                </Button>
+                <div className="text-sm">
+                  Page {currentPage} of {ratesData.pagination.totalPages || 1}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => prev + 1)}
+                  disabled={currentPage >= (ratesData.pagination.totalPages || 1)}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
           )}
         </CardContent>
       </Card>
