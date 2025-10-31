@@ -46,8 +46,11 @@ export const FormSubmissionsTable: React.FC = () => {
     setCurrentPage(1);
   }, [dateRange.from, dateRange.to]);
 
+  // Calculate offset from page number (backend uses offset, not page)
+  const offset = (currentPage - 1) * pageSize;
+
   const { data: submissionsData, isLoading } = useFormSubmissions({
-    page: currentPage,
+    offset,
     limit: pageSize,
     dateFrom: dateRange.from || undefined,
     dateTo: dateRange.to || undefined,
@@ -297,34 +300,38 @@ export const FormSubmissionsTable: React.FC = () => {
           </div>
 
           {/* Pagination Controls */}
-          {submissionsData?.data?.pagination && (
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
-              <div className="text-sm text-muted-foreground">
-                Showing {submissions.length} of {submissionsData.data.pagination.total} submissions
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                  disabled={currentPage === 1}
-                >
-                  Previous
-                </Button>
-                <div className="text-sm">
-                  Page {currentPage} of {submissionsData.data.pagination.totalPages || 1}
+          {submissionsData?.data?.pagination && (() => {
+            const { total, limit } = submissionsData.data.pagination;
+            const totalPages = Math.ceil(total / limit);
+            return (
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
+                <div className="text-sm text-muted-foreground">
+                  Showing {submissions.length} of {total} submissions
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage(prev => prev + 1)}
-                  disabled={currentPage >= (submissionsData.data.pagination.totalPages || 1)}
-                >
-                  Next
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    Previous
+                  </Button>
+                  <div className="text-sm">
+                    Page {currentPage} of {totalPages}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => prev + 1)}
+                    disabled={currentPage >= totalPages}
+                  >
+                    Next
+                  </Button>
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
         </CardContent>
       </Card>
     </div>
