@@ -24,9 +24,11 @@ export function UsersPage() {
   const [showCreateUser, setShowCreateUser] = useState(false);
   const [showBulkImport, setShowBulkImport] = useState(false);
 
-  // Pagination state
+  // Pagination state for each tab
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
+  const [activitiesPage, setActivitiesPage] = useState(1);
+  const [sessionsPage, setSessionsPage] = useState(1);
 
   // Unified search with 800ms debounce
   const {
@@ -70,18 +72,20 @@ export function UsersPage() {
   });
 
   const { data: activitiesData, isLoading: activitiesLoading } = useQuery({
-    queryKey: ['user-activities', debouncedSearchValue],
+    queryKey: ['user-activities', debouncedSearchValue, activitiesPage, pageSize],
     queryFn: () => usersService.getUserActivities({
-      limit: 50,
+      page: activitiesPage,
+      limit: pageSize,
       search: debouncedSearchValue || undefined,
     }),
     enabled: activeTab === 'activities',
   });
 
   const { data: sessionsData, isLoading: sessionsLoading } = useQuery({
-    queryKey: ['user-sessions', debouncedSearchValue],
+    queryKey: ['user-sessions', debouncedSearchValue, sessionsPage, pageSize],
     queryFn: () => usersService.getUserSessions({
-      limit: 50,
+      page: sessionsPage,
+      limit: pageSize,
       search: debouncedSearchValue || undefined,
     }),
     enabled: activeTab === 'sessions',
@@ -386,6 +390,36 @@ export function UsersPage() {
                 data={Array.isArray(activitiesData?.data) ? activitiesData.data : []}
                 isLoading={activitiesLoading}
               />
+
+              {/* Pagination Controls */}
+              {activitiesData?.pagination && (
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
+                  <div className="text-sm text-muted-foreground">
+                    Showing {activitiesData.data?.length || 0} of {activitiesData.pagination.total} activities
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setActivitiesPage(prev => Math.max(1, prev - 1))}
+                      disabled={activitiesPage === 1}
+                    >
+                      Previous
+                    </Button>
+                    <div className="text-sm">
+                      Page {activitiesPage} of {activitiesData.pagination.totalPages || 1}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setActivitiesPage(prev => prev + 1)}
+                      disabled={activitiesPage >= (activitiesData.pagination.totalPages || 1)}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              )}
             </TabsContent>
 
             <TabsContent value="sessions" className="space-y-4">
@@ -404,6 +438,36 @@ export function UsersPage() {
                 data={Array.isArray(sessionsData?.data) ? sessionsData.data : []}
                 isLoading={sessionsLoading}
               />
+
+              {/* Pagination Controls */}
+              {sessionsData?.pagination && (
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
+                  <div className="text-sm text-muted-foreground">
+                    Showing {sessionsData.data?.length || 0} of {sessionsData.pagination.total} sessions
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setSessionsPage(prev => Math.max(1, prev - 1))}
+                      disabled={sessionsPage === 1}
+                    >
+                      Previous
+                    </Button>
+                    <div className="text-sm">
+                      Page {sessionsPage} of {sessionsData.pagination.totalPages || 1}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setSessionsPage(prev => prev + 1)}
+                      disabled={sessionsPage >= (sessionsData.pagination.totalPages || 1)}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              )}
             </TabsContent>
 
             <TabsContent value="permissions" className="space-y-4">
