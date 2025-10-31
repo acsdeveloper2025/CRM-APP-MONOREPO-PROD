@@ -56,7 +56,7 @@ export const AllTasksPage: React.FC = () => {
 
   const [paginationState, setPaginationState] = useState({
     page: 1,
-    limit: 50,
+    limit: 20,
     sortBy: 'created_at',
     sortOrder: 'desc' as 'asc' | 'desc',
   });
@@ -251,35 +251,37 @@ export const AllTasksPage: React.FC = () => {
         onViewCase={handleViewCase}
       />
 
-      {/* Pagination */}
-      {pagination.totalPages > 1 && (
+      {/* Pagination - Always show for better UX */}
+      {pagination.total > 0 && (
         <Card>
           <CardContent className="py-4">
             <div className="flex items-center justify-between">
               <p className="text-sm text-muted-foreground">
                 Showing {((pagination.page - 1) * pagination.limit) + 1} to {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} tasks
               </p>
-              <div className="flex items-center space-x-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleFilterChange('page', pagination.page - 1)}
-                  disabled={pagination.page === 1}
-                >
-                  Previous
-                </Button>
-                <span className="text-sm">
-                  Page {pagination.page} of {pagination.totalPages}
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleFilterChange('page', pagination.page + 1)}
-                  disabled={pagination.page === pagination.totalPages}
-                >
-                  Next
-                </Button>
-              </div>
+              {pagination.totalPages > 1 && (
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleFilterChange('page', pagination.page - 1)}
+                    disabled={pagination.page === 1}
+                  >
+                    Previous
+                  </Button>
+                  <span className="text-sm">
+                    Page {pagination.page} of {pagination.totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleFilterChange('page', pagination.page + 1)}
+                    disabled={pagination.page === pagination.totalPages}
+                  >
+                    Next
+                  </Button>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
