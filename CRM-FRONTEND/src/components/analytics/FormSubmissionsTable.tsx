@@ -38,8 +38,17 @@ const COLORS = {
 
 export const FormSubmissionsTable: React.FC = () => {
   const [dateRange, setDateRange] = useState({ from: '', to: '' });
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 20;
+
+  // Reset to page 1 when date range changes
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [dateRange.from, dateRange.to]);
+
   const { data: submissionsData, isLoading } = useFormSubmissions({
-    limit: 100,
+    page: currentPage,
+    limit: pageSize,
     dateFrom: dateRange.from || undefined,
     dateTo: dateRange.to || undefined,
   });
@@ -286,6 +295,36 @@ export const FormSubmissionsTable: React.FC = () => {
               </TableBody>
             </Table>
           </div>
+
+          {/* Pagination Controls */}
+          {submissionsData?.data?.pagination && (
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
+              <div className="text-sm text-muted-foreground">
+                Showing {submissions.length} of {submissionsData.data.pagination.total} submissions
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                >
+                  Previous
+                </Button>
+                <div className="text-sm">
+                  Page {currentPage} of {submissionsData.data.pagination.totalPages || 1}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => prev + 1)}
+                  disabled={currentPage >= (submissionsData.data.pagination.totalPages || 1)}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
