@@ -20,6 +20,9 @@ export function ReportsPage() {
   const [activeTab, setActiveTab] = useState('overview');
   const [showCreateBankBill, setShowCreateBankBill] = useState(false);
   const [showGenerateReport, setShowGenerateReport] = useState(false);
+  const [bankBillsPage, setBankBillsPage] = useState(1);
+  const [misReportsPage, setMisReportsPage] = useState(1);
+  const pageSize = 20;
 
   // Unified search with 800ms debounce
   const {
@@ -32,15 +35,28 @@ export function ReportsPage() {
     syncWithUrl: true,
   });
 
+  // Reset to page 1 when search or tab changes
+  React.useEffect(() => {
+    setBankBillsPage(1);
+    setMisReportsPage(1);
+  }, [debouncedSearchValue, activeTab]);
+
   const { data: bankBillsData, isLoading: bankBillsLoading } = useQuery({
-    queryKey: ['bank-bills', debouncedSearchValue],
-    queryFn: () => reportsService.getBankBills({ search: debouncedSearchValue || undefined }),
+    queryKey: ['bank-bills', debouncedSearchValue, bankBillsPage, pageSize],
+    queryFn: () => reportsService.getBankBills({
+      search: debouncedSearchValue || undefined,
+      page: bankBillsPage,
+      limit: pageSize,
+    }),
     enabled: activeTab === 'bank-bills',
   });
 
   const { data: misReportsData, isLoading: misReportsLoading } = useQuery({
-    queryKey: ['mis-reports'],
-    queryFn: () => reportsService.getMISReports({}),
+    queryKey: ['mis-reports', misReportsPage, pageSize],
+    queryFn: () => reportsService.getMISReports({
+      page: misReportsPage,
+      limit: pageSize,
+    }),
     enabled: activeTab === 'mis-reports',
   });
 
@@ -282,6 +298,34 @@ export function ReportsPage() {
                 data={bankBillsData?.data || []}
                 isLoading={bankBillsLoading}
               />
+              {bankBillsData?.pagination && (
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
+                  <div className="text-sm text-muted-foreground">
+                    Showing {bankBillsData.data?.length || 0} of {bankBillsData.pagination.total} bank bills
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setBankBillsPage(prev => Math.max(1, prev - 1))}
+                      disabled={bankBillsPage === 1}
+                    >
+                      Previous
+                    </Button>
+                    <div className="text-sm">
+                      Page {bankBillsPage} of {bankBillsData.pagination.totalPages || 1}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setBankBillsPage(prev => prev + 1)}
+                      disabled={bankBillsPage >= (bankBillsData.pagination.totalPages || 1)}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              )}
             </TabsContent>
 
             <TabsContent value="mis-reports" className="space-y-4">
@@ -289,6 +333,34 @@ export function ReportsPage() {
                 data={misReportsData?.data || []}
                 isLoading={misReportsLoading}
               />
+              {misReportsData?.pagination && (
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
+                  <div className="text-sm text-muted-foreground">
+                    Showing {misReportsData.data?.length || 0} of {misReportsData.pagination.total} MIS reports
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setMisReportsPage(prev => Math.max(1, prev - 1))}
+                      disabled={misReportsPage === 1}
+                    >
+                      Previous
+                    </Button>
+                    <div className="text-sm">
+                      Page {misReportsPage} of {misReportsData.pagination.totalPages || 1}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setMisReportsPage(prev => prev + 1)}
+                      disabled={misReportsPage >= (misReportsData.pagination.totalPages || 1)}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              )}
             </TabsContent>
 
             <TabsContent value="analytics" className="space-y-4">
