@@ -36,8 +36,15 @@ export function RateViewReportTab() {
   const [selectedRateTypeId, setSelectedRateTypeId] = useState<string>('all');
   const [isActiveFilter, setIsActiveFilter] = useState<string>('all');
   const [deletingRate, setDeletingRate] = useState<Rate | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 20;
 
   const queryClient = useQueryClient();
+
+  // Reset to page 1 when filters change
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, selectedClientId, selectedProductId, selectedVerificationTypeId, selectedRateTypeId, isActiveFilter]);
 
   // Build filters for rates query
   const rateFilters = {
@@ -47,7 +54,8 @@ export function RateViewReportTab() {
     verificationTypeId: selectedVerificationTypeId === 'all' ? undefined : Number(selectedVerificationTypeId),
     rateTypeId: selectedRateTypeId === 'all' ? undefined : Number(selectedRateTypeId),
     isActive: isActiveFilter === 'all' ? undefined : isActiveFilter === 'active',
-    limit: 1000, // Get all rates for comprehensive view
+    page: currentPage,
+    limit: pageSize,
   };
 
   // Fetch rates
@@ -372,6 +380,36 @@ export function RateViewReportTab() {
                   ))}
                 </TableBody>
               </Table>
+            </div>
+          )}
+
+          {/* Pagination Controls */}
+          {ratesData?.pagination && (
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
+              <div className="text-sm text-muted-foreground">
+                Showing {rates.length} of {ratesData.pagination.total} rates
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                >
+                  Previous
+                </Button>
+                <div className="text-sm">
+                  Page {currentPage} of {ratesData.pagination.totalPages || 1}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => prev + 1)}
+                  disabled={currentPage >= (ratesData.pagination.totalPages || 1)}
+                >
+                  Next
+                </Button>
+              </div>
             </div>
           )}
         </CardContent>
