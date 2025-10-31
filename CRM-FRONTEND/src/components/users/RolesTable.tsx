@@ -41,11 +41,16 @@ interface RolesTableProps {
 
 export function RolesTable({ onEditRole }: RolesTableProps) {
   const [deleteRole, setDeleteRole] = useState<RoleData | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 20;
   const queryClient = useQueryClient();
 
   const { data: rolesData, isLoading } = useQuery({
-    queryKey: ['roles'],
-    queryFn: () => rolesService.getRoles({ limit: 100 }),
+    queryKey: ['roles', currentPage, pageSize],
+    queryFn: () => rolesService.getRoles({
+      page: currentPage,
+      limit: pageSize,
+    }),
   });
 
   const deleteMutation = useMutation({
@@ -204,6 +209,36 @@ export function RolesTable({ onEditRole }: RolesTableProps) {
           </TableBody>
         </Table>
       </div>
+
+      {/* Pagination Controls */}
+      {rolesData?.pagination && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
+          <div className="text-sm text-muted-foreground">
+            Showing {rolesData.data?.length || 0} of {rolesData.pagination.total} roles
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              disabled={currentPage === 1}
+            >
+              Previous
+            </Button>
+            <div className="text-sm">
+              Page {currentPage} of {rolesData.pagination.totalPages || 1}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(prev => prev + 1)}
+              disabled={currentPage >= (rolesData.pagination.totalPages || 1)}
+            >
+              Next
+            </Button>
+          </div>
+        </div>
+      )}
 
       <AlertDialog open={!!deleteRole} onOpenChange={() => setDeleteRole(null)}>
         <AlertDialogContent>

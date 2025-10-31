@@ -24,6 +24,10 @@ export function UsersPage() {
   const [showCreateUser, setShowCreateUser] = useState(false);
   const [showBulkImport, setShowBulkImport] = useState(false);
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+
   // Unified search with 800ms debounce
   const {
     searchValue,
@@ -54,11 +58,13 @@ export function UsersPage() {
   ).length;
 
   const { data: usersData, isLoading: usersLoading } = useQuery({
-    queryKey: ['users', debouncedSearchValue, filterRole, filterStatus],
+    queryKey: ['users', debouncedSearchValue, filterRole, filterStatus, currentPage, pageSize],
     queryFn: () => usersService.getUsers({
       search: debouncedSearchValue || undefined,
       role: filterRole || undefined,
       isActive: filterStatus === 'active' ? true : filterStatus === 'inactive' ? false : undefined,
+      page: currentPage,
+      limit: pageSize,
     }),
     enabled: activeTab === 'users',
   });
@@ -332,6 +338,36 @@ export function UsersPage() {
                 data={Array.isArray(usersData?.data) ? usersData.data : []}
                 isLoading={usersLoading}
               />
+
+              {/* Pagination Controls */}
+              {usersData?.pagination && (
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
+                  <div className="text-sm text-muted-foreground">
+                    Showing {usersData.data.length} of {usersData.pagination.total} users
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                      disabled={currentPage === 1}
+                    >
+                      Previous
+                    </Button>
+                    <div className="text-sm">
+                      Page {currentPage} of {usersData.pagination.totalPages || 1}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => prev + 1)}
+                      disabled={currentPage >= (usersData.pagination.totalPages || 1)}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              )}
             </TabsContent>
 
             <TabsContent value="activities" className="space-y-4">
