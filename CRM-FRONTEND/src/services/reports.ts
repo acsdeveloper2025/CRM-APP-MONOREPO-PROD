@@ -1,5 +1,5 @@
 import { apiService } from './api';
-import type { 
+import type {
   BankBill,
   MISReport,
   TurnaroundTimeReport,
@@ -14,6 +14,7 @@ import type {
   ReportFilters
 } from '@/types/reports';
 import type { ApiResponse, PaginationQuery } from '@/types/api';
+import type { MISFilters, MISDataResponse, ExportFormat } from '@/types/mis';
 
 // Smart API URL selection
 const getApiBaseUrl = () => {
@@ -228,6 +229,66 @@ export class ReportsService {
 
   async deleteScheduledReport(id: string): Promise<ApiResponse<void>> {
     return apiService.delete(`/reports/scheduled/${id}`);
+  }
+
+  // ===== MIS DASHBOARD APIs =====
+
+  /**
+   * Get MIS Dashboard data with filters and pagination
+   */
+  async getMISDashboardData(filters: MISFilters = {}): Promise<MISDataResponse> {
+    const params = new URLSearchParams();
+
+    if (filters.dateFrom) params.append('dateFrom', filters.dateFrom);
+    if (filters.dateTo) params.append('dateTo', filters.dateTo);
+    if (filters.clientId) params.append('clientId', filters.clientId.toString());
+    if (filters.productId) params.append('productId', filters.productId.toString());
+    if (filters.verificationTypeId) params.append('verificationTypeId', filters.verificationTypeId.toString());
+    if (filters.caseStatus) params.append('caseStatus', filters.caseStatus);
+    if (filters.fieldAgentId) params.append('fieldAgentId', filters.fieldAgentId);
+    if (filters.backendUserId) params.append('backendUserId', filters.backendUserId);
+    if (filters.priority) params.append('priority', filters.priority);
+    if (filters.page) params.append('page', filters.page.toString());
+    if (filters.limit) params.append('limit', filters.limit.toString());
+
+    const response = await apiService.get<MISDataResponse>(
+      `/reports/mis-dashboard-data?${params.toString()}`
+    );
+
+    // apiService.get already returns response.data, so we return it directly
+    return response as any as MISDataResponse;
+  }
+
+  /**
+   * Export MIS Dashboard data to Excel or CSV
+   */
+  async exportMISDashboardData(filters: MISFilters = {}, format: ExportFormat = 'EXCEL'): Promise<Blob> {
+    const params = new URLSearchParams();
+
+    if (filters.dateFrom) params.append('dateFrom', filters.dateFrom);
+    if (filters.dateTo) params.append('dateTo', filters.dateTo);
+    if (filters.clientId) params.append('clientId', filters.clientId.toString());
+    if (filters.productId) params.append('productId', filters.productId.toString());
+    if (filters.verificationTypeId) params.append('verificationTypeId', filters.verificationTypeId.toString());
+    if (filters.caseStatus) params.append('caseStatus', filters.caseStatus);
+    if (filters.fieldAgentId) params.append('fieldAgentId', filters.fieldAgentId);
+    if (filters.backendUserId) params.append('backendUserId', filters.backendUserId);
+    if (filters.priority) params.append('priority', filters.priority);
+    params.append('format', format);
+
+    const apiBaseUrl = getApiBaseUrl();
+    const response = await fetch(`${apiBaseUrl}/reports/mis-dashboard-data/export?${params.toString()}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to export MIS data');
+    }
+
+    return response.blob();
   }
 }
 

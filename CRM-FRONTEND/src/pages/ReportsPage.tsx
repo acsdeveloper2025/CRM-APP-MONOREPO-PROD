@@ -13,6 +13,7 @@ import { CreateBankBillDialog } from '@/components/reports/CreateBankBillDialog'
 import { GenerateReportDialog } from '@/components/reports/GenerateReportDialog';
 import { TurnaroundTimeChart } from '@/components/reports/TurnaroundTimeChart';
 import { CompletionRateChart } from '@/components/reports/CompletionRateChart';
+import { MISDashboard } from '@/components/reports/MISDashboard';
 import { useUnifiedSearch } from '@/hooks/useUnifiedSearch';
 import { UnifiedSearchInput } from '@/components/ui/unified-search-input';
 
@@ -178,6 +179,9 @@ export function ReportsPage() {
                       {stats.misReports.total}
                     </Badge>
                   )}
+                </TabsTrigger>
+                <TabsTrigger value="mis-dashboard">
+                  MIS Dashboard
                 </TabsTrigger>
                 <TabsTrigger value="analytics">
                   Analytics
@@ -361,6 +365,10 @@ export function ReportsPage() {
                   </div>
                 </div>
               )}
+            </TabsContent>
+
+            <TabsContent value="mis-dashboard" className="space-y-4">
+              <MISDashboard />
             </TabsContent>
 
             <TabsContent value="analytics" className="space-y-4">

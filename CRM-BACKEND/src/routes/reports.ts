@@ -13,7 +13,10 @@ import {
   getCaseAnalytics,
   getCaseTimeline,
   getAgentPerformance,
-  getAgentProductivity
+  getAgentProductivity,
+  // MIS Dashboard APIs
+  getMISData,
+  exportMISData
 } from '@/controllers/reportsController';
 
 const router = express.Router();
@@ -297,6 +300,67 @@ router.get('/agent-productivity/:agentId',
   ],
   validate,
   getAgentProductivity
+);
+
+// ===== MIS DASHBOARD ROUTES =====
+
+const misDashboardValidation = [
+  ...dateRangeValidation,
+  query('clientId')
+    .optional()
+    .isInt({ min: 1 })
+    .withMessage('Client ID must be a positive integer'),
+  query('productId')
+    .optional()
+    .isInt({ min: 1 })
+    .withMessage('Product ID must be a positive integer'),
+  query('verificationTypeId')
+    .optional()
+    .isInt({ min: 1 })
+    .withMessage('Verification Type ID must be a positive integer'),
+  query('caseStatus')
+    .optional()
+    .isIn(['PENDING', 'ASSIGNED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'])
+    .withMessage('Invalid case status'),
+  query('fieldAgentId')
+    .optional()
+    .isUUID()
+    .withMessage('Field Agent ID must be a valid UUID'),
+  query('backendUserId')
+    .optional()
+    .isUUID()
+    .withMessage('Backend User ID must be a valid UUID'),
+  query('priority')
+    .optional()
+    .isIn(['LOW', 'MEDIUM', 'HIGH', 'URGENT'])
+    .withMessage('Invalid priority'),
+  query('page')
+    .optional()
+    .isInt({ min: 1 })
+    .withMessage('Page must be a positive integer'),
+  query('limit')
+    .optional()
+    .isInt({ min: 1, max: 1000 })
+    .withMessage('Limit must be between 1 and 1000'),
+];
+
+// MIS Dashboard Data
+router.get('/mis-dashboard-data',
+  misDashboardValidation,
+  validate,
+  getMISData
+);
+
+// MIS Dashboard Export
+router.get('/mis-dashboard-data/export',
+  [
+    ...misDashboardValidation,
+    query('format')
+      .isIn(['EXCEL', 'CSV'])
+      .withMessage('Format must be EXCEL or CSV'),
+  ],
+  validate,
+  exportMISData
 );
 
 // TODO: Implement remaining report functions

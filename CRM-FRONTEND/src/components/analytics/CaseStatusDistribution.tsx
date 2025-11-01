@@ -62,7 +62,7 @@ export const CaseStatusDistribution: React.FC = () => {
   const [timeRange, setTimeRange] = useState('30d');
   const [viewType, setViewType] = useState<'distribution' | 'trends' | 'flow'>('distribution');
 
-  const { data: analyticsData, isLoading } = useCaseAnalytics({
+  const { data: analyticsData, isLoading, error } = useCaseAnalytics({
     dateFrom: getDateFromRange(timeRange),
     dateTo: new Date().toISOString().split('T')[0],
   });

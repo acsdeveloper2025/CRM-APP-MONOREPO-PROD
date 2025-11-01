@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { logger } from '@/config/logger';
 import { AuthenticatedRequest } from '@/middleware/auth';
 import { pool } from '@/config/database';
+import ExcelJS from 'exceljs';
 
 // ===== PHASE 1: NEW DATA VISUALIZATION & REPORTING APIs =====
 
@@ -21,96 +22,104 @@ export const getFormSubmissions = async (req: AuthenticatedRequest, res: Respons
       offset = 0
     } = req.query;
 
-    // Build WHERE conditions
+    // Build WHERE conditions using CORRECT snake_case column names
     const conditions: string[] = [];
     const params: any[] = [];
     let paramIndex = 1;
 
-    if (formType) {
-      conditions.push(`form_type = $${paramIndex}`);
-      params.push(formType);
-      paramIndex++;
-    }
     if (dateFrom) {
-      conditions.push(`submitted_at >= $${paramIndex}`);
+      conditions.push(`tfs.submitted_at >= $${paramIndex}`);
       params.push(dateFrom);
       paramIndex++;
     }
     if (dateTo) {
-      conditions.push(`submitted_at <= $${paramIndex}`);
+      conditions.push(`tfs.submitted_at <= $${paramIndex}`);
       params.push(dateTo);
       paramIndex++;
     }
     if (agentId) {
-      conditions.push(`submitted_by = $${paramIndex}`);
+      conditions.push(`tfs.submitted_by = $${paramIndex}`);
       params.push(agentId);
       paramIndex++;
     }
     if (validationStatus) {
-      conditions.push(`validation_status = $${paramIndex}`);
+      conditions.push(`tfs.validation_status = $${paramIndex}`);
       params.push(validationStatus);
       paramIndex++;
     }
     if (caseId) {
-      conditions.push(`case_id = $${paramIndex}`);
+      conditions.push(`tfs.case_id = $${paramIndex}`);
       params.push(caseId);
+      paramIndex++;
+    }
+    if (formType) {
+      conditions.push(`tfs.form_type = $${paramIndex}`);
+      params.push(formType);
       paramIndex++;
     }
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
-    // Get form submissions with related data using the standardized view
+    // Get form submissions from task_form_submissions table (using snake_case)
     const query = `
       SELECT
-        fs.*,
+        tfs.id,
+        tfs.form_type,
+        tfs.case_id,
+        tfs.verification_task_id,
+        tfs.submitted_by,
+        tfs.submitted_at,
+        tfs.validation_status,
+        tfs.validated_by,
+        tfs.validated_at,
         c."customerName",
-        c."caseId" as "caseNumber",
-        u.name as "agentName",
-        u."employeeId",
-        COUNT(a.id) as "attachmentCount"
-      FROM form_submissions_view fs
-      LEFT JOIN cases c ON fs.case_id = c.id
-      LEFT JOIN users u ON fs.submitted_by = u.id
-      LEFT JOIN attachments a ON a.case_id = c.id
+        c."caseId" as case_number,
+        u.name as agent_name,
+        u."employeeId" as employee_id,
+        vt.task_title as verification_type_name,
+        0 as attachment_count
+      FROM task_form_submissions tfs
+      LEFT JOIN cases c ON tfs.case_id = c.id
+      LEFT JOIN users u ON tfs.submitted_by = u.id
+      LEFT JOIN verification_tasks vt ON tfs.verification_task_id = vt.id
       ${whereClause}
-      GROUP BY fs.form_type, fs.case_id, fs.submitted_by, fs.submitted_at,
-               fs.validation_status, fs.submission_data, fs.photos_count,
-               c."customerName", c."caseId", u.name, u."employeeId"
-      ORDER BY fs.submitted_at DESC
+      ORDER BY tfs.submitted_at DESC
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `;
 
     params.push(parseInt(limit as string), parseInt(offset as string));
     const result = await pool.query(query, params);
 
-    // Get summary statistics
+    // Get summary statistics (using snake_case)
     const summaryQuery = `
       SELECT
         COUNT(*) as total_submissions,
         COUNT(CASE WHEN validation_status = 'VALID' THEN 1 END) as valid_submissions,
         COUNT(CASE WHEN validation_status = 'PENDING' THEN 1 END) as pending_submissions,
+        COUNT(CASE WHEN validation_status = 'INVALID' THEN 1 END) as invalid_submissions,
         COUNT(CASE WHEN form_type = 'RESIDENCE' THEN 1 END) as residence_forms,
-        COUNT(CASE WHEN form_type = 'OFFICE' THEN 1 END) as office_forms
-      FROM (
-        SELECT
-          'RESIDENCE' as form_type,
-          CASE WHEN "residenceConfirmed" IS NOT NULL THEN 'VALID' ELSE 'PENDING' END as validation_status
-        FROM "residenceVerificationReports"
-        UNION ALL
-        SELECT
-          'OFFICE' as form_type,
-          CASE WHEN "officeConfirmed" IS NOT NULL THEN 'VALID' ELSE 'PENDING' END as validation_status
-        FROM "officeVerificationReports"
-      ) all_forms
+        COUNT(CASE WHEN form_type = 'OFFICE' THEN 1 END) as office_forms,
+        COUNT(CASE WHEN form_type = 'BUSINESS' THEN 1 END) as business_forms
+      FROM task_form_submissions
+      ${whereClause.replace(/tfs\./g, '')}
     `;
 
-    const summaryResult = await pool.query(summaryQuery);
-    const summary = summaryResult.rows[0];
+    const summaryParams = params.slice(0, -2); // Remove limit and offset
+    const summaryResult = await pool.query(summaryQuery, summaryParams);
+    const summary = summaryResult.rows[0] || {
+      total_submissions: 0,
+      valid_submissions: 0,
+      pending_submissions: 0,
+      invalid_submissions: 0,
+      residence_forms: 0,
+      office_forms: 0,
+      business_forms: 0
+    };
 
-    logger.info('Form submissions report generated', {
+    logger.info('Form submissions fetched', {
       userId: req.user?.id,
-      totalSubmissions: summary.total_submissions,
-      filters: { formType, dateFrom, dateTo, agentId }
+      total: summary.total_submissions,
+      filters: { formType, dateFrom, dateTo, agentId, validationStatus }
     });
 
     res.json({
@@ -121,11 +130,10 @@ export const getFormSubmissions = async (req: AuthenticatedRequest, res: Respons
           totalSubmissions: parseInt(summary.total_submissions),
           validSubmissions: parseInt(summary.valid_submissions),
           pendingSubmissions: parseInt(summary.pending_submissions),
+          invalidSubmissions: parseInt(summary.invalid_submissions),
           residenceForms: parseInt(summary.residence_forms),
           officeForms: parseInt(summary.office_forms),
-          validationRate: summary.total_submissions > 0
-            ? (summary.valid_submissions / summary.total_submissions) * 100
-            : 0
+          businessForms: parseInt(summary.business_forms)
         },
         pagination: {
           limit: parseInt(limit as string),
@@ -133,17 +141,18 @@ export const getFormSubmissions = async (req: AuthenticatedRequest, res: Respons
           total: parseInt(summary.total_submissions)
         }
       },
-      message: 'Form submissions report generated successfully',
+      message: 'Form submissions retrieved successfully (table may be empty)'
     });
   } catch (error) {
-    logger.error('Error generating form submissions report:', error);
+    logger.error('Error fetching form submissions:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to generate form submissions report',
-      error: { code: 'INTERNAL_ERROR' },
+      message: 'Failed to fetch form submissions',
+      error: error instanceof Error ? error.message : 'Unknown error'
     });
   }
 };
+
 
 // GET /api/reports/form-submissions/:formType - Get specific form type submissions
 export const getFormSubmissionsByType = async (req: AuthenticatedRequest, res: Response) => {
@@ -268,31 +277,21 @@ export const getFormValidationStatus = async (req: AuthenticatedRequest, res: Re
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
-    // Get validation status for all form types
+    // Get validation status from task_form_submissions (using snake_case)
     const validationQuery = `
       SELECT
-        'RESIDENCE' as form_type,
+        form_type,
         COUNT(*) as total_forms,
-        COUNT(CASE WHEN "residenceConfirmed" IS NOT NULL THEN 1 END) as validated_forms,
-        COUNT(CASE WHEN "residenceConfirmed" IS NULL THEN 1 END) as pending_forms,
-        AVG(CASE WHEN "residenceConfirmed" IS NOT NULL
-            THEN EXTRACT(EPOCH FROM ("updatedAt" - "createdAt"))/3600
+        COUNT(CASE WHEN validation_status = 'VALID' THEN 1 END) as validated_forms,
+        COUNT(CASE WHEN validation_status = 'PENDING' THEN 1 END) as pending_forms,
+        COUNT(CASE WHEN validation_status = 'INVALID' THEN 1 END) as invalid_forms,
+        AVG(CASE WHEN validated_at IS NOT NULL
+            THEN EXTRACT(EPOCH FROM (validated_at - submitted_at))/3600
             END) as avg_validation_time_hours
-      FROM "residenceVerificationReports"
+      FROM task_form_submissions
       ${whereClause}
-
-      UNION ALL
-
-      SELECT
-        'OFFICE' as form_type,
-        COUNT(*) as total_forms,
-        COUNT(CASE WHEN "officeConfirmed" IS NOT NULL THEN 1 END) as validated_forms,
-        COUNT(CASE WHEN "officeConfirmed" IS NULL THEN 1 END) as pending_forms,
-        AVG(CASE WHEN "officeConfirmed" IS NOT NULL
-            THEN EXTRACT(EPOCH FROM ("updatedAt" - "createdAt"))/3600
-            END) as avg_validation_time_hours
-      FROM "officeVerificationReports"
-      ${whereClause}
+      GROUP BY form_type
+      ORDER BY form_type
     `;
 
     const validationResult = await pool.query(validationQuery, params);
@@ -301,8 +300,9 @@ export const getFormValidationStatus = async (req: AuthenticatedRequest, res: Re
       acc.totalForms += parseInt(row.total_forms);
       acc.validatedForms += parseInt(row.validated_forms);
       acc.pendingForms += parseInt(row.pending_forms);
+      acc.invalidForms += parseInt(row.invalid_forms || 0);
       return acc;
-    }, { totalForms: 0, validatedForms: 0, pendingForms: 0 });
+    }, { totalForms: 0, validatedForms: 0, pendingForms: 0, invalidForms: 0 });
 
     res.json({
       success: true,
@@ -356,7 +356,7 @@ export const getCaseAnalytics = async (req: AuthenticatedRequest, res: Response)
       paramIndex++;
     }
     if (agentId) {
-      conditions.push(`c."assignedTo" = $${paramIndex}`);
+      conditions.push(`vt.assigned_to = $${paramIndex}`);
       params.push(agentId);
       paramIndex++;
     }
@@ -368,38 +368,34 @@ export const getCaseAnalytics = async (req: AuthenticatedRequest, res: Response)
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
-    // Get comprehensive case analytics
+    // Get comprehensive case analytics using multi-task architecture (snake_case)
     const analyticsQuery = `
       SELECT
         c.*,
-        cl.name as "clientName",
-        u.name as "agentName",
-        u."employeeId",
-        COUNT(DISTINCT r.id) as "residenceReports",
-        COUNT(DISTINCT o.id) as "officeReports",
-        COUNT(DISTINCT a.id) as "attachmentCount",
+        cl.name as client_name,
+        COUNT(DISTINCT vt.id) as total_tasks,
+        COUNT(DISTINCT CASE WHEN vt.status IN ('COMPLETED', 'APPROVED') THEN vt.id END) as completed_tasks,
+        COUNT(DISTINCT tfs.id) as form_submissions,
+        0 as attachment_count,
         CASE
           WHEN c.status IN ('COMPLETED', 'APPROVED') AND c."updatedAt" IS NOT NULL
           THEN EXTRACT(EPOCH FROM (c."updatedAt" - c."createdAt"))/86400
           ELSE NULL
-        END as "completionDays",
+        END as completion_days,
         CASE
-          WHEN COUNT(DISTINCT r.id) + COUNT(DISTINCT o.id) > 0
+          WHEN COUNT(DISTINCT vt.id) > 0
           THEN ROUND(
-            (COUNT(CASE WHEN r."residenceConfirmed" IS NOT NULL THEN 1 END) +
-             COUNT(CASE WHEN o."officeConfirmed" IS NOT NULL THEN 1 END))::numeric /
-            (COUNT(DISTINCT r.id) + COUNT(DISTINCT o.id)) * 100, 2
+            COUNT(DISTINCT CASE WHEN vt.status IN ('COMPLETED', 'APPROVED') THEN vt.id END)::numeric /
+            COUNT(DISTINCT vt.id) * 100, 2
           )
           ELSE 0
-        END as "formCompletionPercentage"
+        END as task_completion_percentage
       FROM cases c
       LEFT JOIN clients cl ON c."clientId" = cl.id
-      LEFT JOIN users u ON c."assignedTo" = u.id
-      LEFT JOIN "residenceVerificationReports" r ON c."caseId" = r."caseId"
-      LEFT JOIN "officeVerificationReports" o ON c."caseId" = o."caseId"
-      LEFT JOIN attachments a ON c.id = a.case_id
+      LEFT JOIN verification_tasks vt ON c.id = vt.case_id
+      LEFT JOIN task_form_submissions tfs ON vt.id = tfs.verification_task_id
       ${whereClause}
-      GROUP BY c.id, c."caseId", cl.name, u.name, u."employeeId"
+      GROUP BY c.id, c."caseId", cl.name
       ORDER BY c."createdAt" DESC
     `;
 
@@ -569,22 +565,23 @@ export const getAgentPerformance = async (req: AuthenticatedRequest, res: Respon
   try {
     const { dateFrom, dateTo, agentId, departmentId } = req.query;
 
-    const conditions: string[] = ['u.role = $1'];
-    const params: any[] = ['FIELD_AGENT'];
-    let paramIndex = 2;
+    // Build WHERE conditions for verification tasks
+    const conditions: string[] = [];
+    const params: any[] = [];
+    let paramIndex = 1;
 
     if (dateFrom) {
-      conditions.push(`c."createdAt" >= $${paramIndex}`);
+      conditions.push(`vt.created_at >= $${paramIndex}`);
       params.push(dateFrom);
       paramIndex++;
     }
     if (dateTo) {
-      conditions.push(`c."createdAt" <= $${paramIndex}`);
+      conditions.push(`vt.created_at <= $${paramIndex}`);
       params.push(dateTo);
       paramIndex++;
     }
     if (agentId) {
-      conditions.push(`u.id = $${paramIndex}`);
+      conditions.push(`vt.assigned_to = $${paramIndex}`);
       params.push(agentId);
       paramIndex++;
     }
@@ -594,81 +591,138 @@ export const getAgentPerformance = async (req: AuthenticatedRequest, res: Respon
       paramIndex++;
     }
 
-    const whereClause = `WHERE ${conditions.join(' AND ')}`;
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
-    // Get comprehensive agent performance data
+    // Simple query: Get all verification tasks with agent, client, product, rate type info
     const performanceQuery = `
       SELECT
-        u.id,
-        u.name,
-        u."employeeId",
-        u.email,
-        d.name as "departmentName",
-        COUNT(DISTINCT c.id) as "totalCasesAssigned",
-        COUNT(DISTINCT CASE WHEN c.status IN ('COMPLETED', 'APPROVED') THEN c.id END) as "casesCompleted",
-        COUNT(DISTINCT r.id) as "residenceFormsSubmitted",
-        COUNT(DISTINCT o.id) as "officeFormsSubmitted",
-        COUNT(DISTINCT a.id) as "attachmentsUploaded",
-        AVG(CASE
-          WHEN c.status IN ('COMPLETED', 'APPROVED') AND c."updatedAt" IS NOT NULL
-          THEN EXTRACT(EPOCH FROM (c."updatedAt" - c."createdAt"))/86400
-        END) as "avgCompletionDays",
-        ROUND(
-          CASE
-            WHEN COUNT(DISTINCT r.id) + COUNT(DISTINCT o.id) > 0
-            THEN (COUNT(CASE WHEN r."residenceConfirmed" IS NOT NULL THEN 1 END) +
-                  COUNT(CASE WHEN o."officeConfirmed" IS NOT NULL THEN 1 END))::numeric /
-                 (COUNT(DISTINCT r.id) + COUNT(DISTINCT o.id)) * 100
-            ELSE 0
-          END, 2
-        ) as "formQualityScore",
-        COUNT(DISTINCT DATE(c."createdAt")) as "activeDays"
-      FROM users u
-      LEFT JOIN departments d ON u."departmentId" = d.id
-      LEFT JOIN cases c ON u.id = c."assignedTo"
-      LEFT JOIN "residenceVerificationReports" r ON c."caseId" = r."caseId" AND r."createdBy" = u.id
-      LEFT JOIN "officeVerificationReports" o ON c."caseId" = o."caseId" AND o."createdBy" = u.id
-      LEFT JOIN attachments a ON c.id = a.case_id AND a."uploadedBy" = u.id
+        u.id as agent_id,
+        u.name as agent_name,
+        u."employeeId" as employee_id,
+        vt.id as task_id,
+        vt.task_number,
+        vt.status,
+        vt.created_at,
+        vt.updated_at,
+        vt.estimated_amount,
+        vt.actual_amount,
+        cl.name as client_name,
+        p.name as product_name,
+        vtype.name as verification_type,
+        rt.name as rate_type,
+        CASE
+          WHEN vt.status IN ('COMPLETED', 'APPROVED') AND vt.updated_at IS NOT NULL
+          THEN EXTRACT(EPOCH FROM (vt.updated_at - vt.created_at))/86400
+          ELSE NULL
+        END as completion_days
+      FROM verification_tasks vt
+      INNER JOIN users u ON vt.assigned_to = u.id
+      LEFT JOIN cases cas ON vt.case_id = cas.id
+      LEFT JOIN clients cl ON cas."clientId" = cl.id
+      LEFT JOIN products p ON cas."productId" = p.id
+      LEFT JOIN "verificationTypes" vtype ON vt.verification_type_id = vtype.id
+      LEFT JOIN "rateTypes" rt ON vt.rate_type_id = rt.id
       ${whereClause}
-      GROUP BY u.id, u.name, u."employeeId", u.email, d.name
-      ORDER BY "casesCompleted" DESC, "formQualityScore" DESC
+      ORDER BY vt.created_at DESC
     `;
 
-    const performanceResult = await pool.query(performanceQuery, params);
-    const agents = performanceResult.rows;
+    const result = await pool.query(performanceQuery, params);
+    const tasks = result.rows;
 
-    // Calculate summary metrics
-    const totalAgents = agents.length;
-    const activeAgents = agents.filter(a => parseInt(a.totalCasesAssigned) > 0).length;
-    const avgCasesPerAgent = agents.reduce((sum, a) => sum + parseInt(a.totalCasesAssigned), 0) / totalAgents || 0;
-    const avgCompletionRate = agents.reduce((sum, a) => {
-      const rate = parseInt(a.totalCasesAssigned) > 0
-        ? (parseInt(a.casesCompleted) / parseInt(a.totalCasesAssigned)) * 100
-        : 0;
-      return sum + rate;
-    }, 0) / totalAgents || 0;
+    // Group by agent and calculate metrics
+    const agentMap = new Map();
 
-    // Top performers
-    const topPerformers = agents
-      .filter(a => parseInt(a.totalCasesAssigned) > 0)
-      .sort((a, b) => {
-        const aScore = (parseInt(a.casesCompleted) / parseInt(a.totalCasesAssigned)) * parseFloat(a.formQualityScore);
-        const bScore = (parseInt(b.casesCompleted) / parseInt(b.totalCasesAssigned)) * parseFloat(b.formQualityScore);
-        return bScore - aScore;
-      })
-      .slice(0, 5);
+    tasks.forEach(task => {
+      const agentId = task.agent_id;
+
+      if (!agentMap.has(agentId)) {
+        agentMap.set(agentId, {
+          id: task.agent_id,
+          name: task.agent_name,
+          employee_id: task.employee_id,
+          total_tasks: 0,
+          completed_tasks: 0,
+          in_tat: 0,
+          out_tat: 0,
+          local_tasks: 0,
+          ogl_tasks: 0,
+          total_amount: 0,
+          clients: new Set(),
+          products: new Set(),
+          tasks: []
+        });
+      }
+
+      const agent = agentMap.get(agentId);
+      agent.total_tasks++;
+      agent.tasks.push(task);
+
+      if (task.status === 'COMPLETED' || task.status === 'APPROVED') {
+        agent.completed_tasks++;
+
+        // TAT calculation (assuming 2 days TAT)
+        if (task.completion_days !== null) {
+          if (task.completion_days <= 2) {
+            agent.in_tat++;
+          } else {
+            agent.out_tat++;
+          }
+        }
+      }
+
+      // Rate type
+      if (task.rate_type && task.rate_type.toLowerCase().includes('local')) {
+        agent.local_tasks++;
+      } else if (task.rate_type && task.rate_type.toLowerCase().includes('ogl')) {
+        agent.ogl_tasks++;
+      }
+
+      // Amount
+      if (task.actual_amount) {
+        agent.total_amount += parseFloat(task.actual_amount);
+      } else if (task.estimated_amount) {
+        agent.total_amount += parseFloat(task.estimated_amount);
+      }
+
+      // Clients and products
+      if (task.client_name) agent.clients.add(task.client_name);
+      if (task.product_name) agent.products.add(task.product_name);
+    });
+
+    // Convert to array and format
+    const agents = Array.from(agentMap.values()).map(agent => ({
+      id: agent.id,
+      name: agent.name,
+      employee_id: agent.employee_id,
+      total_tasks: agent.total_tasks,
+      completed_tasks: agent.completed_tasks,
+      pending_tasks: agent.total_tasks - agent.completed_tasks,
+      in_tat: agent.in_tat,
+      out_tat: agent.out_tat,
+      local_tasks: agent.local_tasks,
+      ogl_tasks: agent.ogl_tasks,
+      total_amount: Math.round(agent.total_amount * 100) / 100,
+      clients: Array.from(agent.clients),
+      products: Array.from(agent.products),
+      completion_rate: agent.total_tasks > 0
+        ? Math.round((agent.completed_tasks / agent.total_tasks) * 100)
+        : 0
+    }));
+
+    // Sort by total tasks
+    agents.sort((a, b) => b.total_tasks - a.total_tasks);
 
     res.json({
       success: true,
       data: {
         summary: {
-          totalAgents,
-          activeAgents,
-          avgCasesPerAgent: Math.round(avgCasesPerAgent * 100) / 100,
-          avgCompletionRate: Math.round(avgCompletionRate * 100) / 100
+          totalAgents: agents.length,
+          totalTasks: tasks.length,
+          completedTasks: agents.reduce((sum, a) => sum + a.completed_tasks, 0),
+          inTAT: agents.reduce((sum, a) => sum + a.in_tat, 0),
+          outTAT: agents.reduce((sum, a) => sum + a.out_tat, 0)
         },
         agents,
-        topPerformers,
         generatedAt: new Date().toISOString(),
         generatedBy: req.user?.id
       },
@@ -1066,6 +1120,604 @@ export const getDashboardReport = async (req: AuthenticatedRequest, res: Respons
     res.status(500).json({
       success: false,
       message: 'Failed to generate dashboard report',
+      error: { code: 'INTERNAL_ERROR' },
+    });
+  }
+};
+
+// ===== MIS DASHBOARD APIs =====
+
+// GET /api/reports/mis-dashboard-data - Get comprehensive MIS data with case and task details
+export const getMISData = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const {
+      search,
+      dateFrom,
+      dateTo,
+      clientId,
+      productId,
+      verificationTypeId,
+      caseStatus,
+      fieldAgentId,
+      backendUserId,
+      priority,
+      page = 1,
+      limit = 50,
+    } = req.query;
+
+    // Build WHERE conditions - TASK-CENTRIC
+    const conditions: string[] = [];
+    const params: any[] = [];
+    let paramIndex = 1;
+
+    // Search across case number, customer name, customer phone, task number
+    if (search && typeof search === 'string' && search.trim()) {
+      conditions.push(`(
+        c."caseId" ILIKE $${paramIndex} OR
+        c."customerName" ILIKE $${paramIndex} OR
+        c."customerPhone" ILIKE $${paramIndex} OR
+        vt.task_number ILIKE $${paramIndex}
+      )`);
+      params.push(`%${search.trim()}%`);
+      paramIndex++;
+    }
+
+    // Date filters - use task created date
+    if (dateFrom) {
+      conditions.push(`vt.created_at >= $${paramIndex}`);
+      params.push(dateFrom);
+      paramIndex++;
+    }
+    if (dateTo) {
+      conditions.push(`vt.created_at <= $${paramIndex}`);
+      params.push(dateTo);
+      paramIndex++;
+    }
+
+    // Client and Product filters
+    if (clientId) {
+      conditions.push(`c."clientId" = $${paramIndex}`);
+      params.push(parseInt(clientId as string));
+      paramIndex++;
+    }
+    if (productId) {
+      conditions.push(`c."productId" = $${paramIndex}`);
+      params.push(parseInt(productId as string));
+      paramIndex++;
+    }
+
+    // Verification Type filter - use task verification type
+    if (verificationTypeId) {
+      conditions.push(`vt.verification_type_id = $${paramIndex}`);
+      params.push(parseInt(verificationTypeId as string));
+      paramIndex++;
+    }
+
+    // Status filter - use TASK status (not case status)
+    if (caseStatus) {
+      conditions.push(`vt.status = $${paramIndex}`);
+      params.push(caseStatus);
+      paramIndex++;
+    }
+
+    // Backend User filter
+    if (backendUserId) {
+      conditions.push(`c."createdByBackendUser" = $${paramIndex}`);
+      params.push(backendUserId);
+      paramIndex++;
+    }
+
+    // Priority filter - use task priority
+    if (priority) {
+      conditions.push(`vt.priority = $${paramIndex}`);
+      params.push(priority);
+      paramIndex++;
+    }
+
+    // Field Agent filter - direct task assignment
+    if (fieldAgentId) {
+      conditions.push(`vt.assigned_to = $${paramIndex}`);
+      params.push(fieldAgentId);
+      paramIndex++;
+    }
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    // Calculate pagination
+    const pageNum = parseInt(page as string);
+    const limitNum = parseInt(limit as string);
+    const offset = (pageNum - 1) * limitNum;
+
+    // Save param indices for LIMIT and OFFSET
+    const limitParamIndex = paramIndex;
+    const offsetParamIndex = paramIndex + 1;
+
+    // Get total count for pagination - COUNT TASKS (not cases)
+    const countQuery = `
+      SELECT COUNT(DISTINCT vt.id) as total
+      FROM verification_tasks vt
+      LEFT JOIN cases c ON vt.case_id = c.id
+      LEFT JOIN clients cl ON c."clientId" = cl.id
+      LEFT JOIN products p ON c."productId" = p.id
+      LEFT JOIN "verificationTypes" vt_type ON vt.verification_type_id = vt_type.id
+      LEFT JOIN users u ON vt.assigned_to = u.id
+      LEFT JOIN users bu ON c."createdByBackendUser" = bu.id
+      ${whereClause}
+    `;
+    const countResult = await pool.query(countQuery, params);
+    const totalRecords = parseInt(countResult.rows[0].total);
+
+    // Main MIS data query - TASK-CENTRIC APPROACH
+    // Each row represents ONE verification task (not one case)
+    const query = `
+      SELECT
+        -- Task-Level Data (PRIMARY)
+        vt.id as task_id,
+        vt.task_number,
+        vt.task_title,
+        vt_type.name as verification_type_name,
+        vt.status as task_status,
+        vt.priority as task_priority,
+        vt.address,
+        vt.pincode,
+        rt.name as rate_type,
+        vt.estimated_amount,
+        vt.actual_amount,
+        vt.created_at as task_created_date,
+        vt.started_at as task_started_date,
+        vt.completed_at as task_completion_date,
+        vt.trigger,
+        vt.applicant_type,
+        CASE
+          WHEN vt.completed_at IS NOT NULL AND vt.created_at IS NOT NULL
+          THEN EXTRACT(EPOCH FROM (vt.completed_at - vt.created_at)) / 86400
+          ELSE NULL
+        END as task_tat_days,
+
+        -- Field User Data
+        u.name as assigned_field_user,
+        u."employeeId" as field_user_employee_id,
+
+        -- Case-Level Data (SECONDARY/REFERENCE)
+        c.id as case_id,
+        c."caseId" as case_number,
+        c."customerName",
+        c."customerPhone",
+        c."customerCallingCode",
+        c.status as case_status,
+        c.priority as case_priority,
+        c."createdAt" as case_created_date,
+        c.total_tasks_count,
+        c.completed_tasks_count,
+        c.case_completion_percentage,
+
+        -- Client and Product Data
+        cl.name as client_name,
+        cl.code as client_code,
+        p.name as product_name,
+
+        -- Backend User Data
+        bu.name as backend_user_name,
+        bu."employeeId" as backend_user_employee_id,
+
+        -- Form Submission Data
+        tfs.id as form_submission_id,
+        tfs.form_type,
+        tfs.submitted_at as form_submitted_date,
+        tfs.validation_status as form_validation_status
+
+      FROM verification_tasks vt
+      LEFT JOIN cases c ON vt.case_id = c.id
+      LEFT JOIN clients cl ON c."clientId" = cl.id
+      LEFT JOIN products p ON c."productId" = p.id
+      LEFT JOIN "verificationTypes" vt_type ON vt.verification_type_id = vt_type.id
+      LEFT JOIN "rateTypes" rt ON vt.rate_type_id = rt.id
+      LEFT JOIN users u ON vt.assigned_to = u.id
+      LEFT JOIN users bu ON c."createdByBackendUser" = bu.id
+      LEFT JOIN task_form_submissions tfs ON vt.id = tfs.verification_task_id
+
+      ${whereClause}
+
+      ORDER BY vt.created_at DESC
+      LIMIT $${limitParamIndex} OFFSET $${offsetParamIndex}
+    `;
+
+    params.push(limitNum, offset);
+    const result = await pool.query(query, params);
+
+    // Calculate summary statistics - TASK-BASED
+    const summaryQuery = `
+      SELECT
+        COUNT(DISTINCT vt.id) as total_tasks,
+        SUM(vt.estimated_amount) as total_estimated_amount,
+        SUM(vt.actual_amount) as total_actual_amount,
+        COUNT(DISTINCT CASE WHEN vt.status IN ('COMPLETED', 'APPROVED') THEN vt.id END) as completed_tasks,
+        COUNT(DISTINCT CASE WHEN vt.status = 'APPROVED' THEN vt.id END) as approved_tasks,
+        COUNT(DISTINCT CASE WHEN vt.status = 'REJECTED' THEN vt.id END) as rejected_tasks,
+        AVG(CASE
+          WHEN vt.completed_at IS NOT NULL AND vt.created_at IS NOT NULL
+          THEN EXTRACT(EPOCH FROM (vt.completed_at - vt.created_at)) / 86400
+        END) as avg_tat_days
+      FROM verification_tasks vt
+      LEFT JOIN cases c ON vt.case_id = c.id
+      LEFT JOIN clients cl ON c."clientId" = cl.id
+      LEFT JOIN products p ON c."productId" = p.id
+      LEFT JOIN "verificationTypes" vt_type ON vt.verification_type_id = vt_type.id
+      LEFT JOIN users u ON vt.assigned_to = u.id
+      LEFT JOIN users bu ON c."createdByBackendUser" = bu.id
+      ${whereClause}
+    `;
+
+    // Remove LIMIT and OFFSET parameters for summary query (last 2 params)
+    const summaryResult = await pool.query(summaryQuery, params.slice(0, -2));
+    const summary = summaryResult.rows[0];
+
+    logger.info('MIS data retrieved (task-centric)', {
+      userId: req.user?.id,
+      totalRecords,
+      page: pageNum,
+      limit: limitNum,
+    });
+
+    res.json({
+      success: true,
+      data: result.rows,
+      summary: {
+        total_tasks: parseInt(summary.total_tasks) || 0,
+        total_estimated_amount: parseFloat(summary.total_estimated_amount) || 0,
+        total_actual_amount: parseFloat(summary.total_actual_amount) || 0,
+        completed_tasks: parseInt(summary.completed_tasks) || 0,
+        approved_tasks: parseInt(summary.approved_tasks) || 0,
+        rejected_tasks: parseInt(summary.rejected_tasks) || 0,
+        task_completion_rate: summary.total_tasks > 0
+          ? Math.round((parseInt(summary.completed_tasks) / parseInt(summary.total_tasks)) * 100)
+          : 0,
+        avg_tat_days: parseFloat(summary.avg_tat_days) || 0,
+      },
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total: totalRecords,
+        totalPages: Math.ceil(totalRecords / limitNum),
+      },
+      message: 'MIS data retrieved successfully (task-centric)',
+    });
+  } catch (error) {
+    logger.error('Error retrieving MIS data:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to retrieve MIS data',
+      error: { code: 'INTERNAL_ERROR' },
+    });
+  }
+};
+
+// GET /api/reports/mis-dashboard-data/export - Export MIS data to Excel or CSV
+export const exportMISData = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const {
+      search,
+      dateFrom,
+      dateTo,
+      clientId,
+      productId,
+      verificationTypeId,
+      caseStatus,
+      fieldAgentId,
+      backendUserId,
+      priority,
+      format = 'EXCEL',
+    } = req.query;
+
+    // Build WHERE conditions - TASK-CENTRIC (same as getMISData)
+    const conditions: string[] = [];
+    const params: any[] = [];
+    let paramIndex = 1;
+
+    // Search across case number, customer name, customer phone, task number
+    if (search && typeof search === 'string' && search.trim()) {
+      conditions.push(`(
+        c."caseId" ILIKE $${paramIndex} OR
+        c."customerName" ILIKE $${paramIndex} OR
+        c."customerPhone" ILIKE $${paramIndex} OR
+        vt.task_number ILIKE $${paramIndex}
+      )`);
+      params.push(`%${search.trim()}%`);
+      paramIndex++;
+    }
+
+    // Date filters - use task created date
+    if (dateFrom) {
+      conditions.push(`vt.created_at >= $${paramIndex}`);
+      params.push(dateFrom);
+      paramIndex++;
+    }
+    if (dateTo) {
+      conditions.push(`vt.created_at <= $${paramIndex}`);
+      params.push(dateTo);
+      paramIndex++;
+    }
+
+    // Client and Product filters
+    if (clientId) {
+      conditions.push(`c."clientId" = $${paramIndex}`);
+      params.push(parseInt(clientId as string));
+      paramIndex++;
+    }
+    if (productId) {
+      conditions.push(`c."productId" = $${paramIndex}`);
+      params.push(parseInt(productId as string));
+      paramIndex++;
+    }
+
+    // Verification Type filter - use task verification type
+    if (verificationTypeId) {
+      conditions.push(`vt.verification_type_id = $${paramIndex}`);
+      params.push(parseInt(verificationTypeId as string));
+      paramIndex++;
+    }
+
+    // Status filter - use TASK status (not case status)
+    if (caseStatus) {
+      conditions.push(`vt.status = $${paramIndex}`);
+      params.push(caseStatus);
+      paramIndex++;
+    }
+
+    // Backend User filter
+    if (backendUserId) {
+      conditions.push(`c."createdByBackendUser" = $${paramIndex}`);
+      params.push(backendUserId);
+      paramIndex++;
+    }
+
+    // Priority filter - use task priority
+    if (priority) {
+      conditions.push(`vt.priority = $${paramIndex}`);
+      params.push(priority);
+      paramIndex++;
+    }
+
+    // Field Agent filter - direct task assignment
+    if (fieldAgentId) {
+      conditions.push(`vt.assigned_to = $${paramIndex}`);
+      params.push(fieldAgentId);
+      paramIndex++;
+    }
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    // Get all data without pagination for export - TASK-CENTRIC
+    const query = `
+      SELECT
+        -- Task-Level Data (PRIMARY)
+        vt.id as task_id,
+        vt.task_number,
+        vt.task_title,
+        vt_type.name as task_verification_type,
+        vt.status as task_status,
+        vt.priority as task_priority,
+        vt.address,
+        vt.pincode,
+        rt.name as rate_type,
+        vt.estimated_amount,
+        vt.actual_amount,
+        vt.created_at as task_created_date,
+        vt.started_at as task_started_date,
+        vt.completed_at as task_completion_date,
+        vt.trigger,
+        vt.applicant_type,
+        CASE
+          WHEN vt.completed_at IS NOT NULL AND vt.created_at IS NOT NULL
+          THEN EXTRACT(EPOCH FROM (vt.completed_at - vt.created_at)) / 86400
+          ELSE NULL
+        END as task_tat_days,
+
+        -- Field User Data
+        u.name as assigned_field_user,
+        u."employeeId" as field_user_employee_id,
+
+        -- Case-Level Data (SECONDARY/REFERENCE)
+        c."caseId" as case_number,
+        c."customerName",
+        c."customerPhone",
+        c."customerCallingCode",
+        c.status as case_status,
+        c.priority as case_priority,
+        c."createdAt" as case_created_date,
+        c.total_tasks_count,
+        c.completed_tasks_count,
+        c.case_completion_percentage,
+
+        -- Client and Product Data
+        cl.name as client_name,
+        cl.code as client_code,
+        p.name as product_name,
+
+        -- Backend User Data
+        bu.name as backend_user_name,
+        bu."employeeId" as backend_user_employee_id,
+
+        -- Form Submission Data
+        tfs.id as form_submission_id,
+        tfs.form_type,
+        tfs.submitted_at as form_submitted_date,
+        tfs.validation_status as form_validation_status
+
+      FROM verification_tasks vt
+      LEFT JOIN cases c ON vt.case_id = c.id
+      LEFT JOIN clients cl ON c."clientId" = cl.id
+      LEFT JOIN products p ON c."productId" = p.id
+      LEFT JOIN "verificationTypes" vt_type ON vt.verification_type_id = vt_type.id
+      LEFT JOIN "rateTypes" rt ON vt.rate_type_id = rt.id
+      LEFT JOIN users u ON vt.assigned_to = u.id
+      LEFT JOIN users bu ON c."createdByBackendUser" = bu.id
+      LEFT JOIN task_form_submissions tfs ON vt.id = tfs.verification_task_id
+      ${whereClause}
+      ORDER BY vt.created_at DESC
+    `;
+
+    const result = await pool.query(query, params);
+
+    if (format === 'EXCEL') {
+      // Create Excel workbook
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('MIS Report');
+
+      // Define columns - TASK-FIRST ORDER
+      worksheet.columns = [
+        // Task-Level Data (PRIMARY)
+        { header: 'Task ID', key: 'task_id', width: 12 },
+        { header: 'Task Number', key: 'task_number', width: 15 },
+        { header: 'Task Title', key: 'task_title', width: 30 },
+        { header: 'Verification Type', key: 'verification_type_name', width: 25 },
+        { header: 'Task Status', key: 'task_status', width: 15 },
+        { header: 'Task Priority', key: 'task_priority', width: 12 },
+        { header: 'Field Agent', key: 'assigned_field_user', width: 20 },
+        { header: 'Field Agent ID', key: 'field_user_employee_id', width: 15 },
+        { header: 'Address', key: 'address', width: 40 },
+        { header: 'Pincode', key: 'pincode', width: 10 },
+        { header: 'Rate Type', key: 'rate_type', width: 15 },
+        { header: 'Estimated Amount', key: 'estimated_amount', width: 18 },
+        { header: 'Actual Amount', key: 'actual_amount', width: 15 },
+        { header: 'Task Created Date', key: 'task_created_date', width: 20 },
+        { header: 'Task Started Date', key: 'task_started_date', width: 20 },
+        { header: 'Task Completion Date', key: 'task_completion_date', width: 20 },
+        { header: 'Task TAT (Days)', key: 'task_tat_days', width: 15 },
+        { header: 'Trigger', key: 'trigger', width: 30 },
+        { header: 'Applicant Type', key: 'applicant_type', width: 20 },
+
+        // Form Submission Data
+        { header: 'Form Submission ID', key: 'form_submission_id', width: 15 },
+        { header: 'Form Type', key: 'form_type', width: 20 },
+        { header: 'Form Submitted Date', key: 'form_submitted_date', width: 20 },
+        { header: 'Form Validation Status', key: 'form_validation_status', width: 20 },
+
+        // Case-Level Data (SECONDARY/REFERENCE)
+        { header: 'Case Number', key: 'case_number', width: 15 },
+        { header: 'Customer Name', key: 'customerName', width: 25 },
+        { header: 'Customer Phone', key: 'customerPhone', width: 15 },
+        { header: 'Calling Code', key: 'customerCallingCode', width: 12 },
+        { header: 'Client Name', key: 'client_name', width: 20 },
+        { header: 'Client Code', key: 'client_code', width: 15 },
+        { header: 'Product', key: 'product_name', width: 20 },
+        { header: 'Case Status', key: 'case_status', width: 15 },
+        { header: 'Case Priority', key: 'case_priority', width: 12 },
+        { header: 'Case Created Date', key: 'case_created_date', width: 20 },
+        { header: 'Backend User', key: 'backend_user_name', width: 20 },
+        { header: 'Backend User ID', key: 'backend_user_employee_id', width: 15 },
+      ];
+
+      // Style header row
+      worksheet.getRow(1).font = { bold: true };
+      worksheet.getRow(1).fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FF4472C4' },
+      };
+      worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+
+      // Add data rows
+      result.rows.forEach((row: any) => {
+        worksheet.addRow(row);
+      });
+
+      // Auto-filter
+      worksheet.autoFilter = {
+        from: 'A1',
+        to: `AI1`,
+      };
+
+      // Generate buffer
+      const buffer = await workbook.xlsx.writeBuffer();
+
+      // Set response headers
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', `attachment; filename=MIS_Report_${new Date().toISOString().split('T')[0]}.xlsx`);
+      res.send(buffer);
+
+    } else if (format === 'CSV') {
+      // Generate CSV - TASK-FIRST ORDER
+      const headers = [
+        // Task-Level Data (PRIMARY)
+        'Task ID', 'Task Number', 'Task Title', 'Verification Type',
+        'Task Status', 'Task Priority', 'Field Agent', 'Field Agent ID',
+        'Address', 'Pincode', 'Rate Type', 'Estimated Amount', 'Actual Amount',
+        'Task Created Date', 'Task Started Date', 'Task Completion Date',
+        'Task TAT (Days)', 'Trigger', 'Applicant Type',
+        // Form Submission Data
+        'Form Submission ID', 'Form Type', 'Form Submitted Date', 'Form Validation Status',
+        // Case-Level Data (SECONDARY/REFERENCE)
+        'Case Number', 'Customer Name', 'Customer Phone', 'Calling Code',
+        'Client Name', 'Client Code', 'Product',
+        'Case Status', 'Case Priority', 'Case Created Date',
+        'Backend User', 'Backend User ID'
+      ];
+
+      const csvRows = [headers.join(',')];
+
+      result.rows.forEach((row: any) => {
+        const values = [
+          // Task-Level Data (PRIMARY)
+          row.task_id || '',
+          row.task_number || '',
+          `"${row.task_title || ''}"`,
+          `"${row.task_verification_type || ''}"`,
+          row.task_status || '',
+          row.task_priority || '',
+          `"${row.assigned_field_user || ''}"`,
+          row.field_user_employee_id || '',
+          `"${row.address || ''}"`,
+          row.pincode || '',
+          row.rate_type || '',
+          row.estimated_amount || 0,
+          row.actual_amount || 0,
+          row.task_created_date || '',
+          row.task_started_date || '',
+          row.task_completion_date || '',
+          row.task_tat_days || '',
+          `"${row.trigger || ''}"`,
+          row.applicant_type || '',
+          // Form Submission Data
+          row.form_submission_id || '',
+          row.form_type || '',
+          row.form_submitted_date || '',
+          row.form_validation_status || '',
+          // Case-Level Data (SECONDARY/REFERENCE)
+          row.case_number,
+          `"${row.customerName || ''}"`,
+          row.customerPhone || '',
+          row.customerCallingCode || '',
+          `"${row.client_name || ''}"`,
+          row.client_code || '',
+          `"${row.product_name || ''}"`,
+          row.case_status || '',
+          row.case_priority || '',
+          row.case_created_date || '',
+          `"${row.backend_user_name || ''}"`,
+          row.backend_user_employee_id || ''
+        ];
+        csvRows.push(values.join(','));
+      });
+
+      const csvContent = csvRows.join('\n');
+
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename=MIS_Report_${new Date().toISOString().split('T')[0]}.csv`);
+      res.send(csvContent);
+    }
+
+    logger.info('MIS data exported', {
+      userId: req.user?.id,
+      format,
+      recordCount: result.rows.length,
+    });
+
+  } catch (error) {
+    logger.error('Error exporting MIS data:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to export MIS data',
       error: { code: 'INTERNAL_ERROR' },
     });
   }
