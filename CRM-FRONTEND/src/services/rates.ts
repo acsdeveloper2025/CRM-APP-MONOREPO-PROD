@@ -112,7 +112,7 @@ export class RatesService {
     search?: string;
     isActive?: boolean;
   } = {}): Promise<PaginatedResponse<Rate>> {
-    return this.getRates({ ...filters, limit: 1000 });
+    return this.getRates({ ...filters, limit: 100 }); // Backend max limit is 100
   }
 }
 
