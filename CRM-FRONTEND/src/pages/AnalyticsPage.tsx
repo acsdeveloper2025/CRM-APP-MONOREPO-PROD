@@ -30,7 +30,7 @@ export const AnalyticsPage: React.FC = () => {
     queryKey: ['verification-tasks-overview'],
     queryFn: async () => {
       const params = new URLSearchParams({
-        limit: '1000',
+        limit: '100',
         dateFrom: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         dateTo: new Date().toISOString().split('T')[0]
       });

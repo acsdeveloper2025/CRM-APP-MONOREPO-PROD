@@ -69,11 +69,11 @@ export function MISDashboard() {
   const [isLoading, setIsLoading] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
 
-  // Load dropdown data
-  const { data: clientsData } = useClients({ page: 1, limit: 1000 });
-  const { data: productsData } = useProducts({ page: 1, limit: 1000 });
-  const { data: verificationTypesData } = useVerificationTypes({ page: 1, limit: 1000 });
-  const { data: usersData } = useUsers({ page: 1, limit: 1000 });
+  // Load dropdown data (backend max limit is 100)
+  const { data: clientsData } = useClients({ page: 1, limit: 100 });
+  const { data: productsData } = useProducts({ page: 1, limit: 100 });
+  const { data: verificationTypesData } = useVerificationTypes({ page: 1, limit: 100 });
+  const { data: usersData } = useUsers({ page: 1, limit: 100 });
 
   const clients = clientsData?.data || [];
   const products = productsData?.data || [];
