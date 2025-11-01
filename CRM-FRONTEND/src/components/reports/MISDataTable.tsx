@@ -64,108 +64,104 @@ export function MISDataTable({ data, pagination, onPageChange, isLoading }: MISD
           <thead className="bg-muted">
             <tr>
               <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Task
+                Verification Task
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Verification Type
+                Case ID
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Status
+                Customer Name
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Field Agent
+                Pincode
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Amount
+                Area
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Case
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Customer
+                Address
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Client
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                Product
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                Verification Type
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                Backend User
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                Field User
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                Rate Type
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                Trigger
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                Report
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                Status
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Created
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                Completed At
               </th>
             </tr>
           </thead>
           <tbody className="bg-card divide-y divide-border">
             {data.map((taskRow) => (
               <tr key={taskRow.task_id} className="hover:bg-muted/50 transition-colors">
-                {/* Task Column */}
-                <td className="px-4 py-4 whitespace-nowrap">
-                  <div>
-                    <div className="text-sm font-medium text-foreground">
-                      {taskRow.task_number}
-                    </div>
-                    <div className="text-xs text-muted-foreground truncate max-w-[200px]">
-                      {taskRow.task_title}
-                    </div>
-                  </div>
-                </td>
-
-                {/* Verification Type Column */}
-                <td className="px-4 py-4 whitespace-nowrap">
-                  <div className="text-sm text-foreground">
-                    {taskRow.verification_type_name}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {taskRow.rate_type}
-                  </div>
-                </td>
-
-                {/* Status Column */}
-                <td className="px-4 py-4 whitespace-nowrap">
-                  <div className="space-y-1">
-                    {getStatusBadge(taskRow.task_status)}
-                    {getPriorityBadge(taskRow.task_priority)}
-                  </div>
-                </td>
-
-                {/* Field Agent Column */}
-                <td className="px-4 py-4 whitespace-nowrap">
-                  <div className="text-sm text-foreground">
-                    {taskRow.assigned_field_user || '-'}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {taskRow.field_user_employee_id || '-'}
-                  </div>
-                </td>
-
-                {/* Amount Column */}
+                {/* 1. Verification Task Column */}
                 <td className="px-4 py-4 whitespace-nowrap">
                   <div className="text-sm font-medium text-foreground">
-                    ₹{taskRow.actual_amount?.toLocaleString() || 0}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    Est: ₹{taskRow.estimated_amount?.toLocaleString() || 0}
+                    {taskRow.task_number}
                   </div>
                 </td>
 
-                {/* Case Column */}
+                {/* 2. Case ID Column */}
                 <td className="px-4 py-4 whitespace-nowrap">
                   <div className="text-sm font-medium text-foreground">
                     #{taskRow.case_number}
                   </div>
-                  <div className="text-xs text-muted-foreground">
-                    {taskRow.product_name}
-                  </div>
                 </td>
 
-                {/* Customer Column */}
+                {/* 3. Customer Name Column */}
                 <td className="px-4 py-4 whitespace-nowrap">
                   <div className="text-sm text-foreground">
                     {taskRow.customerName}
                   </div>
-                  <div className="text-xs text-muted-foreground">
-                    {taskRow.customerCallingCode} {taskRow.customerPhone}
+                </td>
+
+                {/* 4. Pincode Column */}
+                <td className="px-4 py-4 whitespace-nowrap">
+                  <div className="text-sm text-foreground">
+                    {taskRow.pincode || '-'}
                   </div>
                 </td>
 
-                {/* Client Column */}
+                {/* 5. Area Column */}
+                <td className="px-4 py-4 whitespace-nowrap">
+                  <div className="text-sm text-muted-foreground">
+                    -
+                  </div>
+                </td>
+
+                {/* 6. Address Column */}
+                <td className="px-4 py-4">
+                  <div className="text-sm text-foreground max-w-[200px] truncate">
+                    {taskRow.address || '-'}
+                  </div>
+                </td>
+
+                {/* 7. Client Column */}
                 <td className="px-4 py-4 whitespace-nowrap">
                   <div className="text-sm text-foreground">
                     {taskRow.client_name}
@@ -175,9 +171,88 @@ export function MISDataTable({ data, pagination, onPageChange, isLoading }: MISD
                   </div>
                 </td>
 
-                {/* Created Column */}
+                {/* 8. Product Column */}
+                <td className="px-4 py-4 whitespace-nowrap">
+                  <div className="text-sm text-foreground">
+                    {taskRow.product_name}
+                  </div>
+                </td>
+
+                {/* 9. Verification Type Column */}
+                <td className="px-4 py-4 whitespace-nowrap">
+                  <div className="text-sm text-foreground">
+                    {taskRow.verification_type_name}
+                  </div>
+                </td>
+
+                {/* 10. Backend User Column */}
+                <td className="px-4 py-4 whitespace-nowrap">
+                  <div className="text-sm text-foreground">
+                    {taskRow.backend_user_name || '-'}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {taskRow.backend_user_employee_id || '-'}
+                  </div>
+                </td>
+
+                {/* 11. Field User Column */}
+                <td className="px-4 py-4 whitespace-nowrap">
+                  <div className="text-sm text-foreground">
+                    {taskRow.assigned_field_user || '-'}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {taskRow.field_user_employee_id || '-'}
+                  </div>
+                </td>
+
+                {/* 12. Rate Type Column */}
+                <td className="px-4 py-4 whitespace-nowrap">
+                  <div className="text-sm text-foreground">
+                    {taskRow.rate_type || '-'}
+                  </div>
+                </td>
+
+                {/* 13. Trigger Column */}
+                <td className="px-4 py-4">
+                  <div className="text-sm text-foreground max-w-[150px] truncate">
+                    {taskRow.trigger || '-'}
+                  </div>
+                </td>
+
+                {/* 14. Report Column */}
+                <td className="px-4 py-4 whitespace-nowrap">
+                  {taskRow.form_submission_id ? (
+                    <div className="text-sm">
+                      <Badge variant="outline" className="bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400">
+                        {taskRow.form_type || 'Submitted'}
+                      </Badge>
+                      {taskRow.form_validation_status && (
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {taskRow.form_validation_status}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-sm text-muted-foreground">-</div>
+                  )}
+                </td>
+
+                {/* 15. Status Column */}
+                <td className="px-4 py-4 whitespace-nowrap">
+                  <div className="space-y-1">
+                    {getStatusBadge(taskRow.task_status)}
+                    {getPriorityBadge(taskRow.task_priority)}
+                  </div>
+                </td>
+
+                {/* 16. Created Column */}
                 <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">
                   {formatDate(taskRow.task_created_date)}
+                </td>
+
+                {/* 17. Completed At Column */}
+                <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                  {taskRow.task_completion_date ? formatDate(taskRow.task_completion_date) : '-'}
                 </td>
               </tr>
             ))}
