@@ -138,6 +138,7 @@ const clientProductsValidation = [
 
 // Core CRUD routes (CACHED)
 router.get('/',
+  authenticateToken,
   EnterpriseCache.create(EnterpriseCacheConfigs.products),
   listProductsValidation,
   handleValidationErrors,
@@ -148,11 +149,13 @@ router.get('/',
 // TODO: Implement these endpoints
 // router.get('/categories', getProductCategories);
 router.get('/stats',
+  authenticateToken,
   EnterpriseCache.create(EnterpriseCacheConfigs.analytics),
   getProductStats
 );
 
 router.post('/',
+  authenticateToken,
   EnterpriseCache.invalidate(CacheInvalidationPatterns.productUpdate),
   createProductValidation,
   handleValidationErrors,
@@ -161,12 +164,14 @@ router.post('/',
 
 // TODO: Implement bulk import endpoint
 // router.post('/bulk-import',
+//   authenticateToken,
 //   bulkImportValidation,
 //   validate,
 //   bulkImportProducts
 // );
 
 router.get('/:id',
+  authenticateToken,
   EnterpriseCache.create(EnterpriseCacheConfigs.products),
   [param('id').isInt({ min: 1 }).withMessage('Product ID must be a positive integer')],
   handleValidationErrors,
@@ -174,6 +179,7 @@ router.get('/:id',
 );
 
 router.put('/:id',
+  authenticateToken,
   EnterpriseCache.invalidate(CacheInvalidationPatterns.productUpdate),
   [param('id').isInt({ min: 1 }).withMessage('Product ID must be a positive integer')],
   updateProductValidation,
@@ -182,6 +188,7 @@ router.put('/:id',
 );
 
 router.delete('/:id',
+  authenticateToken,
   EnterpriseCache.invalidate(CacheInvalidationPatterns.productUpdate),
   [param('id').isInt({ min: 1 }).withMessage('Product ID must be a positive integer')],
   handleValidationErrors,
@@ -190,6 +197,7 @@ router.delete('/:id',
 
 // Get verification types for a product (CACHED)
 router.get('/:id/verification-types',
+  authenticateToken,
   EnterpriseCache.create(EnterpriseCacheConfigs.verificationTypes),
   [
     param('id').isInt({ min: 1 }).withMessage('Product ID must be a positive integer'),
