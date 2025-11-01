@@ -68,12 +68,12 @@ export const TasksAnalytics: React.FC = () => {
   const [timeRange, setTimeRange] = useState('30d');
   const [viewType, setViewType] = useState<'status' | 'type' | 'agent'>('status');
 
-  // Fetch verification tasks
+  // Fetch verification tasks (backend max limit is 100)
   const { data: tasksData, isLoading, error } = useQuery({
     queryKey: ['verification-tasks', timeRange],
     queryFn: async () => {
       const params = new URLSearchParams({
-        limit: '1000',
+        limit: '100',
         dateFrom: getDateFromRange(timeRange),
         dateTo: new Date().toISOString().split('T')[0]
       });

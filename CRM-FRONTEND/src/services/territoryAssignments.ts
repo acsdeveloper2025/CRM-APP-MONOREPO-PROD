@@ -189,7 +189,7 @@ class TerritoryAssignmentService {
     try {
       // This would need a dedicated endpoint in the backend
       // For now, we'll calculate from the field agents list
-      const response = await this.getFieldAgentTerritories({ limit: 1000 });
+      const response = await this.getFieldAgentTerritories({ limit: 100 }); // Backend max limit is 100
       
       if (!response.success || !response.data) {
         throw new Error('Failed to fetch territory data for statistics');
@@ -249,7 +249,7 @@ class TerritoryAssignmentService {
     try {
       // This would ideally be a backend endpoint for proper validation
       // For now, we'll do client-side validation by fetching current assignments
-      const response = await this.getFieldAgentTerritories({ limit: 1000 });
+      const response = await this.getFieldAgentTerritories({ limit: 100 }); // Backend max limit is 100
       
       if (!response.success || !response.data) {
         throw new Error('Failed to fetch current assignments for validation');
