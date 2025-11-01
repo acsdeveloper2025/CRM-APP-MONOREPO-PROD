@@ -29,15 +29,16 @@ import {
   Scatter
 } from 'recharts';
 import { useAgentPerformance } from '@/hooks/useAnalytics';
-import { 
-  Users, 
-  TrendingUp, 
-  Award, 
-  Target, 
-  Clock, 
+import {
+  Users,
+  TrendingUp,
+  Award,
+  Target,
+  Clock,
   Star,
   BarChart3,
-  Activity
+  Activity,
+  XCircle
 } from 'lucide-react';
 
 const PERFORMANCE_COLORS = {
@@ -52,7 +53,7 @@ export const AgentPerformanceCharts: React.FC = () => {
   const [viewType, setViewType] = useState<'overview' | 'individual' | 'comparison' | 'trends'>('overview');
   const [selectedAgent, setSelectedAgent] = useState<string>('all');
 
-  const { data: performanceData, isLoading } = useAgentPerformance({
+  const { data: performanceData, isLoading, error } = useAgentPerformance({
     dateFrom: getDateFromRange(timeRange),
     dateTo: new Date().toISOString().split('T')[0],
     agentId: selectedAgent !== 'all' ? selectedAgent : undefined,
@@ -75,11 +76,12 @@ export const AgentPerformanceCharts: React.FC = () => {
     performance: getPerformanceLevel(agent.formQualityScore, agent.totalCasesAssigned > 0 ? (agent.casesCompleted / agent.totalCasesAssigned) * 100 : 0)
   }));
 
-  // Generate productivity trends
+  // Generate productivity trends (simulated time-series data)
+  // TODO: Replace with actual time-series API endpoint when available
   const productivityTrends = generateProductivityTrends(timeRange);
 
   // Generate radar chart data for selected agent
-  const radarData = selectedAgent !== 'all' && agents.length > 0 
+  const radarData = selectedAgent !== 'all' && agents.length > 0
     ? generateRadarData(agents.find(a => a.id === selectedAgent) || agents[0])
     : generateRadarData(agents[0]);
 
@@ -183,19 +185,36 @@ export const AgentPerformanceCharts: React.FC = () => {
     return colors[performance as keyof typeof colors] || 'bg-muted text-foreground';
   };
 
+  // Error state
+  if (error) {
+    return (
+      <div className="space-y-4 sm:space-y-6">
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <XCircle className="h-12 w-12 text-red-500 mb-4" />
+            <h3 className="text-lg font-semibold mb-2">Failed to Load Performance Data</h3>
+            <p className="text-muted-foreground text-center">
+              There was an error loading agent performance data. Please try again later.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header with Controls */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-foreground">Agent Performance Analytics</h2>
-          <p className="mt-1 text-muted-foreground">
+      <div className="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0 flex-1">
+          <h2 className="text-xl sm:text-2xl font-bold text-foreground truncate">Agent Performance Analytics</h2>
+          <p className="mt-1 text-sm sm:text-base text-muted-foreground">
             Comprehensive performance metrics and productivity analysis
           </p>
         </div>
-        <div className="flex items-center space-x-4">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4">
           <Select value={viewType} onValueChange={(value: any) => setViewType(value)}>
-            <SelectTrigger className="w-40">
+            <SelectTrigger className="w-full sm:w-40">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -207,7 +226,7 @@ export const AgentPerformanceCharts: React.FC = () => {
           </Select>
           {viewType === 'individual' && (
             <Select value={selectedAgent} onValueChange={setSelectedAgent}>
-              <SelectTrigger className="w-48">
+              <SelectTrigger className="w-full sm:w-48">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -221,7 +240,7 @@ export const AgentPerformanceCharts: React.FC = () => {
             </Select>
           )}
           <Select value={timeRange} onValueChange={setTimeRange}>
-            <SelectTrigger className="w-32">
+            <SelectTrigger className="w-full sm:w-32">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -234,7 +253,7 @@ export const AgentPerformanceCharts: React.FC = () => {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-5">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Agents</CardTitle>

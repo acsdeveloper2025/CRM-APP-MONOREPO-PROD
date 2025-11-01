@@ -29,6 +29,7 @@ import { UserPermissionsPage } from '@/pages/UserPermissionsPage';
 import RoleManagementPage from '@/pages/RoleManagementPage';
 import { ReportsPage } from '@/pages/ReportsPage';
 import { AnalyticsPage } from '@/pages/AnalyticsPage';
+import { MISDashboardPage } from '@/pages/MISDashboardPage';
 import { BillingPage } from '@/pages/BillingPage';
 import { CommissionManagementPage } from '@/pages/CommissionManagementPage';
 import { CommissionsPage } from '@/pages/CommissionsPage';
@@ -351,6 +352,18 @@ export const AppRoutes: React.FC = () => {
           <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND', 'SUPER_ADMIN']}>
             <Layout>
               <AnalyticsPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* MIS Dashboard route */}
+      <Route
+        path="/reports/mis"
+        element={
+          <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND', 'SUPER_ADMIN']}>
+            <Layout>
+              <MISDashboardPage />
             </Layout>
           </ProtectedRoute>
         }

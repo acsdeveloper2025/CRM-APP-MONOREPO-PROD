@@ -2,30 +2,32 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from '@/components/ui/table';
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  Legend, 
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
   ResponsiveContainer,
   PieChart,
   Pie,
   Cell
 } from 'recharts';
 import { useFormSubmissions } from '@/hooks/useAnalytics';
-import { FileText, CheckCircle, Clock, AlertCircle, Download } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
+import { FileText, CheckCircle, Clock, AlertCircle, Download, Calendar } from 'lucide-react';
+import { formatDistanceToNow, format } from 'date-fns';
 
 const COLORS = {
   VALID: '#10b981',
@@ -91,23 +93,70 @@ export const FormSubmissionsTable: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-foreground">Form Submissions Analysis</h2>
-          <p className="mt-1 text-muted-foreground">
+      <div className="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0 flex-1">
+          <h2 className="text-xl sm:text-2xl font-bold text-foreground truncate">Form Submissions Analysis</h2>
+          <p className="mt-1 text-sm sm:text-base text-muted-foreground">
             Comprehensive view of all form submissions with validation status and trends
           </p>
         </div>
-        <Button variant="outline">
+        <Button variant="outline" className="w-full sm:w-auto">
           <Download className="h-4 w-4 mr-2" />
           Export Data
         </Button>
       </div>
 
+      {/* Date Range Filters */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base sm:text-lg">Filter by Date Range</CardTitle>
+          <CardDescription>Select a date range to filter submissions</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="space-y-2">
+              <Label htmlFor="date-from">From Date</Label>
+              <div className="relative">
+                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                <Input
+                  id="date-from"
+                  type="date"
+                  value={dateRange.from}
+                  onChange={(e) => setDateRange(prev => ({ ...prev, from: e.target.value }))}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="date-to">To Date</Label>
+              <div className="relative">
+                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                <Input
+                  id="date-to"
+                  type="date"
+                  value={dateRange.to}
+                  onChange={(e) => setDateRange(prev => ({ ...prev, to: e.target.value }))}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+            <div className="flex items-end">
+              <Button
+                variant="outline"
+                onClick={() => setDateRange({ from: '', to: '' })}
+                className="w-full"
+              >
+                Clear Filters
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Submissions</CardTitle>
@@ -158,7 +207,7 @@ export const FormSubmissionsTable: React.FC = () => {
       </div>
 
       {/* Charts Section */}
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-2">
         {/* Validation Status Chart */}
         <Card>
           <CardHeader>
@@ -215,25 +264,26 @@ export const FormSubmissionsTable: React.FC = () => {
       {/* Detailed Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Recent Form Submissions</CardTitle>
+          <CardTitle className="text-base sm:text-lg">Recent Form Submissions</CardTitle>
           <CardDescription>
-            {submissions.length > 0 
+            {submissions.length > 0
               ? `Showing ${submissions.length} recent submission${submissions.length === 1 ? '' : 's'}`
               : 'No submissions found'
             }
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="border rounded-lg">
+          {/* Responsive table wrapper */}
+          <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Form Type</TableHead>
-                  <TableHead>Case</TableHead>
-                  <TableHead>Agent</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Submitted</TableHead>
-                  <TableHead>Attachments</TableHead>
+                  <TableHead className="whitespace-nowrap">Form Type</TableHead>
+                  <TableHead className="whitespace-nowrap">Case</TableHead>
+                  <TableHead className="whitespace-nowrap hidden sm:table-cell">Agent</TableHead>
+                  <TableHead className="whitespace-nowrap">Status</TableHead>
+                  <TableHead className="whitespace-nowrap hidden md:table-cell">Submitted</TableHead>
+                  <TableHead className="whitespace-nowrap hidden lg:table-cell">Attachments</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -260,7 +310,7 @@ export const FormSubmissionsTable: React.FC = () => {
                 ) : (
                   submissions.map((submission, index) => (
                     <TableRow key={`${submission.case_id}-${index}`}>
-                      <TableCell>
+                      <TableCell className="whitespace-nowrap">
                         <Badge className={getFormTypeColor(submission.form_type)}>
                           {submission.form_type}
                         </Badge>
@@ -268,26 +318,26 @@ export const FormSubmissionsTable: React.FC = () => {
                       <TableCell>
                         <div>
                           <div className="font-medium">#{submission.caseNumber || 'N/A'}</div>
-                          <div className="text-sm text-muted-foreground">{submission.customerName}</div>
+                          <div className="text-sm text-muted-foreground truncate max-w-[150px]">{submission.customerName}</div>
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden sm:table-cell">
                         <div>
                           <div className="font-medium">{submission.agentName || 'Unknown'}</div>
                           <div className="text-sm text-muted-foreground">{submission.employeeId}</div>
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="whitespace-nowrap">
                         <Badge className={getValidationStatusColor(submission.validation_status)}>
                           {submission.validation_status}
                         </Badge>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden md:table-cell whitespace-nowrap">
                         <div className="text-sm">
                           {formatDistanceToNow(new Date(submission.submitted_at), { addSuffix: true })}
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden lg:table-cell">
                         <div className="text-sm">
                           {submission.attachmentCount || 0} files
                         </div>
@@ -304,20 +354,21 @@ export const FormSubmissionsTable: React.FC = () => {
             const { total, limit } = submissionsData.data.pagination;
             const totalPages = Math.ceil(total / limit);
             return (
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
-                <div className="text-sm text-muted-foreground">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 border-t">
+                <div className="text-sm text-muted-foreground text-center sm:text-left">
                   Showing {submissions.length} of {total} submissions
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap justify-center">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                     disabled={currentPage === 1}
+                    className="min-w-[80px]"
                   >
                     Previous
                   </Button>
-                  <div className="text-sm">
+                  <div className="text-sm px-2">
                     Page {currentPage} of {totalPages}
                   </div>
                   <Button
@@ -325,6 +376,7 @@ export const FormSubmissionsTable: React.FC = () => {
                     size="sm"
                     onClick={() => setCurrentPage(prev => prev + 1)}
                     disabled={currentPage >= totalPages}
+                    className="min-w-[80px]"
                   >
                     Next
                   </Button>

@@ -1,223 +1,204 @@
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { FormSubmissionsDashboard } from '@/components/analytics/FormSubmissionsDashboard';
-import { CaseAnalyticsDashboard } from '@/components/analytics/CaseAnalyticsDashboard';
-import { AgentPerformanceDashboard } from '@/components/analytics/AgentPerformanceDashboard';
-import { FormSubmissionsTable } from '@/components/analytics/FormSubmissionsTable';
-import { FormValidationStatus } from '@/components/analytics/FormValidationStatus';
-import { FormTypeDistribution } from '@/components/analytics/FormTypeDistribution';
-import { CaseStatusDistribution } from '@/components/analytics/CaseStatusDistribution';
+import { CasesAnalytics } from '@/components/analytics/CasesAnalytics';
+import { TasksAnalytics } from '@/components/analytics/TasksAnalytics';
 import { AgentPerformanceCharts } from '@/components/analytics/AgentPerformanceCharts';
-import { CaseCompletionTimeAnalysis } from '@/components/analytics/CaseCompletionTimeAnalysis';
-import { DataExportReporting } from '@/components/analytics/DataExportReporting';
-import { 
-  useFormSubmissionStats, 
-  useCaseCompletionMetrics, 
-  useAgentPerformanceOverview 
-} from '@/hooks/useAnalytics';
-import { 
-  BarChart3, 
-  FileText, 
-  Users, 
+import { MISDashboard } from '@/components/reports/MISDashboard';
+import { useCaseAnalytics } from '@/hooks/useAnalytics';
+import { useQuery } from '@tanstack/react-query';
+import { apiService } from '@/services/api';
+import {
+  BarChart3,
+  FileText,
+  Users,
+  CheckSquare,
   TrendingUp,
-  CheckCircle,
-  Clock,
-  Target
+  Database
 } from 'lucide-react';
 
 export const AnalyticsPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('overview');
 
   // Get overview data for the summary cards
-  const { data: formStats } = useFormSubmissionStats();
-  const { data: caseMetrics } = useCaseCompletionMetrics();
-  const { data: agentOverview } = useAgentPerformanceOverview();
+  const { data: caseAnalytics } = useCaseAnalytics({
+    dateFrom: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    dateTo: new Date().toISOString().split('T')[0]
+  });
 
-  const formSummary = formStats?.data;
-  const caseSummary = caseMetrics?.data;
-  const agentSummary = agentOverview?.data?.summary;
+  const { data: tasksData } = useQuery({
+    queryKey: ['verification-tasks-overview'],
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        limit: '1000',
+        dateFrom: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        dateTo: new Date().toISOString().split('T')[0]
+      });
+      return apiService.get(`/verification-tasks?${params.toString()}`);
+    }
+  });
+
+  const caseSummary = caseAnalytics?.data?.summary;
+  const tasks = tasksData?.data?.data || [];
+
+  // Calculate task metrics
+  const totalTasks = tasks.length;
+  const completedTasks = tasks.filter((t: any) => t.status === 'COMPLETED').length;
+  const inProgressTasks = tasks.filter((t: any) => t.status === 'IN_PROGRESS').length;
+  const taskCompletionRate = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
+
+  // Calculate active agents
+  const activeAgents = new Set(tasks.filter((t: any) => t.assigned_to).map((t: any) => t.assigned_to)).size;
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Analytics & Reporting</h1>
-          <p className="mt-2 text-muted-foreground">
+    <div className="space-y-6">
+      {/* Page Header Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Analytics & Reporting</CardTitle>
+          <CardDescription>
             Comprehensive insights into form submissions, case performance, and agent productivity
-          </p>
-        </div>
-      </div>
+          </CardDescription>
+        </CardHeader>
+      </Card>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-8">
-          <TabsTrigger value="overview" className="flex items-center space-x-2">
-            <BarChart3 className="h-4 w-4" />
-            <span>Overview</span>
-          </TabsTrigger>
-          <TabsTrigger value="forms" className="flex items-center space-x-2">
-            <FileText className="h-4 w-4" />
-            <span>Forms</span>
-          </TabsTrigger>
-          <TabsTrigger value="validation" className="flex items-center space-x-2">
-            <CheckCircle className="h-4 w-4" />
-            <span>Validation</span>
-          </TabsTrigger>
-          <TabsTrigger value="distribution" className="flex items-center space-x-2">
-            <Target className="h-4 w-4" />
-            <span>Distribution</span>
-          </TabsTrigger>
-          <TabsTrigger value="cases" className="flex items-center space-x-2">
-            <BarChart3 className="h-4 w-4" />
-            <span>Cases</span>
-          </TabsTrigger>
-          <TabsTrigger value="timing" className="flex items-center space-x-2">
-            <Clock className="h-4 w-4" />
-            <span>Timing</span>
-          </TabsTrigger>
-          <TabsTrigger value="agents" className="flex items-center space-x-2">
-            <Users className="h-4 w-4" />
-            <span>Agents</span>
-          </TabsTrigger>
-          <TabsTrigger value="export" className="flex items-center space-x-2">
-            <TrendingUp className="h-4 w-4" />
-            <span>Export</span>
-          </TabsTrigger>
-        </TabsList>
+        {/* Responsive Tab Navigation */}
+        <div className="relative">
+          <div className="overflow-x-auto scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
+            <TabsList className="inline-flex w-auto min-w-full sm:w-full sm:grid sm:grid-cols-5 gap-1">
+              <TabsTrigger value="overview" className="flex items-center justify-center gap-2 whitespace-nowrap px-3 sm:px-4">
+                <BarChart3 className="h-4 w-4 shrink-0" />
+                <span>Overview</span>
+              </TabsTrigger>
+              <TabsTrigger value="cases" className="flex items-center justify-center gap-2 whitespace-nowrap px-3 sm:px-4">
+                <FileText className="h-4 w-4 shrink-0" />
+                <span>Cases</span>
+              </TabsTrigger>
+              <TabsTrigger value="tasks" className="flex items-center justify-center gap-2 whitespace-nowrap px-3 sm:px-4">
+                <CheckSquare className="h-4 w-4 shrink-0" />
+                <span>Tasks</span>
+              </TabsTrigger>
+              <TabsTrigger value="agents" className="flex items-center justify-center gap-2 whitespace-nowrap px-3 sm:px-4">
+                <Users className="h-4 w-4 shrink-0" />
+                <span>Agents</span>
+              </TabsTrigger>
+              <TabsTrigger value="mis" className="flex items-center justify-center gap-2 whitespace-nowrap px-3 sm:px-4">
+                <Database className="h-4 w-4 shrink-0" />
+                <span>MIS</span>
+              </TabsTrigger>
+            </TabsList>
+          </div>
+        </div>
 
-        <TabsContent value="overview" className="space-y-6">
+        <TabsContent value="overview" className="space-y-4 sm:space-y-6">
           {/* Overview Dashboard */}
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {/* Form Submissions Overview */}
+          <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+            {/* Total Cases */}
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Form Submissions</CardTitle>
+                <CardTitle className="text-sm font-medium">Total Cases</CardTitle>
                 <FileText className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{formSummary?.totalSubmissions || 0}</div>
-                <p className="text-xs text-muted-foreground">
-                  {formSummary?.validationRate 
-                    ? `${formSummary.validationRate.toFixed(1)}% validation rate`
-                    : 'No submissions yet'
-                  }
-                </p>
-                <div className="mt-4 space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span>Valid:</span>
-                    <span className="text-green-600 font-medium">{formSummary?.validSubmissions || 0}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span>Pending:</span>
-                    <span className="text-yellow-600 font-medium">{formSummary?.pendingSubmissions || 0}</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Case Completion Overview */}
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Case Performance</CardTitle>
-                <CheckCircle className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{caseSummary?.totalCases || 0}</div>
                 <p className="text-xs text-muted-foreground">
-                  {caseSummary?.completionRate 
+                  {caseSummary?.completionRate
                     ? `${caseSummary.completionRate.toFixed(1)}% completion rate`
                     : 'No cases yet'
                   }
                 </p>
-                <div className="mt-4 space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span>Completed:</span>
-                    <span className="text-green-600 font-medium">{caseSummary?.completedCases || 0}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span>Avg Days:</span>
-                    <span className="text-blue-600 font-medium">
-                      {caseSummary?.avgCompletionDays ? `${caseSummary.avgCompletionDays.toFixed(1)}d` : 'N/A'}
-                    </span>
-                  </div>
-                </div>
               </CardContent>
             </Card>
 
-            {/* Agent Performance Overview */}
+            {/* Total Tasks */}
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Agent Performance</CardTitle>
+                <CardTitle className="text-sm font-medium">Total Tasks</CardTitle>
+                <CheckSquare className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{totalTasks}</div>
+                <p className="text-xs text-muted-foreground">
+                  {taskCompletionRate.toFixed(1)}% completion rate
+                </p>
+              </CardContent>
+            </Card>
+
+            {/* Completed Tasks */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Completed Tasks</CardTitle>
+                <TrendingUp className="h-4 w-4 text-green-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-green-600">{completedTasks}</div>
+                <p className="text-xs text-muted-foreground">
+                  {inProgressTasks} in progress
+                </p>
+              </CardContent>
+            </Card>
+
+            {/* Active Agents */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Active Agents</CardTitle>
                 <Users className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{agentSummary?.totalAgents || 0}</div>
+                <div className="text-2xl font-bold">{activeAgents}</div>
                 <p className="text-xs text-muted-foreground">
-                  {agentSummary?.activeAgents 
-                    ? `${agentSummary.activeAgents} active agents`
-                    : 'No active agents'
-                  }
+                  Field agents working
                 </p>
-                <div className="mt-4 space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span>Avg Cases:</span>
-                    <span className="text-blue-600 font-medium">
-                      {agentSummary?.avgCasesPerAgent ? agentSummary.avgCasesPerAgent.toFixed(1) : '0'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span>Completion:</span>
-                    <span className="text-green-600 font-medium">
-                      {agentSummary?.avgCompletionRate ? `${agentSummary.avgCompletionRate.toFixed(1)}%` : 'N/A'}
-                    </span>
-                  </div>
-                </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Quick Stats Grid */}
-          <div className="grid gap-4 md:grid-cols-4">
+          {/* Status Distribution */}
+          <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Residence Forms</CardTitle>
-                <FileText className="h-4 w-4 text-blue-600" />
+              <CardHeader>
+                <CardTitle>Case Status Distribution</CardTitle>
+                <CardDescription>Breakdown of cases by current status</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-blue-600">{formSummary?.residenceForms || 0}</div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Office Forms</CardTitle>
-                <FileText className="h-4 w-4 text-purple-600" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-purple-600">{formSummary?.officeForms || 0}</div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Form Completion</CardTitle>
-                <TrendingUp className="h-4 w-4 text-green-600" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-green-600">
-                  {caseSummary?.avgFormCompletion ? `${caseSummary.avgFormCompletion.toFixed(1)}%` : 'N/A'}
+                <div className="space-y-3">
+                  {Object.entries(caseSummary?.statusDistribution || {}).map(([status, count]) => (
+                    <div key={status} className="flex items-center justify-between">
+                      <span className="text-sm font-medium">{status.replace(/_/g, ' ')}</span>
+                      <span className="text-sm text-muted-foreground">{count as number}</span>
+                    </div>
+                  ))}
                 </div>
               </CardContent>
             </Card>
 
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Active Agents</CardTitle>
-                <Users className="h-4 w-4 text-orange-600" />
+              <CardHeader>
+                <CardTitle>Quick Insights</CardTitle>
+                <CardDescription>Key metrics at a glance</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-orange-600">{agentSummary?.activeAgents || 0}</div>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">Avg Completion Time</span>
+                    <span className="text-sm text-muted-foreground">
+                      {caseSummary?.avgCompletionDays ? `${caseSummary.avgCompletionDays.toFixed(1)} days` : 'N/A'}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">Task Progress</span>
+                    <span className="text-sm text-muted-foreground">
+                      {caseSummary?.avgFormCompletion ? `${caseSummary.avgFormCompletion.toFixed(1)}%` : 'N/A'}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">Tasks per Case</span>
+                    <span className="text-sm text-muted-foreground">
+                      {caseSummary?.totalCases && totalTasks ? (totalTasks / caseSummary.totalCases).toFixed(1) : 'N/A'}
+                    </span>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -231,58 +212,37 @@ export const AnalyticsPage: React.FC = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
                 <div className="text-center p-4 border rounded-lg">
                   <FileText className="mx-auto h-8 w-8 text-blue-600 mb-2" />
-                  <h3 className="font-semibold">Form Analysis</h3>
+                  <h3 className="font-semibold">Cases Analytics</h3>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Comprehensive form submission data with interactive charts and validation tracking
+                    Comprehensive case metrics with distribution by client, product, and status
                   </p>
                 </div>
                 <div className="text-center p-4 border rounded-lg">
-                  <CheckCircle className="mx-auto h-8 w-8 text-green-600 mb-2" />
-                  <h3 className="font-semibold">Validation Status</h3>
+                  <CheckSquare className="mx-auto h-8 w-8 text-green-600 mb-2" />
+                  <h3 className="font-semibold">Tasks Analytics</h3>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Track validation performance, quality trends, and form type breakdown
+                    Verification task metrics with status tracking and agent assignment
                   </p>
                 </div>
                 <div className="text-center p-4 border rounded-lg">
-                  <Target className="mx-auto h-8 w-8 text-purple-600 mb-2" />
-                  <h3 className="font-semibold">Distribution Charts</h3>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Visual breakdown of form types, case status, and performance distributions
-                  </p>
-                </div>
-                <div className="text-center p-4 border rounded-lg">
-                  <BarChart3 className="mx-auto h-8 w-8 text-orange-600 mb-2" />
-                  <h3 className="font-semibold">Case Analytics</h3>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Monitor case progress, completion times, and workflow bottlenecks
-                  </p>
-                </div>
-                <div className="text-center p-4 border rounded-lg">
-                  <Clock className="mx-auto h-8 w-8 text-red-600 mb-2" />
-                  <h3 className="font-semibold">Timing Analysis</h3>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Analyze completion times, identify delays, and optimize workflows
-                  </p>
-                </div>
-                <div className="text-center p-4 border rounded-lg">
-                  <Users className="mx-auto h-8 w-8 text-indigo-600 mb-2" />
+                  <Users className="mx-auto h-8 w-8 text-purple-600 mb-2" />
                   <h3 className="font-semibold">Agent Performance</h3>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Comprehensive agent analytics with radar charts and productivity metrics
+                    Comprehensive agent analytics with productivity metrics and trends
                   </p>
                 </div>
                 <div className="text-center p-4 border rounded-lg">
-                  <TrendingUp className="mx-auto h-8 w-8 text-teal-600 mb-2" />
-                  <h3 className="font-semibold">Data Export</h3>
+                  <Database className="mx-auto h-8 w-8 text-indigo-600 mb-2" />
+                  <h3 className="font-semibold">MIS Dashboard</h3>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Export analytics data in multiple formats with scheduled reporting
+                    Management Information System with detailed case and task data
                   </p>
                 </div>
                 <div className="text-center p-4 border rounded-lg">
-                  <BarChart3 className="mx-auto h-8 w-8 text-pink-600 mb-2" />
+                  <TrendingUp className="mx-auto h-8 w-8 text-orange-600 mb-2" />
                   <h3 className="font-semibold">Interactive Charts</h3>
                   <p className="text-sm text-muted-foreground mt-1">
                     Rich visualizations with filters, trends, and comparative analysis
@@ -293,32 +253,20 @@ export const AnalyticsPage: React.FC = () => {
           </Card>
         </TabsContent>
 
-        <TabsContent value="forms">
-          <FormSubmissionsTable />
-        </TabsContent>
-
-        <TabsContent value="validation">
-          <FormValidationStatus />
-        </TabsContent>
-
-        <TabsContent value="distribution">
-          <FormTypeDistribution />
-        </TabsContent>
-
         <TabsContent value="cases">
-          <CaseStatusDistribution />
+          <CasesAnalytics />
         </TabsContent>
 
-        <TabsContent value="timing">
-          <CaseCompletionTimeAnalysis />
+        <TabsContent value="tasks">
+          <TasksAnalytics />
         </TabsContent>
 
         <TabsContent value="agents">
           <AgentPerformanceCharts />
         </TabsContent>
 
-        <TabsContent value="export">
-          <DataExportReporting />
+        <TabsContent value="mis">
+          <MISDashboard />
         </TabsContent>
       </Tabs>
     </div>

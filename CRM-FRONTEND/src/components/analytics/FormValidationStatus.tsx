@@ -37,7 +37,7 @@ export const FormValidationStatus: React.FC = () => {
   const [timeRange, setTimeRange] = useState('7d');
   const [selectedFormType, setSelectedFormType] = useState('all');
 
-  const { data: validationData, isLoading } = useFormValidationStatus({
+  const { data: validationData, isLoading, error } = useFormValidationStatus({
     dateFrom: getDateFromRange(timeRange),
     dateTo: new Date().toISOString().split('T')[0],
   });
@@ -45,7 +45,8 @@ export const FormValidationStatus: React.FC = () => {
   const summary = validationData?.data?.summary;
   const byFormType = validationData?.data?.byFormType || [];
 
-  // Generate trend data (mock data for demonstration)
+  // Generate trend data (simulated time-series data for visualization)
+  // TODO: Replace with actual time-series API endpoint when available
   const trendData = generateTrendData(timeRange);
 
   function getDateFromRange(range: string): string {
@@ -106,19 +107,59 @@ export const FormValidationStatus: React.FC = () => {
     return 'bg-red-100 text-red-800';
   };
 
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="space-y-4 sm:space-y-6">
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Card key={i}>
+              <CardHeader className="pb-2">
+                <div className="h-4 bg-muted animate-pulse rounded w-24" />
+              </CardHeader>
+              <CardContent>
+                <div className="h-8 bg-muted animate-pulse rounded w-16" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="space-y-4 sm:space-y-6">
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <XCircle className="h-12 w-12 text-red-500 mb-4" />
+            <h3 className="text-lg font-semibold mb-2">Failed to Load Validation Data</h3>
+            <p className="text-muted-foreground text-center">
+              There was an error loading the validation status. Please try again later.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Empty data state
+  const hasData = summary && summary.totalForms > 0;
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header with Controls */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-foreground">Form Validation Status</h2>
-          <p className="mt-1 text-muted-foreground">
-            Track validation performance and identify quality trends
+      <div className="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0 flex-1">
+          <h2 className="text-xl sm:text-2xl font-bold text-foreground truncate">Form Validation Status</h2>
+          <p className="mt-1 text-sm sm:text-base text-muted-foreground">
+            {hasData ? 'Track validation performance and identify quality trends' : 'No form submissions data available yet'}
           </p>
         </div>
-        <div className="flex items-center space-x-4">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4">
           <Select value={timeRange} onValueChange={setTimeRange}>
-            <SelectTrigger className="w-32">
+            <SelectTrigger className="w-full sm:w-32">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -128,7 +169,7 @@ export const FormValidationStatus: React.FC = () => {
             </SelectContent>
           </Select>
           <Select value={selectedFormType} onValueChange={setSelectedFormType}>
-            <SelectTrigger className="w-40">
+            <SelectTrigger className="w-full sm:w-40">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -142,7 +183,7 @@ export const FormValidationStatus: React.FC = () => {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Forms</CardTitle>
@@ -198,14 +239,28 @@ export const FormValidationStatus: React.FC = () => {
         </Card>
       </div>
 
+      {/* Empty State */}
+      {!hasData && (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <FileText className="h-16 w-16 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-semibold mb-2">No Form Submissions Yet</h3>
+            <p className="text-muted-foreground text-center max-w-md">
+              Form validation data will appear here once field agents start submitting verification forms through the mobile app.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Validation Trend Chart */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Validation Trends</CardTitle>
-          <CardDescription>Daily validation performance over time</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={400}>
+      {hasData && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base sm:text-lg">Validation Trends</CardTitle>
+            <CardDescription>Daily validation performance over time (simulated data)</CardDescription>
+          </CardHeader>
+          <CardContent>
+          <ResponsiveContainer width="100%" height={300} className="sm:h-[400px]">
             <AreaChart data={trendData}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="date" />
@@ -250,11 +305,11 @@ export const FormValidationStatus: React.FC = () => {
       {/* Validation Rate Trend */}
       <Card>
         <CardHeader>
-          <CardTitle>Validation Rate Trend</CardTitle>
-          <CardDescription>Success rate percentage over time</CardDescription>
+          <CardTitle className="text-base sm:text-lg">Validation Rate Trend</CardTitle>
+          <CardDescription>Success rate percentage over time (simulated data)</CardDescription>
         </CardHeader>
         <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
+          <ResponsiveContainer width="100%" height={250} className="sm:h-[300px]">
             <LineChart data={trendData}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="date" />
@@ -331,6 +386,7 @@ export const FormValidationStatus: React.FC = () => {
           )}
         </CardContent>
       </Card>
+      )}
     </div>
   );
 };
