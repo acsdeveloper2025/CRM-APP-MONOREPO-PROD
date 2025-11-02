@@ -6,14 +6,8 @@ export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
     const isProduction = mode === 'production';
 
-    // Use VITE_BUILD_TARGET to distinguish between web and APK builds
-    // For web deployment: VITE_BUILD_TARGET=web (uses /mobile/ base path)
-    // For APK build: VITE_BUILD_TARGET=apk or not set (uses / base path)
-    const buildTarget = env.VITE_BUILD_TARGET || 'apk';
-    const baseUrl = isProduction && buildTarget === 'web' ? '/mobile/' : '/';
-
     return {
-      base: baseUrl,
+      base: isProduction ? '/mobile/' : '/',
       plugins: [
         react({
           jsxRuntime: 'automatic'
