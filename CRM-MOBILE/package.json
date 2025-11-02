@@ -7,8 +7,6 @@
     "dev": "vite --host 0.0.0.0 --port 5180",
     "build": "vite build",
     "build:prod": "vite build --mode production",
-    "build:web": "VITE_BUILD_TARGET=web vite build --mode production",
-    "build:apk": "VITE_BUILD_TARGET=apk vite build --mode production",
     "preview": "vite preview",
     "preview:network": "vite preview --host 0.0.0.0",
     "setup-firebase": "./scripts/setup-firebase.sh",
