@@ -24,7 +24,7 @@ export const CaseCreationModeSelector: React.FC<CaseCreationModeSelectorProps> =
     <div className="space-y-6">
       <div className="text-center">
         <h2 className="text-2xl font-bold tracking-tight">Choose Case Creation Mode</h2>
-        <p className="text-muted-foreground mt-2">
+        <p className="text-gray-600 mt-2">
           Select how you want to create your verification case
         </p>
       </div>
@@ -34,8 +34,8 @@ export const CaseCreationModeSelector: React.FC<CaseCreationModeSelectorProps> =
         <Card className="relative hover:shadow-lg transition-shadow cursor-pointer group">
           <CardHeader>
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <User className="h-6 w-6 text-blue-600" />
+              <div className="p-2 bg-green-100 rounded-lg">
+                <User className="h-6 w-6 text-green-600" />
               </div>
               <div>
                 <CardTitle className="text-xl">Single Task Case</CardTitle>
@@ -53,11 +53,11 @@ export const CaseCreationModeSelector: React.FC<CaseCreationModeSelectorProps> =
                 <span>One verification type per case</span>
               </div>
               <div className="flex items-center gap-2 text-sm">
-                <User className="h-4 w-4 text-blue-600" />
+                <User className="h-4 w-4 text-green-600" />
                 <span>Single field user assignment</span>
               </div>
               <div className="flex items-center gap-2 text-sm">
-                <Clock className="h-4 w-4 text-orange-600" />
+                <Clock className="h-4 w-4 text-yellow-600" />
                 <span>Quick and simple setup</span>
               </div>
               <div className="flex items-center gap-2 text-sm">
@@ -67,7 +67,7 @@ export const CaseCreationModeSelector: React.FC<CaseCreationModeSelectorProps> =
             </div>
 
             <div className="pt-4 border-t">
-              <p className="text-sm text-muted-foreground mb-3">
+              <p className="text-sm text-gray-600 mb-3">
                 <strong>Best for:</strong> Simple verifications, single document checks, 
                 standard residence/office verifications
               </p>
@@ -119,7 +119,7 @@ export const CaseCreationModeSelector: React.FC<CaseCreationModeSelectorProps> =
             </div>
 
             <div className="pt-4 border-t">
-              <p className="text-sm text-muted-foreground mb-3">
+              <p className="text-sm text-gray-600 mb-3">
                 <strong>Best for:</strong> Complex verifications, multiple documents, 
                 different locations, comprehensive background checks
               </p>
@@ -203,7 +203,7 @@ export const CaseCreationModeSelector: React.FC<CaseCreationModeSelectorProps> =
         </CardContent>
       </Card>
 
-      <div className="text-center text-sm text-muted-foreground">
+      <div className="text-center text-sm text-gray-600">
         <p>
           💡 <strong>Tip:</strong> You can always add more verification tasks to a single-task case later, 
           but multi-task cases provide better organization from the start.

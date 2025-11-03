@@ -103,9 +103,9 @@ export function CitiesTable({ data, isLoading }: CitiesTableProps) {
   if (!data || data.length === 0) {
     return (
       <div className="text-center py-12">
-        <Building className="mx-auto h-12 w-12 text-muted-foreground" />
+        <Building className="mx-auto h-12 w-12 text-gray-600" />
         <h3 className="mt-4 text-lg font-semibold">No cities found</h3>
-        <p className="text-muted-foreground">
+        <p className="text-gray-600">
           Get started by adding your first city.
         </p>
       </div>
@@ -145,8 +145,8 @@ export function CitiesTable({ data, isLoading }: CitiesTableProps) {
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center space-x-1">
-                    <MapPin className="h-3 w-3 text-muted-foreground" />
-                    <span className="text-sm text-muted-foreground">
+                    <MapPin className="h-3 w-3 text-gray-600" />
+                    <span className="text-sm text-gray-600">
                       {city.pincodeCount || 0} pincodes
                     </span>
                   </div>

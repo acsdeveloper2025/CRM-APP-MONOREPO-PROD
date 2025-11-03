@@ -177,7 +177,7 @@ export function MultiAreaInput({
             key={area.id}
             className={cn(
               "flex items-center gap-2 p-2 border rounded-md",
-              editingId === area.id ? "border-blue-500 bg-blue-50" : "border-border"
+              editingId === area.id ? "border-green-500 bg-green-50" : "border-border"
             )}
           >
             {/* Reorder buttons */}

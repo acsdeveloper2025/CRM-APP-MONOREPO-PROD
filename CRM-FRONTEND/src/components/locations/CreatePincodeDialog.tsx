@@ -179,7 +179,7 @@ export function CreatePincodeDialog({ open, onOpenChange }: CreatePincodeDialogP
                         <SelectItem key={city.id} value={String(city.id)}>
                           <div className="flex flex-col">
                             <span>{city.name}</span>
-                            <span className="text-xs text-muted-foreground">
+                            <span className="text-xs text-gray-600">
                               {city.state}, {city.country}
                             </span>
                           </div>

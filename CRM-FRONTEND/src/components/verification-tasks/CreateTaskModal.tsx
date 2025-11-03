@@ -394,9 +394,9 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                             <SelectItem key={rateType.id} value={rateType.id.toString()}>
                               <div className="flex items-center justify-between w-full py-2">
                                 <div className="flex flex-col">
-                                  <span className="font-medium text-foreground">{rateType.name}</span>
+                                  <span className="font-medium text-gray-900">{rateType.name}</span>
                                   {rateType.description && (
-                                    <span className="text-xs text-muted-foreground mt-1">{rateType.description}</span>
+                                    <span className="text-xs text-gray-600 mt-1">{rateType.description}</span>
                                   )}
                                 </div>
                                 {rateType.hasRate && rateType.amount && (
@@ -586,14 +586,14 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
           </Button>
 
           {/* Summary */}
-          <Card className="bg-blue-50 border-blue-200">
+          <Card className="bg-green-50 border-green-200">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-medium text-blue-900">
+                  <p className="font-medium text-green-900">
                     Creating {tasks.length} verification task{tasks.length !== 1 ? 's' : ''}
                   </p>
-                  <p className="text-sm text-blue-700">
+                  <p className="text-sm text-green-700">
                     Total estimated amount: ₹{tasks.reduce((sum, task) => {
                       if (task.rateTypeId) {
                         const selectedRateType = availableRateTypes.find(rt => rt.id.toString() === task.rateTypeId);
@@ -603,7 +603,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                     }, 0).toLocaleString('en-IN')}
                   </p>
                 </div>
-                <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                <Badge variant="secondary" className="bg-green-100 text-green-800">
                   {tasks.length} Task{tasks.length !== 1 ? 's' : ''}
                 </Badge>
               </div>

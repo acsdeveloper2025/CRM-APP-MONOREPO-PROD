@@ -152,8 +152,8 @@ export function MISDashboard() {
       {/* Page Header */}
       <div className="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0 flex-1">
-          <h1 className="text-2xl sm:text-3xl font-bold text-foreground truncate">MIS Dashboard</h1>
-          <p className="mt-1 sm:mt-2 text-sm sm:text-base text-muted-foreground">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 truncate">MIS Dashboard</h1>
+          <p className="mt-1 sm:mt-2 text-sm sm:text-base text-gray-600">
             Comprehensive Management Information System with case and task details
           </p>
         </div>
@@ -399,14 +399,14 @@ export function MISDashboard() {
             />
           ) : !isLoading ? (
             <div className="text-center py-8">
-              <p className="text-muted-foreground">
+              <p className="text-gray-600">
                 No data available. Please adjust your filters and try again.
               </p>
             </div>
           ) : (
             <div className="text-center py-8">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-              <p className="mt-4 text-muted-foreground">Loading MIS data...</p>
+              <p className="mt-4 text-gray-600">Loading MIS data...</p>
             </div>
           )}
         </CardContent>

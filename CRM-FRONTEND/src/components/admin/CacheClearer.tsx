@@ -145,7 +145,7 @@ export const CacheClearer: React.FC = () => {
       title: 'Browser Storage',
       description: 'Clear localStorage, sessionStorage, and IndexedDB',
       icon: Database,
-      color: 'bg-blue-500'
+      color: 'bg-green-500'
     },
     {
       key: 'reactQuery' as const,
@@ -159,14 +159,14 @@ export const CacheClearer: React.FC = () => {
       title: 'Service Worker Cache',
       description: 'Clear PWA and offline caches',
       icon: Database,
-      color: 'bg-purple-500'
+      color: 'bg-green-500'
     },
     {
       key: 'cases' as const,
       title: 'Cases Cache',
       description: 'Clear case-related cached data',
       icon: FolderOpen,
-      color: 'bg-orange-500'
+      color: 'bg-yellow-500'
     },
     {
       key: 'forms' as const,
@@ -198,7 +198,7 @@ export const CacheClearer: React.FC = () => {
           <Trash2 className="h-5 w-5" />
           Cache Management
         </CardTitle>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-gray-600">
           Clear various types of cached data to resolve issues or free up storage space.
         </p>
         {lastCleared && (
@@ -223,7 +223,7 @@ export const CacheClearer: React.FC = () => {
                   </div>
                   <div>
                     <h4 className="font-medium">{cache.title}</h4>
-                    <p className="text-sm text-muted-foreground">{cache.description}</p>
+                    <p className="text-sm text-gray-600">{cache.description}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -278,7 +278,7 @@ export const CacheClearer: React.FC = () => {
                   <span className="capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
                   <div className="flex items-center gap-2">
                     <ResultIcon result={result} />
-                    <span className="text-muted-foreground">{result.timestamp}</span>
+                    <span className="text-gray-600">{result.timestamp}</span>
                   </div>
                 </div>
               ))}

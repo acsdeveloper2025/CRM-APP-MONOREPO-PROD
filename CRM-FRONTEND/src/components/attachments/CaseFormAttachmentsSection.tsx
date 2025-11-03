@@ -200,7 +200,7 @@ export const CaseFormAttachmentsSection: React.FC<CaseFormAttachmentsSectionProp
 
   const getFileIcon = (type: string) => {
     if (type === 'image') {
-      return <Image className="h-4 w-4 text-blue-500" />;
+      return <Image className="h-4 w-4 text-green-500" />;
     }
     return <FileText className="h-4 w-4 text-red-500" />;
   };
@@ -243,26 +243,26 @@ export const CaseFormAttachmentsSection: React.FC<CaseFormAttachmentsSectionProp
         <div
           className={cn(
             "border-2 border-dashed rounded-lg p-6 text-center transition-colors",
-            dragOver ? "border-blue-500 bg-blue-50" : "border-border",
+            dragOver ? "border-green-500 bg-green-50" : "border-border",
             attachments.length >= maxFiles ? "opacity-50 pointer-events-none" : "hover:border-border"
           )}
           onDrop={handleDrop}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
         >
-          <Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-          <p className="text-sm text-muted-foreground mb-2">
+          <Upload className="h-8 w-8 text-gray-600 mx-auto mb-2" />
+          <p className="text-sm text-gray-600 mb-2">
             Drag and drop files here, or{' '}
             <button
               type="button"
-              className="text-blue-600 hover:text-blue-700 underline"
+              className="text-green-600 hover:text-green-700 underline"
               onClick={() => fileInputRef.current?.click()}
               disabled={attachments.length >= maxFiles}
             >
               browse
             </button>
           </p>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-gray-600">
             PDF, image files (JPG, PNG, GIF), and Word documents (DOC, DOCX) only. Max {Math.round(maxFileSize / 1024 / 1024)}MB per file, {maxFiles} files total.
           </p>
           <input

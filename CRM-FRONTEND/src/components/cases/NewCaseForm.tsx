@@ -110,7 +110,7 @@ export const NewCaseForm: React.FC<NewCaseFormProps> = ({
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
         {/* Case Information */}
         <div className="space-y-4">
-          <h3 className="text-lg font-medium text-foreground">Case Information</h3>
+          <h3 className="text-lg font-medium text-gray-900">Case Information</h3>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField
@@ -177,7 +177,7 @@ export const NewCaseForm: React.FC<NewCaseFormProps> = ({
 
         {/* Customer Information */}
         <div className="space-y-4">
-          <h3 className="text-lg font-medium text-foreground">Customer Information</h3>
+          <h3 className="text-lg font-medium text-gray-900">Customer Information</h3>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <FormField
@@ -226,7 +226,7 @@ export const NewCaseForm: React.FC<NewCaseFormProps> = ({
 
         {/* Address Information */}
         <div className="space-y-4">
-          <h3 className="text-lg font-medium text-foreground">Address Information</h3>
+          <h3 className="text-lg font-medium text-gray-900">Address Information</h3>
           
           <FormField
             control={form.control}
@@ -289,7 +289,7 @@ export const NewCaseForm: React.FC<NewCaseFormProps> = ({
 
         {/* Assignment Information */}
         <div className="space-y-4">
-          <h3 className="text-lg font-medium text-foreground">Assignment Information</h3>
+          <h3 className="text-lg font-medium text-gray-900">Assignment Information</h3>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <FormField

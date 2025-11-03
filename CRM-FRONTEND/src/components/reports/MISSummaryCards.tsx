@@ -32,16 +32,16 @@ export function MISSummaryCards({ summary, isLoading }: MISSummaryCardsProps) {
       value: summary.total_tasks.toLocaleString(),
       subtitle: `${summary.completed_tasks} completed`,
       icon: FileText,
-      color: 'text-blue-600 dark:text-blue-400',
-      bgColor: 'bg-blue-100 dark:bg-blue-900/20',
+      color: 'text-green-600 dark:text-green-400',
+      bgColor: 'bg-green-100 dark:bg-green-900/20',
     },
     {
       title: 'Total Amount',
       value: `₹${summary.total_actual_amount.toLocaleString()}`,
       subtitle: `Est: ₹${summary.total_estimated_amount.toLocaleString()}`,
       icon: DollarSign,
-      color: 'text-purple-600 dark:text-purple-400',
-      bgColor: 'bg-purple-100 dark:bg-purple-900/20',
+      color: 'text-green-600 dark:text-green-400',
+      bgColor: 'bg-green-100 dark:bg-green-900/20',
     },
     {
       title: 'Task Completion Rate',
@@ -56,8 +56,8 @@ export function MISSummaryCards({ summary, isLoading }: MISSummaryCardsProps) {
       value: `${summary.avg_tat_days.toFixed(1)} days`,
       subtitle: 'Average turnaround time',
       icon: Clock,
-      color: 'text-orange-600 dark:text-orange-400',
-      bgColor: 'bg-orange-100 dark:bg-orange-900/20',
+      color: 'text-yellow-600 dark:text-orange-400',
+      bgColor: 'bg-yellow-100 dark:bg-yellow-900/20',
     },
   ];
 
@@ -77,7 +77,7 @@ export function MISSummaryCards({ summary, isLoading }: MISSummaryCardsProps) {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{card.value}</div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-gray-600">
                 {card.subtitle}
               </p>
             </CardContent>

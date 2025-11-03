@@ -59,15 +59,15 @@ export function BankBillDetailsDialog({ bill, open, onOpenChange }: BankBillDeta
               </CardHeader>
               <CardContent className="space-y-2">
                 <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Client:</span>
+                  <span className="text-sm text-gray-600">Client:</span>
                   <span className="text-sm font-medium">{bill.client.name}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Bank:</span>
+                  <span className="text-sm text-gray-600">Bank:</span>
                   <span className="text-sm">{bill.bankName}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Cases:</span>
+                  <span className="text-sm text-gray-600">Cases:</span>
                   <span className="text-sm">{bill.caseCount} cases</span>
                 </div>
               </CardContent>
@@ -82,15 +82,15 @@ export function BankBillDetailsDialog({ bill, open, onOpenChange }: BankBillDeta
               </CardHeader>
               <CardContent className="space-y-2">
                 <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Bill Date:</span>
+                  <span className="text-sm text-gray-600">Bill Date:</span>
                   <span className="text-sm">{new Date(bill.billDate).toLocaleDateString()}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Due Date:</span>
+                  <span className="text-sm text-gray-600">Due Date:</span>
                   <span className="text-sm">{new Date(bill.dueDate).toLocaleDateString()}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Status:</span>
+                  <span className="text-sm text-gray-600">Status:</span>
                   {getStatusBadge(bill.status)}
                 </div>
               </CardContent>
@@ -117,7 +117,7 @@ export function BankBillDetailsDialog({ bill, open, onOpenChange }: BankBillDeta
                 </div>
                 <div className="flex justify-between">
                   <span>Pending Amount:</span>
-                  <span className="text-orange-600 font-medium">₹{bill.pendingAmount.toLocaleString()}</span>
+                  <span className="text-yellow-600 font-medium">₹{bill.pendingAmount.toLocaleString()}</span>
                 </div>
               </div>
             </CardContent>
@@ -142,10 +142,10 @@ export function BankBillDetailsDialog({ bill, open, onOpenChange }: BankBillDeta
                   >
                     <div className="flex-1">
                       <div className="font-medium">{billCase.case.title}</div>
-                      <div className="text-sm text-muted-foreground">
+                      <div className="text-sm text-gray-600">
                         Customer: {billCase.case.customerName}
                       </div>
-                      <div className="text-sm text-muted-foreground">
+                      <div className="text-sm text-gray-600">
                         Status: {billCase.case.status}
                         {billCase.case.completedAt && (
                           <span> • Completed: {new Date(billCase.case.completedAt).toLocaleDateString()}</span>
@@ -154,7 +154,7 @@ export function BankBillDetailsDialog({ bill, open, onOpenChange }: BankBillDeta
                     </div>
                     <div className="text-right">
                       <div className="font-medium">₹{billCase.amount.toLocaleString()}</div>
-                      <div className="text-sm text-muted-foreground">
+                      <div className="text-sm text-gray-600">
                         Fee: ₹{billCase.verificationFee.toLocaleString()}
                       </div>
                     </div>

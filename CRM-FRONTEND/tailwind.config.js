@@ -22,61 +22,110 @@ export default {
     },
     extend: {
       colors: {
-        // Primary color scheme
+        // NEW COLOR SCHEME: Green accent with off-white backgrounds
+        // Primary color scheme - Green (Emerald)
         primary: {
-          50: '#eff6ff',
-          100: '#dbeafe',
-          200: '#bfdbfe',
-          300: '#93c5fd',
-          400: '#60a5fa',
-          500: '#3b82f6',
-          600: '#2563eb',
-          700: '#1d4ed8',
-          800: '#1e40af',
-          900: '#1e3a8a',
-          950: '#172554',
+          50: '#f0fdf4',   // emerald-50 - very light green
+          100: '#d1fae5',  // emerald-100 - light green backgrounds
+          200: '#a7f3d0',  // emerald-200
+          300: '#6ee7b7',  // emerald-300
+          400: '#34d399',  // emerald-400
+          500: '#10b981',  // emerald-500 - PRIMARY GREEN ACCENT
+          600: '#059669',  // emerald-600 - hover state
+          700: '#047857',  // emerald-700 - active state
+          800: '#065f46',  // emerald-800 - dark emphasis
+          900: '#064e3b',  // emerald-900
+          950: '#022c22',  // emerald-950
         },
 
-        // Secondary color scheme
+        // Secondary color scheme - Gray (for text and borders)
         secondary: {
-          50: '#f8fafc',
-          100: '#f1f5f9',
-          200: '#e2e8f0',
-          300: '#cbd5e1',
-          400: '#94a3b8',
-          500: '#64748b',
-          600: '#475569',
-          700: '#334155',
-          800: '#1e293b',
-          900: '#0f172a',
-          950: '#020617',
+          50: '#fafafa',   // off-white - page background
+          100: '#f5f5f5',  // very light gray
+          200: '#e5e5e5',  // light gray - borders
+          300: '#d4d4d4',  // medium-light gray
+          400: '#a3a3a3',  // medium gray
+          500: '#737373',  // neutral gray
+          600: '#525252',  // dark gray
+          700: '#404040',  // darker gray
+          800: '#262626',  // very dark gray
+          900: '#171717',  // almost black
+          950: '#0a0a0a',  // near black
+        },
+
+        // Background colors - NEW SCHEME (Light & Dark Mode)
+        background: {
+          DEFAULT: '#fafafa',      // Off-white page background (light)
+          page: '#fafafa',         // Page background (light)
+          card: '#ffffff',         // Card/container background (light)
+          surface: '#f9fafb',      // Surface elements (light)
+          elevated: '#ffffff',     // Elevated elements (light)
+          navbar: '#000000',       // Black navbar (light)
+          'navbar-hover': '#1f1f1f', // Navbar hover (light)
+          'navbar-active': '#2a2a2a', // Navbar active (light)
+          // Dark mode backgrounds
+          'dark-page': '#0f172a',      // Dark page background (slate-900)
+          'dark-card': '#1e293b',      // Dark card background (slate-800)
+          'dark-surface': '#1e293b',   // Dark surface (slate-800)
+          'dark-elevated': '#334155',  // Dark elevated (slate-700)
+          'dark-navbar': '#020617',    // Dark navbar (slate-950)
+          'dark-navbar-hover': '#1e293b', // Dark navbar hover
+          'dark-navbar-active': '#334155', // Dark navbar active
+        },
+
+        // Foreground/Text colors - NEW SCHEME (Light & Dark Mode)
+        foreground: {
+          DEFAULT: '#000000',      // Primary black text (light)
+          primary: '#000000',      // Headings, important text (light)
+          secondary: '#1f2937',    // Body text (light)
+          tertiary: '#6b7280',     // Labels, secondary info (light)
+          muted: '#9ca3af',        // Hints, placeholders (light)
+          disabled: '#d1d5db',     // Disabled text (light)
+          inverse: '#ffffff',      // Text on dark backgrounds
+          // Dark mode text colors
+          'dark-primary': '#f1f5f9',    // Primary text (dark) - slate-100
+          'dark-secondary': '#cbd5e1',  // Secondary text (dark) - slate-300
+          'dark-tertiary': '#94a3b8',   // Tertiary text (dark) - slate-400
+          'dark-muted': '#64748b',      // Muted text (dark) - slate-500
+          'dark-disabled': '#475569',   // Disabled text (dark) - slate-600
+        },
+
+        // Accent colors - Green theme
+        accent: {
+          DEFAULT: '#10b981',      // Primary green
+          primary: '#10b981',      // emerald-500
+          hover: '#059669',        // emerald-600
+          active: '#047857',       // emerald-700
+          light: '#d1fae5',        // emerald-100
+          lighter: '#f0fdf4',      // emerald-50
+          dark: '#065f46',         // emerald-800
         },
 
         // Semantic colors for CRM-specific use cases
         status: {
-          pending: '#f59e0b',
-          'in-progress': '#3b82f6',
-          completed: '#22c55e',
-          approved: '#059669',
-          rejected: '#ef4444',
-          'rework-required': '#f97316',
+          pending: '#f59e0b',      // amber - pending
+          'in-progress': '#3b82f6', // blue - in progress
+          completed: '#10b981',    // green - completed
+          approved: '#059669',     // dark green - approved
+          rejected: '#ef4444',     // red - rejected
+          'rework-required': '#f97316', // orange - rework
         },
 
         priority: {
-          low: '#6b7280',
-          medium: '#f59e0b',
-          high: '#f97316',
-          urgent: '#ef4444',
-          critical: '#dc2626',
+          low: '#6b7280',          // gray - low priority
+          medium: '#f59e0b',       // amber - medium
+          high: '#f97316',         // orange - high
+          urgent: '#ef4444',       // red - urgent
+          critical: '#dc2626',     // dark red - critical
         },
 
         role: {
-          'super-admin': '#7c3aed',
-          admin: '#2563eb',
-          manager: '#059669',
-          'backend-user': '#0891b2',
-          'field-agent': '#ea580c',
-          'report-person': '#7c2d12',
+          'super-admin': '#7c3aed', // purple
+          admin: '#10b981',        // green (updated to match theme)
+          manager: '#059669',      // dark green
+          'backend-user': '#0891b2', // cyan
+          'field-agent': '#ea580c', // orange
+          'report-person': '#7c2d12', // brown
         },
 
         // Surface colors for consistent backgrounds
@@ -86,11 +135,21 @@ export default {
           elevated: 'var(--color-surface-elevated)',
         },
 
-        // Border colors
+        // Border colors - NEW SCHEME (Light & Dark Mode)
         border: {
-          primary: 'var(--color-border-primary)',
-          secondary: 'var(--color-border-secondary)',
-          focus: 'var(--color-border-focus)',
+          DEFAULT: '#e5e7eb',      // Default border (light)
+          primary: '#e5e7eb',      // gray-200 (light)
+          secondary: '#d1d5db',    // gray-300 (light)
+          light: '#f3f4f6',        // gray-100 (light)
+          medium: '#9ca3af',       // gray-400 (light)
+          dark: '#6b7280',         // gray-500 (light)
+          focus: '#10b981',        // green focus
+          // Dark mode borders
+          'dark-primary': '#334155',    // slate-700 (dark)
+          'dark-secondary': '#475569',  // slate-600 (dark)
+          'dark-light': '#1e293b',      // slate-800 (dark)
+          'dark-medium': '#64748b',     // slate-500 (dark)
+          'dark-focus': '#10b981',      // green focus (dark)
         },
 
         // Text colors

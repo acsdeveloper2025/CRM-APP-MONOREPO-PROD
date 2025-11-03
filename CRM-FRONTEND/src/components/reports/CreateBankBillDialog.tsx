@@ -149,7 +149,7 @@ export function CreateBankBillDialog({ open, onOpenChange }: CreateBankBillDialo
                         <SelectItem key={client.id} value={client.id}>
                           <div className="flex flex-col">
                             <span>{client.name}</span>
-                            <span className="text-xs text-muted-foreground">
+                            <span className="text-xs text-gray-600">
                               {client.code}
                             </span>
                           </div>
@@ -236,7 +236,7 @@ export function CreateBankBillDialog({ open, onOpenChange }: CreateBankBillDialo
                             >
                               <div>
                                 <div className="font-medium">{case_.title}</div>
-                                <div className="text-xs text-muted-foreground">
+                                <div className="text-xs text-gray-600">
                                   {case_.customerName} • Completed: {new Date(case_.completedAt || '').toLocaleDateString()}
                                 </div>
                               </div>
@@ -244,7 +244,7 @@ export function CreateBankBillDialog({ open, onOpenChange }: CreateBankBillDialo
                           </div>
                         ))
                       ) : (
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-sm text-gray-600">
                           No completed cases found for this client
                         </p>
                       )}

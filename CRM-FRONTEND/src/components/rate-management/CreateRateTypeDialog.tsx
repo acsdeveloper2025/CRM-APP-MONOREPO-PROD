@@ -120,7 +120,7 @@ export function CreateRateTypeDialog({ open, onOpenChange }: CreateRateTypeDialo
                   >
                     <div>
                       <div className="font-medium">{rateType.name}</div>
-                      <div className="text-xs text-muted-foreground">{rateType.description}</div>
+                      <div className="text-xs text-gray-600">{rateType.description}</div>
                     </div>
                   </Button>
                 ))}

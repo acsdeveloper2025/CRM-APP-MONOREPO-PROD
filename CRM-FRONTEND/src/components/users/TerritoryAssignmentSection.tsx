@@ -32,14 +32,14 @@ const AreaSelector: React.FC<AreaSelectorProps> = React.memo(({
     return (
       <div className="flex items-center gap-2">
         <Loader2 className="h-4 w-4 animate-spin" />
-        <span className="text-sm text-muted-foreground">Loading areas...</span>
+        <span className="text-sm text-gray-600">Loading areas...</span>
       </div>
     );
   }
 
   if (areas.length === 0) {
     return (
-      <p className="text-sm text-muted-foreground">No areas found for this pincode</p>
+      <p className="text-sm text-gray-600">No areas found for this pincode</p>
     );
   }
 
@@ -321,7 +321,7 @@ export const TerritoryAssignmentSection: React.FC<TerritoryAssignmentSectionProp
         {/* Current Territory Assignments */}
         <div className="space-y-4">
           {territorySelections.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
+            <div className="text-center py-8 text-gray-600">
               <Building2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>No territory assignments yet</p>
               <p className="text-sm">Add pincodes to assign territories to this field agent</p>
@@ -383,7 +383,7 @@ export const TerritoryAssignmentSection: React.FC<TerritoryAssignmentSectionProp
 
         {/* Info about real-time saves */}
         {territorySelections.length > 0 && (
-          <div className="text-sm text-muted-foreground text-center pt-4 border-t">
+          <div className="text-sm text-gray-600 text-center pt-4 border-t">
             <p>✓ Territory assignments are saved automatically</p>
           </div>
         )}

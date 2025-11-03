@@ -23,9 +23,9 @@ export function CompletionRateChart({ data }: CompletionRateChartProps) {
         </CardHeader>
         <CardContent>
           <div className="text-center py-8">
-            <CheckCircle className="mx-auto h-12 w-12 text-muted-foreground" />
+            <CheckCircle className="mx-auto h-12 w-12 text-gray-600" />
             <h3 className="mt-4 text-lg font-semibold">No data available</h3>
-            <p className="text-muted-foreground">
+            <p className="text-gray-600">
               Completion rate data will appear here once cases are processed.
             </p>
           </div>
@@ -53,21 +53,21 @@ export function CompletionRateChart({ data }: CompletionRateChartProps) {
         <div className="grid grid-cols-4 gap-4">
           <div className="text-center">
             <div className="text-2xl font-bold">{data.totalCases}</div>
-            <div className="text-sm text-muted-foreground">Total Cases</div>
+            <div className="text-sm text-gray-600">Total Cases</div>
           </div>
           <div className="text-center">
             <div className="text-2xl font-bold text-green-600">{data.completedCases}</div>
-            <div className="text-sm text-muted-foreground">Completed</div>
+            <div className="text-sm text-gray-600">Completed</div>
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-blue-600">{data.inProgressCases}</div>
-            <div className="text-sm text-muted-foreground">In Progress</div>
+            <div className="text-2xl font-bold text-green-600">{data.inProgressCases}</div>
+            <div className="text-sm text-gray-600">In Progress</div>
           </div>
           <div className="text-center">
             <div className={`text-2xl font-bold ${completionColor}`}>
               {data.completionRate}%
             </div>
-            <div className="text-sm text-muted-foreground">Completion Rate</div>
+            <div className="text-sm text-gray-600">Completion Rate</div>
           </div>
         </div>
 
@@ -93,7 +93,7 @@ export function CompletionRateChart({ data }: CompletionRateChartProps) {
             
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <Clock className="h-4 w-4 text-blue-600" />
+                <Clock className="h-4 w-4 text-green-600" />
                 <span className="text-sm">In Progress</span>
               </div>
               <div className="flex items-center space-x-2">
@@ -109,7 +109,7 @@ export function CompletionRateChart({ data }: CompletionRateChartProps) {
             
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <Circle className="h-4 w-4 text-muted-foreground" />
+                <Circle className="h-4 w-4 text-gray-600" />
                 <span className="text-sm">Pending</span>
               </div>
               <div className="flex items-center space-x-2">
@@ -163,7 +163,7 @@ export function CompletionRateChart({ data }: CompletionRateChartProps) {
                   </div>
                   <div className="text-right">
                     <div className="text-sm font-medium">{client.completionRate}%</div>
-                    <div className="text-xs text-muted-foreground">
+                    <div className="text-xs text-gray-600">
                       {client.completedCases}/{client.totalCases} cases
                     </div>
                   </div>

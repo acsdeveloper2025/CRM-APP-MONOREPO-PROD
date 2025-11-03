@@ -226,7 +226,7 @@ export function TerritoryAssignmentDropdown({ user }: TerritoryAssignmentDropdow
           {/* Step 1: Pincode Selection */}
           <div className="space-y-4">
             <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 text-sm font-medium flex items-center justify-center">1</div>
+              <div className="w-6 h-6 rounded-full bg-green-100 text-green-600 text-sm font-medium flex items-center justify-center">1</div>
               <h4 className="font-medium">Select Pincode</h4>
             </div>
 
@@ -244,7 +244,7 @@ export function TerritoryAssignmentDropdown({ user }: TerritoryAssignmentDropdow
             />
 
             {pincodeOptions.length === 0 && (
-              <div className="text-sm text-muted-foreground bg-muted/50 p-3 rounded">
+              <div className="text-sm text-gray-600 bg-muted/50 p-3 rounded">
                 💡 All available pincodes have been assigned. Use "Remove All" to clear assignments if needed.
               </div>
             )}
@@ -254,14 +254,14 @@ export function TerritoryAssignmentDropdown({ user }: TerritoryAssignmentDropdow
           {selectedPincodeId && (
             <div className="space-y-4">
               <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 text-sm font-medium flex items-center justify-center">2</div>
+                <div className="w-6 h-6 rounded-full bg-green-100 text-green-600 text-sm font-medium flex items-center justify-center">2</div>
                 <h4 className="font-medium">Select Areas for Pincode {pincodeOptions.find(p => p.id === selectedPincodeId)?.label}</h4>
               </div>
 
               {areasLoading ? (
                 <div className="flex items-center gap-2 py-4">
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  <span className="text-sm text-muted-foreground">Loading areas...</span>
+                  <span className="text-sm text-gray-600">Loading areas...</span>
                 </div>
               ) : areaOptions.length === 0 ? (
                 <div className="text-sm text-amber-600 bg-amber-50 dark:bg-amber-950/30 p-3 rounded">
@@ -269,7 +269,7 @@ export function TerritoryAssignmentDropdown({ user }: TerritoryAssignmentDropdow
                 </div>
               ) : (
                 <div className="space-y-3">
-                  <div className="text-xs text-muted-foreground bg-muted/50 p-2 rounded">
+                  <div className="text-xs text-gray-600 bg-muted/50 p-2 rounded">
                     <span className="font-medium">Available areas:</span> {areaOptions.length} areas for this pincode
                   </div>
 
@@ -294,7 +294,7 @@ export function TerritoryAssignmentDropdown({ user }: TerritoryAssignmentDropdow
           {selectedPincodeId && (
             <div className="space-y-4">
               <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 text-sm font-medium flex items-center justify-center">3</div>
+                <div className="w-6 h-6 rounded-full bg-green-100 text-green-600 text-sm font-medium flex items-center justify-center">3</div>
                 <h4 className="font-medium">Save Assignment</h4>
               </div>
 
@@ -303,7 +303,7 @@ export function TerritoryAssignmentDropdown({ user }: TerritoryAssignmentDropdow
                   <div className="font-medium">
                     Pincode: {pincodeOptions.find(p => p.id === selectedPincodeId)?.label}
                   </div>
-                  <div className="text-sm text-muted-foreground">
+                  <div className="text-sm text-gray-600">
                     Areas: {selectedAreaIds.length === 0 ? 'None selected (entire pincode)' : `${selectedAreaIds.length} selected`}
                   </div>
                 </div>
@@ -325,7 +325,7 @@ export function TerritoryAssignmentDropdown({ user }: TerritoryAssignmentDropdow
 
           {/* Instructions */}
           {!selectedPincodeId && pincodeOptions.length > 0 && (
-            <div className="text-sm text-muted-foreground bg-blue-50 dark:bg-blue-950/30 p-4 rounded-lg">
+            <div className="text-sm text-gray-600 bg-green-50 dark:bg-blue-950/30 p-4 rounded-lg">
               <h5 className="font-medium mb-2">How to assign territories:</h5>
               <ol className="list-decimal list-inside space-y-1">
                 <li>Select one pincode from the dropdown above</li>

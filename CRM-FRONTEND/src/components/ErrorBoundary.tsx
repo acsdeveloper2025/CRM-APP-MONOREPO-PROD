@@ -131,7 +131,7 @@ export class ErrorBoundary extends Component<Props, State> {
               {/* Error Message */}
               <div className="bg-muted/50 rounded-lg p-4">
                 <h4 className="font-medium mb-2">Error Details</h4>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-gray-600">
                   {this.state.error?.message || 'An unexpected error occurred'}
                 </p>
               </div>
@@ -194,7 +194,7 @@ export class ErrorBoundary extends Component<Props, State> {
               </Collapsible>
 
               {/* Help Text */}
-              <div className="text-center text-sm text-muted-foreground">
+              <div className="text-center text-sm text-gray-600">
                 <p>
                   If this problem persists, please contact support with the Error ID above.
                 </p>

@@ -103,12 +103,12 @@ export const CommissionsPage: React.FC = () => {
       <Card>
         <CardContent className="p-6">
           <div className="flex items-start space-x-4">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <HelpCircle className="h-6 w-6 text-blue-600" />
+            <div className="p-2 bg-green-100 rounded-lg">
+              <HelpCircle className="h-6 w-6 text-green-600" />
             </div>
             <div>
               <h3 className="font-semibold mb-2">Commission Reports Guide</h3>
-              <div className="space-y-2 text-sm text-muted-foreground">
+              <div className="space-y-2 text-sm text-gray-600">
                 <p>• <strong>Commission Calculations:</strong> View detailed commission calculations for each field user with payment status and case details</p>
                 <p>• <strong>Statistics & Analytics:</strong> Monitor commission trends, top performers, and overall commission metrics</p>
                 <p>• <strong>Payment Tracking:</strong> Track paid, pending, and overdue commission payments</p>

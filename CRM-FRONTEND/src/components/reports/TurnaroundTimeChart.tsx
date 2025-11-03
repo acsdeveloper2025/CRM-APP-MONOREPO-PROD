@@ -23,9 +23,9 @@ export function TurnaroundTimeChart({ data }: TurnaroundTimeChartProps) {
         </CardHeader>
         <CardContent>
           <div className="text-center py-8">
-            <Clock className="mx-auto h-12 w-12 text-muted-foreground" />
+            <Clock className="mx-auto h-12 w-12 text-gray-600" />
             <h3 className="mt-4 text-lg font-semibold">No data available</h3>
-            <p className="text-muted-foreground">
+            <p className="text-gray-600">
               Turnaround time data will appear here once cases are completed.
             </p>
           </div>
@@ -57,18 +57,18 @@ export function TurnaroundTimeChart({ data }: TurnaroundTimeChartProps) {
         <div className="grid grid-cols-3 gap-4">
           <div className="text-center">
             <div className="text-2xl font-bold">{data.averageTurnaroundTime}h</div>
-            <div className="text-sm text-muted-foreground">Average Time</div>
+            <div className="text-sm text-gray-600">Average Time</div>
           </div>
           <div className="text-center">
             <div className="text-2xl font-bold">{data.targetTurnaroundTime}h</div>
-            <div className="text-sm text-muted-foreground">Target Time</div>
+            <div className="text-sm text-gray-600">Target Time</div>
           </div>
           <div className="text-center">
             <div className={`text-2xl font-bold flex items-center justify-center space-x-1 ${performanceColor}`}>
               {performanceIcon}
               <span>{data.performancePercentage}%</span>
             </div>
-            <div className="text-sm text-muted-foreground">Performance</div>
+            <div className="text-sm text-gray-600">Performance</div>
           </div>
         </div>
 
@@ -110,7 +110,7 @@ export function TurnaroundTimeChart({ data }: TurnaroundTimeChartProps) {
                 </div>
                 <div className="text-right">
                   <div className="text-sm font-medium">{user.averageTurnaroundTime}h</div>
-                  <div className="text-xs text-muted-foreground">{user.caseCount} cases</div>
+                  <div className="text-xs text-gray-600">{user.caseCount} cases</div>
                 </div>
               </div>
             ))}

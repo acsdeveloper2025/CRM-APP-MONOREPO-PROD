@@ -165,7 +165,7 @@ export function EnhancedAreaManager({ pincode, className }: EnhancedAreaManagerP
           <Button
             variant="ghost"
             size="sm"
-            className="h-6 w-6 p-0 text-muted-foreground hover:text-primary"
+            className="h-6 w-6 p-0 text-gray-600 hover:text-primary"
             disabled={addAreasMutation.isPending}
           >
             <Plus className="h-3 w-3" />
@@ -178,13 +178,13 @@ export function EnhancedAreaManager({ pincode, className }: EnhancedAreaManagerP
                 <Building2 className="h-4 w-4" />
                 Add Areas to Pincode {pincode.code}
               </h4>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-gray-600">
                 Select areas to assign to this pincode. Only unassigned areas are shown.
               </p>
             </div>
             
             {areaOptions.length === 0 && !areasLoading ? (
-              <div className="text-center py-8 text-muted-foreground">
+              <div className="text-center py-8 text-gray-600">
                 <Building2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
                 <p className="text-sm">No available areas found</p>
                 <p className="text-xs">All areas may already be assigned or none exist.</p>

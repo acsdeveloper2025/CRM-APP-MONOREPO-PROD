@@ -32,7 +32,7 @@ export const TaskCompletionModal: React.FC<TaskCompletionModalProps> = ({
     { value: 'VERIFIED', label: 'Verified', color: 'bg-green-100 text-green-800' },
     { value: 'REJECTED', label: 'Rejected', color: 'bg-red-100 text-red-800' },
     { value: 'PARTIAL', label: 'Partially Verified', color: 'bg-yellow-100 text-yellow-800' },
-    { value: 'PENDING_DOCS', label: 'Pending Documents', color: 'bg-orange-100 text-orange-800' },
+    { value: 'PENDING_DOCS', label: 'Pending Documents', color: 'bg-yellow-100 text-orange-800' },
     { value: 'NOT_FOUND', label: 'Not Found', color: 'bg-gray-100 text-gray-800' },
     { value: 'INVALID', label: 'Invalid Information', color: 'bg-red-100 text-red-800' }
   ];
@@ -241,13 +241,13 @@ export const TaskCompletionModal: React.FC<TaskCompletionModalProps> = ({
 
           {/* Completion Summary */}
           {verificationOutcome && (
-            <Card className="bg-blue-50 border-blue-200">
+            <Card className="bg-green-50 border-green-200">
               <CardContent className="p-4">
                 <div className="space-y-2">
-                  <p className="text-sm font-medium text-blue-900">
+                  <p className="text-sm font-medium text-green-900">
                     Completion Summary
                   </p>
-                  <div className="text-sm text-blue-800 space-y-1">
+                  <div className="text-sm text-green-800 space-y-1">
                     <p>
                       <span className="font-medium">Outcome:</span>{' '}
                       <Badge className={getOutcomeColor(verificationOutcome)} size="sm">

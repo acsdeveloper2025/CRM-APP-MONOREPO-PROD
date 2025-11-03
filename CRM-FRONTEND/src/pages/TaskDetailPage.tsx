@@ -171,8 +171,8 @@ export const TaskDetailPage: React.FC = () => {
   const getPriorityBadge = (priority: string) => {
     const priorityConfig: Record<string, { className: string; label: string }> = {
       URGENT: { className: 'bg-red-100 text-red-800 border-red-200', label: 'Urgent' },
-      HIGH: { className: 'bg-orange-100 text-orange-800 border-orange-200', label: 'High' },
-      MEDIUM: { className: 'bg-blue-100 text-blue-800 border-blue-200', label: 'Medium' },
+      HIGH: { className: 'bg-yellow-100 text-orange-800 border-orange-200', label: 'High' },
+      MEDIUM: { className: 'bg-green-100 text-green-800 border-green-200', label: 'Medium' },
       LOW: { className: 'bg-gray-100 text-gray-800 border-gray-200', label: 'Low' },
     };
 
@@ -223,7 +223,7 @@ export const TaskDetailPage: React.FC = () => {
           </Button>
           <div>
             <h1 className="text-3xl font-bold tracking-tight">{task.taskNumber}</h1>
-            <p className="text-muted-foreground mt-1">{task.taskTitle}</p>
+            <p className="text-gray-600 mt-1">{task.taskTitle}</p>
           </div>
         </div>
         <div className="flex items-center space-x-2">
@@ -243,7 +243,7 @@ export const TaskDetailPage: React.FC = () => {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Case Number</p>
+                  <p className="text-sm font-medium text-gray-600">Case Number</p>
                   <Button
                     variant="link"
                     className="p-0 h-auto"
@@ -253,26 +253,26 @@ export const TaskDetailPage: React.FC = () => {
                   </Button>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Customer Name</p>
+                  <p className="text-sm font-medium text-gray-600">Customer Name</p>
                   <p className="text-sm">{task.customerName}</p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Verification Type</p>
+                  <p className="text-sm font-medium text-gray-600">Verification Type</p>
                   <p className="text-sm">{task.verificationTypeName}</p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Rate Type</p>
+                  <p className="text-sm font-medium text-gray-600">Rate Type</p>
                   <p className="text-sm">{task.rateTypeName || 'N/A'}</p>
                 </div>
                 {task.applicantType && (
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">Applicant Type</p>
+                    <p className="text-sm font-medium text-gray-600">Applicant Type</p>
                     <p className="text-sm">{task.applicantType}</p>
                   </div>
                 )}
                 {task.trigger && (
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">Trigger</p>
+                    <p className="text-sm font-medium text-gray-600">Trigger</p>
                     <p className="text-sm">{task.trigger}</p>
                   </div>
                 )}
@@ -282,7 +282,7 @@ export const TaskDetailPage: React.FC = () => {
                 <>
                   <Separator />
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground mb-2">Description</p>
+                    <p className="text-sm font-medium text-gray-600 mb-2">Description</p>
                     <p className="text-sm">{task.taskDescription}</p>
                   </div>
                 </>
@@ -292,12 +292,12 @@ export const TaskDetailPage: React.FC = () => {
                 <>
                   <Separator />
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground mb-2 flex items-center">
+                    <p className="text-sm font-medium text-gray-600 mb-2 flex items-center">
                       <MapPin className="h-4 w-4 mr-1" />
                       Address
                     </p>
                     <p className="text-sm">{task.address}</p>
-                    {task.pincode && <p className="text-sm text-muted-foreground">Pincode: {task.pincode}</p>}
+                    {task.pincode && <p className="text-sm text-gray-600">Pincode: {task.pincode}</p>}
                   </div>
                 </>
               )}
@@ -323,14 +323,14 @@ export const TaskDetailPage: React.FC = () => {
                           Assigned to {item.assignedToName}
                           {item.assignedFromName && ` (from ${item.assignedFromName})`}
                         </p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-xs text-gray-600">
                           By {item.assignedByName} • {format(new Date(item.assignedAt), 'dd MMM yyyy, hh:mm a')}
                         </p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-xs text-gray-600">
                           Status: {item.taskStatusAfter}
                         </p>
                         {item.assignmentReason && (
-                          <p className="text-xs text-muted-foreground mt-1">
+                          <p className="text-xs text-gray-600 mt-1">
                             Reason: {item.assignmentReason}
                           </p>
                         )}
@@ -352,13 +352,13 @@ export const TaskDetailPage: React.FC = () => {
             </CardHeader>
             <CardContent className="space-y-3">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Current Status</p>
+                <p className="text-sm font-medium text-gray-600">Current Status</p>
                 <div className="mt-1">
                   {getStatusBadge(task.status)}
                 </div>
               </div>
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Priority</p>
+                <p className="text-sm font-medium text-gray-600">Priority</p>
                 <div className="mt-1">
                   {getPriorityBadge(task.priority)}
                 </div>
@@ -375,27 +375,27 @@ export const TaskDetailPage: React.FC = () => {
               {task.assignedToName ? (
                 <>
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">Assigned To</p>
+                    <p className="text-sm font-medium text-gray-600">Assigned To</p>
                     <p className="text-sm">{task.assignedToName}</p>
                     {task.assignedToEmployeeId && (
-                      <p className="text-xs text-muted-foreground">ID: {task.assignedToEmployeeId}</p>
+                      <p className="text-xs text-gray-600">ID: {task.assignedToEmployeeId}</p>
                     )}
                   </div>
                   {task.assignedByName && (
                     <div>
-                      <p className="text-sm font-medium text-muted-foreground">Assigned By</p>
+                      <p className="text-sm font-medium text-gray-600">Assigned By</p>
                       <p className="text-sm">{task.assignedByName}</p>
                     </div>
                   )}
                   {task.assignedAt && (
                     <div>
-                      <p className="text-sm font-medium text-muted-foreground">Assignment Date & Time</p>
+                      <p className="text-sm font-medium text-gray-600">Assignment Date & Time</p>
                       <p className="text-sm">{format(new Date(task.assignedAt), 'dd MMM yyyy, hh:mm a')}</p>
                     </div>
                   )}
                 </>
               ) : (
-                <p className="text-sm text-muted-foreground">Not assigned yet</p>
+                <p className="text-sm text-gray-600">Not assigned yet</p>
               )}
             </CardContent>
           </Card>
@@ -407,29 +407,29 @@ export const TaskDetailPage: React.FC = () => {
             </CardHeader>
             <CardContent className="space-y-3">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Created</p>
+                <p className="text-sm font-medium text-gray-600">Created</p>
                 <p className="text-sm">{format(new Date(task.createdAt), 'dd MMM yyyy, hh:mm a')}</p>
               </div>
               {task.assignedAt && (
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Assigned</p>
+                  <p className="text-sm font-medium text-gray-600">Assigned</p>
                   <p className="text-sm">{format(new Date(task.assignedAt), 'dd MMM yyyy, hh:mm a')}</p>
                 </div>
               )}
               {task.startedAt && (
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Started</p>
+                  <p className="text-sm font-medium text-gray-600">Started</p>
                   <p className="text-sm">{format(new Date(task.startedAt), 'dd MMM yyyy, hh:mm a')}</p>
                 </div>
               )}
               {task.completedAt && (
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Completed</p>
+                  <p className="text-sm font-medium text-gray-600">Completed</p>
                   <p className="text-sm">{format(new Date(task.completedAt), 'dd MMM yyyy, hh:mm a')}</p>
                 </div>
               )}
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Last Updated</p>
+                <p className="text-sm font-medium text-gray-600">Last Updated</p>
                 <p className="text-sm">{format(new Date(task.updatedAt), 'dd MMM yyyy, hh:mm a')}</p>
               </div>
             </CardContent>
@@ -446,19 +446,19 @@ export const TaskDetailPage: React.FC = () => {
               <CardContent className="space-y-3">
                 {task.estimatedAmount !== undefined && task.estimatedAmount !== null && task.estimatedAmount > 0 && (
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">Estimated Amount</p>
+                    <p className="text-sm font-medium text-gray-600">Estimated Amount</p>
                     <p className="text-sm">₹{task.estimatedAmount.toFixed(2)}</p>
                   </div>
                 )}
                 {task.actualAmount !== undefined && task.actualAmount !== null && task.actualAmount > 0 && (
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">Actual Amount</p>
+                    <p className="text-sm font-medium text-gray-600">Actual Amount</p>
                     <p className="text-sm">₹{task.actualAmount.toFixed(2)}</p>
                   </div>
                 )}
                 {task.calculatedCommission !== undefined && task.calculatedCommission !== null && task.calculatedCommission > 0 && (
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">Commission</p>
+                    <p className="text-sm font-medium text-gray-600">Commission</p>
                     <p className="text-sm">₹{task.calculatedCommission.toFixed(2)}</p>
                     {task.commissionStatus && (
                       <Badge variant="secondary" className="mt-1">

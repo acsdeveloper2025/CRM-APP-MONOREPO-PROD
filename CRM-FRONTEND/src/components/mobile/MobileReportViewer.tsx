@@ -201,8 +201,8 @@ export const MobileReportViewer: React.FC<MobileReportViewerProps> = ({
     return (
       <div className="min-h-screen bg-muted flex items-center justify-center p-4">
         <div className="text-center">
-          <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
-          <p className="text-muted-foreground">Loading report...</p>
+          <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4 text-green-600" />
+          <p className="text-gray-600">Loading report...</p>
         </div>
       </div>
     );
@@ -221,9 +221,9 @@ export const MobileReportViewer: React.FC<MobileReportViewerProps> = ({
         </div>
         
         <div className="p-4 text-center py-16">
-          <WifiOff className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-foreground mb-2">Offline Mode</h3>
-          <p className="text-muted-foreground mb-4">
+          <WifiOff className="h-16 w-16 text-gray-600 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">Offline Mode</h3>
+          <p className="text-gray-600 mb-4">
             This report is not available offline. Please connect to the internet to view fresh data.
           </p>
           <Button onClick={loadReportData} disabled={!isOnline}>
@@ -247,7 +247,7 @@ export const MobileReportViewer: React.FC<MobileReportViewerProps> = ({
               </Button>
               <div>
                 <h1 className="text-lg font-semibold">{getReportTitle()}</h1>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-gray-600">
                   {reportId ? 'Offline Report' : 'Live Data'}
                 </p>
               </div>
@@ -347,7 +347,7 @@ const PerformanceReportContent: React.FC<{ data: any }> = ({ data }) => (
               <span className="font-medium">{item.metric}</span>
               <Badge className={
                 item.value >= 90 ? 'bg-green-100 text-green-800' :
-                item.value >= 80 ? 'bg-blue-100 text-blue-800' :
+                item.value >= 80 ? 'bg-green-100 text-green-800' :
                 'bg-yellow-100 text-yellow-800'
               }>
                 {item.value}%
@@ -370,8 +370,8 @@ const SubmissionsReportContent: React.FC<{ data: any }> = ({ data }) => (
       </CardHeader>
       <CardContent>
         <div className="text-center">
-          <p className="text-3xl font-bold text-blue-600">{data.total}</p>
-          <p className="text-muted-foreground">Total Submissions</p>
+          <p className="text-3xl font-bold text-green-600">{data.total}</p>
+          <p className="text-gray-600">Total Submissions</p>
         </div>
       </CardContent>
     </Card>
@@ -423,7 +423,7 @@ const SubmissionsReportContent: React.FC<{ data: any }> = ({ data }) => (
                   {submission.status}
                 </Badge>
               </div>
-              <div className="flex items-center justify-between text-sm text-muted-foreground">
+              <div className="flex items-center justify-between text-sm text-gray-600">
                 <span>{submission.type}</span>
                 <span>{submission.date}</span>
               </div>
@@ -442,14 +442,14 @@ const AnalyticsReportContent: React.FC<{ data: any }> = ({ data }) => (
     <div className="grid grid-cols-2 gap-3">
       <Card>
         <CardContent className="p-4 text-center">
-          <p className="text-2xl font-bold text-blue-600">{data.overview.totalForms}</p>
-          <p className="text-xs text-muted-foreground">Total Forms</p>
+          <p className="text-2xl font-bold text-green-600">{data.overview.totalForms}</p>
+          <p className="text-xs text-gray-600">Total Forms</p>
         </CardContent>
       </Card>
       <Card>
         <CardContent className="p-4 text-center">
           <p className="text-2xl font-bold text-green-600">{data.overview.validationRate}%</p>
-          <p className="text-xs text-muted-foreground">Validation Rate</p>
+          <p className="text-xs text-gray-600">Validation Rate</p>
         </CardContent>
       </Card>
     </div>

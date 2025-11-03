@@ -49,7 +49,7 @@ export function EnhancedAreasMultiSelect({
       .map(area => ({
         id: area.id,
         label: area.name,
-        className: "text-foreground" // Ensure text is visible
+        className: "text-gray-900" // Ensure text is visible
       }));
   }, [allAreas, searchQuery]);
 
@@ -100,7 +100,7 @@ export function EnhancedAreasMultiSelect({
       
       {/* Selection info */}
       {selectedAreaIds.length > 0 && (
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs text-gray-600">
           {selectedAreaIds.length} of {maxAreas} areas selected
           {selectedAreaIds.length >= maxAreas && " (maximum reached)"}
         </p>

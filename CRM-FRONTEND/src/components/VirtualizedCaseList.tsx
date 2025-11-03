@@ -55,8 +55,8 @@ const CaseItem: React.FC<CaseItemProps> = React.memo(({ index, style, data }) =>
   if (index >= cases.length) {
     return (
       <div style={style} className="flex items-center justify-center p-4">
-        <Loader2 className="h-6 w-6 animate-spin text-blue-500" />
-        <span className="ml-2 text-muted-foreground">Loading more cases...</span>
+        <Loader2 className="h-6 w-6 animate-spin text-green-500" />
+        <span className="ml-2 text-gray-600">Loading more cases...</span>
       </div>
     );
   }
@@ -129,14 +129,14 @@ export const VirtualizedCaseList: React.FC<VirtualizedCaseListProps> = ({
       {/* Header with search and controls */}
       <div className="flex-shrink-0 p-4 border-b border-border bg-muted">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold text-foreground">
+          <h2 className="text-xl font-semibold text-gray-900">
             Cases ({totalCount.toLocaleString()})
           </h2>
           <div className="flex items-center space-x-2">
             <button
               onClick={onRefresh}
               disabled={loading}
-              className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
+              className="p-2 text-gray-600 hover:text-gray-900 hover:bg-muted rounded-md transition-colors"
               title="Refresh cases"
             >
               <RefreshCw className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
@@ -145,8 +145,8 @@ export const VirtualizedCaseList: React.FC<VirtualizedCaseListProps> = ({
               onClick={() => setShowFilters(!showFilters)}
               className={`p-2 rounded-md transition-colors ${
                 showFilters || Object.keys(currentFilters).length > 0
-                  ? 'text-blue-600 bg-blue-50 hover:bg-blue-100'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                  ? 'text-green-600 bg-green-50 hover:bg-green-100'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-muted'
               }`}
               title="Filter cases"
             >
@@ -157,7 +157,7 @@ export const VirtualizedCaseList: React.FC<VirtualizedCaseListProps> = ({
 
         {/* Search bar */}
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-600" />
           <input
             type="text"
             placeholder="Search cases by customer name, case ID, or address..."
@@ -173,7 +173,7 @@ export const VirtualizedCaseList: React.FC<VirtualizedCaseListProps> = ({
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {/* Status filter */}
               <div>
-                <label className="block text-sm font-medium text-foreground mb-1">
+                <label className="block text-sm font-medium text-gray-900 mb-1">
                   Status
                 </label>
                 <select
@@ -194,7 +194,7 @@ export const VirtualizedCaseList: React.FC<VirtualizedCaseListProps> = ({
 
               {/* Priority filter */}
               <div>
-                <label className="block text-sm font-medium text-foreground mb-1">
+                <label className="block text-sm font-medium text-gray-900 mb-1">
                   Priority
                 </label>
                 <select
@@ -215,7 +215,7 @@ export const VirtualizedCaseList: React.FC<VirtualizedCaseListProps> = ({
 
               {/* Assigned to filter */}
               <div>
-                <label className="block text-sm font-medium text-foreground mb-1">
+                <label className="block text-sm font-medium text-gray-900 mb-1">
                   Assigned To
                 </label>
                 <input
@@ -232,7 +232,7 @@ export const VirtualizedCaseList: React.FC<VirtualizedCaseListProps> = ({
 
               {/* Date range filter */}
               <div>
-                <label className="block text-sm font-medium text-foreground mb-1">
+                <label className="block text-sm font-medium text-gray-900 mb-1">
                   Date Range
                 </label>
                 <div className="flex space-x-2">
@@ -268,7 +268,7 @@ export const VirtualizedCaseList: React.FC<VirtualizedCaseListProps> = ({
             <div className="flex justify-end space-x-2 mt-4">
               <button
                 onClick={handleFilterReset}
-                className="px-4 py-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
+                className="px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-muted rounded-md transition-colors"
               >
                 Reset
               </button>
@@ -286,7 +286,7 @@ export const VirtualizedCaseList: React.FC<VirtualizedCaseListProps> = ({
         {Object.keys(currentFilters).length > 0 && (
           <div className="mt-2 flex flex-wrap gap-2">
             {currentFilters.status && (
-              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
                 Status: {currentFilters.status}
               </span>
             )}
@@ -296,7 +296,7 @@ export const VirtualizedCaseList: React.FC<VirtualizedCaseListProps> = ({
               </span>
             )}
             {currentFilters.assignedTo && (
-              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
                 Assigned: {currentFilters.assignedTo}
               </span>
             )}
@@ -307,7 +307,7 @@ export const VirtualizedCaseList: React.FC<VirtualizedCaseListProps> = ({
       {/* Virtualized list */}
       <div className="flex-1 overflow-hidden">
         {cases.length === 0 && !loading ? (
-          <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+          <div className="flex flex-col items-center justify-center h-full text-gray-600">
             <Search className="h-12 w-12 mb-4" />
             <h3 className="text-lg font-medium mb-2">No cases found</h3>
             <p className="text-center">
@@ -333,8 +333,8 @@ export const VirtualizedCaseList: React.FC<VirtualizedCaseListProps> = ({
       {/* Loading indicator */}
       {loading && cases.length === 0 && (
         <div className="flex items-center justify-center p-8">
-          <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-          <span className="ml-3 text-muted-foreground">Loading cases...</span>
+          <Loader2 className="h-8 w-8 animate-spin text-green-500" />
+          <span className="ml-3 text-gray-600">Loading cases...</span>
         </div>
       )}
     </div>

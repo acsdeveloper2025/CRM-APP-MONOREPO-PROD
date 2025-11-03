@@ -96,9 +96,9 @@ export function VerificationTypesTable({ data, isLoading }: VerificationTypesTab
   if (!data || data.length === 0) {
     return (
       <div className="text-center py-12">
-        <CheckCircle className="mx-auto h-12 w-12 text-muted-foreground" />
+        <CheckCircle className="mx-auto h-12 w-12 text-gray-600" />
         <h3 className="mt-4 text-lg font-semibold">No verification types found</h3>
-        <p className="text-muted-foreground">
+        <p className="text-gray-600">
           Get started by creating your first verification type.
         </p>
       </div>

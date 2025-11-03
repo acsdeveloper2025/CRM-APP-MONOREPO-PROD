@@ -137,27 +137,27 @@ const ProfileView: React.FC = () => {
           </span>
         </div>
         <h2 className="text-xl font-semibold">{user?.name}</h2>
-        <p className="text-muted-foreground">{user?.role}</p>
-        <p className="text-sm text-muted-foreground mt-2">{user?.email}</p>
+        <p className="text-gray-600">{user?.role}</p>
+        <p className="text-sm text-gray-600 mt-2">{user?.email}</p>
       </div>
       
       <div className="bg-white rounded-lg p-4 space-y-3">
         <h3 className="font-semibold">Account Information</h3>
         <div className="space-y-2 text-sm">
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Employee ID:</span>
+            <span className="text-gray-600">Employee ID:</span>
             <span>{user?.id}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Department:</span>
+            <span className="text-gray-600">Department:</span>
             <span>Field Operations</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Territory:</span>
+            <span className="text-gray-600">Territory:</span>
             <span>Bangalore South</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Joined:</span>
+            <span className="text-gray-600">Joined:</span>
             <span>Jan 2024</span>
           </div>
         </div>
@@ -184,7 +184,7 @@ const SettingsView: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="font-medium">Push Notifications</p>
-              <p className="text-sm text-muted-foreground">Receive alerts and updates</p>
+              <p className="text-sm text-gray-600">Receive alerts and updates</p>
             </div>
             <input
               type="checkbox"
@@ -197,7 +197,7 @@ const SettingsView: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="font-medium">Auto Sync</p>
-              <p className="text-sm text-muted-foreground">Automatically sync when online</p>
+              <p className="text-sm text-gray-600">Automatically sync when online</p>
             </div>
             <input
               type="checkbox"
@@ -210,7 +210,7 @@ const SettingsView: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="font-medium">Offline Mode</p>
-              <p className="text-sm text-muted-foreground">Work without internet connection</p>
+              <p className="text-sm text-gray-600">Work without internet connection</p>
             </div>
             <input
               type="checkbox"
@@ -299,14 +299,14 @@ const NotificationsView: React.FC = () => {
         >
           <div className="flex items-start justify-between">
             <div className="flex-1">
-              <h4 className={`font-medium ${!notification.read ? 'text-blue-900' : 'text-foreground'}`}>
+              <h4 className={`font-medium ${!notification.read ? 'text-green-900' : 'text-gray-900'}`}>
                 {notification.title}
               </h4>
-              <p className="text-sm text-muted-foreground mt-1">{notification.message}</p>
-              <p className="text-xs text-muted-foreground mt-2">{notification.time}</p>
+              <p className="text-sm text-gray-600 mt-1">{notification.message}</p>
+              <p className="text-xs text-gray-600 mt-2">{notification.time}</p>
             </div>
             {!notification.read && (
-              <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
+              <div className="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
             )}
           </div>
         </div>

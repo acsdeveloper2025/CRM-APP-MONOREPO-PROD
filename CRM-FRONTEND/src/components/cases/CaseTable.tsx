@@ -38,13 +38,13 @@ interface CaseTableProps {
 const getStatusColor = (status: string) => {
   switch (status) {
     case 'ASSIGNED':
-      return 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300';
+      return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300';
     case 'IN_PROGRESS':
       return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300';
     case 'COMPLETED':
       return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300';
     default:
-      return 'bg-muted text-muted-foreground';
+      return 'bg-muted text-gray-600';
   }
 };
 
@@ -55,15 +55,15 @@ const getPriorityColor = (priority: number | string) => {
 
   switch (priorityNum) {
     case 1:
-      return 'bg-muted text-muted-foreground';
+      return 'bg-muted text-gray-600';
     case 2:
-      return 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300';
+      return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300';
     case 3:
       return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300';
     case 4:
       return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300';
     default:
-      return 'bg-muted text-muted-foreground';
+      return 'bg-muted text-gray-600';
   }
 };
 
@@ -186,7 +186,7 @@ export const CaseTable: React.FC<CaseTableProps> = ({
   if (cases.length === 0) {
     return (
       <div className="border rounded-lg p-8 text-center">
-        <p className="text-muted-foreground">No cases found matching your criteria.</p>
+        <p className="text-gray-600">No cases found matching your criteria.</p>
       </div>
     );
   }
@@ -226,7 +226,7 @@ export const CaseTable: React.FC<CaseTableProps> = ({
               <TableCell>
                 <div>
                   <div className="font-medium">{caseItem.customerName || caseItem.applicantName}</div>
-                  <div className="text-sm text-muted-foreground">{caseItem.customerPhone || caseItem.applicantPhone}</div>
+                  <div className="text-sm text-gray-600">{caseItem.customerPhone || caseItem.applicantPhone}</div>
                 </div>
               </TableCell>
               <TableCell className="hidden lg:table-cell">
@@ -272,7 +272,7 @@ export const CaseTable: React.FC<CaseTableProps> = ({
               <TableCell className="hidden lg:table-cell">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium">{caseItem.totalTasks || 0}</span>
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-1 text-xs text-gray-600">
                     <span className="text-green-600">✓ {caseItem.completedTasks || 0}</span>
                     <span>|</span>
                     <span className="text-yellow-600">⏳ {(caseItem.pendingTasks || 0) + (caseItem.inProgressTasks || 0)}</span>
@@ -280,7 +280,7 @@ export const CaseTable: React.FC<CaseTableProps> = ({
                 </div>
               </TableCell>
               <TableCell className="hidden xl:table-cell">
-                <div className="text-sm text-muted-foreground">
+                <div className="text-sm text-gray-600">
                   {formatDistanceToNow(new Date(caseItem.updatedAt), { addSuffix: true })}
                 </div>
               </TableCell>
@@ -384,7 +384,7 @@ export const CaseTable: React.FC<CaseTableProps> = ({
               value={
                 <div>
                   <div className="font-medium">{caseItem.customerName || caseItem.applicantName}</div>
-                  <div className="text-xs text-muted-foreground">{caseItem.customerPhone || caseItem.applicantPhone}</div>
+                  <div className="text-xs text-gray-600">{caseItem.customerPhone || caseItem.applicantPhone}</div>
                 </div>
               }
             />

@@ -130,7 +130,7 @@ export function DesignationList({ onEdit }: DesignationListProps) {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600 h-4 w-4" />
               <Input
                 placeholder="Search designations..."
                 value={searchValue}
@@ -139,7 +139,7 @@ export function DesignationList({ onEdit }: DesignationListProps) {
               />
               {isSearching && (
                 <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                  <RefreshCw className="h-4 w-4 animate-spin text-muted-foreground" />
+                  <RefreshCw className="h-4 w-4 animate-spin text-gray-600" />
                 </div>
               )}
             </div>
@@ -184,9 +184,9 @@ export function DesignationList({ onEdit }: DesignationListProps) {
         <CardContent>
           {designations.length === 0 ? (
             <div className="text-center py-8">
-              <Users className="mx-auto h-12 w-12 text-muted-foreground" />
-              <h3 className="mt-2 text-sm font-semibold text-muted-foreground">No designations found</h3>
-              <p className="mt-1 text-sm text-muted-foreground">
+              <Users className="mx-auto h-12 w-12 text-gray-600" />
+              <h3 className="mt-2 text-sm font-semibold text-gray-600">No designations found</h3>
+              <p className="mt-1 text-sm text-gray-600">
                 {debouncedSearchValue || departmentFilter || statusFilter
                   ? 'Try adjusting your filters'
                   : 'Get started by creating a new designation'}
@@ -219,11 +219,11 @@ export function DesignationList({ onEdit }: DesignationListProps) {
                       <TableCell>
                         {designation.departmentName ? (
                           <div className="flex items-center gap-1">
-                            <Building2 className="h-4 w-4 text-muted-foreground" />
+                            <Building2 className="h-4 w-4 text-gray-600" />
                             {designation.departmentName}
                           </div>
                         ) : (
-                          <span className="text-muted-foreground">All departments</span>
+                          <span className="text-gray-600">All departments</span>
                         )}
                       </TableCell>
                       <TableCell>
@@ -237,7 +237,7 @@ export function DesignationList({ onEdit }: DesignationListProps) {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                        <div className="flex items-center gap-1 text-sm text-gray-600">
                           <Calendar className="h-4 w-4" />
                           {formatDate(designation.createdAt)}
                         </div>
@@ -271,7 +271,7 @@ export function DesignationList({ onEdit }: DesignationListProps) {
           {/* Pagination Controls */}
           {designationsData?.pagination && (
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 px-6">
-              <div className="text-sm text-muted-foreground">
+              <div className="text-sm text-gray-600">
                 Showing {designationsData.data?.length || 0} of {designationsData.pagination.total} designations
               </div>
               <div className="flex items-center gap-2">

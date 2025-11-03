@@ -206,7 +206,7 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
                       </Badge>
                     ))}
                     {currentProducts.length === 0 && (
-                      <span className="text-sm text-muted-foreground">No products assigned</span>
+                      <span className="text-sm text-gray-600">No products assigned</span>
                     )}
                   </div>
                 </div>
@@ -251,7 +251,7 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
                             ))}
                           </div>
                         ) : (
-                          <div className="text-sm text-muted-foreground">
+                          <div className="text-sm text-gray-600">
                             No products available. Create products first.
                           </div>
                         )}
@@ -304,7 +304,7 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
                             ))}
                           </div>
                         ) : (
-                          <div className="text-sm text-muted-foreground">
+                          <div className="text-sm text-gray-600">
                             No verification types available. Create verification types first.
                           </div>
                         )}
@@ -361,7 +361,7 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
                                   <div className="flex items-center justify-between">
                                     <div>
                                       <div>{documentType.name}</div>
-                                      <div className="text-xs text-muted-foreground">
+                                      <div className="text-xs text-gray-600">
                                         {documentType.code} • {documentType.category}
                                       </div>
                                     </div>
@@ -379,7 +379,7 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
                             ))}
                           </div>
                         ) : (
-                          <div className="text-sm text-muted-foreground">
+                          <div className="text-sm text-gray-600">
                             No document types available. Create document types first.
                           </div>
                         )}

@@ -85,7 +85,7 @@ export function InvoiceDetailsDialog({ invoice, open, onOpenChange }: InvoiceDet
               <CardContent className="space-y-2">
                 <div>
                   <div className="font-semibold">{invoice.client.name}</div>
-                  <div className="text-sm text-muted-foreground">{invoice.client.code}</div>
+                  <div className="text-sm text-gray-600">{invoice.client.code}</div>
                 </div>
                 {invoice.client.email && (
                   <div className="text-sm">{invoice.client.email}</div>
@@ -105,11 +105,11 @@ export function InvoiceDetailsDialog({ invoice, open, onOpenChange }: InvoiceDet
               </CardHeader>
               <CardContent className="space-y-2">
                 <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Issue Date:</span>
+                  <span className="text-sm text-gray-600">Issue Date:</span>
                   <span className="text-sm">{new Date(invoice.issueDate).toLocaleDateString()}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Due Date:</span>
+                  <span className="text-sm text-gray-600">Due Date:</span>
                   <span className={`text-sm ${
                     invoice.status === 'OVERDUE' ? 'text-red-600 font-medium' : ''
                   }`}>
@@ -117,7 +117,7 @@ export function InvoiceDetailsDialog({ invoice, open, onOpenChange }: InvoiceDet
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Status:</span>
+                  <span className="text-sm text-gray-600">Status:</span>
                   {getStatusBadge(invoice.status)}
                 </div>
               </CardContent>
@@ -141,7 +141,7 @@ export function InvoiceDetailsDialog({ invoice, open, onOpenChange }: InvoiceDet
                     <div className="flex-1">
                       <div className="font-medium">{item.description}</div>
                       {item.case && (
-                        <div className="text-sm text-muted-foreground">
+                        <div className="text-sm text-gray-600">
                           Case: {item.case.title} - {item.case.customerName}
                         </div>
                       )}
@@ -187,11 +187,11 @@ export function InvoiceDetailsDialog({ invoice, open, onOpenChange }: InvoiceDet
               </CardHeader>
               <CardContent>
                 <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Paid On:</span>
+                  <span className="text-sm text-gray-600">Paid On:</span>
                   <span className="text-sm">{new Date(invoice.paidAt).toLocaleDateString()}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Amount Paid:</span>
+                  <span className="text-sm text-gray-600">Amount Paid:</span>
                   <span className="text-sm font-medium">₹{invoice.totalAmount.toLocaleString()}</span>
                 </div>
               </CardContent>

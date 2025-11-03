@@ -36,18 +36,18 @@ interface PendingCasesTableProps {
 const getStatusColor = (status: string) => {
   switch (status) {
     case 'PENDING':
-      return 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300';
+      return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300';
     case 'IN_PROGRESS':
       return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300';
     default:
-      return 'bg-muted text-muted-foreground';
+      return 'bg-muted text-gray-600';
   }
 };
 
 const getPriorityColor = (priority: number | string) => {
   const p = Number(priority);
   if (p >= 4) return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300';
-  if (p >= 3) return 'bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-300';
+  if (p >= 3) return 'bg-yellow-100 text-orange-800 dark:bg-yellow-900/20 dark:text-yellow-300';
   if (p >= 2) return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300';
   return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300';
 };
@@ -202,9 +202,9 @@ export const PendingCasesTable: React.FC<PendingCasesTableProps> = ({
   if (cases.length === 0) {
     return (
       <div className="border rounded-lg p-8 text-center">
-        <Clock className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-        <h3 className="text-lg font-medium text-foreground mb-2">No Pending Cases</h3>
-        <p className="text-muted-foreground">
+        <Clock className="mx-auto h-12 w-12 text-gray-600 mb-4" />
+        <h3 className="text-lg font-medium text-gray-900 mb-2">No Pending Cases</h3>
+        <p className="text-gray-600">
           All cases have been completed or there are no cases assigned yet.
         </p>
       </div>
@@ -274,7 +274,7 @@ export const PendingCasesTable: React.FC<PendingCasesTableProps> = ({
                       )}
                       {urgent && ageHighlight === 'none' && (
                         <div title="Urgent Case">
-                          <ArrowUp className="h-4 w-4 text-orange-500" />
+                          <ArrowUp className="h-4 w-4 text-yellow-500" />
                         </div>
                       )}
                     </div>
@@ -282,11 +282,11 @@ export const PendingCasesTable: React.FC<PendingCasesTableProps> = ({
                   
                   <TableCell>
                     <div>
-                      <div className="font-medium text-foreground">
+                      <div className="font-medium text-gray-900">
                         {caseItem.customerName || 'N/A'}
                       </div>
                       {caseItem.customerPhone && (
-                        <div className="text-sm text-muted-foreground">
+                        <div className="text-sm text-gray-600">
                           {caseItem.customerPhone}
                         </div>
                       )}
@@ -295,13 +295,13 @@ export const PendingCasesTable: React.FC<PendingCasesTableProps> = ({
                   
                   <TableCell>
                     <div className="flex items-center space-x-2">
-                      <Building2 className="h-4 w-4 text-muted-foreground" />
+                      <Building2 className="h-4 w-4 text-gray-600" />
                       <div>
-                        <div className="font-medium text-foreground">
+                        <div className="font-medium text-gray-900">
                           {caseItem.clientName || caseItem.client?.name || 'N/A'}
                         </div>
                         {(caseItem.clientCode || caseItem.client?.code) && (
-                          <div className="text-sm text-muted-foreground">
+                          <div className="text-sm text-gray-600">
                             {caseItem.clientCode || caseItem.client?.code}
                           </div>
                         )}
@@ -310,7 +310,7 @@ export const PendingCasesTable: React.FC<PendingCasesTableProps> = ({
                   </TableCell>
                   
                   <TableCell>
-                    <Badge variant="outline" className="text-foreground border-border">
+                    <Badge variant="outline" className="text-gray-900 border-border">
                       {caseItem.verificationTypeName || caseItem.verificationType || 'N/A'}
                     </Badge>
                   </TableCell>
@@ -329,13 +329,13 @@ export const PendingCasesTable: React.FC<PendingCasesTableProps> = ({
                   
                   <TableCell>
                     <div className="flex items-center space-x-2">
-                      <User className="h-4 w-4 text-muted-foreground" />
+                      <User className="h-4 w-4 text-gray-600" />
                       <div>
-                        <div className="font-medium text-foreground">
+                        <div className="font-medium text-gray-900">
                           {caseItem.assignedToName || caseItem.assignedTo?.name || 'Unassigned'}
                         </div>
                         {caseItem.assignedAt && (
-                          <div className="text-sm text-muted-foreground">
+                          <div className="text-sm text-gray-600">
                             Assigned {getTimeElapsed(caseItem.assignedAt, (caseItem as any).pendingDurationSeconds)}
                           </div>
                         )}
@@ -350,7 +350,7 @@ export const PendingCasesTable: React.FC<PendingCasesTableProps> = ({
                       ageHighlight === 'red' ? "text-red-700 dark:text-red-400 font-semibold" :
                       ageHighlight === 'yellow' && urgent ? "text-yellow-800 dark:text-yellow-300 font-bold" :
                       ageHighlight === 'yellow' ? "text-yellow-700 dark:text-yellow-400 font-semibold" :
-                      urgent ? "text-orange-700 dark:text-orange-400 font-medium" : "text-muted-foreground"
+                      urgent ? "text-orange-700 dark:text-orange-400 font-medium" : "text-gray-600"
                     )}>
                       {getTimeElapsed(caseItem.assignedAt, (caseItem as any).pendingDurationSeconds)}
                     </div>

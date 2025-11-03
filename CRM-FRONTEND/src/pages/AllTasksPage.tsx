@@ -95,7 +95,7 @@ export const AllTasksPage: React.FC = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">All Verification Tasks</h1>
-          <p className="text-muted-foreground mt-1">
+          <p className="text-gray-600 mt-1">
             Comprehensive task management with advanced filtering and bulk actions
           </p>
         </div>
@@ -182,11 +182,11 @@ export const AllTasksPage: React.FC = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Tasks</CardTitle>
-            <ListTodo className="h-4 w-4 text-muted-foreground" />
+            <ListTodo className="h-4 w-4 text-gray-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{pagination.total}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-gray-600">
               All verification tasks
             </p>
           </CardContent>
@@ -195,11 +195,11 @@ export const AllTasksPage: React.FC = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Pending</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
+            <Clock className="h-4 w-4 text-gray-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{statistics.pending + statistics.assigned}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-gray-600">
               Awaiting action
             </p>
           </CardContent>
@@ -208,11 +208,11 @@ export const AllTasksPage: React.FC = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">In Progress</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+            <Users className="h-4 w-4 text-gray-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{statistics.inProgress}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-gray-600">
               Being worked on
             </p>
           </CardContent>
@@ -221,11 +221,11 @@ export const AllTasksPage: React.FC = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Completed</CardTitle>
-            <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
+            <CheckCircle2 className="h-4 w-4 text-gray-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{statistics.completed}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-gray-600">
               Successfully done
             </p>
           </CardContent>
@@ -256,7 +256,7 @@ export const AllTasksPage: React.FC = () => {
         <Card>
           <CardContent className="py-4">
             <div className="flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-gray-600">
                 Showing {((pagination.page - 1) * pagination.limit) + 1} to {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} tasks
               </p>
               {pagination.totalPages > 1 && (

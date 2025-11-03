@@ -66,13 +66,13 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
   };
 
   return (
-    <header className="bg-card shadow-sm border-b border-border backdrop-blur-sm sticky top-0 z-40">
+    <header className="bg-green-600 dark:bg-green-700 text-white shadow-sm border-b border-green-700 dark:border-green-800 backdrop-blur-sm sticky top-0 z-40">
       <div className="flex items-center justify-between h-14 sm:h-16 px-3 sm:px-4 lg:px-6 xl:px-8">
         {/* Mobile menu button */}
         <Button
           variant="ghost"
           size="icon"
-          className="lg:hidden h-9 w-9 sm:h-10 sm:w-10"
+          className="lg:hidden h-9 w-9 sm:h-10 sm:w-10 text-white hover:bg-green-700 dark:hover:bg-green-800 hover:text-white transition-colors duration-200"
           onClick={onMenuClick}
         >
           <Menu className="h-5 w-5 sm:h-6 sm:w-6" />
@@ -80,7 +80,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
 
         {/* Page title - dynamic based on route */}
         <div className="flex-1 lg:flex-none min-w-0">
-          <h1 className="text-lg sm:text-xl lg:text-2xl font-semibold text-foreground truncate">
+          <h1 className="text-lg sm:text-xl lg:text-2xl font-semibold text-white truncate">
             {getPageTitle()}
           </h1>
         </div>
@@ -97,7 +97,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
             variant="ghost"
             size="icon"
             onClick={toggleTheme}
-            className="hidden sm:flex h-8 w-8 sm:h-9 sm:w-9 lg:h-10 lg:w-10"
+            className="hidden sm:flex h-8 w-8 sm:h-9 sm:w-9 lg:h-10 lg:w-10 text-white hover:bg-green-700 dark:hover:bg-green-800 hover:text-white transition-colors duration-200"
             title={`Switch to ${theme === 'light' ? 'dark' : theme === 'dark' ? 'system' : 'light'} theme`}
           >
             {theme === 'dark' ? (
@@ -115,10 +115,10 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
           {/* User menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="relative h-8 w-8 sm:h-9 sm:w-9 lg:h-10 lg:w-10 rounded-full">
+              <Button variant="ghost" className="relative h-8 w-8 sm:h-9 sm:w-9 lg:h-10 lg:w-10 rounded-full text-white hover:bg-green-700 dark:hover:bg-green-800 hover:text-white transition-colors duration-200">
                 <Avatar className="h-7 w-7 sm:h-8 sm:w-8 lg:h-9 lg:w-9">
                   <AvatarImage src={user?.profilePhotoUrl} alt={user?.name} />
-                  <AvatarFallback className="text-xs sm:text-sm">
+                  <AvatarFallback className="text-xs sm:text-sm bg-green-500 text-white">
                     {user?.name ? getUserInitials(user.name) : 'U'}
                   </AvatarFallback>
                 </Avatar>
@@ -128,10 +128,10 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
               <DropdownMenuLabel className="font-normal">
                 <div className="flex flex-col space-y-1">
                   <p className="text-sm font-medium leading-none">{user?.name}</p>
-                  <p className="text-xs leading-none text-muted-foreground">
+                  <p className="text-xs leading-none text-gray-600">
                     {user?.email}
                   </p>
-                  <p className="text-xs leading-none text-muted-foreground">
+                  <p className="text-xs leading-none text-gray-600">
                     {user?.role} • {user?.designation}
                   </p>
                 </div>

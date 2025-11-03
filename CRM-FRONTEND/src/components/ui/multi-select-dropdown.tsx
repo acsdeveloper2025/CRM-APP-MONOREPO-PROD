@@ -129,7 +129,7 @@ export function MultiSelectDropdown({
         className={cn(
           "w-full justify-between text-left font-normal",
           error && "border-red-500",
-          selectedValues.length === 0 && "text-muted-foreground"
+          selectedValues.length === 0 && "text-gray-600"
         )}
       >
         <span className="truncate">
@@ -167,7 +167,7 @@ export function MultiSelectDropdown({
               variant="ghost"
               size="sm"
               onClick={handleClearAll}
-              className="h-6 px-2 text-xs text-muted-foreground hover:text-red-500"
+              className="h-6 px-2 text-xs text-gray-600 hover:text-red-500"
             >
               Clear all
             </Button>
@@ -184,13 +184,13 @@ export function MultiSelectDropdown({
           {/* Search Input */}
           <div className="p-2 border-b border-border bg-popover">
             <div className="relative">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-600" />
               <Input
                 ref={searchInputRef}
                 placeholder={searchPlaceholder}
                 value={internalSearchQuery}
                 onChange={(e) => handleSearch(e.target.value)}
-                className="pl-8 bg-background text-foreground"
+                className="pl-8 bg-background text-gray-900"
               />
             </div>
           </div>
@@ -199,11 +199,11 @@ export function MultiSelectDropdown({
           <div className="max-h-60 overflow-y-auto bg-popover">
             {isLoading ? (
               <div className="flex items-center justify-center p-4">
-                <Loader2 className="h-4 w-4 animate-spin mr-2 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">Loading...</span>
+                <Loader2 className="h-4 w-4 animate-spin mr-2 text-gray-600" />
+                <span className="text-sm text-gray-600">Loading...</span>
               </div>
             ) : filteredOptions.length === 0 ? (
-              <div className="p-4 text-center text-sm text-muted-foreground">
+              <div className="p-4 text-center text-sm text-gray-600">
                 {emptyMessage}
               </div>
             ) : (
@@ -228,7 +228,7 @@ export function MultiSelectDropdown({
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium text-popover-foreground truncate">{option.label}</div>
                       {option.description && (
-                        <div className="text-xs text-muted-foreground truncate">
+                        <div className="text-xs text-gray-600 truncate">
                           {option.description}
                         </div>
                       )}
@@ -241,7 +241,7 @@ export function MultiSelectDropdown({
 
           {/* Footer with selection count */}
           {filteredOptions.length > 0 && (
-            <div className="p-2 border-t border-border bg-muted/50 text-xs text-muted-foreground">
+            <div className="p-2 border-t border-border bg-muted/50 text-xs text-gray-600">
               {selectedValues.length} of {options.length} items selected
               {filteredOptions.length < options.length && (
                 <span> • Showing {filteredOptions.length} filtered results</span>

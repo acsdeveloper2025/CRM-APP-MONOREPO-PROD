@@ -175,7 +175,7 @@ export function CreateClientDialog({ open, onOpenChange }: CreateClientDialogPro
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             {createMutation.isPending && (
-              <div className="text-sm text-muted-foreground">
+              <div className="text-sm text-gray-600">
                 Creating client...
               </div>
             )}
@@ -274,7 +274,7 @@ export function CreateClientDialog({ open, onOpenChange }: CreateClientDialogPro
                         ))}
                       </div>
                     ) : (
-                      <div className="text-sm text-muted-foreground">
+                      <div className="text-sm text-gray-600">
                         No products available. Create products first.
                       </div>
                     )}
@@ -326,7 +326,7 @@ export function CreateClientDialog({ open, onOpenChange }: CreateClientDialogPro
                         ))}
                       </div>
                     ) : (
-                      <div className="text-sm text-muted-foreground">
+                      <div className="text-sm text-gray-600">
                         No verification types available. Create verification types first.
                       </div>
                     )}
@@ -379,7 +379,7 @@ export function CreateClientDialog({ open, onOpenChange }: CreateClientDialogPro
                         ))}
                       </div>
                     ) : (
-                      <div className="text-sm text-muted-foreground">
+                      <div className="text-sm text-gray-600">
                         No document types available. Create document types first.
                       </div>
                     )}

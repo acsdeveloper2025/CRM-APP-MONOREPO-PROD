@@ -138,7 +138,7 @@ export function LocationsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Location Management</h1>
-          <p className="text-muted-foreground">
+          <p className="text-gray-600">
             Manage cities, states, pincodes, and geographical data
           </p>
         </div>
@@ -149,11 +149,11 @@ export function LocationsPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Countries</CardTitle>
-            <Globe className="h-4 w-4 text-muted-foreground" />
+            <Globe className="h-4 w-4 text-gray-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.countries}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-gray-600">
               Across all continents
             </p>
           </CardContent>
@@ -161,11 +161,11 @@ export function LocationsPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total States</CardTitle>
-            <MapPin className="h-4 w-4 text-muted-foreground" />
+            <MapPin className="h-4 w-4 text-gray-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.states}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-gray-600">
               Across all countries
             </p>
           </CardContent>
@@ -173,11 +173,11 @@ export function LocationsPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Cities</CardTitle>
-            <Building className="h-4 w-4 text-muted-foreground" />
+            <Building className="h-4 w-4 text-gray-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.cities}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-gray-600">
               Across all states and countries
             </p>
           </CardContent>
@@ -185,11 +185,11 @@ export function LocationsPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Pincodes</CardTitle>
-            <MapPin className="h-4 w-4 text-muted-foreground" />
+            <MapPin className="h-4 w-4 text-gray-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.pincodes}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-gray-600">
               Postal codes across all cities
             </p>
           </CardContent>
@@ -368,7 +368,7 @@ export function LocationsPage() {
               />
               {countriesData?.pagination && (
                 <div className="flex items-center justify-between px-2">
-                  <div className="text-sm text-muted-foreground">
+                  <div className="text-sm text-gray-600">
                     Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, countriesData.pagination.total)} of {countriesData.pagination.total} countries
                   </div>
                   <div className="flex items-center space-x-2">
@@ -403,7 +403,7 @@ export function LocationsPage() {
               />
               {statesData?.pagination && (
                 <div className="flex items-center justify-between px-2">
-                  <div className="text-sm text-muted-foreground">
+                  <div className="text-sm text-gray-600">
                     Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, statesData.pagination.total)} of {statesData.pagination.total} states
                   </div>
                   <div className="flex items-center space-x-2">
@@ -438,7 +438,7 @@ export function LocationsPage() {
               />
               {citiesData?.pagination && (
                 <div className="flex items-center justify-between px-2">
-                  <div className="text-sm text-muted-foreground">
+                  <div className="text-sm text-gray-600">
                     Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, citiesData.pagination.total)} of {citiesData.pagination.total} cities
                   </div>
                   <div className="flex items-center space-x-2">
@@ -473,7 +473,7 @@ export function LocationsPage() {
               />
               {pincodesData?.pagination && (
                 <div className="flex items-center justify-between px-2">
-                  <div className="text-sm text-muted-foreground">
+                  <div className="text-sm text-gray-600">
                     Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, pincodesData.pagination.total)} of {pincodesData.pagination.total} pincodes
                   </div>
                   <div className="flex items-center gap-2">
@@ -508,7 +508,7 @@ export function LocationsPage() {
               />
               {areasData?.pagination && (
                 <div className="flex items-center justify-between px-2">
-                  <div className="text-sm text-muted-foreground">
+                  <div className="text-sm text-gray-600">
                     Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, areasData.pagination.total)} of {areasData.pagination.total} areas
                   </div>
                   <div className="flex items-center gap-2">

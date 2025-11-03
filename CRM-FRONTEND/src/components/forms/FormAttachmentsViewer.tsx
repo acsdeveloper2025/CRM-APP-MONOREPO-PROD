@@ -91,8 +91,8 @@ export function FormAttachmentsViewer({ attachments, readonly = true }: FormAtta
         <CardContent>
           {attachments.length === 0 ? (
             <div className="text-center py-8">
-              <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
-              <p className="text-sm text-muted-foreground">No attachments found</p>
+              <FileText className="h-12 w-12 mx-auto text-gray-600 mb-2" />
+              <p className="text-sm text-gray-600">No attachments found</p>
             </div>
           ) : (
             <div className="space-y-6">
@@ -135,7 +135,7 @@ export function FormAttachmentsViewer({ attachments, readonly = true }: FormAtta
                         )}
 
                         {/* File Info */}
-                        <div className="space-y-2 text-xs text-muted-foreground">
+                        <div className="space-y-2 text-xs text-gray-600">
                           <div className="flex items-center justify-between">
                             <span>Size:</span>
                             <span>{formatFileSize(attachment.size)}</span>
@@ -223,7 +223,7 @@ export function FormAttachmentsViewer({ attachments, readonly = true }: FormAtta
               <div className="grid gap-4 md:grid-cols-2 text-sm">
                 <div>
                   <h4 className="font-medium mb-2">File Information</h4>
-                  <div className="space-y-1 text-muted-foreground">
+                  <div className="space-y-1 text-gray-600">
                     <div>Size: {formatFileSize(selectedAttachment.size)}</div>
                     <div>Type: {selectedAttachment.mimeType}</div>
                     <div>Captured: {new Date(selectedAttachment.capturedAt).toLocaleString()}</div>
@@ -233,7 +233,7 @@ export function FormAttachmentsViewer({ attachments, readonly = true }: FormAtta
                 {selectedAttachment.location && (
                   <div>
                     <h4 className="font-medium mb-2">Location Information</h4>
-                    <div className="space-y-1 text-muted-foreground">
+                    <div className="space-y-1 text-gray-600">
                       <div>Latitude: {selectedAttachment.location.latitude.toFixed(6)}</div>
                       <div>Longitude: {selectedAttachment.location.longitude.toFixed(6)}</div>
                       <div>Accuracy: {selectedAttachment.location.accuracy}m</div>
@@ -248,7 +248,7 @@ export function FormAttachmentsViewer({ attachments, readonly = true }: FormAtta
               {selectedAttachment.description && (
                 <div>
                   <h4 className="font-medium mb-2">Description</h4>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-gray-600">
                     {selectedAttachment.description}
                   </p>
                 </div>

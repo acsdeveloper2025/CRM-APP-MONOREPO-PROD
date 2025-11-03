@@ -81,24 +81,24 @@ export const AgentDashboard: React.FC = () => {
       case 'excellent':
         return <Wifi className="h-4 w-4 text-green-500" />;
       case 'good':
-        return <Wifi className="h-4 w-4 text-blue-500" />;
+        return <Wifi className="h-4 w-4 text-green-500" />;
       case 'poor':
         return <Wifi className="h-4 w-4 text-yellow-500" />;
       default:
-        return <Wifi className="h-4 w-4 text-muted-foreground" />;
+        return <Wifi className="h-4 w-4 text-gray-600" />;
     }
   };
 
   const getQualityScoreColor = (score: number) => {
     if (score >= 90) return 'text-green-600';
-    if (score >= 80) return 'text-blue-600';
+    if (score >= 80) return 'text-green-600';
     if (score >= 70) return 'text-yellow-600';
     return 'text-red-600';
   };
 
   const getQualityScoreBadge = (score: number) => {
     if (score >= 90) return 'bg-green-100 text-green-800';
-    if (score >= 80) return 'bg-blue-100 text-blue-800';
+    if (score >= 80) return 'bg-green-100 text-green-800';
     if (score >= 70) return 'bg-yellow-100 text-yellow-800';
     return 'bg-red-100 text-red-800';
   };
@@ -107,8 +107,8 @@ export const AgentDashboard: React.FC = () => {
     return (
       <div className="min-h-screen bg-muted flex items-center justify-center p-4">
         <div className="text-center">
-          <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
-          <p className="text-muted-foreground">Loading your dashboard...</p>
+          <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4 text-green-600" />
+          <p className="text-gray-600">Loading your dashboard...</p>
         </div>
       </div>
     );
@@ -125,8 +125,8 @@ export const AgentDashboard: React.FC = () => {
                 <User className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h1 className="text-lg font-semibold text-foreground">{user?.name}</h1>
-                <p className="text-sm text-muted-foreground">Field Agent</p>
+                <h1 className="text-lg font-semibold text-gray-900">{user?.name}</h1>
+                <p className="text-sm text-gray-600">Field Agent</p>
               </div>
             </div>
             <div className="flex items-center space-x-2">
@@ -149,7 +149,7 @@ export const AgentDashboard: React.FC = () => {
               <span>{isOnline ? `Online (${connectionQuality})` : 'Offline'}</span>
             </span>
             {lastSync && (
-              <span className="text-muted-foreground">
+              <span className="text-gray-600">
                 Last sync: {lastSync.toLocaleTimeString()}
               </span>
             )}
@@ -271,7 +271,7 @@ export const AgentDashboard: React.FC = () => {
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
                   <div className="flex items-center space-x-3">
-                    <Target className="h-5 w-5 text-blue-600" />
+                    <Target className="h-5 w-5 text-green-600" />
                     <span className="font-medium">Quality Score</span>
                   </div>
                   <Badge className={getQualityScoreBadge(agentStats?.qualityScore || 0)}>
@@ -291,20 +291,20 @@ export const AgentDashboard: React.FC = () => {
 
                 <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
                   <div className="flex items-center space-x-3">
-                    <Clock className="h-5 w-5 text-purple-600" />
+                    <Clock className="h-5 w-5 text-green-600" />
                     <span className="font-medium">Avg Response Time</span>
                   </div>
-                  <Badge className="bg-purple-100 text-purple-800">
+                  <Badge className="bg-green-100 text-green-800">
                     {agentStats?.avgResponseTime || 0}min
                   </Badge>
                 </div>
 
                 <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
                   <div className="flex items-center space-x-3">
-                    <Calendar className="h-5 w-5 text-orange-600" />
+                    <Calendar className="h-5 w-5 text-yellow-600" />
                     <span className="font-medium">Monthly Total</span>
                   </div>
-                  <Badge className="bg-orange-100 text-orange-800">
+                  <Badge className="bg-yellow-100 text-orange-800">
                     {agentStats?.monthSubmissions || 0}
                   </Badge>
                 </div>

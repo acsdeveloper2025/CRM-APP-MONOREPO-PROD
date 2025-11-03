@@ -139,7 +139,7 @@ export function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoiceDialogP
                         <SelectItem key={client.id} value={client.id}>
                           <div className="flex flex-col">
                             <span>{client.name}</span>
-                            <span className="text-xs text-muted-foreground">
+                            <span className="text-xs text-gray-600">
                               {client.code}
                             </span>
                           </div>

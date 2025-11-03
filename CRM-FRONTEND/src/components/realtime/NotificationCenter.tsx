@@ -27,9 +27,9 @@ export function NotificationCenter() {
   const getNotificationIcon = (type: NotificationEvent['type'] | string) => {
     switch (type) {
       case 'CASE_ASSIGNED':
-        return <UserCheck className="h-4 w-4 text-blue-600" />;
+        return <UserCheck className="h-4 w-4 text-green-600" />;
       case 'CASE_REASSIGNED':
-        return <UserCheck className="h-4 w-4 text-orange-600" />;
+        return <UserCheck className="h-4 w-4 text-yellow-600" />;
       case 'CASE_REMOVED':
         return <UserX className="h-4 w-4 text-red-600" />;
       case 'CASE_COMPLETED':
@@ -43,7 +43,7 @@ export function NotificationCenter() {
       case 'SYSTEM_MAINTENANCE':
         return <Clock className="h-4 w-4 text-yellow-600" />;
       case 'APP_UPDATE':
-        return <Info className="h-4 w-4 text-blue-600" />;
+        return <Info className="h-4 w-4 text-green-600" />;
       case 'EMERGENCY_ALERT':
         return <AlertTriangle className="h-4 w-4 text-red-600" />;
       case 'success':
@@ -53,7 +53,7 @@ export function NotificationCenter() {
       case 'error':
         return <AlertCircle className="h-4 w-4 text-red-600" />;
       default:
-        return <Info className="h-4 w-4 text-blue-600" />;
+        return <Info className="h-4 w-4 text-green-600" />;
     }
   };
 
@@ -63,13 +63,13 @@ export function NotificationCenter() {
       case 'URGENT':
         return 'border-l-4 border-red-500 bg-red-50';
       case 'HIGH':
-        return 'border-l-4 border-orange-500 bg-orange-50';
+        return 'border-l-4 border-orange-500 bg-yellow-50';
       case 'MEDIUM':
-        return 'border-l-4 border-blue-500 bg-blue-50';
+        return 'border-l-4 border-green-500 bg-green-50';
       case 'LOW':
         return 'border-l-4 border-border bg-muted';
       default:
-        return 'border-l-4 border-blue-500 bg-blue-50';
+        return 'border-l-4 border-green-500 bg-green-50';
     }
   };
 
@@ -157,7 +157,7 @@ export function NotificationCenter() {
         
         <ScrollArea className="h-96">
           {notifications.length === 0 ? (
-            <div className="p-4 text-center text-muted-foreground">
+            <div className="p-4 text-center text-gray-600">
               <Bell className="h-8 w-8 mx-auto mb-2 opacity-50" />
               <p className="text-sm">No notifications</p>
             </div>
@@ -185,14 +185,14 @@ export function NotificationCenter() {
                             <Badge variant="destructive" className="text-xs">Urgent</Badge>
                           )}
                           {notification.priority === 'HIGH' && (
-                            <Badge variant="secondary" className="text-xs bg-orange-100 text-orange-800">High</Badge>
+                            <Badge variant="secondary" className="text-xs bg-yellow-100 text-orange-800">High</Badge>
                           )}
                           {!notification.read && (
                             <div className="h-2 w-2 bg-blue-600 rounded-full flex-shrink-0" />
                           )}
                         </div>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                      <p className="text-xs text-gray-600 mt-1 line-clamp-2">
                         {notification.message}
                       </p>
                       {(notification.taskNumber || notification.caseNumber || notification.customerName) && (
@@ -208,13 +208,13 @@ export function NotificationCenter() {
                             </Badge>
                           )}
                           {notification.customerName && (
-                            <span className="text-xs text-muted-foreground truncate">
+                            <span className="text-xs text-gray-600 truncate">
                               {notification.customerName}
                             </span>
                           )}
                         </div>
                       )}
-                      <p className="text-xs text-muted-foreground mt-1">
+                      <p className="text-xs text-gray-600 mt-1">
                         {formatDistanceToNow(new Date(notification.timestamp), { addSuffix: true })}
                       </p>
                     </div>

@@ -17,9 +17,9 @@ export function FormMetadataViewer({ submission }: FormMetadataViewerProps) {
       case 'REJECTED':
         return <AlertCircle className="h-4 w-4 text-red-600" />;
       case 'UNDER_REVIEW':
-        return <Eye className="h-4 w-4 text-blue-600" />;
+        return <Eye className="h-4 w-4 text-green-600" />;
       default:
-        return <FileText className="h-4 w-4 text-muted-foreground" />;
+        return <FileText className="h-4 w-4 text-gray-600" />;
     }
   };
 
@@ -66,23 +66,23 @@ export function FormMetadataViewer({ submission }: FormMetadataViewerProps) {
               <h4 className="font-medium text-sm mb-3">Form Details</h4>
               <div className="space-y-2 text-sm">
                 <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Form ID:</span>
+                  <span className="text-gray-600">Form ID:</span>
                   <span className="font-mono">{submission.id}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Case ID:</span>
+                  <span className="text-gray-600">Case ID:</span>
                   <span className="font-mono">{submission.caseId}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Form Type:</span>
+                  <span className="text-gray-600">Form Type:</span>
                   <span>{getFormTypeLabel(submission.formType)}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Verification:</span>
+                  <span className="text-gray-600">Verification:</span>
                   <span>{getVerificationTypeLabel(submission.verificationType)}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Outcome:</span>
+                  <span className="text-gray-600">Outcome:</span>
                   <Badge variant="outline">{submission.outcome}</Badge>
                 </div>
               </div>
@@ -92,22 +92,22 @@ export function FormMetadataViewer({ submission }: FormMetadataViewerProps) {
               <h4 className="font-medium text-sm mb-3">Status & Progress</h4>
               <div className="space-y-2 text-sm">
                 <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Status:</span>
+                  <span className="text-gray-600">Status:</span>
                   <div className="flex items-center space-x-2">
                     {getStatusIcon(submission.status)}
                     {getStatusBadge(submission.status)}
                   </div>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Sections:</span>
+                  <span className="text-gray-600">Sections:</span>
                   <span>{submission.sections.length}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Attachments:</span>
+                  <span className="text-gray-600">Attachments:</span>
                   <span>{submission.attachments.length}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Location:</span>
+                  <span className="text-gray-600">Location:</span>
                   <span>{submission.location ? 'Captured' : 'Not available'}</span>
                 </div>
               </div>
@@ -122,13 +122,13 @@ export function FormMetadataViewer({ submission }: FormMetadataViewerProps) {
               <h4 className="font-medium text-sm mb-3">Submission Details</h4>
               <div className="space-y-2 text-sm">
                 <div className="flex items-center space-x-2">
-                  <User className="h-3 w-3 text-muted-foreground" />
-                  <span className="text-muted-foreground">Submitted by:</span>
+                  <User className="h-3 w-3 text-gray-600" />
+                  <span className="text-gray-600">Submitted by:</span>
                   <span className="font-medium">{submission.submittedByName || submission.submittedBy || 'Unknown Agent'}</span>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <Clock className="h-3 w-3 text-muted-foreground" />
-                  <span className="text-muted-foreground">Submitted at:</span>
+                  <Clock className="h-3 w-3 text-gray-600" />
+                  <span className="text-gray-600">Submitted at:</span>
                   <span>{new Date(submission.submittedAt).toLocaleString()}</span>
                 </div>
               </div>
@@ -141,15 +141,15 @@ export function FormMetadataViewer({ submission }: FormMetadataViewerProps) {
                 <div className="space-y-2 text-sm">
                   {submission.reviewedBy && (
                     <div className="flex items-center space-x-2">
-                      <User className="h-3 w-3 text-muted-foreground" />
-                      <span className="text-muted-foreground">Reviewed by:</span>
+                      <User className="h-3 w-3 text-gray-600" />
+                      <span className="text-gray-600">Reviewed by:</span>
                       <span className="font-medium">{submission.reviewedBy}</span>
                     </div>
                   )}
                   {submission.reviewedAt && (
                     <div className="flex items-center space-x-2">
-                      <Clock className="h-3 w-3 text-muted-foreground" />
-                      <span className="text-muted-foreground">Reviewed at:</span>
+                      <Clock className="h-3 w-3 text-gray-600" />
+                      <span className="text-gray-600">Reviewed at:</span>
                       <span>{new Date(submission.reviewedAt).toLocaleString()}</span>
                     </div>
                   )}
@@ -166,7 +166,7 @@ export function FormMetadataViewer({ submission }: FormMetadataViewerProps) {
                 <div className="text-lg font-bold text-primary">
                   {submission.sections.reduce((acc, section) => acc + section.fields.length, 0)}
                 </div>
-                <div className="text-xs text-muted-foreground">Total Fields</div>
+                <div className="text-xs text-gray-600">Total Fields</div>
               </div>
               <div className="text-center">
                 <div className="text-lg font-bold text-green-600">
@@ -174,19 +174,19 @@ export function FormMetadataViewer({ submission }: FormMetadataViewerProps) {
                     acc + section.fields.filter(field => field.value && field.value !== '').length, 0
                   )}
                 </div>
-                <div className="text-xs text-muted-foreground">Completed Fields</div>
+                <div className="text-xs text-gray-600">Completed Fields</div>
               </div>
               <div className="text-center">
-                <div className="text-lg font-bold text-blue-600">
+                <div className="text-lg font-bold text-green-600">
                   {submission.attachments.length}
                 </div>
-                <div className="text-xs text-muted-foreground">Attachments</div>
+                <div className="text-xs text-gray-600">Attachments</div>
               </div>
               <div className="text-center">
-                <div className="text-lg font-bold text-purple-600">
+                <div className="text-lg font-bold text-green-600">
                   {submission.location ? '1' : '0'}
                 </div>
-                <div className="text-xs text-muted-foreground">GPS Location</div>
+                <div className="text-xs text-gray-600">GPS Location</div>
               </div>
             </div>
           </div>
@@ -206,7 +206,7 @@ export function FormMetadataViewer({ submission }: FormMetadataViewerProps) {
                   <div key={section.id} className="space-y-1">
                     <div className="flex items-center justify-between text-sm">
                       <span>{section.title}</span>
-                      <span className="text-muted-foreground">
+                      <span className="text-gray-600">
                         {completedFields}/{totalFields} ({Math.round(percentage)}%)
                       </span>
                     </div>

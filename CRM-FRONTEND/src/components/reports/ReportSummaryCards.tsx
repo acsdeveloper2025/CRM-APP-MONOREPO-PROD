@@ -31,7 +31,7 @@ export function ReportSummaryCards({ summaries }: ReportSummaryCardsProps) {
       case 'down':
         return <TrendingDown className="h-3 w-3 text-red-600" />;
       case 'stable':
-        return <Minus className="h-3 w-3 text-muted-foreground" />;
+        return <Minus className="h-3 w-3 text-gray-600" />;
       default:
         return null;
     }
@@ -44,9 +44,9 @@ export function ReportSummaryCards({ summaries }: ReportSummaryCardsProps) {
       case 'down':
         return 'text-red-600';
       case 'stable':
-        return 'text-muted-foreground';
+        return 'text-gray-600';
       default:
-        return 'text-muted-foreground';
+        return 'text-gray-600';
     }
   };
 
@@ -57,11 +57,11 @@ export function ReportSummaryCards({ summaries }: ReportSummaryCardsProps) {
           <Card key={i}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Loading...</CardTitle>
-              <BarChart3 className="h-4 w-4 text-muted-foreground" />
+              <BarChart3 className="h-4 w-4 text-gray-600" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">--</div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-gray-600">
                 No data available
               </p>
             </CardContent>
@@ -81,7 +81,7 @@ export function ReportSummaryCards({ summaries }: ReportSummaryCardsProps) {
           <Card key={summary.reportType}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">{summary.title}</CardTitle>
-              <Icon className="h-4 w-4 text-muted-foreground" />
+              <Icon className="h-4 w-4 text-gray-600" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
@@ -94,11 +94,11 @@ export function ReportSummaryCards({ summaries }: ReportSummaryCardsProps) {
                     `${primaryMetric.trendPercentage > 0 ? '+' : ''}${primaryMetric.trendPercentage}%`
                   )}
                 </span>
-                <span className="text-muted-foreground">
+                <span className="text-gray-600">
                   vs last period
                 </span>
               </div>
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-xs text-gray-600 mt-1">
                 Last updated: {new Date(summary.lastGenerated).toLocaleDateString()}
               </p>
             </CardContent>

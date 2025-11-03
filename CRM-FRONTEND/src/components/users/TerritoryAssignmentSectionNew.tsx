@@ -127,7 +127,7 @@ export function TerritoryAssignmentSection({ user }: TerritoryAssignmentSectionP
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h4 className="font-medium">Available Pincodes</h4>
-            <div className="text-sm text-muted-foreground">
+            <div className="text-sm text-gray-600">
               {selectedPincodeIds.length} selected
             </div>
           </div>
@@ -135,7 +135,7 @@ export function TerritoryAssignmentSection({ user }: TerritoryAssignmentSectionP
           {pincodesLoading ? (
             <div className="flex items-center justify-center py-4">
               <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              <span className="text-sm text-muted-foreground">Loading pincodes...</span>
+              <span className="text-sm text-gray-600">Loading pincodes...</span>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-96 overflow-y-auto border rounded-md p-4">
@@ -153,7 +153,7 @@ export function TerritoryAssignmentSection({ user }: TerritoryAssignmentSectionP
                   >
                     <div>
                       <div className="font-medium">{pincode.code}</div>
-                      <div className="text-xs text-muted-foreground">
+                      <div className="text-xs text-gray-600">
                         {pincode.cityName}, {pincode.state}
                       </div>
                     </div>
@@ -186,7 +186,7 @@ export function TerritoryAssignmentSection({ user }: TerritoryAssignmentSectionP
         </div>
 
         {/* Info */}
-        <div className="text-xs text-muted-foreground text-center pt-2 border-t">
+        <div className="text-xs text-gray-600 text-center pt-2 border-t">
           <p>
             {hasChanges 
               ? '⚠️ You have unsaved changes. Click "Save Assignments" to apply them.'

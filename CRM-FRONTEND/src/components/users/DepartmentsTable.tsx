@@ -88,7 +88,7 @@ export function DepartmentsTable({ onEditDepartment }: DepartmentsTableProps) {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-32">
-        <div className="text-sm text-muted-foreground">Loading departments...</div>
+        <div className="text-sm text-gray-600">Loading departments...</div>
       </div>
     );
   }
@@ -125,7 +125,7 @@ export function DepartmentsTable({ onEditDepartment }: DepartmentsTableProps) {
             {departments.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="text-center py-8">
-                  <div className="text-muted-foreground">
+                  <div className="text-gray-600">
                     No departments found
                   </div>
                 </TableCell>
@@ -135,7 +135,7 @@ export function DepartmentsTable({ onEditDepartment }: DepartmentsTableProps) {
                 <TableRow key={department.id}>
                   <TableCell>
                     <div className="flex items-center space-x-2">
-                      <Building className="h-4 w-4 text-muted-foreground" />
+                      <Building className="h-4 w-4 text-gray-600" />
                       <div>
                         <div className="font-medium">{department.name}</div>
                       </div>
@@ -153,13 +153,13 @@ export function DepartmentsTable({ onEditDepartment }: DepartmentsTableProps) {
                         <span className="text-sm">{department.departmentHeadName}</span>
                       </div>
                     ) : (
-                      <span className="text-muted-foreground text-sm">No head assigned</span>
+                      <span className="text-gray-600 text-sm">No head assigned</span>
                     )}
                   </TableCell>
 
                   <TableCell>
                     <div className="flex items-center space-x-1">
-                      <Users className="h-4 w-4 text-muted-foreground" />
+                      <Users className="h-4 w-4 text-gray-600" />
                       <span>{department.userCount}</span>
                     </div>
                   </TableCell>
@@ -170,11 +170,11 @@ export function DepartmentsTable({ onEditDepartment }: DepartmentsTableProps) {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <div className="text-sm text-muted-foreground">
+                    <div className="text-sm text-gray-600">
                       {formatDistanceToNow(new Date(department.createdAt), { addSuffix: true })}
                     </div>
                     {department.createdByName && (
-                      <div className="text-xs text-muted-foreground">
+                      <div className="text-xs text-gray-600">
                         by {department.createdByName}
                       </div>
                     )}
@@ -214,7 +214,7 @@ export function DepartmentsTable({ onEditDepartment }: DepartmentsTableProps) {
       {/* Pagination Controls */}
       {departmentsData?.pagination && (
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
-          <div className="text-sm text-muted-foreground">
+          <div className="text-sm text-gray-600">
             Showing {departmentsData.data?.length || 0} of {departmentsData.pagination.total} departments
           </div>
           <div className="flex items-center gap-2">

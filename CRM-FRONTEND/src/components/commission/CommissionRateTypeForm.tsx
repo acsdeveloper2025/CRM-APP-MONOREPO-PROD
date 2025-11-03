@@ -132,7 +132,7 @@ export const CommissionRateTypeForm: React.FC<CommissionRateTypeFormProps> = ({
               <SelectItem key={rateType.id} value={rateType.id.toString()}>
                 {rateType.name}
                 {rateType.description && (
-                  <span className="text-muted-foreground ml-2">- {rateType.description}</span>
+                  <span className="text-gray-600 ml-2">- {rateType.description}</span>
                 )}
               </SelectItem>
             ))}

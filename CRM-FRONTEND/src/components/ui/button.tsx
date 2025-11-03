@@ -5,19 +5,19 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 touch-manipulation",
+  "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 touch-manipulation",
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90 active:bg-primary/95",
+        default: "bg-green-500 text-white hover:bg-green-600 active:bg-green-700 border border-green-600 shadow-sm",
         destructive:
-          "bg-destructive text-destructive-foreground hover:bg-destructive/90 active:bg-destructive/95",
+          "bg-red-500 text-white hover:bg-red-600 active:bg-red-700 border border-red-600 shadow-sm",
         outline:
-          "border border-input bg-background hover:bg-accent hover:text-accent-foreground active:bg-accent/90",
+          "border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 active:bg-gray-100",
         secondary:
-          "bg-secondary text-secondary-foreground hover:bg-secondary/80 active:bg-secondary/85",
-        ghost: "hover:bg-accent hover:text-accent-foreground active:bg-accent/90",
-        link: "text-primary underline-offset-4 hover:underline active:text-primary/90",
+          "bg-white text-green-700 hover:bg-green-50 active:bg-green-100 border border-green-500",
+        ghost: "text-gray-700 hover:bg-gray-100 active:bg-gray-200",
+        link: "text-green-600 hover:text-green-700 underline-offset-4 hover:underline active:text-green-800",
       },
       size: {
         default: "h-10 px-4 py-2 min-h-[44px] sm:min-h-[40px]",

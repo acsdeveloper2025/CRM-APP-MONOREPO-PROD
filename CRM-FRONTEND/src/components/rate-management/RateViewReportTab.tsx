@@ -182,7 +182,7 @@ export function RateViewReportTab() {
           {/* Search */}
           <div className="flex items-center gap-4">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600 h-4 w-4" />
               <Input
                 placeholder="Search rates by client, product, verification type, or rate type..."
                 value={searchQuery}
@@ -303,7 +303,7 @@ export function RateViewReportTab() {
             </div>
           ) : rates.length === 0 ? (
             <div className="text-center py-8">
-              <p className="text-muted-foreground">No rates found matching the current filters</p>
+              <p className="text-gray-600">No rates found matching the current filters</p>
               <Button variant="outline" onClick={clearFilters} className="mt-4">
                 Clear Filters
               </Button>
@@ -330,19 +330,19 @@ export function RateViewReportTab() {
                       <TableCell>
                         <div>
                           <div className="font-medium">{rate.clientName}</div>
-                          <div className="text-xs text-muted-foreground">{rate.clientCode}</div>
+                          <div className="text-xs text-gray-600">{rate.clientCode}</div>
                         </div>
                       </TableCell>
                       <TableCell>
                         <div>
                           <div className="font-medium">{rate.productName}</div>
-                          <div className="text-xs text-muted-foreground">{rate.productCode}</div>
+                          <div className="text-xs text-gray-600">{rate.productCode}</div>
                         </div>
                       </TableCell>
                       <TableCell>
                         <div>
                           <div className="font-medium">{rate.verificationTypeName}</div>
-                          <div className="text-xs text-muted-foreground">{rate.verificationTypeCode}</div>
+                          <div className="text-xs text-gray-600">{rate.verificationTypeCode}</div>
                         </div>
                       </TableCell>
                       <TableCell>
@@ -358,10 +358,10 @@ export function RateViewReportTab() {
                           {rate.isActive ? 'Active' : 'Inactive'}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-muted-foreground">
+                      <TableCell className="text-gray-600">
                         {new Date(rate.createdAt).toLocaleDateString()}
                       </TableCell>
-                      <TableCell className="text-muted-foreground">
+                      <TableCell className="text-gray-600">
                         {new Date(rate.updatedAt).toLocaleDateString()}
                       </TableCell>
                       <TableCell className="text-right">
@@ -386,7 +386,7 @@ export function RateViewReportTab() {
           {/* Pagination Controls */}
           {ratesData?.pagination && (
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
-              <div className="text-sm text-muted-foreground">
+              <div className="text-sm text-gray-600">
                 Showing {rates.length} of {ratesData.pagination.total} rates
               </div>
               <div className="flex items-center gap-2">
@@ -420,7 +420,7 @@ export function RateViewReportTab() {
         <Card>
           <CardContent className="p-4">
             <div className="text-2xl font-bold">{rates.length}</div>
-            <p className="text-xs text-muted-foreground">Total Rates</p>
+            <p className="text-xs text-gray-600">Total Rates</p>
           </CardContent>
         </Card>
         <Card>
@@ -428,7 +428,7 @@ export function RateViewReportTab() {
             <div className="text-2xl font-bold">
               {rates.filter(r => r.isActive).length}
             </div>
-            <p className="text-xs text-muted-foreground">Active Rates</p>
+            <p className="text-xs text-gray-600">Active Rates</p>
           </CardContent>
         </Card>
         <Card>
@@ -436,7 +436,7 @@ export function RateViewReportTab() {
             <div className="text-2xl font-bold">
               ₹{rates.length > 0 ? (rates.reduce((sum, r) => sum + Number(r.amount || 0), 0) / rates.length).toFixed(0) : '0'}
             </div>
-            <p className="text-xs text-muted-foreground">Average Rate</p>
+            <p className="text-xs text-gray-600">Average Rate</p>
           </CardContent>
         </Card>
         <Card>
@@ -444,7 +444,7 @@ export function RateViewReportTab() {
             <div className="text-2xl font-bold">
               {new Set(rates.map(r => r.clientId)).size}
             </div>
-            <p className="text-xs text-muted-foreground">Unique Clients</p>
+            <p className="text-xs text-gray-600">Unique Clients</p>
           </CardContent>
         </Card>
       </div>

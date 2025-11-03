@@ -182,8 +182,8 @@ export const PerformanceMetrics: React.FC = () => {
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-center py-8">
-          <RefreshCw className="h-6 w-6 animate-spin text-blue-600" />
-          <span className="ml-2 text-muted-foreground">Loading performance data...</span>
+          <RefreshCw className="h-6 w-6 animate-spin text-green-600" />
+          <span className="ml-2 text-gray-600">Loading performance data...</span>
         </div>
       </div>
     );
@@ -328,7 +328,7 @@ export const PerformanceMetrics: React.FC = () => {
                   className="w-3 h-3 rounded-full"
                   style={{ backgroundColor: COLORS[index % COLORS.length] }}
                 />
-                <span className="text-xs text-muted-foreground">
+                <span className="text-xs text-gray-600">
                   {entry.type} ({entry.percentage}%)
                 </span>
               </div>
@@ -382,19 +382,19 @@ export const PerformanceMetrics: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex items-center space-x-3 p-3 bg-blue-50 rounded-lg">
-            <Target className="h-5 w-5 text-blue-600" />
+          <div className="flex items-center space-x-3 p-3 bg-green-50 rounded-lg">
+            <Target className="h-5 w-5 text-green-600" />
             <div>
-              <p className="text-sm font-medium text-blue-800">Above Target</p>
-              <p className="text-xs text-blue-600">Exceeding monthly goals by 12%</p>
+              <p className="text-sm font-medium text-green-800">Above Target</p>
+              <p className="text-xs text-green-600">Exceeding monthly goals by 12%</p>
             </div>
           </div>
 
-          <div className="flex items-center space-x-3 p-3 bg-orange-50 rounded-lg">
-            <Clock className="h-5 w-5 text-orange-600" />
+          <div className="flex items-center space-x-3 p-3 bg-yellow-50 rounded-lg">
+            <Clock className="h-5 w-5 text-yellow-600" />
             <div>
               <p className="text-sm font-medium text-orange-800">Time Optimization</p>
-              <p className="text-xs text-orange-600">Consider reducing form completion time</p>
+              <p className="text-xs text-yellow-600">Consider reducing form completion time</p>
             </div>
           </div>
         </CardContent>

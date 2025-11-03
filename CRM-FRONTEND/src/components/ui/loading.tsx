@@ -76,7 +76,7 @@ export function LoadingOverlay({
         <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="flex flex-col items-center space-y-4">
             <LoadingSpinner size={spinnerSize} variant={spinnerVariant} />
-            <p className="text-sm text-muted-foreground">{loadingText}</p>
+            <p className="text-sm text-gray-600">{loadingText}</p>
           </div>
         </div>
       )}
@@ -98,7 +98,7 @@ export function LoadingCard({ title = 'Loading', description, className }: Loadi
         <div>
           <h3 className="font-medium">{title}</h3>
           {description && (
-            <p className="text-sm text-muted-foreground">{description}</p>
+            <p className="text-sm text-gray-600">{description}</p>
           )}
         </div>
       </div>
@@ -201,7 +201,7 @@ export function LoadingPage({
         <LoadingSpinner size="xl" />
         <div>
           <h2 className="text-2xl font-semibold">{title}</h2>
-          <p className="text-muted-foreground">{description}</p>
+          <p className="text-gray-600">{description}</p>
         </div>
       </div>
     </div>

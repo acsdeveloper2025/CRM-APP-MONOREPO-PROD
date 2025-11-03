@@ -113,7 +113,7 @@ export const UnifiedFilterPanel: React.FC<UnifiedFilterPanelProps> = ({
             )}
             onClick={toggleCollapse}
           >
-            {showIcon && <Filter className="h-5 w-5 text-muted-foreground" />}
+            {showIcon && <Filter className="h-5 w-5 text-gray-600" />}
             
             <CardTitle className="text-lg font-semibold">
               {title}
@@ -131,9 +131,9 @@ export const UnifiedFilterPanel: React.FC<UnifiedFilterPanelProps> = ({
             {collapsible && (
               <div className="ml-2">
                 {isCollapsed ? (
-                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                  <ChevronDown className="h-4 w-4 text-gray-600" />
                 ) : (
-                  <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                  <ChevronUp className="h-4 w-4 text-gray-600" />
                 )}
               </div>
             )}
@@ -144,7 +144,7 @@ export const UnifiedFilterPanel: React.FC<UnifiedFilterPanelProps> = ({
               variant="ghost"
               size="sm"
               onClick={onClearFilters}
-              className="h-8 px-3 text-muted-foreground hover:text-foreground"
+              className="h-8 px-3 text-gray-600 hover:text-gray-900"
             >
               <X className="h-4 w-4 mr-1" />
               Clear All
@@ -190,7 +190,7 @@ export const FilterSection: React.FC<FilterSectionProps> = ({
   return (
     <div className={cn('space-y-3', className)}>
       {title && (
-        <h4 className="text-sm font-medium text-muted-foreground">
+        <h4 className="text-sm font-medium text-gray-600">
           {title}
         </h4>
       )}
@@ -298,7 +298,7 @@ export const ActiveFiltersDisplay: React.FC<ActiveFiltersDisplayProps> = ({
 
   return (
     <div className={cn('space-y-2', className)}>
-      <p className="text-sm font-medium text-muted-foreground">Active Filters:</p>
+      <p className="text-sm font-medium text-gray-600">Active Filters:</p>
       <div className="flex flex-wrap gap-2">
         {activeFilters.map(([key, value]) => (
           <Badge

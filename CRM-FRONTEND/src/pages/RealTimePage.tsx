@@ -87,7 +87,7 @@ export function RealTimePage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Real-time Features</h1>
-          <p className="text-muted-foreground">
+          <p className="text-gray-600">
             Live updates, notifications, and real-time collaboration
           </p>
         </div>
@@ -120,13 +120,13 @@ export function RealTimePage() {
             </div>
             <div className="space-y-2">
               <p className="text-sm font-medium">Latency</p>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-gray-600">
                 {connectionStatus.latency ? `${connectionStatus.latency}ms` : 'N/A'}
               </p>
             </div>
             <div className="space-y-2">
               <p className="text-sm font-medium">Reconnect Attempts</p>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-gray-600">
                 {connectionStatus.reconnectAttempts || 0}
               </p>
             </div>
@@ -259,8 +259,8 @@ export function RealTimePage() {
                 <div className="space-y-3 max-h-96 overflow-y-auto">
                   {notifications.length === 0 ? (
                     <div className="text-center py-8">
-                      <Bell className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                      <p className="text-sm text-muted-foreground">No notifications yet</p>
+                      <Bell className="h-8 w-8 mx-auto text-gray-600 mb-2" />
+                      <p className="text-sm text-gray-600">No notifications yet</p>
                     </div>
                   ) : (
                     notifications.slice(0, 10).map((notification) => (
@@ -276,10 +276,10 @@ export function RealTimePage() {
                             {notification.type}
                           </Badge>
                         </div>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-xs text-gray-600">
                           {notification.message}
                         </p>
-                        <p className="text-xs text-muted-foreground mt-1">
+                        <p className="text-xs text-gray-600 mt-1">
                           {new Date(notification.timestamp).toLocaleTimeString()}
                         </p>
                       </div>

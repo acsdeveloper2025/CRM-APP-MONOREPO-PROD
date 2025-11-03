@@ -98,8 +98,8 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
   const getPriorityColor = (priority: TaskPriority) => {
     const colors = {
       LOW: 'bg-gray-100 text-gray-800',
-      MEDIUM: 'bg-blue-100 text-blue-800',
-      HIGH: 'bg-orange-100 text-orange-800',
+      MEDIUM: 'bg-green-100 text-green-800',
+      HIGH: 'bg-yellow-100 text-orange-800',
       URGENT: 'bg-red-100 text-red-800'
     };
     return colors[priority];
@@ -223,10 +223,10 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
                     <Badge className="bg-gray-100 text-gray-800">Low</Badge>
                   </SelectItem>
                   <SelectItem value="MEDIUM">
-                    <Badge className="bg-blue-100 text-blue-800">Medium</Badge>
+                    <Badge className="bg-green-100 text-green-800">Medium</Badge>
                   </SelectItem>
                   <SelectItem value="HIGH">
-                    <Badge className="bg-orange-100 text-orange-800">High</Badge>
+                    <Badge className="bg-yellow-100 text-orange-800">High</Badge>
                   </SelectItem>
                   <SelectItem value="URGENT">
                     <Badge className="bg-red-100 text-red-800">Urgent</Badge>
@@ -265,13 +265,13 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
 
           {/* Assignment Summary */}
           {assignedTo && (
-            <Card className="bg-blue-50 border-blue-200">
+            <Card className="bg-green-50 border-green-200">
               <CardContent className="p-4">
                 <div className="space-y-2">
-                  <p className="text-sm font-medium text-blue-900">
+                  <p className="text-sm font-medium text-green-900">
                     Assignment Summary
                   </p>
-                  <div className="text-sm text-blue-800">
+                  <div className="text-sm text-green-800">
                     <p>
                       <span className="font-medium">Assignee:</span>{' '}
                       {fieldUsers.find(user => user.id === assignedTo)?.name}

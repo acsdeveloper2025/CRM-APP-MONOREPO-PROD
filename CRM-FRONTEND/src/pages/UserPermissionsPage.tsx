@@ -167,7 +167,7 @@ export function UserPermissionsPage() {
           </Button>
           <div>
             <h1 className="text-3xl font-bold tracking-tight">User Permissions</h1>
-            <p className="text-muted-foreground">
+            <p className="text-gray-600">
               Manage access control and permissions for {user.name}
             </p>
           </div>
@@ -185,21 +185,21 @@ export function UserPermissionsPage() {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
-              <p className="text-sm font-medium text-muted-foreground">Name</p>
+              <p className="text-sm font-medium text-gray-600">Name</p>
               <p className="text-lg font-semibold">{user.name}</p>
             </div>
             <div>
-              <p className="text-sm font-medium text-muted-foreground">Email</p>
+              <p className="text-sm font-medium text-gray-600">Email</p>
               <p className="text-lg">{user.email}</p>
             </div>
             <div>
-              <p className="text-sm font-medium text-muted-foreground">Role</p>
+              <p className="text-sm font-medium text-gray-600">Role</p>
               <Badge variant={user.role === 'SUPER_ADMIN' ? 'default' : 'secondary'}>
                 {user.role}
               </Badge>
             </div>
             <div>
-              <p className="text-sm font-medium text-muted-foreground">Status</p>
+              <p className="text-sm font-medium text-gray-600">Status</p>
               <Badge variant={user.isActive ? 'default' : 'destructive'}>
                 {user.isActive ? 'Active' : 'Inactive'}
               </Badge>
@@ -262,13 +262,13 @@ export function UserPermissionsPage() {
                   <span>Territory Assignments</span>
                 </h4>
                 {territoryAssignmentsLoading ? (
-                  <p className="text-sm text-muted-foreground">Loading territory assignments...</p>
+                  <p className="text-sm text-gray-600">Loading territory assignments...</p>
                 ) : territoryAssignments?.data?.territoryAssignments && territoryAssignments.data.territoryAssignments.length > 0 ? (
                   <div className="space-y-4">
                     {/* Pincode Assignments */}
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <h5 className="text-sm font-medium text-muted-foreground">Assigned Pincodes</h5>
+                        <h5 className="text-sm font-medium text-gray-600">Assigned Pincodes</h5>
                         <Badge variant="secondary" className="text-xs">
                           {territoryAssignments.data.territoryAssignments.length} pincode{territoryAssignments.data.territoryAssignments.length !== 1 ? 's' : ''}
                         </Badge>
@@ -279,9 +279,9 @@ export function UserPermissionsPage() {
                             <div className="flex items-start justify-between">
                               <div className="flex-1">
                                 <div className="font-medium text-sm">{assignment.pincodeCode}</div>
-                                <div className="text-xs text-muted-foreground">{assignment.cityName}, {assignment.stateName}</div>
+                                <div className="text-xs text-gray-600">{assignment.cityName}, {assignment.stateName}</div>
                                 {assignment.assignedAreas && assignment.assignedAreas.length > 0 ? (
-                                  <div className="text-xs text-blue-600 mt-1">
+                                  <div className="text-xs text-green-600 mt-1">
                                     {assignment.assignedAreas.length} area{assignment.assignedAreas.length !== 1 ? 's' : ''}: {assignment.assignedAreas.map((area: any) => area.areaName).join(', ')}
                                   </div>
                                 ) : (
@@ -317,16 +317,16 @@ export function UserPermissionsPage() {
                       return allAreas.length > 0 ? (
                         <div className="space-y-2">
                           <div className="flex items-center justify-between">
-                            <h5 className="text-sm font-medium text-muted-foreground">Assigned Areas</h5>
+                            <h5 className="text-sm font-medium text-gray-600">Assigned Areas</h5>
                             <Badge variant="secondary" className="text-xs">
                               {allAreas.length} area{allAreas.length !== 1 ? 's' : ''}
                             </Badge>
                           </div>
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 max-h-40 overflow-y-auto">
                             {allAreas.map((area: any, index: number) => (
-                              <div key={`${area.areaId}-${index}`} className="p-2 border rounded bg-blue-50 dark:bg-blue-950/30">
+                              <div key={`${area.areaId}-${index}`} className="p-2 border rounded bg-green-50 dark:bg-blue-950/30">
                                 <div className="font-medium text-sm">{area.areaName}</div>
-                                <div className="text-xs text-muted-foreground">in {area.pincodeCode}</div>
+                                <div className="text-xs text-gray-600">in {area.pincodeCode}</div>
                               </div>
                             ))}
                           </div>
@@ -360,14 +360,14 @@ export function UserPermissionsPage() {
                   <span>Client Access</span>
                 </h4>
                 {user.role === 'SUPER_ADMIN' ? (
-                  <p className="text-sm text-muted-foreground">Full access to all clients</p>
+                  <p className="text-sm text-gray-600">Full access to all clients</p>
                 ) : user.role === 'BACKEND_USER' ? (
                   <div className="space-y-2">
                     {clientAssignmentsLoading ? (
-                      <p className="text-sm text-muted-foreground">Loading assignments...</p>
+                      <p className="text-sm text-gray-600">Loading assignments...</p>
                     ) : clientAssignments?.data && clientAssignments.data.length > 0 ? (
                       <div className="space-y-1">
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-sm text-gray-600">
                           Assigned to {clientAssignments.data.length} client(s):
                         </p>
                         <div className="flex flex-wrap gap-1">
@@ -385,7 +385,7 @@ export function UserPermissionsPage() {
                     )}
                   </div>
                 ) : (
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-gray-600">
                     Role-based access (not client-specific)
                   </p>
                 )}
@@ -396,14 +396,14 @@ export function UserPermissionsPage() {
                 <span>Product Access</span>
               </h4>
               {user.role === 'SUPER_ADMIN' ? (
-                <p className="text-sm text-muted-foreground">Full access to all products</p>
+                <p className="text-sm text-gray-600">Full access to all products</p>
               ) : user.role === 'BACKEND_USER' ? (
                 <div className="space-y-2">
                   {productAssignmentsLoading ? (
-                    <p className="text-sm text-muted-foreground">Loading assignments...</p>
+                    <p className="text-sm text-gray-600">Loading assignments...</p>
                   ) : productAssignments?.data && productAssignments.data.length > 0 ? (
                     <div className="space-y-1">
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-sm text-gray-600">
                         Assigned to {productAssignments.data.length} product(s):
                       </p>
                       <div className="flex flex-wrap gap-1">
@@ -421,7 +421,7 @@ export function UserPermissionsPage() {
                   )}
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-gray-600">
                   Role-based access (not product-specific)
                 </p>
               )}

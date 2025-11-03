@@ -24,15 +24,15 @@ interface PendingReviewTableProps {
 const getPriorityColor = (priority: number) => {
   switch (priority) {
     case 1:
-      return 'bg-muted text-foreground';
+      return 'bg-muted text-gray-900';
     case 2:
-      return 'bg-blue-100 text-blue-800';
+      return 'bg-green-100 text-green-800';
     case 3:
       return 'bg-yellow-100 text-yellow-800';
     case 4:
       return 'bg-red-100 text-red-800';
     default:
-      return 'bg-muted text-foreground';
+      return 'bg-muted text-gray-900';
   }
 };
 
@@ -137,9 +137,9 @@ export const PendingReviewTable: React.FC<PendingReviewTableProps> = ({
   if (cases.length === 0) {
     return (
       <div className="border rounded-lg p-8 text-center">
-        <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-        <h3 className="text-lg font-medium text-foreground mb-2">No pending reviews</h3>
-        <p className="text-muted-foreground">All cases have been reviewed. Great job!</p>
+        <Clock className="h-12 w-12 text-gray-600 mx-auto mb-4" />
+        <h3 className="text-lg font-medium text-gray-900 mb-2">No pending reviews</h3>
+        <p className="text-gray-600">All cases have been reviewed. Great job!</p>
       </div>
     );
   }
@@ -173,7 +173,7 @@ export const PendingReviewTable: React.FC<PendingReviewTableProps> = ({
               <TableCell>
                 <div>
                   <div className="font-medium">{caseItem.customerName}</div>
-                  <div className="text-sm text-muted-foreground">{caseItem.customerPhone}</div>
+                  <div className="text-sm text-gray-600">{caseItem.customerPhone}</div>
                 </div>
               </TableCell>
               <TableCell>
@@ -183,13 +183,13 @@ export const PendingReviewTable: React.FC<PendingReviewTableProps> = ({
               </TableCell>
               <TableCell>
                 <div className="flex items-center space-x-2">
-                  <User className="h-4 w-4 text-muted-foreground" />
+                  <User className="h-4 w-4 text-gray-600" />
                   <span className="text-sm">{caseItem.assignedTo?.name || 'Unassigned'}</span>
                 </div>
               </TableCell>
               <TableCell>
                 <div className="flex items-center space-x-2">
-                  <Building2 className="h-4 w-4 text-muted-foreground" />
+                  <Building2 className="h-4 w-4 text-gray-600" />
                   <span className="text-sm">{caseItem.client?.name}</span>
                 </div>
               </TableCell>
@@ -198,19 +198,19 @@ export const PendingReviewTable: React.FC<PendingReviewTableProps> = ({
                   {caseItem.completedAt ? (
                     <>
                       <div>{format(new Date(caseItem.completedAt), 'MMM dd, yyyy')}</div>
-                      <div className="text-muted-foreground">
+                      <div className="text-gray-600">
                         {format(new Date(caseItem.completedAt), 'HH:mm')}
                       </div>
                     </>
                   ) : (
-                    <span className="text-muted-foreground">Not completed</span>
+                    <span className="text-gray-600">Not completed</span>
                   )}
                 </div>
               </TableCell>
               <TableCell>
                 {caseItem.completedAt && (
                   <div className="flex items-center space-x-1">
-                    <Clock className="h-4 w-4 text-muted-foreground" />
+                    <Clock className="h-4 w-4 text-gray-600" />
                     <span className={cn('text-sm font-medium', getWaitingTimeColor(caseItem.completedAt))}>
                       {getWaitingTime(caseItem.completedAt)}
                     </span>

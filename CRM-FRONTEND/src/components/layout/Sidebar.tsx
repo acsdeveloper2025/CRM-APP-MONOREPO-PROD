@@ -76,10 +76,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
         <div
           className={cn(
             'flex items-center px-3 sm:px-4 py-2.5 sm:py-2 text-sm font-medium rounded-lg transition-all duration-200 min-h-[44px] sm:min-h-[40px]',
-            level > 0 && 'ml-4 sm:ml-6 mr-2 border-l-2 border-border pl-3 sm:pl-4',
+            level > 0 && 'ml-4 sm:ml-6 mr-2 border-l-2 border-gray-200 pl-3 sm:pl-4',
             isActive
-              ? 'bg-primary text-primary-foreground shadow-sm'
-              : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground hover:shadow-sm'
+              ? 'bg-green-100 text-green-800 border-l-4 border-green-600 shadow-sm'
+              : 'text-gray-700 hover:bg-green-50 hover:text-green-700 hover:shadow-sm'
           )}
         >
           {hasChildren ? (
@@ -129,16 +129,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       {/* Sidebar */}
       <div
         className={cn(
-          'fixed inset-y-0 left-0 z-50 w-64 sm:w-72 lg:w-64 bg-card shadow-lg border-r border-border transform transition-all duration-300 ease-in-out lg:translate-x-0',
+          'fixed inset-y-0 left-0 z-50 w-64 sm:w-72 lg:w-64 bg-white shadow-lg border-r border-gray-200 transform transition-all duration-300 ease-in-out lg:translate-x-0',
           isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         )}
       >
         <div className="flex flex-col h-full">
           {/* Logo */}
-          <div className="flex items-center justify-center h-16 px-4 border-b border-border bg-primary/5">
+          <div className="flex items-center justify-center h-16 px-4 border-b border-gray-200 bg-green-50">
             <Link
               to="/dashboard"
-              className="text-xl font-bold text-foreground hover:text-primary transition-colors duration-200"
+              className="text-xl font-bold text-gray-900 hover:text-green-600 transition-colors duration-200"
               onClick={onClose}
             >
               CRM Admin
@@ -146,7 +146,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+          <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto bg-[#FAFAFA]">
             {navigationItems.map(item => renderNavigationItem(item))}
           </nav>
         </div>

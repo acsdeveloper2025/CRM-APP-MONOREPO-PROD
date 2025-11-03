@@ -40,7 +40,7 @@ export default function RoleManagementPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Role & Department Management</h1>
-          <p className="text-muted-foreground">
+          <p className="text-gray-600">
             Manage roles, permissions, and organizational structure
           </p>
         </div>

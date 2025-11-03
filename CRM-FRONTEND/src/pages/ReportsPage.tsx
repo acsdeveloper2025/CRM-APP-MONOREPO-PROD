@@ -139,7 +139,7 @@ export function ReportsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Bank Bills & MIS Reports</h1>
-          <p className="text-muted-foreground">
+          <p className="text-gray-600">
             Manage bank bills, generate MIS reports, and analyze performance metrics
           </p>
         </div>
@@ -242,11 +242,11 @@ export function ReportsPage() {
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Total Bank Bills</CardTitle>
-                    <FileText className="h-4 w-4 text-muted-foreground" />
+                    <FileText className="h-4 w-4 text-gray-600" />
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold">{dashboardData?.data?.totalBankBills || 0}</div>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-gray-600">
                       ₹{(dashboardData?.data?.totalBillAmount || 0).toLocaleString()} total value
                     </p>
                   </CardContent>
@@ -255,13 +255,13 @@ export function ReportsPage() {
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Pending Bills</CardTitle>
-                    <Clock className="h-4 w-4 text-orange-600" />
+                    <Clock className="h-4 w-4 text-yellow-600" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold text-orange-600">
+                    <div className="text-2xl font-bold text-yellow-600">
                       {dashboardData?.data?.pendingBills || 0}
                     </div>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-gray-600">
                       Awaiting payment
                     </p>
                   </CardContent>
@@ -270,11 +270,11 @@ export function ReportsPage() {
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Generated Reports</CardTitle>
-                    <BarChart3 className="h-4 w-4 text-muted-foreground" />
+                    <BarChart3 className="h-4 w-4 text-gray-600" />
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold">{dashboardData?.data?.totalReports || 0}</div>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-gray-600">
                       {dashboardData?.data?.recentReports || 0} this week
                     </p>
                   </CardContent>
@@ -283,13 +283,13 @@ export function ReportsPage() {
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Avg Turnaround</CardTitle>
-                    <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                    <TrendingUp className="h-4 w-4 text-gray-600" />
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold">
                       {dashboardData?.data?.averageTurnaround || 0}h
                     </div>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-gray-600">
                       Target: 24h
                     </p>
                   </CardContent>
@@ -304,7 +304,7 @@ export function ReportsPage() {
               />
               {bankBillsData?.pagination && (
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
-                  <div className="text-sm text-muted-foreground">
+                  <div className="text-sm text-gray-600">
                     Showing {bankBillsData.data?.length || 0} of {bankBillsData.pagination.total} bank bills
                   </div>
                   <div className="flex items-center gap-2">
@@ -339,7 +339,7 @@ export function ReportsPage() {
               />
               {misReportsData?.pagination && (
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
-                  <div className="text-sm text-muted-foreground">
+                  <div className="text-sm text-gray-600">
                     Showing {misReportsData.data?.length || 0} of {misReportsData.pagination.total} MIS reports
                   </div>
                   <div className="flex items-center gap-2">

@@ -58,8 +58,8 @@ export const LoginPage: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+      <div className="min-h-screen flex items-center justify-center bg-[#FAFAFA]">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-green-500"></div>
       </div>
     );
   }
@@ -67,13 +67,13 @@ export const LoginPage: React.FC = () => {
 
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center bg-[#FAFAFA] py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
-          <h2 className="mt-6 text-3xl font-extrabold text-foreground">
+          <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
             CRM Admin Dashboard
           </h2>
-          <p className="mt-2 text-sm text-muted-foreground">
+          <p className="mt-2 text-sm text-gray-600">
             Sign in to your account
           </p>
         </div>
@@ -127,7 +127,7 @@ export const LoginPage: React.FC = () => {
                 {errors.deviceId && (
                   <p className="text-sm text-red-500">{errors.deviceId.message}</p>
                 )}
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-gray-500">
                   Optional: Use device UUID for enhanced security authentication
                 </p>
               </div>

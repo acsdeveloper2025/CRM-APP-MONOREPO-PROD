@@ -32,8 +32,8 @@ export const TaskSummaryCards: React.FC<TaskSummaryCardsProps> = ({
       title: 'Total Tasks',
       value: totalTasks,
       icon: TrendingUp,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-50',
+      color: 'text-green-600',
+      bgColor: 'bg-green-50',
       description: 'All verification tasks'
     },
     {
@@ -48,8 +48,8 @@ export const TaskSummaryCards: React.FC<TaskSummaryCardsProps> = ({
       title: 'In Progress',
       value: inProgressCount,
       icon: Play,
-      color: 'text-orange-600',
-      bgColor: 'bg-orange-50',
+      color: 'text-yellow-600',
+      bgColor: 'bg-yellow-50',
       description: 'Currently being worked on'
     },
     {
@@ -96,7 +96,7 @@ export const TaskSummaryCards: React.FC<TaskSummaryCardsProps> = ({
         <Card className="md:col-span-2 lg:col-span-4">
           <CardHeader className="pb-3">
             <CardTitle className="text-lg flex items-center space-x-2">
-              <TrendingUp className="h-5 w-5 text-blue-600" />
+              <TrendingUp className="h-5 w-5 text-green-600" />
               <span>Overall Progress</span>
             </CardTitle>
           </CardHeader>

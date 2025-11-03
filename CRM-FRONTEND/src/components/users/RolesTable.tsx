@@ -94,7 +94,7 @@ export function RolesTable({ onEditRole }: RolesTableProps) {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-32">
-        <div className="text-sm text-muted-foreground">Loading roles...</div>
+        <div className="text-sm text-gray-600">Loading roles...</div>
       </div>
     );
   }
@@ -119,7 +119,7 @@ export function RolesTable({ onEditRole }: RolesTableProps) {
             {roles.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={8} className="text-center py-8">
-                  <div className="text-muted-foreground">
+                  <div className="text-gray-600">
                     No roles found
                   </div>
                 </TableCell>
@@ -133,7 +133,7 @@ export function RolesTable({ onEditRole }: RolesTableProps) {
                       <div>
                         <div className="font-medium">{role.name}</div>
                         {role.isSystemRole && (
-                          <div className="text-xs text-muted-foreground">System Role</div>
+                          <div className="text-xs text-gray-600">System Role</div>
                         )}
                       </div>
                     </div>
@@ -150,7 +150,7 @@ export function RolesTable({ onEditRole }: RolesTableProps) {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center space-x-1">
-                      <Users className="h-4 w-4 text-muted-foreground" />
+                      <Users className="h-4 w-4 text-gray-600" />
                       <span>{role.userCount}</span>
                     </div>
                   </TableCell>
@@ -165,11 +165,11 @@ export function RolesTable({ onEditRole }: RolesTableProps) {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <div className="text-sm text-muted-foreground">
+                    <div className="text-sm text-gray-600">
                       {formatDistanceToNow(new Date(role.createdAt), { addSuffix: true })}
                     </div>
                     {role.createdByName && (
-                      <div className="text-xs text-muted-foreground">
+                      <div className="text-xs text-gray-600">
                         by {role.createdByName}
                       </div>
                     )}
@@ -213,7 +213,7 @@ export function RolesTable({ onEditRole }: RolesTableProps) {
       {/* Pagination Controls */}
       {rolesData?.pagination && (
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
-          <div className="text-sm text-muted-foreground">
+          <div className="text-sm text-gray-600">
             Showing {rolesData.data?.length || 0} of {rolesData.pagination.total} roles
           </div>
           <div className="flex items-center gap-2">

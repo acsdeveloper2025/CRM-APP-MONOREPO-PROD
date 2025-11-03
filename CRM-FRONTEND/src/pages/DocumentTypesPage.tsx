@@ -52,7 +52,7 @@ export const DocumentTypesPage: React.FC = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Document Types Management</h1>
-          <p className="text-muted-foreground">
+          <p className="text-gray-600">
             Manage document types, categories, and validation rules
           </p>
         </div>
@@ -63,7 +63,7 @@ export const DocumentTypesPage: React.FC = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Document Types</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
+            <FileText className="h-4 w-4 text-gray-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.total}</div>
@@ -90,7 +90,7 @@ export const DocumentTypesPage: React.FC = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Categories</CardTitle>
-            <Filter className="h-4 w-4 text-muted-foreground" />
+            <Filter className="h-4 w-4 text-gray-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{Object.keys(stats.byCategory || {}).length}</div>
@@ -127,7 +127,7 @@ export const DocumentTypesPage: React.FC = () => {
             {/* Pagination Controls */}
             {documentTypesData?.pagination && (
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
-                <div className="text-sm text-muted-foreground">
+                <div className="text-sm text-gray-600">
                   Showing {documentTypesData.data?.length || 0} of {documentTypesData.pagination.total} document types
                 </div>
                 <div className="flex items-center gap-2">

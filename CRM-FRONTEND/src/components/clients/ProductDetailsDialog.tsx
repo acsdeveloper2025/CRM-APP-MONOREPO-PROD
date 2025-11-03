@@ -61,7 +61,7 @@ export function ProductDetailsDialog({ product, open, onOpenChange }: ProductDet
               ) : (
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                    <div className="flex items-center space-x-2 text-sm text-gray-600">
                       <Package className="h-4 w-4" />
                       <span>Product Name</span>
                     </div>
@@ -69,17 +69,17 @@ export function ProductDetailsDialog({ product, open, onOpenChange }: ProductDet
                   </div>
                   
                   <div className="space-y-2">
-                    <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                    <div className="flex items-center space-x-2 text-sm text-gray-600">
                       <Building2 className="h-4 w-4" />
                       <span>Verification Types</span>
                     </div>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-gray-600">
                       Types vary per client-product mapping
                     </p>
                   </div>
                   
                   <div className="space-y-2">
-                    <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                    <div className="flex items-center space-x-2 text-sm text-gray-600">
                       <Calendar className="h-4 w-4" />
                       <span>Created Date</span>
                     </div>
@@ -93,7 +93,7 @@ export function ProductDetailsDialog({ product, open, onOpenChange }: ProductDet
                   </div>
                   
                   <div className="space-y-2">
-                    <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                    <div className="flex items-center space-x-2 text-sm text-gray-600">
                       <CheckCircle className="h-4 w-4" />
                       <span>Status</span>
                     </div>
@@ -118,7 +118,7 @@ export function ProductDetailsDialog({ product, open, onOpenChange }: ProductDet
             </CardHeader>
             <CardContent>
               {types.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
+                <div className="text-center py-8 text-gray-600">
                   <CheckCircle className="mx-auto h-12 w-12 mb-4 opacity-50" />
                   <p>No verification types found for this product</p>
                 </div>
@@ -128,7 +128,7 @@ export function ProductDetailsDialog({ product, open, onOpenChange }: ProductDet
                     <div key={type.id} className="flex items-center justify-between p-3 rounded-lg border">
                       <div className="space-y-1">
                         <p className="font-medium">{type.name}</p>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-sm text-gray-600">
                           Created {new Date(type.createdAt).toLocaleDateString()}
                         </p>
                       </div>

@@ -256,7 +256,7 @@ export const CaseAttachmentsSection: React.FC<CaseAttachmentsSectionProps> = ({ 
   return (
     <div className="space-y-4">
       <div className="flex items-center space-x-2">
-        <Paperclip className="h-4 w-4 text-muted-foreground" />
+        <Paperclip className="h-4 w-4 text-gray-600" />
         <span className="font-medium">Attachments</span>
         <Badge variant="secondary">{attachments.length}</Badge>
       </div>
@@ -265,25 +265,25 @@ export const CaseAttachmentsSection: React.FC<CaseAttachmentsSectionProps> = ({ 
       <div
         className={cn(
           "border-2 border-dashed rounded-lg p-6 text-center transition-colors",
-          dragOver ? "border-blue-500 bg-blue-50" : "border-border",
+          dragOver ? "border-green-500 bg-green-50" : "border-border",
           "hover:border-border"
         )}
         onDrop={handleDrop}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
       >
-        <Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-        <p className="text-sm text-muted-foreground mb-2">
+        <Upload className="h-8 w-8 text-gray-600 mx-auto mb-2" />
+        <p className="text-sm text-gray-600 mb-2">
           Drag and drop files here, or{' '}
           <button
             type="button"
-            className="text-blue-600 hover:text-blue-700 underline"
+            className="text-green-600 hover:text-green-700 underline"
             onClick={() => fileInputRef.current?.click()}
           >
             browse
           </button>
         </p>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs text-gray-600">
           PDF and image files only. Max 10MB per file, {MAX_FILES} files total.
         </p>
         <input
@@ -305,7 +305,7 @@ export const CaseAttachmentsSection: React.FC<CaseAttachmentsSectionProps> = ({ 
               <div className="flex items-center space-x-2">
                 {getFileIcon(file.type)}
                 <span className="text-sm">{file.name}</span>
-                <span className="text-xs text-muted-foreground">({formatFileSize(file.size)})</span>
+                <span className="text-xs text-gray-600">({formatFileSize(file.size)})</span>
               </div>
               <Button
                 variant="ghost"
@@ -325,8 +325,8 @@ export const CaseAttachmentsSection: React.FC<CaseAttachmentsSectionProps> = ({ 
       {/* Existing Attachments */}
       {isLoading ? (
         <div className="text-center py-4">
-          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="text-sm text-muted-foreground mt-2">Loading attachments...</p>
+          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-600 mx-auto"></div>
+          <p className="text-sm text-gray-600 mt-2">Loading attachments...</p>
         </div>
       ) : attachments.length > 0 ? (
         <div className="space-y-2">
@@ -337,7 +337,7 @@ export const CaseAttachmentsSection: React.FC<CaseAttachmentsSectionProps> = ({ 
                 {getFileIcon(attachment.mimeType)}
                 <div>
                   <p className="text-sm font-medium">{attachment.originalName}</p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-gray-600">
                     {formatFileSize(attachment.size)} • {new Date(attachment.uploadedAt).toLocaleDateString()}
                   </p>
                 </div>
@@ -370,8 +370,8 @@ export const CaseAttachmentsSection: React.FC<CaseAttachmentsSectionProps> = ({ 
           ))}
         </div>
       ) : (
-        <div className="text-center py-4 text-muted-foreground">
-          <Paperclip className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+        <div className="text-center py-4 text-gray-600">
+          <Paperclip className="h-8 w-8 mx-auto mb-2 text-gray-600" />
           <p className="text-sm">No attachments uploaded yet</p>
         </div>
       )}
@@ -396,8 +396,8 @@ export const CaseAttachmentsSection: React.FC<CaseAttachmentsSectionProps> = ({ 
                 />
               ) : (
                 <div className="text-center py-8">
-                  <FileText className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-                  <p className="text-muted-foreground">Preview not available for this file type</p>
+                  <FileText className="h-16 w-16 mx-auto mb-4 text-gray-600" />
+                  <p className="text-gray-600">Preview not available for this file type</p>
                   <Button
                     onClick={() => downloadAttachment(previewAttachment)}
                     className="mt-4"

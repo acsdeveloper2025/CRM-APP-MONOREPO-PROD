@@ -93,7 +93,7 @@ export const EnhancedCaseStatus: React.FC<EnhancedCaseStatusProps> = ({
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'PENDING':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-green-100 text-green-800';
       case 'IN_PROGRESS':
         return 'bg-yellow-100 text-yellow-800';
       case 'COMPLETED':
@@ -101,7 +101,7 @@ export const EnhancedCaseStatus: React.FC<EnhancedCaseStatusProps> = ({
       case 'FAILED':
         return 'bg-red-100 text-red-800';
       default:
-        return 'bg-muted text-foreground';
+        return 'bg-muted text-gray-900';
     }
   };
 
@@ -112,9 +112,9 @@ export const EnhancedCaseStatus: React.FC<EnhancedCaseStatusProps> = ({
       case 'FAILED':
         return <AlertCircle className="h-4 w-4 text-red-500" />;
       case 'IN_PROGRESS':
-        return <div className="h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />;
+        return <div className="h-4 w-4 border-2 border-green-500 border-t-transparent rounded-full animate-spin" />;
       default:
-        return <Clock className="h-4 w-4 text-muted-foreground" />;
+        return <Clock className="h-4 w-4 text-gray-600" />;
     }
   };
 
@@ -201,16 +201,16 @@ export const EnhancedCaseStatus: React.FC<EnhancedCaseStatusProps> = ({
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <h4 className="text-sm font-medium">Submission Progress</h4>
-                    <span className="text-sm text-muted-foreground">{submissionProgress.overallProgress}%</span>
+                    <span className="text-sm text-gray-600">{submissionProgress.overallProgress}%</span>
                   </div>
                   <Progress value={submissionProgress.overallProgress} className="w-full" />
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-gray-600">
                     {submissionProgress.verificationType} verification for Case #{caseId}
                   </p>
                 </div>
 
                 {submissionProgress.estimatedTimeRemaining && (
-                  <div className="text-sm text-muted-foreground">
+                  <div className="text-sm text-gray-600">
                     Estimated time remaining: {formatTime(submissionProgress.estimatedTimeRemaining)}
                   </div>
                 )}
@@ -224,7 +224,7 @@ export const EnhancedCaseStatus: React.FC<EnhancedCaseStatusProps> = ({
                         <div className="flex items-center justify-between">
                           <span className="text-sm">{step.name}</span>
                           {step.status === 'IN_PROGRESS' && (
-                            <span className="text-xs text-muted-foreground">{step.progress}%</span>
+                            <span className="text-xs text-gray-600">{step.progress}%</span>
                           )}
                         </div>
                         {step.status === 'IN_PROGRESS' && (
@@ -239,7 +239,7 @@ export const EnhancedCaseStatus: React.FC<EnhancedCaseStatusProps> = ({
                 </div>
               </>
             ) : (
-              <div className="text-center py-8 text-muted-foreground">
+              <div className="text-center py-8 text-gray-600">
                 <FileText className="h-8 w-8 mx-auto mb-2 opacity-50" />
                 <p>No active submission progress</p>
               </div>
@@ -252,23 +252,23 @@ export const EnhancedCaseStatus: React.FC<EnhancedCaseStatusProps> = ({
               <>
                 <div className="grid grid-cols-3 gap-4 text-center">
                   <div className="space-y-1">
-                    <p className="text-2xl font-bold text-orange-600">{retryQueueStatus.pending}</p>
-                    <p className="text-xs text-muted-foreground">Pending</p>
+                    <p className="text-2xl font-bold text-yellow-600">{retryQueueStatus.pending}</p>
+                    <p className="text-xs text-gray-600">Pending</p>
                   </div>
                   <div className="space-y-1">
-                    <p className="text-2xl font-bold text-blue-600">{retryQueueStatus.retrying}</p>
-                    <p className="text-xs text-muted-foreground">Retrying</p>
+                    <p className="text-2xl font-bold text-green-600">{retryQueueStatus.retrying}</p>
+                    <p className="text-xs text-gray-600">Retrying</p>
                   </div>
                   <div className="space-y-1">
                     <p className="text-2xl font-bold text-red-600">{retryQueueStatus.failed}</p>
-                    <p className="text-xs text-muted-foreground">Failed</p>
+                    <p className="text-xs text-gray-600">Failed</p>
                   </div>
                 </div>
 
                 {submissionProgress?.retryInfo && (
-                  <div className="bg-orange-50 p-3 rounded-lg">
+                  <div className="bg-yellow-50 p-3 rounded-lg">
                     <div className="flex items-center gap-2 mb-2">
-                      <RotateCcw className="h-4 w-4 text-orange-600" />
+                      <RotateCcw className="h-4 w-4 text-yellow-600" />
                       <span className="text-sm font-medium text-orange-800">Retry Information</span>
                     </div>
                     <div className="text-sm text-orange-700 space-y-1">
@@ -295,7 +295,7 @@ export const EnhancedCaseStatus: React.FC<EnhancedCaseStatusProps> = ({
                 </div>
               </>
             ) : (
-              <div className="text-center py-8 text-muted-foreground">
+              <div className="text-center py-8 text-gray-600">
                 <RotateCcw className="h-8 w-8 mx-auto mb-2 opacity-50" />
                 <p>No pending retries</p>
               </div>
@@ -351,7 +351,7 @@ export const EnhancedCaseStatus: React.FC<EnhancedCaseStatusProps> = ({
                 </div>
               </div>
             ) : (
-              <div className="text-center py-8 text-muted-foreground">
+              <div className="text-center py-8 text-gray-600">
                 <Database className="h-8 w-8 mx-auto mb-2 opacity-50" />
                 <p>No compression statistics available</p>
               </div>

@@ -72,8 +72,8 @@ export const AgentPerformanceDashboard: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Agent Performance</h1>
-          <p className="mt-2 text-muted-foreground">
+          <h1 className="text-3xl font-bold text-gray-900">Agent Performance</h1>
+          <p className="mt-2 text-gray-600">
             Track field agent productivity and performance metrics
           </p>
         </div>
@@ -88,11 +88,11 @@ export const AgentPerformanceDashboard: React.FC = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Agents</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+            <Users className="h-4 w-4 text-gray-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{summary?.totalAgents || 0}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-gray-600">
               Field agents in system
             </p>
           </CardContent>
@@ -105,7 +105,7 @@ export const AgentPerformanceDashboard: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">{summary?.activeAgents || 0}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-gray-600">
               Currently working on cases
             </p>
           </CardContent>
@@ -114,13 +114,13 @@ export const AgentPerformanceDashboard: React.FC = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Avg Cases/Agent</CardTitle>
-            <Target className="h-4 w-4 text-blue-600" />
+            <Target className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">
+            <div className="text-2xl font-bold text-green-600">
               {summary?.avgCasesPerAgent ? summary.avgCasesPerAgent.toFixed(1) : '0'}
             </div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-gray-600">
               Average workload
             </p>
           </CardContent>
@@ -129,13 +129,13 @@ export const AgentPerformanceDashboard: React.FC = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Avg Completion Rate</CardTitle>
-            <Award className="h-4 w-4 text-purple-600" />
+            <Award className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-purple-600">
+            <div className="text-2xl font-bold text-green-600">
               {summary?.avgCompletionRate ? `${summary.avgCompletionRate.toFixed(1)}%` : 'N/A'}
             </div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-gray-600">
               Overall completion rate
             </p>
           </CardContent>
@@ -166,7 +166,7 @@ export const AgentPerformanceDashboard: React.FC = () => {
                       {index === 0 && <Star className="h-5 w-5 text-yellow-500 fill-current" />}
                     </div>
                     <div className="font-medium">{agent.name}</div>
-                    <div className="text-sm text-muted-foreground">{agent.employeeId}</div>
+                    <div className="text-sm text-gray-600">{agent.employeeId}</div>
                     <div className="mt-2">
                       <Badge className={getCompletionRateColor(completionRate)}>
                         {completionRate.toFixed(1)}% completion
@@ -299,9 +299,9 @@ export const AgentPerformanceDashboard: React.FC = () => {
                 ) : agents.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={8} className="text-center py-8">
-                      <Users className="mx-auto h-12 w-12 text-muted-foreground" />
+                      <Users className="mx-auto h-12 w-12 text-gray-600" />
                       <h3 className="mt-4 text-lg font-semibold">No agents found</h3>
-                      <p className="text-muted-foreground">
+                      <p className="text-gray-600">
                         Try adjusting your filters or check back later.
                       </p>
                     </TableCell>
@@ -317,7 +317,7 @@ export const AgentPerformanceDashboard: React.FC = () => {
                         <TableCell>
                           <div>
                             <div className="font-medium">{agent.name}</div>
-                            <div className="text-sm text-muted-foreground">{agent.employeeId}</div>
+                            <div className="text-sm text-gray-600">{agent.employeeId}</div>
                           </div>
                         </TableCell>
                         <TableCell>

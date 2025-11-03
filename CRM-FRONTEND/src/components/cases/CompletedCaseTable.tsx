@@ -33,33 +33,33 @@ const getPriorityColor = (priority: number | string) => {
   if (typeof priority === 'string') {
     switch (priority.toUpperCase()) {
       case 'LOW':
-        return 'bg-muted text-foreground';
+        return 'bg-muted text-gray-900';
       case 'MEDIUM':
         return 'bg-yellow-100 text-yellow-800';
       case 'HIGH':
-        return 'bg-orange-100 text-orange-800';
+        return 'bg-yellow-100 text-orange-800';
       case 'URGENT':
       case 'CRITICAL':
         return 'bg-red-100 text-red-800';
       default:
-        return 'bg-muted text-foreground';
+        return 'bg-muted text-gray-900';
     }
   }
 
   // Handle numeric priorities
   switch (priority) {
     case 1:
-      return 'bg-muted text-foreground';
+      return 'bg-muted text-gray-900';
     case 2:
-      return 'bg-blue-100 text-blue-800';
+      return 'bg-green-100 text-green-800';
     case 3:
       return 'bg-yellow-100 text-yellow-800';
     case 4:
-      return 'bg-orange-100 text-orange-800';
+      return 'bg-yellow-100 text-orange-800';
     case 5:
       return 'bg-red-100 text-red-800';
     default:
-      return 'bg-muted text-foreground';
+      return 'bg-muted text-gray-900';
   }
 };
 
@@ -104,11 +104,11 @@ const getVerificationTypeColor = (type?: string) => {
     case 'residence':
       return 'bg-green-100 text-green-800';
     case 'office':
-      return 'bg-blue-100 text-blue-800';
+      return 'bg-green-100 text-green-800';
     case 'business':
-      return 'bg-purple-100 text-purple-800';
+      return 'bg-green-100 text-green-800';
     default:
-      return 'bg-muted text-foreground';
+      return 'bg-muted text-gray-900';
   }
 };
 
@@ -156,9 +156,9 @@ export const CompletedCaseTable: React.FC<CompletedCaseTableProps> = ({
   if (cases.length === 0) {
     return (
       <div className="border rounded-lg p-8 text-center">
-        <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-        <h3 className="text-lg font-medium text-foreground mb-2">No completed cases found</h3>
-        <p className="text-muted-foreground">
+        <FileText className="h-12 w-12 text-gray-600 mx-auto mb-4" />
+        <h3 className="text-lg font-medium text-gray-900 mb-2">No completed cases found</h3>
+        <p className="text-gray-600">
           There are no completed cases matching your current filters.
         </p>
       </div>
@@ -199,7 +199,7 @@ export const CompletedCaseTable: React.FC<CompletedCaseTableProps> = ({
               <TableCell>
                 <div>
                   <div className="font-medium">{caseItem.customerName}</div>
-                  <div className="text-sm text-muted-foreground flex items-center">
+                  <div className="text-sm text-gray-600 flex items-center">
                     {caseItem.customerPhone && (
                       <span className="mr-2">{caseItem.customerPhone}</span>
                     )}
@@ -240,25 +240,25 @@ export const CompletedCaseTable: React.FC<CompletedCaseTableProps> = ({
               <TableCell>
                 <div>
                   <div className="font-medium">{caseItem.assignedToName || caseItem.assignedTo?.name || 'Unassigned'}</div>
-                  <div className="text-sm text-muted-foreground">{caseItem.assignedTo?.username}</div>
+                  <div className="text-sm text-gray-600">{caseItem.assignedTo?.username}</div>
                 </div>
               </TableCell>
               <TableCell>
                 <div>
                   <div className="font-medium">{caseItem.clientName || caseItem.client?.name}</div>
-                  <div className="text-sm text-muted-foreground">{caseItem.clientCode || caseItem.client?.code}</div>
+                  <div className="text-sm text-gray-600">{caseItem.clientCode || caseItem.client?.code}</div>
                 </div>
               </TableCell>
               <TableCell>
                 <div>
                   <div className="font-medium">{caseItem.productName || caseItem.product?.name || 'Not specified'}</div>
-                  <div className="text-sm text-muted-foreground">{caseItem.productCode || caseItem.product?.code}</div>
+                  <div className="text-sm text-gray-600">{caseItem.productCode || caseItem.product?.code}</div>
                 </div>
               </TableCell>
               <TableCell>
                 <div>
                   <div className="font-medium">{caseItem.createdByBackendUser?.name || 'Unknown'}</div>
-                  <div className="text-sm text-muted-foreground">{caseItem.createdByBackendUser?.employeeId}</div>
+                  <div className="text-sm text-gray-600">{caseItem.createdByBackendUser?.employeeId}</div>
                 </div>
               </TableCell>
               <TableCell>
@@ -270,7 +270,7 @@ export const CompletedCaseTable: React.FC<CompletedCaseTableProps> = ({
                       : format(new Date(caseItem.updatedAt), 'MMM dd, yyyy')
                     }
                   </div>
-                  <div className="text-sm text-muted-foreground">
+                  <div className="text-sm text-gray-600">
                     {caseItem.completedAt 
                       ? formatDistanceToNow(new Date(caseItem.completedAt), { addSuffix: true })
                       : formatDistanceToNow(new Date(caseItem.updatedAt), { addSuffix: true })
@@ -285,7 +285,7 @@ export const CompletedCaseTable: React.FC<CompletedCaseTableProps> = ({
                       {caseItem.verificationOutcome}
                     </Badge>
                   ) : (
-                    <span className="text-sm text-muted-foreground">Pending review</span>
+                    <span className="text-sm text-gray-600">Pending review</span>
                   )}
                 </div>
               </TableCell>

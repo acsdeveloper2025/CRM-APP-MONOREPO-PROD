@@ -103,9 +103,9 @@ export function ProductsTable({ data, isLoading }: ProductsTableProps) {
   if (!data || data.length === 0) {
     return (
       <div className="text-center py-12">
-        <Package className="mx-auto h-12 w-12 text-muted-foreground" />
+        <Package className="mx-auto h-12 w-12 text-gray-600" />
         <h3 className="mt-4 text-lg font-semibold">No products found</h3>
-        <p className="text-muted-foreground">
+        <p className="text-gray-600">
           Get started by creating your first product.
         </p>
       </div>
@@ -138,7 +138,7 @@ export function ProductsTable({ data, isLoading }: ProductsTableProps) {
                 </TableCell>
 
                 <TableCell>
-                  <span className="text-sm text-muted-foreground">
+                  <span className="text-sm text-gray-600">
                     {product.verificationTypes?.length || 0} types
                   </span>
                 </TableCell>

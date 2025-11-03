@@ -87,11 +87,11 @@ export const TasksGroupedByCase: React.FC<TasksGroupedByCaseProps> = ({
   const getStatusColor = (status: TaskStatus) => {
     const colors = {
       PENDING: 'text-yellow-600 bg-yellow-50',
-      ASSIGNED: 'text-blue-600 bg-blue-50',
+      ASSIGNED: 'text-green-600 bg-green-50',
       IN_PROGRESS: 'text-green-600 bg-green-50',
-      COMPLETED: 'text-emerald-600 bg-emerald-50',
+      COMPLETED: 'text-green-600 bg-green-50',
       CANCELLED: 'text-red-600 bg-red-50',
-      ON_HOLD: 'text-orange-600 bg-orange-50'
+      ON_HOLD: 'text-yellow-600 bg-yellow-50'
     };
     return colors[status] || 'text-gray-600 bg-gray-50';
   };
@@ -99,8 +99,8 @@ export const TasksGroupedByCase: React.FC<TasksGroupedByCaseProps> = ({
   const getPriorityColor = (priority: TaskPriority) => {
     const colors = {
       LOW: 'text-gray-600 bg-gray-100',
-      MEDIUM: 'text-blue-600 bg-blue-100',
-      HIGH: 'text-orange-600 bg-orange-100',
+      MEDIUM: 'text-green-600 bg-green-100',
+      HIGH: 'text-yellow-600 bg-yellow-100',
       URGENT: 'text-red-600 bg-red-100'
     };
     return colors[priority] || 'text-gray-600 bg-gray-100';
@@ -130,7 +130,7 @@ export const TasksGroupedByCase: React.FC<TasksGroupedByCaseProps> = ({
     return (
       <Card>
         <CardContent className="py-12 text-center">
-          <p className="text-muted-foreground">No tasks found</p>
+          <p className="text-gray-600">No tasks found</p>
         </CardContent>
       </Card>
     );
@@ -165,7 +165,7 @@ export const TasksGroupedByCase: React.FC<TasksGroupedByCaseProps> = ({
                         <CardTitle className="text-lg">
                           Case #{caseData.caseNumber} - {caseData.customerName}
                         </CardTitle>
-                        <div className="flex items-center space-x-4 mt-2 text-sm text-muted-foreground">
+                        <div className="flex items-center space-x-4 mt-2 text-sm text-gray-600">
                           <span className="flex items-center">
                             <Package className="h-4 w-4 mr-1" />
                             {taskCount} {taskCount === 1 ? 'Task' : 'Tasks'}
@@ -177,7 +177,7 @@ export const TasksGroupedByCase: React.FC<TasksGroupedByCaseProps> = ({
                             </span>
                           )}
                           {inProgressCount > 0 && (
-                            <span className="flex items-center text-blue-600">
+                            <span className="flex items-center text-green-600">
                               <Play className="h-4 w-4 mr-1" />
                               {inProgressCount} In Progress
                             </span>
@@ -242,7 +242,7 @@ export const TasksGroupedByCase: React.FC<TasksGroupedByCaseProps> = ({
                               </h4>
 
                               {/* Task Details */}
-                              <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
+                              <div className="grid grid-cols-2 gap-2 text-sm text-gray-600">
                                 {task.verificationTypeName && (
                                   <div className="flex items-center">
                                     <Building2 className="h-4 w-4 mr-1" />

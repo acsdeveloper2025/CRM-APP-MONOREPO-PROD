@@ -135,7 +135,7 @@ export const FormValidationStatus: React.FC = () => {
           <CardContent className="flex flex-col items-center justify-center py-12">
             <XCircle className="h-12 w-12 text-red-500 mb-4" />
             <h3 className="text-lg font-semibold mb-2">Failed to Load Validation Data</h3>
-            <p className="text-muted-foreground text-center">
+            <p className="text-gray-600 text-center">
               There was an error loading the validation status. Please try again later.
             </p>
           </CardContent>
@@ -152,8 +152,8 @@ export const FormValidationStatus: React.FC = () => {
       {/* Header with Controls */}
       <div className="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0 flex-1">
-          <h2 className="text-xl sm:text-2xl font-bold text-foreground truncate">Form Validation Status</h2>
-          <p className="mt-1 text-sm sm:text-base text-muted-foreground">
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">Form Validation Status</h2>
+          <p className="mt-1 text-sm sm:text-base text-gray-600">
             {hasData ? 'Track validation performance and identify quality trends' : 'No form submissions data available yet'}
           </p>
         </div>
@@ -187,11 +187,11 @@ export const FormValidationStatus: React.FC = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Forms</CardTitle>
-            <Filter className="h-4 w-4 text-muted-foreground" />
+            <Filter className="h-4 w-4 text-gray-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{summary?.totalForms || 0}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-gray-600">
               Submitted for validation
             </p>
           </CardContent>
@@ -204,7 +204,7 @@ export const FormValidationStatus: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">{summary?.validatedForms || 0}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-gray-600">
               Successfully validated
             </p>
           </CardContent>
@@ -217,7 +217,7 @@ export const FormValidationStatus: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-yellow-600">{summary?.pendingForms || 0}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-gray-600">
               Awaiting review
             </p>
           </CardContent>
@@ -226,13 +226,13 @@ export const FormValidationStatus: React.FC = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Validation Rate</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            <TrendingUp className="h-4 w-4 text-gray-600" />
           </CardHeader>
           <CardContent>
             <div className={`text-2xl font-bold ${getValidationRateColor(summary?.validationRate || 0)}`}>
               {summary?.validationRate ? `${summary.validationRate.toFixed(1)}%` : '0%'}
             </div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-gray-600">
               Overall success rate
             </p>
           </CardContent>
@@ -243,9 +243,9 @@ export const FormValidationStatus: React.FC = () => {
       {!hasData && (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
-            <FileText className="h-16 w-16 text-muted-foreground mb-4" />
+            <FileText className="h-16 w-16 text-gray-600 mb-4" />
             <h3 className="text-lg font-semibold mb-2">No Form Submissions Yet</h3>
-            <p className="text-muted-foreground text-center max-w-md">
+            <p className="text-gray-600 text-center max-w-md">
               Form validation data will appear here once field agents start submitting verification forms through the mobile app.
             </p>
           </CardContent>
@@ -364,7 +364,7 @@ export const FormValidationStatus: React.FC = () => {
                           {validationRate.toFixed(1)}%
                         </Badge>
                       </div>
-                      <div className="space-y-1 text-sm text-muted-foreground">
+                      <div className="space-y-1 text-sm text-gray-600">
                         <div>Total: {formType.total_forms}</div>
                         <div>Validated: {formType.validated_forms}</div>
                         <div>Pending: {formType.pending_forms}</div>
@@ -377,9 +377,9 @@ export const FormValidationStatus: React.FC = () => {
             </div>
           ) : (
             <div className="text-center py-8">
-              <XCircle className="mx-auto h-12 w-12 text-muted-foreground" />
+              <XCircle className="mx-auto h-12 w-12 text-gray-600" />
               <h3 className="mt-4 text-lg font-semibold">No validation data</h3>
-              <p className="text-muted-foreground">
+              <p className="text-gray-600">
                 Form validation data will appear here once forms are submitted.
               </p>
             </div>

@@ -62,7 +62,7 @@ export const TATMonitoringPage: React.FC = () => {
       case 'URGENT':
         return 'bg-red-100 text-red-800 border-red-300';
       case 'HIGH':
-        return 'bg-orange-100 text-orange-800 border-orange-300';
+        return 'bg-yellow-100 text-orange-800 border-orange-300';
       case 'MEDIUM':
         return 'bg-yellow-100 text-yellow-800 border-yellow-300';
       case 'LOW':
@@ -77,9 +77,9 @@ export const TATMonitoringPage: React.FC = () => {
       case 'PENDING':
         return 'bg-gray-100 text-gray-800 border-gray-300';
       case 'ASSIGNED':
-        return 'bg-blue-100 text-blue-800 border-blue-300';
+        return 'bg-green-100 text-green-800 border-blue-300';
       case 'IN_PROGRESS':
-        return 'bg-purple-100 text-purple-800 border-purple-300';
+        return 'bg-green-100 text-green-800 border-purple-300';
       default:
         return 'bg-gray-100 text-gray-800 border-gray-300';
     }
@@ -87,7 +87,7 @@ export const TATMonitoringPage: React.FC = () => {
 
   const getDaysOverdueColor = (days: number) => {
     if (days > 3) return 'text-red-600 font-bold';
-    if (days > 1) return 'text-orange-600 font-semibold';
+    if (days > 1) return 'text-yellow-600 font-semibold';
     return 'text-yellow-600';
   };
 
@@ -102,7 +102,7 @@ export const TATMonitoringPage: React.FC = () => {
 
     if (tasks.length === 0) {
       return (
-        <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
+        <div className="flex flex-col items-center justify-center h-64 text-gray-600">
           <Clock className="h-12 w-12 mb-4 opacity-50" />
           <p className="text-lg font-medium">No overdue tasks found</p>
           <p className="text-sm">All tasks are within TAT!</p>
@@ -169,7 +169,7 @@ export const TATMonitoringPage: React.FC = () => {
                   <TableCell className="text-sm">{task.verificationTypeName}</TableCell>
                   <TableCell>
                     <div className="flex items-center space-x-2">
-                      <User className="h-4 w-4 text-muted-foreground" />
+                      <User className="h-4 w-4 text-gray-600" />
                       <span className="text-sm">{task.assignedToName || 'Unassigned'}</span>
                     </div>
                   </TableCell>
@@ -206,7 +206,7 @@ export const TATMonitoringPage: React.FC = () => {
         {/* Pagination */}
         {pagination.totalPages > 1 && (
           <div className="flex items-center justify-between px-4 py-4 border-t">
-            <div className="text-sm text-muted-foreground">
+            <div className="text-sm text-gray-600">
               Showing {((pagination.page - 1) * 20) + 1} to {Math.min(pagination.page * 20, pagination.totalCount)} of {pagination.totalCount} tasks
             </div>
             <div className="flex items-center space-x-2">
@@ -244,7 +244,7 @@ export const TATMonitoringPage: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">TAT Monitoring</h1>
-          <p className="text-muted-foreground mt-1">
+          <p className="text-gray-600 mt-1">
             Track and manage overdue verification tasks
           </p>
         </div>
@@ -259,17 +259,17 @@ export const TATMonitoringPage: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-600">{criticalPagination.totalCount}</div>
-            <p className="text-xs text-muted-foreground">Tasks overdue by more than 1 day</p>
+            <p className="text-xs text-gray-600">Tasks overdue by more than 1 day</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Overdue</CardTitle>
-            <Clock className="h-4 w-4 text-orange-600" />
+            <Clock className="h-4 w-4 text-yellow-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-orange-600">{allPagination.totalCount}</div>
-            <p className="text-xs text-muted-foreground">Tasks overdue by more than 2 days</p>
+            <div className="text-2xl font-bold text-yellow-600">{allPagination.totalCount}</div>
+            <p className="text-xs text-gray-600">Tasks overdue by more than 2 days</p>
           </CardContent>
         </Card>
       </div>

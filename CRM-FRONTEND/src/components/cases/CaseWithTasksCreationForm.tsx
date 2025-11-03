@@ -393,18 +393,18 @@ export const CaseWithTasksCreationForm: React.FC<CaseWithTasksCreationFormProps>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-muted/50 rounded-lg">
                 <div>
                   <p className="text-sm font-medium">Customer Name</p>
-                  <p className="text-sm text-muted-foreground">{customerInfo.customerName}</p>
+                  <p className="text-sm text-gray-600">{customerInfo.customerName}</p>
                 </div>
                 <div>
                   <p className="text-sm font-medium">Phone</p>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-gray-600">
                     {customerInfo.customerCallingCode} {customerInfo.customerPhone}
                   </p>
                 </div>
                 {customerInfo.customerEmail && (
                   <div>
                     <p className="text-sm font-medium">Email</p>
-                    <p className="text-sm text-muted-foreground">{customerInfo.customerEmail}</p>
+                    <p className="text-sm text-gray-600">{customerInfo.customerEmail}</p>
                   </div>
                 )}
               </div>

@@ -40,7 +40,7 @@ function App() {
           <AuthProvider>
             <GlobalWebSocket />
             <Router>
-              <div className="min-h-screen bg-background">
+              <div className="min-h-screen bg-[#FAFAFA]">
                 <AppRoutes />
               </div>
             </Router>

@@ -65,8 +65,8 @@ export function MISFiltersComponent({ filters, onFiltersChange, onReset }: MISFi
     <div>
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <Filter className="h-5 w-5 text-muted-foreground" />
-          <h3 className="text-lg font-semibold text-foreground">Filters</h3>
+          <Filter className="h-5 w-5 text-gray-600" />
+          <h3 className="text-lg font-semibold text-gray-900">Filters</h3>
           {hasActiveFilters && (
             <Badge variant="secondary">Active</Badge>
           )}

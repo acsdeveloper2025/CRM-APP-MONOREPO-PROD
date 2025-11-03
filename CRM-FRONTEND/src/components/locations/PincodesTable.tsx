@@ -97,9 +97,9 @@ export function PincodesTable({ data, isLoading }: PincodesTableProps) {
   if (!data || data.length === 0) {
     return (
       <div className="text-center py-12">
-        <MapPin className="mx-auto h-12 w-12 text-muted-foreground" />
+        <MapPin className="mx-auto h-12 w-12 text-gray-600" />
         <h3 className="mt-4 text-lg font-semibold">No pincodes found</h3>
-        <p className="text-muted-foreground">
+        <p className="text-gray-600">
           Get started by adding your first pincode.
         </p>
       </div>
@@ -139,18 +139,18 @@ export function PincodesTable({ data, isLoading }: PincodesTableProps) {
                 <TableCell>
                   {pincode.cityName ? (
                     <div className="flex items-center space-x-1">
-                      <Building className="h-3 w-3 text-muted-foreground" />
+                      <Building className="h-3 w-3 text-gray-600" />
                       <span>{pincode.cityName}</span>
                     </div>
                   ) : (
-                    <span className="text-muted-foreground">No city</span>
+                    <span className="text-gray-600">No city</span>
                   )}
                 </TableCell>
                 <TableCell>
                   {pincode.state ? (
                     <Badge variant="outline">{pincode.state}</Badge>
                   ) : (
-                    <span className="text-muted-foreground">-</span>
+                    <span className="text-gray-600">-</span>
                   )}
                 </TableCell>
                 <TableCell>

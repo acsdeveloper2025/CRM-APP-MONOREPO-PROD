@@ -219,7 +219,7 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
     <div className="max-w-4xl mx-auto space-y-6">
       <div className="text-center space-y-2">
         <h2 className="text-2xl font-bold tracking-tight">Case Details</h2>
-        <p className="text-muted-foreground">
+        <p className="text-gray-600">
           Complete the case information and assignment details
         </p>
       </div>
@@ -242,18 +242,18 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
               {/* Read-only customer details from previous step */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-muted/50 rounded-lg">
                 <div>
-                  <label className="text-sm font-medium text-muted-foreground">Customer Name *</label>
+                  <label className="text-sm font-medium text-gray-600">Customer Name *</label>
                   <p className="text-base font-medium">{customerInfo.customerName}</p>
                 </div>
                 {customerInfo.panNumber && (
                   <div>
-                    <label className="text-sm font-medium text-muted-foreground">PAN</label>
+                    <label className="text-sm font-medium text-gray-600">PAN</label>
                     <p className="text-base font-mono">{customerInfo.panNumber}</p>
                   </div>
                 )}
                 {customerInfo.mobileNumber && (
                   <div>
-                    <label className="text-sm font-medium text-muted-foreground">Mobile Number</label>
+                    <label className="text-sm font-medium text-gray-600">Mobile Number</label>
                     <p className="text-base">{customerInfo.mobileNumber}</p>
                   </div>
                 )}
@@ -460,7 +460,7 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
                           {...field}
                           placeholder="Backend user name"
                           disabled={true}
-                          className="bg-muted text-muted-foreground"
+                          className="bg-muted text-gray-600"
                         />
                       </FormControl>
                       <FormMessage />
@@ -587,9 +587,9 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
                             <SelectItem key={rateType.id} value={rateType.id.toString()}>
                               <div className="flex items-center justify-between w-full py-2">
                                 <div className="flex flex-col">
-                                  <span className="font-medium text-foreground">{rateType.name}</span>
+                                  <span className="font-medium text-gray-900">{rateType.name}</span>
                                   {rateType.description && (
-                                    <span className="text-xs text-muted-foreground mt-1">{rateType.description}</span>
+                                    <span className="text-xs text-gray-600 mt-1">{rateType.description}</span>
                                   )}
                                 </div>
                                 {rateType.hasRate && rateType.amount && (

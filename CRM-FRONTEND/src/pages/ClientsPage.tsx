@@ -103,7 +103,7 @@ export function ClientsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Client & Product Management</h1>
-          <p className="text-muted-foreground">
+          <p className="text-gray-600">
             Manage clients, products, verification types, and their relationships
           </p>
         </div>
@@ -117,7 +117,7 @@ export function ClientsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.clients}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-gray-600">
               Active client organizations
             </p>
           </CardContent>
@@ -128,7 +128,7 @@ export function ClientsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.products}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-gray-600">
               Products across all clients
             </p>
           </CardContent>
@@ -139,7 +139,7 @@ export function ClientsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.verificationTypes}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-gray-600">
               Available verification types
             </p>
           </CardContent>
@@ -150,7 +150,7 @@ export function ClientsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.documentTypes}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-gray-600">
               Available document types
             </p>
           </CardContent>
@@ -285,7 +285,7 @@ export function ClientsPage() {
               {/* Pagination Controls */}
               {clientsData?.pagination && (
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
-                  <div className="text-sm text-muted-foreground">
+                  <div className="text-sm text-gray-600">
                     Showing {clientsData.data?.length || 0} of {clientsData.pagination.total} clients
                   </div>
                   <div className="flex items-center gap-2">
@@ -323,7 +323,7 @@ export function ClientsPage() {
               {/* Pagination Controls */}
               {productsData?.pagination && (
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
-                  <div className="text-sm text-muted-foreground">
+                  <div className="text-sm text-gray-600">
                     Showing {productsData.data?.length || 0} of {productsData.pagination.total} products
                   </div>
                   <div className="flex items-center gap-2">
@@ -361,7 +361,7 @@ export function ClientsPage() {
               {/* Pagination Controls */}
               {verificationTypesData?.pagination && (
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
-                  <div className="text-sm text-muted-foreground">
+                  <div className="text-sm text-gray-600">
                     Showing {verificationTypesData.data?.length || 0} of {verificationTypesData.pagination.total} verification types
                   </div>
                   <div className="flex items-center gap-2">
@@ -399,7 +399,7 @@ export function ClientsPage() {
               {/* Pagination Controls */}
               {documentTypesData?.pagination && (
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
-                  <div className="text-sm text-muted-foreground">
+                  <div className="text-sm text-gray-600">
                     Showing {documentTypesData.data?.length || 0} of {documentTypesData.pagination.total} document types
                   </div>
                   <div className="flex items-center gap-2">

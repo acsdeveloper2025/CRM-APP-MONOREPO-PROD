@@ -1,43 +1,61 @@
 @import "tailwindcss";
 
+/* NEW COLOR SCHEME: Green accent with off-white backgrounds */
 /* Unified Color System CSS Variables */
 :root {
-  /* Light theme colors */
-  --color-primary: #3b82f6;
-  --color-primary-hover: #2563eb;
-  --color-primary-active: #1d4ed8;
-  --color-secondary: #64748b;
-  --color-success: #22c55e;
-  --color-warning: #f59e0b;
-  --color-error: #ef4444;
-  --color-info: #0ea5e9;
+  /* Primary colors - Green theme */
+  --color-primary: #10b981;           /* emerald-500 - primary green */
+  --color-primary-hover: #059669;     /* emerald-600 - hover state */
+  --color-primary-active: #047857;    /* emerald-700 - active state */
+  --color-secondary: #6b7280;         /* gray-500 - secondary gray */
+  --color-success: #10b981;           /* emerald-500 - success green */
+  --color-warning: #f59e0b;           /* amber-500 - warning */
+  --color-error: #ef4444;             /* red-500 - error */
+  --color-info: #3b82f6;              /* blue-500 - info */
 
-  /* Background colors */
-  --color-background-primary: #ffffff;
-  --color-background-secondary: #fafafa;
-  --color-background-tertiary: #f5f5f5;
+  /* Background colors - NEW SCHEME */
+  --color-background: #fafafa;        /* Off-white page background */
+  --color-background-primary: #fafafa; /* Off-white - main background */
+  --color-background-secondary: #f5f5f5; /* Very light gray */
+  --color-background-tertiary: #eeeeee; /* Light gray */
+  --color-background-navbar: #000000;  /* Black navbar */
+  --color-background-navbar-hover: #1f1f1f; /* Navbar hover */
 
-  /* Surface colors */
-  --color-surface-primary: #ffffff;
-  --color-surface-secondary: #fafafa;
-  --color-surface-elevated: #ffffff;
+  /* Surface colors - NEW SCHEME */
+  --color-surface-primary: #ffffff;    /* White - cards/containers */
+  --color-surface-secondary: #f9fafb;  /* Very light gray - nested elements */
+  --color-surface-elevated: #ffffff;   /* White - elevated elements */
 
-  /* Border colors */
-  --color-border-primary: #e5e5e5;
-  --color-border-secondary: #d4d4d4;
-  --color-border-focus: #3b82f6;
+  /* Border colors - NEW SCHEME */
+  --color-border: #e5e7eb;            /* Default border - gray-200 */
+  --color-border-primary: #e5e7eb;    /* gray-200 - default border */
+  --color-border-secondary: #d1d5db;  /* gray-300 - medium border */
+  --color-border-light: #f3f4f6;      /* gray-100 - light border */
+  --color-border-focus: #10b981;      /* emerald-500 - green focus */
 
-  /* Text colors */
-  --color-text-primary: #171717;
-  --color-text-secondary: #525252;
-  --color-text-tertiary: #737373;
-  --color-text-inverse: #ffffff;
-  --color-text-disabled: #a3a3a3;
+  /* Text colors - NEW SCHEME */
+  --color-text-primary: #000000;      /* Black - headings, important text */
+  --color-text-secondary: #1f2937;    /* gray-800 - body text */
+  --color-text-tertiary: #6b7280;     /* gray-500 - labels, secondary */
+  --color-text-muted: #9ca3af;        /* gray-400 - hints, placeholders */
+  --color-text-inverse: #ffffff;      /* White - text on dark backgrounds */
+  --color-text-disabled: #d1d5db;     /* gray-300 - disabled text */
 
-  /* Status colors */
+  /* Foreground colors */
+  --color-foreground: #000000;        /* Primary black text */
+  --color-card: #ffffff;              /* Card background */
+  --color-card-foreground: #000000;   /* Card text */
+
+  /* Accent colors - Green theme */
+  --color-accent: #10b981;            /* Primary green accent */
+  --color-accent-hover: #059669;      /* Hover green */
+  --color-accent-light: #d1fae5;      /* Light green background */
+  --color-accent-lighter: #f0fdf4;    /* Very light green */
+
+  /* Status colors - Keep existing for consistency */
   --color-status-pending: #f59e0b;
   --color-status-in-progress: #3b82f6;
-  --color-status-completed: #22c55e;
+  --color-status-completed: #10b981;   /* Updated to green */
   --color-status-approved: #059669;
   --color-status-rejected: #ef4444;
   --color-status-rework-required: #f97316;
@@ -51,7 +69,7 @@
 
   /* Role colors */
   --color-role-super-admin: #7c3aed;
-  --color-role-admin: #2563eb;
+  --color-role-admin: #10b981;        /* Updated to green */
   --color-role-manager: #059669;
   --color-role-backend-user: #0891b2;
   --color-role-field-agent: #ea580c;
@@ -63,38 +81,55 @@
   --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
 }
 
-/* Dark theme colors */
+/* Dark theme colors - Green accent maintained */
 [data-theme="dark"] {
-  --color-primary: #60a5fa;
-  --color-primary-hover: #3b82f6;
-  --color-primary-active: #2563eb;
+  --color-primary: #10b981;           /* emerald-500 - keep green in dark mode */
+  --color-primary-hover: #34d399;     /* emerald-400 - lighter for dark bg */
+  --color-primary-active: #6ee7b7;    /* emerald-300 - even lighter */
   --color-secondary: #94a3b8;
-  --color-success: #4ade80;
+  --color-success: #10b981;           /* emerald-500 */
   --color-warning: #fbbf24;
   --color-error: #f87171;
   --color-info: #38bdf8;
 
-  /* Background colors */
-  --color-background-primary: #171717;
-  --color-background-secondary: #262626;
-  --color-background-tertiary: #404040;
+  /* Background colors - Dark mode */
+  --color-background: #0f172a;        /* Very dark blue-gray */
+  --color-background-primary: #0f172a;
+  --color-background-secondary: #1e293b;
+  --color-background-tertiary: #334155;
+  --color-background-navbar: #000000;  /* Keep black navbar */
+  --color-background-navbar-hover: #1f1f1f;
 
-  /* Surface colors */
-  --color-surface-primary: #262626;
-  --color-surface-secondary: #404040;
-  --color-surface-elevated: #525252;
+  /* Surface colors - Dark mode */
+  --color-surface-primary: #1e293b;
+  --color-surface-secondary: #334155;
+  --color-surface-elevated: #475569;
 
-  /* Border colors */
-  --color-border-primary: #404040;
-  --color-border-secondary: #525252;
-  --color-border-focus: #60a5fa;
+  /* Border colors - Dark mode */
+  --color-border: #334155;
+  --color-border-primary: #334155;
+  --color-border-secondary: #475569;
+  --color-border-light: #1e293b;
+  --color-border-focus: #10b981;      /* Keep green focus */
 
-  /* Text colors */
+  /* Text colors - Dark mode */
   --color-text-primary: #f5f5f5;
   --color-text-secondary: #d4d4d4;
   --color-text-tertiary: #a3a3a3;
-  --color-text-inverse: #171717;
-  --color-text-disabled: #737373;
+  --color-text-muted: #737373;
+  --color-text-inverse: #0f172a;
+  --color-text-disabled: #525252;
+
+  /* Foreground colors - Dark mode */
+  --color-foreground: #f8fafc;
+  --color-card: #1e293b;
+  --color-card-foreground: #f8fafc;
+
+  /* Accent colors - Green theme in dark mode */
+  --color-accent: #10b981;
+  --color-accent-hover: #34d399;
+  --color-accent-light: #065f46;      /* Darker green for dark mode */
+  --color-accent-lighter: #064e3b;
 
   /* Shadows for dark theme */
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
@@ -103,12 +138,55 @@
 }
 
 @theme {
+  /* NEW COLOR SCHEME - Light theme (default) */
+  --color-background: #fafafa;        /* Off-white page background */
+  --color-foreground: #000000;        /* Black text */
+  --color-card: #ffffff;              /* White cards */
+  --color-card-foreground: #000000;   /* Black text on cards */
+  --color-popover: #ffffff;
+  --color-popover-foreground: #000000;
+  --color-primary: #10b981;           /* Emerald green */
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #f5f5f5;         /* Light gray */
+  --color-secondary-foreground: #000000;
+  --color-muted: #f9fafb;             /* Very light gray */
+  --color-muted-foreground: #6b7280;  /* Medium gray text */
+  --color-accent: #f0fdf4;            /* Very light green */
+  --color-accent-foreground: #047857; /* Dark green text */
+  --color-destructive: #ef4444;       /* Red */
+  --color-destructive-foreground: #ffffff;
+  --color-border: #e5e7eb;            /* Light gray border */
+  --color-input: #ffffff;             /* White input background */
+  --color-ring: #10b981;              /* Green focus ring */
+  --color-success: #10b981;           /* Green */
+  --color-warning: #f59e0b;           /* Amber */
+  --color-info: #3b82f6;              /* Blue */
 
   /* Spacing and sizing */
   --radius: 0.5rem;
   --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
   --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+
+  /* Status colors for badges and indicators - Light mode */
+  --color-status-pending: #f59e0b;
+  --color-status-pending-bg: #fef3c7;
+  --color-status-in-progress: #3b82f6;
+  --color-status-in-progress-bg: #dbeafe;
+  --color-status-completed: #10b981;
+  --color-status-completed-bg: #d1fae5;
+  --color-status-cancelled: #ef4444;
+  --color-status-cancelled-bg: #fee2e2;
+
+  /* Priority colors - Light mode */
+  --color-priority-low: #6b7280;
+  --color-priority-low-bg: #f3f4f6;
+  --color-priority-medium: #f59e0b;
+  --color-priority-medium-bg: #fef3c7;
+  --color-priority-high: #f97316;
+  --color-priority-high-bg: #ffedd5;
+  --color-priority-urgent: #ef4444;
+  --color-priority-urgent-bg: #fee2e2;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -119,40 +197,40 @@
     --color-card-foreground: #f8fafc;
     --color-popover: #1e293b;
     --color-popover-foreground: #f8fafc;
-    --color-primary: #22c55e;
-    --color-primary-foreground: #0f172a;
+    --color-primary: #10b981;         /* Keep green in dark mode */
+    --color-primary-foreground: #ffffff;
     --color-secondary: #334155;
     --color-secondary-foreground: #f8fafc;
     --color-muted: #334155;
     --color-muted-foreground: #94a3b8;
-    --color-accent: #1e293b;
-    --color-accent-foreground: #22c55e;
+    --color-accent: #064e3b;          /* Dark green */
+    --color-accent-foreground: #10b981; /* Light green text */
     --color-destructive: #dc2626;
     --color-destructive-foreground: #f8fafc;
     --color-border: #334155;
     --color-input: #334155;
-    --color-ring: #22c55e;
-    --color-success: #22c55e;
+    --color-ring: #10b981;            /* Keep green focus */
+    --color-success: #10b981;
     --color-warning: #d97706;
     --color-info: #60a5fa;
 
     /* Status colors for badges and indicators - Dark mode */
-    --color-status-pending: #60a5fa;
-    --color-status-pending-bg: rgba(59, 130, 246, 0.2);
-    --color-status-in-progress: #fbbf24;
-    --color-status-in-progress-bg: rgba(245, 158, 11, 0.2);
-    --color-status-completed: #22c55e;
-    --color-status-completed-bg: rgba(34, 197, 94, 0.2);
+    --color-status-pending: #fbbf24;
+    --color-status-pending-bg: rgba(245, 158, 11, 0.2);
+    --color-status-in-progress: #60a5fa;
+    --color-status-in-progress-bg: rgba(59, 130, 246, 0.2);
+    --color-status-completed: #10b981;
+    --color-status-completed-bg: rgba(16, 185, 129, 0.2);
     --color-status-cancelled: #ef4444;
     --color-status-cancelled-bg: rgba(239, 68, 68, 0.2);
 
     /* Priority colors - Dark mode */
     --color-priority-low: #9ca3af;
     --color-priority-low-bg: rgba(107, 114, 128, 0.2);
-    --color-priority-medium: #60a5fa;
-    --color-priority-medium-bg: rgba(59, 130, 246, 0.2);
-    --color-priority-high: #fbbf24;
-    --color-priority-high-bg: rgba(245, 158, 11, 0.2);
+    --color-priority-medium: #fbbf24;
+    --color-priority-medium-bg: rgba(245, 158, 11, 0.2);
+    --color-priority-high: #fb923c;
+    --color-priority-high-bg: rgba(249, 115, 22, 0.2);
     --color-priority-urgent: #ef4444;
     --color-priority-urgent-bg: rgba(239, 68, 68, 0.2);
   }
@@ -165,40 +243,40 @@
   --color-card-foreground: #f8fafc;
   --color-popover: #1e293b;
   --color-popover-foreground: #f8fafc;
-  --color-primary: #22c55e;
-  --color-primary-foreground: #0f172a;
+  --color-primary: #10b981;           /* Keep green in dark mode */
+  --color-primary-foreground: #ffffff;
   --color-secondary: #334155;
   --color-secondary-foreground: #f8fafc;
   --color-muted: #334155;
   --color-muted-foreground: #94a3b8;
-  --color-accent: #1e293b;
-  --color-accent-foreground: #22c55e;
+  --color-accent: #064e3b;            /* Dark green */
+  --color-accent-foreground: #10b981; /* Light green text */
   --color-destructive: #dc2626;
   --color-destructive-foreground: #f8fafc;
   --color-border: #334155;
   --color-input: #334155;
-  --color-ring: #22c55e;
-  --color-success: #22c55e;
+  --color-ring: #10b981;              /* Keep green focus */
+  --color-success: #10b981;
   --color-warning: #d97706;
   --color-info: #60a5fa;
 
   /* Status colors for badges and indicators - Dark mode */
-  --color-status-pending: #60a5fa;
-  --color-status-pending-bg: rgba(59, 130, 246, 0.2);
-  --color-status-in-progress: #fbbf24;
-  --color-status-in-progress-bg: rgba(245, 158, 11, 0.2);
-  --color-status-completed: #22c55e;
-  --color-status-completed-bg: rgba(34, 197, 94, 0.2);
+  --color-status-pending: #fbbf24;
+  --color-status-pending-bg: rgba(245, 158, 11, 0.2);
+  --color-status-in-progress: #60a5fa;
+  --color-status-in-progress-bg: rgba(59, 130, 246, 0.2);
+  --color-status-completed: #10b981;
+  --color-status-completed-bg: rgba(16, 185, 129, 0.2);
   --color-status-cancelled: #ef4444;
   --color-status-cancelled-bg: rgba(239, 68, 68, 0.2);
 
   /* Priority colors - Dark mode */
   --color-priority-low: #9ca3af;
   --color-priority-low-bg: rgba(107, 114, 128, 0.2);
-  --color-priority-medium: #60a5fa;
-  --color-priority-medium-bg: rgba(59, 130, 246, 0.2);
-  --color-priority-high: #fbbf24;
-  --color-priority-high-bg: rgba(245, 158, 11, 0.2);
+  --color-priority-medium: #fbbf24;
+  --color-priority-medium-bg: rgba(245, 158, 11, 0.2);
+  --color-priority-high: #fb923c;
+  --color-priority-high-bg: rgba(249, 115, 22, 0.2);
   --color-priority-urgent: #ef4444;
   --color-priority-urgent-bg: rgba(239, 68, 68, 0.2);
 }
