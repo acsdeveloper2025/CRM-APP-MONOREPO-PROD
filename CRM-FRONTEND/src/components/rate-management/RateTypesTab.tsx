@@ -98,7 +98,7 @@ export function RateTypesTab() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600 h-4 w-4" />
             <Input
               placeholder="Search rate types..."
               value={searchQuery}
@@ -123,7 +123,7 @@ export function RateTypesTab() {
             {['Local', 'Local1', 'Local2', 'OGL', 'OGL1', 'OGL2', 'Outstation'].map((type) => (
               <div key={type} className="text-center p-3 border rounded-lg">
                 <div className="font-medium text-sm">{type}</div>
-                <div className="text-xs text-muted-foreground mt-1">
+                <div className="text-xs text-gray-600 mt-1">
                   {type.startsWith('Local') ? 'Local Area' :
                    type.startsWith('OGL') ? 'Out of Geolocation' :
                    'Outstation'}
@@ -131,7 +131,7 @@ export function RateTypesTab() {
               </div>
             ))}
           </div>
-          <p className="text-sm text-muted-foreground mt-4">
+          <p className="text-sm text-gray-600 mt-4">
             These are the standard rate types used in the verification system. You can create additional custom rate types as needed.
           </p>
         </CardContent>
@@ -149,7 +149,7 @@ export function RateTypesTab() {
             </div>
           ) : rateTypes.length === 0 ? (
             <div className="text-center py-8">
-              <p className="text-muted-foreground">No rate types found</p>
+              <p className="text-gray-600">No rate types found</p>
               <Button 
                 variant="outline" 
                 onClick={() => setShowCreateDialog(true)}
@@ -173,7 +173,7 @@ export function RateTypesTab() {
                 {rateTypes.map((rateType) => (
                   <TableRow key={rateType.id}>
                     <TableCell className="font-medium">{rateType.name}</TableCell>
-                    <TableCell className="text-muted-foreground">
+                    <TableCell className="text-gray-600">
                       {rateType.description || 'No description'}
                     </TableCell>
                     <TableCell>
@@ -188,7 +188,7 @@ export function RateTypesTab() {
                         </Badge>
                       </div>
                     </TableCell>
-                    <TableCell className="text-muted-foreground">
+                    <TableCell className="text-gray-600">
                       {new Date(rateType.createdAt).toLocaleDateString()}
                     </TableCell>
                     <TableCell className="text-right">
@@ -219,7 +219,7 @@ export function RateTypesTab() {
           {/* Pagination Controls */}
           {rateTypesData?.pagination && (
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
-              <div className="text-sm text-muted-foreground">
+              <div className="text-sm text-gray-600">
                 Showing {rateTypes.length} of {rateTypesData.pagination.total} rate types
               </div>
               <div className="flex items-center gap-2">

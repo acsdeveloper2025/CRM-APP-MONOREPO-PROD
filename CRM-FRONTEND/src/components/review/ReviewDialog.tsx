@@ -115,7 +115,7 @@ export const ReviewDialog: React.FC<ReviewDialogProps> = ({
       case 'rework':
         return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       default:
-        return 'bg-muted text-foreground border-border';
+        return 'bg-muted text-gray-900 border-border';
     }
   };
 
@@ -143,27 +143,27 @@ export const ReviewDialog: React.FC<ReviewDialogProps> = ({
         <div className="space-y-4">
           {/* Case Summary */}
           <div className="p-4 bg-muted rounded-lg">
-            <h4 className="font-medium text-foreground mb-2">Case Summary</h4>
+            <h4 className="font-medium text-gray-900 mb-2">Case Summary</h4>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <span className="text-muted-foreground">Customer:</span>
+                <span className="text-gray-600">Customer:</span>
                 <span className="ml-2 font-medium">{caseItem.customerName}</span>
               </div>
               <div>
-                <span className="text-muted-foreground">Client:</span>
+                <span className="text-gray-600">Client:</span>
                 <span className="ml-2 font-medium">{caseItem.client?.name}</span>
               </div>
               <div>
-                <span className="text-muted-foreground">Type:</span>
+                <span className="text-gray-600">Type:</span>
                 <span className="ml-2 font-medium">{caseItem.verificationType || 'N/A'}</span>
               </div>
               <div>
-                <span className="text-muted-foreground">Assigned To:</span>
+                <span className="text-gray-600">Assigned To:</span>
                 <span className="ml-2 font-medium">{caseItem.assignedTo?.name}</span>
               </div>
             </div>
             <div className="mt-2">
-              <span className="text-muted-foreground">Description:</span>
+              <span className="text-gray-600">Description:</span>
               <p className="mt-1 text-sm">{caseItem.description}</p>
             </div>
           </div>
@@ -171,7 +171,7 @@ export const ReviewDialog: React.FC<ReviewDialogProps> = ({
           {/* Action Selection */}
           {!action && (
             <div className="space-y-3">
-              <h4 className="font-medium text-foreground">Choose Action</h4>
+              <h4 className="font-medium text-gray-900">Choose Action</h4>
               <div className="grid grid-cols-1 gap-2">
                 <Button
                   variant="outline"
@@ -181,7 +181,7 @@ export const ReviewDialog: React.FC<ReviewDialogProps> = ({
                   <CheckCircle className="h-5 w-5 mr-3 text-green-600" />
                   <div>
                     <div className="font-medium">Approve Case</div>
-                    <div className="text-sm text-muted-foreground">
+                    <div className="text-sm text-gray-600">
                       Mark this case as approved and complete
                     </div>
                   </div>
@@ -194,7 +194,7 @@ export const ReviewDialog: React.FC<ReviewDialogProps> = ({
                   <RotateCcw className="h-5 w-5 mr-3 text-yellow-600" />
                   <div>
                     <div className="font-medium">Request Rework</div>
-                    <div className="text-sm text-muted-foreground">
+                    <div className="text-sm text-gray-600">
                       Send back for additional work or corrections
                     </div>
                   </div>
@@ -207,7 +207,7 @@ export const ReviewDialog: React.FC<ReviewDialogProps> = ({
                   <XCircle className="h-5 w-5 mr-3 text-red-600" />
                   <div>
                     <div className="font-medium">Reject Case</div>
-                    <div className="text-sm text-muted-foreground">
+                    <div className="text-sm text-gray-600">
                       Reject this case submission
                     </div>
                   </div>

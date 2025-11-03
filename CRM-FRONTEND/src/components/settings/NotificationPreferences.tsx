@@ -121,7 +121,7 @@ export function NotificationPreferences() {
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
       </div>
     );
   }
@@ -131,7 +131,7 @@ export function NotificationPreferences() {
       <div className="flex items-center justify-center p-8">
         <div className="text-center">
           <AlertCircle className="h-8 w-8 text-red-500 mx-auto mb-2" />
-          <p className="text-muted-foreground">Failed to load notification preferences</p>
+          <p className="text-gray-600">Failed to load notification preferences</p>
           <Button onClick={loadPreferences} className="mt-2">
             Try Again
           </Button>
@@ -145,13 +145,13 @@ export function NotificationPreferences() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Notification Preferences</h2>
-          <p className="text-muted-foreground">
+          <p className="text-gray-600">
             Customize how and when you receive notifications
           </p>
         </div>
         <div className="flex items-center space-x-2">
           {hasChanges && (
-            <Badge variant="secondary" className="bg-orange-100 text-orange-800">
+            <Badge variant="secondary" className="bg-yellow-100 text-orange-800">
               Unsaved Changes
             </Badge>
           )}
@@ -186,7 +186,7 @@ export function NotificationPreferences() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center">
-            <Bell className="h-5 w-5 mr-2 text-blue-600" />
+            <Bell className="h-5 w-5 mr-2 text-green-600" />
             Case Assignment Notifications
           </CardTitle>
           <CardDescription>
@@ -362,7 +362,7 @@ export function NotificationPreferences() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center">
-            <AlertCircle className="h-5 w-5 mr-2 text-orange-600" />
+            <AlertCircle className="h-5 w-5 mr-2 text-yellow-600" />
             System Notifications
           </CardTitle>
           <CardDescription>
@@ -412,7 +412,7 @@ export function NotificationPreferences() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center">
-            <Clock className="h-5 w-5 mr-2 text-purple-600" />
+            <Clock className="h-5 w-5 mr-2 text-green-600" />
             Quiet Hours
           </CardTitle>
           <CardDescription>
@@ -459,7 +459,7 @@ export function NotificationPreferences() {
                   />
                 </div>
               </div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-gray-600">
                 During quiet hours, you'll only receive urgent notifications
               </p>
             </div>

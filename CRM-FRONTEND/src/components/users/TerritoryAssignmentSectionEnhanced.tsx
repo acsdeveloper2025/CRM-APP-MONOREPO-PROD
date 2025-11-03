@@ -232,7 +232,7 @@ export function TerritoryAssignmentSectionEnhanced({ user }: TerritoryAssignment
             <div className="space-y-2">
               {currentAssignments.length > 0 && (
                 <div>
-                  <p className="text-xs text-muted-foreground mb-1">Pincodes ({currentAssignments.length})</p>
+                  <p className="text-xs text-gray-600 mb-1">Pincodes ({currentAssignments.length})</p>
                   <div className="flex flex-wrap gap-1">
                     {currentAssignments.map((assignment) => (
                       <Badge key={assignment.pincodeId} variant="secondary" className="text-xs">
@@ -244,7 +244,7 @@ export function TerritoryAssignmentSectionEnhanced({ user }: TerritoryAssignment
               )}
               {currentAreaAssignments.length > 0 && (
                 <div>
-                  <p className="text-xs text-muted-foreground mb-1">Areas ({currentAreaAssignments.length})</p>
+                  <p className="text-xs text-gray-600 mb-1">Areas ({currentAreaAssignments.length})</p>
                   <div className="flex flex-wrap gap-1">
                     {currentAreaAssignments.map((assignment) => (
                       <Badge key={`${assignment.pincodeId}-${assignment.areaId}`} variant="outline" className="text-xs">
@@ -338,7 +338,7 @@ function PincodeAssignmentTab({
       </div>
 
       {availablePincodes.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No pincodes available</p>
+        <p className="text-sm text-gray-600">No pincodes available</p>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-96 overflow-y-auto">
           {availablePincodes.map((pincode) => (
@@ -355,7 +355,7 @@ function PincodeAssignmentTab({
                 >
                   {pincode.code}
                 </label>
-                <p className="text-xs text-muted-foreground truncate">
+                <p className="text-xs text-gray-600 truncate">
                   {pincode.cityName}, {pincode.state}
                 </p>
               </div>
@@ -388,9 +388,9 @@ function AreaAssignmentTab({
   if (selectedPincodeIds.length === 0) {
     return (
       <div className="text-center py-8">
-        <Building2 className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+        <Building2 className="h-12 w-12 mx-auto text-gray-600 mb-4" />
         <h4 className="font-medium mb-2">No Pincodes Selected</h4>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-gray-600">
           Please select pincodes first to assign areas within them.
         </p>
       </div>
@@ -448,7 +448,7 @@ function PincodeAreaSelector({ pincodeId, selectedAreaIds, onAreaToggle }: Pinco
       <div className="border rounded-lg p-4">
         <div className="flex items-center gap-2 mb-3">
           <Loader2 className="h-4 w-4 animate-spin" />
-          <span className="text-sm text-muted-foreground">Loading areas for pincode {pincodeId}...</span>
+          <span className="text-sm text-gray-600">Loading areas for pincode {pincodeId}...</span>
         </div>
       </div>
     );
@@ -458,7 +458,7 @@ function PincodeAreaSelector({ pincodeId, selectedAreaIds, onAreaToggle }: Pinco
     return (
       <div className="border rounded-lg p-4">
         <h5 className="font-medium mb-2">Pincode {pincodeId}</h5>
-        <p className="text-sm text-muted-foreground">No areas found for this pincode</p>
+        <p className="text-sm text-gray-600">No areas found for this pincode</p>
       </div>
     );
   }

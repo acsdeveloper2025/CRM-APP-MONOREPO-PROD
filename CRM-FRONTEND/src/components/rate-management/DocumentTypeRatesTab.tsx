@@ -373,7 +373,7 @@ export function DocumentTypeRatesTab() {
           {/* Pagination Controls */}
           {ratesData?.pagination && (
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
-              <div className="text-sm text-muted-foreground">
+              <div className="text-sm text-gray-600">
                 Showing {rates.length} of {ratesData.pagination.total} document type rates
               </div>
               <div className="flex items-center gap-2">

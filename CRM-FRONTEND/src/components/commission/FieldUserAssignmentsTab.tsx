@@ -205,7 +205,7 @@ export const FieldUserAssignmentsTab: React.FC = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
       </div>
     );
   }
@@ -218,7 +218,7 @@ export const FieldUserAssignmentsTab: React.FC = () => {
             <Plus className="h-5 w-5" />
             Commission Rate Assignments
           </CardTitle>
-          <p className="text-sm text-muted-foreground mt-2">
+          <p className="text-sm text-gray-600 mt-2">
             Configure commission rates for field users by rate type and client (not for case assignments)
           </p>
         </CardHeader>
@@ -321,7 +321,7 @@ export const FieldUserAssignmentsTab: React.FC = () => {
                     <TableCell>
                       <div>
                         <div className="font-medium">{assignment.user_name}</div>
-                        <div className="text-sm text-muted-foreground">{assignment.user_email}</div>
+                        <div className="text-sm text-gray-600">{assignment.user_email}</div>
                       </div>
                     </TableCell>
                     <TableCell>
@@ -374,7 +374,7 @@ export const FieldUserAssignmentsTab: React.FC = () => {
                 <div className="flex justify-between items-start mb-3">
                   <div>
                     <div className="font-semibold text-base">{assignment.user_name}</div>
-                    <div className="text-sm text-muted-foreground">{assignment.user_email}</div>
+                    <div className="text-sm text-gray-600">{assignment.user_email}</div>
                   </div>
                   <div className="flex items-center space-x-2">
                     <Badge variant={assignment.is_active ? "default" : "secondary"}>
@@ -423,7 +423,7 @@ export const FieldUserAssignmentsTab: React.FC = () => {
           {/* Pagination */}
           {totalPages > 1 && (
             <div className="flex justify-between items-center mt-6">
-              <div className="text-sm text-muted-foreground">
+              <div className="text-sm text-gray-600">
                 Page {currentPage} of {totalPages}
               </div>
               <div className="flex gap-2">

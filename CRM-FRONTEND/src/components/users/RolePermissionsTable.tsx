@@ -45,9 +45,9 @@ export function RolePermissionsTable({ data, isLoading }: RolePermissionsTablePr
   if (!data || data.length === 0) {
     return (
       <div className="text-center py-12">
-        <Shield className="mx-auto h-12 w-12 text-muted-foreground" />
+        <Shield className="mx-auto h-12 w-12 text-gray-600" />
         <h3 className="mt-4 text-lg font-semibold">No permissions found</h3>
-        <p className="text-muted-foreground">
+        <p className="text-gray-600">
           Role permissions will be displayed here.
         </p>
       </div>
@@ -89,7 +89,7 @@ export function RolePermissionsTable({ data, isLoading }: RolePermissionsTablePr
               <div className="space-y-6">
                 {Object.entries(groupPermissionsByModule(rolePermission.permissions)).map(([module, permissions]) => (
                   <div key={module}>
-                    <h4 className="font-medium text-sm text-muted-foreground mb-3 uppercase tracking-wide">
+                    <h4 className="font-medium text-sm text-gray-600 mb-3 uppercase tracking-wide">
                       {module}
                     </h4>
                     <div className="rounded-md border">
@@ -109,7 +109,7 @@ export function RolePermissionsTable({ data, isLoading }: RolePermissionsTablePr
                                 {permission.name}
                               </TableCell>
                               <TableCell>
-                                <span className="text-sm text-muted-foreground">
+                                <span className="text-sm text-gray-600">
                                   {permission.description}
                                 </span>
                               </TableCell>
@@ -131,8 +131,8 @@ export function RolePermissionsTable({ data, isLoading }: RolePermissionsTablePr
               </div>
             ) : (
               <div className="text-center py-8">
-                <X className="mx-auto h-8 w-8 text-muted-foreground" />
-                <p className="text-sm text-muted-foreground mt-2">
+                <X className="mx-auto h-8 w-8 text-gray-600" />
+                <p className="text-sm text-gray-600 mt-2">
                   No permissions assigned to this role
                 </p>
               </div>

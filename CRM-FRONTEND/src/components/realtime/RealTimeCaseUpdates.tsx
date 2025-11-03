@@ -168,23 +168,23 @@ export function RealTimeCaseUpdates({ caseId, maxUpdates = 20 }: RealTimeCaseUpd
   const getUpdateIcon = (type: RealTimeUpdate['type']) => {
     switch (type) {
       case 'status':
-        return <Activity className="h-4 w-4 text-blue-600" />;
+        return <Activity className="h-4 w-4 text-green-600" />;
       case 'location':
         return <MapPin className="h-4 w-4 text-green-600" />;
       case 'form':
-        return <FileText className="h-4 w-4 text-purple-600" />;
+        return <FileText className="h-4 w-4 text-green-600" />;
       case 'photo':
-        return <Camera className="h-4 w-4 text-orange-600" />;
+        return <Camera className="h-4 w-4 text-yellow-600" />;
       case 'typing':
-        return <User className="h-4 w-4 text-muted-foreground" />;
+        return <User className="h-4 w-4 text-gray-600" />;
       case 'submission_progress':
-        return <Upload className="h-4 w-4 text-blue-600" />;
+        return <Upload className="h-4 w-4 text-green-600" />;
       case 'retry_status':
-        return <RotateCcw className="h-4 w-4 text-orange-600" />;
+        return <RotateCcw className="h-4 w-4 text-yellow-600" />;
       case 'compression':
         return <Zap className="h-4 w-4 text-green-600" />;
       default:
-        return <Activity className="h-4 w-4 text-muted-foreground" />;
+        return <Activity className="h-4 w-4 text-gray-600" />;
     }
   };
 
@@ -238,7 +238,7 @@ export function RealTimeCaseUpdates({ caseId, maxUpdates = 20 }: RealTimeCaseUpd
                 <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
                 <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
               </div>
-              <span className="text-sm text-muted-foreground">
+              <span className="text-sm text-gray-600">
                 {Array.from(typingUsers).join(', ')} {typingUsers.size === 1 ? 'is' : 'are'} typing...
               </span>
             </div>
@@ -248,9 +248,9 @@ export function RealTimeCaseUpdates({ caseId, maxUpdates = 20 }: RealTimeCaseUpd
         <ScrollArea className="h-96">
           {updates.length === 0 ? (
             <div className="text-center py-8">
-              <Activity className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-              <p className="text-sm text-muted-foreground">No real-time updates yet</p>
-              <p className="text-xs text-muted-foreground">Updates will appear here as they happen</p>
+              <Activity className="h-8 w-8 mx-auto text-gray-600 mb-2" />
+              <p className="text-sm text-gray-600">No real-time updates yet</p>
+              <p className="text-xs text-gray-600">Updates will appear here as they happen</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -265,11 +265,11 @@ export function RealTimeCaseUpdates({ caseId, maxUpdates = 20 }: RealTimeCaseUpd
                         <span className="text-sm font-medium">{update.username}</span>
                         {getUpdateBadge(update.type)}
                       </div>
-                      <span className="text-xs text-muted-foreground">
+                      <span className="text-xs text-gray-600">
                         {formatDistanceToNow(new Date(update.timestamp), { addSuffix: true })}
                       </span>
                     </div>
-                    <p className="text-sm text-muted-foreground">{update.message}</p>
+                    <p className="text-sm text-gray-600">{update.message}</p>
                     {/* Enhanced display for submission progress */}
                     {update.type === 'submission_progress' && update.progress !== undefined && (
                       <div className="mt-2">
@@ -308,7 +308,7 @@ export function RealTimeCaseUpdates({ caseId, maxUpdates = 20 }: RealTimeCaseUpd
 
                     {/* Enhanced display for retry status */}
                     {update.type === 'retry_status' && update.retryInfo && (
-                      <div className="mt-2 text-xs text-orange-600">
+                      <div className="mt-2 text-xs text-yellow-600">
                         <div className="flex justify-between">
                           <span>Attempt:</span>
                           <span>{update.retryInfo.attempts} of {update.retryInfo.maxAttempts}</span>
@@ -324,7 +324,7 @@ export function RealTimeCaseUpdates({ caseId, maxUpdates = 20 }: RealTimeCaseUpd
 
                     {/* Existing data display */}
                     {update.data && (
-                      <div className="mt-2 text-xs text-muted-foreground">
+                      <div className="mt-2 text-xs text-gray-600">
                         {update.type === 'location' && (
                           <span>
                             Lat: {update.data.latitude.toFixed(6)},

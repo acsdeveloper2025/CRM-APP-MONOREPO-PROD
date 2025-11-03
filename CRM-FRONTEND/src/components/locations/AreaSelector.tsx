@@ -141,7 +141,7 @@ export function AreaSelector({
                       "Loading areas..."
                     ) : searchValue.trim().length >= 2 ? (
                       <div className="p-2">
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-sm text-gray-600">
                           No existing areas found. Please select from available areas only.
                         </p>
                       </div>
@@ -199,7 +199,7 @@ export function AreaSelector({
                       <CommandItem
                         value={`add-${searchValue}`}
                         onSelect={addCustomArea}
-                        className="text-blue-600"
+                        className="text-green-600"
                       >
                         <Plus className="mr-2 h-4 w-4" />
                         Add "{searchValue.trim()}"
@@ -219,7 +219,7 @@ export function AreaSelector({
           <span className="text-amber-600"> Maximum {maxAreas} areas reached.</span>
         )}
         {cityId && (
-          <span className="text-muted-foreground"> Showing areas for selected city.</span>
+          <span className="text-gray-600"> Showing areas for selected city.</span>
         )}
       </FormDescription>
       

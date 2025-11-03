@@ -68,7 +68,7 @@ export function ClientDetailsDialog({ client, open, onOpenChange }: ClientDetail
               ) : (
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                    <div className="flex items-center space-x-2 text-sm text-gray-600">
                       <Building2 className="h-4 w-4" />
                       <span>Client Name</span>
                     </div>
@@ -76,7 +76,7 @@ export function ClientDetailsDialog({ client, open, onOpenChange }: ClientDetail
                   </div>
                   
                   <div className="space-y-2">
-                    <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                    <div className="flex items-center space-x-2 text-sm text-gray-600">
                       <Code className="h-4 w-4" />
                       <span>Client Code</span>
                     </div>
@@ -86,7 +86,7 @@ export function ClientDetailsDialog({ client, open, onOpenChange }: ClientDetail
                   </div>
                   
                   <div className="space-y-2">
-                    <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                    <div className="flex items-center space-x-2 text-sm text-gray-600">
                       <Calendar className="h-4 w-4" />
                       <span>Created Date</span>
                     </div>
@@ -100,7 +100,7 @@ export function ClientDetailsDialog({ client, open, onOpenChange }: ClientDetail
                   </div>
                   
                   <div className="space-y-2">
-                    <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                    <div className="flex items-center space-x-2 text-sm text-gray-600">
                       <CheckCircle className="h-4 w-4" />
                       <span>Status</span>
                     </div>
@@ -125,7 +125,7 @@ export function ClientDetailsDialog({ client, open, onOpenChange }: ClientDetail
             </CardHeader>
             <CardContent>
               {products.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
+                <div className="text-center py-8 text-gray-600">
                   <Package className="mx-auto h-12 w-12 mb-4 opacity-50" />
                   <p>No products found for this client</p>
                 </div>
@@ -136,12 +136,12 @@ export function ClientDetailsDialog({ client, open, onOpenChange }: ClientDetail
                       <div className="flex items-center justify-between p-3 rounded-lg border">
                         <div className="space-y-1">
                           <p className="font-medium">{product.name}</p>
-                          <p className="text-sm text-muted-foreground">
+                          <p className="text-sm text-gray-600">
                             {product.verificationTypes?.length || 0} verification types
                           </p>
                         </div>
                         <div className="text-right">
-                          <p className="text-sm text-muted-foreground">
+                          <p className="text-sm text-gray-600">
                             Created {new Date(product.createdAt).toLocaleDateString()}
                           </p>
                         </div>
@@ -168,7 +168,7 @@ export function ClientDetailsDialog({ client, open, onOpenChange }: ClientDetail
             </CardHeader>
             <CardContent>
               {verificationTypes.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
+                <div className="text-center py-8 text-gray-600">
                   <Shield className="mx-auto h-12 w-12 mb-4 opacity-50" />
                   <p>No verification types found for this client</p>
                 </div>
@@ -203,7 +203,7 @@ export function ClientDetailsDialog({ client, open, onOpenChange }: ClientDetail
             </CardHeader>
             <CardContent>
               {documentTypes.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
+                <div className="text-center py-8 text-gray-600">
                   <FileText className="mx-auto h-12 w-12 mb-4 opacity-50" />
                   <p>No document types assigned to this client</p>
                 </div>
@@ -238,15 +238,15 @@ export function ClientDetailsDialog({ client, open, onOpenChange }: ClientDetail
               <div className="grid grid-cols-3 gap-4 text-center">
                 <div className="space-y-2">
                   <p className="text-2xl font-bold text-primary">{products.length}</p>
-                  <p className="text-sm text-muted-foreground">Products</p>
+                  <p className="text-sm text-gray-600">Products</p>
                 </div>
                 <div className="space-y-2">
                   <p className="text-2xl font-bold text-primary">{verificationTypes.length}</p>
-                  <p className="text-sm text-muted-foreground">Verification Types</p>
+                  <p className="text-sm text-gray-600">Verification Types</p>
                 </div>
                 <div className="space-y-2">
                   <p className="text-2xl font-bold text-primary">{documentTypes.length}</p>
-                  <p className="text-sm text-muted-foreground">Document Types</p>
+                  <p className="text-sm text-gray-600">Document Types</p>
                 </div>
               </div>
             </CardContent>

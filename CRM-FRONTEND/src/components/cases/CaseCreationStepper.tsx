@@ -640,8 +640,8 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
                         ${isCompleted 
                           ? 'bg-green-500 border-green-500 text-white' 
                           : isActive 
-                            ? 'bg-blue-500 border-blue-500 text-white' 
-                            : 'bg-muted border-border text-muted-foreground'
+                            ? 'bg-green-500 border-green-500 text-white' 
+                            : 'bg-muted border-border text-gray-600'
                         }
                       `}
                     >
@@ -654,12 +654,12 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
                     <div className="flex flex-col">
                       <span
                         className={`text-sm font-medium ${
-                          isActive ? 'text-blue-600' : isCompleted ? 'text-green-600' : 'text-muted-foreground'
+                          isActive ? 'text-green-600' : isCompleted ? 'text-green-600' : 'text-gray-600'
                         }`}
                       >
                         {step.title}
                       </span>
-                      <span className="text-xs text-muted-foreground">{step.description}</span>
+                      <span className="text-xs text-gray-600">{step.description}</span>
                     </div>
                   </div>
                   

@@ -39,15 +39,15 @@ const getActivityIcon = (type: string) => {
 const getActivityColor = (type: string) => {
   switch (type) {
     case 'caseAssigned':
-      return 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300';
+      return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300';
     case 'caseCompleted':
       return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300';
     case 'caseApproved':
-      return 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-300';
+      return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300';
     case 'invoiceGenerated':
       return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300';
     default:
-      return 'bg-muted text-muted-foreground';
+      return 'bg-muted text-gray-600';
   }
 };
 
@@ -85,7 +85,7 @@ export const RecentActivities: React.FC<RecentActivitiesProps> = ({ activities, 
       <CardContent>
         <div className="space-y-4">
           {activities.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-4">
+            <p className="text-sm text-gray-600 text-center py-4">
               No recent activities
             </p>
           ) : (
@@ -95,12 +95,12 @@ export const RecentActivities: React.FC<RecentActivitiesProps> = ({ activities, 
                 <div key={activity.id} className="flex items-start space-x-4">
                   <div className="flex-shrink-0">
                     <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center">
-                      <Icon className="w-4 h-4 text-muted-foreground" />
+                      <Icon className="w-4 h-4 text-gray-600" />
                     </div>
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center space-x-2">
-                      <p className="text-sm font-medium text-foreground">
+                      <p className="text-sm font-medium text-gray-900">
                         {activity.title}
                       </p>
                       <Badge 
@@ -110,16 +110,16 @@ export const RecentActivities: React.FC<RecentActivitiesProps> = ({ activities, 
                         {activity.type.replace('_', ' ')}
                       </Badge>
                     </div>
-                    <p className="text-sm text-muted-foreground mt-1">
+                    <p className="text-sm text-gray-600 mt-1">
                       {activity.description}
                     </p>
                     <div className="flex items-center space-x-2 mt-1">
                       {activity.userName && (
-                        <span className="text-xs text-muted-foreground">
+                        <span className="text-xs text-gray-600">
                           by {activity.userName}
                         </span>
                       )}
-                      <span className="text-xs text-muted-foreground">
+                      <span className="text-xs text-gray-600">
                         {formatDistanceToNow(new Date(activity.timestamp), { addSuffix: true })}
                       </span>
                     </div>

@@ -132,7 +132,7 @@ export function NotificationTestingDashboard() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Notification Testing Dashboard</h2>
-          <p className="text-muted-foreground">
+          <p className="text-gray-600">
             Test and monitor notification system performance
           </p>
         </div>
@@ -168,7 +168,7 @@ export function NotificationTestingDashboard() {
                 )}
                 <div>
                   <p className="font-medium">Firebase Cloud Messaging (FCM)</p>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-gray-600">
                     Android & Web push notifications
                   </p>
                 </div>
@@ -184,7 +184,7 @@ export function NotificationTestingDashboard() {
                 )}
                 <div>
                   <p className="font-medium">Apple Push Notification Service (APNS)</p>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-gray-600">
                     iOS push notifications
                   </p>
                 </div>
@@ -195,7 +195,7 @@ export function NotificationTestingDashboard() {
             </div>
           ) : (
             <div className="flex items-center justify-center py-4">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-600"></div>
             </div>
           )}
         </CardContent>
@@ -327,28 +327,28 @@ export function NotificationTestingDashboard() {
               {/* Summary Stats */}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-600">
+                  <div className="text-2xl font-bold text-green-600">
                     {analytics.summary.totalNotifications}
                   </div>
-                  <div className="text-sm text-muted-foreground">Total Sent</div>
+                  <div className="text-sm text-gray-600">Total Sent</div>
                 </div>
                 <div className="text-center">
                   <div className="text-2xl font-bold text-green-600">
                     {analytics.summary.totalRead}
                   </div>
-                  <div className="text-sm text-muted-foreground">Read</div>
+                  <div className="text-sm text-gray-600">Read</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-orange-600">
+                  <div className="text-2xl font-bold text-yellow-600">
                     {analytics.summary.totalUnread}
                   </div>
-                  <div className="text-sm text-muted-foreground">Unread</div>
+                  <div className="text-sm text-gray-600">Unread</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-purple-600">
+                  <div className="text-2xl font-bold text-green-600">
                     {analytics.summary.overallReadRate}%
                   </div>
-                  <div className="text-sm text-muted-foreground">Read Rate</div>
+                  <div className="text-sm text-gray-600">Read Rate</div>
                 </div>
               </div>
 
@@ -407,7 +407,7 @@ export function NotificationTestingDashboard() {
             </div>
           ) : (
             <div className="flex items-center justify-center py-8">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-600"></div>
             </div>
           )}
         </CardContent>

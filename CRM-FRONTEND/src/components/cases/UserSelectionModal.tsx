@@ -85,7 +85,7 @@ export const UserSelectionModal: React.FC<UserSelectionModalProps> = ({
         <div className="space-y-4">
           {/* Search Input */}
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-600" />
             <Input
               placeholder="Search field agents..."
               value={searchTerm}
@@ -102,11 +102,11 @@ export const UserSelectionModal: React.FC<UserSelectionModalProps> = ({
                 <span className="ml-2">Loading field agents...</span>
               </div>
             ) : error ? (
-              <div className="text-center py-8 text-muted-foreground">
+              <div className="text-center py-8 text-gray-600">
                 <p>Error loading field agents</p>
               </div>
             ) : filteredUsers.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
+              <div className="text-center py-8 text-gray-600">
                 <p>No field agents found</p>
                 {searchTerm && (
                   <p className="text-sm">Try adjusting your search terms</p>
@@ -139,7 +139,7 @@ export const UserSelectionModal: React.FC<UserSelectionModalProps> = ({
                       )}
                     </div>
                     {user.email && (
-                      <p className="text-sm text-muted-foreground truncate">
+                      <p className="text-sm text-gray-600 truncate">
                         {user.email}
                       </p>
                     )}

@@ -101,7 +101,7 @@ export const DocumentTypesTable: React.FC<DocumentTypesTableProps> = ({
           <TableBody>
             {data.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={7} className="text-center py-8 text-gray-600">
                   No document types found
                 </TableCell>
               </TableRow>
@@ -110,11 +110,11 @@ export const DocumentTypesTable: React.FC<DocumentTypesTableProps> = ({
                 <TableRow key={documentType.id}>
                   <TableCell>
                     <div className="flex items-center space-x-2">
-                      <FileText className="h-4 w-4 text-muted-foreground" />
+                      <FileText className="h-4 w-4 text-gray-600" />
                       <div>
                         <div className="font-medium">{documentType.name}</div>
                         {documentType.description && (
-                          <div className="text-sm text-muted-foreground truncate max-w-[200px]">
+                          <div className="text-sm text-gray-600 truncate max-w-[200px]">
                             {documentType.description}
                           </div>
                         )}
@@ -155,7 +155,7 @@ export const DocumentTypesTable: React.FC<DocumentTypesTableProps> = ({
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <div className="text-sm text-muted-foreground">
+                    <div className="text-sm text-gray-600">
                       {documentType.clientCount || 0} clients
                     </div>
                   </TableCell>

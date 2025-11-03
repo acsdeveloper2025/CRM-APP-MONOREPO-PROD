@@ -94,10 +94,10 @@ export const CommissionCalculationsTab: React.FC = () => {
   const getRateTypeBadge = (rateType: string) => {
     // Use standardized badge colors matching CaseTable pattern
     const colorClass = rateType === 'Local'
-      ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300'
+      ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300'
       : rateType === 'OGL' || rateType === 'Out of Geolocation'
-      ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-300'
-      : 'bg-muted text-muted-foreground';
+      ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300'
+      : 'bg-muted text-gray-600';
 
     return (
       <Badge variant="outline" className={colorClass}>
@@ -109,7 +109,7 @@ export const CommissionCalculationsTab: React.FC = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-green-600"></div>
       </div>
     );
   }
@@ -124,16 +124,16 @@ export const CommissionCalculationsTab: React.FC = () => {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+                    <p className="text-sm font-medium text-gray-600 flex items-center gap-1">
                       <Calendar className="h-4 w-4" />
                       {month}
                     </p>
-                    <p className="text-2xl font-bold text-foreground mt-1">
+                    <p className="text-2xl font-bold text-gray-900 mt-1">
                       {data.currency} {data.total.toFixed(2)}
                     </p>
-                    <p className="text-xs text-muted-foreground mt-1">{data.count} commissions</p>
+                    <p className="text-xs text-gray-600 mt-1">{data.count} commissions</p>
                   </div>
-                  <Calculator className="h-10 w-10 text-muted-foreground" />
+                  <Calculator className="h-10 w-10 text-gray-600" />
                 </div>
               </CardContent>
             </Card>
@@ -188,7 +188,7 @@ export const CommissionCalculationsTab: React.FC = () => {
                 {calculations.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} className="h-64 text-center">
-                      <div className="flex flex-col items-center justify-center text-muted-foreground">
+                      <div className="flex flex-col items-center justify-center text-gray-600">
                         <Calculator className="h-12 w-12 mb-4" />
                         <p className="text-lg font-semibold">No commission calculations found</p>
                         <p className="text-sm mt-2">Complete verification tasks to generate commissions</p>
@@ -200,11 +200,11 @@ export const CommissionCalculationsTab: React.FC = () => {
                     <TableRow key={calculation.id}>
                       <TableCell>
                         <div>
-                          <div className="font-medium text-foreground">
+                          <div className="font-medium text-gray-900">
                             {calculation.task_number || 'N/A'}
                           </div>
                           {calculation.verification_type_name && (
-                            <div className="text-sm text-muted-foreground">
+                            <div className="text-sm text-gray-600">
                               {calculation.verification_type_name}
                             </div>
                           )}
@@ -212,16 +212,16 @@ export const CommissionCalculationsTab: React.FC = () => {
                       </TableCell>
                       <TableCell>
                         <div>
-                          <div className="font-medium text-foreground">
+                          <div className="font-medium text-gray-900">
                             {calculation.user_name || 'N/A'}
                           </div>
-                          <div className="text-sm text-muted-foreground">
+                          <div className="text-sm text-gray-600">
                             {calculation.user_email || ''}
                           </div>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="font-medium text-foreground">
+                        <div className="font-medium text-gray-900">
                           {calculation.client_name || 'N/A'}
                         </div>
                       </TableCell>
@@ -237,7 +237,7 @@ export const CommissionCalculationsTab: React.FC = () => {
                             {calculation.currency} {Number(calculation.commission_amount).toFixed(2)}
                           </div>
                           {calculation.base_amount && (
-                            <div className="text-sm text-muted-foreground">
+                            <div className="text-sm text-gray-600">
                               Base: {calculation.currency} {Number(calculation.base_amount).toFixed(2)}
                             </div>
                           )}
@@ -245,7 +245,7 @@ export const CommissionCalculationsTab: React.FC = () => {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1">
-                          <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                          <Calendar className="h-3.5 w-3.5 text-gray-600" />
                           <span className="text-sm">
                             {formatMonth(calculation.created_at)}
                           </span>
@@ -260,11 +260,11 @@ export const CommissionCalculationsTab: React.FC = () => {
           {/* Pagination */}
           {totalPages > 1 && (
             <div className="flex items-center justify-between mt-6 pt-4 border-t">
-              <div className="text-sm text-muted-foreground">
-                Showing <span className="font-medium text-foreground">{calculations.length}</span> commissions
+              <div className="text-sm text-gray-600">
+                Showing <span className="font-medium text-gray-900">{calculations.length}</span> commissions
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">
+                <span className="text-sm text-gray-600">
                   Page {currentPage} of {totalPages}
                 </span>
                 <div className="flex gap-2">

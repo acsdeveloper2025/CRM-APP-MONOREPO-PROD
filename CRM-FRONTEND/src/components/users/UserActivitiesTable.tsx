@@ -38,9 +38,9 @@ export function UserActivitiesTable({ data, isLoading }: UserActivitiesTableProp
   if (!data || data.length === 0) {
     return (
       <div className="text-center py-12">
-        <Activity className="mx-auto h-12 w-12 text-muted-foreground" />
+        <Activity className="mx-auto h-12 w-12 text-gray-600" />
         <h3 className="mt-4 text-lg font-semibold">No activities found</h3>
-        <p className="text-muted-foreground">
+        <p className="text-gray-600">
           User activities will appear here as they interact with the system.
         </p>
       </div>
@@ -85,7 +85,7 @@ export function UserActivitiesTable({ data, isLoading }: UserActivitiesTableProp
                   </Avatar>
                   <div>
                     <div className="font-medium">{activity.user.name}</div>
-                    <div className="text-sm text-muted-foreground">{activity.user.username}</div>
+                    <div className="text-sm text-gray-600">{activity.user.username}</div>
                   </div>
                 </div>
               </TableCell>
@@ -100,7 +100,7 @@ export function UserActivitiesTable({ data, isLoading }: UserActivitiesTableProp
               </TableCell>
               <TableCell>
                 <div className="flex items-center space-x-1">
-                  <Clock className="h-3 w-3 text-muted-foreground" />
+                  <Clock className="h-3 w-3 text-gray-600" />
                   <span className="text-sm">
                     {new Date(activity.timestamp).toLocaleString()}
                   </span>

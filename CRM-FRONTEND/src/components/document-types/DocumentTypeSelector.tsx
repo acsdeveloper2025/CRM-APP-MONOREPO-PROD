@@ -155,7 +155,7 @@ export const DocumentTypeSelector: React.FC<DocumentTypeSelectorProps> = ({
             aria-expanded={open}
             className={cn(
               'w-full justify-between',
-              !selectedDocumentTypes.length && 'text-muted-foreground'
+              !selectedDocumentTypes.length && 'text-gray-600'
             )}
             disabled={disabled}
           >
@@ -171,12 +171,12 @@ export const DocumentTypeSelector: React.FC<DocumentTypeSelectorProps> = ({
                 placeholder="Search document types..."
                 value={searchValue}
                 onValueChange={setSearchValue}
-                className="flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-gray-600 disabled:cursor-not-allowed disabled:opacity-50"
               />
             </div>
             <CommandList className="max-h-[300px] overflow-y-auto">
               {isLoading ? (
-                <div className="p-4 text-center text-sm text-muted-foreground">
+                <div className="p-4 text-center text-sm text-gray-600">
                   Loading document types...
                 </div>
               ) : Object.keys(groupedDocumentTypes).length === 0 ? (
@@ -204,7 +204,7 @@ export const DocumentTypeSelector: React.FC<DocumentTypeSelectorProps> = ({
                             />
                             <div>
                               <div className="font-medium">{documentType.name}</div>
-                              <div className="text-xs text-muted-foreground">
+                              <div className="text-xs text-gray-600">
                                 {documentType.code}
                                 {documentType.description && ` • ${documentType.description}`}
                               </div>
@@ -235,7 +235,7 @@ export const DocumentTypeSelector: React.FC<DocumentTypeSelectorProps> = ({
 
       {/* Help Text */}
       {multiple && (
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs text-gray-600">
           Select multiple document types that are applicable for this client.
         </p>
       )}

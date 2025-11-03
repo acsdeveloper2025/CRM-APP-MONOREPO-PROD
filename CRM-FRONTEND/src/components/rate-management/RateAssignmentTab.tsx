@@ -267,10 +267,10 @@ export function RateAssignmentTab() {
               </div>
             ) : availableRateTypes.length === 0 ? (
               <div className="text-center py-8">
-                <p className="text-muted-foreground">
+                <p className="text-gray-600">
                   No rate types are assigned to this combination.
                 </p>
-                <p className="text-sm text-muted-foreground mt-2">
+                <p className="text-sm text-gray-600 mt-2">
                   Please assign rate types in the "Rate Type Assignment" tab first.
                 </p>
               </div>
@@ -300,7 +300,7 @@ export function RateAssignmentTab() {
                           <TableCell className="font-medium">
                             {rateType.rateTypeName}
                           </TableCell>
-                          <TableCell className="text-muted-foreground">
+                          <TableCell className="text-gray-600">
                             {rateType.rateTypeDescription || 'No description'}
                           </TableCell>
                           <TableCell>
@@ -368,7 +368,7 @@ export function RateAssignmentTab() {
           <CardTitle>Instructions</CardTitle>
         </CardHeader>
         <CardContent>
-          <ol className="list-decimal list-inside space-y-2 text-sm text-muted-foreground">
+          <ol className="list-decimal list-inside space-y-2 text-sm text-gray-600">
             <li>Select a client, product, and verification type combination</li>
             <li>Only rate types that have been assigned in the previous tab will appear here</li>
             <li>Enter the rate amount for each rate type</li>

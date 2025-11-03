@@ -61,11 +61,11 @@ export const VerificationTasksList: React.FC<VerificationTasksListProps> = ({
   const getStatusBadge = (status: TaskStatus) => {
     const statusConfig = {
       PENDING: { variant: 'secondary' as const, icon: Clock, color: 'text-yellow-600' },
-      ASSIGNED: { variant: 'outline' as const, icon: UserCheck, color: 'text-blue-600' },
+      ASSIGNED: { variant: 'outline' as const, icon: UserCheck, color: 'text-green-600' },
       IN_PROGRESS: { variant: 'default' as const, icon: Play, color: 'text-green-600' },
       COMPLETED: { variant: 'default' as const, icon: CheckCircle, color: 'text-green-700' },
       CANCELLED: { variant: 'destructive' as const, icon: X, color: 'text-red-600' },
-      ON_HOLD: { variant: 'secondary' as const, icon: AlertTriangle, color: 'text-orange-600' }
+      ON_HOLD: { variant: 'secondary' as const, icon: AlertTriangle, color: 'text-yellow-600' }
     };
 
     const config = statusConfig[status];
@@ -83,8 +83,8 @@ export const VerificationTasksList: React.FC<VerificationTasksListProps> = ({
   const getPriorityBadge = (priority: TaskPriority) => {
     const priorityConfig = {
       LOW: { variant: 'outline' as const, color: 'text-gray-600' },
-      MEDIUM: { variant: 'secondary' as const, color: 'text-blue-600' },
-      HIGH: { variant: 'default' as const, color: 'text-orange-600' },
+      MEDIUM: { variant: 'secondary' as const, color: 'text-green-600' },
+      HIGH: { variant: 'default' as const, color: 'text-yellow-600' },
       URGENT: { variant: 'destructive' as const, color: 'text-red-600' }
     };
 
@@ -124,7 +124,7 @@ export const VerificationTasksList: React.FC<VerificationTasksListProps> = ({
     return (
       <div className="text-center py-8">
         <div className="mb-2">No verification tasks found</div>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-gray-600">
           Create new tasks to get started with verification workflows
         </p>
       </div>
@@ -193,14 +193,14 @@ export const VerificationTasksList: React.FC<VerificationTasksListProps> = ({
 
               {/* Verification Type */}
               <TableCell>
-                <span className="text-sm text-muted-foreground">
+                <span className="text-sm text-gray-600">
                   {task.verificationTypeName || '-'}
                 </span>
               </TableCell>
 
               {/* Trigger */}
               <TableCell>
-                <div className="max-w-xs truncate text-sm text-muted-foreground" title={task.trigger}>
+                <div className="max-w-xs truncate text-sm text-gray-600" title={task.trigger}>
                   {task.trigger || '-'}
                 </div>
               </TableCell>
@@ -212,14 +212,14 @@ export const VerificationTasksList: React.FC<VerificationTasksListProps> = ({
 
               {/* Address */}
               <TableCell>
-                <div className="max-w-xs truncate text-sm text-muted-foreground" title={task.address}>
+                <div className="max-w-xs truncate text-sm text-gray-600" title={task.address}>
                   {task.address || '-'}
                 </div>
               </TableCell>
 
               {/* Rate Type */}
               <TableCell>
-                <span className="text-sm text-muted-foreground">
+                <span className="text-sm text-gray-600">
                   {task.rateTypeName || '-'}
                 </span>
               </TableCell>
@@ -237,10 +237,10 @@ export const VerificationTasksList: React.FC<VerificationTasksListProps> = ({
                   {task.assignedToName ? (
                     <span>{task.assignedToName}</span>
                   ) : (
-                    <span className="text-muted-foreground italic">Unassigned</span>
+                    <span className="text-gray-600 italic">Unassigned</span>
                   )}
                   {task.assignedAt && (
-                    <div className="text-xs text-muted-foreground mt-1">
+                    <div className="text-xs text-gray-600 mt-1">
                       {formatDate(task.assignedAt)}
                     </div>
                   )}
@@ -248,7 +248,7 @@ export const VerificationTasksList: React.FC<VerificationTasksListProps> = ({
               </TableCell>
 
               <TableCell>
-                <span className="text-sm text-muted-foreground">
+                <span className="text-sm text-gray-600">
                   {formatDate(task.createdAt)}
                 </span>
               </TableCell>

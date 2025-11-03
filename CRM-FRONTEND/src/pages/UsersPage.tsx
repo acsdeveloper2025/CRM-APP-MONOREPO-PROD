@@ -169,7 +169,7 @@ export function UsersPage() {
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-2 text-sm text-muted-foreground">Loading users...</p>
+          <p className="mt-2 text-sm text-gray-600">Loading users...</p>
         </div>
       </div>
     );
@@ -183,7 +183,7 @@ export function UsersPage() {
       <div className="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0 flex-1">
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight truncate">User Management</h1>
-          <p className="mt-1 sm:mt-2 text-sm sm:text-base text-muted-foreground">
+          <p className="mt-1 sm:mt-2 text-sm sm:text-base text-gray-600">
             Manage users, roles, permissions, and monitor user activities
           </p>
         </div>
@@ -346,7 +346,7 @@ export function UsersPage() {
               {/* Pagination Controls */}
               {usersData?.pagination && (
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
-                  <div className="text-sm text-muted-foreground">
+                  <div className="text-sm text-gray-600">
                     Showing {usersData.data.length} of {usersData.pagination.total} users
                   </div>
                   <div className="flex items-center gap-2">
@@ -394,7 +394,7 @@ export function UsersPage() {
               {/* Pagination Controls */}
               {activitiesData?.pagination && (
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
-                  <div className="text-sm text-muted-foreground">
+                  <div className="text-sm text-gray-600">
                     Showing {activitiesData.data?.length || 0} of {activitiesData.pagination.total} activities
                   </div>
                   <div className="flex items-center gap-2">
@@ -442,7 +442,7 @@ export function UsersPage() {
               {/* Pagination Controls */}
               {sessionsData?.pagination && (
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
-                  <div className="text-sm text-muted-foreground">
+                  <div className="text-sm text-gray-600">
                     Showing {sessionsData.data?.length || 0} of {sessionsData.pagination.total} sessions
                   </div>
                   <div className="flex items-center gap-2">

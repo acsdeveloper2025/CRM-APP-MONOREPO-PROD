@@ -109,9 +109,9 @@ export function ClientsTable({ data, isLoading }: ClientsTableProps) {
   if (!data || data.length === 0) {
     return (
       <div className="text-center py-12">
-        <Building2 className="mx-auto h-12 w-12 text-muted-foreground" />
+        <Building2 className="mx-auto h-12 w-12 text-gray-600" />
         <h3 className="mt-4 text-lg font-semibold">No clients found</h3>
-        <p className="text-muted-foreground">
+        <p className="text-gray-600">
           Get started by creating your first client.
         </p>
 
@@ -150,7 +150,7 @@ export function ClientsTable({ data, isLoading }: ClientsTableProps) {
                   <Badge variant="outline">{client.code}</Badge>
                 </TableCell>
                 <TableCell>
-                  <span className="text-sm text-muted-foreground">
+                  <span className="text-sm text-gray-600">
                     {client.products?.length || 0} products
                   </span>
                 </TableCell>

@@ -103,7 +103,7 @@ const TableHead = React.forwardRef<
   <th
     ref={ref}
     className={cn(
-      "h-12 px-2 sm:px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0",
+      "h-12 px-2 sm:px-4 text-left align-middle font-medium text-gray-600 [&:has([role=checkbox])]:pr-0",
       hideOnMobile && "hidden sm:table-cell",
       className
     )}
@@ -129,7 +129,7 @@ const TableCell = React.forwardRef<
     {...props}
   >
     {mobileLabel && (
-      <div className="sm:hidden font-medium text-muted-foreground text-xs mb-1">
+      <div className="sm:hidden font-medium text-gray-600 text-xs mb-1">
         {mobileLabel}
       </div>
     )}
@@ -144,7 +144,7 @@ const TableCaption = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <caption
     ref={ref}
-    className={cn("mt-4 text-sm text-muted-foreground", className)}
+    className={cn("mt-4 text-sm text-gray-600", className)}
     {...props}
   />
 ))
@@ -180,7 +180,7 @@ const MobileTableField = React.forwardRef<
     className={cn("flex justify-between items-start gap-2", className)}
     {...props}
   >
-    <span className="text-sm font-medium text-muted-foreground min-w-0 flex-shrink-0">
+    <span className="text-sm font-medium text-gray-600 min-w-0 flex-shrink-0">
       {label}:
     </span>
     <span className="text-sm text-right min-w-0 flex-1">

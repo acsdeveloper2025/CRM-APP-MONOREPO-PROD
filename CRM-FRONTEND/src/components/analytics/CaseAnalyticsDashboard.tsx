@@ -60,13 +60,13 @@ export const CaseAnalyticsDashboard: React.FC = () => {
       case 'COMPLETED':
         return 'bg-green-100 text-green-800';
       case 'IN_PROGRESS':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-green-100 text-green-800';
       case 'ASSIGNED':
         return 'bg-yellow-100 text-yellow-800';
       case 'PENDING':
-        return 'bg-muted text-foreground';
+        return 'bg-muted text-gray-900';
       default:
-        return 'bg-muted text-foreground';
+        return 'bg-muted text-gray-900';
     }
   };
 
@@ -79,7 +79,7 @@ export const CaseAnalyticsDashboard: React.FC = () => {
       case 'LOW':
         return 'bg-green-100 text-green-800';
       default:
-        return 'bg-muted text-foreground';
+        return 'bg-muted text-gray-900';
     }
   };
 
@@ -88,8 +88,8 @@ export const CaseAnalyticsDashboard: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Case Analytics</h1>
-          <p className="mt-2 text-muted-foreground">
+          <h1 className="text-3xl font-bold text-gray-900">Case Analytics</h1>
+          <p className="mt-2 text-gray-600">
             Comprehensive case performance and completion metrics
           </p>
         </div>
@@ -104,11 +104,11 @@ export const CaseAnalyticsDashboard: React.FC = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Cases</CardTitle>
-            <BarChart3 className="h-4 w-4 text-muted-foreground" />
+            <BarChart3 className="h-4 w-4 text-gray-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{summary?.totalCases || 0}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-gray-600">
               All cases in system
             </p>
           </CardContent>
@@ -121,7 +121,7 @@ export const CaseAnalyticsDashboard: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">{summary?.completedCases || 0}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-gray-600">
               {summary?.completionRate ? `${summary.completionRate.toFixed(1)}% completion rate` : 'No data'}
             </p>
           </CardContent>
@@ -130,13 +130,13 @@ export const CaseAnalyticsDashboard: React.FC = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Avg Completion Time</CardTitle>
-            <Clock className="h-4 w-4 text-blue-600" />
+            <Clock className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">
+            <div className="text-2xl font-bold text-green-600">
               {summary?.avgCompletionDays ? `${summary.avgCompletionDays.toFixed(1)}d` : 'N/A'}
             </div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-gray-600">
               Average days to complete
             </p>
           </CardContent>
@@ -145,13 +145,13 @@ export const CaseAnalyticsDashboard: React.FC = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Form Completion</CardTitle>
-            <FileText className="h-4 w-4 text-purple-600" />
+            <FileText className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-purple-600">
+            <div className="text-2xl font-bold text-green-600">
               {summary?.avgFormCompletion ? `${summary.avgFormCompletion.toFixed(1)}%` : 'N/A'}
             </div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-gray-600">
               Average form completion
             </p>
           </CardContent>
@@ -314,9 +314,9 @@ export const CaseAnalyticsDashboard: React.FC = () => {
                 ) : cases.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={8} className="text-center py-8">
-                      <BarChart3 className="mx-auto h-12 w-12 text-muted-foreground" />
+                      <BarChart3 className="mx-auto h-12 w-12 text-gray-600" />
                       <h3 className="mt-4 text-lg font-semibold">No cases found</h3>
-                      <p className="text-muted-foreground">
+                      <p className="text-gray-600">
                         Try adjusting your filters or check back later.
                       </p>
                     </TableCell>
@@ -335,7 +335,7 @@ export const CaseAnalyticsDashboard: React.FC = () => {
                       <TableCell>
                         <div>
                           <div className="font-medium">{caseItem.customerName}</div>
-                          <div className="text-sm text-muted-foreground">{caseItem.clientName}</div>
+                          <div className="text-sm text-gray-600">{caseItem.clientName}</div>
                         </div>
                       </TableCell>
                       <TableCell>
@@ -351,7 +351,7 @@ export const CaseAnalyticsDashboard: React.FC = () => {
                       <TableCell>
                         <div>
                           <div className="font-medium">{caseItem.agentName || 'Unassigned'}</div>
-                          <div className="text-sm text-muted-foreground">{caseItem.employeeId}</div>
+                          <div className="text-sm text-gray-600">{caseItem.employeeId}</div>
                         </div>
                       </TableCell>
                       <TableCell>

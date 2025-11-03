@@ -304,7 +304,7 @@ export function CascadingLocationSelector({
                       <SelectItem key={pincode.id} value={pincode.code}>
                         <div className="flex flex-col">
                           <span className="font-mono">{pincode.code}</span>
-                          <span className="text-xs text-muted-foreground">
+                          <span className="text-xs text-gray-600">
                             {pincode.areas?.length || 0} areas
                           </span>
                         </div>

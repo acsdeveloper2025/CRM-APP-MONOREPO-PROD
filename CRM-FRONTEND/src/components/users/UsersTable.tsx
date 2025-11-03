@@ -188,9 +188,9 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
   if (!data || data.length === 0) {
     return (
       <div className="text-center py-12">
-        <Shield className="mx-auto h-12 w-12 text-muted-foreground" />
+        <Shield className="mx-auto h-12 w-12 text-gray-600" />
         <h3 className="mt-4 text-lg font-semibold">No users found</h3>
-        <p className="text-muted-foreground">
+        <p className="text-gray-600">
           Get started by adding your first user.
         </p>
       </div>
@@ -273,10 +273,10 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
                     </Avatar>
                     <div>
                       <div className="font-medium">{user.name}</div>
-                      <div className="text-sm text-muted-foreground">
+                      <div className="text-sm text-gray-600">
                         {user.username} • {user.employeeId}
                       </div>
-                      <div className="text-sm text-muted-foreground">{user.email}</div>
+                      <div className="text-sm text-gray-600">{user.email}</div>
                     </div>
                   </div>
                 </TableCell>
@@ -288,7 +288,7 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
                 <TableCell className="hidden lg:table-cell">
                   <div>
                     <div className="font-medium">{user.departmentName || 'No Department'}</div>
-                    <div className="text-sm text-muted-foreground">{user.designation}</div>
+                    <div className="text-sm text-gray-600">{user.designation}</div>
                   </div>
                 </TableCell>
                 <TableCell>
@@ -300,7 +300,7 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
                       {new Date(user.lastLogin || user.lastLoginAt!).toLocaleString()}
                     </div>
                   ) : (
-                    <span className="text-sm text-muted-foreground">Never</span>
+                    <span className="text-sm text-gray-600">Never</span>
                   )}
                 </TableCell>
                 <TableCell className="hidden xl:table-cell">
@@ -390,10 +390,10 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
                 </Avatar>
                 <div className="flex-1 min-w-0">
                   <div className="font-medium truncate">{user.name}</div>
-                  <div className="text-sm text-muted-foreground truncate">
+                  <div className="text-sm text-gray-600 truncate">
                     {user.username} • {user.employeeId}
                   </div>
-                  <div className="text-sm text-muted-foreground truncate">{user.email}</div>
+                  <div className="text-sm text-gray-600 truncate">{user.email}</div>
                 </div>
               </div>
               <DropdownMenu>
@@ -469,7 +469,7 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
                   <div>
                     <div className="font-medium">{user.departmentName || 'No Department'}</div>
                     {user.designation && (
-                      <div className="text-sm text-muted-foreground">{user.designation}</div>
+                      <div className="text-sm text-gray-600">{user.designation}</div>
                     )}
                   </div>
                 }
@@ -482,7 +482,7 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
                       {new Date(user.lastLogin || user.lastLoginAt!).toLocaleDateString()}
                     </div>
                   ) : (
-                    <span className="text-sm text-muted-foreground">Never</span>
+                    <span className="text-sm text-gray-600">Never</span>
                   )
                 }
               />

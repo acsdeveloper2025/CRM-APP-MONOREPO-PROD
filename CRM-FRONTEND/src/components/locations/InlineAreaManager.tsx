@@ -131,7 +131,7 @@ export function InlineAreaManager({ pincode, className }: InlineAreaManagerProps
           <Button
             variant="ghost"
             size="sm"
-            className="h-6 w-6 p-0 text-muted-foreground hover:text-primary"
+            className="h-6 w-6 p-0 text-gray-600 hover:text-primary"
             disabled={addAreasMutation.isPending}
           >
             <Plus className="h-3 w-3" />
@@ -141,7 +141,7 @@ export function InlineAreaManager({ pincode, className }: InlineAreaManagerProps
           <div className="space-y-4">
             <div>
               <h4 className="font-medium">Add Areas</h4>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-gray-600">
                 Select additional areas for pincode {pincode.code}
               </p>
             </div>

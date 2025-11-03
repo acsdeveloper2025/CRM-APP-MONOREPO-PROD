@@ -87,7 +87,7 @@ export const CompletedTasksPage: React.FC = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Completed Tasks</h1>
-          <p className="text-muted-foreground mt-1">
+          <p className="text-gray-600 mt-1">
             Verification tasks that have been completed
           </p>
         </div>
@@ -109,11 +109,11 @@ export const CompletedTasksPage: React.FC = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Completed</CardTitle>
-            <CheckCircle className="h-4 w-4 text-muted-foreground" />
+            <CheckCircle className="h-4 w-4 text-gray-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{statistics.completed}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-gray-600">
               Successfully completed tasks
             </p>
           </CardContent>
@@ -122,11 +122,11 @@ export const CompletedTasksPage: React.FC = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">This Month</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
+            <Calendar className="h-4 w-4 text-gray-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{pagination.total}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-gray-600">
               Completed in current period
             </p>
           </CardContent>
@@ -135,7 +135,7 @@ export const CompletedTasksPage: React.FC = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Completion Rate</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            <TrendingUp className="h-4 w-4 text-gray-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
@@ -143,7 +143,7 @@ export const CompletedTasksPage: React.FC = () => {
                 ? Math.round((statistics.completed / (statistics.completed + statistics.inProgress + statistics.pending + statistics.assigned)) * 100)
                 : 0}%
             </div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-gray-600">
               Overall completion rate
             </p>
           </CardContent>
@@ -173,7 +173,7 @@ export const CompletedTasksPage: React.FC = () => {
         <Card>
           <CardContent className="py-4">
             <div className="flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-gray-600">
                 Showing {((pagination.page - 1) * pagination.limit) + 1} to {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} tasks
               </p>
               {pagination.totalPages > 1 && (

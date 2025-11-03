@@ -79,16 +79,16 @@ export const FormSubmissionsTable: React.FC = () => {
       case 'VALID': return 'bg-green-100 text-green-800';
       case 'PENDING': return 'bg-yellow-100 text-yellow-800';
       case 'INVALID': return 'bg-red-100 text-red-800';
-      default: return 'bg-muted text-foreground';
+      default: return 'bg-muted text-gray-900';
     }
   };
 
   const getFormTypeColor = (type: string) => {
     switch (type) {
-      case 'RESIDENCE': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300';
-      case 'OFFICE': return 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-300';
-      case 'BUSINESS': return 'bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-300';
-      default: return 'bg-muted text-muted-foreground';
+      case 'RESIDENCE': return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300';
+      case 'OFFICE': return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300';
+      case 'BUSINESS': return 'bg-yellow-100 text-orange-800 dark:bg-yellow-900/20 dark:text-yellow-300';
+      default: return 'bg-muted text-gray-600';
     }
   };
 
@@ -97,8 +97,8 @@ export const FormSubmissionsTable: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0 flex-1">
-          <h2 className="text-xl sm:text-2xl font-bold text-foreground truncate">Form Submissions Analysis</h2>
-          <p className="mt-1 text-sm sm:text-base text-muted-foreground">
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">Form Submissions Analysis</h2>
+          <p className="mt-1 text-sm sm:text-base text-gray-600">
             Comprehensive view of all form submissions with validation status and trends
           </p>
         </div>
@@ -119,7 +119,7 @@ export const FormSubmissionsTable: React.FC = () => {
             <div className="space-y-2">
               <Label htmlFor="date-from">From Date</Label>
               <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-600 pointer-events-none" />
                 <Input
                   id="date-from"
                   type="date"
@@ -132,7 +132,7 @@ export const FormSubmissionsTable: React.FC = () => {
             <div className="space-y-2">
               <Label htmlFor="date-to">To Date</Label>
               <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-600 pointer-events-none" />
                 <Input
                   id="date-to"
                   type="date"
@@ -160,11 +160,11 @@ export const FormSubmissionsTable: React.FC = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Submissions</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
+            <FileText className="h-4 w-4 text-gray-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{summary?.totalSubmissions || 0}</div>
-            <p className="text-xs text-muted-foreground">All form types</p>
+            <p className="text-xs text-gray-600">All form types</p>
           </CardContent>
         </Card>
 
@@ -175,7 +175,7 @@ export const FormSubmissionsTable: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">{summary?.validSubmissions || 0}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-gray-600">
               {summary?.validationRate ? `${summary.validationRate.toFixed(1)}% validation rate` : 'No data'}
             </p>
           </CardContent>
@@ -188,18 +188,18 @@ export const FormSubmissionsTable: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-yellow-600">{summary?.pendingSubmissions || 0}</div>
-            <p className="text-xs text-muted-foreground">Awaiting validation</p>
+            <p className="text-xs text-gray-600">Awaiting validation</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Residence Forms</CardTitle>
-            <AlertCircle className="h-4 w-4 text-blue-600" />
+            <AlertCircle className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{summary?.residenceForms || 0}</div>
-            <p className="text-xs text-muted-foreground">
+            <div className="text-2xl font-bold text-green-600">{summary?.residenceForms || 0}</div>
+            <p className="text-xs text-gray-600">
               {summary?.officeForms || 0} office forms
             </p>
           </CardContent>
@@ -300,9 +300,9 @@ export const FormSubmissionsTable: React.FC = () => {
                 ) : submissions.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={6} className="text-center py-8">
-                      <FileText className="mx-auto h-12 w-12 text-muted-foreground" />
+                      <FileText className="mx-auto h-12 w-12 text-gray-600" />
                       <h3 className="mt-4 text-lg font-semibold">No submissions found</h3>
-                      <p className="text-muted-foreground">
+                      <p className="text-gray-600">
                         Form submissions will appear here once agents start submitting data.
                       </p>
                     </TableCell>
@@ -318,13 +318,13 @@ export const FormSubmissionsTable: React.FC = () => {
                       <TableCell>
                         <div>
                           <div className="font-medium">#{submission.caseNumber || 'N/A'}</div>
-                          <div className="text-sm text-muted-foreground truncate max-w-[150px]">{submission.customerName}</div>
+                          <div className="text-sm text-gray-600 truncate max-w-[150px]">{submission.customerName}</div>
                         </div>
                       </TableCell>
                       <TableCell className="hidden sm:table-cell">
                         <div>
                           <div className="font-medium">{submission.agentName || 'Unknown'}</div>
-                          <div className="text-sm text-muted-foreground">{submission.employeeId}</div>
+                          <div className="text-sm text-gray-600">{submission.employeeId}</div>
                         </div>
                       </TableCell>
                       <TableCell className="whitespace-nowrap">
@@ -355,7 +355,7 @@ export const FormSubmissionsTable: React.FC = () => {
             const totalPages = Math.ceil(total / limit);
             return (
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 border-t">
-                <div className="text-sm text-muted-foreground text-center sm:text-left">
+                <div className="text-sm text-gray-600 text-center sm:text-left">
                   Showing {submissions.length} of {total} submissions
                 </div>
                 <div className="flex items-center gap-2 flex-wrap justify-center">

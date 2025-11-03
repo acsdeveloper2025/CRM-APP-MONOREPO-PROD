@@ -31,7 +31,7 @@ export function RateManagementPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Rate Management</h1>
-          <p className="text-muted-foreground">
+          <p className="text-gray-600">
             Manage rate types, assignments, and pricing for verification services
           </p>
         </div>
@@ -83,7 +83,7 @@ export function RateManagementPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.documentTypeRates?.totalRates || 0}</div>
-            <p className="text-xs text-muted-foreground mt-2">
+            <p className="text-xs text-gray-600 mt-2">
               {stats.documentTypeRates?.totalDocumentTypes || 0} document types
             </p>
           </CardContent>
@@ -97,7 +97,7 @@ export function RateManagementPage() {
             <div className="text-2xl font-bold">
               ₹{stats.rates.averageAmount?.toFixed(0) || '0'}
             </div>
-            <p className="text-xs text-muted-foreground mt-2">
+            <p className="text-xs text-gray-600 mt-2">
               Verification services
             </p>
           </CardContent>
@@ -112,7 +112,7 @@ export function RateManagementPage() {
               <div className="w-2 h-2 bg-green-500 rounded-full"></div>
               <span className="text-sm font-medium">Operational</span>
             </div>
-            <p className="text-xs text-muted-foreground mt-2">
+            <p className="text-xs text-gray-600 mt-2">
               All systems running
             </p>
           </CardContent>
@@ -151,7 +151,7 @@ export function RateManagementPage() {
               <TabsContent value="rate-types" className="space-y-4">
                 <div className="border rounded-lg p-4">
                   <h3 className="text-lg font-semibold mb-2">Rate Types Management</h3>
-                  <p className="text-sm text-muted-foreground mb-4">
+                  <p className="text-sm text-gray-600 mb-4">
                     Create and manage rate types: Local, Local1, Local2, OGL, OGL1, OGL2, Outstation
                   </p>
                   <RateTypesTab />
@@ -161,7 +161,7 @@ export function RateManagementPage() {
               <TabsContent value="rate-type-assignment" className="space-y-4">
                 <div className="border rounded-lg p-4">
                   <h3 className="text-lg font-semibold mb-2">Rate Type Assignment</h3>
-                  <p className="text-sm text-muted-foreground mb-4">
+                  <p className="text-sm text-gray-600 mb-4">
                     Assign rate types to Client → Product → Verification Type combinations
                   </p>
                   <RateTypeAssignmentTab />
@@ -171,7 +171,7 @@ export function RateManagementPage() {
               <TabsContent value="rate-assignment" className="space-y-4">
                 <div className="border rounded-lg p-4">
                   <h3 className="text-lg font-semibold mb-2">Rate Assignment</h3>
-                  <p className="text-sm text-muted-foreground mb-4">
+                  <p className="text-sm text-gray-600 mb-4">
                     Set actual rate amounts for assigned rate types
                   </p>
                   <RateAssignmentTab />
@@ -181,7 +181,7 @@ export function RateManagementPage() {
               <TabsContent value="rate-view-report" className="space-y-4">
                 <div className="border rounded-lg p-4">
                   <h3 className="text-lg font-semibold mb-2">Rate View & Reports</h3>
-                  <p className="text-sm text-muted-foreground mb-4">
+                  <p className="text-sm text-gray-600 mb-4">
                     View and manage all configured rates with comprehensive filtering and reporting
                   </p>
                   <RateViewReportTab />
@@ -191,7 +191,7 @@ export function RateManagementPage() {
               <TabsContent value="document-type-rates" className="space-y-4">
                 <div className="border rounded-lg p-4">
                   <h3 className="text-lg font-semibold mb-2">Document Type Rates</h3>
-                  <p className="text-sm text-muted-foreground mb-4">
+                  <p className="text-sm text-gray-600 mb-4">
                     Configure pricing for document verification services (independent of rate types)
                   </p>
                   <DocumentTypeRatesTab />
@@ -216,7 +216,7 @@ export function RateManagementPage() {
               </div>
               <div>
                 <h4 className="font-semibold">Create Rate Types</h4>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-gray-600">
                   Define rate categories like Local, OGL, Outstation
                 </p>
               </div>
@@ -228,7 +228,7 @@ export function RateManagementPage() {
               </div>
               <div>
                 <h4 className="font-semibold">Assign Rate Types</h4>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-gray-600">
                   Map rate types to client-product-verification combinations
                 </p>
               </div>
@@ -240,7 +240,7 @@ export function RateManagementPage() {
               </div>
               <div>
                 <h4 className="font-semibold">Set Rate Amounts</h4>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-gray-600">
                   Configure actual pricing for each assigned rate type
                 </p>
               </div>
@@ -252,19 +252,19 @@ export function RateManagementPage() {
               </div>
               <div>
                 <h4 className="font-semibold">View & Manage</h4>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-gray-600">
                   Monitor and update rates with comprehensive reporting
                 </p>
               </div>
             </div>
 
             <div className="flex items-start gap-3">
-              <div className="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
+              <div className="w-8 h-8 bg-green-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
                 5
               </div>
               <div>
                 <h4 className="font-semibold">Document Type Rates</h4>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-gray-600">
                   Set pricing for document verification (simpler, no rate types)
                 </p>
               </div>

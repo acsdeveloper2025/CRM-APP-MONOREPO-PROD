@@ -227,7 +227,7 @@ export function RateTypeAssignmentTab() {
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
               </div>
             ) : assignmentStatus.length === 0 ? (
-              <p className="text-muted-foreground text-center py-8">
+              <p className="text-gray-600 text-center py-8">
                 No rate types available for assignment
               </p>
             ) : (
@@ -253,7 +253,7 @@ export function RateTypeAssignmentTab() {
                           {rateType.rateTypeName}
                         </Label>
                         {rateType.rateTypeDescription && (
-                          <p className="text-xs text-muted-foreground mt-1">
+                          <p className="text-xs text-gray-600 mt-1">
                             {rateType.rateTypeDescription}
                           </p>
                         )}
@@ -279,7 +279,7 @@ export function RateTypeAssignmentTab() {
                   </h4>
                   <div className="flex flex-wrap gap-2">
                     {assignedRateTypeIds.length === 0 ? (
-                      <span className="text-muted-foreground text-sm">No rate types assigned</span>
+                      <span className="text-gray-600 text-sm">No rate types assigned</span>
                     ) : (
                       assignedRateTypeIds.map(rateTypeId => {
                         const rateType = assignmentStatus.find(rt => rt.rateTypeId === rateTypeId);
@@ -304,7 +304,7 @@ export function RateTypeAssignmentTab() {
           <CardTitle>Instructions</CardTitle>
         </CardHeader>
         <CardContent>
-          <ol className="list-decimal list-inside space-y-2 text-sm text-muted-foreground">
+          <ol className="list-decimal list-inside space-y-2 text-sm text-gray-600">
             <li>Select a client from the dropdown to see available products and verification types</li>
             <li>Choose a product that is assigned to the selected client</li>
             <li>Select a verification type that is available for the client</li>
