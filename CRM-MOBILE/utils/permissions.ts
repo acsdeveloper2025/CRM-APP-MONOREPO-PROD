@@ -128,38 +128,56 @@ export const requestLocationPermissions = async (options: PermissionRequestOptio
 
       return result;
     } else {
-      // Web platform - check Geolocation API
+      // Web platform - check Geolocation API permission status
+      // Use Permissions API if available for more accurate permission checking
+      if ('permissions' in navigator) {
+        try {
+          const permissionStatus = await navigator.permissions.query({ name: 'geolocation' as PermissionName });
+          console.log('📍 Web location permission status:', permissionStatus.state);
+
+          return {
+            granted: permissionStatus.state === 'granted',
+            denied: permissionStatus.state === 'denied',
+            prompt: permissionStatus.state === 'prompt'
+          };
+        } catch (permError) {
+          console.warn('Permissions API not fully supported, falling back to getCurrentPosition check:', permError);
+        }
+      }
+
+      // Fallback: Try to get position to check permission
       try {
         await new Promise((resolve, reject) => {
           navigator.geolocation.getCurrentPosition(resolve, reject, {
-            timeout: 5000,
-            enableHighAccuracy: false
+            timeout: 8000,
+            enableHighAccuracy: false,
+            maximumAge: 300000 // Accept cached position up to 5 minutes old
           });
         });
         console.log('✅ Web location access granted');
         return { granted: true, denied: false, prompt: false };
       } catch (error: any) {
-        // Check the error code to differentiate between permission denial and position unavailable
+        // Differentiate between permission denial and position unavailable
         if (error && typeof error === 'object' && 'code' in error) {
           const geoError = error as GeolocationPositionError;
 
           if (geoError.code === 1) {
             // PERMISSION_DENIED - User explicitly denied permission
-            console.warn('❌ Web location permission denied by user:', error);
+            console.warn('❌ Web location permission denied by user');
             return { granted: false, denied: true, prompt: false };
           } else if (geoError.code === 2) {
-            // POSITION_UNAVAILABLE - Permission granted but location unavailable
-            console.warn('⚠️ Web location unavailable (GPS off or no signal), but permission granted:', error);
+            // POSITION_UNAVAILABLE - Permission granted but location unavailable (GPS off, no signal, etc.)
+            console.warn('⚠️ Web location unavailable (GPS off or no signal), but permission is granted');
             return { granted: true, denied: false, prompt: false };
           } else if (geoError.code === 3) {
             // TIMEOUT - Request timed out, assume permission granted
-            console.warn('⏱️ Web location timeout, assuming permission granted:', error);
+            console.warn('⏱️ Web location timeout, assuming permission granted');
             return { granted: true, denied: false, prompt: false };
           }
         }
 
-        // Unknown error - treat as denied
-        console.warn('❌ Web location access error:', error);
+        // Unknown error - treat as denied for safety
+        console.warn('❌ Web location access error (unknown):', error);
         return { granted: false, denied: true, prompt: false };
       }
     }
