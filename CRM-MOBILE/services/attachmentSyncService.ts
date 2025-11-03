@@ -140,7 +140,7 @@ class AttachmentSyncService {
           // Backend checksum is calculated from base64 string only
           if (attachment.checksum) {
             const { encryptionService } = await import('./encryptionService');
-            const isValid = encryptionService.getInstance().verifyChecksum(
+            const isValid = encryptionService.verifyChecksum(
               attachment.base64Data,
               attachment.checksum
             );
