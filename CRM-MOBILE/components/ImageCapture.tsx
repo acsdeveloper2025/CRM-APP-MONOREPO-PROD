@@ -111,6 +111,18 @@ const ImageCapture: React.FC<ImageCaptureProps> = ({
         // Use Android-optimized configuration
         cameraOptions = getAndroidCameraConfig(cameraDirection, 90);
         console.log('📱 Using Android camera configuration');
+      } else if (platform === 'web') {
+        // Web platform - use Prompt to avoid PWA camera modal bug
+        cameraOptions = {
+          quality: 90,
+          allowEditing: false,
+          resultType: CameraResultType.DataUrl,
+          source: CameraSource.Prompt, // Use prompt on web to avoid PWA modal bug
+          correctOrientation: true,
+          width: 1024,
+          height: 1024
+        };
+        console.log('🌐 Using Web camera configuration (Prompt mode)');
       } else {
         // iOS and other platforms configuration
         cameraOptions = {
