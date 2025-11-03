@@ -20,45 +20,66 @@ const NewLoginScreen: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
 
-  // Request permissions for browser environments on component mount
+  // Request permissions for browser environments BEFORE login
   useEffect(() => {
     const requestBrowserPermissions = async () => {
       const platform = Capacitor.getPlatform();
 
       // Only request permissions upfront for web/browser environments
       if (platform === 'web') {
-        console.log('🌐 Browser environment detected - requesting permissions upfront');
+        console.log('🌐 Browser environment detected - requesting permissions BEFORE login');
 
         // Small delay to let the page load
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 2000));
 
         try {
-          // Request Camera Permission
-          console.log('📷 Requesting camera permission...');
-          const cameraPermission = await requestCameraPermissions({
-            showRationale: false,
-            fallbackToSettings: false,
-            context: 'capture verification photos'
-          });
+          let permissionsGranted: string[] = [];
+          let permissionsDenied: string[] = [];
 
-          if (cameraPermission.granted) {
+          // Request Camera Permission using browser MediaDevices API
+          console.log('📷 Requesting camera permission...');
+          try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            // Stop the stream immediately - we just wanted to trigger permission
+            stream.getTracks().forEach(track => track.stop());
             console.log('✅ Camera permission granted');
-          } else {
-            console.warn('⚠️ Camera permission not granted');
+            permissionsGranted.push('Camera');
+          } catch (cameraError: any) {
+            console.warn('⚠️ Camera permission denied:', cameraError.message);
+            permissionsDenied.push('Camera');
           }
 
-          // Request Location Permission
+          // Request Location Permission using browser Geolocation API
           console.log('📍 Requesting location permission...');
-          const locationPermission = await requestLocationPermissions({
-            showRationale: false,
-            fallbackToSettings: false,
-            context: 'tag photos with GPS coordinates'
-          });
-
-          if (locationPermission.granted) {
-            console.log('✅ Location permission granted');
-          } else {
-            console.warn('⚠️ Location permission not granted');
+          try {
+            await new Promise((resolve, reject) => {
+              navigator.geolocation.getCurrentPosition(
+                (position) => {
+                  console.log('✅ Location permission granted');
+                  permissionsGranted.push('Location');
+                  resolve(position);
+                },
+                (error) => {
+                  if (error.code === 1) {
+                    // PERMISSION_DENIED
+                    console.warn('⚠️ Location permission denied');
+                    permissionsDenied.push('Location');
+                  } else {
+                    // POSITION_UNAVAILABLE or TIMEOUT - permission granted but GPS issue
+                    console.log('✅ Location permission granted (GPS unavailable)');
+                    permissionsGranted.push('Location');
+                  }
+                  reject(error);
+                },
+                {
+                  timeout: 5000,
+                  enableHighAccuracy: false,
+                  maximumAge: 300000
+                }
+              );
+            });
+          } catch (locationError) {
+            // Error already handled in callback
           }
 
           // Request Notification Permission (browser API)
@@ -68,23 +89,31 @@ const NewLoginScreen: React.FC = () => {
               const notificationPermission = await Notification.requestPermission();
               if (notificationPermission === 'granted') {
                 console.log('✅ Notification permission granted');
+                permissionsGranted.push('Notifications');
               } else {
-                console.warn('⚠️ Notification permission not granted');
+                console.warn('⚠️ Notification permission denied');
+                permissionsDenied.push('Notifications');
               }
             } catch (notifError) {
               console.warn('Notification permission request failed:', notifError);
+              permissionsDenied.push('Notifications');
             }
+          } else if ('Notification' in window && Notification.permission === 'granted') {
+            permissionsGranted.push('Notifications');
           }
 
           // Show summary toast
-          const grantedPermissions = [];
-          if (cameraPermission.granted) grantedPermissions.push('Camera');
-          if (locationPermission.granted) grantedPermissions.push('Location');
-          if ('Notification' in window && Notification.permission === 'granted') grantedPermissions.push('Notifications');
-
-          if (grantedPermissions.length > 0) {
+          if (permissionsGranted.length > 0) {
             Toast.show({
-              text: `✅ Permissions granted: ${grantedPermissions.join(', ')}`,
+              text: `✅ Permissions granted: ${permissionsGranted.join(', ')}`,
+              duration: 'long',
+              position: 'top'
+            });
+          }
+
+          if (permissionsDenied.length > 0) {
+            Toast.show({
+              text: `⚠️ Permissions needed: ${permissionsDenied.join(', ')}. Please enable in browser settings.`,
               duration: 'long',
               position: 'top'
             });
