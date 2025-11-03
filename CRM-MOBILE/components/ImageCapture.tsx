@@ -3,6 +3,7 @@ import { CapturedImage } from '../types';
 import { CameraIcon, MapPinIcon, ClockIcon } from './Icons';
 import { Camera, CameraResultType, CameraSource, CameraDirection } from '@capacitor/camera';
 import { Geolocation } from '@capacitor/geolocation';
+import { Toast } from '@capacitor/toast';
 import { Capacitor } from '@capacitor/core';
 import { requestCameraPermissions, requestLocationPermissions } from '../utils/permissions';
 import { getAndroidCameraConfig, getAndroidCameraErrorMessage } from '../utils/androidCameraConfig';
@@ -234,16 +235,18 @@ const ImageCapture: React.FC<ImageCaptureProps> = ({
       let longitude = 0;
       let accuracy: number | undefined;
 
+      let locationSource: string = 'none';
+
       try {
         // Request location permissions first with enhanced options
         const locationPermission = await requestLocationPermissions({
-          showRationale: false, // Don't show rationale for location as it's optional
+          showRationale: false,
           fallbackToSettings: false,
           context: 'tag photos with GPS coordinates for verification'
         });
 
         if (locationPermission.granted) {
-          console.log('📍 Location permission granted, getting location...');
+          console.log('📍 Location permission granted, acquiring GPS coordinates...');
 
           // Initialize Google Maps service (non-blocking)
           try {
@@ -253,52 +256,80 @@ const ImageCapture: React.FC<ImageCaptureProps> = ({
             console.warn('Google Maps initialization failed, proceeding with basic geolocation:', mapsError);
           }
 
-          // Use enhanced geolocation service with timeout
+          // Use enhanced geolocation service with comprehensive retry logic
           try {
-            enhancedLocation = await Promise.race([
-              enhancedGeolocationService.getCurrentLocation({
-                enableHighAccuracy: true,
-                timeout: 12000, // Increased timeout for better GPS acquisition (12 seconds)
-                includeAddress: true,
-                validateLocation: true,
-                fallbackToNominatim: true
-              }),
-              new Promise<never>((_, reject) =>
-                setTimeout(() => reject(new Error('Enhanced geolocation timeout')), 15000) // 15 second timeout
-              )
-            ]);
+            enhancedLocation = await enhancedGeolocationService.getCurrentLocation({
+              enableHighAccuracy: true,
+              timeout: 20000, // 20 seconds for high-accuracy GPS
+              maximumAge: 30000, // Accept cached position up to 30 seconds old
+              includeAddress: true,
+              validateLocation: true,
+              fallbackToNominatim: true,
+              retryAttempts: 3, // Try 3 times with exponential backoff
+              fallbackToIPGeolocation: true // Use IP geolocation as last resort
+            });
 
             latitude = enhancedLocation.latitude;
             longitude = enhancedLocation.longitude;
             accuracy = enhancedLocation.accuracy;
-            console.log('✅ Enhanced geolocation successful');
-          } catch (enhancedError) {
-            console.warn('Enhanced geolocation failed, trying basic fallback:', enhancedError);
+            locationSource = enhancedLocation.source;
 
-            // Fallback to basic Capacitor geolocation
-            try {
-              const position = await Promise.race([
-                Geolocation.getCurrentPosition({
-                  enableHighAccuracy: true,
-                  timeout: 10000, // Increased timeout for GPS acquisition (10 seconds)
-                }),
-                new Promise<never>((_, reject) =>
-                  setTimeout(() => reject(new Error('Basic geolocation timeout')), 12000) // 12 second timeout
-                )
-              ]);
-              latitude = position.coords.latitude;
-              longitude = position.coords.longitude;
-              accuracy = position.coords.accuracy;
-              console.log('✅ Basic geolocation successful');
-            } catch (fallbackError) {
-              console.info('All geolocation methods failed, proceeding without location:', fallbackError);
+            // Log success with accuracy info
+            const accuracyText = accuracy
+              ? accuracy < 50 ? 'excellent' : accuracy < 100 ? 'good' : accuracy < 500 ? 'fair' : 'low'
+              : 'unknown';
+            console.log(`✅ Location acquired: ${latitude.toFixed(6)}, ${longitude.toFixed(6)} (${accuracyText} accuracy: ${accuracy?.toFixed(0)}m, source: ${locationSource})`);
+
+            // Show success toast for good accuracy
+            if (accuracy && accuracy < 100) {
+              Toast.show({
+                text: `📍 GPS locked (${accuracy.toFixed(0)}m accuracy)`,
+                duration: 'short',
+                position: 'top'
+              });
+            } else if (accuracy && accuracy >= 500) {
+              // Warn about low accuracy
+              Toast.show({
+                text: `⚠️ Low GPS accuracy (${accuracy.toFixed(0)}m). Try moving to an open area.`,
+                duration: 'long',
+                position: 'top'
+              });
             }
+
+          } catch (locationError) {
+            console.error('❌ All location acquisition methods failed:', locationError);
+
+            // Get detailed error information
+            const errorInfo = enhancedGeolocationService.getErrorInfo(locationError);
+
+            // Show user-friendly error message
+            Toast.show({
+              text: `⚠️ ${errorInfo.userMessage}`,
+              duration: 'long',
+              position: 'top'
+            });
+
+            // Log actionable advice
+            console.warn('💡 Suggestion:', errorInfo.actionable);
+
+            // Proceed without location (latitude/longitude remain 0)
+            console.warn('⚠️ Proceeding without GPS coordinates');
           }
         } else {
-          console.warn('Location permission not granted, proceeding without location');
+          console.warn('❌ Location permission not granted');
+          Toast.show({
+            text: '⚠️ Location permission required for GPS tagging',
+            duration: 'long',
+            position: 'top'
+          });
         }
       } catch (permissionError) {
-        console.warn('Location permission request failed, proceeding without location:', permissionError);
+        console.error('❌ Location permission request failed:', permissionError);
+        Toast.show({
+          text: '⚠️ Unable to request location permission',
+          duration: 'short',
+          position: 'top'
+        });
       }
 
       const timestamp = new Date().toISOString();
