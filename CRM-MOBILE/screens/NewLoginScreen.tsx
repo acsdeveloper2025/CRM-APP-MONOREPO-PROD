@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,14 +8,96 @@ import {
   KeyboardAvoidingView,
   Platform
 } from 'react-native';
+import { Capacitor } from '@capacitor/core';
+import { Toast } from '@capacitor/toast';
 import { useAuth } from '../context/AuthContext';
 import DeviceAuthentication from '../components/DeviceAuthentication';
+import { requestCameraPermissions, requestLocationPermissions } from '../utils/permissions';
 
 const NewLoginScreen: React.FC = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
+
+  // Request permissions for browser environments on component mount
+  useEffect(() => {
+    const requestBrowserPermissions = async () => {
+      const platform = Capacitor.getPlatform();
+
+      // Only request permissions upfront for web/browser environments
+      if (platform === 'web') {
+        console.log('🌐 Browser environment detected - requesting permissions upfront');
+
+        // Small delay to let the page load
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        try {
+          // Request Camera Permission
+          console.log('📷 Requesting camera permission...');
+          const cameraPermission = await requestCameraPermissions({
+            showRationale: false,
+            fallbackToSettings: false,
+            context: 'capture verification photos'
+          });
+
+          if (cameraPermission.granted) {
+            console.log('✅ Camera permission granted');
+          } else {
+            console.warn('⚠️ Camera permission not granted');
+          }
+
+          // Request Location Permission
+          console.log('📍 Requesting location permission...');
+          const locationPermission = await requestLocationPermissions({
+            showRationale: false,
+            fallbackToSettings: false,
+            context: 'tag photos with GPS coordinates'
+          });
+
+          if (locationPermission.granted) {
+            console.log('✅ Location permission granted');
+          } else {
+            console.warn('⚠️ Location permission not granted');
+          }
+
+          // Request Notification Permission (browser API)
+          if ('Notification' in window && Notification.permission === 'default') {
+            console.log('🔔 Requesting notification permission...');
+            try {
+              const notificationPermission = await Notification.requestPermission();
+              if (notificationPermission === 'granted') {
+                console.log('✅ Notification permission granted');
+              } else {
+                console.warn('⚠️ Notification permission not granted');
+              }
+            } catch (notifError) {
+              console.warn('Notification permission request failed:', notifError);
+            }
+          }
+
+          // Show summary toast
+          const grantedPermissions = [];
+          if (cameraPermission.granted) grantedPermissions.push('Camera');
+          if (locationPermission.granted) grantedPermissions.push('Location');
+          if ('Notification' in window && Notification.permission === 'granted') grantedPermissions.push('Notifications');
+
+          if (grantedPermissions.length > 0) {
+            Toast.show({
+              text: `✅ Permissions granted: ${grantedPermissions.join(', ')}`,
+              duration: 'long',
+              position: 'top'
+            });
+          }
+
+        } catch (error) {
+          console.error('Error requesting browser permissions:', error);
+        }
+      }
+    };
+
+    requestBrowserPermissions();
+  }, []);
 
   const handleLogin = async () => {
     // Client-side validation
