@@ -92,7 +92,7 @@ export function FormFieldViewer({ field, readonly = true, onChange }: FormFieldV
             </div>
           );
         }
-        return <span className="text-sm text-muted-foreground">No files</span>;
+        return <span className="text-sm text-gray-600">No files</span>;
 
       case 'date':
         return (
@@ -210,18 +210,18 @@ export function FormFieldViewer({ field, readonly = true, onChange }: FormFieldV
   return (
     <div className="space-y-2">
       <div className="flex items-center space-x-2">
-        <div className="text-muted-foreground">
+        <div className="text-gray-600">
           {getFieldIcon(field.type)}
         </div>
         <Label className="text-sm font-medium">
           {field.label}
           {field.required && <span className="text-red-500 ml-1">*</span>}
-          {readonly && <span className="text-xs text-muted-foreground ml-2">(Read Only)</span>}
+          {readonly && <span className="text-xs text-gray-600 ml-2">(Read Only)</span>}
         </Label>
       </div>
 
       {field.description && (
-        <p className="text-xs text-muted-foreground">{field.description}</p>
+        <p className="text-xs text-gray-600">{field.description}</p>
       )}
 
       <div className={`${readonly ? 'bg-muted/30 rounded-md p-3' : ''}`}>
@@ -229,7 +229,7 @@ export function FormFieldViewer({ field, readonly = true, onChange }: FormFieldV
       </div>
 
       {!readonly && field.type === 'file' && (
-        <div className="text-xs text-muted-foreground">
+        <div className="text-xs text-gray-600">
           Supported formats: JPG, PNG, PDF (Max 10MB)
         </div>
       )}

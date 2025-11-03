@@ -117,9 +117,9 @@ export function MISReportsTable({ data, isLoading }: MISReportsTableProps) {
   if (!data || data.length === 0) {
     return (
       <div className="text-center py-12">
-        <BarChart3 className="mx-auto h-12 w-12 text-muted-foreground" />
+        <BarChart3 className="mx-auto h-12 w-12 text-gray-600" />
         <h3 className="mt-4 text-lg font-semibold">No MIS reports found</h3>
-        <p className="text-muted-foreground">
+        <p className="text-gray-600">
           Get started by generating your first MIS report.
         </p>
       </div>
@@ -156,7 +156,7 @@ export function MISReportsTable({ data, isLoading }: MISReportsTableProps) {
                   {getReportTypeBadge(report.reportType)}
                 </TableCell>
                 <TableCell>
-                  <span className="text-sm text-muted-foreground">
+                  <span className="text-sm text-gray-600">
                     {report.description || 'No description'}
                   </span>
                 </TableCell>

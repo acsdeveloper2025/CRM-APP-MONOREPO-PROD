@@ -14,8 +14,8 @@ export const CommissionManagementPage: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0 flex-1">
-          <h1 className="text-2xl sm:text-3xl font-bold text-foreground truncate">Commission Management</h1>
-          <p className="text-sm sm:text-base text-muted-foreground mt-1">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 truncate">Commission Management</h1>
+          <p className="text-sm sm:text-base text-gray-600 mt-1">
             Manage field employee commissions, rate assignments, and payments
           </p>
         </div>
@@ -50,12 +50,12 @@ export const CommissionManagementPage: React.FC = () => {
       <Card className="bg-muted/50">
         <CardContent className="p-4">
           <div className="flex items-start gap-3">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <FileText className="h-5 w-5 text-blue-600" />
+            <div className="p-2 bg-green-100 rounded-lg">
+              <FileText className="h-5 w-5 text-green-600" />
             </div>
             <div>
-              <h3 className="font-semibold text-foreground mb-2">Commission Management Guide</h3>
-              <div className="space-y-1 text-sm text-muted-foreground">
+              <h3 className="font-semibold text-gray-900 mb-2">Commission Management Guide</h3>
+              <div className="space-y-1 text-sm text-gray-600">
                 <p>• <strong>Rate Assignments:</strong> Assign commission rates to field users using existing rate types from the rate management system</p>
                 <p>• <strong>Rate Selection:</strong> Choose from available rate types (Local, OGL, Outstation, etc.) when creating assignments</p>
                 <p>• <strong>Auto-Calculation:</strong> Commissions are automatically calculated when field users complete cases</p>

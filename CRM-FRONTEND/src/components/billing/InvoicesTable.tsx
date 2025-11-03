@@ -110,9 +110,9 @@ export function InvoicesTable({ data, isLoading }: InvoicesTableProps) {
   if (!data || data.length === 0) {
     return (
       <div className="text-center py-12">
-        <Receipt className="mx-auto h-12 w-12 text-muted-foreground" />
+        <Receipt className="mx-auto h-12 w-12 text-gray-600" />
         <h3 className="mt-4 text-lg font-semibold">No invoices found</h3>
-        <p className="text-muted-foreground">
+        <p className="text-gray-600">
           Get started by creating your first invoice.
         </p>
       </div>
@@ -148,13 +148,13 @@ export function InvoicesTable({ data, isLoading }: InvoicesTableProps) {
                 <TableCell>
                   <div>
                     <div className="font-medium">{invoice.client.name}</div>
-                    <div className="text-sm text-muted-foreground">{invoice.client.code}</div>
+                    <div className="text-sm text-gray-600">{invoice.client.code}</div>
                   </div>
                 </TableCell>
                 <TableCell>
                   <div>
                     <div className="font-medium">₹{invoice.totalAmount.toLocaleString()}</div>
-                    <div className="text-sm text-muted-foreground">
+                    <div className="text-sm text-gray-600">
                       Tax: ₹{invoice.taxAmount.toLocaleString()}
                     </div>
                   </div>

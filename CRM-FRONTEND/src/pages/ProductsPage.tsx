@@ -50,7 +50,7 @@ export function ProductsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Product Management</h1>
-          <p className="text-muted-foreground">
+          <p className="text-gray-600">
             Manage verification products, categories, and pricing
           </p>
         </div>
@@ -64,7 +64,7 @@ export function ProductsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.total}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-gray-600">
               All products across clients
             </p>
           </CardContent>
@@ -75,7 +75,7 @@ export function ProductsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.active}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-gray-600">
               Currently active products
             </p>
           </CardContent>
@@ -86,7 +86,7 @@ export function ProductsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.inactive}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-gray-600">
               Disabled or archived products
             </p>
           </CardContent>
@@ -126,7 +126,7 @@ export function ProductsPage() {
             {/* Pagination Controls */}
             {productsData?.pagination && (
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
-                <div className="text-sm text-muted-foreground">
+                <div className="text-sm text-gray-600">
                   Showing {productsData.data?.length || 0} of {productsData.pagination.total} products
                 </div>
                 <div className="flex items-center gap-2">

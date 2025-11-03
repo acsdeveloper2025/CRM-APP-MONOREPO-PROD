@@ -190,7 +190,7 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
     <div className="max-w-6xl mx-auto space-y-6">
       <div className="text-center space-y-2">
         <h2 className="text-2xl font-bold tracking-tight">Create Case with Tasks</h2>
-        <p className="text-muted-foreground">
+        <p className="text-gray-600">
           Fill in case details once, then configure verification tasks
         </p>
       </div>
@@ -213,18 +213,18 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-muted/50 rounded-lg">
                   <div>
-                    <label className="text-sm font-medium text-muted-foreground">Customer Name</label>
+                    <label className="text-sm font-medium text-gray-600">Customer Name</label>
                     <p className="text-base font-medium">{customerInfo.customerName}</p>
                   </div>
                   {customerInfo.panNumber && (
                     <div>
-                      <label className="text-sm font-medium text-muted-foreground">PAN</label>
+                      <label className="text-sm font-medium text-gray-600">PAN</label>
                       <p className="text-base font-mono">{customerInfo.panNumber}</p>
                     </div>
                   )}
                   {customerInfo.mobileNumber && (
                     <div>
-                      <label className="text-sm font-medium text-muted-foreground">Mobile</label>
+                      <label className="text-sm font-medium text-gray-600">Mobile</label>
                       <p className="text-base">{customerInfo.mobileNumber}</p>
                     </div>
                   )}
@@ -854,7 +854,7 @@ const TaskAttachmentsSection: React.FC<TaskAttachmentsSectionProps> = ({
 
   const getFileIcon = (type: string) => {
     if (type === 'image') {
-      return <Image className="h-4 w-4 text-blue-500" />;
+      return <Image className="h-4 w-4 text-green-500" />;
     }
     return <FileText className="h-4 w-4 text-red-500" />;
   };
@@ -906,18 +906,18 @@ const TaskAttachmentsSection: React.FC<TaskAttachmentsSectionProps> = ({
       {/* File Upload Area */}
       <div
         className={`border-2 border-dashed rounded-lg p-4 text-center transition-colors ${
-          isDragging ? 'border-blue-500 bg-blue-50' : 'border-gray-300'
+          isDragging ? 'border-green-500 bg-green-50' : 'border-gray-300'
         }`}
         onDragEnter={handleDragEnter}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
       >
-        <Upload className="h-6 w-6 text-muted-foreground mx-auto mb-2" />
-        <p className="text-xs text-muted-foreground mb-1">
+        <Upload className="h-6 w-6 text-gray-600 mx-auto mb-2" />
+        <p className="text-xs text-gray-600 mb-1">
           <button
             type="button"
-            className="text-blue-600 hover:text-blue-700 underline cursor-pointer"
+            className="text-green-600 hover:text-green-700 underline cursor-pointer"
             onClick={handleBrowseClick}
             disabled={attachments.length >= MAX_FILES}
           >
@@ -925,7 +925,7 @@ const TaskAttachmentsSection: React.FC<TaskAttachmentsSectionProps> = ({
           </button>
           {' '}or drag and drop
         </p>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs text-gray-600">
           PDF, images, Word docs • Max 10MB • {MAX_FILES} files total
         </p>
         <input

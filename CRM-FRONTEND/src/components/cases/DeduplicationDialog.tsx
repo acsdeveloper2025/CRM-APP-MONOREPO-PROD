@@ -67,13 +67,13 @@ export const DeduplicationDialog: React.FC<DeduplicationDialogProps> = ({
         return 'bg-red-100 text-red-800';
       case 'Phone':
       case 'Bank Account':
-        return 'bg-orange-100 text-orange-800';
+        return 'bg-yellow-100 text-orange-800';
       case 'Email':
         return 'bg-yellow-100 text-yellow-800';
       case 'Name':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-green-100 text-green-800';
       default:
-        return 'bg-muted text-foreground';
+        return 'bg-muted text-gray-900';
     }
   };
 
@@ -82,13 +82,13 @@ export const DeduplicationDialog: React.FC<DeduplicationDialogProps> = ({
       case 'completed':
         return 'bg-green-100 text-green-800';
       case 'in_progress':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-green-100 text-green-800';
       case 'pending':
         return 'bg-yellow-100 text-yellow-800';
       case 'cancelled':
         return 'bg-red-100 text-red-800';
       default:
-        return 'bg-muted text-foreground';
+        return 'bg-muted text-gray-900';
     }
   };
 
@@ -97,14 +97,14 @@ export const DeduplicationDialog: React.FC<DeduplicationDialogProps> = ({
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5 text-orange-500" />
+            <AlertTriangle className="h-5 w-5 text-yellow-500" />
             Potential Duplicate Cases Found
           </DialogTitle>
           <DialogDescription>
             We found {duplicates.length} potential duplicate case{duplicates.length !== 1 ? 's' : ''} 
             based on the information provided. Please review and decide how to proceed.
             {hasHighScoreMatches && (
-              <span className="block mt-2 text-orange-600 font-medium">
+              <span className="block mt-2 text-yellow-600 font-medium">
                 ⚠️ High confidence matches detected - please review carefully
               </span>
             )}
@@ -148,7 +148,7 @@ export const DeduplicationDialog: React.FC<DeduplicationDialogProps> = ({
               <Card 
                 key={duplicate.id} 
                 className={`cursor-pointer transition-colors ${
-                  selectedCaseId === duplicate.id ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:bg-muted'
+                  selectedCaseId === duplicate.id ? 'ring-2 ring-blue-500 bg-green-50' : 'hover:bg-muted'
                 }`}
                 onClick={() => setSelectedCaseId(duplicate.id)}
               >
@@ -160,30 +160,30 @@ export const DeduplicationDialog: React.FC<DeduplicationDialogProps> = ({
                         <Badge className={getStatusColor(duplicate.status)}>
                           {duplicate.status}
                         </Badge>
-                        <span className="text-sm text-muted-foreground">
+                        <span className="text-sm text-gray-600">
                           Score: {duplicate.matchScore}%
                         </span>
                       </div>
                       
                       <div className="grid grid-cols-2 gap-4 text-sm">
                         <div className="flex items-center gap-2">
-                          <User className="h-4 w-4 text-muted-foreground" />
+                          <User className="h-4 w-4 text-gray-600" />
                           <span>{duplicate.applicantName}</span>
                         </div>
                         {duplicate.applicantPhone && (
                           <div className="flex items-center gap-2">
-                            <Phone className="h-4 w-4 text-muted-foreground" />
+                            <Phone className="h-4 w-4 text-gray-600" />
                             <span>{duplicate.applicantPhone}</span>
                           </div>
                         )}
                         {duplicate.applicantEmail && (
                           <div className="flex items-center gap-2">
-                            <Mail className="h-4 w-4 text-muted-foreground" />
+                            <Mail className="h-4 w-4 text-gray-600" />
                             <span>{duplicate.applicantEmail}</span>
                           </div>
                         )}
                         <div className="flex items-center gap-2">
-                          <Calendar className="h-4 w-4 text-muted-foreground" />
+                          <Calendar className="h-4 w-4 text-gray-600" />
                           <span>{formatDistanceToNow(new Date(duplicate.createdAt), { addSuffix: true })}</span>
                         </div>
                       </div>

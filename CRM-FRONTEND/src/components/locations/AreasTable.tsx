@@ -120,7 +120,7 @@ export function AreasTable({ data, isLoading }: AreasTableProps) {
           </TableHeader>
           <TableBody>
             <TableRow>
-              <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+              <TableCell colSpan={4} className="text-center py-8 text-gray-600">
                 No areas found. Areas will appear here when pincodes are created with area information.
               </TableCell>
             </TableRow>
@@ -149,7 +149,7 @@ export function AreasTable({ data, isLoading }: AreasTableProps) {
                 <TableRow key={area.id}>
                   <TableCell>
                     <div className="flex items-center space-x-2">
-                      <MapPin className="h-4 w-4 text-muted-foreground" />
+                      <MapPin className="h-4 w-4 text-gray-600" />
                       <span className="font-medium">{area.name}</span>
                       <Badge variant="outline" className="text-xs">
                         #{area.displayOrder}
@@ -159,7 +159,7 @@ export function AreasTable({ data, isLoading }: AreasTableProps) {
                   <TableCell>
                     {areaWithDetails.usageCount !== undefined && (
                       <div className="flex items-center space-x-1">
-                        <Hash className="h-3 w-3 text-muted-foreground" />
+                        <Hash className="h-3 w-3 text-gray-600" />
                         <span className="text-sm font-medium">
                           {areaWithDetails.usageCount}
                         </span>
@@ -167,7 +167,7 @@ export function AreasTable({ data, isLoading }: AreasTableProps) {
                     )}
                   </TableCell>
                   <TableCell>
-                    <span className="text-sm text-muted-foreground">
+                    <span className="text-sm text-gray-600">
                       {formatDate(area.createdAt || '')}
                     </span>
                   </TableCell>

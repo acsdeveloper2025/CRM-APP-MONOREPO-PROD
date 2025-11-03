@@ -181,7 +181,7 @@ export function CreateDesignationDialog({ open, onOpenChange }: CreateDesignatio
                 <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                   <div className="space-y-0.5">
                     <FormLabel className="text-base">Active Status</FormLabel>
-                    <div className="text-sm text-muted-foreground">
+                    <div className="text-sm text-gray-600">
                       Enable this designation for use in user assignments
                     </div>
                   </div>

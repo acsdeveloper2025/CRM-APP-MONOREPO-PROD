@@ -48,7 +48,7 @@ export const FormSubmissionsPage: React.FC = () => {
       case 'rejected':
         return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300';
       default:
-        return 'bg-muted text-muted-foreground';
+        return 'bg-muted text-gray-600';
     }
   };
 
@@ -63,7 +63,7 @@ export const FormSubmissionsPage: React.FC = () => {
       case 'pending':
         return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300';
       default:
-        return 'bg-muted text-muted-foreground';
+        return 'bg-muted text-gray-600';
     }
   };
 
@@ -87,8 +87,8 @@ export const FormSubmissionsPage: React.FC = () => {
     return (
       <div className="text-center py-12">
         <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-        <h2 className="text-2xl font-bold text-foreground mb-2">Error Loading Form Submissions</h2>
-        <p className="text-muted-foreground">There was an error loading the form submissions for this case.</p>
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">Error Loading Form Submissions</h2>
+        <p className="text-gray-600">There was an error loading the form submissions for this case.</p>
       </div>
     );
   }
@@ -98,8 +98,8 @@ export const FormSubmissionsPage: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Form Submissions</h1>
-          <p className="mt-2 text-muted-foreground">Case #{caseId}</p>
+          <h1 className="text-3xl font-bold text-gray-900">Form Submissions</h1>
+          <p className="mt-2 text-gray-600">Case #{caseId}</p>
         </div>
         <Badge variant="outline" className="text-lg px-3 py-1">
           {submissions.length} Submissions
@@ -110,9 +110,9 @@ export const FormSubmissionsPage: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {submissions.length === 0 ? (
           <div className="col-span-full text-center py-12">
-            <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-foreground mb-2">No Form Submissions</h3>
-            <p className="text-muted-foreground">No form submissions found for this case.</p>
+            <FileText className="h-12 w-12 text-gray-600 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No Form Submissions</h3>
+            <p className="text-gray-600">No form submissions found for this case.</p>
           </div>
         ) : (
           submissions.map((submission) => (
@@ -124,12 +124,12 @@ export const FormSubmissionsPage: React.FC = () => {
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center space-x-3">
-                    <div className="p-2 bg-blue-100 rounded-lg">
-                      <User className="h-5 w-5 text-blue-600" />
+                    <div className="p-2 bg-green-100 rounded-lg">
+                      <User className="h-5 w-5 text-green-600" />
                     </div>
                     <div>
                       <CardTitle className="text-lg">{submission.submittedByName}</CardTitle>
-                      <p className="text-sm text-muted-foreground">Field Agent</p>
+                      <p className="text-sm text-gray-600">Field Agent</p>
                     </div>
                   </div>
                   <div className="flex flex-col items-end space-y-1">
@@ -147,8 +147,8 @@ export const FormSubmissionsPage: React.FC = () => {
                   {/* NEW: Task Information */}
                   {submission.verificationTaskNumber && (
                     <div className="flex items-center space-x-2 text-sm">
-                      <CheckCircle2 className="h-4 w-4 text-blue-600" />
-                      <span className="font-medium text-blue-600">
+                      <CheckCircle2 className="h-4 w-4 text-green-600" />
+                      <span className="font-medium text-green-600">
                         Task {submission.verificationTaskNumber}
                       </span>
                       {submission.verificationTypeName && (
@@ -158,17 +158,17 @@ export const FormSubmissionsPage: React.FC = () => {
                       )}
                     </div>
                   )}
-                  <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                  <div className="flex items-center space-x-2 text-sm text-gray-600">
                     <Clock className="h-4 w-4" />
                     <span>
                       {formatDistanceToNow(new Date(submission.submittedAt), { addSuffix: true })}
                     </span>
                   </div>
-                  <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                  <div className="flex items-center space-x-2 text-sm text-gray-600">
                     <FileText className="h-4 w-4" />
                     <span>{submission.formType} Form</span>
                   </div>
-                  <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                  <div className="flex items-center space-x-2 text-sm text-gray-600">
                     <Camera className="h-4 w-4" />
                     <span>{submission.photos?.length || 0} photos captured</span>
                   </div>

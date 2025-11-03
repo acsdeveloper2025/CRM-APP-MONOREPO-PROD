@@ -48,9 +48,9 @@ export const OptimizedFormSubmissionViewer: React.FC<OptimizedFormSubmissionView
       case 'DRAFT':
         return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300';
       case 'PENDING':
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300';
+        return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300';
       default:
-        return 'bg-muted text-muted-foreground';
+        return 'bg-muted text-gray-600';
     }
   };
 
@@ -61,7 +61,7 @@ export const OptimizedFormSubmissionViewer: React.FC<OptimizedFormSubmissionView
       case 'INVALID':
         return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300';
       default:
-        return 'bg-muted text-muted-foreground';
+        return 'bg-muted text-gray-600';
     }
   };
 
@@ -72,9 +72,9 @@ export const OptimizedFormSubmissionViewer: React.FC<OptimizedFormSubmissionView
       case 'negative':
         return 'text-red-600 dark:text-red-400';
       case 'untraceable':
-        return 'text-orange-600 dark:text-orange-400';
+        return 'text-yellow-600 dark:text-orange-400';
       default:
-        return 'text-muted-foreground';
+        return 'text-gray-600';
     }
   };
 
@@ -103,8 +103,8 @@ export const OptimizedFormSubmissionViewer: React.FC<OptimizedFormSubmissionView
         <CardHeader className="pb-4">
           <div className="flex items-start justify-between">
             <div className="flex items-center space-x-3">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <FileText className="h-5 w-5 text-blue-600" />
+              <div className="p-2 bg-green-100 rounded-lg">
+                <FileText className="h-5 w-5 text-green-600" />
               </div>
               <div>
                 <CardTitle className="text-xl">
@@ -139,17 +139,17 @@ export const OptimizedFormSubmissionViewer: React.FC<OptimizedFormSubmissionView
           {/* Key Information Grid */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
             <div className="flex items-center space-x-2">
-              <User className="h-4 w-4 text-muted-foreground" />
+              <User className="h-4 w-4 text-gray-600" />
               <div>
-                <p className="text-xs text-muted-foreground">Agent</p>
+                <p className="text-xs text-gray-600">Agent</p>
                 <p className="text-sm font-medium">{agentName}</p>
               </div>
             </div>
 
             <div className="flex items-center space-x-2">
-              <Clock className="h-4 w-4 text-muted-foreground" />
+              <Clock className="h-4 w-4 text-gray-600" />
               <div>
-                <p className="text-xs text-muted-foreground">Submitted</p>
+                <p className="text-xs text-gray-600">Submitted</p>
                 <p className="text-sm font-medium">
                   {submissionDate ? formatDistanceToNow(submissionDate, { addSuffix: true }) : 'Unknown time'}
                 </p>
@@ -157,17 +157,17 @@ export const OptimizedFormSubmissionViewer: React.FC<OptimizedFormSubmissionView
             </div>
 
             <div className="flex items-center space-x-2">
-              <Camera className="h-4 w-4 text-muted-foreground" />
+              <Camera className="h-4 w-4 text-gray-600" />
               <div>
-                <p className="text-xs text-muted-foreground">Photos</p>
+                <p className="text-xs text-gray-600">Photos</p>
                 <p className="text-sm font-medium">{submission.photos?.length || 0} captured</p>
               </div>
             </div>
 
             <div className="flex items-center space-x-2">
-              <FileText className="h-4 w-4 text-muted-foreground" />
+              <FileText className="h-4 w-4 text-gray-600" />
               <div>
-                <p className="text-xs text-muted-foreground">Form Data</p>
+                <p className="text-xs text-gray-600">Form Data</p>
                 <p className="text-sm font-medium">{formSections.length} sections, {totalFields} fields</p>
               </div>
             </div>
@@ -176,9 +176,9 @@ export const OptimizedFormSubmissionViewer: React.FC<OptimizedFormSubmissionView
           {/* Submission Details */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t">
             <div className="flex items-center space-x-2">
-              <Calendar className="h-4 w-4 text-muted-foreground" />
+              <Calendar className="h-4 w-4 text-gray-600" />
               <div>
-                <p className="text-xs text-muted-foreground">Full Date & Time</p>
+                <p className="text-xs text-gray-600">Full Date & Time</p>
                 <p className="text-sm font-medium">
                   {submissionDate ? format(submissionDate, 'MMM dd, yyyy HH:mm') : 'Unknown date'}
                 </p>
@@ -186,9 +186,9 @@ export const OptimizedFormSubmissionViewer: React.FC<OptimizedFormSubmissionView
             </div>
 
             <div className="flex items-center space-x-2">
-              <Smartphone className="h-4 w-4 text-muted-foreground" />
+              <Smartphone className="h-4 w-4 text-gray-600" />
               <div>
-                <p className="text-xs text-muted-foreground">Platform</p>
+                <p className="text-xs text-gray-600">Platform</p>
                 <p className="text-sm font-medium">{submission.metadata?.deviceInfo?.platform || 'Unknown'}</p>
               </div>
             </div>
@@ -205,7 +205,7 @@ export const OptimizedFormSubmissionViewer: React.FC<OptimizedFormSubmissionView
           {formSections.length > 0 ? (
             <div className="space-y-4">
               <div className="flex items-center space-x-2 mb-4">
-                <FileText className="h-5 w-5 text-blue-600" />
+                <FileText className="h-5 w-5 text-green-600" />
                 <h3 className="text-lg font-semibold">Form Data</h3>
                 <Badge variant="outline">{formSections.length} sections, {totalFields} fields</Badge>
               </div>
@@ -227,8 +227,8 @@ export const OptimizedFormSubmissionViewer: React.FC<OptimizedFormSubmissionView
                         <div key={fieldIndex} className="space-y-3">
                           {/* Field Label with Enhanced Styling */}
                           <div className="flex items-center justify-between">
-                            <Label className="text-sm font-semibold text-foreground flex items-center space-x-2">
-                              <span className="bg-muted text-muted-foreground rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
+                            <Label className="text-sm font-semibold text-gray-900 flex items-center space-x-2">
+                              <span className="bg-muted text-gray-600 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
                                 {fieldIndex + 1}
                               </span>
                               <span>{field.label}</span>
@@ -241,8 +241,8 @@ export const OptimizedFormSubmissionViewer: React.FC<OptimizedFormSubmissionView
 
                           {/* Field Value Display with Enhanced Styling */}
                           <div className="min-h-[50px] p-4 bg-muted border-2 border-border rounded-lg">
-                            <div className="text-sm text-foreground">
-                              {field.value || <span className="text-muted-foreground italic">Not provided</span>}
+                            <div className="text-sm text-gray-900">
+                              {field.value || <span className="text-gray-600 italic">Not provided</span>}
                             </div>
                           </div>
                         </div>
@@ -255,9 +255,9 @@ export const OptimizedFormSubmissionViewer: React.FC<OptimizedFormSubmissionView
           ) : (
             <Card>
               <CardContent className="p-6 text-center">
-                <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-foreground mb-2">No Form Data</h3>
-                <p className="text-muted-foreground">No form fields were captured in this submission.</p>
+                <FileText className="h-12 w-12 text-gray-600 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No Form Data</h3>
+                <p className="text-gray-600">No form fields were captured in this submission.</p>
               </CardContent>
             </Card>
           )}
@@ -265,7 +265,7 @@ export const OptimizedFormSubmissionViewer: React.FC<OptimizedFormSubmissionView
           {/* Verification Images */}
           <div className="space-y-4">
             <div className="flex items-center space-x-2">
-              <Camera className="h-5 w-5 text-purple-600" />
+              <Camera className="h-5 w-5 text-green-600" />
               <h3 className="text-lg font-semibold">Verification Photos</h3>
               <Badge variant="outline">{submission.photos?.length || 0} photos</Badge>
             </div>

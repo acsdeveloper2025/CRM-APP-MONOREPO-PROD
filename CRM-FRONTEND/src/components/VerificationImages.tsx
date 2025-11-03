@@ -338,11 +338,11 @@ const VerificationImages: React.FC<VerificationImagesProps> = ({
   const getPhotoTypeColor = (photoType: string) => {
     switch (photoType) {
       case 'verification':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-green-100 text-green-800';
       case 'selfie':
         return 'bg-green-100 text-green-800';
       default:
-        return 'bg-muted text-foreground';
+        return 'bg-muted text-gray-900';
     }
   };
 
@@ -380,7 +380,7 @@ const VerificationImages: React.FC<VerificationImagesProps> = ({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-8 text-muted-foreground">
+          <div className="text-center py-8 text-gray-600">
             <ImageIcon className="h-12 w-12 mx-auto mb-4 opacity-50" />
             <p>Failed to load verification images</p>
           </div>
@@ -399,7 +399,7 @@ const VerificationImages: React.FC<VerificationImagesProps> = ({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-8 text-muted-foreground">
+          <div className="text-center py-8 text-gray-600">
             <ImageIcon className="h-12 w-12 mx-auto mb-4 opacity-50" />
             <p>No verification images found</p>
           </div>
@@ -427,7 +427,7 @@ const VerificationImages: React.FC<VerificationImagesProps> = ({
                   {images.length} image{images.length !== 1 ? 's' : ''}
                 </Badge>
                 {verificationPhotos.length > 0 && (
-                  <Badge className="bg-blue-100 text-blue-800">
+                  <Badge className="bg-green-100 text-green-800">
                     {verificationPhotos.length} verification
                   </Badge>
                 )}
@@ -445,7 +445,7 @@ const VerificationImages: React.FC<VerificationImagesProps> = ({
             {/* Verification Photos */}
             {verificationPhotos.length > 0 && (
               <div>
-                <h4 className="text-sm font-medium text-foreground mb-3 flex items-center gap-2">
+                <h4 className="text-sm font-medium text-gray-900 mb-3 flex items-center gap-2">
                   <Camera className="h-4 w-4" />
                   Verification Photos ({verificationPhotos.length})
                 </h4>
@@ -552,7 +552,7 @@ const VerificationImages: React.FC<VerificationImagesProps> = ({
             {/* Selfie Photos */}
             {selfiePhotos.length > 0 && (
               <div>
-                <h4 className="text-sm font-medium text-foreground mb-3 flex items-center gap-2">
+                <h4 className="text-sm font-medium text-gray-900 mb-3 flex items-center gap-2">
                   <Camera className="h-4 w-4" />
                   Selfie Photos ({selfiePhotos.length})
                 </h4>

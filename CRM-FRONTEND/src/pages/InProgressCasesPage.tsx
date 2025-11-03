@@ -182,9 +182,9 @@ export const InProgressCasesPage: React.FC = () => {
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center">
-              <PlayCircle className="h-8 w-8 text-blue-600" />
+              <PlayCircle className="h-8 w-8 text-green-600" />
               <div className="ml-4">
-                <p className="text-sm font-medium text-muted-foreground">Total In Progress</p>
+                <p className="text-sm font-medium text-gray-600">Total In Progress</p>
                 <p className="text-2xl font-bold text-foreground">{pagination.total}</p>
               </div>
             </div>
@@ -193,11 +193,11 @@ export const InProgressCasesPage: React.FC = () => {
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center">
-              <div className="h-8 w-8 bg-orange-100 rounded-full flex items-center justify-center">
-                <span className="text-orange-600 font-semibold">⏱️</span>
+              <div className="h-8 w-8 bg-yellow-100 rounded-full flex items-center justify-center">
+                <span className="text-yellow-600 font-semibold">⏱️</span>
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-muted-foreground">Long Running</p>
+                <p className="text-sm font-medium text-gray-600">Long Running</p>
                 <p className="text-2xl font-bold text-foreground">
                   {cases.filter(c => {
                     const duration = (c as any).pendingDurationSeconds || 0;
@@ -226,11 +226,11 @@ export const InProgressCasesPage: React.FC = () => {
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center">
-              <div className="h-8 w-8 bg-purple-100 rounded-full flex items-center justify-center">
-                <span className="text-purple-600 font-semibold">👥</span>
+              <div className="h-8 w-8 bg-green-100 rounded-full flex items-center justify-center">
+                <span className="text-green-600 font-semibold">👥</span>
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-muted-foreground">Active Agents</p>
+                <p className="text-sm font-medium text-gray-600">Active Agents</p>
                 <p className="text-2xl font-bold text-foreground">
                   {new Set(cases.map(c => c.assignedToId)).size}
                 </p>

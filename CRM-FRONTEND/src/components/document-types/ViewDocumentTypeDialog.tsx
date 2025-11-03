@@ -74,11 +74,11 @@ export const ViewDocumentTypeDialog: React.FC<ViewDocumentTypeDialogProps> = ({
             
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-medium text-muted-foreground">Name</label>
+                <label className="text-sm font-medium text-gray-600">Name</label>
                 <p className="text-sm font-medium">{documentType.name}</p>
               </div>
               <div>
-                <label className="text-sm font-medium text-muted-foreground">Code</label>
+                <label className="text-sm font-medium text-gray-600">Code</label>
                 <p className="text-sm">
                   <code className="bg-muted px-2 py-1 rounded text-sm">
                     {documentType.code}
@@ -89,13 +89,13 @@ export const ViewDocumentTypeDialog: React.FC<ViewDocumentTypeDialogProps> = ({
 
             {documentType.description && (
               <div>
-                <label className="text-sm font-medium text-muted-foreground">Description</label>
+                <label className="text-sm font-medium text-gray-600">Description</label>
                 <p className="text-sm mt-1">{documentType.description}</p>
               </div>
             )}
 
             <div>
-              <label className="text-sm font-medium text-muted-foreground">Category</label>
+              <label className="text-sm font-medium text-gray-600">Category</label>
               <div className="mt-1">
                 {getCategoryBadge(documentType.category)}
               </div>
@@ -130,7 +130,7 @@ export const ViewDocumentTypeDialog: React.FC<ViewDocumentTypeDialogProps> = ({
 
             {documentType.validityPeriodMonths && (
               <div className="flex items-center space-x-2">
-                <Calendar className="h-4 w-4 text-muted-foreground" />
+                <Calendar className="h-4 w-4 text-gray-600" />
                 <span className="text-sm">
                   Valid for {documentType.validityPeriodMonths} months
                 </span>
@@ -153,7 +153,7 @@ export const ViewDocumentTypeDialog: React.FC<ViewDocumentTypeDialogProps> = ({
                 
                 {documentType.formatPattern && (
                   <div>
-                    <label className="text-sm font-medium text-muted-foreground">Format Pattern</label>
+                    <label className="text-sm font-medium text-gray-600">Format Pattern</label>
                     <p className="text-sm mt-1">
                       <code className="bg-muted px-2 py-1 rounded text-sm">
                         {documentType.formatPattern}
@@ -165,14 +165,14 @@ export const ViewDocumentTypeDialog: React.FC<ViewDocumentTypeDialogProps> = ({
                 <div className="grid grid-cols-2 gap-4">
                   {documentType.minLength && (
                     <div>
-                      <label className="text-sm font-medium text-muted-foreground">Minimum Length</label>
+                      <label className="text-sm font-medium text-gray-600">Minimum Length</label>
                       <p className="text-sm mt-1">{documentType.minLength} characters</p>
                     </div>
                   )}
                   
                   {documentType.maxLength && (
                     <div>
-                      <label className="text-sm font-medium text-muted-foreground">Maximum Length</label>
+                      <label className="text-sm font-medium text-gray-600">Maximum Length</label>
                       <p className="text-sm mt-1">{documentType.maxLength} characters</p>
                     </div>
                   )}
@@ -189,12 +189,12 @@ export const ViewDocumentTypeDialog: React.FC<ViewDocumentTypeDialogProps> = ({
             
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-medium text-muted-foreground">Clients Using</label>
+                <label className="text-sm font-medium text-gray-600">Clients Using</label>
                 <p className="text-sm mt-1">{documentType.clientCount || 0} clients</p>
               </div>
               
               <div>
-                <label className="text-sm font-medium text-muted-foreground">Sort Order</label>
+                <label className="text-sm font-medium text-gray-600">Sort Order</label>
                 <p className="text-sm mt-1">{documentType.sortOrder || 0}</p>
               </div>
             </div>
@@ -208,14 +208,14 @@ export const ViewDocumentTypeDialog: React.FC<ViewDocumentTypeDialogProps> = ({
             
             <div className="grid grid-cols-1 gap-4">
               <div>
-                <label className="text-sm font-medium text-muted-foreground">Created At</label>
+                <label className="text-sm font-medium text-gray-600">Created At</label>
                 <p className="text-sm mt-1">
                   {documentType.createdAt ? formatDate(documentType.createdAt) : 'N/A'}
                 </p>
               </div>
               
               <div>
-                <label className="text-sm font-medium text-muted-foreground">Last Updated</label>
+                <label className="text-sm font-medium text-gray-600">Last Updated</label>
                 <p className="text-sm mt-1">
                   {documentType.updatedAt ? formatDate(documentType.updatedAt) : 'N/A'}
                 </p>

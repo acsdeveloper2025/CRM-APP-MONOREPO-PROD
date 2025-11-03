@@ -108,9 +108,9 @@ export function BankBillsTable({ data, isLoading }: BankBillsTableProps) {
   if (!data || data.length === 0) {
     return (
       <div className="text-center py-12">
-        <FileText className="mx-auto h-12 w-12 text-muted-foreground" />
+        <FileText className="mx-auto h-12 w-12 text-gray-600" />
         <h3 className="mt-4 text-lg font-semibold">No bank bills found</h3>
-        <p className="text-muted-foreground">
+        <p className="text-gray-600">
           Get started by creating your first bank bill.
         </p>
       </div>
@@ -147,10 +147,10 @@ export function BankBillsTable({ data, isLoading }: BankBillsTableProps) {
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center space-x-2">
-                    <Building className="h-3 w-3 text-muted-foreground" />
+                    <Building className="h-3 w-3 text-gray-600" />
                     <div>
                       <div className="font-medium">{bill.client.name}</div>
-                      <div className="text-sm text-muted-foreground">{bill.client.code}</div>
+                      <div className="text-sm text-gray-600">{bill.client.code}</div>
                     </div>
                   </div>
                 </TableCell>
@@ -166,7 +166,7 @@ export function BankBillsTable({ data, isLoading }: BankBillsTableProps) {
                       </div>
                     )}
                     {bill.pendingAmount > 0 && (
-                      <div className="text-sm text-orange-600">
+                      <div className="text-sm text-yellow-600">
                         Pending: ₹{bill.pendingAmount.toLocaleString()}
                       </div>
                     )}

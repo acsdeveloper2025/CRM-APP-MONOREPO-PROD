@@ -113,7 +113,7 @@ export function BillingPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Billing & Commission</h1>
-          <p className="text-muted-foreground">
+          <p className="text-gray-600">
             Manage invoices, track payments, and monitor commission payouts
           </p>
         </div>
@@ -124,11 +124,11 @@ export function BillingPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Invoices</CardTitle>
-            <Receipt className="h-4 w-4 text-muted-foreground" />
+            <Receipt className="h-4 w-4 text-gray-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.invoices.total}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-gray-600">
               ₹{stats.invoices.totalAmount.toLocaleString()} total value
             </p>
           </CardContent>
@@ -141,7 +141,7 @@ export function BillingPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">{stats.invoices.paid}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-gray-600">
               {stats.invoices.overdue} overdue
             </p>
           </CardContent>
@@ -150,11 +150,11 @@ export function BillingPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Commissions</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            <TrendingUp className="h-4 w-4 text-gray-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.commissions.total}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-gray-600">
               ₹{stats.commissions.totalAmount.toLocaleString()} total value
             </p>
           </CardContent>
@@ -163,11 +163,11 @@ export function BillingPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Pending Commissions</CardTitle>
-            <Calendar className="h-4 w-4 text-orange-600" />
+            <Calendar className="h-4 w-4 text-yellow-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-orange-600">{stats.commissions.pending}</div>
-            <p className="text-xs text-muted-foreground">
+            <div className="text-2xl font-bold text-yellow-600">{stats.commissions.pending}</div>
+            <p className="text-xs text-gray-600">
               {stats.commissions.paid} paid
             </p>
           </CardContent>
@@ -240,7 +240,7 @@ export function BillingPage() {
               />
               {invoicesData?.pagination && (
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
-                  <div className="text-sm text-muted-foreground">
+                  <div className="text-sm text-gray-600">
                     Showing {invoicesData.data?.length || 0} of {invoicesData.pagination.total} invoices
                   </div>
                   <div className="flex items-center gap-2">
@@ -278,7 +278,7 @@ export function BillingPage() {
               />
               {commissionsData?.pagination && (
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
-                  <div className="text-sm text-muted-foreground">
+                  <div className="text-sm text-gray-600">
                     Showing {commissionsData.data?.length || 0} of {commissionsData.pagination.total} commissions
                   </div>
                   <div className="flex items-center gap-2">

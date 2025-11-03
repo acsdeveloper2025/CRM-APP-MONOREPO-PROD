@@ -90,7 +90,7 @@ export function ResetPasswordDialog({ user, open, onOpenChange }: ResetPasswordD
 
               <div className="space-y-2">
                 <h4 className="font-medium">User Information:</h4>
-                <div className="text-sm text-muted-foreground">
+                <div className="text-sm text-gray-600">
                   <p>Name: {user.name}</p>
                   <p>Username: {user.username}</p>
                   <p>Email: {user.email}</p>
@@ -103,10 +103,10 @@ export function ResetPasswordDialog({ user, open, onOpenChange }: ResetPasswordD
                 <div className="grid grid-cols-1 gap-3">
                   <div className="border rounded-lg p-4 space-y-2">
                     <div className="flex items-center space-x-2">
-                      <Eye className="h-4 w-4 text-blue-600" />
+                      <Eye className="h-4 w-4 text-green-600" />
                       <h5 className="font-medium">Show Password</h5>
                     </div>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-gray-600">
                       Generate and display the temporary password in this dialog. You can copy it and share with the user manually.
                     </p>
                     <Button
@@ -124,7 +124,7 @@ export function ResetPasswordDialog({ user, open, onOpenChange }: ResetPasswordD
                       <Mail className="h-4 w-4 text-green-600" />
                       <h5 className="font-medium">Send via Email</h5>
                     </div>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-gray-600">
                       Generate and automatically send the temporary password to {user.email} via email.
                     </p>
                     <Button
@@ -157,7 +157,7 @@ export function ResetPasswordDialog({ user, open, onOpenChange }: ResetPasswordD
                     id="username"
                     value={user.username}
                     readOnly
-                    className="bg-white text-foreground font-medium border-2 border-border focus:border-border shadow-sm"
+                    className="bg-white text-gray-900 font-medium border-2 border-border focus:border-border shadow-sm"
                   />
                 </div>
 
@@ -169,7 +169,7 @@ export function ResetPasswordDialog({ user, open, onOpenChange }: ResetPasswordD
                       type={showPassword ? 'text' : 'password'}
                       value={generatedPassword}
                       readOnly
-                      className="bg-white text-foreground font-mono font-bold pr-20 border-2 border-blue-200 text-lg focus:border-blue-400 shadow-sm"
+                      className="bg-white text-gray-900 font-mono font-bold pr-20 border-2 border-green-200 text-lg focus:border-blue-400 shadow-sm"
                     />
                     <div className="absolute right-2 top-1/2 -translate-y-1/2 flex space-x-1">
                       <Button

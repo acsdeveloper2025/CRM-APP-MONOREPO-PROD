@@ -82,7 +82,7 @@ export function MarkBillPaidDialog({
             </div>
             <div className="flex justify-between text-sm">
               <span>Pending Amount:</span>
-              <span className="text-orange-600">₹{bill.pendingAmount.toLocaleString()}</span>
+              <span className="text-yellow-600">₹{bill.pendingAmount.toLocaleString()}</span>
             </div>
           </div>
 
@@ -125,7 +125,7 @@ export function MarkBillPaidDialog({
                   </div>
                   <div className="flex justify-between text-sm">
                     <span>Remaining:</span>
-                    <span className={newPendingAmount === 0 ? 'text-green-600 font-medium' : 'text-orange-600'}>
+                    <span className={newPendingAmount === 0 ? 'text-green-600 font-medium' : 'text-yellow-600'}>
                       ₹{newPendingAmount.toLocaleString()}
                     </span>
                   </div>

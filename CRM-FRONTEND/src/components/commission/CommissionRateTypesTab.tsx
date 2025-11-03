@@ -76,8 +76,8 @@ export const CommissionRateTypesTab: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-foreground">Commission Rate Types</h2>
-          <p className="text-muted-foreground">
+          <h2 className="text-2xl font-bold text-gray-900">Commission Rate Types</h2>
+          <p className="text-gray-600">
             Configure commission templates for different rate types
           </p>
         </div>
@@ -108,7 +108,7 @@ export const CommissionRateTypesTab: React.FC = () => {
         <CardContent className="p-4">
           <div className="flex items-center gap-4">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600 h-4 w-4" />
               <Input
                 placeholder="Search rate types..."
                 value={searchQuery}
@@ -135,9 +135,9 @@ export const CommissionRateTypesTab: React.FC = () => {
             </div>
           ) : rateTypes.length === 0 ? (
             <div className="text-center py-8">
-              <Settings className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-foreground mb-2">No Commission Rate Types</h3>
-              <p className="text-muted-foreground mb-4">
+              <Settings className="h-12 w-12 text-gray-600 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">No Commission Rate Types</h3>
+              <p className="text-gray-600 mb-4">
                 Create your first commission rate type to get started.
               </p>
               <Button onClick={() => setIsCreateDialogOpen(true)}>
@@ -162,10 +162,10 @@ export const CommissionRateTypesTab: React.FC = () => {
                   <TableRow key={rateType.id}>
                     <TableCell>
                       <div>
-                        <div className="font-medium text-foreground">
+                        <div className="font-medium text-gray-900">
                           {rateType.rateTypeName}
                         </div>
-                        <div className="text-sm text-muted-foreground">
+                        <div className="text-sm text-gray-600">
                           ID: {rateType.rateTypeId}
                         </div>
                       </div>
@@ -177,12 +177,12 @@ export const CommissionRateTypesTab: React.FC = () => {
                             {rateType.currency} {rateType.commissionAmount.toLocaleString()}
                           </span>
                         ) : (
-                          <span className="text-blue-600">
+                          <span className="text-green-600">
                             {rateType.commissionPercentage}%
                           </span>
                         )}
                       </div>
-                      <div className="text-sm text-muted-foreground">
+                      <div className="text-sm text-gray-600">
                         {rateType.commissionAmount ? 'Fixed Amount' : 'Percentage'}
                       </div>
                     </TableCell>
@@ -249,12 +249,12 @@ export const CommissionRateTypesTab: React.FC = () => {
       <Card className="bg-muted/50">
         <CardContent className="p-4">
           <div className="flex items-start gap-3">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <Settings className="h-5 w-5 text-blue-600" />
+            <div className="p-2 bg-green-100 rounded-lg">
+              <Settings className="h-5 w-5 text-green-600" />
             </div>
             <div>
-              <h3 className="font-semibold text-foreground mb-2">About Commission Rate Types</h3>
-              <div className="space-y-1 text-sm text-muted-foreground">
+              <h3 className="font-semibold text-gray-900 mb-2">About Commission Rate Types</h3>
+              <div className="space-y-1 text-sm text-gray-600">
                 <p>• Commission rate types serve as templates for field user assignments</p>
                 <p>• You can set either a fixed amount or percentage-based commission</p>
                 <p>• Rate types are linked to existing rate types from the rate management system</p>

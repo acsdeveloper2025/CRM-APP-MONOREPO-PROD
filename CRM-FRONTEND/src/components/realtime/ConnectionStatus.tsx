@@ -53,7 +53,7 @@ export function ConnectionStatus({ showText = false, size = 'sm' }: ConnectionSt
     
     return {
       icon: WifiOff,
-      color: 'text-muted-foreground',
+      color: 'text-gray-600',
       bgColor: 'bg-muted',
       variant: 'secondary' as const,
       text: 'Disconnected',

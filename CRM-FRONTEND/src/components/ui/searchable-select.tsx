@@ -75,7 +75,7 @@ export function SearchableSelect({
           </div>
           <div className="max-h-60 overflow-auto">
             {filteredOptions.length === 0 ? (
-              <div className="py-6 text-center text-sm text-muted-foreground">
+              <div className="py-6 text-center text-sm text-gray-600">
                 {emptyMessage}
               </div>
             ) : (
@@ -97,7 +97,7 @@ export function SearchableSelect({
                   <div className="flex flex-col">
                     <span>{option.label}</span>
                     {option.description && (
-                      <span className="text-xs text-muted-foreground">
+                      <span className="text-xs text-gray-600">
                         {option.description}
                       </span>
                     )}

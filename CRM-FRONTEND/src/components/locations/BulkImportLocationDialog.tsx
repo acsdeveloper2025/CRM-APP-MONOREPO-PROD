@@ -166,7 +166,7 @@ export function BulkImportLocationDialog({ open, onOpenChange, type }: BulkImpor
               />
             </div>
             {selectedFile && (
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-gray-600">
                 Selected: {selectedFile.name} ({(selectedFile.size / 1024).toFixed(1)} KB)
               </p>
             )}

@@ -57,20 +57,20 @@ export const FormSubmissionsDashboard: React.FC = () => {
       case 'INVALID':
         return 'bg-red-100 text-red-800';
       default:
-        return 'bg-muted text-foreground';
+        return 'bg-muted text-gray-900';
     }
   };
 
   const getFormTypeColor = (type: string) => {
     switch (type) {
       case 'RESIDENCE':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-green-100 text-green-800';
       case 'OFFICE':
-        return 'bg-purple-100 text-purple-800';
+        return 'bg-green-100 text-green-800';
       case 'BUSINESS':
-        return 'bg-orange-100 text-orange-800';
+        return 'bg-yellow-100 text-orange-800';
       default:
-        return 'bg-muted text-foreground';
+        return 'bg-muted text-gray-900';
     }
   };
 
@@ -79,8 +79,8 @@ export const FormSubmissionsDashboard: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Form Submissions</h1>
-          <p className="mt-2 text-muted-foreground">
+          <h1 className="text-3xl font-bold text-gray-900">Form Submissions</h1>
+          <p className="mt-2 text-gray-600">
             Track and analyze all form submissions with validation status
           </p>
         </div>
@@ -95,11 +95,11 @@ export const FormSubmissionsDashboard: React.FC = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Submissions</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
+            <FileText className="h-4 w-4 text-gray-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{summary?.totalSubmissions || 0}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-gray-600">
               All form submissions
             </p>
           </CardContent>
@@ -112,7 +112,7 @@ export const FormSubmissionsDashboard: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">{summary?.validSubmissions || 0}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-gray-600">
               {summary?.validationRate ? `${summary.validationRate.toFixed(1)}% validation rate` : 'No data'}
             </p>
           </CardContent>
@@ -125,7 +125,7 @@ export const FormSubmissionsDashboard: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-yellow-600">{summary?.pendingSubmissions || 0}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-gray-600">
               Awaiting validation
             </p>
           </CardContent>
@@ -134,13 +134,13 @@ export const FormSubmissionsDashboard: React.FC = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Form Types</CardTitle>
-            <AlertCircle className="h-4 w-4 text-muted-foreground" />
+            <AlertCircle className="h-4 w-4 text-gray-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
               {(summary?.residenceForms || 0) + (summary?.officeForms || 0)}
             </div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-gray-600">
               {summary?.residenceForms || 0} residence, {summary?.officeForms || 0} office
             </p>
           </CardContent>
@@ -265,9 +265,9 @@ export const FormSubmissionsDashboard: React.FC = () => {
                 ) : submissions.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={6} className="text-center py-8">
-                      <FileText className="mx-auto h-12 w-12 text-muted-foreground" />
+                      <FileText className="mx-auto h-12 w-12 text-gray-600" />
                       <h3 className="mt-4 text-lg font-semibold">No submissions found</h3>
-                      <p className="text-muted-foreground">
+                      <p className="text-gray-600">
                         Try adjusting your filters or check back later.
                       </p>
                     </TableCell>
@@ -283,13 +283,13 @@ export const FormSubmissionsDashboard: React.FC = () => {
                       <TableCell>
                         <div>
                           <div className="font-medium">#{submission.caseNumber || 'N/A'}</div>
-                          <div className="text-sm text-muted-foreground">{submission.customerName}</div>
+                          <div className="text-sm text-gray-600">{submission.customerName}</div>
                         </div>
                       </TableCell>
                       <TableCell>
                         <div>
                           <div className="font-medium">{submission.agentName || 'Unknown'}</div>
-                          <div className="text-sm text-muted-foreground">{submission.employeeId}</div>
+                          <div className="text-sm text-gray-600">{submission.employeeId}</div>
                         </div>
                       </TableCell>
                       <TableCell>

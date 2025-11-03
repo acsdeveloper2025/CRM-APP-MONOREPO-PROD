@@ -174,8 +174,8 @@ export const PendingCasesPage: React.FC = () => {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Pending Cases</h1>
-          <p className="mt-2 text-muted-foreground">
+          <h1 className="text-3xl font-bold text-gray-900">Pending Cases</h1>
+          <p className="mt-2 text-gray-600">
             Cases that are assigned or in progress
           </p>
         </div>
@@ -196,11 +196,11 @@ export const PendingCasesPage: React.FC = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Pending</CardTitle>
-            <Clock className="h-4 w-4 text-blue-600" />
+            <Clock className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalPending}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-gray-600">
               All pending cases
             </p>
           </CardContent>
@@ -213,7 +213,7 @@ export const PendingCasesPage: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{pendingCases}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-gray-600">
               Newly assigned
             </p>
           </CardContent>
@@ -226,7 +226,7 @@ export const PendingCasesPage: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{inProgressCases}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-gray-600">
               Being worked on
             </p>
           </CardContent>
@@ -239,7 +239,7 @@ export const PendingCasesPage: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-600">{urgentCases}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-gray-600">
               High priority
             </p>
           </CardContent>
@@ -248,11 +248,11 @@ export const PendingCasesPage: React.FC = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Overdue</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-orange-600" />
+            <AlertTriangle className="h-4 w-4 text-yellow-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-orange-600">{oldCases}</div>
-            <p className="text-xs text-muted-foreground">
+            <div className="text-2xl font-bold text-yellow-600">{oldCases}</div>
+            <p className="text-xs text-gray-600">
               &gt; 2 days old
             </p>
           </CardContent>
@@ -336,7 +336,7 @@ export const PendingCasesPage: React.FC = () => {
           {/* Pagination Controls */}
           {casesData?.pagination && (
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-6">
-              <div className="text-sm text-muted-foreground">
+              <div className="text-sm text-gray-600">
                 Showing {casesData.data?.length || 0} of {casesData.pagination.total} pending cases
               </div>
               <div className="flex items-center gap-2">

@@ -57,16 +57,16 @@ export const BulkActionsToolbar: React.FC<BulkActionsToolbarProps> = ({
 
   return (
     <>
-      <Card className="border-blue-200 bg-blue-50">
+      <Card className="border-green-200 bg-green-50">
         <CardContent className="p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <div className="flex items-center space-x-2">
-                <Users className="h-5 w-5 text-blue-600" />
-                <span className="font-medium text-blue-900">
+                <Users className="h-5 w-5 text-green-600" />
+                <span className="font-medium text-green-900">
                   Bulk Actions
                 </span>
-                <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                <Badge variant="secondary" className="bg-green-100 text-green-800">
                   {selectedCount} selected
                 </Badge>
               </div>
@@ -76,7 +76,7 @@ export const BulkActionsToolbar: React.FC<BulkActionsToolbarProps> = ({
                   onClick={() => setShowAssignModal(true)}
                   size="sm"
                   variant="outline"
-                  className="border-blue-300 text-blue-700 hover:bg-blue-100"
+                  className="border-blue-300 text-green-700 hover:bg-green-100"
                 >
                   <UserCheck className="h-4 w-4 mr-2" />
                   Assign Tasks
@@ -88,7 +88,7 @@ export const BulkActionsToolbar: React.FC<BulkActionsToolbarProps> = ({
               onClick={onClearSelection}
               variant="ghost"
               size="sm"
-              className="text-blue-600 hover:text-blue-700 hover:bg-blue-100"
+              className="text-green-600 hover:text-green-700 hover:bg-green-100"
             >
               <X className="h-4 w-4 mr-1" />
               Clear Selection
@@ -120,7 +120,7 @@ export const BulkActionsToolbar: React.FC<BulkActionsToolbarProps> = ({
                       All selected tasks will be assigned to the chosen user
                     </p>
                   </div>
-                  <Badge className="bg-blue-100 text-blue-800">
+                  <Badge className="bg-green-100 text-green-800">
                     {selectedCount} Task{selectedCount !== 1 ? 's' : ''}
                   </Badge>
                 </div>
@@ -208,13 +208,13 @@ export const BulkActionsToolbar: React.FC<BulkActionsToolbarProps> = ({
 
             {/* Assignment Summary */}
             {assignedTo && (
-              <Card className="bg-blue-50 border-blue-200">
+              <Card className="bg-green-50 border-green-200">
                 <CardContent className="p-4">
                   <div className="space-y-2">
-                    <p className="text-sm font-medium text-blue-900">
+                    <p className="text-sm font-medium text-green-900">
                       Assignment Summary
                     </p>
-                    <div className="text-sm text-blue-800">
+                    <div className="text-sm text-green-800">
                       <p>
                         <span className="font-medium">Assignee:</span>{' '}
                         {fieldUsers.find(user => user.id === assignedTo)?.name}

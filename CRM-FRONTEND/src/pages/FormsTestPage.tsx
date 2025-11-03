@@ -34,11 +34,11 @@ export const FormsTestPage: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground flex items-center space-x-2">
-            <TestTube className="h-8 w-8 text-blue-600" />
+          <h1 className="text-3xl font-bold text-gray-900 flex items-center space-x-2">
+            <TestTube className="h-8 w-8 text-green-600" />
             <span>Forms System Test Page</span>
           </h1>
-          <p className="mt-2 text-muted-foreground">Test the comprehensive form data display system</p>
+          <p className="mt-2 text-gray-600">Test the comprehensive form data display system</p>
         </div>
         <Badge variant="outline" className="text-lg px-3 py-1">
           Test Environment
@@ -58,7 +58,7 @@ export const FormsTestPage: React.FC = () => {
               onChange={(e) => setTestCaseId(e.target.value)}
               className="w-48"
             />
-            <span className="text-muted-foreground">or select from test cases:</span>
+            <span className="text-gray-600">or select from test cases:</span>
           </div>
           
           <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
@@ -86,8 +86,8 @@ export const FormsTestPage: React.FC = () => {
         <CardContent>
           <div className="flex items-center space-x-4">
             {isLoading && (
-              <div className="flex items-center space-x-2 text-blue-600">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+              <div className="flex items-center space-x-2 text-green-600">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600"></div>
                 <span>Loading...</span>
               </div>
             )}
@@ -154,12 +154,12 @@ export const FormsTestPage: React.FC = () => {
       {!isLoading && !error && submissions.length === 0 && (
         <Card>
           <CardContent className="p-6 text-center">
-            <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-foreground mb-2">No Form Submissions</h3>
-            <p className="text-muted-foreground mb-4">
+            <FileText className="h-12 w-12 text-gray-600 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No Form Submissions</h3>
+            <p className="text-gray-600 mb-4">
               No form submissions found for case ID: {testCaseId}
             </p>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-gray-600">
               Try selecting one of the test cases above, or ensure the case has form submissions.
             </p>
           </CardContent>

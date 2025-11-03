@@ -75,7 +75,7 @@ export function SecurityUXPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Security & UX Enhancements</h1>
-          <p className="text-muted-foreground">
+          <p className="text-gray-600">
             Comprehensive security features, error handling, and user experience improvements
           </p>
         </div>
@@ -162,7 +162,7 @@ export function SecurityUXPage() {
               <CardContent className="space-y-4">
                 <div className="p-4 border rounded-lg">
                   <h4 className="font-medium mb-2">Sample Content</h4>
-                  <p className="text-muted-foreground mb-3">
+                  <p className="text-gray-600 mb-3">
                     This is how text appears in the current theme.
                   </p>
                   <div className="flex space-x-2">
@@ -189,21 +189,21 @@ export function SecurityUXPage() {
               <CardContent className="space-y-3">
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <span className="text-muted-foreground">Breakpoint:</span>
+                    <span className="text-gray-600">Breakpoint:</span>
                     <Badge variant="outline" className="ml-2">{currentBreakpoint}</Badge>
                   </div>
                   <div>
-                    <span className="text-muted-foreground">Device:</span>
+                    <span className="text-gray-600">Device:</span>
                     <Badge variant="outline" className="ml-2">
                       {isMobile ? 'Mobile' : isTablet ? 'Tablet' : 'Desktop'}
                     </Badge>
                   </div>
                   <div>
-                    <span className="text-muted-foreground">Width:</span>
+                    <span className="text-gray-600">Width:</span>
                     <span className="ml-2 font-mono">{windowSize.width}px</span>
                   </div>
                   <div>
-                    <span className="text-muted-foreground">Height:</span>
+                    <span className="text-gray-600">Height:</span>
                     <span className="ml-2 font-mono">{windowSize.height}px</span>
                   </div>
                 </div>
@@ -321,13 +321,13 @@ export function SecurityUXPage() {
               </CardHeader>
               <CardContent>
                 {errors.length === 0 ? (
-                  <p className="text-muted-foreground text-sm">No errors logged</p>
+                  <p className="text-gray-600 text-sm">No errors logged</p>
                 ) : (
                   <div className="space-y-2 max-h-40 overflow-y-auto">
                     {errors.slice(0, 3).map((error) => (
                       <div key={error.timestamp} className="p-2 bg-destructive/10 rounded text-sm">
                         <div className="font-medium">{error.code}</div>
-                        <div className="text-muted-foreground">{error.message}</div>
+                        <div className="text-gray-600">{error.message}</div>
                       </div>
                     ))}
                   </div>

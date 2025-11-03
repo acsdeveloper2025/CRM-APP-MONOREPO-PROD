@@ -125,8 +125,8 @@ export const SettingsPage: React.FC = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Settings</h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
+          <p className="text-sm text-gray-600 mt-1">
             Manage your account settings and preferences
           </p>
         </div>
@@ -257,7 +257,7 @@ export const SettingsPage: React.FC = () => {
                 <div className="flex items-center justify-between p-4 border rounded-lg">
                   <div>
                     <h4 className="font-medium">Password</h4>
-                    <p className="text-sm text-muted-foreground">Last changed 30 days ago</p>
+                    <p className="text-sm text-gray-600">Last changed 30 days ago</p>
                   </div>
                   <Button variant="outline">Change Password</Button>
                 </div>
@@ -265,7 +265,7 @@ export const SettingsPage: React.FC = () => {
                 <div className="flex items-center justify-between p-4 border rounded-lg">
                   <div>
                     <h4 className="font-medium">Two-Factor Authentication</h4>
-                    <p className="text-sm text-muted-foreground">Add an extra layer of security</p>
+                    <p className="text-sm text-gray-600">Add an extra layer of security</p>
                   </div>
                   <Badge variant="secondary">Not Enabled</Badge>
                 </div>
@@ -273,7 +273,7 @@ export const SettingsPage: React.FC = () => {
                 <div className="flex items-center justify-between p-4 border rounded-lg">
                   <div>
                     <h4 className="font-medium">Active Sessions</h4>
-                    <p className="text-sm text-muted-foreground">Manage your active sessions</p>
+                    <p className="text-sm text-gray-600">Manage your active sessions</p>
                   </div>
                   <Button variant="outline">View Sessions</Button>
                 </div>
@@ -297,7 +297,7 @@ export const SettingsPage: React.FC = () => {
                     <Label htmlFor={key} className="font-medium capitalize">
                       {key.replace(/([A-Z])/g, ' $1').trim()}
                     </Label>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-gray-600">
                       {key === 'emailNotifications' && 'Receive notifications via email'}
                       {key === 'pushNotifications' && 'Receive push notifications in browser'}
                       {key === 'caseUpdates' && 'Get notified when cases are updated'}
@@ -405,7 +405,7 @@ export const SettingsPage: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <Label>Auto Refresh</Label>
-                    <p className="text-sm text-muted-foreground">Automatically refresh data every 30 seconds</p>
+                    <p className="text-sm text-gray-600">Automatically refresh data every 30 seconds</p>
                   </div>
                   <Switch
                     checked={settings.preferences.autoRefresh}

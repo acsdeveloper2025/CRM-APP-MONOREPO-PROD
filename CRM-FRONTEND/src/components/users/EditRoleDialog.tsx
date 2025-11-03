@@ -193,7 +193,7 @@ export function EditRoleDialog({ open, onOpenChange, role }: EditRoleDialogProps
                       />
                     </FormControl>
                     {role.isSystemRole && (
-                      <p className="text-xs text-muted-foreground">System role names cannot be changed</p>
+                      <p className="text-xs text-gray-600">System role names cannot be changed</p>
                     )}
                     <FormMessage />
                   </FormItem>
@@ -226,7 +226,7 @@ export function EditRoleDialog({ open, onOpenChange, role }: EditRoleDialogProps
                 <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                   <div className="space-y-0.5">
                     <FormLabel className="text-base">Active Status</FormLabel>
-                    <div className="text-sm text-muted-foreground">
+                    <div className="text-sm text-gray-600">
                       Enable or disable this role
                     </div>
                   </div>

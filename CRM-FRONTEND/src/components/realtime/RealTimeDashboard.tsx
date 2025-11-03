@@ -76,11 +76,11 @@ export function RealTimeDashboard({ refreshInterval = 30000 }: RealTimeDashboard
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Connected Users</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+            <Users className="h-4 w-4 text-gray-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.connectedUsers}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-gray-600">
               Currently online
             </p>
           </CardContent>
@@ -89,11 +89,11 @@ export function RealTimeDashboard({ refreshInterval = 30000 }: RealTimeDashboard
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Active Cases</CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
+            <Activity className="h-4 w-4 text-gray-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.activeCases}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-gray-600">
               Being worked on
             </p>
           </CardContent>
@@ -102,11 +102,11 @@ export function RealTimeDashboard({ refreshInterval = 30000 }: RealTimeDashboard
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Pending Reviews</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
+            <Clock className="h-4 w-4 text-gray-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.pendingReviews}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-gray-600">
               Awaiting review
             </p>
           </CardContent>
@@ -115,7 +115,7 @@ export function RealTimeDashboard({ refreshInterval = 30000 }: RealTimeDashboard
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">System Load</CardTitle>
-            <AlertCircle className="h-4 w-4 text-muted-foreground" />
+            <AlertCircle className="h-4 w-4 text-gray-600" />
           </CardHeader>
           <CardContent>
             <div className={`text-2xl font-bold ${getSystemLoadColor(stats.systemLoad)}`}>
@@ -145,7 +145,7 @@ export function RealTimeDashboard({ refreshInterval = 30000 }: RealTimeDashboard
             <div>
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium">System Load</span>
-                <span className="text-sm text-muted-foreground">{stats.systemLoad}%</span>
+                <span className="text-sm text-gray-600">{stats.systemLoad}%</span>
               </div>
               <div className="w-full bg-muted rounded-full h-2">
                 <div 
@@ -160,7 +160,7 @@ export function RealTimeDashboard({ refreshInterval = 30000 }: RealTimeDashboard
 
             {/* Last Updated */}
             <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Last updated:</span>
+              <span className="text-gray-600">Last updated:</span>
               <span className="font-medium">
                 {new Date(stats.lastUpdated).toLocaleTimeString()}
               </span>
@@ -168,7 +168,7 @@ export function RealTimeDashboard({ refreshInterval = 30000 }: RealTimeDashboard
 
             {/* Connection Info */}
             <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Connection status:</span>
+              <span className="text-gray-600">Connection status:</span>
               <ConnectionStatus showText />
             </div>
           </div>
