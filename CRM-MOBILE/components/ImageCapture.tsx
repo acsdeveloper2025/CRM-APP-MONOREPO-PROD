@@ -104,6 +104,32 @@ const ImageCapture: React.FC<ImageCaptureProps> = ({
         return;
       }
 
+      // Request location permissions BEFORE taking photo (critical for GPS tagging)
+      console.log('📍 Requesting location permission...');
+      const locationPermission = await requestLocationPermissions({
+        showRationale: true,
+        fallbackToSettings: true,
+        context: 'tag photos with GPS coordinates for verification'
+      });
+
+      if (!locationPermission.granted) {
+        console.warn('⚠️ Location permission not granted');
+        // Show warning but allow photo capture to continue
+        Toast.show({
+          text: '⚠️ Location permission denied. Photos will be captured without GPS coordinates.',
+          duration: 'long',
+          position: 'top'
+        });
+        // Don't return - allow photo capture without location
+      } else {
+        console.log('✅ Location permission granted');
+        Toast.show({
+          text: '✅ Location permission granted. GPS coordinates will be captured.',
+          duration: 'short',
+          position: 'top'
+        });
+      }
+
       // Use platform-specific camera configuration
       const platform = Capacitor.getPlatform();
       let cameraOptions: any;
@@ -237,16 +263,16 @@ const ImageCapture: React.FC<ImageCaptureProps> = ({
 
       let locationSource: string = 'none';
 
+      // Check if location permission was granted (already requested in handleTakePhoto)
       try {
-        // Request location permissions first with enhanced options
         const locationPermission = await requestLocationPermissions({
-          showRationale: false,
+          showRationale: false, // Don't show rationale again
           fallbackToSettings: false,
           context: 'tag photos with GPS coordinates for verification'
         });
 
         if (locationPermission.granted) {
-          console.log('📍 Location permission granted, acquiring GPS coordinates...');
+          console.log('📍 Acquiring GPS coordinates...');
 
           // Initialize Google Maps service (non-blocking)
           try {
@@ -316,20 +342,12 @@ const ImageCapture: React.FC<ImageCaptureProps> = ({
             console.warn('⚠️ Proceeding without GPS coordinates');
           }
         } else {
-          console.warn('❌ Location permission not granted');
-          Toast.show({
-            text: '⚠️ Location permission required for GPS tagging',
-            duration: 'long',
-            position: 'top'
-          });
+          console.warn('⚠️ Location permission not granted, proceeding without GPS');
+          // Don't show toast again - already shown in handleTakePhoto
         }
       } catch (permissionError) {
-        console.error('❌ Location permission request failed:', permissionError);
-        Toast.show({
-          text: '⚠️ Unable to request location permission',
-          duration: 'short',
-          position: 'top'
-        });
+        console.error('❌ Location permission check failed:', permissionError);
+        // Proceed without location
       }
 
       const timestamp = new Date().toISOString();
