@@ -62,7 +62,7 @@ export const config = {
   rateLimitMaxRequests: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '5000', 10), // Increased from 500 to 5000 for high-volume operations
   
   // File Upload - ONLY images, PDF, and Word documents
-  maxFileSize: parseInt(process.env.MAX_FILE_SIZE || '10485760', 10), // 10MB
+  maxFileSize: parseInt(process.env.MAX_FILE_SIZE || '52428800', 10), // 50MB (increased for mobile app with multiple images)
   uploadPath: process.env.UPLOAD_PATH || './uploads',
   allowedFileTypes: process.env.ALLOWED_FILE_TYPES?.split(',') || [
     'image/jpeg',
@@ -122,8 +122,8 @@ export const config = {
     deviceTokenExpiresIn: process.env.DEVICE_TOKEN_EXPIRES_IN || '365d',
 
     // Mobile File Upload
-    maxFileSize: parseInt(process.env.MOBILE_MAX_FILE_SIZE || '10485760', 10),
-    maxFilesPerCase: parseInt(process.env.MOBILE_MAX_FILES_PER_CASE || '15', 10),
+    maxFileSize: parseInt(process.env.MOBILE_MAX_FILE_SIZE || '52428800', 10), // 50MB (increased for forms with multiple high-res images)
+    maxFilesPerCase: parseInt(process.env.MOBILE_MAX_FILES_PER_CASE || '20', 10), // Increased to 20 files
     allowedImageTypes: process.env.MOBILE_ALLOWED_IMAGE_TYPES?.split(',') || [
       'image/jpeg',
       'image/png',

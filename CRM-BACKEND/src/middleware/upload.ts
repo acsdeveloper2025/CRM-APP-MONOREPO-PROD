@@ -18,7 +18,7 @@ export const upload = multer({
   storage,
   fileFilter,
   limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB max file size
+    fileSize: 50 * 1024 * 1024, // 50MB max file size (increased for mobile app with multiple high-res images)
   },
 });
 
