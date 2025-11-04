@@ -14,7 +14,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertTriangle, Calendar, User, Phone, Mail, CreditCard, Building2, ExternalLink, Package, FileCheck, MapPin, CheckCircle } from 'lucide-react';
 import type { DuplicateCase, DeduplicationResult } from '@/services/deduplication';
-import { formatDistanceToNow } from 'date-fns';
+import { format } from 'date-fns';
 
 interface DeduplicationDialogProps {
   isOpen: boolean;
@@ -37,7 +37,9 @@ export const DeduplicationDialog: React.FC<DeduplicationDialogProps> = ({
   const [rationale, setRationale] = useState('');
   const [decision, setDecision] = useState<'CREATE_NEW' | 'USE_EXISTING' | null>(null);
 
-  const duplicates = deduplicationResult?.duplicatesFound || [];
+  // Filter to show only 100% matches
+  const allDuplicates = deduplicationResult?.duplicatesFound || [];
+  const duplicates = allDuplicates.filter(dup => dup.matchScore === 100);
   const hasHighScoreMatches = duplicates.some(dup => dup.matchScore >= 80);
 
   const handleCreateNew = () => {
@@ -216,7 +218,7 @@ export const DeduplicationDialog: React.FC<DeduplicationDialogProps> = ({
                         )}
                         <div className="flex items-center gap-2">
                           <Calendar className="h-4 w-4 text-gray-600" />
-                          <span>{formatDistanceToNow(new Date(duplicate.createdAt), { addSuffix: true })}</span>
+                          <span>{format(new Date(duplicate.createdAt), 'MMM d, yyyy \'at\' h:mm a')}</span>
                         </div>
                       </div>
 
