@@ -55,27 +55,41 @@ export function SearchableSelect({
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className={cn("w-full justify-between", className)}
+          className={cn(
+            "w-full justify-between bg-white border-gray-300 text-gray-900 hover:bg-gray-50 hover:border-gray-400",
+            "focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2",
+            "disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed",
+            className
+          )}
           disabled={disabled}
         >
-          {selectedOption ? selectedOption.label : placeholder}
-          <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          <span className={cn(
+            "truncate",
+            !selectedOption && "text-gray-500"
+          )}>
+            {selectedOption ? selectedOption.label : placeholder}
+          </span>
+          <ChevronDown className="ml-2 h-4 w-4 shrink-0 text-gray-500" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-full p-0" align="start">
+      <PopoverContent className="w-full p-0 bg-white border-gray-200 shadow-lg" align="start">
         <div className="flex flex-col">
-          <div className="flex items-center border-b px-3">
-            <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+          {/* Search Input */}
+          <div className="flex items-center border-b border-gray-200 px-3 py-2 bg-gray-50">
+            <Search className="mr-2 h-4 w-4 shrink-0 text-gray-500" />
             <Input
               placeholder={searchPlaceholder}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+              className="border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 text-gray-900 placeholder:text-gray-500"
+              autoFocus
             />
           </div>
-          <div className="max-h-60 overflow-auto">
+
+          {/* Options List */}
+          <div className="max-h-60 overflow-auto bg-white">
             {filteredOptions.length === 0 ? (
-              <div className="py-6 text-center text-sm text-gray-600">
+              <div className="py-8 text-center text-sm text-gray-500">
                 {emptyMessage}
               </div>
             ) : (
@@ -83,21 +97,27 @@ export function SearchableSelect({
                 <div
                   key={option.value}
                   className={cn(
-                    "relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground",
-                    value === option.value && "bg-accent text-accent-foreground"
+                    "relative flex cursor-pointer select-none items-center px-3 py-2.5 text-sm outline-none transition-colors",
+                    "hover:bg-green-50 hover:text-gray-900",
+                    "focus:bg-green-50 focus:text-gray-900",
+                    value === option.value
+                      ? "bg-green-100 text-gray-900 font-medium"
+                      : "text-gray-700"
                   )}
                   onClick={() => handleSelect(option.value)}
+                  role="option"
+                  aria-selected={value === option.value}
                 >
                   <Check
                     className={cn(
-                      "mr-2 h-4 w-4",
+                      "mr-2 h-4 w-4 text-primary",
                       value === option.value ? "opacity-100" : "opacity-0"
                     )}
                   />
-                  <div className="flex flex-col">
-                    <span>{option.label}</span>
+                  <div className="flex flex-col flex-1 min-w-0">
+                    <span className="truncate">{option.label}</span>
                     {option.description && (
-                      <span className="text-xs text-gray-600">
+                      <span className="text-xs text-gray-500 truncate mt-0.5">
                         {option.description}
                       </span>
                     )}
