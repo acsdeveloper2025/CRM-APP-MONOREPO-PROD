@@ -17,7 +17,9 @@ import {
   CheckCircle,
   RefreshCw,
   TrendingUp,
-  Calendar
+  Calendar,
+  Clock,
+  Award
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -105,16 +107,16 @@ export const CompletedTasksPage: React.FC = () => {
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Completed</CardTitle>
-            <CheckCircle className="h-4 w-4 text-gray-600" />
+            <CheckCircle className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{statistics.completed}</div>
             <p className="text-xs text-gray-600">
-              Successfully completed tasks
+              All completed
             </p>
           </CardContent>
         </Card>
@@ -122,12 +124,12 @@ export const CompletedTasksPage: React.FC = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">This Month</CardTitle>
-            <Calendar className="h-4 w-4 text-gray-600" />
+            <Calendar className="h-4 w-4 text-blue-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{pagination.total}</div>
             <p className="text-xs text-gray-600">
-              Completed in current period
+              Current period
             </p>
           </CardContent>
         </Card>
@@ -135,16 +137,59 @@ export const CompletedTasksPage: React.FC = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Completion Rate</CardTitle>
-            <TrendingUp className="h-4 w-4 text-gray-600" />
+            <TrendingUp className="h-4 w-4 text-purple-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {statistics.completed > 0 
+              {statistics.completed > 0
                 ? Math.round((statistics.completed / (statistics.completed + statistics.inProgress + statistics.pending + statistics.assigned)) * 100)
                 : 0}%
             </div>
             <p className="text-xs text-gray-600">
-              Overall completion rate
+              Overall rate
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Avg TAT</CardTitle>
+            <Clock className="h-4 w-4 text-orange-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {tasks.length > 0
+                ? Math.round(tasks.reduce((acc, t) => {
+                    if (!t.createdAt || !t.completedAt) return acc;
+                    const created = new Date(t.createdAt);
+                    const completed = new Date(t.completedAt);
+                    const tatInDays = Math.floor((completed.getTime() - created.getTime()) / (1000 * 60 * 60 * 24));
+                    return acc + tatInDays;
+                  }, 0) / tasks.length)
+                : 0} days
+            </div>
+            <p className="text-xs text-gray-600">
+              Average turnaround
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Today</CardTitle>
+            <Award className="h-4 w-4 text-green-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {tasks.filter(t => {
+                if (!t.completedAt) return false;
+                const completed = new Date(t.completedAt);
+                const today = new Date();
+                return completed.toDateString() === today.toDateString();
+              }).length}
+            </div>
+            <p className="text-xs text-gray-600">
+              Completed today
             </p>
           </CardContent>
         </Card>

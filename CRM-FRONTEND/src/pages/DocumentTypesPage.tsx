@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Plus, FileText, Filter } from 'lucide-react';
+import { Plus, FileText, Filter, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -59,14 +59,15 @@ export const DocumentTypesPage: React.FC = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Document Types</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Types</CardTitle>
             <FileText className="h-4 w-4 text-gray-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.total}</div>
+            <p className="text-xs text-gray-600">All document types</p>
           </CardContent>
         </Card>
         <Card>
@@ -76,6 +77,7 @@ export const DocumentTypesPage: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.active}</div>
+            <p className="text-xs text-gray-600">Currently active</p>
           </CardContent>
         </Card>
         <Card>
@@ -85,15 +87,27 @@ export const DocumentTypesPage: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.inactive}</div>
+            <p className="text-xs text-gray-600">Disabled types</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Categories</CardTitle>
-            <Filter className="h-4 w-4 text-gray-600" />
+            <Filter className="h-4 w-4 text-blue-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{Object.keys(stats.byCategory || {}).length}</div>
+            <p className="text-xs text-gray-600">Type categories</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">With Rates</CardTitle>
+            <TrendingUp className="h-4 w-4 text-purple-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{documentTypes.filter(d => d.hasRates).length}</div>
+            <p className="text-xs text-gray-600">Rate configured</p>
           </CardContent>
         </Card>
       </div>

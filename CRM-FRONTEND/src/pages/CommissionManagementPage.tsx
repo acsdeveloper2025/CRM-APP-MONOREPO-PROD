@@ -1,14 +1,37 @@
 import React from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
   Users,
   FileText,
-  Download
+  Download,
+  DollarSign,
+  Clock,
+  CheckCircle,
+  TrendingUp
 } from 'lucide-react';
 import { FieldUserAssignmentsTab } from '@/components/commission/FieldUserAssignmentsTab';
+import { commissionManagementService } from '@/services/commissionManagement';
 
 export const CommissionManagementPage: React.FC = () => {
+  // Fetch commission statistics
+  const { data: statsData } = useQuery({
+    queryKey: ['commission-stats'],
+    queryFn: () => commissionManagementService.getCommissionStats(),
+  });
+
+  const stats = statsData?.data || {
+    totalCommissions: 0,
+    totalAmount: 0,
+    pendingCommissions: 0,
+    pendingAmount: 0,
+    paidCommissions: 0,
+    paidAmount: 0,
+    activeFieldUsers: 0,
+    averageCommission: 0,
+  };
+
   return (
     <div className="space-y-4 sm:space-y-6 animate-fade-in">
       {/* Header */}
@@ -29,6 +52,74 @@ export const CommissionManagementPage: React.FC = () => {
             Documentation
           </Button>
         </div>
+      </div>
+
+      {/* Statistics Cards */}
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Paid</CardTitle>
+            <DollarSign className="h-4 w-4 text-green-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">₹{stats.paidAmount?.toLocaleString() || 0}</div>
+            <p className="text-xs text-gray-600">
+              {stats.paidCommissions || 0} commissions paid
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Pending</CardTitle>
+            <Clock className="h-4 w-4 text-yellow-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">₹{stats.pendingAmount?.toLocaleString() || 0}</div>
+            <p className="text-xs text-gray-600">
+              {stats.pendingCommissions || 0} awaiting payment
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Active Agents</CardTitle>
+            <Users className="h-4 w-4 text-blue-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.activeFieldUsers || 0}</div>
+            <p className="text-xs text-gray-600">
+              Field agents with assignments
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Avg Commission</CardTitle>
+            <TrendingUp className="h-4 w-4 text-purple-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">₹{stats.averageCommission?.toLocaleString() || 0}</div>
+            <p className="text-xs text-gray-600">
+              Per completed task
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">This Month</CardTitle>
+            <CheckCircle className="h-4 w-4 text-green-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">₹{stats.totalAmount?.toLocaleString() || 0}</div>
+            <p className="text-xs text-gray-600">
+              Total commissions
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Main Content */}

@@ -52,8 +52,8 @@ export function ReportSummaryCards({ summaries }: ReportSummaryCardsProps) {
 
   if (!summaries || summaries.length === 0) {
     return (
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {[...Array(4)].map((_, i) => (
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+        {[...Array(5)].map((_, i) => (
           <Card key={i}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Loading...</CardTitle>
@@ -72,7 +72,7 @@ export function ReportSummaryCards({ summaries }: ReportSummaryCardsProps) {
   }
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+    <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
       {summaries.map((summary) => {
         const Icon = getIcon(summary.reportType);
         const primaryMetric = summary.keyMetrics[0];

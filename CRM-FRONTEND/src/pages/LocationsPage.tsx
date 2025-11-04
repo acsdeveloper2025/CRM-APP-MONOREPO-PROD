@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
-import { Plus, Upload, MapPin, Building, Globe } from 'lucide-react';
+import { Plus, Upload, MapPin, Building, Globe, Map } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -145,7 +145,7 @@ export function LocationsPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-5">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Countries</CardTitle>
@@ -191,6 +191,18 @@ export function LocationsPage() {
             <div className="text-2xl font-bold">{stats.pincodes}</div>
             <p className="text-xs text-gray-600">
               Postal codes across all cities
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Areas</CardTitle>
+            <Map className="h-4 w-4 text-gray-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.areas}</div>
+            <p className="text-xs text-gray-600">
+              Areas across all pincodes
             </p>
           </CardContent>
         </Card>

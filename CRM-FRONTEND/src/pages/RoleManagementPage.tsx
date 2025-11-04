@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Plus, Shield, Building, Users } from 'lucide-react';
+import { Plus, Shield, Building, Users, UserCheck, Briefcase } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { PermissionGuard } from '@/components/auth/PermissionGuard';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,6 +15,10 @@ import { EditDesignationDialog } from '@/components/users/EditDesignationDialog'
 import { RolesTable } from '@/components/users/RolesTable';
 import { DepartmentsTable } from '@/components/users/DepartmentsTable';
 import { RoleData, Department, Designation } from '@/types/user';
+import { rolesService } from '@/services/roles';
+import { departmentsService } from '@/services/departments';
+import { designationsService } from '@/services/designations';
+import { usersService } from '@/services/users';
 
 export default function RoleManagementPage() {
   const [showCreateRole, setShowCreateRole] = useState(false);
@@ -22,6 +27,27 @@ export default function RoleManagementPage() {
   const [editingRole, setEditingRole] = useState<RoleData | null>(null);
   const [editingDepartment, setEditingDepartment] = useState<Department | null>(null);
   const [editingDesignation, setEditingDesignation] = useState<Designation | null>(null);
+
+  // Fetch data for stat cards
+  const { data: rolesData } = useQuery({
+    queryKey: ['roles'],
+    queryFn: () => rolesService.getRoles({ limit: 100 }),
+  });
+
+  const { data: departmentsData } = useQuery({
+    queryKey: ['departments'],
+    queryFn: () => departmentsService.getDepartments({ limit: 100 }),
+  });
+
+  const { data: designationsData } = useQuery({
+    queryKey: ['designations'],
+    queryFn: () => designationsService.getDesignations({ limit: 100 }),
+  });
+
+  const { data: userStatsData } = useQuery({
+    queryKey: ['user-stats'],
+    queryFn: () => usersService.getUserStats(),
+  });
 
   const handleEditRole = (role: RoleData) => {
     setEditingRole(role);
@@ -35,6 +61,15 @@ export default function RoleManagementPage() {
     setEditingDesignation(designation);
   };
 
+  // Calculate statistics
+  const totalRoles = rolesData?.pagination?.total || rolesData?.data?.length || 0;
+  const totalDepartments = departmentsData?.pagination?.total || departmentsData?.data?.length || 0;
+  const totalDesignations = designationsData?.pagination?.total || designationsData?.data?.length || 0;
+  const activeUsers = userStatsData?.data?.activeUsers || 0;
+  const totalPermissions = rolesData?.data?.reduce((acc, role) => {
+    return acc + (role.permissions?.length || 0);
+  }, 0) || 0;
+
   return (
     <div className="container mx-auto py-6 space-y-6">
       <div className="flex items-center justify-between">
@@ -44,6 +79,74 @@ export default function RoleManagementPage() {
             Manage roles, permissions, and organizational structure
           </p>
         </div>
+      </div>
+
+      {/* Statistics Cards */}
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Roles</CardTitle>
+            <Shield className="h-4 w-4 text-gray-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totalRoles}</div>
+            <p className="text-xs text-gray-600">
+              System roles defined
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Departments</CardTitle>
+            <Building className="h-4 w-4 text-blue-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totalDepartments}</div>
+            <p className="text-xs text-gray-600">
+              Organizational units
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Designations</CardTitle>
+            <Briefcase className="h-4 w-4 text-purple-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totalDesignations}</div>
+            <p className="text-xs text-gray-600">
+              Job positions
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Active Users</CardTitle>
+            <UserCheck className="h-4 w-4 text-green-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{activeUsers}</div>
+            <p className="text-xs text-gray-600">
+              Currently active
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Permissions</CardTitle>
+            <Users className="h-4 w-4 text-orange-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totalPermissions}</div>
+            <p className="text-xs text-gray-600">
+              Total permissions
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
       <Tabs defaultValue="roles" className="space-y-6">

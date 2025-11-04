@@ -13,7 +13,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useOverdueTasks } from '@/hooks/useDashboard';
-import { Clock, AlertTriangle, User, FileText, ArrowUpDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Clock, AlertTriangle, User, FileText, ArrowUpDown, ChevronLeft, ChevronRight, CheckCircle, TrendingUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export const TATMonitoringPage: React.FC = () => {
@@ -251,7 +251,7 @@ export const TATMonitoringPage: React.FC = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Critical Overdue</CardTitle>
@@ -259,9 +259,10 @@ export const TATMonitoringPage: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-600">{criticalPagination.totalCount}</div>
-            <p className="text-xs text-gray-600">Tasks overdue by more than 1 day</p>
+            <p className="text-xs text-gray-600">More than 1 day</p>
           </CardContent>
         </Card>
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Overdue</CardTitle>
@@ -269,7 +270,53 @@ export const TATMonitoringPage: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-yellow-600">{allPagination.totalCount}</div>
-            <p className="text-xs text-gray-600">Tasks overdue by more than 2 days</p>
+            <p className="text-xs text-gray-600">More than 2 days</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">On Track</CardTitle>
+            <CheckCircle className="h-4 w-4 text-green-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">
+              {Math.max(0, (criticalTasks.filter(t => t.status !== 'COMPLETED').length || 0) - criticalPagination.totalCount)}
+            </div>
+            <p className="text-xs text-gray-600">Within TAT</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Avg TAT</CardTitle>
+            <TrendingUp className="h-4 w-4 text-blue-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {criticalTasks.length > 0
+                ? Math.round(criticalTasks.reduce((acc, t) => acc + (t.days_overdue || 0), 0) / criticalTasks.length)
+                : 0} days
+            </div>
+            <p className="text-xs text-gray-600">Average overdue</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Completed Today</CardTitle>
+            <CheckCircle className="h-4 w-4 text-green-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {criticalTasks.filter(t => {
+                if (!t.completed_at) return false;
+                const completed = new Date(t.completed_at);
+                const today = new Date();
+                return completed.toDateString() === today.toDateString();
+              }).length}
+            </div>
+            <p className="text-xs text-gray-600">Tasks completed</p>
           </CardContent>
         </Card>
       </div>

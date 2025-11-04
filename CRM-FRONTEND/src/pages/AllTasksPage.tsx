@@ -178,7 +178,7 @@ export const AllTasksPage: React.FC = () => {
       />
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Tasks</CardTitle>
@@ -187,7 +187,7 @@ export const AllTasksPage: React.FC = () => {
           <CardContent>
             <div className="text-2xl font-bold">{pagination.total}</div>
             <p className="text-xs text-gray-600">
-              All verification tasks
+              All tasks
             </p>
           </CardContent>
         </Card>
@@ -195,7 +195,7 @@ export const AllTasksPage: React.FC = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Pending</CardTitle>
-            <Clock className="h-4 w-4 text-gray-600" />
+            <Clock className="h-4 w-4 text-yellow-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{statistics.pending + statistics.assigned}</div>
@@ -208,7 +208,7 @@ export const AllTasksPage: React.FC = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">In Progress</CardTitle>
-            <Users className="h-4 w-4 text-gray-600" />
+            <Users className="h-4 w-4 text-blue-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{statistics.inProgress}</div>
@@ -221,12 +221,25 @@ export const AllTasksPage: React.FC = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Completed</CardTitle>
-            <CheckCircle2 className="h-4 w-4 text-gray-600" />
+            <CheckCircle2 className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{statistics.completed}</div>
             <p className="text-xs text-gray-600">
               Successfully done
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Urgent</CardTitle>
+            <AlertTriangle className="h-4 w-4 text-red-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{statistics.urgent || 0}</div>
+            <p className="text-xs text-gray-600">
+              High priority
             </p>
           </CardContent>
         </Card>

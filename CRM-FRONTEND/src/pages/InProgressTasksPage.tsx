@@ -122,16 +122,16 @@ export const InProgressTasksPage: React.FC = () => {
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total In Progress</CardTitle>
-            <Play className="h-4 w-4 text-gray-600" />
+            <Play className="h-4 w-4 text-blue-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{statistics.inProgress}</div>
             <p className="text-xs text-gray-600">
-              Active verification tasks
+              Active tasks
             </p>
           </CardContent>
         </Card>
@@ -139,12 +139,12 @@ export const InProgressTasksPage: React.FC = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Long Running</CardTitle>
-            <Clock className="h-4 w-4 text-gray-600" />
+            <Clock className="h-4 w-4 text-yellow-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{longRunningTasks}</div>
             <p className="text-xs text-gray-600">
-              Running for &gt; 24 hours
+              &gt; 24 hours
             </p>
           </CardContent>
         </Card>
@@ -152,12 +152,12 @@ export const InProgressTasksPage: React.FC = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">High Priority</CardTitle>
-            <TrendingUp className="h-4 w-4 text-gray-600" />
+            <TrendingUp className="h-4 w-4 text-red-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{statistics.highPriority}</div>
             <p className="text-xs text-gray-600">
-              Urgent + High priority
+              Urgent + High
             </p>
           </CardContent>
         </Card>
@@ -165,12 +165,34 @@ export const InProgressTasksPage: React.FC = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Active Agents</CardTitle>
-            <Users className="h-4 w-4 text-gray-600" />
+            <Users className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{activeAgents}</div>
             <p className="text-xs text-gray-600">
-              Field agents working
+              Field agents
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Avg Duration</CardTitle>
+            <TrendingUp className="h-4 w-4 text-purple-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {tasks.length > 0
+                ? Math.round(tasks.reduce((acc, t) => {
+                    const started = new Date(t.createdAt);
+                    const now = new Date();
+                    const durationInHours = Math.floor((now.getTime() - started.getTime()) / (1000 * 60 * 60));
+                    return acc + durationInHours;
+                  }, 0) / tasks.length)
+                : 0}h
+            </div>
+            <p className="text-xs text-gray-600">
+              Average runtime
             </p>
           </CardContent>
         </Card>
