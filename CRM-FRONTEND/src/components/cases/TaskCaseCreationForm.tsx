@@ -111,7 +111,8 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
   const { data: fieldUsers } = useFieldUsers();
   const { data: clientsResponse } = useClients();
   const { data: verificationTypesResponse } = useVerificationTypes();
-  const { data: pincodesResponse } = usePincodes();
+  // Fetch all pincodes for dropdown (high limit to get all)
+  const { data: pincodesResponse } = usePincodes({ limit: 10000 });
 
   const clients = clientsResponse?.data || [];
   const verificationTypes = verificationTypesResponse?.data || [];
