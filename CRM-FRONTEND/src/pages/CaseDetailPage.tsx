@@ -293,6 +293,28 @@ export const CaseDetailPage: React.FC = () => {
                       <p className="mt-1 text-gray-600">{caseItem.trigger || caseItem.notes}</p>
                     </div>
                   )}
+
+                  {/* Deduplication Information */}
+                  {(caseItem.deduplicationChecked && caseItem.deduplicationRationale) && (
+                    <div className="border-t pt-4">
+                      <h4 className="font-medium text-green-900 mb-2">Deduplication Information</h4>
+                      <div className="space-y-2">
+                        <div className="flex items-start gap-2">
+                          <Badge variant="outline" className="mt-0.5">
+                            {caseItem.deduplicationDecision === 'CREATE_NEW' && 'Created New Case'}
+                            {caseItem.deduplicationDecision === 'USE_EXISTING' && 'Used Existing Case'}
+                            {caseItem.deduplicationDecision === 'MERGE_CASES' && 'Merged Cases'}
+                          </Badge>
+                        </div>
+                        <div>
+                          <span className="text-sm font-medium text-gray-700">Decision Rationale:</span>
+                          <p className="mt-1 text-gray-600 text-sm bg-gray-50 p-3 rounded border border-gray-200">
+                            {caseItem.deduplicationRationale}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
