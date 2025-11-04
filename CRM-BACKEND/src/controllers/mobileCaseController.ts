@@ -1345,4 +1345,164 @@ export class MobileCaseController {
       });
     }
   }
+
+  /**
+   * Revoke a verification task (for mobile app)
+   * POST /api/mobile/verification-tasks/:taskId/revoke
+   */
+  static async revokeTask(req: Request, res: Response) {
+    try {
+      const { taskId } = req.params;
+      const { reason } = req.body;
+      const userId = (req as any).user?.id;
+      const userRole = (req as any).user?.role;
+
+      console.log(`📱 Mobile task revocation request:`, {
+        taskId,
+        reason,
+        userId,
+        userRole
+      });
+
+      if (!reason) {
+        return res.status(400).json({
+          success: false,
+          message: 'Revocation reason is required',
+          error: {
+            code: 'REASON_REQUIRED',
+            timestamp: new Date().toISOString(),
+          },
+        });
+      }
+
+      // Get task details
+      const taskQuery = await query(`
+        SELECT
+          vt.*,
+          c."caseId" as case_number,
+          c."customerName" as customer_name,
+          c.id as case_id
+        FROM verification_tasks vt
+        LEFT JOIN cases c ON vt.case_id = c.id
+        WHERE vt.id = $1
+      `, [taskId]);
+
+      if (taskQuery.rows.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: 'Verification task not found',
+          error: {
+            code: 'TASK_NOT_FOUND',
+            timestamp: new Date().toISOString(),
+          },
+        });
+      }
+
+      const taskData = taskQuery.rows[0];
+
+      // Check if task can be revoked (not already completed)
+      if (taskData.status === 'COMPLETED') {
+        return res.status(400).json({
+          success: false,
+          message: 'Cannot revoke a completed task',
+          error: {
+            code: 'TASK_ALREADY_COMPLETED',
+            timestamp: new Date().toISOString(),
+          },
+        });
+      }
+
+      // Check if task is already revoked
+      if (taskData.status === 'REVOKED') {
+        return res.status(400).json({
+          success: false,
+          message: 'Task is already revoked',
+          error: {
+            code: 'TASK_ALREADY_REVOKED',
+            timestamp: new Date().toISOString(),
+          },
+        });
+      }
+
+      // Update task status to revoked
+      await query(`
+        UPDATE verification_tasks
+        SET status = 'REVOKED',
+            revoked_at = CURRENT_TIMESTAMP,
+            revoked_by = $1,
+            revocation_reason = $2,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = $3
+      `, [userId, reason, taskId]);
+
+      // Get field user information
+      const fieldUserQuery = await query(`
+        SELECT name, "employeeId" FROM users WHERE id = $1
+      `, [userId]);
+      const fieldUserName = fieldUserQuery.rows[0]?.name || 'Unknown User';
+
+      // Get backend users to notify
+      const backendUsersQuery = await query(`
+        SELECT id FROM users WHERE role IN ('BACKEND_USER', 'ADMIN', 'SUPER_ADMIN') AND "isActive" = true
+      `);
+      const backendUserIds = backendUsersQuery.rows.map(row => row.id);
+
+      // Send revocation notification to backend users
+      if (backendUserIds.length > 0) {
+        const { queueTaskRevocationNotification } = await import('../queues/notificationQueue');
+        await queueTaskRevocationNotification({
+          taskId: taskData.id,
+          taskNumber: taskData.task_number,
+          caseId: taskData.case_id,
+          caseNumber: taskData.case_number,
+          customerName: taskData.customer_name || 'Unknown Customer',
+          fieldUserId: userId,
+          fieldUserName: fieldUserName,
+          revocationReason: reason,
+          backendUserIds: backendUserIds,
+        });
+      }
+
+      // Create audit log
+      await createAuditLog({
+        userId: userId,
+        action: 'TASK_REVOKED',
+        entityType: 'VERIFICATION_TASK',
+        entityId: taskId,
+        details: {
+          taskNumber: taskData.task_number,
+          caseNumber: taskData.case_number,
+          customerName: taskData.customer_name,
+          reason: reason,
+          previousStatus: taskData.status,
+          newStatus: 'REVOKED',
+        },
+      });
+
+      console.log(`✅ Task ${taskData.task_number} revoked successfully by ${fieldUserName}`);
+
+      res.json({
+        success: true,
+        message: 'Task revoked successfully',
+        data: {
+          taskId: taskData.id,
+          taskNumber: taskData.task_number,
+          status: 'REVOKED',
+          revokedAt: new Date().toISOString(),
+          reason: reason,
+        },
+      });
+
+    } catch (error) {
+      console.error('Revoke task error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+        error: {
+          code: 'TASK_REVOCATION_FAILED',
+          timestamp: new Date().toISOString(),
+        },
+      });
+    }
+  }
 }

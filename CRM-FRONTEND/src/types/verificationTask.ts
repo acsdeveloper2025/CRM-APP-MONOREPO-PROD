@@ -52,11 +52,21 @@ export interface VerificationTask {
   estimatedCompletionDate?: string;
   startedAt?: string;
   completedAt?: string;
-  
+
+  // Revocation Fields (field agent initiated)
+  revokedAt?: string;
+  revokedBy?: string;
+  revocationReason?: string;
+
+  // Cancellation Fields (backend user initiated)
+  cancelledAt?: string;
+  cancelledBy?: string;
+  cancellationReason?: string;
+
   // Commission Information
   commissionStatus?: CommissionStatus;
   calculatedCommission?: number;
-  
+
   // Audit Fields
   createdAt: string;
   updatedAt: string;
@@ -114,13 +124,14 @@ export interface CompleteVerificationTaskRequest {
   formSubmissionId?: string;
 }
 
-export type TaskStatus = 
+export type TaskStatus =
   | 'PENDING'
   | 'ASSIGNED'
   | 'IN_PROGRESS'
   | 'COMPLETED'
   | 'CANCELLED'
-  | 'ON_HOLD';
+  | 'ON_HOLD'
+  | 'REVOKED';
 
 export type TaskPriority = 
   | 'LOW'

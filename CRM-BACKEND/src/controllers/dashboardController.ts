@@ -385,6 +385,7 @@ export const getDashboardStats = async (req: AuthenticatedRequest, res: Response
         (SELECT COUNT(DISTINCT c.id) FROM cases c WHERE c."createdAt" >= $1 AND c.status = 'IN_PROGRESS'${taskFilter}) as "inProgressCases",
         (SELECT COUNT(DISTINCT c.id) FROM cases c WHERE c."createdAt" >= $1 AND (c.status = 'COMPLETED' OR c.status = 'APPROVED')${taskFilter}) as "completedCases",
         (SELECT COUNT(DISTINCT c.id) FROM cases c WHERE c."createdAt" >= $1 AND c.status = 'REJECTED'${taskFilter}) as "rejectedCases",
+        (SELECT COUNT(*) FROM verification_tasks WHERE status = 'REVOKED') as "revokedTasks",
         (SELECT COUNT(*) FROM clients WHERE "isActive" = true) as "totalClients",
         (SELECT COUNT(*) FROM users WHERE "isActive" = true) as "activeUsers",
         (SELECT AVG(EXTRACT(EPOCH FROM (c."updatedAt" - c."createdAt")) / 86400)
@@ -410,6 +411,7 @@ export const getDashboardStats = async (req: AuthenticatedRequest, res: Response
         inProgressCases: parseInt(stats.inProgressCases) || 0,
         completedCases,
         rejectedCases: parseInt(stats.rejectedCases) || 0,
+        revokedTasks: parseInt(stats.revokedTasks) || 0,
         totalClients: parseInt(stats.totalClients) || 0,
         activeUsers: parseInt(stats.activeUsers) || 0,
         completionRate: totalCases > 0 ? Math.round((completedCases / totalCases) * 100) : 0,

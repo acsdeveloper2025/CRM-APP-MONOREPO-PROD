@@ -17,7 +17,8 @@ import {
   Clock,
   DollarSign,
   PlayCircle,
-  List
+  List,
+  XCircle
 } from 'lucide-react';
 
 export interface NavigationItem {
@@ -49,25 +50,11 @@ export const navigationItems: NavigationItem[] = [
     permission: { resource: 'cases', action: 'read' },
     children: [
       {
-        id: 'cases-list',
-        label: 'All Cases',
-        href: '/cases',
-        icon: FileText,
-        permission: { resource: 'cases', action: 'read' },
-      },
-      {
         id: 'cases-new',
         label: 'Create New Case',
         href: '/cases/new',
         icon: Plus,
         permission: { resource: 'cases', action: 'create' },
-      },
-      {
-        id: 'cases-completed',
-        label: 'Completed Cases',
-        href: '/cases/completed',
-        icon: CheckCircle,
-        permission: { resource: 'cases', action: 'read' },
       },
       {
         id: 'tasks-pending',
@@ -77,10 +64,10 @@ export const navigationItems: NavigationItem[] = [
         permission: { resource: 'cases', action: 'read' },
       },
       {
-        id: 'tat-monitoring',
-        label: 'TAT Monitoring',
-        href: '/case-management/tat-monitoring',
-        icon: Clock,
+        id: 'tasks-revoked',
+        label: 'Revoke Tasks',
+        href: '/tasks/revoked',
+        icon: XCircle,
         permission: { resource: 'cases', action: 'read' },
       },
       {
@@ -102,6 +89,13 @@ export const navigationItems: NavigationItem[] = [
         label: 'All Tasks',
         href: '/tasks',
         icon: List,
+        permission: { resource: 'cases', action: 'read' },
+      },
+      {
+        id: 'cases-list',
+        label: 'All Cases',
+        href: '/cases',
+        icon: FileText,
         permission: { resource: 'cases', action: 'read' },
       },
     ],
