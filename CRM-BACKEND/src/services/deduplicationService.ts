@@ -35,7 +35,7 @@ export interface DeduplicationResult {
 
 export interface DeduplicationDecision {
   caseId: string;
-  decision: 'CREATE_NEW' | 'USE_EXISTING' | 'MERGE_CASES';
+  decision: 'CREATE_NEW' | 'USE_EXISTING' | 'MERGE_CASES' | 'NO_DUPLICATES_FOUND';
   rationale: string;
   selectedExistingCaseId?: string;
 }

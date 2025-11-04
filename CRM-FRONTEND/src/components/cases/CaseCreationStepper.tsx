@@ -176,12 +176,27 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
       const result = await deduplicationService.searchDuplicates(criteria);
 
       if (result.success && result.data.duplicatesFound.length > 0) {
-        setDeduplicationResult(result.data);
-        setShowDeduplicationDialog(true);
-        setDeduplicationCompleted(true);
+        // Filter to show only 100% matches
+        const perfectMatches = result.data.duplicatesFound.filter(dup => dup.matchScore === 100);
+
+        if (perfectMatches.length > 0) {
+          // Show dialog only if there are 100% matches
+          setDeduplicationResult(result.data);
+          setShowDeduplicationDialog(true);
+          setDeduplicationCompleted(true);
+        } else {
+          // No 100% matches - auto-proceed as "No Duplicates Found"
+          toast.success('No duplicate cases found. Proceeding to create new case.');
+          setDeduplicationRationale('No duplicate cases found during automated check (no 100% matches)');
+          setDeduplicationCompleted(true);
+          proceedToCaseDetails(data);
+        }
       } else {
-        toast.success('No duplicate cases found. You can now create a new case.');
+        // No duplicates at all - auto-proceed as "No Duplicates Found"
+        toast.success('No duplicate cases found. Proceeding to create new case.');
+        setDeduplicationRationale('No duplicate cases found during automated check');
         setDeduplicationCompleted(true);
+        proceedToCaseDetails(data);
       }
     } catch (error) {
       console.error('Deduplication search failed:', error);
@@ -271,7 +286,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
 
           // Deduplication fields
           panNumber: customerInfo.panNumber,
-          deduplicationDecision: 'CREATE_NEW',
+          deduplicationDecision: deduplicationRationale.includes('No duplicate cases found') ? 'NO_DUPLICATES_FOUND' : 'CREATE_NEW',
           deduplicationRationale: deduplicationRationale,
         };
 
@@ -333,7 +348,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
             backendContactNumber: caseLevelData.backendContactNumber,
             priority: 'MEDIUM',
             panNumber: customerInfo.panNumber,
-            deduplicationDecision: 'CREATE_NEW',
+            deduplicationDecision: deduplicationRationale.includes('No duplicate cases found') ? 'NO_DUPLICATES_FOUND' : 'CREATE_NEW',
             deduplicationRationale: deduplicationRationale,
           },
           verification_tasks: tasks.map((task, index) => ({
@@ -465,7 +480,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
 
         // Deduplication fields
         panNumber: customerInfo.panNumber,
-        deduplicationDecision: 'CREATE_NEW',
+        deduplicationDecision: deduplicationRationale.includes('No duplicate cases found') ? 'NO_DUPLICATES_FOUND' : 'CREATE_NEW',
         deduplicationRationale: deduplicationRationale,
       };
 
