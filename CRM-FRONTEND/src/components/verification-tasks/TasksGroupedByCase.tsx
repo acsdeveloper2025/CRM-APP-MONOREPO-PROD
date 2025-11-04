@@ -21,6 +21,11 @@ import {
 } from 'lucide-react';
 import { VerificationTask, TaskStatus, TaskPriority } from '@/types/verificationTask';
 import { formatDistanceToNow, format } from 'date-fns';
+import {
+  getTaskStatusBadgeStyle,
+  getTaskPriorityBadgeStyle,
+  getStatusLabel,
+} from '@/lib/badgeStyles';
 
 interface TasksGroupedByCaseProps {
   tasks: VerificationTask[];
@@ -82,28 +87,6 @@ export const TasksGroupedByCase: React.FC<TasksGroupedByCaseProps> = ({
       ON_HOLD: AlertTriangle
     };
     return icons[status] || Clock;
-  };
-
-  const getStatusColor = (status: TaskStatus) => {
-    const colors = {
-      PENDING: 'text-yellow-600 bg-yellow-50',
-      ASSIGNED: 'text-green-600 bg-green-50',
-      IN_PROGRESS: 'text-green-600 bg-green-50',
-      COMPLETED: 'text-green-600 bg-green-50',
-      CANCELLED: 'text-red-600 bg-red-50',
-      ON_HOLD: 'text-yellow-600 bg-yellow-50'
-    };
-    return colors[status] || 'text-gray-600 bg-gray-50';
-  };
-
-  const getPriorityColor = (priority: TaskPriority) => {
-    const colors = {
-      LOW: 'text-gray-600 bg-gray-100',
-      MEDIUM: 'text-green-600 bg-green-100',
-      HIGH: 'text-yellow-600 bg-yellow-100',
-      URGENT: 'text-red-600 bg-red-100'
-    };
-    return colors[priority] || 'text-gray-600 bg-gray-100';
   };
 
   if (loading) {
@@ -212,8 +195,6 @@ export const TasksGroupedByCase: React.FC<TasksGroupedByCaseProps> = ({
                   <div className="space-y-3">
                     {caseData.tasks.map((task) => {
                       const StatusIcon = getStatusIcon(task.status);
-                      const statusColor = getStatusColor(task.status);
-                      const priorityColor = getPriorityColor(task.priority);
 
                       return (
                         <div
@@ -224,16 +205,16 @@ export const TasksGroupedByCase: React.FC<TasksGroupedByCaseProps> = ({
                             <div className="flex-1 space-y-2">
                               {/* Task Header */}
                               <div className="flex items-center space-x-2">
-                                <Badge className={statusColor}>
+                                <Badge className={getTaskStatusBadgeStyle(task.status)}>
                                   <StatusIcon className="h-3 w-3 mr-1" />
-                                  {task.status.replace('_', ' ')}
+                                  {getStatusLabel(task.status)}
                                 </Badge>
-                                <Badge className={priorityColor}>
+                                <Badge className={getTaskPriorityBadgeStyle(task.priority)}>
                                   {task.priority}
                                 </Badge>
-                                <span className="text-sm font-medium text-gray-900">
+                                <Badge className="bg-green-600 text-white hover:bg-green-700 uppercase font-medium text-xs">
                                   {task.taskNumber}
-                                </span>
+                                </Badge>
                               </div>
 
                               {/* Task Title */}

@@ -3,15 +3,15 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from '@/components/ui/table';
-import { 
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -29,6 +29,11 @@ import {
 } from 'lucide-react';
 import { VerificationTask, TaskStatus, TaskPriority } from '@/types/verificationTask';
 import { formatDistanceToNow } from 'date-fns';
+import {
+  getTaskStatusBadgeStyle,
+  getTaskPriorityBadgeStyle,
+  getStatusLabel,
+} from '@/lib/badgeStyles';
 
 interface VerificationTasksListProps {
   tasks: VerificationTask[];
@@ -57,44 +62,17 @@ export const VerificationTasksList: React.FC<VerificationTasksListProps> = ({
   onCancelTask,
   onViewTask
 }) => {
-  // Status badge styling
-  const getStatusBadge = (status: TaskStatus) => {
-    const statusConfig = {
-      PENDING: { variant: 'secondary' as const, icon: Clock, color: 'text-yellow-600' },
-      ASSIGNED: { variant: 'outline' as const, icon: UserCheck, color: 'text-green-600' },
-      IN_PROGRESS: { variant: 'default' as const, icon: Play, color: 'text-green-600' },
-      COMPLETED: { variant: 'default' as const, icon: CheckCircle, color: 'text-green-700' },
-      CANCELLED: { variant: 'destructive' as const, icon: X, color: 'text-red-600' },
-      ON_HOLD: { variant: 'secondary' as const, icon: AlertTriangle, color: 'text-yellow-600' }
+  // Status icon helper
+  const getStatusIcon = (status: TaskStatus) => {
+    const icons = {
+      PENDING: Clock,
+      ASSIGNED: UserCheck,
+      IN_PROGRESS: Play,
+      COMPLETED: CheckCircle,
+      CANCELLED: X,
+      ON_HOLD: AlertTriangle
     };
-
-    const config = statusConfig[status];
-    const Icon = config.icon;
-
-    return (
-      <Badge variant={config.variant} className="flex items-center space-x-1">
-        <Icon className="h-3 w-3" />
-        <span>{status.replace('_', ' ')}</span>
-      </Badge>
-    );
-  };
-
-  // Priority badge styling
-  const getPriorityBadge = (priority: TaskPriority) => {
-    const priorityConfig = {
-      LOW: { variant: 'outline' as const, color: 'text-gray-600' },
-      MEDIUM: { variant: 'secondary' as const, color: 'text-green-600' },
-      HIGH: { variant: 'default' as const, color: 'text-yellow-600' },
-      URGENT: { variant: 'destructive' as const, color: 'text-red-600' }
-    };
-
-    const config = priorityConfig[priority];
-
-    return (
-      <Badge variant={config.variant} className={config.color}>
-        {priority}
-      </Badge>
-    );
+    return icons[status] || Clock;
   };
 
   // Format date
@@ -225,11 +203,16 @@ export const VerificationTasksList: React.FC<VerificationTasksListProps> = ({
               </TableCell>
 
               <TableCell>
-                {getStatusBadge(task.status)}
+                <Badge className={getTaskStatusBadgeStyle(task.status)}>
+                  {React.createElement(getStatusIcon(task.status), { className: 'h-3 w-3 mr-1 inline' })}
+                  {getStatusLabel(task.status)}
+                </Badge>
               </TableCell>
 
               <TableCell>
-                {getPriorityBadge(task.priority)}
+                <Badge className={getTaskPriorityBadgeStyle(task.priority)}>
+                  {task.priority}
+                </Badge>
               </TableCell>
 
               <TableCell>
