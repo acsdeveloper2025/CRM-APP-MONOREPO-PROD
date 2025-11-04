@@ -85,8 +85,8 @@ const upload = multer({
   storage,
   fileFilter,
   limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB limit
-    files: 15, // Maximum 15 files per upload
+    fileSize: 50 * 1024 * 1024, // 50MB limit (increased for mobile app with multiple high-res images)
+    files: 20, // Maximum 20 files per upload
   }
 });
 
