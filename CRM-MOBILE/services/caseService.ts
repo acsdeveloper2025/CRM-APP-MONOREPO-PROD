@@ -6,21 +6,32 @@ import { apiService } from './apiService';
 const LOCAL_STORAGE_KEY = 'caseflow_cases';
 
 /**
- * Get API base URL - Static IP only, no fallbacks
+ * Get API base URL - Environment-aware configuration
  */
 function getApiBaseUrl(): string {
-  console.log('🌐 Case Service - Static IP Only');
+  console.log('🔍 Case Service - API Configuration');
 
-  // Mobile app uses static IP exclusively
-  if (import.meta.env.VITE_API_BASE_URL_STATIC_IP) {
-    const url = import.meta.env.VITE_API_BASE_URL_STATIC_IP;
-    console.log('🌍 Case Service - Using Static IP API URL:', url);
-    return url;
+  // Check if we're in production mode
+  const isProduction = import.meta.env.PROD;
+
+  if (isProduction) {
+    // Production: Use domain-based API URL
+    const productionUrl = 'https://example.com/api';
+    console.log('🌍 Case Service - Using Production API URL:', productionUrl);
+    return productionUrl;
+  } else {
+    // Development: Try static IP first, then fallback to localhost
+    if (import.meta.env.VITE_API_BASE_URL_STATIC_IP) {
+      const url = import.meta.env.VITE_API_BASE_URL_STATIC_IP;
+      console.log('🌍 Case Service - Using Static IP API URL:', url);
+      return url;
+    }
+
+    // Fallback to localhost for development
+    const devUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
+    console.log('🌍 Case Service - Using Development API URL:', devUrl);
+    return devUrl;
   }
-
-  // If static IP not configured, throw error
-  console.error('❌ Static IP not configured for Case Service');
-  throw new Error('VITE_API_BASE_URL_STATIC_IP must be configured for mobile app');
 }
 
 // Backend case interface for API responses
