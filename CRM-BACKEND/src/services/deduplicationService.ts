@@ -56,13 +56,13 @@ export class DeduplicationService {
 
       // Exact matches for structured data
       if (criteria.panNumber) {
-        searchConditions.push(`"panNumber" = $${paramIndex}`);
+        searchConditions.push(`c."panNumber" = $${paramIndex}`);
         searchParams.push(criteria.panNumber.toUpperCase());
         paramIndex++;
       }
 
       if (criteria.customerPhone) {
-        searchConditions.push(`"customerPhone" = $${paramIndex}`);
+        searchConditions.push(`c."customerPhone" = $${paramIndex}`);
         searchParams.push(criteria.customerPhone);
         paramIndex++;
       }
@@ -70,8 +70,8 @@ export class DeduplicationService {
       // Fuzzy matching for names (using ILIKE for pattern matching)
       if (criteria.customerName) {
         searchConditions.push(`
-          ("customerName" ILIKE '%' || $${paramIndex} || '%'
-           OR $${paramIndex} ILIKE '%' || "customerName" || '%')
+          (c."customerName" ILIKE '%' || $${paramIndex} || '%'
+           OR $${paramIndex} ILIKE '%' || c."customerName" || '%')
         `);
         searchParams.push(criteria.customerName);
         paramIndex++;
