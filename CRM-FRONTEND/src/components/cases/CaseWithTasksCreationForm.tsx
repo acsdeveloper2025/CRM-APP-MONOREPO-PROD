@@ -209,7 +209,8 @@ export const CaseWithTasksCreationForm: React.FC<CaseWithTasksCreationFormProps>
   const { data: fieldUsers, isLoading: loadingUsers } = useFieldUsers();
   const { data: clientsResponse, isLoading: loadingClients } = useClients();
   const { data: verificationTypesResponse, isLoading: loadingVerificationTypes } = useVerificationTypes();
-  const { data: pincodesResponse, isLoading: loadingPincodes } = usePincodes();
+  // Fetch all pincodes for dropdown (high limit to get all)
+  const { data: pincodesResponse, isLoading: loadingPincodes } = usePincodes({ limit: 10000 });
 
   // Form setup
   const form = useForm<FormData>({
