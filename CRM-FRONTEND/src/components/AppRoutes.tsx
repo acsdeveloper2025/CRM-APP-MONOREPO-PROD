@@ -17,6 +17,7 @@ import { PendingCasesPage } from '@/pages/PendingCasesPage';
 import { CompletedCasesPage } from '@/pages/CompletedCasesPage';
 import { InProgressCasesPage } from '@/pages/InProgressCasesPage';
 import { PendingTasksPage } from '@/pages/PendingTasksPage';
+import { RevokedTasksPage } from '@/pages/RevokedTasksPage';
 import { InProgressTasksPage } from '@/pages/InProgressTasksPage';
 import { CompletedTasksPage } from '@/pages/CompletedTasksPage';
 import { AllTasksPage } from '@/pages/AllTasksPage';
@@ -124,6 +125,17 @@ export const AppRoutes: React.FC = () => {
           <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND', 'SUPER_ADMIN']}>
             <Layout>
               <PendingTasksPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/tasks/revoked"
+        element={
+          <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND', 'SUPER_ADMIN']}>
+            <Layout>
+              <RevokedTasksPage />
             </Layout>
           </ProtectedRoute>
         }

@@ -96,12 +96,13 @@ const verificationOptionsMap: { [key in VerificationType]?: React.ReactElement[]
 };
 
 const CaseCard: React.FC<CaseCardProps> = ({ caseData, isReorderable = false, isFirst, isLast }) => {
-  const { updateCaseStatus, updateVerificationOutcome, revokeCase, reorderInProgressCase, updateCaseSubmissionStatus, verifyCaseSubmissionStatus, fetchCases } = useCases();
+  const { updateCaseStatus, updateVerificationOutcome, reorderInProgressCase, updateCaseSubmissionStatus, verifyCaseSubmissionStatus, fetchCases } = useCases();
   const [isExpanded, setIsExpanded] = useState(false);
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
   const [isRevokeModalOpen, setIsRevokeModalOpen] = useState(false);
   const [revokeReason, setRevokeReason] = useState<RevokeReason>(RevokeReason.NotMyArea);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isRevoking, setIsRevoking] = useState(false);
   const [submissionMessage, setSubmissionMessage] = useState<string | null>(null);
   const [isAttachmentsModalOpen, setIsAttachmentsModalOpen] = useState(false);
 
@@ -178,10 +179,34 @@ const CaseCard: React.FC<CaseCardProps> = ({ caseData, isReorderable = false, is
     }
   };
 
-  const handleRevokeConfirm = () => {
-    if (revokeReason) {
-        revokeCase(caseData.id, revokeReason);
+  const handleRevokeConfirm = async () => {
+    if (!revokeReason || !caseData.verificationTaskId) {
+      console.error('❌ Cannot revoke: Missing reason or task ID');
+      return;
+    }
+
+    setIsRevoking(true);
+
+    try {
+      const result = await VerificationTaskService.revokeTask(
+        caseData.verificationTaskId,
+        revokeReason
+      );
+
+      if (result.success) {
+        console.log('✅ Task revoked successfully');
         setIsRevokeModalOpen(false);
+        // Refresh cases to update the UI
+        await fetchCases();
+      } else {
+        console.error('❌ Failed to revoke task:', result.error);
+        alert(`Failed to revoke task: ${result.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('❌ Error revoking task:', error);
+      alert('An error occurred while revoking the task');
+    } finally {
+      setIsRevoking(false);
     }
   };
 
@@ -1020,7 +1045,7 @@ const CaseCard: React.FC<CaseCardProps> = ({ caseData, isReorderable = false, is
         </div>
     </Modal>
 
-    <Modal isVisible={isRevokeModalOpen} onClose={() => setIsRevokeModalOpen(false)} title="Revoke Case">
+    <Modal isVisible={isRevokeModalOpen} onClose={() => !isRevoking && setIsRevokeModalOpen(false)} title="Revoke Task">
         <div className="space-y-4">
             <SelectField
                 label="Reason for Revocation"
@@ -1028,26 +1053,30 @@ const CaseCard: React.FC<CaseCardProps> = ({ caseData, isReorderable = false, is
                 name="revokeReason"
                 value={revokeReason}
                 onChange={(e) => setRevokeReason(e.target.value as RevokeReason)}
+                disabled={isRevoking}
             >
                 {Object.values(RevokeReason).map(reason => (
                     <option key={reason} value={reason}>{reason}</option>
                 ))}
             </SelectField>
             <p className="text-sm text-medium-text">
-                This will remove the case from your device and send it back to the server. This action cannot be undone.
+                This will revoke the verification task and notify backend users. This action cannot be undone.
             </p>
             <div className="flex justify-end gap-4 mt-6">
                 <button
                     onClick={() => setIsRevokeModalOpen(false)}
-                    className="px-4 py-2 rounded-md bg-gray-600 hover:bg-gray-500 text-light-text font-semibold"
+                    disabled={isRevoking}
+                    className="px-4 py-2 rounded-md bg-gray-600 hover:bg-gray-500 text-light-text font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     Cancel
                 </button>
                 <button
                     onClick={handleRevokeConfirm}
-                    className="px-4 py-2 rounded-md bg-red-600 hover:bg-red-500 text-white font-semibold"
+                    disabled={isRevoking}
+                    className="px-4 py-2 rounded-md bg-red-600 hover:bg-red-500 text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
-                    Confirm Revoke
+                    {isRevoking && <Spinner size="small" />}
+                    {isRevoking ? 'Revoking...' : 'Confirm Revoke'}
                 </button>
             </div>
         </div>
