@@ -10,14 +10,21 @@ export interface DeduplicationCriteria {
 export interface DuplicateCase {
   id: string;
   caseId: number;
+  caseNumber?: string;
   customerName: string;
   customerPhone?: string;
+  customerEmail?: string;
   panNumber?: string;
   status: string;
   createdAt: string;
   clientName?: string;
   matchType: string[];
   matchScore: number;
+  // Enhanced fields for better duplicate identification
+  productName?: string;
+  verificationTypeName?: string;
+  pincode?: string;
+  verificationOutcome?: string;
 }
 
 export interface DeduplicationResult {
@@ -81,15 +88,24 @@ export class DeduplicationService {
 
       const query = `
         SELECT
+          c.id,
           c."caseId",
+          c."caseNumber",
           c."customerName",
           c."customerPhone",
+          c."customerEmail",
           c."panNumber",
           c.status,
           c."createdAt",
-          cl.name as "clientName"
+          c."verificationOutcome",
+          c.pincode,
+          cl.name as "clientName",
+          p.name as "productName",
+          vt.name as "verificationTypeName"
         FROM cases c
         LEFT JOIN clients cl ON c."clientId" = cl.id
+        LEFT JOIN products p ON c."productId" = p.id
+        LEFT JOIN "verificationTypes" vt ON c."verificationTypeId" = vt.id
         WHERE (${searchConditions.join(' OR ')})
         ORDER BY c."createdAt" DESC
         LIMIT 50
@@ -120,14 +136,20 @@ export class DeduplicationService {
         }
 
         return {
-          id: row.caseId.toString(),
+          id: row.id || row.caseId.toString(),
           caseId: row.caseId,
+          caseNumber: row.caseNumber,
           customerName: row.customerName,
           customerPhone: row.customerPhone,
+          customerEmail: row.customerEmail,
           panNumber: row.panNumber,
           status: row.status,
           createdAt: row.createdAt,
           clientName: row.clientName,
+          productName: row.productName,
+          verificationTypeName: row.verificationTypeName,
+          pincode: row.pincode,
+          verificationOutcome: row.verificationOutcome,
           matchType: matchTypes,
           matchScore
         };
