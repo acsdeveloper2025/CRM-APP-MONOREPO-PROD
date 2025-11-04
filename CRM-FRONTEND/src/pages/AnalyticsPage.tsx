@@ -14,7 +14,8 @@ import {
   Users,
   CheckSquare,
   TrendingUp,
-  Database
+  Database,
+  Clock
 } from 'lucide-react';
 
 export const AnalyticsPage: React.FC = () => {
@@ -45,6 +46,7 @@ export const AnalyticsPage: React.FC = () => {
   const totalTasks = tasks.length;
   const completedTasks = tasks.filter((t: any) => t.status === 'COMPLETED').length;
   const inProgressTasks = tasks.filter((t: any) => t.status === 'IN_PROGRESS').length;
+  const pendingTasks = tasks.filter((t: any) => t.status === 'PENDING' || t.status === 'ASSIGNED').length;
   const taskCompletionRate = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
 
   // Calculate active agents
