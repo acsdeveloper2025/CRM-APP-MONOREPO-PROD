@@ -23,7 +23,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { MoreHorizontal, Eye, Edit, UserCheck } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
+import { format } from 'date-fns';
 import type { Case } from '@/types/case';
 import { cn } from '@/lib/utils';
 import { UserSelectionModal } from './UserSelectionModal';
@@ -127,8 +127,6 @@ export const CaseTable: React.FC<CaseTableProps> = ({
               <TableHead>Client</TableHead>
               <TableHead>Product</TableHead>
               <TableHead>Verification Type</TableHead>
-              <TableHead>Area</TableHead>
-              <TableHead>Rate Type</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Priority</TableHead>
               <TableHead>Verification Tasks</TableHead>
@@ -159,12 +157,6 @@ export const CaseTable: React.FC<CaseTableProps> = ({
                 </TableCell>
                 <TableCell>
                   <div className="h-6 bg-muted rounded animate-pulse w-16"></div>
-                </TableCell>
-                <TableCell>
-                  <div className="h-6 bg-muted rounded animate-pulse w-16"></div>
-                </TableCell>
-                <TableCell>
-                  <div className="h-4 bg-muted rounded animate-pulse"></div>
                 </TableCell>
                 <TableCell>
                   <div className="h-4 bg-muted rounded animate-pulse"></div>
@@ -203,8 +195,6 @@ export const CaseTable: React.FC<CaseTableProps> = ({
               <TableHead className="hidden lg:table-cell">Client</TableHead>
               <TableHead className="hidden xl:table-cell">Product</TableHead>
               <TableHead className="hidden lg:table-cell">Verification Type</TableHead>
-              <TableHead className="hidden xl:table-cell">Area</TableHead>
-              <TableHead className="hidden xl:table-cell">Rate Type</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="hidden lg:table-cell">Priority</TableHead>
               <TableHead className="hidden lg:table-cell">Verification Tasks</TableHead>
@@ -244,21 +234,6 @@ export const CaseTable: React.FC<CaseTableProps> = ({
                   {caseItem.verificationTypeName || caseItem.verificationType || 'N/A'}
                 </div>
               </TableCell>
-              <TableCell className="hidden xl:table-cell">
-                <div className="text-sm">
-                  <Badge variant="outline" className="text-xs">
-                    {caseItem.areaType === 'local' ? 'Local' :
-                     caseItem.areaType === 'ogl' ? 'OGL' :
-                     caseItem.areaType === 'outstation' ? 'Outstation' :
-                     caseItem.areaType === 'standard' ? 'Standard' : 'N/A'}
-                  </Badge>
-                </div>
-              </TableCell>
-              <TableCell className="hidden xl:table-cell">
-                <div className="text-sm">
-                  {caseItem.rateTypeName || 'N/A'}
-                </div>
-              </TableCell>
               <TableCell>
                 <Badge className={cn('text-xs', getStatusColor(caseItem.status))}>
                   {caseItem.status.replace('_', ' ')}
@@ -281,7 +256,7 @@ export const CaseTable: React.FC<CaseTableProps> = ({
               </TableCell>
               <TableCell className="hidden xl:table-cell">
                 <div className="text-sm text-gray-600">
-                  {formatDistanceToNow(new Date(caseItem.updatedAt), { addSuffix: true })}
+                  {format(new Date(caseItem.updatedAt), 'dd MMM yyyy, hh:mm a')}
                 </div>
               </TableCell>
               <TableCell>
@@ -414,7 +389,7 @@ export const CaseTable: React.FC<CaseTableProps> = ({
             />
             <MobileTableField
               label="Updated"
-              value={formatDistanceToNow(new Date(caseItem.updatedAt), { addSuffix: true })}
+              value={format(new Date(caseItem.updatedAt), 'dd MMM yyyy, hh:mm a')}
             />
           </MobileTableCard>
         ))}

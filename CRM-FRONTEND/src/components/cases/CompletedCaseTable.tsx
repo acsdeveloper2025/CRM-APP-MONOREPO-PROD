@@ -19,7 +19,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { MoreHorizontal, Eye, Download, FileText, MapPin, Calendar } from 'lucide-react';
-import { formatDistanceToNow, format } from 'date-fns';
+import { format } from 'date-fns';
 import type { Case } from '@/types/case';
 import { cn } from '@/lib/utils';
 
@@ -125,22 +125,18 @@ export const CompletedCaseTable: React.FC<CompletedCaseTableProps> = ({
               <TableHead>Case ID</TableHead>
               <TableHead>Customer</TableHead>
               <TableHead>Verification Type</TableHead>
-              <TableHead>Area</TableHead>
-              <TableHead>Rate Type</TableHead>
               <TableHead>Priority</TableHead>
-              <TableHead>Assigned To</TableHead>
               <TableHead>Client</TableHead>
               <TableHead>Product</TableHead>
               <TableHead>Assigned By</TableHead>
               <TableHead>Completed Date</TableHead>
-              <TableHead>Outcome</TableHead>
               <TableHead className="w-[70px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {[1, 2, 3, 4, 5].map((item) => (
               <TableRow key={item}>
-                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13].map((cell) => (
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((cell) => (
                   <TableCell key={cell}>
                     <div className="h-4 bg-muted rounded animate-pulse"></div>
                   </TableCell>
@@ -173,15 +169,11 @@ export const CompletedCaseTable: React.FC<CompletedCaseTableProps> = ({
             <TableHead>Case ID</TableHead>
             <TableHead>Customer</TableHead>
             <TableHead>Verification Type</TableHead>
-            <TableHead>Area</TableHead>
-            <TableHead>Rate Type</TableHead>
             <TableHead>Priority</TableHead>
-            <TableHead>Assigned To</TableHead>
             <TableHead>Client</TableHead>
             <TableHead>Product</TableHead>
             <TableHead>Assigned By</TableHead>
             <TableHead>Completed Date</TableHead>
-            <TableHead>Outcome</TableHead>
             <TableHead className="w-[70px]"></TableHead>
           </TableRow>
         </TableHeader>
@@ -218,30 +210,9 @@ export const CompletedCaseTable: React.FC<CompletedCaseTableProps> = ({
                 </Badge>
               </TableCell>
               <TableCell>
-                <div className="text-sm">
-                  <Badge variant="outline" className="text-xs">
-                    {caseItem.areaType === 'local' ? 'Local' :
-                     caseItem.areaType === 'ogl' ? 'OGL' :
-                     caseItem.areaType === 'outstation' ? 'Outstation' :
-                     caseItem.areaType === 'standard' ? 'Standard' : 'N/A'}
-                  </Badge>
-                </div>
-              </TableCell>
-              <TableCell>
-                <div className="text-sm">
-                  {caseItem.rateTypeName || 'N/A'}
-                </div>
-              </TableCell>
-              <TableCell>
                 <Badge className={getPriorityColor(caseItem.priority)}>
                   {getPriorityLabel(caseItem.priority)}
                 </Badge>
-              </TableCell>
-              <TableCell>
-                <div>
-                  <div className="font-medium">{caseItem.assignedToName || caseItem.assignedTo?.name || 'Unassigned'}</div>
-                  <div className="text-sm text-gray-600">{caseItem.assignedTo?.username}</div>
-                </div>
               </TableCell>
               <TableCell>
                 <div>
@@ -262,31 +233,11 @@ export const CompletedCaseTable: React.FC<CompletedCaseTableProps> = ({
                 </div>
               </TableCell>
               <TableCell>
-                <div>
-                  <div className="font-medium flex items-center">
-                    <Calendar className="h-3 w-3 mr-1" />
-                    {caseItem.completedAt
-                      ? format(new Date(caseItem.completedAt), 'MMM dd, yyyy')
-                      : format(new Date(caseItem.updatedAt), 'MMM dd, yyyy')
-                    }
-                  </div>
-                  <div className="text-sm text-gray-600">
-                    {caseItem.completedAt 
-                      ? formatDistanceToNow(new Date(caseItem.completedAt), { addSuffix: true })
-                      : formatDistanceToNow(new Date(caseItem.updatedAt), { addSuffix: true })
-                    }
-                  </div>
-                </div>
-              </TableCell>
-              <TableCell>
-                <div>
-                  {caseItem.verificationOutcome ? (
-                    <Badge variant={caseItem.verificationOutcome.toLowerCase().includes('positive') ? 'default' : 'secondary'}>
-                      {caseItem.verificationOutcome}
-                    </Badge>
-                  ) : (
-                    <span className="text-sm text-gray-600">Pending review</span>
-                  )}
+                <div className="text-sm text-gray-600">
+                  {caseItem.completedAt
+                    ? format(new Date(caseItem.completedAt), 'dd MMM yyyy, hh:mm a')
+                    : format(new Date(caseItem.updatedAt), 'dd MMM yyyy, hh:mm a')
+                  }
                 </div>
               </TableCell>
               <TableCell>
