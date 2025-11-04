@@ -66,11 +66,12 @@ export interface CaseRevocationNotificationJobData {
   backendUserIds: string[];
 }
 
-export type NotificationJobData = 
+export type NotificationJobData =
   | SingleNotificationJobData
   | BulkNotificationJobData
   | CaseAssignmentNotificationJobData
   | CaseCompletionNotificationJobData
+  | TaskRevocationNotificationJobData
   | CaseRevocationNotificationJobData;
 
 // Create notification queue
