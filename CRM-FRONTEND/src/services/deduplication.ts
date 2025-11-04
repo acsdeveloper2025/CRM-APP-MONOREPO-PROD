@@ -10,14 +10,21 @@ export interface DeduplicationCriteria {
 export interface DuplicateCase {
   id: string;
   caseId: number;
+  caseNumber?: string;
   customerName: string;
   customerPhone?: string;
+  customerEmail?: string;
   panNumber?: string;
   status: string;
   createdAt: string;
   clientName?: string;
   matchType: string[];
   matchScore: number;
+  // Enhanced fields for better duplicate identification
+  productName?: string;
+  verificationTypeName?: string;
+  pincode?: string;
+  verificationOutcome?: string;
 }
 
 export interface DeduplicationResult {

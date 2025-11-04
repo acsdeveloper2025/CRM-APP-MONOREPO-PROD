@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { AlertTriangle, Calendar, User, Phone, Mail, CreditCard, Building2, ExternalLink } from 'lucide-react';
+import { AlertTriangle, Calendar, User, Phone, Mail, CreditCard, Building2, ExternalLink, Package, FileCheck, MapPin, CheckCircle } from 'lucide-react';
 import type { DuplicateCase, DeduplicationResult } from '@/services/deduplication';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -168,18 +168,50 @@ export const DeduplicationDialog: React.FC<DeduplicationDialogProps> = ({
                       <div className="grid grid-cols-2 gap-4 text-sm">
                         <div className="flex items-center gap-2">
                           <User className="h-4 w-4 text-gray-600" />
-                          <span>{duplicate.applicantName}</span>
+                          <span>{duplicate.customerName}</span>
                         </div>
-                        {duplicate.applicantPhone && (
+                        {duplicate.customerPhone && (
                           <div className="flex items-center gap-2">
                             <Phone className="h-4 w-4 text-gray-600" />
-                            <span>{duplicate.applicantPhone}</span>
+                            <span>{duplicate.customerPhone}</span>
                           </div>
                         )}
-                        {duplicate.applicantEmail && (
+                        {duplicate.customerEmail && (
                           <div className="flex items-center gap-2">
                             <Mail className="h-4 w-4 text-gray-600" />
-                            <span>{duplicate.applicantEmail}</span>
+                            <span>{duplicate.customerEmail}</span>
+                          </div>
+                        )}
+                        {duplicate.clientName && (
+                          <div className="flex items-center gap-2">
+                            <Building2 className="h-4 w-4 text-gray-600" />
+                            <span className="font-medium">{duplicate.clientName}</span>
+                          </div>
+                        )}
+                        {duplicate.productName && (
+                          <div className="flex items-center gap-2">
+                            <Package className="h-4 w-4 text-gray-600" />
+                            <span>{duplicate.productName}</span>
+                          </div>
+                        )}
+                        {duplicate.verificationTypeName && (
+                          <div className="flex items-center gap-2">
+                            <FileCheck className="h-4 w-4 text-gray-600" />
+                            <span>{duplicate.verificationTypeName}</span>
+                          </div>
+                        )}
+                        {duplicate.pincode && (
+                          <div className="flex items-center gap-2">
+                            <MapPin className="h-4 w-4 text-gray-600" />
+                            <span>{duplicate.pincode}</span>
+                          </div>
+                        )}
+                        {duplicate.verificationOutcome && (
+                          <div className="flex items-center gap-2">
+                            <CheckCircle className="h-4 w-4 text-gray-600" />
+                            <Badge variant="outline" className="text-xs">
+                              {duplicate.verificationOutcome}
+                            </Badge>
                           </div>
                         )}
                         <div className="flex items-center gap-2">
