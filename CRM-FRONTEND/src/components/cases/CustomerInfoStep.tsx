@@ -28,7 +28,7 @@ const customerInfoSchema = z.object({
   panNumber: z.string().optional().refine((val) => !val || /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(val), {
     message: 'PAN must be in format: ABCDE1234F'
   }),
-  mobileNumber: z.string().min(1, 'Mobile number is required').refine((val) => /^[0-9]{10,15}$/.test(val.replace(/\D/g, '')), {
+  mobileNumber: z.string().optional().refine((val) => !val || /^[0-9]{10,15}$/.test(val.replace(/\D/g, '')), {
     message: 'Mobile number must be 10-15 digits'
   }),
 });
