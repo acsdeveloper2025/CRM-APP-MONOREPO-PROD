@@ -28,6 +28,7 @@ import { useClients, useVerificationTypes, useProductsByClient } from '@/hooks/u
 import { usePincodes } from '@/hooks/useLocations';
 import { useAreasByPincode } from '@/hooks/useAreas';
 import { useAuth } from '@/contexts/AuthContext';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 import type { CustomerInfoData } from './CustomerInfoStep';
 import { rateTypesService } from '@/services/rateTypes';
 import { useQuery } from '@tanstack/react-query';
@@ -558,21 +559,18 @@ const TaskCard: React.FC<TaskCardProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="text-sm font-medium">Pincode *</label>
-            <Select
+            <SearchableSelect
+              options={pincodes.map((pincode) => ({
+                value: pincode.id.toString(),
+                label: pincode.code,
+                description: pincode.city?.name || undefined
+              }))}
               value={task.pincodeId}
               onValueChange={(value) => updateTask(task.id, 'pincodeId', value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select pincode" />
-              </SelectTrigger>
-              <SelectContent position="popper" className="max-h-[300px]">
-                {pincodes.map((pincode) => (
-                  <SelectItem key={pincode.id} value={pincode.id.toString()}>
-                    {pincode.code}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              placeholder="Select pincode"
+              searchPlaceholder="Search pincode..."
+              emptyMessage="No pincodes found"
+            />
             {!task.pincodeId && (
               <p className="text-sm text-red-600 mt-1">
                 <AlertCircle className="h-3 w-3 inline mr-1" />
