@@ -93,7 +93,7 @@ export const AnalyticsPage: React.FC = () => {
 
         <TabsContent value="overview" className="space-y-4 sm:space-y-6">
           {/* Overview Dashboard */}
-          <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
             {/* Total Cases */}
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -104,8 +104,8 @@ export const AnalyticsPage: React.FC = () => {
                 <div className="text-2xl font-bold">{caseSummary?.totalCases || 0}</div>
                 <p className="text-xs text-gray-600">
                   {caseSummary?.completionRate
-                    ? `${caseSummary.completionRate.toFixed(1)}% completion rate`
-                    : 'No cases yet'
+                    ? `${caseSummary.completionRate.toFixed(1)}%`
+                    : 'No cases'
                   }
                 </p>
               </CardContent>
@@ -115,12 +115,12 @@ export const AnalyticsPage: React.FC = () => {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Total Tasks</CardTitle>
-                <CheckSquare className="h-4 w-4 text-gray-600" />
+                <CheckSquare className="h-4 w-4 text-blue-600" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{totalTasks}</div>
                 <p className="text-xs text-gray-600">
-                  {taskCompletionRate.toFixed(1)}% completion rate
+                  {taskCompletionRate.toFixed(1)}%
                 </p>
               </CardContent>
             </Card>
@@ -128,7 +128,7 @@ export const AnalyticsPage: React.FC = () => {
             {/* Completed Tasks */}
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Completed Tasks</CardTitle>
+                <CardTitle className="text-sm font-medium">Completed</CardTitle>
                 <TrendingUp className="h-4 w-4 text-green-600" />
               </CardHeader>
               <CardContent>
@@ -143,12 +143,26 @@ export const AnalyticsPage: React.FC = () => {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Active Agents</CardTitle>
-                <Users className="h-4 w-4 text-gray-600" />
+                <Users className="h-4 w-4 text-purple-600" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{activeAgents}</div>
                 <p className="text-xs text-gray-600">
-                  Field agents working
+                  Field agents
+                </p>
+              </CardContent>
+            </Card>
+
+            {/* Pending Tasks */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Pending</CardTitle>
+                <Clock className="h-4 w-4 text-yellow-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{pendingTasks}</div>
+                <p className="text-xs text-gray-600">
+                  Awaiting action
                 </p>
               </CardContent>
             </Card>

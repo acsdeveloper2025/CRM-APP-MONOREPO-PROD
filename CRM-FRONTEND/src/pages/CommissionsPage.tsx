@@ -1,13 +1,33 @@
 import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Calculator, BarChart3, FileText, HelpCircle, Download } from 'lucide-react';
+import { Calculator, BarChart3, FileText, HelpCircle, Download, DollarSign, Clock, CheckCircle, Users, TrendingUp } from 'lucide-react';
 import { CommissionCalculationsTab } from '@/components/commission/CommissionCalculationsTab';
 import { CommissionStatsTab } from '@/components/commission/CommissionStatsTab';
+import { commissionManagementService } from '@/services/commissionManagement';
 
 export const CommissionsPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('calculations');
+
+  // Fetch commission statistics
+  const { data: statsData } = useQuery({
+    queryKey: ['commission-stats'],
+    queryFn: () => commissionManagementService.getCommissionStats(),
+  });
+
+  const stats = statsData?.data || {
+    totalCommissions: 0,
+    totalAmount: 0,
+    pendingCommissions: 0,
+    pendingAmount: 0,
+    approvedCommissions: 0,
+    approvedAmount: 0,
+    paidCommissions: 0,
+    paidAmount: 0,
+    activeFieldUsers: 0,
+  };
 
   const exportAllData = () => {
     // This would trigger export from both tabs
@@ -34,6 +54,76 @@ export const CommissionsPage: React.FC = () => {
             Documentation
           </Button>
         </div>
+      </div>
+
+      {/* Statistics Cards */}
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Calculations</CardTitle>
+            <Calculator className="h-4 w-4 text-gray-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.totalCommissions || 0}</div>
+            <p className="text-xs text-gray-600">
+              All commission records
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Pending Approval</CardTitle>
+            <Clock className="h-4 w-4 text-yellow-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.pendingCommissions || 0}</div>
+            <p className="text-xs text-gray-600">
+              ₹{stats.pendingAmount?.toLocaleString() || 0} pending
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Approved</CardTitle>
+            <CheckCircle className="h-4 w-4 text-green-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.approvedCommissions || 0}</div>
+            <p className="text-xs text-gray-600">
+              Ready for payment
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Amount</CardTitle>
+            <DollarSign className="h-4 w-4 text-green-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">₹{stats.totalAmount?.toLocaleString() || 0}</div>
+            <p className="text-xs text-gray-600">
+              All commissions
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Avg Commission</CardTitle>
+            <TrendingUp className="h-4 w-4 text-purple-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              ₹{stats.totalCommissions > 0 ? Math.round(stats.totalAmount / stats.totalCommissions).toLocaleString() : 0}
+            </div>
+            <p className="text-xs text-gray-600">
+              Per calculation
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Main Content */}

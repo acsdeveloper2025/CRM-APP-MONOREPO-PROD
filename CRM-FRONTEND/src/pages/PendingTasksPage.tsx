@@ -113,7 +113,7 @@ export const PendingTasksPage: React.FC = () => {
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Pending</CardTitle>
@@ -130,12 +130,12 @@ export const PendingTasksPage: React.FC = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Unassigned</CardTitle>
-            <Package className="h-4 w-4 text-gray-600" />
+            <Package className="h-4 w-4 text-yellow-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{statistics.pending}</div>
             <p className="text-xs text-gray-600">
-              Need field agent assignment
+              Need assignment
             </p>
           </CardContent>
         </Card>
@@ -143,12 +143,12 @@ export const PendingTasksPage: React.FC = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Assigned</CardTitle>
-            <UserCheck className="h-4 w-4 text-gray-600" />
+            <UserCheck className="h-4 w-4 text-blue-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{statistics.assigned}</div>
             <p className="text-xs text-gray-600">
-              Waiting to be started
+              Waiting to start
             </p>
           </CardContent>
         </Card>
@@ -156,12 +156,34 @@ export const PendingTasksPage: React.FC = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Urgent</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-gray-600" />
+            <AlertTriangle className="h-4 w-4 text-red-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{statistics.urgent}</div>
             <p className="text-xs text-gray-600">
-              High priority tasks
+              High priority
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Avg Age</CardTitle>
+            <TrendingUp className="h-4 w-4 text-purple-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {tasks.length > 0
+                ? Math.round(tasks.reduce((acc, t) => {
+                    const created = new Date(t.createdAt);
+                    const now = new Date();
+                    const ageInDays = Math.floor((now.getTime() - created.getTime()) / (1000 * 60 * 60 * 24));
+                    return acc + ageInDays;
+                  }, 0) / tasks.length)
+                : 0} days
+            </div>
+            <p className="text-xs text-gray-600">
+              Average task age
             </p>
           </CardContent>
         </Card>

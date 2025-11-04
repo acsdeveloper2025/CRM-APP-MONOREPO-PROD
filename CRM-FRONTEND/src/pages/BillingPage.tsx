@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Plus, Download, Receipt, DollarSign, TrendingUp, Calendar } from 'lucide-react';
+import { Plus, Download, Receipt, DollarSign, TrendingUp, Calendar, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -120,7 +120,7 @@ export function BillingPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Invoices</CardTitle>
@@ -129,11 +129,11 @@ export function BillingPage() {
           <CardContent>
             <div className="text-2xl font-bold">{stats.invoices.total}</div>
             <p className="text-xs text-gray-600">
-              ₹{stats.invoices.totalAmount.toLocaleString()} total value
+              ₹{stats.invoices.totalAmount.toLocaleString()}
             </p>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Paid Invoices</CardTitle>
@@ -150,12 +150,12 @@ export function BillingPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Commissions</CardTitle>
-            <TrendingUp className="h-4 w-4 text-gray-600" />
+            <TrendingUp className="h-4 w-4 text-blue-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.commissions.total}</div>
             <p className="text-xs text-gray-600">
-              ₹{stats.commissions.totalAmount.toLocaleString()} total value
+              ₹{stats.commissions.totalAmount.toLocaleString()}
             </p>
           </CardContent>
         </Card>
@@ -169,6 +169,21 @@ export function BillingPage() {
             <div className="text-2xl font-bold text-yellow-600">{stats.commissions.pending}</div>
             <p className="text-xs text-gray-600">
               {stats.commissions.paid} paid
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Overdue Amount</CardTitle>
+            <AlertTriangle className="h-4 w-4 text-red-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-600">
+              ₹{((stats.invoices.totalAmount || 0) - (stats.invoices.paidAmount || 0)).toLocaleString()}
+            </div>
+            <p className="text-xs text-gray-600">
+              Pending payment
             </p>
           </CardContent>
         </Card>
