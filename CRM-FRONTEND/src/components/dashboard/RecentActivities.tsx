@@ -1,8 +1,9 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { formatDistanceToNow } from 'date-fns';
+import { format } from 'date-fns';
 import { FileText, CheckSquare, Receipt, UserCheck } from 'lucide-react';
+import { baseBadgeStyle, formatBadgeLabel } from '@/lib/badgeStyles';
 
 interface RecentActivity {
   id: string;
@@ -36,20 +37,7 @@ const getActivityIcon = (type: string) => {
   }
 };
 
-const getActivityColor = (type: string) => {
-  switch (type) {
-    case 'caseAssigned':
-      return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300';
-    case 'caseCompleted':
-      return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300';
-    case 'caseApproved':
-      return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300';
-    case 'invoiceGenerated':
-      return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300';
-    default:
-      return 'bg-muted text-gray-600';
-  }
-};
+
 
 export const RecentActivities: React.FC<RecentActivitiesProps> = ({ activities, isLoading }) => {
   if (isLoading) {
@@ -93,21 +81,18 @@ export const RecentActivities: React.FC<RecentActivitiesProps> = ({ activities, 
               const Icon = getActivityIcon(activity.type);
               return (
                 <div key={activity.id} className="flex items-start space-x-4">
-                  <div className="flex-shrink-0">
+                  <div className="shrink-0">
                     <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center">
                       <Icon className="w-4 h-4 text-gray-600" />
                     </div>
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center space-x-2">
-                      <p className="text-sm font-medium text-gray-900">
+                      <p className="text-sm font-medium text-gray-600">
                         {activity.title}
                       </p>
-                      <Badge 
-                        variant="secondary" 
-                        className={getActivityColor(activity.type)}
-                      >
-                        {activity.type.replace('_', ' ')}
+                      <Badge className={baseBadgeStyle}>
+                        {formatBadgeLabel(activity.type)}
                       </Badge>
                     </div>
                     <p className="text-sm text-gray-600 mt-1">
@@ -120,7 +105,7 @@ export const RecentActivities: React.FC<RecentActivitiesProps> = ({ activities, 
                         </span>
                       )}
                       <span className="text-xs text-gray-600">
-                        {formatDistanceToNow(new Date(activity.timestamp), { addSuffix: true })}
+                        {format(new Date(activity.timestamp), 'MMM dd, yyyy HH:mm')}
                       </span>
                     </div>
                   </div>

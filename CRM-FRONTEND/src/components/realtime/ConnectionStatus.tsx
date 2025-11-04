@@ -8,6 +8,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { useWebSocket } from '@/hooks/useWebSocket';
+import { baseBadgeStyle } from '@/lib/badgeStyles';
 
 interface ConnectionStatusProps {
   showText?: boolean;
@@ -21,42 +22,30 @@ export function ConnectionStatus({ showText = false, size = 'sm' }: ConnectionSt
     if (isConnected) {
       return {
         icon: Wifi,
-        color: 'text-green-600',
-        bgColor: 'bg-green-100',
-        variant: 'default' as const,
-        text: 'Connected',
+        text: 'CONNECTED',
         description: `Connected to real-time server${latency ? ` (${latency}ms)` : ''}`,
       };
     }
-    
+
     if (isConnecting) {
       return {
         icon: Loader2,
-        color: 'text-yellow-600',
-        bgColor: 'bg-yellow-100',
-        variant: 'secondary' as const,
-        text: 'Connecting',
+        text: 'CONNECTING',
         description: 'Connecting to real-time server...',
       };
     }
-    
+
     if (error) {
       return {
         icon: AlertCircle,
-        color: 'text-red-600',
-        bgColor: 'bg-red-100',
-        variant: 'destructive' as const,
-        text: 'Error',
+        text: 'ERROR',
         description: `Connection error: ${error}`,
       };
     }
-    
+
     return {
       icon: WifiOff,
-      color: 'text-gray-600',
-      bgColor: 'bg-muted',
-      variant: 'secondary' as const,
-      text: 'Disconnected',
+      text: 'DISCONNECTED',
       description: 'Not connected to real-time server',
     };
   };
@@ -72,11 +61,11 @@ export function ConnectionStatus({ showText = false, size = 'sm' }: ConnectionSt
 
   const content = (
     <div className="flex items-center space-x-1">
-      <Icon 
-        className={`${iconSize} ${config.color} ${isConnecting ? 'animate-spin' : ''}`} 
+      <Icon
+        className={`${iconSize} text-white ${isConnecting ? 'animate-spin' : ''}`}
       />
       {showText && (
-        <span className={`text-xs font-medium ${config.color}`}>
+        <span className="text-xs font-medium text-white">
           {config.text}
         </span>
       )}
@@ -88,7 +77,7 @@ export function ConnectionStatus({ showText = false, size = 'sm' }: ConnectionSt
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Badge variant={config.variant} className="cursor-help">
+            <Badge className={`${baseBadgeStyle} cursor-help`}>
               {content}
             </Badge>
           </TooltipTrigger>
