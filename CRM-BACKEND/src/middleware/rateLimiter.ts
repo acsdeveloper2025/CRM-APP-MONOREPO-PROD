@@ -2,7 +2,7 @@ import rateLimit from 'express-rate-limit';
 import jwt from 'jsonwebtoken';
 import { config } from '@/config';
 import { ApiResponse } from '@/types/api';
-import { AuthenticatedRequest } from './auth';
+import { AuthenticatedRequest } from '@/types/auth';
 
 const createRateLimiter = (windowMs: number, max: number, message: string, skipForAllUsers = false) => {
   return rateLimit({
