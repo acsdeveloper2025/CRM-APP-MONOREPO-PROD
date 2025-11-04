@@ -144,7 +144,8 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
 
   // Watch for pincode selection to fetch areas
   const selectedPincodeId = form.watch('pincodeId');
-  const { data: pincodesResponse } = usePincodes();
+  // Fetch all pincodes for dropdown (high limit to get all)
+  const { data: pincodesResponse } = usePincodes({ limit: 10000 });
   const pincodes = pincodesResponse?.data || [];
   const { data: areasResponse } = useAreasByPincode(selectedPincodeId ? parseInt(selectedPincodeId) : undefined);
   const areas = areasResponse?.data || [];
