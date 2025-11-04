@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { baseBadgeStyle, formatBadgeLabel } from '@/lib/badgeStyles';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -128,8 +129,8 @@ export function PincodesTable({ data, isLoading }: PincodesTableProps) {
                     <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
                       <MapPin className="h-4 w-4 text-primary" />
                     </div>
-                    <Badge variant="outline" className="font-mono">
-                      {pincode.code}
+                    <Badge className={baseBadgeStyle}>
+                      {formatBadgeLabel(pincode.code)}
                     </Badge>
                   </div>
                 </TableCell>
@@ -148,7 +149,7 @@ export function PincodesTable({ data, isLoading }: PincodesTableProps) {
                 </TableCell>
                 <TableCell>
                   {pincode.state ? (
-                    <Badge variant="outline">{pincode.state}</Badge>
+                    <Badge className={baseBadgeStyle}>{formatBadgeLabel(pincode.state)}</Badge>
                   ) : (
                     <span className="text-gray-600">-</span>
                   )}

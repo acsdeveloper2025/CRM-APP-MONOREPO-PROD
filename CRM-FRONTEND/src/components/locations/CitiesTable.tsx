@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { baseBadgeStyle, formatBadgeLabel } from '@/lib/badgeStyles';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -138,10 +139,10 @@ export function CitiesTable({ data, isLoading }: CitiesTableProps) {
                   </div>
                 </TableCell>
                 <TableCell>
-                  <Badge variant="outline">{city.state}</Badge>
+                  <Badge className={baseBadgeStyle}>{formatBadgeLabel(city.state)}</Badge>
                 </TableCell>
                 <TableCell>
-                  <span className="text-sm">{city.country}</span>
+                  <Badge className={baseBadgeStyle}>{formatBadgeLabel(city.country)}</Badge>
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center space-x-1">

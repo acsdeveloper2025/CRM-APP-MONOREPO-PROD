@@ -22,6 +22,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
+import { baseBadgeStyle, formatBadgeLabel } from '@/lib/badgeStyles';
 import { billingService } from '@/services/billing';
 import { Commission } from '@/types/billing';
 
@@ -97,16 +98,7 @@ export function CommissionsTable({ data, isLoading }: CommissionsTableProps) {
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    const statusConfig = {
-      PENDING: { variant: 'secondary' as const, label: 'Pending' },
-      APPROVED: { variant: 'outline' as const, label: 'Approved' },
-      PAID: { variant: 'default' as const, label: 'Paid' },
-    };
-    
-    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.PENDING;
-    return <Badge variant={config.variant}>{config.label}</Badge>;
-  };
+
 
   if (isLoading) {
     return (
@@ -243,10 +235,10 @@ export function CommissionsTable({ data, isLoading }: CommissionsTableProps) {
                   <div className="font-medium">₹{commission.amount.toLocaleString()}</div>
                 </TableCell>
                 <TableCell>
-                  <Badge variant="outline">{commission.percentage}%</Badge>
+                  <Badge className={baseBadgeStyle}>{commission.percentage}%</Badge>
                 </TableCell>
                 <TableCell>
-                  {getStatusBadge(commission.status)}
+                  <Badge className={baseBadgeStyle}>{formatBadgeLabel(commission.status)}</Badge>
                 </TableCell>
                 <TableCell>
                   {new Date(commission.calculatedAt).toLocaleDateString()}
