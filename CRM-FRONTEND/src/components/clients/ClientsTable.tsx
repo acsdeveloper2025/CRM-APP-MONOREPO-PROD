@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { baseBadgeStyle, formatBadgeLabel } from '@/lib/badgeStyles';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -147,7 +148,7 @@ export function ClientsTable({ data, isLoading }: ClientsTableProps) {
                   </div>
                 </TableCell>
                 <TableCell>
-                  <Badge variant="outline">{client.code}</Badge>
+                  <Badge className={baseBadgeStyle}>{formatBadgeLabel(client.code)}</Badge>
                 </TableCell>
                 <TableCell>
                   <span className="text-sm text-gray-600">
@@ -158,7 +159,7 @@ export function ClientsTable({ data, isLoading }: ClientsTableProps) {
                   {new Date(client.createdAt).toLocaleDateString()}
                 </TableCell>
                 <TableCell>
-                  <Badge variant="default">Active</Badge>
+                  <Badge className={baseBadgeStyle}>ACTIVE</Badge>
                 </TableCell>
                 <TableCell className="text-right">
                   <DropdownMenu>

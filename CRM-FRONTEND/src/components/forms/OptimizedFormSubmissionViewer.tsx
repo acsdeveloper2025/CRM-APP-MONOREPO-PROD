@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { FormSubmission } from '@/types/form';
 import VerificationImages from '@/components/VerificationImages';
 import { TemplateReportCard } from '@/components/forms/TemplateReportCard';
+import { baseBadgeStyle } from '@/lib/badgeStyles';
 
 import {
   FileText,
@@ -41,42 +42,7 @@ export const OptimizedFormSubmissionViewer: React.FC<OptimizedFormSubmissionView
 
 
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'SUBMITTED':
-        return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300';
-      case 'DRAFT':
-        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300';
-      case 'PENDING':
-        return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300';
-      default:
-        return 'bg-muted text-gray-600';
-    }
-  };
 
-  const getValidationColor = (status: string) => {
-    switch (status) {
-      case 'VALID':
-        return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300';
-      case 'INVALID':
-        return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300';
-      default:
-        return 'bg-muted text-gray-600';
-    }
-  };
-
-  const getOutcomeColor = (outcome: string) => {
-    switch (outcome?.toLowerCase()) {
-      case 'positive':
-        return 'text-green-600 dark:text-green-400';
-      case 'negative':
-        return 'text-red-600 dark:text-red-400';
-      case 'untraceable':
-        return 'text-yellow-600 dark:text-orange-400';
-      default:
-        return 'text-gray-600';
-    }
-  };
 
   // Extract key information
   const submissionDate = (() => {
@@ -111,15 +77,15 @@ export const OptimizedFormSubmissionViewer: React.FC<OptimizedFormSubmissionView
                   {getFormTypeLabel(submission.formType)} Verification
                 </CardTitle>
                 <div className="flex items-center space-x-2 mt-2">
-                  <Badge className={getStatusColor(submission.status)}>
-                    {submission.status}
+                  <Badge className={baseBadgeStyle}>
+                    {submission.status.toUpperCase()}
                   </Badge>
-                  <Badge className={getValidationColor(submission.validationStatus)}>
-                    {submission.validationStatus}
+                  <Badge className={baseBadgeStyle}>
+                    {submission.validationStatus.toUpperCase()}
                   </Badge>
-                  <span className={`text-sm font-medium ${getOutcomeColor(verificationOutcome)}`}>
-                    Outcome: {verificationOutcome}
-                  </span>
+                  <Badge className={baseBadgeStyle}>
+                    OUTCOME: {verificationOutcome.toUpperCase()}
+                  </Badge>
                 </div>
               </div>
             </div>
@@ -207,7 +173,7 @@ export const OptimizedFormSubmissionViewer: React.FC<OptimizedFormSubmissionView
               <div className="flex items-center space-x-2 mb-4">
                 <FileText className="h-5 w-5 text-green-600" />
                 <h3 className="text-lg font-semibold">Form Data</h3>
-                <Badge variant="outline">{formSections.length} sections, {totalFields} fields</Badge>
+                <Badge className={baseBadgeStyle}>{formSections.length} SECTIONS, {totalFields} FIELDS</Badge>
               </div>
 
               {formSections.map((section, sectionIndex) => (
@@ -218,7 +184,7 @@ export const OptimizedFormSubmissionViewer: React.FC<OptimizedFormSubmissionView
                         {sectionIndex + 1}
                       </div>
                       <span>{section.title}</span>
-                      <Badge variant="outline">{section.fields?.length || 0} fields</Badge>
+                      <Badge className={baseBadgeStyle}>{section.fields?.length || 0} FIELDS</Badge>
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-6">
@@ -227,22 +193,22 @@ export const OptimizedFormSubmissionViewer: React.FC<OptimizedFormSubmissionView
                         <div key={fieldIndex} className="space-y-3">
                           {/* Field Label with Enhanced Styling */}
                           <div className="flex items-center justify-between">
-                            <Label className="text-sm font-semibold text-gray-900 flex items-center space-x-2">
+                            <Label className="text-sm font-medium text-gray-600 flex items-center space-x-2">
                               <span className="bg-muted text-gray-600 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
                                 {fieldIndex + 1}
                               </span>
                               <span>{field.label}</span>
                               {field.isRequired && <span className="text-red-500 text-lg">*</span>}
                             </Label>
-                            <Badge variant="secondary" className="text-xs">
-                              {field.type}
+                            <Badge className={baseBadgeStyle}>
+                              {field.type.toUpperCase()}
                             </Badge>
                           </div>
 
                           {/* Field Value Display with Enhanced Styling */}
-                          <div className="min-h-[50px] p-4 bg-muted border-2 border-border rounded-lg">
-                            <div className="text-sm text-gray-900">
-                              {field.value || <span className="text-gray-600 italic">Not provided</span>}
+                          <div className="min-h-[50px] p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                            <div className="text-sm font-medium text-gray-900">
+                              {field.value || <span className="text-gray-500 italic font-normal">Not provided</span>}
                             </div>
                           </div>
                         </div>
@@ -267,7 +233,7 @@ export const OptimizedFormSubmissionViewer: React.FC<OptimizedFormSubmissionView
             <div className="flex items-center space-x-2">
               <Camera className="h-5 w-5 text-green-600" />
               <h3 className="text-lg font-semibold">Verification Photos</h3>
-              <Badge variant="outline">{submission.photos?.length || 0} photos</Badge>
+              <Badge className={baseBadgeStyle}>{submission.photos?.length || 0} PHOTOS</Badge>
             </div>
 
             <Card className="border-l-4 border-l-purple-500">

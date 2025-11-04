@@ -31,6 +31,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import toast from 'react-hot-toast';
+import { baseBadgeStyle, formatBadgeLabel } from '@/lib/badgeStyles';
 import { locationsService } from '@/services/locations';
 import { EditCountryDialog } from './EditCountryDialog';
 import { CountryDetailsDialog } from './CountryDetailsDialog';
@@ -105,18 +106,7 @@ export function CountriesTable({ data, isLoading }: CountriesTableProps) {
     );
   }
 
-  const getContinentColor = (continent: string) => {
-    const colors: Record<string, string> = {
-      'Asia': 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300',
-      'Europe': 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300',
-      'North America': 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300',
-      'South America': 'bg-yellow-100 text-orange-800 dark:bg-yellow-900/20 dark:text-yellow-300',
-      'Africa': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300',
-      'Oceania': 'bg-green-100 text-cyan-800 dark:bg-green-900/20 dark:text-green-300',
-      'Antarctica': 'bg-muted text-gray-600',
-    };
-    return colors[continent] || 'bg-muted text-gray-600';
-  };
+
 
   return (
     <>
@@ -141,14 +131,10 @@ export function CountriesTable({ data, isLoading }: CountriesTableProps) {
                   </div>
                 </TableCell>
                 <TableCell>
-                  <Badge variant="outline" className="font-mono">
-                    {country.code}
-                  </Badge>
+                  <Badge className={baseBadgeStyle}>{formatBadgeLabel(country.code)}</Badge>
                 </TableCell>
                 <TableCell>
-                  <Badge className={getContinentColor(country.continent)}>
-                    {country.continent}
-                  </Badge>
+                  <Badge className={baseBadgeStyle}>{formatBadgeLabel(country.continent)}</Badge>
                 </TableCell>
                 <TableCell className="text-gray-600">
                   {new Date(country.createdAt).toLocaleDateString()}

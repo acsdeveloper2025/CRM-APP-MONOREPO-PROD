@@ -11,6 +11,7 @@ import { FormLocationViewer } from './FormLocationViewer';
 import { FormPhotosGallery } from './FormPhotosGallery';
 import VerificationImages from '@/components/VerificationImages';
 import { formatDistanceToNow } from 'date-fns';
+import { baseBadgeStyle } from '@/lib/badgeStyles';
 
 interface EnhancedFormViewerProps {
   submission: FormSubmission;
@@ -263,7 +264,7 @@ export function FormViewer({
                   {/* Section Header */}
                   <div className="bg-muted px-4 py-3 border-b">
                     <div className="flex items-center justify-between">
-                      <h3 className="text-lg font-semibold text-gray-900 flex items-center space-x-2">
+                      <h3 className="text-lg font-semibold text-gray-800 flex items-center space-x-2">
                         <span className="bg-primary text-white rounded-full w-7 h-7 flex items-center justify-center text-sm font-bold">
                           {sectionIndex + 1}
                         </span>
@@ -285,20 +286,20 @@ export function FormViewer({
                         <div key={field.id} className="space-y-2">
                           {/* Field Label */}
                           <div className="flex items-center justify-between">
-                            <Label className="text-sm font-medium text-gray-900 flex items-center space-x-2">
+                            <Label className="text-sm font-medium text-gray-600 flex items-center space-x-2">
                               <span className="bg-muted text-gray-600 rounded-full w-5 h-5 flex items-center justify-center text-xs">
                                 {fieldIndex + 1}
                               </span>
                               <span>{field.label}</span>
                               {field.isRequired && <span className="text-red-500">*</span>}
                             </Label>
-                            <Badge variant="secondary" className="text-xs">
-                              {field.type}
+                            <Badge className={baseBadgeStyle}>
+                              {field.type.toUpperCase()}
                             </Badge>
                           </div>
 
                           {/* Field Value */}
-                          <div className="min-h-[40px] p-3 bg-muted border rounded-md">
+                          <div className="min-h-10 p-3 bg-gray-50 border border-gray-200 rounded-md">
                             <FormFieldViewer
                               field={field}
                               readonly={true}

@@ -31,6 +31,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
+import { baseBadgeStyle, formatBadgeLabel } from '@/lib/badgeStyles';
 import { locationsService } from '@/services/locations';
 import { EditStateDialog } from './EditStateDialog';
 import { StateDetailsDialog } from './StateDetailsDialog';
@@ -124,12 +125,12 @@ export function StatesTable({ data, isLoading }: StatesTableProps) {
               <TableRow key={state.id}>
                 <TableCell className="font-medium">{state.name}</TableCell>
                 <TableCell>
-                  <Badge variant="outline">{state.code}</Badge>
+                  <Badge className={baseBadgeStyle}>{formatBadgeLabel(state.code)}</Badge>
                 </TableCell>
                 <TableCell>{state.country}</TableCell>
                 <TableCell>
-                  <Badge variant="secondary">
-                    {state.cityCount || 0} cities
+                  <Badge className={baseBadgeStyle}>
+                    {state.cityCount || 0} CITIES
                   </Badge>
                 </TableCell>
                 <TableCell>

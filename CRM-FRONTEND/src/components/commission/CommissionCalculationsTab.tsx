@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { baseBadgeStyle, formatBadgeLabel } from '@/lib/badgeStyles';
 import {
   Table,
   TableBody,
@@ -91,20 +92,7 @@ export const CommissionCalculationsTab: React.FC = () => {
     }
   };
 
-  const getRateTypeBadge = (rateType: string) => {
-    // Use standardized badge colors matching CaseTable pattern
-    const colorClass = rateType === 'Local'
-      ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300'
-      : rateType === 'OGL' || rateType === 'Out of Geolocation'
-      ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300'
-      : 'bg-muted text-gray-600';
 
-    return (
-      <Badge variant="outline" className={colorClass}>
-        {rateType}
-      </Badge>
-    );
-  };
 
   if (loading) {
     return (
@@ -229,7 +217,7 @@ export const CommissionCalculationsTab: React.FC = () => {
                         {calculation.product_name || 'N/A'}
                       </TableCell>
                       <TableCell>
-                        {getRateTypeBadge(calculation.rate_type_name || 'N/A')}
+                        <Badge className={baseBadgeStyle}>{formatBadgeLabel(calculation.rate_type_name || 'N/A')}</Badge>
                       </TableCell>
                       <TableCell className="text-right">
                         <div>
