@@ -34,6 +34,7 @@ import { rolesService } from '@/services/roles';
 import { RoleData } from '@/types/user';
 import { formatDistanceToNow } from 'date-fns';
 import { getRoleIcon } from '@/utils/roleUtils';
+import { baseBadgeStyle, formatBadgeLabel } from '@/lib/badgeStyles';
 
 interface RolesTableProps {
   onEditRole?: (role: RoleData) => void;
@@ -144,8 +145,8 @@ export function RolesTable({ onEditRole }: RolesTableProps) {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={role.isSystemRole ? 'default' : 'secondary'}>
-                      {role.isSystemRole ? 'System' : 'Custom'}
+                    <Badge className={baseBadgeStyle}>
+                      {role.isSystemRole ? 'SYSTEM' : 'CUSTOM'}
                     </Badge>
                   </TableCell>
                   <TableCell>
@@ -155,13 +156,13 @@ export function RolesTable({ onEditRole }: RolesTableProps) {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline">
-                      {getPermissionCount(role.permissions)} permissions
+                    <Badge className={baseBadgeStyle}>
+                      {getPermissionCount(role.permissions)} PERMISSIONS
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={role.isActive ? 'default' : 'secondary'}>
-                      {role.isActive ? 'Active' : 'Inactive'}
+                    <Badge className={baseBadgeStyle}>
+                      {role.isActive ? 'ACTIVE' : 'INACTIVE'}
                     </Badge>
                   </TableCell>
                   <TableCell>

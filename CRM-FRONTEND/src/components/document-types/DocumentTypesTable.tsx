@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { MoreHorizontal, Edit, Trash2, Eye, Shield, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { baseBadgeStyle, formatBadgeLabel } from '@/lib/badgeStyles';
 import {
   Table,
   TableBody,
@@ -56,22 +57,7 @@ export const DocumentTypesTable: React.FC<DocumentTypesTableProps> = ({
     }
   };
 
-  const getCategoryBadge = (category: string) => {
-    const color = DOCUMENT_TYPE_COLORS[category as keyof typeof DOCUMENT_TYPE_COLORS] || 'gray';
-    const displayName = DOCUMENT_TYPE_DISPLAY_NAMES[category as keyof typeof DOCUMENT_TYPE_DISPLAY_NAMES] || category;
-    
-    return (
-      <Badge
-        variant="secondary"
-        className={cn(
-          'text-xs',
-          `bg-${color}-100 text-${color}-800 border-${color}-200`
-        )}
-      >
-        {displayName}
-      </Badge>
-    );
-  };
+
 
   if (isLoading) {
     return (
@@ -122,36 +108,34 @@ export const DocumentTypesTable: React.FC<DocumentTypesTableProps> = ({
                     </div>
                   </TableCell>
                   <TableCell>
-                    <code className="text-sm bg-muted px-2 py-1 rounded">
-                      {documentType.code}
-                    </code>
+                    <Badge className={baseBadgeStyle}>{formatBadgeLabel(documentType.code)}</Badge>
                   </TableCell>
                   <TableCell>
-                    {getCategoryBadge(documentType.category)}
+                    <Badge className={baseBadgeStyle}>{formatBadgeLabel(documentType.category)}</Badge>
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-1">
                       {documentType.isGovernmentIssued && (
-                        <Badge variant="outline" className="text-xs">
+                        <Badge className={baseBadgeStyle}>
                           <Shield className="h-3 w-3 mr-1" />
-                          Govt. Issued
+                          GOVT. ISSUED
                         </Badge>
                       )}
                       {documentType.requiresVerification && (
-                        <Badge variant="outline" className="text-xs">
-                          Verification Required
+                        <Badge className={baseBadgeStyle}>
+                          VERIFICATION REQUIRED
                         </Badge>
                       )}
                       {documentType.validityPeriodMonths && (
-                        <Badge variant="outline" className="text-xs">
-                          {documentType.validityPeriodMonths}m validity
+                        <Badge className={baseBadgeStyle}>
+                          {documentType.validityPeriodMonths}M VALIDITY
                         </Badge>
                       )}
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={documentType.isActive ? 'default' : 'secondary'}>
-                      {documentType.isActive ? 'Active' : 'Inactive'}
+                    <Badge className={baseBadgeStyle}>
+                      {documentType.isActive ? 'ACTIVE' : 'INACTIVE'}
                     </Badge>
                   </TableCell>
                   <TableCell>

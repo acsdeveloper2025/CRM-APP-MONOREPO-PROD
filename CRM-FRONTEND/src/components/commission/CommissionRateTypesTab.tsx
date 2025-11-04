@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { baseBadgeStyle, formatBadgeLabel } from '@/lib/badgeStyles';
 import {
   Table,
   TableBody,
@@ -187,11 +188,11 @@ export const CommissionRateTypesTab: React.FC = () => {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline">{rateType.currency}</Badge>
+                      <Badge className={baseBadgeStyle}>{formatBadgeLabel(rateType.currency)}</Badge>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={rateType.isActive ? 'default' : 'secondary'}>
-                        {rateType.isActive ? 'Active' : 'Inactive'}
+                      <Badge className={baseBadgeStyle}>
+                        {rateType.isActive ? 'ACTIVE' : 'INACTIVE'}
                       </Badge>
                     </TableCell>
                     <TableCell>
