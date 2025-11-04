@@ -67,11 +67,10 @@ export class DeduplicationService {
         paramIndex++;
       }
 
-      // Fuzzy matching for names
+      // Fuzzy matching for names (using ILIKE for pattern matching)
       if (criteria.customerName) {
         searchConditions.push(`
-          (similarity("customerName", $${paramIndex}) > 0.6
-           OR "customerName" ILIKE '%' || $${paramIndex} || '%'
+          ("customerName" ILIKE '%' || $${paramIndex} || '%'
            OR $${paramIndex} ILIKE '%' || "customerName" || '%')
         `);
         searchParams.push(criteria.customerName);
