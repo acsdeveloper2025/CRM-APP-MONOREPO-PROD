@@ -110,7 +110,7 @@ export function ClientsPage() {
       </div>
 
       {/* Stats Cards - Following responsive grid pattern */}
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
         <Card className="transition-all duration-200 hover:shadow-md">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Clients</CardTitle>
@@ -118,7 +118,7 @@ export function ClientsPage() {
           <CardContent>
             <div className="text-2xl font-bold">{stats.clients}</div>
             <p className="text-xs text-gray-600">
-              Active client organizations
+              Active organizations
             </p>
           </CardContent>
         </Card>
@@ -129,7 +129,7 @@ export function ClientsPage() {
           <CardContent>
             <div className="text-2xl font-bold">{stats.products}</div>
             <p className="text-xs text-gray-600">
-              Products across all clients
+              All products
             </p>
           </CardContent>
         </Card>
@@ -140,7 +140,7 @@ export function ClientsPage() {
           <CardContent>
             <div className="text-2xl font-bold">{stats.verificationTypes}</div>
             <p className="text-xs text-gray-600">
-              Available verification types
+              Available types
             </p>
           </CardContent>
         </Card>
@@ -151,7 +151,18 @@ export function ClientsPage() {
           <CardContent>
             <div className="text-2xl font-bold">{stats.documentTypes}</div>
             <p className="text-xs text-gray-600">
-              Available document types
+              Document types
+            </p>
+          </CardContent>
+        </Card>
+        <Card className="transition-all duration-200 hover:shadow-md">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Active Cases</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.activeCases || 0}</div>
+            <p className="text-xs text-gray-600">
+              In progress
             </p>
           </CardContent>
         </Card>

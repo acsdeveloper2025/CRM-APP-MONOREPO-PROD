@@ -178,7 +178,7 @@ export const InProgressCasesPage: React.FC = () => {
       />
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center">
@@ -233,6 +233,26 @@ export const InProgressCasesPage: React.FC = () => {
                 <p className="text-sm font-medium text-gray-600">Active Agents</p>
                 <p className="text-2xl font-bold text-foreground">
                   {new Set(cases.map(c => c.assignedToId)).size}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <div className="h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center">
+                <span className="text-blue-600 font-semibold">📊</span>
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Avg Duration</p>
+                <p className="text-2xl font-bold text-foreground">
+                  {cases.length > 0
+                    ? Math.round(cases.reduce((acc, c) => {
+                        const duration = (c as any).pendingDurationSeconds || 0;
+                        return acc + (duration / 86400); // Convert to days
+                      }, 0) / cases.length)
+                    : 0} days
                 </p>
               </div>
             </div>
