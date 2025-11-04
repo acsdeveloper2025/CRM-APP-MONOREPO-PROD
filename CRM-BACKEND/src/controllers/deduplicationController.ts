@@ -95,7 +95,7 @@ export const recordDeduplicationDecision = async (req: AuthenticatedRequest, res
       });
     }
 
-    const validDecisions = ['CREATE_NEW', 'USE_EXISTING', 'MERGE_CASES'];
+    const validDecisions = ['CREATE_NEW', 'USE_EXISTING', 'MERGE_CASES', 'NO_DUPLICATES_FOUND'];
     if (!validDecisions.includes(decision.decision)) {
       return res.status(400).json({
         success: false,
