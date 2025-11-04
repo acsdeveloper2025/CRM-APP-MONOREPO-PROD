@@ -42,6 +42,19 @@ export interface CaseCompletionNotificationJobData {
   backendUserIds: string[];
 }
 
+export interface TaskRevocationNotificationJobData {
+  type: 'task-revocation';
+  taskId: string;
+  taskNumber: string;
+  caseId: string;
+  caseNumber: string;
+  customerName: string;
+  fieldUserId: string;
+  fieldUserName: string;
+  revocationReason: string;
+  backendUserIds: string[];
+}
+
 export interface CaseRevocationNotificationJobData {
   type: 'case-revocation';
   caseId: string;
@@ -307,6 +320,62 @@ notificationQueue.process('case-revocation', 5, async (job) => {
   }
 });
 
+// Task Revocation Notification Processor
+notificationQueue.process('task-revocation', 5, async (job) => {
+  const data = job.data as TaskRevocationNotificationJobData;
+
+  logger.info('Processing task revocation notification job', {
+    jobId: job.id,
+    taskId: data.taskId,
+    caseId: data.caseId,
+    fieldUserId: data.fieldUserId,
+    backendUserCount: data.backendUserIds.length,
+  });
+
+  try {
+    const notificationTemplate: Omit<NotificationData, 'userId'> = {
+      title: 'Task Revoked',
+      message: `Task ${data.taskNumber} (Case ${data.caseNumber}) has been revoked by ${data.fieldUserName}`,
+      type: 'TASK_REVOKED',
+      caseId: data.caseId,
+      caseNumber: data.caseNumber,
+      data: {
+        taskId: data.taskId,
+        taskNumber: data.taskNumber,
+        customerName: data.customerName,
+        fieldUserId: data.fieldUserId,
+        fieldUserName: data.fieldUserName,
+        revocationReason: data.revocationReason,
+      },
+      actionUrl: `/cases/${data.caseId}`,
+      actionType: 'OPEN_CASE',
+      priority: 'HIGH',
+    };
+
+    const notificationIds = await NotificationService.sendBulkNotification(
+      data.backendUserIds,
+      notificationTemplate
+    );
+
+    logger.info('Task revocation notification job completed', {
+      jobId: job.id,
+      taskId: data.taskId,
+      caseId: data.caseId,
+      notificationsSent: notificationIds.length,
+    });
+
+    return { notificationIds, success: true };
+  } catch (error) {
+    logger.error('Task revocation notification job failed', {
+      jobId: job.id,
+      taskId: data.taskId,
+      caseId: data.caseId,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+    throw error;
+  }
+});
+
 // Queue event handlers
 notificationQueue.on('completed', (job, result) => {
   logger.info('Notification job completed', {
@@ -395,6 +464,19 @@ export const queueCaseRevocationNotification = async (
     ...data,
   }, {
     priority: 8, // High priority for revocations
+  });
+
+  return job.id?.toString() || '';
+};
+
+export const queueTaskRevocationNotification = async (
+  data: Omit<TaskRevocationNotificationJobData, 'type'>
+): Promise<string> => {
+  const job = await notificationQueue.add('task-revocation', {
+    type: 'task-revocation',
+    ...data,
+  }, {
+    priority: getPriorityValue('HIGH'),
   });
 
   return job.id?.toString() || '';

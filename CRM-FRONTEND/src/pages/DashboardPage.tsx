@@ -6,7 +6,7 @@ import { CaseStatusChart } from '@/components/dashboard/CaseStatusChart';
 import { MonthlyTrendsChart } from '@/components/dashboard/MonthlyTrendsChart';
 import { RecentActivities } from '@/components/dashboard/RecentActivities';
 import { useDashboardStats, useRecentActivities, useCaseStatusDistribution, useMonthlyTrends, useTATStats } from '@/hooks/useDashboard';
-import { FileText, Building2, CheckSquare, Receipt, Users, Download, Plus, CheckCircle, Clock, AlertTriangle } from 'lucide-react';
+import { FileText, Building2, CheckSquare, Receipt, Users, Download, Plus, CheckCircle, Clock, AlertTriangle, XCircle } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 
 export const DashboardPage: React.FC = () => {
@@ -36,6 +36,7 @@ export const DashboardPage: React.FC = () => {
     pendingCases: 0,
     inProgressCases: 0,
     completedCases: 0,
+    revokedTasks: 0,
     activeUsers: 0,
     totalClients: 0
   };
@@ -147,7 +148,7 @@ export const DashboardPage: React.FC = () => {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-6">
         <StatsCard
           title="Total Cases"
           value={stats.totalCases}
@@ -165,6 +166,15 @@ export const DashboardPage: React.FC = () => {
           icon={AlertTriangle}
           color="text-red-600"
           onClick={() => navigate('/case-management/tat-monitoring')}
+          className="cursor-pointer"
+        />
+        <StatsCard
+          title="Revoked Tasks"
+          value={stats.revokedTasks}
+          description="Tasks revoked by field agents"
+          icon={XCircle}
+          color="text-red-600"
+          onClick={() => navigate('/tasks/revoked')}
           className="cursor-pointer"
         />
         <StatsCard

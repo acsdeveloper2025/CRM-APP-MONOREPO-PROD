@@ -261,5 +261,60 @@ export class VerificationTaskService {
       };
     }
   }
+
+  /**
+   * Revoke a verification task
+   * Field agent can revoke a task they cannot complete
+   *
+   * @param taskId - Verification task UUID
+   * @param reason - Reason for revoking the task
+   * @returns Promise with success status and revocation data
+   */
+  static async revokeTask(
+    taskId: string,
+    reason: string
+  ): Promise<{
+    success: boolean;
+    data?: any;
+    error?: string;
+  }> {
+    try {
+      const apiBaseUrl = this.getApiBaseUrl();
+      const headers = await this.getHeaders();
+
+      console.log(`🚫 Revoking task ${taskId}...`);
+
+      const response = await fetch(
+        `${apiBaseUrl}/mobile/verification-tasks/${taskId}/revoke`,
+        {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ reason }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        console.error('❌ Task revocation failed:', result);
+        return {
+          success: false,
+          error: result.message || 'Failed to revoke task',
+        };
+      }
+
+      if (result.success) {
+        console.log(`✅ Task ${taskId} revoked successfully`);
+      }
+
+      return result;
+    } catch (error) {
+      console.error('❌ Error revoking task:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Network error',
+      };
+    }
+  }
 }
 
