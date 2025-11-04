@@ -20,16 +20,17 @@ export interface NotificationData {
   expiresAt?: Date;
 }
 
-export type NotificationType = 
-  | 'CASE_ASSIGNED' 
-  | 'CASE_REASSIGNED' 
+export type NotificationType =
+  | 'CASE_ASSIGNED'
+  | 'CASE_REASSIGNED'
   | 'CASE_REMOVED'
-  | 'CASE_COMPLETED' 
-  | 'CASE_REVOKED' 
-  | 'CASE_APPROVED' 
+  | 'CASE_COMPLETED'
+  | 'CASE_REVOKED'
+  | 'TASK_REVOKED'
+  | 'CASE_APPROVED'
   | 'CASE_REJECTED'
-  | 'SYSTEM_MAINTENANCE' 
-  | 'APP_UPDATE' 
+  | 'SYSTEM_MAINTENANCE'
+  | 'APP_UPDATE'
   | 'EMERGENCY_ALERT';
 
 export type NotificationPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
