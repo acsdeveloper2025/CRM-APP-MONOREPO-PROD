@@ -22,95 +22,17 @@ import { MoreHorizontal, Eye, Download, FileText, MapPin, Calendar } from 'lucid
 import { format } from 'date-fns';
 import type { Case } from '@/types/case';
 import { cn } from '@/lib/utils';
+import {
+  getVerificationTypeBadgeStyle,
+  getPriorityBadgeStyle,
+  getPriorityLabel,
+  formatBadgeLabel,
+} from '@/lib/badgeStyles';
 
 interface CompletedCaseTableProps {
   cases: Case[];
   isLoading?: boolean;
 }
-
-const getPriorityColor = (priority: number | string) => {
-  // Handle string priorities
-  if (typeof priority === 'string') {
-    switch (priority.toUpperCase()) {
-      case 'LOW':
-        return 'bg-muted text-gray-900';
-      case 'MEDIUM':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'HIGH':
-        return 'bg-yellow-100 text-orange-800';
-      case 'URGENT':
-      case 'CRITICAL':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-muted text-gray-900';
-    }
-  }
-
-  // Handle numeric priorities
-  switch (priority) {
-    case 1:
-      return 'bg-muted text-gray-900';
-    case 2:
-      return 'bg-green-100 text-green-800';
-    case 3:
-      return 'bg-yellow-100 text-yellow-800';
-    case 4:
-      return 'bg-yellow-100 text-orange-800';
-    case 5:
-      return 'bg-red-100 text-red-800';
-    default:
-      return 'bg-muted text-gray-900';
-  }
-};
-
-const getPriorityLabel = (priority: number | string) => {
-  // Handle string priorities
-  if (typeof priority === 'string') {
-    switch (priority.toUpperCase()) {
-      case 'LOW':
-        return 'Low';
-      case 'MEDIUM':
-        return 'Medium';
-      case 'HIGH':
-        return 'High';
-      case 'URGENT':
-        return 'Urgent';
-      case 'CRITICAL':
-        return 'Critical';
-      default:
-        return priority; // Return the original string if not recognized
-    }
-  }
-
-  // Handle numeric priorities
-  switch (priority) {
-    case 1:
-      return 'Low';
-    case 2:
-      return 'Normal';
-    case 3:
-      return 'Medium';
-    case 4:
-      return 'High';
-    case 5:
-      return 'Critical';
-    default:
-      return 'Unknown';
-  }
-};
-
-const getVerificationTypeColor = (type?: string) => {
-  switch (type?.toLowerCase()) {
-    case 'residence':
-      return 'bg-green-100 text-green-800';
-    case 'office':
-      return 'bg-green-100 text-green-800';
-    case 'business':
-      return 'bg-green-100 text-green-800';
-    default:
-      return 'bg-muted text-gray-900';
-  }
-};
 
 export const CompletedCaseTable: React.FC<CompletedCaseTableProps> = ({
   cases,
@@ -205,12 +127,12 @@ export const CompletedCaseTable: React.FC<CompletedCaseTableProps> = ({
                 </div>
               </TableCell>
               <TableCell>
-                <Badge className={getVerificationTypeColor(caseItem.verificationType)}>
-                  {caseItem.verificationType || 'Not specified'}
+                <Badge className={getVerificationTypeBadgeStyle(caseItem.verificationType)}>
+                  {formatBadgeLabel(caseItem.verificationType || 'Not specified')}
                 </Badge>
               </TableCell>
               <TableCell>
-                <Badge className={getPriorityColor(caseItem.priority)}>
+                <Badge className={getPriorityBadgeStyle(caseItem.priority)}>
                   {getPriorityLabel(caseItem.priority)}
                 </Badge>
               </TableCell>

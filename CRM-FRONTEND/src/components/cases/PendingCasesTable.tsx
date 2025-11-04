@@ -23,6 +23,14 @@ import { formatDistanceToNow } from 'date-fns';
 import type { Case } from '@/types/case';
 import { cn } from '@/lib/utils';
 import { UserSelectionModal } from './UserSelectionModal';
+import {
+  getVerificationTypeBadgeStyle,
+  getStatusBadgeStyle,
+  getPriorityBadgeStyle,
+  getPriorityLabel,
+  getStatusLabel,
+  formatBadgeLabel,
+} from '@/lib/badgeStyles';
 
 interface PendingCasesTableProps {
   cases: Case[];
@@ -32,34 +40,6 @@ interface PendingCasesTableProps {
   flagOverdueCases?: boolean;
   reviewUrgentFirst?: boolean;
 }
-
-const getStatusColor = (status: string) => {
-  switch (status) {
-    case 'PENDING':
-      return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300';
-    case 'IN_PROGRESS':
-      return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300';
-    default:
-      return 'bg-muted text-gray-600';
-  }
-};
-
-const getPriorityColor = (priority: number | string) => {
-  const p = Number(priority);
-  if (p >= 4) return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300';
-  if (p >= 3) return 'bg-yellow-100 text-orange-800 dark:bg-yellow-900/20 dark:text-yellow-300';
-  if (p >= 2) return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300';
-  return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300';
-};
-
-const getPriorityLabel = (priority: number | string) => {
-  const p = Number(priority);
-  if (p >= 5) return 'Critical';
-  if (p >= 4) return 'Urgent';
-  if (p >= 3) return 'High';
-  if (p >= 2) return 'Medium';
-  return 'Low';
-};
 
 const getTimeElapsed = (dateString?: string, pendingDurationSeconds?: number) => {
   // Use pendingDurationSeconds if available (from backend calculation)
@@ -308,22 +288,22 @@ export const PendingCasesTable: React.FC<PendingCasesTableProps> = ({
                       </div>
                     </div>
                   </TableCell>
-                  
+
                   <TableCell>
-                    <Badge variant="outline" className="text-gray-900 border-border">
-                      {caseItem.verificationTypeName || caseItem.verificationType || 'N/A'}
+                    <Badge className={getVerificationTypeBadgeStyle(caseItem.verificationType)}>
+                      {formatBadgeLabel(caseItem.verificationTypeName || caseItem.verificationType || 'N/A')}
                     </Badge>
                   </TableCell>
-                  
+
                   <TableCell>
-                    <Badge className={getStatusColor(caseItem.status)}>
-                      {caseItem.status.replace('_', ' ')}
+                    <Badge className={getStatusBadgeStyle(caseItem.status)}>
+                      {getStatusLabel(caseItem.status)}
                     </Badge>
                   </TableCell>
-                  
+
                   <TableCell>
-                    <Badge className={getPriorityColor(caseItem.priority)}>
-                      {getPriorityLabel(caseItem.priority)} ({caseItem.priority})
+                    <Badge className={getPriorityBadgeStyle(caseItem.priority)}>
+                      {getPriorityLabel(caseItem.priority)}
                     </Badge>
                   </TableCell>
                   

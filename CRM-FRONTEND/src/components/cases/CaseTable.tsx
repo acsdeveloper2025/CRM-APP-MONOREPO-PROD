@@ -27,6 +27,12 @@ import { format } from 'date-fns';
 import type { Case } from '@/types/case';
 import { cn } from '@/lib/utils';
 import { UserSelectionModal } from './UserSelectionModal';
+import {
+  getStatusBadgeStyle,
+  getPriorityBadgeStyle,
+  getPriorityLabel,
+  getStatusLabel,
+} from '@/lib/badgeStyles';
 
 interface CaseTableProps {
   cases: Case[];
@@ -34,57 +40,6 @@ interface CaseTableProps {
   onUpdateStatus?: (caseId: string, status: string) => void;
   onAssignCase?: (caseId: string, userId: string) => void;
 }
-
-const getStatusColor = (status: string) => {
-  switch (status) {
-    case 'ASSIGNED':
-      return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300';
-    case 'IN_PROGRESS':
-      return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300';
-    case 'COMPLETED':
-      return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300';
-    default:
-      return 'bg-muted text-gray-600';
-  }
-};
-
-const getPriorityColor = (priority: number | string) => {
-  const priorityNum = typeof priority === 'string' ?
-    (priority === 'LOW' ? 1 : priority === 'MEDIUM' ? 2 : priority === 'HIGH' ? 3 : priority === 'URGENT' ? 4 : parseInt(priority))
-    : priority;
-
-  switch (priorityNum) {
-    case 1:
-      return 'bg-muted text-gray-600';
-    case 2:
-      return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300';
-    case 3:
-      return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300';
-    case 4:
-      return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300';
-    default:
-      return 'bg-muted text-gray-600';
-  }
-};
-
-const getPriorityLabel = (priority: number | string) => {
-  const priorityNum = typeof priority === 'string' ?
-    (priority === 'LOW' ? 1 : priority === 'MEDIUM' ? 2 : priority === 'HIGH' ? 3 : priority === 'URGENT' ? 4 : parseInt(priority))
-    : priority;
-
-  switch (priorityNum) {
-    case 1:
-      return 'Low';
-    case 2:
-      return 'Medium';
-    case 3:
-      return 'High';
-    case 4:
-      return 'Urgent';
-    default:
-      return typeof priority === 'string' ? priority : 'Unknown';
-  }
-};
 
 export const CaseTable: React.FC<CaseTableProps> = ({
   cases,
@@ -235,12 +190,12 @@ export const CaseTable: React.FC<CaseTableProps> = ({
                 </div>
               </TableCell>
               <TableCell>
-                <Badge className={cn('text-xs', getStatusColor(caseItem.status))}>
-                  {caseItem.status.replace('_', ' ')}
+                <Badge className={getStatusBadgeStyle(caseItem.status)}>
+                  {getStatusLabel(caseItem.status)}
                 </Badge>
               </TableCell>
               <TableCell className="hidden lg:table-cell">
-                <Badge className={cn('text-xs', getPriorityColor(caseItem.priority))}>
+                <Badge className={getPriorityBadgeStyle(caseItem.priority)}>
                   {getPriorityLabel(caseItem.priority)}
                 </Badge>
               </TableCell>
@@ -314,8 +269,8 @@ export const CaseTable: React.FC<CaseTableProps> = ({
                 #{caseItem.caseId || caseItem.id?.slice(-8) || 'N/A'}
               </Link>
               <div className="flex space-x-2">
-                <Badge className={cn('text-xs', getStatusColor(caseItem.status))}>
-                  {caseItem.status.replace('_', ' ')}
+                <Badge className={getStatusBadgeStyle(caseItem.status)}>
+                  {getStatusLabel(caseItem.status)}
                 </Badge>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -378,7 +333,7 @@ export const CaseTable: React.FC<CaseTableProps> = ({
             <MobileTableField
               label="Priority"
               value={
-                <Badge className={cn('text-xs', getPriorityColor(caseItem.priority))}>
+                <Badge className={getPriorityBadgeStyle(caseItem.priority)}>
                   {getPriorityLabel(caseItem.priority)}
                 </Badge>
               }

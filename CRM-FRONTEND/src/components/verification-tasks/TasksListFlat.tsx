@@ -20,6 +20,11 @@ import {
 } from 'lucide-react';
 import { VerificationTask, TaskStatus, TaskPriority } from '@/types/verificationTask';
 import { format } from 'date-fns';
+import {
+  getTaskStatusBadgeStyle,
+  getTaskPriorityBadgeStyle,
+  getStatusLabel,
+} from '@/lib/badgeStyles';
 
 interface TasksListFlatProps {
   tasks: VerificationTask[];
@@ -46,40 +51,6 @@ export const TasksListFlat: React.FC<TasksListFlatProps> = ({
       ON_HOLD: AlertTriangle
     };
     return icons[status] || Clock;
-  };
-
-  const getStatusColor = (status: TaskStatus) => {
-    const colors = {
-      PENDING: 'text-yellow-600 bg-yellow-50 border-yellow-200',
-      ASSIGNED: 'text-green-600 bg-green-50 border-green-200',
-      IN_PROGRESS: 'text-green-600 bg-green-50 border-green-200',
-      COMPLETED: 'text-green-600 bg-green-50 border-green-200',
-      CANCELLED: 'text-red-600 bg-red-50 border-red-200',
-      ON_HOLD: 'text-yellow-600 bg-yellow-50 border-orange-200'
-    };
-    return colors[status] || 'text-gray-600 bg-gray-50 border-gray-200';
-  };
-
-  const getPriorityColor = (priority: TaskPriority) => {
-    const colors = {
-      LOW: 'text-gray-600 bg-gray-100 border-gray-200',
-      MEDIUM: 'text-green-600 bg-green-100 border-green-200',
-      HIGH: 'text-yellow-600 bg-yellow-100 border-orange-200',
-      URGENT: 'text-red-600 bg-red-100 border-red-200'
-    };
-    return colors[priority] || 'text-gray-600 bg-gray-100 border-gray-200';
-  };
-
-  const getStatusLabel = (status: TaskStatus) => {
-    const labels = {
-      PENDING: 'Pending',
-      ASSIGNED: 'Assigned',
-      IN_PROGRESS: 'In Progress',
-      COMPLETED: 'Completed',
-      CANCELLED: 'Cancelled',
-      ON_HOLD: 'On Hold'
-    };
-    return labels[status] || status;
   };
 
   if (loading) {
@@ -127,8 +98,6 @@ export const TasksListFlat: React.FC<TasksListFlatProps> = ({
     <div className="space-y-4">
       {tasks.map((task) => {
         const StatusIcon = getStatusIcon(task.status);
-        const statusColor = getStatusColor(task.status);
-        const priorityColor = getPriorityColor(task.priority);
 
         return (
           <Card
@@ -141,16 +110,16 @@ export const TasksListFlat: React.FC<TasksListFlatProps> = ({
                   {/* Header Row */}
                   <div className="flex items-start justify-between">
                     <div className="flex items-center flex-wrap gap-2">
-                      <Badge className={`${statusColor} border`}>
+                      <Badge className={getTaskStatusBadgeStyle(task.status)}>
                         <StatusIcon className="h-3 w-3 mr-1" />
                         {getStatusLabel(task.status)}
                       </Badge>
-                      <Badge className={`${priorityColor} border`}>
+                      <Badge className={getTaskPriorityBadgeStyle(task.priority)}>
                         {task.priority}
                       </Badge>
-                      <span className="text-xs font-mono text-gray-600 bg-muted px-2 py-1 rounded">
+                      <Badge className="bg-green-600 text-white hover:bg-green-700 uppercase font-medium text-xs">
                         {task.taskNumber}
-                      </span>
+                      </Badge>
                     </div>
                   </div>
 
