@@ -10,10 +10,8 @@ export interface DeduplicationCriteria {
 export interface DuplicateCase {
   id: string;
   caseId: number;
-  caseNumber?: string;
   customerName: string;
   customerPhone?: string;
-  customerEmail?: string;
   panNumber?: string;
   status: string;
   createdAt: string;
@@ -89,10 +87,9 @@ export class DeduplicationService {
         SELECT
           c.id,
           c."caseId",
-          c."caseNumber",
+          c."caseId" as "caseNumber",
           c."customerName",
           c."customerPhone",
-          c."customerEmail",
           c."panNumber",
           c.status,
           c."createdAt",
@@ -140,7 +137,6 @@ export class DeduplicationService {
           caseNumber: row.caseNumber,
           customerName: row.customerName,
           customerPhone: row.customerPhone,
-          customerEmail: row.customerEmail,
           panNumber: row.panNumber,
           status: row.status,
           createdAt: row.createdAt,
