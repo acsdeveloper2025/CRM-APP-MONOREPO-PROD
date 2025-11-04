@@ -1,7 +1,7 @@
 import { Response, NextFunction } from 'express';
 import { query } from '@/config/database';
 import { logger } from '@/config/logger';
-import { AuthenticatedRequest } from './auth';
+import { AuthenticatedRequest } from '@/types/auth';
 
 /**
  * Product Access Control Middleware

@@ -126,7 +126,7 @@ export interface MobileAttachmentResponse {
 
 export interface MobileFileUploadRequest {
   caseId: string;
-  files: Express.Multer.File[];
+  files: any[]; // Multer file type
   geoLocation?: {
     latitude: number;
     longitude: number;
