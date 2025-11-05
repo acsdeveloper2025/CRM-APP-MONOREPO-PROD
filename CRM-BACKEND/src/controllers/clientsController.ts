@@ -1,7 +1,7 @@
 import type { Response } from 'express';
 import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
-import { query } from '@/config/database';
+import { query, withTransaction } from '@/config/database';
 
 // GET /api/clients - List clients with pagination and filters
 export const getClients = async (req: AuthenticatedRequest, res: Response) => {
