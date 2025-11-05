@@ -7,10 +7,8 @@
 
 import { BaseApiService } from './base';
 import type {
-  User, 
-  UserProfile, 
-  UserActivity, 
-  UserStats, 
+  User,
+  UserActivity,
   UserFilters,
   Role
 } from '@/types/user';
