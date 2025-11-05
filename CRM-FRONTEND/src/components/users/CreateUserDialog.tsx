@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -34,8 +34,6 @@ import { usersService } from '@/services/users';
 import { rolesService } from '@/services/roles';
 import { departmentsService } from '@/services/departments';
 import { designationsService } from '@/services/designations';
-
-import type { Role } from '@/types/auth';
 
 const createUserSchema = z.object({
   name: z.string().min(1, 'Name is required').max(100, 'Name too long'),

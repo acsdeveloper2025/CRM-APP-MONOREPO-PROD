@@ -6,7 +6,6 @@
  */
 
 import { ReactNode, HTMLAttributes, ButtonHTMLAttributes, InputHTMLAttributes } from 'react';
-import { VariantProps } from 'class-variance-authority';
 
 // ==================== Base Component Props ====================
 
