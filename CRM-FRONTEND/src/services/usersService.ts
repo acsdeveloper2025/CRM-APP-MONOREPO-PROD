@@ -6,8 +6,7 @@
  */
 
 import { BaseApiService } from './base';
-import { API_ENDPOINTS, USER_ROLES } from '@/types/constants';
-import type { 
+import type {
   User, 
   UserProfile, 
   UserActivity, 
