@@ -5,7 +5,6 @@
  * All badges should use green background with white text and uppercase labels.
  */
 
-import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
 /**

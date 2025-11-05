@@ -8,7 +8,6 @@ import { documentTypesService } from '@/services/documentTypes';
 import { DocumentTypesTable } from '@/components/document-types/DocumentTypesTable';
 import { CreateDocumentTypeDialog } from '@/components/document-types/CreateDocumentTypeDialog';
 import { useUnifiedSearch } from '@/hooks/useUnifiedSearch';
-import { UnifiedSearchInput } from '@/components/ui/unified-search-input';
 
 export const DocumentTypesPage: React.FC = () => {
   const [showCreateDocumentType, setShowCreateDocumentType] = useState(false);

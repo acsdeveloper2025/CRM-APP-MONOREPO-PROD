@@ -9,17 +9,12 @@ import { TaskAssignmentModal } from './TaskAssignmentModal';
 import { TaskCompletionModal } from './TaskCompletionModal';
 import { TaskSummaryCards } from './TaskSummaryCards';
 import { BulkActionsToolbar } from './BulkActionsToolbar';
-import { 
-  Plus, 
-  Filter, 
-  RefreshCw, 
-  CheckCircle, 
-  Clock, 
-  AlertCircle,
-  Users,
-  TrendingUp
+import {
+  Plus,
+  Filter,
+  RefreshCw,
+  AlertCircle
 } from 'lucide-react';
-import { TaskStatus, TaskPriority } from '@/types/verificationTask';
 
 interface VerificationTasksManagerProps {
   caseId: string;

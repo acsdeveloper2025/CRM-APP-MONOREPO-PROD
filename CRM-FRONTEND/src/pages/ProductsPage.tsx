@@ -7,7 +7,6 @@ import { productsService } from '@/services/products';
 import { ProductsTable } from '@/components/clients/ProductsTable';
 import { CreateProductDialog } from '@/components/clients/CreateProductDialog';
 import { useUnifiedSearch } from '@/hooks/useUnifiedSearch';
-import { UnifiedSearchInput } from '@/components/ui/unified-search-input';
 
 export function ProductsPage() {
   const [showCreateProduct, setShowCreateProduct] = useState(false);

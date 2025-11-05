@@ -8,7 +8,6 @@ import { useCase, useAssignCase } from '@/hooks/useCases';
 import { useCaseFormSubmissions } from '@/hooks/useForms';
 import { ReassignCaseModal } from '@/components/cases/ReassignCaseModal';
 import { EnhancedCaseStatus } from '@/components/cases/EnhancedCaseStatus';
-import { FormViewer } from '@/components/forms/FormViewer';
 import { OptimizedFormSubmissionViewer } from '@/components/forms/OptimizedFormSubmissionViewer';
 import { ArrowLeft, MapPin, Phone, Mail, Calendar, User, Building2, FileText, Edit, UserCheck, FormInput, Camera, Clock, CheckSquare } from 'lucide-react';
 import { CaseAttachmentsSection } from '@/components/attachments/CaseAttachmentsSection';
