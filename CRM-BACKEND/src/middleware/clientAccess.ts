@@ -1,5 +1,4 @@
 import type { Response, NextFunction } from 'express';
-import { Request } from 'express';
 import { query } from '@/config/database';
 import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from './auth';
