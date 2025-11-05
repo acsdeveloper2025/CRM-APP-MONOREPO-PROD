@@ -28,7 +28,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MoreHorizontal, Edit, Trash2, Shield, Users } from 'lucide-react';
+import { MoreHorizontal, Edit, Trash2, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { rolesService } from '@/services/roles';
 import { RoleData } from '@/types/user';
