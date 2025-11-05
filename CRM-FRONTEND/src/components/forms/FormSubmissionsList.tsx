@@ -130,7 +130,7 @@ export const FormSubmissionsList: React.FC<FormSubmissionsListProps> = ({
       .join(' ');
   };
 
-  const toggleSort = (field: SortField) => {
+  const _toggleSort = (field: SortField) => {
     if (sortField === field) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
     } else {
