@@ -1,5 +1,5 @@
 import React from 'react';
-import { Shield, FileText, Calendar, Hash, CheckCircle, XCircle } from 'lucide-react';
+import { FileText, Calendar, CheckCircle, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
