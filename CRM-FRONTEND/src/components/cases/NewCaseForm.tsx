@@ -59,10 +59,8 @@ export const NewCaseForm: React.FC<NewCaseFormProps> = ({
 }) => {
   const { data: fieldUsers, isLoading: loadingUsers } = useFieldUsers();
   const { data: clientsData, isLoading: loadingClients } = useClients();
-  const { data: verificationTypesData, isLoading: loadingVerificationTypes } = useVerificationTypes();
 
   const clients = clientsData?.data || [];
-  const verificationTypes = verificationTypesData?.data || [];
 
   const form = useForm<NewCaseFormData>({
     resolver: zodResolver(newCaseSchema),
