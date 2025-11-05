@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { config } from '@/config';
 import { logger } from '@/config/logger';
 import { errorHandler, notFoundHandler } from '@/middleware/errorHandler';
@@ -198,7 +199,6 @@ app.use('/api', verificationTasksRoutes);
 // Temporary AI test endpoint
 app.get('/api/ai-test', async (req, res) => {
   try {
-    const { GoogleGenerativeAI } = require('@google/generative-ai');
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
