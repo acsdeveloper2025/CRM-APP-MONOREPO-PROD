@@ -201,7 +201,7 @@ export class ExcelExportService {
   private async fetchAgentPerformanceData(
     dateFrom?: string,
     dateTo?: string,
-    filters?: any
+    _filters?: any
   ): Promise<any> {
     const whereConditions = [];
     const queryParams = [];
@@ -286,7 +286,7 @@ export class ExcelExportService {
   private async fetchCaseAnalyticsData(
     dateFrom?: string,
     dateTo?: string,
-    filters?: any
+    _filters?: any
   ): Promise<any> {
     const whereConditions = [];
     const queryParams = [];
@@ -342,7 +342,7 @@ export class ExcelExportService {
   private async fetchValidationStatusData(
     dateFrom?: string,
     dateTo?: string,
-    filters?: any
+    _filters?: any
   ): Promise<any> {
     const whereConditions = [];
     const queryParams = [];
