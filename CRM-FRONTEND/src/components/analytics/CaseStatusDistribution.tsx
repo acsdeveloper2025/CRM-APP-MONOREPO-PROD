@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { 
   Select,
@@ -9,10 +8,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { 
-  PieChart, 
-  Pie, 
-  Cell, 
+import {
+  PieChart,
+  Pie,
+  Cell,
   ResponsiveContainer,
   BarChart,
   Bar,
@@ -21,8 +20,6 @@ import {
   CartesianGrid,
   Tooltip,
   Legend,
-  LineChart,
-  Line,
   AreaChart,
   Area
 } from 'recharts';
@@ -62,12 +59,11 @@ export const CaseStatusDistribution: React.FC = () => {
   const [timeRange, setTimeRange] = useState('30d');
   const [viewType, setViewType] = useState<'distribution' | 'trends' | 'flow'>('distribution');
 
-  const { data: analyticsData, isLoading, error } = useCaseAnalytics({
+  const { data: analyticsData } = useCaseAnalytics({
     dateFrom: getDateFromRange(timeRange),
     dateTo: new Date().toISOString().split('T')[0],
   });
 
-  const cases = analyticsData?.data?.cases || [];
   const summary = analyticsData?.data?.summary;
   const statusDistribution = summary?.statusDistribution || {};
 
