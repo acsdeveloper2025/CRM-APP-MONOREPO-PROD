@@ -3,7 +3,6 @@ import { useQuery } from '@tanstack/react-query';
 import { Plus, Package, CheckCircle, XCircle, TrendingUp, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { productsService } from '@/services/products';
 import { ProductsTable } from '@/components/clients/ProductsTable';
 import { CreateProductDialog } from '@/components/clients/CreateProductDialog';

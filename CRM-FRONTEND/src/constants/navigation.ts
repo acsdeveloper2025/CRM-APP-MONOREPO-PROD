@@ -13,7 +13,6 @@ import {
   Wifi,
   Shield,
   Plus,
-  CheckCircle,
   Clock,
   DollarSign,
   PlayCircle,
