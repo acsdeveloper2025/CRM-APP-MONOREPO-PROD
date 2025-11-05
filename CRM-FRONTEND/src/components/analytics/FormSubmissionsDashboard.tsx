@@ -31,14 +31,14 @@ export const FormSubmissionsDashboard: React.FC = () => {
   });
 
   const { data: submissionsData, isLoading: submissionsLoading } = useFormSubmissions(filters);
-  const { data: validationData, isLoading: validationLoading } = useFormValidationStatus({
+  // Validation data hook available for future use
+  useFormValidationStatus({
     dateFrom: filters.dateFrom,
     dateTo: filters.dateTo,
   });
 
   const submissions = submissionsData?.data?.submissions || [];
   const summary = submissionsData?.data?.summary;
-  const validationSummary = validationData?.data?.summary;
 
   const handleFilterChange = (key: keyof FormSubmissionQuery, value: string) => {
     setFilters(prev => ({
