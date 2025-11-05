@@ -1,5 +1,5 @@
 import React from 'react';
-import { Activity, User, Clock } from 'lucide-react';
+import { Activity, Clock } from 'lucide-react';
 import {
   Table,
   TableBody,

@@ -78,7 +78,7 @@ export function CreateDepartmentDialog({ open, onOpenChange }: CreateDepartmentD
       };
       return departmentsService.createDepartment(cleanData);
     },
-    onSuccess: (data) => {
+    onSuccess: (_data) => {
       // Invalidate all department-related queries
       queryClient.invalidateQueries({
         queryKey: ['departments'],
