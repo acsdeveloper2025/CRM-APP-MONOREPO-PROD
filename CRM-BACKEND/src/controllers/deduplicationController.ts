@@ -1,5 +1,4 @@
 import type { Response } from 'express';
-import { Request } from 'express';
 import type { DeduplicationCriteria } from '@/services/deduplicationService';
 import { DeduplicationService, DeduplicationDecision } from '@/services/deduplicationService';
 import { pool } from '@/config/database';
