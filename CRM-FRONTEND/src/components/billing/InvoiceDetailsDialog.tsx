@@ -1,5 +1,5 @@
 import React from 'react';
-import { Download, Send, CheckCircle, Receipt, Building, Calendar } from 'lucide-react';
+import { Download, CheckCircle, Receipt, Building, Calendar } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -32,7 +32,7 @@ export function InvoiceDetailsDialog({ invoice, open, onOpenChange }: InvoiceDet
       a.click();
       window.URL.revokeObjectURL(url);
       toast.success('Invoice downloaded successfully');
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to download invoice');
     }
   };
