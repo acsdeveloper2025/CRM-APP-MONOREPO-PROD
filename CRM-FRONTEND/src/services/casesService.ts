@@ -6,8 +6,7 @@
  */
 
 import { BaseApiService } from './base';
-import { API_ENDPOINTS } from '@/types/constants';
-import type { 
+import type {
   Case, 
   CaseFilters, 
   CaseStatus, 

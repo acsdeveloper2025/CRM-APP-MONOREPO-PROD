@@ -7,7 +7,7 @@
 
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import { ApiResponse, PaginatedResponse, ErrorResponse } from '@/types';
-import { API_ENDPOINTS, ERROR_CODES, STORAGE_KEYS } from '@/types/constants';
+import { ERROR_CODES, STORAGE_KEYS } from '@/types/constants';
 
 // Environment configuration
 const getApiBaseUrl = (): string => {
