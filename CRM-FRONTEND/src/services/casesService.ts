@@ -246,7 +246,7 @@ export class CasesService extends BaseApiService {
     formData.append('data', JSON.stringify(unifiedPayload));
 
     // Add attachments
-    attachments.forEach((file, index) => {
+    attachments.forEach((file) => {
       formData.append(`attachments`, file);
     });
 
