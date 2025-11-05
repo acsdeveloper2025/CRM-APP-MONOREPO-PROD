@@ -2,7 +2,6 @@ import { query } from '@/config/database';
 import { logger } from '@/utils/logger';
 import { getSocketIO } from '@/websocket/server';
 import { PushNotificationService } from './PushNotificationService';
-import { config } from '@/config';
 
 export interface NotificationData {
   userId: string;
