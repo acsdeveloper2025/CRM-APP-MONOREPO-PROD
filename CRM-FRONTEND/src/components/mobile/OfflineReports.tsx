@@ -22,12 +22,12 @@ import {
 import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 import { useOfflineStorage } from '@/hooks/useOfflineStorage';
 
-interface OfflineReport {
-  id: string;
-  name: string;
-  type: 'performance' | 'submissions' | 'analytics';
-  size: number; // bytes
-  downloadedAt: string;
+// interface OfflineReport {
+//   id: string;
+//   name: string;
+//   type: 'performance' | 'submissions' | 'analytics';
+//   size: number; // bytes
+//   downloadedAt: string;
   lastAccessed?: string;
   expiresAt: string;
   isExpired: boolean;
