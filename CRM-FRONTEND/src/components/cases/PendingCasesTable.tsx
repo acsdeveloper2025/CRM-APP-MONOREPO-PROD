@@ -37,7 +37,7 @@ interface PendingCasesTableProps {
   isLoading?: boolean;
   onUpdateStatus?: (caseId: string, status: string) => void;
   onAssignCase?: (caseId: string, userId: string) => void;
-  flagOverdueCases?: boolean;
+  _flagOverdueCases?: boolean;
   reviewUrgentFirst?: boolean;
 }
 
@@ -65,14 +65,6 @@ const getTimeElapsed = (dateString?: string, pendingDurationSeconds?: number) =>
   } catch {
     return 'N/A';
   }
-};
-
-const isOverdue = (assignedAt?: string) => {
-  if (!assignedAt) {return false;}
-  const assigned = new Date(assignedAt);
-  const now = new Date();
-  const diffInHours = Math.floor((now.getTime() - assigned.getTime()) / (1000 * 60 * 60));
-  return diffInHours > 48; // More than 2 days
 };
 
 // New function to determine case age highlighting
@@ -105,7 +97,7 @@ export const PendingCasesTable: React.FC<PendingCasesTableProps> = ({
   isLoading,
   onUpdateStatus,
   onAssignCase,
-  flagOverdueCases = true,
+  _flagOverdueCases = true,
   reviewUrgentFirst = true,
 }) => {
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
