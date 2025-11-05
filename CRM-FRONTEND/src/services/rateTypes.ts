@@ -1,5 +1,5 @@
 import { apiService } from './api';
-import type { ApiResponse, PaginationQuery, PaginatedResponse } from '@/types/api';
+import type { ApiResponse, PaginatedResponse } from '@/types/api';
 import type {
   RateType,
   CreateRateTypeData,
