@@ -3,7 +3,6 @@ import { Worker } from 'bullmq';
 import { config } from '../config';
 import { logger } from '../config/logger';
 import { query, pool } from '../config/database';
-import { notificationQueue } from '../config/queue';
 import { createAuditLog } from '../utils/auditLogger';
 import { queueCaseAssignmentNotification } from '../queues/notificationQueue';
 
