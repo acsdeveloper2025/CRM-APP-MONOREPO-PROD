@@ -383,7 +383,7 @@ export const deleteInvoice = async (req: AuthenticatedRequest, res: Response) =>
 export const sendInvoice = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const { email, message } = req.body;
+    const { email, message: _message } = req.body;
 
     const invoiceIndex = invoices.findIndex(inv => inv.id === id);
     if (invoiceIndex === -1) {
