@@ -1,5 +1,4 @@
 import type { Response } from 'express';
-import { Request } from 'express';
 import bcrypt from 'bcryptjs';
 import { query } from '@/config/database';
 import { logger } from '@/config/logger';

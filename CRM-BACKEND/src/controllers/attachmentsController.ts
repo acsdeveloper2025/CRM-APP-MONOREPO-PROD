@@ -1,5 +1,4 @@
 import type { Response } from 'express';
-import { Request } from 'express';
 import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
 import multer from 'multer';

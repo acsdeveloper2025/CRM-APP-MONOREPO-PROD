@@ -1,5 +1,4 @@
 import type { Response } from 'express';
-import { Request } from 'express';
 import { pool } from '../config/database';
 import { logger } from '../utils/logger';
 import { createAuditLog } from '../utils/auditLogger';
@@ -372,7 +371,7 @@ async function getFormSubmissionData(
 /**
  * Get photos associated with the submission
  */
-async function getSubmissionPhotos(caseId: string, submissionId: string) {
+async function getSubmissionPhotos(caseId: string, _submissionId: string) {
   try {
     const query = `
       SELECT "mimeType", "fileSize", "createdAt"

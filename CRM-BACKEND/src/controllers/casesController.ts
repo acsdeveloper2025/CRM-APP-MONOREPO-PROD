@@ -1,12 +1,8 @@
 import type { Response } from 'express';
-import { Request } from 'express';
 import type { AuthenticatedRequest } from '../middleware/auth';
 import { logger } from '../utils/logger';
-import { pool, query } from '../config/database';
+import { pool } from '../config/database';
 import { EnterpriseCacheService, CacheKeys } from '../services/enterpriseCacheService';
-import { VerificationTasksController } from './verificationTasksController';
-import { CreateVerificationTaskData } from '../types/verificationTask';
-import { createAuditLog } from '../utils/auditLogger';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';

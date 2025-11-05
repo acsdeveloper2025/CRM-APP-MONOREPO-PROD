@@ -8,7 +8,6 @@ import { createError } from '@/middleware/errorHandler';
 import type { AuthenticatedRequest } from '@/middleware/auth';
 import { createAuditLog } from '@/utils/auditLogger';
 import type { LoginRequest, LoginResponse, JwtPayload, RefreshTokenPayload } from '@/types/auth';
-import { FieldAgentUuidLoginRequest, Role } from '@/types/auth';
 import type { ApiResponse } from '@/types/api';
 
 export const login = async (req: Request, res: Response): Promise<void> => {
@@ -198,7 +197,7 @@ export const preloginInfo = async (req: Request, res: Response): Promise<void> =
         requiresMacAddress: !isSuper && !isField,
       },
     });
-  } catch (error) {
+  } catch (_error) {
     res
       .status(500)
       .json({ success: false, message: 'Internal error', error: { code: 'INTERNAL_ERROR' } });
