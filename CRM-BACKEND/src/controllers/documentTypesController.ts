@@ -1,7 +1,7 @@
 import type { Response } from 'express';
 import type { AuthenticatedRequest } from '../middleware/auth';
 import { logger } from '../utils/logger';
-import { query, withTransaction } from '../config/database';
+import { query } from '../config/database';
 import { createAuditLog } from '../utils/auditLogger';
 
 // GET /api/document-types - List document types with pagination and filters

@@ -1,6 +1,5 @@
 import type { Request, Response } from 'express';
 import type { MobileFormSubmissionRequest, FormSubmissionData, FormSection } from '../types/mobile';
-import { FormField } from '../types/mobile';
 import { createAuditLog } from '../utils/auditLogger';
 import {
   detectResidenceFormType,
@@ -8,11 +7,11 @@ import {
   detectBusinessFormType,
   detectPropertyIndividualFormType,
 } from '../utils/formTypeDetection';
-import {
-  mapFormDataToDatabase,
-  validateRequiredFields,
-  getAvailableDbColumns,
-} from '../utils/residenceFormFieldMapping';
+// import {
+//   mapFormDataToDatabase,
+//   validateRequiredFields,
+//   getAvailableDbColumns,
+// } from '../utils/residenceFormFieldMapping';
 import {
   validateAndPrepareResidenceForm,
   generateFieldCoverageReport,
@@ -49,51 +48,51 @@ import {
   validateAndPrepareDsaConnectorForm,
   generateDsaConnectorFieldCoverageReport,
 } from '../utils/dsaConnectorFormValidator';
-import {
-  mapOfficeFormDataToDatabase,
-  validateOfficeRequiredFields,
-  getOfficeAvailableDbColumns,
-} from '../utils/officeFormFieldMapping';
-import {
-  mapBusinessFormDataToDatabase,
-  validateBusinessRequiredFields,
-  getBusinessAvailableDbColumns,
-} from '../utils/businessFormFieldMapping';
+// import {
+//   mapOfficeFormDataToDatabase,
+//   validateOfficeRequiredFields,
+//   getOfficeAvailableDbColumns,
+// } from '../utils/officeFormFieldMapping';
+// import {
+//   mapBusinessFormDataToDatabase,
+//   validateBusinessRequiredFields,
+//   getBusinessAvailableDbColumns,
+// } from '../utils/businessFormFieldMapping';
 import {
   createComprehensiveFormSections,
-  getFormTypeLabel,
-  getVerificationTableName,
+  // getFormTypeLabel,
+  // getVerificationTableName,
 } from '../utils/comprehensiveFormFieldMapping';
-import {
-  mapBuilderFormDataToDatabase,
-  validateBuilderRequiredFields,
-  getBuilderAvailableDbColumns,
-} from '../utils/builderFormFieldMapping';
-import {
-  mapResidenceCumOfficeFormDataToDatabase,
-  validateResidenceCumOfficeRequiredFields,
-  getResidenceCumOfficeAvailableDbColumns,
-} from '../utils/residenceCumOfficeFormFieldMapping';
-import {
-  mapNocFormDataToDatabase,
-  validateNocRequiredFields,
-  getNocAvailableDbColumns,
-} from '../utils/nocFormFieldMapping';
-import {
-  mapPropertyApfFormDataToDatabase,
-  validatePropertyApfRequiredFields,
-  getPropertyApfAvailableDbColumns,
-} from '../utils/propertyApfFormFieldMapping';
-import {
-  mapPropertyIndividualFormDataToDatabase,
-  validatePropertyIndividualRequiredFields,
-  getPropertyIndividualAvailableDbColumns,
-} from '../utils/propertyIndividualFormFieldMapping';
-import {
-  mapDsaConnectorFormDataToDatabase,
-  validateDsaConnectorRequiredFields,
-  getDsaConnectorAvailableDbColumns,
-} from '../utils/dsaConnectorFormFieldMapping';
+// import {
+//   mapBuilderFormDataToDatabase,
+//   validateBuilderRequiredFields,
+//   getBuilderAvailableDbColumns,
+// } from '../utils/builderFormFieldMapping';
+// import {
+//   mapResidenceCumOfficeFormDataToDatabase,
+//   validateResidenceCumOfficeRequiredFields,
+//   getResidenceCumOfficeAvailableDbColumns,
+// } from '../utils/residenceCumOfficeFormFieldMapping';
+// import {
+//   mapNocFormDataToDatabase,
+//   validateNocRequiredFields,
+//   getNocAvailableDbColumns,
+// } from '../utils/nocFormFieldMapping';
+// import {
+//   mapPropertyApfFormDataToDatabase,
+//   validatePropertyApfRequiredFields,
+//   getPropertyApfAvailableDbColumns,
+// } from '../utils/propertyApfFormFieldMapping';
+// import {
+//   mapPropertyIndividualFormDataToDatabase,
+//   validatePropertyIndividualRequiredFields,
+//   getPropertyIndividualAvailableDbColumns,
+// } from '../utils/propertyIndividualFormFieldMapping';
+// import {
+//   mapDsaConnectorFormDataToDatabase,
+//   validateDsaConnectorRequiredFields,
+//   getDsaConnectorAvailableDbColumns,
+// } from '../utils/dsaConnectorFormFieldMapping';
 import { config } from '../config';
 import { query } from '@/config/database';
 import multer from 'multer';
