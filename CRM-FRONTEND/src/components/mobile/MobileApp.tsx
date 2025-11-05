@@ -5,8 +5,6 @@ import { PerformanceMetrics } from './PerformanceMetrics';
 import { OfflineReports } from './OfflineReports';
 import { MobileReportViewer } from './MobileReportViewer';
 import { MobileNavigation } from './MobileNavigation';
-import { useAuth } from '@/contexts/AuthContext';
-import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 import { useOfflineStorage } from '@/hooks/useOfflineStorage';
 
 interface MobileAppState {

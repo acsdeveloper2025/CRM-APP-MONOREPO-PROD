@@ -23,7 +23,7 @@ import {
 import { clientsService } from '@/services/clients';
 import { productsService } from '@/services/products';
 import { verificationTypesService } from '@/services/verificationTypes';
-import { ratesService, type AvailableRateType } from '@/services/rates';
+import { ratesService } from '@/services/rates';
 import toast from 'react-hot-toast';
 
 interface RateInput {

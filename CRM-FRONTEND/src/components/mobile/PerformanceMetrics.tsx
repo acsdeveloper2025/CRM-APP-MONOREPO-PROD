@@ -9,7 +9,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
-  Bar,
   XAxis,
   YAxis,
   CartesianGrid,

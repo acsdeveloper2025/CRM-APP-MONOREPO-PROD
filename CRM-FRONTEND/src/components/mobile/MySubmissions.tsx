@@ -11,9 +11,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { 
-  FileText, 
-  Search, 
-  Filter, 
+  FileText,
+  Search,
   Calendar,
   MapPin,
   Clock,
