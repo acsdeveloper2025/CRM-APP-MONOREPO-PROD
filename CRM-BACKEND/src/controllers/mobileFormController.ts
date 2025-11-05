@@ -93,9 +93,7 @@ import {
 //   validateDsaConnectorRequiredFields,
 //   getDsaConnectorAvailableDbColumns,
 // } from '../utils/dsaConnectorFormFieldMapping';
-import { config } from '../config';
 import { query } from '@/config/database';
-import multer from 'multer';
 import path from 'path';
 import fs from 'fs/promises';
 import sharp from 'sharp';

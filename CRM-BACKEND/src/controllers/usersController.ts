@@ -3,7 +3,6 @@ import bcrypt from 'bcryptjs';
 import { query } from '@/config/database';
 import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
-import type { Role } from '@/types/auth';
 import { EmailDeliveryService } from '@/services/EmailDeliveryService';
 
 // GET /api/users - List users with pagination and filters
