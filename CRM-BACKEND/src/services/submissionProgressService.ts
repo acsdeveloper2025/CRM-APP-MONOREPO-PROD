@@ -83,7 +83,7 @@ class SubmissionProgressService {
       { id: 'compression', name: 'Optimizing Data', status: 'PENDING', progress: 0 },
       { id: 'upload_photos', name: 'Uploading Photos', status: 'PENDING', progress: 0 },
       { id: 'submit_form', name: 'Submitting Verification', status: 'PENDING', progress: 0 },
-      { id: 'confirmation', name: 'Processing Confirmation', status: 'PENDING', progress: 0 }
+      { id: 'confirmation', name: 'Processing Confirmation', status: 'PENDING', progress: 0 },
     ];
 
     const submissionProgress: SubmissionProgress = {
@@ -99,20 +99,33 @@ class SubmissionProgressService {
       bytesUploaded: 0,
       uploadSpeed: 0,
       createdAt: now,
-      updatedAt: now
+      updatedAt: now,
     };
 
-    await query(`
+    await query(
+      `
       INSERT INTO submission_progress (
         id, case_id, verification_type, status, overall_progress, current_step,
         steps, start_time, total_bytes, bytes_uploaded, upload_speed,
         created_at, updated_at
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-    `, [
-      id, caseId, verificationType, submissionProgress.status, submissionProgress.overallProgress,
-      submissionProgress.currentStep, JSON.stringify(submissionProgress.steps), submissionProgress.startTime,
-      totalBytes, 0, 0, now, now
-    ]);
+    `,
+      [
+        id,
+        caseId,
+        verificationType,
+        submissionProgress.status,
+        submissionProgress.overallProgress,
+        submissionProgress.currentStep,
+        JSON.stringify(submissionProgress.steps),
+        submissionProgress.startTime,
+        totalBytes,
+        0,
+        0,
+        now,
+        now,
+      ]
+    );
 
     return submissionProgress;
   }
@@ -125,7 +138,7 @@ class SubmissionProgressService {
     updates: Partial<SubmissionProgress>
   ): Promise<SubmissionProgress | null> {
     const now = new Date().toISOString();
-    
+
     // Build dynamic update query
     const updateFields: string[] = [];
     const values: any[] = [];
@@ -135,47 +148,47 @@ class SubmissionProgressService {
       updateFields.push(`status = $${paramIndex++}`);
       values.push(updates.status);
     }
-    
+
     if (updates.overallProgress !== undefined) {
       updateFields.push(`overall_progress = $${paramIndex++}`);
       values.push(updates.overallProgress);
     }
-    
+
     if (updates.currentStep !== undefined) {
       updateFields.push(`current_step = $${paramIndex++}`);
       values.push(updates.currentStep);
     }
-    
+
     if (updates.steps !== undefined) {
       updateFields.push(`steps = $${paramIndex++}`);
       values.push(JSON.stringify(updates.steps));
     }
-    
+
     if (updates.endTime !== undefined) {
       updateFields.push(`end_time = $${paramIndex++}`);
       values.push(updates.endTime);
     }
-    
+
     if (updates.estimatedTimeRemaining !== undefined) {
       updateFields.push(`estimated_time_remaining = $${paramIndex++}`);
       values.push(updates.estimatedTimeRemaining);
     }
-    
+
     if (updates.bytesUploaded !== undefined) {
       updateFields.push(`bytes_uploaded = $${paramIndex++}`);
       values.push(updates.bytesUploaded);
     }
-    
+
     if (updates.uploadSpeed !== undefined) {
       updateFields.push(`upload_speed = $${paramIndex++}`);
       values.push(updates.uploadSpeed);
     }
-    
+
     if (updates.compressionStats !== undefined) {
       updateFields.push(`compression_stats = $${paramIndex++}`);
       values.push(JSON.stringify(updates.compressionStats));
     }
-    
+
     if (updates.retryInfo !== undefined) {
       updateFields.push(`retry_info = $${paramIndex++}`);
       values.push(JSON.stringify(updates.retryInfo));
@@ -186,7 +199,8 @@ class SubmissionProgressService {
 
     values.push(id); // For WHERE clause
 
-    if (updateFields.length === 1) { // Only updated_at
+    if (updateFields.length === 1) {
+      // Only updated_at
       return this.getSubmissionProgress(id);
     }
 
@@ -198,7 +212,7 @@ class SubmissionProgressService {
     `;
 
     const result = await query(updateQuery, values);
-    
+
     if (result.rows.length === 0) {
       return null;
     }
@@ -210,10 +224,7 @@ class SubmissionProgressService {
    * Get submission progress by ID
    */
   async getSubmissionProgress(id: string): Promise<SubmissionProgress | null> {
-    const result = await query(
-      'SELECT * FROM submission_progress WHERE id = $1',
-      [id]
-    );
+    const result = await query('SELECT * FROM submission_progress WHERE id = $1', [id]);
 
     if (result.rows.length === 0) {
       return null;
@@ -260,15 +271,31 @@ class SubmissionProgressService {
     const id = `retry_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
     const now = new Date().toISOString();
 
-    await query(`
+    await query(
+      `
       INSERT INTO retry_queue (
         id, case_id, url, method, headers, body, attempts, max_attempts,
         last_attempt, next_retry, priority, type, status, created_at, updated_at
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
-    `, [
-      id, caseId, url, method, JSON.stringify(headers), body, 0, 5,
-      now, now, priority, type, 'PENDING', now, now
-    ]);
+    `,
+      [
+        id,
+        caseId,
+        url,
+        method,
+        JSON.stringify(headers),
+        body,
+        0,
+        5,
+        now,
+        now,
+        priority,
+        type,
+        'PENDING',
+        now,
+        now,
+      ]
+    );
 
     return id;
   }
@@ -291,16 +318,22 @@ class SubmissionProgressService {
       GROUP BY status
     `);
 
-    const statusCounts = result.rows.reduce((acc: Record<string, number>, row: any) => {
-      acc[row.status.toLowerCase()] = parseInt(row.count);
-      return acc;
-    }, {} as Record<string, number>);
+    const statusCounts = result.rows.reduce(
+      (acc: Record<string, number>, row: any) => {
+        acc[row.status.toLowerCase()] = parseInt(row.count);
+        return acc;
+      },
+      {} as Record<string, number>
+    );
 
     return {
       pending: statusCounts.pending || 0,
       retrying: statusCounts.retrying || 0,
       failed: statusCounts.failed || 0,
-      totalRequests: Object.values(statusCounts).reduce((sum: number, count: number) => sum + count, 0) as number
+      totalRequests: Object.values(statusCounts).reduce(
+        (sum: number, count: number) => sum + count,
+        0
+      ) as number,
     };
   }
 
@@ -343,7 +376,7 @@ class SubmissionProgressService {
       compressionStats: row.compression_stats ? JSON.parse(row.compression_stats) : undefined,
       retryInfo: row.retry_info ? JSON.parse(row.retry_info) : undefined,
       createdAt: row.created_at,
-      updatedAt: row.updated_at
+      updatedAt: row.updated_at,
     };
   }
 }

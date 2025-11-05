@@ -1,7 +1,8 @@
-import { Request, Response, NextFunction } from 'express';
+import type { Response, NextFunction } from 'express';
+import { Request } from 'express';
 import { query } from '@/config/database';
 import { logger } from '@/config/logger';
-import { AuthenticatedRequest } from './auth';
+import type { AuthenticatedRequest } from './auth';
 import { getAssignedProductIds } from './productAccess';
 
 /**
@@ -22,7 +23,7 @@ const getAssignedClientIds = async (userId: string, userRole: string): Promise<n
       'SELECT "clientId" FROM "userClientAssignments" WHERE "userId" = $1',
       [userId]
     );
-    
+
     return result.rows.map(row => row.clientId);
   } catch (error) {
     logger.error('Error fetching assigned client IDs:', error);
@@ -66,7 +67,7 @@ export const validateClientAccess = (source: 'params' | 'body' | 'query' = 'para
 
       // Get client ID from the specified source
       let clientId: number | undefined;
-      
+
       switch (source) {
         case 'params':
           clientId = req.params.clientId ? parseInt(req.params.clientId) : undefined;
@@ -87,7 +88,7 @@ export const validateClientAccess = (source: 'params' | 'body' | 'query' = 'para
       // Get assigned client IDs for the BACKEND_USER user
       const assignedClientIds = await getAssignedClientIds(userId, userRole);
 
-      if (assignedClientIds && assignedClientIds.length === 0) {
+      if (assignedClientIds?.length === 0) {
         return res.status(403).json({
           success: false,
           message: 'Access denied - user has no assigned clients',
@@ -97,14 +98,17 @@ export const validateClientAccess = (source: 'params' | 'body' | 'query' = 'para
 
       // Check if the user has access to the requested client
       if (assignedClientIds && !assignedClientIds.includes(clientId)) {
-        logger.warn(`BACKEND_USER user ${userId} attempted to access unauthorized client ${clientId}`, {
-          userId,
-          userRole,
-          requestedClientId: clientId,
-          assignedClientIds,
-          endpoint: req.originalUrl,
-          method: req.method
-        });
+        logger.warn(
+          `BACKEND_USER user ${userId} attempted to access unauthorized client ${clientId}`,
+          {
+            userId,
+            userRole,
+            requestedClientId: clientId,
+            assignedClientIds,
+            endpoint: req.originalUrl,
+            method: req.method,
+          }
+        );
 
         return res.status(403).json({
           success: false,
@@ -131,7 +135,11 @@ export const validateClientAccess = (source: 'params' | 'body' | 'query' = 'para
  * This middleware checks if a BACKEND_USER user has access to a case by verifying
  * they have access to the client that owns the case
  */
-export const validateCaseAccess = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+export const validateCaseAccess = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const userId = req.user?.id;
     const userRole = req.user?.role;
@@ -184,7 +192,7 @@ export const validateCaseAccess = async (req: AuthenticatedRequest, res: Respons
     // Get assigned client IDs for the BACKEND_USER user
     const assignedClientIds = await getAssignedClientIds(userId, userRole);
 
-    if (assignedClientIds && assignedClientIds.length === 0) {
+    if (assignedClientIds?.length === 0) {
       return res.status(403).json({
         success: false,
         message: 'Access denied - user has no assigned clients',
@@ -194,15 +202,18 @@ export const validateCaseAccess = async (req: AuthenticatedRequest, res: Respons
 
     // Check if the user has access to the case's client
     if (assignedClientIds && !assignedClientIds.includes(caseClientId)) {
-      logger.warn(`BACKEND_USER user ${userId} attempted to access case ${caseId} from unauthorized client ${caseClientId}`, {
-        userId,
-        userRole,
-        caseId,
-        caseClientId,
-        assignedClientIds,
-        endpoint: req.originalUrl,
-        method: req.method
-      });
+      logger.warn(
+        `BACKEND_USER user ${userId} attempted to access case ${caseId} from unauthorized client ${caseClientId}`,
+        {
+          userId,
+          userRole,
+          caseId,
+          caseClientId,
+          assignedClientIds,
+          endpoint: req.originalUrl,
+          method: req.method,
+        }
+      );
 
       return res.status(403).json({
         success: false,
@@ -227,12 +238,20 @@ export const validateCaseAccess = async (req: AuthenticatedRequest, res: Respons
  * Middleware to add client filtering to query parameters for BACKEND_USER users
  * This middleware automatically adds client filtering to list endpoints
  */
-export const addClientFiltering = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+export const addClientFiltering = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const userId = req.user?.id;
     const userRole = req.user?.role;
 
-    logger.info('Client filtering middleware called', { userId, userRole, originalQuery: req.query });
+    logger.info('Client filtering middleware called', {
+      userId,
+      userRole,
+      originalQuery: req.query,
+    });
 
     // Skip for non-authenticated requests
     if (!userId || !userRole) {
@@ -256,7 +275,7 @@ export const addClientFiltering = async (req: AuthenticatedRequest, res: Respons
     const assignedClientIds = await getAssignedClientIds(userId, userRole);
     logger.info('Retrieved assigned client IDs', { userId, assignedClientIds });
 
-    if (assignedClientIds && assignedClientIds.length === 0) {
+    if (assignedClientIds?.length === 0) {
       // User has no client assignments, they should see no data
       (req as any).clientFilter = [];
       logger.info('Set clientFilter to empty array - no assignments');
@@ -265,7 +284,7 @@ export const addClientFiltering = async (req: AuthenticatedRequest, res: Respons
       (req as any).clientFilter = assignedClientIds;
       logger.info('Set clientFilter', {
         assignedClientIds,
-        clientFilter: (req as any).clientFilter
+        clientFilter: (req as any).clientFilter,
       });
     }
 
@@ -286,7 +305,11 @@ export const addClientFiltering = async (req: AuthenticatedRequest, res: Respons
  * This middleware checks if a BACKEND_USER user has access to both the client and product
  * specified in the case creation request
  */
-export const validateCaseCreationAccess = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+export const validateCaseCreationAccess = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const userId = req.user?.id;
     const userRole = req.user?.role;
@@ -320,7 +343,7 @@ export const validateCaseCreationAccess = async (req: AuthenticatedRequest, res:
     const assignedClientIds = await getAssignedClientIds(userId, userRole);
 
     // Check client access
-    if (assignedClientIds && assignedClientIds.length === 0) {
+    if (assignedClientIds?.length === 0) {
       return res.status(403).json({
         success: false,
         message: 'Access denied: No clients assigned to your account',
@@ -340,7 +363,7 @@ export const validateCaseCreationAccess = async (req: AuthenticatedRequest, res:
     const assignedProductIds = await getAssignedProductIds(userId, userRole);
 
     // Check product access
-    if (assignedProductIds && assignedProductIds.length === 0) {
+    if (assignedProductIds?.length === 0) {
       return res.status(403).json({
         success: false,
         message: 'Access denied: No products assigned to your account',

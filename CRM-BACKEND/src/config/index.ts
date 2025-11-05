@@ -10,8 +10,12 @@ const validatePorts = () => {
 
   if (configuredPort !== requiredPort) {
     if (process.env.NODE_ENV !== 'production') {
-      console.error(`❌ Port mismatch: Backend must run on port ${requiredPort}, but PORT=${configuredPort} was configured.`);
-      console.error(`   Please update your environment to use PORT=${requiredPort} or remove the PORT environment variable.`);
+      console.error(
+        `❌ Port mismatch: Backend must run on port ${requiredPort}, but PORT=${configuredPort} was configured.`
+      );
+      console.error(
+        `   Please update your environment to use PORT=${requiredPort} or remove the PORT environment variable.`
+      );
     }
     process.exit(1);
   }
@@ -24,16 +28,16 @@ export const config = {
   // Server - Fixed port 3000 (no automatic switching)
   port: 3000,
   nodeEnv: process.env.NODE_ENV || 'development',
-  
+
   // Database
   databaseUrl: process.env.DATABASE_URL || '',
-  
+
   // JWT
   jwtSecret: process.env.JWT_SECRET || 'production-jwt-secret-change-me',
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
   jwtRefreshSecret: process.env.JWT_REFRESH_SECRET || 'production-refresh-secret-change-me',
   jwtRefreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '30d',
-  
+
   // Redis
   redisUrl: process.env.REDIS_URL || 'redis://localhost:6379',
   redisPassword: process.env.REDIS_PASSWORD || '',
@@ -51,16 +55,16 @@ export const config = {
     teamId: process.env.APNS_TEAM_ID,
     bundleId: process.env.APNS_BUNDLE_ID || 'com.example.crm',
   },
-  
+
   // CORS - Support both web app and mobile app with configurable origins
   corsOrigin: process.env.CORS_ORIGIN
     ? process.env.CORS_ORIGIN.split(',').map(origin => origin.trim())
     : ['http://localhost:5173', 'http://localhost:5180', 'capacitor://localhost'],
-  
+
   // Rate Limiting - Very generous limits for field agents processing 100+ cases/day
   rateLimitWindowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000', 10), // 15 minutes
   rateLimitMaxRequests: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '5000', 10), // Increased from 500 to 5000 for high-volume operations
-  
+
   // File Upload - ONLY images, PDF, and Word documents
   maxFileSize: parseInt(process.env.MAX_FILE_SIZE || '52428800', 10), // 50MB (increased for mobile app with multiple images)
   uploadPath: process.env.UPLOAD_PATH || './uploads',
@@ -74,39 +78,39 @@ export const config = {
     'application/msword',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   ],
-  
+
   // Geolocation
   googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY || '',
   maxLocationAccuracy: parseInt(process.env.MAX_LOCATION_ACCURACY || '100', 10),
-  
+
   // Push Notifications
   fcmServerKey: process.env.FCM_SERVER_KEY || '',
   apnsKeyId: process.env.APNS_KEY_ID || '',
   apnsTeamId: process.env.APNS_TEAM_ID || '',
-  
+
   // WebSocket
   wsPort: parseInt(process.env.WS_PORT || '3000', 10),
   wsCorsOrigin: process.env.WS_CORS_ORIGIN || '*',
   wsHeartbeatInterval: parseInt(process.env.WS_HEARTBEAT_INTERVAL || '30000', 10),
   wsConnectionTimeout: parseInt(process.env.WS_CONNECTION_TIMEOUT || '60000', 10),
-  
+
   // Security
   bcryptRounds: parseInt(process.env.BCRYPT_ROUNDS || '12', 10),
   sessionSecret: process.env.SESSION_SECRET || 'production-session-secret-change-me',
-  
+
   // Email
   smtpHost: process.env.SMTP_HOST || '',
   smtpPort: parseInt(process.env.SMTP_PORT || '587', 10),
   smtpUser: process.env.SMTP_USER || '',
   smtpPass: process.env.SMTP_PASS || '',
-  
+
   // QR Code
   qrCodeBaseUrl: process.env.QR_CODE_BASE_URL || 'https://example.com/verify',
-  
+
   // Background Jobs
   queueRedisUrl: process.env.QUEUE_REDIS_URL || 'redis://localhost:6379',
   queueConcurrency: parseInt(process.env.QUEUE_CONCURRENCY || '5', 10),
-  
+
   // Logging
   logLevel: process.env.LOG_LEVEL || 'info',
 

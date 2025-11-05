@@ -1,5 +1,5 @@
-import { Response } from 'express';
-import { AuthenticatedRequest } from '../types/auth';
+import type { Response } from 'express';
+import type { AuthenticatedRequest } from '../types/auth';
 import { query } from '../config/database';
 import { logger } from '../utils/logger';
 import type {
@@ -12,7 +12,7 @@ import type {
   CommissionQuery,
   CreateCommissionCalculationData,
   CommissionCalculationInput,
-  CommissionCalculationResult
+  CommissionCalculationResult,
 } from '../types/commission';
 
 // =====================================================
@@ -68,27 +68,32 @@ export const getCommissionRateTypes = async (req: AuthenticatedRequest, res: Res
     logger.info(`Retrieved ${commissionRateTypes.length} commission rate types`, {
       userId: req.user?.id,
       isActive,
-      search
+      search,
     });
 
     res.json({
       success: true,
       data: commissionRateTypes,
-      message: `Found ${commissionRateTypes.length} commission rate types`
+      message: `Found ${commissionRateTypes.length} commission rate types`,
     });
   } catch (error) {
     logger.error('Error retrieving commission rate types:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to retrieve commission rate types',
-      error: { code: 'INTERNAL_ERROR' }
+      error: { code: 'INTERNAL_ERROR' },
     });
   }
 };
 
 export const createCommissionRateType = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { rateTypeId, commissionAmount, currency = 'INR', isActive = true }: CreateCommissionRateTypeData = req.body;
+    const {
+      rateTypeId,
+      commissionAmount,
+      currency = 'INR',
+      isActive = true,
+    }: CreateCommissionRateTypeData = req.body;
 
     // Validate that commission amount is provided
     if (!commissionAmount || commissionAmount <= 0) {
@@ -110,7 +115,10 @@ export const createCommissionRateType = async (req: AuthenticatedRequest, res: R
     }
 
     // Check if commission rate type already exists for this rate type
-    const existingCheck = await query('SELECT id FROM commission_rate_types WHERE rate_type_id = $1', [rateTypeId]);
+    const existingCheck = await query(
+      'SELECT id FROM commission_rate_types WHERE rate_type_id = $1',
+      [rateTypeId]
+    );
     if (existingCheck.rows.length > 0) {
       return res.status(400).json({
         success: false,
@@ -134,20 +142,20 @@ export const createCommissionRateType = async (req: AuthenticatedRequest, res: R
     logger.info(`Created commission rate type: ${newCommissionRateType.id}`, {
       userId: req.user?.id,
       rateTypeId,
-      commissionAmount
+      commissionAmount,
     });
 
     res.status(201).json({
       success: true,
       data: newCommissionRateType,
-      message: 'Commission rate type created successfully'
+      message: 'Commission rate type created successfully',
     });
   } catch (error) {
     logger.error('Error creating commission rate type:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to create commission rate type',
-      error: { code: 'INTERNAL_ERROR' }
+      error: { code: 'INTERNAL_ERROR' },
     });
   }
 };
@@ -158,7 +166,9 @@ export const updateCommissionRateType = async (req: AuthenticatedRequest, res: R
     const { commissionAmount, currency, isActive }: UpdateCommissionRateTypeData = req.body;
 
     // Check if commission rate type exists
-    const existingCheck = await query('SELECT id FROM commission_rate_types WHERE id = $1', [Number(id)]);
+    const existingCheck = await query('SELECT id FROM commission_rate_types WHERE id = $1', [
+      Number(id),
+    ]);
     if (existingCheck.rows.length === 0) {
       return res.status(404).json({
         success: false,
@@ -224,20 +234,20 @@ export const updateCommissionRateType = async (req: AuthenticatedRequest, res: R
       userId: req.user?.id,
       commissionAmount,
       currency,
-      isActive
+      isActive,
     });
 
     res.json({
       success: true,
       data: updatedCommissionRateType,
-      message: 'Commission rate type updated successfully'
+      message: 'Commission rate type updated successfully',
     });
   } catch (error) {
     logger.error('Error updating commission rate type:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to update commission rate type',
-      error: { code: 'INTERNAL_ERROR' }
+      error: { code: 'INTERNAL_ERROR' },
     });
   }
 };
@@ -247,7 +257,9 @@ export const deleteCommissionRateType = async (req: AuthenticatedRequest, res: R
     const { id } = req.params;
 
     // Check if commission rate type exists
-    const existingCheck = await query('SELECT id FROM commission_rate_types WHERE id = $1', [Number(id)]);
+    const existingCheck = await query('SELECT id FROM commission_rate_types WHERE id = $1', [
+      Number(id),
+    ]);
     if (existingCheck.rows.length === 0) {
       return res.status(404).json({
         success: false,
@@ -273,19 +285,19 @@ export const deleteCommissionRateType = async (req: AuthenticatedRequest, res: R
     await query('DELETE FROM commission_rate_types WHERE id = $1', [Number(id)]);
 
     logger.info(`Deleted commission rate type: ${id}`, {
-      userId: req.user?.id
+      userId: req.user?.id,
     });
 
     res.json({
       success: true,
-      message: 'Commission rate type deleted successfully'
+      message: 'Commission rate type deleted successfully',
     });
   } catch (error) {
     logger.error('Error deleting commission rate type:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to delete commission rate type',
-      error: { code: 'INTERNAL_ERROR' }
+      error: { code: 'INTERNAL_ERROR' },
     });
   }
 };
@@ -294,7 +306,10 @@ export const deleteCommissionRateType = async (req: AuthenticatedRequest, res: R
 // FIELD USER COMMISSION ASSIGNMENTS
 // =====================================================
 
-export const getFieldUserCommissionAssignments = async (req: AuthenticatedRequest, res: Response) => {
+export const getFieldUserCommissionAssignments = async (
+  req: AuthenticatedRequest,
+  res: Response
+) => {
   try {
     const { userId, rateTypeId, clientId, isActive, page = 1, limit = 20 } = req.query;
 
@@ -365,7 +380,7 @@ export const getFieldUserCommissionAssignments = async (req: AuthenticatedReques
       page: Number(page),
       limit: Number(limit),
       total,
-      filters: { userId, rateTypeId, clientId, isActive }
+      filters: { userId, rateTypeId, clientId, isActive },
     });
 
     res.json({
@@ -375,20 +390,23 @@ export const getFieldUserCommissionAssignments = async (req: AuthenticatedReques
         page: Number(page),
         limit: Number(limit),
         total,
-        totalPages: Math.ceil(total / Number(limit))
-      }
+        totalPages: Math.ceil(total / Number(limit)),
+      },
     });
   } catch (error) {
     logger.error('Error retrieving field user commission assignments:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to retrieve field user commission assignments',
-      error: { code: 'INTERNAL_ERROR' }
+      error: { code: 'INTERNAL_ERROR' },
     });
   }
 };
 
-export const createFieldUserCommissionAssignment = async (req: AuthenticatedRequest, res: Response) => {
+export const createFieldUserCommissionAssignment = async (
+  req: AuthenticatedRequest,
+  res: Response
+) => {
   try {
     const {
       userId,
@@ -397,7 +415,7 @@ export const createFieldUserCommissionAssignment = async (req: AuthenticatedRequ
       currency = 'INR',
       clientId,
       effectiveFrom,
-      effectiveTo
+      effectiveTo,
     }: CreateFieldUserCommissionAssignmentData = req.body;
 
     // Validate required fields
@@ -405,7 +423,7 @@ export const createFieldUserCommissionAssignment = async (req: AuthenticatedRequ
       return res.status(400).json({
         success: false,
         message: 'User ID, rate type ID, and commission amount are required',
-        error: { code: 'VALIDATION_ERROR' }
+        error: { code: 'VALIDATION_ERROR' },
       });
     }
 
@@ -415,7 +433,7 @@ export const createFieldUserCommissionAssignment = async (req: AuthenticatedRequ
       return res.status(404).json({
         success: false,
         message: 'User not found',
-        error: { code: 'NOT_FOUND' }
+        error: { code: 'NOT_FOUND' },
       });
     }
 
@@ -423,7 +441,7 @@ export const createFieldUserCommissionAssignment = async (req: AuthenticatedRequ
       return res.status(400).json({
         success: false,
         message: 'User must be a field agent to assign commission rates',
-        error: { code: 'VALIDATION_ERROR' }
+        error: { code: 'VALIDATION_ERROR' },
       });
     }
 
@@ -433,11 +451,9 @@ export const createFieldUserCommissionAssignment = async (req: AuthenticatedRequ
       return res.status(404).json({
         success: false,
         message: 'Rate type not found',
-        error: { code: 'NOT_FOUND' }
+        error: { code: 'NOT_FOUND' },
       });
     }
-
-
 
     // Check for existing active assignment for same user, rate type, and client
     const existingCheck = await query(
@@ -449,8 +465,9 @@ export const createFieldUserCommissionAssignment = async (req: AuthenticatedRequ
     if (existingCheck.rows.length > 0) {
       return res.status(400).json({
         success: false,
-        message: 'Active commission assignment already exists for this user, rate type, and client combination',
-        error: { code: 'DUPLICATE_ASSIGNMENT' }
+        message:
+          'Active commission assignment already exists for this user, rate type, and client combination',
+        error: { code: 'DUPLICATE_ASSIGNMENT' },
       });
     }
 
@@ -470,7 +487,7 @@ export const createFieldUserCommissionAssignment = async (req: AuthenticatedRequ
       clientId || null,
       effectiveFrom || new Date(),
       effectiveTo || null,
-      req.user?.id
+      req.user?.id,
     ]);
 
     logger.info('Created field user commission assignment', {
@@ -478,25 +495,28 @@ export const createFieldUserCommissionAssignment = async (req: AuthenticatedRequ
       assignmentId: newAssignment.rows[0].id,
       targetUserId: userId,
       rateTypeId,
-      commissionAmount
+      commissionAmount,
     });
 
     res.status(201).json({
       success: true,
       data: newAssignment.rows[0],
-      message: 'Field user commission assignment created successfully'
+      message: 'Field user commission assignment created successfully',
     });
   } catch (error) {
     logger.error('Error creating field user commission assignment:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to create field user commission assignment',
-      error: { code: 'INTERNAL_ERROR' }
+      error: { code: 'INTERNAL_ERROR' },
     });
   }
 };
 
-export const updateFieldUserCommissionAssignment = async (req: AuthenticatedRequest, res: Response) => {
+export const updateFieldUserCommissionAssignment = async (
+  req: AuthenticatedRequest,
+  res: Response
+) => {
   try {
     const { id } = req.params;
     const {
@@ -506,7 +526,7 @@ export const updateFieldUserCommissionAssignment = async (req: AuthenticatedRequ
       currency = 'INR',
       clientId,
       effectiveFrom,
-      effectiveTo
+      effectiveTo,
     }: CreateFieldUserCommissionAssignmentData = req.body;
 
     // Validate required fields
@@ -514,7 +534,7 @@ export const updateFieldUserCommissionAssignment = async (req: AuthenticatedRequ
       return res.status(400).json({
         success: false,
         message: 'User ID, rate type ID, and commission amount are required',
-        error: { code: 'VALIDATION_ERROR' }
+        error: { code: 'VALIDATION_ERROR' },
       });
     }
 
@@ -528,7 +548,7 @@ export const updateFieldUserCommissionAssignment = async (req: AuthenticatedRequ
       return res.status(404).json({
         success: false,
         message: 'Field user commission assignment not found',
-        error: { code: 'NOT_FOUND' }
+        error: { code: 'NOT_FOUND' },
       });
     }
 
@@ -556,7 +576,7 @@ export const updateFieldUserCommissionAssignment = async (req: AuthenticatedRequ
       clientId || null,
       effectiveFrom || new Date().toISOString(),
       effectiveTo || null,
-      id
+      id,
     ]);
 
     logger.info('Updated field user commission assignment', {
@@ -564,26 +584,28 @@ export const updateFieldUserCommissionAssignment = async (req: AuthenticatedRequ
       assignmentId: id,
       targetUserId: userId,
       rateTypeId,
-      commissionAmount
+      commissionAmount,
     });
 
     res.status(200).json({
       success: true,
       data: result.rows[0],
-      message: 'Field user commission assignment updated successfully'
+      message: 'Field user commission assignment updated successfully',
     });
-
   } catch (error) {
     logger.error('Error updating field user commission assignment:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to update field user commission assignment',
-      error: { code: 'INTERNAL_ERROR' }
+      error: { code: 'INTERNAL_ERROR' },
     });
   }
 };
 
-export const deleteFieldUserCommissionAssignment = async (req: AuthenticatedRequest, res: Response) => {
+export const deleteFieldUserCommissionAssignment = async (
+  req: AuthenticatedRequest,
+  res: Response
+) => {
   try {
     const { id } = req.params;
 
@@ -597,7 +619,7 @@ export const deleteFieldUserCommissionAssignment = async (req: AuthenticatedRequ
       return res.status(404).json({
         success: false,
         message: 'Field user commission assignment not found',
-        error: { code: 'NOT_FOUND' }
+        error: { code: 'NOT_FOUND' },
       });
     }
 
@@ -606,20 +628,19 @@ export const deleteFieldUserCommissionAssignment = async (req: AuthenticatedRequ
 
     logger.info('Deleted field user commission assignment', {
       userId: req.user?.id,
-      assignmentId: id
+      assignmentId: id,
     });
 
     res.status(200).json({
       success: true,
-      message: 'Field user commission assignment deleted successfully'
+      message: 'Field user commission assignment deleted successfully',
     });
-
   } catch (error) {
     logger.error('Error deleting field user commission assignment:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to delete field user commission assignment',
-      error: { code: 'INTERNAL_ERROR' }
+      error: { code: 'INTERNAL_ERROR' },
     });
   }
 };
@@ -638,7 +659,7 @@ export const getCommissionCalculations = async (req: AuthenticatedRequest, res: 
       startDate,
       endDate,
       page = 1,
-      limit = 20
+      limit = 20,
     } = req.query;
 
     let whereClause = '';
@@ -746,7 +767,7 @@ export const getCommissionCalculations = async (req: AuthenticatedRequest, res: 
       page: Number(page),
       limit: Number(limit),
       total,
-      filters: { userId, clientId, rateTypeId, status, startDate, endDate }
+      filters: { userId, clientId, rateTypeId, status, startDate, endDate },
     });
 
     res.json({
@@ -757,20 +778,23 @@ export const getCommissionCalculations = async (req: AuthenticatedRequest, res: 
         page: Number(page),
         limit: Number(limit),
         total,
-        totalPages: Math.ceil(total / Number(limit))
-      }
+        totalPages: Math.ceil(total / Number(limit)),
+      },
     });
   } catch (error) {
     logger.error('Error retrieving commission calculations:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to retrieve commission calculations',
-      error: { code: 'INTERNAL_ERROR' }
+      error: { code: 'INTERNAL_ERROR' },
     });
   }
 };
 
-export const calculateCommissionForCompletedCase = async (req: AuthenticatedRequest, res: Response) => {
+export const calculateCommissionForCompletedCase = async (
+  req: AuthenticatedRequest,
+  res: Response
+) => {
   try {
     const { caseId } = req.body;
 
@@ -778,7 +802,7 @@ export const calculateCommissionForCompletedCase = async (req: AuthenticatedRequ
       return res.status(400).json({
         success: false,
         message: 'Case ID is required',
-        error: { code: 'VALIDATION_ERROR' }
+        error: { code: 'VALIDATION_ERROR' },
       });
     }
 
@@ -798,7 +822,7 @@ export const calculateCommissionForCompletedCase = async (req: AuthenticatedRequ
       return res.status(404).json({
         success: false,
         message: 'Case not found',
-        error: { code: 'NOT_FOUND' }
+        error: { code: 'NOT_FOUND' },
       });
     }
 
@@ -809,7 +833,7 @@ export const calculateCommissionForCompletedCase = async (req: AuthenticatedRequ
       return res.status(400).json({
         success: false,
         message: 'Commission can only be calculated for completed cases',
-        error: { code: 'INVALID_STATUS' }
+        error: { code: 'INVALID_STATUS' },
       });
     }
 
@@ -823,7 +847,7 @@ export const calculateCommissionForCompletedCase = async (req: AuthenticatedRequ
       return res.status(400).json({
         success: false,
         message: 'Commission already calculated for this case',
-        error: { code: 'ALREADY_CALCULATED' }
+        error: { code: 'ALREADY_CALCULATED' },
       });
     }
 
@@ -841,14 +865,14 @@ export const calculateCommissionForCompletedCase = async (req: AuthenticatedRequ
     const assignmentResult = await query(assignmentQuery, [
       caseData.assigned_to,
       caseData.rate_type_id,
-      caseData.client_id
+      caseData.client_id,
     ]);
 
     if (assignmentResult.rows.length === 0) {
       return res.status(404).json({
         success: false,
         message: 'No active commission assignment found for this field user, rate type, and client',
-        error: { code: 'NO_ASSIGNMENT' }
+        error: { code: 'NO_ASSIGNMENT' },
       });
     }
 
@@ -876,7 +900,7 @@ export const calculateCommissionForCompletedCase = async (req: AuthenticatedRequ
       calculatedCommission,
       'FIXED_AMOUNT',
       'PENDING',
-      req.user?.id
+      req.user?.id,
     ]);
 
     logger.info('Created commission calculation for completed case', {
@@ -884,20 +908,20 @@ export const calculateCommissionForCompletedCase = async (req: AuthenticatedRequ
       caseId,
       caseNumber: caseData.case_number,
       fieldUserId: caseData.assigned_to,
-      calculatedCommission
+      calculatedCommission,
     });
 
     res.status(201).json({
       success: true,
       data: newCalculation.rows[0],
-      message: 'Commission calculated successfully for completed case'
+      message: 'Commission calculated successfully for completed case',
     });
   } catch (error) {
     logger.error('Error calculating commission for completed case:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to calculate commission for completed case',
-      error: { code: 'INTERNAL_ERROR' }
+      error: { code: 'INTERNAL_ERROR' },
     });
   }
 };
@@ -972,11 +996,13 @@ export const autoCalculateCommissionForCase = async (caseId: string): Promise<bo
     const assignmentResult = await query(assignmentQuery, [
       caseData.user_id,
       caseData.rate_type_id,
-      caseData.client_id
+      caseData.client_id,
     ]);
 
     if (assignmentResult.rows.length === 0) {
-      console.log(`⚠️ No commission assignment found for user ${caseData.user_id} and rate type ${caseData.rate_type_id}`);
+      console.log(
+        `⚠️ No commission assignment found for user ${caseData.user_id} and rate type ${caseData.rate_type_id}`
+      );
       return false;
     }
 
@@ -1034,14 +1060,15 @@ export const autoCalculateCommissionForCase = async (caseId: string): Promise<bo
       assignment.currency,
       'FIXED_AMOUNT',
       'CALCULATED',
-      caseData.case_completed_at
+      caseData.case_completed_at,
     ]);
 
     const calculation = insertResult.rows[0];
-    console.log(`✅ Commission calculated successfully for case ${caseId}: ${calculation.currency} ${calculation.commission_amount}`);
+    console.log(
+      `✅ Commission calculated successfully for case ${caseId}: ${calculation.currency} ${calculation.commission_amount}`
+    );
 
     return true;
-
   } catch (error) {
     console.error(`❌ Error auto-calculating commission for case ${caseId}:`, error);
     return false;
@@ -1113,11 +1140,13 @@ export const autoCalculateCommissionForTask = async (taskId: string): Promise<bo
     const assignmentResult = await query(assignmentQuery, [
       taskData.user_id,
       taskData.rate_type_id,
-      taskData.client_id
+      taskData.client_id,
     ]);
 
     if (assignmentResult.rows.length === 0) {
-      console.log(`⚠️ No commission assignment found for user ${taskData.user_id} and rate type ${taskData.rate_type_id}`);
+      console.log(
+        `⚠️ No commission assignment found for user ${taskData.user_id} and rate type ${taskData.rate_type_id}`
+      );
       return false;
     }
 
@@ -1178,14 +1207,15 @@ export const autoCalculateCommissionForTask = async (taskId: string): Promise<bo
       assignment.currency,
       'FIXED_AMOUNT',
       'CALCULATED',
-      taskData.task_completed_at
+      taskData.task_completed_at,
     ]);
 
     const calculation = insertResult.rows[0];
-    console.log(`✅ Commission calculated successfully for task ${taskId}: ${calculation.currency} ${calculation.commission_amount}`);
+    console.log(
+      `✅ Commission calculated successfully for task ${taskId}: ${calculation.currency} ${calculation.commission_amount}`
+    );
 
     return true;
-
   } catch (error) {
     console.error(`❌ Error auto-calculating commission for task ${taskId}:`, error);
     return false;
@@ -1203,7 +1233,7 @@ export const getCommissionStats = async (req: AuthenticatedRequest, res: Respons
     if (!userId) {
       return res.status(401).json({
         success: false,
-        message: 'User not authenticated'
+        message: 'User not authenticated',
       });
     }
 
@@ -1297,7 +1327,8 @@ export const getCommissionStats = async (req: AuthenticatedRequest, res: Respons
     const commissionStats = {
       // Basic stats
       totalCommissions: parseInt(stats.total_calculations) || 0,
-      totalAmount: parseFloat(stats.total_paid_amount) + parseFloat(stats.total_pending_amount) || 0,
+      totalAmount:
+        parseFloat(stats.total_paid_amount) + parseFloat(stats.total_pending_amount) || 0,
       pendingCommissions: parseInt(stats.pending_calculations) || 0,
       pendingAmount: parseFloat(stats.total_pending_amount) || 0,
       approvedCommissions: parseInt(stats.approved_calculations) || 0,
@@ -1320,7 +1351,7 @@ export const getCommissionStats = async (req: AuthenticatedRequest, res: Respons
       casesCompletedToday: parseInt(todayStats.calculations_today) || 0,
       commissionCalculatedToday: parseFloat(todayStats.commission_today) || 0,
       newAssignmentsThisWeek: parseInt(newAssignmentsWeek) || 0,
-      paymentBatchesPending: 0 // Can be implemented when payment batches are added
+      paymentBatchesPending: 0, // Can be implemented when payment batches are added
     };
 
     logger.info('Retrieved commission statistics', {
@@ -1330,26 +1361,25 @@ export const getCommissionStats = async (req: AuthenticatedRequest, res: Respons
       totalPending: commissionStats.totalCommissionPending,
       activeUsers: commissionStats.activeFieldUsers,
       service: 'crm-backend',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
 
     res.json({
       success: true,
-      data: commissionStats
+      data: commissionStats,
     });
-
   } catch (error) {
     logger.error('Error retrieving commission statistics', {
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
       userId: req.user?.id,
       service: 'crm-backend',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
 
     res.status(500).json({
       success: false,
-      message: 'Failed to retrieve commission statistics'
+      message: 'Failed to retrieve commission statistics',
     });
   }
 };

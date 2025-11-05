@@ -1,5 +1,5 @@
-import { Request, Response, NextFunction } from 'express';
-import { TaskStatus, TaskPriority } from '../types/verificationTask';
+import type { Request, Response, NextFunction } from 'express';
+import type { TaskStatus, TaskPriority } from '../types/verificationTask';
 
 /**
  * Validation middleware for verification task operations
@@ -13,7 +13,7 @@ export const validateTaskCreation = (req: Request, res: Response, next: NextFunc
     return res.status(400).json({
       success: false,
       message: 'Tasks array is required and must not be empty',
-      error: { code: 'INVALID_INPUT' }
+      error: { code: 'INVALID_INPUT' },
     });
   }
 
@@ -27,7 +27,7 @@ export const validateTaskCreation = (req: Request, res: Response, next: NextFunc
       return res.status(400).json({
         success: false,
         message: `Task ${taskIndex}: verification_type_id is required`,
-        error: { code: 'INVALID_TASK_DATA' }
+        error: { code: 'INVALID_TASK_DATA' },
       });
     }
 
@@ -35,7 +35,7 @@ export const validateTaskCreation = (req: Request, res: Response, next: NextFunc
       return res.status(400).json({
         success: false,
         message: `Task ${taskIndex}: task_title is required`,
-        error: { code: 'INVALID_TASK_DATA' }
+        error: { code: 'INVALID_TASK_DATA' },
       });
     }
 
@@ -44,7 +44,7 @@ export const validateTaskCreation = (req: Request, res: Response, next: NextFunc
       return res.status(400).json({
         success: false,
         message: `Task ${taskIndex}: verification_type_id must be a number`,
-        error: { code: 'INVALID_TASK_DATA' }
+        error: { code: 'INVALID_TASK_DATA' },
       });
     }
 
@@ -52,7 +52,7 @@ export const validateTaskCreation = (req: Request, res: Response, next: NextFunc
       return res.status(400).json({
         success: false,
         message: `Task ${taskIndex}: task_title must be a string`,
-        error: { code: 'INVALID_TASK_DATA' }
+        error: { code: 'INVALID_TASK_DATA' },
       });
     }
 
@@ -61,15 +61,18 @@ export const validateTaskCreation = (req: Request, res: Response, next: NextFunc
       return res.status(400).json({
         success: false,
         message: `Task ${taskIndex}: priority must be one of: LOW, MEDIUM, HIGH, URGENT`,
-        error: { code: 'INVALID_TASK_DATA' }
+        error: { code: 'INVALID_TASK_DATA' },
       });
     }
 
-    if (task.estimated_amount && (typeof task.estimated_amount !== 'number' || task.estimated_amount < 0)) {
+    if (
+      task.estimated_amount &&
+      (typeof task.estimated_amount !== 'number' || task.estimated_amount < 0)
+    ) {
       return res.status(400).json({
         success: false,
         message: `Task ${taskIndex}: estimated_amount must be a positive number`,
-        error: { code: 'INVALID_TASK_DATA' }
+        error: { code: 'INVALID_TASK_DATA' },
       });
     }
 
@@ -77,7 +80,7 @@ export const validateTaskCreation = (req: Request, res: Response, next: NextFunc
       return res.status(400).json({
         success: false,
         message: `Task ${taskIndex}: rate_type_id must be a number`,
-        error: { code: 'INVALID_TASK_DATA' }
+        error: { code: 'INVALID_TASK_DATA' },
       });
     }
 
@@ -86,7 +89,7 @@ export const validateTaskCreation = (req: Request, res: Response, next: NextFunc
       return res.status(400).json({
         success: false,
         message: `Task ${taskIndex}: task_title must be 255 characters or less`,
-        error: { code: 'INVALID_TASK_DATA' }
+        error: { code: 'INVALID_TASK_DATA' },
       });
     }
 
@@ -94,7 +97,7 @@ export const validateTaskCreation = (req: Request, res: Response, next: NextFunc
       return res.status(400).json({
         success: false,
         message: `Task ${taskIndex}: task_description must be 1000 characters or less`,
-        error: { code: 'INVALID_TASK_DATA' }
+        error: { code: 'INVALID_TASK_DATA' },
       });
     }
 
@@ -103,7 +106,7 @@ export const validateTaskCreation = (req: Request, res: Response, next: NextFunc
       return res.status(400).json({
         success: false,
         message: `Task ${taskIndex}: estimated_completion_date must be a valid date`,
-        error: { code: 'INVALID_TASK_DATA' }
+        error: { code: 'INVALID_TASK_DATA' },
       });
     }
 
@@ -112,7 +115,7 @@ export const validateTaskCreation = (req: Request, res: Response, next: NextFunc
       return res.status(400).json({
         success: false,
         message: `Task ${taskIndex}: document_details must be an object`,
-        error: { code: 'INVALID_TASK_DATA' }
+        error: { code: 'INVALID_TASK_DATA' },
       });
     }
   }
@@ -125,9 +128,18 @@ export const validateTaskUpdate = (req: Request, res: Response, next: NextFuncti
 
   // Check if at least one field is provided
   const allowedFields = [
-    'task_title', 'task_description', 'priority', 'status', 'verification_outcome',
-    'actual_amount', 'address', 'pincode', 'document_type', 'document_number',
-    'document_details', 'estimated_completion_date'
+    'task_title',
+    'task_description',
+    'priority',
+    'status',
+    'verification_outcome',
+    'actual_amount',
+    'address',
+    'pincode',
+    'document_type',
+    'document_number',
+    'document_details',
+    'estimated_completion_date',
   ];
 
   const providedFields = Object.keys(updateData).filter(key => allowedFields.includes(key));
@@ -136,7 +148,7 @@ export const validateTaskUpdate = (req: Request, res: Response, next: NextFuncti
     return res.status(400).json({
       success: false,
       message: 'At least one valid field must be provided for update',
-      error: { code: 'INVALID_INPUT' }
+      error: { code: 'INVALID_INPUT' },
     });
   }
 
@@ -146,7 +158,7 @@ export const validateTaskUpdate = (req: Request, res: Response, next: NextFuncti
       return res.status(400).json({
         success: false,
         message: 'task_title must be a non-empty string',
-        error: { code: 'INVALID_INPUT' }
+        error: { code: 'INVALID_INPUT' },
       });
     }
 
@@ -154,7 +166,7 @@ export const validateTaskUpdate = (req: Request, res: Response, next: NextFuncti
       return res.status(400).json({
         success: false,
         message: 'task_title must be 255 characters or less',
-        error: { code: 'INVALID_INPUT' }
+        error: { code: 'INVALID_INPUT' },
       });
     }
   }
@@ -164,7 +176,7 @@ export const validateTaskUpdate = (req: Request, res: Response, next: NextFuncti
       return res.status(400).json({
         success: false,
         message: 'task_description must be a string',
-        error: { code: 'INVALID_INPUT' }
+        error: { code: 'INVALID_INPUT' },
       });
     }
 
@@ -172,7 +184,7 @@ export const validateTaskUpdate = (req: Request, res: Response, next: NextFuncti
       return res.status(400).json({
         success: false,
         message: 'task_description must be 1000 characters or less',
-        error: { code: 'INVALID_INPUT' }
+        error: { code: 'INVALID_INPUT' },
       });
     }
   }
@@ -181,15 +193,16 @@ export const validateTaskUpdate = (req: Request, res: Response, next: NextFuncti
     return res.status(400).json({
       success: false,
       message: 'priority must be one of: LOW, MEDIUM, HIGH, URGENT',
-      error: { code: 'INVALID_INPUT' }
+      error: { code: 'INVALID_INPUT' },
     });
   }
 
   if (updateData.status !== undefined && !isValidStatus(updateData.status)) {
     return res.status(400).json({
       success: false,
-      message: 'status must be one of: PENDING, ASSIGNED, IN_PROGRESS, COMPLETED, CANCELLED, ON_HOLD',
-      error: { code: 'INVALID_INPUT' }
+      message:
+        'status must be one of: PENDING, ASSIGNED, IN_PROGRESS, COMPLETED, CANCELLED, ON_HOLD',
+      error: { code: 'INVALID_INPUT' },
     });
   }
 
@@ -198,24 +211,30 @@ export const validateTaskUpdate = (req: Request, res: Response, next: NextFuncti
       return res.status(400).json({
         success: false,
         message: 'actual_amount must be a positive number',
-        error: { code: 'INVALID_INPUT' }
+        error: { code: 'INVALID_INPUT' },
       });
     }
   }
 
-  if (updateData.estimated_completion_date !== undefined && !isValidDate(updateData.estimated_completion_date)) {
+  if (
+    updateData.estimated_completion_date !== undefined &&
+    !isValidDate(updateData.estimated_completion_date)
+  ) {
     return res.status(400).json({
       success: false,
       message: 'estimated_completion_date must be a valid date',
-      error: { code: 'INVALID_INPUT' }
+      error: { code: 'INVALID_INPUT' },
     });
   }
 
-  if (updateData.document_details !== undefined && typeof updateData.document_details !== 'object') {
+  if (
+    updateData.document_details !== undefined &&
+    typeof updateData.document_details !== 'object'
+  ) {
     return res.status(400).json({
       success: false,
       message: 'document_details must be an object',
-      error: { code: 'INVALID_INPUT' }
+      error: { code: 'INVALID_INPUT' },
     });
   }
 
@@ -230,7 +249,7 @@ export const validateTaskAssignment = (req: Request, res: Response, next: NextFu
     return res.status(400).json({
       success: false,
       message: 'assigned_to is required',
-      error: { code: 'INVALID_INPUT' }
+      error: { code: 'INVALID_INPUT' },
     });
   }
 
@@ -238,7 +257,7 @@ export const validateTaskAssignment = (req: Request, res: Response, next: NextFu
     return res.status(400).json({
       success: false,
       message: 'assigned_to must be a string (user ID)',
-      error: { code: 'INVALID_INPUT' }
+      error: { code: 'INVALID_INPUT' },
     });
   }
 
@@ -248,7 +267,7 @@ export const validateTaskAssignment = (req: Request, res: Response, next: NextFu
       return res.status(400).json({
         success: false,
         message: 'assignment_reason must be a string',
-        error: { code: 'INVALID_INPUT' }
+        error: { code: 'INVALID_INPUT' },
       });
     }
 
@@ -256,7 +275,7 @@ export const validateTaskAssignment = (req: Request, res: Response, next: NextFu
       return res.status(400).json({
         success: false,
         message: 'assignment_reason must be 500 characters or less',
-        error: { code: 'INVALID_INPUT' }
+        error: { code: 'INVALID_INPUT' },
       });
     }
   }
@@ -265,7 +284,7 @@ export const validateTaskAssignment = (req: Request, res: Response, next: NextFu
     return res.status(400).json({
       success: false,
       message: 'priority must be one of: LOW, MEDIUM, HIGH, URGENT',
-      error: { code: 'INVALID_INPUT' }
+      error: { code: 'INVALID_INPUT' },
     });
   }
 
@@ -280,7 +299,7 @@ export const validateTaskCompletion = (req: Request, res: Response, next: NextFu
     return res.status(400).json({
       success: false,
       message: 'verification_outcome is required',
-      error: { code: 'INVALID_INPUT' }
+      error: { code: 'INVALID_INPUT' },
     });
   }
 
@@ -288,7 +307,7 @@ export const validateTaskCompletion = (req: Request, res: Response, next: NextFu
     return res.status(400).json({
       success: false,
       message: 'verification_outcome must be a non-empty string',
-      error: { code: 'INVALID_INPUT' }
+      error: { code: 'INVALID_INPUT' },
     });
   }
 
@@ -298,7 +317,7 @@ export const validateTaskCompletion = (req: Request, res: Response, next: NextFu
       return res.status(400).json({
         success: false,
         message: 'actual_amount must be a positive number',
-        error: { code: 'INVALID_INPUT' }
+        error: { code: 'INVALID_INPUT' },
       });
     }
   }
@@ -308,7 +327,7 @@ export const validateTaskCompletion = (req: Request, res: Response, next: NextFu
       return res.status(400).json({
         success: false,
         message: 'completion_notes must be a string',
-        error: { code: 'INVALID_INPUT' }
+        error: { code: 'INVALID_INPUT' },
       });
     }
 
@@ -316,7 +335,7 @@ export const validateTaskCompletion = (req: Request, res: Response, next: NextFu
       return res.status(400).json({
         success: false,
         message: 'completion_notes must be 1000 characters or less',
-        error: { code: 'INVALID_INPUT' }
+        error: { code: 'INVALID_INPUT' },
       });
     }
   }
@@ -325,7 +344,7 @@ export const validateTaskCompletion = (req: Request, res: Response, next: NextFu
     return res.status(400).json({
       success: false,
       message: 'form_submission_id must be a string',
-      error: { code: 'INVALID_INPUT' }
+      error: { code: 'INVALID_INPUT' },
     });
   }
 
@@ -338,7 +357,9 @@ function isValidPriority(priority: string): priority is TaskPriority {
 }
 
 function isValidStatus(status: string): status is TaskStatus {
-  return ['PENDING', 'ASSIGNED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'ON_HOLD'].includes(status);
+  return ['PENDING', 'ASSIGNED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'ON_HOLD'].includes(
+    status
+  );
 }
 
 function isValidDate(dateString: string): boolean {

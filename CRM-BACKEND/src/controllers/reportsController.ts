@@ -1,6 +1,7 @@
-import { Request, Response } from 'express';
+import type { Response } from 'express';
+import { Request } from 'express';
 import { logger } from '@/config/logger';
-import { AuthenticatedRequest } from '@/middleware/auth';
+import type { AuthenticatedRequest } from '@/middleware/auth';
 import { pool } from '@/config/database';
 import ExcelJS from 'exceljs';
 
@@ -19,7 +20,7 @@ export const getFormSubmissions = async (req: AuthenticatedRequest, res: Respons
       validationStatus,
       caseId,
       limit = 100,
-      offset = 0
+      offset = 0,
     } = req.query;
 
     // Build WHERE conditions using CORRECT snake_case column names
@@ -113,13 +114,13 @@ export const getFormSubmissions = async (req: AuthenticatedRequest, res: Respons
       invalid_submissions: 0,
       residence_forms: 0,
       office_forms: 0,
-      business_forms: 0
+      business_forms: 0,
     };
 
     logger.info('Form submissions fetched', {
       userId: req.user?.id,
       total: summary.total_submissions,
-      filters: { formType, dateFrom, dateTo, agentId, validationStatus }
+      filters: { formType, dateFrom, dateTo, agentId, validationStatus },
     });
 
     res.json({
@@ -133,26 +134,25 @@ export const getFormSubmissions = async (req: AuthenticatedRequest, res: Respons
           invalidSubmissions: parseInt(summary.invalid_submissions),
           residenceForms: parseInt(summary.residence_forms),
           officeForms: parseInt(summary.office_forms),
-          businessForms: parseInt(summary.business_forms)
+          businessForms: parseInt(summary.business_forms),
         },
         pagination: {
           limit: parseInt(limit as string),
           offset: parseInt(offset as string),
-          total: parseInt(summary.total_submissions)
-        }
+          total: parseInt(summary.total_submissions),
+        },
       },
-      message: 'Form submissions retrieved successfully (table may be empty)'
+      message: 'Form submissions retrieved successfully (table may be empty)',
     });
   } catch (error) {
     logger.error('Error fetching form submissions:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to fetch form submissions',
-      error: error instanceof Error ? error.message : 'Unknown error'
+      error: error instanceof Error ? error.message : 'Unknown error',
     });
   }
 };
-
 
 // GET /api/reports/form-submissions/:formType - Get specific form type submissions
 export const getFormSubmissionsByType = async (req: AuthenticatedRequest, res: Response) => {
@@ -164,7 +164,7 @@ export const getFormSubmissionsByType = async (req: AuthenticatedRequest, res: R
       return res.status(400).json({
         success: false,
         message: 'Invalid form type. Must be RESIDENCE, OFFICE, or BUSINESS',
-        error: { code: 'INVALID_FORM_TYPE' }
+        error: { code: 'INVALID_FORM_TYPE' },
       });
     }
 
@@ -240,8 +240,8 @@ export const getFormSubmissionsByType = async (req: AuthenticatedRequest, res: R
         pagination: {
           limit: parseInt(limit as string),
           offset: parseInt(offset as string),
-          total: result.rows.length
-        }
+          total: result.rows.length,
+        },
       },
       message: `${formType} form submissions retrieved successfully`,
     });
@@ -296,26 +296,28 @@ export const getFormValidationStatus = async (req: AuthenticatedRequest, res: Re
 
     const validationResult = await pool.query(validationQuery, params);
 
-    const summary = validationResult.rows.reduce((acc, row) => {
-      acc.totalForms += parseInt(row.total_forms);
-      acc.validatedForms += parseInt(row.validated_forms);
-      acc.pendingForms += parseInt(row.pending_forms);
-      acc.invalidForms += parseInt(row.invalid_forms || 0);
-      return acc;
-    }, { totalForms: 0, validatedForms: 0, pendingForms: 0, invalidForms: 0 });
+    const summary = validationResult.rows.reduce(
+      (acc, row) => {
+        acc.totalForms += parseInt(row.total_forms);
+        acc.validatedForms += parseInt(row.validated_forms);
+        acc.pendingForms += parseInt(row.pending_forms);
+        acc.invalidForms += parseInt(row.invalid_forms || 0);
+        return acc;
+      },
+      { totalForms: 0, validatedForms: 0, pendingForms: 0, invalidForms: 0 }
+    );
 
     res.json({
       success: true,
       data: {
         summary: {
           ...summary,
-          validationRate: summary.totalForms > 0
-            ? (summary.validatedForms / summary.totalForms) * 100
-            : 0
+          validationRate:
+            summary.totalForms > 0 ? (summary.validatedForms / summary.totalForms) * 100 : 0,
         },
         byFormType: validationResult.rows,
         generatedAt: new Date().toISOString(),
-        generatedBy: req.user?.id
+        generatedBy: req.user?.id,
       },
       message: 'Form validation status retrieved successfully',
     });
@@ -405,18 +407,23 @@ export const getCaseAnalytics = async (req: AuthenticatedRequest, res: Response)
     const cases = analyticsResult.rows;
     const totalCases = cases.length;
     const completedCases = cases.filter(c => ['COMPLETED', 'APPROVED'].includes(c.status)).length;
-    const avgCompletionDays = cases
-      .filter(c => c.completionDays !== null)
-      .reduce((sum, c) => sum + parseFloat(c.completionDays), 0) /
-      cases.filter(c => c.completionDays !== null).length || 0;
+    const avgCompletionDays =
+      cases
+        .filter(c => c.completionDays !== null)
+        .reduce((sum, c) => sum + parseFloat(c.completionDays), 0) /
+        cases.filter(c => c.completionDays !== null).length || 0;
 
-    const avgFormCompletion = cases.reduce((sum, c) => sum + parseFloat(c.formCompletionPercentage), 0) / totalCases || 0;
+    const avgFormCompletion =
+      cases.reduce((sum, c) => sum + parseFloat(c.formCompletionPercentage), 0) / totalCases || 0;
 
     // Status distribution
-    const statusDistribution = cases.reduce((acc, c) => {
-      acc[c.status] = (acc[c.status] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
+    const statusDistribution = cases.reduce(
+      (acc, c) => {
+        acc[c.status] = (acc[c.status] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>
+    );
 
     res.json({
       success: true,
@@ -427,11 +434,11 @@ export const getCaseAnalytics = async (req: AuthenticatedRequest, res: Response)
           completionRate: totalCases > 0 ? (completedCases / totalCases) * 100 : 0,
           avgCompletionDays: Math.round(avgCompletionDays * 100) / 100,
           avgFormCompletion: Math.round(avgFormCompletion * 100) / 100,
-          statusDistribution
+          statusDistribution,
         },
         cases,
         generatedAt: new Date().toISOString(),
-        generatedBy: req.user?.id
+        generatedBy: req.user?.id,
       },
       message: 'Case analytics generated successfully',
     });
@@ -464,7 +471,7 @@ export const getCaseTimeline = async (req: AuthenticatedRequest, res: Response) 
       return res.status(404).json({
         success: false,
         message: 'Case not found',
-        error: { code: 'CASE_NOT_FOUND' }
+        error: { code: 'CASE_NOT_FOUND' },
       });
     }
 
@@ -542,9 +549,12 @@ export const getCaseTimeline = async (req: AuthenticatedRequest, res: Response) 
         timeline: timelineResult.rows,
         summary: {
           totalEvents: timelineResult.rows.length,
-          formsSubmitted: timelineResult.rows.filter(e => e.event_type.includes('FORM_SUBMITTED')).length,
-          attachmentsUploaded: timelineResult.rows.filter(e => e.event_type === 'ATTACHMENT_UPLOADED').length
-        }
+          formsSubmitted: timelineResult.rows.filter(e => e.event_type.includes('FORM_SUBMITTED'))
+            .length,
+          attachmentsUploaded: timelineResult.rows.filter(
+            e => e.event_type === 'ATTACHMENT_UPLOADED'
+          ).length,
+        },
       },
       message: 'Case timeline retrieved successfully',
     });
@@ -649,7 +659,7 @@ export const getAgentPerformance = async (req: AuthenticatedRequest, res: Respon
           total_amount: 0,
           clients: new Set(),
           products: new Set(),
-          tasks: []
+          tasks: [],
         });
       }
 
@@ -671,9 +681,9 @@ export const getAgentPerformance = async (req: AuthenticatedRequest, res: Respon
       }
 
       // Rate type
-      if (task.rate_type && task.rate_type.toLowerCase().includes('local')) {
+      if (task.rate_type?.toLowerCase().includes('local')) {
         agent.local_tasks++;
-      } else if (task.rate_type && task.rate_type.toLowerCase().includes('ogl')) {
+      } else if (task.rate_type?.toLowerCase().includes('ogl')) {
         agent.ogl_tasks++;
       }
 
@@ -685,8 +695,12 @@ export const getAgentPerformance = async (req: AuthenticatedRequest, res: Respon
       }
 
       // Clients and products
-      if (task.client_name) agent.clients.add(task.client_name);
-      if (task.product_name) agent.products.add(task.product_name);
+      if (task.client_name) {
+        agent.clients.add(task.client_name);
+      }
+      if (task.product_name) {
+        agent.products.add(task.product_name);
+      }
     });
 
     // Convert to array and format
@@ -704,9 +718,8 @@ export const getAgentPerformance = async (req: AuthenticatedRequest, res: Respon
       total_amount: Math.round(agent.total_amount * 100) / 100,
       clients: Array.from(agent.clients),
       products: Array.from(agent.products),
-      completion_rate: agent.total_tasks > 0
-        ? Math.round((agent.completed_tasks / agent.total_tasks) * 100)
-        : 0
+      completion_rate:
+        agent.total_tasks > 0 ? Math.round((agent.completed_tasks / agent.total_tasks) * 100) : 0,
     }));
 
     // Sort by total tasks
@@ -720,11 +733,11 @@ export const getAgentPerformance = async (req: AuthenticatedRequest, res: Respon
           totalTasks: tasks.length,
           completedTasks: agents.reduce((sum, a) => sum + a.completed_tasks, 0),
           inTAT: agents.reduce((sum, a) => sum + a.in_tat, 0),
-          outTAT: agents.reduce((sum, a) => sum + a.out_tat, 0)
+          outTAT: agents.reduce((sum, a) => sum + a.out_tat, 0),
         },
         agents,
         generatedAt: new Date().toISOString(),
-        generatedBy: req.user?.id
+        generatedBy: req.user?.id,
       },
       message: 'Agent performance report generated successfully',
     });
@@ -757,7 +770,7 @@ export const getAgentProductivity = async (req: AuthenticatedRequest, res: Respo
       return res.status(404).json({
         success: false,
         message: 'Field agent not found',
-        error: { code: 'AGENT_NOT_FOUND' }
+        error: { code: 'AGENT_NOT_FOUND' },
       });
     }
 
@@ -807,9 +820,15 @@ export const getAgentProductivity = async (req: AuthenticatedRequest, res: Respo
         dailyProductivity: productivityResult.rows,
         summary: {
           totalWorkDays: productivityResult.rows.length,
-          avgCasesPerDay: productivityResult.rows.reduce((sum, day) => sum + parseInt(day.cases_assigned), 0) / productivityResult.rows.length || 0,
-          avgFormsPerDay: productivityResult.rows.reduce((sum, day) => sum + parseInt(day.residence_forms) + parseInt(day.office_forms), 0) / productivityResult.rows.length || 0
-        }
+          avgCasesPerDay:
+            productivityResult.rows.reduce((sum, day) => sum + parseInt(day.cases_assigned), 0) /
+              productivityResult.rows.length || 0,
+          avgFormsPerDay:
+            productivityResult.rows.reduce(
+              (sum, day) => sum + parseInt(day.residence_forms) + parseInt(day.office_forms),
+              0
+            ) / productivityResult.rows.length || 0,
+        },
       },
       message: 'Agent productivity data retrieved successfully',
     });
@@ -826,14 +845,14 @@ export const getAgentProductivity = async (req: AuthenticatedRequest, res: Respo
 // GET /api/reports/cases - Cases report
 export const getCasesReport = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { 
-      dateFrom, 
-      dateTo, 
-      clientId, 
-      assignedToId, 
-      status, 
-      priority, 
-      format = 'JSON' 
+    const {
+      dateFrom,
+      dateTo,
+      clientId,
+      assignedToId,
+      status,
+      priority,
+      format = 'JSON',
     } = req.query;
 
     // Build WHERE conditions for database query
@@ -895,17 +914,26 @@ export const getCasesReport = async (req: AuthenticatedRequest, res: Response) =
 
     // Calculate summary statistics
     const totalCases = filteredCases.length;
-    const completedCases = filteredCases.filter(c => c.status === 'COMPLETED' || c.status === 'APPROVED').length;
-    const pendingCases = filteredCases.filter(c => c.status === 'PENDING' || c.status === 'IN_PROGRESS').length;
-    
+    const completedCases = filteredCases.filter(
+      c => c.status === 'COMPLETED' || c.status === 'APPROVED'
+    ).length;
+    const pendingCases = filteredCases.filter(
+      c => c.status === 'PENDING' || c.status === 'IN_PROGRESS'
+    ).length;
+
     // Calculate average turnaround time for completed cases
-    const completedCasesWithDates = filteredCases.filter(c => c.updatedAt && (c.status === 'COMPLETED' || c.status === 'APPROVED'));
-    const avgTurnaroundTime = completedCasesWithDates.length > 0 
-      ? completedCasesWithDates.reduce((acc, c) => {
-          const days = (new Date(c.updatedAt).getTime() - new Date(c.createdAt).getTime()) / (1000 * 60 * 60 * 24);
-          return acc + days;
-        }, 0) / completedCasesWithDates.length
-      : 0;
+    const completedCasesWithDates = filteredCases.filter(
+      c => c.updatedAt && (c.status === 'COMPLETED' || c.status === 'APPROVED')
+    );
+    const avgTurnaroundTime =
+      completedCasesWithDates.length > 0
+        ? completedCasesWithDates.reduce((acc, c) => {
+            const days =
+              (new Date(c.updatedAt).getTime() - new Date(c.createdAt).getTime()) /
+              (1000 * 60 * 60 * 24);
+            return acc + days;
+          }, 0) / completedCasesWithDates.length
+        : 0;
 
     const report = {
       summary: {
@@ -916,13 +944,13 @@ export const getCasesReport = async (req: AuthenticatedRequest, res: Response) =
         avgTurnaroundTime: Math.round(avgTurnaroundTime * 100) / 100,
       },
       data: filteredCases,
-      filters: { 
-        dateFrom: dateFrom as string, 
-        dateTo: dateTo as string, 
-        clientId: clientId as string, 
-        assignedToId: assignedToId as string, 
-        status: status as string, 
-        priority: priority as string 
+      filters: {
+        dateFrom: dateFrom as string,
+        dateTo: dateTo as string,
+        clientId: clientId as string,
+        assignedToId: assignedToId as string,
+        status: status as string,
+        priority: priority as string,
       },
       generatedAt: new Date().toISOString(),
       generatedBy: req.user?.id,
@@ -931,7 +959,7 @@ export const getCasesReport = async (req: AuthenticatedRequest, res: Response) =
     logger.info('Cases report generated', {
       userId: req.user?.id,
       totalCases,
-      filters: { dateFrom, dateTo, clientId, status }
+      filters: { dateFrom, dateTo, clientId, status },
     });
 
     res.json({
@@ -952,14 +980,7 @@ export const getCasesReport = async (req: AuthenticatedRequest, res: Response) =
 // GET /api/reports/users - User performance report
 export const getUserPerformanceReport = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { 
-      dateFrom, 
-      dateTo, 
-      department, 
-      role,
-      isActive, 
-      format = 'JSON' 
-    } = req.query;
+    const { dateFrom, dateTo, department, role, isActive, format = 'JSON' } = req.query;
 
     // Build WHERE conditions for users query
     const userConditions: string[] = [];
@@ -982,7 +1003,8 @@ export const getUserPerformanceReport = async (req: AuthenticatedRequest, res: R
       userParamIndex++;
     }
 
-    const userWhereClause = userConditions.length > 0 ? `WHERE ${userConditions.join(' AND ')}` : '';
+    const userWhereClause =
+      userConditions.length > 0 ? `WHERE ${userConditions.join(' AND ')}` : '';
 
     // Get users from database
     const usersQuery = `
@@ -1002,12 +1024,12 @@ export const getUserPerformanceReport = async (req: AuthenticatedRequest, res: R
         activeUsers: usersResult.rows.filter(u => u.isActive).length,
       },
       data: usersResult.rows,
-      filters: { 
-        dateFrom: dateFrom as string, 
-        dateTo: dateTo as string, 
-        department: department as string, 
+      filters: {
+        dateFrom: dateFrom as string,
+        dateTo: dateTo as string,
+        department: department as string,
         role: role as string,
-        isActive: isActive as string 
+        isActive: isActive as string,
       },
       generatedAt: new Date().toISOString(),
       generatedBy: req.user?.id,
@@ -1031,10 +1053,7 @@ export const getUserPerformanceReport = async (req: AuthenticatedRequest, res: R
 // GET /api/reports/clients - Client report
 export const getClientReport = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { 
-      isActive, 
-      format = 'JSON' 
-    } = req.query;
+    const { isActive, format = 'JSON' } = req.query;
 
     // Build WHERE conditions for clients query
     const conditions: string[] = [];
@@ -1067,8 +1086,8 @@ export const getClientReport = async (req: AuthenticatedRequest, res: Response) 
         activeClients: clientsResult.rows.filter(c => c.isActive).length,
       },
       data: clientsResult.rows,
-      filters: { 
-        isActive: isActive as string 
+      filters: {
+        isActive: isActive as string,
       },
       generatedAt: new Date().toISOString(),
       generatedBy: req.user?.id,
@@ -1369,9 +1388,10 @@ export const getMISData = async (req: AuthenticatedRequest, res: Response) => {
         completed_tasks: parseInt(summary.completed_tasks) || 0,
         approved_tasks: parseInt(summary.approved_tasks) || 0,
         rejected_tasks: parseInt(summary.rejected_tasks) || 0,
-        task_completion_rate: summary.total_tasks > 0
-          ? Math.round((parseInt(summary.completed_tasks) / parseInt(summary.total_tasks)) * 100)
-          : 0,
+        task_completion_rate:
+          summary.total_tasks > 0
+            ? Math.round((parseInt(summary.completed_tasks) / parseInt(summary.total_tasks)) * 100)
+            : 0,
         avg_tat_days: parseFloat(summary.avg_tat_days) || 0,
       },
       pagination: {
@@ -1632,26 +1652,56 @@ export const exportMISData = async (req: AuthenticatedRequest, res: Response) =>
       const buffer = await workbook.xlsx.writeBuffer();
 
       // Set response headers
-      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-      res.setHeader('Content-Disposition', `attachment; filename=MIS_Report_${new Date().toISOString().split('T')[0]}.xlsx`);
+      res.setHeader(
+        'Content-Type',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      );
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename=MIS_Report_${new Date().toISOString().split('T')[0]}.xlsx`
+      );
       res.send(buffer);
-
     } else if (format === 'CSV') {
       // Generate CSV - TASK-FIRST ORDER
       const headers = [
         // Task-Level Data (PRIMARY)
-        'Task ID', 'Task Number', 'Task Title', 'Verification Type',
-        'Task Status', 'Task Priority', 'Field Agent', 'Field Agent ID',
-        'Address', 'Pincode', 'Rate Type', 'Estimated Amount', 'Actual Amount',
-        'Task Created Date', 'Task Started Date', 'Task Completion Date',
-        'Task TAT (Days)', 'Trigger', 'Applicant Type',
+        'Task ID',
+        'Task Number',
+        'Task Title',
+        'Verification Type',
+        'Task Status',
+        'Task Priority',
+        'Field Agent',
+        'Field Agent ID',
+        'Address',
+        'Pincode',
+        'Rate Type',
+        'Estimated Amount',
+        'Actual Amount',
+        'Task Created Date',
+        'Task Started Date',
+        'Task Completion Date',
+        'Task TAT (Days)',
+        'Trigger',
+        'Applicant Type',
         // Form Submission Data
-        'Form Submission ID', 'Form Type', 'Form Submitted Date', 'Form Validation Status',
+        'Form Submission ID',
+        'Form Type',
+        'Form Submitted Date',
+        'Form Validation Status',
         // Case-Level Data (SECONDARY/REFERENCE)
-        'Case Number', 'Customer Name', 'Customer Phone', 'Calling Code',
-        'Client Name', 'Client Code', 'Product',
-        'Case Status', 'Case Priority', 'Case Created Date',
-        'Backend User', 'Backend User ID'
+        'Case Number',
+        'Customer Name',
+        'Customer Phone',
+        'Calling Code',
+        'Client Name',
+        'Client Code',
+        'Product',
+        'Case Status',
+        'Case Priority',
+        'Case Created Date',
+        'Backend User',
+        'Backend User ID',
       ];
 
       const csvRows = [headers.join(',')];
@@ -1695,7 +1745,7 @@ export const exportMISData = async (req: AuthenticatedRequest, res: Response) =>
           row.case_priority || '',
           row.case_created_date || '',
           `"${row.backend_user_name || ''}"`,
-          row.backend_user_employee_id || ''
+          row.backend_user_employee_id || '',
         ];
         csvRows.push(values.join(','));
       });
@@ -1703,7 +1753,10 @@ export const exportMISData = async (req: AuthenticatedRequest, res: Response) =>
       const csvContent = csvRows.join('\n');
 
       res.setHeader('Content-Type', 'text/csv');
-      res.setHeader('Content-Disposition', `attachment; filename=MIS_Report_${new Date().toISOString().split('T')[0]}.csv`);
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename=MIS_Report_${new Date().toISOString().split('T')[0]}.csv`
+      );
       res.send(csvContent);
     }
 
@@ -1712,7 +1765,6 @@ export const exportMISData = async (req: AuthenticatedRequest, res: Response) =>
       format,
       recordCount: result.rows.length,
     });
-
   } catch (error) {
     logger.error('Error exporting MIS data:', error);
     res.status(500).json({

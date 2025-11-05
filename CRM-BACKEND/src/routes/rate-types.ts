@@ -9,7 +9,7 @@ import {
   updateRateType,
   deleteRateType,
   getRateTypeStats,
-  getAvailableRateTypesForCase
+  getAvailableRateTypesForCase,
 } from '@/controllers/rateTypesController';
 
 const router = express.Router();
@@ -28,10 +28,7 @@ const createRateTypeValidation = [
     .trim()
     .isLength({ max: 500 })
     .withMessage('Description must be less than 500 characters'),
-  body('isActive')
-    .optional()
-    .isBoolean()
-    .withMessage('isActive must be a boolean'),
+  body('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
 ];
 
 const updateRateTypeValidation = [
@@ -45,17 +42,11 @@ const updateRateTypeValidation = [
     .trim()
     .isLength({ max: 500 })
     .withMessage('Description must be less than 500 characters'),
-  body('isActive')
-    .optional()
-    .isBoolean()
-    .withMessage('isActive must be a boolean'),
+  body('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
 ];
 
 const listRateTypesValidation = [
-  query('page')
-    .optional()
-    .isInt({ min: 1 })
-    .withMessage('Page must be a positive integer'),
+  query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
   query('limit')
     .optional()
     .isInt({ min: 1, max: 100 })
@@ -65,18 +56,12 @@ const listRateTypesValidation = [
     .trim()
     .isLength({ max: 100 })
     .withMessage('Search term must be less than 100 characters'),
-  query('isActive')
-    .optional()
-    .isBoolean()
-    .withMessage('isActive must be a boolean'),
+  query('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
   query('sortBy')
     .optional()
     .isIn(['name', 'description', 'isActive', 'createdAt', 'updatedAt'])
     .withMessage('Invalid sort field'),
-  query('sortOrder')
-    .optional()
-    .isIn(['asc', 'desc'])
-    .withMessage('Sort order must be asc or desc'),
+  query('sortOrder').optional().isIn(['asc', 'desc']).withMessage('Sort order must be asc or desc'),
 ];
 
 const availableRateTypesValidation = [
@@ -98,41 +83,37 @@ const availableRateTypesValidation = [
 ];
 
 // Core CRUD routes
-router.get('/',
-  listRateTypesValidation,
-  handleValidationErrors,
-  getRateTypes
-);
+router.get('/', listRateTypesValidation, handleValidationErrors, getRateTypes);
 
 router.get('/stats', getRateTypeStats);
 
 // GET /api/rate-types/available-for-case - Get available rate types for case assignment
-router.get('/available-for-case',
+router.get(
+  '/available-for-case',
   availableRateTypesValidation,
   handleValidationErrors,
   getAvailableRateTypesForCase
 );
 
-router.post('/',
-  createRateTypeValidation,
-  handleValidationErrors,
-  createRateType
-);
+router.post('/', createRateTypeValidation, handleValidationErrors, createRateType);
 
-router.get('/:id',
+router.get(
+  '/:id',
   [param('id').trim().notEmpty().withMessage('Rate type ID is required')],
   handleValidationErrors,
   getRateTypeById
 );
 
-router.put('/:id',
+router.put(
+  '/:id',
   [param('id').trim().notEmpty().withMessage('Rate type ID is required')],
   updateRateTypeValidation,
   handleValidationErrors,
   updateRateType
 );
 
-router.delete('/:id',
+router.delete(
+  '/:id',
   [param('id').trim().notEmpty().withMessage('Rate type ID is required')],
   handleValidationErrors,
   deleteRateType

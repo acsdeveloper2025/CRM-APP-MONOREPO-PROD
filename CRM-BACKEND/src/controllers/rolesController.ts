@@ -1,16 +1,17 @@
-import { Request, Response } from 'express';
+import type { Response } from 'express';
+import { Request } from 'express';
 import { query } from '../config/database';
-import { AuthenticatedRequest } from '../middleware/auth';
+import type { AuthenticatedRequest } from '../middleware/auth';
 
 // GET /api/roles - Get all roles with pagination and filtering
 export const getRoles = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { search = '', limit = 20, page = 1 } = req.query;
-    
+
     let rolesQuery: string;
     let countQuery: string;
     let params: any[] = [];
-    
+
     if (search && search.toString().trim()) {
       // Search query
       rolesQuery = `
@@ -42,12 +43,12 @@ export const getRoles = async (req: AuthenticatedRequest, res: Response) => {
       `;
       params = [Number(limit), (Number(page) - 1) * Number(limit)];
     }
-    
+
     const rolesResult = await query(rolesQuery, params);
     const countParams = search && search.toString().trim() ? [`%${search}%`] : [];
     const countResult = await query(countQuery, countParams);
     const total = parseInt(countResult.rows[0].total);
-    
+
     res.json({
       success: true,
       data: rolesResult.rows,
@@ -55,16 +56,15 @@ export const getRoles = async (req: AuthenticatedRequest, res: Response) => {
         page: Number(page),
         limit: Number(limit),
         total,
-        totalPages: Math.ceil(total / Number(limit))
-      }
+        totalPages: Math.ceil(total / Number(limit)),
+      },
     });
-
   } catch (error) {
     console.error('Error retrieving roles:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to retrieve roles',
-      error: { code: 'INTERNAL_ERROR' }
+      error: { code: 'INTERNAL_ERROR' },
     });
   }
 };
@@ -92,21 +92,20 @@ export const getRole = async (req: AuthenticatedRequest, res: Response) => {
       return res.status(404).json({
         success: false,
         message: 'Role not found',
-        error: { code: 'ROLE_NOT_FOUND' }
+        error: { code: 'ROLE_NOT_FOUND' },
       });
     }
 
     res.json({
       success: true,
-      data: result.rows[0]
+      data: result.rows[0],
     });
-
   } catch (error) {
     console.error('Error retrieving role:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to retrieve role',
-      error: { code: 'INTERNAL_ERROR' }
+      error: { code: 'INTERNAL_ERROR' },
     });
   }
 };
@@ -121,7 +120,7 @@ export const createRole = async (req: AuthenticatedRequest, res: Response) => {
       return res.status(400).json({
         success: false,
         message: 'Name and permissions are required',
-        error: { code: 'MISSING_REQUIRED_FIELDS' }
+        error: { code: 'MISSING_REQUIRED_FIELDS' },
       });
     }
 
@@ -131,7 +130,7 @@ export const createRole = async (req: AuthenticatedRequest, res: Response) => {
       return res.status(400).json({
         success: false,
         message: 'Role name already exists',
-        error: { code: 'DUPLICATE_ROLE_NAME' }
+        error: { code: 'DUPLICATE_ROLE_NAME' },
       });
     }
 
@@ -147,21 +146,20 @@ export const createRole = async (req: AuthenticatedRequest, res: Response) => {
       description || null,
       JSON.stringify(permissions),
       isSystemRole,
-      req.user?.id
+      req.user?.id,
     ]);
 
     res.status(201).json({
       success: true,
       data: result.rows[0],
-      message: 'Role created successfully'
+      message: 'Role created successfully',
     });
-
   } catch (error) {
     console.error('Error creating role:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to create role',
-      error: { code: 'INTERNAL_ERROR' }
+      error: { code: 'INTERNAL_ERROR' },
     });
   }
 };
@@ -178,18 +176,21 @@ export const updateRole = async (req: AuthenticatedRequest, res: Response) => {
       return res.status(404).json({
         success: false,
         message: 'Role not found',
-        error: { code: 'ROLE_NOT_FOUND' }
+        error: { code: 'ROLE_NOT_FOUND' },
       });
     }
 
     // Check if new name conflicts with existing role (if name is being changed)
     if (name && name !== existingRole.rows[0].name) {
-      const nameConflict = await query('SELECT id FROM roles WHERE name = $1 AND id != $2', [name, id]);
+      const nameConflict = await query('SELECT id FROM roles WHERE name = $1 AND id != $2', [
+        name,
+        id,
+      ]);
       if (nameConflict.rows.length > 0) {
         return res.status(400).json({
           success: false,
           message: 'Role name already exists',
-          error: { code: 'DUPLICATE_ROLE_NAME' }
+          error: { code: 'DUPLICATE_ROLE_NAME' },
         });
       }
     }
@@ -214,21 +215,20 @@ export const updateRole = async (req: AuthenticatedRequest, res: Response) => {
       permissions ? JSON.stringify(permissions) : null,
       isActive !== undefined ? isActive : null,
       req.user?.id,
-      id
+      id,
     ]);
 
     res.json({
       success: true,
       data: result.rows[0],
-      message: 'Role updated successfully'
+      message: 'Role updated successfully',
     });
-
   } catch (error) {
     console.error('Error updating role:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to update role',
-      error: { code: 'INTERNAL_ERROR' }
+      error: { code: 'INTERNAL_ERROR' },
     });
   }
 };
@@ -244,7 +244,7 @@ export const deleteRole = async (req: AuthenticatedRequest, res: Response) => {
       return res.status(404).json({
         success: false,
         message: 'Role not found',
-        error: { code: 'ROLE_NOT_FOUND' }
+        error: { code: 'ROLE_NOT_FOUND' },
       });
     }
 
@@ -253,17 +253,19 @@ export const deleteRole = async (req: AuthenticatedRequest, res: Response) => {
       return res.status(400).json({
         success: false,
         message: 'Cannot delete system role',
-        error: { code: 'SYSTEM_ROLE_DELETE_FORBIDDEN' }
+        error: { code: 'SYSTEM_ROLE_DELETE_FORBIDDEN' },
       });
     }
 
     // Check if role has assigned users
-    const usersWithRole = await query('SELECT COUNT(*) as count FROM users WHERE "roleId" = $1', [id]);
+    const usersWithRole = await query('SELECT COUNT(*) as count FROM users WHERE "roleId" = $1', [
+      id,
+    ]);
     if (parseInt(usersWithRole.rows[0].count) > 0) {
       return res.status(400).json({
         success: false,
         message: 'Cannot delete role with assigned users',
-        error: { code: 'ROLE_HAS_USERS' }
+        error: { code: 'ROLE_HAS_USERS' },
       });
     }
 
@@ -272,15 +274,14 @@ export const deleteRole = async (req: AuthenticatedRequest, res: Response) => {
 
     res.json({
       success: true,
-      message: 'Role deleted successfully'
+      message: 'Role deleted successfully',
     });
-
   } catch (error) {
     console.error('Error deleting role:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to delete role',
-      error: { code: 'INTERNAL_ERROR' }
+      error: { code: 'INTERNAL_ERROR' },
     });
   }
 };

@@ -7,7 +7,11 @@ import { logger } from '@/config/logger';
 import { errorHandler, notFoundHandler } from '@/middleware/errorHandler';
 import { ScheduledReportsService } from '@/services/ScheduledReportsService';
 import { generalRateLimit } from '@/middleware/rateLimiter';
-import { performanceMonitoring, memoryMonitoring, databaseMonitoring } from '@/middleware/performanceMonitoring';
+import {
+  performanceMonitoring,
+  memoryMonitoring,
+  databaseMonitoring,
+} from '@/middleware/performanceMonitoring';
 
 // Import routes
 import authRoutes from '@/routes/auth';
@@ -54,66 +58,67 @@ import aiReportsRoutes from '@/routes/aiReports';
 import verificationTasksRoutes from '@/routes/verificationTasks';
 import templateReportsRoutes from '@/routes/templateReports';
 
-
 const app = express();
 
 // Trust proxy for X-Forwarded-For headers from Nginx (specific to localhost)
 app.set('trust proxy', ['127.0.0.1', '::1']);
 
 // Security middleware
-app.use(helmet({
-  crossOriginResourcePolicy: { policy: 'cross-origin' },
-}));
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+  })
+);
 
 // CORS configuration
-app.use(cors({
-  origin: config.corsOrigin,
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: [
-    'Content-Type',
-    'Authorization',
-    'X-Requested-With',
-    'X-App-Version',
-    'X-App-Environment',
-    'X-Platform',
-    'X-Device-ID',
-    'X-Device-Model',
-    'X-OS-Version',
-    'X-Client-Type',
-    // Standard browser headers
-    'User-Agent',
-    'Accept',
-    'Accept-Language',
-    'Accept-Encoding',
-    'Cache-Control',
-    'Connection',
-    'Host',
-    'Origin',
-    'Referer',
-    'Sec-Fetch-Dest',
-    'Sec-Fetch-Mode',
-    'Sec-Fetch-Site',
-    // Additional headers for mobile apps
-    'X-Forwarded-For',
-    'X-Real-IP',
-    'X-Forwarded-Proto',
-  ],
-  exposedHeaders: [
-    'Content-Disposition',
-    'Content-Type',
-    'Content-Length',
-  ],
-}));
+app.use(
+  cors({
+    origin: config.corsOrigin,
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'X-Requested-With',
+      'X-App-Version',
+      'X-App-Environment',
+      'X-Platform',
+      'X-Device-ID',
+      'X-Device-Model',
+      'X-OS-Version',
+      'X-Client-Type',
+      // Standard browser headers
+      'User-Agent',
+      'Accept',
+      'Accept-Language',
+      'Accept-Encoding',
+      'Cache-Control',
+      'Connection',
+      'Host',
+      'Origin',
+      'Referer',
+      'Sec-Fetch-Dest',
+      'Sec-Fetch-Mode',
+      'Sec-Fetch-Site',
+      // Additional headers for mobile apps
+      'X-Forwarded-For',
+      'X-Real-IP',
+      'X-Forwarded-Proto',
+    ],
+    exposedHeaders: ['Content-Disposition', 'Content-Type', 'Content-Length'],
+  })
+);
 
 // Request logging
-app.use(morgan('combined', {
-  stream: {
-    write: (message: string) => {
-      logger.info(message.trim());
+app.use(
+  morgan('combined', {
+    stream: {
+      write: (message: string) => {
+        logger.info(message.trim());
+      },
     },
-  },
-}));
+  })
+);
 
 // Body parsing middleware - Increased limits for mobile app form submissions with multiple images
 app.use(express.json({ limit: '100mb' }));
@@ -195,7 +200,8 @@ app.get('/api/ai-test', async (req, res) => {
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
-    const prompt = "Generate a brief test response to verify the AI integration is working in the CRM system.";
+    const prompt =
+      'Generate a brief test response to verify the AI integration is working in the CRM system.';
 
     const result = await model.generateContent(prompt);
     const response = await result.response;
@@ -204,17 +210,16 @@ app.get('/api/ai-test', async (req, res) => {
     res.json({
       success: true,
       message: 'AI integration working',
-      data: { response: text }
+      data: { response: text },
     });
   } catch (error) {
     res.status(500).json({
       success: false,
       message: 'AI integration failed',
-      error: error.message
+      error: error.message,
     });
   }
 });
-
 
 // Mobile API routes
 app.use('/api/mobile', mobileRoutes);

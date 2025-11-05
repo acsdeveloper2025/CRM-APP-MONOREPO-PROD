@@ -1,12 +1,13 @@
-import { Request, Response } from 'express';
+import type { Response } from 'express';
+import { Request } from 'express';
 import { logger } from '@/config/logger';
-import { AuthenticatedRequest } from '@/middleware/auth';
+import type { AuthenticatedRequest } from '@/middleware/auth';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 
 // Mock data for demonstration (replace with actual database operations)
-let attachments: any[] = [
+const attachments: any[] = [
   {
     id: 'attachment_1',
     filename: 'residence_photo_1.jpg',
@@ -60,10 +61,10 @@ const storage = multer.diskStorage({
     cb(null, uploadDir);
   },
   filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
     const extension = path.extname(file.originalname);
     cb(null, `attachment_${uniqueSuffix}${extension}`);
-  }
+  },
 });
 
 const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
@@ -71,13 +72,21 @@ const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCa
 
   // Handle files without extensions
   if (!extension) {
-    return cb(new Error(`File must have a valid extension. Supported types: ${ALL_SUPPORTED_EXTENSIONS.join(', ')}`));
+    return cb(
+      new Error(
+        `File must have a valid extension. Supported types: ${ALL_SUPPORTED_EXTENSIONS.join(', ')}`
+      )
+    );
   }
 
   if (ALL_SUPPORTED_EXTENSIONS.includes(extension)) {
     cb(null, true);
   } else {
-    cb(new Error(`File type ${extension} is not supported. Supported types: ${ALL_SUPPORTED_EXTENSIONS.join(', ')}`));
+    cb(
+      new Error(
+        `File type ${extension} is not supported. Supported types: ${ALL_SUPPORTED_EXTENSIONS.join(', ')}`
+      )
+    );
   }
 };
 
@@ -87,14 +96,14 @@ const upload = multer({
   limits: {
     fileSize: 50 * 1024 * 1024, // 50MB limit (increased for mobile app with multiple high-res images)
     files: 20, // Maximum 20 files per upload
-  }
+  },
 });
 
 // POST /api/attachments/upload - Upload attachment
 export const uploadAttachment = async (req: AuthenticatedRequest, res: Response) => {
   try {
     // Use multer middleware
-    upload.array('files', 10)(req, res, async (err) => {
+    upload.array('files', 10)(req, res, async err => {
       if (err) {
         logger.error('File upload error:', err);
         return res.status(400).json({
@@ -105,7 +114,13 @@ export const uploadAttachment = async (req: AuthenticatedRequest, res: Response)
       }
 
       const files = req.files as Express.Multer.File[];
-      const { caseId, description, category = 'DOCUMENT', isPublic = false, verification_task_id } = req.body;
+      const {
+        caseId,
+        description,
+        category = 'DOCUMENT',
+        isPublic = false,
+        verification_task_id,
+      } = req.body;
 
       if (!files || files.length === 0) {
         return res.status(400).json({
@@ -145,7 +160,10 @@ export const uploadAttachment = async (req: AuthenticatedRequest, res: Response)
       if (caseResult.rows.length === 0) {
         return res.status(404).json({
           success: false,
-          message: req.user?.role === 'FIELD_AGENT' ? 'Case not found or not assigned to you' : 'Case not found',
+          message:
+            req.user?.role === 'FIELD_AGENT'
+              ? 'Case not found or not assigned to you'
+              : 'Case not found',
           error: { code: 'CASE_NOT_FOUND' },
         });
       }
@@ -195,8 +213,8 @@ export const uploadAttachment = async (req: AuthenticatedRequest, res: Response)
             `/uploads/attachments/case_${caseId}/${file.filename}`,
             req.user?.id,
             caseId,
-            caseUUID,  // Add the case UUID for mobile compatibility
-            verification_task_id || null  // Add verification_task_id if provided
+            caseUUID, // Add the case UUID for mobile compatibility
+            verification_task_id || null, // Add verification_task_id if provided
           ]
         );
 
@@ -208,7 +226,7 @@ export const uploadAttachment = async (req: AuthenticatedRequest, res: Response)
         userId: req.user?.id,
         caseId,
         fileCount: uploadedAttachments.length,
-        totalSize: uploadedAttachments.reduce((sum, att) => sum + att.size, 0)
+        totalSize: uploadedAttachments.reduce((sum, att) => sum + att.size, 0),
       });
 
       res.status(201).json({
@@ -288,7 +306,7 @@ export const getAttachmentsByCase = async (req: AuthenticatedRequest, res: Respo
     logger.info(`Retrieved ${caseAttachments.length} attachments for case ${caseId}`, {
       userId: req.user?.id,
       caseId,
-      category
+      category,
     });
 
     res.json({
@@ -345,7 +363,10 @@ export const getAttachmentById = async (req: AuthenticatedRequest, res: Response
     if (result.rows.length === 0) {
       return res.status(404).json({
         success: false,
-        message: userRole === 'FIELD_AGENT' ? 'Attachment not found or access denied' : 'Attachment not found',
+        message:
+          userRole === 'FIELD_AGENT'
+            ? 'Attachment not found or access denied'
+            : 'Attachment not found',
         error: { code: 'NOT_FOUND' },
       });
     }
@@ -365,7 +386,7 @@ export const getAttachmentById = async (req: AuthenticatedRequest, res: Response
         filePath: attachment.filePath,
         uploadedBy: attachment.uploadedBy,
         uploadedAt: attachment.createdAt,
-        caseId: attachment.caseId
+        caseId: attachment.caseId,
       },
     });
   } catch (error) {
@@ -403,7 +424,8 @@ export const deleteAttachment = async (req: AuthenticatedRequest, res: Response)
       queryParams = [id, userId];
     } else {
       // Admin/Manager can delete any attachment
-      attachmentQuery = 'SELECT filename, "filePath", "uploadedBy", "caseId" FROM attachments WHERE id = $1';
+      attachmentQuery =
+        'SELECT filename, "filePath", "uploadedBy", "caseId" FROM attachments WHERE id = $1';
       queryParams = [id];
     }
 
@@ -412,7 +434,10 @@ export const deleteAttachment = async (req: AuthenticatedRequest, res: Response)
     if (attachmentResult.rows.length === 0) {
       return res.status(404).json({
         success: false,
-        message: userRole === 'FIELD_AGENT' ? 'Attachment not found or access denied' : 'Attachment not found',
+        message:
+          userRole === 'FIELD_AGENT'
+            ? 'Attachment not found or access denied'
+            : 'Attachment not found',
         error: { code: 'NOT_FOUND' },
       });
     }
@@ -429,7 +454,13 @@ export const deleteAttachment = async (req: AuthenticatedRequest, res: Response)
     }
 
     // Delete file from filesystem
-    const filePath = path.join(process.cwd(), 'uploads', 'attachments', `case_${attachment.caseId}`, attachment.filename);
+    const filePath = path.join(
+      process.cwd(),
+      'uploads',
+      'attachments',
+      `case_${attachment.caseId}`,
+      attachment.filename
+    );
     if (fs.existsSync(filePath)) {
       fs.unlinkSync(filePath);
     }
@@ -440,7 +471,7 @@ export const deleteAttachment = async (req: AuthenticatedRequest, res: Response)
     logger.info(`Deleted attachment: ${id}`, {
       userId: req.user?.id,
       filename: attachment.filename,
-      caseId: attachment.caseId
+      caseId: attachment.caseId,
     });
 
     res.json({
@@ -484,13 +515,19 @@ export const updateAttachment = async (req: AuthenticatedRequest, res: Response)
     }
 
     // Update metadata
-    if (description !== undefined) attachment.description = description;
-    if (category !== undefined) attachment.category = category;
-    if (isPublic !== undefined) attachment.isPublic = isPublic;
+    if (description !== undefined) {
+      attachment.description = description;
+    }
+    if (category !== undefined) {
+      attachment.category = category;
+    }
+    if (isPublic !== undefined) {
+      attachment.isPublic = isPublic;
+    }
 
     logger.info(`Updated attachment metadata: ${id}`, {
       userId: req.user?.id,
-      changes: { description, category, isPublic }
+      changes: { description, category, isPublic },
     });
 
     res.json({
@@ -533,7 +570,8 @@ export const downloadAttachment = async (req: AuthenticatedRequest, res: Respons
       queryParams = [id, userId];
     } else {
       // Admin/Manager can download any attachment
-      attachmentQuery = 'SELECT filename, "originalName", "mimeType", "fileSize", "caseId" FROM attachments WHERE id = $1';
+      attachmentQuery =
+        'SELECT filename, "originalName", "mimeType", "fileSize", "caseId" FROM attachments WHERE id = $1';
       queryParams = [id];
     }
 
@@ -542,7 +580,10 @@ export const downloadAttachment = async (req: AuthenticatedRequest, res: Respons
     if (attachmentResult.rows.length === 0) {
       return res.status(404).json({
         success: false,
-        message: userRole === 'FIELD_AGENT' ? 'Attachment not found or access denied' : 'Attachment not found',
+        message:
+          userRole === 'FIELD_AGENT'
+            ? 'Attachment not found or access denied'
+            : 'Attachment not found',
         error: { code: 'NOT_FOUND' },
       });
     }
@@ -550,7 +591,13 @@ export const downloadAttachment = async (req: AuthenticatedRequest, res: Respons
     const attachment = attachmentResult.rows[0];
 
     // Check if file exists in case-specific folder
-    const filePath = path.join(process.cwd(), 'uploads', 'attachments', `case_${attachment.caseId}`, attachment.filename);
+    const filePath = path.join(
+      process.cwd(),
+      'uploads',
+      'attachments',
+      `case_${attachment.caseId}`,
+      attachment.filename
+    );
     if (!fs.existsSync(filePath)) {
       return res.status(404).json({
         success: false,
@@ -572,7 +619,7 @@ export const downloadAttachment = async (req: AuthenticatedRequest, res: Respons
       userId: req.user?.id,
       filename: attachment.originalName,
       size: attachment.fileSize,
-      caseId: attachment.caseId
+      caseId: attachment.caseId,
     });
   } catch (error) {
     logger.error('Error downloading attachment:', error);
@@ -609,7 +656,8 @@ export const serveAttachment = async (req: AuthenticatedRequest, res: Response) 
       queryParams = [id, userId];
     } else {
       // Admin/Manager can serve any attachment
-      attachmentQuery = 'SELECT filename, "originalName", "mimeType", "fileSize", "caseId" FROM attachments WHERE id = $1';
+      attachmentQuery =
+        'SELECT filename, "originalName", "mimeType", "fileSize", "caseId" FROM attachments WHERE id = $1';
       queryParams = [id];
     }
 
@@ -618,7 +666,10 @@ export const serveAttachment = async (req: AuthenticatedRequest, res: Response) 
     if (attachmentResult.rows.length === 0) {
       return res.status(404).json({
         success: false,
-        message: userRole === 'FIELD_AGENT' ? 'Attachment not found or access denied' : 'Attachment not found',
+        message:
+          userRole === 'FIELD_AGENT'
+            ? 'Attachment not found or access denied'
+            : 'Attachment not found',
         error: { code: 'NOT_FOUND' },
       });
     }
@@ -626,7 +677,13 @@ export const serveAttachment = async (req: AuthenticatedRequest, res: Response) 
     const attachment = attachmentResult.rows[0];
 
     // Check if file exists in case-specific folder
-    const filePath = path.join(process.cwd(), 'uploads', 'attachments', `case_${attachment.caseId}`, attachment.filename);
+    const filePath = path.join(
+      process.cwd(),
+      'uploads',
+      'attachments',
+      `case_${attachment.caseId}`,
+      attachment.filename
+    );
     if (!fs.existsSync(filePath)) {
       return res.status(404).json({
         success: false,
@@ -650,7 +707,7 @@ export const serveAttachment = async (req: AuthenticatedRequest, res: Response) 
       userId: req.user?.id,
       filename: attachment.originalName,
       size: attachment.fileSize,
-      caseId: attachment.caseId
+      caseId: attachment.caseId,
     });
   } catch (error) {
     logger.error('Error serving attachment:', error);
@@ -701,7 +758,7 @@ export const getSupportedFileTypes = async (req: AuthenticatedRequest, res: Resp
 export const bulkUploadAttachments = async (req: AuthenticatedRequest, res: Response) => {
   try {
     // Use multer middleware for multiple files
-    upload.array('files', 50)(req, res, async (err) => {
+    upload.array('files', 50)(req, res, async err => {
       if (err) {
         logger.error('Bulk upload error:', err);
         return res.status(400).json({
@@ -734,7 +791,8 @@ export const bulkUploadAttachments = async (req: AuthenticatedRequest, res: Resp
         try {
           const file = files[i];
           const caseId = caseIdArray[i] || caseIdArray[0];
-          const description = descriptionArray[i] || descriptionArray[0] || `Uploaded file: ${file.originalname}`;
+          const description =
+            descriptionArray[i] || descriptionArray[0] || `Uploaded file: ${file.originalname}`;
           const category = categoryArray[i] || categoryArray[0] || 'DOCUMENT';
 
           if (!caseId) {
@@ -768,7 +826,7 @@ export const bulkUploadAttachments = async (req: AuthenticatedRequest, res: Resp
         userId: req.user?.id,
         successCount: uploadedAttachments.length,
         errorCount: errors.length,
-        totalSize: uploadedAttachments.reduce((sum, att) => sum + att.size, 0)
+        totalSize: uploadedAttachments.reduce((sum, att) => sum + att.size, 0),
       });
 
       res.status(201).json({
@@ -780,7 +838,7 @@ export const bulkUploadAttachments = async (req: AuthenticatedRequest, res: Resp
             total: files.length,
             successful: uploadedAttachments.length,
             failed: errors.length,
-          }
+          },
         },
         message: `Bulk upload completed: ${uploadedAttachments.length} successful, ${errors.length} failed`,
       });
@@ -844,7 +902,7 @@ export const bulkDeleteAttachments = async (req: AuthenticatedRequest, res: Resp
     logger.info(`Bulk deleted ${deletedAttachments.length} attachments`, {
       userId: req.user?.id,
       successCount: deletedAttachments.length,
-      errorCount: errors.length
+      errorCount: errors.length,
     });
 
     res.json({
@@ -856,7 +914,7 @@ export const bulkDeleteAttachments = async (req: AuthenticatedRequest, res: Resp
           total: attachmentIds.length,
           successful: deletedAttachments.length,
           failed: errors.length,
-        }
+        },
       },
       message: `Bulk delete completed: ${deletedAttachments.length} successful, ${errors.length} failed`,
     });

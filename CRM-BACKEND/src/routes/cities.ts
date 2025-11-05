@@ -10,7 +10,7 @@ import {
   updateCity,
   deleteCity,
   getCitiesStats,
-  bulkImportCities
+  bulkImportCities,
 } from '@/controllers/citiesController';
 import * as PincodesController from '../controllers/pincodesController';
 
@@ -54,10 +54,7 @@ const updateCityValidation = [
 ];
 
 const listCitiesValidation = [
-  query('page')
-    .optional()
-    .isInt({ min: 1 })
-    .withMessage('Page must be a positive integer'),
+  query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
   query('limit')
     .optional()
     .isInt({ min: 1, max: 100 })
@@ -72,10 +69,7 @@ const listCitiesValidation = [
     .trim()
     .isLength({ max: 100 })
     .withMessage('Country must be less than 100 characters'),
-  query('isActive')
-    .optional()
-    .isBoolean()
-    .withMessage('isActive must be a boolean'),
+  query('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
   query('search')
     .optional()
     .trim()
@@ -85,58 +79,51 @@ const listCitiesValidation = [
     .optional()
     .isIn(['name', 'state', 'country', 'code', 'population', 'area', 'createdAt'])
     .withMessage('Invalid sort field'),
-  query('sortOrder')
-    .optional()
-    .isIn(['asc', 'desc'])
-    .withMessage('Sort order must be asc or desc'),
+  query('sortOrder').optional().isIn(['asc', 'desc']).withMessage('Sort order must be asc or desc'),
 ];
 
 // Core CRUD routes
-router.get('/', 
-  listCitiesValidation, 
-  validate, 
-  getCities
-);
+router.get('/', listCitiesValidation, validate, getCities);
 
 router.get('/stats', getCitiesStats);
 
-router.post('/',
-  createCityValidation,
+router.post('/', createCityValidation, validate, createCity);
+
+router.post('/bulk-import', upload.single('file'), bulkImportCities);
+
+router.get(
+  '/:id',
+  [param('id').trim().notEmpty().withMessage('City ID is required')],
   validate,
-  createCity
-);
-
-router.post('/bulk-import',
-  upload.single('file'),
-  bulkImportCities
-);
-
-router.get('/:id', 
-  [param('id').trim().notEmpty().withMessage('City ID is required')], 
-  validate, 
   getCityById
 );
 
-router.put('/:id', 
-  [param('id').trim().notEmpty().withMessage('City ID is required')], 
-  updateCityValidation, 
-  validate, 
+router.put(
+  '/:id',
+  [param('id').trim().notEmpty().withMessage('City ID is required')],
+  updateCityValidation,
+  validate,
   updateCity
 );
 
-router.delete('/:id', 
-  [param('id').trim().notEmpty().withMessage('City ID is required')], 
-  validate, 
+router.delete(
+  '/:id',
+  [param('id').trim().notEmpty().withMessage('City ID is required')],
+  validate,
   deleteCity
 );
 
-router.get('/:id/pincodes', 
+router.get(
+  '/:id/pincodes',
   [
     param('id').trim().notEmpty().withMessage('City ID is required'),
     query('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
-    query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('Limit must be between 1 and 100')
-  ], 
-  validate, 
+    query('limit')
+      .optional()
+      .isInt({ min: 1, max: 100 })
+      .withMessage('Limit must be between 1 and 100'),
+  ],
+  validate,
   PincodesController.getPincodesByCity
 );
 

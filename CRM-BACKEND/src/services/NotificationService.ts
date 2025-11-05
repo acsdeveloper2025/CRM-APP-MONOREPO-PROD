@@ -81,7 +81,9 @@ export class NotificationService {
 
       // Check if notification type is enabled
       if (!this.isNotificationTypeEnabled(notificationData.type, preferences)) {
-        logger.info(`Notification type ${notificationData.type} is disabled for user ${notificationData.userId}`);
+        logger.info(
+          `Notification type ${notificationData.type} is disabled for user ${notificationData.userId}`
+        );
         return '';
       }
 
@@ -114,7 +116,7 @@ export class NotificationService {
         notificationId,
         userId: notificationData.userId,
         type: notificationData.type,
-        title: notificationData.title
+        title: notificationData.title,
       });
 
       return notificationId;
@@ -137,7 +139,7 @@ export class NotificationService {
       );
 
       const results = await Promise.allSettled(notificationPromises);
-      
+
       const successfulNotifications = results
         .filter((result): result is PromiseFulfilledResult<string> => result.status === 'fulfilled')
         .map(result => result.value)
@@ -149,7 +151,7 @@ export class NotificationService {
         totalUsers: userIds.length,
         successful: successfulNotifications.length,
         failed: failedCount,
-        type: notificationTemplate.type
+        type: notificationTemplate.type,
       });
 
       return successfulNotifications;
@@ -184,7 +186,7 @@ export class NotificationService {
       data.actionUrl || null,
       data.actionType || 'NAVIGATE',
       data.priority || 'MEDIUM',
-      data.expiresAt || null
+      data.expiresAt || null,
     ];
 
     const result = await query(insertQuery, values);
@@ -215,7 +217,7 @@ export class NotificationService {
         actionUrl: data.actionUrl,
         actionType: data.actionType,
         priority: data.priority,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
 
       // Send to user's room
@@ -227,11 +229,11 @@ export class NotificationService {
       logger.info(`WebSocket notification sent`, {
         notificationId,
         userId: data.userId,
-        type: data.type
+        type: data.type,
       });
     } catch (error) {
       await this.logDeliveryAttempt(notificationId, 'WEBSOCKET', 'FAILED', {
-        errorMessage: error instanceof Error ? error.message : 'Unknown error'
+        errorMessage: error instanceof Error ? error.message : 'Unknown error',
       });
       throw error;
     }
@@ -247,16 +249,14 @@ export class NotificationService {
     try {
       // Get user's active push tokens
       const tokens = await this.getUserPushTokens(data.userId);
-      
+
       if (tokens.length === 0) {
         logger.info(`No push tokens found for user ${data.userId}`);
         return;
       }
 
       // Send to each device
-      const pushPromises = tokens.map(token => 
-        this.sendPushToDevice(notificationId, data, token)
-      );
+      const pushPromises = tokens.map(token => this.sendPushToDevice(notificationId, data, token));
 
       await Promise.allSettled(pushPromises);
     } catch (error) {
@@ -286,9 +286,9 @@ export class NotificationService {
           taskNumber: data.taskNumber,
           actionUrl: data.actionUrl,
           actionType: data.actionType,
-          ...data.data
+          ...data.data,
         },
-        priority: data.priority === 'URGENT' ? 'high' as const : 'normal' as const,
+        priority: data.priority === 'URGENT' ? ('high' as const) : ('normal' as const),
         badge: 1,
         sound: 'default',
       };
@@ -301,14 +301,14 @@ export class NotificationService {
           notificationId,
           deviceId: token.deviceId,
           platform: token.platform,
-          userId: token.userId
+          userId: token.userId,
         });
 
         // Log successful delivery attempt
         await this.logDeliveryAttempt(notificationId, 'PUSH', 'SENT', {
           deviceId: token.deviceId,
           platform: token.platform,
-          pushTokenUsed: token.pushToken.substring(0, 20) + '...'
+          pushTokenUsed: `${token.pushToken.substring(0, 20)}...`,
         });
       } else {
         // Log failed delivery attempt
@@ -316,7 +316,7 @@ export class NotificationService {
           deviceId: token.deviceId,
           platform: token.platform,
           errors: result.errors,
-          pushTokenUsed: token.pushToken.substring(0, 20) + '...'
+          pushTokenUsed: `${token.pushToken.substring(0, 20)}...`,
         });
 
         logger.warn(`Push notification failed for ${token.platform} device`, {
@@ -324,15 +324,14 @@ export class NotificationService {
           deviceId: token.deviceId,
           platform: token.platform,
           userId: token.userId,
-          errors: result.errors
+          errors: result.errors,
         });
       }
-
     } catch (error) {
       await this.logDeliveryAttempt(notificationId, 'PUSH', 'FAILED', {
         deviceId: token.deviceId,
         platform: token.platform,
-        errorMessage: error instanceof Error ? error.message : 'Unknown error'
+        errorMessage: error instanceof Error ? error.message : 'Unknown error',
       });
       throw error;
     }
@@ -368,7 +367,7 @@ export class NotificationService {
     `;
 
     const result = await query(selectQuery, [userId]);
-    
+
     if (result.rows.length === 0) {
       // Create default preferences if none exist
       await this.createDefaultPreferences(userId);
@@ -433,7 +432,7 @@ export class NotificationService {
         additionalData?.pushTokenUsed || null,
         additionalData?.errorCode || null,
         additionalData?.errorMessage || null,
-        JSON.stringify(additionalData || {})
+        JSON.stringify(additionalData || {}),
       ];
 
       await query(insertQuery, values);
@@ -530,7 +529,7 @@ export class NotificationService {
 
     const now = new Date();
     const currentTime = now.toTimeString().substring(0, 8); // HH:MM:SS format
-    
+
     const startTime = preferences.quietHoursStart;
     const endTime = preferences.quietHoursEnd;
 

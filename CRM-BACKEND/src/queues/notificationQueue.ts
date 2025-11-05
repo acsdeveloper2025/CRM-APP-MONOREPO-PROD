@@ -1,6 +1,7 @@
 import Bull from 'bull';
 import { logger } from '@/utils/logger';
-import { NotificationService, NotificationData } from '@/services/NotificationService';
+import type { NotificationData } from '@/services/NotificationService';
+import { NotificationService } from '@/services/NotificationService';
 import { config } from '@/config';
 
 // Notification job data interfaces
@@ -79,19 +80,19 @@ export const notificationQueue = new Bull<NotificationJobData>('notification-pro
   redis: config.redisUrl,
   defaultJobOptions: {
     removeOnComplete: 100, // Keep last 100 completed jobs
-    removeOnFail: 50,      // Keep last 50 failed jobs
-    attempts: 3,           // Retry failed jobs up to 3 times
+    removeOnFail: 50, // Keep last 50 failed jobs
+    attempts: 3, // Retry failed jobs up to 3 times
     backoff: {
       type: 'exponential',
-      delay: 2000,         // Start with 2 second delay
+      delay: 2000, // Start with 2 second delay
     },
   },
 });
 
 // Process notification jobs
-notificationQueue.process('single-notification', 5, async (job) => {
+notificationQueue.process('single-notification', 5, async job => {
   const data = job.data as SingleNotificationJobData;
-  
+
   logger.info('Processing single notification job', {
     jobId: job.id,
     userId: data.notification.userId,
@@ -100,7 +101,7 @@ notificationQueue.process('single-notification', 5, async (job) => {
 
   try {
     const notificationId = await NotificationService.sendNotification(data.notification);
-    
+
     logger.info('Single notification job completed', {
       jobId: job.id,
       notificationId,
@@ -118,9 +119,9 @@ notificationQueue.process('single-notification', 5, async (job) => {
   }
 });
 
-notificationQueue.process('bulk-notification', 3, async (job) => {
+notificationQueue.process('bulk-notification', 3, async job => {
   const data = job.data as BulkNotificationJobData;
-  
+
   logger.info('Processing bulk notification job', {
     jobId: job.id,
     userCount: data.userIds.length,
@@ -133,7 +134,7 @@ notificationQueue.process('bulk-notification', 3, async (job) => {
       data.userIds,
       data.notificationTemplate
     );
-    
+
     logger.info('Bulk notification job completed', {
       jobId: job.id,
       totalUsers: data.userIds.length,
@@ -141,11 +142,11 @@ notificationQueue.process('bulk-notification', 3, async (job) => {
       batchId: data.batchId,
     });
 
-    return { 
-      notificationIds, 
+    return {
+      notificationIds,
       totalUsers: data.userIds.length,
       successfulNotifications: notificationIds.length,
-      success: true 
+      success: true,
     };
   } catch (error) {
     logger.error('Bulk notification job failed', {
@@ -158,9 +159,9 @@ notificationQueue.process('bulk-notification', 3, async (job) => {
   }
 });
 
-notificationQueue.process('case-assignment', 10, async (job) => {
+notificationQueue.process('case-assignment', 10, async job => {
   const data = job.data as CaseAssignmentNotificationJobData;
-  
+
   logger.info('Processing case assignment notification job', {
     jobId: job.id,
     userId: data.userId,
@@ -175,12 +176,14 @@ notificationQueue.process('case-assignment', 10, async (job) => {
 
     const notification: NotificationData = {
       userId: data.userId,
-      title: data.assignmentType === 'assignment'
-        ? `New ${displayType === 'task' ? 'Task' : 'Case'} Assigned`
-        : `${displayType === 'task' ? 'Task' : 'Case'} Reassigned`,
-      message: data.assignmentType === 'assignment'
-        ? `You have been assigned ${displayType} ${displayNumber} for ${data.customerName}`
-        : `${displayType === 'task' ? 'Task' : 'Case'} ${displayNumber} has been reassigned to you`,
+      title:
+        data.assignmentType === 'assignment'
+          ? `New ${displayType === 'task' ? 'Task' : 'Case'} Assigned`
+          : `${displayType === 'task' ? 'Task' : 'Case'} Reassigned`,
+      message:
+        data.assignmentType === 'assignment'
+          ? `You have been assigned ${displayType} ${displayNumber} for ${data.customerName}`
+          : `${displayType === 'task' ? 'Task' : 'Case'} ${displayNumber} has been reassigned to you`,
       type: data.assignmentType === 'assignment' ? 'CASE_ASSIGNED' : 'CASE_REASSIGNED',
       caseId: data.caseId,
       caseNumber: data.caseNumber,
@@ -200,7 +203,7 @@ notificationQueue.process('case-assignment', 10, async (job) => {
     };
 
     const notificationId = await NotificationService.sendNotification(notification);
-    
+
     logger.info('Case assignment notification job completed', {
       jobId: job.id,
       notificationId,
@@ -220,9 +223,9 @@ notificationQueue.process('case-assignment', 10, async (job) => {
   }
 });
 
-notificationQueue.process('case-completion', 5, async (job) => {
+notificationQueue.process('case-completion', 5, async job => {
   const data = job.data as CaseCompletionNotificationJobData;
-  
+
   logger.info('Processing case completion notification job', {
     jobId: job.id,
     caseId: data.caseId,
@@ -253,7 +256,7 @@ notificationQueue.process('case-completion', 5, async (job) => {
       data.backendUserIds,
       notificationTemplate
     );
-    
+
     logger.info('Case completion notification job completed', {
       jobId: job.id,
       caseId: data.caseId,
@@ -271,9 +274,9 @@ notificationQueue.process('case-completion', 5, async (job) => {
   }
 });
 
-notificationQueue.process('case-revocation', 5, async (job) => {
+notificationQueue.process('case-revocation', 5, async job => {
   const data = job.data as CaseRevocationNotificationJobData;
-  
+
   logger.info('Processing case revocation notification job', {
     jobId: job.id,
     caseId: data.caseId,
@@ -303,7 +306,7 @@ notificationQueue.process('case-revocation', 5, async (job) => {
       data.backendUserIds,
       notificationTemplate
     );
-    
+
     logger.info('Case revocation notification job completed', {
       jobId: job.id,
       caseId: data.caseId,
@@ -322,7 +325,7 @@ notificationQueue.process('case-revocation', 5, async (job) => {
 });
 
 // Task Revocation Notification Processor
-notificationQueue.process('task-revocation', 5, async (job) => {
+notificationQueue.process('task-revocation', 5, async job => {
   const data = job.data as TaskRevocationNotificationJobData;
 
   logger.info('Processing task revocation notification job', {
@@ -395,7 +398,7 @@ notificationQueue.on('failed', (job, err) => {
   });
 });
 
-notificationQueue.on('stalled', (job) => {
+notificationQueue.on('stalled', job => {
   logger.warn('Notification job stalled', {
     jobId: job.id,
     jobType: job.name,
@@ -404,12 +407,16 @@ notificationQueue.on('stalled', (job) => {
 
 // Helper functions to add jobs to the queue
 export const queueSingleNotification = async (notification: NotificationData): Promise<string> => {
-  const job = await notificationQueue.add('single-notification', {
-    type: 'single',
-    notification,
-  }, {
-    priority: getPriorityValue(notification.priority || 'MEDIUM'),
-  });
+  const job = await notificationQueue.add(
+    'single-notification',
+    {
+      type: 'single',
+      notification,
+    },
+    {
+      priority: getPriorityValue(notification.priority || 'MEDIUM'),
+    }
+  );
 
   return job.id?.toString() || '';
 };
@@ -419,14 +426,18 @@ export const queueBulkNotification = async (
   notificationTemplate: Omit<NotificationData, 'userId'>,
   batchId?: string
 ): Promise<string> => {
-  const job = await notificationQueue.add('bulk-notification', {
-    type: 'bulk',
-    userIds,
-    notificationTemplate,
-    batchId,
-  }, {
-    priority: getPriorityValue(notificationTemplate.priority || 'MEDIUM'),
-  });
+  const job = await notificationQueue.add(
+    'bulk-notification',
+    {
+      type: 'bulk',
+      userIds,
+      notificationTemplate,
+      batchId,
+    },
+    {
+      priority: getPriorityValue(notificationTemplate.priority || 'MEDIUM'),
+    }
+  );
 
   return job.id?.toString() || '';
 };
@@ -434,12 +445,16 @@ export const queueBulkNotification = async (
 export const queueCaseAssignmentNotification = async (
   data: Omit<CaseAssignmentNotificationJobData, 'type'>
 ): Promise<string> => {
-  const job = await notificationQueue.add('case-assignment', {
-    type: 'case-assignment',
-    ...data,
-  }, {
-    priority: 8, // High priority for case assignments
-  });
+  const job = await notificationQueue.add(
+    'case-assignment',
+    {
+      type: 'case-assignment',
+      ...data,
+    },
+    {
+      priority: 8, // High priority for case assignments
+    }
+  );
 
   return job.id?.toString() || '';
 };
@@ -447,12 +462,16 @@ export const queueCaseAssignmentNotification = async (
 export const queueCaseCompletionNotification = async (
   data: Omit<CaseCompletionNotificationJobData, 'type'>
 ): Promise<string> => {
-  const job = await notificationQueue.add('case-completion', {
-    type: 'case-completion',
-    ...data,
-  }, {
-    priority: 5, // Medium priority for completions
-  });
+  const job = await notificationQueue.add(
+    'case-completion',
+    {
+      type: 'case-completion',
+      ...data,
+    },
+    {
+      priority: 5, // Medium priority for completions
+    }
+  );
 
   return job.id?.toString() || '';
 };
@@ -460,12 +479,16 @@ export const queueCaseCompletionNotification = async (
 export const queueCaseRevocationNotification = async (
   data: Omit<CaseRevocationNotificationJobData, 'type'>
 ): Promise<string> => {
-  const job = await notificationQueue.add('case-revocation', {
-    type: 'case-revocation',
-    ...data,
-  }, {
-    priority: 8, // High priority for revocations
-  });
+  const job = await notificationQueue.add(
+    'case-revocation',
+    {
+      type: 'case-revocation',
+      ...data,
+    },
+    {
+      priority: 8, // High priority for revocations
+    }
+  );
 
   return job.id?.toString() || '';
 };
@@ -473,12 +496,16 @@ export const queueCaseRevocationNotification = async (
 export const queueTaskRevocationNotification = async (
   data: Omit<TaskRevocationNotificationJobData, 'type'>
 ): Promise<string> => {
-  const job = await notificationQueue.add('task-revocation', {
-    type: 'task-revocation',
-    ...data,
-  }, {
-    priority: getPriorityValue('HIGH'),
-  });
+  const job = await notificationQueue.add(
+    'task-revocation',
+    {
+      type: 'task-revocation',
+      ...data,
+    },
+    {
+      priority: getPriorityValue('HIGH'),
+    }
+  );
 
   return job.id?.toString() || '';
 };
@@ -486,11 +513,16 @@ export const queueTaskRevocationNotification = async (
 // Helper function to convert priority to numeric value
 function getPriorityValue(priority: string): number {
   switch (priority) {
-    case 'URGENT': return 10;
-    case 'HIGH': return 8;
-    case 'MEDIUM': return 5;
-    case 'LOW': return 2;
-    default: return 5;
+    case 'URGENT':
+      return 10;
+    case 'HIGH':
+      return 8;
+    case 'MEDIUM':
+      return 5;
+    case 'LOW':
+      return 2;
+    default:
+      return 5;
   }
 }
 

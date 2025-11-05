@@ -1,12 +1,9 @@
-import { Request, Response, NextFunction } from 'express';
-import { validationResult, ValidationChain } from 'express-validator';
-import { ApiResponse, ValidationError } from '@/types/api';
+import type { Request, Response, NextFunction } from 'express';
+import type { ValidationChain } from 'express-validator';
+import { validationResult } from 'express-validator';
+import type { ApiResponse, ValidationError } from '@/types/api';
 
-export const handleValidationErrors = (
-  req: Request,
-  res: Response,
-  next: NextFunction
-): void => {
+export const handleValidationErrors = (req: Request, res: Response, next: NextFunction): void => {
   const errors = validationResult(req);
 
   if (!errors.isEmpty()) {
@@ -21,7 +18,7 @@ export const handleValidationErrors = (
       url: req.url,
       method: req.method,
       body: req.body,
-      errors: validationErrors
+      errors: validationErrors,
     });
 
     const response: ApiResponse = {
@@ -44,7 +41,9 @@ export const handleValidationErrors = (
 // 1. validate (simple middleware)
 // 2. validate(validationArray) (function that returns middleware)
 export function validate(req: Request, res: Response, next: NextFunction): void;
-export function validate(validations: ValidationChain[]): (req: Request, res: Response, next: NextFunction) => Promise<void>;
+export function validate(
+  validations: ValidationChain[]
+): (req: Request, res: Response, next: NextFunction) => Promise<void>;
 export function validate(
   reqOrValidations: Request | ValidationChain[],
   res?: Response,

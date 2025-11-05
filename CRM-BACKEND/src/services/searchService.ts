@@ -1,4 +1,4 @@
-import { Pool } from 'pg';
+import type { Pool } from 'pg';
 
 export interface SearchFilters {
   status?: string;
@@ -78,12 +78,7 @@ class SearchService {
     filters: SearchFilters = {},
     options: SearchOptions = {}
   ): Promise<SearchResult> {
-    const {
-      page = 1,
-      limit = 20,
-      sortBy = 'updatedAt',
-      sortOrder = 'DESC'
-    } = options;
+    const { page = 1, limit = 20, sortBy = 'updatedAt', sortOrder = 'DESC' } = options;
 
     const offset = (page - 1) * limit;
     const conditions: string[] = [];
@@ -158,7 +153,7 @@ class SearchService {
 
     const [countResult, casesResult] = await Promise.all([
       this.pool.query(countQuery, params),
-      this.pool.query(searchQuery, [...params, limit, offset])
+      this.pool.query(searchQuery, [...params, limit, offset]),
     ]);
 
     const total = parseInt(countResult.rows[0].total);
@@ -170,22 +165,22 @@ class SearchService {
       totalCount: total,
       page,
       limit,
-      totalPages
+      totalPages,
     };
   }
 
-  async getSearchSuggestions(field: string, query: string, limit: number = 10): Promise<string[]> {
+  async getSearchSuggestions(field: string, query: string, limit = 10): Promise<string[]> {
     if (!query || query.trim().length < 2) {
       return [];
     }
 
     // Map field names to database columns
     const fieldMapping: { [key: string]: string } = {
-      'customerName': '"customerName"',
-      'customerPhone': '"customerPhone"',
-      'address': 'address',
-      'city': 'address', // Extract city from address
-      'state': 'address' // Extract state from address
+      customerName: '"customerName"',
+      customerPhone: '"customerPhone"',
+      address: 'address',
+      city: 'address', // Extract city from address
+      state: 'address', // Extract state from address
     };
 
     const dbField = fieldMapping[field] || '"customerName"';
@@ -209,11 +204,7 @@ class SearchService {
     return this.searchCases('', filters, options);
   }
 
-  async findSimilarCases(
-    caseId: string,
-    similarityType: string = 'customer',
-    limit: number = 10
-  ): Promise<any[]> {
+  async findSimilarCases(caseId: string, similarityType = 'customer', limit = 10): Promise<any[]> {
     const query = `
       SELECT c.*,
         similarity(c."customerName", ref."customerName") as name_similarity,

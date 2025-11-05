@@ -1,4 +1,5 @@
-import { Worker, Job } from 'bullmq';
+import type { Job } from 'bullmq';
+import { Worker } from 'bullmq';
 import { config } from '../config';
 import { logger } from '../config/logger';
 import { query, pool } from '../config/database';
@@ -38,7 +39,10 @@ export interface ReassignmentJobData {
   reason: string;
 }
 
-export type CaseAssignmentJobData = SingleAssignmentJobData | BulkAssignmentJobData | ReassignmentJobData;
+export type CaseAssignmentJobData =
+  | SingleAssignmentJobData
+  | BulkAssignmentJobData
+  | ReassignmentJobData;
 
 // Assignment result interfaces
 export interface AssignmentResult {
@@ -144,7 +148,7 @@ async function processCaseReassignment(
         newAssignee: newAssignee.name,
         previousStatus: caseData.status,
         newStatus: 'PENDING',
-        reason: reason,
+        reason,
       },
     });
 
@@ -184,26 +188,26 @@ async function processCaseReassignment(
     // Queue notification for the new assigned user (reassignment)
     await queueCaseAssignmentNotification({
       userId: toUserId,
-      caseId: caseId,
+      caseId,
       caseNumber: caseData.caseId,
       customerName: caseData.customerName,
-      verificationType: verificationType,
+      verificationType,
       assignmentType: 'reassignment',
       assignedBy: assignedById,
-      reason: reason,
+      reason,
     });
 
     // Queue notification for the previous user (case removed)
     if (fromUserId && fromUserId !== toUserId) {
       await queueCaseAssignmentNotification({
         userId: fromUserId,
-        caseId: caseId,
+        caseId,
         caseNumber: caseData.caseId,
         customerName: caseData.customerName,
-        verificationType: verificationType,
+        verificationType,
         assignmentType: 'reassignment', // This will be handled as case removal in the notification
         assignedBy: assignedById,
-        reason: reason,
+        reason,
       });
     }
 
@@ -222,7 +226,6 @@ async function processCaseReassignment(
       previousAssignee: previousAssigneeName,
       newAssignee: newAssignee.name,
     };
-
   } catch (error) {
     await client.query('ROLLBACK');
 
@@ -254,7 +257,7 @@ async function processSingleAssignment(
   reason?: string
 ): Promise<AssignmentResult> {
   const client = await pool.connect();
-  
+
   try {
     await client.query('BEGIN');
 
@@ -303,9 +306,9 @@ async function processSingleAssignment(
       FROM users 
       WHERE id = $1 AND role = 'FIELD_AGENT' AND "isActive" = true
     `;
-    
+
     const userResult = await client.query(userQuery, [assignedToId]);
-    
+
     if (userResult.rows.length === 0) {
       throw new Error(`Field agent ${assignedToId} not found or inactive`);
     }
@@ -354,13 +357,13 @@ async function processSingleAssignment(
 
     await client.query(historyQuery, [
       caseId,
-      caseId,           // case_id column (NOT NULL) - same as caseUUID
+      caseId, // case_id column (NOT NULL) - same as caseUUID
       previousAssignee,
       assignedToId,
       assignedById,
-      assignedById,     // assignedBy column (NOT NULL)
+      assignedById, // assignedBy column (NOT NULL)
       previousAssignee, // previousAssignee column
-      assignedToId,     // newAssignee column (NOT NULL)
+      assignedToId, // newAssignee column (NOT NULL)
       reason || 'Case assignment',
       null, // No batch ID for single assignment
     ]);
@@ -380,13 +383,13 @@ async function processSingleAssignment(
     // Queue notification for the assigned user
     await queueCaseAssignmentNotification({
       userId: assignedToId,
-      caseId: caseId,
+      caseId,
       caseNumber: caseData.caseId,
       customerName: caseData.customerName,
-      verificationType: verificationType,
+      verificationType,
       assignmentType: previousAssignee ? 'reassignment' : 'assignment',
       assignedBy: assignedById,
-      reason: reason,
+      reason,
     });
 
     logger.info('Case assignment completed', {
@@ -402,10 +405,9 @@ async function processSingleAssignment(
       previousAssignee: caseData.previousAssigneeName,
       newAssignee: newAssignee.name,
     };
-
   } catch (error) {
     await client.query('ROLLBACK');
-    
+
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     logger.error('Case assignment failed', {
       caseId,
@@ -445,9 +447,9 @@ async function processBulkAssignment(
     FROM users 
     WHERE id = $1 AND role = 'FIELD_AGENT' AND "isActive" = true
   `;
-  
+
   const userResult = await query(userQuery, [assignedToId]);
-  
+
   if (userResult.rows.length === 0) {
     throw new Error(`Field agent ${assignedToId} not found or inactive`);
   }
@@ -484,7 +486,7 @@ async function processBulkAssignment(
     }
 
     // Process batch
-    const batchPromises = batch.map(caseId => 
+    const batchPromises = batch.map(caseId =>
       processSingleAssignment(caseId, assignedToId, assignedById, reason)
     );
 
@@ -493,7 +495,7 @@ async function processBulkAssignment(
     // Collect results
     batchResults.forEach((result, index) => {
       const caseId = batch[index];
-      
+
       if (result.status === 'fulfilled') {
         results.push(result.value);
         if (result.value.success) {
@@ -504,7 +506,8 @@ async function processBulkAssignment(
         }
       } else {
         failedAssignments++;
-        const errorMessage = result.reason instanceof Error ? result.reason.message : 'Unknown error';
+        const errorMessage =
+          result.reason instanceof Error ? result.reason.message : 'Unknown error';
         errors.push(`Case ${caseId}: ${errorMessage}`);
         results.push({
           success: false,
@@ -663,7 +666,7 @@ export const caseAssignmentWorker = new Worker(
 );
 
 // Worker event handlers
-caseAssignmentWorker.on('completed', (job) => {
+caseAssignmentWorker.on('completed', job => {
   logger.info(`Case assignment job ${job.id} completed successfully`);
 });
 
@@ -671,6 +674,6 @@ caseAssignmentWorker.on('failed', (job, err) => {
   logger.error(`Case assignment job ${job?.id} failed:`, err);
 });
 
-caseAssignmentWorker.on('error', (err) => {
+caseAssignmentWorker.on('error', err => {
   logger.error('Case assignment worker error:', err);
 });

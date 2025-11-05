@@ -1,4 +1,5 @@
-import { Pool, PoolClient, QueryResult } from 'pg';
+import type { PoolClient, QueryResult } from 'pg';
+import { Pool } from 'pg';
 import { logger } from './logger';
 
 const connectionString = process.env.DATABASE_URL;
@@ -68,7 +69,7 @@ export const connectDatabase = async (): Promise<void> => {
     await pool.query('SELECT 1');
     logger.info('Database connected successfully');
   } catch (error) {
-    logger.error('Database connection failed:', error as any);
+    logger.error('Database connection failed:', error);
     process.exit(1);
   }
 };
@@ -78,7 +79,6 @@ export const disconnectDatabase = async (): Promise<void> => {
     await pool.end();
     logger.info('Database disconnected successfully');
   } catch (error) {
-    logger.error('Database disconnection failed:', error as any);
+    logger.error('Database disconnection failed:', error);
   }
 };
-

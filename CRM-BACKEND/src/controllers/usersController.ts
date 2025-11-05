@@ -1,24 +1,24 @@
-import { Request, Response } from 'express';
+import type { Response } from 'express';
+import { Request } from 'express';
 import bcrypt from 'bcryptjs';
 import { query } from '@/config/database';
 import { logger } from '@/config/logger';
-import { AuthenticatedRequest } from '@/middleware/auth';
+import type { AuthenticatedRequest } from '@/middleware/auth';
 import type { Role } from '@/types/auth';
 import { EmailDeliveryService } from '@/services/EmailDeliveryService';
-
 
 // GET /api/users - List users with pagination and filters
 export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { 
-      page = 1, 
-      limit = 20, 
-      role, 
-      department, 
-      isActive, 
-      search, 
-      sortBy = 'name', 
-      sortOrder = 'asc' 
+    const {
+      page = 1,
+      limit = 20,
+      role,
+      department,
+      isActive,
+      search,
+      sortBy = 'name',
+      sortOrder = 'asc',
     } = req.query;
 
     // Build the WHERE clause
@@ -100,14 +100,14 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
       ORDER BY u.${safeSortBy} ${safeSortOrder}
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `;
-    
+
     params.push(Number(limit), offset);
     const usersResult = await query(usersQuery, params);
 
-    logger.info(`Retrieved ${usersResult.rows.length} users`, { 
+    logger.info(`Retrieved ${usersResult.rows.length} users`, {
       userId: req.user?.id,
       filters: { role, department, isActive, search },
-      pagination: { page, limit }
+      pagination: { page, limit },
     });
 
     res.json({
@@ -134,7 +134,7 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
 export const getUserById = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { id } = req.params;
-    
+
     const userQuery = `
       SELECT
         u.id,
@@ -165,7 +165,7 @@ export const getUserById = async (req: AuthenticatedRequest, res: Response) => {
       LEFT JOIN designations des ON u."designationId" = des.id
       WHERE u.id = $1
     `;
-    
+
     const result = await query(userQuery, [id]);
 
     if (result.rows.length === 0) {
@@ -209,13 +209,20 @@ export const createUser = async (req: AuthenticatedRequest, res: Response) => {
       isActive = true,
       // Legacy fields for backward compatibility
       role,
-      department
+      department,
     } = req.body;
 
     // Convert empty strings to null for UUID fields and handle numeric IDs
-    const cleanRoleId = roleId && (typeof roleId === 'string' ? roleId.trim() !== '' : true) ? roleId : null;
-    const cleanDepartmentId = departmentId && (typeof departmentId === 'string' ? departmentId.trim() !== '' : true) ? departmentId : null;
-    const cleanDesignationId = designationId && (typeof designationId === 'string' ? designationId.trim() !== '' : true) ? designationId : null;
+    const cleanRoleId =
+      roleId && (typeof roleId === 'string' ? roleId.trim() !== '' : true) ? roleId : null;
+    const cleanDepartmentId =
+      departmentId && (typeof departmentId === 'string' ? departmentId.trim() !== '' : true)
+        ? departmentId
+        : null;
+    const cleanDesignationId =
+      designationId && (typeof designationId === 'string' ? designationId.trim() !== '' : true)
+        ? designationId
+        : null;
 
     // Validate required fields
     if (!name || !username || !email || !password) {
@@ -243,7 +250,7 @@ export const createUser = async (req: AuthenticatedRequest, res: Response) => {
       WHERE username = $1 OR email = $2
     `;
     const existingUser = await query(existingUserQuery, [username, email]);
-    
+
     if (existingUser.rows.length > 0) {
       return res.status(400).json({
         success: false,
@@ -280,12 +287,15 @@ export const createUser = async (req: AuthenticatedRequest, res: Response) => {
     }
 
     // Debug logging
-    logger.info(`User creation debug: roleId=${cleanRoleId}, role=${role}, finalRole=${finalRole}`, {
-      userId: req.user?.id,
-      roleId: cleanRoleId,
-      role: role,
-      finalRole: finalRole
-    });
+    logger.info(
+      `User creation debug: roleId=${cleanRoleId}, role=${role}, finalRole=${finalRole}`,
+      {
+        userId: req.user?.id,
+        roleId: cleanRoleId,
+        role,
+        finalRole,
+      }
+    );
 
     // Validate role against allowed values
     const allowedRoles = ['SUPER_ADMIN', 'ADMIN', 'BACKEND_USER', 'FIELD_AGENT', 'MANAGER'];
@@ -320,15 +330,15 @@ export const createUser = async (req: AuthenticatedRequest, res: Response) => {
       employeeId || null,
       designation || null,
       phone || null,
-      isActive
+      isActive,
     ]);
 
     const newUser = result.rows[0];
 
-    logger.info(`Created new user: ${newUser.id}`, { 
+    logger.info(`Created new user: ${newUser.id}`, {
       userId: req.user?.id,
       newUserEmail: email,
-      newUserRole: role
+      newUserRole: role,
     });
 
     res.status(201).json({
@@ -388,11 +398,32 @@ export const updateUser = async (req: AuthenticatedRequest, res: Response) => {
     const updateParams: any[] = [];
     let paramIndex = 1;
 
-    const allowedFields = ['name', 'username', 'email', 'phone', 'role', 'roleId', 'departmentId', 'employeeId', 'designation', 'isActive'];
+    const allowedFields = [
+      'name',
+      'username',
+      'email',
+      'phone',
+      'role',
+      'roleId',
+      'departmentId',
+      'employeeId',
+      'designation',
+      'isActive',
+    ];
 
     for (const field of allowedFields) {
       if (updateData[field] !== undefined) {
-        const column = ['employeeId','roleId','departmentId','isActive','lastLogin','createdAt','updatedAt'].includes(field) ? `"${field}"` : field;
+        const column = [
+          'employeeId',
+          'roleId',
+          'departmentId',
+          'isActive',
+          'lastLogin',
+          'createdAt',
+          'updatedAt',
+        ].includes(field)
+          ? `"${field}"`
+          : field;
         updateFields.push(`${column} = $${paramIndex++}`);
         updateParams.push(updateData[field]);
       }
@@ -422,7 +453,7 @@ export const updateUser = async (req: AuthenticatedRequest, res: Response) => {
 
     logger.info(`Updated user: ${id}`, {
       userId: req.user?.id,
-      updatedFields: Object.keys(updateData)
+      updatedFields: Object.keys(updateData),
     });
 
     res.json({
@@ -472,7 +503,7 @@ export const deleteUser = async (req: AuthenticatedRequest, res: Response) => {
 
     logger.info(`Deleted user: ${id}`, {
       userId: req.user?.id,
-      deletedUsername: userExists.rows[0].username
+      deletedUsername: userExists.rows[0].username,
     });
 
     res.json({
@@ -772,10 +803,7 @@ export const getUserClientAssignments = async (req: AuthenticatedRequest, res: R
     const { userId } = req.params;
 
     // Validate user exists
-    const userResult = await query(
-      'SELECT id, role FROM users WHERE id = $1',
-      [userId]
-    );
+    const userResult = await query('SELECT id, role FROM users WHERE id = $1', [userId]);
 
     if (userResult.rows.length === 0) {
       return res.status(404).json({
@@ -786,7 +814,8 @@ export const getUserClientAssignments = async (req: AuthenticatedRequest, res: R
     }
 
     // Get client assignments with client details
-    const assignmentsResult = await query(`
+    const assignmentsResult = await query(
+      `
       SELECT
         uca.id,
         uca."clientId",
@@ -800,12 +829,17 @@ export const getUserClientAssignments = async (req: AuthenticatedRequest, res: R
       JOIN clients c ON uca."clientId" = c.id
       WHERE uca."userId" = $1
       ORDER BY c.name ASC
-    `, [userId]);
+    `,
+      [userId]
+    );
 
-    logger.info(`Retrieved ${assignmentsResult.rows.length} client assignments for user ${userId}`, {
-      userId: req.user?.id,
-      targetUserId: userId
-    });
+    logger.info(
+      `Retrieved ${assignmentsResult.rows.length} client assignments for user ${userId}`,
+      {
+        userId: req.user?.id,
+        targetUserId: userId,
+      }
+    );
 
     res.json({
       success: true,
@@ -814,7 +848,7 @@ export const getUserClientAssignments = async (req: AuthenticatedRequest, res: R
         page: 1,
         limit: assignmentsResult.rows.length,
         total: assignmentsResult.rows.length,
-        totalPages: 1
+        totalPages: 1,
       },
       message: 'Client assignments retrieved successfully',
     });
@@ -844,10 +878,7 @@ export const assignClientsToUser = async (req: AuthenticatedRequest, res: Respon
     }
 
     // Validate user exists
-    const userResult = await query(
-      'SELECT id, role FROM users WHERE id = $1',
-      [userId]
-    );
+    const userResult = await query('SELECT id, role FROM users WHERE id = $1', [userId]);
 
     if (userResult.rows.length === 0) {
       return res.status(404).json({
@@ -859,10 +890,9 @@ export const assignClientsToUser = async (req: AuthenticatedRequest, res: Respon
 
     // Validate all client IDs exist (only if clientIds is not empty)
     if (clientIds.length > 0) {
-      const clientsResult = await query(
-        `SELECT id FROM clients WHERE id = ANY($1::int[])`,
-        [clientIds]
-      );
+      const clientsResult = await query(`SELECT id FROM clients WHERE id = ANY($1::int[])`, [
+        clientIds,
+      ]);
 
       if (clientsResult.rows.length !== clientIds.length) {
         return res.status(400).json({
@@ -889,11 +919,14 @@ export const assignClientsToUser = async (req: AuthenticatedRequest, res: Respon
       // Then, insert new assignments (only if clientIds is not empty)
       if (clientIds.length > 0) {
         const insertPromises = clientIds.map(clientId =>
-          query(`
+          query(
+            `
             INSERT INTO "userClientAssignments" ("userId", "clientId")
             VALUES ($1, $2)
             RETURNING id
-          `, [userId, clientId])
+          `,
+            [userId, clientId]
+          )
         );
 
         const results = await Promise.all(insertPromises);
@@ -908,7 +941,7 @@ export const assignClientsToUser = async (req: AuthenticatedRequest, res: Respon
         targetUserId: userId,
         clientIds,
         deletedCount,
-        insertedCount
+        insertedCount,
       });
 
       res.status(200).json({
@@ -917,11 +950,10 @@ export const assignClientsToUser = async (req: AuthenticatedRequest, res: Respon
           userId,
           deletedAssignments: deletedCount,
           newAssignments: insertedCount,
-          totalRequested: clientIds.length
+          totalRequested: clientIds.length,
         },
         message: `Successfully updated client assignments for user`,
       });
-
     } catch (transactionError) {
       // Rollback transaction on error
       await query('ROLLBACK');
@@ -943,10 +975,7 @@ export const removeClientAssignment = async (req: AuthenticatedRequest, res: Res
     const { userId, clientId } = req.params;
 
     // Validate user exists
-    const userResult = await query(
-      'SELECT id, role FROM users WHERE id = $1',
-      [userId]
-    );
+    const userResult = await query('SELECT id, role FROM users WHERE id = $1', [userId]);
 
     if (userResult.rows.length === 0) {
       return res.status(404).json({
@@ -957,10 +986,7 @@ export const removeClientAssignment = async (req: AuthenticatedRequest, res: Res
     }
 
     // Validate client exists
-    const clientResult = await query(
-      'SELECT id FROM clients WHERE id = $1',
-      [clientId]
-    );
+    const clientResult = await query('SELECT id FROM clients WHERE id = $1', [clientId]);
 
     if (clientResult.rows.length === 0) {
       return res.status(404).json({
@@ -987,7 +1013,7 @@ export const removeClientAssignment = async (req: AuthenticatedRequest, res: Res
     logger.info(`Removed client assignment: user ${userId}, client ${clientId}`, {
       userId: req.user?.id,
       targetUserId: userId,
-      removedClientId: clientId
+      removedClientId: clientId,
     });
 
     res.json({
@@ -1010,10 +1036,7 @@ export const getUserProductAssignments = async (req: AuthenticatedRequest, res: 
     const { userId } = req.params;
 
     // Validate user exists
-    const userResult = await query(
-      'SELECT id, role FROM users WHERE id = $1',
-      [userId]
-    );
+    const userResult = await query('SELECT id, role FROM users WHERE id = $1', [userId]);
 
     if (userResult.rows.length === 0) {
       return res.status(404).json({
@@ -1046,9 +1069,8 @@ export const getUserProductAssignments = async (req: AuthenticatedRequest, res: 
     res.json({
       success: true,
       data: result.rows,
-      message: 'Product assignments retrieved successfully'
+      message: 'Product assignments retrieved successfully',
     });
-
   } catch (error) {
     logger.error('Error fetching user product assignments:', error);
     res.status(500).json({
@@ -1075,10 +1097,7 @@ export const assignProductsToUser = async (req: AuthenticatedRequest, res: Respo
     }
 
     // Validate user exists
-    const userResult = await query(
-      'SELECT id, role FROM users WHERE id = $1',
-      [userId]
-    );
+    const userResult = await query('SELECT id, role FROM users WHERE id = $1', [userId]);
 
     if (userResult.rows.length === 0) {
       return res.status(404).json({
@@ -1119,9 +1138,12 @@ export const assignProductsToUser = async (req: AuthenticatedRequest, res: Respo
 
       // Then, insert new assignments (only if productIds is not empty)
       if (productIds.length > 0) {
-        const insertValues = productIds.map((productId, index) =>
-          `($1, $${index + 2}, $${productIds.length + 2}, CURRENT_TIMESTAMP)`
-        ).join(', ');
+        const insertValues = productIds
+          .map(
+            (productId, index) =>
+              `($1, $${index + 2}, $${productIds.length + 2}, CURRENT_TIMESTAMP)`
+          )
+          .join(', ');
 
         const insertQuery = `
           INSERT INTO "userProductAssignments" ("userId", "productId", "assignedBy", "assignedAt")
@@ -1142,7 +1164,7 @@ export const assignProductsToUser = async (req: AuthenticatedRequest, res: Respo
         targetUserId: userId,
         productIds,
         deletedCount,
-        insertedCount
+        insertedCount,
       });
 
       res.status(200).json({
@@ -1151,17 +1173,15 @@ export const assignProductsToUser = async (req: AuthenticatedRequest, res: Respo
           userId,
           deletedAssignments: deletedCount,
           newAssignments: insertedCount,
-          totalRequested: productIds.length
+          totalRequested: productIds.length,
         },
         message: `Successfully updated product assignments for user`,
       });
-
     } catch (transactionError) {
       // Rollback transaction on error
       await query('ROLLBACK');
       throw transactionError;
     }
-
   } catch (error) {
     logger.error('Error updating product assignments for user:', error);
     res.status(500).json({
@@ -1178,10 +1198,7 @@ export const removeProductAssignment = async (req: AuthenticatedRequest, res: Re
     const { userId, productId } = req.params;
 
     // Validate user exists
-    const userResult = await query(
-      'SELECT id, role FROM users WHERE id = $1',
-      [userId]
-    );
+    const userResult = await query('SELECT id, role FROM users WHERE id = $1', [userId]);
 
     if (userResult.rows.length === 0) {
       return res.status(404).json({
@@ -1206,16 +1223,15 @@ export const removeProductAssignment = async (req: AuthenticatedRequest, res: Re
     }
 
     // Remove assignment
-    await query(
-      'DELETE FROM "userProductAssignments" WHERE "userId" = $1 AND "productId" = $2',
-      [userId, productId]
-    );
+    await query('DELETE FROM "userProductAssignments" WHERE "userId" = $1 AND "productId" = $2', [
+      userId,
+      productId,
+    ]);
 
     res.json({
       success: true,
-      message: 'Product assignment removed successfully'
+      message: 'Product assignment removed successfully',
     });
-
   } catch (error) {
     logger.error('Error removing product assignment:', error);
     res.status(500).json({
@@ -1232,10 +1248,9 @@ export const generateTemporaryPassword = async (req: AuthenticatedRequest, res: 
     const { id } = req.params;
 
     // Check if user exists
-    const userCheck = await query(
-      'SELECT id, name, username, email FROM users WHERE id = $1',
-      [id]
-    );
+    const userCheck = await query('SELECT id, name, username, email FROM users WHERE id = $1', [
+      id,
+    ]);
 
     if (userCheck.rows.length === 0) {
       return res.status(404).json({
@@ -1248,7 +1263,8 @@ export const generateTemporaryPassword = async (req: AuthenticatedRequest, res: 
     const user = userCheck.rows[0];
 
     // Generate a temporary password (8 characters: letters + numbers)
-    const tempPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-2).toUpperCase();
+    const tempPassword =
+      Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-2).toUpperCase();
 
     // Hash the temporary password
     const hashedPassword = await bcrypt.hash(tempPassword, 12);
@@ -1293,20 +1309,20 @@ Temporary Password: ${tempPassword}
 Important: Please change this password immediately after logging in for security purposes.
 
 If you did not request this password reset, please contact your administrator immediately.
-        `
+        `,
       });
 
       if (emailResult.success) {
         logger.info(`Password reset email sent to ${user.email}`, {
           userId: req.user?.id,
           targetUserId: id,
-          messageId: emailResult.messageId
+          messageId: emailResult.messageId,
         });
       } else {
         logger.error(`Failed to send password reset email to ${user.email}`, {
           userId: req.user?.id,
           targetUserId: id,
-          error: emailResult.error
+          error: emailResult.error,
         });
       }
     } catch (emailError) {
@@ -1315,7 +1331,7 @@ If you did not request this password reset, please contact your administrator im
 
     logger.info(`Generated temporary password for user: ${user.username}`, {
       userId: req.user?.id,
-      targetUserId: id
+      targetUserId: id,
     });
 
     res.json({
@@ -1323,7 +1339,6 @@ If you did not request this password reset, please contact your administrator im
       data: { temporaryPassword: tempPassword },
       message: 'Temporary password generated and sent via email successfully',
     });
-
   } catch (error) {
     logger.error('Error generating temporary password:', error);
     res.status(500).json({
@@ -1394,14 +1409,13 @@ export const changePassword = async (req: AuthenticatedRequest, res: Response) =
 
     logger.info(`Password changed for user: ${user.username}`, {
       userId: req.user?.id,
-      targetUserId: id
+      targetUserId: id,
     });
 
     res.json({
       success: true,
       message: 'Password changed successfully',
     });
-
   } catch (error) {
     logger.error('Error changing password:', error);
     res.status(500).json({
@@ -1461,14 +1475,13 @@ export const resetPassword = async (req: AuthenticatedRequest, res: Response) =>
 
     logger.info(`Password reset for user: ${user.username}`, {
       userId: req.user?.id,
-      targetUserId: user.id
+      targetUserId: user.id,
     });
 
     res.json({
       success: true,
       message: 'Password reset successfully',
     });
-
   } catch (error) {
     logger.error('Error resetting password:', error);
     res.status(500).json({

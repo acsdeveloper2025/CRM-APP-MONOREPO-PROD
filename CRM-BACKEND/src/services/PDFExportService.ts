@@ -1,4 +1,5 @@
-import puppeteer, { Browser, PDFOptions } from 'puppeteer';
+import type { Browser, PDFOptions } from 'puppeteer';
+import puppeteer from 'puppeteer';
 import { pool } from '../config/database';
 import { logger } from '../utils/logger';
 import path from 'path';
@@ -39,7 +40,7 @@ export class PDFExportService {
     if (!this.browser) {
       this.browser = await puppeteer.launch({
         headless: true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox']
+        args: ['--no-sandbox', '--disable-setuid-sandbox'],
       });
     }
   }
@@ -54,42 +55,41 @@ export class PDFExportService {
   public async generatePDFReport(options: PDFExportOptions): Promise<PDFExportResult> {
     try {
       await this.initBrowser();
-      
+
       // Generate data based on report type
       const data = await this.fetchReportData(options);
-      
+
       // Generate HTML content
       const htmlContent = await this.generateHTMLContent(data, options);
-      
+
       // Create PDF from HTML
       const pdfBuffer = await this.createPDFFromHTML(htmlContent, options);
-      
+
       // Save PDF file
       const fileName = this.generateFileName(options);
       const filePath = path.join(process.cwd(), 'exports', fileName);
-      
+
       // Ensure exports directory exists
       await fs.mkdir(path.dirname(filePath), { recursive: true });
-      
+
       // Write PDF file
       await fs.writeFile(filePath, pdfBuffer);
-      
+
       const stats = await fs.stat(filePath);
-      
+
       logger.info(`PDF report generated successfully: ${fileName}`);
-      
+
       return {
         success: true,
         filePath,
         fileName,
-        fileSize: stats.size
+        fileSize: stats.size,
       };
-
     } catch (error) {
       logger.error('Error generating PDF report:', error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
   }
@@ -111,9 +111,13 @@ export class PDFExportService {
     }
   }
 
-  private async fetchFormSubmissionsData(dateFrom?: string, dateTo?: string, filters?: any): Promise<any> {
-    let whereConditions = [];
-    let queryParams = [];
+  private async fetchFormSubmissionsData(
+    dateFrom?: string,
+    dateTo?: string,
+    filters?: any
+  ): Promise<any> {
+    const whereConditions = [];
+    const queryParams = [];
     let paramIndex = 1;
 
     if (dateFrom) {
@@ -162,7 +166,7 @@ export class PDFExportService {
 
     const [submissionsResult, summaryResult] = await Promise.all([
       pool.query(query, queryParams),
-      pool.query(summaryQuery, queryParams)
+      pool.query(summaryQuery, queryParams),
     ]);
 
     return {
@@ -170,13 +174,17 @@ export class PDFExportService {
       summary: summaryResult.rows[0],
       reportType: 'Form Submissions Report',
       generatedAt: new Date().toISOString(),
-      dateRange: { from: dateFrom, to: dateTo }
+      dateRange: { from: dateFrom, to: dateTo },
     };
   }
 
-  private async fetchAgentPerformanceData(dateFrom?: string, dateTo?: string, filters?: any): Promise<any> {
-    let whereConditions = [];
-    let queryParams = [];
+  private async fetchAgentPerformanceData(
+    dateFrom?: string,
+    dateTo?: string,
+    filters?: any
+  ): Promise<any> {
+    const whereConditions = [];
+    const queryParams = [];
     let paramIndex = 1;
 
     if (dateFrom) {
@@ -221,13 +229,17 @@ export class PDFExportService {
       agents: result.rows,
       reportType: 'Agent Performance Report',
       generatedAt: new Date().toISOString(),
-      dateRange: { from: dateFrom, to: dateTo }
+      dateRange: { from: dateFrom, to: dateTo },
     };
   }
 
-  private async fetchCaseAnalyticsData(dateFrom?: string, dateTo?: string, filters?: any): Promise<any> {
-    let whereConditions = [];
-    let queryParams = [];
+  private async fetchCaseAnalyticsData(
+    dateFrom?: string,
+    dateTo?: string,
+    filters?: any
+  ): Promise<any> {
+    const whereConditions = [];
+    const queryParams = [];
     let paramIndex = 1;
 
     if (dateFrom) {
@@ -263,7 +275,7 @@ export class PDFExportService {
 
     const [casesResult, summaryResult] = await Promise.all([
       pool.query(query, queryParams),
-      pool.query(summaryQuery, queryParams)
+      pool.query(summaryQuery, queryParams),
     ]);
 
     return {
@@ -271,13 +283,17 @@ export class PDFExportService {
       summary: summaryResult.rows[0],
       reportType: 'Case Analytics Report',
       generatedAt: new Date().toISOString(),
-      dateRange: { from: dateFrom, to: dateTo }
+      dateRange: { from: dateFrom, to: dateTo },
     };
   }
 
-  private async fetchValidationStatusData(dateFrom?: string, dateTo?: string, filters?: any): Promise<any> {
-    let whereConditions = [];
-    let queryParams = [];
+  private async fetchValidationStatusData(
+    dateFrom?: string,
+    dateTo?: string,
+    filters?: any
+  ): Promise<any> {
+    const whereConditions = [];
+    const queryParams = [];
     let paramIndex = 1;
 
     if (dateFrom) {
@@ -314,7 +330,7 @@ export class PDFExportService {
       validationData: result.rows,
       reportType: 'Form Validation Status Report',
       generatedAt: new Date().toISOString(),
-      dateRange: { from: dateFrom, to: dateTo }
+      dateRange: { from: dateFrom, to: dateTo },
     };
   }
 
@@ -494,7 +510,9 @@ export class PDFExportService {
           </tr>
         </thead>
         <tbody>
-          ${submissions.map((sub: any) => `
+          ${submissions
+            .map(
+              (sub: any) => `
             <tr>
               <td>${sub.form_type}</td>
               <td>${sub.agent_name || 'N/A'}</td>
@@ -504,7 +522,9 @@ export class PDFExportService {
               <td>${sub.photos_count || 0}</td>
               <td>${new Date(sub.submitted_at).toLocaleDateString()}</td>
             </tr>
-          `).join('')}
+          `
+            )
+            .join('')}
         </tbody>
       </table>
     `;
@@ -528,7 +548,9 @@ export class PDFExportService {
           </tr>
         </thead>
         <tbody>
-          ${agents.map((agent: any) => `
+          ${agents
+            .map(
+              (agent: any) => `
             <tr>
               <td>${agent.name}</td>
               <td>${agent.employeeId || 'N/A'}</td>
@@ -537,9 +559,11 @@ export class PDFExportService {
               <td>${agent.cases_completed}</td>
               <td>${agent.total_forms_submitted}</td>
               <td>${agent.avg_quality_score ? parseFloat(agent.avg_quality_score).toFixed(1) : 'N/A'}</td>
-              <td>${agent.avg_validation_success_rate ? parseFloat(agent.avg_validation_success_rate).toFixed(1) + '%' : 'N/A'}</td>
+              <td>${agent.avg_validation_success_rate ? `${parseFloat(agent.avg_validation_success_rate).toFixed(1)}%` : 'N/A'}</td>
             </tr>
-          `).join('')}
+          `
+            )
+            .join('')}
         </tbody>
       </table>
     `;
@@ -582,7 +606,10 @@ export class PDFExportService {
           </tr>
         </thead>
         <tbody>
-          ${cases.slice(0, 50).map((caseItem: any) => `
+          ${cases
+            .slice(0, 50)
+            .map(
+              (caseItem: any) => `
             <tr>
               <td>#${caseItem.caseId}</td>
               <td>${caseItem.customerName}</td>
@@ -592,7 +619,9 @@ export class PDFExportService {
               <td>${caseItem.quality_score || 'N/A'}</td>
               <td>${caseItem.actual_forms_submitted || 0}</td>
             </tr>
-          `).join('')}
+          `
+            )
+            .join('')}
         </tbody>
       </table>
     `;
@@ -613,7 +642,9 @@ export class PDFExportService {
           </tr>
         </thead>
         <tbody>
-          ${validationData.map((item: any) => `
+          ${validationData
+            .map(
+              (item: any) => `
             <tr>
               <td>${item.form_type}</td>
               <td><span class="status-badge status-${item.validation_status.toLowerCase()}">${item.validation_status}</span></td>
@@ -621,7 +652,9 @@ export class PDFExportService {
               <td>${item.avg_submission_score ? parseFloat(item.avg_submission_score).toFixed(1) : 'N/A'}</td>
               <td>${item.avg_quality_score ? parseFloat(item.avg_quality_score).toFixed(1) : 'N/A'}</td>
             </tr>
-          `).join('')}
+          `
+            )
+            .join('')}
         </tbody>
       </table>
     `;
@@ -642,10 +675,10 @@ export class PDFExportService {
     }
 
     const page = await this.browser.newPage();
-    
+
     try {
       await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
-      
+
       const pdfOptions: PDFOptions = {
         format: 'A4',
         landscape: options.orientation === 'landscape',
@@ -653,15 +686,14 @@ export class PDFExportService {
           top: '20mm',
           right: '15mm',
           bottom: '20mm',
-          left: '15mm'
+          left: '15mm',
         },
         printBackground: true,
-        preferCSSPageSize: true
+        preferCSSPageSize: true,
       };
 
       const pdfBuffer = await page.pdf(pdfOptions);
       return Buffer.from(pdfBuffer);
-      
     } finally {
       await page.close();
     }

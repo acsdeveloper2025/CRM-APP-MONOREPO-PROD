@@ -47,7 +47,7 @@ export class EnterpriseMobileSyncService {
   static async syncFieldAgentData(request: MobileSyncRequest): Promise<MobileSyncResponse> {
     const startTime = Date.now();
     const syncTimestamp = new Date().toISOString();
-    
+
     logger.info('Starting enterprise mobile sync', {
       userId: request.userId,
       deviceId: request.deviceId,
@@ -58,7 +58,7 @@ export class EnterpriseMobileSyncService {
     try {
       // Use database transaction for consistency
       const client = await pool.connect();
-      
+
       try {
         await client.query('BEGIN');
 
@@ -77,10 +77,7 @@ export class EnterpriseMobileSyncService {
         );
 
         // Get pending notifications
-        const notifications = await this.getPendingNotifications(
-          client,
-          request.userId
-        );
+        const notifications = await this.getPendingNotifications(client, request.userId);
 
         // Update device sync record
         await this.updateDeviceSyncRecord(client, request, syncTimestamp);
@@ -118,17 +115,15 @@ export class EnterpriseMobileSyncService {
             serverTimestamp: syncTimestamp,
           },
         };
-
       } catch (error) {
         await client.query('ROLLBACK');
         throw error;
       } finally {
         client.release();
       }
-
     } catch (error) {
       const syncDuration = Date.now() - startTime;
-      
+
       logger.error('Enterprise mobile sync failed', {
         userId: request.userId,
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -147,9 +142,7 @@ export class EnterpriseMobileSyncService {
     userId: string,
     lastSyncTimestamp?: string
   ): Promise<any[]> {
-    const syncCondition = lastSyncTimestamp 
-      ? `AND cah."assignedAt" > $2`
-      : '';
+    const syncCondition = lastSyncTimestamp ? `AND cah."assignedAt" > $2` : '';
 
     const params = lastSyncTimestamp ? [userId, lastSyncTimestamp] : [userId];
 
@@ -251,7 +244,7 @@ export class EnterpriseMobileSyncService {
     `;
 
     const result = await client.query(notificationsQuery, [userId]);
-    
+
     return result.rows.map(row => ({
       type: row.type,
       caseId: row.data?.caseId || '',
@@ -303,7 +296,9 @@ export class EnterpriseMobileSyncService {
     userId: string,
     notifications: CaseAssignmentNotification[]
   ): Promise<void> {
-    if (notifications.length === 0) return;
+    if (notifications.length === 0) {
+      return;
+    }
 
     const updateQuery = `
       UPDATE mobile_notification_queue 
@@ -332,20 +327,13 @@ export class EnterpriseMobileSyncService {
         ) VALUES ($1, $2, $3, $4, $5, 'PENDING', NOW(), NOW(), NOW())
       `;
 
-      await query(insertQuery, [
-        userId,
-        type,
-        title,
-        message,
-        JSON.stringify(data),
-      ]);
+      await query(insertQuery, [userId, type, title, message, JSON.stringify(data)]);
 
       logger.info('Mobile notification queued', {
         userId,
         type,
         title,
       });
-
     } catch (error) {
       logger.error('Failed to queue mobile notification', {
         userId,

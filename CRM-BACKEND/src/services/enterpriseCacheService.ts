@@ -1,4 +1,5 @@
-import { createClient, RedisClientType, RedisClusterType, createCluster } from 'redis';
+import type { RedisClientType, RedisClusterType } from 'redis';
+import { createClient, createCluster } from 'redis';
 import { config } from '../config';
 import { logger } from '../config/logger';
 
@@ -16,18 +17,18 @@ export class EnterpriseCacheService {
     try {
       // Check if Redis clustering is enabled
       const useCluster = process.env.REDIS_CLUSTER_ENABLED === 'true';
-      
+
       if (useCluster) {
         // Redis Cluster configuration for enterprise scale
         const clusterNodes = process.env.REDIS_CLUSTER_NODES?.split(',') || [
-          `${redisUrl.hostname}:${redisUrl.port}`
+          `${redisUrl.hostname}:${redisUrl.port}`,
         ];
 
         this.clusterRedis = createCluster({
           rootNodes: clusterNodes.map(node => {
             const [host, port] = node.split(':');
             return {
-              url: `redis://${config.redisPassword ? `:${config.redisPassword}@` : ''}${host}:${parseInt(port) || 6379}`
+              url: `redis://${config.redisPassword ? `:${config.redisPassword}@` : ''}${host}:${parseInt(port) || 6379}`,
             };
           }),
           defaults: {
@@ -62,7 +63,6 @@ export class EnterpriseCacheService {
       // Test connection
       await this.redis.ping();
       logger.info('Enterprise cache service initialized successfully');
-
     } catch (error) {
       logger.error('Failed to initialize enterprise cache service:', error);
       throw error;
@@ -75,7 +75,9 @@ export class EnterpriseCacheService {
   static async get<T>(key: string): Promise<T | null> {
     try {
       const data = await this.redis.get(key);
-      if (!data || typeof data !== 'string') return null;
+      if (!data || typeof data !== 'string') {
+        return null;
+      }
 
       return JSON.parse(data) as T;
     } catch (error) {
@@ -87,7 +89,7 @@ export class EnterpriseCacheService {
   /**
    * Set cached data with TTL and enterprise optimizations
    */
-  static async set(key: string, value: any, ttlSeconds: number = 3600): Promise<boolean> {
+  static async set(key: string, value: any, ttlSeconds = 3600): Promise<boolean> {
     try {
       const serialized = JSON.stringify(value);
       await this.redis.setEx(key, ttlSeconds, serialized);
@@ -116,11 +118,15 @@ export class EnterpriseCacheService {
    */
   static async mget<T>(keys: string[]): Promise<(T | null)[]> {
     try {
-      if (keys.length === 0) return [];
+      if (keys.length === 0) {
+        return [];
+      }
 
       const values = await this.redis.mGet(keys);
       return values.map(value => {
-        if (!value || typeof value !== 'string') return null;
+        if (!value || typeof value !== 'string') {
+          return null;
+        }
         try {
           return JSON.parse(value) as T;
         } catch {
@@ -136,7 +142,9 @@ export class EnterpriseCacheService {
   /**
    * Batch set multiple key-value pairs
    */
-  static async mset(keyValuePairs: Array<{ key: string; value: any; ttl?: number }>): Promise<boolean> {
+  static async mset(
+    keyValuePairs: Array<{ key: string; value: any; ttl?: number }>
+  ): Promise<boolean> {
     try {
       const multi = this.redis.multi();
 
@@ -156,7 +164,7 @@ export class EnterpriseCacheService {
   /**
    * Increment counter with expiration (for rate limiting)
    */
-  static async increment(key: string, ttlSeconds: number = 3600): Promise<number> {
+  static async increment(key: string, ttlSeconds = 3600): Promise<number> {
     try {
       const multi = this.redis.multi();
       multi.incr(key);
@@ -173,7 +181,7 @@ export class EnterpriseCacheService {
   /**
    * Get keys matching pattern (use carefully in production)
    */
-  static async getKeysByPattern(pattern: string, limit: number = 1000): Promise<string[]> {
+  static async getKeysByPattern(pattern: string, limit = 1000): Promise<string[]> {
     try {
       return await this.scanKeys(this.redis, pattern, limit);
     } catch (error) {
@@ -185,19 +193,25 @@ export class EnterpriseCacheService {
   /**
    * Scan keys using SCAN command (memory efficient)
    */
-  private static async scanKeys(redis: RedisClientType, pattern: string, limit: number): Promise<string[]> {
+  private static async scanKeys(
+    redis: RedisClientType,
+    pattern: string,
+    limit: number
+  ): Promise<string[]> {
     const keys: string[] = [];
 
     for await (const key of redis.scanIterator({
       MATCH: pattern,
-      COUNT: 100
+      COUNT: 100,
     })) {
       if (typeof key === 'string') {
         keys.push(key);
       } else if (Array.isArray(key)) {
         keys.push(...key);
       }
-      if (keys.length >= limit) break;
+      if (keys.length >= limit) {
+        break;
+      }
     }
 
     return keys.slice(0, limit);
@@ -209,18 +223,20 @@ export class EnterpriseCacheService {
   static async clearByPattern(pattern: string): Promise<number> {
     try {
       const keys = await this.getKeysByPattern(pattern, 10000);
-      if (keys.length === 0) return 0;
-      
+      if (keys.length === 0) {
+        return 0;
+      }
+
       // Delete in batches to avoid blocking
       const batchSize = 100;
       let deletedCount = 0;
-      
+
       for (let i = 0; i < keys.length; i += batchSize) {
         const batch = keys.slice(i, i + batchSize);
         await this.redis.del(batch);
         deletedCount += batch.length;
       }
-      
+
       logger.info('Cache cleared by pattern:', { pattern, deletedCount });
       return deletedCount;
     } catch (error) {
@@ -236,7 +252,7 @@ export class EnterpriseCacheService {
     try {
       const info = await this.redis.info('memory');
       const keyspace = await this.redis.info('keyspace');
-      
+
       return {
         memory: this.parseRedisInfo(info),
         keyspace: this.parseRedisInfo(keyspace),
@@ -254,14 +270,14 @@ export class EnterpriseCacheService {
    */
   private static parseRedisInfo(info: string): Record<string, any> {
     const result: Record<string, any> = {};
-    
+
     info.split('\r\n').forEach(line => {
       if (line.includes(':')) {
         const [key, value] = line.split(':');
         result[key] = isNaN(Number(value)) ? value : Number(value);
       }
     });
-    
+
     return result;
   }
 
@@ -273,12 +289,12 @@ export class EnterpriseCacheService {
       const start = Date.now();
       await this.redis.ping();
       const latency = Date.now() - start;
-      
+
       return { healthy: true, latency };
     } catch (error) {
-      return { 
-        healthy: false, 
-        error: error instanceof Error ? error.message : 'Unknown error' 
+      return {
+        healthy: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
   }
@@ -308,7 +324,7 @@ export class CacheKeys {
     return `user:${userId}`;
   }
 
-  static userCases(userId: string, page: number = 1): string {
+  static userCases(userId: string, page = 1): string {
     return `user:${userId}:cases:page:${page}`;
   }
 

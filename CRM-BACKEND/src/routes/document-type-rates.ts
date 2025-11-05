@@ -6,7 +6,7 @@ import {
   getDocumentTypeRates,
   createOrUpdateDocumentTypeRate,
   deleteDocumentTypeRate,
-  getDocumentTypeRateStats
+  getDocumentTypeRateStats,
 } from '@/controllers/documentTypeRatesController';
 
 const router = express.Router();
@@ -16,30 +16,18 @@ router.use(authenticateToken);
 
 // Validation schemas
 const listDocumentTypeRatesValidation = [
-  query('page')
-    .optional()
-    .isInt({ min: 1 })
-    .withMessage('Page must be a positive integer'),
+  query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
   query('limit')
     .optional()
     .isInt({ min: 1, max: 1000 })
     .withMessage('Limit must be between 1 and 1000'),
-  query('clientId')
-    .optional()
-    .isInt({ min: 1 })
-    .withMessage('Client ID must be a valid integer'),
-  query('productId')
-    .optional()
-    .isInt({ min: 1 })
-    .withMessage('Product ID must be a valid integer'),
+  query('clientId').optional().isInt({ min: 1 }).withMessage('Client ID must be a valid integer'),
+  query('productId').optional().isInt({ min: 1 }).withMessage('Product ID must be a valid integer'),
   query('documentTypeId')
     .optional()
     .isInt({ min: 1 })
     .withMessage('Document Type ID must be a valid integer'),
-  query('isActive')
-    .optional()
-    .isBoolean()
-    .withMessage('isActive must be a boolean'),
+  query('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
   query('search')
     .optional()
     .trim()
@@ -49,26 +37,17 @@ const listDocumentTypeRatesValidation = [
     .optional()
     .isIn(['clientName', 'productName', 'documentTypeName', 'amount', 'createdAt', 'updatedAt'])
     .withMessage('Invalid sort field'),
-  query('sortOrder')
-    .optional()
-    .isIn(['asc', 'desc'])
-    .withMessage('Sort order must be asc or desc'),
+  query('sortOrder').optional().isIn(['asc', 'desc']).withMessage('Sort order must be asc or desc'),
 ];
 
 const createOrUpdateDocumentTypeRateValidation = [
-  body('clientId')
-    .isInt({ min: 1 })
-    .withMessage('Client ID must be a valid integer'),
-  body('productId')
-    .isInt({ min: 1 })
-    .withMessage('Product ID must be a valid integer'),
-  body('documentTypeId')
-    .isInt({ min: 1 })
-    .withMessage('Document Type ID must be a valid integer'),
+  body('clientId').isInt({ min: 1 }).withMessage('Client ID must be a valid integer'),
+  body('productId').isInt({ min: 1 }).withMessage('Product ID must be a valid integer'),
+  body('documentTypeId').isInt({ min: 1 }).withMessage('Document Type ID must be a valid integer'),
   body('amount')
     .isNumeric()
     .withMessage('Amount must be a number')
-    .custom((value) => {
+    .custom(value => {
       if (Number(value) < 0) {
         throw new Error('Amount must be non-negative');
       }
@@ -82,26 +61,16 @@ const createOrUpdateDocumentTypeRateValidation = [
 ];
 
 const deleteDocumentTypeRateValidation = [
-  param('id')
-    .isInt({ min: 1 })
-    .withMessage('Rate ID must be a valid integer'),
+  param('id').isInt({ min: 1 }).withMessage('Rate ID must be a valid integer'),
 ];
 
 // Routes
 
 // GET /api/document-type-rates/stats - Get statistics (must be before /:id route)
-router.get(
-  '/stats',
-  getDocumentTypeRateStats
-);
+router.get('/stats', getDocumentTypeRateStats);
 
 // GET /api/document-type-rates - List document type rates
-router.get(
-  '/',
-  listDocumentTypeRatesValidation,
-  handleValidationErrors,
-  getDocumentTypeRates
-);
+router.get('/', listDocumentTypeRatesValidation, handleValidationErrors, getDocumentTypeRates);
 
 // POST /api/document-type-rates - Create or update document type rate
 router.post(
@@ -120,4 +89,3 @@ router.delete(
 );
 
 export default router;
-

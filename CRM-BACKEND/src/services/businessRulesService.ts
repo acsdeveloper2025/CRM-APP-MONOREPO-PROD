@@ -1,4 +1,4 @@
-import { Pool } from 'pg';
+import type { Pool } from 'pg';
 
 export interface BusinessRule {
   id: string;
@@ -45,7 +45,7 @@ class BusinessRulesService {
           ruleName: rule.name,
           executed: false,
           actions: [],
-          errors: [error instanceof Error ? error.message : 'Unknown error']
+          errors: [error instanceof Error ? error.message : 'Unknown error'],
         });
       }
     }
@@ -55,13 +55,13 @@ class BusinessRulesService {
 
   private async executeRule(rule: BusinessRule, context: RuleContext): Promise<RuleResult> {
     const conditionsMet = this.evaluateConditions(rule.conditions, context);
-    
+
     if (!conditionsMet) {
       return {
         ruleId: rule.id,
         ruleName: rule.name,
         executed: false,
-        actions: []
+        actions: [],
       };
     }
 
@@ -71,7 +71,7 @@ class BusinessRulesService {
       ruleId: rule.id,
       ruleName: rule.name,
       executed: true,
-      actions: executedActions
+      actions: executedActions,
     };
   }
 
@@ -144,7 +144,7 @@ class BusinessRulesService {
       WHERE id = $2
       RETURNING *
     `;
-    
+
     const result = await this.pool.query(query, [priority, caseId]);
     return { type: 'UPDATE_PRIORITY', caseId, priority, success: true };
   }
@@ -154,7 +154,13 @@ class BusinessRulesService {
   private async assignCaseToUser(caseId: string, userId: string): Promise<any> {
     // This method is deprecated and should not be used
     // Use verification task assignment instead
-    return { type: 'ASSIGN_TO_USER', caseId, userId, success: false, error: 'Case-level assignment is deprecated. Use task-level assignment instead.' };
+    return {
+      type: 'ASSIGN_TO_USER',
+      caseId,
+      userId,
+      success: false,
+      error: 'Case-level assignment is deprecated. Use task-level assignment instead.',
+    };
   }
 
   private async addCaseNote(caseId: string, note: string): Promise<any> {
@@ -184,7 +190,7 @@ class BusinessRulesService {
 
     return {
       valid: errors.length === 0,
-      errors
+      errors,
     };
   }
 

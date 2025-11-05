@@ -1,6 +1,6 @@
-import { Response } from 'express';
+import type { Response } from 'express';
 import { logger } from '@/config/logger';
-import { AuthenticatedRequest } from '@/middleware/auth';
+import type { AuthenticatedRequest } from '@/middleware/auth';
 import { query } from '@/config/db';
 
 interface Country {
@@ -21,7 +21,7 @@ export const getCountries = async (req: AuthenticatedRequest, res: Response) => 
       continent,
       search,
       sortBy = 'name',
-      sortOrder = 'asc'
+      sortOrder = 'asc',
     } = req.query;
 
     // Build SQL query with filters and field name transformation
@@ -56,7 +56,8 @@ export const getCountries = async (req: AuthenticatedRequest, res: Response) => 
     const validSortFields = ['name', 'code', 'continent', 'createdAt', 'updatedAt'];
     const sortField = validSortFields.includes(sortBy as string) ? (sortBy as string) : 'name';
     const sortDirection = sortOrder === 'desc' ? 'DESC' : 'ASC';
-    const sortFieldExpr = (sortField === 'createdAt' || sortField === 'updatedAt') ? `"${sortField}"` : sortField;
+    const sortFieldExpr =
+      sortField === 'createdAt' || sortField === 'updatedAt' ? `"${sortField}"` : sortField;
     sql += ` ORDER BY ${sortFieldExpr} ${sortDirection}`;
 
     // Apply pagination
@@ -99,14 +100,14 @@ export const getCountries = async (req: AuthenticatedRequest, res: Response) => 
     logger.info(`Retrieved ${result.rows.length} countries`, {
       userId: req.user?.id,
       filters: { continent, search },
-      pagination: { page: pageNum, limit: limitNum }
+      pagination: { page: pageNum, limit: limitNum },
     });
 
     res.json({
       success: true,
       data: result.rows.map(country => ({
         ...country,
-        id: country.id.toString() // Convert integer ID to string
+        id: country.id.toString(), // Convert integer ID to string
       })),
       pagination: {
         page: pageNum,
@@ -157,14 +158,14 @@ export const getCountryById = async (req: AuthenticatedRequest, res: Response) =
 
     logger.info(`Retrieved country: ${country.name}`, {
       userId: req.user?.id,
-      countryId: id
+      countryId: id,
     });
 
     res.json({
       success: true,
       data: {
         ...country,
-        id: country.id.toString() // Convert integer ID to string
+        id: country.id.toString(), // Convert integer ID to string
       },
     });
   } catch (error) {
@@ -209,7 +210,7 @@ export const createCountry = async (req: AuthenticatedRequest, res: Response) =>
     logger.info(`Created new country: ${newCountry.name}`, {
       userId: req.user?.id,
       countryId: newCountry.id,
-      countryData: newCountry
+      countryData: newCountry,
     });
 
     res.status(201).json({
@@ -234,10 +235,7 @@ export const updateCountry = async (req: AuthenticatedRequest, res: Response) =>
     const updateData = req.body;
 
     // Check if country exists
-    const countryResult = await query<Country>(
-      'SELECT * FROM countries WHERE id = $1',
-      [id]
-    );
+    const countryResult = await query<Country>('SELECT * FROM countries WHERE id = $1', [id]);
 
     if (countryResult.rows.length === 0) {
       return res.status(404).json({
@@ -312,7 +310,7 @@ export const updateCountry = async (req: AuthenticatedRequest, res: Response) =>
     logger.info(`Updated country: ${updatedCountry.name}`, {
       userId: req.user?.id,
       countryId: id,
-      updateData
+      updateData,
     });
 
     res.json({
@@ -336,10 +334,7 @@ export const deleteCountry = async (req: AuthenticatedRequest, res: Response) =>
     const { id } = req.params;
 
     // Check if country exists
-    const countryResult = await query<Country>(
-      'SELECT * FROM countries WHERE id = $1',
-      [id]
-    );
+    const countryResult = await query<Country>('SELECT * FROM countries WHERE id = $1', [id]);
 
     if (countryResult.rows.length === 0) {
       return res.status(404).json({
@@ -360,7 +355,7 @@ export const deleteCountry = async (req: AuthenticatedRequest, res: Response) =>
       return res.status(400).json({
         success: false,
         message: `Cannot delete country. This country has ${statesCount} associated state(s).`,
-        error: { code: 'HAS_DEPENDENCIES' }
+        error: { code: 'HAS_DEPENDENCIES' },
       });
     }
 
@@ -371,7 +366,7 @@ export const deleteCountry = async (req: AuthenticatedRequest, res: Response) =>
 
     logger.info(`Deleted country: ${deletedCountry.name}`, {
       userId: req.user?.id,
-      countryId: id
+      countryId: id,
     });
 
     res.json({
@@ -392,9 +387,7 @@ export const deleteCountry = async (req: AuthenticatedRequest, res: Response) =>
 export const getCountriesStats = async (req: AuthenticatedRequest, res: Response) => {
   try {
     // Get total countries
-    const totalResult = await query<{ count: string }>(
-      'SELECT COUNT(*) FROM countries'
-    );
+    const totalResult = await query<{ count: string }>('SELECT COUNT(*) FROM countries');
     const totalCountries = parseInt(totalResult.rows[0].count, 10);
 
     // Get countries by continent
@@ -402,10 +395,13 @@ export const getCountriesStats = async (req: AuthenticatedRequest, res: Response
       'SELECT continent, COUNT(*) FROM countries GROUP BY continent ORDER BY continent'
     );
 
-    const countriesByContinent = continentResult.rows.reduce((acc, row) => {
-      acc[row.continent] = parseInt(row.count, 10);
-      return acc;
-    }, {} as Record<string, number>);
+    const countriesByContinent = continentResult.rows.reduce(
+      (acc, row) => {
+        acc[row.continent] = parseInt(row.count, 10);
+        return acc;
+      },
+      {} as Record<string, number>
+    );
 
     const stats = {
       totalCountries,
@@ -428,7 +424,10 @@ export const getCountriesStats = async (req: AuthenticatedRequest, res: Response
 };
 
 // POST /api/countries/bulk-import - Bulk import countries
-export const bulkImportCountries = async (req: AuthenticatedRequest & { file?: Express.Multer.File }, res: Response) => {
+export const bulkImportCountries = async (
+  req: AuthenticatedRequest & { file?: Express.Multer.File },
+  res: Response
+) => {
   try {
     if (!req.file) {
       return res.status(400).json({
@@ -469,7 +468,15 @@ export const bulkImportCountries = async (req: AuthenticatedRequest & { file?: E
         const { name, code, continent } = row;
 
         // Validate continent
-        const validContinents = ['Africa', 'Antarctica', 'Asia', 'Europe', 'North America', 'Oceania', 'South America'];
+        const validContinents = [
+          'Africa',
+          'Antarctica',
+          'Asia',
+          'Europe',
+          'North America',
+          'Oceania',
+          'South America',
+        ];
         if (!validContinents.includes(continent)) {
           results.failed++;
           results.errors.push({

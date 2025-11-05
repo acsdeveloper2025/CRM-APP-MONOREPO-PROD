@@ -1,9 +1,10 @@
-import { Request, Response } from 'express';
+import type { Response } from 'express';
+import { Request } from 'express';
 import { logger } from '@/config/logger';
-import { AuthenticatedRequest } from '@/middleware/auth';
+import type { AuthenticatedRequest } from '@/middleware/auth';
 
 // Mock data for demonstration (replace with actual database operations)
-let invoices: any[] = [
+const invoices: any[] = [
   {
     id: 'invoice_1',
     invoiceNumber: 'INV-2024-001',
@@ -87,16 +88,16 @@ let invoices: any[] = [
 // GET /api/invoices - List invoices with pagination and filters
 export const getInvoices = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { 
-      page = 1, 
-      limit = 20, 
-      clientId, 
-      status, 
-      dateFrom, 
-      dateTo, 
-      search, 
-      sortBy = 'issueDate', 
-      sortOrder = 'desc' 
+    const {
+      page = 1,
+      limit = 20,
+      clientId,
+      status,
+      dateFrom,
+      dateTo,
+      search,
+      sortBy = 'issueDate',
+      sortOrder = 'desc',
     } = req.query;
 
     let filteredInvoices = [...invoices];
@@ -110,17 +111,22 @@ export const getInvoices = async (req: AuthenticatedRequest, res: Response) => {
     }
     if (search) {
       const searchTerm = (search as string).toLowerCase();
-      filteredInvoices = filteredInvoices.filter(inv => 
-        inv.invoiceNumber.toLowerCase().includes(searchTerm) ||
-        inv.clientName.toLowerCase().includes(searchTerm) ||
-        inv.notes.toLowerCase().includes(searchTerm)
+      filteredInvoices = filteredInvoices.filter(
+        inv =>
+          inv.invoiceNumber.toLowerCase().includes(searchTerm) ||
+          inv.clientName.toLowerCase().includes(searchTerm) ||
+          inv.notes.toLowerCase().includes(searchTerm)
       );
     }
     if (dateFrom) {
-      filteredInvoices = filteredInvoices.filter(inv => new Date(inv.issueDate) >= new Date(dateFrom as string));
+      filteredInvoices = filteredInvoices.filter(
+        inv => new Date(inv.issueDate) >= new Date(dateFrom as string)
+      );
     }
     if (dateTo) {
-      filteredInvoices = filteredInvoices.filter(inv => new Date(inv.issueDate) <= new Date(dateTo as string));
+      filteredInvoices = filteredInvoices.filter(
+        inv => new Date(inv.issueDate) <= new Date(dateTo as string)
+      );
     }
 
     // Apply sorting
@@ -138,10 +144,10 @@ export const getInvoices = async (req: AuthenticatedRequest, res: Response) => {
     const endIndex = startIndex + (limit as number);
     const paginatedInvoices = filteredInvoices.slice(startIndex, endIndex);
 
-    logger.info(`Retrieved ${paginatedInvoices.length} invoices`, { 
+    logger.info(`Retrieved ${paginatedInvoices.length} invoices`, {
       userId: req.user?.id,
       filters: { clientId, status, search },
-      pagination: { page, limit }
+      pagination: { page, limit },
     });
 
     res.json({
@@ -197,17 +203,13 @@ export const getInvoiceById = async (req: AuthenticatedRequest, res: Response) =
 // POST /api/invoices - Create new invoice
 export const createInvoice = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { 
-      clientId, 
-      clientName, 
-      items, 
-      dueDate, 
-      notes, 
-      currency = 'INR' 
-    } = req.body;
+    const { clientId, clientName, items, dueDate, notes, currency = 'INR' } = req.body;
 
     // Calculate amounts
-    const amount = items.reduce((sum: number, item: any) => sum + (item.quantity * item.unitPrice), 0);
+    const amount = items.reduce(
+      (sum: number, item: any) => sum + item.quantity * item.unitPrice,
+      0
+    );
     const taxRate = 0.18; // 18% GST
     const taxAmount = Math.round(amount * taxRate);
     const totalAmount = amount + taxAmount;
@@ -243,11 +245,11 @@ export const createInvoice = async (req: AuthenticatedRequest, res: Response) =>
 
     invoices.push(newInvoice);
 
-    logger.info(`Created new invoice: ${newInvoice.id}`, { 
+    logger.info(`Created new invoice: ${newInvoice.id}`, {
       userId: req.user?.id,
       invoiceNumber,
       clientId,
-      amount: totalAmount
+      amount: totalAmount,
     });
 
     res.status(201).json({
@@ -291,11 +293,14 @@ export const updateInvoice = async (req: AuthenticatedRequest, res: Response) =>
 
     // Recalculate amounts if items are updated
     if (updateData.items) {
-      const amount = updateData.items.reduce((sum: number, item: any) => sum + (item.quantity * item.unitPrice), 0);
+      const amount = updateData.items.reduce(
+        (sum: number, item: any) => sum + item.quantity * item.unitPrice,
+        0
+      );
       const taxRate = 0.18;
       const taxAmount = Math.round(amount * taxRate);
       const totalAmount = amount + taxAmount;
-      
+
       updateData.amount = amount;
       updateData.taxAmount = taxAmount;
       updateData.totalAmount = totalAmount;
@@ -310,9 +315,9 @@ export const updateInvoice = async (req: AuthenticatedRequest, res: Response) =>
 
     invoices[invoiceIndex] = updatedInvoice;
 
-    logger.info(`Updated invoice: ${id}`, { 
+    logger.info(`Updated invoice: ${id}`, {
       userId: req.user?.id,
-      changes: Object.keys(updateData)
+      changes: Object.keys(updateData),
     });
 
     res.json({
@@ -356,9 +361,9 @@ export const deleteInvoice = async (req: AuthenticatedRequest, res: Response) =>
     const deletedInvoice = invoices[invoiceIndex];
     invoices.splice(invoiceIndex, 1);
 
-    logger.info(`Deleted invoice: ${id}`, { 
+    logger.info(`Deleted invoice: ${id}`, {
       userId: req.user?.id,
-      invoiceNumber: deletedInvoice.invoiceNumber
+      invoiceNumber: deletedInvoice.invoiceNumber,
     });
 
     res.json({
@@ -400,7 +405,7 @@ export const sendInvoice = async (req: AuthenticatedRequest, res: Response) => {
     logger.info(`Invoice sent: ${id}`, {
       userId: req.user?.id,
       email,
-      invoiceNumber: invoices[invoiceIndex].invoiceNumber
+      invoiceNumber: invoices[invoiceIndex].invoiceNumber,
     });
 
     res.json({
@@ -454,7 +459,7 @@ export const markInvoicePaid = async (req: AuthenticatedRequest, res: Response) 
     logger.info(`Invoice marked as paid: ${id}`, {
       userId: req.user?.id,
       invoiceNumber: invoices[invoiceIndex].invoiceNumber,
-      amount: invoices[invoiceIndex].totalAmount
+      amount: invoices[invoiceIndex].totalAmount,
     });
 
     res.json({
@@ -491,7 +496,7 @@ export const downloadInvoice = async (req: AuthenticatedRequest, res: Response) 
 
     logger.info(`Invoice download requested: ${id}`, {
       userId: req.user?.id,
-      invoiceNumber: invoice.invoiceNumber
+      invoiceNumber: invoice.invoiceNumber,
     });
 
     res.json({
@@ -522,8 +527,8 @@ export const getInvoiceStats = async (req: AuthenticatedRequest, res: Response) 
     const totalInvoices = invoices.length;
     const paidInvoices = invoices.filter(inv => inv.status === 'PAID').length;
     const pendingInvoices = invoices.filter(inv => inv.status === 'PENDING').length;
-    const overdueInvoices = invoices.filter(inv =>
-      inv.status === 'PENDING' && new Date(inv.dueDate) < new Date()
+    const overdueInvoices = invoices.filter(
+      inv => inv.status === 'PENDING' && new Date(inv.dueDate) < new Date()
     ).length;
 
     const totalAmount = invoices.reduce((sum, inv) => sum + inv.totalAmount, 0);
@@ -534,15 +539,21 @@ export const getInvoiceStats = async (req: AuthenticatedRequest, res: Response) 
       .filter(inv => inv.status === 'PENDING')
       .reduce((sum, inv) => sum + inv.totalAmount, 0);
 
-    const statusDistribution = invoices.reduce((acc, inv) => {
-      acc[inv.status] = (acc[inv.status] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
+    const statusDistribution = invoices.reduce(
+      (acc, inv) => {
+        acc[inv.status] = (acc[inv.status] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>
+    );
 
-    const clientDistribution = invoices.reduce((acc, inv) => {
-      acc[inv.clientName] = (acc[inv.clientName] || 0) + inv.totalAmount;
-      return acc;
-    }, {} as Record<string, number>);
+    const clientDistribution = invoices.reduce(
+      (acc, inv) => {
+        acc[inv.clientName] = (acc[inv.clientName] || 0) + inv.totalAmount;
+        return acc;
+      },
+      {} as Record<string, number>
+    );
 
     const stats = {
       totalInvoices,

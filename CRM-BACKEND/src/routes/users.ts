@@ -3,7 +3,11 @@ import { body, query, param } from 'express-validator';
 import { authenticateToken } from '@/middleware/auth';
 import { validate } from '@/middleware/validation';
 import { logger } from '@/config/logger';
-import { EnterpriseCache, EnterpriseCacheConfigs, CacheInvalidationPatterns } from '../middleware/enterpriseCache';
+import {
+  EnterpriseCache,
+  EnterpriseCacheConfigs,
+  CacheInvalidationPatterns,
+} from '../middleware/enterpriseCache';
 import {
   getUsers,
   getUserById,
@@ -28,7 +32,7 @@ import {
   bulkUserOperation,
   generateTemporaryPassword,
   changePassword,
-  resetPassword
+  resetPassword,
 } from '@/controllers/usersController';
 
 const router = express.Router();
@@ -45,17 +49,12 @@ const createUserValidation = [
     .withMessage('Username must be between 3 and 50 characters')
     .matches(/^[a-zA-Z0-9._-]+$/)
     .withMessage('Username can only contain letters, numbers, dots, underscores, and hyphens'),
-  body('email')
-    .isEmail()
-    .withMessage('Valid email is required')
-    .normalizeEmail(),
-  body('password')
-    .isLength({ min: 8 })
-    .withMessage('Password must be at least 8 characters'),
+  body('email').isEmail().withMessage('Valid email is required').normalizeEmail(),
+  body('password').isLength({ min: 8 }).withMessage('Password must be at least 8 characters'),
   // Support both new roleId and legacy role fields
   body('roleId')
     .optional()
-    .custom((value) => {
+    .custom(value => {
       if (value && value.toString().trim() !== '') {
         // If provided and not empty, must be a valid integer
         const intValue = parseInt(value, 10);
@@ -68,10 +67,12 @@ const createUserValidation = [
   body('role')
     .optional()
     .isIn(['SUPER_ADMIN', 'ADMIN', 'BACKEND_USER', 'FIELD_AGENT', 'MANAGER', 'REPORT_PERSON'])
-    .withMessage('Role must be one of: SUPER_ADMIN, ADMIN, BACKEND_USER, FIELD_AGENT, MANAGER, REPORT_PERSON'),
+    .withMessage(
+      'Role must be one of: SUPER_ADMIN, ADMIN, BACKEND_USER, FIELD_AGENT, MANAGER, REPORT_PERSON'
+    ),
   body('departmentId')
     .optional()
-    .custom((value) => {
+    .custom(value => {
       if (value && value.toString().trim() !== '') {
         // If provided and not empty, must be a valid integer
         const intValue = parseInt(value, 10);
@@ -83,7 +84,7 @@ const createUserValidation = [
     }),
   body('designationId')
     .optional()
-    .custom((value) => {
+    .custom(value => {
       if (value && value.toString().trim() !== '') {
         // If provided and not empty, must be a valid integer
         const intValue = parseInt(value, 10);
@@ -114,10 +115,7 @@ const createUserValidation = [
     .trim()
     .matches(/^\+?[1-9]\d{1,14}$/)
     .withMessage('Phone number must be valid'),
-  body('isActive')
-    .optional()
-    .isBoolean()
-    .withMessage('isActive must be a boolean'),
+  body('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
   // Custom validation to ensure either roleId or role is provided
   body().custom((value, { req }) => {
     const hasRoleId = req.body.roleId && req.body.roleId.trim() !== '';
@@ -143,15 +141,13 @@ const updateUserValidation = [
     .withMessage('Username must be between 3 and 50 characters')
     .matches(/^[a-zA-Z0-9._-]+$/)
     .withMessage('Username can only contain letters, numbers, dots, underscores, and hyphens'),
-  body('email')
-    .optional()
-    .isEmail()
-    .withMessage('Valid email is required')
-    .normalizeEmail(),
+  body('email').optional().isEmail().withMessage('Valid email is required').normalizeEmail(),
   body('role')
     .optional()
     .isIn(['SUPER_ADMIN', 'ADMIN', 'BACKEND_USER', 'FIELD_AGENT', 'MANAGER', 'REPORT_PERSON'])
-    .withMessage('Role must be one of: SUPER_ADMIN, ADMIN, BACKEND_USER, FIELD_AGENT, MANAGER, REPORT_PERSON'),
+    .withMessage(
+      'Role must be one of: SUPER_ADMIN, ADMIN, BACKEND_USER, FIELD_AGENT, MANAGER, REPORT_PERSON'
+    ),
   body('department')
     .optional()
     .trim()
@@ -167,17 +163,11 @@ const updateUserValidation = [
     .trim()
     .matches(/^\+?[1-9]\d{1,14}$/)
     .withMessage('Phone number must be valid'),
-  body('isActive')
-    .optional()
-    .isBoolean()
-    .withMessage('isActive must be a boolean'),
+  body('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
 ];
 
 const listUsersValidation = [
-  query('page')
-    .optional()
-    .isInt({ min: 1 })
-    .withMessage('Page must be a positive integer'),
+  query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
   query('limit')
     .optional()
     .isInt({ min: 1, max: 100 })
@@ -191,10 +181,7 @@ const listUsersValidation = [
     .trim()
     .isLength({ max: 100 })
     .withMessage('Department must be less than 100 characters'),
-  query('isActive')
-    .optional()
-    .isBoolean()
-    .withMessage('isActive must be a boolean'),
+  query('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
   query('search')
     .optional()
     .trim()
@@ -204,26 +191,16 @@ const listUsersValidation = [
     .optional()
     .isIn(['name', 'username', 'email', 'role', 'department', 'createdAt', 'lastLoginAt'])
     .withMessage('Invalid sort field'),
-  query('sortOrder')
-    .optional()
-    .isIn(['asc', 'desc'])
-    .withMessage('Sort order must be asc or desc'),
+  query('sortOrder').optional().isIn(['asc', 'desc']).withMessage('Sort order must be asc or desc'),
 ];
 
 const bulkOperationValidation = [
-  body('userIds')
-    .isArray({ min: 1 })
-    .withMessage('User IDs array is required'),
-  body('userIds.*')
-    .isString()
-    .withMessage('Each user ID must be a string'),
+  body('userIds').isArray({ min: 1 }).withMessage('User IDs array is required'),
+  body('userIds.*').isString().withMessage('Each user ID must be a string'),
   body('operation')
     .isIn(['activate', 'deactivate', 'delete', 'changeRole'])
     .withMessage('Operation must be one of: activate, deactivate, delete, changeRole'),
-  body('data')
-    .optional()
-    .isObject()
-    .withMessage('Data must be an object'),
+  body('data').optional().isObject().withMessage('Data must be an object'),
 ];
 
 const searchValidation = [
@@ -234,31 +211,21 @@ const searchValidation = [
 ];
 
 const clientAssignmentValidation = [
-  body('clientIds')
-    .isArray()
-    .withMessage('clientIds must be an array'),
+  body('clientIds').isArray().withMessage('clientIds must be an array'),
   body('clientIds.*')
     .optional()
     .isInt({ min: 1 })
     .withMessage('Each client ID must be a positive integer'),
 ];
 
-const userIdValidation = [
-  param('userId')
-    .isUUID()
-    .withMessage('User ID must be a valid UUID'),
-];
+const userIdValidation = [param('userId').isUUID().withMessage('User ID must be a valid UUID')];
 
 const clientIdValidation = [
-  param('clientId')
-    .isInt({ min: 1 })
-    .withMessage('Client ID must be a positive integer'),
+  param('clientId').isInt({ min: 1 }).withMessage('Client ID must be a positive integer'),
 ];
 
 const productAssignmentValidation = [
-  body('productIds')
-    .isArray()
-    .withMessage('productIds must be an array'),
+  body('productIds').isArray().withMessage('productIds must be an array'),
   body('productIds.*')
     .optional()
     .isInt({ min: 1 })
@@ -266,13 +233,12 @@ const productAssignmentValidation = [
 ];
 
 const productIdValidation = [
-  param('productId')
-    .isInt({ min: 1 })
-    .withMessage('Product ID must be a positive integer'),
+  param('productId').isInt({ min: 1 }).withMessage('Product ID must be a positive integer'),
 ];
 
 // Core CRUD routes (CACHED)
-router.get('/',
+router.get(
+  '/',
   authenticateToken,
   EnterpriseCache.create(EnterpriseCacheConfigs.usersList),
   listUsersValidation,
@@ -280,7 +246,8 @@ router.get('/',
   getUsers
 );
 
-router.get('/search',
+router.get(
+  '/search',
   authenticateToken,
   EnterpriseCache.create(EnterpriseCacheConfigs.usersList),
   searchValidation,
@@ -288,43 +255,50 @@ router.get('/search',
   searchUsers
 );
 
-router.get('/stats',
+router.get(
+  '/stats',
   authenticateToken,
   EnterpriseCache.create(EnterpriseCacheConfigs.analytics),
   getUserStats
 );
 
-router.get('/departments',
+router.get(
+  '/departments',
   authenticateToken,
   EnterpriseCache.create(EnterpriseCacheConfigs.analytics),
   getDepartments
 );
 
-router.get('/designations',
+router.get(
+  '/designations',
   authenticateToken,
   EnterpriseCache.create(EnterpriseCacheConfigs.analytics),
   getDesignations
 );
 
-router.get('/activities',
+router.get(
+  '/activities',
   authenticateToken,
   EnterpriseCache.create(EnterpriseCacheConfigs.analytics),
   getUserActivities
 );
 
-router.get('/sessions',
+router.get(
+  '/sessions',
   authenticateToken,
   EnterpriseCache.create(EnterpriseCacheConfigs.analytics),
   getUserSessions
 );
 
-router.get('/roles/permissions',
+router.get(
+  '/roles/permissions',
   authenticateToken,
   EnterpriseCache.create(EnterpriseCacheConfigs.analytics),
   getRolePermissions
 );
 
-router.post('/',
+router.post(
+  '/',
   authenticateToken,
   EnterpriseCache.invalidate(CacheInvalidationPatterns.userUpdate),
   createUserValidation,
@@ -332,7 +306,8 @@ router.post('/',
   createUser
 );
 
-router.post('/bulk-operation',
+router.post(
+  '/bulk-operation',
   authenticateToken,
   EnterpriseCache.invalidate(CacheInvalidationPatterns.userUpdate),
   bulkOperationValidation,
@@ -341,14 +316,16 @@ router.post('/bulk-operation',
 );
 
 // Client assignment routes (must be before /:id route)
-router.get('/:userId/client-assignments',
+router.get(
+  '/:userId/client-assignments',
   authenticateToken,
   userIdValidation,
   validate,
   getUserClientAssignments
 );
 
-router.post('/:userId/client-assignments',
+router.post(
+  '/:userId/client-assignments',
   authenticateToken,
   userIdValidation,
   clientAssignmentValidation,
@@ -356,7 +333,8 @@ router.post('/:userId/client-assignments',
   assignClientsToUser
 );
 
-router.delete('/:userId/client-assignments/:clientId',
+router.delete(
+  '/:userId/client-assignments/:clientId',
   authenticateToken,
   userIdValidation,
   clientIdValidation,
@@ -365,14 +343,16 @@ router.delete('/:userId/client-assignments/:clientId',
 );
 
 // Product assignment routes
-router.get('/:userId/product-assignments',
+router.get(
+  '/:userId/product-assignments',
   authenticateToken,
   userIdValidation,
   validate,
   getUserProductAssignments
 );
 
-router.post('/:userId/product-assignments',
+router.post(
+  '/:userId/product-assignments',
   authenticateToken,
   userIdValidation,
   productAssignmentValidation,
@@ -380,7 +360,8 @@ router.post('/:userId/product-assignments',
   assignProductsToUser
 );
 
-router.delete('/:userId/product-assignments/:productId',
+router.delete(
+  '/:userId/product-assignments/:productId',
   authenticateToken,
   userIdValidation,
   productIdValidation,
@@ -388,69 +369,85 @@ router.delete('/:userId/product-assignments/:productId',
   removeProductAssignment
 );
 
-router.get('/:id',
+router.get(
+  '/:id',
   authenticateToken,
   [param('id').trim().notEmpty().withMessage('User ID is required')],
   validate,
   getUserById
 );
 
-router.put('/:id', 
-  authenticateToken, 
-  [param('id').trim().notEmpty().withMessage('User ID is required')], 
-  updateUserValidation, 
-  validate, 
+router.put(
+  '/:id',
+  authenticateToken,
+  [param('id').trim().notEmpty().withMessage('User ID is required')],
+  updateUserValidation,
+  validate,
   updateUser
 );
 
-router.delete('/:id', 
-  authenticateToken, 
-  [param('id').trim().notEmpty().withMessage('User ID is required')], 
-  validate, 
+router.delete(
+  '/:id',
+  authenticateToken,
+  [param('id').trim().notEmpty().withMessage('User ID is required')],
+  validate,
   deleteUser
 );
 
-router.post('/:id/activate', 
-  authenticateToken, 
-  [param('id').trim().notEmpty().withMessage('User ID is required')], 
-  validate, 
+router.post(
+  '/:id/activate',
+  authenticateToken,
+  [param('id').trim().notEmpty().withMessage('User ID is required')],
+  validate,
   activateUser
 );
 
-router.post('/:id/deactivate',
+router.post(
+  '/:id/deactivate',
   authenticateToken,
   [
     param('id').trim().notEmpty().withMessage('User ID is required'),
-    body('reason').optional().trim().isLength({ max: 500 }).withMessage('Reason must be less than 500 characters')
+    body('reason')
+      .optional()
+      .trim()
+      .isLength({ max: 500 })
+      .withMessage('Reason must be less than 500 characters'),
   ],
   validate,
   deactivateUser
 );
 
 // Password management routes
-router.post('/:id/generate-temp-password',
+router.post(
+  '/:id/generate-temp-password',
   authenticateToken,
   [param('id').trim().notEmpty().withMessage('User ID is required')],
   validate,
   generateTemporaryPassword
 );
 
-router.post('/:id/change-password',
+router.post(
+  '/:id/change-password',
   authenticateToken,
   [
     param('id').trim().notEmpty().withMessage('User ID is required'),
     body('currentPassword').notEmpty().withMessage('Current password is required'),
-    body('newPassword').isLength({ min: 6 }).withMessage('New password must be at least 6 characters long')
+    body('newPassword')
+      .isLength({ min: 6 })
+      .withMessage('New password must be at least 6 characters long'),
   ],
   validate,
   changePassword
 );
 
-router.post('/reset-password',
+router.post(
+  '/reset-password',
   authenticateToken,
   [
     body('username').notEmpty().withMessage('Username is required'),
-    body('newPassword').isLength({ min: 6 }).withMessage('New password must be at least 6 characters long')
+    body('newPassword')
+      .isLength({ min: 6 })
+      .withMessage('New password must be at least 6 characters long'),
   ],
   validate,
   resetPassword

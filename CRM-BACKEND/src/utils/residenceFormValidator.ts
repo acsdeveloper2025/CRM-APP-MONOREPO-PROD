@@ -1,6 +1,6 @@
 /**
  * Comprehensive Residence Form Validation and Default Handling
- * 
+ *
  * This module provides validation and default value handling for all residence verification form types.
  * Ensures that every database field has an appropriate value, preventing null/undefined issues.
  */
@@ -22,59 +22,63 @@ export interface FormValidationResult {
 /**
  * Comprehensive validation for residence verification forms
  * Validates form data and ensures all database fields are properly populated
- * 
+ *
  * @param formData - Raw form data from mobile app
  * @param formType - Type of residence form (POSITIVE, SHIFTED, NSP, ENTRY_RESTRICTED, UNTRACEABLE)
  * @returns Validation result with detailed field coverage information
  */
 export function validateAndPrepareResidenceForm(
-  formData: any, 
+  formData: any,
   formType: string
 ): { validationResult: FormValidationResult; preparedData: Record<string, any> } {
-  
   const warnings: string[] = [];
   const missingFields: string[] = [];
-  
+
   // Get required fields for this form type
   const requiredFields = getRequiredFieldsByFormType(formType);
-  
+
   // Check for missing required fields
   for (const field of requiredFields) {
-    if (!formData[field] || formData[field] === null || formData[field] === '' || formData[field] === undefined) {
+    if (
+      !formData[field] ||
+      formData[field] === null ||
+      formData[field] === '' ||
+      formData[field] === undefined
+    ) {
       missingFields.push(field);
     }
   }
-  
+
   // Check for form-specific conditional validations
   const conditionalWarnings = validateConditionalFields(formData, formType);
   warnings.push(...conditionalWarnings);
-  
+
   // Map form data to database fields
   const mappedData: Record<string, any> = {};
   for (const [mobileField, value] of Object.entries(formData)) {
     const dbColumn = RESIDENCE_FIELD_MAPPING[mobileField];
-    
+
     // Skip fields that should be ignored
     if (dbColumn === null) {
       continue;
     }
-    
+
     // Use the mapped column name or the original field name if no mapping exists
     const columnName = dbColumn || mobileField;
     mappedData[columnName] = processFieldValue(mobileField, value);
   }
-  
+
   // Ensure all database fields are populated with appropriate defaults
   const preparedData = ensureAllFieldsPopulated(mappedData, formType);
-  
+
   // Calculate field coverage statistics
   const totalFields = Object.keys(preparedData).length;
-  const populatedFields = Object.values(preparedData).filter(value =>
-    value !== null && value !== undefined
+  const populatedFields = Object.values(preparedData).filter(
+    value => value !== null && value !== undefined
   ).length;
   const defaultedFields = Object.values(preparedData).filter(value => value === null).length;
   const coveragePercentage = Math.round((populatedFields / totalFields) * 100);
-  
+
   const validationResult: FormValidationResult = {
     isValid: missingFields.length === 0,
     missingFields,
@@ -83,10 +87,10 @@ export function validateAndPrepareResidenceForm(
       totalFields,
       populatedFields,
       defaultedFields,
-      coveragePercentage
-    }
+      coveragePercentage,
+    },
   };
-  
+
   return { validationResult, preparedData };
 }
 
@@ -95,36 +99,81 @@ export function validateAndPrepareResidenceForm(
  */
 function getRequiredFieldsByFormType(formType: string): string[] {
   const requiredFieldsByType: Record<string, string[]> = {
-    'POSITIVE': [
-      'addressLocatable', 'addressRating', 'houseStatus', 'metPersonName',
-      'metPersonRelation', 'totalFamilyMembers', 'workingStatus', 'stayingPeriod',
-      'stayingStatus', 'documentShownStatus', 'locality', 'addressStructure',
-      'politicalConnection', 'dominatedArea', 'feedbackFromNeighbour',
-      'otherObservation', 'finalStatus'
+    POSITIVE: [
+      'addressLocatable',
+      'addressRating',
+      'houseStatus',
+      'metPersonName',
+      'metPersonRelation',
+      'totalFamilyMembers',
+      'workingStatus',
+      'stayingPeriod',
+      'stayingStatus',
+      'documentShownStatus',
+      'locality',
+      'addressStructure',
+      'politicalConnection',
+      'dominatedArea',
+      'feedbackFromNeighbour',
+      'otherObservation',
+      'finalStatus',
     ],
-    'SHIFTED': [
-      'addressLocatable', 'addressRating', 'roomStatus', 'metPersonName',
-      'metPersonStatus', 'shiftedPeriod', 'premisesStatus',
-      'locality', 'addressStructure', 'politicalConnection', 'dominatedArea',
-      'feedbackFromNeighbour', 'otherObservation', 'finalStatus'
+    SHIFTED: [
+      'addressLocatable',
+      'addressRating',
+      'roomStatus',
+      'metPersonName',
+      'metPersonStatus',
+      'shiftedPeriod',
+      'premisesStatus',
+      'locality',
+      'addressStructure',
+      'politicalConnection',
+      'dominatedArea',
+      'feedbackFromNeighbour',
+      'otherObservation',
+      'finalStatus',
     ],
-    'NSP': [
-      'addressLocatable', 'addressRating', 'houseStatus', 'locality',
-      'addressStructure', 'politicalConnection', 'dominatedArea',
-      'feedbackFromNeighbour', 'otherObservation', 'finalStatus'
+    NSP: [
+      'addressLocatable',
+      'addressRating',
+      'houseStatus',
+      'locality',
+      'addressStructure',
+      'politicalConnection',
+      'dominatedArea',
+      'feedbackFromNeighbour',
+      'otherObservation',
+      'finalStatus',
     ],
-    'ENTRY_RESTRICTED': [
-      'addressLocatable', 'addressRating', 'nameOfMetPerson', 'metPerson',
-      'metPersonConfirmation', 'applicantStayingStatus', 'locality',
-      'addressStructure', 'politicalConnection', 'dominatedArea',
-      'feedbackFromNeighbour', 'otherObservation', 'finalStatus'
+    ENTRY_RESTRICTED: [
+      'addressLocatable',
+      'addressRating',
+      'nameOfMetPerson',
+      'metPerson',
+      'metPersonConfirmation',
+      'applicantStayingStatus',
+      'locality',
+      'addressStructure',
+      'politicalConnection',
+      'dominatedArea',
+      'feedbackFromNeighbour',
+      'otherObservation',
+      'finalStatus',
     ],
-    'UNTRACEABLE': [
-      'callRemark', 'locality', 'landmark1', 'landmark2', 'landmark3', 'landmark4',
-      'dominatedArea', 'otherObservation', 'finalStatus'
-    ]
+    UNTRACEABLE: [
+      'callRemark',
+      'locality',
+      'landmark1',
+      'landmark2',
+      'landmark3',
+      'landmark4',
+      'dominatedArea',
+      'otherObservation',
+      'finalStatus',
+    ],
   };
-  
+
   return requiredFieldsByType[formType] || requiredFieldsByType['POSITIVE'];
 }
 
@@ -155,8 +204,11 @@ function validateConditionalFields(formData: any, formType: string): string[] {
     }
 
     // Family members validation - Fixed to handle 0 value correctly
-    if (formData.totalFamilyMembers !== undefined && formData.totalFamilyMembers !== null &&
-        (formData.totalFamilyMembers < 1 || formData.totalFamilyMembers > 50)) {
+    if (
+      formData.totalFamilyMembers !== undefined &&
+      formData.totalFamilyMembers !== null &&
+      (formData.totalFamilyMembers < 1 || formData.totalFamilyMembers > 50)
+    ) {
       warnings.push('totalFamilyMembers should be between 1 and 50');
     }
 
@@ -194,7 +246,9 @@ function validateConditionalFields(formData: any, formType: string): string[] {
   if (formType === 'ENTRY_RESTRICTED') {
     // Entry restricted specific validations
     if (formData.metPersonConfirmation === 'Not Confirmed' && !formData.reasonForNonConfirmation) {
-      warnings.push('reasonForNonConfirmation should be specified when met person confirmation is Not Confirmed');
+      warnings.push(
+        'reasonForNonConfirmation should be specified when met person confirmation is Not Confirmed'
+      );
     }
   }
 
@@ -232,8 +286,13 @@ function processFieldValue(fieldName: string, value: any): any {
 
   // Handle numeric fields
   const numericFields = [
-    'totalFamilyMembers', 'totalEarning', 'approxArea',
-    'applicantStayingFloor', 'addressFloor', 'familyMembers', 'addressStructure'
+    'totalFamilyMembers',
+    'totalEarning',
+    'approxArea',
+    'applicantStayingFloor',
+    'addressFloor',
+    'familyMembers',
+    'addressStructure',
   ];
 
   if (numericFields.includes(fieldName)) {
@@ -266,7 +325,9 @@ export function generateFieldCoverageReport(
 ): string {
   const originalFields = Object.keys(formData).length;
   const finalFields = Object.keys(preparedData).length;
-  const populatedFields = Object.values(preparedData).filter(v => v !== null && v !== undefined).length;
+  const populatedFields = Object.values(preparedData).filter(
+    v => v !== null && v !== undefined
+  ).length;
   const nullFields = Object.values(preparedData).filter(v => v === null).length;
 
   return `

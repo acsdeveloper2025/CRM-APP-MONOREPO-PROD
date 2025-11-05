@@ -30,7 +30,7 @@ export interface VerificationReportData {
 
 export class TemplateReportService {
   private readonly RESIDENCE_TEMPLATES = {
-    'POSITIVE': `Residence Remark: POSITIVE.
+    POSITIVE: `Residence Remark: POSITIVE.
 
 VERIFICATION DETAILS:
 Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. At the time of visit met with {Met_Person_Name} ({Met_Person_Relation}), confirmed {Customer_Name} stay and provide the details and also confirmed {Customer_Name} is staying at given address since {Staying_Period} {Staying_Status}.
@@ -51,7 +51,7 @@ CONCLUSION:
 Field Executive Observation: {Other_Observation}
 Hence the profile is marked as {Final_Status}.`,
 
-    'POSITIVE_DOOR_LOCKED': `Residence Remark: POSITIVE & DOOR LOCKED.
+    POSITIVE_DOOR_LOCKED: `Residence Remark: POSITIVE & DOOR LOCKED.
 
 VERIFICATION DETAILS:
 Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. At the time of visit door was {House_Status}.
@@ -72,7 +72,7 @@ CONCLUSION:
 Field Executive Observation: {Other_Observation}
 Hence the profile is marked as {Final_Status}.`,
 
-    'SHIFTED': `Residence Remark: SHIFTED.
+    SHIFTED: `Residence Remark: SHIFTED.
 
 VERIFICATION DETAILS:
 Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. At the time of visit door was {House_Status}. Met with {Met_Person_Name} ({Met_Person_Relation}) informed that {Customer_Name} is shifted to another address since last {Shifted_Period}.
@@ -93,7 +93,7 @@ CONCLUSION:
 Field Executive Observation: {Other_Observation}
 Hence the profile is marked as {Final_Status}.`,
 
-    'SHIFTED_DOOR_LOCKED': `Residence Remark: SHIFTED & DOOR LOCKED.
+    SHIFTED_DOOR_LOCKED: `Residence Remark: SHIFTED & DOOR LOCKED.
 
 VERIFICATION DETAILS:
 Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. At the time of visit door was {House_Status}.
@@ -114,7 +114,7 @@ CONCLUSION:
 Field Executive Observation: {Other_Observation}
 Hence the profile is marked as {Final_Status}.`,
 
-    'ERT': `Residence Entry Restricted Remark (ERT):-
+    ERT: `Residence Entry Restricted Remark (ERT):-
 Visited at the given address {ADDRESS}. The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. It is {Customer_Name} address. At the time of visit met with {Met_Person_Name} {Name_of_Met_Person} informed that in given premises entry is not allowed. {Met_Person_Name} {Met_Person_Confirmation} {Applicant_Staying_Status} given address. Society board is {Society_Name_Plate_Status} {Name_on_Society_Board}. Locality is Residential & type of locality is {Locality_Type}.
 {Locality_Type} is of {Address_Structure} and address located on {Applicant_Staying_Floor}.
 {Locality_Type} color is {Address_Structure_Color}.
@@ -125,12 +125,12 @@ Also executive confirmed about customer {Feedback_from_Neighbour}.
 Field Executive Observation :- {Other_Observation}
 Hence the profile is marked as {Final_Status}`,
 
-    'UNTRACEABLE': `Residence Untraceable Remark (UT):-
+    UNTRACEABLE: `Residence Untraceable Remark (UT):-
 Visited at the given address {ADDRESS}. The given address is incorrect and untraceable. At the time of visit met with {Met_Person_Name}, Met person informed that provided address is short. We called {Customer_Name} but {Customer_Name} {Call_Remark}. We required proper guidance to trace the address. Type of Locality is {Locality_Type}. Field executive reached up to {Landmark_1}, {Landmark_2}, {Landmark_3}, {Landmark_4}. It's a {Dominated_Area} area.
 Field Executive Observation :- {Other_Observation}.
 Hence the profile is marked as {Final_Status}.`,
 
-    'NSP': `Residence Remark: NSP (No Such Person).
+    NSP: `Residence Remark: NSP (No Such Person).
 
 VERIFICATION DETAILS:
 Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. At the time of visit door was {House_Status}. Met with {Met_Person_Name} ({Met_Person_Status}) informed that there is no such person staying at given address.
@@ -154,7 +154,7 @@ CONCLUSION:
 Field Executive Observation: {Other_Observation}
 Hence the profile is marked as {Final_Status}.`,
 
-    'NSP_DOOR_LOCKED': `Residence Remark: NSP & DOOR LOCKED.
+    NSP_DOOR_LOCKED: `Residence Remark: NSP & DOOR LOCKED.
 
 VERIFICATION DETAILS:
 Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. At the time of visit door was {House_Status}.
@@ -173,11 +173,11 @@ Landmarks: {Landmark_1} and {Landmark_2}. It's a {Dominated_Area} area. Applican
 
 CONCLUSION:
 Field Executive Observation: {Other_Observation}
-Hence the profile is marked as {Final_Status}.`
+Hence the profile is marked as {Final_Status}.`,
   };
 
   private readonly OFFICE_TEMPLATES = {
-    'POSITIVE': `Office Remark: POSITIVE.
+    POSITIVE: `Office Remark: POSITIVE.
 
 VERIFICATION DETAILS:
 Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. At the time of visit office was {Office_Status}. Met with {Met_Person_Name} ({Designation}), confirmed {Customer_Name} is working in given office since last {Working_Period} as {Applicant_Designation}.
@@ -198,7 +198,7 @@ CONCLUSION:
 Field Executive Observation: {Other_Observation}
 Hence the profile is marked as {Final_Status}.`,
 
-    'POSITIVE_DOOR_LOCKED': `Office Remark: POSITIVE & DOOR LOCKED.
+    POSITIVE_DOOR_LOCKED: `Office Remark: POSITIVE & DOOR LOCKED.
 
 VERIFICATION DETAILS:
 Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. At the time of visit office was {Office_Status}.
@@ -219,7 +219,7 @@ CONCLUSION:
 Field Executive Observation: {Other_Observation}
 Hence the profile is marked as {Final_Status}.`,
 
-    'SHIFTED': `Office Remark: SHIFTED.
+    SHIFTED: `Office Remark: SHIFTED.
 
 VERIFICATION DETAILS:
 Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. At the time of visit office was {Office_Status}. Met with {Met_Person_Name} ({Designation}) confirmed that company shifted from the given address {Old_Office_Shifted_Period} ago.
@@ -240,7 +240,7 @@ CONCLUSION:
 Field Executive Observation: {Other_Observation}
 Hence the profile is marked as {Final_Status}.`,
 
-    'SHIFTED_DOOR_LOCKED': `Office Remark: SHIFTED & DOOR LOCKED.
+    SHIFTED_DOOR_LOCKED: `Office Remark: SHIFTED & DOOR LOCKED.
 
 VERIFICATION DETAILS:
 Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. At the time of visit office was {Office_Status}.
@@ -261,7 +261,7 @@ CONCLUSION:
 Field Executive Observation: {Other_Observation}
 Hence the profile is marked as {Final_Status}.`,
 
-    'ERT': `Office Entry Restricted Remark (ERT):-
+    ERT: `Office Entry Restricted Remark (ERT):-
 
 VERIFICATION DETAILS:
 Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. It is {Customer_Name} address. At the time of visit met with {Met_Person_Type} {Name_Of_Met_Person} informed that given premises entry not allowed.
@@ -279,7 +279,7 @@ CONCLUSION:
 Field Executive Observation: {Other_Observation}
 Hence the profile is marked as {Final_Status}.`,
 
-    'UNTRACEABLE': `Office Untraceable Remark (UT):-
+    UNTRACEABLE: `Office Untraceable Remark (UT):-
 
 VERIFICATION DETAILS:
 Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is incorrect and untraceable. At the time of visit met with {Met_Person_Name}, Met person informed that provided address is short.
@@ -294,7 +294,7 @@ CONCLUSION:
 Field Executive Observation: {Other_Observation}
 Hence the profile is marked as {Final_Status}.`,
 
-    'NSP': `Office Remark: NSP (No Such Person).
+    NSP: `Office Remark: NSP (No Such Person).
 
 VERIFICATION DETAILS:
 Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. At the time of visit office was {Office_Status}. Met with {Met_Person_Name} ({Designation}).
@@ -318,7 +318,7 @@ CONCLUSION:
 Field Executive Observation: {Other_Observation}
 Hence the profile is marked as {Final_Status}.`,
 
-    'NSP_DOOR_LOCKED': `Office Remark: NSP & DOOR LOCKED.
+    NSP_DOOR_LOCKED: `Office Remark: NSP & DOOR LOCKED.
 
 VERIFICATION DETAILS:
 Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. At the time of visit office was {Office_Status}.
@@ -337,11 +337,11 @@ It is {Dominated_Area} area. Landmarks: {Landmark_1} and {Landmark_2}. {Feedback
 
 CONCLUSION:
 Field Executive Observation: {Other_Observation}
-Hence the profile is marked as {Final_Status}.`
+Hence the profile is marked as {Final_Status}.`,
   };
 
   private readonly BUSINESS_TEMPLATES = {
-    'POSITIVE': `Business Remark: POSITIVE.
+    POSITIVE: `Business Remark: POSITIVE.
 
 VERIFICATION DETAILS:
 Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. At the time of visit business was {Business_Status}. Met with {Met_Person_Name} ({Designation}), confirmed {Customer_Name} is running business at given address since last {Business_Period}.
@@ -365,7 +365,7 @@ CONCLUSION:
 Field Executive Observation: {Other_Observation}
 Hence the profile is marked as {Final_Status}.`,
 
-    'POSITIVE_DOOR_LOCKED': `Business Remark: POSITIVE & DOOR LOCKED.
+    POSITIVE_DOOR_LOCKED: `Business Remark: POSITIVE & DOOR LOCKED.
 
 VERIFICATION DETAILS:
 Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. At the time of visit business was {Business_Status}.
@@ -386,7 +386,7 @@ CONCLUSION:
 Field Executive Observation: {Other_Observation}
 Hence the profile is marked as {Final_Status}.`,
 
-    'SHIFTED': `Business Remark: SHIFTED.
+    SHIFTED: `Business Remark: SHIFTED.
 
 VERIFICATION DETAILS:
 Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. At the time of visit business was {Business_Status}. Met with {Met_Person_Name} ({Designation}) confirmed that business shifted from the given address {Old_Business_Shifted_Period} ago.
@@ -407,7 +407,7 @@ CONCLUSION:
 Field Executive Observation: {Other_Observation}
 Hence the profile is marked as {Final_Status}.`,
 
-    'SHIFTED_DOOR_LOCKED': `Business Remark: SHIFTED & DOOR LOCKED.
+    SHIFTED_DOOR_LOCKED: `Business Remark: SHIFTED & DOOR LOCKED.
 
 VERIFICATION DETAILS:
 Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. At the time of visit business was {Business_Status}.
@@ -428,7 +428,7 @@ CONCLUSION:
 Field Executive Observation: {Other_Observation}
 Hence the profile is marked as {Final_Status}.`,
 
-    'NSP': `Business Remark: NSP (No Such Person).
+    NSP: `Business Remark: NSP (No Such Person).
 
 VERIFICATION DETAILS:
 Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. At the time of visit business was {Business_Status}. Met with {Met_Person_Name} ({Designation}).
@@ -452,7 +452,7 @@ CONCLUSION:
 Field Executive Observation: {Other_Observation}
 Hence the profile is marked as {Final_Status}.`,
 
-    'NSP_DOOR_LOCKED': `Business Remark: NSP & DOOR LOCKED.
+    NSP_DOOR_LOCKED: `Business Remark: NSP & DOOR LOCKED.
 
 VERIFICATION DETAILS:
 Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. At the time of visit business was {Business_Status}.
@@ -473,7 +473,7 @@ CONCLUSION:
 Field Executive Observation: {Other_Observation}
 Hence the profile is marked as {Final_Status}.`,
 
-    'ERT': `Business Entry Restricted Remark (ERT):-
+    ERT: `Business Entry Restricted Remark (ERT):-
 
 VERIFICATION DETAILS:
 Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. It is {Customer_Name} business address. At the time of visit met with {Met_Person_Type} {Name_Of_Met_Person} informed that given premises entry not allowed.
@@ -491,7 +491,7 @@ CONCLUSION:
 Field Executive Observation: {Other_Observation}
 Hence the profile is marked as {Final_Status}.`,
 
-    'UNTRACEABLE': `Business Untraceable Remark (UT):-
+    UNTRACEABLE: `Business Untraceable Remark (UT):-
 
 VERIFICATION DETAILS:
 Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is incorrect and untraceable. At the time of visit met with {Met_Person_Name}, Met person informed that provided address is short.
@@ -504,11 +504,11 @@ Type of Locality is {Locality}. Field executive reached up to {Landmark_1}, {Lan
 
 CONCLUSION:
 Field Executive Observation: {Other_Observation}
-Hence the profile is marked as {Final_Status}.`
+Hence the profile is marked as {Final_Status}.`,
   };
 
   private readonly RESIDENCE_CUM_OFFICE_TEMPLATES = {
-    'POSITIVE': `Residence-cum-Office Remark: POSITIVE.
+    POSITIVE: `Residence-cum-Office Remark: POSITIVE.
 
 VERIFICATION DETAILS:
 Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. At the time of visit residence was {House_Status} and office was {Office_Status}. Met with {Met_Person_Name} ({Met_Person_Relation}), confirmed {Customer_Name} is staying and working at given address since last {Staying_Period}.
@@ -535,7 +535,7 @@ CONCLUSION:
 Field Executive Observation: {Other_Observation}
 Hence the profile is marked as {Final_Status}.`,
 
-    'POSITIVE_DOOR_LOCKED': `Residence-cum-Office Remark: POSITIVE & DOOR LOCKED.
+    POSITIVE_DOOR_LOCKED: `Residence-cum-Office Remark: POSITIVE & DOOR LOCKED.
 
 VERIFICATION DETAILS:
 Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. At the time of visit residence was {House_Status} and office was {Office_Status}.
@@ -559,7 +559,7 @@ CONCLUSION:
 Field Executive Observation: {Other_Observation}
 Hence the profile is marked as {Final_Status}.`,
 
-    'SHIFTED': `Residence-cum-Office Remark: SHIFTED.
+    SHIFTED: `Residence-cum-Office Remark: SHIFTED.
 
 VERIFICATION DETAILS:
 Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. At the time of visit residence was {House_Status} and office was {Office_Status}. Met with {Met_Person_Name} ({Met_Person_Relation}) confirmed that {Customer_Name} shifted from the given address {Shifted_Period} ago.
@@ -583,7 +583,7 @@ CONCLUSION:
 Field Executive Observation: {Other_Observation}
 Hence the profile is marked as {Final_Status}.`,
 
-    'SHIFTED_DOOR_LOCKED': `Residence-cum-Office Remark: SHIFTED & DOOR LOCKED.
+    SHIFTED_DOOR_LOCKED: `Residence-cum-Office Remark: SHIFTED & DOOR LOCKED.
 
 VERIFICATION DETAILS:
 Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. At the time of visit residence was {House_Status} and office was {Office_Status}.
@@ -607,7 +607,7 @@ CONCLUSION:
 Field Executive Observation: {Other_Observation}
 Hence the profile is marked as {Final_Status}.`,
 
-    'NSP': `Residence-cum-Office Remark: NSP (No Such Person).
+    NSP: `Residence-cum-Office Remark: NSP (No Such Person).
 
 VERIFICATION DETAILS:
 Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. At the time of visit residence was {House_Status} and office was {Office_Status}. Met with {Met_Person_Name} ({Met_Person_Relation}).
@@ -631,7 +631,7 @@ CONCLUSION:
 Field Executive Observation: {Other_Observation}
 Hence the profile is marked as {Final_Status}.`,
 
-    'NSP_DOOR_LOCKED': `Residence-cum-Office Remark: NSP & DOOR LOCKED.
+    NSP_DOOR_LOCKED: `Residence-cum-Office Remark: NSP & DOOR LOCKED.
 
 VERIFICATION DETAILS:
 Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. At the time of visit residence was {House_Status} and office was {Office_Status}.
@@ -652,7 +652,7 @@ CONCLUSION:
 Field Executive Observation: {Other_Observation}
 Hence the profile is marked as {Final_Status}.`,
 
-    'ERT': `Residence-cum-Office Entry Restricted Remark (ERT):-
+    ERT: `Residence-cum-Office Entry Restricted Remark (ERT):-
 
 VERIFICATION DETAILS:
 Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. It is {Customer_Name} residence-cum-office address. At the time of visit met with {Met_Person_Type} {Name_Of_Met_Person} informed that given premises entry not allowed.
@@ -670,7 +670,7 @@ CONCLUSION:
 Field Executive Observation: {Other_Observation}
 Hence the profile is marked as {Final_Status}.`,
 
-    'UNTRACEABLE': `Residence-cum-Office Untraceable Remark (UT):-
+    UNTRACEABLE: `Residence-cum-Office Untraceable Remark (UT):-
 
 VERIFICATION DETAILS:
 Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is incorrect and untraceable. At the time of visit met with {Met_Person_Name}, Met person informed that provided address is short.
@@ -683,11 +683,11 @@ Type of Locality is {Locality}. Field executive reached up to {Landmark_1}, {Lan
 
 CONCLUSION:
 Field Executive Observation: {Other_Observation}
-Hence the profile is marked as {Final_Status}.`
+Hence the profile is marked as {Final_Status}.`,
   };
 
   private readonly BUILDER_TEMPLATES = {
-    'POSITIVE': `Builder Remark: POSITIVE.
+    POSITIVE: `Builder Remark: POSITIVE.
 
 VERIFICATION DETAILS:
 Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. At the time of visit builder office was {Office_Status}. Met with {Met_Person_Name} ({Designation}), confirmed {Customer_Name} is working as builder at given address since last {Working_Period}.
@@ -708,7 +708,7 @@ CONCLUSION:
 Field Executive Observation: {Other_Observation}
 Hence the profile is marked as {Final_Status}.`,
 
-    'POSITIVE_DOOR_LOCKED': `Builder Remark: POSITIVE & DOOR LOCKED.
+    POSITIVE_DOOR_LOCKED: `Builder Remark: POSITIVE & DOOR LOCKED.
 
 VERIFICATION DETAILS:
 Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. At the time of visit builder office was {Office_Status}.
@@ -729,7 +729,7 @@ CONCLUSION:
 Field Executive Observation: {Other_Observation}
 Hence the profile is marked as {Final_Status}.`,
 
-    'SHIFTED': `Builder Remark: SHIFTED.
+    SHIFTED: `Builder Remark: SHIFTED.
 
 VERIFICATION DETAILS:
 Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. At the time of visit builder office was {Office_Status}. Met with {Met_Person_Name} ({Designation}) confirmed that builder office shifted from the given address {Old_Office_Shifted_Period} ago.
@@ -750,7 +750,7 @@ CONCLUSION:
 Field Executive Observation: {Other_Observation}
 Hence the profile is marked as {Final_Status}.`,
 
-    'SHIFTED_DOOR_LOCKED': `Builder Remark: SHIFTED & DOOR LOCKED.
+    SHIFTED_DOOR_LOCKED: `Builder Remark: SHIFTED & DOOR LOCKED.
 
 VERIFICATION DETAILS:
 Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. At the time of visit builder office was {Office_Status}.
@@ -771,7 +771,7 @@ CONCLUSION:
 Field Executive Observation: {Other_Observation}
 Hence the profile is marked as {Final_Status}.`,
 
-    'NSP': `Builder Remark: NSP (No Such Person).
+    NSP: `Builder Remark: NSP (No Such Person).
 
 VERIFICATION DETAILS:
 Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. At the time of visit builder office was {Office_Status}. Met with {Met_Person_Name} ({Designation}).
@@ -795,7 +795,7 @@ CONCLUSION:
 Field Executive Observation: {Other_Observation}
 Hence the profile is marked as {Final_Status}.`,
 
-    'NSP_DOOR_LOCKED': `Builder Remark: NSP & DOOR LOCKED.
+    NSP_DOOR_LOCKED: `Builder Remark: NSP & DOOR LOCKED.
 
 VERIFICATION DETAILS:
 Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. At the time of visit builder office was {Office_Status}.
@@ -816,7 +816,7 @@ CONCLUSION:
 Field Executive Observation: {Other_Observation}
 Hence the profile is marked as {Final_Status}.`,
 
-    'ERT': `Builder Entry Restricted Remark (ERT):-
+    ERT: `Builder Entry Restricted Remark (ERT):-
 
 VERIFICATION DETAILS:
 Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. It is {Customer_Name} builder office address. At the time of visit met with {Met_Person_Type} {Name_Of_Met_Person} informed that given premises entry not allowed.
@@ -834,7 +834,7 @@ CONCLUSION:
 Field Executive Observation: {Other_Observation}
 Hence the profile is marked as {Final_Status}.`,
 
-    'UNTRACEABLE': `Builder Untraceable Remark (UT):-
+    UNTRACEABLE: `Builder Untraceable Remark (UT):-
 
 VERIFICATION DETAILS:
 Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is incorrect and untraceable. At the time of visit met with {Met_Person_Name}, Met person informed that provided address is short.
@@ -847,11 +847,11 @@ Type of Locality is {Locality}. Field executive reached up to {Landmark_1}, {Lan
 
 CONCLUSION:
 Field Executive Observation: {Other_Observation}
-Hence the profile is marked as {Final_Status}.`
+Hence the profile is marked as {Final_Status}.`,
   };
 
   private readonly NOC_TEMPLATES = {
-    'POSITIVE': `NOC Remark: POSITIVE.
+    POSITIVE: `NOC Remark: POSITIVE.
 
 VERIFICATION DETAILS:
 Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. At the time of visit NOC office was {Office_Status}. Met with {Met_Person_Name} ({Designation}), confirmed {Customer_Name} NOC verification is positive.
@@ -872,7 +872,7 @@ CONCLUSION:
 Field Executive Observation: {Other_Observation}
 Hence the profile is marked as {Final_Status}.`,
 
-    'POSITIVE_DOOR_LOCKED': `NOC Remark: POSITIVE & DOOR LOCKED.
+    POSITIVE_DOOR_LOCKED: `NOC Remark: POSITIVE & DOOR LOCKED.
 
 VERIFICATION DETAILS:
 Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. At the time of visit NOC office was {Office_Status}.
@@ -893,7 +893,7 @@ CONCLUSION:
 Field Executive Observation: {Other_Observation}
 Hence the profile is marked as {Final_Status}.`,
 
-    'ERT': `NOC Entry Restricted Remark (ERT):-
+    ERT: `NOC Entry Restricted Remark (ERT):-
 
 VERIFICATION DETAILS:
 Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. It is {Customer_Name} NOC verification address. At the time of visit met with {Met_Person_Type} {Name_Of_Met_Person} informed that given premises entry not allowed.
@@ -911,7 +911,7 @@ CONCLUSION:
 Field Executive Observation: {Other_Observation}
 Hence the profile is marked as {Final_Status}.`,
 
-    'UNTRACEABLE': `NOC Untraceable Remark (UT):-
+    UNTRACEABLE: `NOC Untraceable Remark (UT):-
 
 VERIFICATION DETAILS:
 Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is incorrect and untraceable. At the time of visit met with {Met_Person_Name}, Met person informed that provided address is short.
@@ -924,11 +924,11 @@ Type of Locality is {Locality}. Field executive reached up to {Landmark_1}, {Lan
 
 CONCLUSION:
 Field Executive Observation: {Other_Observation}
-Hence the profile is marked as {Final_Status}.`
+Hence the profile is marked as {Final_Status}.`,
   };
 
   private readonly DSA_CONNECTOR_TEMPLATES = {
-    'POSITIVE': `DSA/Connector Remark: POSITIVE.
+    POSITIVE: `DSA/Connector Remark: POSITIVE.
 
 VERIFICATION DETAILS:
 Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. At the time of visit DSA/Connector office was {Office_Status}. Met with {Met_Person_Name} ({Designation}), confirmed {Customer_Name} is working as DSA/Connector at given address since last {Working_Period}.
@@ -949,7 +949,7 @@ CONCLUSION:
 Field Executive Observation: {Other_Observation}
 Hence the profile is marked as {Final_Status}.`,
 
-    'POSITIVE_DOOR_LOCKED': `DSA/Connector Remark: POSITIVE & DOOR LOCKED.
+    POSITIVE_DOOR_LOCKED: `DSA/Connector Remark: POSITIVE & DOOR LOCKED.
 
 VERIFICATION DETAILS:
 Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. At the time of visit DSA/Connector office was {Office_Status}.
@@ -970,7 +970,7 @@ CONCLUSION:
 Field Executive Observation: {Other_Observation}
 Hence the profile is marked as {Final_Status}.`,
 
-    'SHIFTED': `DSA/Connector Remark: SHIFTED.
+    SHIFTED: `DSA/Connector Remark: SHIFTED.
 
 VERIFICATION DETAILS:
 Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. At the time of visit DSA/Connector office was {Office_Status}. Met with {Met_Person_Name} ({Designation}) confirmed that DSA/Connector office shifted from the given address {Old_Office_Shifted_Period} ago.
@@ -991,7 +991,7 @@ CONCLUSION:
 Field Executive Observation: {Other_Observation}
 Hence the profile is marked as {Final_Status}.`,
 
-    'SHIFTED_DOOR_LOCKED': `DSA/Connector Remark: SHIFTED & DOOR LOCKED.
+    SHIFTED_DOOR_LOCKED: `DSA/Connector Remark: SHIFTED & DOOR LOCKED.
 
 VERIFICATION DETAILS:
 Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. At the time of visit DSA/Connector office was {Office_Status}.
@@ -1012,7 +1012,7 @@ CONCLUSION:
 Field Executive Observation: {Other_Observation}
 Hence the profile is marked as {Final_Status}.`,
 
-    'NSP': `DSA/Connector Remark: NSP (No Such Person).
+    NSP: `DSA/Connector Remark: NSP (No Such Person).
 
 VERIFICATION DETAILS:
 Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. At the time of visit DSA/Connector office was {Office_Status}. Met with {Met_Person_Name} ({Designation}).
@@ -1036,7 +1036,7 @@ CONCLUSION:
 Field Executive Observation: {Other_Observation}
 Hence the profile is marked as {Final_Status}.`,
 
-    'NSP_DOOR_LOCKED': `DSA/Connector Remark: NSP & DOOR LOCKED.
+    NSP_DOOR_LOCKED: `DSA/Connector Remark: NSP & DOOR LOCKED.
 
 VERIFICATION DETAILS:
 Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. At the time of visit DSA/Connector office was {Office_Status}.
@@ -1057,7 +1057,7 @@ CONCLUSION:
 Field Executive Observation: {Other_Observation}
 Hence the profile is marked as {Final_Status}.`,
 
-    'ERT': `DSA/Connector Entry Restricted Remark (ERT):-
+    ERT: `DSA/Connector Entry Restricted Remark (ERT):-
 
 VERIFICATION DETAILS:
 Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. It is {Customer_Name} DSA/Connector office address. At the time of visit met with {Met_Person_Type} {Name_Of_Met_Person} informed that given premises entry not allowed.
@@ -1075,7 +1075,7 @@ CONCLUSION:
 Field Executive Observation: {Other_Observation}
 Hence the profile is marked as {Final_Status}.`,
 
-    'UNTRACEABLE': `DSA/Connector Untraceable Remark (UT):-
+    UNTRACEABLE: `DSA/Connector Untraceable Remark (UT):-
 
 VERIFICATION DETAILS:
 Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is incorrect and untraceable. At the time of visit met with {Met_Person_Name}, Met person informed that provided address is short.
@@ -1088,11 +1088,11 @@ Type of Locality is {Locality}. Field executive reached up to {Landmark_1}, {Lan
 
 CONCLUSION:
 Field Executive Observation: {Other_Observation}
-Hence the profile is marked as {Final_Status}.`
+Hence the profile is marked as {Final_Status}.`,
   };
 
   private readonly PROPERTY_APF_TEMPLATES = {
-    'POSITIVE_NEGATIVE': `Property APF Remark: POSITIVE/NEGATIVE.
+    POSITIVE_NEGATIVE: `Property APF Remark: POSITIVE/NEGATIVE.
 
 VERIFICATION DETAILS:
 Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. At the time of visit property was accessible for verification.
@@ -1116,7 +1116,7 @@ CONCLUSION:
 Field Executive Observation: {Other_Observation}
 Hence the profile is marked as {Final_Status}.`,
 
-    'ERT': `Property APF Entry Restricted Remark (ERT):-
+    ERT: `Property APF Entry Restricted Remark (ERT):-
 
 VERIFICATION DETAILS:
 Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. It is {Customer_Name} property address for APF verification. At the time of visit met with {Met_Person_Type} {Name_Of_Met_Person} informed that given premises entry not allowed.
@@ -1134,7 +1134,7 @@ CONCLUSION:
 Field Executive Observation: {Other_Observation}
 Hence the profile is marked as {Final_Status}.`,
 
-    'UNTRACEABLE': `Property APF Untraceable Remark (UT):-
+    UNTRACEABLE: `Property APF Untraceable Remark (UT):-
 
 VERIFICATION DETAILS:
 Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is incorrect and untraceable. At the time of visit met with {Met_Person_Name}, Met person informed that provided address is short.
@@ -1147,11 +1147,11 @@ Type of Locality is {Locality}. Field executive reached up to {Landmark_1}, {Lan
 
 CONCLUSION:
 Field Executive Observation: {Other_Observation}
-Hence the profile is marked as {Final_Status}.`
+Hence the profile is marked as {Final_Status}.`,
   };
 
   private readonly PROPERTY_INDIVIDUAL_TEMPLATES = {
-    'POSITIVE': `Property Individual Remark: POSITIVE.
+    POSITIVE: `Property Individual Remark: POSITIVE.
 
 VERIFICATION DETAILS:
 Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. At the time of visit property was {Business_Status}. Met with {Met_Person_Name} ({Designation}), confirmed {Customer_Name} property ownership at given address since last {Business_Period}.
@@ -1175,7 +1175,7 @@ CONCLUSION:
 Field Executive Observation: {Other_Observation}
 Hence the profile is marked as {Final_Status}.`,
 
-    'POSITIVE_DOOR_LOCKED': `Property Individual Remark: POSITIVE & DOOR LOCKED.
+    POSITIVE_DOOR_LOCKED: `Property Individual Remark: POSITIVE & DOOR LOCKED.
 
 VERIFICATION DETAILS:
 Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. At the time of visit property was {Business_Status}.
@@ -1196,7 +1196,7 @@ CONCLUSION:
 Field Executive Observation: {Other_Observation}
 Hence the profile is marked as {Final_Status}.`,
 
-    'SHIFTED': `Property Individual Remark: SHIFTED.
+    SHIFTED: `Property Individual Remark: SHIFTED.
 
 VERIFICATION DETAILS:
 Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. At the time of visit property was {Business_Status}. Met with {Met_Person_Name} ({Designation}) confirmed that property ownership shifted from {Customer_Name} {Old_Business_Shifted_Period} ago.
@@ -1217,7 +1217,7 @@ CONCLUSION:
 Field Executive Observation: {Other_Observation}
 Hence the profile is marked as {Final_Status}.`,
 
-    'SHIFTED_DOOR_LOCKED': `Property Individual Remark: SHIFTED & DOOR LOCKED.
+    SHIFTED_DOOR_LOCKED: `Property Individual Remark: SHIFTED & DOOR LOCKED.
 
 VERIFICATION DETAILS:
 Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. At the time of visit property was {Business_Status}.
@@ -1238,7 +1238,7 @@ CONCLUSION:
 Field Executive Observation: {Other_Observation}
 Hence the profile is marked as {Final_Status}.`,
 
-    'NSP': `Property Individual Remark: NSP (No Such Person).
+    NSP: `Property Individual Remark: NSP (No Such Person).
 
 VERIFICATION DETAILS:
 Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. At the time of visit property was {Business_Status}. Met with {Met_Person_Name} ({Designation}).
@@ -1262,7 +1262,7 @@ CONCLUSION:
 Field Executive Observation: {Other_Observation}
 Hence the profile is marked as {Final_Status}.`,
 
-    'NSP_DOOR_LOCKED': `Property Individual Remark: NSP & DOOR LOCKED.
+    NSP_DOOR_LOCKED: `Property Individual Remark: NSP & DOOR LOCKED.
 
 VERIFICATION DETAILS:
 Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. At the time of visit property was {Business_Status}.
@@ -1283,7 +1283,7 @@ CONCLUSION:
 Field Executive Observation: {Other_Observation}
 Hence the profile is marked as {Final_Status}.`,
 
-    'ERT': `Property Individual Entry Restricted Remark (ERT):-
+    ERT: `Property Individual Entry Restricted Remark (ERT):-
 
 VERIFICATION DETAILS:
 Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. It is {Customer_Name} property address. At the time of visit met with {Met_Person_Type} {Name_Of_Met_Person} informed that given premises entry not allowed.
@@ -1301,7 +1301,7 @@ CONCLUSION:
 Field Executive Observation: {Other_Observation}
 Hence the profile is marked as {Final_Status}.`,
 
-    'UNTRACEABLE': `Property Individual Untraceable Remark (UT):-
+    UNTRACEABLE: `Property Individual Untraceable Remark (UT):-
 
 VERIFICATION DETAILS:
 Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is incorrect and untraceable. At the time of visit met with {Met_Person_Name}, Met person informed that provided address is short.
@@ -1314,7 +1314,7 @@ Type of Locality is {Locality}. Field executive reached up to {Landmark_1}, {Lan
 
 CONCLUSION:
 Field Executive Observation: {Other_Observation}
-Hence the profile is marked as {Final_Status}.`
+Hence the profile is marked as {Final_Status}.`,
   };
 
   /**
@@ -1325,7 +1325,7 @@ Hence the profile is marked as {Final_Status}.`
       logger.info('Generating template-based report', {
         verificationType: data.verificationType,
         outcome: data.outcome,
-        caseId: data.caseDetails.caseId
+        caseId: data.caseDetails.caseId,
       });
 
       // Get appropriate template
@@ -1335,8 +1335,11 @@ Hence the profile is marked as {Final_Status}.`
       }
 
       // Map form data to template variables
-      const templateVariables = this.mapFormDataToTemplateVariables(data.formData, data.caseDetails);
-      
+      const templateVariables = this.mapFormDataToTemplateVariables(
+        data.formData,
+        data.caseDetails
+      );
+
       // Replace template variables with actual data
       let populatedTemplate = template;
       Object.entries(templateVariables).forEach(([key, value]) => {
@@ -1346,7 +1349,7 @@ Hence the profile is marked as {Final_Status}.`
 
       logger.info('Template-based report generated successfully', {
         caseId: data.caseDetails.caseId,
-        templateUsed: this.getTemplateKey(data.verificationType, data.outcome, data.formData)
+        templateUsed: this.getTemplateKey(data.verificationType, data.outcome, data.formData),
       });
 
       return {
@@ -1356,15 +1359,14 @@ Hence the profile is marked as {Final_Status}.`
           verificationType: data.verificationType,
           outcome: data.outcome,
           generatedAt: new Date().toISOString(),
-          templateUsed: this.getTemplateKey(data.verificationType, data.outcome, data.formData)
-        }
+          templateUsed: this.getTemplateKey(data.verificationType, data.outcome, data.formData),
+        },
       };
-
     } catch (error) {
       logger.error('Error generating template-based report:', error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error occurred'
+        error: error instanceof Error ? error.message : 'Unknown error occurred',
       };
     }
   }
@@ -1424,7 +1426,11 @@ Hence the profile is marked as {Final_Status}.`
     if (verificationType.toUpperCase() === 'RESIDENCE') {
       // Handle Shifted scenarios
       if (outcomeNormalized.includes('shifted')) {
-        if (outcomeNormalized.includes('door lock') || outcomeNormalized.includes('door locked') || outcomeNormalized.includes('locked')) {
+        if (
+          outcomeNormalized.includes('door lock') ||
+          outcomeNormalized.includes('door locked') ||
+          outcomeNormalized.includes('locked')
+        ) {
           return 'SHIFTED_DOOR_LOCKED';
         } else {
           return 'SHIFTED';
@@ -1443,7 +1449,11 @@ Hence the profile is marked as {Final_Status}.`
 
       // Handle NSP scenarios
       if (outcomeNormalized.includes('nsp') || outcomeNormalized.includes('no such person')) {
-        if (outcomeNormalized.includes('door lock') || outcomeNormalized.includes('door locked') || outcomeNormalized.includes('locked')) {
+        if (
+          outcomeNormalized.includes('door lock') ||
+          outcomeNormalized.includes('door locked') ||
+          outcomeNormalized.includes('locked')
+        ) {
           return 'NSP_DOOR_LOCKED';
         } else {
           return 'NSP';
@@ -1551,8 +1561,10 @@ Hence the profile is marked as {Final_Status}.`
       if (outcomeNormalized.includes('shifted')) {
         const houseStatus = formData?.houseStatus || formData?.house_status;
         const officeStatus = formData?.officeStatus || formData?.office_status;
-        if ((houseStatus && houseStatus.toLowerCase() === 'opened') ||
-            (officeStatus && officeStatus.toLowerCase() === 'opened')) {
+        if (
+          (houseStatus && houseStatus.toLowerCase() === 'opened') ||
+          (officeStatus && officeStatus.toLowerCase() === 'opened')
+        ) {
           return 'SHIFTED'; // Either residence or office was accessible
         } else {
           return 'SHIFTED_DOOR_LOCKED'; // Both were closed, only TPC
@@ -1573,8 +1585,10 @@ Hence the profile is marked as {Final_Status}.`
       if (outcomeNormalized.includes('nsp')) {
         const houseStatus = formData?.houseStatus || formData?.house_status;
         const officeStatus = formData?.officeStatus || formData?.office_status;
-        if ((houseStatus && houseStatus.toLowerCase() === 'opened') ||
-            (officeStatus && officeStatus.toLowerCase() === 'opened')) {
+        if (
+          (houseStatus && houseStatus.toLowerCase() === 'opened') ||
+          (officeStatus && officeStatus.toLowerCase() === 'opened')
+        ) {
           return 'NSP'; // Either residence or office was accessible
         } else {
           return 'NSP_DOOR_LOCKED'; // Both were closed, only TPC
@@ -1585,8 +1599,10 @@ Hence the profile is marked as {Final_Status}.`
       if (outcomeNormalized.includes('positive')) {
         const houseStatus = formData?.houseStatus || formData?.house_status;
         const officeStatus = formData?.officeStatus || formData?.office_status;
-        if ((houseStatus && houseStatus.toLowerCase() === 'opened') ||
-            (officeStatus && officeStatus.toLowerCase() === 'opened')) {
+        if (
+          (houseStatus && houseStatus.toLowerCase() === 'opened') ||
+          (officeStatus && officeStatus.toLowerCase() === 'opened')
+        ) {
           return 'POSITIVE'; // Either residence or office was accessible
         } else {
           return 'POSITIVE_DOOR_LOCKED'; // Both were closed, only TPC
@@ -1718,7 +1734,8 @@ Hence the profile is marked as {Final_Status}.`
     if (verificationType.toUpperCase() === 'PROPERTY_INDIVIDUAL') {
       // Handle Shifted scenarios - use property status to determine template
       if (outcomeNormalized.includes('shifted')) {
-        const propertyStatus = formData?.businessStatus || formData?.business_status || formData?.propertyStatus;
+        const propertyStatus =
+          formData?.businessStatus || formData?.business_status || formData?.propertyStatus;
         if (propertyStatus && propertyStatus.toLowerCase() === 'opened') {
           return 'SHIFTED'; // Property was accessible, person was met
         } else {
@@ -1738,7 +1755,8 @@ Hence the profile is marked as {Final_Status}.`
 
       // Handle NSP scenarios - use property status to determine template
       if (outcomeNormalized.includes('nsp')) {
-        const propertyStatus = formData?.businessStatus || formData?.business_status || formData?.propertyStatus;
+        const propertyStatus =
+          formData?.businessStatus || formData?.business_status || formData?.propertyStatus;
         if (propertyStatus && propertyStatus.toLowerCase() === 'opened') {
           return 'NSP'; // Property was accessible, person was met
         } else {
@@ -1748,7 +1766,8 @@ Hence the profile is marked as {Final_Status}.`
 
       // Handle Positive scenarios - use property status to determine template
       if (outcomeNormalized.includes('positive')) {
-        const propertyStatus = formData?.businessStatus || formData?.business_status || formData?.propertyStatus;
+        const propertyStatus =
+          formData?.businessStatus || formData?.business_status || formData?.propertyStatus;
         if (propertyStatus && propertyStatus.toLowerCase() === 'opened') {
           return 'POSITIVE'; // Property was accessible, person was met
         } else {
@@ -1768,12 +1787,14 @@ Hence the profile is marked as {Final_Status}.`
     const metPersonName = formData?.metPersonName || formData?.met_person_name;
 
     // Check if customer name looks like test data or is invalid
-    if (!customerName ||
-        customerName.toLowerCase().includes('test') ||
-        customerName.toLowerCase().includes('residance') ||
-        customerName.toLowerCase().includes('door') ||
-        customerName.toLowerCase().includes('positive') ||
-        customerName.toLowerCase().includes('report')) {
+    if (
+      !customerName ||
+      customerName.toLowerCase().includes('test') ||
+      customerName.toLowerCase().includes('residance') ||
+      customerName.toLowerCase().includes('door') ||
+      customerName.toLowerCase().includes('positive') ||
+      customerName.toLowerCase().includes('report')
+    ) {
       return metPersonName || 'Customer';
     }
 
@@ -1783,15 +1804,20 @@ Hence the profile is marked as {Final_Status}.`
   /**
    * Format area in square feet with proper units
    */
-  private formatAreaSqFeet(formData: any, type: string = 'residence'): string {
+  private formatAreaSqFeet(formData: any, type = 'residence'): string {
     let area: any;
 
     if (type === 'office') {
       area = formData?.officeApproxArea || formData?.office_approx_area || formData?.officeArea;
     } else if (type === 'business') {
-      area = formData?.businessApproxArea || formData?.business_approx_area || formData?.businessArea;
+      area =
+        formData?.businessApproxArea || formData?.business_approx_area || formData?.businessArea;
     } else {
-      area = formData?.approxArea || formData?.approx_area || formData?.approximateArea || formData?.approxAreaSqFeet;
+      area =
+        formData?.approxArea ||
+        formData?.approx_area ||
+        formData?.approximateArea ||
+        formData?.approxAreaSqFeet;
     }
 
     if (area && !isNaN(area) && area > 0) {
@@ -1805,8 +1831,13 @@ Hence the profile is marked as {Final_Status}.`
    * Map form data to template variables for verification reports
    */
   private mapFormDataToTemplateVariables(formData: any, caseDetails: any): Record<string, string> {
-    const safeGet = (obj: any, key: string, defaultValue: string = 'Not provided') => {
-      return obj?.[key] || obj?.[key.toLowerCase()] || obj?.[key.replace(/([A-Z])/g, '_$1').toLowerCase()] || defaultValue;
+    const safeGet = (obj: any, key: string, defaultValue = 'Not provided') => {
+      return (
+        obj?.[key] ||
+        obj?.[key.toLowerCase()] ||
+        obj?.[key.replace(/([A-Z])/g, '_$1').toLowerCase()] ||
+        defaultValue
+      );
     };
 
     return {
@@ -1816,10 +1847,17 @@ Hence the profile is marked as {Final_Status}.`
       Address_Rating: safeGet(formData, 'addressRating'),
 
       // Person details
-      Met_Person_Name: safeGet(formData, 'metPersonName') || safeGet(formData, 'personMet') || safeGet(formData, 'met_person_name'),
+      Met_Person_Name:
+        safeGet(formData, 'metPersonName') ||
+        safeGet(formData, 'personMet') ||
+        safeGet(formData, 'met_person_name'),
       Customer_Name: this.getCustomerName(formData, caseDetails),
       Applicant_Type: caseDetails.applicantType || 'APPLICANT',
-      Applicant_Status: caseDetails.customerName || safeGet(formData, 'customerName') || safeGet(formData, 'applicantStatus') || 'Applicant',
+      Applicant_Status:
+        caseDetails.customerName ||
+        safeGet(formData, 'customerName') ||
+        safeGet(formData, 'applicantStatus') ||
+        'Applicant',
       Met_Person_Relation: safeGet(formData, 'metPersonRelation') || safeGet(formData, 'relation'),
 
       // Staying details
@@ -1828,55 +1866,80 @@ Hence the profile is marked as {Final_Status}.`
 
       // Property details
       Approx_Area_Sq_Feet: this.formatAreaSqFeet(formData),
-      Total_Family_Members: safeGet(formData, 'totalFamilyMembers') || safeGet(formData, 'familyMembers'),
+      Total_Family_Members:
+        safeGet(formData, 'totalFamilyMembers') || safeGet(formData, 'familyMembers'),
       Total_Earning: safeGet(formData, 'totalEarning') || safeGet(formData, 'earningMembers'),
-      
+
       // Work details
       Working_Status: safeGet(formData, 'workingStatus'),
       Company_Name: safeGet(formData, 'companyName') || safeGet(formData, 'employerName'),
-      
+
       // Name plates and boards
-      Door_Name_Plate: safeGet(formData, 'doorNamePlateStatus') === 'Sighted' ? 'Available' : 'Not Available',
-      Name_on_Door_Plate: safeGet(formData, 'nameOnDoorPlate') || safeGet(formData, 'doorNamePlate'),
-      Society_Name_Plate: safeGet(formData, 'societyNamePlateStatus') === 'Sighted' ? 'Available' : 'Not Available',
-      Name_on_Society_Board: safeGet(formData, 'nameOnSocietyBoard') || safeGet(formData, 'societyNamePlate'),
-      
+      Door_Name_Plate:
+        safeGet(formData, 'doorNamePlateStatus') === 'Sighted' ? 'Available' : 'Not Available',
+      Name_on_Door_Plate:
+        safeGet(formData, 'nameOnDoorPlate') || safeGet(formData, 'doorNamePlate'),
+      Society_Name_Plate:
+        safeGet(formData, 'societyNamePlateStatus') === 'Sighted' ? 'Available' : 'Not Available',
+      Name_on_Society_Board:
+        safeGet(formData, 'nameOnSocietyBoard') || safeGet(formData, 'societyNamePlate'),
+
       // Locality details
-      Locality: safeGet(formData, 'localityType') || safeGet(formData, 'locality') || 'Tower / Building',
-      Address_Structure_G_Plus: safeGet(formData, 'addressStructure') || safeGet(formData, 'addressStructureGPlus'),
-      Applicant_Staying_Floor: safeGet(formData, 'addressFloor') || safeGet(formData, 'applicantStayingFloor') || safeGet(formData, 'floor'),
-      Address_Structure_Color: safeGet(formData, 'addressStructureColor') || safeGet(formData, 'buildingColor'),
+      Locality:
+        safeGet(formData, 'localityType') || safeGet(formData, 'locality') || 'Tower / Building',
+      Address_Structure_G_Plus:
+        safeGet(formData, 'addressStructure') || safeGet(formData, 'addressStructureGPlus'),
+      Applicant_Staying_Floor:
+        safeGet(formData, 'addressFloor') ||
+        safeGet(formData, 'applicantStayingFloor') ||
+        safeGet(formData, 'floor'),
+      Address_Structure_Color:
+        safeGet(formData, 'addressStructureColor') || safeGet(formData, 'buildingColor'),
       Door_Color: safeGet(formData, 'doorColor'),
-      
+
       // Documents
       Document_Type: safeGet(formData, 'documentType'),
-      
+
       // TPC details
       TPC_Met_Person_1: safeGet(formData, 'tpcMetPerson1') || safeGet(formData, 'tpcMetPerson'),
       Name_of_TPC_1: safeGet(formData, 'nameOfTpc1') || safeGet(formData, 'tpcName1'),
-      TPC_Confirmation_1: safeGet(formData, 'tpcConfirmation1') || safeGet(formData, 'tpcConfirmation'),
+      TPC_Confirmation_1:
+        safeGet(formData, 'tpcConfirmation1') || safeGet(formData, 'tpcConfirmation'),
       TPC_Met_Person_2: safeGet(formData, 'tpcMetPerson2'),
       Name_of_TPC_2: safeGet(formData, 'nameOfTpc2') || safeGet(formData, 'tpcName2'),
       TPC_Confirmation_2: safeGet(formData, 'tpcConfirmation2'),
-      
+
       // Landmarks
       Landmark_1: safeGet(formData, 'landmark1') || safeGet(formData, 'nearbyLandmark1'),
       Landmark_2: safeGet(formData, 'landmark2') || safeGet(formData, 'nearbyLandmark2'),
-      Landmark_3: safeGet(formData, 'landmark3') || safeGet(formData, 'nearbyLandmark3') || 'Not provided',
-      Landmark_4: safeGet(formData, 'landmark4') || safeGet(formData, 'nearbyLandmark4') || 'Not provided',
-      
+      Landmark_3:
+        safeGet(formData, 'landmark3') || safeGet(formData, 'nearbyLandmark3') || 'Not provided',
+      Landmark_4:
+        safeGet(formData, 'landmark4') || safeGet(formData, 'nearbyLandmark4') || 'Not provided',
+
       // Area assessment
       Dominated_Area: safeGet(formData, 'dominatedArea'),
-      Feedback_from_Neighbour: safeGet(formData, 'feedbackFromNeighbour') || safeGet(formData, 'neighborFeedback'),
+      Feedback_from_Neighbour:
+        safeGet(formData, 'feedbackFromNeighbour') || safeGet(formData, 'neighborFeedback'),
       Political_Connection: safeGet(formData, 'politicalConnection'),
-      Other_Observation: safeGet(formData, 'otherObservation') || safeGet(formData, 'remarks') || safeGet(formData, 'verifierComments'),
-      Final_Status: safeGet(formData, 'finalStatus') || safeGet(formData, 'verificationOutcome') || 'Positive',
+      Other_Observation:
+        safeGet(formData, 'otherObservation') ||
+        safeGet(formData, 'remarks') ||
+        safeGet(formData, 'verifierComments'),
+      Final_Status:
+        safeGet(formData, 'finalStatus') || safeGet(formData, 'verificationOutcome') || 'Positive',
 
       // Call-related fields for Untraceable template
-      Call_Remark: safeGet(formData, 'callRemark') || safeGet(formData, 'phoneCallRemark') || 'did not respond',
+      Call_Remark:
+        safeGet(formData, 'callRemark') ||
+        safeGet(formData, 'phoneCallRemark') ||
+        'did not respond',
 
       // NSP-specific fields
-      Staying_Person_Name: safeGet(formData, 'stayingPersonName') || safeGet(formData, 'actualResidentName') || 'Not provided',
+      Staying_Person_Name:
+        safeGet(formData, 'stayingPersonName') ||
+        safeGet(formData, 'actualResidentName') ||
+        'Not provided',
 
       // Additional variables for shifted templates
       House_Status: safeGet(formData, 'houseStatus') || safeGet(formData, 'doorStatus'),
@@ -1886,50 +1949,96 @@ Hence the profile is marked as {Final_Status}.`
       Locality_Type: safeGet(formData, 'localityType') || safeGet(formData, 'locality'),
       Address_Structure: safeGet(formData, 'addressStructure'),
       Address_Floor: safeGet(formData, 'addressFloor') || safeGet(formData, 'floor'),
-      Feedback_From_Neighbour: safeGet(formData, 'feedbackFromNeighbour') || safeGet(formData, 'neighborFeedback'),
-      Premises_Status: safeGet(formData, 'premisesStatus') || safeGet(formData, 'currentPremisesStatus'),
+      Feedback_From_Neighbour:
+        safeGet(formData, 'feedbackFromNeighbour') || safeGet(formData, 'neighborFeedback'),
+      Premises_Status:
+        safeGet(formData, 'premisesStatus') || safeGet(formData, 'currentPremisesStatus'),
 
       // Office-specific variables
       Office_Status: safeGet(formData, 'officeStatus') || safeGet(formData, 'office_status'),
       Designation: safeGet(formData, 'designation') || safeGet(formData, 'metPersonDesignation'),
       Working_Period: safeGet(formData, 'workingPeriod') || safeGet(formData, 'working_period'),
-      Applicant_Designation: safeGet(formData, 'applicantDesignation') || safeGet(formData, 'applicant_designation'),
-      Applicant_Working_Premises: safeGet(formData, 'applicantWorkingPremises') || safeGet(formData, 'applicant_working_premises'),
-      Sitting_Location: safeGet(formData, 'sittingLocation') || safeGet(formData, 'sitting_location'),
+      Applicant_Designation:
+        safeGet(formData, 'applicantDesignation') || safeGet(formData, 'applicant_designation'),
+      Applicant_Working_Premises:
+        safeGet(formData, 'applicantWorkingPremises') ||
+        safeGet(formData, 'applicant_working_premises'),
+      Sitting_Location:
+        safeGet(formData, 'sittingLocation') || safeGet(formData, 'sitting_location'),
       Office_Type: safeGet(formData, 'officeType') || safeGet(formData, 'office_type'),
-      Company_Nature_Of_Business: safeGet(formData, 'companyNatureOfBusiness') || safeGet(formData, 'company_nature_of_business'),
+      Company_Nature_Of_Business:
+        safeGet(formData, 'companyNatureOfBusiness') ||
+        safeGet(formData, 'company_nature_of_business'),
       Staff_Strength: safeGet(formData, 'staffStrength') || safeGet(formData, 'staff_strength'),
       Staff_Seen: safeGet(formData, 'staffSeen') || safeGet(formData, 'staff_seen'),
       Office_Approx_Area: this.formatAreaSqFeet(formData, 'office'),
-      Company_Name_Plate: safeGet(formData, 'companyNamePlateStatus') || safeGet(formData, 'company_nameplate_status'),
-      Name_On_Board: safeGet(formData, 'nameOnCompanyBoard') || safeGet(formData, 'name_on_company_board'),
+      Company_Name_Plate:
+        safeGet(formData, 'companyNamePlateStatus') ||
+        safeGet(formData, 'company_nameplate_status'),
+      Name_On_Board:
+        safeGet(formData, 'nameOnCompanyBoard') || safeGet(formData, 'name_on_company_board'),
 
       // Office SHIFTED-specific variables
-      Old_Office_Shifted_Period: safeGet(formData, 'oldOfficeShiftedPeriod') || safeGet(formData, 'old_office_shifted_period') || safeGet(formData, 'shiftedPeriod'),
-      Current_Company_Name: safeGet(formData, 'currentCompanyName') || safeGet(formData, 'current_company_name') || safeGet(formData, 'companyName'),
-      Current_Company_Period: safeGet(formData, 'currentCompanyPeriod') || safeGet(formData, 'current_company_period') || safeGet(formData, 'establishmentPeriod'),
+      Old_Office_Shifted_Period:
+        safeGet(formData, 'oldOfficeShiftedPeriod') ||
+        safeGet(formData, 'old_office_shifted_period') ||
+        safeGet(formData, 'shiftedPeriod'),
+      Current_Company_Name:
+        safeGet(formData, 'currentCompanyName') ||
+        safeGet(formData, 'current_company_name') ||
+        safeGet(formData, 'companyName'),
+      Current_Company_Period:
+        safeGet(formData, 'currentCompanyPeriod') ||
+        safeGet(formData, 'current_company_period') ||
+        safeGet(formData, 'establishmentPeriod'),
 
       // Office ERT-specific variables
-      Met_Person_Type: safeGet(formData, 'metPersonType') || safeGet(formData, 'met_person_type') || 'Security',
-      Name_Of_Met_Person: safeGet(formData, 'nameOfMetPerson') || safeGet(formData, 'name_of_met_person') || safeGet(formData, 'metPersonName'),
-      Met_Person_Confirmation: safeGet(formData, 'metPersonConfirmation') || safeGet(formData, 'met_person_confirmation') || 'confirmed',
-      Office_Exist_Floor: safeGet(formData, 'officeExistFloor') || safeGet(formData, 'office_exist_floor') || safeGet(formData, 'addressFloor') || safeGet(formData, 'floor'),
+      Met_Person_Type:
+        safeGet(formData, 'metPersonType') || safeGet(formData, 'met_person_type') || 'Security',
+      Name_Of_Met_Person:
+        safeGet(formData, 'nameOfMetPerson') ||
+        safeGet(formData, 'name_of_met_person') ||
+        safeGet(formData, 'metPersonName'),
+      Met_Person_Confirmation:
+        safeGet(formData, 'metPersonConfirmation') ||
+        safeGet(formData, 'met_person_confirmation') ||
+        'confirmed',
+      Office_Exist_Floor:
+        safeGet(formData, 'officeExistFloor') ||
+        safeGet(formData, 'office_exist_floor') ||
+        safeGet(formData, 'addressFloor') ||
+        safeGet(formData, 'floor'),
 
       // Office NSP-specific variables
-      Third_Party_Confirmation: safeGet(formData, 'thirdPartyConfirmation') || safeGet(formData, 'third_party_confirmation') || 'confirmed',
-      Office_Existence: safeGet(formData, 'officeExistence') || safeGet(formData, 'office_existence') || 'exists',
+      Third_Party_Confirmation:
+        safeGet(formData, 'thirdPartyConfirmation') ||
+        safeGet(formData, 'third_party_confirmation') ||
+        'confirmed',
+      Office_Existence:
+        safeGet(formData, 'officeExistence') || safeGet(formData, 'office_existence') || 'exists',
 
       // Business-specific variables
       Business_Status: safeGet(formData, 'businessStatus') || safeGet(formData, 'business_status'),
       Business_Type: safeGet(formData, 'businessType') || safeGet(formData, 'business_type'),
       Business_Period: safeGet(formData, 'businessPeriod') || safeGet(formData, 'business_period'),
       Business_Approx_Area: this.formatAreaSqFeet(formData, 'business'),
-      Business_Owner_Name: safeGet(formData, 'businessOwnerName') || safeGet(formData, 'business_owner_name') || safeGet(formData, 'nameOfCompanyOwners'),
-      Business_Activity: safeGet(formData, 'businessActivity') || safeGet(formData, 'business_activity'),
+      Business_Owner_Name:
+        safeGet(formData, 'businessOwnerName') ||
+        safeGet(formData, 'business_owner_name') ||
+        safeGet(formData, 'nameOfCompanyOwners'),
+      Business_Activity:
+        safeGet(formData, 'businessActivity') || safeGet(formData, 'business_activity'),
       Business_Setup: safeGet(formData, 'businessSetup') || safeGet(formData, 'business_setup'),
-      Business_Existence: safeGet(formData, 'businessExistence') || safeGet(formData, 'business_existence') || 'exists',
-      Old_Business_Shifted_Period: safeGet(formData, 'oldBusinessShiftedPeriod') || safeGet(formData, 'old_business_shifted_period') || safeGet(formData, 'shiftedPeriod'),
-      Establishment_Period: safeGet(formData, 'establishmentPeriod') || safeGet(formData, 'establishment_period')
+      Business_Existence:
+        safeGet(formData, 'businessExistence') ||
+        safeGet(formData, 'business_existence') ||
+        'exists',
+      Old_Business_Shifted_Period:
+        safeGet(formData, 'oldBusinessShiftedPeriod') ||
+        safeGet(formData, 'old_business_shifted_period') ||
+        safeGet(formData, 'shiftedPeriod'),
+      Establishment_Period:
+        safeGet(formData, 'establishmentPeriod') || safeGet(formData, 'establishment_period'),
     };
   }
 }

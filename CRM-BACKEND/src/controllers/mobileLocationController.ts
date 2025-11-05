@@ -1,10 +1,10 @@
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import axios from 'axios';
 import { query } from '@/config/database';
-import {
+import type {
   MobileLocationCaptureRequest,
   MobileLocationValidationRequest,
-  MobileLocationValidationResponse
+  MobileLocationValidationResponse,
 } from '../types/mobile';
 import { createAuditLog } from '../utils/auditLogger';
 import { config } from '../config';
@@ -13,14 +13,14 @@ export class MobileLocationController {
   // Capture GPS location
   static async captureLocation(req: Request, res: Response) {
     try {
-      const { 
-        latitude, 
-        longitude, 
-        accuracy, 
-        timestamp, 
-        source, 
-        caseId, 
-        activityType 
+      const {
+        latitude,
+        longitude,
+        accuracy,
+        timestamp,
+        source,
+        caseId,
+        activityType,
       }: MobileLocationCaptureRequest = req.body;
       const userId = (req as any).user?.userId;
 
@@ -55,14 +55,17 @@ export class MobileLocationController {
       if (caseId) {
         const userRole = (req as any).user?.role;
         const where: any = { id: caseId };
-        
+
         if (userRole === 'FIELD_AGENT') {
           where.assignedTo = userId;
         }
 
         const caseSqlVals: any[] = [where.id];
         let caseSql = `SELECT id FROM cases WHERE id = $1`;
-        if (where.assignedTo) { caseSql += ` AND "assignedTo" = $2`; caseSqlVals.push(where.assignedTo); }
+        if (where.assignedTo) {
+          caseSql += ` AND "assignedTo" = $2`;
+          caseSqlVals.push(where.assignedTo);
+        }
         const caseRes = await query(caseSql, caseSqlVals);
         const existingCase = caseRes.rows[0];
 
@@ -129,11 +132,11 @@ export class MobileLocationController {
   // Validate location against expected address
   static async validateLocation(req: Request, res: Response) {
     try {
-      const { 
-        latitude, 
-        longitude, 
-        expectedAddress, 
-        radius = 100 
+      const {
+        latitude,
+        longitude,
+        expectedAddress,
+        radius = 100,
       }: MobileLocationValidationRequest = req.body;
 
       if (!latitude || !longitude) {
@@ -168,7 +171,7 @@ export class MobileLocationController {
         try {
           // Use reverse geocoding to get actual address
           const actualAddress = await this.reverseGeocodeHelper(latitude, longitude);
-          
+
           if (actualAddress) {
             // Simple address matching (in production, use more sophisticated matching)
             const similarity = this.calculateAddressSimilarity(expectedAddress, actualAddress);
@@ -286,7 +289,10 @@ export class MobileLocationController {
 
       const vals8: any[] = [caseId];
       let exSql6 = `SELECT id FROM cases WHERE id = $1`;
-      if (userRole === 'FIELD') { exSql6 += ` AND "assignedToId" = $2`; vals8.push(userId); }
+      if (userRole === 'FIELD') {
+        exSql6 += ` AND "assignedToId" = $2`;
+        vals8.push(userId);
+      }
       const exRes6 = await query(exSql6, vals8);
       const existingCase = exRes6.rows[0];
 
@@ -337,7 +343,10 @@ export class MobileLocationController {
   }
 
   // Helper method for reverse geocoding
-  private static async reverseGeocodeHelper(latitude: number, longitude: number): Promise<string | null> {
+  private static async reverseGeocodeHelper(
+    latitude: number,
+    longitude: number
+  ): Promise<string | null> {
     try {
       // In production, use Google Maps API or similar service
       // For now, return a mock address
@@ -346,7 +355,7 @@ export class MobileLocationController {
         '456 Park Avenue, Delhi, Delhi 110001',
         '789 Commercial Street, Bangalore, Karnataka 560001',
       ];
-      
+
       return mockAddresses[Math.floor(Math.random() * mockAddresses.length)];
     } catch (error) {
       console.error('Reverse geocoding error:', error);
@@ -359,10 +368,10 @@ export class MobileLocationController {
     // Simple similarity calculation (in production, use more sophisticated algorithms)
     const words1 = address1.toLowerCase().split(/\s+/);
     const words2 = address2.toLowerCase().split(/\s+/);
-    
+
     const commonWords = words1.filter(word => words2.includes(word));
     const totalWords = new Set([...words1, ...words2]).size;
-    
+
     return commonWords.length / totalWords;
   }
 
@@ -387,10 +396,21 @@ export class MobileLocationController {
       const vals: any[] = [];
       let sql = `SELECT l.id, l.latitude, l.longitude, l.accuracy, l.timestamp, l.source, c.id as "caseId", c.title, c."customerName" FROM locations l JOIN cases c ON c.id = l."caseId"`;
       const wh: string[] = [];
-      if (where.caseId) { vals.push(where.caseId); wh.push(`l."caseId" = $${vals.length}`); }
-      if (where.timestamp?.gte) { vals.push(where.timestamp.gte); wh.push(`l.timestamp >= $${vals.length}`); }
-      if (where.timestamp?.lte) { vals.push(where.timestamp.lte); wh.push(`l.timestamp <= $${vals.length}`); }
-      if (wh.length) sql += ` WHERE ${wh.join(' AND ')}`;
+      if (where.caseId) {
+        vals.push(where.caseId);
+        wh.push(`l."caseId" = $${vals.length}`);
+      }
+      if (where.timestamp?.gte) {
+        vals.push(where.timestamp.gte);
+        wh.push(`l.timestamp >= $${vals.length}`);
+      }
+      if (where.timestamp?.lte) {
+        vals.push(where.timestamp.lte);
+        wh.push(`l.timestamp <= $${vals.length}`);
+      }
+      if (wh.length) {
+        sql += ` WHERE ${wh.join(' AND ')}`;
+      }
       sql += ` ORDER BY l.timestamp DESC LIMIT $${vals.length + 1}`;
       vals.push(parseInt(limit as string));
       const locationTrailRes = await query(sql, vals);

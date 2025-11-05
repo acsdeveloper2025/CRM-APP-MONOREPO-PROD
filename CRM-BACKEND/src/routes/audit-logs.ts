@@ -10,7 +10,7 @@ import {
   getAuditCategories,
   getAuditStats,
   exportAuditLogs,
-  cleanupAuditLogs
+  cleanupAuditLogs,
 } from '@/controllers/auditLogsController';
 
 const router = express.Router();
@@ -20,19 +20,12 @@ router.use(authenticateToken);
 
 // Validation schemas
 const listAuditLogsValidation = [
-  query('page')
-    .optional()
-    .isInt({ min: 1 })
-    .withMessage('Page must be a positive integer'),
+  query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
   query('limit')
     .optional()
     .isInt({ min: 1, max: 100 })
     .withMessage('Limit must be between 1 and 100'),
-  query('userId')
-    .optional()
-    .trim()
-    .notEmpty()
-    .withMessage('User ID must not be empty'),
+  query('userId').optional().trim().notEmpty().withMessage('User ID must not be empty'),
   query('action')
     .optional()
     .trim()
@@ -45,20 +38,25 @@ const listAuditLogsValidation = [
     .withMessage('Resource must be less than 100 characters'),
   query('category')
     .optional()
-    .isIn(['AUTHENTICATION', 'USER_MANAGEMENT', 'CASE_MANAGEMENT', 'CLIENT_MANAGEMENT', 'FILE_MANAGEMENT', 'FINANCIAL', 'SYSTEM', 'SECURITY', 'DATA_MANAGEMENT', 'REPORTING'])
+    .isIn([
+      'AUTHENTICATION',
+      'USER_MANAGEMENT',
+      'CASE_MANAGEMENT',
+      'CLIENT_MANAGEMENT',
+      'FILE_MANAGEMENT',
+      'FINANCIAL',
+      'SYSTEM',
+      'SECURITY',
+      'DATA_MANAGEMENT',
+      'REPORTING',
+    ])
     .withMessage('Invalid category'),
   query('severity')
     .optional()
     .isIn(['INFO', 'WARN', 'ERROR', 'CRITICAL'])
     .withMessage('Invalid severity'),
-  query('dateFrom')
-    .optional()
-    .isISO8601()
-    .withMessage('Date from must be a valid date'),
-  query('dateTo')
-    .optional()
-    .isISO8601()
-    .withMessage('Date to must be a valid date'),
+  query('dateFrom').optional().isISO8601().withMessage('Date from must be a valid date'),
+  query('dateTo').optional().isISO8601().withMessage('Date to must be a valid date'),
   query('search')
     .optional()
     .trim()
@@ -68,10 +66,7 @@ const listAuditLogsValidation = [
     .optional()
     .isIn(['timestamp', 'userId', 'userName', 'action', 'resource', 'category', 'severity'])
     .withMessage('Invalid sort field'),
-  query('sortOrder')
-    .optional()
-    .isIn(['asc', 'desc'])
-    .withMessage('Sort order must be asc or desc'),
+  query('sortOrder').optional().isIn(['asc', 'desc']).withMessage('Sort order must be asc or desc'),
 ];
 
 const createAuditLogValidation = [
@@ -88,16 +83,24 @@ const createAuditLogValidation = [
     .trim()
     .isLength({ max: 100 })
     .withMessage('Resource ID must be less than 100 characters'),
-  body('details')
-    .optional()
-    .isObject()
-    .withMessage('Details must be an object'),
+  body('details').optional().isObject().withMessage('Details must be an object'),
   body('severity')
     .optional()
     .isIn(['INFO', 'WARN', 'ERROR', 'CRITICAL'])
     .withMessage('Invalid severity'),
   body('category')
-    .isIn(['AUTHENTICATION', 'USER_MANAGEMENT', 'CASE_MANAGEMENT', 'CLIENT_MANAGEMENT', 'FILE_MANAGEMENT', 'FINANCIAL', 'SYSTEM', 'SECURITY', 'DATA_MANAGEMENT', 'REPORTING'])
+    .isIn([
+      'AUTHENTICATION',
+      'USER_MANAGEMENT',
+      'CASE_MANAGEMENT',
+      'CLIENT_MANAGEMENT',
+      'FILE_MANAGEMENT',
+      'FINANCIAL',
+      'SYSTEM',
+      'SECURITY',
+      'DATA_MANAGEMENT',
+      'REPORTING',
+    ])
     .withMessage('Invalid category'),
 ];
 
@@ -113,18 +116,9 @@ const exportValidation = [
     .optional()
     .isIn(['CSV', 'JSON', 'EXCEL'])
     .withMessage('Format must be one of: CSV, JSON, EXCEL'),
-  body('dateFrom')
-    .optional()
-    .isISO8601()
-    .withMessage('Date from must be a valid date'),
-  body('dateTo')
-    .optional()
-    .isISO8601()
-    .withMessage('Date to must be a valid date'),
-  body('filters')
-    .optional()
-    .isObject()
-    .withMessage('Filters must be an object'),
+  body('dateFrom').optional().isISO8601().withMessage('Date from must be a valid date'),
+  body('dateTo').optional().isISO8601().withMessage('Date to must be a valid date'),
+  body('filters').optional().isObject().withMessage('Filters must be an object'),
 ];
 
 const cleanupValidation = [
@@ -135,43 +129,24 @@ const cleanupValidation = [
 ];
 
 // Core routes
-router.get('/', 
-  listAuditLogsValidation, 
-  validate, 
-  getAuditLogs
-);
+router.get('/', listAuditLogsValidation, validate, getAuditLogs);
 
 router.get('/actions', getAuditActions);
 
 router.get('/categories', getAuditCategories);
 
-router.get('/stats', 
-  statsValidation, 
-  validate, 
-  getAuditStats
-);
+router.get('/stats', statsValidation, validate, getAuditStats);
 
-router.post('/', 
-  createAuditLogValidation, 
-  validate, 
-  createAuditLog
-);
+router.post('/', createAuditLogValidation, validate, createAuditLog);
 
-router.post('/export', 
-  exportValidation, 
-  validate, 
-  exportAuditLogs
-);
+router.post('/export', exportValidation, validate, exportAuditLogs);
 
-router.delete('/cleanup', 
-  cleanupValidation, 
-  validate, 
-  cleanupAuditLogs
-);
+router.delete('/cleanup', cleanupValidation, validate, cleanupAuditLogs);
 
-router.get('/:id', 
-  [param('id').trim().notEmpty().withMessage('Audit log ID is required')], 
-  validate, 
+router.get(
+  '/:id',
+  [param('id').trim().notEmpty().withMessage('Audit log ID is required')],
+  validate,
   getAuditLogById
 );
 

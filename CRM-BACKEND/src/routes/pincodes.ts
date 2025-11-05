@@ -14,7 +14,7 @@ import {
   getPincodesByCity,
   getPincodeAreas,
   addPincodeAreas,
-  removePincodeArea
+  removePincodeArea,
 } from '@/controllers/pincodesController';
 
 const router = express.Router();
@@ -43,9 +43,7 @@ const createPincodeValidation = [
     .optional()
     .isInt({ min: 1 })
     .withMessage('Each area must be a valid positive integer'),
-  body('cityId')
-    .notEmpty()
-    .withMessage('City ID is required'),
+  body('cityId').notEmpty().withMessage('City ID is required'),
   body('cityName')
     .optional()
     .trim()
@@ -87,10 +85,7 @@ const createPincodeValidation = [
     .optional()
     .isIn(['Head Office', 'Sub Office', 'Branch Office'])
     .withMessage('Invalid office type'),
-  body('isActive')
-    .optional()
-    .isBoolean()
-    .withMessage('isActive must be a boolean'),
+  body('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
 ];
 
 const updatePincodeValidation = [
@@ -106,10 +101,7 @@ const updatePincodeValidation = [
     .trim()
     .isLength({ min: 1, max: 200 })
     .withMessage('Area name must be between 1 and 200 characters'),
-  body('cityId')
-    .optional()
-    .notEmpty()
-    .withMessage('City ID must not be empty'),
+  body('cityId').optional().notEmpty().withMessage('City ID must not be empty'),
   body('cityName')
     .optional()
     .trim()
@@ -151,26 +143,16 @@ const updatePincodeValidation = [
     .optional()
     .isIn(['Head Office', 'Sub Office', 'Branch Office'])
     .withMessage('Invalid office type'),
-  body('isActive')
-    .optional()
-    .isBoolean()
-    .withMessage('isActive must be a boolean'),
+  body('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
 ];
 
 const listPincodesValidation = [
-  query('page')
-    .optional()
-    .isInt({ min: 1 })
-    .withMessage('Page must be a positive integer'),
+  query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
   query('limit')
     .optional()
     .isInt({ min: 1, max: 50000 })
     .withMessage('Limit must be between 1 and 50000'),
-  query('cityId')
-    .optional()
-    .trim()
-    .notEmpty()
-    .withMessage('City ID must not be empty'),
+  query('cityId').optional().trim().notEmpty().withMessage('City ID must not be empty'),
   query('state')
     .optional()
     .trim()
@@ -190,10 +172,7 @@ const listPincodesValidation = [
     .optional()
     .isIn(['DELIVERY', 'NON_DELIVERY', 'SUB_OFFICE', 'HEAD_OFFICE'])
     .withMessage('Invalid delivery status'),
-  query('isActive')
-    .optional()
-    .isBoolean()
-    .withMessage('isActive must be a boolean'),
+  query('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
   query('search')
     .optional()
     .trim()
@@ -203,10 +182,7 @@ const listPincodesValidation = [
     .optional()
     .isIn(['code', 'area', 'cityName', 'state', 'district', 'createdAt'])
     .withMessage('Invalid sort field'),
-  query('sortOrder')
-    .optional()
-    .isIn(['asc', 'desc'])
-    .withMessage('Sort order must be asc or desc'),
+  query('sortOrder').optional().isIn(['asc', 'desc']).withMessage('Sort order must be asc or desc'),
 ];
 
 const searchValidation = [
@@ -221,9 +197,7 @@ const searchValidation = [
 ];
 
 const bulkImportValidation = [
-  body('pincodes')
-    .isArray({ min: 1 })
-    .withMessage('Pincodes array is required'),
+  body('pincodes').isArray({ min: 1 }).withMessage('Pincodes array is required'),
   body('pincodes.*.code')
     .trim()
     .isLength({ min: 4, max: 10 })
@@ -243,43 +217,31 @@ const bulkImportValidation = [
 ];
 
 // Core CRUD routes
-router.get('/', 
-  listPincodesValidation, 
-  validate, 
-  getPincodes
-);
+router.get('/', listPincodesValidation, validate, getPincodes);
 
-router.get('/search', 
-  searchValidation, 
-  validate, 
-  searchPincodes
-);
+router.get('/search', searchValidation, validate, searchPincodes);
 
-router.post('/', 
-  createPincodeValidation, 
-  validate, 
-  createPincode
-);
+router.post('/', createPincodeValidation, validate, createPincode);
 
-router.post('/bulk-import',
-  upload.single('file'),
-  bulkImportPincodes
-);
+router.post('/bulk-import', upload.single('file'), bulkImportPincodes);
 
-router.get('/:id', 
-  [param('id').trim().notEmpty().withMessage('Pincode ID is required')], 
-  validate, 
+router.get(
+  '/:id',
+  [param('id').trim().notEmpty().withMessage('Pincode ID is required')],
+  validate,
   getPincodeById
 );
 
-router.put('/:id', 
-  [param('id').trim().notEmpty().withMessage('Pincode ID is required')], 
-  updatePincodeValidation, 
-  validate, 
+router.put(
+  '/:id',
+  [param('id').trim().notEmpty().withMessage('Pincode ID is required')],
+  updatePincodeValidation,
+  validate,
   updatePincode
 );
 
-router.delete('/:id',
+router.delete(
+  '/:id',
   [param('id').trim().notEmpty().withMessage('Pincode ID is required')],
   validate,
   deletePincode
@@ -291,30 +253,26 @@ const addAreasValidation = [
   body('areaIds')
     .isArray({ min: 1, max: 15 })
     .withMessage('Area IDs array is required (1-15 areas)'),
-  body('areaIds.*')
-    .isInt({ min: 1 })
-    .withMessage('Each area ID must be a valid positive integer'),
+  body('areaIds.*').isInt({ min: 1 }).withMessage('Each area ID must be a valid positive integer'),
 ];
 
 // GET /api/pincodes/:id/areas - Get areas for a pincode
-router.get('/:id/areas',
+router.get(
+  '/:id/areas',
   [param('id').trim().notEmpty().withMessage('Pincode ID is required')],
   validate,
   getPincodeAreas
 );
 
 // POST /api/pincodes/:id/areas - Add areas to a pincode
-router.post('/:id/areas',
-  addAreasValidation,
-  validate,
-  addPincodeAreas
-);
+router.post('/:id/areas', addAreasValidation, validate, addPincodeAreas);
 
 // DELETE /api/pincodes/:id/areas/:areaId - Remove area from pincode
-router.delete('/:id/areas/:areaId',
+router.delete(
+  '/:id/areas/:areaId',
   [
     param('id').trim().notEmpty().withMessage('Pincode ID is required'),
-    param('areaId').isInt({ min: 1 }).withMessage('Area ID must be a valid positive integer')
+    param('areaId').isInt({ min: 1 }).withMessage('Area ID must be a valid positive integer'),
   ],
   validate,
   removePincodeArea

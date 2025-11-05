@@ -1,7 +1,10 @@
 import { Router } from 'express';
 import { MobileAuthController } from '../controllers/mobileAuthController';
 import { MobileCaseController } from '../controllers/mobileCaseController';
-import { MobileAttachmentController, mobileUpload } from '../controllers/mobileAttachmentController';
+import {
+  MobileAttachmentController,
+  mobileUpload,
+} from '../controllers/mobileAttachmentController';
 import { VerificationAttachmentController } from '../controllers/verificationAttachmentController';
 import { MobileFormController } from '../controllers/mobileFormController';
 import { MobileLocationController } from '../controllers/mobileLocationController';
@@ -25,7 +28,7 @@ router.get('/health', (req, res) => {
     service: 'mobile-api',
     timestamp: new Date().toISOString(),
     version: '4.0.1',
-    environment: process.env.NODE_ENV || 'development'
+    environment: process.env.NODE_ENV || 'development',
   });
 });
 
@@ -35,71 +38,267 @@ router.post('/auth/refresh', MobileAuthController.refreshToken);
 router.post('/auth/logout', authenticateToken, MobileAuthController.mobileLogout);
 router.post('/auth/version-check', MobileAuthController.checkVersion);
 router.get('/auth/config', MobileAuthController.getAppConfig);
-router.post('/auth/notifications/register', authenticateToken, MobileAuthController.registerNotifications);
-
-
+router.post(
+  '/auth/notifications/register',
+  authenticateToken,
+  MobileAuthController.registerNotifications
+);
 
 // Mobile Case Management Routes (CACHED)
-router.get('/cases', authenticateToken, validateMobileVersion, EnterpriseCache.create(EnterpriseCacheConfigs.mobileSync), MobileCaseController.getMobileCases);
-router.get('/cases/:caseId', authenticateToken, validateMobileVersion, EnterpriseCache.create(EnterpriseCacheConfigs.caseDetails), MobileCaseController.getMobileCase);
-router.put('/cases/:caseId/status', authenticateToken, validateMobileVersion, MobileCaseController.updateCaseStatus);
-router.put('/cases/:caseId/priority', authenticateToken, validateMobileVersion, MobileCaseController.updateCasePriority);
-router.post('/cases/:caseId/revoke', authenticateToken, validateMobileVersion, MobileCaseController.revokeCase);
+router.get(
+  '/cases',
+  authenticateToken,
+  validateMobileVersion,
+  EnterpriseCache.create(EnterpriseCacheConfigs.mobileSync),
+  MobileCaseController.getMobileCases
+);
+router.get(
+  '/cases/:caseId',
+  authenticateToken,
+  validateMobileVersion,
+  EnterpriseCache.create(EnterpriseCacheConfigs.caseDetails),
+  MobileCaseController.getMobileCase
+);
+router.put(
+  '/cases/:caseId/status',
+  authenticateToken,
+  validateMobileVersion,
+  MobileCaseController.updateCaseStatus
+);
+router.put(
+  '/cases/:caseId/priority',
+  authenticateToken,
+  validateMobileVersion,
+  MobileCaseController.updateCasePriority
+);
+router.post(
+  '/cases/:caseId/revoke',
+  authenticateToken,
+  validateMobileVersion,
+  MobileCaseController.revokeCase
+);
 
 // Mobile Verification Task Routes
-router.get('/verification-tasks/:taskId/status', authenticateToken, validateMobileVersion, MobileCaseController.getTaskStatus);
-router.put('/verification-tasks/:taskId/status', authenticateToken, validateMobileVersion, MobileCaseController.updateTaskStatus);
-router.post('/verification-tasks/:taskId/start', authenticateToken, validateMobileVersion, MobileCaseController.startTask);
-router.post('/verification-tasks/:taskId/complete', authenticateToken, validateMobileVersion, MobileCaseController.completeTask);
-router.post('/verification-tasks/:taskId/revoke', authenticateToken, validateMobileVersion, MobileCaseController.revokeTask);
+router.get(
+  '/verification-tasks/:taskId/status',
+  authenticateToken,
+  validateMobileVersion,
+  MobileCaseController.getTaskStatus
+);
+router.put(
+  '/verification-tasks/:taskId/status',
+  authenticateToken,
+  validateMobileVersion,
+  MobileCaseController.updateTaskStatus
+);
+router.post(
+  '/verification-tasks/:taskId/start',
+  authenticateToken,
+  validateMobileVersion,
+  MobileCaseController.startTask
+);
+router.post(
+  '/verification-tasks/:taskId/complete',
+  authenticateToken,
+  validateMobileVersion,
+  MobileCaseController.completeTask
+);
+router.post(
+  '/verification-tasks/:taskId/revoke',
+  authenticateToken,
+  validateMobileVersion,
+  MobileCaseController.revokeTask
+);
 
 // Mobile Auto-save Routes (CACHED)
-router.post('/cases/:caseId/auto-save', authenticateToken, validateMobileVersion, MobileCaseController.autoSaveForm);
-router.get('/cases/:caseId/auto-save/:formType', authenticateToken, validateMobileVersion, EnterpriseCache.create(EnterpriseCacheConfigs.caseDetails), MobileCaseController.getAutoSavedForm);
+router.post(
+  '/cases/:caseId/auto-save',
+  authenticateToken,
+  validateMobileVersion,
+  MobileCaseController.autoSaveForm
+);
+router.get(
+  '/cases/:caseId/auto-save/:formType',
+  authenticateToken,
+  validateMobileVersion,
+  EnterpriseCache.create(EnterpriseCacheConfigs.caseDetails),
+  MobileCaseController.getAutoSavedForm
+);
 
 // Mobile Attachment Routes
 // Note: More specific routes must come before parameterized routes
-router.post('/cases/batch/attachments', authenticateToken, validateMobileVersion, MobileAttachmentController.getBatchAttachments);
-router.post('/cases/:caseId/attachments',
+router.post(
+  '/cases/batch/attachments',
+  authenticateToken,
+  validateMobileVersion,
+  MobileAttachmentController.getBatchAttachments
+);
+router.post(
+  '/cases/:caseId/attachments',
   authenticateToken,
   validateMobileVersion,
   mobileUpload.array('files', 15),
   MobileAttachmentController.uploadFiles
 );
-router.get('/cases/:caseId/attachments', authenticateToken, validateMobileVersion, MobileAttachmentController.getCaseAttachments);
-router.get('/cases/:caseId/attachments/:attachmentId', authenticateToken, validateMobileVersion, MobileAttachmentController.getAttachmentContent);
-router.get('/attachments/:attachmentId/content', authenticateToken, validateMobileVersion, MobileAttachmentController.getAttachmentContent);
-router.delete('/attachments/:attachmentId', authenticateToken, validateMobileVersion, MobileAttachmentController.deleteAttachment);
+router.get(
+  '/cases/:caseId/attachments',
+  authenticateToken,
+  validateMobileVersion,
+  MobileAttachmentController.getCaseAttachments
+);
+router.get(
+  '/cases/:caseId/attachments/:attachmentId',
+  authenticateToken,
+  validateMobileVersion,
+  MobileAttachmentController.getAttachmentContent
+);
+router.get(
+  '/attachments/:attachmentId/content',
+  authenticateToken,
+  validateMobileVersion,
+  MobileAttachmentController.getAttachmentContent
+);
+router.delete(
+  '/attachments/:attachmentId',
+  authenticateToken,
+  validateMobileVersion,
+  MobileAttachmentController.deleteAttachment
+);
 
 // Verification Attachment Routes (separate from regular case attachments)
-router.get('/cases/:caseId/verification-images', authenticateToken, validateMobileVersion, VerificationAttachmentController.getVerificationImages);
+router.get(
+  '/cases/:caseId/verification-images',
+  authenticateToken,
+  validateMobileVersion,
+  VerificationAttachmentController.getVerificationImages
+);
 
 // Mobile Form Submission Routes
-router.post('/cases/:caseId/verification/residence', authenticateToken, validateMobileVersion, MobileFormController.submitResidenceVerification);
-router.post('/cases/:caseId/verification/office', authenticateToken, validateMobileVersion, MobileFormController.submitOfficeVerification);
-router.post('/cases/:caseId/verification/business', authenticateToken, validateMobileVersion, MobileFormController.submitBusinessVerification);
-router.post('/cases/:caseId/verification/builder', authenticateToken, validateMobileVersion, MobileFormController.submitBuilderVerification);
-router.post('/cases/:caseId/verification/residence-cum-office', authenticateToken, validateMobileVersion, MobileFormController.submitResidenceCumOfficeVerification);
-router.post('/cases/:caseId/verification/dsa-connector', authenticateToken, validateMobileVersion, MobileFormController.submitDsaConnectorVerification);
-router.post('/cases/:caseId/verification/property-individual', authenticateToken, validateMobileVersion, MobileFormController.submitPropertyIndividualVerification);
-router.post('/cases/:caseId/verification/property-apf', authenticateToken, validateMobileVersion, MobileFormController.submitPropertyApfVerification);
-router.post('/cases/:caseId/verification/noc', authenticateToken, validateMobileVersion, MobileFormController.submitNocVerification);
-router.get('/cases/:caseId/forms', authenticateToken, validateMobileVersion, MobileFormController.getCaseFormSubmissions);
-router.get('/forms/:formType/template', authenticateToken, validateMobileVersion, MobileFormController.getFormTemplate);
+router.post(
+  '/cases/:caseId/verification/residence',
+  authenticateToken,
+  validateMobileVersion,
+  MobileFormController.submitResidenceVerification
+);
+router.post(
+  '/cases/:caseId/verification/office',
+  authenticateToken,
+  validateMobileVersion,
+  MobileFormController.submitOfficeVerification
+);
+router.post(
+  '/cases/:caseId/verification/business',
+  authenticateToken,
+  validateMobileVersion,
+  MobileFormController.submitBusinessVerification
+);
+router.post(
+  '/cases/:caseId/verification/builder',
+  authenticateToken,
+  validateMobileVersion,
+  MobileFormController.submitBuilderVerification
+);
+router.post(
+  '/cases/:caseId/verification/residence-cum-office',
+  authenticateToken,
+  validateMobileVersion,
+  MobileFormController.submitResidenceCumOfficeVerification
+);
+router.post(
+  '/cases/:caseId/verification/dsa-connector',
+  authenticateToken,
+  validateMobileVersion,
+  MobileFormController.submitDsaConnectorVerification
+);
+router.post(
+  '/cases/:caseId/verification/property-individual',
+  authenticateToken,
+  validateMobileVersion,
+  MobileFormController.submitPropertyIndividualVerification
+);
+router.post(
+  '/cases/:caseId/verification/property-apf',
+  authenticateToken,
+  validateMobileVersion,
+  MobileFormController.submitPropertyApfVerification
+);
+router.post(
+  '/cases/:caseId/verification/noc',
+  authenticateToken,
+  validateMobileVersion,
+  MobileFormController.submitNocVerification
+);
+router.get(
+  '/cases/:caseId/forms',
+  authenticateToken,
+  validateMobileVersion,
+  MobileFormController.getCaseFormSubmissions
+);
+router.get(
+  '/forms/:formType/template',
+  authenticateToken,
+  validateMobileVersion,
+  MobileFormController.getFormTemplate
+);
 
 // Mobile Location Services Routes
-router.post('/location/capture', authenticateToken, validateMobileVersion, MobileLocationController.captureLocation);
-router.post('/location/validate', authenticateToken, validateMobileVersion, MobileLocationController.validateLocation);
-router.get('/location/reverse-geocode', authenticateToken, validateMobileVersion, MobileLocationController.reverseGeocode);
-router.get('/cases/:caseId/location-history', authenticateToken, validateMobileVersion, MobileLocationController.getCaseLocationHistory);
-router.get('/location/trail', authenticateToken, validateMobileVersion, MobileLocationController.getUserLocationTrail);
+router.post(
+  '/location/capture',
+  authenticateToken,
+  validateMobileVersion,
+  MobileLocationController.captureLocation
+);
+router.post(
+  '/location/validate',
+  authenticateToken,
+  validateMobileVersion,
+  MobileLocationController.validateLocation
+);
+router.get(
+  '/location/reverse-geocode',
+  authenticateToken,
+  validateMobileVersion,
+  MobileLocationController.reverseGeocode
+);
+router.get(
+  '/cases/:caseId/location-history',
+  authenticateToken,
+  validateMobileVersion,
+  MobileLocationController.getCaseLocationHistory
+);
+router.get(
+  '/location/trail',
+  authenticateToken,
+  validateMobileVersion,
+  MobileLocationController.getUserLocationTrail
+);
 
 // Mobile Sync Routes
 // Enterprise sync for 500+ field agents (optimized)
-router.post('/sync/enterprise', authenticateToken, validateMobileVersion, MobileSyncController.enterpriseSync);
-router.post('/sync/upload', authenticateToken, validateMobileVersion, MobileSyncController.uploadSync);
-router.get('/sync/download', authenticateToken, validateMobileVersion, MobileSyncController.downloadSync);
-router.get('/sync/status', authenticateToken, validateMobileVersion, MobileSyncController.getSyncStatus);
+router.post(
+  '/sync/enterprise',
+  authenticateToken,
+  validateMobileVersion,
+  MobileSyncController.enterpriseSync
+);
+router.post(
+  '/sync/upload',
+  authenticateToken,
+  validateMobileVersion,
+  MobileSyncController.uploadSync
+);
+router.get(
+  '/sync/download',
+  authenticateToken,
+  validateMobileVersion,
+  MobileSyncController.downloadSync
+);
+router.get(
+  '/sync/status',
+  authenticateToken,
+  validateMobileVersion,
+  MobileSyncController.getSyncStatus
+);
 
 // Mobile Audit Routes
 const createAuditLogValidation = [
@@ -116,15 +315,25 @@ const createAuditLogValidation = [
     .trim()
     .isLength({ max: 100 })
     .withMessage('Resource ID must be less than 100 characters'),
-  body('details')
-    .optional(),
+  body('details').optional(),
   body('severity')
     .optional()
     .isIn(['INFO', 'WARN', 'ERROR', 'CRITICAL'])
     .withMessage('Invalid severity'),
   body('category')
     .optional()
-    .isIn(['AUTHENTICATION', 'USER_MANAGEMENT', 'CASE_MANAGEMENT', 'CLIENT_MANAGEMENT', 'FILE_MANAGEMENT', 'FINANCIAL', 'SYSTEM', 'SECURITY', 'DATA_MANAGEMENT', 'REPORTING'])
+    .isIn([
+      'AUTHENTICATION',
+      'USER_MANAGEMENT',
+      'CASE_MANAGEMENT',
+      'CLIENT_MANAGEMENT',
+      'FILE_MANAGEMENT',
+      'FINANCIAL',
+      'SYSTEM',
+      'SECURITY',
+      'DATA_MANAGEMENT',
+      'REPORTING',
+    ])
     .withMessage('Invalid category'),
 ];
 

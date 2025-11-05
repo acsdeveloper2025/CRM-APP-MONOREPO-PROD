@@ -1,10 +1,10 @@
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import { PDFExportService } from '../services/PDFExportService';
 import { ExcelExportService } from '../services/ExcelExportService';
 import { CSVExportService } from '../services/CSVExportService';
 import { EmailDeliveryService } from '../services/EmailDeliveryService';
 import { logger } from '../utils/logger';
-import { AuthenticatedRequest } from '../middleware/auth';
+import type { AuthenticatedRequest } from '../middleware/auth';
 import path from 'path';
 import fs from 'fs/promises';
 
@@ -38,14 +38,14 @@ export interface ExportRequest {
 export const generateReport = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const exportRequest: ExportRequest = req.body;
-    
+
     // Validate request
     const validation = validateExportRequest(exportRequest);
     if (!validation.isValid) {
       return res.status(400).json({
         success: false,
         message: 'Invalid export request',
-        errors: validation.errors
+        errors: validation.errors,
       });
     }
 
@@ -67,7 +67,7 @@ export const generateReport = async (req: AuthenticatedRequest, res: Response) =
       default:
         return res.status(400).json({
           success: false,
-          message: `Unsupported export format: ${exportRequest.format}`
+          message: `Unsupported export format: ${exportRequest.format}`,
         });
     }
 
@@ -75,7 +75,7 @@ export const generateReport = async (req: AuthenticatedRequest, res: Response) =
       return res.status(500).json({
         success: false,
         message: 'Failed to generate report',
-        error: result.error
+        error: result.error,
       });
     }
 
@@ -91,7 +91,7 @@ export const generateReport = async (req: AuthenticatedRequest, res: Response) =
       if (emailResult.success) {
         // Clean up file after email
         try {
-          await fs.unlink(result.filePath!);
+          await fs.unlink(result.filePath);
         } catch (error) {
           logger.warn('Failed to clean up file after email delivery:', error);
         }
@@ -101,14 +101,14 @@ export const generateReport = async (req: AuthenticatedRequest, res: Response) =
           message: 'Report generated and emailed successfully',
           emailResult: {
             messageId: emailResult.messageId,
-            recipients: exportRequest.delivery.recipients
-          }
+            recipients: exportRequest.delivery.recipients,
+          },
         });
       } else {
         return res.status(500).json({
           success: false,
           message: 'Report generated but email delivery failed',
-          error: emailResult.error
+          error: emailResult.error,
         });
       }
     } else {
@@ -119,18 +119,17 @@ export const generateReport = async (req: AuthenticatedRequest, res: Response) =
         data: {
           fileName: result.fileName,
           fileSize: result.fileSize,
-          downloadUrl: `/api/exports/download/${path.basename(result.filePath!)}`,
-          recordCount: result.recordCount
-        }
+          downloadUrl: `/api/exports/download/${path.basename(result.filePath)}`,
+          recordCount: result.recordCount,
+        },
       });
     }
-
   } catch (error) {
     logger.error('Error in generateReport:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error during report generation',
-      error: process.env.NODE_ENV === 'development' ? error : undefined
+      error: process.env.NODE_ENV === 'development' ? error : undefined,
     });
   }
 };
@@ -147,13 +146,13 @@ export const downloadReport = async (req: Request, res: Response) => {
     } catch (error) {
       return res.status(404).json({
         success: false,
-        message: 'Report file not found'
+        message: 'Report file not found',
       });
     }
 
     // Get file stats
     const stats = await fs.stat(filePath);
-    
+
     // Set appropriate headers
     const contentType = getContentType(fileName);
     res.setHeader('Content-Type', contentType);
@@ -173,13 +172,12 @@ export const downloadReport = async (req: Request, res: Response) => {
         logger.warn('Failed to clean up downloaded file:', error);
       }
     });
-
   } catch (error) {
     logger.error('Error in downloadReport:', error);
     res.status(500).json({
       success: false,
       message: 'Error downloading report',
-      error: process.env.NODE_ENV === 'development' ? error : undefined
+      error: process.env.NODE_ENV === 'development' ? error : undefined,
     });
   }
 };
@@ -202,7 +200,7 @@ export const getExportHistory = async (req: AuthenticatedRequest, res: Response)
         createdAt: '2024-01-15T10:30:00Z',
         createdBy: userId,
         status: 'completed',
-        downloadCount: 3
+        downloadCount: 3,
       },
       {
         id: '2',
@@ -213,8 +211,8 @@ export const getExportHistory = async (req: AuthenticatedRequest, res: Response)
         createdAt: '2024-01-14T15:45:00Z',
         createdBy: userId,
         status: 'completed',
-        downloadCount: 1
-      }
+        downloadCount: 1,
+      },
     ];
 
     res.json({
@@ -224,17 +222,16 @@ export const getExportHistory = async (req: AuthenticatedRequest, res: Response)
         pagination: {
           total: mockHistory.length,
           limit: parseInt(limit as string),
-          offset: parseInt(offset as string)
-        }
-      }
+          offset: parseInt(offset as string),
+        },
+      },
     });
-
   } catch (error) {
     logger.error('Error in getExportHistory:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to fetch export history',
-      error: process.env.NODE_ENV === 'development' ? error : undefined
+      error: process.env.NODE_ENV === 'development' ? error : undefined,
     });
   }
 };
@@ -248,21 +245,20 @@ export const testEmailConfig = async (req: AuthenticatedRequest, res: Response) 
     if (isConnected) {
       res.json({
         success: true,
-        message: 'Email configuration is working correctly'
+        message: 'Email configuration is working correctly',
       });
     } else {
       res.status(500).json({
         success: false,
-        message: 'Email configuration test failed'
+        message: 'Email configuration test failed',
       });
     }
-
   } catch (error) {
     logger.error('Error testing email config:', error);
     res.status(500).json({
       success: false,
       message: 'Error testing email configuration',
-      error: process.env.NODE_ENV === 'development' ? error : undefined
+      error: process.env.NODE_ENV === 'development' ? error : undefined,
     });
   }
 };
@@ -280,7 +276,11 @@ function validateExportRequest(request: ExportRequest): { isValid: boolean; erro
 
   if (!request.reportType) {
     errors.push('Report type is required');
-  } else if (!['form-submissions', 'agent-performance', 'case-analytics', 'validation-status'].includes(request.reportType)) {
+  } else if (
+    !['form-submissions', 'agent-performance', 'case-analytics', 'validation-status'].includes(
+      request.reportType
+    )
+  ) {
     errors.push('Invalid report type');
   }
 
@@ -292,19 +292,22 @@ function validateExportRequest(request: ExportRequest): { isValid: boolean; erro
     }
   }
 
-  if (request.delivery?.method === 'email' && (!request.delivery.recipients || request.delivery.recipients.length === 0)) {
+  if (
+    request.delivery?.method === 'email' &&
+    (!request.delivery.recipients || request.delivery.recipients.length === 0)
+  ) {
     errors.push('Email recipients are required for email delivery');
   }
 
   return {
     isValid: errors.length === 0,
-    errors
+    errors,
   };
 }
 
 async function generatePDFReport(request: ExportRequest): Promise<any> {
   const pdfService = PDFExportService.getInstance();
-  
+
   const options = {
     reportType: request.reportType,
     dateFrom: request.dateFrom,
@@ -312,7 +315,7 @@ async function generatePDFReport(request: ExportRequest): Promise<any> {
     filters: request.filters,
     template: (request.options?.template as 'standard' | 'detailed' | 'summary') || 'standard',
     includeCharts: request.options?.includeCharts || false,
-    orientation: request.options?.orientation || 'portrait'
+    orientation: request.options?.orientation || 'portrait',
   };
 
   return await pdfService.generatePDFReport(options);
@@ -320,14 +323,14 @@ async function generatePDFReport(request: ExportRequest): Promise<any> {
 
 async function generateExcelReport(request: ExportRequest): Promise<any> {
   const excelService = ExcelExportService.getInstance();
-  
+
   const options = {
     reportType: request.reportType,
     dateFrom: request.dateFrom,
     dateTo: request.dateTo,
     filters: request.filters,
     includeCharts: request.options?.includeCharts || false,
-    includeSummary: request.options?.includeSummary !== false
+    includeSummary: request.options?.includeSummary !== false,
   };
 
   return await excelService.generateExcelReport(options);
@@ -335,7 +338,7 @@ async function generateExcelReport(request: ExportRequest): Promise<any> {
 
 async function generateCSVReport(request: ExportRequest): Promise<any> {
   const csvService = CSVExportService.getInstance();
-  
+
   const options = {
     reportType: request.reportType,
     dateFrom: request.dateFrom,
@@ -343,7 +346,7 @@ async function generateCSVReport(request: ExportRequest): Promise<any> {
     filters: request.filters,
     delimiter: request.options?.delimiter || ',',
     includeHeaders: true,
-    encoding: request.options?.encoding || 'utf8'
+    encoding: request.options?.encoding || 'utf8',
   };
 
   return await csvService.generateCSVReport(options);
@@ -352,7 +355,7 @@ async function generateCSVReport(request: ExportRequest): Promise<any> {
 async function generateJSONReport(request: ExportRequest): Promise<any> {
   // For JSON, we'll use the CSV service to get the data and then format as JSON
   const csvService = CSVExportService.getInstance();
-  
+
   try {
     // Get the raw data (we'll modify CSV service to return raw data for JSON)
     const data = await csvService.generateCSVReport({
@@ -360,7 +363,7 @@ async function generateJSONReport(request: ExportRequest): Promise<any> {
       dateFrom: request.dateFrom,
       dateTo: request.dateTo,
       filters: request.filters,
-      includeHeaders: false // We don't need headers for JSON
+      includeHeaders: false, // We don't need headers for JSON
     });
 
     if (!data.success) {
@@ -381,11 +384,11 @@ async function generateJSONReport(request: ExportRequest): Promise<any> {
       generatedAt: new Date().toISOString(),
       dateRange: {
         from: request.dateFrom,
-        to: request.dateTo
+        to: request.dateTo,
       },
       filters: request.filters,
       recordCount: data.recordCount,
-      data: (data as any).data || []
+      data: (data as any).data || [],
     };
 
     // Write JSON file
@@ -398,14 +401,13 @@ async function generateJSONReport(request: ExportRequest): Promise<any> {
       filePath,
       fileName,
       fileSize: stats.size,
-      recordCount: data.recordCount
+      recordCount: data.recordCount,
     };
-
   } catch (error) {
     logger.error('Error generating JSON report:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
+      error: error instanceof Error ? error.message : 'Unknown error',
     };
   }
 }
@@ -417,7 +419,7 @@ async function deliverReportByEmail(
   customSubject?: string
 ): Promise<any> {
   const emailService = EmailDeliveryService.getInstance();
-  
+
   return await emailService.sendReportEmail(
     recipients,
     reportType,
@@ -428,7 +430,7 @@ async function deliverReportByEmail(
 
 function getContentType(fileName: string): string {
   const extension = path.extname(fileName).toLowerCase();
-  
+
   switch (extension) {
     case '.pdf':
       return 'application/pdf';

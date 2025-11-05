@@ -1,8 +1,9 @@
-import { Request, Response, NextFunction } from 'express';
+import type { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { config } from '@/config';
-import { JwtPayload, Role } from '@/types/auth';
-import { ApiResponse } from '@/types/api';
+import type { JwtPayload } from '@/types/auth';
+import { Role } from '@/types/auth';
+import type { ApiResponse } from '@/types/api';
 import { logger } from '@/config/logger';
 import { query } from '@/config/database';
 
@@ -157,10 +158,19 @@ export const requireRole = (allowedRoles: Role[]) => {
 
 export const requireAdmin = requireRole([Role.ADMIN]);
 export const requireBackendOrAdmin = requireRole([Role.ADMIN, Role.BACKEND_USER]);
-export const requireFieldOrHigher = requireRole([Role.ADMIN, Role.BACKEND_USER, Role.MANAGER, Role.FIELD_AGENT]);
+export const requireFieldOrHigher = requireRole([
+  Role.ADMIN,
+  Role.BACKEND_USER,
+  Role.MANAGER,
+  Role.FIELD_AGENT,
+]);
 
 // Enhanced auth middleware that loads user permissions
-export const auth = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+export const auth = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
   try {
     // First run the basic token authentication
     authenticateToken(req, res, async () => {
@@ -203,7 +213,7 @@ export const auth = async (req: AuthenticatedRequest, res: Response, next: NextF
         const response: ApiResponse = {
           success: false,
           message: 'Failed to load user permissions',
-          error: { code: 'PERMISSION_LOAD_ERROR' }
+          error: { code: 'PERMISSION_LOAD_ERROR' },
         };
         res.status(500).json(response);
       }
@@ -213,7 +223,7 @@ export const auth = async (req: AuthenticatedRequest, res: Response, next: NextF
     const response: ApiResponse = {
       success: false,
       message: 'Authentication failed',
-      error: { code: 'AUTH_ERROR' }
+      error: { code: 'AUTH_ERROR' },
     };
     res.status(500).json(response);
   }
@@ -226,7 +236,7 @@ export const requirePermission = (resource: string, action: string) => {
       const response: ApiResponse = {
         success: false,
         message: 'Authentication required',
-        error: { code: 'UNAUTHORIZED' }
+        error: { code: 'UNAUTHORIZED' },
       };
       res.status(401).json(response);
       return;
@@ -242,7 +252,7 @@ export const requirePermission = (resource: string, action: string) => {
     const permissions = req.user.permissions || {};
     const resourcePermissions = permissions[resource];
 
-    if (!resourcePermissions || !resourcePermissions[action]) {
+    if (!resourcePermissions?.[action]) {
       const response: ApiResponse = {
         success: false,
         message: 'Insufficient permissions',
@@ -251,9 +261,9 @@ export const requirePermission = (resource: string, action: string) => {
           details: {
             requiredPermission: `${resource}.${action}`,
             userRole: req.user.role,
-            userPermissions: permissions
-          }
-        }
+            userPermissions: permissions,
+          },
+        },
       };
       res.status(403).json(response);
       return;

@@ -1,17 +1,13 @@
-import { Request, Response } from 'express';
+import type { Response } from 'express';
+import { Request } from 'express';
 import { query } from '../config/database';
 import { logger } from '../utils/logger';
-import { AuthenticatedRequest } from '../middleware/auth';
+import type { AuthenticatedRequest } from '../middleware/auth';
 
 // GET /api/departments - Get all departments with pagination and filtering
 export const getDepartments = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const {
-      page = 1,
-      limit = 20,
-      search = '',
-      includeInactive = 'false'
-    } = req.query;
+    const { page = 1, limit = 20, search = '', includeInactive = 'false' } = req.query;
 
     const offset = (Number(page) - 1) * Number(limit);
     const whereConditions: string[] = [];
@@ -63,7 +59,7 @@ export const getDepartments = async (req: AuthenticatedRequest, res: Response) =
       userId: req.user?.id,
       filters: { search, includeInactive },
       pagination: { page, limit },
-      total
+      total,
     });
 
     res.json({
@@ -73,15 +69,15 @@ export const getDepartments = async (req: AuthenticatedRequest, res: Response) =
         page: Number(page),
         limit: Number(limit),
         total,
-        pages: Math.ceil(total / Number(limit))
-      }
+        pages: Math.ceil(total / Number(limit)),
+      },
     });
   } catch (error) {
     logger.error('Error retrieving departments:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to retrieve departments',
-      error: { code: 'INTERNAL_ERROR' }
+      error: { code: 'INTERNAL_ERROR' },
     });
   }
 };
@@ -111,20 +107,20 @@ export const getDepartmentById = async (req: AuthenticatedRequest, res: Response
       return res.status(404).json({
         success: false,
         message: 'Department not found',
-        error: { code: 'DEPARTMENT_NOT_FOUND' }
+        error: { code: 'DEPARTMENT_NOT_FOUND' },
       });
     }
 
     res.json({
       success: true,
-      data: result.rows[0]
+      data: result.rows[0],
     });
   } catch (error) {
     logger.error('Error retrieving department:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to retrieve department',
-      error: { code: 'INTERNAL_ERROR' }
+      error: { code: 'INTERNAL_ERROR' },
     });
   }
 };
@@ -139,7 +135,7 @@ export const createDepartment = async (req: AuthenticatedRequest, res: Response)
       return res.status(400).json({
         success: false,
         message: 'Department name is required',
-        error: { code: 'VALIDATION_ERROR' }
+        error: { code: 'VALIDATION_ERROR' },
       });
     }
 
@@ -149,7 +145,7 @@ export const createDepartment = async (req: AuthenticatedRequest, res: Response)
       return res.status(400).json({
         success: false,
         message: 'Department name already exists',
-        error: { code: 'DUPLICATE_DEPARTMENT_NAME' }
+        error: { code: 'DUPLICATE_DEPARTMENT_NAME' },
       });
     }
 
@@ -160,12 +156,10 @@ export const createDepartment = async (req: AuthenticatedRequest, res: Response)
         return res.status(400).json({
           success: false,
           message: 'Department head user not found',
-          error: { code: 'INVALID_DEPARTMENT_HEAD' }
+          error: { code: 'INVALID_DEPARTMENT_HEAD' },
         });
       }
     }
-
-
 
     // Create department
     const createQuery = `
@@ -178,26 +172,26 @@ export const createDepartment = async (req: AuthenticatedRequest, res: Response)
       name,
       description || null,
       departmentHeadId || null,
-      req.user?.id
+      req.user?.id,
     ]);
 
     logger.info('Created new department', {
       userId: req.user?.id,
       departmentId: result.rows[0].id,
-      departmentName: name
+      departmentName: name,
     });
 
     res.status(201).json({
       success: true,
       data: result.rows[0],
-      message: 'Department created successfully'
+      message: 'Department created successfully',
     });
   } catch (error) {
     logger.error('Error creating department:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to create department',
-      error: { code: 'INTERNAL_ERROR' }
+      error: { code: 'INTERNAL_ERROR' },
     });
   }
 };
@@ -214,18 +208,21 @@ export const updateDepartment = async (req: AuthenticatedRequest, res: Response)
       return res.status(404).json({
         success: false,
         message: 'Department not found',
-        error: { code: 'DEPARTMENT_NOT_FOUND' }
+        error: { code: 'DEPARTMENT_NOT_FOUND' },
       });
     }
 
     // Check if new name already exists (if name is being changed)
     if (name && name !== existingDepartment.rows[0].name) {
-      const duplicateDepartment = await query('SELECT id FROM departments WHERE name = $1 AND id != $2', [name, id]);
+      const duplicateDepartment = await query(
+        'SELECT id FROM departments WHERE name = $1 AND id != $2',
+        [name, id]
+      );
       if (duplicateDepartment.rows.length > 0) {
         return res.status(400).json({
           success: false,
           message: 'Department name already exists',
-          error: { code: 'DUPLICATE_DEPARTMENT_NAME' }
+          error: { code: 'DUPLICATE_DEPARTMENT_NAME' },
         });
       }
     }
@@ -237,12 +234,10 @@ export const updateDepartment = async (req: AuthenticatedRequest, res: Response)
         return res.status(400).json({
           success: false,
           message: 'Department head user not found',
-          error: { code: 'INVALID_DEPARTMENT_HEAD' }
+          error: { code: 'INVALID_DEPARTMENT_HEAD' },
         });
       }
     }
-
-
 
     // Update department
     const updateQuery = `
@@ -264,26 +259,26 @@ export const updateDepartment = async (req: AuthenticatedRequest, res: Response)
       departmentHeadId !== undefined ? departmentHeadId : null,
       isActive !== undefined ? isActive : null,
       req.user?.id,
-      id
+      id,
     ]);
 
     logger.info('Updated department', {
       userId: req.user?.id,
       departmentId: id,
-      departmentName: result.rows[0].name
+      departmentName: result.rows[0].name,
     });
 
     res.json({
       success: true,
       data: result.rows[0],
-      message: 'Department updated successfully'
+      message: 'Department updated successfully',
     });
   } catch (error) {
     logger.error('Error updating department:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to update department',
-      error: { code: 'INTERNAL_ERROR' }
+      error: { code: 'INTERNAL_ERROR' },
     });
   }
 };
@@ -299,20 +294,22 @@ export const deleteDepartment = async (req: AuthenticatedRequest, res: Response)
       return res.status(404).json({
         success: false,
         message: 'Department not found',
-        error: { code: 'DEPARTMENT_NOT_FOUND' }
+        error: { code: 'DEPARTMENT_NOT_FOUND' },
       });
     }
 
     // Check if department is in use by users
-    const usageCheck = await query('SELECT COUNT(*) as count FROM users WHERE "departmentId" = $1', [id]);
+    const usageCheck = await query(
+      'SELECT COUNT(*) as count FROM users WHERE "departmentId" = $1',
+      [id]
+    );
     if (parseInt(usageCheck.rows[0].count) > 0) {
       return res.status(400).json({
         success: false,
         message: 'Cannot delete department that has assigned users',
-        error: { code: 'DEPARTMENT_IN_USE' }
+        error: { code: 'DEPARTMENT_IN_USE' },
       });
     }
-
 
     // Delete department
     await query('DELETE FROM departments WHERE id = $1', [id]);
@@ -320,19 +317,19 @@ export const deleteDepartment = async (req: AuthenticatedRequest, res: Response)
     logger.info('Deleted department', {
       userId: req.user?.id,
       departmentId: id,
-      departmentName: existingDepartment.rows[0].name
+      departmentName: existingDepartment.rows[0].name,
     });
 
     res.json({
       success: true,
-      message: 'Department deleted successfully'
+      message: 'Department deleted successfully',
     });
   } catch (error) {
     logger.error('Error deleting department:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to delete department',
-      error: { code: 'INTERNAL_ERROR' }
+      error: { code: 'INTERNAL_ERROR' },
     });
   }
 };

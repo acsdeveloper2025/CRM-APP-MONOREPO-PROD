@@ -1,9 +1,11 @@
-import { Request, Response } from 'express';
+import type { Response } from 'express';
+import { Request } from 'express';
 import { pool } from '../config/database';
 import { logger } from '../utils/logger';
 import { createAuditLog } from '../utils/auditLogger';
-import { AuthenticatedRequest } from '../middleware/auth';
-import { geminiAIService, VerificationReportData } from '../services/GeminiAIService';
+import type { AuthenticatedRequest } from '../middleware/auth';
+import type { VerificationReportData } from '../services/GeminiAIService';
+import { geminiAIService } from '../services/GeminiAIService';
 import { getReportTemplate, getRiskAssessment } from '../utils/reportTemplates';
 
 /**
@@ -17,14 +19,14 @@ export const generateFormSubmissionReport = async (req: AuthenticatedRequest, re
     if (!caseId || !submissionId) {
       return res.status(400).json({
         success: false,
-        message: 'Case ID and Submission ID are required'
+        message: 'Case ID and Submission ID are required',
       });
     }
 
     logger.info('Generating AI report for form submission', {
       caseId,
       submissionId,
-      userId
+      userId,
     });
 
     // First get the case UUID from the case ID
@@ -36,7 +38,7 @@ export const generateFormSubmissionReport = async (req: AuthenticatedRequest, re
     if (caseUuidResult.rows.length === 0) {
       return res.status(404).json({
         success: false,
-        message: 'Case not found'
+        message: 'Case not found',
       });
     }
 
@@ -55,19 +57,23 @@ export const generateFormSubmissionReport = async (req: AuthenticatedRequest, re
     if (caseResult.rows.length === 0) {
       return res.status(404).json({
         success: false,
-        message: 'Case not found'
+        message: 'Case not found',
       });
     }
 
     const caseData = caseResult.rows[0];
 
     // Get form submission data based on verification type
-    const submissionData = await getFormSubmissionData(caseUuid, submissionId, caseData.verificationType);
+    const submissionData = await getFormSubmissionData(
+      caseUuid,
+      submissionId,
+      caseData.verificationType
+    );
 
     if (!submissionData) {
       return res.status(404).json({
         success: false,
-        message: 'Form submission not found'
+        message: 'Form submission not found',
       });
     }
 
@@ -80,21 +86,25 @@ export const generateFormSubmissionReport = async (req: AuthenticatedRequest, re
         caseId: caseData.caseId?.toString() || caseId,
         customerName: caseData.customerName,
         address: `${caseData.addressStreet}, ${caseData.addressCity}, ${caseData.addressState} ${caseData.addressPincode}`,
-        verificationDate: submissionData.verification_date || new Date().toISOString().split('T')[0],
-        agentName: caseData.assigned_to_name || 'Unknown Agent'
+        verificationDate:
+          submissionData.verification_date || new Date().toISOString().split('T')[0],
+        agentName: caseData.assigned_to_name || 'Unknown Agent',
       },
-      geoLocation: submissionData.latitude && submissionData.longitude ? {
-        latitude: parseFloat(submissionData.latitude),
-        longitude: parseFloat(submissionData.longitude),
-        address: submissionData.captured_address
-      } : undefined,
+      geoLocation:
+        submissionData.latitude && submissionData.longitude
+          ? {
+              latitude: parseFloat(submissionData.latitude),
+              longitude: parseFloat(submissionData.longitude),
+              address: submissionData.captured_address,
+            }
+          : undefined,
       photos: await getSubmissionPhotos(caseUuid, submissionId),
       metadata: {
         submissionId,
         clientName: caseData.client_name,
         priority: caseData.priority,
-        status: caseData.status
-      }
+        status: caseData.status,
+      },
     };
 
     // Generate AI report
@@ -104,7 +114,7 @@ export const generateFormSubmissionReport = async (req: AuthenticatedRequest, re
       return res.status(500).json({
         success: false,
         message: 'Failed to generate AI report',
-        error: aiResult.error
+        error: aiResult.error,
       });
     }
 
@@ -122,9 +132,9 @@ export const generateFormSubmissionReport = async (req: AuthenticatedRequest, re
         riskAssessment: {
           level: riskAssessment.level,
           factors: riskAssessment.factors,
-          mitigation: riskAssessment.mitigation
+          mitigation: riskAssessment.mitigation,
         },
-        recommendations: template.recommendations
+        recommendations: template.recommendations,
       },
       metadata: {
         generatedAt: new Date().toISOString(),
@@ -132,8 +142,8 @@ export const generateFormSubmissionReport = async (req: AuthenticatedRequest, re
         caseId,
         submissionId,
         verificationType: caseData.verificationType,
-        outcome: reportData.outcome
-      }
+        outcome: reportData.outcome,
+      },
     };
 
     // Save report to database
@@ -144,40 +154,39 @@ export const generateFormSubmissionReport = async (req: AuthenticatedRequest, re
       action: 'AI_REPORT_GENERATED',
       entityType: 'AI_REPORT',
       entityId: savedReport.id,
-      userId: userId!,
+      userId,
       details: {
         caseId,
         submissionId,
         verificationType: caseData.verificationType,
         outcome: reportData.outcome,
-        confidence: aiResult.report?.confidence
+        confidence: aiResult.report?.confidence,
       },
       ipAddress: req.ip,
-      userAgent: req.get('User-Agent')
+      userAgent: req.get('User-Agent'),
     });
 
     logger.info('AI report generated successfully', {
       caseId,
       submissionId,
       reportId: savedReport.id,
-      confidence: aiResult.report?.confidence
+      confidence: aiResult.report?.confidence,
     });
 
     res.json({
       success: true,
       data: {
         report: enhancedReport,
-        reportId: savedReport.id
+        reportId: savedReport.id,
       },
-      message: 'AI verification report generated successfully'
+      message: 'AI verification report generated successfully',
     });
-
   } catch (error) {
     logger.error('Error generating AI report:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -198,7 +207,7 @@ export const getFormSubmissionReport = async (req: AuthenticatedRequest, res: Re
     if (caseUuidResult.rows.length === 0) {
       return res.status(404).json({
         success: false,
-        message: 'Case not found'
+        message: 'Case not found',
       });
     }
 
@@ -216,7 +225,7 @@ export const getFormSubmissionReport = async (req: AuthenticatedRequest, res: Re
     if (result.rows.length === 0) {
       return res.status(404).json({
         success: false,
-        message: 'AI report not found'
+        message: 'AI report not found',
       });
     }
 
@@ -228,16 +237,15 @@ export const getFormSubmissionReport = async (req: AuthenticatedRequest, res: Re
         id: report.id,
         report: report.report_data,
         generatedAt: report.created_at,
-        generatedBy: report.generated_by
+        generatedBy: report.generated_by,
       },
-      message: 'AI report retrieved successfully'
+      message: 'AI report retrieved successfully',
     });
-
   } catch (error) {
     logger.error('Error retrieving AI report:', error);
     res.status(500).json({
       success: false,
-      message: 'Internal server error'
+      message: 'Internal server error',
     });
   }
 };
@@ -252,15 +260,14 @@ export const testAIConnection = async (req: AuthenticatedRequest, res: Response)
     res.json({
       success: result.success,
       message: result.success ? 'AI connection successful' : 'AI connection failed',
-      error: result.error
+      error: result.error,
     });
-
   } catch (error) {
     logger.error('Error testing AI connection:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to test AI connection',
-      error: error.message
+      error: error.message,
     });
   }
 };
@@ -317,17 +324,16 @@ export const getReportStatistics = async (req: AuthenticatedRequest, res: Respon
         riskDistribution: {
           low: parseInt(stats.low_risk) || 0,
           medium: parseInt(stats.medium_risk) || 0,
-          high: parseInt(stats.high_risk) || 0
+          high: parseInt(stats.high_risk) || 0,
         },
-        verificationTypeBreakdown: [] // TODO: Implement detailed breakdown
-      }
+        verificationTypeBreakdown: [], // TODO: Implement detailed breakdown
+      },
     });
-
   } catch (error) {
     logger.error('Error getting report statistics:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to get report statistics'
+      message: 'Failed to get report statistics',
     });
   }
 };
@@ -335,17 +341,21 @@ export const getReportStatistics = async (req: AuthenticatedRequest, res: Respon
 /**
  * Get form submission data based on verification type
  */
-async function getFormSubmissionData(caseId: string, submissionId: string, verificationType: string) {
+async function getFormSubmissionData(
+  caseId: string,
+  submissionId: string,
+  verificationType: string
+) {
   const tableMap: Record<string, string> = {
-    'RESIDENCE': '"residenceVerificationReports"',
-    'RESIDENCE_CUM_OFFICE': '"residenceCumOfficeVerificationReports"',
-    'OFFICE': '"officeVerificationReports"',
-    'BUSINESS': '"businessVerificationReports"',
-    'BUILDER': '"builderVerificationReports"',
-    'NOC': '"nocVerificationReports"',
-    'DSA_CONNECTOR': '"dsaConnectorVerificationReports"',
-    'PROPERTY_APF': '"propertyApfVerificationReports"',
-    'PROPERTY_INDIVIDUAL': '"propertyIndividualVerificationReports"'
+    RESIDENCE: '"residenceVerificationReports"',
+    RESIDENCE_CUM_OFFICE: '"residenceCumOfficeVerificationReports"',
+    OFFICE: '"officeVerificationReports"',
+    BUSINESS: '"businessVerificationReports"',
+    BUILDER: '"builderVerificationReports"',
+    NOC: '"nocVerificationReports"',
+    DSA_CONNECTOR: '"dsaConnectorVerificationReports"',
+    PROPERTY_APF: '"propertyApfVerificationReports"',
+    PROPERTY_INDIVIDUAL: '"propertyIndividualVerificationReports"',
   };
 
   const tableName = tableMap[verificationType.toUpperCase()];
@@ -371,15 +381,15 @@ async function getSubmissionPhotos(caseId: string, submissionId: string) {
       AND "mimeType" LIKE 'image/%'
       ORDER BY "createdAt" DESC
     `;
-    
+
     const result = await pool.query(query, [caseId]);
-    
+
     return result.rows.map(row => ({
       type: 'verification',
       metadata: {
         fileSize: row.fileSize,
-        capturedAt: row.createdAt
-      }
+        capturedAt: row.createdAt,
+      },
     }));
   } catch (error) {
     logger.error('Error fetching submission photos:', error);
@@ -396,12 +406,12 @@ async function saveAIReport(caseId: string, submissionId: string, reportData: an
     VALUES ($1, $2, $3, $4, NOW())
     RETURNING id, created_at
   `;
-  
+
   const result = await pool.query(query, [
     caseId,
     submissionId,
     JSON.stringify(reportData),
-    userId
+    userId,
   ]);
 
   return result.rows[0];

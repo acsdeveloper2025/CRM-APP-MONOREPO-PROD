@@ -11,18 +11,26 @@ const router = Router();
 router.use(authenticateToken, requireRole([Role.ADMIN, Role.SUPER_ADMIN]));
 
 const macCreateValidation = [
-  body('userId').notEmpty().withMessage('userId is required').isUUID().withMessage('userId must be UUID'),
+  body('userId')
+    .notEmpty()
+    .withMessage('userId is required')
+    .isUUID()
+    .withMessage('userId must be UUID'),
   body('macAddress').notEmpty().withMessage('macAddress is required').isString(),
   body('label').optional().isString(),
   body('isApproved').optional().isBoolean(),
 ];
 
-router.get('/mac-addresses/:userId',
+router.get(
+  '/mac-addresses/:userId',
   [param('userId').notEmpty().isUUID().withMessage('userId must be UUID')],
   validate,
   async (req, res) => {
-    const { userId } = req.params as any;
-    const result = await query(`SELECT id, "macAddress", label, "isApproved", "createdAt", "updatedAt" FROM "macAddresses" WHERE "userId" = $1 ORDER BY "createdAt" DESC`, [userId]);
+    const { userId } = req.params;
+    const result = await query(
+      `SELECT id, "macAddress", label, "isApproved", "createdAt", "updatedAt" FROM "macAddresses" WHERE "userId" = $1 ORDER BY "createdAt" DESC`,
+      [userId]
+    );
     res.json({ success: true, data: result.rows });
   }
 );
@@ -45,11 +53,15 @@ router.post('/mac-addresses', macCreateValidation, validate, async (req, res) =>
   res.json({ success: true, data: ins.rows[0] });
 });
 
-router.delete('/mac-addresses/:id', [param('id').notEmpty().isUUID()], validate, async (req, res) => {
-  const { id } = req.params as any;
-  await query(`DELETE FROM "macAddresses" WHERE id = $1`, [id]);
-  res.json({ success: true, message: 'MAC address removed' });
-});
+router.delete(
+  '/mac-addresses/:id',
+  [param('id').notEmpty().isUUID()],
+  validate,
+  async (req, res) => {
+    const { id } = req.params;
+    await query(`DELETE FROM "macAddresses" WHERE id = $1`, [id]);
+    res.json({ success: true, message: 'MAC address removed' });
+  }
+);
 
 export default router;
-

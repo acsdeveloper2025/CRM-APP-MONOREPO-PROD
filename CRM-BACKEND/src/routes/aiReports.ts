@@ -4,7 +4,7 @@ import {
   generateFormSubmissionReport,
   getFormSubmissionReport,
   testAIConnection,
-  getReportStatistics
+  getReportStatistics,
 } from '../controllers/aiReportsController';
 
 const router = Router();

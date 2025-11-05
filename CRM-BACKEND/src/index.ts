@@ -52,26 +52,30 @@ const startServer = async (): Promise<void> => {
       logger.info(`WebSocket server running on port ${config.port}`);
 
       // Schedule periodic cache refresh (every 10 minutes)
-      setInterval(async () => {
-        try {
-          await CacheWarmingService.refreshCaches();
-        } catch (error) {
-          logger.error('Periodic cache refresh failed:', error);
-        }
-      }, 10 * 60 * 1000); // 10 minutes
+      setInterval(
+        async () => {
+          try {
+            await CacheWarmingService.refreshCaches();
+          } catch (error) {
+            logger.error('Periodic cache refresh failed:', error);
+          }
+        },
+        10 * 60 * 1000
+      ); // 10 minutes
     });
 
     // Handle port already in use error
     server.on('error', (error: any) => {
       if (error.code === 'EADDRINUSE') {
-        logger.error(`Port ${config.port} is already in use. Please free the port or stop the conflicting service.`);
+        logger.error(
+          `Port ${config.port} is already in use. Please free the port or stop the conflicting service.`
+        );
         process.exit(1);
       } else {
         logger.error('Server error:', error);
         process.exit(1);
       }
     });
-
   } catch (error) {
     logger.error('Failed to start server:', error);
     process.exit(1);
@@ -80,18 +84,18 @@ const startServer = async (): Promise<void> => {
 
 const gracefulShutdown = async (signal: string): Promise<void> => {
   logger.info(`Received ${signal}. Starting graceful shutdown...`);
-  
+
   try {
     // Close server
     server.close(() => {
       logger.info('HTTP server closed');
     });
-    
+
     // Close WebSocket connections
     io.close(() => {
       logger.info('WebSocket server closed');
     });
-    
+
     // Close job queues
     await closeQueues();
 
@@ -100,10 +104,10 @@ const gracefulShutdown = async (signal: string): Promise<void> => {
 
     // Disconnect from Redis
     await disconnectRedis();
-    
+
     // Disconnect from database
     await disconnectDatabase();
-    
+
     logger.info('Graceful shutdown completed');
     process.exit(0);
   } catch (error) {
@@ -117,7 +121,7 @@ process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 // Handle uncaught exceptions
-process.on('uncaughtException', (error) => {
+process.on('uncaughtException', error => {
   logger.error('Uncaught Exception:', error);
   process.exit(1);
 });

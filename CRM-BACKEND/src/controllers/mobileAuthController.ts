@@ -1,17 +1,16 @@
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { query } from '@/config/database';
 import { config } from '../config';
-import {
+import type {
   MobileLoginRequest,
   MobileLoginResponse,
-  MobileDeviceInfo,
   MobileVersionCheckRequest,
   MobileVersionCheckResponse,
   MobileAppConfigResponse,
-  MobileNotificationRegistrationRequest
 } from '../types/mobile';
+import { MobileDeviceInfo, MobileNotificationRegistrationRequest } from '../types/mobile';
 import { createAuditLog } from '../utils/auditLogger';
 
 export class MobileAuthController {
@@ -85,8 +84,6 @@ export class MobileAuthController {
       }
 
       // Simplified authentication - no device validation required
-
-
 
       // Generate tokens (simplified - no device ID)
       const accessToken = jwt.sign(
@@ -180,7 +177,7 @@ export class MobileAuthController {
 
       // Verify refresh token
       const decoded = jwt.verify(refreshToken, config.jwtSecret) as any;
-      
+
       // Check if refresh token exists in database
       const storedRes = await query(
         `SELECT rt.token, u.id as "userId", u.username, u.role
@@ -289,36 +286,37 @@ export class MobileAuthController {
           'Better case status real-time updates',
           'Performance optimizations for large datasets',
           'Fixed location accuracy issues',
-          'Enhanced security with biometric authentication'
+          'Enhanced security with biometric authentication',
         ].join('\n'),
         features: [
           'Real-time case status synchronization',
           'Enhanced photo gallery with geo-location',
           'Improved search and filtering capabilities',
           'Better offline mode support',
-          'Enhanced security features'
+          'Enhanced security features',
         ],
         bugFixes: [
           'Fixed case acceptance not updating status',
           'Resolved CORS issues with API calls',
           'Fixed audit log creation errors',
           'Improved location tracking accuracy',
-          'Fixed form validation edge cases'
+          'Fixed form validation edge cases',
         ],
         urgent: forceUpdate,
-        critical: forceUpdate
+        critical: forceUpdate,
       };
 
       const response: MobileVersionCheckResponse = {
         success: true,
-        updateRequired: updateRequired,
+        updateRequired,
         forceUpdate,
         urgent: forceUpdate,
         latestVersion: config.mobile.apiVersion,
         currentVersion,
-        downloadUrl: platform === 'IOS'
-          ? 'https://apps.apple.com/app/caseflow'
-          : 'https://play.google.com/store/apps/details?id=com.caseflow',
+        downloadUrl:
+          platform === 'IOS'
+            ? 'https://apps.apple.com/app/caseflow'
+            : 'https://play.google.com/store/apps/details?id=com.caseflow',
         releaseNotes: hasUpdate ? releaseInfo.releaseNotes : '',
         features: hasUpdate ? releaseInfo.features : [],
         bugFixes: hasUpdate ? releaseInfo.bugFixes : [],
@@ -329,16 +327,19 @@ export class MobileAuthController {
       };
 
       // Log version check for analytics
-      console.log(`📱 Version check: ${currentVersion} -> ${config.mobile.apiVersion} (${platform})`, {
-        currentVersion,
-        latestVersion: config.mobile.apiVersion,
-        platform,
-        buildNumber,
-        hasNewerVersion: hasUpdate,
-        updateRequired: updateRequired,
-        forceUpdate,
-        isVersionSupported,
-      });
+      console.log(
+        `📱 Version check: ${currentVersion} -> ${config.mobile.apiVersion} (${platform})`,
+        {
+          currentVersion,
+          latestVersion: config.mobile.apiVersion,
+          platform,
+          buildNumber,
+          hasNewerVersion: hasUpdate,
+          updateRequired,
+          forceUpdate,
+          isVersionSupported,
+        }
+      );
 
       res.json(response);
     } catch (error) {
@@ -421,11 +422,15 @@ export class MobileAuthController {
 
   // Helper methods
   private static shouldForceUpdate(currentVersion: string): boolean {
-    return MobileAuthController.compareVersions(currentVersion, config.mobile.forceUpdateVersion) < 0;
+    return (
+      MobileAuthController.compareVersions(currentVersion, config.mobile.forceUpdateVersion) < 0
+    );
   }
 
   private static isVersionSupported(currentVersion: string): boolean {
-    return MobileAuthController.compareVersions(currentVersion, config.mobile.minSupportedVersion) >= 0;
+    return (
+      MobileAuthController.compareVersions(currentVersion, config.mobile.minSupportedVersion) >= 0
+    );
   }
 
   private static hasNewerVersion(currentVersion: string): boolean {
@@ -435,21 +440,21 @@ export class MobileAuthController {
   private static compareVersions(version1: string, version2: string): number {
     const v1parts = version1.split('.').map(Number);
     const v2parts = version2.split('.').map(Number);
-    
+
     for (let i = 0; i < Math.max(v1parts.length, v2parts.length); i++) {
       const v1part = v1parts[i] || 0;
       const v2part = v2parts[i] || 0;
-      
-      if (v1part < v2part) return -1;
-      if (v1part > v2part) return 1;
+
+      if (v1part < v2part) {
+        return -1;
+      }
+      if (v1part > v2part) {
+        return 1;
+      }
     }
-    
+
     return 0;
   }
-
-
-
-
 
   /**
    * Get all devices for a user
@@ -458,7 +463,10 @@ export class MobileAuthController {
     try {
       const { userId } = req.params;
 
-      const devs = await query(`SELECT * FROM devices WHERE "userId" = $1 ORDER BY "lastActiveAt" DESC`, [userId]);
+      const devs = await query(
+        `SELECT * FROM devices WHERE "userId" = $1 ORDER BY "lastActiveAt" DESC`,
+        [userId]
+      );
       const devices = devs.rows;
 
       res.json({

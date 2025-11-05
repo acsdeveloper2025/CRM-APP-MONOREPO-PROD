@@ -1,5 +1,6 @@
-import multer, { FileFilterCallback } from 'multer';
-import { Request } from 'express';
+import type { FileFilterCallback } from 'multer';
+import multer from 'multer';
+import type { Request } from 'express';
 
 // Configure multer for memory storage (files stored in memory as Buffer)
 const storage = multer.memoryStorage();
@@ -21,4 +22,3 @@ export const upload = multer({
     fileSize: 50 * 1024 * 1024, // 50MB max file size (increased for mobile app with multiple high-res images)
   },
 });
-

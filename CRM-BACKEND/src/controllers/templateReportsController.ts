@@ -1,8 +1,8 @@
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import { logger } from '../utils/logger';
 import { templateReportService } from '../services/TemplateReportService';
 import { pool } from '../config/database';
-import { AuthenticatedRequest } from '../middleware/auth';
+import type { AuthenticatedRequest } from '../middleware/auth';
 
 /**
  * Template-based Reports Controller
@@ -22,14 +22,30 @@ function normalizeVerificationType(verificationType: string): string {
   }
 
   // Check for individual types
-  if (typeUpper.includes('RESIDENCE')) return 'RESIDENCE';
-  if (typeUpper.includes('OFFICE')) return 'OFFICE';
-  if (typeUpper.includes('BUSINESS')) return 'BUSINESS';
-  if (typeUpper.includes('BUILDER')) return 'BUILDER';
-  if (typeUpper.includes('NOC')) return 'NOC';
-  if (typeUpper.includes('DSA') || typeUpper.includes('CONNECTOR')) return 'DSA_CONNECTOR';
-  if (typeUpper.includes('PROPERTY') && typeUpper.includes('APF')) return 'PROPERTY_APF';
-  if (typeUpper.includes('PROPERTY') && typeUpper.includes('INDIVIDUAL')) return 'PROPERTY_INDIVIDUAL';
+  if (typeUpper.includes('RESIDENCE')) {
+    return 'RESIDENCE';
+  }
+  if (typeUpper.includes('OFFICE')) {
+    return 'OFFICE';
+  }
+  if (typeUpper.includes('BUSINESS')) {
+    return 'BUSINESS';
+  }
+  if (typeUpper.includes('BUILDER')) {
+    return 'BUILDER';
+  }
+  if (typeUpper.includes('NOC')) {
+    return 'NOC';
+  }
+  if (typeUpper.includes('DSA') || typeUpper.includes('CONNECTOR')) {
+    return 'DSA_CONNECTOR';
+  }
+  if (typeUpper.includes('PROPERTY') && typeUpper.includes('APF')) {
+    return 'PROPERTY_APF';
+  }
+  if (typeUpper.includes('PROPERTY') && typeUpper.includes('INDIVIDUAL')) {
+    return 'PROPERTY_INDIVIDUAL';
+  }
 
   // Default fallback
   return 'RESIDENCE';
@@ -46,7 +62,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
     logger.info('Generating template report for form submission', {
       caseId,
       submissionId,
-      userId
+      userId,
     });
 
     // Get case details
@@ -87,10 +103,11 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
     let formData: any = {};
 
     // Extract address from verificationData
-    const address = caseData.verificationData?.address ||
-                    caseData.verificationData?.formData?.address ||
-                    caseData.verificationData?.verification?.address ||
-                    'Address not available';
+    const address =
+      caseData.verificationData?.address ||
+      caseData.verificationData?.formData?.address ||
+      caseData.verificationData?.verification?.address ||
+      'Address not available';
 
     // Get verification report data based on verification type using verification_task_id
     const typeUpper = verificationType.toUpperCase();
@@ -149,7 +166,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           otherObservation: residenceData.other_observation,
           finalStatus: residenceData.final_status,
           shiftedPeriod: residenceData.shifted_period,
-          premisesStatus: residenceData.premises_status
+          premisesStatus: residenceData.premises_status,
         };
       }
     } else if (typeUpper.includes('OFFICE') && !typeUpper.includes('RESIDENCE')) {
@@ -221,7 +238,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
 
           // NSP-specific fields
           thirdPartyConfirmation: officeData.third_party_confirmation,
-          officeExistence: officeData.office_existence
+          officeExistence: officeData.office_existence,
         };
       }
     } else if (typeUpper.includes('BUSINESS')) {
@@ -272,7 +289,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           feedbackFromNeighbour: businessData.feedback_from_neighbour,
           politicalConnection: businessData.political_connection,
           otherObservation: businessData.other_observation,
-          finalStatus: businessData.final_status
+          finalStatus: businessData.final_status,
         };
       }
     } else if (typeUpper.includes('RESIDENCE') && typeUpper.includes('OFFICE')) {
@@ -283,7 +300,9 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
         LIMIT 1
       `;
 
-      const residenceCumOfficeResult = await pool.query(residenceCumOfficeQuery, [verificationTaskId]);
+      const residenceCumOfficeResult = await pool.query(residenceCumOfficeQuery, [
+        verificationTaskId,
+      ]);
 
       if (residenceCumOfficeResult.rows.length > 0) {
         const rcData = residenceCumOfficeResult.rows[0];
@@ -320,7 +339,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           feedbackFromNeighbour: rcData.feedback_from_neighbour,
           politicalConnection: rcData.political_connection,
           otherObservation: rcData.other_observation,
-          finalStatus: rcData.final_status
+          finalStatus: rcData.final_status,
         };
       }
     } else if (typeUpper.includes('BUILDER')) {
@@ -369,7 +388,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           feedbackFromNeighbour: builderData.feedback_from_neighbour,
           politicalConnection: builderData.political_connection,
           otherObservation: builderData.other_observation,
-          finalStatus: builderData.final_status
+          finalStatus: builderData.final_status,
         };
       }
     } else if (typeUpper.includes('NOC')) {
@@ -413,7 +432,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           feedbackFromNeighbour: nocData.feedback_from_neighbour,
           politicalConnection: nocData.political_connection,
           otherObservation: nocData.other_observation,
-          finalStatus: nocData.final_status
+          finalStatus: nocData.final_status,
         };
       }
     } else if (typeUpper.includes('DSA') || typeUpper.includes('CONNECTOR')) {
@@ -460,7 +479,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           feedbackFromNeighbour: dsaData.feedback_from_neighbour,
           politicalConnection: dsaData.political_connection,
           otherObservation: dsaData.other_observation,
-          finalStatus: dsaData.final_status
+          finalStatus: dsaData.final_status,
         };
       }
     } else if (typeUpper.includes('PROPERTY') && typeUpper.includes('APF')) {
@@ -505,7 +524,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           feedbackFromNeighbour: propertyData.feedback_from_neighbour,
           politicalConnection: propertyData.political_connection,
           otherObservation: propertyData.other_observation,
-          finalStatus: propertyData.final_status
+          finalStatus: propertyData.final_status,
         };
       }
     } else if (typeUpper.includes('PROPERTY') && typeUpper.includes('INDIVIDUAL')) {
@@ -516,7 +535,9 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
         LIMIT 1
       `;
 
-      const propertyIndividualResult = await pool.query(propertyIndividualQuery, [verificationTaskId]);
+      const propertyIndividualResult = await pool.query(propertyIndividualQuery, [
+        verificationTaskId,
+      ]);
 
       if (propertyIndividualResult.rows.length > 0) {
         const propertyData = propertyIndividualResult.rows[0];
@@ -550,12 +571,13 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           feedbackFromNeighbour: propertyData.feedback_from_neighbour,
           politicalConnection: propertyData.political_connection,
           otherObservation: propertyData.other_observation,
-          finalStatus: propertyData.final_status
+          finalStatus: propertyData.final_status,
         };
       }
     } else {
       // Fallback for unknown verification types
-      formData = caseData.verificationData?.formData || caseData.verificationData?.verification || {};
+      formData =
+        caseData.verificationData?.formData || caseData.verificationData?.verification || {};
       logger.warn(`Unknown verification type ${verificationType}, using fallback data`);
     }
 
@@ -564,7 +586,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
     const normalizedVerificationType = normalizeVerificationType(verificationType);
     logger.info('Normalized verification type for template generation', {
       original: verificationType,
-      normalized: normalizedVerificationType
+      normalized: normalizedVerificationType,
     });
 
     // Prepare data for template generation
@@ -575,8 +597,8 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
       caseDetails: {
         caseId: caseData.id,
         customerName: caseData.customerName,
-        address: address
-      }
+        address,
+      },
     };
 
     // Generate template-based report
@@ -601,7 +623,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
       verificationType,
       outcome,
       result.report,
-      JSON.stringify(result.metadata)
+      JSON.stringify(result.metadata),
     ]);
 
     const reportId = saveResult.rows[0].id;
@@ -610,16 +632,15 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
       caseId,
       submissionId,
       reportId,
-      userId
+      userId,
     });
 
     res.json({
       success: true,
       reportId,
       report: result.report,
-      metadata: result.metadata
+      metadata: result.metadata,
     });
-
   } catch (error) {
     logger.error('Error generating template report:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -635,7 +656,7 @@ export async function getTemplateReport(req: Request, res: Response) {
 
     logger.info('Retrieving template report', {
       caseId,
-      submissionId
+      submissionId,
     });
 
     // Get case UUID
@@ -672,10 +693,9 @@ export async function getTemplateReport(req: Request, res: Response) {
         content: report.report_content,
         metadata: report.metadata,
         createdAt: report.created_at,
-        createdBy: report.created_by
-      }
+        createdBy: report.created_by,
+      },
     });
-
   } catch (error) {
     logger.error('Error retrieving template report:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -694,7 +714,7 @@ export async function getCaseTemplateReports(req: Request, res: Response) {
     // Get case UUID
     const caseQuery = `SELECT id FROM cases WHERE "caseId" = $1`;
     const caseResult = await pool.query(caseQuery, [parseInt(caseId)]);
-    
+
     if (caseResult.rows.length === 0) {
       return res.status(404).json({ error: 'Case not found' });
     }
@@ -720,14 +740,13 @@ export async function getCaseTemplateReports(req: Request, res: Response) {
       content: report.report_content,
       metadata: report.metadata,
       createdAt: report.created_at,
-      createdBy: report.created_by
+      createdBy: report.created_by,
     }));
 
     res.json({
       success: true,
-      reports
+      reports,
     });
-
   } catch (error) {
     logger.error('Error retrieving case template reports:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -759,7 +778,6 @@ export async function deleteTemplateReport(req: AuthenticatedRequest, res: Respo
     logger.info('Template report deleted successfully', { reportId, userId });
 
     res.json({ success: true, message: 'Template report deleted successfully' });
-
   } catch (error) {
     logger.error('Error deleting template report:', error);
     res.status(500).json({ error: 'Internal server error' });

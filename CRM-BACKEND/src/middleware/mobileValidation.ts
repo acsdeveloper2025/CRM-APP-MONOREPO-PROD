@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+import type { Request, Response, NextFunction } from 'express';
 import { config } from '../config';
 
 // Validate mobile app version
@@ -10,7 +10,7 @@ export const validateMobileVersion = (req: Request, res: Response, next: NextFun
     console.log(`📱 Received headers:`, {
       'x-app-version': appVersion,
       'x-platform': platform,
-      'user-agent': req.headers['user-agent']
+      'user-agent': req.headers['user-agent'],
     });
 
     if (!appVersion) {
@@ -26,7 +26,9 @@ export const validateMobileVersion = (req: Request, res: Response, next: NextFun
 
     // Check if force update is required
     const comparisonResult = compareVersions(appVersion, config.mobile.forceUpdateVersion);
-    console.log(`🔍 Version validation: ${appVersion} vs ${config.mobile.forceUpdateVersion} = ${comparisonResult}`);
+    console.log(
+      `🔍 Version validation: ${appVersion} vs ${config.mobile.forceUpdateVersion} = ${comparisonResult}`
+    );
 
     if (comparisonResult < 0) {
       console.log(`❌ Force update required: ${appVersion} < ${config.mobile.forceUpdateVersion}`);
@@ -40,9 +42,10 @@ export const validateMobileVersion = (req: Request, res: Response, next: NextFun
         data: {
           currentVersion: appVersion,
           requiredVersion: config.mobile.forceUpdateVersion,
-          downloadUrl: platform === 'IOS' 
-            ? 'https://apps.apple.com/app/caseflow' 
-            : 'https://play.google.com/store/apps/details?id=com.caseflow',
+          downloadUrl:
+            platform === 'IOS'
+              ? 'https://apps.apple.com/app/caseflow'
+              : 'https://play.google.com/store/apps/details?id=com.caseflow',
         },
       });
     }
@@ -59,15 +62,18 @@ export const validateMobileVersion = (req: Request, res: Response, next: NextFun
         data: {
           currentVersion: appVersion,
           minSupportedVersion: config.mobile.minSupportedVersion,
-          downloadUrl: platform === 'IOS' 
-            ? 'https://apps.apple.com/app/caseflow' 
-            : 'https://play.google.com/store/apps/details?id=com.caseflow',
+          downloadUrl:
+            platform === 'IOS'
+              ? 'https://apps.apple.com/app/caseflow'
+              : 'https://play.google.com/store/apps/details?id=com.caseflow',
         },
       });
     }
 
     // Version validation passed
-    console.log(`✅ Version validation passed: ${appVersion} >= ${config.mobile.forceUpdateVersion}`);
+    console.log(
+      `✅ Version validation passed: ${appVersion} >= ${config.mobile.forceUpdateVersion}`
+    );
     next();
   } catch (error) {
     console.error('Mobile version validation error:', error);
@@ -82,10 +88,8 @@ export const validateMobileVersion = (req: Request, res: Response, next: NextFun
   }
 };
 
-
-
 // Rate limiting for mobile endpoints
-export const mobileRateLimit = (maxRequests: number = 100, windowMs: number = 15 * 60 * 1000) => {
+export const mobileRateLimit = (maxRequests = 100, windowMs: number = 15 * 60 * 1000) => {
   const requests = new Map<string, { count: number; resetTime: number }>();
 
   return (req: Request, res: Response, next: NextFunction) => {
@@ -225,14 +229,18 @@ export const validateMobileFileUpload = (req: Request, res: Response, next: Next
 function compareVersions(version1: string, version2: string): number {
   const v1parts = version1.split('.').map(Number);
   const v2parts = version2.split('.').map(Number);
-  
+
   for (let i = 0; i < Math.max(v1parts.length, v2parts.length); i++) {
     const v1part = v1parts[i] || 0;
     const v2part = v2parts[i] || 0;
-    
-    if (v1part < v2part) return -1;
-    if (v1part > v2part) return 1;
+
+    if (v1part < v2part) {
+      return -1;
+    }
+    if (v1part > v2part) {
+      return 1;
+    }
   }
-  
+
   return 0;
 }

@@ -43,9 +43,9 @@ router.get('/health', (req, res) => {
     timestamp: new Date().toISOString(),
     uptime: Math.floor(process.uptime()),
     version: process.env.npm_package_version || '1.0.0',
-    environment: process.env.NODE_ENV || 'development'
+    environment: process.env.NODE_ENV || 'development',
   };
-  
+
   res.json(healthCheck);
 });
 
@@ -55,29 +55,42 @@ router.get('/health', (req, res) => {
  */
 router.get('/health/detailed', async (req, res) => {
   const startTime = performance.now();
-  
+
   try {
     const [database, redis, memory, disk, performanceMetrics] = await Promise.allSettled([
       checkDatabase(),
       checkRedis(),
       checkMemory(),
       checkDisk(),
-      getPerformanceMetrics()
+      getPerformanceMetrics(),
     ]);
 
     const services = {
-      database: database.status === 'fulfilled' ? database.value : { status: 'ERROR' as const, message: database.reason?.message },
-      redis: redis.status === 'fulfilled' ? redis.value : { status: 'ERROR' as const, message: redis.reason?.message },
-      memory: memory.status === 'fulfilled' ? memory.value : { status: 'ERROR' as const, message: memory.reason?.message },
-      disk: disk.status === 'fulfilled' ? disk.value : { status: 'ERROR' as const, message: disk.reason?.message }
+      database:
+        database.status === 'fulfilled'
+          ? database.value
+          : { status: 'ERROR' as const, message: database.reason?.message },
+      redis:
+        redis.status === 'fulfilled'
+          ? redis.value
+          : { status: 'ERROR' as const, message: redis.reason?.message },
+      memory:
+        memory.status === 'fulfilled'
+          ? memory.value
+          : { status: 'ERROR' as const, message: memory.reason?.message },
+      disk:
+        disk.status === 'fulfilled'
+          ? disk.value
+          : { status: 'ERROR' as const, message: disk.reason?.message },
     };
 
-    const performance_data = performanceMetrics.status === 'fulfilled' ? performanceMetrics.value : null;
+    const performance_data =
+      performanceMetrics.status === 'fulfilled' ? performanceMetrics.value : null;
 
     // Determine overall status
     const hasErrors = Object.values(services).some(service => service.status === 'ERROR');
     const hasDegraded = Object.values(services).some(service => service.status === 'DEGRADED');
-    
+
     let overallStatus: 'OK' | 'DEGRADED' | 'ERROR' = 'OK';
     if (hasErrors) {
       overallStatus = 'ERROR';
@@ -92,31 +105,31 @@ router.get('/health/detailed', async (req, res) => {
       version: process.env.npm_package_version || '1.0.0',
       environment: process.env.NODE_ENV || 'development',
       services,
-      performance: performance_data
+      performance: performance_data,
     };
 
     const statusCode = overallStatus === 'ERROR' ? 503 : overallStatus === 'DEGRADED' ? 200 : 200;
-    
+
     const totalTime = performance.now() - startTime;
     logger.info('Health check completed', {
       status: overallStatus,
       responseTime: `${totalTime.toFixed(2)}ms`,
       services: Object.fromEntries(
         Object.entries(services).map(([key, value]) => [key, value.status])
-      )
+      ),
     });
 
     res.status(statusCode).json(healthCheck);
   } catch (error) {
     logger.error('Health check failed:', error);
-    
+
     res.status(503).json({
       status: 'ERROR',
       timestamp: new Date().toISOString(),
       uptime: Math.floor(process.uptime()),
       version: process.env.npm_package_version || '1.0.0',
       environment: process.env.NODE_ENV || 'development',
-      error: error.message
+      error: error.message,
     });
   }
 });
@@ -127,27 +140,27 @@ router.get('/health/detailed', async (req, res) => {
 async function checkDatabase(): Promise<ServiceHealth> {
   try {
     const startTime = performance.now();
-    
+
     // Test basic connectivity
     await pool.query('SELECT 1');
-    
+
     // Test a more complex query
     const result = await pool.query('SELECT COUNT(*) as count FROM users');
     const userCount = result.rows[0].count;
-    
+
     const responseTime = performance.now() - startTime;
-    
+
     // Get connection pool stats
     const poolStats = {
       total: pool.totalCount,
       idle: pool.idleCount,
-      waiting: pool.waitingCount
+      waiting: pool.waitingCount,
     };
-    
+
     // Check for potential issues
     let status: 'OK' | 'DEGRADED' = 'OK';
     let message = 'Database is healthy';
-    
+
     if (responseTime > 1000) {
       status = 'DEGRADED';
       message = 'Database response time is slow';
@@ -155,21 +168,21 @@ async function checkDatabase(): Promise<ServiceHealth> {
       status = 'DEGRADED';
       message = 'High database connection wait queue';
     }
-    
+
     return {
       status,
       responseTime: `${responseTime.toFixed(2)}ms`,
       message,
       details: {
         userCount: parseInt(userCount),
-        connectionPool: poolStats
-      }
+        connectionPool: poolStats,
+      },
     };
   } catch (error) {
     logger.error('Database health check failed:', error);
     return {
       status: 'ERROR',
-      message: `Database connection failed: ${error.message}`
+      message: `Database connection failed: ${error.message}`,
     };
   }
 }
@@ -180,21 +193,21 @@ async function checkDatabase(): Promise<ServiceHealth> {
 async function checkRedis(): Promise<ServiceHealth> {
   try {
     const startTime = performance.now();
-    
+
     // Test basic connectivity
     await redisClient.ping();
-    
+
     // Test set/get operations
     const testKey = `health_check_${Date.now()}`;
     await redisClient.setEx(testKey, 10, 'test_value');
     const testValue = await redisClient.get(testKey);
     await redisClient.del(testKey);
-    
+
     const responseTime = performance.now() - startTime;
-    
+
     let status: 'OK' | 'DEGRADED' = 'OK';
     let message = 'Redis is healthy';
-    
+
     if (responseTime > 500) {
       status = 'DEGRADED';
       message = 'Redis response time is slow';
@@ -202,17 +215,17 @@ async function checkRedis(): Promise<ServiceHealth> {
       status = 'DEGRADED';
       message = 'Redis set/get operation failed';
     }
-    
+
     return {
       status,
       responseTime: `${responseTime.toFixed(2)}ms`,
-      message
+      message,
     };
   } catch (error) {
     logger.error('Redis health check failed:', error);
     return {
       status: 'ERROR',
-      message: `Redis connection failed: ${error.message}`
+      message: `Redis connection failed: ${error.message}`,
     };
   }
 }
@@ -226,20 +239,21 @@ async function checkMemory(): Promise<ServiceHealth> {
   const heapUsedMB = (usage.heapUsed / 1024 / 1024).toFixed(2);
   const heapTotalMB = (usage.heapTotal / 1024 / 1024).toFixed(2);
   const externalMB = (usage.external / 1024 / 1024).toFixed(2);
-  
+
   const heapUtilization = (usage.heapUsed / usage.heapTotal) * 100;
-  
+
   let status: 'OK' | 'DEGRADED' = 'OK';
   let message = 'Memory usage is normal';
-  
+
   if (heapUtilization > 90) {
     status = 'DEGRADED';
     message = 'High heap memory utilization';
-  } else if (usage.rss > 1024 * 1024 * 1024) { // 1GB
+  } else if (usage.rss > 1024 * 1024 * 1024) {
+    // 1GB
     status = 'DEGRADED';
     message = 'High RSS memory usage';
   }
-  
+
   return {
     status,
     message,
@@ -248,8 +262,8 @@ async function checkMemory(): Promise<ServiceHealth> {
       heapUsed: `${heapUsedMB}MB`,
       heapTotal: `${heapTotalMB}MB`,
       external: `${externalMB}MB`,
-      heapUtilization: `${heapUtilization.toFixed(1)}%`
-    }
+      heapUtilization: `${heapUtilization.toFixed(1)}%`,
+    },
   };
 }
 
@@ -259,23 +273,23 @@ async function checkMemory(): Promise<ServiceHealth> {
 async function checkDisk(): Promise<ServiceHealth> {
   // Simplified disk check - in production, use proper disk monitoring
   // This would typically check available disk space, I/O metrics, etc.
-  
+
   try {
     // Test file system write capability
     const fs = require('fs').promises;
     const testFile = `/tmp/health_check_${Date.now()}.tmp`;
-    
+
     await fs.writeFile(testFile, 'health check test');
     await fs.unlink(testFile);
-    
+
     return {
       status: 'OK',
-      message: 'Disk operations are working'
+      message: 'Disk operations are working',
     };
   } catch (error) {
     return {
       status: 'ERROR',
-      message: `Disk operation failed: ${error.message}`
+      message: `Disk operation failed: ${error.message}`,
     };
   }
 }
@@ -293,16 +307,15 @@ async function getPerformanceMetrics(): Promise<any> {
       FROM performance_metrics
       WHERE timestamp > NOW() - INTERVAL '5 minutes'
     `);
-    
+
     const metrics = result.rows[0];
-    const errorRate = metrics.request_count > 0 
-      ? (metrics.error_count / metrics.request_count) * 100 
-      : 0;
-    
+    const errorRate =
+      metrics.request_count > 0 ? (metrics.error_count / metrics.request_count) * 100 : 0;
+
     return {
       avgResponseTime: parseFloat(metrics.avg_response_time) || 0,
       errorRate: parseFloat(errorRate.toFixed(2)),
-      requestCount: parseInt(metrics.request_count) || 0
+      requestCount: parseInt(metrics.request_count) || 0,
     };
   } catch (error) {
     logger.error('Failed to get performance metrics:', error);
@@ -319,11 +332,11 @@ router.get('/health/ready', async (req, res) => {
     // Check critical dependencies
     await pool.query('SELECT 1');
     await redisClient.ping();
-    
+
     res.json({
       status: 'READY',
       timestamp: new Date().toISOString(),
-      message: 'Application is ready to serve traffic'
+      message: 'Application is ready to serve traffic',
     });
   } catch (error) {
     logger.error('Readiness check failed:', error);
@@ -331,7 +344,7 @@ router.get('/health/ready', async (req, res) => {
       status: 'NOT_READY',
       timestamp: new Date().toISOString(),
       message: 'Application is not ready to serve traffic',
-      error: error.message
+      error: error.message,
     });
   }
 });
@@ -345,7 +358,7 @@ router.get('/health/live', (req, res) => {
     status: 'ALIVE',
     timestamp: new Date().toISOString(),
     uptime: Math.floor(process.uptime()),
-    message: 'Application is alive'
+    message: 'Application is alive',
   });
 });
 
@@ -355,8 +368,8 @@ router.get('/health/live', (req, res) => {
  */
 router.get('/health/metrics', async (req, res) => {
   try {
-    const timeRange = req.query.range as string || '1h';
-    
+    const timeRange = (req.query.range as string) || '1h';
+
     const metricsQuery = `
       SELECT 
         DATE_TRUNC('minute', timestamp) as minute,
@@ -372,22 +385,22 @@ router.get('/health/metrics', async (req, res) => {
       ORDER BY minute DESC
       LIMIT 60
     `;
-    
+
     const result = await query(metricsQuery);
-    
+
     res.json({
       success: true,
       data: {
         timeRange,
-        metrics: result.rows
-      }
+        metrics: result.rows,
+      },
     });
   } catch (error) {
     logger.error('Failed to get performance metrics:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to retrieve performance metrics',
-      error: error.message
+      error: error.message,
     });
   }
 });

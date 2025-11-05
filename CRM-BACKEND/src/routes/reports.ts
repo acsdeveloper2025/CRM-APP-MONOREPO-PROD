@@ -16,7 +16,7 @@ import {
   getAgentProductivity,
   // MIS Dashboard APIs
   getMISData,
-  exportMISData
+  exportMISData,
 } from '@/controllers/reportsController';
 
 const router = express.Router();
@@ -26,14 +26,8 @@ router.use(authenticateToken);
 
 // Validation schemas
 const dateRangeValidation = [
-  query('dateFrom')
-    .optional()
-    .isISO8601()
-    .withMessage('Date from must be a valid date'),
-  query('dateTo')
-    .optional()
-    .isISO8601()
-    .withMessage('Date to must be a valid date'),
+  query('dateFrom').optional().isISO8601().withMessage('Date from must be a valid date'),
+  query('dateTo').optional().isISO8601().withMessage('Date to must be a valid date'),
   query('format')
     .optional()
     .isIn(['JSON', 'CSV', 'PDF', 'EXCEL'])
@@ -42,11 +36,7 @@ const dateRangeValidation = [
 
 const casesReportValidation = [
   ...dateRangeValidation,
-  query('clientId')
-    .optional()
-    .trim()
-    .notEmpty()
-    .withMessage('Client ID must not be empty'),
+  query('clientId').optional().trim().notEmpty().withMessage('Client ID must not be empty'),
   query('assignedToId')
     .optional()
     .trim()
@@ -73,36 +63,22 @@ const usersReportValidation = [
     .optional()
     .isIn(['ADMIN', 'MANAGER', 'FIELD', 'CLIENT'])
     .withMessage('Invalid role'),
-  query('isActive')
-    .optional()
-    .isBoolean()
-    .withMessage('isActive must be a boolean'),
+  query('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
 ];
 
 const clientsReportValidation = [
   ...dateRangeValidation,
-  query('isActive')
-    .optional()
-    .isBoolean()
-    .withMessage('isActive must be a boolean'),
+  query('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
 ];
 
 const financialReportValidation = [
   ...dateRangeValidation,
-  query('clientId')
-    .optional()
-    .trim()
-    .notEmpty()
-    .withMessage('Client ID must not be empty'),
+  query('clientId').optional().trim().notEmpty().withMessage('Client ID must not be empty'),
 ];
 
 const productivityReportValidation = [
   ...dateRangeValidation,
-  query('userId')
-    .optional()
-    .trim()
-    .notEmpty()
-    .withMessage('User ID must not be empty'),
+  query('userId').optional().trim().notEmpty().withMessage('User ID must not be empty'),
   query('department')
     .optional()
     .trim()
@@ -114,29 +90,16 @@ const customReportValidation = [
   body('reportType')
     .isIn(['cases', 'users', 'clients', 'invoices', 'commissions'])
     .withMessage('Invalid report type'),
-  body('metrics')
-    .isArray({ min: 1 })
-    .withMessage('Metrics array is required'),
-  body('metrics.*')
-    .isIn(['count', 'sum', 'average', 'min', 'max'])
-    .withMessage('Invalid metric'),
-  body('dateFrom')
-    .optional()
-    .isISO8601()
-    .withMessage('Date from must be a valid date'),
-  body('dateTo')
-    .optional()
-    .isISO8601()
-    .withMessage('Date to must be a valid date'),
+  body('metrics').isArray({ min: 1 }).withMessage('Metrics array is required'),
+  body('metrics.*').isIn(['count', 'sum', 'average', 'min', 'max']).withMessage('Invalid metric'),
+  body('dateFrom').optional().isISO8601().withMessage('Date from must be a valid date'),
+  body('dateTo').optional().isISO8601().withMessage('Date to must be a valid date'),
   body('groupBy')
     .optional()
     .trim()
     .isLength({ max: 50 })
     .withMessage('Group by field must be less than 50 characters'),
-  body('filters')
-    .optional()
-    .isObject()
-    .withMessage('Filters must be an object'),
+  body('filters').optional().isObject().withMessage('Filters must be an object'),
   body('format')
     .optional()
     .isIn(['JSON', 'CSV', 'PDF', 'EXCEL'])
@@ -147,21 +110,15 @@ const scheduleReportValidation = [
   body('reportType')
     .isIn(['cases', 'users', 'clients', 'financial', 'productivity', 'custom'])
     .withMessage('Invalid report type'),
-  body('parameters')
-    .isObject()
-    .withMessage('Parameters object is required'),
+  body('parameters').isObject().withMessage('Parameters object is required'),
   body('schedule.frequency')
     .isIn(['daily', 'weekly', 'monthly'])
     .withMessage('Frequency must be one of: daily, weekly, monthly'),
   body('schedule.time')
     .matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/)
     .withMessage('Time must be in HH:MM format'),
-  body('recipients')
-    .isArray({ min: 1 })
-    .withMessage('Recipients array is required'),
-  body('recipients.*')
-    .isEmail()
-    .withMessage('Each recipient must be a valid email'),
+  body('recipients').isArray({ min: 1 }).withMessage('Recipients array is required'),
+  body('recipients.*').isEmail().withMessage('Each recipient must be a valid email'),
   body('format')
     .optional()
     .isIn(['PDF', 'EXCEL', 'CSV'])
@@ -175,27 +132,17 @@ const formSubmissionsValidation = [
     .optional()
     .isIn(['RESIDENCE', 'OFFICE', 'BUSINESS'])
     .withMessage('Form type must be one of: RESIDENCE, OFFICE, BUSINESS'),
-  query('agentId')
-    .optional()
-    .isUUID()
-    .withMessage('Agent ID must be a valid UUID'),
+  query('agentId').optional().isUUID().withMessage('Agent ID must be a valid UUID'),
   query('validationStatus')
     .optional()
     .isIn(['VALID', 'PENDING', 'INVALID'])
     .withMessage('Validation status must be one of: VALID, PENDING, INVALID'),
-  query('caseId')
-    .optional()
-    .trim()
-    .notEmpty()
-    .withMessage('Case ID must not be empty'),
+  query('caseId').optional().trim().notEmpty().withMessage('Case ID must not be empty'),
   query('limit')
     .optional()
     .isInt({ min: 1, max: 1000 })
     .withMessage('Limit must be between 1 and 1000'),
-  query('offset')
-    .optional()
-    .isInt({ min: 0 })
-    .withMessage('Offset must be a non-negative integer'),
+  query('offset').optional().isInt({ min: 0 }).withMessage('Offset must be a non-negative integer'),
 ];
 
 const caseAnalyticsValidation = [
@@ -204,10 +151,7 @@ const caseAnalyticsValidation = [
     .optional()
     .isInt({ min: 1 })
     .withMessage('Client ID must be a positive integer'),
-  query('agentId')
-    .optional()
-    .isUUID()
-    .withMessage('Agent ID must be a valid UUID'),
+  query('agentId').optional().isUUID().withMessage('Agent ID must be a valid UUID'),
   query('status')
     .optional()
     .isIn(['PENDING', 'IN_PROGRESS', 'COMPLETED', 'APPROVED', 'REJECTED', 'REWORK_REQUIRED'])
@@ -216,10 +160,7 @@ const caseAnalyticsValidation = [
 
 const agentPerformanceValidation = [
   ...dateRangeValidation,
-  query('agentId')
-    .optional()
-    .isUUID()
-    .withMessage('Agent ID must be a valid UUID'),
+  query('agentId').optional().isUUID().withMessage('Agent ID must be a valid UUID'),
   query('departmentId')
     .optional()
     .isInt({ min: 1 })
@@ -227,77 +168,53 @@ const agentPerformanceValidation = [
 ];
 
 // Report routes
-router.get('/cases', 
-  casesReportValidation, 
-  validate, 
-  getCasesReport
-);
+router.get('/cases', casesReportValidation, validate, getCasesReport);
 
-router.get('/users',
-  usersReportValidation,
-  validate,
-  getUserPerformanceReport
-);
+router.get('/users', usersReportValidation, validate, getUserPerformanceReport);
 
-router.get('/clients',
-  clientsReportValidation,
-  validate,
-  getClientReport
-);
+router.get('/clients', clientsReportValidation, validate, getClientReport);
 
 // ===== PHASE 1: NEW DATA VISUALIZATION & REPORTING ROUTES =====
 
 // 1.1 Form Submission Data APIs
-router.get('/form-submissions',
-  formSubmissionsValidation,
-  validate,
-  getFormSubmissions
-);
+router.get('/form-submissions', formSubmissionsValidation, validate, getFormSubmissions);
 
-router.get('/form-submissions/:formType',
+router.get(
+  '/form-submissions/:formType',
   [
     ...dateRangeValidation,
     query('agentId').optional().isUUID().withMessage('Agent ID must be a valid UUID'),
-    query('limit').optional().isInt({ min: 1, max: 1000 }).withMessage('Limit must be between 1 and 1000'),
-    query('offset').optional().isInt({ min: 0 }).withMessage('Offset must be a non-negative integer'),
+    query('limit')
+      .optional()
+      .isInt({ min: 1, max: 1000 })
+      .withMessage('Limit must be between 1 and 1000'),
+    query('offset')
+      .optional()
+      .isInt({ min: 0 })
+      .withMessage('Offset must be a non-negative integer'),
   ],
   validate,
   getFormSubmissionsByType
 );
 
-router.get('/form-validation-status',
-  dateRangeValidation,
-  validate,
-  getFormValidationStatus
-);
+router.get('/form-validation-status', dateRangeValidation, validate, getFormValidationStatus);
 
 // 1.2 Case Analytics APIs
-router.get('/case-analytics',
-  caseAnalyticsValidation,
-  validate,
-  getCaseAnalytics
-);
+router.get('/case-analytics', caseAnalyticsValidation, validate, getCaseAnalytics);
 
-router.get('/case-timeline/:caseId',
-  [
-    query('caseId').isString().trim().notEmpty().withMessage('Case ID is required'),
-  ],
+router.get(
+  '/case-timeline/:caseId',
+  [query('caseId').isString().trim().notEmpty().withMessage('Case ID is required')],
   validate,
   getCaseTimeline
 );
 
 // 1.3 Agent Performance APIs
-router.get('/agent-performance',
-  agentPerformanceValidation,
-  validate,
-  getAgentPerformance
-);
+router.get('/agent-performance', agentPerformanceValidation, validate, getAgentPerformance);
 
-router.get('/agent-productivity/:agentId',
-  [
-    ...dateRangeValidation,
-    query('agentId').isUUID().withMessage('Agent ID must be a valid UUID'),
-  ],
+router.get(
+  '/agent-productivity/:agentId',
+  [...dateRangeValidation, query('agentId').isUUID().withMessage('Agent ID must be a valid UUID')],
   validate,
   getAgentProductivity
 );
@@ -322,22 +239,13 @@ const misDashboardValidation = [
     .optional()
     .isIn(['PENDING', 'ASSIGNED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'])
     .withMessage('Invalid case status'),
-  query('fieldAgentId')
-    .optional()
-    .isUUID()
-    .withMessage('Field Agent ID must be a valid UUID'),
-  query('backendUserId')
-    .optional()
-    .isUUID()
-    .withMessage('Backend User ID must be a valid UUID'),
+  query('fieldAgentId').optional().isUUID().withMessage('Field Agent ID must be a valid UUID'),
+  query('backendUserId').optional().isUUID().withMessage('Backend User ID must be a valid UUID'),
   query('priority')
     .optional()
     .isIn(['LOW', 'MEDIUM', 'HIGH', 'URGENT'])
     .withMessage('Invalid priority'),
-  query('page')
-    .optional()
-    .isInt({ min: 1 })
-    .withMessage('Page must be a positive integer'),
+  query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
   query('limit')
     .optional()
     .isInt({ min: 1, max: 1000 })
@@ -345,19 +253,14 @@ const misDashboardValidation = [
 ];
 
 // MIS Dashboard Data
-router.get('/mis-dashboard-data',
-  misDashboardValidation,
-  validate,
-  getMISData
-);
+router.get('/mis-dashboard-data', misDashboardValidation, validate, getMISData);
 
 // MIS Dashboard Export
-router.get('/mis-dashboard-data/export',
+router.get(
+  '/mis-dashboard-data/export',
   [
     ...misDashboardValidation,
-    query('format')
-      .isIn(['EXCEL', 'CSV'])
-      .withMessage('Format must be EXCEL or CSV'),
+    query('format').isIn(['EXCEL', 'CSV']).withMessage('Format must be EXCEL or CSV'),
   ],
   validate,
   exportMISData

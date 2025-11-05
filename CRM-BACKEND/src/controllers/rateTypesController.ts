@@ -1,46 +1,53 @@
-import { Response } from 'express';
+import type { Response } from 'express';
 import { logger } from '@/config/logger';
-import { AuthenticatedRequest } from '@/middleware/auth';
+import type { AuthenticatedRequest } from '@/middleware/auth';
 import { query, withTransaction } from '@/config/database';
 
 // GET /api/rate-types - List rate types with pagination and filters
 export const getRateTypes = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { 
-      page = 1, 
-      limit = 20, 
-      search, 
-      sortBy = 'name', 
+    const {
+      page = 1,
+      limit = 20,
+      search,
+      sortBy = 'name',
       sortOrder = 'asc',
-      isActive
+      isActive,
     } = req.query;
 
     // Build where clause
     const values: any[] = [];
     const whereSql: string[] = [];
-    
+
     if (search) {
       values.push(`%${String(search)}%`);
       values.push(`%${String(search)}%`);
       whereSql.push('(name ILIKE $1 OR description ILIKE $2)');
     }
-    
+
     if (typeof isActive !== 'undefined') {
       values.push(String(isActive) === 'true');
       whereSql.push(`"isActive" = $${values.length}`);
     }
-    
+
     const whereClause = whereSql.length ? `WHERE ${whereSql.join(' AND ')}` : '';
 
     // Get total count
-    const countRes = await query<{ count: string }>(`SELECT COUNT(*)::text as count FROM "rateTypes" ${whereClause}`, values);
+    const countRes = await query<{ count: string }>(
+      `SELECT COUNT(*)::text as count FROM "rateTypes" ${whereClause}`,
+      values
+    );
     const totalCount = Number(countRes.rows[0]?.count || 0);
 
     // Get rate types with pagination
     const offset = (Number(page) - 1) * Number(limit);
-    const sortCol = ['name', 'description', 'isActive', 'createdAt', 'updatedAt'].includes(String(sortBy)) ? String(sortBy) : 'name';
+    const sortCol = ['name', 'description', 'isActive', 'createdAt', 'updatedAt'].includes(
+      String(sortBy)
+    )
+      ? String(sortBy)
+      : 'name';
     const sortDir = String(sortOrder).toLowerCase() === 'desc' ? 'DESC' : 'ASC';
-    
+
     const listRes = await query(
       `SELECT id, name, description, "isActive", "createdAt", "updatedAt"
        FROM "rateTypes"
@@ -56,7 +63,7 @@ export const getRateTypes = async (req: AuthenticatedRequest, res: Response) => 
       page: Number(page),
       limit: Number(limit),
       search: search || '',
-      total: totalCount
+      total: totalCount,
     });
 
     res.json({
@@ -146,10 +153,10 @@ export const createRateType = async (req: AuthenticatedRequest, res: Response) =
     );
     const newRateType = insertRes.rows[0];
 
-    logger.info(`Created new rate type: ${newRateType.id}`, { 
+    logger.info(`Created new rate type: ${newRateType.id}`, {
       userId: req.user?.id,
       rateTypeName: name,
-      description: description || ''
+      description: description || '',
     });
 
     res.status(201).json({
@@ -222,7 +229,7 @@ export const getAvailableRateTypesForCase = async (req: AuthenticatedRequest, re
       clientId,
       productId,
       verificationTypeId,
-      rateTypeCount: availableRateTypes.length
+      rateTypeCount: availableRateTypes.length,
     });
 
     res.json({
@@ -272,9 +279,15 @@ export const updateRateType = async (req: AuthenticatedRequest, res: Response) =
 
     // Prepare update data
     const updatePayload: any = {};
-    if (updateData.name) updatePayload.name = updateData.name;
-    if (updateData.description !== undefined) updatePayload.description = updateData.description;
-    if (updateData.isActive !== undefined) updatePayload.isActive = updateData.isActive;
+    if (updateData.name) {
+      updatePayload.name = updateData.name;
+    }
+    if (updateData.description !== undefined) {
+      updatePayload.description = updateData.description;
+    }
+    if (updateData.isActive !== undefined) {
+      updatePayload.isActive = updateData.isActive;
+    }
 
     // Build dynamic update
     const sets: string[] = [];
@@ -282,7 +295,7 @@ export const updateRateType = async (req: AuthenticatedRequest, res: Response) =
     let idx = 1;
     for (const key of Object.keys(updatePayload)) {
       sets.push(`"${key}" = $${idx++}`);
-      vals.push((updatePayload as any)[key]);
+      vals.push(updatePayload[key]);
     }
     sets.push(`"updatedAt" = CURRENT_TIMESTAMP`);
     vals.push(Number(id));
@@ -297,7 +310,7 @@ export const updateRateType = async (req: AuthenticatedRequest, res: Response) =
     logger.info(`Updated rate type: ${id}`, {
       userId: req.user?.id,
       rateTypeId: id,
-      updates: Object.keys(updatePayload)
+      updates: Object.keys(updatePayload),
     });
 
     res.json({
@@ -352,10 +365,10 @@ export const deleteRateType = async (req: AuthenticatedRequest, res: Response) =
     // Delete rate type
     await query(`DELETE FROM "rateTypes" WHERE id = $1`, [Number(id)]);
 
-    logger.info(`Deleted rate type: ${id}`, { 
+    logger.info(`Deleted rate type: ${id}`, {
       userId: req.user?.id,
       rateTypeId: id,
-      rateTypeName: existingRateType.name
+      rateTypeName: existingRateType.name,
     });
 
     res.json({

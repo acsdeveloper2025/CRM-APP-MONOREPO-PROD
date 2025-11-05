@@ -1,62 +1,62 @@
-import { Response } from 'express';
+import type { Response } from 'express';
 import { logger } from '@/config/logger';
-import { AuthenticatedRequest } from '@/middleware/auth';
+import type { AuthenticatedRequest } from '@/middleware/auth';
 import { query, withTransaction } from '@/config/database';
 
 // GET /api/rate-type-assignments - List rate type assignments with filters
 export const getRateTypeAssignments = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { 
-      page = 1, 
-      limit = 20, 
+    const {
+      page = 1,
+      limit = 20,
       clientId,
       productId,
       verificationTypeId,
       rateTypeId,
-      isActive
+      isActive,
     } = req.query;
 
     // Build where clause
     const values: any[] = [];
     const whereSql: string[] = [];
-    
+
     if (clientId) {
       values.push(clientId);
       whereSql.push(`"clientId" = $${values.length}`);
     }
-    
+
     if (productId) {
       values.push(productId);
       whereSql.push(`"productId" = $${values.length}`);
     }
-    
+
     if (verificationTypeId) {
       values.push(verificationTypeId);
       whereSql.push(`"verificationTypeId" = $${values.length}`);
     }
-    
+
     if (rateTypeId) {
       values.push(rateTypeId);
       whereSql.push(`"rateTypeId" = $${values.length}`);
     }
-    
+
     if (typeof isActive !== 'undefined') {
       values.push(String(isActive) === 'true');
       whereSql.push(`rta."isActive" = $${values.length}`);
     }
-    
+
     const whereClause = whereSql.length ? `WHERE ${whereSql.join(' AND ')}` : '';
 
     // Get total count
     const countRes = await query<{ count: string }>(
-      `SELECT COUNT(*)::text as count FROM "rateTypeAssignmentView" rta ${whereClause}`, 
+      `SELECT COUNT(*)::text as count FROM "rateTypeAssignmentView" rta ${whereClause}`,
       values
     );
     const totalCount = Number(countRes.rows[0]?.count || 0);
 
     // Get assignments with pagination
     const offset = (Number(page) - 1) * Number(limit);
-    
+
     const listRes = await query(
       `SELECT * FROM "rateTypeAssignmentView" rta
        ${whereClause}
@@ -70,7 +70,7 @@ export const getRateTypeAssignments = async (req: AuthenticatedRequest, res: Res
       userId: req.user?.id,
       page: Number(page),
       limit: Number(limit),
-      total: totalCount
+      total: totalCount,
     });
 
     res.json({
@@ -131,7 +131,7 @@ export const getAssignmentsByCombination = async (req: AuthenticatedRequest, res
       clientId,
       productId,
       verificationTypeId,
-      assignmentCount: assignments.length
+      assignmentCount: assignments.length,
     });
 
     res.json({
@@ -156,12 +156,13 @@ export const bulkAssignRateTypes = async (req: AuthenticatedRequest, res: Respon
     if (!clientId || !productId || !verificationTypeId || !Array.isArray(rateTypeIds)) {
       return res.status(400).json({
         success: false,
-        message: 'Client ID, Product ID, Verification Type ID, and Rate Type IDs array are required',
+        message:
+          'Client ID, Product ID, Verification Type ID, and Rate Type IDs array are required',
         error: { code: 'VALIDATION_ERROR' },
       });
     }
 
-    await withTransaction(async (client) => {
+    await withTransaction(async client => {
       // First, remove all existing assignments for this combination
       await client.query(
         `DELETE FROM "rateTypeAssignments" 
@@ -176,7 +177,9 @@ export const bulkAssignRateTypes = async (req: AuthenticatedRequest, res: Respon
         let paramIndex = 1;
 
         for (const rateTypeId of rateTypeIds) {
-          values.push(`($${paramIndex}, $${paramIndex + 1}, $${paramIndex + 2}, $${paramIndex + 3}, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`);
+          values.push(
+            `($${paramIndex}, $${paramIndex + 1}, $${paramIndex + 2}, $${paramIndex + 3}, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`
+          );
           params.push(clientId, productId, verificationTypeId, rateTypeId);
           paramIndex += 4;
         }
@@ -194,7 +197,7 @@ export const bulkAssignRateTypes = async (req: AuthenticatedRequest, res: Respon
       clientId,
       productId,
       verificationTypeId,
-      rateTypeCount: rateTypeIds.length
+      rateTypeCount: rateTypeIds.length,
     });
 
     res.json({
@@ -254,7 +257,7 @@ export const createRateTypeAssignment = async (req: AuthenticatedRequest, res: R
       clientId,
       productId,
       verificationTypeId,
-      rateTypeId
+      rateTypeId,
     });
 
     res.status(201).json({
@@ -278,7 +281,9 @@ export const deleteRateTypeAssignment = async (req: AuthenticatedRequest, res: R
     const { id } = req.params;
 
     // Check if assignment exists
-    const existRes = await query(`SELECT id FROM "rateTypeAssignments" WHERE id = $1`, [Number(id)]);
+    const existRes = await query(`SELECT id FROM "rateTypeAssignments" WHERE id = $1`, [
+      Number(id),
+    ]);
     if (!existRes.rows[0]) {
       return res.status(404).json({
         success: false,
@@ -312,7 +317,7 @@ export const deleteRateTypeAssignment = async (req: AuthenticatedRequest, res: R
 
     logger.info(`Deleted rate type assignment: ${id}`, {
       userId: req.user?.id,
-      assignmentId: id
+      assignmentId: id,
     });
 
     res.json({

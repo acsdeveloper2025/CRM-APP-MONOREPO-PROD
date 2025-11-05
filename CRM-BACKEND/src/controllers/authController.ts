@@ -1,22 +1,15 @@
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { query } from '@/config/database';
 import { config } from '@/config';
 import { logger } from '@/config/logger';
 import { createError } from '@/middleware/errorHandler';
-import { AuthenticatedRequest } from '@/middleware/auth';
+import type { AuthenticatedRequest } from '@/middleware/auth';
 import { createAuditLog } from '@/utils/auditLogger';
-import {
-  LoginRequest,
-  LoginResponse,
-  FieldAgentUuidLoginRequest,
-
-  JwtPayload,
-  RefreshTokenPayload,
-  Role
-} from '@/types/auth';
-import { ApiResponse } from '@/types/api';
+import type { LoginRequest, LoginResponse, JwtPayload, RefreshTokenPayload } from '@/types/auth';
+import { FieldAgentUuidLoginRequest, Role } from '@/types/auth';
+import type { ApiResponse } from '@/types/api';
 
 export const login = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -73,22 +66,26 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     const refreshTokenPayload: RefreshTokenPayload = {
       userId: user.id,
       authMethod: 'PASSWORD', // Mark as password authentication
-
     };
 
-    const accessToken = jwt.sign(accessTokenPayload, config.jwtSecret as any, {
-      expiresIn: '24h',
-    } as any);
+    const accessToken = jwt.sign(
+      accessTokenPayload,
+      config.jwtSecret as any,
+      {
+        expiresIn: '24h',
+      } as any
+    );
 
-    const refreshToken = jwt.sign(refreshTokenPayload, config.jwtRefreshSecret as any, {
-      expiresIn: '7d',
-    } as any);
+    const refreshToken = jwt.sign(
+      refreshTokenPayload,
+      config.jwtRefreshSecret as any,
+      {
+        expiresIn: '7d',
+      } as any
+    );
 
     // Update user's lastLogin timestamp
-    await query(
-      `UPDATE users SET "lastLogin" = CURRENT_TIMESTAMP WHERE id = $1`,
-      [user.id]
-    );
+    await query(`UPDATE users SET "lastLogin" = CURRENT_TIMESTAMP WHERE id = $1`, [user.id]);
 
     // Audit success
     await createAuditLog({
@@ -129,11 +126,6 @@ export const login = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
-
-
-
-
-
 export const logout = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     if (!req.user) {
@@ -159,14 +151,16 @@ export const logout = async (req: AuthenticatedRequest, res: Response): Promise<
   }
 };
 
-
-
 // Pre-login info to enable dynamic login form (public)
 export const preloginInfo = async (req: Request, res: Response): Promise<void> => {
   try {
     const { username } = req.body as { username?: string };
     if (!username) {
-      res.status(400).json({ success: false, message: 'Username is required', error: { code: 'MISSING_USERNAME' } });
+      res.status(400).json({
+        success: false,
+        message: 'Username is required',
+        error: { code: 'MISSING_USERNAME' },
+      });
       return;
     }
 
@@ -182,12 +176,17 @@ export const preloginInfo = async (req: Request, res: Response): Promise<void> =
 
     if (!user) {
       // Unknown user: return neutral flags (frontend can show both fields)
-      res.json({ success: true, message: 'OK', data: { unknown: true, requiresDeviceId: false, requiresMacAddress: false } });
+      res.json({
+        success: true,
+        message: 'OK',
+        data: { unknown: true, requiresDeviceId: false, requiresMacAddress: false },
+      });
       return;
     }
 
     const isSuper = user.role === 'SUPER_ADMIN' || user.roleName === 'SUPER_ADMIN';
-    const isField = user.role === 'FIELD' || user.roleName === 'FIELD' || user.roleName === 'FIELD_AGENT';
+    const isField =
+      user.role === 'FIELD' || user.roleName === 'FIELD' || user.roleName === 'FIELD_AGENT';
 
     res.json({
       success: true,
@@ -200,7 +199,9 @@ export const preloginInfo = async (req: Request, res: Response): Promise<void> =
       },
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Internal error', error: { code: 'INTERNAL_ERROR' } });
+    res
+      .status(500)
+      .json({ success: false, message: 'Internal error', error: { code: 'INTERNAL_ERROR' } });
   }
 };
 
@@ -211,7 +212,7 @@ export const getCurrentUser = async (req: AuthenticatedRequest, res: Response): 
       res.status(401).json({
         success: false,
         message: 'User not authenticated',
-        error: { code: 'UNAUTHORIZED' }
+        error: { code: 'UNAUTHORIZED' },
       });
       return;
     }
@@ -248,7 +249,7 @@ export const getCurrentUser = async (req: AuthenticatedRequest, res: Response): 
       res.status(404).json({
         success: false,
         message: 'User not found',
-        error: { code: 'USER_NOT_FOUND' }
+        error: { code: 'USER_NOT_FOUND' },
       });
       return;
     }
@@ -276,7 +277,7 @@ export const getCurrentUser = async (req: AuthenticatedRequest, res: Response): 
         isActive: userData.isActive,
         lastLogin: userData.lastLogin,
         createdAt: userData.createdAt,
-      }
+      },
     };
 
     res.json(response);
@@ -285,7 +286,7 @@ export const getCurrentUser = async (req: AuthenticatedRequest, res: Response): 
     res.status(500).json({
       success: false,
       message: 'Failed to get user information',
-      error: { code: 'INTERNAL_ERROR' }
+      error: { code: 'INTERNAL_ERROR' },
     });
   }
 };

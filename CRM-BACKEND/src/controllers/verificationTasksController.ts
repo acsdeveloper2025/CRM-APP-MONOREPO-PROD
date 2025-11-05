@@ -1,15 +1,17 @@
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import { Pool } from 'pg';
-import { AuthenticatedRequest } from '../middleware/auth';
-import { 
-  VerificationTask, 
-  CreateVerificationTaskData, 
+import type { AuthenticatedRequest } from '../middleware/auth';
+import type {
+  VerificationTask,
   UpdateVerificationTaskData,
   AssignVerificationTaskData,
   CompleteVerificationTaskData,
+} from '../types/verificationTask';
+import {
+  CreateVerificationTaskData,
   VerificationTaskFilters,
   TaskStatus,
-  TaskPriority
+  TaskPriority,
 } from '../types/verificationTask';
 import { createAuditLog } from '../utils/auditLogger';
 import { logger } from '../utils/logger';
@@ -18,7 +20,6 @@ import { logger } from '../utils/logger';
 import { pool } from '../config/database';
 
 export class VerificationTasksController {
-  
   /**
    * Create multiple verification tasks for a case
    * POST /api/cases/:caseId/verification-tasks
@@ -32,7 +33,7 @@ export class VerificationTasksController {
       res.status(400).json({
         success: false,
         message: 'Tasks array is required and must not be empty',
-        error: { code: 'INVALID_INPUT' }
+        error: { code: 'INVALID_INPUT' },
       });
       return;
     }
@@ -41,7 +42,6 @@ export class VerificationTasksController {
     let actualCaseId = caseId;
 
     try {
-
       // Check if caseId is a number (case number) and convert to UUID
       if (/^\d+$/.test(caseId)) {
         const caseQuery = 'SELECT id FROM cases WHERE "caseId" = $1';
@@ -50,7 +50,7 @@ export class VerificationTasksController {
         if (caseResult.rows.length === 0) {
           res.status(404).json({
             success: false,
-            message: 'Case not found'
+            message: 'Case not found',
           });
           return;
         }
@@ -62,13 +62,13 @@ export class VerificationTasksController {
       res.status(500).json({
         success: false,
         message: 'Failed to resolve case ID',
-        error: { code: 'CASE_RESOLUTION_ERROR' }
+        error: { code: 'CASE_RESOLUTION_ERROR' },
       });
       return;
     }
 
     const client = await pool.connect();
-    
+
     try {
       await client.query('BEGIN');
 
@@ -83,7 +83,7 @@ export class VerificationTasksController {
         res.status(404).json({
           success: false,
           message: 'Case not found',
-          error: { code: 'CASE_NOT_FOUND' }
+          error: { code: 'CASE_NOT_FOUND' },
         });
         return;
       }
@@ -107,12 +107,17 @@ export class VerificationTasksController {
           document_type,
           document_number,
           document_details,
-          estimated_completion_date
+          estimated_completion_date,
         } = taskData;
 
         // Look up rate amount if rate_type_id is provided
         let actualAmount = estimated_amount;
-        if (rate_type_id && caseInfo.clientId && caseInfo.productId && caseInfo.verificationTypeId) {
+        if (
+          rate_type_id &&
+          caseInfo.clientId &&
+          caseInfo.productId &&
+          caseInfo.verificationTypeId
+        ) {
           const rateQuery = `
             SELECT amount, currency
             FROM rates
@@ -126,7 +131,7 @@ export class VerificationTasksController {
             caseInfo.clientId,
             caseInfo.productId,
             caseInfo.verificationTypeId,
-            parseInt(rate_type_id.toString())
+            parseInt(rate_type_id.toString()),
           ]);
 
           if (rateResult.rows.length > 0) {
@@ -140,7 +145,7 @@ export class VerificationTasksController {
           res.status(400).json({
             success: false,
             message: 'verification_type_id and task_title are required for each task',
-            error: { code: 'INVALID_TASK_DATA' }
+            error: { code: 'INVALID_TASK_DATA' },
           });
           return;
         }
@@ -168,11 +173,23 @@ export class VerificationTasksController {
             ) RETURNING *
           `;
           insertParams = [
-            actualCaseId, verification_type_id, task_title, task_description,
-            priority, assignedToValue, userId,
-            rate_type_id, actualAmount, address, pincode,
-            document_type, document_number, JSON.stringify(document_details),
-            estimated_completion_date, taskStatus, userId
+            actualCaseId,
+            verification_type_id,
+            task_title,
+            task_description,
+            priority,
+            assignedToValue,
+            userId,
+            rate_type_id,
+            actualAmount,
+            address,
+            pincode,
+            document_type,
+            document_number,
+            JSON.stringify(document_details),
+            estimated_completion_date,
+            taskStatus,
+            userId,
           ];
         } else {
           insertQuery = `
@@ -189,11 +206,21 @@ export class VerificationTasksController {
             ) RETURNING *
           `;
           insertParams = [
-            actualCaseId, verification_type_id, task_title, task_description,
+            actualCaseId,
+            verification_type_id,
+            task_title,
+            task_description,
             priority,
-            rate_type_id, actualAmount, address, pincode,
-            document_type, document_number, JSON.stringify(document_details),
-            estimated_completion_date, taskStatus, userId
+            rate_type_id,
+            actualAmount,
+            address,
+            pincode,
+            document_type,
+            document_number,
+            JSON.stringify(document_details),
+            estimated_completion_date,
+            taskStatus,
+            userId,
           ];
         }
 
@@ -205,20 +232,28 @@ export class VerificationTasksController {
 
         // Create assignment history if assigned
         if (assigned_to) {
-          await client.query(`
+          await client.query(
+            `
             INSERT INTO task_assignment_history (
               verification_task_id, case_id, assigned_to, assigned_by,
               assignment_reason, task_status_before, task_status_after
             ) VALUES ($1, $2, $3, $4, $5, $6, $7)
-          `, [
-            task.id, actualCaseId, assigned_to, userId,
-            'Initial assignment during task creation', 'PENDING', 'ASSIGNED'
-          ]);
+          `,
+            [
+              task.id,
+              actualCaseId,
+              assigned_to,
+              userId,
+              'Initial assignment during task creation',
+              'PENDING',
+              'ASSIGNED',
+            ]
+          );
         }
 
         // Create audit log
         await createAuditLog({
-          userId: userId!,
+          userId,
           action: 'CREATE_VERIFICATION_TASK',
           entityType: 'VERIFICATION_TASK',
           entityId: task.id,
@@ -226,13 +261,14 @@ export class VerificationTasksController {
             caseId: actualCaseId,
             taskTitle: task_title,
             verificationType: verification_type_id,
-            assignedTo: assigned_to
-          }
+            assignedTo: assigned_to,
+          },
         });
       }
 
       // Update case to reflect multiple tasks
-      await client.query(`
+      await client.query(
+        `
         UPDATE cases
         SET
           has_multiple_tasks = true,
@@ -241,7 +277,9 @@ export class VerificationTasksController {
           ),
           updated_at = NOW()
         WHERE id = $1
-      `, [actualCaseId]);
+      `,
+        [actualCaseId]
+      );
 
       await client.query('COMMIT');
 
@@ -280,7 +318,7 @@ export class VerificationTasksController {
               taskId: task.id,
               taskNumber: task.taskNumber,
               customerName: caseData.customerName,
-              verificationType: verificationType,
+              verificationType,
               assignmentType: 'assignment',
               assignedBy: userId,
               reason: 'Task created and assigned',
@@ -298,18 +336,17 @@ export class VerificationTasksController {
           case_id: actualCaseId,
           tasks_created: createdTasks.length,
           tasks: populatedTasks,
-          total_estimated_amount: totalEstimatedAmount
+          total_estimated_amount: totalEstimatedAmount,
         },
-        message: 'Verification tasks created successfully'
+        message: 'Verification tasks created successfully',
       });
-
     } catch (error) {
       await client.query('ROLLBACK');
       logger.error('Error creating verification tasks:', error);
       res.status(500).json({
         success: false,
         message: 'Failed to create verification tasks',
-        error: { code: 'INTERNAL_ERROR' }
+        error: { code: 'INTERNAL_ERROR' },
       });
     } finally {
       client.release();
@@ -334,7 +371,7 @@ export class VerificationTasksController {
       productId,
       search,
       dateFrom,
-      dateTo
+      dateTo,
     } = req.query;
 
     try {
@@ -427,22 +464,33 @@ export class VerificationTasksController {
       const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
       // Validate sortBy to prevent SQL injection
-      const allowedSortFields = ['created_at', 'updated_at', 'assigned_at', 'priority', 'status', 'task_number'];
+      const allowedSortFields = [
+        'created_at',
+        'updated_at',
+        'assigned_at',
+        'priority',
+        'status',
+        'task_number',
+      ];
       const safeSortBy = allowedSortFields.includes(sortBy as string) ? sortBy : 'created_at';
       const safeSortOrder = sortOrder === 'asc' ? 'ASC' : 'DESC';
 
       // Get total count
-      const countResult = await pool.query(`
+      const countResult = await pool.query(
+        `
         SELECT COUNT(*) as total
         FROM verification_tasks vt
         LEFT JOIN cases c ON vt.case_id = c.id
         ${whereClause}
-      `, params);
+      `,
+        params
+      );
 
       const totalTasks = parseInt(countResult.rows[0].total);
 
       // Get tasks with populated data
-      const tasksResult = await pool.query(`
+      const tasksResult = await pool.query(
+        `
         SELECT
           vt.*,
           c."caseId" as case_number,
@@ -469,7 +517,9 @@ export class VerificationTasksController {
         ${whereClause}
         ORDER BY vt.${safeSortBy} ${safeSortOrder}
         LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
-      `, [...params, Number(limit), offset]);
+      `,
+        [...params, Number(limit), offset]
+      );
 
       const tasks = tasksResult.rows.map(row => ({
         id: row.id,
@@ -482,26 +532,32 @@ export class VerificationTasksController {
         product: row.product_name ? { name: row.product_name } : null,
         verificationType: {
           id: row.verification_type_id,
-          name: row.verification_type_name
+          name: row.verification_type_name,
         },
         taskTitle: row.task_title,
         taskDescription: row.task_description,
         status: row.status,
         priority: row.priority,
-        assignedTo: row.assigned_to ? {
-          id: row.assigned_to,
-          name: row.assigned_to_name,
-          employeeId: row.assigned_to_employee_id
-        } : null,
-        assignedBy: row.assigned_by ? {
-          id: row.assigned_by,
-          name: row.assigned_by_name
-        } : null,
+        assignedTo: row.assigned_to
+          ? {
+              id: row.assigned_to,
+              name: row.assigned_to_name,
+              employeeId: row.assigned_to_employee_id,
+            }
+          : null,
+        assignedBy: row.assigned_by
+          ? {
+              id: row.assigned_by,
+              name: row.assigned_by_name,
+            }
+          : null,
         verificationOutcome: row.verification_outcome,
-        rateType: row.rate_type_name ? {
-          id: row.rate_type_id,
-          name: row.rate_type_name
-        } : null,
+        rateType: row.rate_type_name
+          ? {
+              id: row.rate_type_id,
+              name: row.rate_type_name,
+            }
+          : null,
         estimatedAmount: parseFloat(row.estimated_amount || '0'),
         actualAmount: parseFloat(row.actual_amount || '0'),
         address: row.address,
@@ -518,11 +574,12 @@ export class VerificationTasksController {
         commissionStatus: row.commission_status,
         calculatedCommission: parseFloat(row.calculated_commission || '0'),
         createdAt: row.created_at,
-        updatedAt: row.updated_at
+        updatedAt: row.updated_at,
       }));
 
       // Calculate statistics
-      const statsResult = await pool.query(`
+      const statsResult = await pool.query(
+        `
         SELECT
           COUNT(*) FILTER (WHERE vt.status = 'PENDING') as pending_count,
           COUNT(*) FILTER (WHERE vt.status = 'ASSIGNED') as assigned_count,
@@ -535,7 +592,9 @@ export class VerificationTasksController {
         FROM verification_tasks vt
         LEFT JOIN cases c ON vt.case_id = c.id
         ${whereClause}
-      `, params);
+      `,
+        params
+      );
 
       const stats = statsResult.rows[0];
 
@@ -547,7 +606,7 @@ export class VerificationTasksController {
             page: Number(page),
             limit: Number(limit),
             total: totalTasks,
-            totalPages: Math.ceil(totalTasks / Number(limit))
+            totalPages: Math.ceil(totalTasks / Number(limit)),
           },
           statistics: {
             pending: parseInt(stats.pending_count || '0'),
@@ -557,18 +616,17 @@ export class VerificationTasksController {
             cancelled: parseInt(stats.cancelled_count || '0'),
             onHold: parseInt(stats.on_hold_count || '0'),
             urgent: parseInt(stats.urgent_count || '0'),
-            highPriority: parseInt(stats.high_priority_count || '0')
-          }
+            highPriority: parseInt(stats.high_priority_count || '0'),
+          },
         },
-        message: 'Verification tasks retrieved successfully'
+        message: 'Verification tasks retrieved successfully',
       });
-
     } catch (error) {
       logger.error('Error getting all verification tasks:', error);
       res.status(500).json({
         success: false,
         message: 'Failed to get verification tasks',
-        error: { code: 'INTERNAL_ERROR' }
+        error: { code: 'INTERNAL_ERROR' },
       });
     }
   }
@@ -593,7 +651,7 @@ export class VerificationTasksController {
         if (caseResult.rows.length === 0) {
           res.status(404).json({
             success: false,
-            message: 'Case not found'
+            message: 'Case not found',
           });
           return;
         }
@@ -601,8 +659,8 @@ export class VerificationTasksController {
         actualCaseId = caseResult.rows[0].id;
       }
 
-      let whereConditions = ['vt.case_id = $1'];
-      let queryParams: any[] = [actualCaseId];
+      const whereConditions = ['vt.case_id = $1'];
+      const queryParams: any[] = [actualCaseId];
       let paramIndex = 2;
 
       // Add filters
@@ -627,7 +685,8 @@ export class VerificationTasksController {
       const whereClause = whereConditions.join(' AND ');
 
       // Get case information including trigger and applicant_type
-      const caseResult = await pool.query(`
+      const caseResult = await pool.query(
+        `
         SELECT
           c.id, c."caseId" as case_number, c."customerName" as customer_name,
           c.trigger, c."applicantType" as applicant_type,
@@ -635,13 +694,15 @@ export class VerificationTasksController {
           c.case_completion_percentage
         FROM cases c
         WHERE c.id = $1
-      `, [actualCaseId]);
+      `,
+        [actualCaseId]
+      );
 
       if (caseResult.rows.length === 0) {
         res.status(404).json({
           success: false,
           message: 'Case not found',
-          error: { code: 'CASE_NOT_FOUND' }
+          error: { code: 'CASE_NOT_FOUND' },
         });
         return;
       }
@@ -649,7 +710,8 @@ export class VerificationTasksController {
       const caseInfo = caseResult.rows[0];
 
       // Get verification tasks with populated data
-      const tasksResult = await pool.query(`
+      const tasksResult = await pool.query(
+        `
         SELECT 
           vt.*,
           vtype.name as verification_type_name,
@@ -667,7 +729,9 @@ export class VerificationTasksController {
         LEFT JOIN task_commission_calculations tcc ON vt.id = tcc.verification_task_id
         WHERE ${whereClause}
         ORDER BY vt.created_at ASC
-      `, queryParams);
+      `,
+        queryParams
+      );
 
       const tasks = tasksResult.rows.map(row => ({
         id: row.id,
@@ -706,7 +770,7 @@ export class VerificationTasksController {
         commission_status: row.commission_status,
         calculated_commission: parseFloat(row.calculated_commission || '0'),
         created_at: row.created_at,
-        updated_at: row.updated_at
+        updated_at: row.updated_at,
       }));
 
       res.json({
@@ -718,17 +782,16 @@ export class VerificationTasksController {
           total_tasks: parseInt(caseInfo.total_tasks_count || '0'),
           completed_tasks: parseInt(caseInfo.completed_tasks_count || '0'),
           completion_percentage: parseFloat(caseInfo.case_completion_percentage || '0'),
-          tasks
+          tasks,
         },
-        message: 'Verification tasks retrieved successfully'
+        message: 'Verification tasks retrieved successfully',
       });
-
     } catch (error) {
       logger.error('Error getting verification tasks:', error);
       res.status(500).json({
         success: false,
         message: 'Failed to get verification tasks',
-        error: { code: 'INTERNAL_ERROR' }
+        error: { code: 'INTERNAL_ERROR' },
       });
     }
   }
@@ -761,7 +824,7 @@ export class VerificationTasksController {
         res.status(400).json({
           success: false,
           message: 'No valid fields to update',
-          error: { code: 'INVALID_INPUT' }
+          error: { code: 'INVALID_INPUT' },
         });
         return;
       }
@@ -782,7 +845,7 @@ export class VerificationTasksController {
         res.status(404).json({
           success: false,
           message: 'Verification task not found',
-          error: { code: 'TASK_NOT_FOUND' }
+          error: { code: 'TASK_NOT_FOUND' },
         });
         return;
       }
@@ -791,25 +854,24 @@ export class VerificationTasksController {
 
       // Create audit log
       await createAuditLog({
-        userId: userId!,
+        userId,
         action: 'UPDATE_VERIFICATION_TASK',
         entityType: 'VERIFICATION_TASK',
         entityId: taskId,
-        details: updateData
+        details: updateData,
       });
 
       res.json({
         success: true,
         data: updatedTask,
-        message: 'Verification task updated successfully'
+        message: 'Verification task updated successfully',
       });
-
     } catch (error) {
       logger.error('Error updating verification task:', error);
       res.status(500).json({
         success: false,
         message: 'Failed to update verification task',
-        error: { code: 'INTERNAL_ERROR' }
+        error: { code: 'INTERNAL_ERROR' },
       });
     }
   }
@@ -818,11 +880,14 @@ export class VerificationTasksController {
    * Helper method to get tasks with populated data
    */
   private static async getTasksWithPopulatedData(taskIds: string[]): Promise<VerificationTask[]> {
-    if (taskIds.length === 0) return [];
+    if (taskIds.length === 0) {
+      return [];
+    }
 
     const placeholders = taskIds.map((_, index) => `$${index + 1}`).join(',');
-    
-    const result = await pool.query(`
+
+    const result = await pool.query(
+      `
       SELECT 
         vt.*,
         vtype.name as verification_type_name,
@@ -836,7 +901,9 @@ export class VerificationTasksController {
       LEFT JOIN "rateTypes" rt ON vt.rate_type_id = rt.id
       WHERE vt.id IN (${placeholders})
       ORDER BY vt.created_at ASC
-    `, taskIds);
+    `,
+      taskIds
+    );
 
     return result.rows;
   }
@@ -854,7 +921,7 @@ export class VerificationTasksController {
       res.status(400).json({
         success: false,
         message: 'assignedTo is required',
-        error: { code: 'INVALID_INPUT' }
+        error: { code: 'INVALID_INPUT' },
       });
       return;
     }
@@ -865,17 +932,16 @@ export class VerificationTasksController {
       await client.query('BEGIN');
 
       // Get current task details
-      const taskResult = await client.query(
-        'SELECT * FROM verification_tasks WHERE id = $1',
-        [taskId]
-      );
+      const taskResult = await client.query('SELECT * FROM verification_tasks WHERE id = $1', [
+        taskId,
+      ]);
 
       if (taskResult.rows.length === 0) {
         await client.query('ROLLBACK');
         res.status(404).json({
           success: false,
           message: 'Verification task not found',
-          error: { code: 'TASK_NOT_FOUND' }
+          error: { code: 'TASK_NOT_FOUND' },
         });
         return;
       }
@@ -885,7 +951,8 @@ export class VerificationTasksController {
       const previousStatus = currentTask.status;
 
       // Update task assignment
-      const updateResult = await client.query(`
+      const updateResult = await client.query(
+        `
         UPDATE verification_tasks
         SET
           assigned_to = $1,
@@ -900,33 +967,44 @@ export class VerificationTasksController {
           updated_at = NOW()
         WHERE id = $4
         RETURNING *
-      `, [assignedTo, userId, priority, taskId]);
+      `,
+        [assignedTo, userId, priority, taskId]
+      );
 
       const updatedTask = updateResult.rows[0];
 
       // Create assignment history
-      await client.query(`
+      await client.query(
+        `
         INSERT INTO task_assignment_history (
           verification_task_id, case_id, assigned_from, assigned_to,
           assigned_by, assignment_reason, task_status_before, task_status_after
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-      `, [
-        taskId, currentTask.case_id, previousAssignee, assignedTo,
-        userId, assignmentReason, previousStatus, updatedTask.status
-      ]);
+      `,
+        [
+          taskId,
+          currentTask.case_id,
+          previousAssignee,
+          assignedTo,
+          userId,
+          assignmentReason,
+          previousStatus,
+          updatedTask.status,
+        ]
+      );
 
       // Create audit log
       await createAuditLog({
-        userId: userId!,
+        userId,
         action: 'ASSIGN_VERIFICATION_TASK',
         entityType: 'VERIFICATION_TASK',
         entityId: taskId,
         details: {
           previousAssignee,
           newAssignee: assignedTo,
-          assignmentReason: assignmentReason,
-          priority
-        }
+          assignmentReason,
+          priority,
+        },
       });
 
       await client.query('COMMIT');
@@ -955,10 +1033,10 @@ export class VerificationTasksController {
           userId: assignedTo,
           caseId: currentTask.case_id,
           caseNumber: caseData.case_number,
-          taskId: taskId,
+          taskId,
           taskNumber: updatedTask.task_number,
           customerName: caseData.customerName,
-          verificationType: verificationType,
+          verificationType,
           assignmentType: previousAssignee ? 'reassignment' : 'assignment',
           assignedBy: userId,
           reason: assignmentReason,
@@ -971,16 +1049,15 @@ export class VerificationTasksController {
       res.json({
         success: true,
         data: updatedTask,
-        message: 'Verification task assigned successfully'
+        message: 'Verification task assigned successfully',
       });
-
     } catch (error) {
       await client.query('ROLLBACK');
       logger.error('Error assigning verification task:', error);
       res.status(500).json({
         success: false,
         message: 'Failed to assign verification task',
-        error: { code: 'INTERNAL_ERROR' }
+        error: { code: 'INTERNAL_ERROR' },
       });
     } finally {
       client.release();
@@ -997,7 +1074,7 @@ export class VerificationTasksController {
       verificationOutcome,
       actualAmount,
       completionNotes,
-      formSubmissionId
+      formSubmissionId,
     }: CompleteVerificationTaskData = req.body;
     const userId = req.user?.id;
 
@@ -1005,7 +1082,7 @@ export class VerificationTasksController {
       res.status(400).json({
         success: false,
         message: 'verification_outcome is required',
-        error: { code: 'INVALID_INPUT' }
+        error: { code: 'INVALID_INPUT' },
       });
       return;
     }
@@ -1016,19 +1093,22 @@ export class VerificationTasksController {
       await client.query('BEGIN');
 
       // Get current task details
-      const taskResult = await client.query(`
+      const taskResult = await client.query(
+        `
         SELECT vt.*, c."clientId", c."productId"
         FROM verification_tasks vt
         JOIN cases c ON vt.case_id = c.id
         WHERE vt.id = $1
-      `, [taskId]);
+      `,
+        [taskId]
+      );
 
       if (taskResult.rows.length === 0) {
         await client.query('ROLLBACK');
         res.status(404).json({
           success: false,
           message: 'Verification task not found',
-          error: { code: 'TASK_NOT_FOUND' }
+          error: { code: 'TASK_NOT_FOUND' },
         });
         return;
       }
@@ -1040,13 +1120,14 @@ export class VerificationTasksController {
         res.status(400).json({
           success: false,
           message: 'Task is already completed',
-          error: { code: 'TASK_ALREADY_COMPLETED' }
+          error: { code: 'TASK_ALREADY_COMPLETED' },
         });
         return;
       }
 
       // Update task to completed
-      const updateResult = await client.query(`
+      const updateResult = await client.query(
+        `
         UPDATE verification_tasks
         SET
           status = 'COMPLETED',
@@ -1056,42 +1137,47 @@ export class VerificationTasksController {
           updated_at = NOW()
         WHERE id = $3
         RETURNING *
-      `, [verificationOutcome, actualAmount, taskId]);
+      `,
+        [verificationOutcome, actualAmount, taskId]
+      );
 
       const completedTask = updateResult.rows[0];
 
       // Link form submission if provided
       if (formSubmissionId) {
-        await client.query(`
+        await client.query(
+          `
           INSERT INTO task_form_submissions (
             verification_task_id, case_id, form_submission_id,
             form_type, submitted_by, submitted_at
           ) VALUES ($1, $2, $3, $4, $5, NOW())
-        `, [
-          taskId, task.case_id, formSubmissionId,
-          'VERIFICATION_FORM', userId
-        ]);
+        `,
+          [taskId, task.case_id, formSubmissionId, 'VERIFICATION_FORM', userId]
+        );
       }
 
       // Calculate commission if rate type is available
       if (task.rate_type_id && task.assigned_to) {
         await VerificationTasksController.calculateTaskCommission(
-          client, taskId, task, completedTask.actual_amount
+          client,
+          taskId,
+          task,
+          completedTask.actual_amount
         );
       }
 
       // Create audit log
       await createAuditLog({
-        userId: userId!,
+        userId,
         action: 'COMPLETE_VERIFICATION_TASK',
         entityType: 'VERIFICATION_TASK',
         entityId: taskId,
         details: {
-          verificationOutcome: verificationOutcome,
-          actualAmount: actualAmount,
-          completionNotes: completionNotes,
-          formSubmissionId: formSubmissionId
-        }
+          verificationOutcome,
+          actualAmount,
+          completionNotes,
+          formSubmissionId,
+        },
       });
 
       await client.query('COMMIT');
@@ -1099,16 +1185,15 @@ export class VerificationTasksController {
       res.json({
         success: true,
         data: completedTask,
-        message: 'Verification task completed successfully'
+        message: 'Verification task completed successfully',
       });
-
     } catch (error) {
       await client.query('ROLLBACK');
       logger.error('Error completing verification task:', error);
       res.status(500).json({
         success: false,
         message: 'Failed to complete verification task',
-        error: { code: 'INTERNAL_ERROR' }
+        error: { code: 'INTERNAL_ERROR' },
       });
     } finally {
       client.release();
@@ -1124,8 +1209,8 @@ export class VerificationTasksController {
     const { status, priority } = req.query;
 
     try {
-      let whereConditions = ['vt.assigned_to = $1'];
-      let queryParams: any[] = [userId];
+      const whereConditions = ['vt.assigned_to = $1'];
+      const queryParams: any[] = [userId];
       let paramIndex = 2;
 
       if (status) {
@@ -1143,7 +1228,8 @@ export class VerificationTasksController {
       const whereClause = whereConditions.join(' AND ');
 
       // Get tasks with case information
-      const tasksResult = await pool.query(`
+      const tasksResult = await pool.query(
+        `
         SELECT
           vt.id, vt.task_number, vt.case_id, vt.task_title,
           vt.status, vt.priority, vt.address, vt.estimated_amount,
@@ -1163,10 +1249,13 @@ export class VerificationTasksController {
             WHEN 'LOW' THEN 4
           END,
           vt.assigned_at ASC
-      `, queryParams);
+      `,
+        queryParams
+      );
 
       // Get summary statistics
-      const summaryResult = await pool.query(`
+      const summaryResult = await pool.query(
+        `
         SELECT
           COUNT(*) as total_assigned,
           COUNT(CASE WHEN status = 'PENDING' OR status = 'ASSIGNED' THEN 1 END) as pending,
@@ -1176,7 +1265,9 @@ export class VerificationTasksController {
           COALESCE(SUM(CASE WHEN status = 'COMPLETED' THEN actual_amount ELSE 0 END), 0) as total_earnings
         FROM verification_tasks
         WHERE assigned_to = $1
-      `, [userId]);
+      `,
+        [userId]
+      );
 
       const summary = summaryResult.rows[0];
 
@@ -1191,18 +1282,17 @@ export class VerificationTasksController {
             completed_today: parseInt(summary.completed_today),
             completed_this_week: parseInt(summary.completed_this_week),
             total_earnings: parseFloat(summary.total_earnings),
-            pending_commission: 0 // Will be calculated from commission table
-          }
+            pending_commission: 0, // Will be calculated from commission table
+          },
         },
-        message: 'Tasks retrieved successfully'
+        message: 'Tasks retrieved successfully',
       });
-
     } catch (error) {
       logger.error('Error getting user tasks:', error);
       res.status(500).json({
         success: false,
         message: 'Failed to get tasks',
-        error: { code: 'INTERNAL_ERROR' }
+        error: { code: 'INTERNAL_ERROR' },
       });
     }
   }
@@ -1227,16 +1317,13 @@ export class VerificationTasksController {
         taskId,
         taskNumber: task.task_number,
         assignedTo: task.assigned_to,
-        actualAmount
+        actualAmount,
       });
-
     } catch (error) {
       logger.error('Error calculating task commission:', error);
       // Don't throw error to avoid breaking the main transaction
     }
   }
-
-
 
   /**
    * Helper method to convert camelCase to snake_case

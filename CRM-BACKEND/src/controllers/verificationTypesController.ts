@@ -1,22 +1,16 @@
-import { Response } from 'express';
+import type { Response } from 'express';
 import { logger } from '@/config/logger';
-import { AuthenticatedRequest } from '@/middleware/auth';
+import type { AuthenticatedRequest } from '@/middleware/auth';
 import { query } from '@/config/database';
 
 // GET /api/verification-types - List verification types with pagination and filters
 export const getVerificationTypes = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { 
-      page = 1, 
-      limit = 20, 
-      search, 
-      sortBy = 'name', 
-      sortOrder = 'asc' 
-    } = req.query;
+    const { page = 1, limit = 20, search, sortBy = 'name', sortOrder = 'asc' } = req.query;
 
     // Build where clause for search
     let whereClause = '';
-    let queryParams: any[] = [];
+    const queryParams: any[] = [];
     let paramIndex = 1;
 
     if (search && String(search).trim()) {
@@ -32,7 +26,17 @@ export const getVerificationTypes = async (req: AuthenticatedRequest, res: Respo
     const totalCount = Number(countRes.rows[0]?.count || 0);
 
     // Get verification types with pagination and search
-    const sortCol = ['name', 'code', 'category', 'basePrice', 'estimatedTime', 'createdAt', 'updatedAt'].includes(String(sortBy)) ? String(sortBy) : 'name';
+    const sortCol = [
+      'name',
+      'code',
+      'category',
+      'basePrice',
+      'estimatedTime',
+      'createdAt',
+      'updatedAt',
+    ].includes(String(sortBy))
+      ? String(sortBy)
+      : 'name';
     const sortDir = String(sortOrder).toLowerCase() === 'desc' ? 'DESC' : 'ASC';
 
     const dataQuery = `SELECT * FROM "verificationTypes" ${whereClause} ORDER BY "${sortCol}" ${sortDir} LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
@@ -45,7 +49,7 @@ export const getVerificationTypes = async (req: AuthenticatedRequest, res: Respo
       page: Number(page),
       limit: Number(limit),
       search: search || '',
-      total: totalCount
+      total: totalCount,
     });
 
     res.json({
@@ -102,10 +106,7 @@ export const getVerificationTypeById = async (req: AuthenticatedRequest, res: Re
 // POST /api/verification-types - Create new verification type
 export const createVerificationType = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const {
-      name,
-      code
-    } = req.body;
+    const { name, code } = req.body;
 
     // Check if verification type code already exists
     const exRes = await query(`SELECT id FROM "verificationTypes" WHERE code = $1`, [code]);
@@ -129,7 +130,7 @@ export const createVerificationType = async (req: AuthenticatedRequest, res: Res
     logger.info(`Created new verification type: ${newVerificationType.id}`, {
       userId: req.user?.id,
       verificationTypeName: name,
-      verificationTypeCode: code
+      verificationTypeCode: code,
     });
 
     res.status(201).json({
@@ -167,7 +168,9 @@ export const updateVerificationType = async (req: AuthenticatedRequest, res: Res
 
     // Check for duplicate code if being updated
     if (updateData.code && updateData.code !== existingVerificationType.code) {
-      const dupRes = await query(`SELECT id FROM "verificationTypes" WHERE code = $1`, [updateData.code]);
+      const dupRes = await query(`SELECT id FROM "verificationTypes" WHERE code = $1`, [
+        updateData.code,
+      ]);
       const duplicateVerificationType = dupRes.rows[0];
 
       if (duplicateVerificationType) {
@@ -182,8 +185,12 @@ export const updateVerificationType = async (req: AuthenticatedRequest, res: Res
     // Prepare update data
     const updatePayload: any = {};
 
-    if (updateData.name) updatePayload.name = updateData.name;
-    if (updateData.code) updatePayload.code = updateData.code;
+    if (updateData.name) {
+      updatePayload.name = updateData.name;
+    }
+    if (updateData.code) {
+      updatePayload.code = updateData.code;
+    }
 
     // Update verification type
     const sets: string[] = [];
@@ -195,13 +202,16 @@ export const updateVerificationType = async (req: AuthenticatedRequest, res: Res
     }
     sets.push(`"updatedAt" = CURRENT_TIMESTAMP`);
     vals.push(id);
-    const updRes = await query(`UPDATE "verificationTypes" SET ${sets.join(', ')} WHERE id = $${idx} RETURNING *`, vals);
+    const updRes = await query(
+      `UPDATE "verificationTypes" SET ${sets.join(', ')} WHERE id = $${idx} RETURNING *`,
+      vals
+    );
     const updatedVerificationType = updRes.rows[0];
 
     logger.info(`Updated verification type: ${id}`, {
       userId: req.user?.id,
       verificationTypeId: id,
-      updates: Object.keys(updatePayload)
+      updates: Object.keys(updatePayload),
     });
 
     res.json({
@@ -242,7 +252,7 @@ export const deleteVerificationType = async (req: AuthenticatedRequest, res: Res
     logger.info(`Deleted verification type: ${id}`, {
       userId: req.user?.id,
       verificationTypeId: id,
-      verificationTypeName: existingVerificationType.name
+      verificationTypeName: existingVerificationType.name,
     });
 
     res.json({
@@ -272,8 +282,8 @@ export const getVerificationTypeStats = async (req: AuthenticatedRequest, res: R
       active: total, // Assuming all verification types are active since no isActive column
       inactive: 0,
       byCategory: {
-        'OTHER': total // Default category since no category column
-      }
+        OTHER: total, // Default category since no category column
+      },
     };
 
     res.json({

@@ -1,6 +1,6 @@
-import { Response } from 'express';
+import type { Response } from 'express';
 import { logger } from '@/config/logger';
-import { AuthenticatedRequest } from '@/middleware/auth';
+import type { AuthenticatedRequest } from '@/middleware/auth';
 import { query } from '@/config/database';
 
 // Database-driven states controller - no more mock data
@@ -8,14 +8,7 @@ import { query } from '@/config/database';
 // GET /api/states - List states with pagination and filters
 export const getStates = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const {
-      page = 1,
-      limit = 20,
-      country,
-      search,
-      sortBy = 'name',
-      sortOrder = 'asc'
-    } = req.query;
+    const { page = 1, limit = 20, country, search, sortBy = 'name', sortOrder = 'asc' } = req.query;
 
     // Build SQL query with joins to get country names and city counts
     let sql = `
@@ -108,7 +101,7 @@ export const getStates = async (req: AuthenticatedRequest, res: Response) => {
     logger.info(`Retrieved ${result.rows.length} states`, {
       userId: req.user?.id,
       filters: { country, search },
-      pagination: { page: pageNum, limit: limitNum }
+      pagination: { page: pageNum, limit: limitNum },
     });
 
     res.json({
@@ -116,7 +109,7 @@ export const getStates = async (req: AuthenticatedRequest, res: Response) => {
       data: result.rows.map(state => ({
         ...state,
         id: state.id.toString(), // Convert integer ID to string
-        countryId: state.countryId ? state.countryId.toString() : null // Convert integer countryId to string if exists
+        countryId: state.countryId ? state.countryId.toString() : null, // Convert integer countryId to string if exists
       })),
       pagination: {
         page: pageNum,
@@ -162,14 +155,14 @@ export const getStateById = async (req: AuthenticatedRequest, res: Response) => 
 
     logger.info(`Retrieved state: ${state.name}`, {
       userId: req.user?.id,
-      stateId: id
+      stateId: id,
     });
 
     res.json({
       success: true,
       data: {
         ...state,
-        id: state.id.toString() // Convert integer ID to string
+        id: state.id.toString(), // Convert integer ID to string
       },
     });
   } catch (error) {
@@ -190,10 +183,7 @@ export const createState = async (req: AuthenticatedRequest, res: Response) => {
     logger.info('Creating state with data:', { name, code, country, userId: req.user?.id });
 
     // Get countryId from country name
-    const countryResult = await query(
-      'SELECT id FROM countries WHERE name = $1',
-      [country]
-    );
+    const countryResult = await query('SELECT id FROM countries WHERE name = $1', [country]);
 
     if (countryResult.rows.length === 0) {
       logger.warn('Country not found:', { country });
@@ -232,7 +222,7 @@ export const createState = async (req: AuthenticatedRequest, res: Response) => {
     logger.info(`Created new state: ${newState.name}`, {
       userId: req.user?.id,
       stateId: newState.id,
-      stateData: newState
+      stateData: newState,
     });
 
     res.status(201).json({
@@ -241,7 +231,7 @@ export const createState = async (req: AuthenticatedRequest, res: Response) => {
         id: newState.id,
         name: newState.name,
         code: newState.code,
-        country: country,
+        country,
         createdAt: newState.createdAt,
         updatedAt: newState.updatedAt,
       },
@@ -285,7 +275,9 @@ export const updateState = async (req: AuthenticatedRequest, res: Response) => {
 
       // If country is being updated, get new countryId
       if (updateData.country && updateData.country !== existingState.country) {
-        const countryResult = await query('SELECT id FROM countries WHERE name = $1', [updateData.country]);
+        const countryResult = await query('SELECT id FROM countries WHERE name = $1', [
+          updateData.country,
+        ]);
         if (countryResult.rows.length === 0) {
           return res.status(400).json({
             success: false,
@@ -328,7 +320,9 @@ export const updateState = async (req: AuthenticatedRequest, res: Response) => {
     }
 
     if (updateData.country) {
-      const countryResult = await query('SELECT id FROM countries WHERE name = $1', [updateData.country]);
+      const countryResult = await query('SELECT id FROM countries WHERE name = $1', [
+        updateData.country,
+      ]);
       if (countryResult.rows.length > 0) {
         paramCount++;
         updateFields.push(`"countryId" = $${paramCount}`);
@@ -375,7 +369,7 @@ export const updateState = async (req: AuthenticatedRequest, res: Response) => {
     logger.info(`Updated state: ${updatedState.name}`, {
       userId: req.user?.id,
       stateId: id,
-      updateData
+      updateData,
     });
 
     res.json({
@@ -418,10 +412,9 @@ export const deleteState = async (req: AuthenticatedRequest, res: Response) => {
     const stateToDelete = existingResult.rows[0];
 
     // Check if state is being used by cities
-    const citiesResult = await query(
-      'SELECT COUNT(*) as count FROM cities WHERE "stateId" = $1',
-      [id]
-    );
+    const citiesResult = await query('SELECT COUNT(*) as count FROM cities WHERE "stateId" = $1', [
+      id,
+    ]);
 
     const citiesCount = parseInt(citiesResult.rows[0].count);
     if (citiesCount > 0) {
@@ -438,7 +431,7 @@ export const deleteState = async (req: AuthenticatedRequest, res: Response) => {
     logger.info(`Deleted state: ${stateToDelete.name}`, {
       userId: req.user?.id,
       stateId: id,
-      stateName: stateToDelete.name
+      stateName: stateToDelete.name,
     });
 
     res.json({
@@ -472,10 +465,13 @@ export const getStatesStats = async (req: AuthenticatedRequest, res: Response) =
       ORDER BY c.name
     `);
 
-    const statesByCountry = countryResult.rows.reduce((acc, row) => {
-      acc[row.country] = parseInt(row.count);
-      return acc;
-    }, {} as Record<string, number>);
+    const statesByCountry = countryResult.rows.reduce(
+      (acc, row) => {
+        acc[row.country] = parseInt(row.count);
+        return acc;
+      },
+      {} as Record<string, number>
+    );
 
     const stats = {
       totalStates,
@@ -485,7 +481,7 @@ export const getStatesStats = async (req: AuthenticatedRequest, res: Response) =
 
     logger.info('Retrieved states statistics', {
       userId: req.user?.id,
-      stats
+      stats,
     });
 
     res.json({
@@ -503,7 +499,10 @@ export const getStatesStats = async (req: AuthenticatedRequest, res: Response) =
 };
 
 // POST /api/states/bulk-import - Bulk import states
-export const bulkImportStates = async (req: AuthenticatedRequest & { file?: Express.Multer.File }, res: Response) => {
+export const bulkImportStates = async (
+  req: AuthenticatedRequest & { file?: Express.Multer.File },
+  res: Response
+) => {
   try {
     if (!req.file) {
       return res.status(400).json({
@@ -544,7 +543,7 @@ export const bulkImportStates = async (req: AuthenticatedRequest & { file?: Expr
         const { name, code, country } = row;
 
         // Find or create country
-        let countryResult = await query(
+        const countryResult = await query(
           'SELECT id FROM countries WHERE LOWER(name) = LOWER($1)',
           [country]
         );

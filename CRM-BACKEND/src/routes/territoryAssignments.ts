@@ -10,7 +10,7 @@ import {
   removePincodeAssignment,
   removeAreaAssignment,
   removeAllTerritoryAssignments,
-  addSinglePincodeAssignment
+  addSinglePincodeAssignment,
 } from '@/controllers/territoryAssignmentsController';
 
 const router = express.Router();
@@ -20,10 +20,7 @@ router.use(authenticateToken);
 
 // Validation schemas
 const listFieldAgentsValidation = [
-  query('page')
-    .optional()
-    .isInt({ min: 1 })
-    .withMessage('Page must be a positive integer'),
+  query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
   query('limit')
     .optional()
     .isInt({ min: 1, max: 100 })
@@ -37,10 +34,7 @@ const listFieldAgentsValidation = [
     .optional()
     .isInt({ min: 1 })
     .withMessage('Pincode ID must be a positive integer'),
-  query('cityId')
-    .optional()
-    .isInt({ min: 1 })
-    .withMessage('City ID must be a positive integer'),
+  query('cityId').optional().isInt({ min: 1 }).withMessage('City ID must be a positive integer'),
   query('isActive')
     .optional()
     .isIn(['true', 'false'])
@@ -49,16 +43,11 @@ const listFieldAgentsValidation = [
     .optional()
     .isIn(['userName', 'username', 'employeeId'])
     .withMessage('sortBy must be one of: userName, username, employeeId'),
-  query('sortOrder')
-    .optional()
-    .isIn(['asc', 'desc'])
-    .withMessage('Sort order must be asc or desc'),
+  query('sortOrder').optional().isIn(['asc', 'desc']).withMessage('Sort order must be asc or desc'),
 ];
 
 const assignPincodesValidation = [
-  param('userId')
-    .isUUID()
-    .withMessage('User ID must be a valid UUID'),
+  param('userId').isUUID().withMessage('User ID must be a valid UUID'),
   body('pincodeIds')
     .isArray({ max: 50 })
     .withMessage('pincodeIds must be an array with maximum 50 pincode IDs'),
@@ -69,9 +58,7 @@ const assignPincodesValidation = [
 ];
 
 const assignAreasValidation = [
-  param('userId')
-    .isUUID()
-    .withMessage('User ID must be a valid UUID'),
+  param('userId').isUUID().withMessage('User ID must be a valid UUID'),
   body('assignments')
     .isArray({ max: 20 })
     .withMessage('assignments must be an array with maximum 20 assignments'),
@@ -90,23 +77,19 @@ const assignAreasValidation = [
 ];
 
 const removeAssignmentValidation = [
-  param('userId')
-    .isUUID()
-    .withMessage('User ID must be a valid UUID'),
+  param('userId').isUUID().withMessage('User ID must be a valid UUID'),
   param('pincodeId')
     .optional()
     .isInt({ min: 1 })
     .withMessage('Pincode ID must be a positive integer'),
-  param('areaId')
-    .optional()
-    .isInt({ min: 1 })
-    .withMessage('Area ID must be a positive integer'),
+  param('areaId').optional().isInt({ min: 1 }).withMessage('Area ID must be a positive integer'),
 ];
 
 // Routes
 
 // GET /api/territory-assignments/field-agents - List all field agents with their territory assignments
-router.get('/field-agents',
+router.get(
+  '/field-agents',
   requirePermission('users', 'read'), // Use existing permission
   listFieldAgentsValidation,
   validate,
@@ -114,7 +97,8 @@ router.get('/field-agents',
 );
 
 // GET /api/territory-assignments/field-agents/:userId - Get specific field agent's territory assignments
-router.get('/field-agents/:userId',
+router.get(
+  '/field-agents/:userId',
   requirePermission('users', 'read'),
   [param('userId').isUUID().withMessage('User ID must be a valid UUID')],
   validate,
@@ -122,7 +106,8 @@ router.get('/field-agents/:userId',
 );
 
 // POST /api/territory-assignments/field-agents/:userId/pincodes - Assign pincodes to field agent
-router.post('/field-agents/:userId/pincodes',
+router.post(
+  '/field-agents/:userId/pincodes',
   requirePermission('users', 'update'),
   assignPincodesValidation,
   validate,
@@ -130,7 +115,8 @@ router.post('/field-agents/:userId/pincodes',
 );
 
 // POST /api/territory-assignments/field-agents/:userId/areas - Assign areas within pincodes to field agent
-router.post('/field-agents/:userId/areas',
+router.post(
+  '/field-agents/:userId/areas',
   requirePermission('users', 'update'),
   assignAreasValidation,
   validate,
@@ -138,43 +124,50 @@ router.post('/field-agents/:userId/areas',
 );
 
 // POST /api/territory-assignments/field-agents/:userId/add-pincode - Add single pincode with areas (incremental)
-router.post('/field-agents/:userId/add-pincode',
+router.post(
+  '/field-agents/:userId/add-pincode',
   requirePermission('users', 'update'),
   [
     param('userId').isUUID().withMessage('User ID must be a valid UUID'),
     body('pincodeId').isInt({ min: 1 }).withMessage('Pincode ID must be a positive integer'),
     body('areaIds').optional().isArray().withMessage('Area IDs must be an array'),
-    body('areaIds.*').optional().isInt({ min: 1 }).withMessage('Each area ID must be a positive integer')
+    body('areaIds.*')
+      .optional()
+      .isInt({ min: 1 })
+      .withMessage('Each area ID must be a positive integer'),
   ],
   validate,
   addSinglePincodeAssignment
 );
 
 // DELETE /api/territory-assignments/field-agents/:userId/pincodes/:pincodeId - Remove pincode assignment
-router.delete('/field-agents/:userId/pincodes/:pincodeId',
+router.delete(
+  '/field-agents/:userId/pincodes/:pincodeId',
   requirePermission('users', 'delete'),
   [
     param('userId').isUUID().withMessage('User ID must be a valid UUID'),
-    param('pincodeId').isInt({ min: 1 }).withMessage('Pincode ID must be a positive integer')
+    param('pincodeId').isInt({ min: 1 }).withMessage('Pincode ID must be a positive integer'),
   ],
   validate,
   removePincodeAssignment
 );
 
 // DELETE /api/territory-assignments/field-agents/:userId/areas/:areaId - Remove area assignment
-router.delete('/field-agents/:userId/areas/:areaId',
+router.delete(
+  '/field-agents/:userId/areas/:areaId',
   requirePermission('users', 'delete'),
   [
     param('userId').isUUID().withMessage('User ID must be a valid UUID'),
     param('areaId').isInt({ min: 1 }).withMessage('Area ID must be a positive integer'),
-    query('pincodeId').isInt({ min: 1 }).withMessage('Pincode ID query parameter is required')
+    query('pincodeId').isInt({ min: 1 }).withMessage('Pincode ID query parameter is required'),
   ],
   validate,
   removeAreaAssignment
 );
 
 // DELETE /api/territory-assignments/field-agents/:userId/all - Remove all territory assignments
-router.delete('/field-agents/:userId/all',
+router.delete(
+  '/field-agents/:userId/all',
   requirePermission('users', 'delete'),
   [param('userId').isUUID().withMessage('User ID must be a valid UUID')],
   validate,

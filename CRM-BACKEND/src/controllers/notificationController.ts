@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import { query } from '@/config/database';
 import { logger } from '@/utils/logger';
 import { createAuditLog } from '@/utils/auditLogger';
@@ -89,7 +89,7 @@ export class NotificationController {
           total,
           limit: parseInt(limit as string),
           offset: parseInt(offset as string),
-          hasMore: total > parseInt(offset as string) + parseInt(limit as string)
+          hasMore: total > parseInt(offset as string) + parseInt(limit as string),
         },
         unreadCount,
         message: 'Notifications retrieved successfully',
@@ -348,7 +348,7 @@ export class NotificationController {
         `;
 
         const insertResult = await query(insertQuery, [userId]);
-        
+
         res.json({
           success: true,
           data: insertResult.rows[0],
@@ -486,7 +486,7 @@ export class NotificationController {
 
       // Create audit log
       await createAuditLog({
-        userId: userId,
+        userId,
         action: 'NOTIFICATION_PREFERENCES_UPDATED',
         entityType: 'NOTIFICATION_PREFERENCES',
         entityId: userId,
@@ -824,12 +824,22 @@ export class NotificationController {
         byType: analyticsResult.rows,
         byDeliveryMethod: deliveryResult.rows,
         summary: {
-          totalNotifications: analyticsResult.rows.reduce((sum, row) => sum + parseInt(row.total_sent), 0),
+          totalNotifications: analyticsResult.rows.reduce(
+            (sum, row) => sum + parseInt(row.total_sent),
+            0
+          ),
           totalRead: analyticsResult.rows.reduce((sum, row) => sum + parseInt(row.total_read), 0),
-          totalUnread: analyticsResult.rows.reduce((sum, row) => sum + parseInt(row.total_unread), 0),
-          overallReadRate: analyticsResult.rows.length > 0
-            ? (analyticsResult.rows.reduce((sum, row) => sum + parseFloat(row.read_rate), 0) / analyticsResult.rows.length).toFixed(2)
-            : '0.00',
+          totalUnread: analyticsResult.rows.reduce(
+            (sum, row) => sum + parseInt(row.total_unread),
+            0
+          ),
+          overallReadRate:
+            analyticsResult.rows.length > 0
+              ? (
+                  analyticsResult.rows.reduce((sum, row) => sum + parseFloat(row.read_rate), 0) /
+                  analyticsResult.rows.length
+                ).toFixed(2)
+              : '0.00',
         },
       };
 

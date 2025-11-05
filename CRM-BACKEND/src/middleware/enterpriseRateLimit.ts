@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+import type { Request, Response, NextFunction } from 'express';
 import { EnterpriseCacheService, CacheKeys } from '../services/enterpriseCacheService';
 import { logger } from '../config/logger';
 
@@ -34,10 +34,7 @@ export class EnterpriseRateLimit {
         const maxRequests = config.maxRequests;
 
         // Get current count
-        const current = await EnterpriseCacheService.increment(
-          key,
-          Math.ceil(windowMs / 1000)
-        );
+        const current = await EnterpriseCacheService.increment(key, Math.ceil(windowMs / 1000));
 
         const remaining = Math.max(0, maxRequests - current);
         const resetTime = Date.now() + windowMs;
@@ -103,7 +100,7 @@ export class EnterpriseRateLimit {
     const userId = (req as any).user?.id;
     const ip = req.ip || req.connection.remoteAddress || 'unknown';
     const endpoint = `${req.method}:${req.route?.path || req.path}`;
-    
+
     return CacheKeys.rateLimit(userId || ip, endpoint);
   }
 
@@ -147,9 +144,9 @@ export class EnterpriseRateLimit {
       try {
         // Get system load (simplified - in production, use proper metrics)
         const systemLoad = await this.getSystemLoad();
-        
-        let adjustedConfig = { ...baseConfig };
-        
+
+        const adjustedConfig = { ...baseConfig };
+
         if (systemLoad > loadThresholds[1]) {
           // High load: reduce limits by 50%
           adjustedConfig.maxRequests = Math.floor(baseConfig.maxRequests * 0.5);
@@ -176,7 +173,7 @@ export class EnterpriseRateLimit {
       const stats = await EnterpriseCacheService.getStats();
       const memoryUsage = stats.memory?.used_memory_rss || 0;
       const maxMemory = stats.memory?.maxmemory || 1000000000; // 1GB default
-      
+
       return memoryUsage / maxMemory;
     } catch {
       return 0.5; // Default moderate load
@@ -256,9 +253,13 @@ export class EnterpriseRateLimit {
   /**
    * Get rate limit status for a key
    */
-  static async getStatus(key: string, windowMs: number, maxRequests: number): Promise<RateLimitInfo> {
+  static async getStatus(
+    key: string,
+    windowMs: number,
+    maxRequests: number
+  ): Promise<RateLimitInfo> {
     try {
-      const current = await EnterpriseCacheService.get<number>(key) || 0;
+      const current = (await EnterpriseCacheService.get<number>(key)) || 0;
       const remaining = Math.max(0, maxRequests - current);
       const resetTime = Date.now() + windowMs;
 

@@ -9,7 +9,7 @@ import {
   updateDocumentType,
   deleteDocumentType,
   getDocumentTypeStats,
-  getDocumentTypeCategories
+  getDocumentTypeCategories,
 } from '../controllers/documentTypesController';
 
 const router = express.Router();
@@ -115,10 +115,7 @@ const updateDocumentTypeValidation = [
     .optional()
     .isInt({ min: 1 })
     .withMessage('maxLength must be a positive integer'),
-  body('isActive')
-    .optional()
-    .isBoolean()
-    .withMessage('isActive must be a boolean'),
+  body('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
   body('sortOrder')
     .optional()
     .isInt({ min: 0 })
@@ -126,10 +123,7 @@ const updateDocumentTypeValidation = [
 ];
 
 const listDocumentTypesValidation = [
-  query('page')
-    .optional()
-    .isInt({ min: 1 })
-    .withMessage('Page must be a positive integer'),
+  query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
   query('limit')
     .optional()
     .isInt({ min: 1, max: 100 })
@@ -138,10 +132,7 @@ const listDocumentTypesValidation = [
     .optional()
     .isIn(['IDENTITY', 'ADDRESS', 'FINANCIAL', 'EDUCATION', 'BUSINESS', 'OTHER'])
     .withMessage('Invalid category'),
-  query('isActive')
-    .optional()
-    .isBoolean()
-    .withMessage('isActive must be a boolean'),
+  query('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
   query('isGovernmentIssued')
     .optional()
     .isBoolean()
@@ -159,42 +150,34 @@ const listDocumentTypesValidation = [
     .optional()
     .isIn(['name', 'code', 'category', 'sort_order', 'created_at', 'updated_at'])
     .withMessage('Invalid sort field'),
-  query('sortOrder')
-    .optional()
-    .isIn(['asc', 'desc'])
-    .withMessage('Sort order must be asc or desc'),
+  query('sortOrder').optional().isIn(['asc', 'desc']).withMessage('Sort order must be asc or desc'),
 ];
 
 // Core CRUD routes
-router.get('/',
-  listDocumentTypesValidation,
-  handleValidationErrors,
-  getDocumentTypes
-);
+router.get('/', listDocumentTypesValidation, handleValidationErrors, getDocumentTypes);
 
 router.get('/stats', getDocumentTypeStats);
 router.get('/categories', getDocumentTypeCategories);
 
-router.post('/',
-  createDocumentTypeValidation,
-  handleValidationErrors,
-  createDocumentType
-);
+router.post('/', createDocumentTypeValidation, handleValidationErrors, createDocumentType);
 
-router.get('/:id',
+router.get(
+  '/:id',
   [param('id').isInt({ min: 1 }).withMessage('Document type ID must be a positive integer')],
   handleValidationErrors,
   getDocumentTypeById
 );
 
-router.put('/:id',
+router.put(
+  '/:id',
   [param('id').isInt({ min: 1 }).withMessage('Document type ID must be a positive integer')],
   updateDocumentTypeValidation,
   handleValidationErrors,
   updateDocumentType
 );
 
-router.delete('/:id',
+router.delete(
+  '/:id',
   [param('id').isInt({ min: 1 }).withMessage('Document type ID must be a positive integer')],
   handleValidationErrors,
   deleteDocumentType
