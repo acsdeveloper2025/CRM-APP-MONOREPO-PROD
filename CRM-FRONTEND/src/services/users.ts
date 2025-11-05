@@ -10,8 +10,6 @@ import type {
   UserSession,
   UserProfile,
   BulkUserOperation,
-  UserImportData,
-  UserExportData,
   RolePermission,
   UserClientAssignment,
   UserProductAssignment
