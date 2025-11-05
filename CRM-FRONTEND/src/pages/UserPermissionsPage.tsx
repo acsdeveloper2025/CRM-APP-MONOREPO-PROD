@@ -5,7 +5,6 @@ import { ArrowLeft, User, Shield, Building2, Package, MapPin, Trash2 } from 'luc
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   AlertDialog,
