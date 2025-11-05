@@ -19,8 +19,8 @@ import {
   Building2,
   Package
 } from 'lucide-react';
-import { VerificationTask, TaskStatus, TaskPriority } from '@/types/verificationTask';
-import { formatDistanceToNow, format } from 'date-fns';
+import { VerificationTask, TaskStatus } from '@/types/verificationTask';
+import { formatDistanceToNow } from 'date-fns';
 import {
   getTaskStatusBadgeStyle,
   getTaskPriorityBadgeStyle,
