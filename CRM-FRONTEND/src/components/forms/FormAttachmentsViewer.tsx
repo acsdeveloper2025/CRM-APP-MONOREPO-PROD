@@ -11,7 +11,7 @@ interface FormAttachmentsViewerProps {
   readonly?: boolean;
 }
 
-export function FormAttachmentsViewer({ attachments, readonly = true }: FormAttachmentsViewerProps) {
+export function FormAttachmentsViewer({ attachments, readonly: _readonly = true }: FormAttachmentsViewerProps) {
   const [selectedAttachment, setSelectedAttachment] = useState<FormAttachment | null>(null);
   const [showPreview, setShowPreview] = useState(false);
 
