@@ -10,7 +10,7 @@ interface FormLocationViewerProps {
   readonly?: boolean;
 }
 
-export function FormLocationViewer({ location, readonly = true }: FormLocationViewerProps) {
+export function FormLocationViewer({ location, readonly: _readonly = true }: FormLocationViewerProps) {
   const getAccuracyBadge = (accuracy: number) => {
     if (accuracy <= 5) {
       return <Badge variant="default">High Accuracy</Badge>;
