@@ -57,6 +57,6 @@ if (process.env.NODE_ENV !== 'production') {
 import { mkdirSync } from 'fs';
 try {
   mkdirSync('logs', { recursive: true });
-} catch (error) {
+} catch (_error) {
   // Directory already exists or permission error
 }
