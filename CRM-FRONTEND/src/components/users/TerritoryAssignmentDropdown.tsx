@@ -16,10 +16,10 @@ interface TerritoryAssignmentDropdownProps {
   user: UserType;
 }
 
-interface AreaAssignment {
-  pincodeId: number;
-  areaIds: number[];
-}
+// interface AreaAssignment {
+//   pincodeId: number;
+//   areaIds: number[];
+// }
 
 export function TerritoryAssignmentDropdown({ user }: TerritoryAssignmentDropdownProps) {
   // Sequential assignment state
