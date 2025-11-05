@@ -1,15 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
   ResponsiveContainer,
   LineChart,
   Line,
@@ -17,18 +16,13 @@ import {
   Pie,
   Cell
 } from 'recharts';
-import { 
+import {
   ArrowLeft,
   Download,
   Share2,
   RefreshCw,
-  Calendar,
-  TrendingUp,
   Target,
   CheckCircle,
-  FileText,
-  BarChart3,
-  PieChart as PieChartIcon,
   Wifi,
   WifiOff
 } from 'lucide-react';

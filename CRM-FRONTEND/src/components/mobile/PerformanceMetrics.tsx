@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { 
   Select,
   SelectContent,
@@ -9,13 +8,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
+import {
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
   ResponsiveContainer,
   LineChart,
   Line,
@@ -28,15 +26,13 @@ import {
   PolarRadiusAxis,
   Radar
 } from 'recharts';
-import { 
-  TrendingUp, 
-  Target, 
-  Clock, 
+import {
+  TrendingUp,
+  Target,
+  Clock,
   CheckCircle,
   Star,
   Award,
-  Calendar,
-  BarChart3,
   RefreshCw,
   Download
 } from 'lucide-react';
