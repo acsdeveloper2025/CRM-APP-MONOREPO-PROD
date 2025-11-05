@@ -14,8 +14,6 @@ import {
   Clock,
   Camera,
 
-  CheckCircle,
-  AlertCircle,
   Smartphone,
 
   Calendar,
