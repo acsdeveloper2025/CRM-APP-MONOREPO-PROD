@@ -31,8 +31,8 @@ interface TemplateReportCardProps {
 export const TemplateReportCard: React.FC<TemplateReportCardProps> = ({
   caseId,
   submissionId,
-  verificationType,
-  outcome
+  verificationType: _verificationType,
+  outcome: _outcome
 }) => {
   const [report, setReport] = useState<TemplateReport | null>(null);
   const [loading, setLoading] = useState(false);

@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { Activity, MapPin, FileText, Camera, User, Upload, RotateCcw, Zap, CheckCircle, AlertCircle } from 'lucide-react';
+import { Activity, MapPin, FileText, Camera, User, Upload, RotateCcw, Zap } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import type {

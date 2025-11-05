@@ -3,10 +3,10 @@ import { useQuery } from '@tanstack/react-query';
 import { locationsService } from '@/services/locations';
 import { MultiSelectDropdown, MultiSelectOption } from '@/components/ui/multi-select-dropdown';
 
-interface Area {
-  id: string;
-  name: string;
-}
+// interface Area {
+//   id: string;
+//   name: string;
+// }
 
 interface EnhancedAreasMultiSelectProps {
   selectedAreaIds: string[];
