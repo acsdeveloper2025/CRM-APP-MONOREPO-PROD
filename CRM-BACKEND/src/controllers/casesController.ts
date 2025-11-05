@@ -1446,12 +1446,22 @@ export const createCase = [
           // JSON format (no file uploads)
           requestData = req.body;
         }
+
+        // Log the parsed request data for debugging
+        logger.info('Case creation request received:', {
+          userId,
+          hasFormData: !!req.body.data,
+          caseDetailsKeys: requestData.case_details ? Object.keys(requestData.case_details) : [],
+          tasksCount: requestData.verification_tasks?.length || 0,
+          firstTaskKeys: requestData.verification_tasks?.[0] ? Object.keys(requestData.verification_tasks[0]) : []
+        });
       } catch (parseError: any) {
         await client.query('ROLLBACK');
         await cleanupFiles();
         logger.error('Failed to parse request data:', {
           error: parseError.message,
-          userId
+          userId,
+          bodyKeys: Object.keys(req.body)
         });
         return res.status(400).json({
           success: false,
@@ -1539,6 +1549,17 @@ export const createCase = [
       if (validationErrors.length > 0) {
         await client.query('ROLLBACK');
         await cleanupFiles();
+        logger.error('Case creation validation failed:', {
+          userId,
+          validationErrors,
+          caseDetails: {
+            customerName,
+            customerPhone,
+            clientId,
+            productId,
+            priority
+          }
+        });
         return res.status(400).json({
           success: false,
           message: 'Validation failed',
@@ -1555,6 +1576,11 @@ export const createCase = [
         if (!task.verification_type_id) {
           await client.query('ROLLBACK');
           await cleanupFiles();
+          logger.error('Task validation failed - missing verification_type_id:', {
+            userId,
+            taskIndex: i,
+            taskData: task
+          });
           return res.status(400).json({
             success: false,
             message: `verification_type_id is required for task ${i + 1}`,
