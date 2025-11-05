@@ -97,7 +97,7 @@ export function CreateClientDialog({ open, onOpenChange }: CreateClientDialogPro
       queryClient.setQueriesData(
         { queryKey: ['clients'] },
         (old: any) => {
-          if (!old?.data) return old;
+          if (!old?.data) {return old;}
 
           const optimisticClient = {
             id: `temp_${Date.now()}`,

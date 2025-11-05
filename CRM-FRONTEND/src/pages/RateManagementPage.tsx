@@ -109,7 +109,7 @@ export function RateManagementPage() {
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-2">
-              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              <div className="w-2 h-2 bg-green-500 rounded-full" />
               <span className="text-sm font-medium">Operational</span>
             </div>
             <p className="text-xs text-gray-600 mt-2">

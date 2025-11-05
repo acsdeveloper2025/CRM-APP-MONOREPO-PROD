@@ -15,11 +15,11 @@ class RolesService {
   async getRoles(params: RolesQueryParams = {}): Promise<PaginatedResponse<RoleData>> {
     const queryParams = new URLSearchParams();
     
-    if (params.page) queryParams.append('page', params.page.toString());
-    if (params.limit) queryParams.append('limit', params.limit.toString());
-    if (params.search) queryParams.append('search', params.search);
-    if (params.includeInactive) queryParams.append('includeInactive', params.includeInactive.toString());
-    if (params.systemRolesOnly) queryParams.append('systemRolesOnly', params.systemRolesOnly.toString());
+    if (params.page) {queryParams.append('page', params.page.toString());}
+    if (params.limit) {queryParams.append('limit', params.limit.toString());}
+    if (params.search) {queryParams.append('search', params.search);}
+    if (params.includeInactive) {queryParams.append('includeInactive', params.includeInactive.toString());}
+    if (params.systemRolesOnly) {queryParams.append('systemRolesOnly', params.systemRolesOnly.toString());}
 
     const response = await apiService.get<PaginatedResponse<RoleData>>(`/roles?${queryParams.toString()}`);
     return response;

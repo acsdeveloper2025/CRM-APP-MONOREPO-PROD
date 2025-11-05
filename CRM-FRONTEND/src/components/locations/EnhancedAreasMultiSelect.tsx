@@ -37,12 +37,12 @@ export function EnhancedAreasMultiSelect({
 
   // Convert areas to dropdown options with search filtering
   const areaOptions: MultiSelectOption[] = useMemo(() => {
-    if (!allAreas) return [];
+    if (!allAreas) {return [];}
     
     return allAreas
       .filter(area => {
         // Apply search filter
-        if (!searchQuery) return true;
+        if (!searchQuery) {return true;}
         const query = searchQuery.toLowerCase();
         return area.name.toLowerCase().includes(query);
       })

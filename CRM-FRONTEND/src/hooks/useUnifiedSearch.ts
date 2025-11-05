@@ -259,7 +259,7 @@ export function useUnifiedFilters<T extends Record<string, any>>(
   
   // Initialize filters from URL or initial values
   const getInitialFilters = useCallback((): Partial<T> => {
-    if (!syncWithUrl) return initialFilters;
+    if (!syncWithUrl) {return initialFilters;}
     
     const urlFilters: Partial<T> = {};
     searchParams.forEach((value, key) => {

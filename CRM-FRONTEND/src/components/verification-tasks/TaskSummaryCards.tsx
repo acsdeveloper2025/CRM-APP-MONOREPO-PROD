@@ -118,19 +118,19 @@ export const TaskSummaryCards: React.FC<TaskSummaryCardsProps> = ({
               
               <div className="grid grid-cols-3 gap-4 text-sm">
                 <div className="flex items-center space-x-2">
-                  <div className="w-3 h-3 bg-yellow-400 rounded-full"></div>
+                  <div className="w-3 h-3 bg-yellow-400 rounded-full" />
                   <span className="text-gray-600">
                     Pending: {pendingCount}
                   </span>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <div className="w-3 h-3 bg-blue-400 rounded-full"></div>
+                  <div className="w-3 h-3 bg-blue-400 rounded-full" />
                   <span className="text-gray-600">
                     Assigned: {assignedCount}
                   </span>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <div className="w-3 h-3 bg-orange-400 rounded-full"></div>
+                  <div className="w-3 h-3 bg-orange-400 rounded-full" />
                   <span className="text-gray-600">
                     In Progress: {inProgressCount}
                   </span>

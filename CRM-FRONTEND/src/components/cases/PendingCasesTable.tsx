@@ -59,7 +59,7 @@ const getTimeElapsed = (dateString?: string, pendingDurationSeconds?: number) =>
   }
 
   // Fallback to original date calculation
-  if (!dateString) return 'N/A';
+  if (!dateString) {return 'N/A';}
   try {
     return formatDistanceToNow(new Date(dateString), { addSuffix: true });
   } catch {
@@ -68,7 +68,7 @@ const getTimeElapsed = (dateString?: string, pendingDurationSeconds?: number) =>
 };
 
 const isOverdue = (assignedAt?: string) => {
-  if (!assignedAt) return false;
+  if (!assignedAt) {return false;}
   const assigned = new Date(assignedAt);
   const now = new Date();
   const diffInHours = Math.floor((now.getTime() - assigned.getTime()) / (1000 * 60 * 60));
@@ -145,31 +145,31 @@ export const PendingCasesTable: React.FC<PendingCasesTableProps> = ({
             {[1, 2, 3, 4, 5].map((item) => (
               <TableRow key={item} className="bg-black border-gray-700">
                 <TableCell>
-                  <div className="h-4 bg-gray-600 rounded animate-pulse"></div>
+                  <div className="h-4 bg-gray-600 rounded animate-pulse" />
                 </TableCell>
                 <TableCell>
-                  <div className="h-4 bg-gray-600 rounded animate-pulse"></div>
+                  <div className="h-4 bg-gray-600 rounded animate-pulse" />
                 </TableCell>
                 <TableCell>
-                  <div className="h-4 bg-gray-600 rounded animate-pulse"></div>
+                  <div className="h-4 bg-gray-600 rounded animate-pulse" />
                 </TableCell>
                 <TableCell>
-                  <div className="h-4 bg-gray-600 rounded animate-pulse"></div>
+                  <div className="h-4 bg-gray-600 rounded animate-pulse" />
                 </TableCell>
                 <TableCell>
-                  <div className="h-4 bg-gray-600 rounded animate-pulse"></div>
+                  <div className="h-4 bg-gray-600 rounded animate-pulse" />
                 </TableCell>
                 <TableCell>
-                  <div className="h-4 bg-gray-600 rounded animate-pulse"></div>
+                  <div className="h-4 bg-gray-600 rounded animate-pulse" />
                 </TableCell>
                 <TableCell>
-                  <div className="h-4 bg-gray-600 rounded animate-pulse"></div>
+                  <div className="h-4 bg-gray-600 rounded animate-pulse" />
                 </TableCell>
                 <TableCell>
-                  <div className="h-4 bg-gray-600 rounded animate-pulse"></div>
+                  <div className="h-4 bg-gray-600 rounded animate-pulse" />
                 </TableCell>
                 <TableCell>
-                  <div className="h-4 bg-muted rounded animate-pulse"></div>
+                  <div className="h-4 bg-muted rounded animate-pulse" />
                 </TableCell>
               </TableRow>
             ))}

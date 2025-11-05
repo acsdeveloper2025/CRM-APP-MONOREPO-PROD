@@ -762,7 +762,7 @@ const TaskAttachmentsSection: React.FC<TaskAttachmentsSectionProps> = ({
   };
 
   const handleFileSelect = (files: FileList | null) => {
-    if (!files) return;
+    if (!files) {return;}
 
     const fileArray = Array.from(files);
     const errors: string[] = [];
@@ -792,13 +792,13 @@ const TaskAttachmentsSection: React.FC<TaskAttachmentsSectionProps> = ({
   };
 
   const addFiles = async () => {
-    if (selectedFiles.length === 0) return;
+    if (selectedFiles.length === 0) {return;}
 
     const newAttachments: CaseFormAttachment[] = [];
 
     for (const file of selectedFiles) {
       const getFileType = (mimeType: string): 'pdf' | 'image' => {
-        if (mimeType.startsWith('image/')) return 'image';
+        if (mimeType.startsWith('image/')) {return 'image';}
         return 'pdf';
       };
 
@@ -844,11 +844,11 @@ const TaskAttachmentsSection: React.FC<TaskAttachmentsSectionProps> = ({
   };
 
   const formatFileSize = (bytes: number): string => {
-    if (bytes === 0) return '0 Bytes';
+    if (bytes === 0) {return '0 Bytes';}
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))  } ${  sizes[i]}`;
   };
 
   const getFileIcon = (type: string) => {

@@ -1748,8 +1748,7 @@ export class MobileFormController {
 
       // Validate that all photos have geo-location
       const photosWithoutGeo = photos.filter(
-        (photo) =>
-          !photo.geoLocation?.latitude || !photo.geoLocation.longitude
+        photo => !photo.geoLocation?.latitude || !photo.geoLocation.longitude
       );
 
       if (photosWithoutGeo.length > 0) {
@@ -2800,8 +2799,7 @@ export class MobileFormController {
       // Validate that all photos have geo-location (only if photos array exists)
       if (photos && photos.length > 0) {
         const photosWithoutGeo = photos.filter(
-          (photo) =>
-            !photo.geoLocation?.latitude || !photo.geoLocation.longitude
+          photo => !photo.geoLocation?.latitude || !photo.geoLocation.longitude
         );
 
         if (photosWithoutGeo.length > 0) {
@@ -3650,8 +3648,7 @@ export class MobileFormController {
       // Validate that all photos have geo-location (only if photos array exists)
       if (photos && photos.length > 0) {
         const photosWithoutGeo = photos.filter(
-          (photo) =>
-            !photo.geoLocation?.latitude || !photo.geoLocation.longitude
+          photo => !photo.geoLocation?.latitude || !photo.geoLocation.longitude
         );
 
         if (photosWithoutGeo.length > 0) {
@@ -4494,8 +4491,7 @@ export class MobileFormController {
       // Validate that all photos have geo-location (only if photos array exists)
       if (photos && photos.length > 0) {
         const photosWithoutGeo = photos.filter(
-          (photo) =>
-            !photo.geoLocation?.latitude || !photo.geoLocation.longitude
+          photo => !photo.geoLocation?.latitude || !photo.geoLocation.longitude
         );
 
         if (photosWithoutGeo.length > 0) {

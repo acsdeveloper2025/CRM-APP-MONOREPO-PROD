@@ -160,7 +160,7 @@ class EnterpriseApiClient {
   }
 
   private recordMetrics(response: AxiosResponse | undefined, isError = false): void {
-    if (!response?.config?.metadata) return;
+    if (!response?.config?.metadata) {return;}
 
     const duration = Date.now() - response.config.metadata.startTime;
     const metric: RequestMetrics = {
@@ -194,10 +194,10 @@ class EnterpriseApiClient {
     const { method, url } = response.config;
     
     // Only cache GET requests
-    if (method !== 'get') return false;
+    if (method !== 'get') {return false;}
     
     // Don't cache error responses
-    if (response.status >= 400) return false;
+    if (response.status >= 400) {return false;}
     
     // Don't cache real-time endpoints
     const realtimeEndpoints = ['/notifications', '/live-updates', '/websocket'];

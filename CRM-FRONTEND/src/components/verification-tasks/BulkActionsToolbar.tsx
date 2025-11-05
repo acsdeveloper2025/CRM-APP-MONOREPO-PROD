@@ -36,7 +36,7 @@ export const BulkActionsToolbar: React.FC<BulkActionsToolbarProps> = ({
   const fieldUsers = usersData?.data?.filter(user => user.role === 'FIELD_USER') || [];
 
   const handleBulkAssign = async () => {
-    if (!assignedTo) return;
+    if (!assignedTo) {return;}
 
     setLoading(true);
     try {

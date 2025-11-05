@@ -85,7 +85,7 @@ export function EditDesignationDialog({ open, onOpenChange, designation }: EditD
 
   const updateMutation = useMutation({
     mutationFn: (data: UpdateDesignationRequest) => {
-      if (!designation) throw new Error('No designation selected');
+      if (!designation) {throw new Error('No designation selected');}
       return designationsService.updateDesignation(designation.id, data);
     },
     onSuccess: () => {
@@ -110,7 +110,7 @@ export function EditDesignationDialog({ open, onOpenChange, designation }: EditD
 
   const departments = departmentsData?.data || [];
 
-  if (!designation) return null;
+  if (!designation) {return null;}
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

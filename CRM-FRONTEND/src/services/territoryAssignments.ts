@@ -30,14 +30,14 @@ class TerritoryAssignmentService {
     try {
       const params = new URLSearchParams();
       
-      if (filters.page) params.append('page', filters.page.toString());
-      if (filters.limit) params.append('limit', filters.limit.toString());
-      if (filters.search) params.append('search', filters.search);
-      if (filters.pincodeId) params.append('pincodeId', filters.pincodeId.toString());
-      if (filters.cityId) params.append('cityId', filters.cityId.toString());
-      if (filters.isActive !== undefined) params.append('isActive', filters.isActive.toString());
-      if (filters.sortBy) params.append('sortBy', filters.sortBy);
-      if (filters.sortOrder) params.append('sortOrder', filters.sortOrder);
+      if (filters.page) {params.append('page', filters.page.toString());}
+      if (filters.limit) {params.append('limit', filters.limit.toString());}
+      if (filters.search) {params.append('search', filters.search);}
+      if (filters.pincodeId) {params.append('pincodeId', filters.pincodeId.toString());}
+      if (filters.cityId) {params.append('cityId', filters.cityId.toString());}
+      if (filters.isActive !== undefined) {params.append('isActive', filters.isActive.toString());}
+      if (filters.sortBy) {params.append('sortBy', filters.sortBy);}
+      if (filters.sortOrder) {params.append('sortOrder', filters.sortOrder);}
 
       const queryString = params.toString();
       const url = `${this.baseUrl}/field-agents${queryString ? `?${queryString}` : ''}`;

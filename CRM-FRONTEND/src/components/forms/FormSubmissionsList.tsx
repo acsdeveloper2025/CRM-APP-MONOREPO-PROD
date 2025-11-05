@@ -144,7 +144,7 @@ export const FormSubmissionsList: React.FC<FormSubmissionsListProps> = ({
       <Card>
         <CardContent className="p-6">
           <div className="flex items-center justify-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600" />
             <span className="ml-2">Loading form submissions...</span>
           </div>
         </CardContent>

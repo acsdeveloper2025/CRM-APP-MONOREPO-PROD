@@ -306,7 +306,7 @@ const NotificationsView: React.FC = () => {
               <p className="text-xs text-gray-600 mt-2">{notification.time}</p>
             </div>
             {!notification.read && (
-              <div className="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
+              <div className="w-2 h-2 bg-green-500 rounded-full mt-2" />
             )}
           </div>
         </div>

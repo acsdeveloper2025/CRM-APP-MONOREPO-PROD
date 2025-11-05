@@ -33,7 +33,7 @@ export const useNetworkStatus = (): NetworkStatus => {
   });
 
   const getConnectionQuality = (): ConnectionQuality => {
-    if (!navigator.onLine) return 'offline';
+    if (!navigator.onLine) {return 'offline';}
 
     const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
     

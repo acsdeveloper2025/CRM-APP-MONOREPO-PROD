@@ -52,7 +52,7 @@ export const CompletedCaseTable: React.FC<CompletedCaseTableProps> = ({
               <TableHead>Product</TableHead>
               <TableHead>Assigned By</TableHead>
               <TableHead>Completed Date</TableHead>
-              <TableHead className="w-[70px]"></TableHead>
+              <TableHead className="w-[70px]" />
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -60,7 +60,7 @@ export const CompletedCaseTable: React.FC<CompletedCaseTableProps> = ({
               <TableRow key={item}>
                 {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((cell) => (
                   <TableCell key={cell}>
-                    <div className="h-4 bg-muted rounded animate-pulse"></div>
+                    <div className="h-4 bg-muted rounded animate-pulse" />
                   </TableCell>
                 ))}
               </TableRow>
@@ -96,7 +96,7 @@ export const CompletedCaseTable: React.FC<CompletedCaseTableProps> = ({
             <TableHead>Product</TableHead>
             <TableHead>Assigned By</TableHead>
             <TableHead>Completed Date</TableHead>
-            <TableHead className="w-[70px]"></TableHead>
+            <TableHead className="w-[70px]" />
           </TableRow>
         </TableHeader>
         <TableBody>

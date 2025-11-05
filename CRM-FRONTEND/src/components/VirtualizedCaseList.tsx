@@ -62,7 +62,7 @@ const CaseItem: React.FC<CaseItemProps> = React.memo(({ index, style, data }) =>
   }
 
   const caseItem = cases[index];
-  if (!caseItem) return null;
+  if (!caseItem) {return null;}
 
   return (
     <div style={style} className="px-4 py-2">

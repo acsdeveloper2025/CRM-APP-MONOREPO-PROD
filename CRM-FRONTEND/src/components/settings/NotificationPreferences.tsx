@@ -62,7 +62,7 @@ export function NotificationPreferences() {
   };
 
   const updatePreference = (key: keyof NotificationPreferences, value: boolean | string) => {
-    if (!preferences) return;
+    if (!preferences) {return;}
     
     setPreferences(prev => ({
       ...prev!,
@@ -72,7 +72,7 @@ export function NotificationPreferences() {
   };
 
   const savePreferences = async () => {
-    if (!preferences || !hasChanges) return;
+    if (!preferences || !hasChanges) {return;}
 
     try {
       setSaving(true);
@@ -92,7 +92,7 @@ export function NotificationPreferences() {
   };
 
   const resetToDefaults = () => {
-    if (!preferences) return;
+    if (!preferences) {return;}
     
     setPreferences(prev => ({
       ...prev!,
@@ -121,7 +121,7 @@ export function NotificationPreferences() {
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600" />
       </div>
     );
   }
@@ -169,7 +169,7 @@ export function NotificationPreferences() {
           >
             {saving ? (
               <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
                 Saving...
               </>
             ) : (

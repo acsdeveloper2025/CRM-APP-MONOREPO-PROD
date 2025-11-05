@@ -138,7 +138,7 @@ export function UsersPage() {
         activities: {
           total: safeActivities.length,
           today: safeActivities.filter(activity => {
-            if (!activity?.timestamp) return false;
+            if (!activity?.timestamp) {return false;}
             try {
               const activityDate = new Date(activity.timestamp);
               const today = new Date();
@@ -168,7 +168,7 @@ export function UsersPage() {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto" />
           <p className="mt-2 text-sm text-gray-600">Loading users...</p>
         </div>
       </div>

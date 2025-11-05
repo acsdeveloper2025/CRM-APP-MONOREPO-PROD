@@ -112,7 +112,7 @@ export const EditDocumentTypeDialog: React.FC<EditDocumentTypeDialogProps> = ({
   });
 
   const onSubmit = async (data: EditDocumentTypeData) => {
-    if (!documentType) return;
+    if (!documentType) {return;}
     
     try {
       await updateDocumentTypeMutation.mutateAsync(data);
@@ -126,7 +126,7 @@ export const EditDocumentTypeDialog: React.FC<EditDocumentTypeDialogProps> = ({
     onOpenChange(false);
   };
 
-  if (!documentType) return null;
+  if (!documentType) {return null;}
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
