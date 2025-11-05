@@ -1,12 +1,9 @@
 /**
  * Unified Styling Guidelines
- * 
+ *
  * This file provides consistent styling patterns, utility classes,
  * and component styling guidelines for the CRM application.
  */
-
-import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
 
 // ==================== Utility Functions ====================
 
