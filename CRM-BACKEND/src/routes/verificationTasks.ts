@@ -94,7 +94,7 @@ router.post(
         { ...req, body: { status: 'IN_PROGRESS', startedAt: new Date().toISOString() } } as any,
         res
       );
-    } catch (error) {
+    } catch (_error) {
       res.status(500).json({
         success: false,
         message: 'Failed to start task',
@@ -137,7 +137,7 @@ router.get(
         data: result.rows,
         message: 'Assignment history retrieved successfully',
       });
-    } catch (error) {
+    } catch (_error) {
       res.status(500).json({
         success: false,
         message: 'Failed to get assignment history',
@@ -232,7 +232,7 @@ router.post(
         } as any,
         res
       );
-    } catch (error) {
+    } catch (_error) {
       res.status(500).json({
         success: false,
         message: 'Failed to cancel task',
@@ -340,7 +340,7 @@ router.post(
       } finally {
         client.release();
       }
-    } catch (error) {
+    } catch (_error) {
       res.status(500).json({
         success: false,
         message: 'Failed to bulk assign tasks',
@@ -389,7 +389,7 @@ router.post(
         } as any,
         res
       );
-    } catch (error) {
+    } catch (_error) {
       res.status(500).json({
         success: false,
         message: 'Failed to submit verification',
