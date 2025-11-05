@@ -1,9 +1,6 @@
 import { apiService } from './api';
 import type {
   TerritoryAssignmentFilters,
-  TerritoryAssignmentListResponse,
-  TerritoryAssignmentDetailResponse,
-  TerritoryAssignmentActionResponse,
   AssignPincodesRequest,
   AssignAreasRequest,
   FieldAgentTerritory,
