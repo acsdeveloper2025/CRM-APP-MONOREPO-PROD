@@ -81,7 +81,7 @@ export function MultiSelectDropdown({
 
   // Filter options based on search query
   const filteredOptions = useMemo(() => {
-    if (!internalSearchQuery && !onSearch) return options.slice(0, maxDisplayItems);
+    if (!internalSearchQuery && !onSearch) {return options.slice(0, maxDisplayItems);}
     
     if (onSearch) {
       // External search handling

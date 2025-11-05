@@ -160,7 +160,7 @@ export const CompletedTasksPage: React.FC = () => {
             <div className="text-2xl font-bold">
               {tasks.length > 0
                 ? Math.round(tasks.reduce((acc, t) => {
-                    if (!t.createdAt || !t.completedAt) return acc;
+                    if (!t.createdAt || !t.completedAt) {return acc;}
                     const created = new Date(t.createdAt);
                     const completed = new Date(t.completedAt);
                     const tatInDays = Math.floor((completed.getTime() - created.getTime()) / (1000 * 60 * 60 * 24));
@@ -182,7 +182,7 @@ export const CompletedTasksPage: React.FC = () => {
           <CardContent>
             <div className="text-2xl font-bold">
               {tasks.filter(t => {
-                if (!t.completedAt) return false;
+                if (!t.completedAt) {return false;}
                 const completed = new Date(t.completedAt);
                 const today = new Date();
                 return completed.toDateString() === today.toDateString();

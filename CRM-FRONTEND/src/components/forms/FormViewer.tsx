@@ -1,4 +1,4 @@
-/* eslint-disable id-match */
+ 
 import { FileText, Clock, User, Eye, Camera, Smartphone, Wifi, WifiOff, Download, MapPin, Grid, BarChart3, CheckCircle, AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';

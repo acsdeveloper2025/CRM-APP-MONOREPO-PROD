@@ -73,7 +73,7 @@ export const ReviewDialog: React.FC<ReviewDialogProps> = ({
   };
 
   const onSubmit = async (data: ReviewFormData) => {
-    if (!caseItem || !action) return;
+    if (!caseItem || !action) {return;}
 
     setIsSubmitting(true);
     try {
@@ -104,7 +104,7 @@ export const ReviewDialog: React.FC<ReviewDialogProps> = ({
     }
   };
 
-  if (!caseItem) return null;
+  if (!caseItem) {return null;}
 
   const getActionColor = (actionType: ReviewAction) => {
     switch (actionType) {

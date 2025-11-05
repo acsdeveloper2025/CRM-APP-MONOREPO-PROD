@@ -266,7 +266,7 @@ export class SecurityUtils {
     try {
       let data = localStorage.getItem(key);
       
-      if (!data) return null;
+      if (!data) {return null;}
       
       if (decrypt) {
         data = atob(data);

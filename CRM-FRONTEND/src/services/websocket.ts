@@ -171,12 +171,12 @@ class WebSocketService {
 
   // Event handling
   on<T = any>(event: WebSocketEventType, handler: (data: T) => void): void {
-    if (!this.socket) return;
+    if (!this.socket) {return;}
     this.socket.on(event, handler);
   }
 
   off(event: WebSocketEventType, handler?: (...args: any[]) => void): void {
-    if (!this.socket) return;
+    if (!this.socket) {return;}
     if (handler) {
       this.socket.off(event, handler);
     } else {
@@ -194,7 +194,7 @@ class WebSocketService {
 
   // Subscription management
   subscribeToCase(caseId: string): void {
-    if (!this.socket?.connected) return;
+    if (!this.socket?.connected) {return;}
     
     const subscription = `case:${caseId}`;
     if (!this.subscriptions.has(subscription)) {
@@ -204,7 +204,7 @@ class WebSocketService {
   }
 
   unsubscribeFromCase(caseId: string): void {
-    if (!this.socket?.connected) return;
+    if (!this.socket?.connected) {return;}
     
     const subscription = `case:${caseId}`;
     if (this.subscriptions.has(subscription)) {
@@ -259,7 +259,7 @@ class WebSocketService {
 
   // Private methods
   private setupEventListeners(): void {
-    if (!this.socket) return;
+    if (!this.socket) {return;}
 
     this.socket.on('disconnect', (reason) => {
       this.state.isConnected = false;
@@ -317,7 +317,7 @@ class WebSocketService {
   }
 
   private scheduleReconnect(): void {
-    if (this.reconnectTimer) return;
+    if (this.reconnectTimer) {return;}
     
     this.state.reconnectAttempts++;
     const delay = this.config.reconnectDelay * Math.pow(2, this.state.reconnectAttempts - 1);

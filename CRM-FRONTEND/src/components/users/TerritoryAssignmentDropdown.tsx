@@ -99,16 +99,16 @@ export function TerritoryAssignmentDropdown({ user }: TerritoryAssignmentDropdow
 
   // Convert pincodes to single-select dropdown options (exclude already assigned pincodes)
   const pincodeOptions: MultiSelectOption[] = useMemo(() => {
-    if (!availablePincodes) return [];
+    if (!availablePincodes) {return [];}
 
     const assignedPincodeIds = new Set(currentAssignments.map(assignment => assignment.pincodeId));
 
     return availablePincodes
       .filter(pincode => {
         // Exclude already assigned pincodes
-        if (assignedPincodeIds.has(pincode.id)) return false;
+        if (assignedPincodeIds.has(pincode.id)) {return false;}
 
-        if (!pincodeSearchQuery) return true;
+        if (!pincodeSearchQuery) {return true;}
         const query = pincodeSearchQuery.toLowerCase();
         return (
           pincode.code.toLowerCase().includes(query) ||
@@ -125,11 +125,11 @@ export function TerritoryAssignmentDropdown({ user }: TerritoryAssignmentDropdow
 
   // Convert areas to dropdown options for the selected pincode
   const areaOptions: MultiSelectOption[] = useMemo(() => {
-    if (!availableAreas) return [];
+    if (!availableAreas) {return [];}
 
     return availableAreas
       .filter(area => {
-        if (!areaSearchQuery) return true;
+        if (!areaSearchQuery) {return true;}
         return area.name.toLowerCase().includes(areaSearchQuery.toLowerCase());
       })
       .map(area => ({

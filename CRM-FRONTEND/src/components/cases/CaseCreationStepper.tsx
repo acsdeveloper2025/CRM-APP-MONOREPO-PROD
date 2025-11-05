@@ -287,7 +287,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
           // Deduplication fields
           panNumber: customerInfo.panNumber,
           deduplicationDecision: deduplicationRationale.includes('No duplicate cases found') ? 'NO_DUPLICATES_FOUND' : 'CREATE_NEW',
-          deduplicationRationale: deduplicationRationale,
+          deduplicationRationale,
         };
 
         const response = await casesService.createCase(caseData);
@@ -349,7 +349,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
             priority: 'MEDIUM',
             panNumber: customerInfo.panNumber,
             deduplicationDecision: deduplicationRationale.includes('No duplicate cases found') ? 'NO_DUPLICATES_FOUND' : 'CREATE_NEW',
-            deduplicationRationale: deduplicationRationale,
+            deduplicationRationale,
           },
           verification_tasks: tasks.map((task, index) => ({
             verification_type_id: task.verificationTypeId!,
@@ -471,7 +471,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
         assignedToId: data.assignedToId,
         clientId: data.clientId, // Keep as string - backend will convert
         productId: data.productId, // Keep as string - backend will convert
-        verificationTypeId: verificationTypeId, // Keep as string - backend will convert
+        verificationTypeId, // Keep as string - backend will convert
         applicantType: data.applicantType,
         backendContactNumber: data.backendContactNumber,
         priority: data.priority,
@@ -481,7 +481,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
         // Deduplication fields
         panNumber: customerInfo.panNumber,
         deduplicationDecision: deduplicationRationale.includes('No duplicate cases found') ? 'NO_DUPLICATES_FOUND' : 'CREATE_NEW',
-        deduplicationRationale: deduplicationRationale,
+        deduplicationRationale,
       };
 
       let result;

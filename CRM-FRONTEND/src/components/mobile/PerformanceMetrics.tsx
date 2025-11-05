@@ -134,7 +134,7 @@ export const PerformanceMetrics: React.FC = () => {
   };
 
   const getCurrentData = () => {
-    if (!performanceData) return [];
+    if (!performanceData) {return [];}
     
     switch (timeRange) {
       case 'day':

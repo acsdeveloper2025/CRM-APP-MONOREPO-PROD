@@ -134,7 +134,7 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
     updateMutation.mutate(data);
   };
 
-  if (!client) return null;
+  if (!client) {return null;}
 
   const products = productsData?.data || [];
   const verificationTypes = verificationTypesData?.data || [];

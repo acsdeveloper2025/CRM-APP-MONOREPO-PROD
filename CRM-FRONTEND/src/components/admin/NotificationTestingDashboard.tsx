@@ -195,7 +195,7 @@ export function NotificationTestingDashboard() {
             </div>
           ) : (
             <div className="flex items-center justify-center py-4">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-600"></div>
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-600" />
             </div>
           )}
         </CardContent>
@@ -289,7 +289,7 @@ export function NotificationTestingDashboard() {
           >
             {loading ? (
               <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
                 Sending...
               </>
             ) : (
@@ -407,7 +407,7 @@ export function NotificationTestingDashboard() {
             </div>
           ) : (
             <div className="flex items-center justify-center py-8">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-600"></div>
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-600" />
             </div>
           )}
         </CardContent>

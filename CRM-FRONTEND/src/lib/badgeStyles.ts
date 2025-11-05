@@ -57,7 +57,7 @@ export function getTaskPriorityBadgeStyle(priority?: string): string {
  * Format badge label to uppercase
  */
 export function formatBadgeLabel(label: string | number | undefined): string {
-  if (label === undefined || label === null) return 'N/A';
+  if (label === undefined || label === null) {return 'N/A';}
   return String(label).toUpperCase().replace('_', ' ');
 }
 

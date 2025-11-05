@@ -52,7 +52,7 @@ export function BulkImportUsersDialog({ open, onOpenChange }: BulkImportUsersDia
   };
 
   const handleImport = () => {
-    if (!selectedFile) return;
+    if (!selectedFile) {return;}
     importMutation.mutate(selectedFile);
   };
 

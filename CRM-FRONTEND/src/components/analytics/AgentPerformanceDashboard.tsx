@@ -56,14 +56,14 @@ export const AgentPerformanceDashboard: React.FC = () => {
   };
 
   const getPerformanceColor = (score: number) => {
-    if (score >= 80) return 'text-green-600 dark:text-green-400';
-    if (score >= 60) return 'text-yellow-600 dark:text-yellow-400';
+    if (score >= 80) {return 'text-green-600 dark:text-green-400';}
+    if (score >= 60) {return 'text-yellow-600 dark:text-yellow-400';}
     return 'text-red-600 dark:text-red-400';
   };
 
   const getCompletionRateColor = (rate: number) => {
-    if (rate >= 90) return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300';
-    if (rate >= 70) return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300';
+    if (rate >= 90) {return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300';}
+    if (rate >= 70) {return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300';}
     return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300';
   };
 
@@ -291,7 +291,7 @@ export const AgentPerformanceDashboard: React.FC = () => {
                     <TableRow key={index}>
                       {Array.from({ length: 8 }).map((_, cellIndex) => (
                         <TableCell key={cellIndex}>
-                          <div className="h-4 bg-muted rounded animate-pulse"></div>
+                          <div className="h-4 bg-muted rounded animate-pulse" />
                         </TableCell>
                       ))}
                     </TableRow>

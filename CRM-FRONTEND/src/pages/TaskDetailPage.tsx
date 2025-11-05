@@ -189,8 +189,8 @@ export const TaskDetailPage: React.FC = () => {
     return (
       <div className="container mx-auto py-6">
         <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-gray-200 rounded w-1/4"></div>
-          <div className="h-64 bg-gray-200 rounded"></div>
+          <div className="h-8 bg-gray-200 rounded w-1/4" />
+          <div className="h-64 bg-gray-200 rounded" />
         </div>
       </div>
     );
@@ -317,7 +317,7 @@ export const TaskDetailPage: React.FC = () => {
                 <div className="space-y-4">
                   {assignmentHistory.map((item, index) => (
                     <div key={item.id} className="flex items-start space-x-4">
-                      <div className="flex-shrink-0 w-2 h-2 mt-2 rounded-full bg-primary"></div>
+                      <div className="flex-shrink-0 w-2 h-2 mt-2 rounded-full bg-primary" />
                       <div className="flex-1">
                         <p className="text-sm font-medium">
                           Assigned to {item.assignedToName}

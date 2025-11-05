@@ -371,7 +371,7 @@ export function NotificationHistoryPage() {
         <CardContent>
           {loading ? (
             <div className="flex items-center justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600" />
             </div>
           ) : notifications.length === 0 ? (
             <div className="text-center py-8">
@@ -408,7 +408,7 @@ export function NotificationHistoryPage() {
                             {notification.priority}
                           </Badge>
                           {!notification.isRead && (
-                            <div className="h-2 w-2 bg-blue-600 rounded-full"></div>
+                            <div className="h-2 w-2 bg-blue-600 rounded-full" />
                           )}
                         </div>
                       </div>

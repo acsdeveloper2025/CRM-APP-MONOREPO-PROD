@@ -130,7 +130,7 @@ export const CacheClearer: React.FC = () => {
   };
 
   const ResultIcon: React.FC<{ result?: ClearResult }> = ({ result }) => {
-    if (!result) return null;
+    if (!result) {return null;}
     
     return result.success ? (
       <CheckCircle className="h-4 w-4 text-green-500" />

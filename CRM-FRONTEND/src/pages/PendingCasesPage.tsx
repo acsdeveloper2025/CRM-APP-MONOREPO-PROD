@@ -75,7 +75,7 @@ export const PendingCasesPage: React.FC = () => {
 
   // Helper function to check if a case is overdue
   const isOverdue = React.useCallback((assignedAt?: string) => {
-    if (!assignedAt) return false;
+    if (!assignedAt) {return false;}
     const assigned = new Date(assignedAt);
     const now = new Date();
     const diffInHours = Math.floor((now.getTime() - assigned.getTime()) / (1000 * 60 * 60));
@@ -84,7 +84,7 @@ export const PendingCasesPage: React.FC = () => {
 
   // Sort cases based on auto-highlight options
   const cases = React.useMemo(() => {
-    let sortedCases = [...rawCases];
+    const sortedCases = [...rawCases];
 
     if (reviewUrgentFirst || flagOverdueCases) {
       sortedCases.sort((a, b) => {
@@ -127,7 +127,7 @@ export const PendingCasesPage: React.FC = () => {
   const inProgressCases = rawCases.filter(c => c.status === 'IN_PROGRESS').length;
   const urgentCases = rawCases.filter(c => Number(c.priority) >= 3).length;
   const oldCases = rawCases.filter(c => {
-    if (!c.assignedAt) return false;
+    if (!c.assignedAt) {return false;}
     const assigned = new Date(c.assignedAt);
     const now = new Date();
     const diffInHours = Math.floor((now.getTime() - assigned.getTime()) / (1000 * 60 * 60));

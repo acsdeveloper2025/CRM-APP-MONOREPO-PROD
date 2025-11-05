@@ -132,8 +132,8 @@ export class BillingService {
 
   async getCommissionSummary(userId?: string, period?: string): Promise<ApiResponse<CommissionSummary>> {
     const params: any = {};
-    if (userId) params.userId = userId;
-    if (period) params.period = period;
+    if (userId) {params.userId = userId;}
+    if (period) {params.period = period;}
     return apiService.get('/commissions/summary', params);
   }
 

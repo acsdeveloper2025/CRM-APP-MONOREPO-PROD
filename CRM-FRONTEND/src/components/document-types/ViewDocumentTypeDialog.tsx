@@ -25,7 +25,7 @@ export const ViewDocumentTypeDialog: React.FC<ViewDocumentTypeDialogProps> = ({
   open,
   onOpenChange,
 }) => {
-  if (!documentType) return null;
+  if (!documentType) {return null;}
 
   const getCategoryBadge = (category: string) => {
     const color = DOCUMENT_TYPE_COLORS[category as keyof typeof DOCUMENT_TYPE_COLORS] || 'gray';

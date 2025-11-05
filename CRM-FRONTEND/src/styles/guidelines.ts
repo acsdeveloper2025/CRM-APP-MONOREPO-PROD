@@ -351,10 +351,10 @@ export const styleHelpers = {
    * Create responsive grid classes
    */
   createGridCols: (cols: number): string => {
-    if (cols <= 1) return layoutStyles.gridCols[1];
-    if (cols <= 2) return layoutStyles.gridCols[2];
-    if (cols <= 3) return layoutStyles.gridCols[3];
-    if (cols <= 4) return layoutStyles.gridCols[4];
+    if (cols <= 1) {return layoutStyles.gridCols[1];}
+    if (cols <= 2) {return layoutStyles.gridCols[2];}
+    if (cols <= 3) {return layoutStyles.gridCols[3];}
+    if (cols <= 4) {return layoutStyles.gridCols[4];}
     return layoutStyles.gridCols.auto;
   },
   
