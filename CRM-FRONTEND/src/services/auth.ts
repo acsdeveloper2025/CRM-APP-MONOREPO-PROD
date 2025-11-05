@@ -62,7 +62,7 @@ export class AuthService {
     if (userStr) {
       try {
         return JSON.parse(userStr);
-      } catch (error) {
+      } catch (_error) {
         return null;
       }
     }

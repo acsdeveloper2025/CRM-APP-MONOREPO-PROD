@@ -10,7 +10,7 @@ interface MISDataTableProps {
   isLoading?: boolean;
 }
 
-export function MISDataTable({ data, pagination, onPageChange, isLoading }: MISDataTableProps) {
+export function MISDataTable({ data, pagination, onPageChange, isLoading: _isLoading }: MISDataTableProps) {
 
   const formatDate = (dateString: string | null) => {
     if (!dateString) {return '-';}

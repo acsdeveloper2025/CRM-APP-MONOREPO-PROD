@@ -129,7 +129,7 @@ export function CompletionRateChart({ data }: CompletionRateChartProps) {
         <div>
           <h4 className="font-medium mb-3">Monthly Trends</h4>
           <div className="space-y-2">
-            {data.monthlyTrends.slice(-6).map((trend, index) => (
+            {data.monthlyTrends.slice(-6).map((trend, _index) => (
               <div key={trend.month} className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
                 <span className="text-sm font-medium">{trend.month}</span>
                 <div className="flex items-center space-x-2">
