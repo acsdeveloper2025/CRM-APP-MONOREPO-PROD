@@ -7,7 +7,6 @@ import type {
   BulkAssignmentJobData,
   ReassignmentJobData,
 } from '../jobs/caseAssignmentProcessor';
-import { BulkAssignmentResult, AssignmentResult } from '../jobs/caseAssignmentProcessor';
 
 export interface AssignCaseRequest {
   caseId: string;
