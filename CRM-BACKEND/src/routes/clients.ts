@@ -17,7 +17,6 @@ import {
   getClientProducts,
   getClientVerificationTypes,
 } from '@/controllers/clientsController';
-import { getProductsByClient } from '@/controllers/productsController';
 
 const router = express.Router();
 
