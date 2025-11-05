@@ -13,7 +13,12 @@
     "migrate": "ts-node scripts/run-migrations.ts run",
     "migrate:data": "ts-node scripts/run-migrations.ts data",
     "migrate:status": "ts-node scripts/run-migrations.ts status",
-    "migrate:rollback": "ts-node scripts/run-migrations.ts rollback"
+    "migrate:rollback": "ts-node scripts/run-migrations.ts rollback",
+    "lint": "ESLINT_USE_FLAT_CONFIG=false eslint . --ext .ts --max-warnings 0",
+    "lint:fix": "ESLINT_USE_FLAT_CONFIG=false eslint . --ext .ts --fix",
+    "format": "prettier --write \"src/**/*.{ts,js,json}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,js,json}\"",
+    "type-check": "tsc --noEmit"
   },
   "repository": {
     "type": "git",
@@ -93,6 +98,12 @@
     "@types/multer": "^2.0.0",
     "@types/node": "^24.2.1",
     "@types/pg": "^8.15.5",
+    "@typescript-eslint/eslint-plugin": "^8.46.3",
+    "@typescript-eslint/parser": "^8.46.3",
+    "eslint": "^9.39.1",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.4",
+    "prettier": "^3.6.2",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.2"
   }

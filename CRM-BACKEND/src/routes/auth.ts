@@ -4,8 +4,7 @@ import { login, logout, getCurrentUser, preloginInfo } from '@/controllers/authC
 import { authenticateToken } from '@/middleware/auth';
 import { validate } from '@/middleware/validation';
 import { EnterpriseRateLimit } from '@/middleware/enterpriseRateLimit';
-import { Request, Response } from 'express';
-
+import type { Request, Response } from 'express';
 
 const router = Router();
 
@@ -23,12 +22,7 @@ const loginValidation = [
     .withMessage('Password is required')
     .isLength({ min: 6 })
     .withMessage('Password must be at least 6 characters'),
-
 ];
-
-
-
-
 
 // Rate limit reset endpoint
 const resetRateLimit = async (req: Request, res: Response) => {
@@ -89,13 +83,15 @@ const resetUserRateLimit = async (req: Request, res: Response) => {
     let resetCount = 0;
     for (const key of keysToReset) {
       const resetSuccess = await EnterpriseRateLimit.reset(key);
-      if (resetSuccess) resetCount++;
+      if (resetSuccess) {
+        resetCount++;
+      }
     }
 
     res.json({
       success: true,
       message: `Rate limit reset successfully for user (${resetCount} keys cleared)`,
-      data: { resetCount, userId }
+      data: { resetCount, userId },
     });
   } catch (error) {
     console.error('User rate limit reset error:', error);
@@ -107,7 +103,12 @@ const resetUserRateLimit = async (req: Request, res: Response) => {
 };
 
 // Routes
-router.post('/prelogin', [body('username').notEmpty().withMessage('Username is required')], validate, preloginInfo);
+router.post(
+  '/prelogin',
+  [body('username').notEmpty().withMessage('Username is required')],
+  validate,
+  preloginInfo
+);
 router.post('/login', validate(loginValidation), login);
 router.post('/logout', authenticateToken, logout);
 router.get('/me', authenticateToken, getCurrentUser);

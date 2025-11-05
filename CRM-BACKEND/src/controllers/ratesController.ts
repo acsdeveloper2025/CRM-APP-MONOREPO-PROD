@@ -1,14 +1,14 @@
-import { Response } from 'express';
+import type { Response } from 'express';
 import { logger } from '@/config/logger';
-import { AuthenticatedRequest } from '@/middleware/auth';
+import type { AuthenticatedRequest } from '@/middleware/auth';
 import { query, withTransaction } from '@/config/database';
 
 // GET /api/rates - List rates with comprehensive filtering and pagination
 export const getRates = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { 
-      page = 1, 
-      limit = 20, 
+    const {
+      page = 1,
+      limit = 20,
       clientId,
       productId,
       verificationTypeId,
@@ -16,13 +16,13 @@ export const getRates = async (req: AuthenticatedRequest, res: Response) => {
       isActive,
       search,
       sortBy = 'clientName',
-      sortOrder = 'asc'
+      sortOrder = 'asc',
     } = req.query;
 
     // Build where clause
     const values: any[] = [];
     const whereSql: string[] = [];
-    
+
     if (clientId) {
       values.push(Number(clientId));
       whereSql.push(`"clientId" = $${values.length}`);
@@ -42,35 +42,45 @@ export const getRates = async (req: AuthenticatedRequest, res: Response) => {
       values.push(Number(rateTypeId));
       whereSql.push(`"rateTypeId" = $${values.length}`);
     }
-    
+
     if (typeof isActive !== 'undefined') {
       values.push(String(isActive) === 'true');
       whereSql.push(`"isActive" = $${values.length}`);
     }
-    
+
     if (search) {
       values.push(`%${String(search)}%`);
       values.push(`%${String(search)}%`);
       values.push(`%${String(search)}%`);
       values.push(`%${String(search)}%`);
-      whereSql.push(`("clientName" ILIKE $${values.length - 3} OR "productName" ILIKE $${values.length - 2} OR "verificationTypeName" ILIKE $${values.length - 1} OR "rateTypeName" ILIKE $${values.length})`);
+      whereSql.push(
+        `("clientName" ILIKE $${values.length - 3} OR "productName" ILIKE $${values.length - 2} OR "verificationTypeName" ILIKE $${values.length - 1} OR "rateTypeName" ILIKE $${values.length})`
+      );
     }
-    
+
     const whereClause = whereSql.length ? `WHERE ${whereSql.join(' AND ')}` : '';
 
     // Get total count
     const countRes = await query<{ count: string }>(
-      `SELECT COUNT(*)::text as count FROM "rateManagementView" ${whereClause}`, 
+      `SELECT COUNT(*)::text as count FROM "rateManagementView" ${whereClause}`,
       values
     );
     const totalCount = Number(countRes.rows[0]?.count || 0);
 
     // Get rates with pagination
     const offset = (Number(page) - 1) * Number(limit);
-    const allowedSortColumns = ['clientName', 'productName', 'verificationTypeName', 'rateTypeName', 'amount', 'createdAt', 'updatedAt'];
+    const allowedSortColumns = [
+      'clientName',
+      'productName',
+      'verificationTypeName',
+      'rateTypeName',
+      'amount',
+      'createdAt',
+      'updatedAt',
+    ];
     const sortCol = allowedSortColumns.includes(String(sortBy)) ? String(sortBy) : 'clientName';
     const sortDir = String(sortOrder).toLowerCase() === 'desc' ? 'DESC' : 'ASC';
-    
+
     const listRes = await query(
       `SELECT * FROM "rateManagementView"
        ${whereClause}
@@ -85,7 +95,7 @@ export const getRates = async (req: AuthenticatedRequest, res: Response) => {
       page: Number(page),
       limit: Number(limit),
       search: search || '',
-      total: totalCount
+      total: totalCount,
     });
 
     res.json({
@@ -109,7 +119,10 @@ export const getRates = async (req: AuthenticatedRequest, res: Response) => {
 };
 
 // GET /api/rates/available-for-assignment - Get available rate types for a specific combination
-export const getAvailableRateTypesForAssignment = async (req: AuthenticatedRequest, res: Response) => {
+export const getAvailableRateTypesForAssignment = async (
+  req: AuthenticatedRequest,
+  res: Response
+) => {
   try {
     const { clientId, productId, verificationTypeId } = req.query;
 
@@ -151,7 +164,7 @@ export const getAvailableRateTypesForAssignment = async (req: AuthenticatedReque
       clientId,
       productId,
       verificationTypeId,
-      availableCount: availableRateTypes.length
+      availableCount: availableRateTypes.length,
     });
 
     res.json({
@@ -171,13 +184,21 @@ export const getAvailableRateTypesForAssignment = async (req: AuthenticatedReque
 // POST /api/rates - Create or update rate
 export const createOrUpdateRate = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { clientId, productId, verificationTypeId, rateTypeId, amount, currency = 'INR' } = req.body;
+    const {
+      clientId,
+      productId,
+      verificationTypeId,
+      rateTypeId,
+      amount,
+      currency = 'INR',
+    } = req.body;
 
     // Validate required fields
     if (!clientId || !productId || !verificationTypeId || !rateTypeId || amount === undefined) {
       return res.status(400).json({
         success: false,
-        message: 'Client ID, Product ID, Verification Type ID, Rate Type ID, and amount are required',
+        message:
+          'Client ID, Product ID, Verification Type ID, Rate Type ID, and amount are required',
         error: { code: 'VALIDATION_ERROR' },
       });
     }
@@ -206,7 +227,7 @@ export const createOrUpdateRate = async (req: AuthenticatedRequest, res: Respons
       });
     }
 
-    await withTransaction(async (client) => {
+    await withTransaction(async client => {
       // Check if active rate already exists
       const existingRes = await client.query(
         `SELECT id, amount FROM rates
@@ -228,7 +249,7 @@ export const createOrUpdateRate = async (req: AuthenticatedRequest, res: Respons
           userId: req.user?.id,
           rateId: existingRate.id,
           oldAmount: existingRate.amount,
-          newAmount: amount
+          newAmount: amount,
         });
       } else {
         // Create new rate
@@ -236,7 +257,15 @@ export const createOrUpdateRate = async (req: AuthenticatedRequest, res: Respons
           `INSERT INTO rates ("clientId", "productId", "verificationTypeId", "rateTypeId", amount, currency, "createdBy", "createdAt", "updatedAt")
            VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
            RETURNING id`,
-          [Number(clientId), Number(productId), Number(verificationTypeId), Number(rateTypeId), amount, currency, req.user?.id]
+          [
+            Number(clientId),
+            Number(productId),
+            Number(verificationTypeId),
+            Number(rateTypeId),
+            amount,
+            currency,
+            req.user?.id,
+          ]
         );
         const newRate = insertRes.rows[0];
 
@@ -247,7 +276,7 @@ export const createOrUpdateRate = async (req: AuthenticatedRequest, res: Respons
           clientId,
           productId,
           verificationTypeId,
-          rateTypeId
+          rateTypeId,
         });
       }
     });
@@ -286,7 +315,7 @@ export const deleteRate = async (req: AuthenticatedRequest, res: Response) => {
 
     logger.info(`Deleted rate: ${id}`, {
       userId: req.user?.id,
-      rateId: id
+      rateId: id,
     });
 
     res.json({

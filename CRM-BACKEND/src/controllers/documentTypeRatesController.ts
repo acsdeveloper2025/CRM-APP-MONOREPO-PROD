@@ -1,27 +1,27 @@
-import { Response } from 'express';
+import type { Response } from 'express';
 import { logger } from '@/config/logger';
-import { AuthenticatedRequest } from '@/middleware/auth';
+import type { AuthenticatedRequest } from '@/middleware/auth';
 import { query, withTransaction } from '@/config/database';
 
 // GET /api/document-type-rates - List document type rates with filtering and pagination
 export const getDocumentTypeRates = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { 
-      page = 1, 
-      limit = 20, 
+    const {
+      page = 1,
+      limit = 20,
       clientId,
       productId,
       documentTypeId,
       isActive,
       search,
       sortBy = 'clientName',
-      sortOrder = 'asc'
+      sortOrder = 'asc',
     } = req.query;
 
     // Build where clause
     const values: any[] = [];
     const whereSql: string[] = [];
-    
+
     if (clientId) {
       values.push(Number(clientId));
       whereSql.push(`"clientId" = $${values.length}`);
@@ -36,34 +36,43 @@ export const getDocumentTypeRates = async (req: AuthenticatedRequest, res: Respo
       values.push(Number(documentTypeId));
       whereSql.push(`"documentTypeId" = $${values.length}`);
     }
-    
+
     if (typeof isActive !== 'undefined') {
       values.push(String(isActive) === 'true');
       whereSql.push(`"isActive" = $${values.length}`);
     }
-    
+
     if (search) {
       values.push(`%${String(search)}%`);
       values.push(`%${String(search)}%`);
       values.push(`%${String(search)}%`);
-      whereSql.push(`("clientName" ILIKE $${values.length - 2} OR "productName" ILIKE $${values.length - 1} OR "documentTypeName" ILIKE $${values.length})`);
+      whereSql.push(
+        `("clientName" ILIKE $${values.length - 2} OR "productName" ILIKE $${values.length - 1} OR "documentTypeName" ILIKE $${values.length})`
+      );
     }
-    
+
     const whereClause = whereSql.length ? `WHERE ${whereSql.join(' AND ')}` : '';
 
     // Get total count
     const countRes = await query<{ count: string }>(
-      `SELECT COUNT(*)::text as count FROM "documentTypeRatesView" ${whereClause}`, 
+      `SELECT COUNT(*)::text as count FROM "documentTypeRatesView" ${whereClause}`,
       values
     );
     const totalCount = Number(countRes.rows[0]?.count || 0);
 
     // Get rates with pagination
     const offset = (Number(page) - 1) * Number(limit);
-    const allowedSortColumns = ['clientName', 'productName', 'documentTypeName', 'amount', 'createdAt', 'updatedAt'];
+    const allowedSortColumns = [
+      'clientName',
+      'productName',
+      'documentTypeName',
+      'amount',
+      'createdAt',
+      'updatedAt',
+    ];
     const sortCol = allowedSortColumns.includes(String(sortBy)) ? String(sortBy) : 'clientName';
     const sortDir = String(sortOrder).toLowerCase() === 'desc' ? 'DESC' : 'ASC';
-    
+
     const listRes = await query(
       `SELECT * FROM "documentTypeRatesView"
        ${whereClause}
@@ -78,7 +87,7 @@ export const getDocumentTypeRates = async (req: AuthenticatedRequest, res: Respo
       page: Number(page),
       limit: Number(limit),
       search: search || '',
-      total: totalCount
+      total: totalCount,
     });
 
     res.json({
@@ -96,7 +105,10 @@ export const getDocumentTypeRates = async (req: AuthenticatedRequest, res: Respo
     res.status(500).json({
       success: false,
       message: 'Failed to fetch document type rates',
-      error: { code: 'FETCH_ERROR', details: error instanceof Error ? error.message : 'Unknown error' },
+      error: {
+        code: 'FETCH_ERROR',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      },
     });
   }
 };
@@ -105,12 +117,13 @@ export const getDocumentTypeRates = async (req: AuthenticatedRequest, res: Respo
 export const createOrUpdateDocumentTypeRate = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { clientId, productId, documentTypeId, amount, currency = 'INR' } = req.body;
-    
+
     // Validation
     if (!clientId || !productId || !documentTypeId || amount === undefined) {
       return res.status(400).json({
         success: false,
-        message: 'Missing required fields: clientId, productId, documentTypeId, and amount are required',
+        message:
+          'Missing required fields: clientId, productId, documentTypeId, and amount are required',
         error: { code: 'VALIDATION_ERROR' },
       });
     }
@@ -144,7 +157,9 @@ export const createOrUpdateDocumentTypeRate = async (req: AuthenticatedRequest, 
     }
 
     // Check if document type exists
-    const docTypeRes = await query('SELECT id FROM "documentTypes" WHERE id = $1', [documentTypeId]);
+    const docTypeRes = await query('SELECT id FROM "documentTypes" WHERE id = $1', [
+      documentTypeId,
+    ]);
     if (docTypeRes.rows.length === 0) {
       return res.status(404).json({
         success: false,
@@ -160,7 +175,7 @@ export const createOrUpdateDocumentTypeRate = async (req: AuthenticatedRequest, 
       [clientId, productId, documentTypeId]
     );
 
-    await withTransaction(async (client) => {
+    await withTransaction(async client => {
       if (existRes.rows.length > 0) {
         // Update existing rate
         const existingRate = existRes.rows[0];
@@ -170,14 +185,14 @@ export const createOrUpdateDocumentTypeRate = async (req: AuthenticatedRequest, 
            WHERE id = $3`,
           [amount, currency, existingRate.id]
         );
-        
+
         logger.info(`Updated document type rate: ${existingRate.id}`, {
           userId: req.user?.id,
           clientId,
           productId,
           documentTypeId,
           oldAmount: existingRate.amount,
-          newAmount: amount
+          newAmount: amount,
         });
       } else {
         // Create new rate
@@ -188,27 +203,33 @@ export const createOrUpdateDocumentTypeRate = async (req: AuthenticatedRequest, 
            RETURNING id`,
           [clientId, productId, documentTypeId, amount, currency, req.user?.id]
         );
-        
+
         logger.info(`Created document type rate: ${insertRes.rows[0].id}`, {
           userId: req.user?.id,
           clientId,
           productId,
           documentTypeId,
-          amount
+          amount,
         });
       }
     });
 
     res.json({
       success: true,
-      message: existRes.rows.length > 0 ? 'Document type rate updated successfully' : 'Document type rate created successfully',
+      message:
+        existRes.rows.length > 0
+          ? 'Document type rate updated successfully'
+          : 'Document type rate created successfully',
     });
   } catch (error) {
     logger.error('Error creating/updating document type rate:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to create/update document type rate',
-      error: { code: 'CREATE_UPDATE_ERROR', details: error instanceof Error ? error.message : 'Unknown error' },
+      error: {
+        code: 'CREATE_UPDATE_ERROR',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      },
     });
   }
 };
@@ -253,7 +274,10 @@ export const deleteDocumentTypeRate = async (req: AuthenticatedRequest, res: Res
     res.status(500).json({
       success: false,
       message: 'Failed to delete document type rate',
-      error: { code: 'DELETE_ERROR', details: error instanceof Error ? error.message : 'Unknown error' },
+      error: {
+        code: 'DELETE_ERROR',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      },
     });
   }
 };
@@ -287,8 +311,10 @@ export const getDocumentTypeRateStats = async (req: AuthenticatedRequest, res: R
     res.status(500).json({
       success: false,
       message: 'Failed to fetch document type rate statistics',
-      error: { code: 'STATS_ERROR', details: error instanceof Error ? error.message : 'Unknown error' },
+      error: {
+        code: 'STATS_ERROR',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      },
     });
   }
 };
-

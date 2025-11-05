@@ -1,30 +1,99 @@
-import { Request, Response } from 'express';
-import { MobileFormSubmissionRequest, FormSubmissionData, FormSection, FormField } from '../types/mobile';
+import type { Request, Response } from 'express';
+import type { MobileFormSubmissionRequest, FormSubmissionData, FormSection } from '../types/mobile';
+import { FormField } from '../types/mobile';
 import { createAuditLog } from '../utils/auditLogger';
-import { detectResidenceFormType, detectOfficeFormType, detectBusinessFormType, detectPropertyIndividualFormType } from '../utils/formTypeDetection';
-import { mapFormDataToDatabase, validateRequiredFields, getAvailableDbColumns } from '../utils/residenceFormFieldMapping';
-import { validateAndPrepareResidenceForm, generateFieldCoverageReport } from '../utils/residenceFormValidator';
-import { validateAndPrepareOfficeForm, generateOfficeFieldCoverageReport } from '../utils/officeFormValidator';
-import { validateAndPrepareBusinessForm, generateBusinessFieldCoverageReport } from '../utils/businessFormValidator';
-import { validateAndPrepareResidenceCumOfficeForm, generateResidenceCumOfficeFieldCoverageReport } from '../utils/residenceCumOfficeFormValidator';
-import { validateAndPrepareBuilderForm, generateBuilderFieldCoverageReport } from '../utils/builderFormValidator';
-import { validateAndPrepareNocForm, generateNocFieldCoverageReport } from '../utils/nocFormValidator';
-import { validateAndPreparePropertyApfForm, generatePropertyApfFieldCoverageReport } from '../utils/propertyApfFormValidator';
-import { validateAndPreparePropertyIndividualForm, generatePropertyIndividualFieldCoverageReport } from '../utils/propertyIndividualFormValidator';
-import { validateAndPrepareDsaConnectorForm, generateDsaConnectorFieldCoverageReport } from '../utils/dsaConnectorFormValidator';
-import { mapOfficeFormDataToDatabase, validateOfficeRequiredFields, getOfficeAvailableDbColumns } from '../utils/officeFormFieldMapping';
-import { mapBusinessFormDataToDatabase, validateBusinessRequiredFields, getBusinessAvailableDbColumns } from '../utils/businessFormFieldMapping';
+import {
+  detectResidenceFormType,
+  detectOfficeFormType,
+  detectBusinessFormType,
+  detectPropertyIndividualFormType,
+} from '../utils/formTypeDetection';
+import {
+  mapFormDataToDatabase,
+  validateRequiredFields,
+  getAvailableDbColumns,
+} from '../utils/residenceFormFieldMapping';
+import {
+  validateAndPrepareResidenceForm,
+  generateFieldCoverageReport,
+} from '../utils/residenceFormValidator';
+import {
+  validateAndPrepareOfficeForm,
+  generateOfficeFieldCoverageReport,
+} from '../utils/officeFormValidator';
+import {
+  validateAndPrepareBusinessForm,
+  generateBusinessFieldCoverageReport,
+} from '../utils/businessFormValidator';
+import {
+  validateAndPrepareResidenceCumOfficeForm,
+  generateResidenceCumOfficeFieldCoverageReport,
+} from '../utils/residenceCumOfficeFormValidator';
+import {
+  validateAndPrepareBuilderForm,
+  generateBuilderFieldCoverageReport,
+} from '../utils/builderFormValidator';
+import {
+  validateAndPrepareNocForm,
+  generateNocFieldCoverageReport,
+} from '../utils/nocFormValidator';
+import {
+  validateAndPreparePropertyApfForm,
+  generatePropertyApfFieldCoverageReport,
+} from '../utils/propertyApfFormValidator';
+import {
+  validateAndPreparePropertyIndividualForm,
+  generatePropertyIndividualFieldCoverageReport,
+} from '../utils/propertyIndividualFormValidator';
+import {
+  validateAndPrepareDsaConnectorForm,
+  generateDsaConnectorFieldCoverageReport,
+} from '../utils/dsaConnectorFormValidator';
+import {
+  mapOfficeFormDataToDatabase,
+  validateOfficeRequiredFields,
+  getOfficeAvailableDbColumns,
+} from '../utils/officeFormFieldMapping';
+import {
+  mapBusinessFormDataToDatabase,
+  validateBusinessRequiredFields,
+  getBusinessAvailableDbColumns,
+} from '../utils/businessFormFieldMapping';
 import {
   createComprehensiveFormSections,
   getFormTypeLabel,
-  getVerificationTableName
+  getVerificationTableName,
 } from '../utils/comprehensiveFormFieldMapping';
-import { mapBuilderFormDataToDatabase, validateBuilderRequiredFields, getBuilderAvailableDbColumns } from '../utils/builderFormFieldMapping';
-import { mapResidenceCumOfficeFormDataToDatabase, validateResidenceCumOfficeRequiredFields, getResidenceCumOfficeAvailableDbColumns } from '../utils/residenceCumOfficeFormFieldMapping';
-import { mapNocFormDataToDatabase, validateNocRequiredFields, getNocAvailableDbColumns } from '../utils/nocFormFieldMapping';
-import { mapPropertyApfFormDataToDatabase, validatePropertyApfRequiredFields, getPropertyApfAvailableDbColumns } from '../utils/propertyApfFormFieldMapping';
-import { mapPropertyIndividualFormDataToDatabase, validatePropertyIndividualRequiredFields, getPropertyIndividualAvailableDbColumns } from '../utils/propertyIndividualFormFieldMapping';
-import { mapDsaConnectorFormDataToDatabase, validateDsaConnectorRequiredFields, getDsaConnectorAvailableDbColumns } from '../utils/dsaConnectorFormFieldMapping';
+import {
+  mapBuilderFormDataToDatabase,
+  validateBuilderRequiredFields,
+  getBuilderAvailableDbColumns,
+} from '../utils/builderFormFieldMapping';
+import {
+  mapResidenceCumOfficeFormDataToDatabase,
+  validateResidenceCumOfficeRequiredFields,
+  getResidenceCumOfficeAvailableDbColumns,
+} from '../utils/residenceCumOfficeFormFieldMapping';
+import {
+  mapNocFormDataToDatabase,
+  validateNocRequiredFields,
+  getNocAvailableDbColumns,
+} from '../utils/nocFormFieldMapping';
+import {
+  mapPropertyApfFormDataToDatabase,
+  validatePropertyApfRequiredFields,
+  getPropertyApfAvailableDbColumns,
+} from '../utils/propertyApfFormFieldMapping';
+import {
+  mapPropertyIndividualFormDataToDatabase,
+  validatePropertyIndividualRequiredFields,
+  getPropertyIndividualAvailableDbColumns,
+} from '../utils/propertyIndividualFormFieldMapping';
+import {
+  mapDsaConnectorFormDataToDatabase,
+  validateDsaConnectorRequiredFields,
+  getDsaConnectorAvailableDbColumns,
+} from '../utils/dsaConnectorFormFieldMapping';
 import { config } from '../config';
 import { query } from '@/config/database';
 import multer from 'multer';
@@ -63,27 +132,30 @@ export class MobileFormController {
       let completedAt = null;
 
       // Case is COMPLETED only if ALL tasks are either COMPLETED or CANCELLED
-      if (totalTasks > 0 && (completedTasks + cancelledTasks) === totalTasks) {
+      if (totalTasks > 0 && completedTasks + cancelledTasks === totalTasks) {
         caseStatus = 'COMPLETED';
         completedAt = new Date();
       }
 
       // Update case status
-      await query(`
+      await query(
+        `
         UPDATE cases
         SET
           status = $1,
           "completedAt" = $2,
           "updatedAt" = CURRENT_TIMESTAMP
         WHERE id = $3
-      `, [caseStatus, completedAt, caseId]);
+      `,
+        [caseStatus, completedAt, caseId]
+      );
 
       logger.info('Case status updated based on tasks', {
         caseId,
         totalTasks,
         completedTasks,
         cancelledTasks,
-        newStatus: caseStatus
+        newStatus: caseStatus,
       });
     } catch (error) {
       logger.error('Failed to update case status based on tasks:', error);
@@ -185,7 +257,7 @@ export class MobileFormController {
       try {
         // Generate unique filename
         const timestamp = Date.now();
-        const randomSuffix = Math.round(Math.random() * 1E9);
+        const randomSuffix = Math.round(Math.random() * 1e9);
         const photoType = image.type || 'verification';
         const extension = '.jpg'; // Convert all to JPEG for consistency
         const filename = `${photoType}_${timestamp}_${randomSuffix}${extension}`;
@@ -230,7 +302,7 @@ export class MobileFormController {
             userId,
             image.geoLocation ? JSON.stringify(image.geoLocation) : null,
             photoType,
-            submissionId
+            submissionId,
           ]
         );
 
@@ -242,9 +314,8 @@ export class MobileFormController {
           thumbnailUrl: attachment.thumbnailPath,
           uploadedAt: attachment.createdAt.toISOString(),
           photoType,
-          geoLocation: image.geoLocation
+          geoLocation: image.geoLocation,
         });
-
       } catch (error) {
         console.error(`Error processing verification image ${i + 1}:`, error);
         // Continue with other images even if one fails
@@ -255,8 +326,11 @@ export class MobileFormController {
   }
 
   // Helper method to organize form data into sections for display
-  private static organizeFormDataIntoSections(formData: any, verificationType: string, formType?: string): FormSection[] {
-
+  private static organizeFormDataIntoSections(
+    formData: any,
+    verificationType: string,
+    formType?: string
+  ): FormSection[] {
     // CRITICAL FIX: Normalize verification type to match VERIFICATION_TYPE_FIELDS keys
     const normalizedType = MobileFormController.normalizeVerificationType(verificationType);
 
@@ -291,9 +365,33 @@ export class MobileFormController {
         isRequired: true,
         defaultExpanded: true,
         fields: [
-          { id: 'customerName', name: 'customerName', label: 'Customer Name', type: 'text' as const, value: formData.customerName, isRequired: true, displayValue: formData.customerName },
-          { id: 'bankName', name: 'bankName', label: 'Bank Name', type: 'text' as const, value: formData.bankName, isRequired: false, displayValue: formData.bankName },
-          { id: 'product', name: 'product', label: 'Product', type: 'text' as const, value: formData.product, isRequired: false, displayValue: formData.product },
+          {
+            id: 'customerName',
+            name: 'customerName',
+            label: 'Customer Name',
+            type: 'text' as const,
+            value: formData.customerName,
+            isRequired: true,
+            displayValue: formData.customerName,
+          },
+          {
+            id: 'bankName',
+            name: 'bankName',
+            label: 'Bank Name',
+            type: 'text' as const,
+            value: formData.bankName,
+            isRequired: false,
+            displayValue: formData.bankName,
+          },
+          {
+            id: 'product',
+            name: 'product',
+            label: 'Product',
+            type: 'text' as const,
+            value: formData.product,
+            isRequired: false,
+            displayValue: formData.product,
+          },
         ].filter(field => field.value !== undefined && field.value !== null && field.value !== ''),
       });
     }
@@ -307,15 +405,42 @@ export class MobileFormController {
         isRequired: true,
         defaultExpanded: true,
         fields: [
-          { id: 'addressLocatable', name: 'addressLocatable', label: 'Address Locatable', type: 'select' as const, value: formData.addressLocatable, isRequired: true, displayValue: formData.addressLocatable },
-          { id: 'addressRating', name: 'addressRating', label: 'Address Rating', type: 'select' as const, value: formData.addressRating, isRequired: true, displayValue: formData.addressRating },
-          { id: 'houseStatus', name: 'houseStatus', label: 'House Status', type: 'select' as const, value: formData.houseStatus, isRequired: true, displayValue: formData.houseStatus },
+          {
+            id: 'addressLocatable',
+            name: 'addressLocatable',
+            label: 'Address Locatable',
+            type: 'select' as const,
+            value: formData.addressLocatable,
+            isRequired: true,
+            displayValue: formData.addressLocatable,
+          },
+          {
+            id: 'addressRating',
+            name: 'addressRating',
+            label: 'Address Rating',
+            type: 'select' as const,
+            value: formData.addressRating,
+            isRequired: true,
+            displayValue: formData.addressRating,
+          },
+          {
+            id: 'houseStatus',
+            name: 'houseStatus',
+            label: 'House Status',
+            type: 'select' as const,
+            value: formData.houseStatus,
+            isRequired: true,
+            displayValue: formData.houseStatus,
+          },
         ].filter(field => field.value !== undefined && field.value !== null && field.value !== ''),
       });
     }
 
     // Personal Details Section (for residence verification)
-    if (normalizedType === 'RESIDENCE' && (formData.metPersonName || formData.relation || formData.totalFamilyMembers)) {
+    if (
+      normalizedType === 'RESIDENCE' &&
+      (formData.metPersonName || formData.relation || formData.totalFamilyMembers)
+    ) {
       sections.push({
         id: 'personal_details',
         title: 'Personal Details',
@@ -323,12 +448,60 @@ export class MobileFormController {
         isRequired: true,
         defaultExpanded: true,
         fields: [
-          { id: 'metPersonName', name: 'metPersonName', label: 'Met Person Name', type: 'text' as const, value: formData.metPersonName, isRequired: true, displayValue: formData.metPersonName },
-          { id: 'relation', name: 'relation', label: 'Relation', type: 'select' as const, value: formData.relation, isRequired: true, displayValue: formData.relation },
-          { id: 'totalFamilyMembers', name: 'totalFamilyMembers', label: 'Total Family Members', type: 'number' as const, value: formData.totalFamilyMembers, isRequired: true, displayValue: formData.totalFamilyMembers?.toString() },
-          { id: 'totalEarning', name: 'totalEarning', label: 'Total Earning (₹)', type: 'number' as const, value: formData.totalEarning, isRequired: false, displayValue: formData.totalEarning ? `₹${formData.totalEarning}` : undefined },
-          { id: 'workingStatus', name: 'workingStatus', label: 'Working Status', type: 'select' as const, value: formData.workingStatus, isRequired: false, displayValue: formData.workingStatus },
-          { id: 'companyName', name: 'companyName', label: 'Company Name', type: 'text' as const, value: formData.companyName, isRequired: false, displayValue: formData.companyName },
+          {
+            id: 'metPersonName',
+            name: 'metPersonName',
+            label: 'Met Person Name',
+            type: 'text' as const,
+            value: formData.metPersonName,
+            isRequired: true,
+            displayValue: formData.metPersonName,
+          },
+          {
+            id: 'relation',
+            name: 'relation',
+            label: 'Relation',
+            type: 'select' as const,
+            value: formData.relation,
+            isRequired: true,
+            displayValue: formData.relation,
+          },
+          {
+            id: 'totalFamilyMembers',
+            name: 'totalFamilyMembers',
+            label: 'Total Family Members',
+            type: 'number' as const,
+            value: formData.totalFamilyMembers,
+            isRequired: true,
+            displayValue: formData.totalFamilyMembers?.toString(),
+          },
+          {
+            id: 'totalEarning',
+            name: 'totalEarning',
+            label: 'Total Earning (₹)',
+            type: 'number' as const,
+            value: formData.totalEarning,
+            isRequired: false,
+            displayValue: formData.totalEarning ? `₹${formData.totalEarning}` : undefined,
+          },
+          {
+            id: 'workingStatus',
+            name: 'workingStatus',
+            label: 'Working Status',
+            type: 'select' as const,
+            value: formData.workingStatus,
+            isRequired: false,
+            displayValue: formData.workingStatus,
+          },
+          {
+            id: 'companyName',
+            name: 'companyName',
+            label: 'Company Name',
+            type: 'text' as const,
+            value: formData.companyName,
+            isRequired: false,
+            displayValue: formData.companyName,
+          },
         ].filter(field => field.value !== undefined && field.value !== null && field.value !== ''),
       });
     }
@@ -342,11 +515,51 @@ export class MobileFormController {
         isRequired: false,
         defaultExpanded: false,
         fields: [
-          { id: 'locality', name: 'locality', label: 'Locality', type: 'select' as const, value: formData.locality, isRequired: false, displayValue: formData.locality },
-          { id: 'addressStructure', name: 'addressStructure', label: 'Address Structure', type: 'select' as const, value: formData.addressStructure, isRequired: false, displayValue: formData.addressStructure },
-          { id: 'doorColor', name: 'doorColor', label: 'Door Color', type: 'text' as const, value: formData.doorColor, isRequired: false, displayValue: formData.doorColor },
-          { id: 'doorNamePlate', name: 'doorNamePlate', label: 'Door Name Plate', type: 'select' as const, value: formData.doorNamePlate, isRequired: false, displayValue: formData.doorNamePlate },
-          { id: 'nameOnDoorPlate', name: 'nameOnDoorPlate', label: 'Name on Door Plate', type: 'text' as const, value: formData.nameOnDoorPlate, isRequired: false, displayValue: formData.nameOnDoorPlate },
+          {
+            id: 'locality',
+            name: 'locality',
+            label: 'Locality',
+            type: 'select' as const,
+            value: formData.locality,
+            isRequired: false,
+            displayValue: formData.locality,
+          },
+          {
+            id: 'addressStructure',
+            name: 'addressStructure',
+            label: 'Address Structure',
+            type: 'select' as const,
+            value: formData.addressStructure,
+            isRequired: false,
+            displayValue: formData.addressStructure,
+          },
+          {
+            id: 'doorColor',
+            name: 'doorColor',
+            label: 'Door Color',
+            type: 'text' as const,
+            value: formData.doorColor,
+            isRequired: false,
+            displayValue: formData.doorColor,
+          },
+          {
+            id: 'doorNamePlate',
+            name: 'doorNamePlate',
+            label: 'Door Name Plate',
+            type: 'select' as const,
+            value: formData.doorNamePlate,
+            isRequired: false,
+            displayValue: formData.doorNamePlate,
+          },
+          {
+            id: 'nameOnDoorPlate',
+            name: 'nameOnDoorPlate',
+            label: 'Name on Door Plate',
+            type: 'text' as const,
+            value: formData.nameOnDoorPlate,
+            isRequired: false,
+            displayValue: formData.nameOnDoorPlate,
+          },
         ].filter(field => field.value !== undefined && field.value !== null && field.value !== ''),
       });
     }
@@ -360,9 +573,33 @@ export class MobileFormController {
         isRequired: true,
         defaultExpanded: true,
         fields: [
-          { id: 'finalStatus', name: 'finalStatus', label: 'Final Status', type: 'select' as const, value: formData.finalStatus, isRequired: true, displayValue: formData.finalStatus },
-          { id: 'outcome', name: 'outcome', label: 'Outcome', type: 'select' as const, value: formData.outcome, isRequired: false, displayValue: formData.outcome },
-          { id: 'otherObservation', name: 'otherObservation', label: 'Other Observation', type: 'textarea' as const, value: formData.otherObservation, isRequired: false, displayValue: formData.otherObservation },
+          {
+            id: 'finalStatus',
+            name: 'finalStatus',
+            label: 'Final Status',
+            type: 'select' as const,
+            value: formData.finalStatus,
+            isRequired: true,
+            displayValue: formData.finalStatus,
+          },
+          {
+            id: 'outcome',
+            name: 'outcome',
+            label: 'Outcome',
+            type: 'select' as const,
+            value: formData.outcome,
+            isRequired: false,
+            displayValue: formData.outcome,
+          },
+          {
+            id: 'otherObservation',
+            name: 'otherObservation',
+            label: 'Other Observation',
+            type: 'textarea' as const,
+            value: formData.otherObservation,
+            isRequired: false,
+            displayValue: formData.otherObservation,
+          },
         ].filter(field => field.value !== undefined && field.value !== null && field.value !== ''),
       });
     }
@@ -376,7 +613,9 @@ export class MobileFormController {
     verificationType: string,
     formType: string
   ): FormSection[] {
-    console.log(`Creating comprehensive sections from report for ${verificationType} - ${formType}`);
+    console.log(
+      `Creating comprehensive sections from report for ${verificationType} - ${formType}`
+    );
 
     try {
       // CRITICAL FIX: Normalize verification type to match VERIFICATION_TYPE_FIELDS keys
@@ -409,14 +648,30 @@ export class MobileFormController {
     }
 
     // Check for individual types
-    if (typeUpper.includes('RESIDENCE')) return 'RESIDENCE';
-    if (typeUpper.includes('OFFICE')) return 'OFFICE';
-    if (typeUpper.includes('BUSINESS')) return 'BUSINESS';
-    if (typeUpper.includes('BUILDER')) return 'BUILDER';
-    if (typeUpper.includes('NOC')) return 'NOC';
-    if (typeUpper.includes('DSA') || typeUpper.includes('CONNECTOR')) return 'DSA_CONNECTOR';
-    if (typeUpper.includes('PROPERTY') && typeUpper.includes('APF')) return 'PROPERTY_APF';
-    if (typeUpper.includes('PROPERTY') && typeUpper.includes('INDIVIDUAL')) return 'PROPERTY_INDIVIDUAL';
+    if (typeUpper.includes('RESIDENCE')) {
+      return 'RESIDENCE';
+    }
+    if (typeUpper.includes('OFFICE')) {
+      return 'OFFICE';
+    }
+    if (typeUpper.includes('BUSINESS')) {
+      return 'BUSINESS';
+    }
+    if (typeUpper.includes('BUILDER')) {
+      return 'BUILDER';
+    }
+    if (typeUpper.includes('NOC')) {
+      return 'NOC';
+    }
+    if (typeUpper.includes('DSA') || typeUpper.includes('CONNECTOR')) {
+      return 'DSA_CONNECTOR';
+    }
+    if (typeUpper.includes('PROPERTY') && typeUpper.includes('APF')) {
+      return 'PROPERTY_APF';
+    }
+    if (typeUpper.includes('PROPERTY') && typeUpper.includes('INDIVIDUAL')) {
+      return 'PROPERTY_INDIVIDUAL';
+    }
 
     // Default fallback
     return 'RESIDENCE';
@@ -1272,7 +1527,10 @@ export class MobileFormController {
   }
 
   // Fallback method for basic form sections from report
-  private static createBasicFormSectionsFromReport(report: any, verificationType: string): FormSection[] {
+  private static createBasicFormSectionsFromReport(
+    report: any,
+    verificationType: string
+  ): FormSection[] {
     return [
       {
         id: 'basic_information',
@@ -1288,7 +1546,7 @@ export class MobileFormController {
             value: report.customer_name,
             displayValue: report.customer_name || 'Not provided',
             isRequired: true,
-            validation: { isValid: true, errors: [] }
+            validation: { isValid: true, errors: [] },
           },
           {
             id: 'verification_outcome',
@@ -1298,7 +1556,7 @@ export class MobileFormController {
             value: report.verification_outcome,
             displayValue: report.verification_outcome || 'Not provided',
             isRequired: true,
-            validation: { isValid: true, errors: [] }
+            validation: { isValid: true, errors: [] },
           },
           {
             id: 'met_person_name',
@@ -1308,7 +1566,7 @@ export class MobileFormController {
             value: report.met_person_name,
             displayValue: report.met_person_name || 'Not provided',
             isRequired: false,
-            validation: { isValid: true, errors: [] }
+            validation: { isValid: true, errors: [] },
           },
           {
             id: 'call_remark',
@@ -1318,11 +1576,11 @@ export class MobileFormController {
             value: report.call_remark,
             displayValue: report.call_remark || 'Not provided',
             isRequired: false,
-            validation: { isValid: true, errors: [] }
-          }
+            validation: { isValid: true, errors: [] },
+          },
         ],
         isRequired: true,
-        defaultExpanded: true
+        defaultExpanded: true,
       },
       {
         id: 'location_details',
@@ -1338,7 +1596,7 @@ export class MobileFormController {
             value: report.locality,
             displayValue: report.locality || 'Not provided',
             isRequired: false,
-            validation: { isValid: true, errors: [] }
+            validation: { isValid: true, errors: [] },
           },
           {
             id: 'landmark1',
@@ -1348,7 +1606,7 @@ export class MobileFormController {
             value: report.landmark1,
             displayValue: report.landmark1 || 'Not provided',
             isRequired: false,
-            validation: { isValid: true, errors: [] }
+            validation: { isValid: true, errors: [] },
           },
           {
             id: 'landmark2',
@@ -1358,7 +1616,7 @@ export class MobileFormController {
             value: report.landmark2,
             displayValue: report.landmark2 || 'Not provided',
             isRequired: false,
-            validation: { isValid: true, errors: [] }
+            validation: { isValid: true, errors: [] },
           },
           {
             id: 'landmark3',
@@ -1368,7 +1626,7 @@ export class MobileFormController {
             value: report.landmark3,
             displayValue: report.landmark3 || 'Not provided',
             isRequired: false,
-            validation: { isValid: true, errors: [] }
+            validation: { isValid: true, errors: [] },
           },
           {
             id: 'landmark4',
@@ -1378,11 +1636,11 @@ export class MobileFormController {
             value: report.landmark4,
             displayValue: report.landmark4 || 'Not provided',
             isRequired: false,
-            validation: { isValid: true, errors: [] }
-          }
+            validation: { isValid: true, errors: [] },
+          },
         ],
         isRequired: false,
-        defaultExpanded: true
+        defaultExpanded: true,
       },
       {
         id: 'area_assessment',
@@ -1398,7 +1656,7 @@ export class MobileFormController {
             value: report.dominated_area,
             displayValue: report.dominated_area || 'Not provided',
             isRequired: false,
-            validation: { isValid: true, errors: [] }
+            validation: { isValid: true, errors: [] },
           },
           {
             id: 'other_observation',
@@ -1408,7 +1666,7 @@ export class MobileFormController {
             value: report.other_observation,
             displayValue: report.other_observation || 'Not provided',
             isRequired: false,
-            validation: { isValid: true, errors: [] }
+            validation: { isValid: true, errors: [] },
           },
           {
             id: 'final_status',
@@ -1418,12 +1676,12 @@ export class MobileFormController {
             value: report.final_status,
             displayValue: report.final_status || 'Not provided',
             isRequired: true,
-            validation: { isValid: true, errors: [] }
-          }
+            validation: { isValid: true, errors: [] },
+          },
         ],
         isRequired: false,
-        defaultExpanded: true
-      }
+        defaultExpanded: true,
+      },
     ];
   }
 
@@ -1436,7 +1694,13 @@ export class MobileFormController {
   ) {
     try {
       const { caseId } = req.params;
-      const { formData, attachmentIds, geoLocation, photos, metadata }: MobileFormSubmissionRequest = req.body;
+      const {
+        formData,
+        attachmentIds,
+        geoLocation,
+        photos,
+        metadata,
+      }: MobileFormSubmissionRequest = req.body;
       const userId = (req as any).user?.id;
       const userRole = (req as any).user?.role;
 
@@ -1448,7 +1712,10 @@ export class MobileFormController {
 
       const vals: any[] = [caseId];
       let caseSql = `SELECT id FROM cases WHERE id = $1`;
-      if (userRole === 'FIELD_AGENT') { caseSql += ` AND "assignedTo" = $2`; vals.push(userId); }
+      if (userRole === 'FIELD_AGENT') {
+        caseSql += ` AND "assignedTo" = $2`;
+        vals.push(userId);
+      }
       const caseRes = await query(caseSql, vals);
       const existingCase = caseRes.rows[0];
 
@@ -1480,10 +1747,8 @@ export class MobileFormController {
       }
 
       // Validate that all photos have geo-location
-      const photosWithoutGeo = photos.filter(photo =>
-        !photo.geoLocation ||
-        !photo.geoLocation.latitude ||
-        !photo.geoLocation.longitude
+      const photosWithoutGeo = photos.filter(
+        !photo.geoLocation?.latitude || !photo.geoLocation.longitude
       );
 
       if (photosWithoutGeo.length > 0) {
@@ -1508,7 +1773,9 @@ export class MobileFormController {
 
       // ENHANCED DATA PROCESSING PIPELINE (Temporarily disabled for app startup)
       // TODO: Re-enable after fixing TypeScript issues
-      console.log(`🔄 Using basic data processing for case ${caseId}, verification type: ${verificationType}`);
+      console.log(
+        `🔄 Using basic data processing for case ${caseId}, verification type: ${verificationType}`
+      );
 
       // Prepare comprehensive verification data
       const verificationData = {
@@ -1582,13 +1849,20 @@ export class MobileFormController {
       };
 
       // Update case with verification data
-      await query(`UPDATE cases SET status = 'COMPLETED', "completedAt" = CURRENT_TIMESTAMP, "verificationData" = $1, "verificationType" = $2, "verificationOutcome" = $3, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $4`, [JSON.stringify(verificationData), verificationType, formData.outcome || 'VERIFIED', caseId]);
-      const caseUpd = await query(`SELECT id, status, "completedAt" FROM cases WHERE id = $1`, [caseId]);
+      await query(
+        `UPDATE cases SET status = 'COMPLETED', "completedAt" = CURRENT_TIMESTAMP, "verificationData" = $1, "verificationType" = $2, "verificationOutcome" = $3, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $4`,
+        [JSON.stringify(verificationData), verificationType, formData.outcome || 'VERIFIED', caseId]
+      );
+      const caseUpd = await query(`SELECT id, status, "completedAt" FROM cases WHERE id = $1`, [
+        caseId,
+      ]);
       const updatedCase = caseUpd.rows[0];
 
       // Auto-calculate commission for completed case
       try {
-        const { autoCalculateCommissionForCase } = await import('../controllers/commissionManagementController');
+        const { autoCalculateCommissionForCase } = await import(
+          '../controllers/commissionManagementController'
+        );
         await autoCalculateCommissionForCase(caseId);
       } catch (error) {
         console.error('Error auto-calculating commission for residence form:', error);
@@ -1597,7 +1871,10 @@ export class MobileFormController {
 
       // Update attachment geo-locations
       for (const photo of photos) {
-        await query(`UPDATE attachments SET "geoLocation" = $1 WHERE id = $2`, [JSON.stringify(photo.geoLocation), photo.attachmentId]);
+        await query(`UPDATE attachments SET "geoLocation" = $1 WHERE id = $2`, [
+          JSON.stringify(photo.geoLocation),
+          photo.attachmentId,
+        ]);
       }
 
       await createAuditLog({
@@ -1761,7 +2038,9 @@ export class MobileFormController {
           reportTableName = 'propertyIndividualVerificationReports';
         } else {
           // Fallback to residence for unknown types
-          console.warn(`Unknown verification type: ${verificationType}, falling back to residenceVerificationReports`);
+          console.warn(
+            `Unknown verification type: ${verificationType}, falling back to residenceVerificationReports`
+          );
           reportTableName = 'residenceVerificationReports';
         }
 
@@ -1769,11 +2048,12 @@ export class MobileFormController {
         reportSql = `SELECT * FROM "${reportTableName}" WHERE verification_task_id = $1`;
         const reportRes = await query(reportSql, [task.task_id]);
 
-        console.log(`Found ${reportRes.rows.length} reports in ${reportTableName} for task ${task.task_number}`);
+        console.log(
+          `Found ${reportRes.rows.length} reports in ${reportTableName} for task ${task.task_number}`
+        );
 
         // Process each report (there should be only one per task, but handle multiple just in case)
         for (const reportData of reportRes.rows) {
-
           const report = reportData;
 
           // FIXED: Get verification images for THIS SPECIFIC TASK only
@@ -1790,17 +2070,22 @@ export class MobileFormController {
           const userName = userRes.rows[0]?.name || userRes.rows[0]?.username || 'Unknown User';
 
           // Get the actual submission ID from verification images
-          const actualSubmissionId = imagesRes.rows.length > 0 ? imagesRes.rows[0].submissionId : `${verificationType.toLowerCase()}_${Date.now()}`;
+          const actualSubmissionId =
+            imagesRes.rows.length > 0
+              ? imagesRes.rows[0].submissionId
+              : `${verificationType.toLowerCase()}_${Date.now()}`;
 
           // Create comprehensive form submission WITH TASK INFORMATION
           const submission: FormSubmissionData = {
             id: actualSubmissionId,
             caseId,
             formType: report.form_type || 'POSITIVE', // Use the actual form type from database
-            verificationType: verificationType,
+            verificationType,
             outcome: report.verification_outcome || 'Unknown',
             status: 'SUBMITTED',
-            submittedAt: report.verification_date ? `${report.verification_date}T00:00:00.000Z` : new Date().toISOString(),
+            submittedAt: report.verification_date
+              ? `${report.verification_date}T00:00:00.000Z`
+              : new Date().toISOString(),
             submittedBy: report.verified_by,
             submittedByName: userName,
 
@@ -1813,13 +2098,17 @@ export class MobileFormController {
             taskStatus: task.task_status,
 
             // Create comprehensive form sections using all available data
-            sections: MobileFormController.createComprehensiveFormSectionsFromReport(report, verificationType, report.form_type || 'POSITIVE'),
+            sections: MobileFormController.createComprehensiveFormSectionsFromReport(
+              report,
+              verificationType,
+              report.form_type || 'POSITIVE'
+            ),
 
             // Convert verification images to photos format
             photos: imagesRes.rows.map((img, index) => ({
               id: img.id,
               attachmentId: img.id,
-              type: (img.photoType === 'selfie' ? 'selfie' : 'verification') as 'verification' | 'selfie',
+              type: img.photoType === 'selfie' ? 'selfie' : 'verification',
               url: `/api/verification-attachments/${img.id}/download`,
               thumbnailUrl: `/api/verification-attachments/${img.id}/thumbnail`,
               filename: img.filename,
@@ -1830,14 +2119,14 @@ export class MobileFormController {
                 longitude: 0,
                 accuracy: 0,
                 timestamp: img.createdAt,
-                address: 'Location captured during verification'
+                address: 'Location captured during verification',
               },
               metadata: {
                 fileSize: img.fileSize,
                 mimeType: 'image/jpeg',
                 dimensions: { width: 0, height: 0 }, // TODO: Add if available
-                capturedAt: img.createdAt
-              }
+                capturedAt: img.createdAt,
+              },
             })),
 
             attachments: [], // No separate attachments for this form type
@@ -1846,12 +2135,16 @@ export class MobileFormController {
               latitude: 0, // TODO: Add actual geo data
               longitude: 0,
               accuracy: 0,
-              timestamp: report.verification_date ? `${report.verification_date}T00:00:00.000Z` : new Date().toISOString(),
-              address: 'Verification location'
+              timestamp: report.verification_date
+                ? `${report.verification_date}T00:00:00.000Z`
+                : new Date().toISOString(),
+              address: 'Verification location',
             },
 
             metadata: {
-              submissionTimestamp: report.verification_date ? `${report.verification_date}T00:00:00.000Z` : new Date().toISOString(),
+              submissionTimestamp: report.verification_date
+                ? `${report.verification_date}T00:00:00.000Z`
+                : new Date().toISOString(),
               deviceInfo: {
                 platform: 'ANDROID' as const, // Default for mobile submissions
                 model: 'Mobile Device',
@@ -1863,7 +2156,7 @@ export class MobileFormController {
               },
               formVersion: '1.0',
               submissionAttempts: 1,
-              isOfflineSubmission: false
+              isOfflineSubmission: false,
             },
 
             validationStatus: 'VALID',
@@ -1889,7 +2182,7 @@ export class MobileFormController {
         message: error.message,
         stack: error.stack,
         caseId: req.params.caseId,
-        userId: (req as any).user?.id
+        userId: (req as any).user?.id,
       });
       res.status(500).json({
         success: false,
@@ -1897,14 +2190,17 @@ export class MobileFormController {
         error: {
           code: 'FORM_RETRIEVAL_FAILED',
           timestamp: new Date().toISOString(),
-          details: process.env.NODE_ENV === 'development' ? error.message : undefined
+          details: process.env.NODE_ENV === 'development' ? error.message : undefined,
         },
       });
     }
   }
 
   // Helper method to determine form type and verification outcome from form data
-  private static determineResidenceFormTypeAndOutcome(formData: any): { formType: string; verificationOutcome: string } {
+  private static determineResidenceFormTypeAndOutcome(formData: any): {
+    formType: string;
+    verificationOutcome: string;
+  } {
     return detectResidenceFormType(formData);
   }
 
@@ -1912,7 +2208,14 @@ export class MobileFormController {
   static async submitResidenceVerification(req: Request, res: Response) {
     try {
       const { caseId } = req.params;
-      const { verificationTaskId, formData, attachmentIds, geoLocation, photos, images }: MobileFormSubmissionRequest = req.body;
+      const {
+        verificationTaskId,
+        formData,
+        attachmentIds,
+        geoLocation,
+        photos,
+        images,
+      }: MobileFormSubmissionRequest = req.body;
       const userId = (req as any).user?.id;
       const userRole = (req as any).user?.role;
 
@@ -1980,7 +2283,9 @@ export class MobileFormController {
       const task = taskRes.rows[0];
 
       if (!task) {
-        console.log(`❌ Verification task not found or does not belong to case: ${verificationTaskId}`);
+        console.log(
+          `❌ Verification task not found or does not belong to case: ${verificationTaskId}`
+        );
         return res.status(404).json({
           success: false,
           message: 'Verification task not found or does not belong to this case',
@@ -2007,22 +2312,30 @@ export class MobileFormController {
         });
       }
 
-      console.log(`✅ Verification task validated: ${task.task_number} (Type: ${task.verification_type_name})`);
+      console.log(
+        `✅ Verification task validated: ${task.task_number} (Type: ${task.verification_type_name})`
+      );
 
       // Determine form type and verification outcome based on form data
-      const { formType, verificationOutcome } = MobileFormController.determineResidenceFormTypeAndOutcome(formData);
+      const { formType, verificationOutcome } =
+        MobileFormController.determineResidenceFormTypeAndOutcome(formData);
 
-      console.log(`🔍 Detected form type: ${formType}, verification outcome: ${verificationOutcome}`);
+      console.log(
+        `🔍 Detected form type: ${formType}, verification outcome: ${verificationOutcome}`
+      );
 
       // Use comprehensive validation and preparation for residence form data
-      const { validationResult, preparedData } = validateAndPrepareResidenceForm(formData, formType);
+      const { validationResult, preparedData } = validateAndPrepareResidenceForm(
+        formData,
+        formType
+      );
 
       // Log comprehensive validation results
       console.log(`📊 Comprehensive validation for ${formType} residence verification:`, {
         isValid: validationResult.isValid,
         missingFields: validationResult.missingFields,
         warnings: validationResult.warnings,
-        fieldCoverage: validationResult.fieldCoverage
+        fieldCoverage: validationResult.fieldCoverage,
       });
 
       // Generate and log field coverage report
@@ -2034,13 +2347,21 @@ export class MobileFormController {
 
       // Log warnings if any
       if (!validationResult.isValid) {
-        console.warn(`⚠️ Missing required fields for ${formType} form:`, validationResult.missingFields);
+        console.warn(
+          `⚠️ Missing required fields for ${formType} form:`,
+          validationResult.missingFields
+        );
       }
       if (validationResult.warnings.length > 0) {
-        console.warn(`⚠️ Validation warnings for ${formType} residence form:`, validationResult.warnings);
+        console.warn(
+          `⚠️ Validation warnings for ${formType} residence form:`,
+          validationResult.warnings
+        );
       }
 
-      console.log(`📊 Mapped ${Object.keys(mappedFormData).length} form fields to database columns`);
+      console.log(
+        `📊 Mapped ${Object.keys(mappedFormData).length} form fields to database columns`
+      );
 
       // Validate minimum photo requirement (≥5 geo-tagged photos)
       // Use images array for new submission format
@@ -2062,10 +2383,8 @@ export class MobileFormController {
 
       // Validate that all photos have geo-location (only if photos array exists)
       if (photos && photos.length > 0) {
-        const photosWithoutGeo = photos.filter(photo =>
-          !photo.geoLocation ||
-          !photo.geoLocation.latitude ||
-          !photo.geoLocation.longitude
+        const photosWithoutGeo = photos.filter(
+          photo => !photo.geoLocation?.latitude || !photo.geoLocation.longitude
         );
 
         if (photosWithoutGeo.length > 0) {
@@ -2096,7 +2415,9 @@ export class MobileFormController {
         verificationTaskId // ✅ Link images to verification task
       );
 
-      console.log(`✅ Processed ${uploadedImages.length} verification images for residence verification (Task: ${task.task_number})`);
+      console.log(
+        `✅ Processed ${uploadedImages.length} verification images for residence verification (Task: ${task.task_number})`
+      );
 
       // Prepare verification data (excluding old attachment references)
       const verificationData = {
@@ -2122,20 +2443,29 @@ export class MobileFormController {
       };
 
       // Update verification task status to COMPLETED
-      await query(`
+      await query(
+        `
         UPDATE verification_tasks
         SET status = 'COMPLETED',
             completed_at = CURRENT_TIMESTAMP,
             updated_at = CURRENT_TIMESTAMP
         WHERE id = $1
-      `, [verificationTaskId]);
+      `,
+        [verificationTaskId]
+      );
 
       // Update case status based on ALL tasks (only mark as COMPLETED if all tasks are done)
       await MobileFormController.updateCaseStatusBasedOnTasks(actualCaseId);
 
       // Update case with verification data (without changing status)
-      await query(`UPDATE cases SET "verificationData" = $1, "verificationType" = 'RESIDENCE', "verificationOutcome" = $2, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $3`, [JSON.stringify(verificationData), verificationOutcome, actualCaseId]);
-      const caseUpd = await query(`SELECT id, "caseId", status, "completedAt", "customerName", "backendContactNumber" FROM cases WHERE id = $1`, [actualCaseId]);
+      await query(
+        `UPDATE cases SET "verificationData" = $1, "verificationType" = 'RESIDENCE', "verificationOutcome" = $2, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $3`,
+        [JSON.stringify(verificationData), verificationOutcome, actualCaseId]
+      );
+      const caseUpd = await query(
+        `SELECT id, "caseId", status, "completedAt", "customerName", "backendContactNumber" FROM cases WHERE id = $1`,
+        [actualCaseId]
+      );
       const updatedCase = caseUpd.rows[0];
 
       // Create comprehensive residence verification report using all available fields
@@ -2160,22 +2490,24 @@ export class MobileFormController {
         remarks: formData.remarks || `${formType} residence verification completed`,
 
         // Merge all mapped form data (already includes defaults for missing fields)
-        ...mappedFormData
+        ...mappedFormData,
       };
 
       // Log comprehensive database insert data for debugging
       const nullFields = Object.entries(dbInsertData).filter(([_, value]) => value === null);
-      const populatedFields = Object.entries(dbInsertData).filter(([_, value]) =>
-        value !== null && value !== undefined && value !== ''
+      const populatedFields = Object.entries(dbInsertData).filter(
+        ([_, value]) => value !== null && value !== undefined && value !== ''
       );
 
       console.log(`📝 Final database insert data for ${formType} residence verification:`, {
         totalFields: Object.keys(dbInsertData).length,
         populatedFields: populatedFields.length,
         fieldsWithNullValues: nullFields.length,
-        fieldCoveragePercentage: Math.round((populatedFields.length / Object.keys(dbInsertData).length) * 100),
+        fieldCoveragePercentage: Math.round(
+          (populatedFields.length / Object.keys(dbInsertData).length) * 100
+        ),
         nullFieldNames: nullFields.map(([key]) => key).slice(0, 10), // Show first 10 null fields
-        samplePopulatedData: Object.fromEntries(populatedFields.slice(0, 10)) // Show first 10 populated fields
+        samplePopulatedData: Object.fromEntries(populatedFields.slice(0, 10)), // Show first 10 populated fields
       });
 
       // Build dynamic INSERT query based on available data
@@ -2218,7 +2550,7 @@ export class MobileFormController {
         caseId: actualCaseId,
         formType,
         verificationOutcome,
-        imageCount: uploadedImages.length
+        imageCount: uploadedImages.length,
       });
 
       // Send case completion notification to backend users
@@ -2263,7 +2595,13 @@ export class MobileFormController {
   static async submitOfficeVerification(req: Request, res: Response) {
     try {
       const { caseId } = req.params;
-      const { verificationTaskId, formData, geoLocation, photos, images }: MobileFormSubmissionRequest = req.body;
+      const {
+        verificationTaskId,
+        formData,
+        geoLocation,
+        photos,
+        images,
+      }: MobileFormSubmissionRequest = req.body;
       const userId = (req as any).user?.id;
       const userRole = (req as any).user?.role;
 
@@ -2272,7 +2610,9 @@ export class MobileFormController {
       console.log(`   - Verification Task ID: ${verificationTaskId}`);
       console.log(`   - Images: ${images?.length || 0}`);
       console.log(`   - Form data keys: ${Object.keys(formData || {}).join(', ')}`);
-      console.log(`   - Form data outcome: ${formData?.outcome || formData?.finalStatus || 'Not specified'}`);
+      console.log(
+        `   - Form data outcome: ${formData?.outcome || formData?.finalStatus || 'Not specified'}`
+      );
 
       if (!userId) {
         return res.status(401).json({
@@ -2319,7 +2659,10 @@ export class MobileFormController {
       }
 
       // Validate case exists
-      const caseQuery = await query(`SELECT id, "caseId", "customerName", "backendContactNumber" as "systemContact" FROM cases WHERE id = $1`, [caseId]);
+      const caseQuery = await query(
+        `SELECT id, "caseId", "customerName", "backendContactNumber" as "systemContact" FROM cases WHERE id = $1`,
+        [caseId]
+      );
       if (caseQuery.rows.length === 0) {
         return res.status(404).json({
           success: false,
@@ -2347,7 +2690,9 @@ export class MobileFormController {
       const task = taskRes.rows[0];
 
       if (!task) {
-        console.log(`❌ Verification task not found or does not belong to case: ${verificationTaskId}`);
+        console.log(
+          `❌ Verification task not found or does not belong to case: ${verificationTaskId}`
+        );
         return res.status(404).json({
           success: false,
           message: 'Verification task not found or does not belong to this case',
@@ -2374,12 +2719,16 @@ export class MobileFormController {
         });
       }
 
-      console.log(`✅ Verification task validated: ${task.task_number} (Type: ${task.verification_type_name})`);
+      console.log(
+        `✅ Verification task validated: ${task.task_number} (Type: ${task.verification_type_name})`
+      );
 
       // Determine form type and verification outcome based on form data
       const { formType, verificationOutcome } = detectOfficeFormType(formData);
 
-      console.log(`🔍 Detected form type: ${formType}, verification outcome: ${verificationOutcome}`);
+      console.log(
+        `🔍 Detected form type: ${formType}, verification outcome: ${verificationOutcome}`
+      );
 
       // Use comprehensive validation and preparation for office form data
       const { validationResult, preparedData } = validateAndPrepareOfficeForm(formData, formType);
@@ -2389,7 +2738,7 @@ export class MobileFormController {
         isValid: validationResult.isValid,
         missingFields: validationResult.missingFields,
         warnings: validationResult.warnings,
-        fieldCoverage: validationResult.fieldCoverage
+        fieldCoverage: validationResult.fieldCoverage,
       });
 
       // Generate and log field coverage report
@@ -2401,22 +2750,33 @@ export class MobileFormController {
 
       // Log warnings if any
       if (!validationResult.isValid) {
-        console.warn(`⚠️ Missing required fields for ${formType} office form:`, validationResult.missingFields);
+        console.warn(
+          `⚠️ Missing required fields for ${formType} office form:`,
+          validationResult.missingFields
+        );
       }
       if (validationResult.warnings.length > 0) {
-        console.warn(`⚠️ Validation warnings for ${formType} office form:`, validationResult.warnings);
+        console.warn(
+          `⚠️ Validation warnings for ${formType} office form:`,
+          validationResult.warnings
+        );
       }
 
       // Validate required fields for the detected form type
       const validation = validateOfficeRequiredFields(formData, formType);
       if (!validation.isValid) {
-        console.warn(`⚠️ Missing required fields for ${formType} office form:`, validation.missingFields);
+        console.warn(
+          `⚠️ Missing required fields for ${formType} office form:`,
+          validation.missingFields
+        );
       }
       if (validation.warnings.length > 0) {
         console.warn(`⚠️ Office form validation warnings:`, validation.warnings);
       }
 
-      console.log(`📊 Mapped ${Object.keys(mappedFormData).length} office form fields to database columns`);
+      console.log(
+        `📊 Mapped ${Object.keys(mappedFormData).length} office form fields to database columns`
+      );
 
       // Validate minimum photo requirement (≥5 geo-tagged photos)
       // Use images array for new submission format
@@ -2438,10 +2798,8 @@ export class MobileFormController {
 
       // Validate that all photos have geo-location (only if photos array exists)
       if (photos && photos.length > 0) {
-        const photosWithoutGeo = photos.filter(photo =>
-          !photo.geoLocation ||
-          !photo.geoLocation.latitude ||
-          !photo.geoLocation.longitude
+        const photosWithoutGeo = photos.filter(
+          !photo.geoLocation?.latitude || !photo.geoLocation.longitude
         );
 
         if (photosWithoutGeo.length > 0) {
@@ -2472,7 +2830,9 @@ export class MobileFormController {
         verificationTaskId
       );
 
-      console.log(`✅ Processed ${uploadedImages.length} verification images for office verification (Task: ${task.task_number})`);
+      console.log(
+        `✅ Processed ${uploadedImages.length} verification images for office verification (Task: ${task.task_number})`
+      );
 
       // Prepare verification data (excluding old attachment references)
       const verificationData = {
@@ -2498,25 +2858,36 @@ export class MobileFormController {
       };
 
       // Update verification task status to COMPLETED
-      await query(`
+      await query(
+        `
         UPDATE verification_tasks
         SET status = 'COMPLETED',
             completed_at = CURRENT_TIMESTAMP,
             updated_at = CURRENT_TIMESTAMP
         WHERE id = $1
-      `, [verificationTaskId]);
+      `,
+        [verificationTaskId]
+      );
 
       // Update case status based on ALL tasks (only mark as COMPLETED if all tasks are done)
       await MobileFormController.updateCaseStatusBasedOnTasks(actualCaseId);
 
       // Update case with verification data (without changing status)
-      await query(`UPDATE cases SET "verificationData" = $1, "verificationType" = 'OFFICE', "verificationOutcome" = $2, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $3`, [JSON.stringify(verificationData), verificationOutcome, actualCaseId]);
-      const caseUpd = await query(`SELECT id, "caseId", status, "completedAt", "customerName", "backendContactNumber" FROM cases WHERE id = $1`, [actualCaseId]);
+      await query(
+        `UPDATE cases SET "verificationData" = $1, "verificationType" = 'OFFICE', "verificationOutcome" = $2, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $3`,
+        [JSON.stringify(verificationData), verificationOutcome, actualCaseId]
+      );
+      const caseUpd = await query(
+        `SELECT id, "caseId", status, "completedAt", "customerName", "backendContactNumber" FROM cases WHERE id = $1`,
+        [actualCaseId]
+      );
       const updatedCase = caseUpd.rows[0];
 
       // Auto-calculate commission for completed case
       try {
-        const { autoCalculateCommissionForCase } = await import('../controllers/commissionManagementController');
+        const { autoCalculateCommissionForCase } = await import(
+          '../controllers/commissionManagementController'
+        );
         await autoCalculateCommissionForCase(actualCaseId);
       } catch (error) {
         console.error('Error auto-calculating commission for office form:', error);
@@ -2545,7 +2916,7 @@ export class MobileFormController {
         remarks: formData.remarks || `${formType} office verification completed`,
 
         // Merge all mapped form data
-        ...mappedFormData
+        ...mappedFormData,
       };
 
       // Build dynamic INSERT query based on available data
@@ -2561,17 +2932,19 @@ export class MobileFormController {
 
       // Log comprehensive database insert data for debugging
       const nullFields = Object.entries(dbInsertData).filter(([_, value]) => value === null);
-      const populatedFields = Object.entries(dbInsertData).filter(([_, value]) =>
-        value !== null && value !== undefined && value !== ''
+      const populatedFields = Object.entries(dbInsertData).filter(
+        ([_, value]) => value !== null && value !== undefined && value !== ''
       );
 
       console.log(`📝 Final database insert data for ${formType} office verification:`, {
         totalFields: Object.keys(dbInsertData).length,
         populatedFields: populatedFields.length,
         fieldsWithNullValues: nullFields.length,
-        fieldCoveragePercentage: Math.round((populatedFields.length / Object.keys(dbInsertData).length) * 100),
+        fieldCoveragePercentage: Math.round(
+          (populatedFields.length / Object.keys(dbInsertData).length) * 100
+        ),
         nullFieldNames: nullFields.map(([key]) => key).slice(0, 10), // Show first 10 null fields
-        samplePopulatedData: Object.fromEntries(populatedFields.slice(0, 10)) // Show first 10 populated fields
+        samplePopulatedData: Object.fromEntries(populatedFields.slice(0, 10)), // Show first 10 populated fields
       });
 
       console.log(`📝 Inserting office verification with ${columns.length} fields:`, columns);
@@ -2601,7 +2974,7 @@ export class MobileFormController {
         caseId: actualCaseId,
         formType,
         verificationOutcome,
-        imageCount: uploadedImages.length
+        imageCount: uploadedImages.length,
       });
 
       // Send case completion notification to backend users
@@ -2646,7 +3019,13 @@ export class MobileFormController {
   static async submitBusinessVerification(req: Request, res: Response) {
     try {
       const { caseId } = req.params;
-      const { verificationTaskId, formData, geoLocation, photos, images }: MobileFormSubmissionRequest = req.body;
+      const {
+        verificationTaskId,
+        formData,
+        geoLocation,
+        photos,
+        images,
+      }: MobileFormSubmissionRequest = req.body;
       const userId = (req as any).user?.id;
       const userRole = (req as any).user?.role;
 
@@ -2655,7 +3034,9 @@ export class MobileFormController {
       console.log(`   - Verification Task ID: ${verificationTaskId}`);
       console.log(`   - Images: ${images?.length || 0}`);
       console.log(`   - Form data keys: ${Object.keys(formData || {}).join(', ')}`);
-      console.log(`   - Form data outcome: ${formData?.outcome || formData?.finalStatus || 'Not specified'}`);
+      console.log(
+        `   - Form data outcome: ${formData?.outcome || formData?.finalStatus || 'Not specified'}`
+      );
 
       if (!userId) {
         return res.status(401).json({
@@ -2702,7 +3083,10 @@ export class MobileFormController {
       }
 
       // Validate case exists
-      const caseQuery = await query(`SELECT id, "caseId", "customerName", "backendContactNumber" as "systemContact" FROM cases WHERE id = $1`, [caseId]);
+      const caseQuery = await query(
+        `SELECT id, "caseId", "customerName", "backendContactNumber" as "systemContact" FROM cases WHERE id = $1`,
+        [caseId]
+      );
       if (caseQuery.rows.length === 0) {
         return res.status(404).json({
           success: false,
@@ -2733,7 +3117,12 @@ export class MobileFormController {
         return res.status(404).json({
           success: false,
           message: 'Verification task not found or does not belong to this case',
-          error: { code: 'TASK_NOT_FOUND', timestamp: new Date().toISOString(), verificationTaskId, caseId: actualCaseId },
+          error: {
+            code: 'TASK_NOT_FOUND',
+            timestamp: new Date().toISOString(),
+            verificationTaskId,
+            caseId: actualCaseId,
+          },
         });
       }
 
@@ -2741,16 +3130,24 @@ export class MobileFormController {
         return res.status(403).json({
           success: false,
           message: 'This verification task is not assigned to you',
-          error: { code: 'TASK_NOT_ASSIGNED', timestamp: new Date().toISOString(), verificationTaskId },
+          error: {
+            code: 'TASK_NOT_ASSIGNED',
+            timestamp: new Date().toISOString(),
+            verificationTaskId,
+          },
         });
       }
 
-      console.log(`✅ Verification task validated: ${task.task_number} (Type: ${task.verification_type_name})`);
+      console.log(
+        `✅ Verification task validated: ${task.task_number} (Type: ${task.verification_type_name})`
+      );
 
       // Determine form type and verification outcome based on form data
       const { formType, verificationOutcome } = detectBusinessFormType(formData);
 
-      console.log(`🔍 Detected form type: ${formType}, verification outcome: ${verificationOutcome}`);
+      console.log(
+        `🔍 Detected form type: ${formType}, verification outcome: ${verificationOutcome}`
+      );
 
       // Use comprehensive validation and preparation for business form data
       const { validationResult, preparedData } = validateAndPrepareBusinessForm(formData, formType);
@@ -2760,7 +3157,7 @@ export class MobileFormController {
         isValid: validationResult.isValid,
         missingFields: validationResult.missingFields,
         warnings: validationResult.warnings,
-        fieldCoverage: validationResult.fieldCoverage
+        fieldCoverage: validationResult.fieldCoverage,
       });
 
       // Generate and log field coverage report
@@ -2772,22 +3169,33 @@ export class MobileFormController {
 
       // Log warnings if any
       if (!validationResult.isValid) {
-        console.warn(`⚠️ Missing required fields for ${formType} business form:`, validationResult.missingFields);
+        console.warn(
+          `⚠️ Missing required fields for ${formType} business form:`,
+          validationResult.missingFields
+        );
       }
       if (validationResult.warnings.length > 0) {
-        console.warn(`⚠️ Validation warnings for ${formType} business form:`, validationResult.warnings);
+        console.warn(
+          `⚠️ Validation warnings for ${formType} business form:`,
+          validationResult.warnings
+        );
       }
 
       // Validate required fields for the detected form type
       const validation = validateBusinessRequiredFields(formData, formType);
       if (!validation.isValid) {
-        console.warn(`⚠️ Missing required fields for ${formType} business form:`, validation.missingFields);
+        console.warn(
+          `⚠️ Missing required fields for ${formType} business form:`,
+          validation.missingFields
+        );
       }
       if (validation.warnings.length > 0) {
         console.warn(`⚠️ Business form validation warnings:`, validation.warnings);
       }
 
-      console.log(`📊 Mapped ${Object.keys(mappedFormData).length} business form fields to database columns`);
+      console.log(
+        `📊 Mapped ${Object.keys(mappedFormData).length} business form fields to database columns`
+      );
 
       // Validate minimum photo requirement (≥5 geo-tagged photos)
       // Use images array for new submission format
@@ -2809,10 +3217,8 @@ export class MobileFormController {
 
       // Validate that all photos have geo-location (only if photos array exists)
       if (photos && photos.length > 0) {
-        const photosWithoutGeo = photos.filter(photo =>
-          !photo.geoLocation ||
-          !photo.geoLocation.latitude ||
-          !photo.geoLocation.longitude
+        const photosWithoutGeo = photos.filter(
+          photo => !photo.geoLocation?.latitude || !photo.geoLocation.longitude
         );
 
         if (photosWithoutGeo.length > 0) {
@@ -2843,7 +3249,9 @@ export class MobileFormController {
         verificationTaskId
       );
 
-      console.log(`✅ Processed ${uploadedImages.length} verification images for business verification (Task: ${task.task_number})`);
+      console.log(
+        `✅ Processed ${uploadedImages.length} verification images for business verification (Task: ${task.task_number})`
+      );
 
       // Prepare verification data (excluding old attachment references)
       const verificationData = {
@@ -2869,23 +3277,34 @@ export class MobileFormController {
       };
 
       // Update verification task status to COMPLETED
-      await query(`
+      await query(
+        `
         UPDATE verification_tasks
         SET status = 'COMPLETED', completed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
         WHERE id = $1
-      `, [verificationTaskId]);
+      `,
+        [verificationTaskId]
+      );
 
       // Update case status based on ALL tasks (only mark as COMPLETED if all tasks are done)
       await MobileFormController.updateCaseStatusBasedOnTasks(actualCaseId);
 
       // Update case with verification data (without changing status)
-      await query(`UPDATE cases SET "verificationData" = $1, "verificationType" = 'BUSINESS', "verificationOutcome" = $2, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $3`, [JSON.stringify(verificationData), verificationOutcome, actualCaseId]);
-      const caseUpd = await query(`SELECT id, "caseId", status, "completedAt", "customerName", "backendContactNumber" FROM cases WHERE id = $1`, [actualCaseId]);
+      await query(
+        `UPDATE cases SET "verificationData" = $1, "verificationType" = 'BUSINESS', "verificationOutcome" = $2, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $3`,
+        [JSON.stringify(verificationData), verificationOutcome, actualCaseId]
+      );
+      const caseUpd = await query(
+        `SELECT id, "caseId", status, "completedAt", "customerName", "backendContactNumber" FROM cases WHERE id = $1`,
+        [actualCaseId]
+      );
       const updatedCase = caseUpd.rows[0];
 
       // Auto-calculate commission for completed case
       try {
-        const { autoCalculateCommissionForCase } = await import('../controllers/commissionManagementController');
+        const { autoCalculateCommissionForCase } = await import(
+          '../controllers/commissionManagementController'
+        );
         await autoCalculateCommissionForCase(actualCaseId);
       } catch (error) {
         console.error('Error auto-calculating commission for business form:', error);
@@ -2914,24 +3333,26 @@ export class MobileFormController {
         remarks: formData.remarks || `${formType} business verification completed`,
 
         // Merge all mapped form data
-        ...mappedFormData
+        ...mappedFormData,
       };
 
       // Ensure final_status is always provided (required field)
       if (!dbInsertData['final_status']) {
         // Map outcome to final_status if not provided
         const outcomeToFinalStatusMap: Record<string, string> = {
-          'VERIFIED': 'Positive',
-          'NOT_VERIFIED': 'Negative',
-          'FRAUD': 'Fraud',
-          'REFER': 'Refer',
-          'HOLD': 'Hold',
-          'PARTIAL': 'Refer'
+          VERIFIED: 'Positive',
+          NOT_VERIFIED: 'Negative',
+          FRAUD: 'Fraud',
+          REFER: 'Refer',
+          HOLD: 'Hold',
+          PARTIAL: 'Refer',
         };
 
         const outcome = formData.outcome || 'VERIFIED';
         dbInsertData['final_status'] = outcomeToFinalStatusMap[outcome] || 'Positive';
-        console.log(`🔧 Auto-mapped outcome '${outcome}' to final_status '${dbInsertData['final_status']}'`);
+        console.log(
+          `🔧 Auto-mapped outcome '${outcome}' to final_status '${dbInsertData['final_status']}'`
+        );
       }
 
       // Build dynamic INSERT query based on available data
@@ -2957,17 +3378,19 @@ export class MobileFormController {
 
       // Log comprehensive database insert data for debugging
       const nullFields = Object.entries(dbInsertData).filter(([_, value]) => value === null);
-      const populatedFields = Object.entries(dbInsertData).filter(([_, value]) =>
-        value !== null && value !== undefined && value !== ''
+      const populatedFields = Object.entries(dbInsertData).filter(
+        ([_, value]) => value !== null && value !== undefined && value !== ''
       );
 
       console.log(`📝 Final database insert data for ${formType} business verification:`, {
         totalFields: Object.keys(dbInsertData).length,
         populatedFields: populatedFields.length,
         fieldsWithNullValues: nullFields.length,
-        fieldCoveragePercentage: Math.round((populatedFields.length / Object.keys(dbInsertData).length) * 100),
+        fieldCoveragePercentage: Math.round(
+          (populatedFields.length / Object.keys(dbInsertData).length) * 100
+        ),
         nullFieldNames: nullFields.map(([key]) => key).slice(0, 10), // Show first 10 null fields
-        samplePopulatedData: Object.fromEntries(populatedFields.slice(0, 10)) // Show first 10 populated fields
+        samplePopulatedData: Object.fromEntries(populatedFields.slice(0, 10)), // Show first 10 populated fields
       });
 
       console.log(`📝 Inserting business verification with ${columns.length} fields:`, columns);
@@ -2997,7 +3420,7 @@ export class MobileFormController {
         caseId: actualCaseId,
         formType,
         verificationOutcome,
-        imageCount: uploadedImages.length
+        imageCount: uploadedImages.length,
       });
 
       // Send case completion notification to backend users
@@ -3042,7 +3465,13 @@ export class MobileFormController {
   static async submitBuilderVerification(req: Request, res: Response) {
     try {
       const { caseId } = req.params;
-      const { verificationTaskId, formData, geoLocation, photos, images }: MobileFormSubmissionRequest = req.body;
+      const {
+        verificationTaskId,
+        formData,
+        geoLocation,
+        photos,
+        images,
+      }: MobileFormSubmissionRequest = req.body;
       const userId = (req as any).user?.id;
       const userRole = (req as any).user?.role;
 
@@ -3051,7 +3480,9 @@ export class MobileFormController {
       console.log(`   - Verification Task ID: ${verificationTaskId}`);
       console.log(`   - Images: ${images?.length || 0}`);
       console.log(`   - Form data keys: ${Object.keys(formData || {}).join(', ')}`);
-      console.log(`   - Form data outcome: ${formData?.outcome || formData?.finalStatus || 'Not specified'}`);
+      console.log(
+        `   - Form data outcome: ${formData?.outcome || formData?.finalStatus || 'Not specified'}`
+      );
 
       if (!userId) {
         return res.status(401).json({
@@ -3098,7 +3529,10 @@ export class MobileFormController {
       }
 
       // Validate case exists
-      const caseQuery = await query(`SELECT id, "caseId", "customerName", "backendContactNumber" as "systemContact" FROM cases WHERE id = $1`, [caseId]);
+      const caseQuery = await query(
+        `SELECT id, "caseId", "customerName", "backendContactNumber" as "systemContact" FROM cases WHERE id = $1`,
+        [caseId]
+      );
       if (caseQuery.rows.length === 0) {
         return res.status(404).json({
           success: false,
@@ -3129,7 +3563,12 @@ export class MobileFormController {
         return res.status(404).json({
           success: false,
           message: 'Verification task not found or does not belong to this case',
-          error: { code: 'TASK_NOT_FOUND', timestamp: new Date().toISOString(), verificationTaskId, caseId: actualCaseId },
+          error: {
+            code: 'TASK_NOT_FOUND',
+            timestamp: new Date().toISOString(),
+            verificationTaskId,
+            caseId: actualCaseId,
+          },
         });
       }
 
@@ -3137,16 +3576,24 @@ export class MobileFormController {
         return res.status(403).json({
           success: false,
           message: 'This verification task is not assigned to you',
-          error: { code: 'TASK_NOT_ASSIGNED', timestamp: new Date().toISOString(), verificationTaskId },
+          error: {
+            code: 'TASK_NOT_ASSIGNED',
+            timestamp: new Date().toISOString(),
+            verificationTaskId,
+          },
         });
       }
 
-      console.log(`✅ Verification task validated: ${task.task_number} (Type: ${task.verification_type_name})`);
+      console.log(
+        `✅ Verification task validated: ${task.task_number} (Type: ${task.verification_type_name})`
+      );
 
       // Determine form type and verification outcome based on form data
       const { formType, verificationOutcome } = detectBusinessFormType(formData); // Use business detection for builder (similar structure)
 
-      console.log(`🔍 Detected form type: ${formType}, verification outcome: ${verificationOutcome}`);
+      console.log(
+        `🔍 Detected form type: ${formType}, verification outcome: ${verificationOutcome}`
+      );
 
       // Use comprehensive validation and preparation for builder form data
       const { validationResult, preparedData } = validateAndPrepareBuilderForm(formData, formType);
@@ -3156,7 +3603,7 @@ export class MobileFormController {
         isValid: validationResult.isValid,
         missingFields: validationResult.missingFields,
         warnings: validationResult.warnings,
-        fieldCoverage: validationResult.fieldCoverage
+        fieldCoverage: validationResult.fieldCoverage,
       });
 
       // Generate and log field coverage report
@@ -3168,10 +3615,16 @@ export class MobileFormController {
 
       // Log warnings if any
       if (!validationResult.isValid) {
-        console.warn(`⚠️ Missing required fields for ${formType} builder form:`, validationResult.missingFields);
+        console.warn(
+          `⚠️ Missing required fields for ${formType} builder form:`,
+          validationResult.missingFields
+        );
       }
       if (validationResult.warnings.length > 0) {
-        console.warn(`⚠️ Validation warnings for ${formType} builder form:`, validationResult.warnings);
+        console.warn(
+          `⚠️ Validation warnings for ${formType} builder form:`,
+          validationResult.warnings
+        );
       }
 
       // Validate minimum photo requirement (≥5 geo-tagged photos)
@@ -3194,10 +3647,8 @@ export class MobileFormController {
 
       // Validate that all photos have geo-location (only if photos array exists)
       if (photos && photos.length > 0) {
-        const photosWithoutGeo = photos.filter(photo =>
-          !photo.geoLocation ||
-          !photo.geoLocation.latitude ||
-          !photo.geoLocation.longitude
+        const photosWithoutGeo = photos.filter(
+          !photo.geoLocation?.latitude || !photo.geoLocation.longitude
         );
 
         if (photosWithoutGeo.length > 0) {
@@ -3228,7 +3679,9 @@ export class MobileFormController {
         verificationTaskId
       );
 
-      console.log(`✅ Processed ${uploadedImages.length} verification images for builder verification (Task: ${task.task_number})`);
+      console.log(
+        `✅ Processed ${uploadedImages.length} verification images for builder verification (Task: ${task.task_number})`
+      );
 
       // Prepare verification data (excluding old attachment references)
       const verificationData = {
@@ -3254,23 +3707,34 @@ export class MobileFormController {
       };
 
       // Update verification task status to COMPLETED
-      await query(`
+      await query(
+        `
         UPDATE verification_tasks
         SET status = 'COMPLETED', completed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
         WHERE id = $1
-      `, [verificationTaskId]);
+      `,
+        [verificationTaskId]
+      );
 
       // Update case status based on ALL tasks (only mark as COMPLETED if all tasks are done)
       await MobileFormController.updateCaseStatusBasedOnTasks(actualCaseId);
 
       // Update case with verification data (without changing status)
-      await query(`UPDATE cases SET "verificationData" = $1, "verificationType" = 'BUILDER', "verificationOutcome" = $2, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $3`, [JSON.stringify(verificationData), verificationOutcome, actualCaseId]);
-      const caseUpd = await query(`SELECT id, "caseId", status, "completedAt", "customerName", "backendContactNumber" FROM cases WHERE id = $1`, [actualCaseId]);
+      await query(
+        `UPDATE cases SET "verificationData" = $1, "verificationType" = 'BUILDER', "verificationOutcome" = $2, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $3`,
+        [JSON.stringify(verificationData), verificationOutcome, actualCaseId]
+      );
+      const caseUpd = await query(
+        `SELECT id, "caseId", status, "completedAt", "customerName", "backendContactNumber" FROM cases WHERE id = $1`,
+        [actualCaseId]
+      );
       const updatedCase = caseUpd.rows[0];
 
       // Auto-calculate commission for completed case
       try {
-        const { autoCalculateCommissionForCase } = await import('../controllers/commissionManagementController');
+        const { autoCalculateCommissionForCase } = await import(
+          '../controllers/commissionManagementController'
+        );
         await autoCalculateCommissionForCase(actualCaseId);
       } catch (error) {
         console.error('Error auto-calculating commission for builder form:', error);
@@ -3299,7 +3763,7 @@ export class MobileFormController {
         remarks: formData.remarks || `${formType} builder verification completed`,
 
         // Merge all mapped form data
-        ...mappedFormData
+        ...mappedFormData,
       };
 
       // Get valid database columns for builder verification
@@ -3307,10 +3771,20 @@ export class MobileFormController {
 
       // Add essential system fields that are always required
       const essentialFields = [
-        'case_id', 'caseId', 'form_type', 'verification_outcome',
-        'customer_name', 'customer_phone', 'customer_email', 'full_address',
-        'verification_date', 'verification_time', 'verified_by',
-        'total_images', 'total_selfies', 'remarks'
+        'case_id',
+        'caseId',
+        'form_type',
+        'verification_outcome',
+        'customer_name',
+        'customer_phone',
+        'customer_email',
+        'full_address',
+        'verification_date',
+        'verification_time',
+        'verified_by',
+        'total_images',
+        'total_selfies',
+        'remarks',
       ];
       const allValidColumns = [...new Set([...availableDbColumns, ...essentialFields])];
 
@@ -3334,17 +3808,19 @@ export class MobileFormController {
 
       // Log comprehensive database insert data for debugging
       const nullFields = Object.entries(dbInsertData).filter(([_, value]) => value === null);
-      const populatedFields = Object.entries(dbInsertData).filter(([_, value]) =>
-        value !== null && value !== undefined && value !== ''
+      const populatedFields = Object.entries(dbInsertData).filter(
+        ([_, value]) => value !== null && value !== undefined && value !== ''
       );
 
       console.log(`📝 Final database insert data for ${formType} builder verification:`, {
         totalFields: Object.keys(dbInsertData).length,
         populatedFields: populatedFields.length,
         fieldsWithNullValues: nullFields.length,
-        fieldCoveragePercentage: Math.round((populatedFields.length / Object.keys(dbInsertData).length) * 100),
+        fieldCoveragePercentage: Math.round(
+          (populatedFields.length / Object.keys(dbInsertData).length) * 100
+        ),
         nullFieldNames: nullFields.map(([key]) => key).slice(0, 10), // Show first 10 null fields
-        samplePopulatedData: Object.fromEntries(populatedFields.slice(0, 10)) // Show first 10 populated fields
+        samplePopulatedData: Object.fromEntries(populatedFields.slice(0, 10)), // Show first 10 populated fields
       });
 
       console.log(`📝 Inserting builder verification with ${columns.length} fields:`, columns);
@@ -3374,7 +3850,7 @@ export class MobileFormController {
         caseId: actualCaseId,
         formType,
         verificationOutcome,
-        imageCount: uploadedImages.length
+        imageCount: uploadedImages.length,
       });
 
       // Send case completion notification to backend users
@@ -3419,7 +3895,13 @@ export class MobileFormController {
   static async submitResidenceCumOfficeVerification(req: Request, res: Response) {
     try {
       const { caseId } = req.params;
-      const { verificationTaskId, formData, geoLocation, photos, images }: MobileFormSubmissionRequest = req.body;
+      const {
+        verificationTaskId,
+        formData,
+        geoLocation,
+        photos,
+        images,
+      }: MobileFormSubmissionRequest = req.body;
       const userId = (req as any).user?.id;
       const userRole = (req as any).user?.role;
 
@@ -3428,7 +3910,9 @@ export class MobileFormController {
       console.log(`   - Verification Task ID: ${verificationTaskId}`);
       console.log(`   - Images: ${images?.length || 0}`);
       console.log(`   - Form data keys: ${Object.keys(formData || {}).join(', ')}`);
-      console.log(`   - Form data outcome: ${formData?.outcome || formData?.finalStatus || 'Not specified'}`);
+      console.log(
+        `   - Form data outcome: ${formData?.outcome || formData?.finalStatus || 'Not specified'}`
+      );
 
       if (!userId) {
         return res.status(401).json({
@@ -3475,7 +3959,10 @@ export class MobileFormController {
       }
 
       // Validate case exists
-      const caseQuery = await query(`SELECT id, "caseId", "customerName", "backendContactNumber" as "systemContact" FROM cases WHERE id = $1`, [caseId]);
+      const caseQuery = await query(
+        `SELECT id, "caseId", "customerName", "backendContactNumber" as "systemContact" FROM cases WHERE id = $1`,
+        [caseId]
+      );
       if (caseQuery.rows.length === 0) {
         return res.status(404).json({
           success: false,
@@ -3506,7 +3993,12 @@ export class MobileFormController {
         return res.status(404).json({
           success: false,
           message: 'Verification task not found or does not belong to this case',
-          error: { code: 'TASK_NOT_FOUND', timestamp: new Date().toISOString(), verificationTaskId, caseId: actualCaseId },
+          error: {
+            code: 'TASK_NOT_FOUND',
+            timestamp: new Date().toISOString(),
+            verificationTaskId,
+            caseId: actualCaseId,
+          },
         });
       }
 
@@ -3514,30 +4006,48 @@ export class MobileFormController {
         return res.status(403).json({
           success: false,
           message: 'This verification task is not assigned to you',
-          error: { code: 'TASK_NOT_ASSIGNED', timestamp: new Date().toISOString(), verificationTaskId },
+          error: {
+            code: 'TASK_NOT_ASSIGNED',
+            timestamp: new Date().toISOString(),
+            verificationTaskId,
+          },
         });
       }
 
-      console.log(`✅ Verification task validated: ${task.task_number} (Type: ${task.verification_type_name})`);
+      console.log(
+        `✅ Verification task validated: ${task.task_number} (Type: ${task.verification_type_name})`
+      );
 
       // Determine form type and verification outcome based on form data
       const { formType, verificationOutcome } = detectResidenceFormType(formData); // Use residence detection for hybrid form
 
-      console.log(`🔍 Detected form type: ${formType}, verification outcome: ${verificationOutcome}`);
+      console.log(
+        `🔍 Detected form type: ${formType}, verification outcome: ${verificationOutcome}`
+      );
 
       // Use comprehensive validation and preparation for residence-cum-office form data
-      const { validationResult, preparedData } = validateAndPrepareResidenceCumOfficeForm(formData, formType);
+      const { validationResult, preparedData } = validateAndPrepareResidenceCumOfficeForm(
+        formData,
+        formType
+      );
 
       // Log comprehensive validation results
-      console.log(`📊 Comprehensive validation for ${formType} residence-cum-office verification:`, {
-        isValid: validationResult.isValid,
-        missingFields: validationResult.missingFields,
-        warnings: validationResult.warnings,
-        fieldCoverage: validationResult.fieldCoverage
-      });
+      console.log(
+        `📊 Comprehensive validation for ${formType} residence-cum-office verification:`,
+        {
+          isValid: validationResult.isValid,
+          missingFields: validationResult.missingFields,
+          warnings: validationResult.warnings,
+          fieldCoverage: validationResult.fieldCoverage,
+        }
+      );
 
       // Generate and log field coverage report
-      const coverageReport = generateResidenceCumOfficeFieldCoverageReport(formData, preparedData, formType);
+      const coverageReport = generateResidenceCumOfficeFieldCoverageReport(
+        formData,
+        preparedData,
+        formType
+      );
       console.log(coverageReport);
 
       // Use the prepared data (which includes all fields with proper defaults)
@@ -3545,10 +4055,16 @@ export class MobileFormController {
 
       // Log warnings if any
       if (!validationResult.isValid) {
-        console.warn(`⚠️ Missing required fields for ${formType} residence-cum-office form:`, validationResult.missingFields);
+        console.warn(
+          `⚠️ Missing required fields for ${formType} residence-cum-office form:`,
+          validationResult.missingFields
+        );
       }
       if (validationResult.warnings.length > 0) {
-        console.warn(`⚠️ Validation warnings for ${formType} residence-cum-office form:`, validationResult.warnings);
+        console.warn(
+          `⚠️ Validation warnings for ${formType} residence-cum-office form:`,
+          validationResult.warnings
+        );
       }
 
       // Validate minimum photo requirement (≥5 geo-tagged photos)
@@ -3571,10 +4087,8 @@ export class MobileFormController {
 
       // Validate that all photos have geo-location (only if photos array exists)
       if (photos && photos.length > 0) {
-        const photosWithoutGeo = photos.filter(photo =>
-          !photo.geoLocation ||
-          !photo.geoLocation.latitude ||
-          !photo.geoLocation.longitude
+        const photosWithoutGeo = photos.filter(
+          photo => !photo.geoLocation?.latitude || !photo.geoLocation.longitude
         );
 
         if (photosWithoutGeo.length > 0) {
@@ -3605,7 +4119,9 @@ export class MobileFormController {
         verificationTaskId
       );
 
-      console.log(`✅ Processed ${uploadedImages.length} verification images for residence-cum-office verification (Task: ${task.task_number})`);
+      console.log(
+        `✅ Processed ${uploadedImages.length} verification images for residence-cum-office verification (Task: ${task.task_number})`
+      );
 
       // Prepare verification data (excluding old attachment references)
       const verificationData = {
@@ -3631,18 +4147,27 @@ export class MobileFormController {
       };
 
       // Update verification task status to COMPLETED
-      await query(`
+      await query(
+        `
         UPDATE verification_tasks
         SET status = 'COMPLETED', completed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
         WHERE id = $1
-      `, [verificationTaskId]);
+      `,
+        [verificationTaskId]
+      );
 
       // Update case status based on ALL tasks (only mark as COMPLETED if all tasks are done)
       await MobileFormController.updateCaseStatusBasedOnTasks(actualCaseId);
 
       // Update case with verification data (without changing status)
-      await query(`UPDATE cases SET "verificationData" = $1, "verificationType" = 'RESIDENCE_CUM_OFFICE', "verificationOutcome" = $2, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $3`, [JSON.stringify(verificationData), verificationOutcome, actualCaseId]);
-      const caseUpd = await query(`SELECT id, "caseId", status, "completedAt", "customerName", "backendContactNumber" FROM cases WHERE id = $1`, [actualCaseId]);
+      await query(
+        `UPDATE cases SET "verificationData" = $1, "verificationType" = 'RESIDENCE_CUM_OFFICE', "verificationOutcome" = $2, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $3`,
+        [JSON.stringify(verificationData), verificationOutcome, actualCaseId]
+      );
+      const caseUpd = await query(
+        `SELECT id, "caseId", status, "completedAt", "customerName", "backendContactNumber" FROM cases WHERE id = $1`,
+        [actualCaseId]
+      );
       const updatedCase = caseUpd.rows[0];
 
       // Create comprehensive residence-cum-office verification report using all available fields
@@ -3667,7 +4192,7 @@ export class MobileFormController {
         remarks: formData.remarks || `${formType} residence-cum-office verification completed`,
 
         // Merge all mapped form data
-        ...mappedFormData
+        ...mappedFormData,
       };
 
       // Build dynamic INSERT query based on available data
@@ -3683,20 +4208,28 @@ export class MobileFormController {
 
       // Log comprehensive database insert data for debugging
       const nullFields = Object.entries(dbInsertData).filter(([_, value]) => value === null);
-      const populatedFields = Object.entries(dbInsertData).filter(([_, value]) =>
-        value !== null && value !== undefined && value !== ''
+      const populatedFields = Object.entries(dbInsertData).filter(
+        ([_, value]) => value !== null && value !== undefined && value !== ''
       );
 
-      console.log(`📝 Final database insert data for ${formType} residence-cum-office verification:`, {
-        totalFields: Object.keys(dbInsertData).length,
-        populatedFields: populatedFields.length,
-        fieldsWithNullValues: nullFields.length,
-        fieldCoveragePercentage: Math.round((populatedFields.length / Object.keys(dbInsertData).length) * 100),
-        nullFieldNames: nullFields.map(([key]) => key).slice(0, 10), // Show first 10 null fields
-        samplePopulatedData: Object.fromEntries(populatedFields.slice(0, 10)) // Show first 10 populated fields
-      });
+      console.log(
+        `📝 Final database insert data for ${formType} residence-cum-office verification:`,
+        {
+          totalFields: Object.keys(dbInsertData).length,
+          populatedFields: populatedFields.length,
+          fieldsWithNullValues: nullFields.length,
+          fieldCoveragePercentage: Math.round(
+            (populatedFields.length / Object.keys(dbInsertData).length) * 100
+          ),
+          nullFieldNames: nullFields.map(([key]) => key).slice(0, 10), // Show first 10 null fields
+          samplePopulatedData: Object.fromEntries(populatedFields.slice(0, 10)), // Show first 10 populated fields
+        }
+      );
 
-      console.log(`📝 Inserting residence-cum-office verification with ${columns.length} fields:`, columns);
+      console.log(
+        `📝 Inserting residence-cum-office verification with ${columns.length} fields:`,
+        columns
+      );
 
       await query(insertQuery, values);
 
@@ -3723,7 +4256,7 @@ export class MobileFormController {
         caseId: actualCaseId,
         formType,
         verificationOutcome,
-        imageCount: uploadedImages.length
+        imageCount: uploadedImages.length,
       });
 
       // Send case completion notification to backend users
@@ -3768,7 +4301,13 @@ export class MobileFormController {
   static async submitDsaConnectorVerification(req: Request, res: Response) {
     try {
       const { caseId } = req.params;
-      const { verificationTaskId, formData, geoLocation, photos, images }: MobileFormSubmissionRequest = req.body;
+      const {
+        verificationTaskId,
+        formData,
+        geoLocation,
+        photos,
+        images,
+      }: MobileFormSubmissionRequest = req.body;
       const userId = (req as any).user?.id;
       const userRole = (req as any).user?.role;
 
@@ -3777,7 +4316,9 @@ export class MobileFormController {
       console.log(`   - Verification Task ID: ${verificationTaskId}`);
       console.log(`   - Images: ${images?.length || 0}`);
       console.log(`   - Form data keys: ${Object.keys(formData || {}).join(', ')}`);
-      console.log(`   - Form data outcome: ${formData?.outcome || formData?.finalStatus || 'Not specified'}`);
+      console.log(
+        `   - Form data outcome: ${formData?.outcome || formData?.finalStatus || 'Not specified'}`
+      );
 
       if (!userId) {
         return res.status(401).json({
@@ -3824,7 +4365,10 @@ export class MobileFormController {
       }
 
       // Validate case exists
-      const caseQuery = await query(`SELECT id, "caseId", "customerName", "backendContactNumber" as "systemContact" FROM cases WHERE id = $1`, [caseId]);
+      const caseQuery = await query(
+        `SELECT id, "caseId", "customerName", "backendContactNumber" as "systemContact" FROM cases WHERE id = $1`,
+        [caseId]
+      );
       if (caseQuery.rows.length === 0) {
         return res.status(404).json({
           success: false,
@@ -3855,7 +4399,12 @@ export class MobileFormController {
         return res.status(404).json({
           success: false,
           message: 'Verification task not found or does not belong to this case',
-          error: { code: 'TASK_NOT_FOUND', timestamp: new Date().toISOString(), verificationTaskId, caseId: actualCaseId },
+          error: {
+            code: 'TASK_NOT_FOUND',
+            timestamp: new Date().toISOString(),
+            verificationTaskId,
+            caseId: actualCaseId,
+          },
         });
       }
 
@@ -3863,30 +4412,45 @@ export class MobileFormController {
         return res.status(403).json({
           success: false,
           message: 'This verification task is not assigned to you',
-          error: { code: 'TASK_NOT_ASSIGNED', timestamp: new Date().toISOString(), verificationTaskId },
+          error: {
+            code: 'TASK_NOT_ASSIGNED',
+            timestamp: new Date().toISOString(),
+            verificationTaskId,
+          },
         });
       }
 
-      console.log(`✅ Verification task validated: ${task.task_number} (Type: ${task.verification_type_name})`);
+      console.log(
+        `✅ Verification task validated: ${task.task_number} (Type: ${task.verification_type_name})`
+      );
 
       // Determine form type and verification outcome based on form data
       const { formType, verificationOutcome } = detectBusinessFormType(formData); // Use business detection for DSA/DST Connector (similar structure)
 
-      console.log(`🔍 Detected form type: ${formType}, verification outcome: ${verificationOutcome}`);
+      console.log(
+        `🔍 Detected form type: ${formType}, verification outcome: ${verificationOutcome}`
+      );
 
       // Use comprehensive validation and preparation for DSA Connector form data
-      const { validationResult, preparedData } = validateAndPrepareDsaConnectorForm(formData, formType);
+      const { validationResult, preparedData } = validateAndPrepareDsaConnectorForm(
+        formData,
+        formType
+      );
 
       // Log comprehensive validation results
       console.log(`📊 Comprehensive validation for ${formType} DSA Connector verification:`, {
         isValid: validationResult.isValid,
         missingFields: validationResult.missingFields,
         warnings: validationResult.warnings,
-        fieldCoverage: validationResult.fieldCoverage
+        fieldCoverage: validationResult.fieldCoverage,
       });
 
       // Generate and log field coverage report
-      const coverageReport = generateDsaConnectorFieldCoverageReport(formData, preparedData, formType);
+      const coverageReport = generateDsaConnectorFieldCoverageReport(
+        formData,
+        preparedData,
+        formType
+      );
       console.log(coverageReport);
 
       // Use the prepared data (which includes all fields with proper defaults)
@@ -3894,10 +4458,16 @@ export class MobileFormController {
 
       // Log warnings if any
       if (!validationResult.isValid) {
-        console.warn(`⚠️ Missing required fields for ${formType} DSA Connector form:`, validationResult.missingFields);
+        console.warn(
+          `⚠️ Missing required fields for ${formType} DSA Connector form:`,
+          validationResult.missingFields
+        );
       }
       if (validationResult.warnings.length > 0) {
-        console.warn(`⚠️ Validation warnings for ${formType} DSA Connector form:`, validationResult.warnings);
+        console.warn(
+          `⚠️ Validation warnings for ${formType} DSA Connector form:`,
+          validationResult.warnings
+        );
       }
 
       // Validate minimum photo requirement (≥5 geo-tagged photos)
@@ -3920,10 +4490,8 @@ export class MobileFormController {
 
       // Validate that all photos have geo-location (only if photos array exists)
       if (photos && photos.length > 0) {
-        const photosWithoutGeo = photos.filter(photo =>
-          !photo.geoLocation ||
-          !photo.geoLocation.latitude ||
-          !photo.geoLocation.longitude
+        const photosWithoutGeo = photos.filter(
+          !photo.geoLocation?.latitude || !photo.geoLocation.longitude
         );
 
         if (photosWithoutGeo.length > 0) {
@@ -3954,7 +4522,9 @@ export class MobileFormController {
         verificationTaskId
       );
 
-      console.log(`✅ Processed ${uploadedImages.length} verification images for DSA/DST Connector verification (Task: ${task.task_number})`);
+      console.log(
+        `✅ Processed ${uploadedImages.length} verification images for DSA/DST Connector verification (Task: ${task.task_number})`
+      );
 
       // Prepare verification data (excluding old attachment references)
       const verificationData = {
@@ -3980,23 +4550,34 @@ export class MobileFormController {
       };
 
       // Update verification task status to COMPLETED
-      await query(`
+      await query(
+        `
         UPDATE verification_tasks
         SET status = 'COMPLETED', completed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
         WHERE id = $1
-      `, [verificationTaskId]);
+      `,
+        [verificationTaskId]
+      );
 
       // Update case status based on ALL tasks (only mark as COMPLETED if all tasks are done)
       await MobileFormController.updateCaseStatusBasedOnTasks(actualCaseId);
 
       // Update case with verification data (without changing status)
-      await query(`UPDATE cases SET "verificationData" = $1, "verificationType" = 'DSA_CONNECTOR', "verificationOutcome" = $2, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $3`, [JSON.stringify(verificationData), verificationOutcome, actualCaseId]);
-      const caseUpd = await query(`SELECT id, "caseId", status, "completedAt", "customerName", "backendContactNumber" FROM cases WHERE id = $1`, [actualCaseId]);
+      await query(
+        `UPDATE cases SET "verificationData" = $1, "verificationType" = 'DSA_CONNECTOR', "verificationOutcome" = $2, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $3`,
+        [JSON.stringify(verificationData), verificationOutcome, actualCaseId]
+      );
+      const caseUpd = await query(
+        `SELECT id, "caseId", status, "completedAt", "customerName", "backendContactNumber" FROM cases WHERE id = $1`,
+        [actualCaseId]
+      );
       const updatedCase = caseUpd.rows[0];
 
       // Auto-calculate commission for completed case
       try {
-        const { autoCalculateCommissionForCase } = await import('../controllers/commissionManagementController');
+        const { autoCalculateCommissionForCase } = await import(
+          '../controllers/commissionManagementController'
+        );
         await autoCalculateCommissionForCase(actualCaseId);
       } catch (error) {
         console.error('Error auto-calculating commission for DSA connector form:', error);
@@ -4025,7 +4606,7 @@ export class MobileFormController {
         remarks: formData.remarks || `${formType} DSA/DST Connector verification completed`,
 
         // Merge all mapped form data
-        ...mappedFormData
+        ...mappedFormData,
       };
 
       // Get valid database columns for DSA Connector verification
@@ -4033,10 +4614,20 @@ export class MobileFormController {
 
       // Add essential system fields that are always required
       const essentialFields = [
-        'case_id', 'caseId', 'form_type', 'verification_outcome',
-        'customer_name', 'customer_phone', 'customer_email', 'full_address',
-        'verification_date', 'verification_time', 'verified_by',
-        'total_images', 'total_selfies', 'remarks'
+        'case_id',
+        'caseId',
+        'form_type',
+        'verification_outcome',
+        'customer_name',
+        'customer_phone',
+        'customer_email',
+        'full_address',
+        'verification_date',
+        'verification_time',
+        'verified_by',
+        'total_images',
+        'total_selfies',
+        'remarks',
       ];
       const allValidColumns = [...new Set([...availableDbColumns, ...essentialFields])];
 
@@ -4060,20 +4651,25 @@ export class MobileFormController {
 
       // Log comprehensive database insert data for debugging
       const nullFields = Object.entries(dbInsertData).filter(([_, value]) => value === null);
-      const populatedFields = Object.entries(dbInsertData).filter(([_, value]) =>
-        value !== null && value !== undefined && value !== ''
+      const populatedFields = Object.entries(dbInsertData).filter(
+        ([_, value]) => value !== null && value !== undefined && value !== ''
       );
 
       console.log(`📝 Final database insert data for ${formType} DSA Connector verification:`, {
         totalFields: Object.keys(dbInsertData).length,
         populatedFields: populatedFields.length,
         fieldsWithNullValues: nullFields.length,
-        fieldCoveragePercentage: Math.round((populatedFields.length / Object.keys(dbInsertData).length) * 100),
+        fieldCoveragePercentage: Math.round(
+          (populatedFields.length / Object.keys(dbInsertData).length) * 100
+        ),
         nullFieldNames: nullFields.map(([key]) => key).slice(0, 10), // Show first 10 null fields
-        samplePopulatedData: Object.fromEntries(populatedFields.slice(0, 10)) // Show first 10 populated fields
+        samplePopulatedData: Object.fromEntries(populatedFields.slice(0, 10)), // Show first 10 populated fields
       });
 
-      console.log(`📝 Inserting DSA/DST Connector verification with ${columns.length} fields:`, columns);
+      console.log(
+        `📝 Inserting DSA/DST Connector verification with ${columns.length} fields:`,
+        columns
+      );
 
       await query(insertQuery, values);
 
@@ -4100,7 +4696,7 @@ export class MobileFormController {
         caseId: actualCaseId,
         formType,
         verificationOutcome,
-        imageCount: uploadedImages.length
+        imageCount: uploadedImages.length,
       });
 
       // Send case completion notification to backend users
@@ -4145,7 +4741,13 @@ export class MobileFormController {
   static async submitPropertyIndividualVerification(req: Request, res: Response) {
     try {
       const { caseId } = req.params;
-      const { verificationTaskId, formData, geoLocation, photos, images }: MobileFormSubmissionRequest = req.body;
+      const {
+        verificationTaskId,
+        formData,
+        geoLocation,
+        photos,
+        images,
+      }: MobileFormSubmissionRequest = req.body;
       const userId = (req as any).user?.id;
       const userRole = (req as any).user?.role;
 
@@ -4154,7 +4756,9 @@ export class MobileFormController {
       console.log(`   - Verification Task ID: ${verificationTaskId}`);
       console.log(`   - Images: ${images?.length || 0}`);
       console.log(`   - Form data keys: ${Object.keys(formData || {}).join(', ')}`);
-      console.log(`   - Form data outcome: ${formData?.outcome || formData?.finalStatus || 'Not specified'}`);
+      console.log(
+        `   - Form data outcome: ${formData?.outcome || formData?.finalStatus || 'Not specified'}`
+      );
 
       if (!userId) {
         return res.status(401).json({
@@ -4201,7 +4805,10 @@ export class MobileFormController {
       }
 
       // Validate case exists
-      const caseQuery = await query(`SELECT id, "caseId", "customerName", "backendContactNumber" as "systemContact" FROM cases WHERE id = $1`, [caseId]);
+      const caseQuery = await query(
+        `SELECT id, "caseId", "customerName", "backendContactNumber" as "systemContact" FROM cases WHERE id = $1`,
+        [caseId]
+      );
       if (caseQuery.rows.length === 0) {
         return res.status(404).json({
           success: false,
@@ -4232,7 +4839,12 @@ export class MobileFormController {
         return res.status(404).json({
           success: false,
           message: 'Verification task not found or does not belong to this case',
-          error: { code: 'TASK_NOT_FOUND', timestamp: new Date().toISOString(), verificationTaskId, caseId: actualCaseId },
+          error: {
+            code: 'TASK_NOT_FOUND',
+            timestamp: new Date().toISOString(),
+            verificationTaskId,
+            caseId: actualCaseId,
+          },
         });
       }
 
@@ -4240,30 +4852,45 @@ export class MobileFormController {
         return res.status(403).json({
           success: false,
           message: 'This verification task is not assigned to you',
-          error: { code: 'TASK_NOT_ASSIGNED', timestamp: new Date().toISOString(), verificationTaskId },
+          error: {
+            code: 'TASK_NOT_ASSIGNED',
+            timestamp: new Date().toISOString(),
+            verificationTaskId,
+          },
         });
       }
 
-      console.log(`✅ Verification task validated: ${task.task_number} (Type: ${task.verification_type_name})`);
+      console.log(
+        `✅ Verification task validated: ${task.task_number} (Type: ${task.verification_type_name})`
+      );
 
       // Determine form type and verification outcome based on form data
       const { formType, verificationOutcome } = detectPropertyIndividualFormType(formData);
 
-      console.log(`🔍 Detected form type: ${formType}, verification outcome: ${verificationOutcome}`);
+      console.log(
+        `🔍 Detected form type: ${formType}, verification outcome: ${verificationOutcome}`
+      );
 
       // Use comprehensive validation and preparation for Property Individual form data
-      const { validationResult, preparedData } = validateAndPreparePropertyIndividualForm(formData, formType);
+      const { validationResult, preparedData } = validateAndPreparePropertyIndividualForm(
+        formData,
+        formType
+      );
 
       // Log comprehensive validation results
       console.log(`📊 Comprehensive validation for ${formType} Property Individual verification:`, {
         isValid: validationResult.isValid,
         missingFields: validationResult.missingFields,
         warnings: validationResult.warnings,
-        fieldCoverage: validationResult.fieldCoverage
+        fieldCoverage: validationResult.fieldCoverage,
       });
 
       // Generate and log field coverage report
-      const coverageReport = generatePropertyIndividualFieldCoverageReport(formData, preparedData, formType);
+      const coverageReport = generatePropertyIndividualFieldCoverageReport(
+        formData,
+        preparedData,
+        formType
+      );
       console.log(coverageReport);
 
       // Use the prepared data (which includes all fields with proper defaults)
@@ -4271,10 +4898,16 @@ export class MobileFormController {
 
       // Log warnings if any
       if (!validationResult.isValid) {
-        console.warn(`⚠️ Missing required fields for ${formType} Property Individual form:`, validationResult.missingFields);
+        console.warn(
+          `⚠️ Missing required fields for ${formType} Property Individual form:`,
+          validationResult.missingFields
+        );
       }
       if (validationResult.warnings.length > 0) {
-        console.warn(`⚠️ Validation warnings for ${formType} Property Individual form:`, validationResult.warnings);
+        console.warn(
+          `⚠️ Validation warnings for ${formType} Property Individual form:`,
+          validationResult.warnings
+        );
       }
 
       // Validate minimum photo requirement (≥5 geo-tagged photos)
@@ -4297,10 +4930,8 @@ export class MobileFormController {
 
       // Validate that all photos have geo-location (only if photos array exists)
       if (photos && photos.length > 0) {
-        const photosWithoutGeo = photos.filter(photo =>
-          !photo.geoLocation ||
-          !photo.geoLocation.latitude ||
-          !photo.geoLocation.longitude
+        const photosWithoutGeo = photos.filter(
+          photo => !photo.geoLocation?.latitude || !photo.geoLocation.longitude
         );
 
         if (photosWithoutGeo.length > 0) {
@@ -4331,7 +4962,9 @@ export class MobileFormController {
         verificationTaskId
       );
 
-      console.log(`✅ Processed ${uploadedImages.length} verification images for Property Individual verification (Task: ${task.task_number})`);
+      console.log(
+        `✅ Processed ${uploadedImages.length} verification images for Property Individual verification (Task: ${task.task_number})`
+      );
 
       // Prepare verification data (excluding old attachment references)
       const verificationData = {
@@ -4357,18 +4990,27 @@ export class MobileFormController {
       };
 
       // Update verification task status to COMPLETED
-      await query(`
+      await query(
+        `
         UPDATE verification_tasks
         SET status = 'COMPLETED', completed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
         WHERE id = $1
-      `, [verificationTaskId]);
+      `,
+        [verificationTaskId]
+      );
 
       // Update case status based on ALL tasks (only mark as COMPLETED if all tasks are done)
       await MobileFormController.updateCaseStatusBasedOnTasks(actualCaseId);
 
       // Update case with verification data (without changing status)
-      await query(`UPDATE cases SET "verificationData" = $1, "verificationType" = 'PROPERTY_INDIVIDUAL', "verificationOutcome" = $2, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $3`, [JSON.stringify(verificationData), verificationOutcome, actualCaseId]);
-      const caseUpd = await query(`SELECT id, "caseId", status, "completedAt", "customerName", "backendContactNumber" FROM cases WHERE id = $1`, [actualCaseId]);
+      await query(
+        `UPDATE cases SET "verificationData" = $1, "verificationType" = 'PROPERTY_INDIVIDUAL', "verificationOutcome" = $2, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $3`,
+        [JSON.stringify(verificationData), verificationOutcome, actualCaseId]
+      );
+      const caseUpd = await query(
+        `SELECT id, "caseId", status, "completedAt", "customerName", "backendContactNumber" FROM cases WHERE id = $1`,
+        [actualCaseId]
+      );
       const updatedCase = caseUpd.rows[0];
 
       // Create comprehensive Property Individual verification report using all available fields
@@ -4393,7 +5035,7 @@ export class MobileFormController {
         remarks: formData.remarks || `${formType} Property Individual verification completed`,
 
         // Merge all mapped form data
-        ...mappedFormData
+        ...mappedFormData,
       };
 
       // Build dynamic INSERT query based on available data
@@ -4409,20 +5051,28 @@ export class MobileFormController {
 
       // Log comprehensive database insert data for debugging
       const nullFields = Object.entries(dbInsertData).filter(([_, value]) => value === null);
-      const populatedFields = Object.entries(dbInsertData).filter(([_, value]) =>
-        value !== null && value !== undefined && value !== ''
+      const populatedFields = Object.entries(dbInsertData).filter(
+        ([_, value]) => value !== null && value !== undefined && value !== ''
       );
 
-      console.log(`📝 Final database insert data for ${formType} Property Individual verification:`, {
-        totalFields: Object.keys(dbInsertData).length,
-        populatedFields: populatedFields.length,
-        fieldsWithNullValues: nullFields.length,
-        fieldCoveragePercentage: Math.round((populatedFields.length / Object.keys(dbInsertData).length) * 100),
-        nullFieldNames: nullFields.map(([key]) => key).slice(0, 10), // Show first 10 null fields
-        samplePopulatedData: Object.fromEntries(populatedFields.slice(0, 10)) // Show first 10 populated fields
-      });
+      console.log(
+        `📝 Final database insert data for ${formType} Property Individual verification:`,
+        {
+          totalFields: Object.keys(dbInsertData).length,
+          populatedFields: populatedFields.length,
+          fieldsWithNullValues: nullFields.length,
+          fieldCoveragePercentage: Math.round(
+            (populatedFields.length / Object.keys(dbInsertData).length) * 100
+          ),
+          nullFieldNames: nullFields.map(([key]) => key).slice(0, 10), // Show first 10 null fields
+          samplePopulatedData: Object.fromEntries(populatedFields.slice(0, 10)), // Show first 10 populated fields
+        }
+      );
 
-      console.log(`📝 Inserting Property Individual verification with ${columns.length} fields:`, columns);
+      console.log(
+        `📝 Inserting Property Individual verification with ${columns.length} fields:`,
+        columns
+      );
 
       await query(insertQuery, values);
 
@@ -4449,7 +5099,7 @@ export class MobileFormController {
         caseId: actualCaseId,
         formType,
         verificationOutcome,
-        imageCount: uploadedImages.length
+        imageCount: uploadedImages.length,
       });
 
       // Send case completion notification to backend users
@@ -4494,7 +5144,13 @@ export class MobileFormController {
   static async submitPropertyApfVerification(req: Request, res: Response) {
     try {
       const { caseId } = req.params;
-      const { verificationTaskId, formData, geoLocation, photos, images }: MobileFormSubmissionRequest = req.body;
+      const {
+        verificationTaskId,
+        formData,
+        geoLocation,
+        photos,
+        images,
+      }: MobileFormSubmissionRequest = req.body;
       const userId = (req as any).user?.id;
       const userRole = (req as any).user?.role;
 
@@ -4503,7 +5159,9 @@ export class MobileFormController {
       console.log(`   - Verification Task ID: ${verificationTaskId}`);
       console.log(`   - Images: ${images?.length || 0}`);
       console.log(`   - Form data keys: ${Object.keys(formData || {}).join(', ')}`);
-      console.log(`   - Form data outcome: ${formData?.outcome || formData?.finalStatus || 'Not specified'}`);
+      console.log(
+        `   - Form data outcome: ${formData?.outcome || formData?.finalStatus || 'Not specified'}`
+      );
 
       if (!userId) {
         return res.status(401).json({
@@ -4550,7 +5208,10 @@ export class MobileFormController {
       }
 
       // Validate case exists
-      const caseQuery = await query(`SELECT id, "caseId", "customerName", "backendContactNumber" as "systemContact" FROM cases WHERE id = $1`, [caseId]);
+      const caseQuery = await query(
+        `SELECT id, "caseId", "customerName", "backendContactNumber" as "systemContact" FROM cases WHERE id = $1`,
+        [caseId]
+      );
       if (caseQuery.rows.length === 0) {
         return res.status(404).json({
           success: false,
@@ -4581,7 +5242,12 @@ export class MobileFormController {
         return res.status(404).json({
           success: false,
           message: 'Verification task not found or does not belong to this case',
-          error: { code: 'TASK_NOT_FOUND', timestamp: new Date().toISOString(), verificationTaskId, caseId: actualCaseId },
+          error: {
+            code: 'TASK_NOT_FOUND',
+            timestamp: new Date().toISOString(),
+            verificationTaskId,
+            caseId: actualCaseId,
+          },
         });
       }
 
@@ -4589,30 +5255,45 @@ export class MobileFormController {
         return res.status(403).json({
           success: false,
           message: 'This verification task is not assigned to you',
-          error: { code: 'TASK_NOT_ASSIGNED', timestamp: new Date().toISOString(), verificationTaskId },
+          error: {
+            code: 'TASK_NOT_ASSIGNED',
+            timestamp: new Date().toISOString(),
+            verificationTaskId,
+          },
         });
       }
 
-      console.log(`✅ Verification task validated: ${task.task_number} (Type: ${task.verification_type_name})`);
+      console.log(
+        `✅ Verification task validated: ${task.task_number} (Type: ${task.verification_type_name})`
+      );
 
       // Determine form type and verification outcome based on form data
       const { formType, verificationOutcome } = detectBusinessFormType(formData); // Use business detection for Property APF (similar structure)
 
-      console.log(`🔍 Detected form type: ${formType}, verification outcome: ${verificationOutcome}`);
+      console.log(
+        `🔍 Detected form type: ${formType}, verification outcome: ${verificationOutcome}`
+      );
 
       // Use comprehensive validation and preparation for Property APF form data
-      const { validationResult, preparedData } = validateAndPreparePropertyApfForm(formData, formType);
+      const { validationResult, preparedData } = validateAndPreparePropertyApfForm(
+        formData,
+        formType
+      );
 
       // Log comprehensive validation results
       console.log(`📊 Comprehensive validation for ${formType} Property APF verification:`, {
         isValid: validationResult.isValid,
         missingFields: validationResult.missingFields,
         warnings: validationResult.warnings,
-        fieldCoverage: validationResult.fieldCoverage
+        fieldCoverage: validationResult.fieldCoverage,
       });
 
       // Generate and log field coverage report
-      const coverageReport = generatePropertyApfFieldCoverageReport(formData, preparedData, formType);
+      const coverageReport = generatePropertyApfFieldCoverageReport(
+        formData,
+        preparedData,
+        formType
+      );
       console.log(coverageReport);
 
       // Use the prepared data (which includes all fields with proper defaults)
@@ -4620,10 +5301,16 @@ export class MobileFormController {
 
       // Log warnings if any
       if (!validationResult.isValid) {
-        console.warn(`⚠️ Missing required fields for ${formType} Property APF form:`, validationResult.missingFields);
+        console.warn(
+          `⚠️ Missing required fields for ${formType} Property APF form:`,
+          validationResult.missingFields
+        );
       }
       if (validationResult.warnings.length > 0) {
-        console.warn(`⚠️ Validation warnings for ${formType} Property APF form:`, validationResult.warnings);
+        console.warn(
+          `⚠️ Validation warnings for ${formType} Property APF form:`,
+          validationResult.warnings
+        );
       }
 
       // Validate minimum photo requirement (≥5 geo-tagged photos)
@@ -4646,10 +5333,8 @@ export class MobileFormController {
 
       // Validate that all photos have geo-location (only if photos array exists)
       if (photos && photos.length > 0) {
-        const photosWithoutGeo = photos.filter(photo =>
-          !photo.geoLocation ||
-          !photo.geoLocation.latitude ||
-          !photo.geoLocation.longitude
+        const photosWithoutGeo = photos.filter(
+          photo => !photo.geoLocation?.latitude || !photo.geoLocation.longitude
         );
 
         if (photosWithoutGeo.length > 0) {
@@ -4680,7 +5365,9 @@ export class MobileFormController {
         verificationTaskId
       );
 
-      console.log(`✅ Processed ${uploadedImages.length} verification images for Property APF verification (Task: ${task.task_number})`);
+      console.log(
+        `✅ Processed ${uploadedImages.length} verification images for Property APF verification (Task: ${task.task_number})`
+      );
 
       // Prepare verification data (excluding old attachment references)
       const verificationData = {
@@ -4706,18 +5393,27 @@ export class MobileFormController {
       };
 
       // Update verification task status to COMPLETED
-      await query(`
+      await query(
+        `
         UPDATE verification_tasks
         SET status = 'COMPLETED', completed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
         WHERE id = $1
-      `, [verificationTaskId]);
+      `,
+        [verificationTaskId]
+      );
 
       // Update case status based on ALL tasks (only mark as COMPLETED if all tasks are done)
       await MobileFormController.updateCaseStatusBasedOnTasks(actualCaseId);
 
       // Update case with verification data (without changing status)
-      await query(`UPDATE cases SET "verificationData" = $1, "verificationType" = 'PROPERTY_APF', "verificationOutcome" = $2, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $3`, [JSON.stringify(verificationData), verificationOutcome, actualCaseId]);
-      const caseUpd = await query(`SELECT id, "caseId", status, "completedAt", "customerName", "backendContactNumber" FROM cases WHERE id = $1`, [actualCaseId]);
+      await query(
+        `UPDATE cases SET "verificationData" = $1, "verificationType" = 'PROPERTY_APF', "verificationOutcome" = $2, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $3`,
+        [JSON.stringify(verificationData), verificationOutcome, actualCaseId]
+      );
+      const caseUpd = await query(
+        `SELECT id, "caseId", status, "completedAt", "customerName", "backendContactNumber" FROM cases WHERE id = $1`,
+        [actualCaseId]
+      );
       const updatedCase = caseUpd.rows[0];
 
       // Create comprehensive Property APF verification report using all available fields
@@ -4742,7 +5438,7 @@ export class MobileFormController {
         remarks: formData.remarks || `${formType} Property APF verification completed`,
 
         // Merge all mapped form data
-        ...mappedFormData
+        ...mappedFormData,
       };
 
       // Get valid database columns for Property APF verification
@@ -4750,10 +5446,20 @@ export class MobileFormController {
 
       // Add essential system fields that are always required
       const essentialFields = [
-        'case_id', 'caseId', 'form_type', 'verification_outcome',
-        'customer_name', 'customer_phone', 'customer_email', 'full_address',
-        'verification_date', 'verification_time', 'verified_by',
-        'total_images', 'total_selfies', 'remarks'
+        'case_id',
+        'caseId',
+        'form_type',
+        'verification_outcome',
+        'customer_name',
+        'customer_phone',
+        'customer_email',
+        'full_address',
+        'verification_date',
+        'verification_time',
+        'verified_by',
+        'total_images',
+        'total_selfies',
+        'remarks',
       ];
       const allValidColumns = [...new Set([...availableDbColumns, ...essentialFields])];
 
@@ -4777,17 +5483,19 @@ export class MobileFormController {
 
       // Log comprehensive database insert data for debugging
       const nullFields = Object.entries(dbInsertData).filter(([_, value]) => value === null);
-      const populatedFields = Object.entries(dbInsertData).filter(([_, value]) =>
-        value !== null && value !== undefined && value !== ''
+      const populatedFields = Object.entries(dbInsertData).filter(
+        ([_, value]) => value !== null && value !== undefined && value !== ''
       );
 
       console.log(`📝 Final database insert data for ${formType} Property APF verification:`, {
         totalFields: Object.keys(dbInsertData).length,
         populatedFields: populatedFields.length,
         fieldsWithNullValues: nullFields.length,
-        fieldCoveragePercentage: Math.round((populatedFields.length / Object.keys(dbInsertData).length) * 100),
+        fieldCoveragePercentage: Math.round(
+          (populatedFields.length / Object.keys(dbInsertData).length) * 100
+        ),
         nullFieldNames: nullFields.map(([key]) => key).slice(0, 10), // Show first 10 null fields
-        samplePopulatedData: Object.fromEntries(populatedFields.slice(0, 10)) // Show first 10 populated fields
+        samplePopulatedData: Object.fromEntries(populatedFields.slice(0, 10)), // Show first 10 populated fields
       });
 
       console.log(`📝 Inserting Property APF verification with ${columns.length} fields:`, columns);
@@ -4817,7 +5525,7 @@ export class MobileFormController {
         caseId: actualCaseId,
         formType,
         verificationOutcome,
-        imageCount: uploadedImages.length
+        imageCount: uploadedImages.length,
       });
 
       // Send case completion notification to backend users
@@ -4862,7 +5570,13 @@ export class MobileFormController {
   static async submitNocVerification(req: Request, res: Response) {
     try {
       const { caseId } = req.params;
-      const { verificationTaskId, formData, geoLocation, photos, images }: MobileFormSubmissionRequest = req.body;
+      const {
+        verificationTaskId,
+        formData,
+        geoLocation,
+        photos,
+        images,
+      }: MobileFormSubmissionRequest = req.body;
       const userId = (req as any).user?.id;
       const userRole = (req as any).user?.role;
 
@@ -4871,7 +5585,9 @@ export class MobileFormController {
       console.log(`   - Verification Task ID: ${verificationTaskId}`);
       console.log(`   - Images: ${images?.length || 0}`);
       console.log(`   - Form data keys: ${Object.keys(formData || {}).join(', ')}`);
-      console.log(`   - Form data outcome: ${formData?.outcome || formData?.finalStatus || 'Not specified'}`);
+      console.log(
+        `   - Form data outcome: ${formData?.outcome || formData?.finalStatus || 'Not specified'}`
+      );
 
       if (!userId) {
         return res.status(401).json({
@@ -4918,7 +5634,10 @@ export class MobileFormController {
       }
 
       // Validate case exists
-      const caseQuery = await query(`SELECT id, "caseId", "customerName", "backendContactNumber" as "systemContact" FROM cases WHERE id = $1`, [caseId]);
+      const caseQuery = await query(
+        `SELECT id, "caseId", "customerName", "backendContactNumber" as "systemContact" FROM cases WHERE id = $1`,
+        [caseId]
+      );
       if (caseQuery.rows.length === 0) {
         return res.status(404).json({
           success: false,
@@ -4949,7 +5668,12 @@ export class MobileFormController {
         return res.status(404).json({
           success: false,
           message: 'Verification task not found or does not belong to this case',
-          error: { code: 'TASK_NOT_FOUND', timestamp: new Date().toISOString(), verificationTaskId, caseId: actualCaseId },
+          error: {
+            code: 'TASK_NOT_FOUND',
+            timestamp: new Date().toISOString(),
+            verificationTaskId,
+            caseId: actualCaseId,
+          },
         });
       }
 
@@ -4957,16 +5681,24 @@ export class MobileFormController {
         return res.status(403).json({
           success: false,
           message: 'This verification task is not assigned to you',
-          error: { code: 'TASK_NOT_ASSIGNED', timestamp: new Date().toISOString(), verificationTaskId },
+          error: {
+            code: 'TASK_NOT_ASSIGNED',
+            timestamp: new Date().toISOString(),
+            verificationTaskId,
+          },
         });
       }
 
-      console.log(`✅ Verification task validated: ${task.task_number} (Type: ${task.verification_type_name})`);
+      console.log(
+        `✅ Verification task validated: ${task.task_number} (Type: ${task.verification_type_name})`
+      );
 
       // Determine form type and verification outcome based on form data
       const { formType, verificationOutcome } = detectBusinessFormType(formData); // Use business detection for NOC (similar structure)
 
-      console.log(`🔍 Detected form type: ${formType}, verification outcome: ${verificationOutcome}`);
+      console.log(
+        `🔍 Detected form type: ${formType}, verification outcome: ${verificationOutcome}`
+      );
 
       // Use comprehensive validation and preparation for NOC form data
       const { validationResult, preparedData } = validateAndPrepareNocForm(formData, formType);
@@ -4976,7 +5708,7 @@ export class MobileFormController {
         isValid: validationResult.isValid,
         missingFields: validationResult.missingFields,
         warnings: validationResult.warnings,
-        fieldCoverage: validationResult.fieldCoverage
+        fieldCoverage: validationResult.fieldCoverage,
       });
 
       // Generate and log field coverage report
@@ -4988,7 +5720,10 @@ export class MobileFormController {
 
       // Log warnings if any
       if (!validationResult.isValid) {
-        console.warn(`⚠️ Missing required fields for ${formType} NOC form:`, validationResult.missingFields);
+        console.warn(
+          `⚠️ Missing required fields for ${formType} NOC form:`,
+          validationResult.missingFields
+        );
       }
       if (validationResult.warnings.length > 0) {
         console.warn(`⚠️ Validation warnings for ${formType} NOC form:`, validationResult.warnings);
@@ -5014,10 +5749,8 @@ export class MobileFormController {
 
       // Validate that all photos have geo-location (only if photos array exists)
       if (photos && photos.length > 0) {
-        const photosWithoutGeo = photos.filter(photo =>
-          !photo.geoLocation ||
-          !photo.geoLocation.latitude ||
-          !photo.geoLocation.longitude
+        const photosWithoutGeo = photos.filter(
+          photo => !photo.geoLocation?.latitude || !photo.geoLocation.longitude
         );
 
         if (photosWithoutGeo.length > 0) {
@@ -5048,7 +5781,9 @@ export class MobileFormController {
         verificationTaskId
       );
 
-      console.log(`✅ Processed ${uploadedImages.length} verification images for NOC verification (Task: ${task.task_number})`);
+      console.log(
+        `✅ Processed ${uploadedImages.length} verification images for NOC verification (Task: ${task.task_number})`
+      );
 
       // Prepare verification data (excluding old attachment references)
       const verificationData = {
@@ -5074,18 +5809,27 @@ export class MobileFormController {
       };
 
       // Update verification task status to COMPLETED
-      await query(`
+      await query(
+        `
         UPDATE verification_tasks
         SET status = 'COMPLETED', completed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
         WHERE id = $1
-      `, [verificationTaskId]);
+      `,
+        [verificationTaskId]
+      );
 
       // Update case status based on ALL tasks (only mark as COMPLETED if all tasks are done)
       await MobileFormController.updateCaseStatusBasedOnTasks(actualCaseId);
 
       // Update case with verification data (without changing status)
-      await query(`UPDATE cases SET "verificationData" = $1, "verificationType" = 'NOC', "verificationOutcome" = $2, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $3`, [JSON.stringify(verificationData), verificationOutcome, actualCaseId]);
-      const caseUpd = await query(`SELECT id, "caseId", status, "completedAt", "customerName", "backendContactNumber" FROM cases WHERE id = $1`, [actualCaseId]);
+      await query(
+        `UPDATE cases SET "verificationData" = $1, "verificationType" = 'NOC', "verificationOutcome" = $2, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $3`,
+        [JSON.stringify(verificationData), verificationOutcome, actualCaseId]
+      );
+      const caseUpd = await query(
+        `SELECT id, "caseId", status, "completedAt", "customerName", "backendContactNumber" FROM cases WHERE id = $1`,
+        [actualCaseId]
+      );
       const updatedCase = caseUpd.rows[0];
 
       // Create comprehensive NOC verification report using all available fields
@@ -5110,7 +5854,7 @@ export class MobileFormController {
         remarks: formData.remarks || `${formType} NOC verification completed`,
 
         // Merge all mapped form data
-        ...mappedFormData
+        ...mappedFormData,
       };
 
       // Get valid database columns for NOC verification
@@ -5118,10 +5862,20 @@ export class MobileFormController {
 
       // Add essential system fields that are always required
       const essentialFields = [
-        'case_id', 'caseId', 'form_type', 'verification_outcome',
-        'customer_name', 'customer_phone', 'customer_email', 'full_address',
-        'verification_date', 'verification_time', 'verified_by',
-        'total_images', 'total_selfies', 'remarks'
+        'case_id',
+        'caseId',
+        'form_type',
+        'verification_outcome',
+        'customer_name',
+        'customer_phone',
+        'customer_email',
+        'full_address',
+        'verification_date',
+        'verification_time',
+        'verified_by',
+        'total_images',
+        'total_selfies',
+        'remarks',
       ];
       const allValidColumns = [...new Set([...availableDbColumns, ...essentialFields])];
 
@@ -5145,17 +5899,19 @@ export class MobileFormController {
 
       // Log comprehensive database insert data for debugging
       const nullFields = Object.entries(dbInsertData).filter(([_, value]) => value === null);
-      const populatedFields = Object.entries(dbInsertData).filter(([_, value]) =>
-        value !== null && value !== undefined && value !== ''
+      const populatedFields = Object.entries(dbInsertData).filter(
+        ([_, value]) => value !== null && value !== undefined && value !== ''
       );
 
       console.log(`📝 Final database insert data for ${formType} NOC verification:`, {
         totalFields: Object.keys(dbInsertData).length,
         populatedFields: populatedFields.length,
         fieldsWithNullValues: nullFields.length,
-        fieldCoveragePercentage: Math.round((populatedFields.length / Object.keys(dbInsertData).length) * 100),
+        fieldCoveragePercentage: Math.round(
+          (populatedFields.length / Object.keys(dbInsertData).length) * 100
+        ),
         nullFieldNames: nullFields.map(([key]) => key).slice(0, 10), // Show first 10 null fields
-        samplePopulatedData: Object.fromEntries(populatedFields.slice(0, 10)) // Show first 10 populated fields
+        samplePopulatedData: Object.fromEntries(populatedFields.slice(0, 10)), // Show first 10 populated fields
       });
 
       console.log(`📝 Inserting NOC verification with ${columns.length} fields:`, columns);
@@ -5185,7 +5941,7 @@ export class MobileFormController {
         caseId: actualCaseId,
         formType,
         verificationOutcome,
-        imageCount: uploadedImages.length
+        imageCount: uploadedImages.length,
       });
 
       // Send case completion notification to backend users
@@ -5231,7 +5987,19 @@ export class MobileFormController {
     try {
       const { formType } = req.params;
 
-      if (!['RESIDENCE', 'OFFICE', 'BUSINESS', 'BUILDER', 'RESIDENCE_CUM_OFFICE', 'DSA_CONNECTOR', 'PROPERTY_INDIVIDUAL', 'PROPERTY_APF', 'NOC'].includes(formType.toUpperCase())) {
+      if (
+        ![
+          'RESIDENCE',
+          'OFFICE',
+          'BUSINESS',
+          'BUILDER',
+          'RESIDENCE_CUM_OFFICE',
+          'DSA_CONNECTOR',
+          'PROPERTY_INDIVIDUAL',
+          'PROPERTY_APF',
+          'NOC',
+        ].includes(formType.toUpperCase())
+      ) {
         return res.status(400).json({
           success: false,
           message: 'Invalid form type',
@@ -5247,15 +6015,43 @@ export class MobileFormController {
         RESIDENCE: {
           fields: [
             { name: 'applicantName', type: 'text', required: true, label: 'Applicant Name' },
-            { name: 'addressConfirmed', type: 'boolean', required: true, label: 'Address Confirmed' },
-            { name: 'residenceType', type: 'select', required: true, label: 'Residence Type', options: ['OWNED', 'RENTED', 'FAMILY'] },
+            {
+              name: 'addressConfirmed',
+              type: 'boolean',
+              required: true,
+              label: 'Address Confirmed',
+            },
+            {
+              name: 'residenceType',
+              type: 'select',
+              required: true,
+              label: 'Residence Type',
+              options: ['OWNED', 'RENTED', 'FAMILY'],
+            },
             { name: 'familyMembers', type: 'number', required: false, label: 'Family Members' },
-            { name: 'neighborVerification', type: 'boolean', required: true, label: 'Neighbor Verification' },
+            {
+              name: 'neighborVerification',
+              type: 'boolean',
+              required: true,
+              label: 'Neighbor Verification',
+            },
             { name: 'remarks', type: 'textarea', required: false, label: 'Remarks' },
-            { name: 'outcome', type: 'select', required: true, label: 'Verification Outcome', options: ['VERIFIED', 'NOT_VERIFIED', 'PARTIAL'] },
+            {
+              name: 'outcome',
+              type: 'select',
+              required: true,
+              label: 'Verification Outcome',
+              options: ['VERIFIED', 'NOT_VERIFIED', 'PARTIAL'],
+            },
           ],
           requiredPhotos: 5,
-          photoTypes: ['BUILDING_EXTERIOR', 'BUILDING_INTERIOR', 'NAMEPLATE', 'SURROUNDINGS', 'APPLICANT'],
+          photoTypes: [
+            'BUILDING_EXTERIOR',
+            'BUILDING_INTERIOR',
+            'NAMEPLATE',
+            'SURROUNDINGS',
+            'APPLICANT',
+          ],
         },
         OFFICE: {
           fields: [
@@ -5264,12 +6060,29 @@ export class MobileFormController {
             { name: 'employeeId', type: 'text', required: false, label: 'Employee ID' },
             { name: 'workingHours', type: 'text', required: true, label: 'Working Hours' },
             { name: 'hrVerification', type: 'boolean', required: true, label: 'HR Verification' },
-            { name: 'salaryConfirmed', type: 'boolean', required: false, label: 'Salary Confirmed' },
+            {
+              name: 'salaryConfirmed',
+              type: 'boolean',
+              required: false,
+              label: 'Salary Confirmed',
+            },
             { name: 'remarks', type: 'textarea', required: false, label: 'Remarks' },
-            { name: 'outcome', type: 'select', required: true, label: 'Verification Outcome', options: ['VERIFIED', 'NOT_VERIFIED', 'PARTIAL'] },
+            {
+              name: 'outcome',
+              type: 'select',
+              required: true,
+              label: 'Verification Outcome',
+              options: ['VERIFIED', 'NOT_VERIFIED', 'PARTIAL'],
+            },
           ],
           requiredPhotos: 5,
-          photoTypes: ['OFFICE_EXTERIOR', 'OFFICE_INTERIOR', 'RECEPTION', 'EMPLOYEE_DESK', 'ID_CARD'],
+          photoTypes: [
+            'OFFICE_EXTERIOR',
+            'OFFICE_INTERIOR',
+            'RECEPTION',
+            'EMPLOYEE_DESK',
+            'ID_CARD',
+          ],
         },
         BUSINESS: {
           fields: [
@@ -5280,88 +6093,213 @@ export class MobileFormController {
             { name: 'operatingHours', type: 'text', required: true, label: 'Operating Hours' },
             { name: 'employeeCount', type: 'number', required: false, label: 'Employee Count' },
             { name: 'remarks', type: 'textarea', required: false, label: 'Remarks' },
-            { name: 'outcome', type: 'select', required: true, label: 'Verification Outcome', options: ['VERIFIED', 'NOT_VERIFIED', 'PARTIAL'] },
+            {
+              name: 'outcome',
+              type: 'select',
+              required: true,
+              label: 'Verification Outcome',
+              options: ['VERIFIED', 'NOT_VERIFIED', 'PARTIAL'],
+            },
           ],
           requiredPhotos: 5,
-          photoTypes: ['BUSINESS_EXTERIOR', 'BUSINESS_INTERIOR', 'SIGNBOARD', 'OWNER_PHOTO', 'BUSINESS_ACTIVITY'],
+          photoTypes: [
+            'BUSINESS_EXTERIOR',
+            'BUSINESS_INTERIOR',
+            'SIGNBOARD',
+            'OWNER_PHOTO',
+            'BUSINESS_ACTIVITY',
+          ],
         },
         BUILDER: {
           fields: [
             { name: 'builderName', type: 'text', required: true, label: 'Builder Name' },
             { name: 'projectName', type: 'text', required: true, label: 'Project Name' },
             { name: 'projectAddress', type: 'text', required: true, label: 'Project Address' },
-            { name: 'constructionStatus', type: 'select', required: true, label: 'Construction Status', options: ['UNDER_CONSTRUCTION', 'COMPLETED', 'PLANNED'] },
+            {
+              name: 'constructionStatus',
+              type: 'select',
+              required: true,
+              label: 'Construction Status',
+              options: ['UNDER_CONSTRUCTION', 'COMPLETED', 'PLANNED'],
+            },
             { name: 'approvals', type: 'text', required: false, label: 'Approvals' },
             { name: 'remarks', type: 'textarea', required: false, label: 'Remarks' },
-            { name: 'outcome', type: 'select', required: true, label: 'Verification Outcome', options: ['VERIFIED', 'NOT_VERIFIED', 'PARTIAL'] },
+            {
+              name: 'outcome',
+              type: 'select',
+              required: true,
+              label: 'Verification Outcome',
+              options: ['VERIFIED', 'NOT_VERIFIED', 'PARTIAL'],
+            },
           ],
           requiredPhotos: 5,
-          photoTypes: ['PROJECT_EXTERIOR', 'CONSTRUCTION_SITE', 'APPROVAL_BOARD', 'BUILDER_OFFICE', 'PROGRESS_PHOTO'],
+          photoTypes: [
+            'PROJECT_EXTERIOR',
+            'CONSTRUCTION_SITE',
+            'APPROVAL_BOARD',
+            'BUILDER_OFFICE',
+            'PROGRESS_PHOTO',
+          ],
         },
         RESIDENCE_CUM_OFFICE: {
           fields: [
             { name: 'applicantName', type: 'text', required: true, label: 'Applicant Name' },
-            { name: 'residenceConfirmed', type: 'boolean', required: true, label: 'Residence Confirmed' },
+            {
+              name: 'residenceConfirmed',
+              type: 'boolean',
+              required: true,
+              label: 'Residence Confirmed',
+            },
             { name: 'officeConfirmed', type: 'boolean', required: true, label: 'Office Confirmed' },
             { name: 'businessType', type: 'text', required: false, label: 'Business Type' },
             { name: 'workingHours', type: 'text', required: false, label: 'Working Hours' },
             { name: 'remarks', type: 'textarea', required: false, label: 'Remarks' },
-            { name: 'outcome', type: 'select', required: true, label: 'Verification Outcome', options: ['VERIFIED', 'NOT_VERIFIED', 'PARTIAL'] },
+            {
+              name: 'outcome',
+              type: 'select',
+              required: true,
+              label: 'Verification Outcome',
+              options: ['VERIFIED', 'NOT_VERIFIED', 'PARTIAL'],
+            },
           ],
           requiredPhotos: 5,
-          photoTypes: ['BUILDING_EXTERIOR', 'RESIDENCE_AREA', 'OFFICE_AREA', 'NAMEPLATE', 'APPLICANT'],
+          photoTypes: [
+            'BUILDING_EXTERIOR',
+            'RESIDENCE_AREA',
+            'OFFICE_AREA',
+            'NAMEPLATE',
+            'APPLICANT',
+          ],
         },
         DSA_CONNECTOR: {
           fields: [
             { name: 'connectorName', type: 'text', required: true, label: 'Connector Name' },
-            { name: 'connectorType', type: 'select', required: true, label: 'Connector Type', options: ['DSA', 'DST'] },
+            {
+              name: 'connectorType',
+              type: 'select',
+              required: true,
+              label: 'Connector Type',
+              options: ['DSA', 'DST'],
+            },
             { name: 'officeAddress', type: 'text', required: true, label: 'Office Address' },
             { name: 'contactPerson', type: 'text', required: true, label: 'Contact Person' },
             { name: 'businessVolume', type: 'text', required: false, label: 'Business Volume' },
             { name: 'remarks', type: 'textarea', required: false, label: 'Remarks' },
-            { name: 'outcome', type: 'select', required: true, label: 'Verification Outcome', options: ['VERIFIED', 'NOT_VERIFIED', 'PARTIAL'] },
+            {
+              name: 'outcome',
+              type: 'select',
+              required: true,
+              label: 'Verification Outcome',
+              options: ['VERIFIED', 'NOT_VERIFIED', 'PARTIAL'],
+            },
           ],
           requiredPhotos: 5,
-          photoTypes: ['OFFICE_EXTERIOR', 'OFFICE_INTERIOR', 'SIGNBOARD', 'CONTACT_PERSON', 'DOCUMENTS'],
+          photoTypes: [
+            'OFFICE_EXTERIOR',
+            'OFFICE_INTERIOR',
+            'SIGNBOARD',
+            'CONTACT_PERSON',
+            'DOCUMENTS',
+          ],
         },
         PROPERTY_INDIVIDUAL: {
           fields: [
             { name: 'propertyOwner', type: 'text', required: true, label: 'Property Owner' },
-            { name: 'propertyType', type: 'select', required: true, label: 'Property Type', options: ['RESIDENTIAL', 'COMMERCIAL', 'INDUSTRIAL'] },
+            {
+              name: 'propertyType',
+              type: 'select',
+              required: true,
+              label: 'Property Type',
+              options: ['RESIDENTIAL', 'COMMERCIAL', 'INDUSTRIAL'],
+            },
             { name: 'propertyAddress', type: 'text', required: true, label: 'Property Address' },
             { name: 'propertyValue', type: 'number', required: false, label: 'Property Value' },
-            { name: 'ownershipStatus', type: 'select', required: true, label: 'Ownership Status', options: ['OWNED', 'LEASED', 'RENTED'] },
+            {
+              name: 'ownershipStatus',
+              type: 'select',
+              required: true,
+              label: 'Ownership Status',
+              options: ['OWNED', 'LEASED', 'RENTED'],
+            },
             { name: 'remarks', type: 'textarea', required: false, label: 'Remarks' },
-            { name: 'outcome', type: 'select', required: true, label: 'Verification Outcome', options: ['VERIFIED', 'NOT_VERIFIED', 'PARTIAL'] },
+            {
+              name: 'outcome',
+              type: 'select',
+              required: true,
+              label: 'Verification Outcome',
+              options: ['VERIFIED', 'NOT_VERIFIED', 'PARTIAL'],
+            },
           ],
           requiredPhotos: 5,
-          photoTypes: ['PROPERTY_EXTERIOR', 'PROPERTY_INTERIOR', 'OWNERSHIP_DOCS', 'OWNER_PHOTO', 'SURROUNDINGS'],
+          photoTypes: [
+            'PROPERTY_EXTERIOR',
+            'PROPERTY_INTERIOR',
+            'OWNERSHIP_DOCS',
+            'OWNER_PHOTO',
+            'SURROUNDINGS',
+          ],
         },
         PROPERTY_APF: {
           fields: [
             { name: 'projectName', type: 'text', required: true, label: 'Project Name' },
             { name: 'developerName', type: 'text', required: true, label: 'Developer Name' },
             { name: 'projectAddress', type: 'text', required: true, label: 'Project Address' },
-            { name: 'projectStatus', type: 'select', required: true, label: 'Project Status', options: ['UNDER_CONSTRUCTION', 'COMPLETED', 'PLANNED'] },
+            {
+              name: 'projectStatus',
+              type: 'select',
+              required: true,
+              label: 'Project Status',
+              options: ['UNDER_CONSTRUCTION', 'COMPLETED', 'PLANNED'],
+            },
             { name: 'approvalStatus', type: 'text', required: false, label: 'Approval Status' },
             { name: 'remarks', type: 'textarea', required: false, label: 'Remarks' },
-            { name: 'outcome', type: 'select', required: true, label: 'Verification Outcome', options: ['VERIFIED', 'NOT_VERIFIED', 'PARTIAL'] },
+            {
+              name: 'outcome',
+              type: 'select',
+              required: true,
+              label: 'Verification Outcome',
+              options: ['VERIFIED', 'NOT_VERIFIED', 'PARTIAL'],
+            },
           ],
           requiredPhotos: 5,
-          photoTypes: ['PROJECT_EXTERIOR', 'CONSTRUCTION_SITE', 'APPROVAL_BOARD', 'DEVELOPER_OFFICE', 'PROGRESS_PHOTO'],
+          photoTypes: [
+            'PROJECT_EXTERIOR',
+            'CONSTRUCTION_SITE',
+            'APPROVAL_BOARD',
+            'DEVELOPER_OFFICE',
+            'PROGRESS_PHOTO',
+          ],
         },
         NOC: {
           fields: [
             { name: 'applicantName', type: 'text', required: true, label: 'Applicant Name' },
             { name: 'nocType', type: 'text', required: true, label: 'NOC Type' },
             { name: 'propertyAddress', type: 'text', required: true, label: 'Property Address' },
-            { name: 'nocStatus', type: 'select', required: true, label: 'NOC Status', options: ['APPROVED', 'PENDING', 'REJECTED'] },
+            {
+              name: 'nocStatus',
+              type: 'select',
+              required: true,
+              label: 'NOC Status',
+              options: ['APPROVED', 'PENDING', 'REJECTED'],
+            },
             { name: 'issuingAuthority', type: 'text', required: false, label: 'Issuing Authority' },
             { name: 'remarks', type: 'textarea', required: false, label: 'Remarks' },
-            { name: 'outcome', type: 'select', required: true, label: 'Verification Outcome', options: ['VERIFIED', 'NOT_VERIFIED', 'PARTIAL'] },
+            {
+              name: 'outcome',
+              type: 'select',
+              required: true,
+              label: 'Verification Outcome',
+              options: ['VERIFIED', 'NOT_VERIFIED', 'PARTIAL'],
+            },
           ],
           requiredPhotos: 5,
-          photoTypes: ['PROPERTY_EXTERIOR', 'NOC_DOCUMENT', 'APPLICANT_PHOTO', 'AUTHORITY_OFFICE', 'SUPPORTING_DOCS'],
+          photoTypes: [
+            'PROPERTY_EXTERIOR',
+            'NOC_DOCUMENT',
+            'APPLICANT_PHOTO',
+            'AUTHORITY_OFFICE',
+            'SUPPORTING_DOCS',
+          ],
         },
       };
 

@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import { query } from '@/config/database';
 import { createAuditLog } from '@/utils/auditLogger';
 import multer from 'multer';
@@ -13,15 +13,15 @@ const storage = multer.diskStorage({
   destination: async (req, file, cb) => {
     const { caseId } = req.params;
     const verificationType = req.body.verificationType || 'verification';
-    
+
     const uploadDir = path.join(
-      process.cwd(), 
-      'uploads', 
-      'verification', 
+      process.cwd(),
+      'uploads',
+      'verification',
       verificationType.toLowerCase(),
       caseId
     );
-    
+
     try {
       await fs.mkdir(uploadDir, { recursive: true });
       cb(null, uploadDir);
@@ -31,17 +31,17 @@ const storage = multer.diskStorage({
   },
   filename: (req, file, cb) => {
     const timestamp = Date.now();
-    const randomSuffix = Math.round(Math.random() * 1E9);
+    const randomSuffix = Math.round(Math.random() * 1e9);
     const extension = path.extname(file.originalname);
     const photoType = req.body.photoType || 'verification';
-    
+
     cb(null, `${photoType}_${timestamp}_${randomSuffix}${extension}`);
-  }
+  },
 });
 
 const fileFilter = (req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
   const allowedTypes = config.mobile.allowedImageTypes;
-  
+
   if (allowedTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
@@ -65,13 +65,8 @@ export class VerificationAttachmentController {
   static async uploadVerificationImages(req: Request, res: Response) {
     try {
       const { caseId } = req.params;
-      const { 
-        verificationType, 
-        submissionId, 
-        geoLocation,
-        photoType = 'verification' 
-      } = req.body;
-      
+      const { verificationType, submissionId, geoLocation, photoType = 'verification' } = req.body;
+
       const userId = (req as any).user?.id;
       const files = req.files as Express.Multer.File[];
 
@@ -79,21 +74,20 @@ export class VerificationAttachmentController {
         return res.status(400).json({
           success: false,
           message: 'No files uploaded',
-          error: { code: 'NO_FILES_UPLOADED' }
+          error: { code: 'NO_FILES_UPLOADED' },
         });
       }
 
       // Verify case exists and user has access
-      const caseResult = await query(
-        `SELECT id, "caseId", status FROM cases WHERE id = $1`,
-        [caseId]
-      );
+      const caseResult = await query(`SELECT id, "caseId", status FROM cases WHERE id = $1`, [
+        caseId,
+      ]);
 
       if (caseResult.rows.length === 0) {
         return res.status(404).json({
           success: false,
           message: 'Case not found',
-          error: { code: 'CASE_NOT_FOUND' }
+          error: { code: 'CASE_NOT_FOUND' },
         });
       }
 
@@ -109,9 +103,9 @@ export class VerificationAttachmentController {
           if (file.mimetype.startsWith('image/')) {
             const thumbnailDir = path.join(path.dirname(file.path), 'thumbnails');
             await fs.mkdir(thumbnailDir, { recursive: true });
-            
+
             thumbnailPath = path.join(thumbnailDir, `thumb_${path.basename(file.path)}`);
-            
+
             await sharp(file.path)
               .resize(200, 200, {
                 fit: 'inside',
@@ -139,11 +133,13 @@ export class VerificationAttachmentController {
               file.mimetype,
               file.size,
               `/uploads/verification/${verificationType.toLowerCase()}/${caseId}/${file.filename}`,
-              thumbnailPath ? `/uploads/verification/${verificationType.toLowerCase()}/${caseId}/thumbnails/thumb_${path.basename(file.path)}` : null,
+              thumbnailPath
+                ? `/uploads/verification/${verificationType.toLowerCase()}/${caseId}/thumbnails/thumb_${path.basename(file.path)}`
+                : null,
               userId,
               geoLocation ? JSON.stringify(geoLocation) : null,
               photoType,
-              submissionId
+              submissionId,
             ]
           );
 
@@ -158,9 +154,8 @@ export class VerificationAttachmentController {
             thumbnailUrl: attachment.thumbnailPath,
             uploadedAt: attachment.createdAt.toISOString(),
             photoType: attachment.photoType,
-            geoLocation
+            geoLocation,
           });
-
         } catch (fileError) {
           console.error(`Error processing file ${file.originalname}:`, fileError);
           // Clean up file on error
@@ -182,7 +177,7 @@ export class VerificationAttachmentController {
           verificationType,
           photoCount: uploadedAttachments.length,
           submissionId,
-          photoType
+          photoType,
         },
         ipAddress: req.ip,
         userAgent: req.get('User-Agent'),
@@ -195,10 +190,9 @@ export class VerificationAttachmentController {
           attachments: uploadedAttachments,
           caseId,
           verificationType,
-          submissionId
-        }
+          submissionId,
+        },
       });
-
     } catch (error) {
       console.error('Upload verification images error:', error);
       res.status(500).json({
@@ -221,19 +215,21 @@ export class VerificationAttachmentController {
       const caseId = req.params.caseId || req.params.id;
       const { verificationType, submissionId } = req.query;
 
-      console.log('🔍 Getting verification images for case:', caseId, 'submissionId:', submissionId);
+      console.log(
+        '🔍 Getting verification images for case:',
+        caseId,
+        'submissionId:',
+        submissionId
+      );
 
       // First get the case UUID from the case number
-      const caseResult = await query(
-        `SELECT id FROM cases WHERE "caseId" = $1`,
-        [caseId]
-      );
+      const caseResult = await query(`SELECT id FROM cases WHERE "caseId" = $1`, [caseId]);
 
       if (caseResult.rows.length === 0) {
         return res.status(404).json({
           success: false,
           message: 'Case not found',
-          error: { code: 'CASE_NOT_FOUND' }
+          error: { code: 'CASE_NOT_FOUND' },
         });
       }
 
@@ -278,7 +274,7 @@ export class VerificationAttachmentController {
         photoType: row.photoType,
         verificationType: row.verification_type,
         submissionId: row.submissionId,
-        geoLocation: row.geoLocation
+        geoLocation: row.geoLocation,
       }));
 
       console.log('📊 Found', attachments.length, 'images in verification_attachments table');
@@ -299,12 +295,14 @@ export class VerificationAttachmentController {
           console.log('📋 Case verificationData found:', {
             submissionId: verificationData?.submissionId,
             imageCount: verificationImages.length,
-            requestedSubmissionId: submissionId
+            requestedSubmissionId: submissionId,
           });
 
           // Filter by submissionId if provided
           const filteredImages = submissionId
-            ? verificationImages.filter((img: any) => verificationData?.submissionId === submissionId)
+            ? verificationImages.filter(
+                (img: any) => verificationData?.submissionId === submissionId
+              )
             : verificationImages;
 
           console.log('🎯 Filtered images count:', filteredImages.length);
@@ -321,16 +319,15 @@ export class VerificationAttachmentController {
             photoType: img.photoType || 'verification',
             verificationType: verificationData?.formType || 'RESIDENCE',
             submissionId: verificationData?.submissionId || submissionId,
-            geoLocation: img.geoLocation || verificationData?.geoLocation
+            geoLocation: img.geoLocation || verificationData?.geoLocation,
           }));
         }
       }
 
       res.json({
         success: true,
-        data: attachments
+        data: attachments,
       });
-
     } catch (error) {
       console.error('Get verification images error:', error);
       res.status(500).json({
@@ -362,7 +359,7 @@ export class VerificationAttachmentController {
         return res.status(404).json({
           success: false,
           message: 'Verification image not found',
-          error: { code: 'IMAGE_NOT_FOUND' }
+          error: { code: 'IMAGE_NOT_FOUND' },
         });
       }
 
@@ -383,7 +380,7 @@ export class VerificationAttachmentController {
         return res.status(404).json({
           success: false,
           message: 'Image file not found on server',
-          error: { code: 'FILE_NOT_FOUND' }
+          error: { code: 'FILE_NOT_FOUND' },
         });
       }
 
@@ -396,13 +393,12 @@ export class VerificationAttachmentController {
       // Stream the file
       const fileStream = fsSync.createReadStream(filePath);
       fileStream.pipe(res);
-
     } catch (error) {
       console.error('Error serving verification image:', error);
       res.status(500).json({
         success: false,
         message: 'Internal server error',
-        error: { code: 'INTERNAL_ERROR' }
+        error: { code: 'INTERNAL_ERROR' },
       });
     }
   }
@@ -425,7 +421,7 @@ export class VerificationAttachmentController {
         return res.status(404).json({
           success: false,
           message: 'Verification image not found',
-          error: { code: 'IMAGE_NOT_FOUND' }
+          error: { code: 'IMAGE_NOT_FOUND' },
         });
       }
 
@@ -460,13 +456,12 @@ export class VerificationAttachmentController {
       // Stream the thumbnail file
       const fileStream = fsSync.createReadStream(thumbnailPath);
       fileStream.pipe(res);
-
     } catch (error) {
       console.error('Error serving verification thumbnail:', error);
       res.status(500).json({
         success: false,
         message: 'Internal server error',
-        error: { code: 'INTERNAL_ERROR' }
+        error: { code: 'INTERNAL_ERROR' },
       });
     }
   }

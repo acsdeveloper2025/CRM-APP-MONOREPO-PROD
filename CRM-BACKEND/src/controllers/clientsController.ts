@@ -1,20 +1,13 @@
-import { Request, Response } from 'express';
+import type { Response } from 'express';
+import { Request } from 'express';
 import { logger } from '@/config/logger';
-import { AuthenticatedRequest } from '@/middleware/auth';
+import type { AuthenticatedRequest } from '@/middleware/auth';
 import { query, withTransaction } from '@/config/database';
-
-
 
 // GET /api/clients - List clients with pagination and filters
 export const getClients = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const {
-      page = 1,
-      limit = 20,
-      search,
-      sortBy = 'name',
-      sortOrder = 'asc'
-    } = req.query;
+    const { page = 1, limit = 20, search, sortBy = 'name', sortOrder = 'asc' } = req.query;
 
     // Get client filter from middleware
     const clientFilter = (req as any).clientFilter;
@@ -24,7 +17,7 @@ export const getClients = async (req: AuthenticatedRequest, res: Response) => {
       userRole: req.user?.role,
       query: req.query,
       clientFilter,
-      clientFilterType: typeof clientFilter
+      clientFilterType: typeof clientFilter,
     });
 
     // Build where clause and parameters
@@ -65,7 +58,9 @@ export const getClients = async (req: AuthenticatedRequest, res: Response) => {
 
     // Add search filter if provided
     if (search) {
-      whereConditions.push(`(COALESCE(name, '') ILIKE $${paramIndex} OR COALESCE(code, '') ILIKE $${paramIndex})`);
+      whereConditions.push(
+        `(COALESCE(name, '') ILIKE $${paramIndex} OR COALESCE(code, '') ILIKE $${paramIndex})`
+      );
       queryParams.push(`%${search}%`);
       paramIndex += 1;
     }
@@ -81,7 +76,9 @@ export const getClients = async (req: AuthenticatedRequest, res: Response) => {
 
     // Get clients with pagination
     const offset = (Number(page) - 1) * Number(limit);
-    const sortCol = ['name', 'createdAt', 'updatedAt'].includes(String(sortBy)) ? String(sortBy) : 'name';
+    const sortCol = ['name', 'createdAt', 'updatedAt'].includes(String(sortBy))
+      ? String(sortBy)
+      : 'name';
     const sortDir = String(sortOrder).toLowerCase() === 'desc' ? 'DESC' : 'ASC';
 
     const clientsRes = await query(
@@ -92,13 +89,13 @@ export const getClients = async (req: AuthenticatedRequest, res: Response) => {
        LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
       [...queryParams, Number(limit), offset]
     );
-    const dbClients = clientsRes.rows as any[];
+    const dbClients = clientsRes.rows;
 
     // Load mappings and cases
     const dbClientIds = dbClients.map(c => c.id);
-    let productsByClient = new Map<string, any[]>();
-    let vtsByClient = new Map<string, any[]>();
-    let casesByClient = new Map<string, any[]>();
+    const productsByClient = new Map<string, any[]>();
+    const vtsByClient = new Map<string, any[]>();
+    const casesByClient = new Map<string, any[]>();
     if (dbClientIds.length > 0) {
       const prodMapRes = await query(
         `SELECT cp."clientId", p.id, p.name, p.code
@@ -151,7 +148,7 @@ export const getClients = async (req: AuthenticatedRequest, res: Response) => {
       page: Number(page),
       limit: Number(limit),
       search: search || '',
-      total: totalCount
+      total: totalCount,
     });
 
     res.json({
@@ -178,8 +175,11 @@ export const getClients = async (req: AuthenticatedRequest, res: Response) => {
 export const getClientById = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { id } = req.params;
-    
-    const baseRes = await query(`SELECT id, name, code, "createdAt", "updatedAt" FROM clients WHERE id = $1`, [Number(id)]);
+
+    const baseRes = await query(
+      `SELECT id, name, code, "createdAt", "updatedAt" FROM clients WHERE id = $1`,
+      [Number(id)]
+    );
     const client = baseRes.rows[0];
     if (!client) {
       return res.status(404).json({
@@ -213,7 +213,9 @@ export const getClientById = async (req: AuthenticatedRequest, res: Response) =>
       [Number(id)]
     );
 
-    const casesRes2 = await query(`SELECT "caseId", status FROM cases WHERE "clientId" = $1`, [Number(id)]);
+    const casesRes2 = await query(`SELECT "caseId", status FROM cases WHERE "clientId" = $1`, [
+      Number(id),
+    ]);
 
     // Transform response data
     const responseData = {
@@ -248,7 +250,7 @@ export const createClient = async (req: AuthenticatedRequest, res: Response) => 
       code,
       productIds = [],
       verificationTypeIds = [],
-      documentTypeIds = []
+      documentTypeIds = [],
     } = req.body;
 
     // Check if client code already exists
@@ -263,7 +265,9 @@ export const createClient = async (req: AuthenticatedRequest, res: Response) => 
 
     // Verify products exist if provided
     if (productIds.length > 0) {
-      const prodCheck = await query(`SELECT id FROM products WHERE id = ANY($1::integer[])`, [productIds.map(Number)]);
+      const prodCheck = await query(`SELECT id FROM products WHERE id = ANY($1::integer[])`, [
+        productIds.map(Number),
+      ]);
       if (prodCheck.rowCount !== productIds.length) {
         return res.status(400).json({
           success: false,
@@ -275,7 +279,10 @@ export const createClient = async (req: AuthenticatedRequest, res: Response) => 
 
     // Verify verification types exist if provided
     if (verificationTypeIds.length > 0) {
-      const vtCheck = await query(`SELECT id FROM "verificationTypes" WHERE id = ANY($1::integer[])`, [verificationTypeIds.map(Number)]);
+      const vtCheck = await query(
+        `SELECT id FROM "verificationTypes" WHERE id = ANY($1::integer[])`,
+        [verificationTypeIds.map(Number)]
+      );
       if (vtCheck.rowCount !== verificationTypeIds.length) {
         return res.status(400).json({
           success: false,
@@ -287,7 +294,9 @@ export const createClient = async (req: AuthenticatedRequest, res: Response) => 
 
     // Verify document types exist if provided
     if (documentTypeIds.length > 0) {
-      const dtCheck = await query(`SELECT id FROM "documentTypes" WHERE id = ANY($1::integer[])`, [documentTypeIds.map(Number)]);
+      const dtCheck = await query(`SELECT id FROM "documentTypes" WHERE id = ANY($1::integer[])`, [
+        documentTypeIds.map(Number),
+      ]);
       if (dtCheck.rowCount !== documentTypeIds.length) {
         return res.status(400).json({
           success: false,
@@ -298,7 +307,7 @@ export const createClient = async (req: AuthenticatedRequest, res: Response) => 
     }
 
     // Create client and relationships in a transaction
-    const newClient = await withTransaction(async (cx) => {
+    const newClient = await withTransaction(async cx => {
       // Create client (id is auto-generated SERIAL)
       const clientIns = await cx.query(
         `INSERT INTO clients (name, code, "createdAt", "updatedAt") VALUES ($1, $2, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING id, name, code, "createdAt", "updatedAt"`,
@@ -309,9 +318,13 @@ export const createClient = async (req: AuthenticatedRequest, res: Response) => 
       if (productIds.length > 0) {
         const uniqueProductIds = Array.from(new Set(productIds.map(Number)));
         // Verify products
-        const prodCheck = await cx.query(`SELECT id FROM products WHERE id = ANY($1::integer[])`, [uniqueProductIds]);
+        const prodCheck = await cx.query(`SELECT id FROM products WHERE id = ANY($1::integer[])`, [
+          uniqueProductIds,
+        ]);
         if (prodCheck.rowCount !== uniqueProductIds.length) {
-          throw Object.assign(new Error('One or more products not found'), { code: 'PRODUCTS_NOT_FOUND' });
+          throw Object.assign(new Error('One or more products not found'), {
+            code: 'PRODUCTS_NOT_FOUND',
+          });
         }
         for (const pid of uniqueProductIds) {
           await cx.query(
@@ -348,9 +361,14 @@ export const createClient = async (req: AuthenticatedRequest, res: Response) => 
       if (documentTypeIds.length > 0) {
         const uniqueDocumentTypeIds = Array.from(new Set(documentTypeIds.map(Number)));
         // Verify document types
-        const dtCheck = await cx.query(`SELECT id FROM "documentTypes" WHERE id = ANY($1::integer[])`, [uniqueDocumentTypeIds]);
+        const dtCheck = await cx.query(
+          `SELECT id FROM "documentTypes" WHERE id = ANY($1::integer[])`,
+          [uniqueDocumentTypeIds]
+        );
         if (dtCheck.rowCount !== uniqueDocumentTypeIds.length) {
-          throw Object.assign(new Error('One or more document types not found'), { code: 'DOCUMENT_TYPES_NOT_FOUND' });
+          throw Object.assign(new Error('One or more document types not found'), {
+            code: 'DOCUMENT_TYPES_NOT_FOUND',
+          });
         }
         for (const dtId of uniqueDocumentTypeIds) {
           await cx.query(
@@ -385,16 +403,21 @@ export const createClient = async (req: AuthenticatedRequest, res: Response) => 
         [created.id]
       );
 
-      return { ...created, clientProducts: prodRes2.rows, clientVerificationTypes: vtRes2.rows, clientDocumentTypes: dtRes2.rows } as any;
+      return {
+        ...created,
+        clientProducts: prodRes2.rows,
+        clientVerificationTypes: vtRes2.rows,
+        clientDocumentTypes: dtRes2.rows,
+      };
     });
 
     // Transform response data
     const responseData = {
-      ...(newClient as any),
-      products: (newClient as any).clientProducts,
-      verificationTypes: (newClient as any).clientVerificationTypes,
-      documentTypes: (newClient as any).clientDocumentTypes,
-    } as any;
+      ...newClient,
+      products: newClient.clientProducts,
+      verificationTypes: newClient.clientVerificationTypes,
+      documentTypes: newClient.clientDocumentTypes,
+    };
 
     logger.info(`Created new client: ${newClient.id}`, {
       userId: req.user?.id,
@@ -412,11 +435,19 @@ export const createClient = async (req: AuthenticatedRequest, res: Response) => 
     });
   } catch (error: any) {
     if (error?.code === 'PRODUCTS_NOT_FOUND') {
-      return res.status(400).json({ success: false, message: 'One or more products not found', error: { code: 'PRODUCTS_NOT_FOUND' } });
+      return res.status(400).json({
+        success: false,
+        message: 'One or more products not found',
+        error: { code: 'PRODUCTS_NOT_FOUND' },
+      });
     }
 
     if (error?.code === 'VERIFICATION_TYPES_NOT_FOUND') {
-      return res.status(400).json({ success: false, message: 'One or more verification types not found', error: { code: 'VERIFICATION_TYPES_NOT_FOUND' } });
+      return res.status(400).json({
+        success: false,
+        message: 'One or more verification types not found',
+        error: { code: 'VERIFICATION_TYPES_NOT_FOUND' },
+      });
     }
 
     logger.error('Error creating client:', error);
@@ -432,30 +463,48 @@ export const createClient = async (req: AuthenticatedRequest, res: Response) => 
 export const updateClient = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const updateData = req.body as { name?: string; code?: string; productIds?: string[]; verificationTypeIds?: string[]; documentTypeIds?: string[] };
+    const updateData = req.body as {
+      name?: string;
+      code?: string;
+      productIds?: string[];
+      verificationTypeIds?: string[];
+      documentTypeIds?: string[];
+    };
 
     // Check if client exists
     const existRes = await query(`SELECT id, code FROM clients WHERE id = $1`, [id]);
     const existingClient = existRes.rows[0];
     if (!existingClient) {
-      return res.status(404).json({ success: false, message: 'Client not found', error: { code: 'NOT_FOUND' } });
+      return res
+        .status(404)
+        .json({ success: false, message: 'Client not found', error: { code: 'NOT_FOUND' } });
     }
 
     // Check for duplicate code if being updated
     if (updateData.code && updateData.code !== existingClient.code) {
       const dupRes2 = await query(`SELECT 1 FROM clients WHERE code = $1`, [updateData.code]);
       if (dupRes2.rowCount && dupRes2.rowCount > 0) {
-        return res.status(400).json({ success: false, message: 'Client code already exists', error: { code: 'DUPLICATE_CODE' } });
+        return res.status(400).json({
+          success: false,
+          message: 'Client code already exists',
+          error: { code: 'DUPLICATE_CODE' },
+        });
       }
     }
 
-    const result = await withTransaction(async (cx) => {
+    const result = await withTransaction(async cx => {
       // Update base fields
       const updates: string[] = [];
       const vals: any[] = [];
       let i = 1;
-      if (updateData.name) { updates.push(`name = $${i++}`); vals.push(updateData.name); }
-      if (updateData.code) { updates.push(`code = $${i++}`); vals.push(updateData.code); }
+      if (updateData.name) {
+        updates.push(`name = $${i++}`);
+        vals.push(updateData.name);
+      }
+      if (updateData.code) {
+        updates.push(`code = $${i++}`);
+        vals.push(updateData.code);
+      }
       updates.push(`"updatedAt" = CURRENT_TIMESTAMP`);
       vals.push(id);
       await cx.query(`UPDATE clients SET ${updates.join(', ')} WHERE id = $${i}`, vals);
@@ -465,13 +514,21 @@ export const updateClient = async (req: AuthenticatedRequest, res: Response) => 
         const ids = updateData.productIds;
         if (ids.length > 0) {
           const numericIds = ids.map(Number);
-          const prodCheck = await cx.query(`SELECT id FROM products WHERE id = ANY($1::integer[])`, [numericIds]);
+          const prodCheck = await cx.query(
+            `SELECT id FROM products WHERE id = ANY($1::integer[])`,
+            [numericIds]
+          );
           if (prodCheck.rowCount !== ids.length) {
-            throw Object.assign(new Error('One or more products not found'), { code: 'PRODUCTS_NOT_FOUND' });
+            throw Object.assign(new Error('One or more products not found'), {
+              code: 'PRODUCTS_NOT_FOUND',
+            });
           }
         }
         const numericIds = ids.map(Number);
-        await cx.query(`DELETE FROM "clientProducts" WHERE "clientId" = $1 AND "productId" <> ALL($2::integer[])`, [Number(id), numericIds]);
+        await cx.query(
+          `DELETE FROM "clientProducts" WHERE "clientId" = $1 AND "productId" <> ALL($2::integer[])`,
+          [Number(id), numericIds]
+        );
         for (const pid of Array.from(new Set(numericIds))) {
           // Check if relationship already exists
           const existingRel = await cx.query(
@@ -493,14 +550,22 @@ export const updateClient = async (req: AuthenticatedRequest, res: Response) => 
         const vtIds = updateData.verificationTypeIds;
         if (vtIds.length > 0) {
           const numericVtIds = vtIds.map(Number);
-          const vtCheck = await cx.query(`SELECT id FROM "verificationTypes" WHERE id = ANY($1::integer[])`, [numericVtIds]);
+          const vtCheck = await cx.query(
+            `SELECT id FROM "verificationTypes" WHERE id = ANY($1::integer[])`,
+            [numericVtIds]
+          );
           if (vtCheck.rowCount !== vtIds.length) {
-            throw Object.assign(new Error('One or more verification types not found'), { code: 'VERIFICATION_TYPES_NOT_FOUND' });
+            throw Object.assign(new Error('One or more verification types not found'), {
+              code: 'VERIFICATION_TYPES_NOT_FOUND',
+            });
           }
         }
 
         // Get current products for this client
-        const clientProductsRes = await cx.query(`SELECT "productId" FROM "clientProducts" WHERE "clientId" = $1`, [Number(id)]);
+        const clientProductsRes = await cx.query(
+          `SELECT "productId" FROM "clientProducts" WHERE "clientId" = $1`,
+          [Number(id)]
+        );
         const productIds = clientProductsRes.rows.map(row => row.productId);
 
         if (productIds.length > 0) {
@@ -536,13 +601,21 @@ export const updateClient = async (req: AuthenticatedRequest, res: Response) => 
         const dtIds = updateData.documentTypeIds;
         if (dtIds.length > 0) {
           const numericDtIds = dtIds.map(Number);
-          const dtCheck = await cx.query(`SELECT id FROM "documentTypes" WHERE id = ANY($1::integer[])`, [numericDtIds]);
+          const dtCheck = await cx.query(
+            `SELECT id FROM "documentTypes" WHERE id = ANY($1::integer[])`,
+            [numericDtIds]
+          );
           if (dtCheck.rowCount !== dtIds.length) {
-            throw Object.assign(new Error('One or more document types not found'), { code: 'DOCUMENT_TYPES_NOT_FOUND' });
+            throw Object.assign(new Error('One or more document types not found'), {
+              code: 'DOCUMENT_TYPES_NOT_FOUND',
+            });
           }
         }
         const numericDtIds = dtIds.map(Number);
-        await cx.query(`DELETE FROM "clientDocumentTypes" WHERE "clientId" = $1 AND "documentTypeId" <> ALL($2::integer[])`, [Number(id), numericDtIds]);
+        await cx.query(
+          `DELETE FROM "clientDocumentTypes" WHERE "clientId" = $1 AND "documentTypeId" <> ALL($2::integer[])`,
+          [Number(id), numericDtIds]
+        );
         for (const dtId of Array.from(new Set(numericDtIds))) {
           await cx.query(
             `INSERT INTO "clientDocumentTypes" ("clientId", "documentTypeId", "is_active", "createdAt")
@@ -578,34 +651,59 @@ export const updateClient = async (req: AuthenticatedRequest, res: Response) => 
         [Number(id)]
       );
 
-      return { id, clientProducts: prodRes3.rows, clientVerificationTypes: vtRes3.rows, clientDocumentTypes: dtRes3.rows } as any;
+      return {
+        id,
+        clientProducts: prodRes3.rows,
+        clientVerificationTypes: vtRes3.rows,
+        clientDocumentTypes: dtRes3.rows,
+      } as any;
     });
 
     const responseData = {
-      ...(result as any),
-      products: (result as any).clientProducts,
-      verificationTypes: (result as any).clientVerificationTypes,
-      documentTypes: (result as any).clientDocumentTypes,
-    } as any;
+      ...result,
+      products: result.clientProducts,
+      verificationTypes: result.clientVerificationTypes,
+      documentTypes: result.clientDocumentTypes,
+    };
 
-    logger.info(`Updated client: ${id}`, { userId: req.user?.id, clientId: id, updates: Object.keys(updateData) });
+    logger.info(`Updated client: ${id}`, {
+      userId: req.user?.id,
+      clientId: id,
+      updates: Object.keys(updateData),
+    });
 
     res.json({ success: true, data: responseData, message: 'Client updated successfully' });
   } catch (error: any) {
     if (error?.code === 'PRODUCTS_NOT_FOUND') {
-      return res.status(400).json({ success: false, message: 'One or more products not found', error: { code: 'PRODUCTS_NOT_FOUND' } });
+      return res.status(400).json({
+        success: false,
+        message: 'One or more products not found',
+        error: { code: 'PRODUCTS_NOT_FOUND' },
+      });
     }
 
     if (error?.code === 'VERIFICATION_TYPES_NOT_FOUND') {
-      return res.status(400).json({ success: false, message: 'One or more verification types not found', error: { code: 'VERIFICATION_TYPES_NOT_FOUND' } });
+      return res.status(400).json({
+        success: false,
+        message: 'One or more verification types not found',
+        error: { code: 'VERIFICATION_TYPES_NOT_FOUND' },
+      });
     }
 
     if (error?.code === 'DOCUMENT_TYPES_NOT_FOUND') {
-      return res.status(400).json({ success: false, message: 'One or more document types not found', error: { code: 'DOCUMENT_TYPES_NOT_FOUND' } });
+      return res.status(400).json({
+        success: false,
+        message: 'One or more document types not found',
+        error: { code: 'DOCUMENT_TYPES_NOT_FOUND' },
+      });
     }
 
     logger.error('Error updating client:', error);
-    res.status(500).json({ success: false, message: 'Failed to update client', error: { code: 'INTERNAL_ERROR' } });
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update client',
+      error: { code: 'INTERNAL_ERROR' },
+    });
   }
 };
 
@@ -627,7 +725,9 @@ export const deleteClient = async (req: AuthenticatedRequest, res: Response) => 
     }
 
     // Check if client has associated cases
-    const casesRes = await query(`SELECT COUNT(*)::int as count FROM cases WHERE "clientId" = $1`, [id]);
+    const casesRes = await query(`SELECT COUNT(*)::int as count FROM cases WHERE "clientId" = $1`, [
+      id,
+    ]);
     const caseCount = casesRes.rows[0]?.count || 0;
 
     if (caseCount > 0) {
@@ -638,31 +738,31 @@ export const deleteClient = async (req: AuthenticatedRequest, res: Response) => 
           code: 'HAS_DEPENDENCIES',
           details: {
             dependencyType: 'cases',
-            count: caseCount
-          }
+            count: caseCount,
+          },
         },
       });
     }
 
     // Check if client has any cases (cannot delete if cases exist)
-    const casesCheck = await query(
-      `SELECT COUNT(*) as count FROM cases WHERE "clientId" = $1`,
-      [id]
-    );
+    const casesCheck = await query(`SELECT COUNT(*) as count FROM cases WHERE "clientId" = $1`, [
+      id,
+    ]);
 
     if (parseInt(casesCheck.rows[0].count) > 0) {
       return res.status(400).json({
         success: false,
-        message: 'Cannot delete client with existing cases. Please delete or reassign all cases first.',
+        message:
+          'Cannot delete client with existing cases. Please delete or reassign all cases first.',
         error: {
           code: 'CLIENT_HAS_CASES',
-          caseCount: casesCheck.rows[0].count
-        }
+          caseCount: casesCheck.rows[0].count,
+        },
       });
     }
 
     // Delete client and related records in a transaction
-    await withTransaction(async (cx) => {
+    await withTransaction(async cx => {
       // Delete related records first (foreign keys with NO ACTION or RESTRICT need manual deletion)
       // Order matters: delete child records before parent records
       await cx.query(`DELETE FROM rates WHERE "clientId" = $1`, [id]);
@@ -683,7 +783,7 @@ export const deleteClient = async (req: AuthenticatedRequest, res: Response) => 
     logger.info(`Deleted client: ${id}`, {
       userId: req.user?.id,
       clientId: id,
-      clientName: existingClient.name
+      clientName: existingClient.name,
     });
 
     res.json({
@@ -718,7 +818,8 @@ export const getClientProducts = async (req: AuthenticatedRequest, res: Response
 
     // Build where clause for active filter
     const whereClause = isActive !== undefined ? 'AND cp."isActive" = $2' : '';
-    const params = isActive !== undefined ? [Number(id), String(isActive) === 'true'] : [Number(id)];
+    const params =
+      isActive !== undefined ? [Number(id), String(isActive) === 'true'] : [Number(id)];
 
     const productsRes = await query(
       `SELECT p.id, p.name, p.code, p.description, cp."createdAt" as "assignedAt"
@@ -766,7 +867,8 @@ export const getClientVerificationTypes = async (req: AuthenticatedRequest, res:
 
     // Build where clause for active filter
     const whereClause = isActive !== undefined ? 'AND vt."isActive" = $2' : '';
-    const params = isActive !== undefined ? [Number(id), String(isActive) === 'true'] : [Number(id)];
+    const params =
+      isActive !== undefined ? [Number(id), String(isActive) === 'true'] : [Number(id)];
 
     const vtRes = await query(
       `SELECT DISTINCT vt.id, vt.name, vt.code, vt.description, vt."isActive"

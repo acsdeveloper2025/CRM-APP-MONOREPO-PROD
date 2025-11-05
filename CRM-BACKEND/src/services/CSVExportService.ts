@@ -61,14 +61,13 @@ export class CSVExportService {
         filePath,
         fileName,
         fileSize: stats.size,
-        recordCount: data.recordCount || 0
+        recordCount: data.recordCount || 0,
       };
-
     } catch (error) {
       logger.error('Error generating CSV report:', error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
   }
@@ -90,9 +89,13 @@ export class CSVExportService {
     }
   }
 
-  private async fetchFormSubmissionsData(dateFrom?: string, dateTo?: string, filters?: any): Promise<any> {
-    let whereConditions = [];
-    let queryParams = [];
+  private async fetchFormSubmissionsData(
+    dateFrom?: string,
+    dateTo?: string,
+    filters?: any
+  ): Promise<any> {
+    const whereConditions = [];
+    const queryParams = [];
     let paramIndex = 1;
 
     if (dateFrom) {
@@ -160,21 +163,41 @@ export class CSVExportService {
 
     return {
       headers: [
-        'Submission ID', 'Form Type', 'Validation Status', 'Submitted At', 'Validated At',
-        'Photos Count', 'Attachments Count', 'Submission Score', 'Time Spent (min)', 'Network Quality',
-        'Agent Name', 'Employee ID', 'Case Number', 'Customer Name', 'Case Status',
-        'Overall Quality Score', 'Completeness Score', 'Accuracy Score', 'Photo Quality Score',
-        'Timeliness Score', 'Validation Time (hours)'
+        'Submission ID',
+        'Form Type',
+        'Validation Status',
+        'Submitted At',
+        'Validated At',
+        'Photos Count',
+        'Attachments Count',
+        'Submission Score',
+        'Time Spent (min)',
+        'Network Quality',
+        'Agent Name',
+        'Employee ID',
+        'Case Number',
+        'Customer Name',
+        'Case Status',
+        'Overall Quality Score',
+        'Completeness Score',
+        'Accuracy Score',
+        'Photo Quality Score',
+        'Timeliness Score',
+        'Validation Time (hours)',
       ],
       data: result.rows,
       recordCount: result.rows.length,
-      reportType: 'form-submissions'
+      reportType: 'form-submissions',
     };
   }
 
-  private async fetchAgentPerformanceData(dateFrom?: string, dateTo?: string, filters?: any): Promise<any> {
-    let whereConditions = [];
-    let queryParams = [];
+  private async fetchAgentPerformanceData(
+    dateFrom?: string,
+    dateTo?: string,
+    filters?: any
+  ): Promise<any> {
+    const whereConditions = [];
+    const queryParams = [];
     let paramIndex = 1;
 
     if (dateFrom) {
@@ -244,21 +267,43 @@ export class CSVExportService {
 
     return {
       headers: [
-        'Agent ID', 'Agent Name', 'Employee ID', 'Email', 'Performance Rating', 'Department',
-        'Date', 'Cases Assigned', 'Cases Completed', 'Cases In Progress', 'Forms Submitted',
-        'Residence Forms', 'Office Forms', 'Business Forms', 'Attachments Uploaded',
-        'Avg Completion Time (hours)', 'Quality Score', 'Validation Success Rate (%)',
-        'Total Distance (km)', 'Active Hours', 'Login Time', 'Logout Time', 'Completion Rate (%)'
+        'Agent ID',
+        'Agent Name',
+        'Employee ID',
+        'Email',
+        'Performance Rating',
+        'Department',
+        'Date',
+        'Cases Assigned',
+        'Cases Completed',
+        'Cases In Progress',
+        'Forms Submitted',
+        'Residence Forms',
+        'Office Forms',
+        'Business Forms',
+        'Attachments Uploaded',
+        'Avg Completion Time (hours)',
+        'Quality Score',
+        'Validation Success Rate (%)',
+        'Total Distance (km)',
+        'Active Hours',
+        'Login Time',
+        'Logout Time',
+        'Completion Rate (%)',
       ],
       data: result.rows,
       recordCount: result.rows.length,
-      reportType: 'agent-performance'
+      reportType: 'agent-performance',
     };
   }
 
-  private async fetchCaseAnalyticsData(dateFrom?: string, dateTo?: string, filters?: any): Promise<any> {
-    let whereConditions = [];
-    let queryParams = [];
+  private async fetchCaseAnalyticsData(
+    dateFrom?: string,
+    dateTo?: string,
+    filters?: any
+  ): Promise<any> {
+    const whereConditions = [];
+    const queryParams = [];
     let paramIndex = 1;
 
     if (dateFrom) {
@@ -323,20 +368,39 @@ export class CSVExportService {
 
     return {
       headers: [
-        'Case ID', 'Case Number', 'Customer Name', 'Status', 'Priority', 'Assigned To ID',
-        'Agent Name', 'Employee ID', 'Client Name', 'Form Completion (%)', 'Quality Score',
-        'Forms Submitted Count', 'Total Forms Required', 'Actual Forms Submitted', 'Valid Forms',
-        'Attachment Count', 'Completion Days', 'Created At', 'Updated At'
+        'Case ID',
+        'Case Number',
+        'Customer Name',
+        'Status',
+        'Priority',
+        'Assigned To ID',
+        'Agent Name',
+        'Employee ID',
+        'Client Name',
+        'Form Completion (%)',
+        'Quality Score',
+        'Forms Submitted Count',
+        'Total Forms Required',
+        'Actual Forms Submitted',
+        'Valid Forms',
+        'Attachment Count',
+        'Completion Days',
+        'Created At',
+        'Updated At',
       ],
       data: result.rows,
       recordCount: result.rows.length,
-      reportType: 'case-analytics'
+      reportType: 'case-analytics',
     };
   }
 
-  private async fetchValidationStatusData(dateFrom?: string, dateTo?: string, filters?: any): Promise<any> {
-    let whereConditions = [];
-    let queryParams = [];
+  private async fetchValidationStatusData(
+    dateFrom?: string,
+    dateTo?: string,
+    filters?: any
+  ): Promise<any> {
+    const whereConditions = [];
+    const queryParams = [];
     let paramIndex = 1;
 
     if (dateFrom) {
@@ -384,14 +448,22 @@ export class CSVExportService {
 
     return {
       headers: [
-        'Form Type', 'Validation Status', 'Form Count', 'Avg Submission Score',
-        'Avg Quality Score', 'Avg Completeness Score', 'Avg Accuracy Score',
-        'Avg Photo Quality Score', 'Avg Timeliness Score', 'Avg Validation Time (hours)',
-        'Earliest Submission', 'Latest Submission'
+        'Form Type',
+        'Validation Status',
+        'Form Count',
+        'Avg Submission Score',
+        'Avg Quality Score',
+        'Avg Completeness Score',
+        'Avg Accuracy Score',
+        'Avg Photo Quality Score',
+        'Avg Timeliness Score',
+        'Avg Validation Time (hours)',
+        'Earliest Submission',
+        'Latest Submission',
       ],
       data: result.rows,
       recordCount: result.rows.length,
-      reportType: 'validation-status'
+      reportType: 'validation-status',
     };
   }
 
@@ -403,17 +475,21 @@ export class CSVExportService {
 
     // Add headers if requested
     if (includeHeaders && headers) {
-      csvContent += headers.map((header: string) => this.escapeCSVField(header, delimiter)).join(delimiter) + '\n';
+      csvContent += `${headers
+        .map((header: string) => this.escapeCSVField(header, delimiter))
+        .join(delimiter)}\n`;
     }
 
     // Add data rows
     rows.forEach((row: any) => {
-      const csvRow = headers.map((header: string, index: number) => {
-        const value = Object.values(row)[index];
-        return this.escapeCSVField(this.formatValue(value), delimiter);
-      }).join(delimiter);
-      
-      csvContent += csvRow + '\n';
+      const csvRow = headers
+        .map((header: string, index: number) => {
+          const value = Object.values(row)[index];
+          return this.escapeCSVField(this.formatValue(value), delimiter);
+        })
+        .join(delimiter);
+
+      csvContent += `${csvRow}\n`;
     });
 
     return csvContent;
@@ -425,12 +501,17 @@ export class CSVExportService {
     }
 
     const fieldStr = String(field);
-    
+
     // If field contains delimiter, newline, or quote, wrap in quotes and escape internal quotes
-    if (fieldStr.includes(delimiter) || fieldStr.includes('\n') || fieldStr.includes('\r') || fieldStr.includes('"')) {
-      return '"' + fieldStr.replace(/"/g, '""') + '"';
+    if (
+      fieldStr.includes(delimiter) ||
+      fieldStr.includes('\n') ||
+      fieldStr.includes('\r') ||
+      fieldStr.includes('"')
+    ) {
+      return `"${fieldStr.replace(/"/g, '""')}"`;
     }
-    
+
     return fieldStr;
   }
 
@@ -469,7 +550,9 @@ export class CSVExportService {
     return `${reportType}_report_${timestamp}.csv`;
   }
 
-  public async generateMultipleCSVReports(reportTypes: CSVExportOptions[]): Promise<CSVExportResult[]> {
+  public async generateMultipleCSVReports(
+    reportTypes: CSVExportOptions[]
+  ): Promise<CSVExportResult[]> {
     const results: CSVExportResult[] = [];
 
     for (const options of reportTypes) {
@@ -490,14 +573,13 @@ export class CSVExportService {
 
       return {
         success: false,
-        error: 'No report types specified'
+        error: 'No report types specified',
       };
-
     } catch (error) {
       logger.error('Error generating zipped CSV reports:', error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
   }

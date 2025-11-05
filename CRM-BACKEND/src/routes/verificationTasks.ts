@@ -1,7 +1,12 @@
 import express from 'express';
 import { VerificationTasksController } from '../controllers/verificationTasksController';
-import { authenticateToken, AuthenticatedRequest } from '../middleware/auth';
-import { validateTaskCreation, validateTaskUpdate, validateTaskAssignment } from '../middleware/taskValidation';
+import type { AuthenticatedRequest } from '../middleware/auth';
+import { authenticateToken } from '../middleware/auth';
+import {
+  validateTaskCreation,
+  validateTaskUpdate,
+  validateTaskAssignment,
+} from '../middleware/taskValidation';
 import { pool } from '../config/db';
 
 const router = express.Router();
@@ -16,11 +21,7 @@ const router = express.Router();
  * Query params: page, limit, sortBy, sortOrder, status, priority, assignedTo,
  *               verificationTypeId, clientId, productId, search, dateFrom, dateTo
  */
-router.get(
-  '/verification-tasks',
-  authenticateToken,
-  VerificationTasksController.getAllTasks
-);
+router.get('/verification-tasks', authenticateToken, VerificationTasksController.getAllTasks);
 
 /**
  * Create multiple verification tasks for a case
@@ -97,7 +98,7 @@ router.post(
       res.status(500).json({
         success: false,
         message: 'Failed to start task',
-        error: { code: 'INTERNAL_ERROR' }
+        error: { code: 'INTERNAL_ERROR' },
       });
     }
   }
@@ -114,7 +115,8 @@ router.get(
     try {
       const { taskId } = req.params;
 
-      const result = await pool.query(`
+      const result = await pool.query(
+        `
         SELECT 
           tah.*,
           u_to.name as assigned_to_name,
@@ -126,18 +128,20 @@ router.get(
         LEFT JOIN users u_from ON tah.assigned_from = u_from.id
         WHERE tah.verification_task_id = $1
         ORDER BY tah.assigned_at DESC
-      `, [taskId]);
+      `,
+        [taskId]
+      );
 
       res.json({
         success: true,
         data: result.rows,
-        message: 'Assignment history retrieved successfully'
+        message: 'Assignment history retrieved successfully',
       });
     } catch (error) {
       res.status(500).json({
         success: false,
         message: 'Failed to get assignment history',
-        error: { code: 'INTERNAL_ERROR' }
+        error: { code: 'INTERNAL_ERROR' },
       });
     }
   }
@@ -154,7 +158,8 @@ router.get(
     try {
       const { taskId } = req.params;
 
-      const result = await pool.query(`
+      const result = await pool.query(
+        `
         SELECT 
           vt.*,
           vtype.name as verification_type_name,
@@ -174,13 +179,15 @@ router.get(
         LEFT JOIN cases c ON vt.case_id = c.id
         LEFT JOIN task_commission_calculations tcc ON vt.id = tcc.verification_task_id
         WHERE vt.id = $1
-      `, [taskId]);
+      `,
+        [taskId]
+      );
 
       if (result.rows.length === 0) {
         res.status(404).json({
           success: false,
           message: 'Verification task not found',
-          error: { code: 'TASK_NOT_FOUND' }
+          error: { code: 'TASK_NOT_FOUND' },
         });
         return;
       }
@@ -188,13 +195,13 @@ router.get(
       res.json({
         success: true,
         data: result.rows[0],
-        message: 'Verification task retrieved successfully'
+        message: 'Verification task retrieved successfully',
       });
     } catch (error) {
       res.status(500).json({
         success: false,
         message: 'Failed to get verification task',
-        error: { code: 'INTERNAL_ERROR' }
+        error: { code: 'INTERNAL_ERROR' },
       });
     }
   }
@@ -214,14 +221,14 @@ router.post(
       const userId = req.user?.id;
 
       await VerificationTasksController.updateTask(
-        { 
-          ...req, 
-          body: { 
+        {
+          ...req,
+          body: {
             status: 'CANCELLED',
             cancellationReason: cancellation_reason,
             cancelledAt: new Date().toISOString(),
-            cancelledBy: userId
-          } 
+            cancelledBy: userId,
+          },
         } as any,
         res
       );
@@ -229,7 +236,7 @@ router.post(
       res.status(500).json({
         success: false,
         message: 'Failed to cancel task',
-        error: { code: 'INTERNAL_ERROR' }
+        error: { code: 'INTERNAL_ERROR' },
       });
     }
   }
@@ -251,7 +258,7 @@ router.post(
         res.status(400).json({
           success: false,
           message: 'task_ids array is required',
-          error: { code: 'INVALID_INPUT' }
+          error: { code: 'INVALID_INPUT' },
         });
         return;
       }
@@ -260,13 +267,13 @@ router.post(
         res.status(400).json({
           success: false,
           message: 'assigned_to is required',
-          error: { code: 'INVALID_INPUT' }
+          error: { code: 'INVALID_INPUT' },
         });
         return;
       }
 
       const client = await pool.connect();
-      
+
       try {
         await client.query('BEGIN');
 
@@ -274,7 +281,8 @@ router.post(
 
         for (const taskId of task_ids) {
           // Update task assignment
-          const result = await client.query(`
+          const result = await client.query(
+            `
             UPDATE verification_tasks 
             SET 
               assigned_to = $1,
@@ -288,22 +296,31 @@ router.post(
               updated_at = NOW()
             WHERE id = $3
             RETURNING *
-          `, [assigned_to, userId, taskId]);
+          `,
+            [assigned_to, userId, taskId]
+          );
 
           if (result.rows.length > 0) {
             const task = result.rows[0];
             updatedTasks.push(task);
 
             // Create assignment history
-            await client.query(`
+            await client.query(
+              `
               INSERT INTO task_assignment_history (
                 verification_task_id, case_id, assigned_to, assigned_by,
                 assignment_reason, task_status_after
               ) VALUES ($1, $2, $3, $4, $5, $6)
-            `, [
-              taskId, task.case_id, assigned_to, userId,
-              assignment_reason || 'Bulk assignment', task.status
-            ]);
+            `,
+              [
+                taskId,
+                task.case_id,
+                assigned_to,
+                userId,
+                assignment_reason || 'Bulk assignment',
+                task.status,
+              ]
+            );
           }
         }
 
@@ -313,23 +330,21 @@ router.post(
           success: true,
           data: {
             updated_tasks: updatedTasks.length,
-            tasks: updatedTasks
+            tasks: updatedTasks,
           },
-          message: `${updatedTasks.length} tasks assigned successfully`
+          message: `${updatedTasks.length} tasks assigned successfully`,
         });
-
       } catch (error) {
         await client.query('ROLLBACK');
         throw error;
       } finally {
         client.release();
       }
-
     } catch (error) {
       res.status(500).json({
         success: false,
         message: 'Failed to bulk assign tasks',
-        error: { code: 'INTERNAL_ERROR' }
+        error: { code: 'INTERNAL_ERROR' },
       });
     }
   }
@@ -359,23 +374,18 @@ router.post(
   async (req: AuthenticatedRequest, res) => {
     try {
       const { taskId } = req.params;
-      const { 
-        verification_outcome, 
-        form_data, 
-        attachments, 
-        geo_location 
-      } = req.body;
+      const { verification_outcome, form_data, attachments, geo_location } = req.body;
 
       // This would integrate with the existing form submission system
       // For now, we'll just complete the task
       await VerificationTasksController.completeTask(
-        { 
-          ...req, 
-          body: { 
+        {
+          ...req,
+          body: {
             verification_outcome,
             completion_notes: JSON.stringify(form_data),
-            actual_amount: req.body.actual_amount
-          } 
+            actual_amount: req.body.actual_amount,
+          },
         } as any,
         res
       );
@@ -383,7 +393,7 @@ router.post(
       res.status(500).json({
         success: false,
         message: 'Failed to submit verification',
-        error: { code: 'INTERNAL_ERROR' }
+        error: { code: 'INTERNAL_ERROR' },
       });
     }
   }

@@ -2,13 +2,12 @@ import { v4 as uuidv4 } from 'uuid';
 import { caseAssignmentQueue } from '../config/queue';
 import { query } from '../config/database';
 import { logger } from '../config/logger';
-import {
+import type {
   SingleAssignmentJobData,
   BulkAssignmentJobData,
   ReassignmentJobData,
-  BulkAssignmentResult,
-  AssignmentResult,
 } from '../jobs/caseAssignmentProcessor';
+import { BulkAssignmentResult, AssignmentResult } from '../jobs/caseAssignmentProcessor';
 
 export interface AssignCaseRequest {
   caseId: string;
@@ -78,7 +77,7 @@ export class CaseAssignmentService {
         assignedById: request.assignedById,
       });
 
-      return { jobId: job.id! };
+      return { jobId: job.id };
     } catch (error) {
       logger.error('Failed to queue single case assignment', {
         request,
@@ -91,7 +90,9 @@ export class CaseAssignmentService {
   /**
    * Assign multiple cases to a field agent in bulk
    */
-  static async bulkAssignCases(request: BulkAssignCasesRequest): Promise<{ batchId: string; jobId: string }> {
+  static async bulkAssignCases(
+    request: BulkAssignCasesRequest
+  ): Promise<{ batchId: string; jobId: string }> {
     try {
       // Validate all cases exist and are assignable
       await this.validateBulkCaseAssignment(request.caseIds, request.assignedToId);
@@ -117,7 +118,11 @@ export class CaseAssignmentService {
       });
 
       // Update queue status with job ID
-      await this.updateQueueStatus(batchId, { jobId: job.id!, status: 'PROCESSING', startedAt: new Date() });
+      await this.updateQueueStatus(batchId, {
+        jobId: job.id,
+        status: 'PROCESSING',
+        startedAt: new Date(),
+      });
 
       logger.info('Bulk case assignment job queued', {
         jobId: job.id,
@@ -127,7 +132,7 @@ export class CaseAssignmentService {
         assignedById: request.assignedById,
       });
 
-      return { batchId, jobId: job.id! };
+      return { batchId, jobId: job.id };
     } catch (error) {
       logger.error('Failed to queue bulk case assignment', {
         request,
@@ -167,7 +172,7 @@ export class CaseAssignmentService {
         assignedById: request.assignedById,
       });
 
-      return { jobId: job.id! };
+      return { jobId: job.id };
     } catch (error) {
       logger.error('Failed to queue case reassignment', {
         request,
@@ -205,9 +210,10 @@ export class CaseAssignmentService {
       }
 
       const statusData = result.rows[0];
-      const progress = statusData.totalCases > 0 
-        ? Math.round((statusData.processedCases / statusData.totalCases) * 100)
-        : 0;
+      const progress =
+        statusData.totalCases > 0
+          ? Math.round((statusData.processedCases / statusData.totalCases) * 100)
+          : 0;
 
       return {
         batchId: statusData.batchId,
@@ -366,7 +372,10 @@ export class CaseAssignmentService {
     }
   }
 
-  private static async validateBulkCaseAssignment(caseIds: string[], assignedToId: string): Promise<void> {
+  private static async validateBulkCaseAssignment(
+    caseIds: string[],
+    assignedToId: string
+  ): Promise<void> {
     if (caseIds.length === 0) {
       throw new Error('No cases provided for assignment');
     }
@@ -413,11 +422,16 @@ export class CaseAssignmentService {
 
   private static getPriorityValue(priority?: string): number {
     switch (priority) {
-      case 'URGENT': return 1;
-      case 'HIGH': return 2;
-      case 'MEDIUM': return 3;
-      case 'LOW': return 4;
-      default: return 3;
+      case 'URGENT':
+        return 1;
+      case 'HIGH':
+        return 2;
+      case 'MEDIUM':
+        return 3;
+      case 'LOW':
+        return 4;
+      default:
+        return 3;
     }
   }
 
@@ -467,7 +481,9 @@ export class CaseAssignmentService {
       }
     });
 
-    if (updateFields.length === 0) return;
+    if (updateFields.length === 0) {
+      return;
+    }
 
     updateFields.push(`"updatedAt" = NOW()`);
 

@@ -6,7 +6,7 @@ import {
   getDocumentTypesByClient,
   assignDocumentTypesToClient,
   removeDocumentTypeFromClient,
-  updateClientDocumentTypeMapping
+  updateClientDocumentTypeMapping,
 } from '../controllers/clientDocumentTypesController';
 
 const router = express.Router();
@@ -16,32 +16,20 @@ router.use(authenticateToken);
 
 // Validation schemas
 const assignDocumentTypesValidation = [
-  param('id')
-    .isInt({ min: 1 })
-    .withMessage('Client ID must be a positive integer'),
-  body('documentTypeIds')
-    .isArray({ min: 1 })
-    .withMessage('Document type IDs array is required'),
+  param('id').isInt({ min: 1 }).withMessage('Client ID must be a positive integer'),
+  body('documentTypeIds').isArray({ min: 1 }).withMessage('Document type IDs array is required'),
   body('documentTypeIds.*')
     .isInt({ min: 1 })
     .withMessage('Each document type ID must be a positive integer'),
-  body('isRequired')
-    .optional()
-    .isBoolean()
-    .withMessage('isRequired must be a boolean'),
+  body('isRequired').optional().isBoolean().withMessage('isRequired must be a boolean'),
 ];
 
 const updateMappingValidation = [
-  param('clientId')
-    .isInt({ min: 1 })
-    .withMessage('Client ID must be a positive integer'),
+  param('clientId').isInt({ min: 1 }).withMessage('Client ID must be a positive integer'),
   param('documentTypeId')
     .isInt({ min: 1 })
     .withMessage('Document type ID must be a positive integer'),
-  body('isRequired')
-    .optional()
-    .isBoolean()
-    .withMessage('isRequired must be a boolean'),
+  body('isRequired').optional().isBoolean().withMessage('isRequired must be a boolean'),
   body('priority')
     .optional()
     .isInt({ min: 0 })
@@ -53,19 +41,12 @@ const updateMappingValidation = [
 ];
 
 const getDocumentTypesValidation = [
-  param('id')
-    .isInt({ min: 1 })
-    .withMessage('Client ID must be a positive integer'),
-  query('isActive')
-    .optional()
-    .isBoolean()
-    .withMessage('isActive must be a boolean'),
+  param('id').isInt({ min: 1 }).withMessage('Client ID must be a positive integer'),
+  query('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
 ];
 
 const removeDocumentTypeValidation = [
-  param('clientId')
-    .isInt({ min: 1 })
-    .withMessage('Client ID must be a positive integer'),
+  param('clientId').isInt({ min: 1 }).withMessage('Client ID must be a positive integer'),
   param('documentTypeId')
     .isInt({ min: 1 })
     .withMessage('Document type ID must be a positive integer'),
@@ -73,28 +54,32 @@ const removeDocumentTypeValidation = [
 
 // Routes for client-document type mappings
 // GET /api/clients/:id/document-types - Get document types for a client
-router.get('/:id/document-types',
+router.get(
+  '/:id/document-types',
   getDocumentTypesValidation,
   handleValidationErrors,
   getDocumentTypesByClient
 );
 
 // POST /api/clients/:id/document-types - Assign document types to a client
-router.post('/:id/document-types',
+router.post(
+  '/:id/document-types',
   assignDocumentTypesValidation,
   handleValidationErrors,
   assignDocumentTypesToClient
 );
 
 // PUT /api/clients/:clientId/document-types/:documentTypeId - Update client document type mapping
-router.put('/:clientId/document-types/:documentTypeId',
+router.put(
+  '/:clientId/document-types/:documentTypeId',
   updateMappingValidation,
   handleValidationErrors,
   updateClientDocumentTypeMapping
 );
 
 // DELETE /api/clients/:clientId/document-types/:documentTypeId - Remove document type from client
-router.delete('/:clientId/document-types/:documentTypeId',
+router.delete(
+  '/:clientId/document-types/:documentTypeId',
   removeDocumentTypeValidation,
   handleValidationErrors,
   removeDocumentTypeFromClient

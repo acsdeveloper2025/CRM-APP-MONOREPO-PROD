@@ -1,9 +1,9 @@
-import { Request, Response } from 'express';
-import {
+import type { Request, Response } from 'express';
+import type {
   MobileCaseListRequest,
   MobileCaseResponse,
   MobileAutoSaveRequest,
-  MobileAutoSaveResponse
+  MobileAutoSaveResponse,
 } from '../types/mobile';
 import { createAuditLog } from '../utils/auditLogger';
 import { config } from '../config';
@@ -18,7 +18,10 @@ function getApiBaseUrl(req: Request): string {
   const protocol = req.get('x-forwarded-proto') || (req.secure ? 'https' : 'http');
 
   // Check if request is coming from domain
-  if (host && (host.includes('crm.allcheckservices.com') || host.includes('www.crm.allcheckservices.com'))) {
+  if (
+    host &&
+    (host.includes('crm.allcheckservices.com') || host.includes('www.crm.allcheckservices.com'))
+  ) {
     return 'https://crm.allcheckservices.com/api';
   }
 
@@ -38,7 +41,7 @@ export class MobileCaseController {
     try {
       const userId = (req as any).user?.id;
       const userRole = (req as any).user?.role;
-      
+
       const {
         page = 1,
         limit = 20,
@@ -61,9 +64,9 @@ export class MobileCaseController {
       // For FIELD_AGENT: Filter by task-level assignment (verification_tasks.assigned_to)
       // For other roles: Filter by task-level assignment if specified
       if (userRole === 'FIELD_AGENT') {
-        where.hasAssignedTask = userId;  // Task-level assignment
+        where.hasAssignedTask = userId; // Task-level assignment
       } else if (assignedTo) {
-        where.hasAssignedTask = assignedTo;  // Task-level assignment
+        where.hasAssignedTask = assignedTo; // Task-level assignment
       }
 
       if (status) {
@@ -114,14 +117,32 @@ export class MobileCaseController {
         )`);
       }
 
-      if (where.status) { vals.push(where.status); wh.push(`c.status = $${vals.length}`); }
-      if (where.priority) { vals.push(where.priority); wh.push(`c.priority = $${vals.length}`); }
-      if (where.updatedAt?.gt) { vals.push(where.updatedAt.gt); wh.push(`c."updatedAt" > $${vals.length}`); }
-      if (search) {
-        vals.push(`%${search}%`); wh.push(`(c."customerName" ILIKE $${vals.length} OR c."customerPhone" ILIKE $${vals.length} OR c.title ILIKE $${vals.length} OR c.description ILIKE $${vals.length})`);
+      if (where.status) {
+        vals.push(where.status);
+        wh.push(`c.status = $${vals.length}`);
       }
-      if (dateFrom) { vals.push(new Date(dateFrom)); wh.push(`c."createdAt" >= $${vals.length}`); }
-      if (dateTo) { vals.push(new Date(dateTo)); wh.push(`c."createdAt" <= $${vals.length}`); }
+      if (where.priority) {
+        vals.push(where.priority);
+        wh.push(`c.priority = $${vals.length}`);
+      }
+      if (where.updatedAt?.gt) {
+        vals.push(where.updatedAt.gt);
+        wh.push(`c."updatedAt" > $${vals.length}`);
+      }
+      if (search) {
+        vals.push(`%${search}%`);
+        wh.push(
+          `(c."customerName" ILIKE $${vals.length} OR c."customerPhone" ILIKE $${vals.length} OR c.title ILIKE $${vals.length} OR c.description ILIKE $${vals.length})`
+        );
+      }
+      if (dateFrom) {
+        vals.push(new Date(dateFrom));
+        wh.push(`c."createdAt" >= $${vals.length}`);
+      }
+      if (dateTo) {
+        vals.push(new Date(dateTo));
+        wh.push(`c."createdAt" <= $${vals.length}`);
+      }
       const whereSql = wh.length ? `WHERE ${wh.join(' AND ')}` : '';
 
       console.log('🔍 Mobile API Debug:', {
@@ -129,7 +150,7 @@ export class MobileCaseController {
         userRole,
         where,
         whereSql,
-        vals
+        vals,
       });
 
       // For FIELD_AGENT: Add userId to vals for LATERAL JOIN to filter their assigned task
@@ -217,9 +238,12 @@ export class MobileCaseController {
       const casesRes = await query(listSql, [...vals, userIdForTaskFilter, take, skip]);
 
       // Count query - use same filtering logic as main query
-      const countRes = await query<{ count: string }>(`SELECT COUNT(*)::text as count FROM cases c ${whereSql}`, vals);
+      const countRes = await query<{ count: string }>(
+        `SELECT COUNT(*)::text as count FROM cases c ${whereSql}`,
+        vals
+      );
       const totalCount = Number(countRes.rows[0]?.count || 0);
-      const cases = casesRes.rows as any[];
+      const cases = casesRes.rows;
 
       console.log('📋 Mobile Cases Results:', {
         totalCount,
@@ -227,7 +251,7 @@ export class MobileCaseController {
         userRole,
         userId,
         firstCaseAssignedTo: cases[0]?.assignedTo,
-        firstCaseId: cases[0]?.caseId
+        firstCaseId: cases[0]?.caseId,
       });
 
       // Debug: Log first case data to see what fields are actually returned
@@ -241,7 +265,7 @@ export class MobileCaseController {
           productName: cases[0].productName,
           verificationTypeName: cases[0].verificationTypeName,
           assignedToUserName: cases[0].assignedToUserName,
-          createdByUserName: cases[0].createdByUserName
+          createdByUserName: cases[0].createdByUserName,
         });
       }
 
@@ -263,12 +287,18 @@ export class MobileCaseController {
         longitude: caseItem.longitude,
         // CRITICAL FIX: Use task-level status instead of case-level status for field agents
         // This ensures field agents see their individual task status, not the overall case status
-        status: caseItem.task_status ? caseItem.task_status.toUpperCase().replace(/\s+/g, '_') : 'ASSIGNED',
+        status: caseItem.task_status
+          ? caseItem.task_status.toUpperCase().replace(/\s+/g, '_')
+          : 'ASSIGNED',
         priority: caseItem.taskPriority || caseItem.priority || 'MEDIUM', // Use task-level priority first, fallback to case-level
-        assignedAt: caseItem.assigned_at ? new Date(caseItem.assigned_at).toISOString() : new Date(caseItem.task_created_at || caseItem.createdAt).toISOString(),
+        assignedAt: caseItem.assigned_at
+          ? new Date(caseItem.assigned_at).toISOString()
+          : new Date(caseItem.task_created_at || caseItem.createdAt).toISOString(),
         updatedAt: new Date(caseItem.updatedAt).toISOString(),
         // CRITICAL FIX: Use task-level completedAt instead of case-level completedAt
-        completedAt: caseItem.task_completed_at ? new Date(caseItem.task_completed_at).toISOString() : undefined,
+        completedAt: caseItem.task_completed_at
+          ? new Date(caseItem.task_completed_at).toISOString()
+          : undefined,
         notes: caseItem.taskTrigger || caseItem.trigger || '', // Use task-level trigger instead of case-level trigger
         verificationType: caseItem.verificationTypeName || caseItem.verificationType,
         verificationOutcome: caseItem.verificationOutcome,
@@ -283,19 +313,23 @@ export class MobileCaseController {
           name: caseItem.clientName || '', // Client
           code: caseItem.clientCode || '',
         },
-        product: caseItem.productId ? {
-          id: caseItem.productId || 0, // Use number instead of string
-          name: caseItem.productName || '', // Product
-          code: caseItem.productCode || '',
-        } : undefined,
-        verificationTypeDetails: caseItem.verificationTypeId ? {
-          id: caseItem.verificationTypeId || 0, // Use number instead of string
-          name: caseItem.verificationTypeName || '', // Verification Type
-          code: caseItem.verificationTypeCode || '',
-        } : undefined,
+        product: caseItem.productId
+          ? {
+              id: caseItem.productId || 0, // Use number instead of string
+              name: caseItem.productName || '', // Product
+              code: caseItem.productCode || '',
+            }
+          : undefined,
+        verificationTypeDetails: caseItem.verificationTypeId
+          ? {
+              id: caseItem.verificationTypeId || 0, // Use number instead of string
+              name: caseItem.verificationTypeName || '', // Verification Type
+              code: caseItem.verificationTypeCode || '',
+            }
+          : undefined,
         attachments: [],
         attachmentCount: Number(caseItem.attachmentCount) || 0,
-        formData: (caseItem as any).verificationData || null,
+        formData: caseItem.verificationData || null,
         syncStatus: 'SYNCED',
       }));
 
@@ -392,17 +426,22 @@ export class MobileCaseController {
         )`;
         vals2.push(userId);
       } else {
-        vals2.push(null);  // For non-field-agents, pass NULL for task filter
+        vals2.push(null); // For non-field-agents, pass NULL for task filter
       }
 
       const caseRes = await query(caseSql, vals2);
       const caseItem = caseRes.rows[0];
 
       if (!caseItem) {
-        return res.status(404).json({ success: false, message: 'Case not found', error: { code: 'CASE_NOT_FOUND', timestamp: new Date().toISOString() } });
+        return res.status(404).json({
+          success: false,
+          message: 'Case not found',
+          error: { code: 'CASE_NOT_FOUND', timestamp: new Date().toISOString() },
+        });
       }
 
-      const attRes2 = await query(`
+      const attRes2 = await query(
+        `
         SELECT
           id,
           filename,
@@ -416,8 +455,13 @@ export class MobileCaseController {
         FROM attachments
         WHERE "caseId" = $1
         ORDER BY "createdAt" DESC
-      `, [caseId]);
-      const locRes = await query(`SELECT id, latitude, longitude, accuracy, timestamp, source FROM locations WHERE "caseId" = $1 ORDER BY timestamp DESC LIMIT 10`, [caseId]);
+      `,
+        [caseId]
+      );
+      const locRes = await query(
+        `SELECT id, latitude, longitude, accuracy, timestamp, source FROM locations WHERE "caseId" = $1 ORDER BY timestamp DESC LIMIT 10`,
+        [caseId]
+      );
 
       if (!caseItem) {
         return res.status(404).json({
@@ -446,12 +490,18 @@ export class MobileCaseController {
         latitude: caseItem.latitude,
         longitude: caseItem.longitude,
         // CRITICAL FIX: Use task-level status instead of case-level status for field agents
-        status: caseItem.task_status ? caseItem.task_status.toUpperCase().replace(/\s+/g, '_') : 'ASSIGNED',
+        status: caseItem.task_status
+          ? caseItem.task_status.toUpperCase().replace(/\s+/g, '_')
+          : 'ASSIGNED',
         priority: caseItem.taskPriority || caseItem.priority || 'MEDIUM', // Use task-level priority first, fallback to case-level
-        assignedAt: caseItem.assigned_at ? new Date(caseItem.assigned_at).toISOString() : new Date(caseItem.task_created_at || caseItem.createdAt).toISOString(),
+        assignedAt: caseItem.assigned_at
+          ? new Date(caseItem.assigned_at).toISOString()
+          : new Date(caseItem.task_created_at || caseItem.createdAt).toISOString(),
         updatedAt: new Date(caseItem.updatedAt).toISOString(),
         // CRITICAL FIX: Use task-level completedAt instead of case-level completedAt
-        completedAt: caseItem.task_completed_at ? new Date(caseItem.task_completed_at).toISOString() : undefined,
+        completedAt: caseItem.task_completed_at
+          ? new Date(caseItem.task_completed_at).toISOString()
+          : undefined,
         notes: caseItem.taskTrigger || caseItem.trigger || '', // Use task-level trigger instead of case-level trigger
         verificationType: caseItem.verificationTypeName || caseItem.verificationType,
         verificationOutcome: caseItem.verificationOutcome,
@@ -466,16 +516,20 @@ export class MobileCaseController {
           name: caseItem.clientName || '', // Client
           code: caseItem.clientCode || '',
         },
-        product: caseItem.productId ? {
-          id: caseItem.productId || 0, // Use number instead of string
-          name: caseItem.productName || '', // Product
-          code: caseItem.productCode || '',
-        } : undefined,
-        verificationTypeDetails: caseItem.verificationTypeId ? {
-          id: caseItem.verificationTypeId || 0, // Use number instead of string
-          name: caseItem.verificationTypeName || '', // Verification Type
-          code: caseItem.verificationTypeCode || '',
-        } : undefined,
+        product: caseItem.productId
+          ? {
+              id: caseItem.productId || 0, // Use number instead of string
+              name: caseItem.productName || '', // Product
+              code: caseItem.productCode || '',
+            }
+          : undefined,
+        verificationTypeDetails: caseItem.verificationTypeId
+          ? {
+              id: caseItem.verificationTypeId || 0, // Use number instead of string
+              name: caseItem.verificationTypeName || '', // Verification Type
+              code: caseItem.verificationTypeCode || '',
+            }
+          : undefined,
         attachments: attRes2.rows.map((att: any) => {
           const apiBaseUrl = getApiBaseUrl(req);
           return {
@@ -493,7 +547,7 @@ export class MobileCaseController {
             caseId: att.caseId,
           };
         }),
-        formData: (caseItem as any).verificationData || null,
+        formData: caseItem.verificationData || null,
         syncStatus: 'SYNCED',
       };
 
@@ -520,7 +574,7 @@ export class MobileCaseController {
     try {
       const { caseId } = req.params;
       const { status, notes = null } = req.body;
-      const userId = (req as any).user?.id;  // Fixed: auth middleware sets 'id', not 'userId'
+      const userId = (req as any).user?.id; // Fixed: auth middleware sets 'id', not 'userId'
       const userRole = (req as any).user?.role;
 
       console.log(`📱 Mobile case status update request:`, {
@@ -528,7 +582,7 @@ export class MobileCaseController {
         status,
         notes,
         userId,
-        userRole
+        userRole,
       });
 
       // Check if caseId is a UUID (mobile sends UUID) or case number (web sends case number)
@@ -567,8 +621,8 @@ export class MobileCaseController {
             code: 'CASE_NOT_FOUND',
             timestamp: new Date().toISOString(),
             caseId,
-            isUUID
-          }
+            isUUID,
+          },
         });
       }
 
@@ -576,8 +630,14 @@ export class MobileCaseController {
       const compAt = status === 'COMPLETED' ? new Date() : existingCase.completedat;
       const actualCaseId = existingCase.id; // Use the actual UUID from the database
 
-      await query(`UPDATE cases SET status = $1, trigger = COALESCE($2, trigger), "completedAt" = $3, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $4`, [status, notes, compAt, actualCaseId]);
-      const updRes = await query(`SELECT id, "caseId", status, "updatedAt", "completedAt" FROM cases WHERE id = $1`, [actualCaseId]);
+      await query(
+        `UPDATE cases SET status = $1, trigger = COALESCE($2, trigger), "completedAt" = $3, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $4`,
+        [status, notes, compAt, actualCaseId]
+      );
+      const updRes = await query(
+        `SELECT id, "caseId", status, "updatedAt", "completedAt" FROM cases WHERE id = $1`,
+        [actualCaseId]
+      );
       const updatedCase = updRes.rows[0];
 
       console.log(`✅ Case status updated successfully:`, updatedCase);
@@ -601,7 +661,9 @@ export class MobileCaseController {
       // Auto-calculate commission if case is completed
       if (status === 'COMPLETED') {
         try {
-          const { autoCalculateCommissionForCase } = await import('../controllers/commissionManagementController');
+          const { autoCalculateCommissionForCase } = await import(
+            '../controllers/commissionManagementController'
+          );
           await autoCalculateCommissionForCase(actualCaseId);
         } catch (error) {
           console.error('Error auto-calculating commission:', error);
@@ -620,13 +682,15 @@ export class MobileCaseController {
         // Emit general case update notification
         emitCaseUpdate(require('../websocket/server').getSocketIO(), actualCaseId, {
           type: 'STATUS_UPDATE',
-          status: status,
+          status,
           updatedBy: username,
           source: 'MOBILE_APP',
           caseNumber: existingCase.caseId,
         });
 
-        console.log(`🔔 WebSocket notifications sent for case ${actualCaseId} status change: ${existingCase.status} -> ${status}`);
+        console.log(
+          `🔔 WebSocket notifications sent for case ${actualCaseId} status change: ${existingCase.status} -> ${status}`
+        );
       } catch (error) {
         console.error('Error sending WebSocket notifications:', error);
         // Don't fail the case update if WebSocket notification fails
@@ -698,8 +762,13 @@ export class MobileCaseController {
         });
       }
 
-      await query(`UPDATE cases SET priority = $1, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $2`, [Number(priority), caseId]);
-      const updRes2 = await query(`SELECT id, priority, "updatedAt" FROM cases WHERE id = $1`, [caseId]);
+      await query(`UPDATE cases SET priority = $1, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $2`, [
+        Number(priority),
+        caseId,
+      ]);
+      const updRes2 = await query(`SELECT id, priority, "updatedAt" FROM cases WHERE id = $1`, [
+        caseId,
+      ]);
       const updatedCase = updRes2.rows[0];
 
       await createAuditLog({
@@ -782,21 +851,30 @@ export class MobileCaseController {
             code: 'CASE_NOT_FOUND',
             timestamp: new Date().toISOString(),
             caseId,
-            isUUID
-          }
+            isUUID,
+          },
         });
       }
 
       const actualCaseId = existingCase.id; // Use the actual UUID from the database
 
       // Save or update auto-save data
-      const exAuto = await query(`SELECT id FROM "autoSaves" WHERE "caseId" = $1 AND "formType" = $2`, [actualCaseId, formType]);
+      const exAuto = await query(
+        `SELECT id FROM "autoSaves" WHERE "caseId" = $1 AND "formType" = $2`,
+        [actualCaseId, formType]
+      );
       let autoSaveData: any;
       if (exAuto.rowCount && exAuto.rowCount > 0) {
-        const upd = await query(`UPDATE "autoSaves" SET "formData" = $1, timestamp = $2 WHERE id = $3 RETURNING *`, [JSON.stringify(formData), new Date(timestamp), exAuto.rows[0].id]);
+        const upd = await query(
+          `UPDATE "autoSaves" SET "formData" = $1, timestamp = $2 WHERE id = $3 RETURNING *`,
+          [JSON.stringify(formData), new Date(timestamp), exAuto.rows[0].id]
+        );
         autoSaveData = upd.rows[0];
       } else {
-        const ins = await query(`INSERT INTO "autoSaves" (id, "caseId", "formType", "formData", timestamp) VALUES (gen_random_uuid()::text, $1, $2, $3, $4) RETURNING *`, [actualCaseId, formType, JSON.stringify(formData), new Date(timestamp)]);
+        const ins = await query(
+          `INSERT INTO "autoSaves" (id, "caseId", "formType", "formData", timestamp) VALUES (gen_random_uuid()::text, $1, $2, $3, $4) RETURNING *`,
+          [actualCaseId, formType, JSON.stringify(formData), new Date(timestamp)]
+        );
         autoSaveData = ins.rows[0];
       }
 
@@ -873,10 +951,17 @@ export class MobileCaseController {
       }
 
       const actualCaseId = existingCase.id; // Use the actual UUID from the database
-      const autoRes = await query(`SELECT * FROM "autoSaves" WHERE "caseId" = $1 AND "formType" = $2 LIMIT 1`, [actualCaseId, formType.toUpperCase()]);
+      const autoRes = await query(
+        `SELECT * FROM "autoSaves" WHERE "caseId" = $1 AND "formType" = $2 LIMIT 1`,
+        [actualCaseId, formType.toUpperCase()]
+      );
       const autoSaveData = autoRes.rows[0];
       if (!autoSaveData) {
-        return res.status(404).json({ success: false, message: 'No auto-saved data found', error: { code: 'AUTO_SAVE_NOT_FOUND', timestamp: new Date().toISOString() } });
+        return res.status(404).json({
+          success: false,
+          message: 'No auto-saved data found',
+          error: { code: 'AUTO_SAVE_NOT_FOUND', timestamp: new Date().toISOString() },
+        });
       }
 
       res.json({
@@ -913,7 +998,7 @@ export class MobileCaseController {
         caseId,
         reason,
         userId,
-        userRole
+        userRole,
       });
 
       if (!reason) {
@@ -928,14 +1013,17 @@ export class MobileCaseController {
       }
 
       // Validate case exists and user has access
-      const caseQuery = await query(`
+      const caseQuery = await query(
+        `
         SELECT c.id, c."caseId", c."customerName", c.status, c."createdByBackendUser",
                vt.assigned_to
         FROM cases c
         LEFT JOIN verification_tasks vt ON vt.case_id = c.id
         WHERE c.id = $1
         ${userRole === 'FIELD_AGENT' ? 'AND vt.assigned_to = $2' : ''}
-      `, userRole === 'FIELD_AGENT' ? [caseId, userId] : [caseId]);
+      `,
+        userRole === 'FIELD_AGENT' ? [caseId, userId] : [caseId]
+      );
 
       if (caseQuery.rows.length === 0) {
         return res.status(404).json({
@@ -963,7 +1051,8 @@ export class MobileCaseController {
       }
 
       // Update case status to revoked
-      await query(`
+      await query(
+        `
         UPDATE cases
         SET status = 'REVOKED',
             "revokedAt" = CURRENT_TIMESTAMP,
@@ -971,12 +1060,17 @@ export class MobileCaseController {
             "revocationReason" = $2,
             "updatedAt" = CURRENT_TIMESTAMP
         WHERE id = $3
-      `, [userId, reason, caseId]);
+      `,
+        [userId, reason, caseId]
+      );
 
       // Get field user information
-      const fieldUserQuery = await query(`
+      const fieldUserQuery = await query(
+        `
         SELECT name, "employeeId" FROM users WHERE id = $1
-      `, [userId]);
+      `,
+        [userId]
+      );
       const fieldUserName = fieldUserQuery.rows[0]?.name || 'Unknown User';
 
       // Get backend users to notify
@@ -992,22 +1086,22 @@ export class MobileCaseController {
           caseNumber: caseData.caseId,
           customerName: caseData.customerName || 'Unknown Customer',
           fieldUserId: userId,
-          fieldUserName: fieldUserName,
+          fieldUserName,
           revocationReason: reason,
-          backendUserIds: backendUserIds,
+          backendUserIds,
         });
       }
 
       // Create audit log
       await createAuditLog({
-        userId: userId,
+        userId,
         action: 'CASE_REVOKED',
         entityType: 'CASE',
         entityId: caseId,
         details: {
           caseId: caseData.caseId,
           customerName: caseData.customerName,
-          reason: reason,
+          reason,
           previousStatus: caseData.status,
           newStatus: 'REVOKED',
         },
@@ -1023,7 +1117,7 @@ export class MobileCaseController {
           caseNumber: caseData.caseId,
           status: 'REVOKED',
           revokedAt: new Date().toISOString(),
-          reason: reason,
+          reason,
         },
       });
     } catch (error) {
@@ -1052,7 +1146,8 @@ export class MobileCaseController {
       console.log(`📊 Getting task status for task: ${taskId}, user: ${userId}`);
 
       // Query task status
-      const result = await query(`
+      const result = await query(
+        `
         SELECT
           id,
           task_number,
@@ -1065,13 +1160,15 @@ export class MobileCaseController {
           case_id
         FROM verification_tasks
         WHERE id = $1
-      `, [taskId]);
+      `,
+        [taskId]
+      );
 
       if (result.rows.length === 0) {
         return res.status(404).json({
           success: false,
           message: 'Verification task not found',
-          error: { code: 'TASK_NOT_FOUND' }
+          error: { code: 'TASK_NOT_FOUND' },
         });
       }
 
@@ -1082,7 +1179,7 @@ export class MobileCaseController {
         return res.status(403).json({
           success: false,
           message: 'Access denied. You are not assigned to this task.',
-          error: { code: 'ACCESS_DENIED' }
+          error: { code: 'ACCESS_DENIED' },
         });
       }
 
@@ -1100,10 +1197,9 @@ export class MobileCaseController {
           completedAt: task.completed_at,
           assignedTo: task.assigned_to,
           assignedAt: task.assigned_at,
-          caseId: task.case_id
-        }
+          caseId: task.case_id,
+        },
       });
-
     } catch (error) {
       console.error('Get task status error:', error);
       return res.status(500).json({
@@ -1131,24 +1227,31 @@ export class MobileCaseController {
         return res.status(400).json({
           success: false,
           message: 'Status is required',
-          error: { code: 'INVALID_INPUT' }
+          error: { code: 'INVALID_INPUT' },
         });
       }
 
       // Validate status
-      const validStatuses = ['PENDING', 'ASSIGNED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'ON_HOLD'];
+      const validStatuses = [
+        'PENDING',
+        'ASSIGNED',
+        'IN_PROGRESS',
+        'COMPLETED',
+        'CANCELLED',
+        'ON_HOLD',
+      ];
       if (!validStatuses.includes(status)) {
         return res.status(400).json({
           success: false,
           message: 'Invalid status',
-          error: { code: 'INVALID_STATUS' }
+          error: { code: 'INVALID_STATUS' },
         });
       }
 
       // Update task status
       const updateFields: string[] = ['status = $1', 'updated_at = NOW()'];
       const queryParams: any[] = [status];
-      let paramIndex = 2;
+      const paramIndex = 2;
 
       // Set started_at when status changes to IN_PROGRESS
       if (status === 'IN_PROGRESS') {
@@ -1175,7 +1278,7 @@ export class MobileCaseController {
         return res.status(404).json({
           success: false,
           message: 'Verification task not found',
-          error: { code: 'TASK_NOT_FOUND' }
+          error: { code: 'TASK_NOT_FOUND' },
         });
       }
 
@@ -1187,7 +1290,7 @@ export class MobileCaseController {
         action: 'UPDATE_TASK_STATUS',
         entityType: 'VERIFICATION_TASK',
         entityId: taskId,
-        details: { status, previousStatus: updatedTask.status }
+        details: { status, previousStatus: updatedTask.status },
       });
 
       console.log(`✅ Task ${updatedTask.task_number} status updated to ${status}`);
@@ -1195,9 +1298,8 @@ export class MobileCaseController {
       res.json({
         success: true,
         message: 'Task status updated successfully',
-        data: updatedTask
+        data: updatedTask,
       });
-
     } catch (error) {
       console.error('Update task status error:', error);
       res.status(500).json({
@@ -1221,7 +1323,8 @@ export class MobileCaseController {
       const userId = (req as any).user?.id;
 
       // Update task status to IN_PROGRESS and set started_at
-      const result = await query(`
+      const result = await query(
+        `
         UPDATE verification_tasks
         SET
           status = 'IN_PROGRESS',
@@ -1229,13 +1332,15 @@ export class MobileCaseController {
           updated_at = NOW()
         WHERE id = $1
         RETURNING *
-      `, [taskId]);
+      `,
+        [taskId]
+      );
 
       if (result.rows.length === 0) {
         return res.status(404).json({
           success: false,
           message: 'Verification task not found',
-          error: { code: 'TASK_NOT_FOUND' }
+          error: { code: 'TASK_NOT_FOUND' },
         });
       }
 
@@ -1247,7 +1352,7 @@ export class MobileCaseController {
         action: 'START_TASK',
         entityType: 'VERIFICATION_TASK',
         entityId: taskId,
-        details: { taskNumber: updatedTask.task_number }
+        details: { taskNumber: updatedTask.task_number },
       });
 
       console.log(`✅ Task ${updatedTask.task_number} started by user ${userId}`);
@@ -1255,9 +1360,8 @@ export class MobileCaseController {
       res.json({
         success: true,
         message: 'Task started successfully',
-        data: updatedTask
+        data: updatedTask,
       });
-
     } catch (error) {
       console.error('Start task error:', error);
       res.status(500).json({
@@ -1285,12 +1389,13 @@ export class MobileCaseController {
         return res.status(400).json({
           success: false,
           message: 'Verification outcome is required',
-          error: { code: 'INVALID_INPUT' }
+          error: { code: 'INVALID_INPUT' },
         });
       }
 
       // Update task to completed
-      const result = await query(`
+      const result = await query(
+        `
         UPDATE verification_tasks
         SET
           status = 'COMPLETED',
@@ -1300,13 +1405,15 @@ export class MobileCaseController {
           updated_at = NOW()
         WHERE id = $3
         RETURNING *
-      `, [verificationOutcome, actualAmount, taskId]);
+      `,
+        [verificationOutcome, actualAmount, taskId]
+      );
 
       if (result.rows.length === 0) {
         return res.status(404).json({
           success: false,
           message: 'Verification task not found',
-          error: { code: 'TASK_NOT_FOUND' }
+          error: { code: 'TASK_NOT_FOUND' },
         });
       }
 
@@ -1321,8 +1428,8 @@ export class MobileCaseController {
         details: {
           taskNumber: completedTask.task_number,
           verificationOutcome,
-          actualAmount
-        }
+          actualAmount,
+        },
       });
 
       console.log(`✅ Task ${completedTask.task_number} completed by user ${userId}`);
@@ -1330,9 +1437,8 @@ export class MobileCaseController {
       res.json({
         success: true,
         message: 'Task completed successfully',
-        data: completedTask
+        data: completedTask,
       });
-
     } catch (error) {
       console.error('Complete task error:', error);
       res.status(500).json({
@@ -1361,7 +1467,7 @@ export class MobileCaseController {
         taskId,
         reason,
         userId,
-        userRole
+        userRole,
       });
 
       if (!reason) {
@@ -1376,7 +1482,8 @@ export class MobileCaseController {
       }
 
       // Get task details
-      const taskQuery = await query(`
+      const taskQuery = await query(
+        `
         SELECT
           vt.*,
           c."caseId" as case_number,
@@ -1385,7 +1492,9 @@ export class MobileCaseController {
         FROM verification_tasks vt
         LEFT JOIN cases c ON vt.case_id = c.id
         WHERE vt.id = $1
-      `, [taskId]);
+      `,
+        [taskId]
+      );
 
       if (taskQuery.rows.length === 0) {
         return res.status(404).json({
@@ -1425,7 +1534,8 @@ export class MobileCaseController {
       }
 
       // Update task status to revoked
-      await query(`
+      await query(
+        `
         UPDATE verification_tasks
         SET status = 'REVOKED',
             revoked_at = CURRENT_TIMESTAMP,
@@ -1433,12 +1543,17 @@ export class MobileCaseController {
             revocation_reason = $2,
             updated_at = CURRENT_TIMESTAMP
         WHERE id = $3
-      `, [userId, reason, taskId]);
+      `,
+        [userId, reason, taskId]
+      );
 
       // Get field user information
-      const fieldUserQuery = await query(`
+      const fieldUserQuery = await query(
+        `
         SELECT name, "employeeId" FROM users WHERE id = $1
-      `, [userId]);
+      `,
+        [userId]
+      );
       const fieldUserName = fieldUserQuery.rows[0]?.name || 'Unknown User';
 
       // Get backend users to notify
@@ -1457,15 +1572,15 @@ export class MobileCaseController {
           caseNumber: taskData.case_number,
           customerName: taskData.customer_name || 'Unknown Customer',
           fieldUserId: userId,
-          fieldUserName: fieldUserName,
+          fieldUserName,
           revocationReason: reason,
-          backendUserIds: backendUserIds,
+          backendUserIds,
         });
       }
 
       // Create audit log
       await createAuditLog({
-        userId: userId,
+        userId,
         action: 'TASK_REVOKED',
         entityType: 'VERIFICATION_TASK',
         entityId: taskId,
@@ -1473,7 +1588,7 @@ export class MobileCaseController {
           taskNumber: taskData.task_number,
           caseNumber: taskData.case_number,
           customerName: taskData.customer_name,
-          reason: reason,
+          reason,
           previousStatus: taskData.status,
           newStatus: 'REVOKED',
         },
@@ -1489,10 +1604,9 @@ export class MobileCaseController {
           taskNumber: taskData.task_number,
           status: 'REVOKED',
           revokedAt: new Date().toISOString(),
-          reason: reason,
+          reason,
         },
       });
-
     } catch (error) {
       console.error('Revoke task error:', error);
       res.status(500).json({

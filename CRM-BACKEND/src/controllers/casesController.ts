@@ -1,5 +1,6 @@
-import { Request, Response } from 'express';
-import { AuthenticatedRequest } from '../middleware/auth';
+import type { Response } from 'express';
+import { Request } from 'express';
+import type { AuthenticatedRequest } from '../middleware/auth';
 import { logger } from '../utils/logger';
 import { pool, query } from '../config/database';
 import { EnterpriseCacheService, CacheKeys } from '../services/enterpriseCacheService';
@@ -21,7 +22,7 @@ const ALLOWED_FILE_TYPES = {
   'image/png': '.png',
   'image/gif': '.gif',
   'application/msword': '.doc',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '.docx'
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '.docx',
 };
 
 const ALLOWED_EXTENSIONS = Object.values(ALLOWED_FILE_TYPES);
@@ -38,10 +39,10 @@ const storage = multer.diskStorage({
     cb(null, tempDir);
   },
   filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
     const extension = path.extname(file.originalname);
     cb(null, `attachment_${uniqueSuffix}${extension}`);
-  }
+  },
 });
 
 const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
@@ -51,7 +52,11 @@ const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCa
   if (ALLOWED_EXTENSIONS.includes(extension) && ALLOWED_MIME_TYPES.includes(mimeType)) {
     cb(null, true);
   } else {
-    cb(new Error(`File type not allowed. Only PDF, images (JPG, PNG, GIF), and Word documents (DOC, DOCX) are supported.`));
+    cb(
+      new Error(
+        `File type not allowed. Only PDF, images (JPG, PNG, GIF), and Word documents (DOC, DOCX) are supported.`
+      )
+    );
   }
 };
 
@@ -61,7 +66,7 @@ const uploadForCaseCreation = multer({
   limits: {
     fileSize: 50 * 1024 * 1024, // 50MB limit per file (increased for mobile app with multiple high-res images)
     files: 20, // Maximum 20 files per case creation
-  }
+  },
 });
 
 // GET /api/cases - List cases with filtering, sorting, and pagination (Enterprise Enhanced)
@@ -81,14 +86,14 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
       priority,
       dateFrom,
       dateTo,
-      useCache = 'true' // Allow cache bypass for real-time needs
+      useCache = 'true', // Allow cache bypass for real-time needs
     } = req.query;
 
     // Enterprise cache key generation
-    const cacheKey = CacheKeys.userCases(
+    const cacheKey = `${CacheKeys.userCases(
       req.user?.id || 'anonymous',
       Number(page)
-    ) + `:${JSON.stringify(req.query)}`;
+    )}:${JSON.stringify(req.query)}`;
 
     // Try cache first (unless bypassed)
     if (useCache === 'true') {
@@ -98,7 +103,7 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
           userId: req.user?.id,
           page,
           cacheKey,
-          responseTime: Date.now() - startTime
+          responseTime: Date.now() - startTime,
         });
 
         res.set('X-Cache', 'HIT');
@@ -187,7 +192,16 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
     // Validate sort column and implement custom sorting logic
-    const allowedSortColumns = ['createdAt', 'updatedAt', 'customerName', 'priority', 'status', 'caseId', 'completedAt', 'pendingDuration'];
+    const allowedSortColumns = [
+      'createdAt',
+      'updatedAt',
+      'customerName',
+      'priority',
+      'status',
+      'caseId',
+      'completedAt',
+      'pendingDuration',
+    ];
     let safeSortBy = allowedSortColumns.includes(sortBy as string) ? sortBy : 'caseId';
     let safeSortOrder = sortOrder === 'asc' ? 'ASC' : 'DESC';
 
@@ -326,30 +340,38 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
       pendingTasks: row.pendingTasks || 0,
       inProgressTasks: row.inProgressTasks || 0,
       // Transform client data to nested object
-      client: row.clientName ? {
-        id: row.clientId,
-        name: row.clientName,
-        code: row.clientCode
-      } : null,
+      client: row.clientName
+        ? {
+            id: row.clientId,
+            name: row.clientName,
+            code: row.clientCode,
+          }
+        : null,
       // Transform assigned user data to nested object
-      assignedTo: row.assignedToName ? {
-        id: row.assignedTo,
-        name: row.assignedToName,
-        username: row.assignedToEmail,
-        employeeId: row.assignedToEmail
-      } : null,
+      assignedTo: row.assignedToName
+        ? {
+            id: row.assignedTo,
+            name: row.assignedToName,
+            username: row.assignedToEmail,
+            employeeId: row.assignedToEmail,
+          }
+        : null,
       // Transform product data to nested object
-      product: row.productName ? {
-        id: row.productId,
-        name: row.productName,
-        code: row.productCode
-      } : null,
+      product: row.productName
+        ? {
+            id: row.productId,
+            name: row.productName,
+            code: row.productCode,
+          }
+        : null,
       // Transform created by backend user data to nested object
-      createdByBackendUser: row.createdByBackendUserName ? {
-        id: row.createdByBackendUser,
-        name: row.createdByBackendUserName,
-        employeeId: row.createdByBackendUserEmail
-      } : null
+      createdByBackendUser: row.createdByBackendUserName
+        ? {
+            id: row.createdByBackendUser,
+            name: row.createdByBackendUserName,
+            employeeId: row.createdByBackendUserEmail,
+          }
+        : null,
     }));
 
     const response = {
@@ -372,8 +394,9 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
 
     // Cache the response for future requests (1 minute TTL for high-frequency data)
     if (useCache === 'true') {
-      EnterpriseCacheService.set(cacheKey, response, 60)
-        .catch(error => logger.error('Failed to cache cases response:', error));
+      EnterpriseCacheService.set(cacheKey, response, 60).catch(error =>
+        logger.error('Failed to cache cases response:', error)
+      );
     }
 
     // Add performance headers
@@ -467,9 +490,10 @@ export const getCaseById = async (req: AuthenticatedRequest, res: Response) => {
     const result = await pool.query(caseQuery, queryParams);
 
     if (result.rows.length === 0) {
-      const message = userRole === 'FIELD_AGENT'
-        ? 'Case not found or access denied. You can only view cases assigned to you.'
-        : 'Case not found';
+      const message =
+        userRole === 'FIELD_AGENT'
+          ? 'Case not found or access denied. You can only view cases assigned to you.'
+          : 'Case not found';
 
       return res.status(404).json({
         success: false,
@@ -489,30 +513,38 @@ export const getCaseById = async (req: AuthenticatedRequest, res: Response) => {
       productName: row.productName,
       productCode: row.productCode,
       // Transform client data to nested object
-      client: row.clientName ? {
-        id: row.clientId,
-        name: row.clientName,
-        code: row.clientCode
-      } : null,
+      client: row.clientName
+        ? {
+            id: row.clientId,
+            name: row.clientName,
+            code: row.clientCode,
+          }
+        : null,
       // Transform assigned user data to nested object
-      assignedTo: row.assignedToName ? {
-        id: row.assignedTo,
-        name: row.assignedToName,
-        username: row.assignedToEmail,
-        employeeId: row.assignedToEmail
-      } : null,
+      assignedTo: row.assignedToName
+        ? {
+            id: row.assignedTo,
+            name: row.assignedToName,
+            username: row.assignedToEmail,
+            employeeId: row.assignedToEmail,
+          }
+        : null,
       // Transform product data to nested object
-      product: row.productName ? {
-        id: row.productId,
-        name: row.productName,
-        code: row.productCode
-      } : null,
+      product: row.productName
+        ? {
+            id: row.productId,
+            name: row.productName,
+            code: row.productCode,
+          }
+        : null,
       // Transform created by backend user data to nested object
-      createdByBackendUser: row.createdByBackendUserName ? {
-        id: row.createdByBackendUser,
-        name: row.createdByBackendUserName,
-        employeeId: row.createdByBackendUserEmail
-      } : null
+      createdByBackendUser: row.createdByBackendUserName
+        ? {
+            id: row.createdByBackendUser,
+            name: row.createdByBackendUserName,
+            employeeId: row.createdByBackendUserEmail,
+          }
+        : null,
     };
 
     logger.info('Case retrieved', {
@@ -554,7 +586,7 @@ export const updateCase = async (req: AuthenticatedRequest, res: Response) => {
       trigger,
       applicantType,
       backendContactNumber,
-      assignedToId
+      assignedToId,
     } = req.body;
 
     // Build dynamic update query
@@ -687,7 +719,7 @@ export const assignCase = async (req: AuthenticatedRequest, res: Response) => {
     const result = await CaseAssignmentService.assignCase({
       caseId: id,
       assignedToId,
-      assignedById: req.user?.id!,
+      assignedById: req.user?.id,
       reason,
       priority: 'MEDIUM',
     });
@@ -742,7 +774,7 @@ export const bulkAssignCases = async (req: AuthenticatedRequest, res: Response) 
     const result = await CaseAssignmentService.bulkAssignCases({
       caseIds,
       assignedToId,
-      assignedById: req.user?.id!,
+      assignedById: req.user?.id,
       reason,
       priority: priority || 'MEDIUM',
     });
@@ -829,7 +861,7 @@ export const reassignCase = async (req: AuthenticatedRequest, res: Response) => 
       caseId: id,
       fromUserId,
       toUserId,
-      assignedById: req.user?.id!,
+      assignedById: req.user?.id,
       reason,
     });
 
@@ -918,12 +950,12 @@ export const exportCases = async (req: AuthenticatedRequest, res: Response) => {
       priority,
       dateFrom,
       dateTo,
-      exportType = 'all' // 'all', 'pending', 'in-progress', 'completed'
+      exportType = 'all', // 'all', 'pending', 'in-progress', 'completed'
     } = req.query;
 
     // Build the query based on filters
-    let whereConditions: string[] = [];
-    let queryParams: any[] = [];
+    const whereConditions: string[] = [];
+    const queryParams: any[] = [];
     let paramIndex = 1;
 
     // Filter by export type (status)
@@ -964,7 +996,9 @@ export const exportCases = async (req: AuthenticatedRequest, res: Response) => {
       // Convert clientId to client name by looking up in clients table
       const client = await pool.connect();
       try {
-        const clientRes = await client.query('SELECT name FROM clients WHERE id = $1', [parseInt(clientId as string)]);
+        const clientRes = await client.query('SELECT name FROM clients WHERE id = $1', [
+          parseInt(clientId as string),
+        ]);
         if (clientRes.rows.length > 0) {
           whereConditions.push(`c."client" = $${paramIndex}`);
           queryParams.push(clientRes.rows[0].name);
@@ -989,7 +1023,7 @@ export const exportCases = async (req: AuthenticatedRequest, res: Response) => {
 
     if (dateTo) {
       whereConditions.push(`c."createdAt" <= $${paramIndex}`);
-      queryParams.push(dateTo + ' 23:59:59');
+      queryParams.push(`${dateTo} 23:59:59`);
       paramIndex++;
     }
 
@@ -1062,7 +1096,7 @@ export const exportCases = async (req: AuthenticatedRequest, res: Response) => {
       { header: 'Address', key: 'address', width: 30 },
       { header: 'Pincode', key: 'pincode', width: 10 },
       { header: 'Created At', key: 'created_at', width: 20 },
-      { header: 'Updated At', key: 'updated_at', width: 20 }
+      { header: 'Updated At', key: 'updated_at', width: 20 },
     ];
 
     // Add specific columns based on export type
@@ -1094,7 +1128,7 @@ export const exportCases = async (req: AuthenticatedRequest, res: Response) => {
     worksheet.getRow(1).fill = {
       type: 'pattern',
       pattern: 'solid',
-      fgColor: { argb: 'FFE6E6FA' }
+      fgColor: { argb: 'FFE6E6FA' },
     };
 
     // Add data rows
@@ -1116,8 +1150,9 @@ export const exportCases = async (req: AuthenticatedRequest, res: Response) => {
         completed_at: caseItem.completed_at ? new Date(caseItem.completed_at).toLocaleString() : '',
         verification_outcome: caseItem.verification_outcome || '',
         created_by_backend_user_name: caseItem.created_by_backend_user_name || 'Unknown',
-        pending_duration_hours: caseItem.pending_duration_seconds ?
-          Math.round(caseItem.pending_duration_seconds / 3600 * 100) / 100 : ''
+        pending_duration_hours: caseItem.pending_duration_seconds
+          ? Math.round((caseItem.pending_duration_seconds / 3600) * 100) / 100
+          : '',
       };
 
       worksheet.addRow(rowData);
@@ -1127,7 +1162,7 @@ export const exportCases = async (req: AuthenticatedRequest, res: Response) => {
     worksheet.columns.forEach(column => {
       if (column.eachCell) {
         let maxLength = 0;
-        column.eachCell({ includeEmpty: true }, (cell) => {
+        column.eachCell({ includeEmpty: true }, cell => {
           const columnLength = cell.value ? cell.value.toString().length : 10;
           if (columnLength > maxLength) {
             maxLength = columnLength;
@@ -1144,17 +1179,20 @@ export const exportCases = async (req: AuthenticatedRequest, res: Response) => {
 
     // Map export type to readable tab name
     const tabNameMap: { [key: string]: string } = {
-      'all': 'All_Cases',
-      'pending': 'Pending_Cases',
+      all: 'All_Cases',
+      pending: 'Pending_Cases',
       'in-progress': 'In_Progress_Cases',
-      'completed': 'Completed_Cases'
+      completed: 'Completed_Cases',
     };
 
     const tabName = tabNameMap[exportType as string] || 'All_Cases';
     const filename = `${tabName}_Export_${dateStr}_${timeStr}.xlsx`;
 
     // Set response headers
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
 
     // Write to response
@@ -1162,13 +1200,12 @@ export const exportCases = async (req: AuthenticatedRequest, res: Response) => {
     res.end();
 
     logger.info(`Cases exported successfully: ${filename}, ${cases.length} records`);
-
   } catch (error) {
     logger.error('Error exporting cases:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to export cases',
-      error: process.env.NODE_ENV === 'development' ? error : undefined
+      error: process.env.NODE_ENV === 'development' ? error : undefined,
     });
   }
 };
@@ -1191,7 +1228,8 @@ export const getCaseSummaryWithTasks = async (req: AuthenticatedRequest, res: Re
 
   try {
     // Get case information
-    const caseResult = await pool.query(`
+    const caseResult = await pool.query(
+      `
       SELECT
         c.*,
         cl.name as client_name,
@@ -1202,20 +1240,23 @@ export const getCaseSummaryWithTasks = async (req: AuthenticatedRequest, res: Re
       LEFT JOIN products p ON c."productId" = p.id
       LEFT JOIN users u ON c."createdByBackendUser" = u.id
       WHERE c.id = $1
-    `, [caseId]);
+    `,
+      [caseId]
+    );
 
     if (caseResult.rows.length === 0) {
       return res.status(404).json({
         success: false,
         message: 'Case not found',
-        error: { code: 'CASE_NOT_FOUND' }
+        error: { code: 'CASE_NOT_FOUND' },
       });
     }
 
     const caseInfo = caseResult.rows[0];
 
     // Get task summary
-    const taskSummaryResult = await pool.query(`
+    const taskSummaryResult = await pool.query(
+      `
       SELECT
         COUNT(*) as total_tasks,
         COUNT(CASE WHEN status = 'PENDING' THEN 1 END) as pending_tasks,
@@ -1226,12 +1267,15 @@ export const getCaseSummaryWithTasks = async (req: AuthenticatedRequest, res: Re
         COUNT(CASE WHEN status = 'ON_HOLD' THEN 1 END) as on_hold_tasks
       FROM verification_tasks
       WHERE case_id = $1
-    `, [caseId]);
+    `,
+      [caseId]
+    );
 
     const taskSummary = taskSummaryResult.rows[0];
 
     // Get financial summary
-    const financialSummaryResult = await pool.query(`
+    const financialSummaryResult = await pool.query(
+      `
       SELECT
         COALESCE(SUM(estimated_amount), 0) as total_estimated_amount,
         COALESCE(SUM(actual_amount), 0) as total_actual_amount,
@@ -1239,24 +1283,30 @@ export const getCaseSummaryWithTasks = async (req: AuthenticatedRequest, res: Re
         COALESCE(SUM(CASE WHEN status != 'COMPLETED' AND status != 'CANCELLED' THEN estimated_amount ELSE 0 END), 0) as pending_amount
       FROM verification_tasks
       WHERE case_id = $1
-    `, [caseId]);
+    `,
+      [caseId]
+    );
 
     const financialSummary = financialSummaryResult.rows[0];
 
     // Get commission summary
-    const commissionSummaryResult = await pool.query(`
+    const commissionSummaryResult = await pool.query(
+      `
       SELECT
         COALESCE(SUM(calculated_commission), 0) as total_commission,
         COALESCE(SUM(CASE WHEN status = 'PAID' THEN calculated_commission ELSE 0 END), 0) as paid_commission,
         COALESCE(SUM(CASE WHEN status = 'PENDING' OR status = 'CALCULATED' OR status = 'APPROVED' THEN calculated_commission ELSE 0 END), 0) as pending_commission
       FROM task_commission_calculations
       WHERE case_id = $1
-    `, [caseId]);
+    `,
+      [caseId]
+    );
 
     const commissionSummary = commissionSummaryResult.rows[0];
 
     // Get recent activities
-    const recentActivitiesResult = await pool.query(`
+    const recentActivitiesResult = await pool.query(
+      `
       SELECT
         'TASK_CREATED' as type,
         vt.id as task_id,
@@ -1298,7 +1348,9 @@ export const getCaseSummaryWithTasks = async (req: AuthenticatedRequest, res: Re
 
       ORDER BY timestamp DESC
       LIMIT 10
-    `, [caseId]);
+    `,
+      [caseId]
+    );
 
     res.json({
       success: true,
@@ -1320,7 +1372,7 @@ export const getCaseSummaryWithTasks = async (req: AuthenticatedRequest, res: Re
           completed_tasks_count: parseInt(caseInfo.completed_tasks_count || '0'),
           case_completion_percentage: parseFloat(caseInfo.case_completion_percentage || '0'),
           created_at: caseInfo.createdAt,
-          created_by_name: caseInfo.created_by_name
+          created_by_name: caseInfo.created_by_name,
         },
         task_summary: {
           total_tasks: parseInt(taskSummary.total_tasks),
@@ -1329,7 +1381,7 @@ export const getCaseSummaryWithTasks = async (req: AuthenticatedRequest, res: Re
           in_progress_tasks: parseInt(taskSummary.in_progress_tasks),
           completed_tasks: parseInt(taskSummary.completed_tasks),
           cancelled_tasks: parseInt(taskSummary.cancelled_tasks),
-          on_hold_tasks: parseInt(taskSummary.on_hold_tasks)
+          on_hold_tasks: parseInt(taskSummary.on_hold_tasks),
         },
         financial_summary: {
           total_estimated_amount: parseFloat(financialSummary.total_estimated_amount),
@@ -1338,19 +1390,18 @@ export const getCaseSummaryWithTasks = async (req: AuthenticatedRequest, res: Re
           pending_amount: parseFloat(financialSummary.pending_amount),
           total_commission: parseFloat(commissionSummary.total_commission),
           paid_commission: parseFloat(commissionSummary.paid_commission),
-          pending_commission: parseFloat(commissionSummary.pending_commission)
+          pending_commission: parseFloat(commissionSummary.pending_commission),
         },
-        recent_activities: recentActivitiesResult.rows
+        recent_activities: recentActivitiesResult.rows,
       },
-      message: 'Case summary retrieved successfully'
+      message: 'Case summary retrieved successfully',
     });
-
   } catch (error) {
     logger.error('Error getting case summary:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to get case summary',
-      error: { code: 'INTERNAL_ERROR' }
+      error: { code: 'INTERNAL_ERROR' },
     });
   }
 };
@@ -1376,7 +1427,7 @@ export const createCase = [
   uploadForCaseCreation.array('attachments', 15),
   async (req: AuthenticatedRequest, res: Response) => {
     let client;
-    const uploadedFiles: Express.Multer.File[] = req.files as Express.Multer.File[] || [];
+    const uploadedFiles: Express.Multer.File[] = (req.files as Express.Multer.File[]) || [];
     const startTime = Date.now();
 
     // Helper function to cleanup uploaded files
@@ -1408,13 +1459,13 @@ export const createCase = [
         logger.error('Failed to acquire database connection:', {
           error: connError.message,
           code: connError.code,
-          userId: req.user?.id
+          userId: req.user?.id,
         });
         await cleanupFiles();
         return res.status(503).json({
           success: false,
           message: 'Database connection unavailable. Please try again.',
-          error: { code: 'DB_CONNECTION_ERROR' }
+          error: { code: 'DB_CONNECTION_ERROR' },
         });
       }
 
@@ -1432,7 +1483,7 @@ export const createCase = [
         return res.status(401).json({
           success: false,
           message: 'User authentication required',
-          error: { code: 'UNAUTHORIZED' }
+          error: { code: 'UNAUTHORIZED' },
         });
       }
 
@@ -1453,7 +1504,9 @@ export const createCase = [
           hasFormData: !!req.body.data,
           caseDetailsKeys: requestData.case_details ? Object.keys(requestData.case_details) : [],
           tasksCount: requestData.verification_tasks?.length || 0,
-          firstTaskKeys: requestData.verification_tasks?.[0] ? Object.keys(requestData.verification_tasks[0]) : []
+          firstTaskKeys: requestData.verification_tasks?.[0]
+            ? Object.keys(requestData.verification_tasks[0])
+            : [],
         });
       } catch (parseError: any) {
         await client.query('ROLLBACK');
@@ -1461,12 +1514,12 @@ export const createCase = [
         logger.error('Failed to parse request data:', {
           error: parseError.message,
           userId,
-          bodyKeys: Object.keys(req.body)
+          bodyKeys: Object.keys(req.body),
         });
         return res.status(400).json({
           success: false,
           message: 'Invalid request format',
-          error: { code: 'INVALID_JSON' }
+          error: { code: 'INVALID_JSON' },
         });
       }
 
@@ -1481,18 +1534,22 @@ export const createCase = [
         return res.status(400).json({
           success: false,
           message: 'case_details is required and must be an object',
-          error: { code: 'VALIDATION_ERROR', field: 'case_details' }
+          error: { code: 'VALIDATION_ERROR', field: 'case_details' },
         });
       }
 
       // Validate verification_tasks
-      if (!verification_tasks || !Array.isArray(verification_tasks) || verification_tasks.length === 0) {
+      if (
+        !verification_tasks ||
+        !Array.isArray(verification_tasks) ||
+        verification_tasks.length === 0
+      ) {
         await client.query('ROLLBACK');
         await cleanupFiles();
         return res.status(400).json({
           success: false,
           message: 'At least one verification task is required',
-          error: { code: 'VALIDATION_ERROR', field: 'verification_tasks' }
+          error: { code: 'VALIDATION_ERROR', field: 'verification_tasks' },
         });
       }
 
@@ -1503,7 +1560,7 @@ export const createCase = [
         return res.status(400).json({
           success: false,
           message: 'Maximum 50 tasks allowed per case',
-          error: { code: 'VALIDATION_ERROR', field: 'verification_tasks', max: 50 }
+          error: { code: 'VALIDATION_ERROR', field: 'verification_tasks', max: 50 },
         });
       }
 
@@ -1518,7 +1575,7 @@ export const createCase = [
         pincode,
         deduplicationDecision,
         deduplicationRationale,
-        panNumber
+        panNumber,
       } = case_details;
 
       // Validate required fields with specific error messages
@@ -1528,7 +1585,11 @@ export const createCase = [
         validationErrors.push('customerName is required and must be a non-empty string');
       }
 
-      if (!customerPhone || typeof customerPhone !== 'string' || customerPhone.trim().length === 0) {
+      if (
+        !customerPhone ||
+        typeof customerPhone !== 'string' ||
+        customerPhone.trim().length === 0
+      ) {
         validationErrors.push('customerPhone is required and must be a non-empty string');
       }
 
@@ -1557,16 +1618,16 @@ export const createCase = [
             customerPhone,
             clientId,
             productId,
-            priority
-          }
+            priority,
+          },
         });
         return res.status(400).json({
           success: false,
           message: 'Validation failed',
           error: {
             code: 'VALIDATION_ERROR',
-            details: validationErrors
-          }
+            details: validationErrors,
+          },
         });
       }
 
@@ -1579,12 +1640,12 @@ export const createCase = [
           logger.error('Task validation failed - missing verification_type_id:', {
             userId,
             taskIndex: i,
-            taskData: task
+            taskData: task,
           });
           return res.status(400).json({
             success: false,
             message: `verification_type_id is required for task ${i + 1}`,
-            error: { code: 'VALIDATION_ERROR', taskIndex: i }
+            error: { code: 'VALIDATION_ERROR', taskIndex: i },
           });
         }
       }
@@ -1606,7 +1667,7 @@ export const createCase = [
             return res.status(403).json({
               success: false,
               message: 'Access denied: You do not have permission to create cases for this client',
-              error: { code: 'ACCESS_DENIED', clientId }
+              error: { code: 'ACCESS_DENIED', clientId },
             });
           }
         }
@@ -1623,7 +1684,7 @@ export const createCase = [
           return res.status(400).json({
             success: false,
             message: 'Invalid client ID',
-            error: { code: 'INVALID_CLIENT', clientId }
+            error: { code: 'INVALID_CLIENT', clientId },
           });
         }
 
@@ -1633,7 +1694,7 @@ export const createCase = [
           return res.status(400).json({
             success: false,
             message: 'Client is inactive',
-            error: { code: 'INACTIVE_CLIENT', clientId }
+            error: { code: 'INACTIVE_CLIENT', clientId },
           });
         }
 
@@ -1649,7 +1710,7 @@ export const createCase = [
           return res.status(400).json({
             success: false,
             message: 'Invalid product ID',
-            error: { code: 'INVALID_PRODUCT', productId }
+            error: { code: 'INVALID_PRODUCT', productId },
           });
         }
 
@@ -1659,7 +1720,7 @@ export const createCase = [
           return res.status(400).json({
             success: false,
             message: 'Product is inactive',
-            error: { code: 'INACTIVE_PRODUCT', productId }
+            error: { code: 'INACTIVE_PRODUCT', productId },
           });
         }
       } catch (validationError: any) {
@@ -1670,12 +1731,12 @@ export const createCase = [
           code: validationError.code,
           userId,
           clientId,
-          productId
+          productId,
         });
         return res.status(500).json({
           success: false,
           message: 'Validation failed',
-          error: { code: 'VALIDATION_QUERY_ERROR' }
+          error: { code: 'VALIDATION_QUERY_ERROR' },
         });
       }
 
@@ -1684,8 +1745,10 @@ export const createCase = [
       const firstTask = verification_tasks[0];
       const firstTaskVerificationTypeId = firstTask.verification_type_id;
       const firstTaskPincode = firstTask.pincode;
-      const firstTaskTrigger = firstTask.trigger || firstTask.task_description || 'Verification required';
-      const firstTaskApplicantType = firstTask.applicant_type || firstTask.applicantType || 'APPLICANT';
+      const firstTaskTrigger =
+        firstTask.trigger || firstTask.task_description || 'Verification required';
+      const firstTaskApplicantType =
+        firstTask.applicant_type || firstTask.applicantType || 'APPLICANT';
 
       const insertCaseQuery = `
         INSERT INTO cases (
@@ -1717,7 +1780,7 @@ export const createCase = [
         verification_tasks.length > 1,
         verification_tasks.length,
         0,
-        0.0
+        0.0,
       ];
 
       const caseResult = await client.query(insertCaseQuery, caseValues);
@@ -1728,7 +1791,7 @@ export const createCase = [
         caseNumber: newCase.caseId,
         customerName,
         tasksCount: verification_tasks.length,
-        userId
+        userId,
       });
 
       // ========== CREATE VERIFICATION TASKS ==========
@@ -1756,7 +1819,7 @@ export const createCase = [
           estimated_completion_date,
           applicant_type,
           applicantType,
-          attachment_keys
+          attachment_keys,
         } = taskData;
 
         const taskAssignedTo = assignedTo || assigned_to;
@@ -1765,7 +1828,8 @@ export const createCase = [
         const finalTaskDescription = task_description || taskTrigger || 'Verification required';
 
         // Insert verification task
-        const taskResult = await client.query(`
+        const taskResult = await client.query(
+          `
           INSERT INTO verification_tasks (
             case_id, verification_type_id, task_title, task_description,
             priority, assigned_to, assigned_by, assigned_at,
@@ -1779,56 +1843,61 @@ export const createCase = [
             CASE WHEN $6 IS NOT NULL THEN 'ASSIGNED'::text ELSE 'PENDING'::text END,
             $18
           ) RETURNING *
-        `, [
-          newCase.id,
-          verification_type_id,
-          finalTaskTitle,
-          finalTaskDescription,
-          taskPriority,
-          taskAssignedTo || null,
-          userId,
-          rate_type_id || null,
-          estimated_amount || null,
-          taskAddress || null,
-          taskPincode || pincode || null,
-          document_type || null,
-          document_number || null,
-          document_details ? JSON.stringify(document_details) : null,
-          estimated_completion_date || null,
-          taskTrigger || finalTaskDescription,
-          taskApplicantType || null,
-          userId
-        ]);
+        `,
+          [
+            newCase.id,
+            verification_type_id,
+            finalTaskTitle,
+            finalTaskDescription,
+            taskPriority,
+            taskAssignedTo || null,
+            userId,
+            rate_type_id || null,
+            estimated_amount || null,
+            taskAddress || null,
+            taskPincode || pincode || null,
+            document_type || null,
+            document_number || null,
+            document_details ? JSON.stringify(document_details) : null,
+            estimated_completion_date || null,
+            taskTrigger || finalTaskDescription,
+            taskApplicantType || null,
+            userId,
+          ]
+        );
 
         const task = taskResult.rows[0];
         createdTasks.push({
           ...task,
-          attachment_keys: attachment_keys || []
+          attachment_keys: attachment_keys || [],
         });
         totalEstimatedAmount += estimated_amount || 0;
 
         logger.info('Task created:', {
           taskId: task.id,
           taskNumber: task.task_number,
-          assignedTo: taskAssignedTo
+          assignedTo: taskAssignedTo,
         });
 
         // Create assignment history if assigned
         if (taskAssignedTo) {
-          await client.query(`
+          await client.query(
+            `
             INSERT INTO task_assignment_history (
               verification_task_id, case_id, assigned_to, assigned_by,
               assignment_reason, task_status_before, task_status_after
             ) VALUES ($1, $2, $3, $4, $5, $6, $7)
-          `, [
-            task.id,
-            newCase.id,
-            taskAssignedTo,
-            userId,
-            'Initial assignment during case creation',
-            'PENDING',
-            'ASSIGNED'
-          ]);
+          `,
+            [
+              task.id,
+              newCase.id,
+              taskAssignedTo,
+              userId,
+              'Initial assignment during case creation',
+              'PENDING',
+              'ASSIGNED',
+            ]
+          );
         }
       }
 
@@ -1839,7 +1908,12 @@ export const createCase = [
 
       if (files && files.length > 0) {
         // Create permanent directory for this case
-        const permanentDir = path.join(process.cwd(), 'uploads', 'attachments', `case_${newCase.caseId}`);
+        const permanentDir = path.join(
+          process.cwd(),
+          'uploads',
+          'attachments',
+          `case_${newCase.caseId}`
+        );
         if (!fs.existsSync(permanentDir)) {
           fs.mkdirSync(permanentDir, { recursive: true });
         }
@@ -1857,7 +1931,7 @@ export const createCase = [
             // Determine which task this file belongs to
             let verificationTaskId = null;
             for (const task of createdTasks) {
-              if (task.attachment_keys && task.attachment_keys.includes(fileKey)) {
+              if (task.attachment_keys?.includes(fileKey)) {
                 verificationTaskId = task.id;
                 break;
               }
@@ -1869,36 +1943,39 @@ export const createCase = [
             }
 
             // Insert attachment record
-            const attachmentResult = await client.query(`
+            const attachmentResult = await client.query(
+              `
               INSERT INTO attachments (
                 filename, "originalName", "filePath", "fileSize",
                 "mimeType", "uploadedBy", "caseId", case_id,
                 verification_task_id, "createdAt"
               ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
               RETURNING *
-            `, [
-              file.filename,
-              file.originalname,
-              permanentPath,
-              file.size,
-              file.mimetype,
-              userId,
-              newCase.caseId,
-              newCase.id,
-              verificationTaskId
-            ]);
+            `,
+              [
+                file.filename,
+                file.originalname,
+                permanentPath,
+                file.size,
+                file.mimetype,
+                userId,
+                newCase.caseId,
+                newCase.id,
+                verificationTaskId,
+              ]
+            );
 
             uploadedAttachments.push(attachmentResult.rows[0]);
 
             logger.info('Attachment saved:', {
               filename: file.filename,
               taskId: verificationTaskId,
-              caseId: newCase.id
+              caseId: newCase.id,
             });
           } catch (fileError) {
             logger.error('Error processing file:', {
               filename: file.filename,
-              error: fileError
+              error: fileError,
             });
             // Continue with other files
           }
@@ -1932,7 +2009,7 @@ export const createCase = [
             createdAt: newCase.createdAt,
             has_multiple_tasks: newCase.has_multiple_tasks,
             total_tasks_count: newCase.total_tasks_count,
-            completed_tasks_count: newCase.completed_tasks_count
+            completed_tasks_count: newCase.completed_tasks_count,
           },
           tasks: createdTasks.map(task => ({
             id: task.id,
@@ -1943,25 +2020,26 @@ export const createCase = [
             assigned_to: task.assigned_to,
             applicant_type: task.applicant_type,
             priority: task.priority,
-            attachment_count: uploadedAttachments.filter(att => att.verification_task_id === task.id).length
+            attachment_count: uploadedAttachments.filter(
+              att => att.verification_task_id === task.id
+            ).length,
           })),
           attachments: uploadedAttachments.map(att => ({
             id: att.id,
             filename: att.filename,
             originalName: att.originalName,
             verification_task_id: att.verification_task_id,
-            fileSize: att.fileSize
+            fileSize: att.fileSize,
           })),
           summary: {
             total_tasks: verification_tasks.length,
             assigned_tasks: createdTasks.filter(t => t.assigned_to).length,
             pending_tasks: createdTasks.filter(t => !t.assigned_to).length,
             total_attachments: uploadedAttachments.length,
-            estimated_total_amount: totalEstimatedAmount
-          }
-        }
+            estimated_total_amount: totalEstimatedAmount,
+          },
+        },
       });
-
     } catch (error: any) {
       // Rollback transaction
       try {
@@ -1989,7 +2067,7 @@ export const createCase = [
         detail: error.detail,
         userId: req.user?.id,
         executionTime,
-        stack: process.env.NODE_ENV !== 'production' ? error.stack : undefined
+        stack: process.env.NODE_ENV !== 'production' ? error.stack : undefined,
       });
 
       // Handle specific database errors
@@ -2001,8 +2079,8 @@ export const createCase = [
           error: {
             code: 'DUPLICATE_ENTRY',
             constraint: error.constraint,
-            detail: error.detail
-          }
+            detail: error.detail,
+          },
         });
       }
 
@@ -2014,8 +2092,8 @@ export const createCase = [
           error: {
             code: 'FOREIGN_KEY_VIOLATION',
             constraint: error.constraint,
-            detail: error.detail
-          }
+            detail: error.detail,
+          },
         });
       }
 
@@ -2027,8 +2105,8 @@ export const createCase = [
           error: {
             code: 'NULL_VIOLATION',
             column: error.column,
-            detail: error.detail
-          }
+            detail: error.detail,
+          },
         });
       }
 
@@ -2039,8 +2117,8 @@ export const createCase = [
           message: 'Request timeout. Please try again with fewer tasks or smaller files.',
           error: {
             code: 'QUERY_TIMEOUT',
-            executionTime
-          }
+            executionTime,
+          },
         });
       }
 
@@ -2050,8 +2128,8 @@ export const createCase = [
           success: false,
           message: 'Service temporarily unavailable. Please try again in a moment.',
           error: {
-            code: 'SERVICE_OVERLOADED'
-          }
+            code: 'SERVICE_OVERLOADED',
+          },
         });
       }
 
@@ -2061,24 +2139,25 @@ export const createCase = [
           success: false,
           message: 'Database connection error. Please try again.',
           error: {
-            code: 'DB_CONNECTION_ERROR'
-          }
+            code: 'DB_CONNECTION_ERROR',
+          },
         });
       }
 
       // Generic error response
       return res.status(500).json({
         success: false,
-        message: process.env.NODE_ENV === 'production'
-          ? 'Failed to create case. Please try again.'
-          : errorMessage,
+        message:
+          process.env.NODE_ENV === 'production'
+            ? 'Failed to create case. Please try again.'
+            : errorMessage,
         error: {
           code: 'INTERNAL_ERROR',
           ...(process.env.NODE_ENV !== 'production' && {
             detail: error.detail,
-            hint: error.hint
-          })
-        }
+            hint: error.hint,
+          }),
+        },
       });
     } finally {
       // Always release the database connection
@@ -2089,12 +2168,12 @@ export const createCase = [
           logger.info('Case creation request completed', {
             userId: req.user?.id,
             executionTime,
-            success: res.statusCode < 400
+            success: res.statusCode < 400,
           });
         } catch (releaseError) {
           logger.error('Failed to release database connection:', releaseError);
         }
       }
     }
-  }
+  },
 ];

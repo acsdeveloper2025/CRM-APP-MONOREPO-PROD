@@ -1,5 +1,6 @@
-import { Request, Response } from 'express';
-import { AuthenticatedRequest } from '../middleware/auth';
+import type { Response } from 'express';
+import { Request } from 'express';
+import type { AuthenticatedRequest } from '../middleware/auth';
 import { logger } from '../utils/logger';
 import { query, withTransaction } from '../config/database';
 import { createAuditLog } from '../utils/auditLogger';
@@ -12,7 +13,8 @@ export const getDocumentTypesByClient = async (req: AuthenticatedRequest, res: R
 
     // Build where clause for active filter
     const whereClause = isActive !== undefined ? 'AND cdt.is_active = $2' : '';
-    const params = isActive !== undefined ? [Number(clientId), String(isActive) === 'true'] : [Number(clientId)];
+    const params =
+      isActive !== undefined ? [Number(clientId), String(isActive) === 'true'] : [Number(clientId)];
 
     const documentTypesQuery = `
       SELECT DISTINCT 
@@ -98,12 +100,12 @@ export const assignDocumentTypesToClient = async (req: AuthenticatedRequest, res
       });
     }
 
-    const result = await withTransaction(async (client) => {
+    const result = await withTransaction(async client => {
       const insertedMappings = [];
 
       for (let i = 0; i < uniqueDocumentTypeIds.length; i++) {
         const documentTypeId = uniqueDocumentTypeIds[i];
-        
+
         try {
           const insertResult = await client.query(
             `INSERT INTO "clientDocumentTypes" (
@@ -132,14 +134,14 @@ export const assignDocumentTypesToClient = async (req: AuthenticatedRequest, res
 
     // Create audit log
     await createAuditLog({
-      userId: req.user?.id!,
+      userId: req.user?.id,
       action: 'ASSIGN',
       entityType: 'CLIENT_DOCUMENT_TYPES',
       entityId: clientId,
       details: {
         documentTypeIds: uniqueDocumentTypeIds,
         isRequired,
-        mappingCount: result.length
+        mappingCount: result.length,
       },
     });
 
@@ -191,13 +193,13 @@ export const removeDocumentTypeFromClient = async (req: AuthenticatedRequest, re
 
     // Create audit log
     await createAuditLog({
-      userId: req.user?.id!,
+      userId: req.user?.id,
       action: 'UNASSIGN',
       entityType: 'CLIENT_DOCUMENT_TYPES',
       entityId: clientId,
       details: {
         documentTypeId: Number(documentTypeId),
-        removedMapping: existingMapping.rows[0]
+        removedMapping: existingMapping.rows[0],
       },
     });
 
@@ -294,14 +296,14 @@ export const updateClientDocumentTypeMapping = async (req: AuthenticatedRequest,
 
     // Create audit log
     await createAuditLog({
-      userId: req.user?.id!,
+      userId: req.user?.id,
       action: 'UPDATE',
       entityType: 'CLIENT_DOCUMENT_TYPES',
       entityId: clientId,
       details: {
         documentTypeId: Number(documentTypeId),
         updatedFields: Object.keys(req.body),
-        previousMapping: existingMapping.rows[0]
+        previousMapping: existingMapping.rows[0],
       },
     });
 

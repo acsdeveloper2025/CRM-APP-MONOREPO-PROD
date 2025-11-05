@@ -1,6 +1,6 @@
-import { Response } from 'express';
+import type { Response } from 'express';
 import { logger } from '@/config/logger';
-import { AuthenticatedRequest } from '@/middleware/auth';
+import type { AuthenticatedRequest } from '@/middleware/auth';
 import { pool, query, withTransaction } from '@/config/database';
 import { randomUUID } from 'crypto';
 
@@ -13,7 +13,7 @@ export const getProducts = async (req: AuthenticatedRequest, res: Response) => {
       search,
       sortBy = 'name',
       sortOrder = 'asc',
-      productIds: productIdsFilter
+      productIds: productIdsFilter,
     } = req.query;
 
     // Build where clause and parameters
@@ -51,7 +51,9 @@ export const getProducts = async (req: AuthenticatedRequest, res: Response) => {
 
     // Add search filter if provided
     if (search) {
-      whereSql.push(`(COALESCE(name, '') ILIKE $${paramIndex} OR COALESCE(code, '') ILIKE $${paramIndex + 1})`);
+      whereSql.push(
+        `(COALESCE(name, '') ILIKE $${paramIndex} OR COALESCE(code, '') ILIKE $${paramIndex + 1})`
+      );
       values.push(`%${String(search)}%`, `%${String(search)}%`);
       paramIndex += 2;
     }
@@ -59,12 +61,17 @@ export const getProducts = async (req: AuthenticatedRequest, res: Response) => {
     const whereClause = whereSql.length ? `WHERE ${whereSql.join(' AND ')}` : '';
 
     // Get total count
-    const countRes = await query<{ count: string }>(`SELECT COUNT(*)::text as count FROM products ${whereClause}`, values);
+    const countRes = await query<{ count: string }>(
+      `SELECT COUNT(*)::text as count FROM products ${whereClause}`,
+      values
+    );
     const totalCount = Number(countRes.rows[0]?.count || 0);
 
     // Get products with pagination
     const offset = (Number(page) - 1) * Number(limit);
-    const sortCol = ['name', 'code', 'createdAt', 'updatedAt'].includes(String(sortBy)) ? String(sortBy) : 'name';
+    const sortCol = ['name', 'code', 'createdAt', 'updatedAt'].includes(String(sortBy))
+      ? String(sortBy)
+      : 'name';
     const sortDir = String(sortOrder).toLowerCase() === 'desc' ? 'DESC' : 'ASC';
     const listRes = await query(
       `SELECT id, name, code, "createdAt", "updatedAt"
@@ -81,7 +88,7 @@ export const getProducts = async (req: AuthenticatedRequest, res: Response) => {
       page: Number(page),
       limit: Number(limit),
       search: search || '',
-      total: totalCount
+      total: totalCount,
     });
 
     res.json({
@@ -108,7 +115,10 @@ export const getProducts = async (req: AuthenticatedRequest, res: Response) => {
 export const getProductById = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const productRes = await query(`SELECT id, name, code, "createdAt", "updatedAt" FROM products WHERE id = $1`, [Number(id)]);
+    const productRes = await query(
+      `SELECT id, name, code, "createdAt", "updatedAt" FROM products WHERE id = $1`,
+      [Number(id)]
+    );
     const product = productRes.rows[0];
 
     if (!product) {
@@ -137,12 +147,8 @@ export const getProductById = async (req: AuthenticatedRequest, res: Response) =
 
 // POST /api/products - Create new product
 export const createProduct = async (req: AuthenticatedRequest, res: Response) => {
-
   try {
-    const {
-      name,
-      code
-    } = req.body;
+    const { name, code } = req.body;
 
     // Check if product code already exists
     const dupRes = await query(`SELECT 1 FROM products WHERE code = $1`, [code]);
@@ -163,10 +169,10 @@ export const createProduct = async (req: AuthenticatedRequest, res: Response) =>
     );
     const newProduct = insertRes.rows[0];
 
-    logger.info(`Created new product: ${newProduct.id}`, { 
+    logger.info(`Created new product: ${newProduct.id}`, {
       userId: req.user?.id,
       productName: name,
-      productCode: code
+      productCode: code,
     });
 
     res.status(201).json({
@@ -216,9 +222,13 @@ export const updateProduct = async (req: AuthenticatedRequest, res: Response) =>
 
     // Prepare update data
     const updatePayload: any = {};
-    
-    if (updateData.name) updatePayload.name = updateData.name;
-    if (updateData.code) updatePayload.code = updateData.code;
+
+    if (updateData.name) {
+      updatePayload.name = updateData.name;
+    }
+    if (updateData.code) {
+      updatePayload.code = updateData.code;
+    }
 
     // Build dynamic update
     const sets: string[] = [];
@@ -226,7 +236,7 @@ export const updateProduct = async (req: AuthenticatedRequest, res: Response) =>
     let idx = 1;
     for (const key of Object.keys(updatePayload)) {
       sets.push(`${key} = $${idx++}`);
-      vals.push((updatePayload as any)[key]);
+      vals.push(updatePayload[key]);
     }
     sets.push(`updatedAt = CURRENT_TIMESTAMP`);
     vals.push(id);
@@ -240,7 +250,7 @@ export const updateProduct = async (req: AuthenticatedRequest, res: Response) =>
     logger.info(`Updated product: ${id}`, {
       userId: req.user?.id,
       productId: id,
-      updates: Object.keys(updatePayload)
+      updates: Object.keys(updatePayload),
     });
 
     res.json({
@@ -278,10 +288,10 @@ export const deleteProduct = async (req: AuthenticatedRequest, res: Response) =>
     // Delete product
     await query(`DELETE FROM products WHERE id = $1`, [id]);
 
-    logger.info(`Deleted product: ${id}`, { 
+    logger.info(`Deleted product: ${id}`, {
       userId: req.user?.id,
       productId: id,
-      productName: existingProduct.name
+      productName: existingProduct.name,
     });
 
     res.json({
@@ -307,7 +317,9 @@ export const getProductsByClient = async (req: AuthenticatedRequest, res: Respon
     // Build where clause for mapping table
     const values: any[] = [Number(clientId)];
     const activeClause = typeof isActive !== 'undefined' ? 'AND cp."isActive" = $2' : '';
-    if (typeof isActive !== 'undefined') values.push(String(isActive) === 'true');
+    if (typeof isActive !== 'undefined') {
+      values.push(String(isActive) === 'true');
+    }
     const mapRes = await query(
       `SELECT p.id, p.name, p.code, p."createdAt", p."updatedAt"
        FROM "clientProducts" cp
@@ -318,7 +330,9 @@ export const getProductsByClient = async (req: AuthenticatedRequest, res: Respon
     );
     const products = mapRes.rows;
 
-    logger.info(`Retrieved ${products.length} products for client ${clientId}`, { userId: req.user?.id });
+    logger.info(`Retrieved ${products.length} products for client ${clientId}`, {
+      userId: req.user?.id,
+    });
 
     res.json({
       success: true,
@@ -347,8 +361,8 @@ export const getProductStats = async (req: AuthenticatedRequest, res: Response) 
       active: total, // Assuming all products are active since no isActive column
       inactive: 0,
       byCategory: {
-        'OTHER': total // Default category since no category column
-      }
+        OTHER: total, // Default category since no category column
+      },
     };
 
     res.json({

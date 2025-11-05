@@ -62,11 +62,11 @@ export const generateUserAuthUuid = async (
       entityType: 'USER',
       entityId: userId,
       userId: adminUserId,
-      details: { 
+      details: {
         username: user.username,
         role: user.role,
         roleName: user.roleName,
-        generatedBy: adminUserId ? 'ADMIN' : 'SYSTEM'
+        generatedBy: adminUserId ? 'ADMIN' : 'SYSTEM',
       },
     });
 
@@ -80,10 +80,7 @@ export const generateUserAuthUuid = async (
  * Revoke authUuid for any user (set to null)
  * This effectively disables UUID authentication for the user
  */
-export const revokeUserAuthUuid = async (
-  userId: string,
-  adminUserId?: string
-): Promise<void> => {
+export const revokeUserAuthUuid = async (userId: string, adminUserId?: string): Promise<void> => {
   try {
     // Get user information (no role restrictions)
     const userRes = await query(
@@ -118,11 +115,11 @@ export const revokeUserAuthUuid = async (
       entityType: 'USER',
       entityId: userId,
       userId: adminUserId,
-      details: { 
+      details: {
         username: user.username,
         role: user.role,
         roleName: user.roleName,
-        revokedBy: adminUserId ? 'ADMIN' : 'SYSTEM'
+        revokedBy: adminUserId ? 'ADMIN' : 'SYSTEM',
       },
     });
   } catch (error) {

@@ -10,7 +10,7 @@ import {
   updateState,
   deleteState,
   getStatesStats,
-  bulkImportStates
+  bulkImportStates,
 } from '@/controllers/statesController';
 
 const router = express.Router();
@@ -20,10 +20,7 @@ router.use(authenticateToken);
 
 // Validation schemas
 const listStatesValidation = [
-  query('page')
-    .optional()
-    .isInt({ min: 1 })
-    .withMessage('Page must be a positive integer'),
+  query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
   query('limit')
     .optional()
     .isInt({ min: 1, max: 100 })
@@ -36,8 +33,10 @@ const listStatesValidation = [
   query('search')
     .optional()
     .trim()
-    .custom((value) => {
-      if (value === '' || value === undefined || value === null) return true;
+    .custom(value => {
+      if (value === '' || value === undefined || value === null) {
+        return true;
+      }
       return value.length >= 1 && value.length <= 100;
     })
     .withMessage('Search term must be between 1 and 100 characters'),
@@ -45,10 +44,7 @@ const listStatesValidation = [
     .optional()
     .isIn(['name', 'code', 'country', 'createdAt', 'updatedAt'])
     .withMessage('Invalid sort field'),
-  query('sortOrder')
-    .optional()
-    .isIn(['asc', 'desc'])
-    .withMessage('Sort order must be asc or desc'),
+  query('sortOrder').optional().isIn(['asc', 'desc']).withMessage('Sort order must be asc or desc'),
 ];
 
 const createStateValidation = [
@@ -96,48 +92,37 @@ const updateStateValidation = [
 
 const bulkImportValidation = [
   // File validation would be handled by multer middleware
-  body('overwrite')
-    .optional()
-    .isBoolean()
-    .withMessage('Overwrite must be a boolean'),
+  body('overwrite').optional().isBoolean().withMessage('Overwrite must be a boolean'),
 ];
 
 // Core CRUD routes
-router.get('/', 
-  listStatesValidation, 
-  handleValidationErrors, 
-  getStates
-);
+router.get('/', listStatesValidation, handleValidationErrors, getStates);
 
 router.get('/stats', getStatesStats);
 
-router.post('/', 
-  createStateValidation, 
-  handleValidationErrors, 
-  createState
-);
+router.post('/', createStateValidation, handleValidationErrors, createState);
 
-router.post('/bulk-import',
-  upload.single('file'),
-  bulkImportStates
-);
+router.post('/bulk-import', upload.single('file'), bulkImportStates);
 
-router.get('/:id', 
-  [param('id').trim().notEmpty().withMessage('State ID is required')], 
-  handleValidationErrors, 
+router.get(
+  '/:id',
+  [param('id').trim().notEmpty().withMessage('State ID is required')],
+  handleValidationErrors,
   getStateById
 );
 
-router.put('/:id', 
-  [param('id').trim().notEmpty().withMessage('State ID is required')], 
-  updateStateValidation, 
-  handleValidationErrors, 
+router.put(
+  '/:id',
+  [param('id').trim().notEmpty().withMessage('State ID is required')],
+  updateStateValidation,
+  handleValidationErrors,
   updateState
 );
 
-router.delete('/:id', 
-  [param('id').trim().notEmpty().withMessage('State ID is required')], 
-  handleValidationErrors, 
+router.delete(
+  '/:id',
+  [param('id').trim().notEmpty().withMessage('State ID is required')],
+  handleValidationErrors,
   deleteState
 );
 

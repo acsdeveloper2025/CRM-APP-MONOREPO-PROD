@@ -10,7 +10,7 @@ import {
   updateCountry,
   deleteCountry,
   getCountriesStats,
-  bulkImportCountries
+  bulkImportCountries,
 } from '@/controllers/countriesController';
 
 const router = express.Router();
@@ -20,10 +20,7 @@ router.use(authenticateToken);
 
 // Validation schemas
 const listCountriesValidation = [
-  query('page')
-    .optional()
-    .isInt({ min: 1 })
-    .withMessage('Page must be a positive integer'),
+  query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
   query('limit')
     .optional()
     .isInt({ min: 1, max: 100 })
@@ -36,8 +33,10 @@ const listCountriesValidation = [
   query('search')
     .optional()
     .trim()
-    .custom((value) => {
-      if (value === '' || value === undefined || value === null) return true;
+    .custom(value => {
+      if (value === '' || value === undefined || value === null) {
+        return true;
+      }
       return value.length >= 1 && value.length <= 100;
     })
     .withMessage('Search term must be between 1 and 100 characters'),
@@ -45,10 +44,7 @@ const listCountriesValidation = [
     .optional()
     .isIn(['name', 'code', 'continent', 'createdAt', 'updatedAt'])
     .withMessage('Invalid sort field'),
-  query('sortOrder')
-    .optional()
-    .isIn(['asc', 'desc'])
-    .withMessage('Sort order must be asc or desc'),
+  query('sortOrder').optional().isIn(['asc', 'desc']).withMessage('Sort order must be asc or desc'),
 ];
 
 const createCountryValidation = [
@@ -71,7 +67,9 @@ const createCountryValidation = [
     .notEmpty()
     .withMessage('Continent is required')
     .isIn(['Africa', 'Antarctica', 'Asia', 'Europe', 'North America', 'Oceania', 'South America'])
-    .withMessage('Invalid continent. Must be one of: Africa, Antarctica, Asia, Europe, North America, Oceania, South America'),
+    .withMessage(
+      'Invalid continent. Must be one of: Africa, Antarctica, Asia, Europe, North America, Oceania, South America'
+    ),
 ];
 
 const updateCountryValidation = [
@@ -91,53 +89,44 @@ const updateCountryValidation = [
     .optional()
     .trim()
     .isIn(['Africa', 'Antarctica', 'Asia', 'Europe', 'North America', 'Oceania', 'South America'])
-    .withMessage('Invalid continent. Must be one of: Africa, Antarctica, Asia, Europe, North America, Oceania, South America'),
+    .withMessage(
+      'Invalid continent. Must be one of: Africa, Antarctica, Asia, Europe, North America, Oceania, South America'
+    ),
 ];
 
 const bulkImportValidation = [
   // File validation would be handled by multer middleware
-  body('overwrite')
-    .optional()
-    .isBoolean()
-    .withMessage('Overwrite must be a boolean'),
+  body('overwrite').optional().isBoolean().withMessage('Overwrite must be a boolean'),
 ];
 
 // Core CRUD routes
-router.get('/', 
-  listCountriesValidation, 
-  handleValidationErrors, 
-  getCountries
-);
+router.get('/', listCountriesValidation, handleValidationErrors, getCountries);
 
 router.get('/stats', getCountriesStats);
 
-router.post('/', 
-  createCountryValidation, 
-  handleValidationErrors, 
-  createCountry
-);
+router.post('/', createCountryValidation, handleValidationErrors, createCountry);
 
-router.post('/bulk-import',
-  upload.single('file'),
-  bulkImportCountries
-);
+router.post('/bulk-import', upload.single('file'), bulkImportCountries);
 
-router.get('/:id', 
-  [param('id').trim().notEmpty().withMessage('Country ID is required')], 
-  handleValidationErrors, 
+router.get(
+  '/:id',
+  [param('id').trim().notEmpty().withMessage('Country ID is required')],
+  handleValidationErrors,
   getCountryById
 );
 
-router.put('/:id', 
-  [param('id').trim().notEmpty().withMessage('Country ID is required')], 
-  updateCountryValidation, 
-  handleValidationErrors, 
+router.put(
+  '/:id',
+  [param('id').trim().notEmpty().withMessage('Country ID is required')],
+  updateCountryValidation,
+  handleValidationErrors,
   updateCountry
 );
 
-router.delete('/:id', 
-  [param('id').trim().notEmpty().withMessage('Country ID is required')], 
-  handleValidationErrors, 
+router.delete(
+  '/:id',
+  [param('id').trim().notEmpty().withMessage('Country ID is required')],
+  handleValidationErrors,
   deleteCountry
 );
 

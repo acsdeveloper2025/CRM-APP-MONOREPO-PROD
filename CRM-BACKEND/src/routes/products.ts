@@ -3,7 +3,11 @@ import { body, query, param } from 'express-validator';
 import { authenticateToken } from '@/middleware/auth';
 import { handleValidationErrors } from '@/middleware/validation';
 import { addProductFiltering } from '@/middleware/productAccess';
-import { EnterpriseCache, EnterpriseCacheConfigs, CacheInvalidationPatterns } from '../middleware/enterpriseCache';
+import {
+  EnterpriseCache,
+  EnterpriseCacheConfigs,
+  CacheInvalidationPatterns,
+} from '../middleware/enterpriseCache';
 import {
   getProducts,
   getProductById,
@@ -12,7 +16,7 @@ import {
   deleteProduct,
   getProductsByClient,
   getProductStats,
-  getProductVerificationTypes
+  getProductVerificationTypes,
 } from '@/controllers/productsController';
 
 const router = express.Router();
@@ -54,19 +58,20 @@ const updateProductValidation = [
     .withMessage('Description must be less than 1000 characters'),
   body('category')
     .optional()
-    .isIn(['LOAN_VERIFICATION', 'EMPLOYMENT_VERIFICATION', 'BUSINESS_VERIFICATION', 'IDENTITY_VERIFICATION', 'ADDRESS_VERIFICATION', 'OTHER'])
+    .isIn([
+      'LOAN_VERIFICATION',
+      'EMPLOYMENT_VERIFICATION',
+      'BUSINESS_VERIFICATION',
+      'IDENTITY_VERIFICATION',
+      'ADDRESS_VERIFICATION',
+      'OTHER',
+    ])
     .withMessage('Invalid category'),
-  body('isActive')
-    .optional()
-    .isBoolean()
-    .withMessage('isActive must be a boolean'),
+  body('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
 ];
 
 const listProductsValidation = [
-  query('page')
-    .optional()
-    .isInt({ min: 1 })
-    .withMessage('Page must be a positive integer'),
+  query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
   query('limit')
     .optional()
     .isInt({ min: 1, max: 100 })
@@ -77,12 +82,16 @@ const listProductsValidation = [
     .withMessage('Client ID must be a positive integer'),
   query('category')
     .optional()
-    .isIn(['LOAN_VERIFICATION', 'EMPLOYMENT_VERIFICATION', 'BUSINESS_VERIFICATION', 'IDENTITY_VERIFICATION', 'ADDRESS_VERIFICATION', 'OTHER'])
+    .isIn([
+      'LOAN_VERIFICATION',
+      'EMPLOYMENT_VERIFICATION',
+      'BUSINESS_VERIFICATION',
+      'IDENTITY_VERIFICATION',
+      'ADDRESS_VERIFICATION',
+      'OTHER',
+    ])
     .withMessage('Invalid category'),
-  query('isActive')
-    .optional()
-    .isBoolean()
-    .withMessage('isActive must be a boolean'),
+  query('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
   query('search')
     .optional()
     .trim()
@@ -92,10 +101,7 @@ const listProductsValidation = [
     .optional()
     .isIn(['name', 'code', 'category', 'createdAt', 'updatedAt'])
     .withMessage('Invalid sort field'),
-  query('sortOrder')
-    .optional()
-    .isIn(['asc', 'desc'])
-    .withMessage('Sort order must be asc or desc'),
+  query('sortOrder').optional().isIn(['asc', 'desc']).withMessage('Sort order must be asc or desc'),
 ];
 
 // TODO: Implement these validation rules when needed
@@ -127,17 +133,13 @@ const listProductsValidation = [
 // ];
 
 const clientProductsValidation = [
-  param('id')
-    .isInt({ min: 1 })
-    .withMessage('Client ID must be a positive integer'),
-  query('isActive')
-    .optional()
-    .isBoolean()
-    .withMessage('isActive must be a boolean'),
+  param('id').isInt({ min: 1 }).withMessage('Client ID must be a positive integer'),
+  query('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
 ];
 
 // Core CRUD routes (CACHED)
-router.get('/',
+router.get(
+  '/',
   authenticateToken,
   EnterpriseCache.create(EnterpriseCacheConfigs.products),
   listProductsValidation,
@@ -148,13 +150,15 @@ router.get('/',
 
 // TODO: Implement these endpoints
 // router.get('/categories', getProductCategories);
-router.get('/stats',
+router.get(
+  '/stats',
   authenticateToken,
   EnterpriseCache.create(EnterpriseCacheConfigs.analytics),
   getProductStats
 );
 
-router.post('/',
+router.post(
+  '/',
   authenticateToken,
   EnterpriseCache.invalidate(CacheInvalidationPatterns.productUpdate),
   createProductValidation,
@@ -170,7 +174,8 @@ router.post('/',
 //   bulkImportProducts
 // );
 
-router.get('/:id',
+router.get(
+  '/:id',
   authenticateToken,
   EnterpriseCache.create(EnterpriseCacheConfigs.products),
   [param('id').isInt({ min: 1 }).withMessage('Product ID must be a positive integer')],
@@ -178,7 +183,8 @@ router.get('/:id',
   getProductById
 );
 
-router.put('/:id',
+router.put(
+  '/:id',
   authenticateToken,
   EnterpriseCache.invalidate(CacheInvalidationPatterns.productUpdate),
   [param('id').isInt({ min: 1 }).withMessage('Product ID must be a positive integer')],
@@ -187,7 +193,8 @@ router.put('/:id',
   updateProduct
 );
 
-router.delete('/:id',
+router.delete(
+  '/:id',
   authenticateToken,
   EnterpriseCache.invalidate(CacheInvalidationPatterns.productUpdate),
   [param('id').isInt({ min: 1 }).withMessage('Product ID must be a positive integer')],
@@ -196,12 +203,13 @@ router.delete('/:id',
 );
 
 // Get verification types for a product (CACHED)
-router.get('/:id/verification-types',
+router.get(
+  '/:id/verification-types',
   authenticateToken,
   EnterpriseCache.create(EnterpriseCacheConfigs.verificationTypes),
   [
     param('id').isInt({ min: 1 }).withMessage('Product ID must be a positive integer'),
-    query('isActive').optional().isBoolean().withMessage('isActive must be a boolean')
+    query('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
   ],
   handleValidationErrors,
   getProductVerificationTypes

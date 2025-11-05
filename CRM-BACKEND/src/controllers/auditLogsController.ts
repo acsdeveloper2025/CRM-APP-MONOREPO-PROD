@@ -1,6 +1,7 @@
-import { Request, Response } from 'express';
+import type { Response } from 'express';
+import { Request } from 'express';
 import { logger } from '@/config/logger';
-import { AuthenticatedRequest } from '@/middleware/auth';
+import type { AuthenticatedRequest } from '@/middleware/auth';
 
 // Mock data for demonstration (replace with actual database operations)
 let auditLogs: any[] = [
@@ -98,19 +99,19 @@ let auditLogs: any[] = [
 // GET /api/audit-logs - List audit logs with pagination and filters
 export const getAuditLogs = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { 
-      page = 1, 
-      limit = 20, 
-      userId, 
-      action, 
-      resource, 
-      category, 
-      severity, 
-      dateFrom, 
-      dateTo, 
-      search, 
-      sortBy = 'timestamp', 
-      sortOrder = 'desc' 
+    const {
+      page = 1,
+      limit = 20,
+      userId,
+      action,
+      resource,
+      category,
+      severity,
+      dateFrom,
+      dateTo,
+      search,
+      sortBy = 'timestamp',
+      sortOrder = 'desc',
     } = req.query;
 
     let filteredLogs = [...auditLogs];
@@ -133,18 +134,23 @@ export const getAuditLogs = async (req: AuthenticatedRequest, res: Response) => 
     }
     if (search) {
       const searchTerm = (search as string).toLowerCase();
-      filteredLogs = filteredLogs.filter(log => 
-        log.userName.toLowerCase().includes(searchTerm) ||
-        log.action.toLowerCase().includes(searchTerm) ||
-        log.resource.toLowerCase().includes(searchTerm) ||
-        JSON.stringify(log.details).toLowerCase().includes(searchTerm)
+      filteredLogs = filteredLogs.filter(
+        log =>
+          log.userName.toLowerCase().includes(searchTerm) ||
+          log.action.toLowerCase().includes(searchTerm) ||
+          log.resource.toLowerCase().includes(searchTerm) ||
+          JSON.stringify(log.details).toLowerCase().includes(searchTerm)
       );
     }
     if (dateFrom) {
-      filteredLogs = filteredLogs.filter(log => new Date(log.timestamp) >= new Date(dateFrom as string));
+      filteredLogs = filteredLogs.filter(
+        log => new Date(log.timestamp) >= new Date(dateFrom as string)
+      );
     }
     if (dateTo) {
-      filteredLogs = filteredLogs.filter(log => new Date(log.timestamp) <= new Date(dateTo as string));
+      filteredLogs = filteredLogs.filter(
+        log => new Date(log.timestamp) <= new Date(dateTo as string)
+      );
     }
 
     // Apply sorting
@@ -162,10 +168,10 @@ export const getAuditLogs = async (req: AuthenticatedRequest, res: Response) => 
     const endIndex = startIndex + (limit as number);
     const paginatedLogs = filteredLogs.slice(startIndex, endIndex);
 
-    logger.info(`Retrieved ${paginatedLogs.length} audit logs`, { 
+    logger.info(`Retrieved ${paginatedLogs.length} audit logs`, {
       userId: req.user?.id,
       filters: { userId, action, resource, category, search },
-      pagination: { page, limit }
+      pagination: { page, limit },
     });
 
     res.json({
@@ -226,7 +232,7 @@ export const createMobileAuditLogs = async (req: AuthenticatedRequest, res: Resp
     if (!logs || !Array.isArray(logs)) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid logs format. Expected array of logs.'
+        message: 'Invalid logs format. Expected array of logs.',
       });
     }
 
@@ -246,13 +252,13 @@ export const createMobileAuditLogs = async (req: AuthenticatedRequest, res: Resp
         location: log.location,
         timestamp: log.timestamp,
         batchId,
-        deviceId
+        deviceId,
       },
       ipAddress: req.ip || req.connection.remoteAddress || 'Unknown',
       userAgent: req.get('User-Agent') || 'Mobile App',
       timestamp: log.timestamp || new Date().toISOString(),
       severity: 'INFO',
-      category: 'CASE_MANAGEMENT'
+      category: 'CASE_MANAGEMENT',
     }));
 
     // Add to mock storage (replace with actual database operations)
@@ -264,14 +270,14 @@ export const createMobileAuditLogs = async (req: AuthenticatedRequest, res: Resp
       success: true,
       message: `Successfully processed ${processedLogs.length} audit logs`,
       batchId,
-      processed: processedLogs.length
+      processed: processedLogs.length,
     });
   } catch (error) {
     console.error('Error creating mobile audit logs:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to create mobile audit logs',
-      error: error instanceof Error ? error.message : 'Unknown error'
+      error: error instanceof Error ? error.message : 'Unknown error',
     });
   }
 };
@@ -279,14 +285,7 @@ export const createMobileAuditLogs = async (req: AuthenticatedRequest, res: Resp
 // POST /api/audit-logs - Create audit log entry
 export const createAuditLog = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const {
-      action,
-      resource,
-      resourceId,
-      details,
-      severity = 'INFO',
-      category
-    } = req.body;
+    const { action, resource, resourceId, details, severity = 'INFO', category } = req.body;
 
     const newAuditLog = {
       id: `audit_${Date.now()}`,
@@ -305,11 +304,11 @@ export const createAuditLog = async (req: AuthenticatedRequest, res: Response) =
 
     auditLogs.push(newAuditLog);
 
-    logger.info(`Created audit log: ${newAuditLog.id}`, { 
+    logger.info(`Created audit log: ${newAuditLog.id}`, {
       userId: req.user?.id,
       action,
       resource,
-      resourceId
+      resourceId,
     });
 
     res.status(201).json({
@@ -337,7 +336,7 @@ export const getAuditActions = async (req: AuthenticatedRequest, res: Response) 
       'LOGIN_FAILED',
       'PASSWORD_CHANGED',
       'PASSWORD_RESET',
-      
+
       // User management actions
       'USER_CREATED',
       'USER_UPDATED',
@@ -345,7 +344,7 @@ export const getAuditActions = async (req: AuthenticatedRequest, res: Response) 
       'USER_ACTIVATED',
       'USER_DEACTIVATED',
       'ROLE_CHANGED',
-      
+
       // Case management actions
       'CASE_CREATED',
       'CASE_UPDATED',
@@ -355,27 +354,27 @@ export const getAuditActions = async (req: AuthenticatedRequest, res: Response) 
       'CASE_COMPLETED',
       'CASE_APPROVED',
       'CASE_REJECTED',
-      
+
       // Client management actions
       'CLIENT_CREATED',
       'CLIENT_UPDATED',
       'CLIENT_DELETED',
       'CLIENT_ACTIVATED',
       'CLIENT_DEACTIVATED',
-      
+
       // File management actions
       'FILE_UPLOADED',
       'FILE_DOWNLOADED',
       'FILE_DELETED',
       'FILE_SHARED',
-      
+
       // Financial actions
       'INVOICE_CREATED',
       'INVOICE_SENT',
       'INVOICE_PAID',
       'COMMISSION_APPROVED',
       'COMMISSION_PAID',
-      
+
       // System actions
       'SETTINGS_UPDATED',
       'BACKUP_CREATED',
@@ -437,7 +436,7 @@ export const getAuditStats = async (req: AuthenticatedRequest, res: Response) =>
 
     // Calculate date range based on period
     const now = new Date();
-    let startDate = new Date();
+    const startDate = new Date();
 
     switch (period) {
       case 'day':
@@ -459,46 +458,61 @@ export const getAuditStats = async (req: AuthenticatedRequest, res: Response) =>
     const periodLogs = auditLogs.filter(log => new Date(log.timestamp) >= startDate);
 
     // Action distribution
-    const actionDistribution = auditLogs.reduce((acc, log) => {
-      acc[log.action] = (acc[log.action] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
+    const actionDistribution = auditLogs.reduce(
+      (acc, log) => {
+        acc[log.action] = (acc[log.action] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>
+    );
 
     // Category distribution
-    const categoryDistribution = auditLogs.reduce((acc, log) => {
-      acc[log.category] = (acc[log.category] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
+    const categoryDistribution = auditLogs.reduce(
+      (acc, log) => {
+        acc[log.category] = (acc[log.category] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>
+    );
 
     // Severity distribution
-    const severityDistribution = auditLogs.reduce((acc, log) => {
-      acc[log.severity] = (acc[log.severity] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
+    const severityDistribution = auditLogs.reduce(
+      (acc, log) => {
+        acc[log.severity] = (acc[log.severity] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>
+    );
 
     // User activity
-    const userActivity = auditLogs.reduce((acc, log) => {
-      if (!acc[log.userId]) {
-        acc[log.userId] = {
-          userId: log.userId,
-          userName: log.userName,
-          totalActions: 0,
-          lastActivity: log.timestamp,
-        };
-      }
-      acc[log.userId].totalActions++;
-      if (new Date(log.timestamp) > new Date(acc[log.userId].lastActivity)) {
-        acc[log.userId].lastActivity = log.timestamp;
-      }
-      return acc;
-    }, {} as Record<string, any>);
+    const userActivity = auditLogs.reduce(
+      (acc, log) => {
+        if (!acc[log.userId]) {
+          acc[log.userId] = {
+            userId: log.userId,
+            userName: log.userName,
+            totalActions: 0,
+            lastActivity: log.timestamp,
+          };
+        }
+        acc[log.userId].totalActions++;
+        if (new Date(log.timestamp) > new Date(acc[log.userId].lastActivity)) {
+          acc[log.userId].lastActivity = log.timestamp;
+        }
+        return acc;
+      },
+      {} as Record<string, any>
+    );
 
     // Daily activity for the period
-    const dailyActivity = periodLogs.reduce((acc, log) => {
-      const date = new Date(log.timestamp).toISOString().split('T')[0];
-      acc[date] = (acc[date] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
+    const dailyActivity = periodLogs.reduce(
+      (acc, log) => {
+        const date = new Date(log.timestamp).toISOString().split('T')[0];
+        acc[date] = (acc[date] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>
+    );
 
     const stats = {
       totalLogs,
@@ -531,12 +545,7 @@ export const getAuditStats = async (req: AuthenticatedRequest, res: Response) =>
 // POST /api/audit-logs/export - Export audit logs
 export const exportAuditLogs = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const {
-      format = 'CSV',
-      dateFrom,
-      dateTo,
-      filters = {}
-    } = req.body;
+    const { format = 'CSV', dateFrom, dateTo, filters = {} } = req.body;
 
     let filteredLogs = [...auditLogs];
 
@@ -592,7 +601,7 @@ export const exportAuditLogs = async (req: AuthenticatedRequest, res: Response) 
     logger.info('Audit logs export requested', {
       userId: req.user?.id,
       format,
-      recordCount: filteredLogs.length
+      recordCount: filteredLogs.length,
     });
 
     res.json({
@@ -648,7 +657,7 @@ export const cleanupAuditLogs = async (req: AuthenticatedRequest, res: Response)
     logger.info('Audit logs cleanup completed', {
       userId: req.user?.id,
       deletedCount,
-      remainingCount: auditLogs.length
+      remainingCount: auditLogs.length,
     });
 
     res.json({

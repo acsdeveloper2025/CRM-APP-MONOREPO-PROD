@@ -1,6 +1,6 @@
-import { Response } from 'express';
+import type { Response } from 'express';
 import { logger } from '@/config/logger';
-import { AuthenticatedRequest } from '@/middleware/auth';
+import type { AuthenticatedRequest } from '@/middleware/auth';
 import { query } from '@/config/database';
 
 // GET /api/areas - List areas with pagination and filters
@@ -14,7 +14,7 @@ export const getAreas = async (req: AuthenticatedRequest, res: Response) => {
       country,
       search,
       sortBy = 'name',
-      sortOrder = 'asc'
+      sortOrder = 'asc',
     } = req.query;
 
     // Query areas with usage count from pincodeAreas junction table
@@ -107,14 +107,14 @@ export const getAreas = async (req: AuthenticatedRequest, res: Response) => {
     logger.info(`Retrieved ${result.rows.length} areas`, {
       userId: req.user?.id,
       filters: { cityId, state, country, search },
-      pagination: { page: pageNum, limit: limitNum }
+      pagination: { page: pageNum, limit: limitNum },
     });
 
     res.json({
       success: true,
       data: result.rows.map(area => ({
         ...area,
-        id: area.id.toString() // Convert integer ID to string for frontend compatibility
+        id: area.id.toString(), // Convert integer ID to string for frontend compatibility
       })),
       pagination: {
         page: pageNum,
@@ -138,20 +138,18 @@ export const getAreas = async (req: AuthenticatedRequest, res: Response) => {
 // GET /api/standalone-areas - Get standalone areas for multi-select
 export const getStandaloneAreas = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const result = await query(
-      'SELECT id, name FROM areas ORDER BY name ASC'
-    );
+    const result = await query('SELECT id, name FROM areas ORDER BY name ASC');
 
     logger.info(`Retrieved ${result.rows.length} standalone areas`, {
       userId: req.user?.id,
-      count: result.rows.length
+      count: result.rows.length,
     });
 
     res.json({
       success: true,
       data: result.rows.map(area => ({
         ...area,
-        id: area.id.toString() // Convert integer ID to string for frontend compatibility
+        id: area.id.toString(), // Convert integer ID to string for frontend compatibility
       })),
     });
   } catch (error) {
@@ -249,7 +247,7 @@ export const createArea = async (req: AuthenticatedRequest, res: Response) => {
     logger.info(`Created standalone area: ${name}`, {
       userId: req.user?.id,
       areaId: newArea.id,
-      areaName: name.trim()
+      areaName: name.trim(),
     });
 
     res.status(201).json({
@@ -257,11 +255,12 @@ export const createArea = async (req: AuthenticatedRequest, res: Response) => {
       message: 'Area created successfully',
       data: {
         ...newArea,
-        id: newArea.id.toString() // Convert integer ID to string for frontend compatibility
+        id: newArea.id.toString(), // Convert integer ID to string for frontend compatibility
       },
     });
   } catch (error: any) {
-    if (error.code === '23505') { // Unique constraint violation
+    if (error.code === '23505') {
+      // Unique constraint violation
       return res.status(400).json({
         success: false,
         message: 'Area with this name already exists',
@@ -304,10 +303,10 @@ export const updateArea = async (req: AuthenticatedRequest, res: Response) => {
     }
 
     // Check for duplicate area name
-    const duplicateCheck = await query(
-      'SELECT id FROM areas WHERE name = $1 AND id != $2',
-      [name.trim(), id]
-    );
+    const duplicateCheck = await query('SELECT id FROM areas WHERE name = $1 AND id != $2', [
+      name.trim(),
+      id,
+    ]);
 
     if (duplicateCheck.rows.length > 0) {
       return res.status(400).json({
@@ -326,10 +325,10 @@ export const updateArea = async (req: AuthenticatedRequest, res: Response) => {
       [id, name.trim()]
     );
 
-    logger.info(`Updated area ${id}`, { 
+    logger.info(`Updated area ${id}`, {
       userId: req.user?.id,
       areaId: id,
-      newName: name
+      newName: name,
     });
 
     res.json({
@@ -337,7 +336,7 @@ export const updateArea = async (req: AuthenticatedRequest, res: Response) => {
       message: 'Area updated successfully',
       data: {
         ...result.rows[0],
-        id: result.rows[0].id.toString() // Convert integer ID to string for frontend compatibility
+        id: result.rows[0].id.toString(), // Convert integer ID to string for frontend compatibility
       },
     });
   } catch (error) {
@@ -356,10 +355,7 @@ export const deleteArea = async (req: AuthenticatedRequest, res: Response) => {
     const { id } = req.params;
 
     // Check if area exists
-    const areaCheck = await query(
-      'SELECT id, name FROM areas WHERE id = $1',
-      [id]
-    );
+    const areaCheck = await query('SELECT id, name FROM areas WHERE id = $1', [id]);
 
     if (areaCheck.rows.length === 0) {
       return res.status(404).json({
@@ -393,7 +389,7 @@ export const deleteArea = async (req: AuthenticatedRequest, res: Response) => {
       userId: req.user?.id,
       areaId: id,
       areaName,
-      type: 'standalone_area'
+      type: 'standalone_area',
     });
 
     res.json({

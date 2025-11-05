@@ -7,38 +7,38 @@ export interface VerificationTask {
   id: string;
   taskNumber: string;
   caseId: string;
-  
+
   // Task Details
   verificationTypeId: number;
   taskTitle: string;
   taskDescription?: string;
   priority: TaskPriority;
-  
+
   // Assignment Details
   assignedTo?: string;
   assignedBy?: string;
   assignedAt?: string;
-  
+
   // Status and Progress
   status: TaskStatus;
   verificationOutcome?: string;
-  
+
   // Billing Information
   rateTypeId?: number;
   estimatedAmount?: number;
   actualAmount?: number;
-  
+
   // Location and Address (for address verification tasks)
   address?: string;
   pincode?: string;
   latitude?: number;
   longitude?: number;
-  
+
   // Document Information (for document verification tasks)
   documentType?: string;
   documentNumber?: string;
   documentDetails?: Record<string, any>;
-  
+
   // Timing and Completion
   estimatedCompletionDate?: string;
   startedAt?: string;
@@ -58,7 +58,7 @@ export interface VerificationTask {
   createdAt: string;
   updatedAt: string;
   createdBy?: string;
-  
+
   // Populated fields (from joins)
   verificationTypeName?: string;
   assignedToName?: string;
@@ -135,11 +135,7 @@ export type TaskStatus =
   | 'ON_HOLD'
   | 'REVOKED';
 
-export type TaskPriority = 
-  | 'LOW'
-  | 'MEDIUM'
-  | 'HIGH'
-  | 'URGENT';
+export type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
 
 export interface VerificationTaskFilters {
   caseId?: string;
@@ -177,22 +173,22 @@ export interface TaskCommissionCalculation {
   verificationTaskId: string;
   caseId: string;
   taskNumber: string;
-  
+
   // User and Assignment Details
   userId: string;
   clientId: number;
   rateTypeId: number;
-  
+
   // Financial Calculations
   baseAmount: number;
   commissionAmount: number;
   calculatedCommission: number;
   currency: string;
-  
+
   // Calculation Details
   calculationMethod: 'FIXED_AMOUNT' | 'PERCENTAGE';
   calculationDate: string;
-  
+
   // Payment Status
   status: CommissionStatus;
   approvedBy?: string;
@@ -202,17 +198,17 @@ export interface TaskCommissionCalculation {
   paymentMethod?: string;
   transactionId?: string;
   rejectionReason?: string;
-  
+
   // Task Completion Details
   taskCompletedAt: string;
   verificationOutcome?: string;
-  
+
   // Audit Fields
   createdAt: string;
   updatedAt: string;
   createdBy?: string;
   notes?: string;
-  
+
   // Populated fields
   userName?: string;
   userEmail?: string;
@@ -252,12 +248,7 @@ export interface UpdateTaskCommissionData {
   notes?: string;
 }
 
-export type CommissionStatus = 
-  | 'PENDING'
-  | 'CALCULATED'
-  | 'APPROVED'
-  | 'PAID'
-  | 'REJECTED';
+export type CommissionStatus = 'PENDING' | 'CALCULATED' | 'APPROVED' | 'PAID' | 'REJECTED';
 
 // =====================================================
 // TASK TEMPLATE TYPES
@@ -325,7 +316,7 @@ export interface TaskAssignmentHistory {
   taskStatusBefore?: TaskStatus;
   taskStatusAfter?: TaskStatus;
   createdAt: string;
-  
+
   // Populated fields
   assignedToName?: string;
   assignedByName?: string;
@@ -358,7 +349,7 @@ export interface TaskFormSubmission {
   validationNotes?: string;
   createdAt: string;
   updatedAt: string;
-  
+
   // Populated fields
   submittedByName?: string;
   validatedByName?: string;

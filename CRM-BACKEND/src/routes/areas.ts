@@ -8,7 +8,7 @@ import {
   createArea,
   updateArea,
   deleteArea,
-  getStandaloneAreas
+  getStandaloneAreas,
 } from '@/controllers/areasController';
 
 const router = express.Router();
@@ -37,17 +37,12 @@ const updateAreaValidation = [
 ];
 
 const listAreasValidation = [
-  query('page')
-    .optional()
-    .isInt({ min: 1 })
-    .withMessage('Page must be a positive integer'),
+  query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
   query('limit')
     .optional()
     .isInt({ min: 1, max: 100 })
     .withMessage('Limit must be between 1 and 100'),
-  query('cityId')
-    .optional()
-    .trim(),
+  query('cityId').optional().trim(),
   query('state')
     .optional()
     .trim()
@@ -67,45 +62,30 @@ const listAreasValidation = [
     .optional()
     .isIn(['name', 'usageCount', 'createdAt'])
     .withMessage('Invalid sort field'),
-  query('sortOrder')
-    .optional()
-    .isIn(['asc', 'desc'])
-    .withMessage('Sort order must be asc or desc'),
+  query('sortOrder').optional().isIn(['asc', 'desc']).withMessage('Sort order must be asc or desc'),
 ];
 
 // Standalone areas route (must come before /:id route)
-router.get('/standalone',
-  getStandaloneAreas
-);
+router.get('/standalone', getStandaloneAreas);
 
 // Core CRUD routes
-router.get('/',
-  listAreasValidation,
-  validate,
-  getAreas
-);
+router.get('/', listAreasValidation, validate, getAreas);
 
-router.post('/',
-  createAreaValidation,
-  validate,
-  createArea
-);
+router.post('/', createAreaValidation, validate, createArea);
 
-router.get('/:id',
+router.get(
+  '/:id',
   [param('id').trim().notEmpty().withMessage('Area ID is required')],
   validate,
   getAreaById
 );
 
-router.put('/:id', 
-  updateAreaValidation, 
-  validate, 
-  updateArea
-);
+router.put('/:id', updateAreaValidation, validate, updateArea);
 
-router.delete('/:id', 
-  [param('id').trim().notEmpty().withMessage('Area ID is required')], 
-  validate, 
+router.delete(
+  '/:id',
+  [param('id').trim().notEmpty().withMessage('Area ID is required')],
+  validate,
   deleteArea
 );
 

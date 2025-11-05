@@ -61,17 +61,22 @@ export class PushNotificationService {
     try {
       if (config.firebase?.serviceAccountPath) {
         const serviceAccount = require(config.firebase.serviceAccountPath);
-        
-        this.fcmApp = admin.initializeApp({
-          credential: admin.credential.cert(serviceAccount),
-          projectId: config.firebase.projectId,
-        }, 'fcm-app');
+
+        this.fcmApp = admin.initializeApp(
+          {
+            credential: admin.credential.cert(serviceAccount),
+            projectId: config.firebase.projectId,
+          },
+          'fcm-app'
+        );
 
         logger.info('FCM initialized successfully', {
           projectId: config.firebase.projectId,
         });
       } else {
-        logger.warn('FCM service account not configured, push notifications for Android will not work');
+        logger.warn(
+          'FCM service account not configured, push notifications for Android will not work'
+        );
       }
     } catch (error) {
       logger.error('Failed to initialize FCM:', error);
@@ -129,7 +134,7 @@ export class PushNotificationService {
     try {
       // Get active tokens for users
       const tokens = await this.getActiveTokensForUsers(userIds);
-      
+
       if (tokens.length === 0) {
         logger.warn('No active push tokens found for users', { userIds });
         return results;
@@ -231,7 +236,7 @@ export class PushNotificationService {
       };
 
       const response = await messaging.sendEachForMulticast(message);
-      
+
       results.success = response.successCount;
       results.failed = response.failureCount;
 
@@ -292,18 +297,18 @@ export class PushNotificationService {
     try {
       const notifications = tokens.map(token => {
         const notification = new apn.Notification();
-        
+
         notification.alert = {
           title: payload.title,
           body: payload.body,
         };
-        
+
         notification.badge = payload.badge || 0;
         notification.sound = payload.sound || 'default';
         notification.topic = config.apns?.bundleId || 'com.example.crm';
         notification.priority = payload.priority === 'high' ? 10 : 5;
-        notification.expiry = payload.timeToLive 
-          ? Math.floor(Date.now() / 1000) + payload.timeToLive 
+        notification.expiry = payload.timeToLive
+          ? Math.floor(Date.now() / 1000) + payload.timeToLive
           : Math.floor(Date.now() / 1000) + 3600; // 1 hour default
 
         if (payload.data) {
@@ -322,7 +327,7 @@ export class PushNotificationService {
       for (const { notification, token, userId, deviceId, tokenId } of notifications) {
         try {
           const result = await this.apnProvider.send(notification, token);
-          
+
           if (result.sent.length > 0) {
             results.success++;
           } else if (result.failed.length > 0) {
@@ -342,7 +347,10 @@ export class PushNotificationService {
             });
 
             // Deactivate invalid tokens
-            if (failure.status === '410' || (failure.error && failure.error.toString().includes('BadDeviceToken'))) {
+            if (
+              failure.status === '410' ||
+              (failure.error && failure.error.toString().includes('BadDeviceToken'))
+            ) {
               this.deactivateToken(tokenId);
             }
           }
@@ -402,10 +410,7 @@ export class PushNotificationService {
    */
   private async deactivateToken(tokenId: string): Promise<void> {
     try {
-      await query(
-        'UPDATE notification_tokens SET is_active = false WHERE id = $1',
-        [tokenId]
-      );
+      await query('UPDATE notification_tokens SET is_active = false WHERE id = $1', [tokenId]);
       logger.info('Deactivated invalid notification token', { tokenId });
     } catch (error) {
       logger.error('Failed to deactivate token:', error);

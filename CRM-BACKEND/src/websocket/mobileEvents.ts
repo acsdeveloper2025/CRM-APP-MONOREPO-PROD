@@ -1,4 +1,4 @@
-import { Server } from 'socket.io';
+import type { Server } from 'socket.io';
 import { logger } from '../utils/logger';
 import { query } from '../config/database';
 
@@ -27,15 +27,18 @@ export class MobileWebSocketEvents {
     this.io.to(`user:${userId}`).emit('mobile:case:assigned', notificationData);
 
     // Log notification details
-    logger.info(`Case assigned notification sent to user ${userId}: ${caseData.id || caseData.caseId}`, {
-      notificationId,
-      userId,
-      caseId: caseData.id || caseData.caseId,
-      casePriority: caseData.priority,
-      requiresImmediate: caseData.priority >= 3,
-      timestamp,
-      notificationType: 'CASE_ASSIGNED',
-    });
+    logger.info(
+      `Case assigned notification sent to user ${userId}: ${caseData.id || caseData.caseId}`,
+      {
+        notificationId,
+        userId,
+        caseId: caseData.id || caseData.caseId,
+        casePriority: caseData.priority,
+        requiresImmediate: caseData.priority >= 3,
+        timestamp,
+        notificationType: 'CASE_ASSIGNED',
+      }
+    );
 
     // Store notification audit log
     try {
@@ -54,7 +57,12 @@ export class MobileWebSocketEvents {
   }
 
   // Notify mobile app about case status changes
-  async notifyCaseStatusChanged(caseId: string, oldStatus: string, newStatus: string, updatedBy: string) {
+  async notifyCaseStatusChanged(
+    caseId: string,
+    oldStatus: string,
+    newStatus: string,
+    updatedBy: string
+  ) {
     const notificationId = `case_status_${caseId}_${Date.now()}`;
     const timestamp = new Date().toISOString();
 
@@ -72,15 +80,18 @@ export class MobileWebSocketEvents {
     this.io.to(`case:${caseId}`).emit('mobile:case:status:changed', notificationData);
 
     // Log notification details
-    logger.info(`Case status change notification sent for case ${caseId}: ${oldStatus} -> ${newStatus}`, {
-      notificationId,
-      caseId,
-      oldStatus,
-      newStatus,
-      updatedBy,
-      timestamp,
-      notificationType: 'CASE_STATUS_CHANGED',
-    });
+    logger.info(
+      `Case status change notification sent for case ${caseId}: ${oldStatus} -> ${newStatus}`,
+      {
+        notificationId,
+        caseId,
+        oldStatus,
+        newStatus,
+        updatedBy,
+        timestamp,
+        notificationType: 'CASE_STATUS_CHANGED',
+      }
+    );
 
     // Store notification audit log
     try {
@@ -99,7 +110,12 @@ export class MobileWebSocketEvents {
   }
 
   // Notify mobile app about case priority changes
-  notifyCasePriorityChanged(caseId: string, oldPriority: number, newPriority: number, updatedBy: string) {
+  notifyCasePriorityChanged(
+    caseId: string,
+    oldPriority: number,
+    newPriority: number,
+    updatedBy: string
+  ) {
     this.io.to(`case:${caseId}`).emit('mobile:case:priority:changed', {
       type: 'CASE_PRIORITY_CHANGED',
       caseId,
@@ -110,11 +126,18 @@ export class MobileWebSocketEvents {
       requiresImmediate: newPriority >= 3,
     });
 
-    logger.info(`Case priority change notification sent for case ${caseId}: ${oldPriority} -> ${newPriority}`);
+    logger.info(
+      `Case priority change notification sent for case ${caseId}: ${oldPriority} -> ${newPriority}`
+    );
   }
 
   // Notify mobile app about case approval/rejection
-  notifyCaseReviewed(caseId: string, outcome: 'APPROVED' | 'REJECTED' | 'REWORK', feedback: string, reviewedBy: string) {
+  notifyCaseReviewed(
+    caseId: string,
+    outcome: 'APPROVED' | 'REJECTED' | 'REWORK',
+    feedback: string,
+    reviewedBy: string
+  ) {
     this.io.to(`case:${caseId}`).emit('mobile:case:reviewed', {
       type: 'CASE_REVIEWED',
       caseId,
@@ -129,7 +152,11 @@ export class MobileWebSocketEvents {
   }
 
   // Notify about case assignment to field user
-  notifyCaseAssignment(userId: string, caseData: any, assignmentType: 'assignment' | 'reassignment') {
+  notifyCaseAssignment(
+    userId: string,
+    caseData: any,
+    assignmentType: 'assignment' | 'reassignment'
+  ) {
     const notificationId = `case_${assignmentType}_${caseData.id || caseData.caseId}_${Date.now()}`;
     const timestamp = new Date().toISOString();
 
@@ -137,9 +164,10 @@ export class MobileWebSocketEvents {
       type: assignmentType === 'assignment' ? 'CASE_ASSIGNED' : 'CASE_REASSIGNED',
       id: notificationId,
       title: assignmentType === 'assignment' ? 'New Case Assigned' : 'Case Reassigned',
-      message: assignmentType === 'assignment'
-        ? `You have been assigned case ${caseData.caseId} for ${caseData.customerName}`
-        : `Case ${caseData.caseId} has been reassigned to you`,
+      message:
+        assignmentType === 'assignment'
+          ? `You have been assigned case ${caseData.caseId} for ${caseData.customerName}`
+          : `Case ${caseData.caseId} has been reassigned to you`,
       caseId: caseData.id,
       caseNumber: caseData.caseId,
       customerName: caseData.customerName,
@@ -152,7 +180,7 @@ export class MobileWebSocketEvents {
         assignmentType,
         assignedBy: caseData.assignedBy,
         reason: caseData.reason,
-      }
+      },
     };
 
     // Send WebSocket notification to user
@@ -186,9 +214,9 @@ export class MobileWebSocketEvents {
       actionUrl: `/mobile/cases`,
       actionType: 'NAVIGATE',
       data: {
-        reason: reason,
+        reason,
         removedBy: caseData.removedBy,
-      }
+      },
     };
 
     // Send WebSocket notification to user
@@ -226,7 +254,7 @@ export class MobileWebSocketEvents {
         fieldUserName: fieldUserData.name,
         completionStatus: caseData.completionStatus,
         outcome: caseData.outcome,
-      }
+      },
     };
 
     // Send to all notification recipient users
@@ -239,12 +267,15 @@ export class MobileWebSocketEvents {
     this.io.to('role:REPORT_PERSON').emit('notification', notificationData);
     this.io.to('role:SUPER_ADMIN').emit('notification', notificationData);
 
-    logger.info(`Case completion notification sent to ${userIds.length} users (BACKEND_USER, REPORT_PERSON, SUPER_ADMIN)`, {
-      notificationId,
-      caseId: caseData.id,
-      caseNumber: caseData.caseNumber,
-      fieldUser: fieldUserData.name,
-    });
+    logger.info(
+      `Case completion notification sent to ${userIds.length} users (BACKEND_USER, REPORT_PERSON, SUPER_ADMIN)`,
+      {
+        notificationId,
+        caseId: caseData.id,
+        caseNumber: caseData.caseNumber,
+        fieldUser: fieldUserData.name,
+      }
+    );
   }
 
   // Notify backend users about case revocation
@@ -268,7 +299,7 @@ export class MobileWebSocketEvents {
         fieldUserId: fieldUserData.id,
         fieldUserName: fieldUserData.name,
         revocationReason: caseData.revocationReason,
-      }
+      },
     };
 
     // Send to all backend users
@@ -321,7 +352,9 @@ export class MobileWebSocketEvents {
       requiresResolution: true,
     });
 
-    logger.info(`Sync conflicts notification sent to device ${deviceId} for user ${userId}: ${conflicts.length} conflicts`);
+    logger.info(
+      `Sync conflicts notification sent to device ${deviceId} for user ${userId}: ${conflicts.length} conflicts`
+    );
   }
 
   // Notify mobile app about app updates
@@ -373,7 +406,9 @@ export class MobileWebSocketEvents {
       success: submissionResult.success,
     });
 
-    logger.info(`Form submission notification sent to user ${userId} for case ${caseId}: ${formType}`);
+    logger.info(
+      `Form submission notification sent to user ${userId} for case ${caseId}: ${formType}`
+    );
   }
 
   // Notify mobile app about attachment upload progress
@@ -454,11 +489,7 @@ export class MobileWebSocketEvents {
           'Enable offline mode for better performance',
         ];
       case 'INTERMITTENT_CONNECTION':
-        return [
-          'Enable background sync',
-          'Save work frequently',
-          'Check network settings',
-        ];
+        return ['Enable background sync', 'Save work frequently', 'Check network settings'];
       case 'NO_CONNECTION':
         return [
           'Work in offline mode',
@@ -532,7 +563,10 @@ export class MobileWebSocketEvents {
   /**
    * Update notification delivery status (called when mobile app acknowledges)
    */
-  async updateNotificationStatus(notificationId: string, status: 'DELIVERED' | 'ACKNOWLEDGED' | 'FAILED'): Promise<void> {
+  async updateNotificationStatus(
+    notificationId: string,
+    status: 'DELIVERED' | 'ACKNOWLEDGED' | 'FAILED'
+  ): Promise<void> {
     try {
       const updateQuery = `
         UPDATE mobile_notification_audit

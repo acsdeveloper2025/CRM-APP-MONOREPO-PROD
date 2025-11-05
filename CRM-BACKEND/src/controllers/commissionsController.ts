@@ -1,9 +1,10 @@
-import { Request, Response } from 'express';
+import type { Response } from 'express';
+import { Request } from 'express';
 import { logger } from '@/config/logger';
-import { AuthenticatedRequest } from '@/middleware/auth';
+import type { AuthenticatedRequest } from '@/middleware/auth';
 
 // Mock data for demonstration (replace with actual database operations)
-let commissions: any[] = [
+const commissions: any[] = [
   {
     id: 'commission_1',
     userId: 'user_1',
@@ -69,17 +70,17 @@ let commissions: any[] = [
 // GET /api/commissions - List commissions with pagination and filters
 export const getCommissions = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { 
-      page = 1, 
-      limit = 20, 
-      userId, 
-      status, 
-      clientId, 
-      dateFrom, 
-      dateTo, 
-      search, 
-      sortBy = 'createdAt', 
-      sortOrder = 'desc' 
+    const {
+      page = 1,
+      limit = 20,
+      userId,
+      status,
+      clientId,
+      dateFrom,
+      dateTo,
+      search,
+      sortBy = 'createdAt',
+      sortOrder = 'desc',
     } = req.query;
 
     let filteredCommissions = [...commissions];
@@ -96,17 +97,22 @@ export const getCommissions = async (req: AuthenticatedRequest, res: Response) =
     }
     if (search) {
       const searchTerm = (search as string).toLowerCase();
-      filteredCommissions = filteredCommissions.filter(comm => 
-        comm.userName.toLowerCase().includes(searchTerm) ||
-        comm.caseTitle.toLowerCase().includes(searchTerm) ||
-        comm.clientName.toLowerCase().includes(searchTerm)
+      filteredCommissions = filteredCommissions.filter(
+        comm =>
+          comm.userName.toLowerCase().includes(searchTerm) ||
+          comm.caseTitle.toLowerCase().includes(searchTerm) ||
+          comm.clientName.toLowerCase().includes(searchTerm)
       );
     }
     if (dateFrom) {
-      filteredCommissions = filteredCommissions.filter(comm => new Date(comm.createdAt) >= new Date(dateFrom as string));
+      filteredCommissions = filteredCommissions.filter(
+        comm => new Date(comm.createdAt) >= new Date(dateFrom as string)
+      );
     }
     if (dateTo) {
-      filteredCommissions = filteredCommissions.filter(comm => new Date(comm.createdAt) <= new Date(dateTo as string));
+      filteredCommissions = filteredCommissions.filter(
+        comm => new Date(comm.createdAt) <= new Date(dateTo as string)
+      );
     }
 
     // Apply sorting
@@ -124,10 +130,10 @@ export const getCommissions = async (req: AuthenticatedRequest, res: Response) =
     const endIndex = startIndex + (limit as number);
     const paginatedCommissions = filteredCommissions.slice(startIndex, endIndex);
 
-    logger.info(`Retrieved ${paginatedCommissions.length} commissions`, { 
+    logger.info(`Retrieved ${paginatedCommissions.length} commissions`, {
       userId: req.user?.id,
       filters: { userId, status, clientId, search },
-      pagination: { page, limit }
+      pagination: { page, limit },
     });
 
     res.json({
@@ -212,9 +218,9 @@ export const approveCommission = async (req: AuthenticatedRequest, res: Response
     }
     commissions[commissionIndex].updatedAt = new Date().toISOString();
 
-    logger.info(`Commission approved: ${id}`, { 
+    logger.info(`Commission approved: ${id}`, {
       userId: req.user?.id,
-      commissionAmount: commissions[commissionIndex].commissionAmount
+      commissionAmount: commissions[commissionIndex].commissionAmount,
     });
 
     res.json({
@@ -268,13 +274,14 @@ export const markCommissionPaid = async (req: AuthenticatedRequest, res: Respons
     commissions[commissionIndex].paymentMethod = paymentMethod;
     commissions[commissionIndex].transactionId = transactionId;
     if (notes) {
-      commissions[commissionIndex].notes = `${commissions[commissionIndex].notes}\nPayment: ${notes}`;
+      commissions[commissionIndex].notes =
+        `${commissions[commissionIndex].notes}\nPayment: ${notes}`;
     }
     commissions[commissionIndex].updatedAt = new Date().toISOString();
 
-    logger.info(`Commission marked as paid: ${id}`, { 
+    logger.info(`Commission marked as paid: ${id}`, {
       userId: req.user?.id,
-      commissionAmount: commissions[commissionIndex].commissionAmount
+      commissionAmount: commissions[commissionIndex].commissionAmount,
     });
 
     res.json({
@@ -303,7 +310,9 @@ export const getCommissionSummary = async (req: AuthenticatedRequest, res: Respo
     }
 
     const totalCommissions = filteredCommissions.length;
-    const approvedCommissions = filteredCommissions.filter(comm => comm.status === 'APPROVED').length;
+    const approvedCommissions = filteredCommissions.filter(
+      comm => comm.status === 'APPROVED'
+    ).length;
     const pendingCommissions = filteredCommissions.filter(comm => comm.status === 'PENDING').length;
     const paidCommissions = filteredCommissions.filter(comm => comm.paidDate).length;
 
@@ -318,26 +327,29 @@ export const getCommissionSummary = async (req: AuthenticatedRequest, res: Respo
       .filter(comm => comm.status === 'PENDING')
       .reduce((sum, comm) => sum + comm.commissionAmount, 0);
 
-    const userSummary = filteredCommissions.reduce((acc, comm) => {
-      if (!acc[comm.userId]) {
-        acc[comm.userId] = {
-          userId: comm.userId,
-          userName: comm.userName,
-          totalCommissions: 0,
-          totalAmount: 0,
-          paidAmount: 0,
-          pendingAmount: 0,
-        };
-      }
-      acc[comm.userId].totalCommissions++;
-      acc[comm.userId].totalAmount += comm.commissionAmount;
-      if (comm.paidDate) {
-        acc[comm.userId].paidAmount += comm.commissionAmount;
-      } else if (comm.status === 'PENDING') {
-        acc[comm.userId].pendingAmount += comm.commissionAmount;
-      }
-      return acc;
-    }, {} as Record<string, any>);
+    const userSummary = filteredCommissions.reduce(
+      (acc, comm) => {
+        if (!acc[comm.userId]) {
+          acc[comm.userId] = {
+            userId: comm.userId,
+            userName: comm.userName,
+            totalCommissions: 0,
+            totalAmount: 0,
+            paidAmount: 0,
+            pendingAmount: 0,
+          };
+        }
+        acc[comm.userId].totalCommissions++;
+        acc[comm.userId].totalAmount += comm.commissionAmount;
+        if (comm.paidDate) {
+          acc[comm.userId].paidAmount += comm.commissionAmount;
+        } else if (comm.status === 'PENDING') {
+          acc[comm.userId].pendingAmount += comm.commissionAmount;
+        }
+        return acc;
+      },
+      {} as Record<string, any>
+    );
 
     const summary = {
       totalCommissions,
@@ -414,7 +426,7 @@ export const bulkApproveCommissions = async (req: AuthenticatedRequest, res: Res
     logger.info(`Bulk approved ${approvedCommissions.length} commissions`, {
       userId: req.user?.id,
       successCount: approvedCommissions.length,
-      errorCount: errors.length
+      errorCount: errors.length,
     });
 
     res.json({
@@ -426,7 +438,7 @@ export const bulkApproveCommissions = async (req: AuthenticatedRequest, res: Res
           total: commissionIds.length,
           successful: approvedCommissions.length,
           failed: errors.length,
-        }
+        },
       },
       message: `Bulk approval completed: ${approvedCommissions.length} successful, ${errors.length} failed`,
     });
@@ -479,7 +491,8 @@ export const bulkMarkCommissionsPaid = async (req: AuthenticatedRequest, res: Re
         commissions[commissionIndex].paymentMethod = paymentMethod;
         commissions[commissionIndex].transactionId = transactionId;
         if (notes) {
-          commissions[commissionIndex].notes = `${commissions[commissionIndex].notes}\nPayment: ${notes}`;
+          commissions[commissionIndex].notes =
+            `${commissions[commissionIndex].notes}\nPayment: ${notes}`;
         }
         commissions[commissionIndex].updatedAt = new Date().toISOString();
 
@@ -492,7 +505,7 @@ export const bulkMarkCommissionsPaid = async (req: AuthenticatedRequest, res: Re
     logger.info(`Bulk marked ${paidCommissions.length} commissions as paid`, {
       userId: req.user?.id,
       successCount: paidCommissions.length,
-      errorCount: errors.length
+      errorCount: errors.length,
     });
 
     res.json({
@@ -504,7 +517,7 @@ export const bulkMarkCommissionsPaid = async (req: AuthenticatedRequest, res: Re
           total: commissionIds.length,
           successful: paidCommissions.length,
           failed: errors.length,
-        }
+        },
       },
       message: `Bulk payment completed: ${paidCommissions.length} successful, ${errors.length} failed`,
     });

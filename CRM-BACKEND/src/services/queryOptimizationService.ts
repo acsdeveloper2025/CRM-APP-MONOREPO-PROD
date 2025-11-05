@@ -1,4 +1,5 @@
-import { Pool, PoolClient, QueryResult } from 'pg';
+import type { Pool, QueryResult } from 'pg';
+import { PoolClient } from 'pg';
 import { logger } from '@/config/logger';
 import { performance } from 'perf_hooks';
 
@@ -27,7 +28,7 @@ export interface FilterOptions {
 
 export class QueryOptimizationService {
   private pool: Pool;
-  private slowQueryThreshold: number = 100; // 100ms
+  private slowQueryThreshold = 100; // 100ms
 
   constructor(pool: Pool) {
     this.pool = pool;
@@ -37,30 +38,30 @@ export class QueryOptimizationService {
    * Execute optimized query with performance monitoring
    */
   async executeQuery<T = any>(
-    text: string, 
+    text: string,
     params: any[] = [],
     options: QueryOptions = {}
   ): Promise<QueryResult<T>> {
     const startTime = performance.now();
     const queryName = options.name || 'unnamed_query';
-    
+
     try {
       const result = await this.pool.query<T>(text, params);
       const duration = performance.now() - startTime;
-      
+
       // Log slow queries
       if (duration > (options.slowQueryThreshold || this.slowQueryThreshold)) {
         logger.warn('Slow query detected', {
           queryName,
           duration: `${duration.toFixed(2)}ms`,
           rowCount: result.rowCount,
-          query: text.substring(0, 200) + (text.length > 200 ? '...' : '')
+          query: text.substring(0, 200) + (text.length > 200 ? '...' : ''),
         });
-        
+
         // Store query performance data
         await this.storeQueryPerformance(text, duration, result.rowCount || 0);
       }
-      
+
       return result;
     } catch (error) {
       const duration = performance.now() - startTime;
@@ -68,7 +69,7 @@ export class QueryOptimizationService {
         queryName,
         duration: `${duration.toFixed(2)}ms`,
         error: error.message,
-        query: text.substring(0, 200)
+        query: text.substring(0, 200),
       });
       throw error;
     }
@@ -78,7 +79,7 @@ export class QueryOptimizationService {
    * Get users with optimized joins and filtering
    */
   async getUsersWithRelations(
-    filters: FilterOptions = {}, 
+    filters: FilterOptions = {},
     pagination: PaginationOptions
   ): Promise<QueryResult> {
     const { search, isActive, role } = filters;
@@ -102,21 +103,19 @@ export class QueryOptimizationService {
       ORDER BY u.name
       LIMIT $4 OFFSET $5
     `;
-    
-    return this.executeQuery(query, [
-      search ? `%${search}%` : null,
-      isActive,
-      role,
-      limit,
-      offset
-    ], { name: 'get_users_with_relations' });
+
+    return this.executeQuery(
+      query,
+      [search ? `%${search}%` : null, isActive, role, limit, offset],
+      { name: 'get_users_with_relations' }
+    );
   }
 
   /**
    * Get clients with aggregated statistics
    */
   async getClientsWithStats(
-    filters: FilterOptions = {}, 
+    filters: FilterOptions = {},
     pagination: PaginationOptions
   ): Promise<QueryResult> {
     const { search } = filters;
@@ -138,19 +137,17 @@ export class QueryOptimizationService {
       ORDER BY c.name
       LIMIT $2 OFFSET $3
     `;
-    
-    return this.executeQuery(query, [
-      search ? `%${search}%` : null,
-      limit,
-      offset
-    ], { name: 'get_clients_with_stats' });
+
+    return this.executeQuery(query, [search ? `%${search}%` : null, limit, offset], {
+      name: 'get_clients_with_stats',
+    });
   }
 
   /**
    * Get cases with all related data in single query
    */
   async getCasesWithDetails(
-    filters: FilterOptions = {}, 
+    filters: FilterOptions = {},
     pagination: PaginationOptions
   ): Promise<QueryResult> {
     const { status, assignedTo, clientId, search } = filters;
@@ -185,15 +182,12 @@ export class QueryOptimizationService {
       ORDER BY c."createdAt" DESC
       LIMIT $5 OFFSET $6
     `;
-    
-    return this.executeQuery(query, [
-      status,
-      assignedTo,
-      clientId,
-      search ? `%${search}%` : null,
-      limit,
-      offset
-    ], { name: 'get_cases_with_details' });
+
+    return this.executeQuery(
+      query,
+      [status, assignedTo, clientId, search ? `%${search}%` : null, limit, offset],
+      { name: 'get_cases_with_details' }
+    );
   }
 
   /**
@@ -285,32 +279,32 @@ export class QueryOptimizationService {
       LIMIT $5 OFFSET $6
     `;
 
-    return this.executeQuery(query, [
-      search ? `%${search}%` : null,
-      pincodeId,
-      cityId,
-      isActive,
-      limit,
-      offset
-    ], { name: 'get_territory_assignments' });
+    return this.executeQuery(
+      query,
+      [search ? `%${search}%` : null, pincodeId, cityId, isActive, limit, offset],
+      { name: 'get_territory_assignments' }
+    );
   }
 
   /**
    * Store query performance data for analysis
    */
   private async storeQueryPerformance(
-    queryText: string, 
-    executionTime: number, 
+    queryText: string,
+    executionTime: number,
     rowsReturned: number
   ): Promise<void> {
     try {
       const queryHash = this.generateQueryHash(queryText);
-      
-      await this.pool.query(`
+
+      await this.pool.query(
+        `
         INSERT INTO query_performance 
         (query_hash, query_text, execution_time, rows_returned, timestamp)
         VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)
-      `, [queryHash, queryText, executionTime, rowsReturned]);
+      `,
+        [queryHash, queryText, executionTime, rowsReturned]
+      );
     } catch (error) {
       // Don't throw error to avoid breaking main operation
       logger.error('Failed to store query performance data:', error);
@@ -325,7 +319,7 @@ export class QueryOptimizationService {
     let hash = 0;
     for (let i = 0; i < queryText.length; i++) {
       const char = queryText.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
+      hash = (hash << 5) - hash + char;
       hash = hash & hash; // Convert to 32-bit integer
     }
     return Math.abs(hash).toString(16);
@@ -336,16 +330,16 @@ export class QueryOptimizationService {
    */
   async analyzeQueryPerformance(queryText: string): Promise<any> {
     const explainQuery = `EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) ${queryText}`;
-    
+
     try {
       const result = await this.pool.query(explainQuery);
       const plan = result.rows[0]['QUERY PLAN'][0];
-      
+
       return {
         executionTime: plan['Execution Time'],
         planningTime: plan['Planning Time'],
         totalTime: plan['Execution Time'] + plan['Planning Time'],
-        plan: plan
+        plan,
       };
     } catch (error) {
       logger.error('Failed to analyze query performance:', error);
@@ -356,7 +350,7 @@ export class QueryOptimizationService {
   /**
    * Get slow queries report
    */
-  async getSlowQueriesReport(hours: number = 24): Promise<QueryResult> {
+  async getSlowQueriesReport(hours = 24): Promise<QueryResult> {
     const query = `
       SELECT 
         query_hash,
@@ -374,8 +368,8 @@ export class QueryOptimizationService {
       LIMIT 20
     `;
 
-    return this.executeQuery(query, [this.slowQueryThreshold], { 
-      name: 'get_slow_queries_report' 
+    return this.executeQuery(query, [this.slowQueryThreshold], {
+      name: 'get_slow_queries_report',
     });
   }
 
@@ -419,19 +413,19 @@ export class QueryOptimizationService {
         FROM pg_stat_activity
         WHERE datname = current_database()
         GROUP BY state
-      `
+      `,
     };
 
     const results = await Promise.all([
       this.executeQuery(queries.tableStats, [], { name: 'table_stats' }),
       this.executeQuery(queries.indexStats, [], { name: 'index_stats' }),
-      this.executeQuery(queries.connectionStats, [], { name: 'connection_stats' })
+      this.executeQuery(queries.connectionStats, [], { name: 'connection_stats' }),
     ]);
 
     return {
       tableStats: results[0].rows,
       unusedIndexes: results[1].rows,
-      connectionStats: results[2].rows
+      connectionStats: results[2].rows,
     };
   }
 }

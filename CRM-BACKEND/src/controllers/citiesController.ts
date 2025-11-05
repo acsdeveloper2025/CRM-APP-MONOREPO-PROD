@@ -1,6 +1,7 @@
-import { Request, Response } from 'express';
+import type { Response } from 'express';
+import { Request } from 'express';
 import { logger } from '@/config/logger';
-import { AuthenticatedRequest } from '@/middleware/auth';
+import type { AuthenticatedRequest } from '@/middleware/auth';
 import { query } from '@/config/db';
 
 interface City {
@@ -11,7 +12,6 @@ interface City {
   createdAt: string;
   updatedAt: string;
 }
-
 
 // GET /api/cities - List cities with pagination and filters
 export const getCities = async (req: AuthenticatedRequest, res: Response) => {
@@ -24,7 +24,7 @@ export const getCities = async (req: AuthenticatedRequest, res: Response) => {
       isActive,
       search,
       sortBy = 'name',
-      sortOrder = 'asc'
+      sortOrder = 'asc',
     } = req.query;
 
     // Build SQL query with joins to get state and country names, and pincode counts
@@ -131,7 +131,7 @@ export const getCities = async (req: AuthenticatedRequest, res: Response) => {
     logger.info(`Retrieved ${result.rows.length} cities`, {
       userId: req.user?.id,
       filters: { state, country, search },
-      pagination: { page: pageNum, limit: limitNum }
+      pagination: { page: pageNum, limit: limitNum },
     });
 
     res.json({
@@ -140,7 +140,7 @@ export const getCities = async (req: AuthenticatedRequest, res: Response) => {
         ...city,
         id: city.id.toString(), // Convert integer ID to string
         stateId: city.stateId ? city.stateId.toString() : null, // Convert integer stateId to string if exists
-        countryId: city.countryId ? city.countryId.toString() : null // Convert integer countryId to string if exists
+        countryId: city.countryId ? city.countryId.toString() : null, // Convert integer countryId to string if exists
       })),
       pagination: {
         page: pageNum,
@@ -196,7 +196,7 @@ export const getCityById = async (req: AuthenticatedRequest, res: Response) => {
       success: true,
       data: {
         ...city,
-        id: city.id.toString() // Convert integer ID to string
+        id: city.id.toString(), // Convert integer ID to string
       },
     });
   } catch (error) {
@@ -226,10 +226,9 @@ export const createCity = async (req: AuthenticatedRequest, res: Response) => {
 
     // Get stateId and countryId
     logger.info('Looking up state:', { state });
-    const stateResult = await query<{ id: string }>(
-      'SELECT id FROM states WHERE name = $1',
-      [state]
-    );
+    const stateResult = await query<{ id: string }>('SELECT id FROM states WHERE name = $1', [
+      state,
+    ]);
 
     if (stateResult.rows.length === 0) {
       logger.error('State not found:', { state });
@@ -241,10 +240,9 @@ export const createCity = async (req: AuthenticatedRequest, res: Response) => {
     }
 
     logger.info('Looking up country:', { country });
-    const countryResult = await query<{ id: string }>(
-      'SELECT id FROM countries WHERE name = $1',
-      [country]
-    );
+    const countryResult = await query<{ id: string }>('SELECT id FROM countries WHERE name = $1', [
+      country,
+    ]);
 
     if (countryResult.rows.length === 0) {
       logger.error('Country not found:', { country });
@@ -305,7 +303,7 @@ export const createCity = async (req: AuthenticatedRequest, res: Response) => {
       cityId: cityData.id,
       cityName: cityData.name,
       state: cityData.state,
-      country: cityData.country
+      country: cityData.country,
     });
 
     res.status(201).json({
@@ -338,10 +336,7 @@ export const updateCity = async (req: AuthenticatedRequest, res: Response) => {
     }
 
     // Check if city exists
-    const existingCity = await query<{ id: string }>(
-      'SELECT id FROM cities WHERE id = $1',
-      [id]
-    );
+    const existingCity = await query<{ id: string }>('SELECT id FROM cities WHERE id = $1', [id]);
 
     if (existingCity.rows.length === 0) {
       return res.status(404).json({
@@ -352,10 +347,9 @@ export const updateCity = async (req: AuthenticatedRequest, res: Response) => {
     }
 
     // Get stateId and countryId
-    const stateResult = await query<{ id: string }>(
-      'SELECT id FROM states WHERE name = $1',
-      [state]
-    );
+    const stateResult = await query<{ id: string }>('SELECT id FROM states WHERE name = $1', [
+      state,
+    ]);
 
     if (stateResult.rows.length === 0) {
       return res.status(400).json({
@@ -365,10 +359,9 @@ export const updateCity = async (req: AuthenticatedRequest, res: Response) => {
       });
     }
 
-    const countryResult = await query<{ id: string }>(
-      'SELECT id FROM countries WHERE name = $1',
-      [country]
-    );
+    const countryResult = await query<{ id: string }>('SELECT id FROM countries WHERE name = $1', [
+      country,
+    ]);
 
     if (countryResult.rows.length === 0) {
       return res.status(400).json({
@@ -411,7 +404,7 @@ export const updateCity = async (req: AuthenticatedRequest, res: Response) => {
       userId: req.user?.id,
       cityName: updatedCity.name,
       state: updatedCity.state,
-      country: updatedCity.country
+      country: updatedCity.country,
     });
 
     res.json({
@@ -468,7 +461,7 @@ export const deleteCity = async (req: AuthenticatedRequest, res: Response) => {
       cityId: id,
       cityName: cityToDelete.name,
       state: cityToDelete.state,
-      country: cityToDelete.country
+      country: cityToDelete.country,
     });
 
     res.json({
@@ -488,9 +481,7 @@ export const deleteCity = async (req: AuthenticatedRequest, res: Response) => {
 // GET /api/cities/stats - Get cities statistics
 export const getCitiesStats = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const totalResult = await query<{ count: string }>(
-      'SELECT COUNT(*) FROM cities'
-    );
+    const totalResult = await query<{ count: string }>('SELECT COUNT(*) FROM cities');
 
     const totalCities = parseInt(totalResult.rows[0].count, 10);
 
@@ -510,15 +501,21 @@ export const getCitiesStats = async (req: AuthenticatedRequest, res: Response) =
        ORDER BY count DESC`
     );
 
-    const stateDistribution = stateDistributionResult.rows.reduce((acc, row) => {
-      acc[row.state] = parseInt(row.count, 10);
-      return acc;
-    }, {} as Record<string, number>);
+    const stateDistribution = stateDistributionResult.rows.reduce(
+      (acc, row) => {
+        acc[row.state] = parseInt(row.count, 10);
+        return acc;
+      },
+      {} as Record<string, number>
+    );
 
-    const countryDistribution = countryDistributionResult.rows.reduce((acc, row) => {
-      acc[row.country] = parseInt(row.count, 10);
-      return acc;
-    }, {} as Record<string, number>);
+    const countryDistribution = countryDistributionResult.rows.reduce(
+      (acc, row) => {
+        acc[row.country] = parseInt(row.count, 10);
+        return acc;
+      },
+      {} as Record<string, number>
+    );
 
     const stats = {
       totalCities,
@@ -541,7 +538,10 @@ export const getCitiesStats = async (req: AuthenticatedRequest, res: Response) =
 };
 
 // POST /api/cities/bulk-import - Bulk import cities
-export const bulkImportCities = async (req: AuthenticatedRequest & { file?: Express.Multer.File }, res: Response) => {
+export const bulkImportCities = async (
+  req: AuthenticatedRequest & { file?: Express.Multer.File },
+  res: Response
+) => {
   try {
     if (!req.file) {
       return res.status(400).json({
@@ -582,7 +582,7 @@ export const bulkImportCities = async (req: AuthenticatedRequest & { file?: Expr
         const { name, state, country } = row;
 
         // Find or create country
-        let countryResult = await query(
+        const countryResult = await query(
           'SELECT id FROM countries WHERE LOWER(name) = LOWER($1)',
           [country]
         );
@@ -599,7 +599,7 @@ export const bulkImportCities = async (req: AuthenticatedRequest & { file?: Expr
         }
 
         // Find or create state
-        let stateResult = await query(
+        const stateResult = await query(
           'SELECT id FROM states WHERE LOWER(name) = LOWER($1) AND "countryId" = $2',
           [state, countryId]
         );
