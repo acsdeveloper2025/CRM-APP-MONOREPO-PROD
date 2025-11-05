@@ -20,7 +20,7 @@ export const getCities = async (req: AuthenticatedRequest, res: Response) => {
       limit = 20,
       state,
       country = 'India',
-      isActive,
+      isActive: _isActive,
       search,
       sortBy = 'name',
       sortOrder = 'asc',
