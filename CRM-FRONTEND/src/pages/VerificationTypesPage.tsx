@@ -7,7 +7,6 @@ import { verificationTypesService } from '@/services/verificationTypes';
 import { VerificationTypesTable } from '@/components/clients/VerificationTypesTable';
 import { CreateVerificationTypeDialog } from '@/components/clients/CreateVerificationTypeDialog';
 import { useUnifiedSearch } from '@/hooks/useUnifiedSearch';
-import { UnifiedSearchInput } from '@/components/ui/unified-search-input';
 
 export function VerificationTypesPage() {
   const [showCreateVerificationType, setShowCreateVerificationType] = useState(false);
