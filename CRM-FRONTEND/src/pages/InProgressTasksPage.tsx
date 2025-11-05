@@ -9,12 +9,9 @@ import {
   Play,
   Clock,
   RefreshCw,
-  Users,
-  TrendingUp,
-  AlertCircle
+  TrendingUp
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { formatDistanceToNow } from 'date-fns';
 
 interface InProgressTaskFilters {
   priority?: string;
