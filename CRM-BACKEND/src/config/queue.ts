@@ -142,7 +142,7 @@ export const initializeQueues = async (): Promise<void> => {
     logger.info('Initializing job queues...');
 
     // Initialize case assignment worker
-    const { caseAssignmentWorker } = await import('../jobs/caseAssignmentProcessor');
+    await import('../jobs/caseAssignmentProcessor');
     logger.info('Case assignment worker initialized');
 
     // Add any startup jobs here if needed
