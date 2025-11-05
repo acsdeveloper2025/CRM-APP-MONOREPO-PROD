@@ -416,7 +416,7 @@ async function deliverReportByEmail(
   reportResult: any,
   recipients: string[],
   reportType: string,
-  customSubject?: string
+  _customSubject?: string
 ): Promise<any> {
   const emailService = EmailDeliveryService.getInstance();
 

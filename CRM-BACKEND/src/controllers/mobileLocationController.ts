@@ -343,8 +343,8 @@ export class MobileLocationController {
 
   // Helper method for reverse geocoding
   private static async reverseGeocodeHelper(
-    latitude: number,
-    longitude: number
+    _latitude: number,
+    _longitude: number
   ): Promise<string | null> {
     try {
       // In production, use Google Maps API or similar service
