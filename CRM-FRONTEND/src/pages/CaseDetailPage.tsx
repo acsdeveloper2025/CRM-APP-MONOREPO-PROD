@@ -361,7 +361,7 @@ export const CaseDetailPage: React.FC = () => {
                     </CardContent>
                   </Card>
                 ) : formSubmissions.length > 0 ? (
-                  formSubmissions.map((submission, index) => (
+                  formSubmissions.map((submission) => (
                     <OptimizedFormSubmissionViewer
                       key={submission.id}
                       submission={submission}
