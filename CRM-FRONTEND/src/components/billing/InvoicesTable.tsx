@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { MoreHorizontal, Edit, Download, Send, CheckCircle, Eye, Receipt } from 'lucide-react';
+import { MoreHorizontal, Download, Send, CheckCircle, Eye, Receipt } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -68,7 +68,7 @@ export function InvoicesTable({ data, isLoading }: InvoicesTableProps) {
       a.click();
       window.URL.revokeObjectURL(url);
       toast.success('Invoice downloaded successfully');
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to download invoice');
     }
   };

@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Check, User, FileText, Target } from 'lucide-react';
 import { CustomerInfoStep, type CustomerInfoData } from './CustomerInfoStep';
 import { FullCaseFormStep, type FullCaseFormData } from './FullCaseFormStep';
@@ -78,7 +77,7 @@ const getApiBaseUrl = () => {
 
 export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
   onSuccess,
-  onCancel,
+  // onCancel - unused, keeping for interface compatibility
   editMode = false,
   editCaseId,
   initialData
@@ -86,7 +85,8 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
   const [currentStep, setCurrentStep] = useState<Step>(
     editMode ? 'case-details' : 'customer-info'
   );
-  const [caseCreationMode, setCaseCreationMode] = useState<CaseCreationMode>('multi-task');
+  // Always using multi-task mode - keeping state for future use
+  const [_caseCreationMode, _setCaseCreationMode] = useState<CaseCreationMode>('multi-task');
   const [customerInfo, setCustomerInfo] = useState<CustomerInfoData | null>(
     initialData?.customerInfo || null
   );
