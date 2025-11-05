@@ -383,10 +383,10 @@ export const NewCaseForm: React.FC<NewCaseFormProps> = ({
               <FormItem>
                 <FormLabel>Special Instructions / Notes</FormLabel>
                 <FormControl>
-                  <Textarea 
+                  <Textarea
                     placeholder="Enter any special instructions or notes for the field user"
-                    className="min-h-[80px]"
-                    {...field} 
+                    className="min-h-20"
+                    {...field}
                   />
                 </FormControl>
                 <FormDescription>
