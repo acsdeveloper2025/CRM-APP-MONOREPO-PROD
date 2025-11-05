@@ -112,7 +112,9 @@ export class EnterpriseMonitoringService extends EventEmitter {
   }
 
   async startMonitoring(): Promise<void> {
-    if (this.isMonitoring) return;
+    if (this.isMonitoring) {
+      return;
+    }
 
     this.isMonitoring = true;
     logger.info('Enterprise monitoring service started');
@@ -133,7 +135,6 @@ export class EnterpriseMonitoringService extends EventEmitter {
 
         // Emit metrics event
         this.emit('metrics', metrics);
-
       } catch (error) {
         logger.error('Error collecting metrics:', error);
       }
@@ -141,7 +142,9 @@ export class EnterpriseMonitoringService extends EventEmitter {
   }
 
   async stopMonitoring(): Promise<void> {
-    if (!this.isMonitoring) return;
+    if (!this.isMonitoring) {
+      return;
+    }
 
     this.isMonitoring = false;
     if (this.metricsInterval) {
@@ -197,7 +200,7 @@ export class EnterpriseMonitoringService extends EventEmitter {
   }
 
   private async getCpuUsage(): Promise<number> {
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
       const startUsage = process.cpuUsage();
       const startTime = process.hrtime();
 
@@ -243,7 +246,7 @@ export class EnterpriseMonitoringService extends EventEmitter {
   private async getCacheMetrics(): Promise<SystemMetrics['cache']> {
     try {
       const cacheStats = await EnterpriseCacheService.getStats();
-      
+
       return {
         hitRate: cacheStats.memory?.keyspace_hits || 0,
         memoryUsage: cacheStats.memory?.used_memory || 0,
@@ -351,7 +354,9 @@ export class EnterpriseMonitoringService extends EventEmitter {
 
   private async checkAlertRules(metrics: SystemMetrics): Promise<void> {
     for (const rule of this.alertRules) {
-      if (!rule.enabled) continue;
+      if (!rule.enabled) {
+        continue;
+      }
 
       const value = this.getMetricValue(metrics, rule.metric);
       const isTriggered = this.evaluateCondition(value, rule.operator, rule.threshold);
@@ -377,19 +382,27 @@ export class EnterpriseMonitoringService extends EventEmitter {
 
   private evaluateCondition(value: number, operator: string, threshold: number): boolean {
     switch (operator) {
-      case '>': return value > threshold;
-      case '<': return value < threshold;
-      case '>=': return value >= threshold;
-      case '<=': return value <= threshold;
-      case '=': return value === threshold;
-      default: return false;
+      case '>':
+        return value > threshold;
+      case '<':
+        return value < threshold;
+      case '>=':
+        return value >= threshold;
+      case '<=':
+        return value <= threshold;
+      case '=':
+        return value === threshold;
+      default:
+        return false;
     }
   }
 
   private async triggerAlert(rule: AlertRule, value: number): Promise<void> {
     // Check if alert already exists and is not resolved
     const existingAlert = this.alerts.find(a => a.ruleId === rule.id && !a.resolved);
-    if (existingAlert) return;
+    if (existingAlert) {
+      return;
+    }
 
     const alert: Alert = {
       id: `alert_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -414,7 +427,9 @@ export class EnterpriseMonitoringService extends EventEmitter {
 
   private async resolveAlert(ruleId: string): Promise<void> {
     const alert = this.alerts.find(a => a.ruleId === ruleId && !a.resolved);
-    if (!alert) return;
+    if (!alert) {
+      return;
+    }
 
     alert.resolved = true;
     alert.resolvedAt = Date.now();
@@ -435,7 +450,7 @@ export class EnterpriseMonitoringService extends EventEmitter {
   }
 
   getMetricsHistory(hours = 24): SystemMetrics[] {
-    const cutoff = Date.now() - (hours * 60 * 60 * 1000);
+    const cutoff = Date.now() - hours * 60 * 60 * 1000;
     return this.metrics.filter(m => m.timestamp >= cutoff);
   }
 
@@ -447,7 +462,9 @@ export class EnterpriseMonitoringService extends EventEmitter {
     return this.alerts.slice(-limit);
   }
 
-  async generatePerformanceReport(period: 'hour' | 'day' | 'week' | 'month'): Promise<PerformanceReport> {
+  async generatePerformanceReport(
+    period: 'hour' | 'day' | 'week' | 'month'
+  ): Promise<PerformanceReport> {
     const now = Date.now();
     const periodMs = {
       hour: 60 * 60 * 1000,
@@ -465,8 +482,11 @@ export class EnterpriseMonitoringService extends EventEmitter {
 
     // Calculate aggregated metrics
     const totalRequests = relevantMetrics.reduce((sum, m) => sum + m.api.requestCount, 0);
-    const averageResponseTime = relevantMetrics.reduce((sum, m) => sum + m.api.averageResponseTime, 0) / relevantMetrics.length;
-    const errorRate = relevantMetrics.reduce((sum, m) => sum + m.api.errorRate, 0) / relevantMetrics.length;
+    const averageResponseTime =
+      relevantMetrics.reduce((sum, m) => sum + m.api.averageResponseTime, 0) /
+      relevantMetrics.length;
+    const errorRate =
+      relevantMetrics.reduce((sum, m) => sum + m.api.errorRate, 0) / relevantMetrics.length;
     const uptime = (relevantMetrics.length / (periodMs[period] / 60000)) * 100; // Percentage
 
     const report: PerformanceReport = {
@@ -480,13 +500,24 @@ export class EnterpriseMonitoringService extends EventEmitter {
         uptime,
         peakConcurrentUsers: Math.max(...relevantMetrics.map(m => m.database.activeConnections)),
         databasePerformance: {
-          averageQueryTime: relevantMetrics.reduce((sum, m) => sum + m.database.averageQueryTime, 0) / relevantMetrics.length,
+          averageQueryTime:
+            relevantMetrics.reduce((sum, m) => sum + m.database.averageQueryTime, 0) /
+            relevantMetrics.length,
           slowQueries: 0, // Would need proper tracking
-          connectionPoolUtilization: relevantMetrics.reduce((sum, m) => sum + (m.database.activeConnections / m.database.totalConnections), 0) / relevantMetrics.length * 100,
+          connectionPoolUtilization:
+            (relevantMetrics.reduce(
+              (sum, m) => sum + m.database.activeConnections / m.database.totalConnections,
+              0
+            ) /
+              relevantMetrics.length) *
+            100,
         },
         cachePerformance: {
-          hitRate: relevantMetrics.reduce((sum, m) => sum + m.cache.hitRate, 0) / relevantMetrics.length,
-          missRate: 100 - (relevantMetrics.reduce((sum, m) => sum + m.cache.hitRate, 0) / relevantMetrics.length),
+          hitRate:
+            relevantMetrics.reduce((sum, m) => sum + m.cache.hitRate, 0) / relevantMetrics.length,
+          missRate:
+            100 -
+            relevantMetrics.reduce((sum, m) => sum + m.cache.hitRate, 0) / relevantMetrics.length,
           evictionRate: 0, // Would need proper tracking
         },
       },
@@ -498,21 +529,27 @@ export class EnterpriseMonitoringService extends EventEmitter {
 
   private generateRecommendations(metrics: SystemMetrics[]): string[] {
     const recommendations: string[] = [];
-    
+
     const avgCpuUsage = metrics.reduce((sum, m) => sum + m.cpu.usage, 0) / metrics.length;
-    const avgMemoryUsage = metrics.reduce((sum, m) => sum + m.memory.percentage, 0) / metrics.length;
-    const avgResponseTime = metrics.reduce((sum, m) => sum + m.api.averageResponseTime, 0) / metrics.length;
+    const avgMemoryUsage =
+      metrics.reduce((sum, m) => sum + m.memory.percentage, 0) / metrics.length;
+    const avgResponseTime =
+      metrics.reduce((sum, m) => sum + m.api.averageResponseTime, 0) / metrics.length;
 
     if (avgCpuUsage > 70) {
       recommendations.push('Consider scaling horizontally or optimizing CPU-intensive operations');
     }
 
     if (avgMemoryUsage > 80) {
-      recommendations.push('Memory usage is high - consider optimizing memory allocation or scaling vertically');
+      recommendations.push(
+        'Memory usage is high - consider optimizing memory allocation or scaling vertically'
+      );
     }
 
     if (avgResponseTime > 1000) {
-      recommendations.push('API response times are slow - consider implementing caching or optimizing database queries');
+      recommendations.push(
+        'API response times are slow - consider implementing caching or optimizing database queries'
+      );
     }
 
     return recommendations;
@@ -526,7 +563,9 @@ export class EnterpriseMonitoringService extends EventEmitter {
 
   updateAlertRule(id: string, updates: Partial<AlertRule>): boolean {
     const index = this.alertRules.findIndex(r => r.id === id);
-    if (index === -1) return false;
+    if (index === -1) {
+      return false;
+    }
 
     this.alertRules[index] = { ...this.alertRules[index], ...updates };
     return true;
@@ -534,7 +573,9 @@ export class EnterpriseMonitoringService extends EventEmitter {
 
   deleteAlertRule(id: string): boolean {
     const index = this.alertRules.findIndex(r => r.id === id);
-    if (index === -1) return false;
+    if (index === -1) {
+      return false;
+    }
 
     this.alertRules.splice(index, 1);
     return true;

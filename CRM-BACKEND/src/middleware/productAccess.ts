@@ -1,7 +1,7 @@
-import { Response, NextFunction } from 'express';
+import type { Response, NextFunction } from 'express';
 import { query } from '@/config/database';
 import { logger } from '@/config/logger';
-import { AuthenticatedRequest } from '@/types/auth';
+import type { AuthenticatedRequest } from '@/types/auth';
 
 /**
  * Product Access Control Middleware
@@ -9,7 +9,10 @@ import { AuthenticatedRequest } from '@/types/auth';
  */
 
 // Helper function to get assigned product IDs for BACKEND_USER users
-const getAssignedProductIds = async (userId: string, userRole: string): Promise<number[] | null> => {
+const getAssignedProductIds = async (
+  userId: string,
+  userRole: string
+): Promise<number[] | null> => {
   // Only apply product filtering for BACKEND_USER users
   if (userRole !== 'BACKEND_USER') {
     return null; // null means no filtering (access to all products)
@@ -20,7 +23,7 @@ const getAssignedProductIds = async (userId: string, userRole: string): Promise<
       'SELECT "productId" FROM "userProductAssignments" WHERE "userId" = $1',
       [userId]
     );
-    
+
     return result.rows.map(row => row.productId);
   } catch (error) {
     logger.error('Error fetching assigned product IDs:', error);
@@ -64,7 +67,7 @@ export const validateProductAccess = (source: 'params' | 'body' | 'query' = 'par
 
       // Get product ID from the specified source
       let productId: number;
-      
+
       switch (source) {
         case 'params':
           productId = parseInt(req.params.productId || req.params.id);
@@ -88,7 +91,7 @@ export const validateProductAccess = (source: 'params' | 'body' | 'query' = 'par
       const assignedProductIds = await getAssignedProductIds(userId, userRole);
 
       // If user has no product assignments, deny access
-      if (assignedProductIds && assignedProductIds.length === 0) {
+      if (assignedProductIds?.length === 0) {
         return res.status(403).json({
           success: false,
           message: 'Access denied: No products assigned to your account',
@@ -122,7 +125,11 @@ export const validateProductAccess = (source: 'params' | 'body' | 'query' = 'par
  * This middleware checks if a BACKEND_USER user has access to a case by verifying
  * they have access to the product associated with the case
  */
-export const validateCaseProductAccess = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+export const validateCaseProductAccess = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const userId = req.user?.id;
     const userRole = req.user?.role;
@@ -153,10 +160,7 @@ export const validateCaseProductAccess = async (req: AuthenticatedRequest, res: 
     }
 
     // Get the product ID for the case
-    const caseResult = await query(
-      'SELECT "productId" FROM cases WHERE id = $1',
-      [caseId]
-    );
+    const caseResult = await query('SELECT "productId" FROM cases WHERE id = $1', [caseId]);
 
     if (caseResult.rows.length === 0) {
       return res.status(404).json({
@@ -172,7 +176,7 @@ export const validateCaseProductAccess = async (req: AuthenticatedRequest, res: 
     const assignedProductIds = await getAssignedProductIds(userId, userRole);
 
     // If user has no product assignments, deny access
-    if (assignedProductIds && assignedProductIds.length === 0) {
+    if (assignedProductIds?.length === 0) {
       return res.status(403).json({
         success: false,
         message: 'Access denied: No products assigned to your account',
@@ -184,7 +188,7 @@ export const validateCaseProductAccess = async (req: AuthenticatedRequest, res: 
     if (assignedProductIds && !assignedProductIds.includes(productId)) {
       return res.status(403).json({
         success: false,
-        message: 'Access denied: You do not have access to this case\'s product',
+        message: "Access denied: You do not have access to this case's product",
         error: { code: 'CASE_PRODUCT_ACCESS_DENIED' },
       });
     }
@@ -204,7 +208,11 @@ export const validateCaseProductAccess = async (req: AuthenticatedRequest, res: 
  * Middleware to add product filtering to query parameters for BACKEND_USER users
  * This middleware automatically adds product filtering to list endpoints
  */
-export const addProductFiltering = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+export const addProductFiltering = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const userId = req.user?.id;
     const userRole = req.user?.role;
@@ -227,7 +235,7 @@ export const addProductFiltering = async (req: AuthenticatedRequest, res: Respon
     // Get assigned product IDs for the BACKEND_USER user
     const assignedProductIds = await getAssignedProductIds(userId, userRole);
 
-    if (assignedProductIds && assignedProductIds.length === 0) {
+    if (assignedProductIds?.length === 0) {
       // User has no product assignments, they should see no data
       req.query.productIds = '[]';
     } else if (assignedProductIds) {

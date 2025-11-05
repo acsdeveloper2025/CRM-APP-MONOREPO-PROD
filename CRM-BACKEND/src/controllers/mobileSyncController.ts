@@ -1,8 +1,8 @@
-import { Request, Response } from 'express';
-import {
+import type { Request, Response } from 'express';
+import type {
   MobileSyncUploadRequest,
   MobileSyncDownloadResponse,
-  MobileCaseResponse
+  MobileCaseResponse,
 } from '../types/mobile';
 import { createAuditLog } from '../utils/auditLogger';
 import { config } from '../config';
@@ -52,7 +52,6 @@ export class MobileSyncController {
       });
 
       res.json(syncResponse);
-
     } catch (error) {
       console.error('Enterprise sync error:', error);
       res.status(500).json({
@@ -141,7 +140,10 @@ export class MobileSyncController {
       }
 
       // Update device sync timestamp
-      await query(`UPDATE devices SET "lastUsed" = CURRENT_TIMESTAMP WHERE "userId" = $1 AND "deviceId" = $2`, [userId, deviceInfo.deviceId]);
+      await query(
+        `UPDATE devices SET "lastUsed" = CURRENT_TIMESTAMP WHERE "userId" = $1 AND "deviceId" = $2`,
+        [userId, deviceInfo.deviceId]
+      );
 
       await createAuditLog({
         action: 'MOBILE_SYNC_UPLOAD',
@@ -185,7 +187,7 @@ export class MobileSyncController {
       const userRole = (req as any).user?.role;
       const { lastSyncTimestamp, limit = config.mobile.syncBatchSize } = req.query;
 
-      const syncTimestamp = lastSyncTimestamp 
+      const syncTimestamp = lastSyncTimestamp
         ? new Date(lastSyncTimestamp as string)
         : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000); // 30 days ago
 
@@ -209,7 +211,10 @@ export class MobileSyncController {
           AND vt.assigned_to = $${vals.length}
         )`);
       }
-      if (where.updatedAt?.gt) { vals.push(where.updatedAt.gt); wh.push(`c."updatedAt" > $${vals.length}`); }
+      if (where.updatedAt?.gt) {
+        vals.push(where.updatedAt.gt);
+        wh.push(`c."updatedAt" > $${vals.length}`);
+      }
       const whereSql = wh.length ? `WHERE ${wh.join(' AND ')}` : '';
       vals.push(Number(limit));
 
@@ -253,7 +258,9 @@ export class MobileSyncController {
         priority: caseItem.priority || 2, // Priority
         assignedAt: new Date(caseItem.createdAt).toISOString(),
         updatedAt: new Date(caseItem.updatedAt).toISOString(),
-        completedAt: caseItem.completedAt ? new Date(caseItem.completedAt).toISOString() : undefined,
+        completedAt: caseItem.completedAt
+          ? new Date(caseItem.completedAt).toISOString()
+          : undefined,
         notes: caseItem.trigger, // TRIGGER field
         verificationType: caseItem.verificationTypeName || caseItem.verificationType,
         verificationOutcome: caseItem.verificationOutcome,
@@ -266,16 +273,20 @@ export class MobileSyncController {
           name: caseItem.clientName || '', // Client
           code: caseItem.clientCode || '',
         },
-        product: caseItem.productId ? {
-          id: caseItem.productId || 0, // Use number instead of string
-          name: caseItem.productName || '', // Product
-          code: caseItem.productCode || '',
-        } : undefined,
-        verificationTypeDetails: caseItem.verificationTypeId ? {
-          id: caseItem.verificationTypeId || 0, // Use number instead of string
-          name: caseItem.verificationTypeName || '', // Verification Type
-          code: caseItem.verificationTypeCode || '',
-        } : undefined,
+        product: caseItem.productId
+          ? {
+              id: caseItem.productId || 0, // Use number instead of string
+              name: caseItem.productName || '', // Product
+              code: caseItem.productCode || '',
+            }
+          : undefined,
+        verificationTypeDetails: caseItem.verificationTypeId
+          ? {
+              id: caseItem.verificationTypeId || 0, // Use number instead of string
+              name: caseItem.verificationTypeName || '', // Verification Type
+              code: caseItem.verificationTypeCode || '',
+            }
+          : undefined,
         attachments: [], // Will be populated separately if needed
         formData: caseItem.verificationData,
         syncStatus: 'SYNCED',
@@ -332,7 +343,10 @@ export class MobileSyncController {
       const userId = (req as any).user?.id;
       const deviceId = req.headers['x-device-id'] as string;
 
-      const devRes = await query(`SELECT * FROM devices WHERE "userId" = $1 AND "deviceId" = $2 LIMIT 1`, [userId, deviceId]);
+      const devRes = await query(
+        `SELECT * FROM devices WHERE "userId" = $1 AND "deviceId" = $2 LIMIT 1`,
+        [userId, deviceId]
+      );
       const device = devRes.rows[0];
 
       if (!device) {
@@ -372,7 +386,12 @@ export class MobileSyncController {
   }
 
   // Helper method to process case changes
-  private static async processCaseChange(caseChange: any, userId: string, userRole: string, syncResults: any) {
+  private static async processCaseChange(
+    caseChange: any,
+    userId: string,
+    userRole: string,
+    syncResults: any
+  ) {
     const { id, action, data, timestamp } = caseChange;
 
     switch (action) {
@@ -446,7 +465,11 @@ export class MobileSyncController {
   }
 
   // Helper method to process attachment changes
-  private static async processAttachmentChange(attachmentChange: any, userId: string, syncResults: any) {
+  private static async processAttachmentChange(
+    attachmentChange: any,
+    userId: string,
+    syncResults: any
+  ) {
     const { id, action, data, timestamp } = attachmentChange;
 
     switch (action) {
@@ -461,7 +484,10 @@ export class MobileSyncController {
           attIdx++;
         }
         const attPlaceholders = attVals.map((_, i) => `$${i + 1}`).join(', ');
-        await query(`INSERT INTO attachments (${attCols.join(', ')}) VALUES (${attPlaceholders})`, attVals);
+        await query(
+          `INSERT INTO attachments (${attCols.join(', ')}) VALUES (${attPlaceholders})`,
+          attVals
+        );
 
         syncResults.processedAttachments++;
         break;
@@ -479,13 +505,25 @@ export class MobileSyncController {
   }
 
   // Helper method to process location changes
-  private static async processLocationChange(locationChange: any, userId: string, syncResults: any) {
+  private static async processLocationChange(
+    locationChange: any,
+    userId: string,
+    syncResults: any
+  ) {
     const { id, data, timestamp } = locationChange;
 
     await query(
       `INSERT INTO locations (id, "caseId", latitude, longitude, accuracy, timestamp, source)
        VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-      [id, data.caseId, data.latitude, data.longitude, data.accuracy, new Date(timestamp), data.source || 'GPS']
+      [
+        id,
+        data.caseId,
+        data.latitude,
+        data.longitude,
+        data.accuracy,
+        new Date(timestamp),
+        data.source || 'GPS',
+      ]
     );
 
     syncResults.processedLocations++;

@@ -9,7 +9,8 @@ export const redisClient = createClient({
   socket: {
     // Enhanced reconnection strategy for high-load scenarios
     reconnectStrategy: (retries: number) => {
-      if (retries > 20) { // Increased retry limit for enterprise
+      if (retries > 20) {
+        // Increased retry limit for enterprise
         logger.error('Redis connection failed after 20 retries');
         return new Error('Redis connection failed');
       }
@@ -24,7 +25,7 @@ export const redisClient = createClient({
   disableOfflineQueue: false, // Keep offline queue for reliability
 });
 
-redisClient.on('error', (err) => {
+redisClient.on('error', err => {
   logger.error('Redis Client Error:', err);
 });
 

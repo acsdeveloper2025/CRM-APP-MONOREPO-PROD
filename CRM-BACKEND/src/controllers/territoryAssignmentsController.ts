@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import { query } from '@/config/database';
 import { logger } from '@/config/logger';
 import { AuthenticatedRequest } from '@/types/auth';
@@ -14,7 +14,7 @@ export const getFieldAgentTerritories = async (req: Request, res: Response) => {
       cityId,
       isActive = 'true',
       sortBy = 'userName',
-      sortOrder = 'asc'
+      sortOrder = 'asc',
     } = req.query;
 
     // Build the WHERE clause
@@ -23,7 +23,9 @@ export const getFieldAgentTerritories = async (req: Request, res: Response) => {
     let paramIndex = 2;
 
     if (search) {
-      conditions.push(`(u.name ILIKE $${paramIndex} OR u.username ILIKE $${paramIndex} OR u."employeeId" ILIKE $${paramIndex})`);
+      conditions.push(
+        `(u.name ILIKE $${paramIndex} OR u.username ILIKE $${paramIndex} OR u."employeeId" ILIKE $${paramIndex})`
+      );
       params.push(`%${search}%`);
       paramIndex++;
     }
@@ -127,7 +129,7 @@ export const getFieldAgentTerritories = async (req: Request, res: Response) => {
       page: pageNum,
       limit: limitNum,
       total,
-      filters: { search, pincodeId, cityId, isActive }
+      filters: { search, pincodeId, cityId, isActive },
     });
 
     res.json({
@@ -205,7 +207,7 @@ export const getFieldAgentTerritoryById = async (req: Request, res: Response) =>
     logger.info(`Retrieved territory assignments for field agent ${userId}`, {
       userId: (req as any).user?.id,
       targetUserId: userId,
-      assignmentCount: result.rows.length
+      assignmentCount: result.rows.length,
     });
 
     res.json({
@@ -216,9 +218,9 @@ export const getFieldAgentTerritoryById = async (req: Request, res: Response) =>
           name: user.name,
           username: user.username,
           employeeId: user.employeeId,
-          role: user.role
+          role: user.role,
         },
-        territoryAssignments: result.rows
+        territoryAssignments: result.rows,
       },
     });
   } catch (error) {
@@ -247,10 +249,9 @@ export const assignPincodesToFieldAgent = async (req: Request, res: Response) =>
     }
 
     // Verify user exists and is a field agent
-    const userResult = await query(
-      'SELECT id, name, username, role FROM users WHERE id = $1',
-      [userId]
-    );
+    const userResult = await query('SELECT id, name, username, role FROM users WHERE id = $1', [
+      userId,
+    ]);
 
     if (userResult.rows.length === 0) {
       return res.status(404).json({
@@ -271,10 +272,9 @@ export const assignPincodesToFieldAgent = async (req: Request, res: Response) =>
 
     // Verify all pincodes exist (only if pincodeIds is not empty)
     if (pincodeIds.length > 0) {
-      const pincodeCheck = await query(
-        `SELECT id, code FROM pincodes WHERE id = ANY($1)`,
-        [pincodeIds]
-      );
+      const pincodeCheck = await query(`SELECT id, code FROM pincodes WHERE id = ANY($1)`, [
+        pincodeIds,
+      ]);
 
       if (pincodeCheck.rows.length !== pincodeIds.length) {
         const foundIds = pincodeCheck.rows.map(row => row.id);
@@ -331,7 +331,7 @@ export const assignPincodesToFieldAgent = async (req: Request, res: Response) =>
         pincodeIds,
         deactivatedPincodesCount,
         deactivatedAreasCount,
-        insertedCount
+        insertedCount,
       });
 
       res.status(200).json({
@@ -341,11 +341,10 @@ export const assignPincodesToFieldAgent = async (req: Request, res: Response) =>
           deactivatedPincodes: deactivatedPincodesCount,
           deactivatedAreas: deactivatedAreasCount,
           newPincodeAssignments: insertedCount,
-          totalRequested: pincodeIds.length
+          totalRequested: pincodeIds.length,
         },
         message: `Successfully updated pincode assignments for field agent`,
       });
-
     } catch (transactionError) {
       // Rollback transaction on error
       await query('ROLLBACK');
@@ -377,10 +376,9 @@ export const assignAreasToFieldAgent = async (req: Request, res: Response) => {
     }
 
     // Verify user exists and is a field agent
-    const userResult = await query(
-      'SELECT id, name, username, role FROM users WHERE id = $1',
-      [userId]
-    );
+    const userResult = await query('SELECT id, name, username, role FROM users WHERE id = $1', [
+      userId,
+    ]);
 
     if (userResult.rows.length === 0) {
       return res.status(404).json({
@@ -437,7 +435,7 @@ export const assignAreasToFieldAgent = async (req: Request, res: Response) => {
             pincodeId,
             error: 'Field agent not assigned to this pincode',
             assigned: 0,
-            requested: areaIds.length
+            requested: areaIds.length,
           });
           continue;
         }
@@ -461,7 +459,7 @@ export const assignAreasToFieldAgent = async (req: Request, res: Response) => {
             pincodeId,
             error: `Invalid areas for pincode: ${invalidAreaIds.join(', ')}`,
             assigned: 0,
-            requested: areaIds.length
+            requested: areaIds.length,
           });
           continue;
         }
@@ -491,7 +489,7 @@ export const assignAreasToFieldAgent = async (req: Request, res: Response) => {
           pincodeId,
           assigned: newAreaAssignments.length,
           requested: areaIds.length,
-          failed: areaIds.length - newAreaAssignments.length
+          failed: areaIds.length - newAreaAssignments.length,
         });
       }
     }
@@ -502,7 +500,7 @@ export const assignAreasToFieldAgent = async (req: Request, res: Response) => {
       removedCount,
       totalAssigned,
       totalRequested,
-      assignmentResults
+      assignmentResults,
     });
 
     res.status(200).json({
@@ -512,7 +510,7 @@ export const assignAreasToFieldAgent = async (req: Request, res: Response) => {
         removedCount,
         totalAssigned,
         totalRequested,
-        assignmentResults
+        assignmentResults,
       },
       message: `Successfully updated area assignments: removed ${removedCount}, assigned ${totalAssigned}`,
     });
@@ -569,7 +567,7 @@ export const removePincodeAssignment = async (req: Request, res: Response) => {
       logger.info(`Removed pincode assignment ${pincodeId} from field agent ${userId}`, {
         userId: (req as any).user?.id,
         targetUserId: userId,
-        pincodeId
+        pincodeId,
       });
 
       res.json({
@@ -630,7 +628,7 @@ export const removeAreaAssignment = async (req: Request, res: Response) => {
       userId: (req as any).user?.id,
       targetUserId: userId,
       areaId,
-      pincodeId
+      pincodeId,
     });
 
     res.json({
@@ -671,10 +669,9 @@ export const addSinglePincodeAssignment = async (req: Request, res: Response) =>
     }
 
     // Verify user exists and is a field agent
-    const userResult = await query(
-      'SELECT id, name, username, role FROM users WHERE id = $1',
-      [userId]
-    );
+    const userResult = await query('SELECT id, name, username, role FROM users WHERE id = $1', [
+      userId,
+    ]);
 
     if (userResult.rows.length === 0) {
       return res.status(404).json({
@@ -694,10 +691,7 @@ export const addSinglePincodeAssignment = async (req: Request, res: Response) =>
     }
 
     // Verify pincode exists
-    const pincodeCheck = await query(
-      'SELECT id, code FROM pincodes WHERE id = $1',
-      [pincodeId]
-    );
+    const pincodeCheck = await query('SELECT id, code FROM pincodes WHERE id = $1', [pincodeId]);
 
     if (pincodeCheck.rows.length === 0) {
       return res.status(400).json({
@@ -723,10 +717,7 @@ export const addSinglePincodeAssignment = async (req: Request, res: Response) =>
 
     // Verify all area IDs exist (if provided)
     if (areaIds.length > 0) {
-      const areaCheck = await query(
-        'SELECT id FROM areas WHERE id = ANY($1)',
-        [areaIds]
-      );
+      const areaCheck = await query('SELECT id FROM areas WHERE id = ANY($1)', [areaIds]);
 
       if (areaCheck.rows.length !== areaIds.length) {
         const foundIds = areaCheck.rows.map(row => row.id);
@@ -776,7 +767,7 @@ export const addSinglePincodeAssignment = async (req: Request, res: Response) =>
         pincodeId,
         pincodeCode: pincodeCheck.rows[0].code,
         assignedAreasCount,
-        areaIds
+        areaIds,
       });
 
       res.json({
@@ -786,17 +777,15 @@ export const addSinglePincodeAssignment = async (req: Request, res: Response) =>
           pincodeId,
           pincodeCode: pincodeCheck.rows[0].code,
           assignedAreas: assignedAreasCount,
-          userName: user.name
+          userName: user.name,
         },
         message: `Successfully assigned pincode ${pincodeCheck.rows[0].code} with ${assignedAreasCount} areas`,
       });
-
     } catch (transactionError) {
       // Rollback transaction on error
       await query('ROLLBACK');
       throw transactionError;
     }
-
   } catch (error) {
     logger.error('Error adding single pincode assignment:', error);
     res.status(500).json({
@@ -813,10 +802,9 @@ export const removeAllTerritoryAssignments = async (req: Request, res: Response)
     const { userId } = req.params;
 
     // Verify user exists and is a field agent
-    const userResult = await query(
-      'SELECT id, name, username, role FROM users WHERE id = $1',
-      [userId]
-    );
+    const userResult = await query('SELECT id, name, username, role FROM users WHERE id = $1', [
+      userId,
+    ]);
 
     if (userResult.rows.length === 0) {
       return res.status(404).json({
@@ -881,7 +869,7 @@ export const removeAllTerritoryAssignments = async (req: Request, res: Response)
         removedPincodes,
         removedAreas,
         previousPincodeCount: currentCounts.pincode_count,
-        previousAreaCount: currentCounts.area_count
+        previousAreaCount: currentCounts.area_count,
       });
 
       res.json({
@@ -890,17 +878,15 @@ export const removeAllTerritoryAssignments = async (req: Request, res: Response)
           userId,
           removedPincodes,
           removedAreas,
-          userName: user.name
+          userName: user.name,
         },
         message: `Successfully removed all territory assignments for ${user.name}`,
       });
-
     } catch (transactionError) {
       // Rollback transaction on error
       await query('ROLLBACK');
       throw transactionError;
     }
-
   } catch (error) {
     logger.error('Error removing all territory assignments:', error);
     res.status(500).json({

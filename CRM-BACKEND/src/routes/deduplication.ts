@@ -4,7 +4,7 @@ import {
   searchDuplicates,
   recordDeduplicationDecision,
   getDeduplicationHistory,
-  getDuplicateClusters
+  getDuplicateClusters,
 } from '@/controllers/deduplicationController';
 
 const router = Router();

@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+import type { Request, Response, NextFunction } from 'express';
 import { EnterpriseCacheService, CacheKeys } from '../services/enterpriseCacheService';
 import { logger } from '../config/logger';
 import crypto from 'crypto';
@@ -28,7 +28,7 @@ export class EnterpriseCache {
         }
 
         // Generate cache key
-        const cacheKey = config.keyGenerator 
+        const cacheKey = config.keyGenerator
           ? config.keyGenerator(req)
           : this.defaultKeyGenerator(req, config.varyBy);
 
@@ -43,12 +43,12 @@ export class EnterpriseCache {
         if (cached) {
           // Serve from cache
           logger.debug('Cache hit', { key: cacheKey, age: Date.now() - cached.timestamp });
-          
+
           // Set cached headers
           Object.entries(cached.headers).forEach(([key, value]) => {
             res.set(key, value);
           });
-          
+
           // Add cache headers
           res.set({
             'X-Cache': 'HIT',
@@ -66,18 +66,18 @@ export class EnterpriseCache {
         let responseData: any;
 
         // Override status method
-        res.status = function(code: number) {
+        res.status = function (code: number) {
           statusCode = code;
           return originalStatus.call(this, code);
         };
 
         // Override json method to cache response
-        res.json = function(data: any) {
+        res.json = function (data: any) {
           responseData = data;
 
           // Check if we should cache this response
           const shouldCache = !config.condition || config.condition(req, res);
-          
+
           if (shouldCache && statusCode >= 200 && statusCode < 300) {
             // Cache successful responses
             const cacheData = {
@@ -87,8 +87,9 @@ export class EnterpriseCache {
               timestamp: Date.now(),
             };
 
-            EnterpriseCacheService.set(cacheKey, cacheData, config.ttl)
-              .catch(error => logger.error('Cache set error:', error));
+            EnterpriseCacheService.set(cacheKey, cacheData, config.ttl).catch(error =>
+              logger.error('Cache set error:', error)
+            );
 
             logger.debug('Response cached', { key: cacheKey, ttl: config.ttl });
           }
@@ -118,18 +119,18 @@ export class EnterpriseCache {
     const method = req.method;
     const path = req.path;
     const query = JSON.stringify(req.query);
-    
-    let keyParts = [method, path, query];
-    
+
+    const keyParts = [method, path, query];
+
     // Add vary headers to key
     if (varyBy) {
       const varyValues = varyBy.map(header => req.get(header) || '').join(':');
       keyParts.push(varyValues);
     }
-    
+
     const baseKey = keyParts.join(':');
     const hash = crypto.createHash('md5').update(baseKey).digest('hex');
-    
+
     return `api_cache:${userId}:${hash}`;
   }
 
@@ -140,11 +141,11 @@ export class EnterpriseCache {
     return async (req: Request, res: Response, next: NextFunction) => {
       // Store original end method
       const originalEnd = res.end;
-      
-      res.end = function(chunk?: any, encoding?: any) {
+
+      res.end = function (chunk?: any, encoding?: any) {
         // Call original end method
         const result = originalEnd.call(this, chunk, encoding);
-        
+
         // Invalidate cache patterns after response is sent
         if (res.statusCode >= 200 && res.statusCode < 300) {
           setImmediate(async () => {
@@ -159,10 +160,10 @@ export class EnterpriseCache {
             }
           });
         }
-        
+
         return result;
       };
-      
+
       next();
     };
   }
@@ -180,14 +181,16 @@ export class EnterpriseCache {
   /**
    * Conditional caching based on request/response characteristics
    */
-  static conditional(configs: Array<{ condition: (req: Request) => boolean; config: CacheConfig }>) {
+  static conditional(
+    configs: Array<{ condition: (req: Request) => boolean; config: CacheConfig }>
+  ) {
     return (req: Request, res: Response, next: NextFunction) => {
       const matchedConfig = configs.find(({ condition }) => condition(req));
-      
+
       if (matchedConfig) {
         return this.create(matchedConfig.config)(req, res, next);
       }
-      
+
       next();
     };
   }
@@ -195,13 +198,15 @@ export class EnterpriseCache {
   /**
    * Cache warming - preload frequently accessed data
    */
-  static async warmCache(warmingTasks: Array<{
-    key: string;
-    fetcher: () => Promise<any>;
-    ttl: number;
-  }>): Promise<void> {
+  static async warmCache(
+    warmingTasks: Array<{
+      key: string;
+      fetcher: () => Promise<any>;
+      ttl: number;
+    }>
+  ): Promise<void> {
     logger.info('Starting cache warming', { tasks: warmingTasks.length });
-    
+
     const promises = warmingTasks.map(async ({ key, fetcher, ttl }) => {
       try {
         const data = await fetcher();
@@ -211,7 +216,7 @@ export class EnterpriseCache {
         logger.error('Cache warming failed', { key, error });
       }
     });
-    
+
     await Promise.allSettled(promises);
     logger.info('Cache warming completed');
   }
@@ -227,13 +232,13 @@ export class EnterpriseCache {
   }> {
     try {
       const stats = await EnterpriseCacheService.getStats();
-      
+
       // Extract cache statistics (simplified)
       const keyspaceHits = stats.keyspace?.keyspace_hits || 0;
       const keyspaceMisses = stats.keyspace?.keyspace_misses || 0;
       const totalRequests = keyspaceHits + keyspaceMisses;
       const hitRate = totalRequests > 0 ? keyspaceHits / totalRequests : 0;
-      
+
       return {
         hitRate,
         totalRequests,
@@ -344,17 +349,9 @@ export const EnterpriseCacheConfigs = {
 
 // Cache invalidation patterns
 export const CacheInvalidationPatterns = {
-  caseUpdate: [
-    'api_cache:*:*cases*',
-    'analytics:*',
-    CacheKeys.fieldAgentWorkload(),
-  ],
+  caseUpdate: ['api_cache:*:*cases*', 'analytics:*', CacheKeys.fieldAgentWorkload()],
 
-  userUpdate: [
-    'api_cache:{userId}:*',
-    CacheKeys.user('{userId}'),
-    'users:*',
-  ],
+  userUpdate: ['api_cache:{userId}:*', CacheKeys.user('{userId}'), 'users:*'],
 
   assignmentUpdate: [
     'api_cache:*:*cases*',
@@ -363,23 +360,11 @@ export const CacheInvalidationPatterns = {
     CacheKeys.mobileSync('{userId}'),
   ],
 
-  clientUpdate: [
-    'clients:*',
-    'api_cache:*:*clients*',
-  ],
+  clientUpdate: ['clients:*', 'api_cache:*:*clients*'],
 
-  verificationTypeUpdate: [
-    'verification-types:*',
-    'api_cache:*:*verification-types*',
-  ],
+  verificationTypeUpdate: ['verification-types:*', 'api_cache:*:*verification-types*'],
 
-  productUpdate: [
-    'products:*',
-    'api_cache:*:*products*',
-  ],
+  productUpdate: ['products:*', 'api_cache:*:*products*'],
 
-  rateTypeUpdate: [
-    'rate-types:*',
-    'api_cache:*:*rate-types*',
-  ],
+  rateTypeUpdate: ['rate-types:*', 'api_cache:*:*rate-types*'],
 };

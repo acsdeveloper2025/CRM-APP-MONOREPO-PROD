@@ -1,11 +1,12 @@
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs/promises';
 import sharp from 'sharp';
 import { v4 as uuidv4 } from 'uuid';
 import crypto from 'crypto';
-import { MobileFileUploadRequest, MobileAttachmentResponse } from '../types/mobile';
+import type { MobileAttachmentResponse } from '../types/mobile';
+import { MobileFileUploadRequest } from '../types/mobile';
 import { createAuditLog } from '../utils/auditLogger';
 import { config } from '../config';
 import { query } from '@/config/database';
@@ -18,7 +19,10 @@ function getApiBaseUrl(req: Request): string {
   const protocol = req.get('x-forwarded-proto') || (req.secure ? 'https' : 'http');
 
   // Check if request is coming from domain
-  if (host && (host.includes('example.com') || host.includes('www.example.com'))) {
+  if (
+    host &&
+    (host.includes('example.com') || host.includes('www.example.com'))
+  ) {
     return 'https://example.com/api';
   }
 
@@ -37,7 +41,9 @@ function getApiBaseUrl(req: Request): string {
  * @param filePath - Absolute path to the attachment file
  * @returns Object containing base64 data and SHA-256 checksum
  */
-async function generateBase64WithChecksum(filePath: string): Promise<{ base64Data: string; checksum: string }> {
+async function generateBase64WithChecksum(
+  filePath: string
+): Promise<{ base64Data: string; checksum: string }> {
   try {
     // Read file as buffer
     const fileBuffer = await fs.readFile(filePath);
@@ -74,11 +80,8 @@ const storage = multer.diskStorage({
 });
 
 const fileFilter = (req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
-  const allowedTypes = [
-    ...config.mobile.allowedImageTypes,
-    ...config.mobile.allowedDocumentTypes,
-  ];
-  
+  const allowedTypes = [...config.mobile.allowedImageTypes, ...config.mobile.allowedDocumentTypes];
+
   if (allowedTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
@@ -174,13 +177,16 @@ export class MobileAttachmentController {
       const actualCaseId = existingCase.id; // Use the actual UUID from the database
 
       // Check file count limit
-      const countRes = await query(`SELECT COUNT(*)::int as count FROM attachments WHERE case_id = $1`, [actualCaseId]);
+      const countRes = await query(
+        `SELECT COUNT(*)::int as count FROM attachments WHERE case_id = $1`,
+        [actualCaseId]
+      );
       const existingAttachmentCount = Number(countRes.rows[0]?.count || 0);
 
       if (existingAttachmentCount + files.length > config.mobile.maxFilesPerCase) {
         // Clean up uploaded files
         await Promise.all(files.map(file => fs.unlink(file.path).catch(() => {})));
-        
+
         return res.status(400).json({
           success: false,
           message: `Maximum ${config.mobile.maxFilesPerCase} files allowed per case`,
@@ -205,9 +211,9 @@ export class MobileAttachmentController {
               'thumbnails',
               `thumb_${path.basename(file.path)}`
             );
-            
+
             await fs.mkdir(path.dirname(thumbnailPath), { recursive: true });
-            
+
             await sharp(file.path)
               .resize(config.mobile.thumbnailSize, config.mobile.thumbnailSize, {
                 fit: 'inside',
@@ -215,7 +221,7 @@ export class MobileAttachmentController {
               })
               .jpeg({ quality: 80 })
               .toFile(thumbnailPath);
-            
+
             thumbnailUrl = `/uploads/mobile/thumbnails/thumb_${path.basename(file.path)}`;
           }
 
@@ -280,7 +286,7 @@ export class MobileAttachmentController {
       });
     } catch (error) {
       console.error('Mobile file upload error:', error);
-      
+
       // Clean up uploaded files on error
       if (req.files) {
         const files = req.files as Express.Multer.File[];
@@ -387,7 +393,9 @@ export class MobileAttachmentController {
 
       const attRes = await query(attachmentQuery, attachmentParams);
 
-      console.log(`📎 Mobile Get Attachments - Case: ${caseId}, User: ${userId}, Role: ${userRole}, TaskId: ${userTaskId}, Found: ${attRes.rows.length} attachments`);
+      console.log(
+        `📎 Mobile Get Attachments - Case: ${caseId}, User: ${userId}, Role: ${userRole}, TaskId: ${userTaskId}, Found: ${attRes.rows.length} attachments`
+      );
       console.log(`📋 Query used:`, attachmentQuery);
       console.log(`📋 Query params:`, attachmentParams);
       console.log(`📋 Results:`, attRes.rows);
@@ -415,7 +423,9 @@ export class MobileAttachmentController {
         if (includeAttachmentData) {
           try {
             // Construct file path
-            const dbFilePath = att.filePath.startsWith('/') ? att.filePath.substring(1) : att.filePath;
+            const dbFilePath = att.filePath.startsWith('/')
+              ? att.filePath.substring(1)
+              : att.filePath;
             const filePath = path.join(process.cwd(), dbFilePath);
 
             // Generate base64 data with checksum
@@ -424,7 +434,9 @@ export class MobileAttachmentController {
             attachmentResponse.base64Data = base64Data;
             attachmentResponse.checksum = checksum;
 
-            console.log(`📦 Included base64 data for attachment ${att.id} (${att.originalName}), size: ${base64Data.length} chars`);
+            console.log(
+              `📦 Included base64 data for attachment ${att.id} (${att.originalName}), size: ${base64Data.length} chars`
+            );
           } catch (error) {
             console.error(`⚠️ Failed to generate base64 for attachment ${att.id}:`, error);
             // Continue without base64 data - client can fetch it later if needed
@@ -434,7 +446,9 @@ export class MobileAttachmentController {
         mobileAttachments.push(attachmentResponse);
       }
 
-      console.log(`✅ Returning ${mobileAttachments.length} attachments to mobile app${includeAttachmentData ? ' (with base64 data)' : ''}`);
+      console.log(
+        `✅ Returning ${mobileAttachments.length} attachments to mobile app${includeAttachmentData ? ' (with base64 data)' : ''}`
+      );
 
       res.json({
         success: true,
@@ -502,7 +516,10 @@ export class MobileAttachmentController {
       if (!attachment) {
         return res.status(404).json({
           success: false,
-          message: userRole === 'FIELD_AGENT' ? 'Attachment not found or access denied' : 'Attachment not found',
+          message:
+            userRole === 'FIELD_AGENT'
+              ? 'Attachment not found or access denied'
+              : 'Attachment not found',
           error: {
             code: 'ATTACHMENT_NOT_FOUND',
             timestamp: new Date().toISOString(),
@@ -511,7 +528,9 @@ export class MobileAttachmentController {
       }
 
       // Use the filePath from database, removing leading slash if present
-      const dbFilePath = attachment.filePath.startsWith('/') ? attachment.filePath.substring(1) : attachment.filePath;
+      const dbFilePath = attachment.filePath.startsWith('/')
+        ? attachment.filePath.substring(1)
+        : attachment.filePath;
       const filePath = path.join(process.cwd(), dbFilePath);
 
       try {
@@ -608,7 +627,10 @@ export class MobileAttachmentController {
       if (!attachment) {
         return res.status(404).json({
           success: false,
-          message: userRole === 'FIELD_AGENT' ? 'Attachment not found or access denied' : 'Attachment not found',
+          message:
+            userRole === 'FIELD_AGENT'
+              ? 'Attachment not found or access denied'
+              : 'Attachment not found',
           error: {
             code: 'ATTACHMENT_NOT_FOUND',
             timestamp: new Date().toISOString(),
@@ -814,7 +836,9 @@ export class MobileAttachmentController {
       console.log('📦 Batch attachments results:', {
         requestedCases: caseIds.length,
         totalAttachments: attachmentsResult.rows.length,
-        casesWithAttachments: Object.keys(attachmentsByCase).filter(caseId => attachmentsByCase[caseId].length > 0).length
+        casesWithAttachments: Object.keys(attachmentsByCase).filter(
+          caseId => attachmentsByCase[caseId].length > 0
+        ).length,
       });
 
       res.json({
@@ -825,8 +849,10 @@ export class MobileAttachmentController {
           summary: {
             totalCases: caseIds.length,
             totalAttachments: attachmentsResult.rows.length,
-            casesWithAttachments: Object.keys(attachmentsByCase).filter(caseId => attachmentsByCase[caseId].length > 0).length
-          }
+            casesWithAttachments: Object.keys(attachmentsByCase).filter(
+              caseId => attachmentsByCase[caseId].length > 0
+            ).length,
+          },
         },
       });
     } catch (error) {

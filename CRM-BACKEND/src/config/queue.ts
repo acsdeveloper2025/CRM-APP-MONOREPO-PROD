@@ -49,7 +49,6 @@ export const caseAssignmentQueue = new Queue('case-assignment', {
     removeOnComplete: 100, // Keep last 100 completed jobs for monitoring
     removeOnFail: 50, // Keep last 50 failed jobs for debugging
   },
-
 });
 
 // Queue events for monitoring

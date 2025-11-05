@@ -67,14 +67,13 @@ export class ExcelExportService {
         success: true,
         filePath,
         fileName,
-        fileSize: stats.size
+        fileSize: stats.size,
       };
-
     } catch (error) {
       logger.error('Error generating Excel report:', error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
   }
@@ -96,9 +95,13 @@ export class ExcelExportService {
     }
   }
 
-  private async fetchFormSubmissionsData(dateFrom?: string, dateTo?: string, filters?: any): Promise<any> {
-    let whereConditions = [];
-    let queryParams = [];
+  private async fetchFormSubmissionsData(
+    dateFrom?: string,
+    dateTo?: string,
+    filters?: any
+  ): Promise<any> {
+    const whereConditions = [];
+    const queryParams = [];
     let paramIndex = 1;
 
     if (dateFrom) {
@@ -182,7 +185,7 @@ export class ExcelExportService {
     const [submissionsResult, summaryResult, formTypeResult] = await Promise.all([
       pool.query(submissionsQuery, queryParams),
       pool.query(summaryQuery, queryParams),
-      pool.query(formTypeQuery, queryParams)
+      pool.query(formTypeQuery, queryParams),
     ]);
 
     return {
@@ -191,13 +194,17 @@ export class ExcelExportService {
       formTypeBreakdown: formTypeResult.rows,
       reportType: 'Form Submissions Report',
       generatedAt: new Date().toISOString(),
-      dateRange: { from: dateFrom, to: dateTo }
+      dateRange: { from: dateFrom, to: dateTo },
     };
   }
 
-  private async fetchAgentPerformanceData(dateFrom?: string, dateTo?: string, filters?: any): Promise<any> {
-    let whereConditions = [];
-    let queryParams = [];
+  private async fetchAgentPerformanceData(
+    dateFrom?: string,
+    dateTo?: string,
+    filters?: any
+  ): Promise<any> {
+    const whereConditions = [];
+    const queryParams = [];
     let paramIndex = 1;
 
     if (dateFrom) {
@@ -264,7 +271,7 @@ export class ExcelExportService {
 
     const [performanceResult, dailyResult] = await Promise.all([
       pool.query(performanceQuery, queryParams),
-      pool.query(dailyQuery, queryParams)
+      pool.query(dailyQuery, queryParams),
     ]);
 
     return {
@@ -272,13 +279,17 @@ export class ExcelExportService {
       dailyPerformance: dailyResult.rows,
       reportType: 'Agent Performance Report',
       generatedAt: new Date().toISOString(),
-      dateRange: { from: dateFrom, to: dateTo }
+      dateRange: { from: dateFrom, to: dateTo },
     };
   }
 
-  private async fetchCaseAnalyticsData(dateFrom?: string, dateTo?: string, filters?: any): Promise<any> {
-    let whereConditions = [];
-    let queryParams = [];
+  private async fetchCaseAnalyticsData(
+    dateFrom?: string,
+    dateTo?: string,
+    filters?: any
+  ): Promise<any> {
+    const whereConditions = [];
+    const queryParams = [];
     let paramIndex = 1;
 
     if (dateFrom) {
@@ -316,7 +327,7 @@ export class ExcelExportService {
 
     const [casesResult, summaryResult] = await Promise.all([
       pool.query(casesQuery, queryParams),
-      pool.query(summaryQuery, queryParams)
+      pool.query(summaryQuery, queryParams),
     ]);
 
     return {
@@ -324,13 +335,17 @@ export class ExcelExportService {
       summary: summaryResult.rows[0],
       reportType: 'Case Analytics Report',
       generatedAt: new Date().toISOString(),
-      dateRange: { from: dateFrom, to: dateTo }
+      dateRange: { from: dateFrom, to: dateTo },
     };
   }
 
-  private async fetchValidationStatusData(dateFrom?: string, dateTo?: string, filters?: any): Promise<any> {
-    let whereConditions = [];
-    let queryParams = [];
+  private async fetchValidationStatusData(
+    dateFrom?: string,
+    dateTo?: string,
+    filters?: any
+  ): Promise<any> {
+    const whereConditions = [];
+    const queryParams = [];
     let paramIndex = 1;
 
     if (dateFrom) {
@@ -369,11 +384,15 @@ export class ExcelExportService {
       validationData: result.rows,
       reportType: 'Form Validation Status Report',
       generatedAt: new Date().toISOString(),
-      dateRange: { from: dateFrom, to: dateTo }
+      dateRange: { from: dateFrom, to: dateTo },
     };
   }
 
-  private async createWorksheets(workbook: ExcelJS.Workbook, data: any, options: ExcelExportOptions): Promise<void> {
+  private async createWorksheets(
+    workbook: ExcelJS.Workbook,
+    data: any,
+    options: ExcelExportOptions
+  ): Promise<void> {
     switch (options.reportType) {
       case 'form-submissions':
         await this.createFormSubmissionsWorksheets(workbook, data, options);
@@ -390,7 +409,11 @@ export class ExcelExportService {
     }
   }
 
-  private async createFormSubmissionsWorksheets(workbook: ExcelJS.Workbook, data: any, options: ExcelExportOptions): Promise<void> {
+  private async createFormSubmissionsWorksheets(
+    workbook: ExcelJS.Workbook,
+    data: any,
+    options: ExcelExportOptions
+  ): Promise<void> {
     // Summary worksheet
     if (options.includeSummary !== false) {
       const summarySheet = workbook.addWorksheet('Summary');
@@ -399,12 +422,21 @@ export class ExcelExportService {
 
     // Main data worksheet
     const dataSheet = workbook.addWorksheet('Form Submissions');
-    
+
     // Headers
     const headers = [
-      'Form Type', 'Validation Status', 'Agent Name', 'Employee ID', 
-      'Case Number', 'Customer Name', 'Submission Score', 'Quality Score',
-      'Photos Count', 'Time Spent (min)', 'Network Quality', 'Submitted At'
+      'Form Type',
+      'Validation Status',
+      'Agent Name',
+      'Employee ID',
+      'Case Number',
+      'Customer Name',
+      'Submission Score',
+      'Quality Score',
+      'Photos Count',
+      'Time Spent (min)',
+      'Network Quality',
+      'Submitted At',
     ];
 
     dataSheet.addRow(headers);
@@ -424,7 +456,7 @@ export class ExcelExportService {
         submission.photos_count || 0,
         submission.time_spent_minutes || 'N/A',
         submission.network_quality || 'N/A',
-        new Date(submission.submitted_at).toLocaleDateString()
+        new Date(submission.submitted_at).toLocaleDateString(),
       ]);
     });
 
@@ -433,7 +465,7 @@ export class ExcelExportService {
     // Form type breakdown worksheet
     if (data.formTypeBreakdown && data.formTypeBreakdown.length > 0) {
       const breakdownSheet = workbook.addWorksheet('Form Type Breakdown');
-      
+
       const breakdownHeaders = ['Form Type', 'Validation Status', 'Count', 'Average Score'];
       breakdownSheet.addRow(breakdownHeaders);
       this.styleHeaderRow(breakdownSheet, 1);
@@ -443,7 +475,7 @@ export class ExcelExportService {
           item.form_type,
           item.validation_status,
           item.count,
-          item.avg_score ? parseFloat(item.avg_score).toFixed(2) : 'N/A'
+          item.avg_score ? parseFloat(item.avg_score).toFixed(2) : 'N/A',
         ]);
       });
 
@@ -451,23 +483,37 @@ export class ExcelExportService {
     }
   }
 
-  private async createAgentPerformanceWorksheets(workbook: ExcelJS.Workbook, data: any, options: ExcelExportOptions): Promise<void> {
+  private async createAgentPerformanceWorksheets(
+    workbook: ExcelJS.Workbook,
+    data: any,
+    options: ExcelExportOptions
+  ): Promise<void> {
     // Agent summary worksheet
     const summarySheet = workbook.addWorksheet('Agent Performance Summary');
-    
+
     const headers = [
-      'Agent Name', 'Employee ID', 'Department', 'Performance Rating',
-      'Active Days', 'Cases Assigned', 'Cases Completed', 'Completion Rate',
-      'Forms Submitted', 'Quality Score', 'Validation Rate', 'Total Distance (km)'
+      'Agent Name',
+      'Employee ID',
+      'Department',
+      'Performance Rating',
+      'Active Days',
+      'Cases Assigned',
+      'Cases Completed',
+      'Completion Rate',
+      'Forms Submitted',
+      'Quality Score',
+      'Validation Rate',
+      'Total Distance (km)',
     ];
 
     summarySheet.addRow(headers);
     this.styleHeaderRow(summarySheet, 1);
 
     data.agents.forEach((agent: any) => {
-      const completionRate = agent.total_cases_assigned > 0 
-        ? ((agent.cases_completed / agent.total_cases_assigned) * 100).toFixed(1) + '%'
-        : 'N/A';
+      const completionRate =
+        agent.total_cases_assigned > 0
+          ? `${((agent.cases_completed / agent.total_cases_assigned) * 100).toFixed(1)}%`
+          : 'N/A';
 
       summarySheet.addRow([
         agent.name,
@@ -480,8 +526,8 @@ export class ExcelExportService {
         completionRate,
         agent.total_forms_submitted,
         agent.avg_quality_score ? parseFloat(agent.avg_quality_score).toFixed(1) : 'N/A',
-        agent.avg_validation_rate ? parseFloat(agent.avg_validation_rate).toFixed(1) + '%' : 'N/A',
-        agent.total_distance ? parseFloat(agent.total_distance).toFixed(1) : 'N/A'
+        agent.avg_validation_rate ? `${parseFloat(agent.avg_validation_rate).toFixed(1)}%` : 'N/A',
+        agent.total_distance ? parseFloat(agent.total_distance).toFixed(1) : 'N/A',
       ]);
     });
 
@@ -490,10 +536,18 @@ export class ExcelExportService {
     // Daily performance worksheet
     if (data.dailyPerformance && data.dailyPerformance.length > 0) {
       const dailySheet = workbook.addWorksheet('Daily Performance');
-      
+
       const dailyHeaders = [
-        'Date', 'Agent Name', 'Employee ID', 'Cases Assigned', 'Cases Completed',
-        'Forms Submitted', 'Quality Score', 'Validation Rate', 'Active Hours', 'Distance (km)'
+        'Date',
+        'Agent Name',
+        'Employee ID',
+        'Cases Assigned',
+        'Cases Completed',
+        'Forms Submitted',
+        'Quality Score',
+        'Validation Rate',
+        'Active Hours',
+        'Distance (km)',
       ];
 
       dailySheet.addRow(dailyHeaders);
@@ -508,9 +562,11 @@ export class ExcelExportService {
           daily.cases_completed || 0,
           daily.forms_submitted || 0,
           daily.quality_score ? parseFloat(daily.quality_score).toFixed(1) : 'N/A',
-          daily.validation_success_rate ? parseFloat(daily.validation_success_rate).toFixed(1) + '%' : 'N/A',
+          daily.validation_success_rate
+            ? `${parseFloat(daily.validation_success_rate).toFixed(1)}%`
+            : 'N/A',
           daily.active_hours ? parseFloat(daily.active_hours).toFixed(1) : 'N/A',
-          daily.total_distance_km ? parseFloat(daily.total_distance_km).toFixed(1) : 'N/A'
+          daily.total_distance_km ? parseFloat(daily.total_distance_km).toFixed(1) : 'N/A',
         ]);
       });
 
@@ -518,7 +574,11 @@ export class ExcelExportService {
     }
   }
 
-  private async createCaseAnalyticsWorksheets(workbook: ExcelJS.Workbook, data: any, options: ExcelExportOptions): Promise<void> {
+  private async createCaseAnalyticsWorksheets(
+    workbook: ExcelJS.Workbook,
+    data: any,
+    options: ExcelExportOptions
+  ): Promise<void> {
     // Summary worksheet
     if (options.includeSummary !== false) {
       const summarySheet = workbook.addWorksheet('Summary');
@@ -527,11 +587,22 @@ export class ExcelExportService {
 
     // Cases worksheet
     const casesSheet = workbook.addWorksheet('Cases');
-    
+
     const headers = [
-      'Case ID', 'Customer Name', 'Agent Name', 'Client', 'Status', 'Priority',
-      'Completion Days', 'Quality Score', 'Form Completion %', 'Forms Submitted',
-      'Valid Forms', 'Attachments', 'Created At', 'Updated At'
+      'Case ID',
+      'Customer Name',
+      'Agent Name',
+      'Client',
+      'Status',
+      'Priority',
+      'Completion Days',
+      'Quality Score',
+      'Form Completion %',
+      'Forms Submitted',
+      'Valid Forms',
+      'Attachments',
+      'Created At',
+      'Updated At',
     ];
 
     casesSheet.addRow(headers);
@@ -552,19 +623,28 @@ export class ExcelExportService {
         caseItem.valid_forms || 0,
         caseItem.attachment_count || 0,
         new Date(caseItem.createdAt).toLocaleDateString(),
-        new Date(caseItem.updatedAt).toLocaleDateString()
+        new Date(caseItem.updatedAt).toLocaleDateString(),
       ]);
     });
 
     this.autoFitColumns(casesSheet);
   }
 
-  private async createValidationStatusWorksheets(workbook: ExcelJS.Workbook, data: any, options: ExcelExportOptions): Promise<void> {
+  private async createValidationStatusWorksheets(
+    workbook: ExcelJS.Workbook,
+    data: any,
+    options: ExcelExportOptions
+  ): Promise<void> {
     const validationSheet = workbook.addWorksheet('Validation Status');
-    
+
     const headers = [
-      'Form Type', 'Validation Status', 'Form Count', 'Avg Submission Score',
-      'Avg Quality Score', 'Avg Completeness', 'Avg Accuracy'
+      'Form Type',
+      'Validation Status',
+      'Form Count',
+      'Avg Submission Score',
+      'Avg Quality Score',
+      'Avg Completeness',
+      'Avg Accuracy',
     ];
 
     validationSheet.addRow(headers);
@@ -578,7 +658,7 @@ export class ExcelExportService {
         item.avg_submission_score ? parseFloat(item.avg_submission_score).toFixed(2) : 'N/A',
         item.avg_quality_score ? parseFloat(item.avg_quality_score).toFixed(2) : 'N/A',
         item.avg_completeness ? parseFloat(item.avg_completeness).toFixed(2) : 'N/A',
-        item.avg_accuracy ? parseFloat(item.avg_accuracy).toFixed(2) : 'N/A'
+        item.avg_accuracy ? parseFloat(item.avg_accuracy).toFixed(2) : 'N/A',
       ]);
     });
 
@@ -595,11 +675,11 @@ export class ExcelExportService {
     Object.entries(summary).forEach(([key, value]) => {
       const displayKey = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
       let displayValue = value;
-      
+
       if (typeof value === 'number' && !Number.isInteger(value)) {
         displayValue = value.toFixed(2);
       }
-      
+
       worksheet.addRow([displayKey, displayValue]);
     });
 
@@ -612,20 +692,20 @@ export class ExcelExportService {
     headerRow.fill = {
       type: 'pattern',
       pattern: 'solid',
-      fgColor: { argb: '007bff' }
+      fgColor: { argb: '007bff' },
     };
     headerRow.border = {
       top: { style: 'thin' },
       left: { style: 'thin' },
       bottom: { style: 'thin' },
-      right: { style: 'thin' }
+      right: { style: 'thin' },
     };
   }
 
   private autoFitColumns(worksheet: ExcelJS.Worksheet): void {
-    worksheet.columns.forEach((column) => {
+    worksheet.columns.forEach(column => {
       if (column.values) {
-        const lengths = column.values.map(v => v ? v.toString().length : 0);
+        const lengths = column.values.map(v => (v ? v.toString().length : 0));
         const maxLength = Math.max(...lengths.filter(v => typeof v === 'number'));
         column.width = Math.min(Math.max(maxLength + 2, 10), 50);
       }

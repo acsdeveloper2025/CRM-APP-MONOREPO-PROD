@@ -119,12 +119,15 @@ export class CacheWarmingService {
       const roles = ['FIELD_AGENT', 'MANAGER', 'ADMIN', 'SUPER_ADMIN'];
 
       for (const role of roles) {
-        const result = await pool.query(`
+        const result = await pool.query(
+          `
           SELECT id, username, email, role, name, phone, "isActive"
           FROM users
           WHERE role = $1 AND "isActive" = true
           ORDER BY username ASC
-        `, [role]);
+        `,
+          [role]
+        );
 
         await EnterpriseCacheService.set(`users:list:${role}`, result.rows, 600); // 10 minutes
         logger.debug(`✓ Warmed users cache for ${role}: ${result.rows.length} users`);
@@ -180,7 +183,9 @@ export class CacheWarmingService {
       `);
 
       await EnterpriseCacheService.set('cases:recent:in-progress', inProgressResult.rows, 300); // 5 minutes
-      logger.debug(`✓ Warmed recent in-progress cases cache: ${inProgressResult.rows.length} cases`);
+      logger.debug(
+        `✓ Warmed recent in-progress cases cache: ${inProgressResult.rows.length} cases`
+      );
     } catch (error) {
       logger.error('Failed to warm recent cases cache:', error);
     }
@@ -200,10 +205,13 @@ export class CacheWarmingService {
         GROUP BY status
       `);
 
-      const stats = statsResult.rows.reduce((acc, row) => {
-        acc[row.status] = parseInt(row.count);
-        return acc;
-      }, {} as Record<string, number>);
+      const stats = statsResult.rows.reduce(
+        (acc, row) => {
+          acc[row.status] = parseInt(row.count);
+          return acc;
+        },
+        {} as Record<string, number>
+      );
 
       await EnterpriseCacheService.set('analytics:case-stats', stats, 900); // 15 minutes
       logger.debug(`✓ Warmed case stats cache`);
@@ -274,4 +282,3 @@ export class CacheWarmingService {
     }
   }
 }
-

@@ -1,6 +1,7 @@
-import { Request, Response } from 'express';
+import type { Response } from 'express';
+import { Request } from 'express';
 import { logger } from '@/config/logger';
-import { AuthenticatedRequest } from '@/middleware/auth';
+import type { AuthenticatedRequest } from '@/middleware/auth';
 import { query } from '@/config/database';
 
 // Database-driven pincodes controller - no more mock data
@@ -19,7 +20,7 @@ export const getPincodes = async (req: AuthenticatedRequest, res: Response) => {
       isActive,
       search,
       sortBy = 'code',
-      sortOrder = 'asc'
+      sortOrder = 'asc',
     } = req.query;
 
     // Build SQL query with joins to get pincode data and associated areas
@@ -156,7 +157,7 @@ export const getPincodes = async (req: AuthenticatedRequest, res: Response) => {
     logger.info(`Retrieved ${result.rows.length} pincodes`, {
       userId: req.user?.id,
       filters: { cityId, state, district, region, search },
-      pagination: { page: pageNum, limit: limitNum }
+      pagination: { page: pageNum, limit: limitNum },
     });
 
     res.json({
@@ -165,10 +166,12 @@ export const getPincodes = async (req: AuthenticatedRequest, res: Response) => {
         ...pincode,
         id: pincode.id.toString(),
         cityId: pincode.cityId ? pincode.cityId.toString() : null,
-        areas: Array.isArray(pincode.areas) ? pincode.areas.map((area: any) => ({
-          ...area,
-          id: area.id ? area.id.toString() : null
-        })) : []
+        areas: Array.isArray(pincode.areas)
+          ? pincode.areas.map((area: any) => ({
+              ...area,
+              id: area.id ? area.id.toString() : null,
+            }))
+          : [],
       })),
       pagination: {
         page: pageNum,
@@ -258,10 +261,8 @@ export const createPincode = async (req: AuthenticatedRequest, res: Response) =>
       code,
       area, // For backward compatibility
       areas, // New multi-area support
-      cityId
+      cityId,
     } = req.body;
-
-
 
     if (!code || !cityId) {
       return res.status(400).json({
@@ -317,7 +318,6 @@ export const createPincode = async (req: AuthenticatedRequest, res: Response) =>
     // Check if pincode already exists
     const existingPincode = await query('SELECT id FROM pincodes WHERE code = $1', [code]);
     if (existingPincode.rows.length > 0) {
-
       return res.status(400).json({
         success: false,
         message: 'Pincode already exists',
@@ -377,7 +377,8 @@ export const createPincode = async (req: AuthenticatedRequest, res: Response) =>
     }
 
     // Get complete pincode data with areas and city information
-    const completeResult = await query(`
+    const completeResult = await query(
+      `
       SELECT
         p.id,
         p.code,
@@ -405,7 +406,9 @@ export const createPincode = async (req: AuthenticatedRequest, res: Response) =>
       LEFT JOIN areas a ON pa."areaId" = a.id
       WHERE p.id = $1
       GROUP BY p.id, p.code, p."cityId", c.name, s.name, co.name, p."createdAt", p."updatedAt"
-    `, [newPincode.id]);
+    `,
+      [newPincode.id]
+    );
 
     const responseData = completeResult.rows[0];
 
@@ -415,7 +418,7 @@ export const createPincode = async (req: AuthenticatedRequest, res: Response) =>
       requestedAreaIds: areaIds,
       savedAreas: responseData.areas,
       cityName: responseData.cityName,
-      areaCount: responseData.areas.length
+      areaCount: responseData.areas.length,
     });
 
     res.status(201).json({
@@ -440,10 +443,7 @@ export const updatePincode = async (req: AuthenticatedRequest, res: Response) =>
     const updateData = req.body;
 
     // Check if pincode exists
-    const existingResult = await query(
-      'SELECT * FROM pincodes WHERE id = $1',
-      [id]
-    );
+    const existingResult = await query('SELECT * FROM pincodes WHERE id = $1', [id]);
 
     if (existingResult.rows.length === 0) {
       return res.status(404).json({
@@ -455,10 +455,10 @@ export const updatePincode = async (req: AuthenticatedRequest, res: Response) =>
 
     // Check for duplicate code if being updated
     if (updateData.code) {
-      const duplicateResult = await query(
-        'SELECT id FROM pincodes WHERE id != $1 AND code = $2',
-        [id, updateData.code]
-      );
+      const duplicateResult = await query('SELECT id FROM pincodes WHERE id != $1 AND code = $2', [
+        id,
+        updateData.code,
+      ]);
 
       if (duplicateResult.rows.length > 0) {
         return res.status(400).json({
@@ -521,7 +521,7 @@ export const updatePincode = async (req: AuthenticatedRequest, res: Response) =>
 
     logger.info(`Updated pincode: ${id}`, {
       userId: req.user?.id,
-      changes: Object.keys(updateData)
+      changes: Object.keys(updateData),
     });
 
     res.json({
@@ -552,10 +552,7 @@ export const deletePincode = async (req: AuthenticatedRequest, res: Response) =>
     const { id } = req.params;
 
     // Check if pincode exists
-    const existingResult = await query(
-      'SELECT * FROM pincodes WHERE id = $1',
-      [id]
-    );
+    const existingResult = await query('SELECT * FROM pincodes WHERE id = $1', [id]);
 
     if (existingResult.rows.length === 0) {
       return res.status(404).json({
@@ -572,7 +569,7 @@ export const deletePincode = async (req: AuthenticatedRequest, res: Response) =>
 
     logger.info(`Deleted pincode: ${id}`, {
       userId: req.user?.id,
-      pincodeCode: pincodeToDelete.code
+      pincodeCode: pincodeToDelete.code,
     });
 
     res.json({
@@ -605,7 +602,8 @@ export const searchPincodes = async (req: AuthenticatedRequest, res: Response) =
     const searchTerm = `%${(q as string).toLowerCase()}%`;
     const limitNum = parseInt(limit as string, 10);
 
-    const result = await query(`
+    const result = await query(
+      `
       SELECT
         p.id,
         p.code,
@@ -627,7 +625,9 @@ export const searchPincodes = async (req: AuthenticatedRequest, res: Response) =
         LOWER(s.name) LIKE $1
       ORDER BY p.code
       LIMIT $2
-    `, [searchTerm, limitNum]);
+    `,
+      [searchTerm, limitNum]
+    );
 
     res.json({
       success: true,
@@ -644,7 +644,10 @@ export const searchPincodes = async (req: AuthenticatedRequest, res: Response) =
 };
 
 // POST /api/pincodes/bulk-import - Bulk import pincodes
-export const bulkImportPincodes = async (req: AuthenticatedRequest & { file?: Express.Multer.File }, res: Response) => {
+export const bulkImportPincodes = async (
+  req: AuthenticatedRequest & { file?: Express.Multer.File },
+  res: Response
+) => {
   try {
     if (!req.file) {
       return res.status(400).json({
@@ -686,29 +689,29 @@ export const bulkImportPincodes = async (req: AuthenticatedRequest & { file?: Ex
         // Helper function to get continent for a country
         const getContinent = (countryName: string): string => {
           const continentMap: { [key: string]: string } = {
-            'India': 'Asia',
-            'China': 'Asia',
-            'Japan': 'Asia',
-            'USA': 'North America',
+            India: 'Asia',
+            China: 'Asia',
+            Japan: 'Asia',
+            USA: 'North America',
             'United States': 'North America',
-            'UK': 'Europe',
+            UK: 'Europe',
             'United Kingdom': 'Europe',
-            'Germany': 'Europe',
-            'France': 'Europe',
-            'Australia': 'Oceania',
-            'Brazil': 'South America',
-            'Canada': 'North America',
-            'Mexico': 'North America',
+            Germany: 'Europe',
+            France: 'Europe',
+            Australia: 'Oceania',
+            Brazil: 'South America',
+            Canada: 'North America',
+            Mexico: 'North America',
             'South Africa': 'Africa',
-            'Egypt': 'Africa',
-            'Nigeria': 'Africa',
+            Egypt: 'Africa',
+            Nigeria: 'Africa',
           };
           return continentMap[countryName] || 'Asia'; // Default to Asia
         };
 
         // Find or create country
         const countryName = country || 'India';
-        let countryResult = await query(
+        const countryResult = await query(
           'SELECT id FROM countries WHERE LOWER(name) = LOWER($1)',
           [countryName]
         );
@@ -728,7 +731,7 @@ export const bulkImportPincodes = async (req: AuthenticatedRequest & { file?: Ex
         }
 
         // Find or create state
-        let stateResult = await query(
+        const stateResult = await query(
           'SELECT id FROM states WHERE LOWER(name) = LOWER($1) AND "countryId" = $2',
           [state, countryId]
         );
@@ -745,7 +748,7 @@ export const bulkImportPincodes = async (req: AuthenticatedRequest & { file?: Ex
         }
 
         // Find or create city
-        let cityResult = await query(
+        const cityResult = await query(
           'SELECT id FROM cities WHERE LOWER(name) = LOWER($1) AND "stateId" = $2',
           [cityName, stateId]
         );
@@ -762,35 +765,28 @@ export const bulkImportPincodes = async (req: AuthenticatedRequest & { file?: Ex
         }
 
         // Find or create area
-        let areaResult = await query(
-          'SELECT id FROM areas WHERE LOWER(name) = LOWER($1)',
-          [area]
-        );
+        const areaResult = await query('SELECT id FROM areas WHERE LOWER(name) = LOWER($1)', [
+          area,
+        ]);
 
         let areaId: number;
         if (areaResult.rows.length === 0) {
-          const newArea = await query(
-            'INSERT INTO areas (name) VALUES ($1) RETURNING id',
-            [area]
-          );
+          const newArea = await query('INSERT INTO areas (name) VALUES ($1) RETURNING id', [area]);
           areaId = newArea.rows[0].id;
         } else {
           areaId = areaResult.rows[0].id;
         }
 
         // Check if pincode already exists
-        const existingPincode = await query(
-          'SELECT id FROM pincodes WHERE code = $1',
-          [code]
-        );
+        const existingPincode = await query('SELECT id FROM pincodes WHERE code = $1', [code]);
 
         let pincodeId: number;
         if (existingPincode.rows.length > 0) {
           // Update existing pincode
-          await query(
-            `UPDATE pincodes SET "cityId" = $1, "updatedAt" = NOW() WHERE code = $2`,
-            [cityId, code]
-          );
+          await query(`UPDATE pincodes SET "cityId" = $1, "updatedAt" = NOW() WHERE code = $2`, [
+            cityId,
+            code,
+          ]);
           pincodeId = existingPincode.rows[0].id;
 
           // Check if area is already associated with this pincode
@@ -870,7 +866,8 @@ export const getPincodesByCity = async (req: AuthenticatedRequest, res: Response
 
     const limitNum = parseInt(limit as string, 10);
 
-    const result = await query(`
+    const result = await query(
+      `
       SELECT
         p.id,
         p.code,
@@ -900,11 +897,13 @@ export const getPincodesByCity = async (req: AuthenticatedRequest, res: Response
       GROUP BY p.id, c.name, s.name, co.name
       ORDER BY p.code
       LIMIT $2
-    `, [cityId, limitNum]);
+    `,
+      [cityId, limitNum]
+    );
 
     logger.info(`Retrieved ${result.rows.length} pincodes for city ${cityId}`, {
       userId: req.user?.id,
-      cityId
+      cityId,
     });
 
     res.json({
@@ -913,10 +912,12 @@ export const getPincodesByCity = async (req: AuthenticatedRequest, res: Response
         ...pincode,
         id: pincode.id.toString(), // Convert integer ID to string
         cityId: pincode.cityId ? pincode.cityId.toString() : null, // Convert integer cityId to string if exists
-        areas: Array.isArray(pincode.areas) ? pincode.areas.map((area: any) => ({
-          ...area,
-          id: area.id ? area.id.toString() : null
-        })) : []
+        areas: Array.isArray(pincode.areas)
+          ? pincode.areas.map((area: any) => ({
+              ...area,
+              id: area.id ? area.id.toString() : null,
+            }))
+          : [],
       })),
     });
   } catch (error) {
@@ -945,7 +946,8 @@ export const getPincodeAreas = async (req: AuthenticatedRequest, res: Response) 
     }
 
     // Get areas for this pincode
-    const areasResult = await query(`
+    const areasResult = await query(
+      `
       SELECT
         a.id,
         a.name,
@@ -954,12 +956,14 @@ export const getPincodeAreas = async (req: AuthenticatedRequest, res: Response) 
       JOIN areas a ON pa."areaId" = a.id
       WHERE pa."pincodeId" = $1
       ORDER BY pa."displayOrder"
-    `, [pincodeId]);
+    `,
+      [pincodeId]
+    );
 
     logger.info(`Retrieved ${areasResult.rows.length} areas for pincode ${pincodeId}`, {
       userId: req.user?.id,
       pincodeId,
-      areaCount: areasResult.rows.length
+      areaCount: areasResult.rows.length,
     });
 
     res.json({
@@ -1042,10 +1046,11 @@ export const addPincodeAreas = async (req: AuthenticatedRequest, res: Response) 
         insertedAreas.push({
           ...result.rows[0],
           id: areaCheck.rows[0].id,
-          name: areaCheck.rows[0].name
+          name: areaCheck.rows[0].name,
         });
       } catch (error: any) {
-        if (error.code === '23505') { // Unique constraint violation
+        if (error.code === '23505') {
+          // Unique constraint violation
           return res.status(400).json({
             success: false,
             message: `Area is already assigned to this pincode`,
@@ -1059,7 +1064,7 @@ export const addPincodeAreas = async (req: AuthenticatedRequest, res: Response) 
     logger.info(`Added ${insertedAreas.length} areas to pincode ${pincodeId}`, {
       userId: req.user?.id,
       pincodeId,
-      areas: insertedAreas.map(a => a.name)
+      areas: insertedAreas.map(a => a.name),
     });
 
     res.status(201).json({
@@ -1114,13 +1119,16 @@ export const removePincodeArea = async (req: AuthenticatedRequest, res: Response
     const areaName = areaCheck.rows[0].name;
 
     // Remove the area assignment
-    await query('DELETE FROM "pincodeAreas" WHERE "pincodeId" = $1 AND "areaId" = $2', [pincodeId, areaId]);
+    await query('DELETE FROM "pincodeAreas" WHERE "pincodeId" = $1 AND "areaId" = $2', [
+      pincodeId,
+      areaId,
+    ]);
 
     logger.info(`Removed area ${areaId} (${areaName}) from pincode ${pincodeId}`, {
       userId: req.user?.id,
       pincodeId,
       areaId,
-      areaName
+      areaName,
     });
 
     res.json({
@@ -1136,9 +1144,3 @@ export const removePincodeArea = async (req: AuthenticatedRequest, res: Response
     });
   }
 };
-
-
-
-
-
-

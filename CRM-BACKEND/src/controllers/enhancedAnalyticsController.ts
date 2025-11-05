@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import { pool } from '../config/database';
 import { logger } from '../utils/logger';
 
@@ -18,11 +18,11 @@ export const getEnhancedFormSubmissions = async (req: Request, res: Response) =>
       formType,
       validationStatus,
       agentId,
-      caseId
+      caseId,
     } = req.query;
 
-    let whereConditions = [];
-    let queryParams = [];
+    const whereConditions = [];
+    const queryParams = [];
     let paramIndex = 1;
 
     // Build dynamic WHERE clause
@@ -105,7 +105,7 @@ export const getEnhancedFormSubmissions = async (req: Request, res: Response) =>
 
     const [submissionsResult, summaryResult] = await Promise.all([
       pool.query(submissionsQuery, queryParams),
-      pool.query(summaryQuery, queryParams.slice(0, -2)) // Remove limit/offset for summary
+      pool.query(summaryQuery, queryParams.slice(0, -2)), // Remove limit/offset for summary
     ]);
 
     res.json({
@@ -116,17 +116,16 @@ export const getEnhancedFormSubmissions = async (req: Request, res: Response) =>
         pagination: {
           total: submissionsResult.rows[0]?.total_count || 0,
           limit: parseInt(limit as string),
-          offset: parseInt(offset as string)
-        }
-      }
+          offset: parseInt(offset as string),
+        },
+      },
     });
-
   } catch (error) {
     logger.error('Error in getEnhancedFormSubmissions:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to fetch enhanced form submissions',
-      error: process.env.NODE_ENV === 'development' ? error : undefined
+      error: process.env.NODE_ENV === 'development' ? error : undefined,
     });
   }
 };
@@ -134,16 +133,10 @@ export const getEnhancedFormSubmissions = async (req: Request, res: Response) =>
 // Enhanced Agent Performance Analytics
 export const getEnhancedAgentPerformance = async (req: Request, res: Response) => {
   try {
-    const {
-      dateFrom,
-      dateTo,
-      agentId,
-      departmentId,
-      includeDaily = false
-    } = req.query;
+    const { dateFrom, dateTo, agentId, departmentId, includeDaily = false } = req.query;
 
-    let whereConditions = [];
-    let queryParams = [];
+    const whereConditions = [];
+    const queryParams = [];
     let paramIndex = 1;
 
     // Build WHERE clause for daily performance data
@@ -245,7 +238,7 @@ export const getEnhancedAgentPerformance = async (req: Request, res: Response) =
 
     const [performanceResult, summaryResult] = await Promise.all([
       pool.query(performanceQuery, queryParams),
-      pool.query(summaryQuery, queryParams)
+      pool.query(summaryQuery, queryParams),
     ]);
 
     let dailyData = null;
@@ -267,11 +260,15 @@ export const getEnhancedAgentPerformance = async (req: Request, res: Response) =
         ORDER BY date DESC
         LIMIT 30
       `;
-      
+
       const dailyParams = [agentId];
-      if (dateFrom) dailyParams.push(dateFrom as string);
-      if (dateTo) dailyParams.push(dateTo as string);
-      
+      if (dateFrom) {
+        dailyParams.push(dateFrom as string);
+      }
+      if (dateTo) {
+        dailyParams.push(dateTo as string);
+      }
+
       const dailyResult = await pool.query(dailyQuery, dailyParams);
       dailyData = dailyResult.rows;
     }
@@ -303,16 +300,15 @@ export const getEnhancedAgentPerformance = async (req: Request, res: Response) =
         agents: performanceResult.rows,
         summary: summaryResult.rows[0],
         topPerformers: topPerformersResult.rows,
-        dailyData: dailyData
-      }
+        dailyData,
+      },
     });
-
   } catch (error) {
     logger.error('Error in getEnhancedAgentPerformance:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to fetch enhanced agent performance',
-      error: process.env.NODE_ENV === 'development' ? error : undefined
+      error: process.env.NODE_ENV === 'development' ? error : undefined,
     });
   }
 };
@@ -328,11 +324,11 @@ export const getEnhancedCaseAnalytics = async (req: Request, res: Response) => {
       status,
       agentId,
       clientId,
-      includeTimeline = false
+      includeTimeline = false,
     } = req.query;
 
-    let whereConditions = [];
-    let queryParams = [];
+    const whereConditions = [];
+    const queryParams = [];
     let paramIndex = 1;
 
     // Build WHERE clause
@@ -438,7 +434,7 @@ export const getEnhancedCaseAnalytics = async (req: Request, res: Response) => {
 
     const [casesResult, summaryResult] = await Promise.all([
       pool.query(casesQuery, queryParams),
-      pool.query(summaryQuery, queryParams.slice(0, -2))
+      pool.query(summaryQuery, queryParams.slice(0, -2)),
     ]);
 
     let timelineData = null;
@@ -458,7 +454,7 @@ export const getEnhancedCaseAnalytics = async (req: Request, res: Response) => {
         WHERE case_id = ANY($1)
         ORDER BY case_id, event_timestamp DESC
       `;
-      
+
       const timelineResult = await pool.query(timelineQuery, [caseIds]);
       timelineData = timelineResult.rows;
     }
@@ -472,17 +468,16 @@ export const getEnhancedCaseAnalytics = async (req: Request, res: Response) => {
         pagination: {
           total: casesResult.rows[0]?.total_count || 0,
           limit: parseInt(limit as string),
-          offset: parseInt(offset as string)
-        }
-      }
+          offset: parseInt(offset as string),
+        },
+      },
     });
-
   } catch (error) {
     logger.error('Error in getEnhancedCaseAnalytics:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to fetch enhanced case analytics',
-      error: process.env.NODE_ENV === 'development' ? error : undefined
+      error: process.env.NODE_ENV === 'development' ? error : undefined,
     });
   }
 };
@@ -490,15 +485,10 @@ export const getEnhancedCaseAnalytics = async (req: Request, res: Response) => {
 // Form Validation Analytics
 export const getFormValidationAnalytics = async (req: Request, res: Response) => {
   try {
-    const {
-      dateFrom,
-      dateTo,
-      formType,
-      agentId
-    } = req.query;
+    const { dateFrom, dateTo, formType, agentId } = req.query;
 
-    let whereConditions = [];
-    let queryParams = [];
+    const whereConditions = [];
+    const queryParams = [];
     let paramIndex = 1;
 
     if (dateFrom) {
@@ -576,23 +566,22 @@ export const getFormValidationAnalytics = async (req: Request, res: Response) =>
 
     const [validationResult, fieldValidationResult] = await Promise.all([
       pool.query(validationQuery, queryParams),
-      pool.query(fieldValidationQuery, queryParams)
+      pool.query(fieldValidationQuery, queryParams),
     ]);
 
     res.json({
       success: true,
       data: {
         validationByType: validationResult.rows,
-        fieldValidation: fieldValidationResult.rows
-      }
+        fieldValidation: fieldValidationResult.rows,
+      },
     });
-
   } catch (error) {
     logger.error('Error in getFormValidationAnalytics:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to fetch form validation analytics',
-      error: process.env.NODE_ENV === 'development' ? error : undefined
+      error: process.env.NODE_ENV === 'development' ? error : undefined,
     });
   }
 };

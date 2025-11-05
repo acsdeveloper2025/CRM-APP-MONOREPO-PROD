@@ -44,13 +44,12 @@ export class ScheduledReportsService {
     try {
       // Create scheduled_reports table if it doesn't exist
       await this.createScheduledReportsTable();
-      
+
       // Load and schedule existing reports
       await this.loadAndScheduleReports();
-      
+
       this.isInitialized = true;
       logger.info('Scheduled Reports Service initialized successfully');
-      
     } catch (error) {
       logger.error('Failed to initialize Scheduled Reports Service:', error);
       throw error;
@@ -91,7 +90,7 @@ export class ScheduledReportsService {
         WHERE is_active = true 
         ORDER BY created_at DESC
       `;
-      
+
       const result = await pool.query(query);
       const reports = result.rows;
 
@@ -100,16 +99,17 @@ export class ScheduledReportsService {
       }
 
       logger.info(`Loaded and scheduled ${reports.length} active reports`);
-      
     } catch (error) {
       logger.error('Error loading scheduled reports:', error);
     }
   }
 
-  public async createScheduledReport(report: Omit<ScheduledReport, 'id' | 'createdAt' | 'lastRun' | 'nextRun'>): Promise<ScheduledReport> {
+  public async createScheduledReport(
+    report: Omit<ScheduledReport, 'id' | 'createdAt' | 'lastRun' | 'nextRun'>
+  ): Promise<ScheduledReport> {
     try {
       const nextRun = this.calculateNextRun(report.frequency);
-      
+
       const query = `
         INSERT INTO scheduled_reports (
           name, report_type, format, frequency, recipients, filters, options, 
@@ -128,7 +128,7 @@ export class ScheduledReportsService {
         JSON.stringify(report.options || {}),
         report.isActive,
         report.createdBy,
-        nextRun
+        nextRun,
       ];
 
       const result = await pool.query(query, values);
@@ -145,19 +145,21 @@ export class ScheduledReportsService {
         createdReport.recipients,
         createdReport.reportType,
         createdReport.frequency,
-        createdReport.nextRun!
+        createdReport.nextRun
       );
 
       logger.info(`Created scheduled report: ${createdReport.name} (${createdReport.id})`);
       return createdReport;
-
     } catch (error) {
       logger.error('Error creating scheduled report:', error);
       throw error;
     }
   }
 
-  public async updateScheduledReport(id: string, updates: Partial<ScheduledReport>): Promise<ScheduledReport> {
+  public async updateScheduledReport(
+    id: string,
+    updates: Partial<ScheduledReport>
+  ): Promise<ScheduledReport> {
     try {
       // Build dynamic update query
       const updateFields = [];
@@ -174,7 +176,7 @@ export class ScheduledReportsService {
         updateFields.push(`frequency = $${paramIndex}`);
         values.push(updates.frequency);
         paramIndex++;
-        
+
         // Recalculate next run if frequency changed
         updateFields.push(`next_run = $${paramIndex}`);
         values.push(this.calculateNextRun(updates.frequency));
@@ -217,7 +219,7 @@ export class ScheduledReportsService {
       values.push(id);
 
       const result = await pool.query(query, values);
-      
+
       if (result.rows.length === 0) {
         throw new Error('Scheduled report not found');
       }
@@ -232,7 +234,6 @@ export class ScheduledReportsService {
 
       logger.info(`Updated scheduled report: ${updatedReport.name} (${updatedReport.id})`);
       return updatedReport;
-
     } catch (error) {
       logger.error('Error updating scheduled report:', error);
       throw error;
@@ -249,7 +250,6 @@ export class ScheduledReportsService {
       await pool.query(query, [id]);
 
       logger.info(`Deleted scheduled report: ${id}`);
-
     } catch (error) {
       logger.error('Error deleting scheduled report:', error);
       throw error;
@@ -270,7 +270,6 @@ export class ScheduledReportsService {
 
       const result = await pool.query(query, values);
       return result.rows.map(row => this.mapDbRowToScheduledReport(row));
-
     } catch (error) {
       logger.error('Error fetching scheduled reports:', error);
       throw error;
@@ -280,17 +279,22 @@ export class ScheduledReportsService {
   private async scheduleReport(report: ScheduledReport): Promise<void> {
     try {
       const cronExpression = this.getCronExpression(report.frequency);
-      
-      const task = cron.schedule(cronExpression, async () => {
-        await this.executeScheduledReport(report);
-      }, {
-        timezone: 'UTC'
-      });
+
+      const task = cron.schedule(
+        cronExpression,
+        async () => {
+          await this.executeScheduledReport(report);
+        },
+        {
+          timezone: 'UTC',
+        }
+      );
 
       this.scheduledJobs.set(report.id, task);
-      
-      logger.info(`Scheduled report: ${report.name} (${report.id}) with frequency: ${report.frequency}`);
 
+      logger.info(
+        `Scheduled report: ${report.name} (${report.id}) with frequency: ${report.frequency}`
+      );
     } catch (error) {
       logger.error(`Error scheduling report ${report.id}:`, error);
     }
@@ -322,7 +326,7 @@ export class ScheduledReportsService {
             dateFrom: dateRange.from,
             dateTo: dateRange.to,
             filters: report.filters,
-            ...report.options
+            ...report.options,
           });
           break;
 
@@ -333,7 +337,7 @@ export class ScheduledReportsService {
             dateFrom: dateRange.from,
             dateTo: dateRange.to,
             filters: report.filters,
-            ...report.options
+            ...report.options,
           });
           break;
 
@@ -344,7 +348,7 @@ export class ScheduledReportsService {
             dateFrom: dateRange.from,
             dateTo: dateRange.to,
             filters: report.filters,
-            ...report.options
+            ...report.options,
           });
           break;
 
@@ -358,14 +362,14 @@ export class ScheduledReportsService {
         const emailResult = await emailService.sendReportEmail(
           report.recipients,
           report.reportType,
-          result.filePath!
+          result.filePath
         );
 
         if (emailResult.success) {
           logger.info(`Scheduled report sent successfully: ${report.name}`);
         } else {
           logger.error(`Failed to send scheduled report: ${report.name}`, emailResult.error);
-          
+
           // Send error notification
           await emailService.sendReportErrorNotification(
             report.recipients,
@@ -381,10 +385,9 @@ export class ScheduledReportsService {
         } catch (cleanupError) {
           logger.warn('Failed to clean up report file:', cleanupError);
         }
-
       } else {
         logger.error(`Failed to generate scheduled report: ${report.name}`, result.error);
-        
+
         // Send error notification
         const emailService = EmailDeliveryService.getInstance();
         await emailService.sendReportErrorNotification(
@@ -396,10 +399,9 @@ export class ScheduledReportsService {
 
       // Update last run time and next run time
       await this.updateReportRunTimes(report.id);
-
     } catch (error) {
       logger.error(`Error executing scheduled report ${report.id}:`, error);
-      
+
       // Send error notification
       const emailService = EmailDeliveryService.getInstance();
       await emailService.sendReportErrorNotification(
@@ -423,13 +425,12 @@ export class ScheduledReportsService {
       // Get the report to calculate next run
       const reportQuery = 'SELECT frequency FROM scheduled_reports WHERE id = $1';
       const reportResult = await pool.query(reportQuery, [reportId]);
-      
+
       if (reportResult.rows.length > 0) {
         const frequency = reportResult.rows[0].frequency;
         const nextRun = this.calculateNextRun(frequency);
         await pool.query(query, [nextRun, reportId]);
       }
-
     } catch (error) {
       logger.error('Error updating report run times:', error);
     }
@@ -498,7 +499,7 @@ export class ScheduledReportsService {
 
     return {
       from: from.toISOString().split('T')[0],
-      to
+      to,
     };
   }
 
@@ -509,14 +510,16 @@ export class ScheduledReportsService {
       reportType: row.report_type,
       format: row.format,
       frequency: row.frequency,
-      recipients: Array.isArray(row.recipients) ? row.recipients : JSON.parse(row.recipients || '[]'),
+      recipients: Array.isArray(row.recipients)
+        ? row.recipients
+        : JSON.parse(row.recipients || '[]'),
       filters: typeof row.filters === 'object' ? row.filters : JSON.parse(row.filters || '{}'),
       options: typeof row.options === 'object' ? row.options : JSON.parse(row.options || '{}'),
       isActive: row.is_active,
       createdBy: row.created_by,
       createdAt: new Date(row.created_at),
       lastRun: row.last_run ? new Date(row.last_run) : undefined,
-      nextRun: row.next_run ? new Date(row.next_run) : undefined
+      nextRun: row.next_run ? new Date(row.next_run) : undefined,
     };
   }
 
@@ -526,10 +529,10 @@ export class ScheduledReportsService {
       task.stop();
       logger.info(`Stopped scheduled report: ${reportId}`);
     }
-    
+
     this.scheduledJobs.clear();
     this.isInitialized = false;
-    
+
     logger.info('Scheduled Reports Service shut down');
   }
 }

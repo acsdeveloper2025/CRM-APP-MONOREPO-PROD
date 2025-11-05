@@ -17,7 +17,7 @@ export const parseCSV = (buffer: Buffer): Promise<CSVRow[]> => {
       .pipe(csv())
       .on('data', (data: CSVRow) => results.push(data))
       .on('end', () => resolve(results))
-      .on('error', (error) => reject(error));
+      .on('error', error => reject(error));
   });
 };
 
@@ -32,4 +32,3 @@ export const validateCSVRow = (row: CSVRow, requiredFields: string[]): string | 
   }
   return null;
 };
-

@@ -70,7 +70,7 @@ It is {Dominated_Area} area.
 Field executive also confirmed {Applicant_Status} is {Political_Connection}.
 {Applicant_Status} stay is confirmed by our executive's observation as well as from TPC.
 Field Executive Observation: {Other_Observation}
-Hence the profile is marked as {Final_Status}.`
+Hence the profile is marked as {Final_Status}.`,
   };
 
   constructor() {
@@ -91,7 +91,7 @@ Hence the profile is marked as {Final_Status}.`
       logger.info('Generating AI verification report', {
         verificationType: data.verificationType,
         outcome: data.outcome,
-        caseId: data.caseDetails.caseId
+        caseId: data.caseDetails.caseId,
       });
 
       const prompt = this.buildReportPrompt(data);
@@ -111,19 +111,18 @@ Hence the profile is marked as {Final_Status}.`
 
       logger.info('AI verification report generated successfully', {
         caseId: data.caseDetails.caseId,
-        confidence: parsedReport.confidence
+        confidence: parsedReport.confidence,
       });
 
       return {
         success: true,
-        report: parsedReport
+        report: parsedReport,
       };
-
     } catch (error) {
       logger.error('Error generating AI verification report:', error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error occurred'
+        error: error instanceof Error ? error.message : 'Unknown error occurred',
       };
     }
   }
@@ -164,8 +163,13 @@ Hence the profile is marked as {Final_Status}.`
    * Map form data to template variables for residence verification
    */
   private mapFormDataToTemplateVariables(formData: any, caseDetails: any): Record<string, string> {
-    const safeGet = (obj: any, key: string, defaultValue: string = 'Not provided') => {
-      return obj?.[key] || obj?.[key.toLowerCase()] || obj?.[key.replace(/([A-Z])/g, '_$1').toLowerCase()] || defaultValue;
+    const safeGet = (obj: any, key: string, defaultValue = 'Not provided') => {
+      return (
+        obj?.[key] ||
+        obj?.[key.toLowerCase()] ||
+        obj?.[key.replace(/([A-Z])/g, '_$1').toLowerCase()] ||
+        defaultValue
+      );
     };
 
     return {
@@ -184,8 +188,10 @@ Hence the profile is marked as {Final_Status}.`
       Staying_Status: safeGet(formData, 'stayingStatus'),
 
       // Property details
-      Approx_Area_Sq_Feet: safeGet(formData, 'approxAreaSqFeet') || safeGet(formData, 'approximateArea'),
-      Total_Family_Members: safeGet(formData, 'totalFamilyMembers') || safeGet(formData, 'familyMembers'),
+      Approx_Area_Sq_Feet:
+        safeGet(formData, 'approxAreaSqFeet') || safeGet(formData, 'approximateArea'),
+      Total_Family_Members:
+        safeGet(formData, 'totalFamilyMembers') || safeGet(formData, 'familyMembers'),
       Total_Earning: safeGet(formData, 'totalEarning') || safeGet(formData, 'earningMembers'),
 
       // Work details
@@ -193,29 +199,44 @@ Hence the profile is marked as {Final_Status}.`
       Company_Name: safeGet(formData, 'companyName') || safeGet(formData, 'employerName'),
 
       // Name plates and boards
-      Door_Name_Plate: safeGet(formData, 'doorNamePlate') || safeGet(formData, 'nameOnDoorPlate') ? 'Available' : 'Not Available',
-      Name_on_Door_Plate: safeGet(formData, 'nameOnDoorPlate') || safeGet(formData, 'doorNamePlate'),
-      Society_Name_Plate: safeGet(formData, 'societyNamePlate') || safeGet(formData, 'nameOnSocietyBoard') ? 'Available' : 'Not Available',
-      Name_on_Society_Board: safeGet(formData, 'nameOnSocietyBoard') || safeGet(formData, 'societyNamePlate'),
+      Door_Name_Plate:
+        safeGet(formData, 'doorNamePlate') || safeGet(formData, 'nameOnDoorPlate')
+          ? 'Available'
+          : 'Not Available',
+      Name_on_Door_Plate:
+        safeGet(formData, 'nameOnDoorPlate') || safeGet(formData, 'doorNamePlate'),
+      Society_Name_Plate:
+        safeGet(formData, 'societyNamePlate') || safeGet(formData, 'nameOnSocietyBoard')
+          ? 'Available'
+          : 'Not Available',
+      Name_on_Society_Board:
+        safeGet(formData, 'nameOnSocietyBoard') || safeGet(formData, 'societyNamePlate'),
 
       // Locality details
       Locality: safeGet(formData, 'locality') || safeGet(formData, 'localityType'),
-      Address_Structure_G_Plus: safeGet(formData, 'addressStructureGPlus') || safeGet(formData, 'addressStructure'),
-      Applicant_Staying_Floor: safeGet(formData, 'applicantStayingFloor') || safeGet(formData, 'floor'),
-      Address_Structure_Color: safeGet(formData, 'addressStructureColor') || safeGet(formData, 'buildingColor'),
+      Address_Structure_G_Plus:
+        safeGet(formData, 'addressStructureGPlus') || safeGet(formData, 'addressStructure'),
+      Applicant_Staying_Floor:
+        safeGet(formData, 'applicantStayingFloor') || safeGet(formData, 'floor'),
+      Address_Structure_Color:
+        safeGet(formData, 'addressStructureColor') || safeGet(formData, 'buildingColor'),
       Door_Color: safeGet(formData, 'doorColor'),
 
       // House status
       House_Status: safeGet(formData, 'houseStatus') || 'locked',
 
       // Documents
-      Document_Shown_Status: safeGet(formData, 'documentShownStatus') || safeGet(formData, 'documentShown') ? 'shown' : 'not shown',
+      Document_Shown_Status:
+        safeGet(formData, 'documentShownStatus') || safeGet(formData, 'documentShown')
+          ? 'shown'
+          : 'not shown',
       Document_Type: safeGet(formData, 'documentType'),
 
       // TPC details
       TPC_Met_Person_1: safeGet(formData, 'tpcMetPerson1') || safeGet(formData, 'tpcMetPerson'),
       Name_of_TPC_1: safeGet(formData, 'nameOfTpc1') || safeGet(formData, 'tpcName1'),
-      TPC_Confirmation_1: safeGet(formData, 'tpcConfirmation1') || safeGet(formData, 'tpcConfirmation'),
+      TPC_Confirmation_1:
+        safeGet(formData, 'tpcConfirmation1') || safeGet(formData, 'tpcConfirmation'),
       TPC_Met_Person_2: safeGet(formData, 'tpcMetPerson2'),
       Name_of_TPC_2: safeGet(formData, 'nameOfTpc2') || safeGet(formData, 'tpcName2'),
       TPC_Confirmation_2: safeGet(formData, 'tpcConfirmation2'),
@@ -226,10 +247,15 @@ Hence the profile is marked as {Final_Status}.`
 
       // Area assessment
       Dominated_Area: safeGet(formData, 'dominatedArea'),
-      Feedback_from_Neighbour: safeGet(formData, 'feedbackFromNeighbour') || safeGet(formData, 'neighborFeedback'),
+      Feedback_from_Neighbour:
+        safeGet(formData, 'feedbackFromNeighbour') || safeGet(formData, 'neighborFeedback'),
       Political_Connection: safeGet(formData, 'politicalConnection'),
-      Other_Observation: safeGet(formData, 'otherObservation') || safeGet(formData, 'remarks') || safeGet(formData, 'verifierComments'),
-      Final_Status: safeGet(formData, 'finalStatus') || safeGet(formData, 'verificationOutcome') || 'Positive'
+      Other_Observation:
+        safeGet(formData, 'otherObservation') ||
+        safeGet(formData, 'remarks') ||
+        safeGet(formData, 'verifierComments'),
+      Final_Status:
+        safeGet(formData, 'finalStatus') || safeGet(formData, 'verificationOutcome') || 'Positive',
     };
   }
 
@@ -252,12 +278,20 @@ You are an expert verification analyst tasked with generating a comprehensive ve
 - Field Agent: ${caseDetails.agentName}
 
 **LOCATION DATA:**
-${geoLocation ? `- Coordinates: ${geoLocation.latitude}, ${geoLocation.longitude}
-- Captured Address: ${geoLocation.address || 'Not available'}` : '- Location data not available'}
+${
+  geoLocation
+    ? `- Coordinates: ${geoLocation.latitude}, ${geoLocation.longitude}
+- Captured Address: ${geoLocation.address || 'Not available'}`
+    : '- Location data not available'
+}
 
 **PHOTO EVIDENCE:**
-${photos && photos.length > 0 ? `- Total Photos: ${photos.length}
-- Photo Types: ${photos.map(p => p.type).join(', ')}` : '- No photos captured'}
+${
+  photos && photos.length > 0
+    ? `- Total Photos: ${photos.length}
+- Photo Types: ${photos.map(p => p.type).join(', ')}`
+    : '- No photos captured'
+}
 
 **FORM DATA ANALYSIS:**
 ${this.formatFormDataForPrompt(formData, verificationType)}
@@ -297,54 +331,108 @@ Generate the report now:`;
    * Format form data for AI prompt based on verification type
    */
   private formatFormDataForPrompt(formData: any, verificationType: string): string {
-    if (!formData) return 'No form data available';
+    if (!formData) {
+      return 'No form data available';
+    }
 
     let formatted = '';
-    
+
     // Common fields across all verification types
-    if (formData.addressLocatable) formatted += `- Address Locatable: ${formData.addressLocatable}\n`;
-    if (formData.addressRating) formatted += `- Address Rating: ${formData.addressRating}\n`;
-    if (formData.personMet) formatted += `- Person Met: ${formData.personMet}\n`;
-    if (formData.documentShown) formatted += `- Document Shown: ${formData.documentShown}\n`;
-    if (formData.documentType) formatted += `- Document Type: ${formData.documentType}\n`;
-    if (formData.remarks) formatted += `- Remarks: ${formData.remarks}\n`;
-    if (formData.verifierComments) formatted += `- Verifier Comments: ${formData.verifierComments}\n`;
+    if (formData.addressLocatable) {
+      formatted += `- Address Locatable: ${formData.addressLocatable}\n`;
+    }
+    if (formData.addressRating) {
+      formatted += `- Address Rating: ${formData.addressRating}\n`;
+    }
+    if (formData.personMet) {
+      formatted += `- Person Met: ${formData.personMet}\n`;
+    }
+    if (formData.documentShown) {
+      formatted += `- Document Shown: ${formData.documentShown}\n`;
+    }
+    if (formData.documentType) {
+      formatted += `- Document Type: ${formData.documentType}\n`;
+    }
+    if (formData.remarks) {
+      formatted += `- Remarks: ${formData.remarks}\n`;
+    }
+    if (formData.verifierComments) {
+      formatted += `- Verifier Comments: ${formData.verifierComments}\n`;
+    }
 
     // Verification type specific fields
     switch (verificationType.toUpperCase()) {
       case 'RESIDENCE':
       case 'RESIDENCE_CUM_OFFICE':
-        if (formData.applicantName) formatted += `- Applicant Name: ${formData.applicantName}\n`;
-        if (formData.applicantAge) formatted += `- Applicant Age: ${formData.applicantAge}\n`;
-        if (formData.applicantRelation) formatted += `- Applicant Relation: ${formData.applicantRelation}\n`;
-        if (formData.stayingStatus) formatted += `- Staying Status: ${formData.stayingStatus}\n`;
-        if (formData.houseStatus) formatted += `- House Status: ${formData.houseStatus}\n`;
-        if (formData.localityType) formatted += `- Locality Type: ${formData.localityType}\n`;
+        if (formData.applicantName) {
+          formatted += `- Applicant Name: ${formData.applicantName}\n`;
+        }
+        if (formData.applicantAge) {
+          formatted += `- Applicant Age: ${formData.applicantAge}\n`;
+        }
+        if (formData.applicantRelation) {
+          formatted += `- Applicant Relation: ${formData.applicantRelation}\n`;
+        }
+        if (formData.stayingStatus) {
+          formatted += `- Staying Status: ${formData.stayingStatus}\n`;
+        }
+        if (formData.houseStatus) {
+          formatted += `- House Status: ${formData.houseStatus}\n`;
+        }
+        if (formData.localityType) {
+          formatted += `- Locality Type: ${formData.localityType}\n`;
+        }
         break;
 
       case 'OFFICE':
-        if (formData.companyName) formatted += `- Company Name: ${formData.companyName}\n`;
-        if (formData.designation) formatted += `- Designation: ${formData.designation}\n`;
-        if (formData.officeType) formatted += `- Office Type: ${formData.officeType}\n`;
-        if (formData.workingStatus) formatted += `- Working Status: ${formData.workingStatus}\n`;
+        if (formData.companyName) {
+          formatted += `- Company Name: ${formData.companyName}\n`;
+        }
+        if (formData.designation) {
+          formatted += `- Designation: ${formData.designation}\n`;
+        }
+        if (formData.officeType) {
+          formatted += `- Office Type: ${formData.officeType}\n`;
+        }
+        if (formData.workingStatus) {
+          formatted += `- Working Status: ${formData.workingStatus}\n`;
+        }
         break;
 
       case 'BUSINESS':
-        if (formData.businessName) formatted += `- Business Name: ${formData.businessName}\n`;
-        if (formData.businessType) formatted += `- Business Type: ${formData.businessType}\n`;
-        if (formData.ownershipType) formatted += `- Ownership Type: ${formData.ownershipType}\n`;
-        if (formData.businessExistence) formatted += `- Business Existence: ${formData.businessExistence}\n`;
+        if (formData.businessName) {
+          formatted += `- Business Name: ${formData.businessName}\n`;
+        }
+        if (formData.businessType) {
+          formatted += `- Business Type: ${formData.businessType}\n`;
+        }
+        if (formData.ownershipType) {
+          formatted += `- Ownership Type: ${formData.ownershipType}\n`;
+        }
+        if (formData.businessExistence) {
+          formatted += `- Business Existence: ${formData.businessExistence}\n`;
+        }
         break;
     }
 
     // Third party confirmation
-    if (formData.tpcMetPerson) formatted += `- TPC Met Person: ${formData.tpcMetPerson}\n`;
-    if (formData.tpcConfirmation) formatted += `- TPC Confirmation: ${formData.tpcConfirmation}\n`;
+    if (formData.tpcMetPerson) {
+      formatted += `- TPC Met Person: ${formData.tpcMetPerson}\n`;
+    }
+    if (formData.tpcConfirmation) {
+      formatted += `- TPC Confirmation: ${formData.tpcConfirmation}\n`;
+    }
 
     // Area information
-    if (formData.politicalConnection) formatted += `- Political Connection: ${formData.politicalConnection}\n`;
-    if (formData.dominatedArea) formatted += `- Dominated Area: ${formData.dominatedArea}\n`;
-    if (formData.feedbackFromNeighbour) formatted += `- Neighbor Feedback: ${formData.feedbackFromNeighbour}\n`;
+    if (formData.politicalConnection) {
+      formatted += `- Political Connection: ${formData.politicalConnection}\n`;
+    }
+    if (formData.dominatedArea) {
+      formatted += `- Dominated Area: ${formData.dominatedArea}\n`;
+    }
+    if (formData.feedbackFromNeighbour) {
+      formatted += `- Neighbor Feedback: ${formData.feedbackFromNeighbour}\n`;
+    }
 
     return formatted || 'No specific form data available';
   }
@@ -359,11 +447,18 @@ Generate the report now:`;
       if (jsonMatch) {
         const jsonStr = jsonMatch[0];
         const parsed = JSON.parse(jsonStr);
-        
+
         // Validate required fields
-        const required = ['executiveSummary', 'keyFindings', 'verificationDetails', 'riskAssessment', 'recommendations', 'conclusion'];
+        const required = [
+          'executiveSummary',
+          'keyFindings',
+          'verificationDetails',
+          'riskAssessment',
+          'recommendations',
+          'conclusion',
+        ];
         const missing = required.filter(field => !parsed[field]);
-        
+
         if (missing.length > 0) {
           throw new Error(`Missing required fields: ${missing.join(', ')}`);
         }
@@ -379,16 +474,16 @@ Generate the report now:`;
       }
     } catch (error) {
       logger.error('Error parsing AI response:', error);
-      
+
       // Fallback: create a basic report from the text
       return {
         executiveSummary: 'AI-generated report based on verification data analysis.',
         keyFindings: ['Verification completed', 'Data analyzed by AI system'],
-        verificationDetails: text.substring(0, 500) + '...',
+        verificationDetails: `${text.substring(0, 500)}...`,
         riskAssessment: 'Unable to determine risk level due to parsing error.',
         recommendations: ['Review verification data', 'Manual analysis recommended'],
         conclusion: 'AI report generation encountered parsing issues. Manual review recommended.',
-        confidence: 70
+        confidence: 70,
       };
     }
   }
@@ -398,17 +493,19 @@ Generate the report now:`;
    */
   async testConnection(): Promise<{ success: boolean; error?: string }> {
     try {
-      const result = await this.model.generateContent('Test connection. Respond with "Connection successful"');
+      const result = await this.model.generateContent(
+        'Test connection. Respond with "Connection successful"'
+      );
       const response = await result.response;
       const text = response.text();
-      
+
       return {
-        success: text.toLowerCase().includes('connection successful') || text.length > 0
+        success: text.toLowerCase().includes('connection successful') || text.length > 0,
       };
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
   }

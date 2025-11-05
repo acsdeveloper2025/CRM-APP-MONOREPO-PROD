@@ -2,14 +2,18 @@ import express from 'express';
 import { body, query, param } from 'express-validator';
 import { authenticateToken } from '@/middleware/auth';
 import { handleValidationErrors } from '@/middleware/validation';
-import { EnterpriseCache, EnterpriseCacheConfigs, CacheInvalidationPatterns } from '../middleware/enterpriseCache';
+import {
+  EnterpriseCache,
+  EnterpriseCacheConfigs,
+  CacheInvalidationPatterns,
+} from '../middleware/enterpriseCache';
 import {
   getVerificationTypes,
   getVerificationTypeById,
   createVerificationType,
   updateVerificationType,
   deleteVerificationType,
-  getVerificationTypeStats
+  getVerificationTypeStats,
 } from '@/controllers/verificationTypesController';
 
 const router = express.Router();
@@ -47,22 +51,23 @@ const updateVerificationTypeValidation = [
 ];
 
 const listVerificationTypesValidation = [
-  query('page')
-    .optional()
-    .isInt({ min: 1 })
-    .withMessage('Page must be a positive integer'),
+  query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
   query('limit')
     .optional()
     .isInt({ min: 1, max: 100 })
     .withMessage('Limit must be between 1 and 100'),
   query('category')
     .optional()
-    .isIn(['ADDRESS_VERIFICATION', 'EMPLOYMENT_VERIFICATION', 'BUSINESS_VERIFICATION', 'IDENTITY_VERIFICATION', 'FINANCIAL_VERIFICATION', 'OTHER'])
+    .isIn([
+      'ADDRESS_VERIFICATION',
+      'EMPLOYMENT_VERIFICATION',
+      'BUSINESS_VERIFICATION',
+      'IDENTITY_VERIFICATION',
+      'FINANCIAL_VERIFICATION',
+      'OTHER',
+    ])
     .withMessage('Invalid category'),
-  query('isActive')
-    .optional()
-    .isBoolean()
-    .withMessage('isActive must be a boolean'),
+  query('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
   query('search')
     .optional()
     .trim()
@@ -72,10 +77,7 @@ const listVerificationTypesValidation = [
     .optional()
     .isIn(['name', 'code', 'category', 'basePrice', 'estimatedTime', 'createdAt', 'updatedAt'])
     .withMessage('Invalid sort field'),
-  query('sortOrder')
-    .optional()
-    .isIn(['asc', 'desc'])
-    .withMessage('Sort order must be asc or desc'),
+  query('sortOrder').optional().isIn(['asc', 'desc']).withMessage('Sort order must be asc or desc'),
 ];
 
 // TODO: Implement bulk import validation when needed
@@ -94,7 +96,8 @@ const listVerificationTypesValidation = [
 // ];
 
 // Core CRUD routes (CACHED)
-router.get('/',
+router.get(
+  '/',
   EnterpriseCache.create(EnterpriseCacheConfigs.verificationTypes),
   listVerificationTypesValidation,
   handleValidationErrors,
@@ -103,12 +106,14 @@ router.get('/',
 
 // TODO: Implement these endpoints
 // router.get('/categories', getVerificationTypeCategories);
-router.get('/stats',
+router.get(
+  '/stats',
   EnterpriseCache.create(EnterpriseCacheConfigs.analytics),
   getVerificationTypeStats
 );
 
-router.post('/',
+router.post(
+  '/',
   EnterpriseCache.invalidate(CacheInvalidationPatterns.verificationTypeUpdate),
   createVerificationTypeValidation,
   handleValidationErrors,
@@ -122,14 +127,16 @@ router.post('/',
 //   bulkImportVerificationTypes
 // );
 
-router.get('/:id',
+router.get(
+  '/:id',
   EnterpriseCache.create(EnterpriseCacheConfigs.verificationTypes),
   [param('id').isInt({ min: 1 }).withMessage('Verification type ID must be a positive integer')],
   handleValidationErrors,
   getVerificationTypeById
 );
 
-router.put('/:id',
+router.put(
+  '/:id',
   EnterpriseCache.invalidate(CacheInvalidationPatterns.verificationTypeUpdate),
   [param('id').isInt({ min: 1 }).withMessage('Verification type ID must be a positive integer')],
   updateVerificationTypeValidation,
@@ -137,7 +144,8 @@ router.put('/:id',
   updateVerificationType
 );
 
-router.delete('/:id',
+router.delete(
+  '/:id',
   EnterpriseCache.invalidate(CacheInvalidationPatterns.verificationTypeUpdate),
   [param('id').isInt({ min: 1 }).withMessage('Verification type ID must be a positive integer')],
   handleValidationErrors,

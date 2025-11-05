@@ -4,8 +4,16 @@ import { authenticateToken, requireFieldOrHigher } from '@/middleware/auth';
 import { validate } from '@/middleware/validation';
 import { caseRateLimit } from '@/middleware/rateLimiter';
 import { EnterpriseRateLimit, EnterpriseRateLimits } from '../middleware/enterpriseRateLimit';
-import { EnterpriseCache, EnterpriseCacheConfigs, CacheInvalidationPatterns } from '../middleware/enterpriseCache';
-import { validateCaseAccess, validateClientAccess, validateCaseCreationAccess } from '@/middleware/clientAccess';
+import {
+  EnterpriseCache,
+  EnterpriseCacheConfigs,
+  CacheInvalidationPatterns,
+} from '../middleware/enterpriseCache';
+import {
+  validateCaseAccess,
+  validateClientAccess,
+  validateCaseCreationAccess,
+} from '@/middleware/clientAccess';
 import {
   getCases,
   getCaseById,
@@ -18,7 +26,7 @@ import {
   getCaseAssignmentHistory,
   getFieldAgentWorkload,
   exportCases,
-  getCaseSummaryWithTasks
+  getCaseSummaryWithTasks,
 } from '@/controllers/casesController';
 import { VerificationAttachmentController } from '@/controllers/verificationAttachmentController';
 
@@ -44,14 +52,8 @@ const createCaseValidation = [
     .withMessage('Description must be between 1 and 1000 characters'),
 
   // Required fields
-  body('clientId')
-    .trim()
-    .notEmpty()
-    .withMessage('Client ID is required'),
-  body('assignedToId')
-    .trim()
-    .notEmpty()
-    .withMessage('Assigned user ID is required'),
+  body('clientId').trim().notEmpty().withMessage('Client ID is required'),
+  body('assignedToId').trim().notEmpty().withMessage('Assigned user ID is required'),
 
   // Optional legacy fields
   body('address')
@@ -77,24 +79,32 @@ const createCaseValidation = [
     .optional()
     .isIn(['LOW', 'MEDIUM', 'HIGH', 'URGENT'])
     .withMessage('Priority must be one of: LOW, MEDIUM, HIGH, URGENT'),
-  body('deadline')
-    .optional()
-    .isISO8601()
-    .withMessage('Deadline must be a valid date'),
+  body('deadline').optional().isISO8601().withMessage('Deadline must be a valid date'),
 
   // New required fields for form integration
   body('applicantType')
     .trim()
-    .isIn(['APPLICANT', 'CO-APPLICANT', 'CO-APPLICANT 1', 'CO-APPLICANT 2', 'CO-APPLICANT 3', 'GUARANTOR', 'SELLER', 'PROPRIETOR', 'PARTNER', 'DIRECTOR', 'REFERENCE PERSON'])
-    .withMessage('Applicant type must be one of: APPLICANT, CO-APPLICANT, CO-APPLICANT 1, CO-APPLICANT 2, CO-APPLICANT 3, GUARANTOR, SELLER, PROPRIETOR, PARTNER, DIRECTOR, or REFERENCE PERSON'),
+    .isIn([
+      'APPLICANT',
+      'CO-APPLICANT',
+      'CO-APPLICANT 1',
+      'CO-APPLICANT 2',
+      'CO-APPLICANT 3',
+      'GUARANTOR',
+      'SELLER',
+      'PROPRIETOR',
+      'PARTNER',
+      'DIRECTOR',
+      'REFERENCE PERSON',
+    ])
+    .withMessage(
+      'Applicant type must be one of: APPLICANT, CO-APPLICANT, CO-APPLICANT 1, CO-APPLICANT 2, CO-APPLICANT 3, GUARANTOR, SELLER, PROPRIETOR, PARTNER, DIRECTOR, or REFERENCE PERSON'
+    ),
   body('backendContactNumber')
     .trim()
     .matches(/^[+]?[\d\s\-\(\)]{10,15}$/)
     .withMessage('Backend contact number must be valid'),
-  body('trigger')
-    .trim()
-    .isLength({ min: 1 })
-    .withMessage('TRIGGER field is required'),
+  body('trigger').trim().isLength({ min: 1 }).withMessage('TRIGGER field is required'),
   body('rateTypeId')
     .optional()
     .isInt({ min: 1 })
@@ -139,17 +149,11 @@ const updateCaseValidation = [
     .trim()
     .matches(/^\+?[1-9]\d{1,14}$/)
     .withMessage('Contact phone must be valid'),
-  body('deadline')
-    .optional()
-    .isISO8601()
-    .withMessage('Deadline must be a valid date'),
+  body('deadline').optional().isISO8601().withMessage('Deadline must be a valid date'),
 ];
 
 const listCasesValidation = [
-  query('page')
-    .optional()
-    .isInt({ min: 1 })
-    .withMessage('Page must be a positive integer'),
+  query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
   query('limit')
     .optional()
     .isInt({ min: 1, max: 100 })
@@ -167,14 +171,8 @@ const listCasesValidation = [
     .trim()
     .isLength({ max: 100 })
     .withMessage('Search term must be less than 100 characters'),
-  query('dateFrom')
-    .optional()
-    .isISO8601()
-    .withMessage('Date from must be a valid date'),
-  query('dateTo')
-    .optional()
-    .isISO8601()
-    .withMessage('Date to must be a valid date'),
+  query('dateFrom').optional().isISO8601().withMessage('Date from must be a valid date'),
+  query('dateTo').optional().isISO8601().withMessage('Date to must be a valid date'),
 ];
 
 const statusUpdateValidation = [
@@ -190,10 +188,7 @@ const priorityUpdateValidation = [
 ];
 
 const assignValidation = [
-  body('assignedToId')
-    .trim()
-    .notEmpty()
-    .withMessage('Assigned user ID is required'),
+  body('assignedToId').trim().notEmpty().withMessage('Assigned user ID is required'),
   body('reason')
     .optional()
     .trim()
@@ -205,13 +200,8 @@ const bulkAssignValidation = [
   body('caseIds')
     .isArray({ min: 1, max: 100 })
     .withMessage('Case IDs must be an array with 1-100 items'),
-  body('caseIds.*')
-    .isUUID()
-    .withMessage('Each case ID must be a valid UUID'),
-  body('assignedToId')
-    .trim()
-    .notEmpty()
-    .withMessage('Assigned user ID is required'),
+  body('caseIds.*').isUUID().withMessage('Each case ID must be a valid UUID'),
+  body('assignedToId').trim().notEmpty().withMessage('Assigned user ID is required'),
   body('reason')
     .optional()
     .trim()
@@ -224,14 +214,8 @@ const bulkAssignValidation = [
 ];
 
 const reassignValidation = [
-  body('fromUserId')
-    .trim()
-    .notEmpty()
-    .withMessage('From user ID is required'),
-  body('toUserId')
-    .trim()
-    .notEmpty()
-    .withMessage('To user ID is required'),
+  body('fromUserId').trim().notEmpty().withMessage('From user ID is required'),
+  body('toUserId').trim().notEmpty().withMessage('To user ID is required'),
   body('reason')
     .trim()
     .notEmpty()
@@ -253,10 +237,7 @@ const completeValidation = [
     .trim()
     .isLength({ max: 1000 })
     .withMessage('Notes must be less than 1000 characters'),
-  body('attachments')
-    .optional()
-    .isArray()
-    .withMessage('Attachments must be an array'),
+  body('attachments').optional().isArray().withMessage('Attachments must be an array'),
 ];
 
 const approveValidation = [
@@ -282,7 +263,8 @@ const reworkValidation = [
 ];
 
 // Core CRUD routes
-router.get('/',
+router.get(
+  '/',
   EnterpriseRateLimit.roleBasedLimiter(EnterpriseRateLimits.byRole),
   EnterpriseCache.create(EnterpriseCacheConfigs.caseList),
   listCasesValidation,
@@ -294,7 +276,8 @@ router.get('/',
 // UNIFIED CASE CREATION ENDPOINT
 // Replaces: POST /, POST /with-attachments, POST /with-multiple-tasks
 // ============================================================================
-router.post('/create',
+router.post(
+  '/create',
   EnterpriseRateLimit.roleBasedLimiter(EnterpriseRateLimits.byRole),
   EnterpriseCache.invalidate(CacheInvalidationPatterns.caseUpdate),
   validateCaseCreationAccess,
@@ -302,7 +285,8 @@ router.post('/create',
 );
 
 // Get case summary with tasks
-router.get('/:id/summary',
+router.get(
+  '/:id/summary',
   EnterpriseRateLimit.roleBasedLimiter(EnterpriseRateLimits.byRole),
   EnterpriseCache.create(EnterpriseCacheConfigs.caseDetails),
   [param('id').trim().notEmpty().withMessage('Case ID is required')],
@@ -312,23 +296,28 @@ router.get('/:id/summary',
 );
 
 // Export cases to Excel - MUST be before /:id route
-router.get('/export',
+router.get(
+  '/export',
   EnterpriseRateLimit.roleBasedLimiter(EnterpriseRateLimits.byRole),
   [
-    query('exportType').optional().isIn(['all', 'pending', 'in-progress', 'completed']).withMessage('Invalid export type'),
+    query('exportType')
+      .optional()
+      .isIn(['all', 'pending', 'in-progress', 'completed'])
+      .withMessage('Invalid export type'),
     query('status').optional().isString(),
     query('search').optional().isString(),
     query('assignedTo').optional().isUUID().withMessage('Invalid assigned to ID'),
     query('clientId').optional().isUUID().withMessage('Invalid client ID'),
     query('priority').optional().isString(),
     query('dateFrom').optional().isISO8601().withMessage('Invalid date format'),
-    query('dateTo').optional().isISO8601().withMessage('Invalid date format')
+    query('dateTo').optional().isISO8601().withMessage('Invalid date format'),
   ],
   validate,
   exportCases
 );
 
-router.get('/:id',
+router.get(
+  '/:id',
   EnterpriseRateLimit.roleBasedLimiter(EnterpriseRateLimits.byRole),
   EnterpriseCache.create(EnterpriseCacheConfigs.caseDetails),
   [param('id').trim().notEmpty().withMessage('Case ID is required')],
@@ -337,7 +326,8 @@ router.get('/:id',
   getCaseById
 );
 
-router.put('/:id',
+router.put(
+  '/:id',
   [param('id').trim().notEmpty().withMessage('Case ID is required')],
   updateCaseValidation,
   validate,
@@ -413,13 +403,11 @@ router.put('/:id',
 // );
 
 // Analytics routes
-router.get('/analytics/field-agent-workload',
-  validate,
-  getFieldAgentWorkload
-);
+router.get('/analytics/field-agent-workload', validate, getFieldAgentWorkload);
 
 // Verification Images route
-router.get('/:id/verification-images',
+router.get(
+  '/:id/verification-images',
   [param('id').trim().notEmpty().withMessage('Case ID is required')],
   validate,
   validateCaseAccess,
@@ -427,14 +415,16 @@ router.get('/:id/verification-images',
 );
 
 // Serve verification image file
-router.get('/verification-images/:imageId/serve',
+router.get(
+  '/verification-images/:imageId/serve',
   [param('imageId').trim().notEmpty().withMessage('Image ID is required')],
   validate,
   VerificationAttachmentController.serveVerificationImage
 );
 
 // Serve verification image thumbnail
-router.get('/verification-images/:imageId/thumbnail',
+router.get(
+  '/verification-images/:imageId/thumbnail',
   [param('imageId').trim().notEmpty().withMessage('Image ID is required')],
   validate,
   VerificationAttachmentController.serveVerificationThumbnail

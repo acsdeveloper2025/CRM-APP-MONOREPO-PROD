@@ -1,10 +1,15 @@
 import rateLimit from 'express-rate-limit';
 import jwt from 'jsonwebtoken';
 import { config } from '@/config';
-import { ApiResponse } from '@/types/api';
-import { AuthenticatedRequest } from '@/types/auth';
+import type { ApiResponse } from '@/types/api';
+import type { AuthenticatedRequest } from '@/types/auth';
 
-const createRateLimiter = (windowMs: number, max: number, message: string, skipForAllUsers = false) => {
+const createRateLimiter = (
+  windowMs: number,
+  max: number,
+  message: string,
+  skipForAllUsers = false
+) => {
   return rateLimit({
     windowMs,
     max,
@@ -17,30 +22,35 @@ const createRateLimiter = (windowMs: number, max: number, message: string, skipF
     } as ApiResponse,
     standardHeaders: true,
     legacyHeaders: false,
-    skip: skipForAllUsers ? (req: AuthenticatedRequest) => {
-      try {
-        // Check if user is authenticated
-        const authHeader = req.headers.authorization;
-        if (!authHeader || !authHeader.startsWith('Bearer ')) {
-          return false; // Apply rate limiting for unauthenticated requests
+    skip: skipForAllUsers
+      ? (req: AuthenticatedRequest) => {
+          try {
+            // Check if user is authenticated
+            const authHeader = req.headers.authorization;
+            if (!authHeader?.startsWith('Bearer ')) {
+              return false; // Apply rate limiting for unauthenticated requests
+            }
+
+            const token = authHeader.substring(7);
+
+            // Handle dev token for SUPER_ADMIN
+            if (token === 'dev-token') {
+              return true; // Skip rate limiting for dev token
+            }
+
+            const decoded = jwt.verify(token, config.jwtSecret) as any;
+
+            // Skip rate limiting for ALL authenticated users (SUPER_ADMIN, ADMIN, BACKEND_USER, FIELD_AGENT)
+            // This prevents rate limiting issues for field agents processing 100+ cases per day
+            return (
+              decoded.role &&
+              ['SUPER_ADMIN', 'ADMIN', 'BACKEND_USER', 'FIELD_AGENT'].includes(decoded.role)
+            );
+          } catch (error) {
+            return false; // Apply rate limiting if token verification fails
+          }
         }
-
-        const token = authHeader.substring(7);
-
-        // Handle dev token for SUPER_ADMIN
-        if (token === 'dev-token') {
-          return true; // Skip rate limiting for dev token
-        }
-
-        const decoded = jwt.verify(token, config.jwtSecret) as any;
-
-        // Skip rate limiting for ALL authenticated users (SUPER_ADMIN, ADMIN, BACKEND_USER, FIELD_AGENT)
-        // This prevents rate limiting issues for field agents processing 100+ cases per day
-        return decoded.role && ['SUPER_ADMIN', 'ADMIN', 'BACKEND_USER', 'FIELD_AGENT'].includes(decoded.role);
-      } catch (error) {
-        return false; // Apply rate limiting if token verification fails
-      }
-    } : undefined,
+      : undefined,
   });
 };
 

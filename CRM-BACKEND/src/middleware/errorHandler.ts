@@ -1,7 +1,7 @@
-import { Request, Response, NextFunction } from 'express';
+import type { Request, Response, NextFunction } from 'express';
 
 import { logger } from '@/config/logger';
-import { ApiResponse } from '@/types/api';
+import type { ApiResponse } from '@/types/api';
 
 export interface AppError extends Error {
   statusCode?: number;
@@ -27,9 +27,7 @@ export const errorHandler = (
   let statusCode = error.statusCode || 500;
   let message = error.message || 'Internal server error';
   let code = error.code || 'INTERNAL_ERROR';
-  let details = error.details;
-
-
+  const details = error.details;
 
   // Handle JWT errors
   if (error.name === 'JsonWebTokenError') {
@@ -48,7 +46,7 @@ export const errorHandler = (
   if (error.name === 'MulterError') {
     statusCode = 400;
     code = 'FILE_UPLOAD_ERROR';
-    
+
     switch (error.code) {
       case 'LIMIT_FILE_SIZE':
         message = 'File too large';
@@ -98,8 +96,8 @@ export const notFoundHandler = (req: Request, res: Response): void => {
 
 export const createError = (
   message: string,
-  statusCode: number = 500,
-  code: string = 'ERROR',
+  statusCode = 500,
+  code = 'ERROR',
   details?: any
 ): AppError => {
   const error = new Error(message) as AppError;

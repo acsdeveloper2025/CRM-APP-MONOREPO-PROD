@@ -1,4 +1,4 @@
-import { Pool } from 'pg';
+import type { Pool } from 'pg';
 import { logger } from '@/utils/logger';
 
 export interface DeduplicationCriteria {
@@ -79,7 +79,7 @@ export class DeduplicationService {
         return {
           duplicatesFound: [],
           searchCriteria: criteria,
-          totalMatches: 0
+          totalMatches: 0,
         };
       }
 
@@ -108,7 +108,7 @@ export class DeduplicationService {
       `;
 
       const result = await this.db.query(query, searchParams);
-      
+
       const duplicatesFound: DuplicateCase[] = result.rows.map(row => {
         const matchTypes: string[] = [];
         let matchScore = 0;
@@ -146,24 +146,23 @@ export class DeduplicationService {
           pincode: row.pincode,
           verificationOutcome: row.verificationOutcome,
           matchType: matchTypes,
-          matchScore
+          matchScore,
         };
       });
 
       // Sort by match score (highest first)
       duplicatesFound.sort((a, b) => b.matchScore - a.matchScore);
 
-      logger.info('Deduplication search completed', { 
+      logger.info('Deduplication search completed', {
         totalMatches: duplicatesFound.length,
-        criteria 
+        criteria,
       });
 
       return {
         duplicatesFound,
         searchCriteria: criteria,
-        totalMatches: duplicatesFound.length
+        totalMatches: duplicatesFound.length,
       };
-
     } catch (error) {
       logger.error('Error in deduplication search', { error, criteria });
       throw new Error('Failed to perform deduplication search');
@@ -185,7 +184,7 @@ export class DeduplicationService {
       if (decision.decision === 'CREATE_NEW' && decision.caseId === 'NEW_CASE_PLACEHOLDER') {
         logger.info('Skipping deduplication audit for CREATE_NEW with placeholder caseId', {
           decision,
-          performedBy
+          performedBy,
         });
         return;
       }
@@ -207,7 +206,7 @@ export class DeduplicationService {
         JSON.stringify(duplicatesFound),
         decision.decision,
         decision.rationale,
-        performedBy
+        performedBy,
       ]);
 
       // Update the case with deduplication info
@@ -224,11 +223,10 @@ export class DeduplicationService {
       await this.db.query(updateCaseQuery, [
         decision.decision,
         decision.rationale,
-        decision.caseId
+        decision.caseId,
       ]);
 
       logger.info('Deduplication decision recorded', { decision, performedBy });
-
     } catch (error) {
       logger.error('Error recording deduplication decision', { error, decision });
       throw new Error('Failed to record deduplication decision');
@@ -252,7 +250,6 @@ export class DeduplicationService {
 
       const result = await this.db.query(query, [caseId]);
       return result.rows;
-
     } catch (error) {
       logger.error('Error fetching deduplication history', { error, caseId });
       throw new Error('Failed to fetch deduplication history');
@@ -267,24 +264,34 @@ export class DeduplicationService {
     const n1 = normalize(name1);
     const n2 = normalize(name2);
 
-    if (n1 === n2) return 1.0;
+    if (n1 === n2) {
+      return 1.0;
+    }
 
     // Simple Levenshtein distance-based similarity
     const maxLength = Math.max(n1.length, n2.length);
-    if (maxLength === 0) return 1.0;
+    if (maxLength === 0) {
+      return 1.0;
+    }
 
     const distance = this.levenshteinDistance(n1, n2);
-    return 1 - (distance / maxLength);
+    return 1 - distance / maxLength;
   }
 
   /**
    * Calculate Levenshtein distance between two strings
    */
   private levenshteinDistance(str1: string, str2: string): number {
-    const matrix = Array(str2.length + 1).fill(null).map(() => Array(str1.length + 1).fill(null));
+    const matrix = Array(str2.length + 1)
+      .fill(null)
+      .map(() => Array(str1.length + 1).fill(null));
 
-    for (let i = 0; i <= str1.length; i++) matrix[0][i] = i;
-    for (let j = 0; j <= str2.length; j++) matrix[j][0] = j;
+    for (let i = 0; i <= str1.length; i++) {
+      matrix[0][i] = i;
+    }
+    for (let j = 0; j <= str2.length; j++) {
+      matrix[j][0] = j;
+    }
 
     for (let j = 1; j <= str2.length; j++) {
       for (let i = 1; i <= str1.length; i++) {

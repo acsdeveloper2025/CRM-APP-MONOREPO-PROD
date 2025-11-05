@@ -12,7 +12,7 @@ import {
   getCaseStatusDistribution,
   getMonthlyTrends,
   getOverdueTasks,
-  getTATStats
+  getTATStats,
 } from '@/controllers/dashboardController';
 
 const router = express.Router();
@@ -28,11 +28,7 @@ const dashboardQueryValidation = [
     .trim()
     .isLength({ min: 1 })
     .withMessage('Client ID must not be empty'),
-  query('userId')
-    .optional()
-    .trim()
-    .isLength({ min: 1 })
-    .withMessage('User ID must not be empty'),
+  query('userId').optional().trim().isLength({ min: 1 }).withMessage('User ID must not be empty'),
 ];
 
 const monthlyTrendsValidation = [
@@ -70,38 +66,20 @@ const exportValidation = [
     .trim()
     .isLength({ min: 1 })
     .withMessage('Client ID must not be empty'),
-  body('userId')
-    .optional()
-    .trim()
-    .isLength({ min: 1 })
-    .withMessage('User ID must not be empty'),
+  body('userId').optional().trim().isLength({ min: 1 }).withMessage('User ID must not be empty'),
 ];
 
 // Dashboard routes
-router.get('/', 
-  authenticateToken, 
-  dashboardQueryValidation, 
-  validate, 
-  getDashboardData
-);
+router.get('/', authenticateToken, dashboardQueryValidation, validate, getDashboardData);
 
-router.get('/charts',
-  authenticateToken,
-  dashboardQueryValidation,
-  validate,
-  getChartData
-);
+router.get('/charts', authenticateToken, dashboardQueryValidation, validate, getChartData);
 
 // Dashboard statistics
-router.get('/stats',
-  authenticateToken,
-  dashboardQueryValidation,
-  validate,
-  getDashboardStats
-);
+router.get('/stats', authenticateToken, dashboardQueryValidation, validate, getDashboardStats);
 
 // Case status distribution
-router.get('/case-status-distribution',
+router.get(
+  '/case-status-distribution',
   authenticateToken,
   dashboardQueryValidation,
   validate,
@@ -109,7 +87,8 @@ router.get('/case-status-distribution',
 );
 
 // Monthly trends
-router.get('/monthly-trends',
+router.get(
+  '/monthly-trends',
   authenticateToken,
   monthlyTrendsValidation,
   validate,
@@ -124,14 +103,16 @@ router.get('/monthly-trends',
 //   getClientStats
 // );
 
-router.get('/recent-activities', 
-  authenticateToken, 
-  recentActivitiesValidation, 
-  validate, 
+router.get(
+  '/recent-activities',
+  authenticateToken,
+  recentActivitiesValidation,
+  validate,
   getRecentActivities
 );
 
-router.get('/performance-metrics',
+router.get(
+  '/performance-metrics',
   authenticateToken,
   dashboardQueryValidation,
   validate,
@@ -139,17 +120,15 @@ router.get('/performance-metrics',
 );
 
 // TAT Monitoring routes
-router.get('/overdue-tasks',
+router.get(
+  '/overdue-tasks',
   authenticateToken,
   [
     query('threshold')
       .optional()
       .isInt({ min: 0 })
       .withMessage('Threshold must be a positive integer'),
-    query('page')
-      .optional()
-      .isInt({ min: 1 })
-      .withMessage('Page must be a positive integer'),
+    query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
     query('limit')
       .optional()
       .isInt({ min: 1, max: 100 })
@@ -167,10 +146,7 @@ router.get('/overdue-tasks',
   getOverdueTasks
 );
 
-router.get('/tat-stats',
-  authenticateToken,
-  getTATStats
-);
+router.get('/tat-stats', authenticateToken, getTATStats);
 
 // TODO: Implement remaining dashboard functions
 // router.get('/turnaround-times',

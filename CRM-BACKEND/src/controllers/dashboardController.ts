@@ -1,6 +1,7 @@
-import { Request, Response } from 'express';
+import type { Response } from 'express';
+import { Request } from 'express';
 import { logger } from '@/config/logger';
-import { AuthenticatedRequest } from '@/middleware/auth';
+import type { AuthenticatedRequest } from '@/middleware/auth';
 import { pool } from '@/config/database';
 
 // Mock data removed - using database operations only
@@ -60,7 +61,9 @@ export const getDashboardData = async (req: AuthenticatedRequest, res: Response)
     const totalCases = filteredCases.length;
     const pendingCases = filteredCases.filter(c => c.status === 'PENDING').length;
     const inProgressCases = filteredCases.filter(c => c.status === 'IN_PROGRESS').length;
-    const completedCases = filteredCases.filter(c => c.status === 'COMPLETED' || c.status === 'APPROVED').length;
+    const completedCases = filteredCases.filter(
+      c => c.status === 'COMPLETED' || c.status === 'APPROVED'
+    ).length;
     const rejectedCases = filteredCases.filter(c => c.status === 'REJECTED').length;
 
     // Get additional statistics from database
@@ -163,8 +166,14 @@ export const getChartData = async (req: AuthenticatedRequest, res: Response) => 
       totalCases: parseInt(user.totalCases) || 0,
       completedCases: parseInt(user.completedCases) || 0,
       approvedCases: parseInt(user.approvedCases) || 0,
-      completionRate: user.totalCases > 0 ?
-        Math.round(((parseInt(user.completedCases) + parseInt(user.approvedCases)) / parseInt(user.totalCases)) * 100) : 0,
+      completionRate:
+        user.totalCases > 0
+          ? Math.round(
+              ((parseInt(user.completedCases) + parseInt(user.approvedCases)) /
+                parseInt(user.totalCases)) *
+                100
+            )
+          : 0,
     }));
 
     // Get client distribution from database
@@ -309,8 +318,10 @@ export const getPerformanceMetrics = async (req: AuthenticatedRequest, res: Resp
       name: user.name,
       assignedCases: parseInt(user.assignedCases) || 0,
       completedCases: parseInt(user.completedCases) || 0,
-      completionRate: user.assignedCases > 0 ?
-        Math.round((parseInt(user.completedCases) / parseInt(user.assignedCases)) * 100) : 0,
+      completionRate:
+        user.assignedCases > 0
+          ? Math.round((parseInt(user.completedCases) / parseInt(user.assignedCases)) * 100)
+          : 0,
       avgTurnaroundDays: parseFloat(user.avgTurnaroundDays) || 0,
     }));
 
@@ -609,7 +620,7 @@ export const getMonthlyTrends = async (req: AuthenticatedRequest, res: Response)
         month: row.month,
         monthName: new Date(row.month).toLocaleDateString('en-US', {
           year: 'numeric',
-          month: 'long'
+          month: 'long',
         }),
         totalCases,
         completedCases: parseInt(row.completedCases),
@@ -625,9 +636,10 @@ export const getMonthlyTrends = async (req: AuthenticatedRequest, res: Response)
     const completeMonths = [];
     for (let i = 0; i < monthsCount; i++) {
       const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const existingData = trends.find(t =>
-        new Date(t.month).getMonth() === monthDate.getMonth() &&
-        new Date(t.month).getFullYear() === monthDate.getFullYear()
+      const existingData = trends.find(
+        t =>
+          new Date(t.month).getMonth() === monthDate.getMonth() &&
+          new Date(t.month).getFullYear() === monthDate.getFullYear()
       );
 
       if (existingData) {
@@ -637,7 +649,7 @@ export const getMonthlyTrends = async (req: AuthenticatedRequest, res: Response)
           month: monthDate.toISOString(),
           monthName: monthDate.toLocaleDateString('en-US', {
             year: 'numeric',
-            month: 'long'
+            month: 'long',
           }),
           totalCases: 0,
           completedCases: 0,
@@ -681,7 +693,13 @@ export const getMonthlyTrends = async (req: AuthenticatedRequest, res: Response)
 // GET /api/dashboard/overdue-tasks - Get overdue verification tasks
 export const getOverdueTasks = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { threshold = '1', page = 1, limit = 50, sortBy = 'days_overdue', sortOrder = 'desc' } = req.query;
+    const {
+      threshold = '1',
+      page = 1,
+      limit = 50,
+      sortBy = 'days_overdue',
+      sortOrder = 'desc',
+    } = req.query;
 
     // Role-based filtering - FIELD_AGENT users can only see their own tasks
     const userRole = req.user?.role;
@@ -748,7 +766,14 @@ export const getOverdueTasks = async (req: AuthenticatedRequest, res: Response) 
     paramIndex++;
 
     // Add sorting
-    const validSortColumns = ['days_overdue', 'task_number', 'customer_name', 'status', 'priority', 'created_at'];
+    const validSortColumns = [
+      'days_overdue',
+      'task_number',
+      'customer_name',
+      'status',
+      'priority',
+      'created_at',
+    ];
     const sortColumn = validSortColumns.includes(sortBy as string) ? sortBy : 'days_overdue';
     const sortDirection = sortOrder === 'asc' ? 'ASC' : 'DESC';
     overdueQuery += ` ORDER BY ${sortColumn} ${sortDirection}`;
@@ -787,7 +812,7 @@ export const getOverdueTasks = async (req: AuthenticatedRequest, res: Response) 
 
     const [tasksResult, countResult] = await Promise.all([
       pool.query(overdueQuery, queryParams),
-      pool.query(countQuery, countParams)
+      pool.query(countQuery, countParams),
     ]);
 
     const tasks = tasksResult.rows.map(task => ({
@@ -891,9 +916,10 @@ export const getTATStats = async (req: AuthenticatedRequest, res: Response) => {
       criticalOverdue: parseInt(stats.critical_overdue) || 0,
       totalOverdue: parseInt(stats.total_overdue) || 0,
       totalActiveTasks: parseInt(stats.total_active_tasks) || 0,
-      overduePercentage: stats.total_active_tasks > 0
-        ? Math.round((parseInt(stats.total_overdue) / parseInt(stats.total_active_tasks)) * 100)
-        : 0,
+      overduePercentage:
+        stats.total_active_tasks > 0
+          ? Math.round((parseInt(stats.total_overdue) / parseInt(stats.total_active_tasks)) * 100)
+          : 0,
     };
 
     logger.info('TAT stats retrieved', {

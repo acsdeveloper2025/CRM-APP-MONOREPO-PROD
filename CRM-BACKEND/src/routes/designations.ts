@@ -25,20 +25,12 @@ const createDesignationValidation = [
     .trim()
     .isLength({ max: 500 })
     .withMessage('Description must be less than 500 characters'),
-  body('departmentId')
-    .optional()
-    .isUUID()
-    .withMessage('Department ID must be a valid UUID'),
-  body('isActive')
-    .optional()
-    .isBoolean()
-    .withMessage('isActive must be a boolean'),
+  body('departmentId').optional().isUUID().withMessage('Department ID must be a valid UUID'),
+  body('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
 ];
 
 const updateDesignationValidation = [
-  param('id')
-    .isUUID()
-    .withMessage('Designation ID must be a valid UUID'),
+  param('id').isUUID().withMessage('Designation ID must be a valid UUID'),
   body('name')
     .optional()
     .trim()
@@ -49,21 +41,12 @@ const updateDesignationValidation = [
     .trim()
     .isLength({ max: 500 })
     .withMessage('Description must be less than 500 characters'),
-  body('departmentId')
-    .optional()
-    .isUUID()
-    .withMessage('Department ID must be a valid UUID'),
-  body('isActive')
-    .optional()
-    .isBoolean()
-    .withMessage('isActive must be a boolean'),
+  body('departmentId').optional().isUUID().withMessage('Department ID must be a valid UUID'),
+  body('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
 ];
 
 const getDesignationsValidation = [
-  query('page')
-    .optional()
-    .isInt({ min: 1 })
-    .withMessage('Page must be a positive integer'),
+  query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
   query('limit')
     .optional()
     .isInt({ min: 1, max: 100 })
@@ -73,20 +56,12 @@ const getDesignationsValidation = [
     .trim()
     .isLength({ max: 100 })
     .withMessage('Search term must be less than 100 characters'),
-  query('isActive')
-    .optional()
-    .isBoolean()
-    .withMessage('isActive must be a boolean'),
-  query('departmentId')
-    .optional()
-    .isUUID()
-    .withMessage('Department ID must be a valid UUID'),
+  query('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
+  query('departmentId').optional().isUUID().withMessage('Department ID must be a valid UUID'),
 ];
 
 const designationIdValidation = [
-  param('id')
-    .isUUID()
-    .withMessage('Designation ID must be a valid UUID'),
+  param('id').isUUID().withMessage('Designation ID must be a valid UUID'),
 ];
 
 // Routes
@@ -105,10 +80,7 @@ router.get(
 router.get(
   '/active',
   auth,
-  query('departmentId')
-    .optional()
-    .isUUID()
-    .withMessage('Department ID must be a valid UUID'),
+  query('departmentId').optional().isUUID().withMessage('Department ID must be a valid UUID'),
   validate,
   getActiveDesignations
 );

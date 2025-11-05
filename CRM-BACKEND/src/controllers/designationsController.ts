@@ -1,23 +1,17 @@
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import { query } from '@/config/database';
 import { logger } from '@/config/logger';
-import { AuthenticatedRequest } from '@/middleware/auth';
+import type { AuthenticatedRequest } from '@/middleware/auth';
 
 // Get all designations
 export const getDesignations = async (req: Request, res: Response) => {
   try {
-    const { 
-      page = 1, 
-      limit = 50, 
-      search = '', 
-      isActive,
-      departmentId 
-    } = req.query;
+    const { page = 1, limit = 50, search = '', isActive, departmentId } = req.query;
 
     const offset = (Number(page) - 1) * Number(limit);
-    
-    let whereConditions = [];
-    let queryParams: any[] = [];
+
+    const whereConditions = [];
+    const queryParams: any[] = [];
     let paramIndex = 1;
 
     // Search filter
@@ -75,7 +69,7 @@ export const getDesignations = async (req: Request, res: Response) => {
 
     const [designationsResult, countResult] = await Promise.all([
       query(designationsQuery, queryParams),
-      query(countQuery, queryParams.slice(0, -2)) // Remove limit and offset for count
+      query(countQuery, queryParams.slice(0, -2)), // Remove limit and offset for count
     ]);
 
     const total = parseInt(countResult.rows[0].total);
@@ -158,10 +152,7 @@ export const createDesignation = async (req: AuthenticatedRequest, res: Response
     const userId = req.user?.id;
 
     // Check if designation name already exists
-    const existingDesignation = await query(
-      'SELECT id FROM designations WHERE name = $1',
-      [name]
-    );
+    const existingDesignation = await query('SELECT id FROM designations WHERE name = $1', [name]);
 
     if (existingDesignation.rows.length > 0) {
       return res.status(400).json({
@@ -183,7 +174,7 @@ export const createDesignation = async (req: AuthenticatedRequest, res: Response
       departmentId || null,
       isActive,
       userId,
-      userId
+      userId,
     ]);
 
     const newDesignation = result.rows[0];
@@ -213,10 +204,9 @@ export const updateDesignation = async (req: AuthenticatedRequest, res: Response
     const userId = req.user?.id;
 
     // Check if designation exists
-    const existingDesignation = await query(
-      'SELECT id, name FROM designations WHERE id = $1',
-      [id]
-    );
+    const existingDesignation = await query('SELECT id, name FROM designations WHERE id = $1', [
+      id,
+    ]);
 
     if (existingDesignation.rows.length === 0) {
       return res.status(404).json({
@@ -228,10 +218,10 @@ export const updateDesignation = async (req: AuthenticatedRequest, res: Response
 
     // Check if new name conflicts with existing designation (excluding current one)
     if (name && name !== existingDesignation.rows[0].name) {
-      const nameConflict = await query(
-        'SELECT id FROM designations WHERE name = $1 AND id != $2',
-        [name, id]
-      );
+      const nameConflict = await query('SELECT id FROM designations WHERE name = $1 AND id != $2', [
+        name,
+        id,
+      ]);
 
       if (nameConflict.rows.length > 0) {
         return res.status(400).json({
@@ -261,7 +251,7 @@ export const updateDesignation = async (req: AuthenticatedRequest, res: Response
       departmentId || null,
       isActive !== undefined ? isActive : null,
       userId,
-      id
+      id,
     ]);
 
     const updatedDesignation = result.rows[0];
@@ -290,10 +280,9 @@ export const deleteDesignation = async (req: AuthenticatedRequest, res: Response
     const userId = req.user?.id;
 
     // Check if designation exists
-    const existingDesignation = await query(
-      'SELECT id, name FROM designations WHERE id = $1',
-      [id]
-    );
+    const existingDesignation = await query('SELECT id, name FROM designations WHERE id = $1', [
+      id,
+    ]);
 
     if (existingDesignation.rows.length === 0) {
       return res.status(404).json({
@@ -304,10 +293,9 @@ export const deleteDesignation = async (req: AuthenticatedRequest, res: Response
     }
 
     // Check if designation is being used by any users
-    const usageCheck = await query(
-      'SELECT COUNT(*) as count FROM users WHERE designation = $1',
-      [existingDesignation.rows[0].name]
-    );
+    const usageCheck = await query('SELECT COUNT(*) as count FROM users WHERE designation = $1', [
+      existingDesignation.rows[0].name,
+    ]);
 
     if (parseInt(usageCheck.rows[0].count) > 0) {
       return res.status(400).json({
@@ -319,7 +307,10 @@ export const deleteDesignation = async (req: AuthenticatedRequest, res: Response
 
     await query('DELETE FROM designations WHERE id = $1', [id]);
 
-    logger.info(`Designation deleted: ${existingDesignation.rows[0].name}`, { designationId: id, userId });
+    logger.info(`Designation deleted: ${existingDesignation.rows[0].name}`, {
+      designationId: id,
+      userId,
+    });
 
     res.json({
       success: true,

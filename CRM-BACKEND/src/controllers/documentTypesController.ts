@@ -1,5 +1,6 @@
-import { Request, Response } from 'express';
-import { AuthenticatedRequest } from '../middleware/auth';
+import type { Response } from 'express';
+import { Request } from 'express';
+import type { AuthenticatedRequest } from '../middleware/auth';
 import { logger } from '../utils/logger';
 import { query, withTransaction } from '../config/database';
 import { createAuditLog } from '../utils/auditLogger';
@@ -16,7 +17,7 @@ export const getDocumentTypes = async (req: AuthenticatedRequest, res: Response)
       isGovernmentIssued,
       requiresVerification,
       sortBy = 'sort_order',
-      sortOrder = 'asc'
+      sortOrder = 'asc',
     } = req.query;
 
     const offset = (Number(page) - 1) * Number(limit);
@@ -26,7 +27,9 @@ export const getDocumentTypes = async (req: AuthenticatedRequest, res: Response)
 
     // Build WHERE conditions
     if (search) {
-      conditions.push(`(COALESCE(dt.name, '') ILIKE $${paramIndex} OR COALESCE(dt.code, '') ILIKE $${paramIndex} OR COALESCE(dt.description, '') ILIKE $${paramIndex})`);
+      conditions.push(
+        `(COALESCE(dt.name, '') ILIKE $${paramIndex} OR COALESCE(dt.code, '') ILIKE $${paramIndex} OR COALESCE(dt.description, '') ILIKE $${paramIndex})`
+      );
       params.push(`%${search}%`);
       paramIndex++;
     }
@@ -58,7 +61,14 @@ export const getDocumentTypes = async (req: AuthenticatedRequest, res: Response)
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
     // Validate sort field
-    const allowedSortFields = ['name', 'code', 'category', 'sort_order', 'created_at', 'updated_at'];
+    const allowedSortFields = [
+      'name',
+      'code',
+      'category',
+      'sort_order',
+      'created_at',
+      'updated_at',
+    ];
     const sortField = allowedSortFields.includes(String(sortBy)) ? String(sortBy) : 'sort_order';
     const sortDirection = String(sortOrder).toLowerCase() === 'desc' ? 'DESC' : 'ASC';
 
@@ -224,14 +234,11 @@ export const createDocumentType = async (req: AuthenticatedRequest, res: Respons
       formatPattern,
       minLength,
       maxLength,
-      sortOrder = 0
+      sortOrder = 0,
     } = req.body;
 
     // Check if document type code already exists
-    const existingResult = await query(
-      `SELECT id FROM "documentTypes" WHERE code = $1`,
-      [code]
-    );
+    const existingResult = await query(`SELECT id FROM "documentTypes" WHERE code = $1`, [code]);
 
     if (existingResult.rows.length > 0) {
       return res.status(400).json({
@@ -263,14 +270,14 @@ export const createDocumentType = async (req: AuthenticatedRequest, res: Respons
       minLength,
       maxLength,
       sortOrder,
-      req.user?.id
+      req.user?.id,
     ]);
 
     const newDocumentType = result.rows[0];
 
     // Create audit log
     await createAuditLog({
-      userId: req.user?.id!,
+      userId: req.user?.id,
       action: 'CREATE',
       entityType: 'DOCUMENT_TYPE',
       entityId: newDocumentType.id.toString(),
@@ -321,10 +328,7 @@ export const updateDocumentType = async (req: AuthenticatedRequest, res: Respons
     const updateData = req.body;
 
     // Check if document type exists
-    const existingResult = await query(
-      `SELECT * FROM "documentTypes" WHERE id = $1`,
-      [Number(id)]
-    );
+    const existingResult = await query(`SELECT * FROM "documentTypes" WHERE id = $1`, [Number(id)]);
 
     if (existingResult.rows.length === 0) {
       return res.status(404).json({
@@ -367,7 +371,7 @@ export const updateDocumentType = async (req: AuthenticatedRequest, res: Respons
       minLength: 'min_length',
       maxLength: 'max_length',
       isActive: 'is_active',
-      sortOrder: 'sort_order'
+      sortOrder: 'sort_order',
     };
 
     Object.keys(updateData).forEach(key => {
@@ -408,13 +412,13 @@ export const updateDocumentType = async (req: AuthenticatedRequest, res: Respons
 
     // Create audit log
     await createAuditLog({
-      userId: req.user?.id!,
+      userId: req.user?.id,
       action: 'UPDATE',
       entityType: 'DOCUMENT_TYPE',
       entityId: id,
       details: {
         updatedFields: Object.keys(updateData),
-        documentTypeName: updatedDocumentType.name
+        documentTypeName: updatedDocumentType.name,
       },
     });
 
@@ -461,10 +465,7 @@ export const deleteDocumentType = async (req: AuthenticatedRequest, res: Respons
     const { id } = req.params;
 
     // Check if document type exists
-    const existingResult = await query(
-      `SELECT * FROM "documentTypes" WHERE id = $1`,
-      [Number(id)]
-    );
+    const existingResult = await query(`SELECT * FROM "documentTypes" WHERE id = $1`, [Number(id)]);
 
     if (existingResult.rows.length === 0) {
       return res.status(404).json({
@@ -481,7 +482,7 @@ export const deleteDocumentType = async (req: AuthenticatedRequest, res: Respons
       `SELECT COUNT(*) as count FROM "clientDocumentTypes" WHERE "documentTypeId" = $1`,
       `SELECT COUNT(*) as count FROM "productDocumentTypes" WHERE "documentTypeId" = $1`,
       `SELECT COUNT(*) as count FROM verification_tasks WHERE document_type_id = $1`,
-      `SELECT COUNT(*) as count FROM cases WHERE document_type_id = $1`
+      `SELECT COUNT(*) as count FROM cases WHERE document_type_id = $1`,
     ];
 
     let totalUsage = 0;
@@ -501,7 +502,7 @@ export const deleteDocumentType = async (req: AuthenticatedRequest, res: Respons
         message: 'Cannot delete document type as it is being used',
         error: {
           code: 'DOCUMENT_TYPE_IN_USE',
-          details: { usageCount: totalUsage }
+          details: { usageCount: totalUsage },
         },
       });
     }
@@ -511,13 +512,13 @@ export const deleteDocumentType = async (req: AuthenticatedRequest, res: Respons
 
     // Create audit log
     await createAuditLog({
-      userId: req.user?.id!,
+      userId: req.user?.id,
       action: 'DELETE',
       entityType: 'DOCUMENT_TYPE',
       entityId: id,
       details: {
         documentTypeName: documentType.name,
-        documentTypeCode: documentType.code
+        documentTypeCode: documentType.code,
       },
     });
 
@@ -581,9 +582,9 @@ export const getDocumentTypeStats = async (req: AuthenticatedRequest, res: Respo
         requiresVerificationCount: parseInt(stats.requires_verification_count),
         documentTypesByCategory: categoryResult.rows.map(row => ({
           category: row.category,
-          count: parseInt(row.count)
-        }))
-      }
+          count: parseInt(row.count),
+        })),
+      },
     };
 
     logger.info('Retrieved document type statistics', {
@@ -617,7 +618,7 @@ export const getDocumentTypeCategories = async (req: AuthenticatedRequest, res: 
 
     res.json({
       success: true,
-      data: categories
+      data: categories,
     });
   } catch (error) {
     logger.error('Error retrieving document type categories:', error);

@@ -1,4 +1,4 @@
-import { Request } from 'express';
+import type { Request } from 'express';
 
 // Role enum for consistent usage
 export enum Role {
@@ -7,7 +7,7 @@ export enum Role {
   BACKEND_USER = 'BACKEND_USER',
   FIELD_AGENT = 'FIELD_AGENT',
   MANAGER = 'MANAGER',
-  REPORT_PERSON = 'REPORT_PERSON'
+  REPORT_PERSON = 'REPORT_PERSON',
 }
 
 export interface LoginRequest {
@@ -39,7 +39,6 @@ export interface LoginResponse {
       designation: string;
       department: string;
       profilePhotoUrl?: string;
-
     };
     tokens: {
       accessToken: string;
@@ -47,8 +46,6 @@ export interface LoginResponse {
     };
   };
 }
-
-
 
 export interface JwtPayload {
   userId: string;

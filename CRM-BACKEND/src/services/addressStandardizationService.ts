@@ -33,38 +33,65 @@ export interface AddressValidationResult {
 
 class AddressStandardizationService {
   private readonly INDIAN_STATES = [
-    'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh',
-    'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jharkhand', 'Karnataka',
-    'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram',
-    'Nagaland', 'Odisha', 'Punjab', 'Rajasthan', 'Sikkim', 'Tamil Nadu',
-    'Telangana', 'Tripura', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal',
-    'Andaman and Nicobar Islands', 'Chandigarh', 'Dadra and Nagar Haveli and Daman and Diu',
-    'Delhi', 'Jammu and Kashmir', 'Ladakh', 'Lakshadweep', 'Puducherry'
+    'Andhra Pradesh',
+    'Arunachal Pradesh',
+    'Assam',
+    'Bihar',
+    'Chhattisgarh',
+    'Goa',
+    'Gujarat',
+    'Haryana',
+    'Himachal Pradesh',
+    'Jharkhand',
+    'Karnataka',
+    'Kerala',
+    'Madhya Pradesh',
+    'Maharashtra',
+    'Manipur',
+    'Meghalaya',
+    'Mizoram',
+    'Nagaland',
+    'Odisha',
+    'Punjab',
+    'Rajasthan',
+    'Sikkim',
+    'Tamil Nadu',
+    'Telangana',
+    'Tripura',
+    'Uttar Pradesh',
+    'Uttarakhand',
+    'West Bengal',
+    'Andaman and Nicobar Islands',
+    'Chandigarh',
+    'Dadra and Nagar Haveli and Daman and Diu',
+    'Delhi',
+    'Jammu and Kashmir',
+    'Ladakh',
+    'Lakshadweep',
+    'Puducherry',
   ];
 
   async standardizeAddress(address: string | Address): Promise<AddressValidationResult> {
     try {
-      const addressObj = typeof address === 'string' 
-        ? this.parseAddressString(address)
-        : address;
+      const addressObj = typeof address === 'string' ? this.parseAddressString(address) : address;
 
       const validation = this.validateAddressComponents(addressObj);
-      
+
       if (!validation.isValid) {
         return validation;
       }
 
       const standardized = await this.standardizeComponents(addressObj);
-      
+
       return {
         isValid: true,
         standardized,
-        suggestions: []
+        suggestions: [],
       };
     } catch (error) {
       return {
         isValid: false,
-        errors: [error instanceof Error ? error.message : 'Unknown error occurred']
+        errors: [error instanceof Error ? error.message : 'Unknown error occurred'],
       };
     }
   }
@@ -72,9 +99,9 @@ class AddressStandardizationService {
   private parseAddressString(address: string): Address {
     // Simple address parsing - can be enhanced with more sophisticated logic
     const parts = address.split(',').map(part => part.trim());
-    
+
     const result: Address = {};
-    
+
     // Try to extract pincode (6 digits)
     const pincodeMatch = address.match(/\b\d{6}\b/);
     if (pincodeMatch) {
@@ -82,7 +109,7 @@ class AddressStandardizationService {
     }
 
     // Try to extract state
-    const stateMatch = this.INDIAN_STATES.find(state => 
+    const stateMatch = this.INDIAN_STATES.find(state =>
       address.toLowerCase().includes(state.toLowerCase())
     );
     if (stateMatch) {
@@ -113,8 +140,8 @@ class AddressStandardizationService {
 
     // Validate state
     if (address.state) {
-      const isValidState = this.INDIAN_STATES.some(state => 
-        state.toLowerCase() === address.state?.toLowerCase()
+      const isValidState = this.INDIAN_STATES.some(
+        state => state.toLowerCase() === address.state?.toLowerCase()
       );
       if (!isValidState) {
         errors.push('Invalid state name');
@@ -123,16 +150,15 @@ class AddressStandardizationService {
 
     return {
       isValid: errors.length === 0,
-      errors: errors.length > 0 ? errors : undefined
+      errors: errors.length > 0 ? errors : undefined,
     };
   }
 
   private async standardizeComponents(address: Address): Promise<StandardizedAddress> {
     // Standardize state name
-    const standardizedState = address.state 
-      ? this.INDIAN_STATES.find(state => 
-          state.toLowerCase() === address.state?.toLowerCase()
-        ) || address.state
+    const standardizedState = address.state
+      ? this.INDIAN_STATES.find(state => state.toLowerCase() === address.state?.toLowerCase()) ||
+        address.state
       : '';
 
     // Format the address
@@ -141,7 +167,7 @@ class AddressStandardizationService {
       address.city,
       standardizedState,
       address.pincode,
-      address.country || 'India'
+      address.country || 'India',
     ].filter(Boolean);
 
     const formatted = addressParts.join(', ');
@@ -157,8 +183,8 @@ class AddressStandardizationService {
         city: address.city || '',
         state: standardizedState,
         pincode: address.pincode || '',
-        country: address.country || 'India'
-      }
+        country: address.country || 'India',
+      },
     };
   }
 
@@ -199,7 +225,9 @@ class AddressStandardizationService {
     return Math.round((score / maxScore) * 100);
   }
 
-  async validatePincode(pincode: string): Promise<{ isValid: boolean; area?: string; district?: string; state?: string }> {
+  async validatePincode(
+    pincode: string
+  ): Promise<{ isValid: boolean; area?: string; district?: string; state?: string }> {
     // Simple pincode validation - in production, this would use a pincode database
     if (!/^\d{6}$/.test(pincode)) {
       return { isValid: false };
@@ -215,23 +243,25 @@ class AddressStandardizationService {
       5: 'Uttar Pradesh',
       6: 'Bihar',
       7: 'West Bengal',
-      8: 'Odisha'
+      8: 'Odisha',
     };
 
     return {
       isValid: true,
       state: stateMapping[firstDigit] || 'Unknown',
       district: 'Unknown',
-      area: 'Unknown'
+      area: 'Unknown',
     };
   }
 
-  async geocodeAddress(address: string | Address): Promise<{ latitude?: number; longitude?: number; accuracy?: string }> {
+  async geocodeAddress(
+    address: string | Address
+  ): Promise<{ latitude?: number; longitude?: number; accuracy?: string }> {
     // Mock geocoding - in production, this would use a geocoding service
     return {
       latitude: 28.6139, // Delhi coordinates as default
-      longitude: 77.2090,
-      accuracy: 'approximate'
+      longitude: 77.209,
+      accuracy: 'approximate',
     };
   }
 
@@ -254,10 +284,9 @@ class AddressStandardizationService {
       lines.push(address.components.city);
     }
 
-    const lastLine = [
-      address.components.state,
-      address.components.pincode
-    ].filter(Boolean).join(' - ');
+    const lastLine = [address.components.state, address.components.pincode]
+      .filter(Boolean)
+      .join(' - ');
 
     if (lastLine) {
       lines.push(lastLine);

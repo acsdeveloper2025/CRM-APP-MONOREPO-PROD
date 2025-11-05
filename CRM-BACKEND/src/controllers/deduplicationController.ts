@@ -1,8 +1,10 @@
-import { Request, Response } from 'express';
-import { DeduplicationService, DeduplicationCriteria, DeduplicationDecision } from '@/services/deduplicationService';
+import type { Response } from 'express';
+import { Request } from 'express';
+import type { DeduplicationCriteria } from '@/services/deduplicationService';
+import { DeduplicationService, DeduplicationDecision } from '@/services/deduplicationService';
 import { pool } from '@/config/database';
 import { logger } from '@/utils/logger';
-import { AuthenticatedRequest } from '@/middleware/auth';
+import type { AuthenticatedRequest } from '@/middleware/auth';
 
 const deduplicationService = new DeduplicationService(pool);
 
@@ -15,8 +17,8 @@ export const searchDuplicates = async (req: AuthenticatedRequest, res: Response)
     const criteria: DeduplicationCriteria = req.body as DeduplicationCriteria;
 
     // Validate that at least one search criterion is provided
-    const hasValidCriteria = Object.values(criteria).some(value => 
-      value && typeof value === 'string' && value.trim().length > 0
+    const hasValidCriteria = Object.values(criteria).some(
+      value => value && typeof value === 'string' && value.trim().length > 0
     );
 
     if (!hasValidCriteria) {
@@ -24,8 +26,8 @@ export const searchDuplicates = async (req: AuthenticatedRequest, res: Response)
         success: false,
         error: {
           message: 'At least one search criterion must be provided',
-          code: 'INVALID_SEARCH_CRITERIA'
-        }
+          code: 'INVALID_SEARCH_CRITERIA',
+        },
       });
     }
 
@@ -44,8 +46,8 @@ export const searchDuplicates = async (req: AuthenticatedRequest, res: Response)
           success: false,
           error: {
             message: 'Invalid PAN number format',
-            code: 'INVALID_PAN_FORMAT'
-          }
+            code: 'INVALID_PAN_FORMAT',
+          },
         });
       }
       cleanCriteria.panNumber = pan;
@@ -62,17 +64,16 @@ export const searchDuplicates = async (req: AuthenticatedRequest, res: Response)
 
     res.json({
       success: true,
-      data: result
+      data: result,
     });
-
   } catch (error) {
     logger.error('Error in searchDuplicates controller', { error });
     res.status(500).json({
       success: false,
       error: {
         message: 'Failed to search for duplicates',
-        code: 'DEDUPLICATION_SEARCH_ERROR'
-      }
+        code: 'DEDUPLICATION_SEARCH_ERROR',
+      },
     });
   }
 };
@@ -83,15 +84,15 @@ export const searchDuplicates = async (req: AuthenticatedRequest, res: Response)
  */
 export const recordDeduplicationDecision = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { decision, duplicatesFound, searchCriteria } = req.body as any;
+    const { decision, duplicatesFound, searchCriteria } = req.body;
 
-    if (!decision || !decision.caseId || !decision.decision || !decision.rationale) {
+    if (!decision?.caseId || !decision.decision || !decision.rationale) {
       return res.status(400).json({
         success: false,
         error: {
           message: 'Missing required decision fields',
-          code: 'INVALID_DECISION_DATA'
-        }
+          code: 'INVALID_DECISION_DATA',
+        },
       });
     }
 
@@ -101,8 +102,8 @@ export const recordDeduplicationDecision = async (req: AuthenticatedRequest, res
         success: false,
         error: {
           message: 'Invalid decision type',
-          code: 'INVALID_DECISION_TYPE'
-        }
+          code: 'INVALID_DECISION_TYPE',
+        },
       });
     }
 
@@ -111,8 +112,8 @@ export const recordDeduplicationDecision = async (req: AuthenticatedRequest, res
         success: false,
         error: {
           message: 'User not authenticated',
-          code: 'AUTHENTICATION_REQUIRED'
-        }
+          code: 'AUTHENTICATION_REQUIRED',
+        },
       });
     }
 
@@ -125,17 +126,16 @@ export const recordDeduplicationDecision = async (req: AuthenticatedRequest, res
 
     res.json({
       success: true,
-      message: 'Deduplication decision recorded successfully'
+      message: 'Deduplication decision recorded successfully',
     });
-
   } catch (error) {
     logger.error('Error in recordDeduplicationDecision controller', { error });
     res.status(500).json({
       success: false,
       error: {
         message: 'Failed to record deduplication decision',
-        code: 'DEDUPLICATION_DECISION_ERROR'
-      }
+        code: 'DEDUPLICATION_DECISION_ERROR',
+      },
     });
   }
 };
@@ -153,8 +153,8 @@ export const getDeduplicationHistory = async (req: AuthenticatedRequest, res: Re
         success: false,
         error: {
           message: 'Case ID is required',
-          code: 'MISSING_CASE_ID'
-        }
+          code: 'MISSING_CASE_ID',
+        },
       });
     }
 
@@ -162,17 +162,16 @@ export const getDeduplicationHistory = async (req: AuthenticatedRequest, res: Re
 
     res.json({
       success: true,
-      data: history
+      data: history,
     });
-
   } catch (error) {
     logger.error('Error in getDeduplicationHistory controller', { error });
     res.status(500).json({
       success: false,
       error: {
         message: 'Failed to fetch deduplication history',
-        code: 'DEDUPLICATION_HISTORY_ERROR'
-      }
+        code: 'DEDUPLICATION_HISTORY_ERROR',
+      },
     });
   }
 };
@@ -240,7 +239,7 @@ export const getDuplicateClusters = async (req: AuthenticatedRequest, res: Respo
 
     const [clustersResult, countResult] = await Promise.all([
       pool.query(query, [limit, offset]),
-      pool.query(countQuery)
+      pool.query(countQuery),
     ]);
 
     const clusters = clustersResult.rows;
@@ -254,19 +253,18 @@ export const getDuplicateClusters = async (req: AuthenticatedRequest, res: Respo
           page: Number(page),
           limit: Number(limit),
           total,
-          totalPages: Math.ceil(total / Number(limit))
-        }
-      }
+          totalPages: Math.ceil(total / Number(limit)),
+        },
+      },
     });
-
   } catch (error) {
     logger.error('Error in getDuplicateClusters controller', { error });
     res.status(500).json({
       success: false,
       error: {
         message: 'Failed to fetch duplicate clusters',
-        code: 'DUPLICATE_CLUSTERS_ERROR'
-      }
+        code: 'DUPLICATE_CLUSTERS_ERROR',
+      },
     });
   }
 };
