@@ -299,12 +299,12 @@ class AddressStandardizationService {
     return lines.join('\n');
   }
 
-  async searchAddresses(filters: any): Promise<StandardizedAddress[]> {
+  async searchAddresses(_filters: any): Promise<StandardizedAddress[]> {
     // Mock implementation - in production, this would search a database
     return [];
   }
 
-  async getStandardizedAddress(caseId: string): Promise<StandardizedAddress | null> {
+  async getStandardizedAddress(_caseId: string): Promise<StandardizedAddress | null> {
     // Mock implementation - in production, this would fetch from database
     return null;
   }
