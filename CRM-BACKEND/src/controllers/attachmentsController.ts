@@ -115,9 +115,9 @@ export const uploadAttachment = async (req: AuthenticatedRequest, res: Response)
       const files = req.files as Express.Multer.File[];
       const {
         caseId,
-        description,
-        category = 'DOCUMENT',
-        isPublic = false,
+        // description,
+        // category = 'DOCUMENT',
+        // isPublic = false,
         verification_task_id,
       } = req.body;
 
