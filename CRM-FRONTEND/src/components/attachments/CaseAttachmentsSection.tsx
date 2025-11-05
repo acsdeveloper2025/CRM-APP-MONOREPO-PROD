@@ -1,5 +1,4 @@
 import React, { useState, useRef } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -11,7 +10,6 @@ import {
   Download,
   Eye,
   Trash2,
-  Plus,
   Paperclip
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -177,7 +175,7 @@ export const CaseAttachmentsSection: React.FC<CaseAttachmentsSectionProps> = ({ 
       toast.success(`${selectedFiles.length} file(s) uploaded successfully`);
       setSelectedFiles([]);
       refetch();
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to upload files');
     } finally {
       setUploading(false);
@@ -200,7 +198,7 @@ export const CaseAttachmentsSection: React.FC<CaseAttachmentsSectionProps> = ({ 
 
       toast.success('Attachment deleted successfully');
       refetch();
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to delete attachment');
     }
   };
@@ -228,7 +226,7 @@ export const CaseAttachmentsSection: React.FC<CaseAttachmentsSectionProps> = ({ 
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to download attachment');
     }
   };

@@ -8,7 +8,6 @@ import {
   Upload,
   FileText,
   Image,
-  Download,
   Eye,
   Trash2,
   Plus,
