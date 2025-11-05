@@ -14,7 +14,6 @@ import {
   createProduct,
   updateProduct,
   deleteProduct,
-  getProductsByClient,
   getProductStats,
   getProductVerificationTypes,
 } from '@/controllers/productsController';
