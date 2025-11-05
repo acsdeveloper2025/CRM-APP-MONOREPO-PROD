@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { 
   Select,
@@ -32,28 +31,18 @@ import { useAgentPerformance } from '@/hooks/useAnalytics';
 import {
   Users,
   TrendingUp,
-  Award,
   Target,
-  Clock,
   Star,
-  BarChart3,
   Activity,
   XCircle
 } from 'lucide-react';
-
-const PERFORMANCE_COLORS = {
-  excellent: '#10b981',
-  good: '#3b82f6',
-  average: '#f59e0b',
-  poor: '#ef4444'
-};
 
 export const AgentPerformanceCharts: React.FC = () => {
   const [timeRange, setTimeRange] = useState('30d');
   const [viewType, setViewType] = useState<'overview' | 'individual' | 'comparison' | 'trends'>('overview');
   const [selectedAgent, setSelectedAgent] = useState<string>('all');
 
-  const { data: performanceData, isLoading, error } = useAgentPerformance({
+  const { data: performanceData, error } = useAgentPerformance({
     dateFrom: getDateFromRange(timeRange),
     dateTo: new Date().toISOString().split('T')[0],
     agentId: selectedAgent !== 'all' ? selectedAgent : undefined,
@@ -170,10 +159,6 @@ export const AgentPerformanceCharts: React.FC = () => {
       }
     ];
   }
-
-  const getPerformanceColor = (performance: string) => {
-    return PERFORMANCE_COLORS[performance as keyof typeof PERFORMANCE_COLORS] || '#6b7280';
-  };
 
   const getPerformanceBadge = (performance: string) => {
     const colors = {
@@ -356,10 +341,10 @@ export const AgentPerformanceCharts: React.FC = () => {
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="casesCompleted" name="Cases Completed" />
                   <YAxis dataKey="qualityScore" name="Quality Score" />
-                  <Tooltip 
+                  <Tooltip
                     cursor={{ strokeDasharray: '3 3' }}
                     formatter={(value, name) => [value, name === 'qualityScore' ? 'Quality Score' : 'Cases Completed']}
-                    labelFormatter={(label, payload) => payload?.[0]?.payload?.fullName || ''}
+                    labelFormatter={(_label, payload) => payload?.[0]?.payload?.fullName || ''}
                   />
                   <Scatter dataKey="qualityScore" fill="#8b5cf6" />
                 </ScatterChart>
