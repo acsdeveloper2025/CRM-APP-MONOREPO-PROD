@@ -311,7 +311,7 @@ export const TaskDetailPage: React.FC = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {assignmentHistory.map((item, index) => (
+                  {assignmentHistory.map((item) => (
                     <div key={item.id} className="flex items-start space-x-4">
                       <div className="flex-shrink-0 w-2 h-2 mt-2 rounded-full bg-primary" />
                       <div className="flex-1">

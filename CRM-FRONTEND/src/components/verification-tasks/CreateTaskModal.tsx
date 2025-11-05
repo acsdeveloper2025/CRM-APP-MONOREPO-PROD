@@ -186,7 +186,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
   const validateTasks = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    tasks.forEach((task, index) => {
+    tasks.forEach((task) => {
       if (!task.taskTitle.trim()) {
         newErrors[`${task.id}.taskTitle`] = 'Task title is required';
       }
