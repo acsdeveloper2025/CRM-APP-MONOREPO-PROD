@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Shield, Smartphone, Monitor, Palette, AlertTriangle, RefreshCw, Eye, EyeOff } from 'lucide-react';
+import { Shield, Monitor, Palette, AlertTriangle, RefreshCw, Eye, EyeOff } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
