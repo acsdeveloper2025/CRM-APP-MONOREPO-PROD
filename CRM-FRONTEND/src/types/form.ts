@@ -1,9 +1,6 @@
 import {
   FORM_TYPES,
   VERIFICATION_OUTCOMES,
-  FORM_SUBMISSION_STATUS,
-  VALIDATION_STATUS,
-  FORM_FIELD_TYPES,
   type FormType as FormTypeConstant,
   type VerificationOutcome as VerificationOutcomeConstant,
   type FormSubmissionStatus,
