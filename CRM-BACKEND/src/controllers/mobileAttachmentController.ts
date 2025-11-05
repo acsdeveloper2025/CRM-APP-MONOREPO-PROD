@@ -221,7 +221,7 @@ export class MobileAttachmentController {
               .jpeg({ quality: 80 })
               .toFile(thumbnailPath);
 
-            thumbnailUrl = `/uploads/mobile/thumbnails/thumb_${path.basename(file.path)}`;
+            const _thumbnailUrl = `/uploads/mobile/thumbnails/thumb_${path.basename(file.path)}`;
           }
 
           // Save attachment to database with verification_task_id for field agents
