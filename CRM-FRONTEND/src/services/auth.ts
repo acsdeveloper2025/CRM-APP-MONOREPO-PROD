@@ -47,7 +47,7 @@ export class AuthService {
   async logout(): Promise<void> {
     try {
       await apiService.post('/auth/logout');
-    } catch (error) {
+    } catch (_error) {
       // Continue with logout even if API call fails
     } finally {
       // Clear local storage

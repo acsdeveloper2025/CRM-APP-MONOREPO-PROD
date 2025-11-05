@@ -21,7 +21,7 @@ const safeFormatDistanceToNow = (dateValue: string | null | undefined): string =
     const date = new Date(dateValue);
     if (isNaN(date.getTime())) {return 'Invalid date';}
     return formatDistanceToNow(date, { addSuffix: true });
-  } catch (error) {
+  } catch (_error) {
     return 'Invalid date';
   }
 };
