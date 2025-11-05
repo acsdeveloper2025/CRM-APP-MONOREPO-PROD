@@ -1,4 +1,4 @@
-import { USER_ROLES, type UserRole } from './constants';
+import { type UserRole } from './constants';
 
 export type Role = UserRole;
 

@@ -1,4 +1,4 @@
-import { CASE_STATUS, CASE_PRIORITY, type CaseStatusType, type CasePriorityType } from './constants';
+import { type CaseStatusType, type CasePriorityType } from './constants';
 
 export type CaseStatus = CaseStatusType;
 export type CasePriority = CasePriorityType;
