@@ -17,7 +17,6 @@ import { CreateVerificationTypeDialog } from '@/components/clients/CreateVerific
 import { CreateDocumentTypeDialog } from '@/components/document-types/CreateDocumentTypeDialog';
 import { BulkImportDialog } from '@/components/clients/BulkImportDialog';
 import { useUnifiedSearch } from '@/hooks/useUnifiedSearch';
-import { UnifiedSearchInput } from '@/components/ui/unified-search-input';
 
 export function ClientsPage() {
   const [activeTab, setActiveTab] = useState('clients');

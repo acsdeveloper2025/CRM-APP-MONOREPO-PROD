@@ -11,7 +11,6 @@ import { CommissionsTable } from '@/components/billing/CommissionsTable';
 import { CreateInvoiceDialog } from '@/components/billing/CreateInvoiceDialog';
 import { CommissionSummaryCard } from '@/components/billing/CommissionSummaryCard';
 import { useUnifiedSearch } from '@/hooks/useUnifiedSearch';
-import { UnifiedSearchInput } from '@/components/ui/unified-search-input';
 
 export function BillingPage() {
   const [activeTab, setActiveTab] = useState('invoices');
