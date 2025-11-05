@@ -1,5 +1,5 @@
 import React from 'react';
-import { Menu, Bell, Moon, Sun, LogOut, User, Settings, Trash2 } from 'lucide-react';
+import { Menu, Moon, Sun, LogOut, User, Settings, Trash2 } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';

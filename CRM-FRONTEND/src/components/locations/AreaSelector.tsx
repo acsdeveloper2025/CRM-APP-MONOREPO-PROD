@@ -19,7 +19,6 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { locationsService } from '@/services/locations';
-import { PincodeArea } from '@/types/location';
 
 interface AreaSelectorProps {
   selectedAreas: string[]; // Array of area names
