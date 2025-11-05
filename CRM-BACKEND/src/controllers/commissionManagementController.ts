@@ -6,13 +6,7 @@ import type {
   CommissionRateType,
   CreateCommissionRateTypeData,
   UpdateCommissionRateTypeData,
-  FieldUserCommissionAssignment,
   CreateFieldUserCommissionAssignmentData,
-  CommissionCalculation,
-  CommissionQuery,
-  CreateCommissionCalculationData,
-  CommissionCalculationInput,
-  CommissionCalculationResult,
 } from '../types/commission';
 
 // =====================================================

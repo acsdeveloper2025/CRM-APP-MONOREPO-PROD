@@ -1,6 +1,6 @@
 import type { Response } from 'express';
 import type { DeduplicationCriteria } from '@/services/deduplicationService';
-import { DeduplicationService, DeduplicationDecision } from '@/services/deduplicationService';
+import { DeduplicationService } from '@/services/deduplicationService';
 import { pool } from '@/config/database';
 import { logger } from '@/utils/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';

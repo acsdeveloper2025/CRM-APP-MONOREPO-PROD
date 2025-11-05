@@ -10,7 +10,6 @@ import type {
   MobileVersionCheckResponse,
   MobileAppConfigResponse,
 } from '../types/mobile';
-import { MobileDeviceInfo, MobileNotificationRegistrationRequest } from '../types/mobile';
 import { createAuditLog } from '../utils/auditLogger';
 
 export class MobileAuthController {
