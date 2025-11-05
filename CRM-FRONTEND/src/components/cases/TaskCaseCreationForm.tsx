@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
   Form,
@@ -734,8 +734,6 @@ const TaskAttachmentsSection: React.FC<TaskAttachmentsSectionProps> = ({
   onAttachmentsChange,
 }) => {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [previewAttachment, setPreviewAttachment] = useState<CaseFormAttachment | null>(null);
-  const [showPreview, setShowPreview] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 

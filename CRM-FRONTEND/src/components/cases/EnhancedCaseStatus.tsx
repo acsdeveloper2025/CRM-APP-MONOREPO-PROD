@@ -4,17 +4,15 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  CheckCircle, 
-  AlertCircle, 
-  Clock, 
-  RotateCcw, 
-  Wifi, 
-  WifiOff, 
+import {
+  CheckCircle,
+  AlertCircle,
+  Clock,
+  RotateCcw,
+  Wifi,
+  WifiOff,
   Zap,
   FileText,
-  Camera,
-  Upload,
   Database,
   TrendingUp,
   Activity
