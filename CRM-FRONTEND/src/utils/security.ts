@@ -51,7 +51,7 @@ export class SecurityUtils {
 
   // Phone number validation
   static isValidPhone(phone: string): boolean {
-    const phoneRegex = /^\+?[\d\s\-\(\)]{10,}$/;
+    const phoneRegex = /^\+?[\d\s\-()]{10,}$/;
     return phoneRegex.test(phone);
   }
 
@@ -88,7 +88,7 @@ export class SecurityUtils {
       score += 1;
     }
 
-    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+    if (!/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password)) {
       feedback.push('Password must contain at least one special character');
     } else {
       score += 1;
