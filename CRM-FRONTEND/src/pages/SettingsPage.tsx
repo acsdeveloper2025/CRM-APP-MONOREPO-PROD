@@ -22,7 +22,6 @@ import {
   FiRefreshCw,
   FiSettings
 } from 'react-icons/fi';
-import { CacheClearer } from '@/components/admin/CacheClearer';
 
 interface UserSettings {
   profile: {

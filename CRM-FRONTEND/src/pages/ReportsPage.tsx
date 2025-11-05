@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Plus, Download, FileText, BarChart3, TrendingUp, Clock, DollarSign } from 'lucide-react';
+import { Plus, Download, FileText, BarChart3, TrendingUp, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -15,7 +15,6 @@ import { TurnaroundTimeChart } from '@/components/reports/TurnaroundTimeChart';
 import { CompletionRateChart } from '@/components/reports/CompletionRateChart';
 import { MISDashboard } from '@/components/reports/MISDashboard';
 import { useUnifiedSearch } from '@/hooks/useUnifiedSearch';
-import { UnifiedSearchInput } from '@/components/ui/unified-search-input';
 
 export function ReportsPage() {
   const [activeTab, setActiveTab] = useState('overview');
