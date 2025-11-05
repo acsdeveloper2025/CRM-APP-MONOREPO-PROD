@@ -301,7 +301,7 @@ export class VerificationAttachmentController {
           // Filter by submissionId if provided
           const filteredImages = submissionId
             ? verificationImages.filter(
-                (img: any) => verificationData?.submissionId === submissionId
+                (_img: any) => verificationData?.submissionId === submissionId
               )
             : verificationImages;
 

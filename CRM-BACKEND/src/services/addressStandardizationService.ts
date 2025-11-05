@@ -255,7 +255,7 @@ class AddressStandardizationService {
   }
 
   async geocodeAddress(
-    address: string | Address
+    _address: string | Address
   ): Promise<{ latitude?: number; longitude?: number; accuracy?: string }> {
     // Mock geocoding - in production, this would use a geocoding service
     return {
