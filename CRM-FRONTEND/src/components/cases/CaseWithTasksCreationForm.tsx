@@ -134,20 +134,20 @@ const caseDetailsSchema = z.object({
   backendContactNumber: z.string().min(1, 'Backend contact number is required').regex(/^[+]?[\d\s\-\(\)]{10,15}$/, 'Please enter a valid phone number'),
 });
 
-// Task schema
-const taskSchema = z.object({
-  verificationTypeId: z.number().min(1, 'Verification type is required'),
-  priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']),
-  assignedTo: z.string().optional(),
-  rateTypeId: z.string().min(1, 'Rate type is required'),
-  address: z.string().optional(),
-  pincode: z.string().min(1, 'Pincode is required'),
-  areaId: z.string().min(1, 'Area is required'),
-  applicantType: z.string().min(1, 'Applicant type is required'),
-  trigger: z.string().min(1, 'Trigger is required'),
-  documentType: z.string().optional(),
-  documentNumber: z.string().optional(),
-});
+// Task schema (commented out - not currently used)
+// const taskSchema = z.object({
+//   verificationTypeId: z.number().min(1, 'Verification type is required'),
+//   priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']),
+//   assignedTo: z.string().optional(),
+//   rateTypeId: z.string().min(1, 'Rate type is required'),
+//   address: z.string().optional(),
+//   pincode: z.string().min(1, 'Pincode is required'),
+//   areaId: z.string().min(1, 'Area is required'),
+//   applicantType: z.string().min(1, 'Applicant type is required'),
+//   trigger: z.string().min(1, 'Trigger is required'),
+//   documentType: z.string().optional(),
+//   documentNumber: z.string().optional(),
+// });
 
 const formSchema = z.object({
   caseDetails: caseDetailsSchema,
@@ -206,11 +206,11 @@ export const CaseWithTasksCreationForm: React.FC<CaseWithTasksCreationFormProps>
   ]);
 
   // Data hooks
-  const { data: fieldUsers, isLoading: loadingUsers } = useFieldUsers();
-  const { data: clientsResponse, isLoading: loadingClients } = useClients();
-  const { data: verificationTypesResponse, isLoading: loadingVerificationTypes } = useVerificationTypes();
+  const { data: fieldUsers } = useFieldUsers();
+  const { data: clientsResponse } = useClients();
+  const { data: verificationTypesResponse } = useVerificationTypes();
   // Fetch all pincodes for dropdown (high limit to get all)
-  const { data: pincodesResponse, isLoading: loadingPincodes } = usePincodes({ limit: 10000 });
+  const { data: pincodesResponse } = usePincodes({ limit: 10000 });
 
   // Form setup
   const form = useForm<FormData>({

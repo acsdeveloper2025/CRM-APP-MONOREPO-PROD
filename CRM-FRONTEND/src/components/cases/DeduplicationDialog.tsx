@@ -13,7 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertTriangle, Calendar, User, Phone, Mail, Building2, ExternalLink, Package, FileCheck, MapPin, CheckCircle } from 'lucide-react';
-import type { DuplicateCase, DeduplicationResult } from '@/services/deduplication';
+import type { DeduplicationResult } from '@/services/deduplication';
 import { format } from 'date-fns';
 
 interface DeduplicationDialogProps {
@@ -35,7 +35,6 @@ export const DeduplicationDialog: React.FC<DeduplicationDialogProps> = ({
 }) => {
   const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
   const [rationale, setRationale] = useState('');
-  const [decision, setDecision] = useState<'CREATE_NEW' | 'USE_EXISTING' | null>(null);
 
   // Filter to show only 100% matches
   const allDuplicates = deduplicationResult?.duplicatesFound || [];
