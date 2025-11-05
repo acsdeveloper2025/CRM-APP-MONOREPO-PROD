@@ -11,7 +11,6 @@ import {
   deletePincode,
   searchPincodes,
   bulkImportPincodes,
-  getPincodesByCity,
   getPincodeAreas,
   addPincodeAreas,
   removePincodeArea,
