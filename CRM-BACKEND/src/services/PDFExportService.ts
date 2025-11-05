@@ -290,7 +290,7 @@ export class PDFExportService {
   private async fetchValidationStatusData(
     dateFrom?: string,
     dateTo?: string,
-    filters?: any
+    _filters?: any
   ): Promise<any> {
     const whereConditions = [];
     const queryParams = [];
