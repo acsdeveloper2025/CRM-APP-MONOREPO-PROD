@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { MoreHorizontal, Download, Eye, Trash2, BarChart3, FileText } from 'lucide-react';
+import { MoreHorizontal, Download, Trash2, BarChart3, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
