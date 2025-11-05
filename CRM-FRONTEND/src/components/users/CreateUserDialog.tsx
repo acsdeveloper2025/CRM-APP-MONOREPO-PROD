@@ -108,7 +108,7 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
       };
       return usersService.createUser(cleanData as any);
     },
-    onSuccess: (response) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
       queryClient.invalidateQueries({ queryKey: ['user-stats'] });
       toast.success('User created successfully');
