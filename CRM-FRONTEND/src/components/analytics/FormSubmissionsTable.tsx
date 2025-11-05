@@ -19,7 +19,6 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
   PieChart,
   Pie,
@@ -27,7 +26,7 @@ import {
 } from 'recharts';
 import { useFormSubmissions } from '@/hooks/useAnalytics';
 import { FileText, CheckCircle, Clock, AlertCircle, Download, Calendar } from 'lucide-react';
-import { formatDistanceToNow, format } from 'date-fns';
+import { formatDistanceToNow } from 'date-fns';
 
 const COLORS = {
   VALID: '#10b981',
@@ -48,11 +47,8 @@ export const FormSubmissionsTable: React.FC = () => {
     setCurrentPage(1);
   }, [dateRange.from, dateRange.to]);
 
-  // Calculate offset from page number (backend uses offset, not page)
-  const offset = (currentPage - 1) * pageSize;
-
   const { data: submissionsData, isLoading } = useFormSubmissions({
-    offset,
+    page: currentPage,
     limit: pageSize,
     dateFrom: dateRange.from || undefined,
     dateTo: dateRange.to || undefined,
@@ -222,7 +218,7 @@ export const FormSubmissionsTable: React.FC = () => {
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  label={(entry: any) => `${entry.name} ${((entry.percent || 0) * 100).toFixed(0)}%`}
                   outerRadius={80}
                   fill="#8884d8"
                   dataKey="value"
@@ -364,7 +360,7 @@ export const FormSubmissionsTable: React.FC = () => {
                     size="sm"
                     onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                     disabled={currentPage === 1}
-                    className="min-w-[80px]"
+                    className="min-w-20"
                   >
                     Previous
                   </Button>
@@ -376,7 +372,7 @@ export const FormSubmissionsTable: React.FC = () => {
                     size="sm"
                     onClick={() => setCurrentPage(prev => prev + 1)}
                     disabled={currentPage >= totalPages}
-                    className="min-w-[80px]"
+                    className="min-w-20"
                   >
                     Next
                   </Button>
