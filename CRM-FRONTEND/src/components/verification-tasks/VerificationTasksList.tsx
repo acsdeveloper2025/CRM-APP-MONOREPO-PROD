@@ -26,7 +26,7 @@ import {
   Clock,
   AlertTriangle
 } from 'lucide-react';
-import { VerificationTask, TaskStatus, TaskPriority } from '@/types/verificationTask';
+import { VerificationTask, TaskStatus } from '@/types/verificationTask';
 import { formatDistanceToNow } from 'date-fns';
 import {
   getTaskStatusBadgeStyle,
