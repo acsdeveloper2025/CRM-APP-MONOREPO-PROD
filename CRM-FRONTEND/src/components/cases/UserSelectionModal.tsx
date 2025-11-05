@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Search, UserCheck, X, Loader2 } from 'lucide-react';
+import { Search, UserCheck, Loader2 } from 'lucide-react';
 import { useFieldUsers } from '@/hooks/useUsers';
 
 interface User {
