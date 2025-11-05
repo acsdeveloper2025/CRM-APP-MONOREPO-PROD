@@ -1,6 +1,6 @@
 import React from 'react';
 import { Users, UserCheck, UserX, Shield, UserPlus } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { UserStats } from '@/types/user';
 
 interface UserStatsCardsProps {

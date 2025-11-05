@@ -15,7 +15,7 @@ import {
 import { clientsService } from '@/services/clients';
 import { productsService } from '@/services/products';
 import { verificationTypesService } from '@/services/verificationTypes';
-import { rateTypeAssignmentsService, type RateTypeAssignmentStatus } from '@/services/rateTypeAssignments';
+import { rateTypeAssignmentsService } from '@/services/rateTypeAssignments';
 import toast from 'react-hot-toast';
 
 export function RateTypeAssignmentTab() {

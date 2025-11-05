@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Bell, X, Check, AlertCircle, Info, CheckCircle, AlertTriangle, FileText, UserCheck, UserX, Clock } from 'lucide-react';
+import { Bell, X, Check, AlertCircle, Info, CheckCircle, AlertTriangle, UserCheck, UserX, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
