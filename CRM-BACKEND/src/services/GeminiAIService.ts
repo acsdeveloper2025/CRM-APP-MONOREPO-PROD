@@ -1,6 +1,6 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { logger } from '../utils/logger';
-import { getReportTemplate, getRiskAssessment } from '../utils/reportTemplates';
+import { getRiskAssessment } from '../utils/reportTemplates';
 
 export interface VerificationReportData {
   verificationType: string;
