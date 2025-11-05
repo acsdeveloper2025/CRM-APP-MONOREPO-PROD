@@ -1,7 +1,6 @@
 import type { Request, Response } from 'express';
 import { query } from '@/config/database';
 import { logger } from '@/config/logger';
-import { AuthenticatedRequest } from '@/types/auth';
 
 // GET /api/territory-assignments/field-agents - List all field agents with their territory assignments
 export const getFieldAgentTerritories = async (req: Request, res: Response) => {

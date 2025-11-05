@@ -1,7 +1,7 @@
 import type { Response } from 'express';
 import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
-import { query, withTransaction } from '@/config/database';
+import { query } from '@/config/database';
 
 // GET /api/rate-types - List rate types with pagination and filters
 export const getRateTypes = async (req: AuthenticatedRequest, res: Response) => {

@@ -1,8 +1,7 @@
 import type { Response } from 'express';
 import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
-import { pool, query, withTransaction } from '@/config/database';
-import { randomUUID } from 'crypto';
+import { query } from '@/config/database';
 
 // GET /api/products - List products with pagination and filters
 export const getProducts = async (req: AuthenticatedRequest, res: Response) => {

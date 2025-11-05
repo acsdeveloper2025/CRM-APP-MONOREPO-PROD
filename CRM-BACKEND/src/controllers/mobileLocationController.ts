@@ -1,5 +1,4 @@
 import type { Request, Response } from 'express';
-import axios from 'axios';
 import { query } from '@/config/database';
 import type {
   MobileLocationCaptureRequest,
