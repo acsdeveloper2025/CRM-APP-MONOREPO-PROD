@@ -486,7 +486,7 @@ export class ExcelExportService {
   private async createAgentPerformanceWorksheets(
     workbook: ExcelJS.Workbook,
     data: any,
-    options: ExcelExportOptions
+    _options: ExcelExportOptions
   ): Promise<void> {
     // Agent summary worksheet
     const summarySheet = workbook.addWorksheet('Agent Performance Summary');
@@ -633,7 +633,7 @@ export class ExcelExportService {
   private async createValidationStatusWorksheets(
     workbook: ExcelJS.Workbook,
     data: any,
-    options: ExcelExportOptions
+    _options: ExcelExportOptions
   ): Promise<void> {
     const validationSheet = workbook.addWorksheet('Validation Status');
 
