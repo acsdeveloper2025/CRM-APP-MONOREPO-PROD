@@ -92,7 +92,7 @@ export const SettingsPage: React.FC = () => {
       }
       
       toast.success('Settings saved successfully');
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to save settings');
     } finally {
       setIsLoading(false);

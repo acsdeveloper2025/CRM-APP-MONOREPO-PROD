@@ -62,7 +62,7 @@ export function BankBillsTable({ data, isLoading }: BankBillsTableProps) {
       a.click();
       window.URL.revokeObjectURL(url);
       toast.success('Bank bill downloaded successfully');
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to download bank bill');
     }
   };
