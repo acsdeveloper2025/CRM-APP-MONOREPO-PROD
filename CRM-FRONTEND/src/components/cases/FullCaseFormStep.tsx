@@ -21,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { ArrowLeft, Send, Loader2, User, MapPin, Building2, CreditCard, Building, Users, Settings } from 'lucide-react';
+import { ArrowLeft, Send, Loader2, User, Building, Settings } from 'lucide-react';
 import { useFieldUsers } from '@/hooks/useUsers';
 import { useClients, useVerificationTypes, useProductsByClient } from '@/hooks/useClients';
 import { usePincodes } from '@/hooks/useLocations';
@@ -76,7 +76,7 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
   const { user } = useAuth();
   const { data: fieldUsers, isLoading: loadingUsers } = useFieldUsers();
   const { data: clientsResponse, isLoading: loadingClients } = useClients();
-  const { data: verificationTypesResponse, isLoading: loadingVerificationTypes } = useVerificationTypes();
+  const { data: verificationTypesResponse } = useVerificationTypes();
 
   // Helper function to get user display name
   const getUserDisplayName = (user: any) => {
