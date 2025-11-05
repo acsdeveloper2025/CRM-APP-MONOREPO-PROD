@@ -336,7 +336,7 @@ const PerformanceReportContent: React.FC<{ data: any }> = ({ data }) => (
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
-          {data.breakdown.map((item: any, index: number) => (
+          {data.breakdown.map((item: any) => (
             <div key={item.metric} className="flex items-center justify-between p-3 bg-muted rounded-lg">
               <span className="font-medium">{item.metric}</span>
               <Badge className={
