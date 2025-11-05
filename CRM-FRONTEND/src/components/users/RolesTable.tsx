@@ -34,7 +34,7 @@ import { rolesService } from '@/services/roles';
 import { RoleData } from '@/types/user';
 import { formatDistanceToNow } from 'date-fns';
 import { getRoleIcon } from '@/utils/roleUtils';
-import { baseBadgeStyle, formatBadgeLabel } from '@/lib/badgeStyles';
+import { baseBadgeStyle } from '@/lib/badgeStyles';
 
 interface RolesTableProps {
   onEditRole?: (role: RoleData) => void;

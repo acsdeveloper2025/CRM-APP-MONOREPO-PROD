@@ -27,7 +27,7 @@ import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { rolesService } from '@/services/roles';
-import { UpdateRoleRequest, RoleData, RolePermissions } from '@/types/user';
+import { UpdateRoleRequest, RoleData } from '@/types/user';
 
 const updateRoleSchema = z.object({
   name: z.string().min(1, 'Role name is required').max(100, 'Role name too long'),
