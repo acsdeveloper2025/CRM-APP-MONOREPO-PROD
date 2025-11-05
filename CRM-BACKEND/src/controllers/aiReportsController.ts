@@ -3,8 +3,7 @@ import { pool } from '../config/database';
 import { logger } from '../utils/logger';
 import { createAuditLog } from '../utils/auditLogger';
 import type { AuthenticatedRequest } from '../middleware/auth';
-import { geminiAIService } from '../services/GeminiAIService';
-import type { VerificationReportData } from '../services/GeminiAIService';
+import { geminiAIService, type VerificationReportData } from '../services/GeminiAIService';
 import { getReportTemplate, getRiskAssessment } from '../utils/reportTemplates';
 
 /**

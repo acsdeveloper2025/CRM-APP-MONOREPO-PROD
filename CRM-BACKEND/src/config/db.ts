@@ -1,5 +1,4 @@
-import { Pool } from 'pg';
-import type { PoolClient, QueryResult } from 'pg';
+import { Pool, type PoolClient, type QueryResult } from 'pg';
 import { logger } from './logger';
 
 const connectionString = process.env.DATABASE_URL;
