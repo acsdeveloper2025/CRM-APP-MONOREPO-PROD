@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { MapPin, Building2, Loader2, Save } from 'lucide-react';
+import { MapPin, Loader2, Save } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { territoryAssignmentService } from '@/services/territoryAssignments';
 import { usePincodes } from '@/hooks/useLocations';
