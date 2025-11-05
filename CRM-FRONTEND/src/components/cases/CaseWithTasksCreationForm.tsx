@@ -332,9 +332,8 @@ export const CaseWithTasksCreationForm: React.FC<CaseWithTasksCreationFormProps>
       const caseData: CreateCaseWithMultipleTasksRequest = {
         case_details: {
           customerName: customerInfo.customerName,
-          customerPhone: customerInfo.customerPhone,
+          customerPhone: customerInfo.mobileNumber || '', // Map mobileNumber to customerPhone
           customerCallingCode: customerInfo.customerCallingCode,
-          customerEmail: customerInfo.customerEmail,
           clientId: parseInt(data.caseDetails.clientId),
           productId: parseInt(data.caseDetails.productId),
           backendContactNumber: data.caseDetails.backendContactNumber,
@@ -360,6 +359,9 @@ export const CaseWithTasksCreationForm: React.FC<CaseWithTasksCreationFormProps>
           };
         }),
       };
+
+      // Debug logging
+      console.log('📤 Case creation request payload:', JSON.stringify(caseData, null, 2));
 
       // Create case with tasks
       const result = await EnhancedCasesService.createCaseWithMultipleTasks(caseData);
@@ -399,15 +401,9 @@ export const CaseWithTasksCreationForm: React.FC<CaseWithTasksCreationFormProps>
                 <div>
                   <p className="text-sm font-medium">Phone</p>
                   <p className="text-sm text-gray-600">
-                    {customerInfo.customerCallingCode} {customerInfo.customerPhone}
+                    {customerInfo.mobileNumber || 'Not provided'}
                   </p>
                 </div>
-                {customerInfo.customerEmail && (
-                  <div>
-                    <p className="text-sm font-medium">Email</p>
-                    <p className="text-sm text-gray-600">{customerInfo.customerEmail}</p>
-                  </div>
-                )}
               </div>
 
               {/* Case Form Fields */}
