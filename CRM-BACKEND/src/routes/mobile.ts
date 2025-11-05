@@ -11,9 +11,8 @@ import { MobileLocationController } from '../controllers/mobileLocationControlle
 import { MobileSyncController } from '../controllers/mobileSyncController';
 import { authenticateToken } from '../middleware/auth';
 import { validateMobileVersion, mobileRateLimit } from '../middleware/mobileValidation';
-import { createAuditLog, createMobileAuditLogs } from '../controllers/auditLogsController';
+import { createMobileAuditLogs } from '../controllers/auditLogsController';
 import { body } from 'express-validator';
-import { validate } from '../middleware/validation';
 import { EnterpriseCache, EnterpriseCacheConfigs } from '../middleware/enterpriseCache';
 
 const router = Router();

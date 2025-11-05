@@ -2,7 +2,6 @@ import express from 'express';
 import { body, query, param } from 'express-validator';
 import { authenticateToken } from '@/middleware/auth';
 import { validate } from '@/middleware/validation';
-import { logger } from '@/config/logger';
 import {
   EnterpriseCache,
   EnterpriseCacheConfigs,
