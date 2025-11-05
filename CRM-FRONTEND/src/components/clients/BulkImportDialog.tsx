@@ -36,7 +36,7 @@ export function BulkImportDialog({ open, onOpenChange, type }: BulkImportDialogP
         return clientsService.bulkImportProducts(file);
       }
     },
-    onSuccess: (response) => {
+    onSuccess: (_response) => {
       queryClient.invalidateQueries({ queryKey: [type] });
       toast.success(`${type} imported successfully`);
       setFile(null);
