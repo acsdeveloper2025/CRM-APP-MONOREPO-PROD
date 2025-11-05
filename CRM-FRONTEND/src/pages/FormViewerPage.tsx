@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FormViewer } from '@/components/forms/FormViewer';
-import { FormSubmission, FormType, VerificationType, VerificationOutcome } from '@/types/form';
+import { FormSubmission } from '@/types/form';
 
 export function FormViewerPage() {
   const [selectedFormType, setSelectedFormType] = useState<string>('residence-positive');
