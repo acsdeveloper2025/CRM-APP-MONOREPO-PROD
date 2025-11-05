@@ -22,15 +22,13 @@ import { Label } from '@/components/ui/label';
 import { useCaseAnalytics } from '@/hooks/useAnalytics';
 import { useClients } from '@/hooks/useClients';
 import { useFieldUsers } from '@/hooks/useUsers';
-import { 
-  BarChart3, 
-  TrendingUp, 
-  Clock, 
-  CheckCircle, 
-  Download, 
+import {
+  BarChart3,
+  Clock,
+  CheckCircle,
+  Download,
   Filter,
-  FileText,
-  Users
+  FileText
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { Link } from 'react-router-dom';

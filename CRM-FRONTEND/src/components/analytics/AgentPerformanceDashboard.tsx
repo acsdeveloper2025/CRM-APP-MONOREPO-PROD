@@ -22,12 +22,11 @@ import { Label } from '@/components/ui/label';
 import { useAgentPerformance } from '@/hooks/useAnalytics';
 import { useQuery } from '@tanstack/react-query';
 import { departmentsService } from '@/services/departments';
-import { 
-  Users, 
-  TrendingUp, 
-  Clock, 
-  Award, 
-  Download, 
+import {
+  Users,
+  TrendingUp,
+  Award,
+  Download,
   Filter,
   Star,
   Target
