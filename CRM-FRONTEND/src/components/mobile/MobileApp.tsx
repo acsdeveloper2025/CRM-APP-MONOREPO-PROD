@@ -18,8 +18,6 @@ interface MobileAppState {
 }
 
 export const MobileApp: React.FC = () => {
-  const { user } = useAuth();
-  const { isOnline } = useNetworkStatus();
   const { offlineReports } = useOfflineStorage();
   const [appState, setAppState] = useState<MobileAppState>({
     activeView: 'dashboard'
@@ -32,10 +30,10 @@ export const MobileApp: React.FC = () => {
     // Register service worker for offline functionality
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js')
-        .then((registration) => {
+        .then((_registration) => {
           // Service worker registered successfully
         })
-        .catch((registrationError) => {
+        .catch((_registrationError) => {
           // Service worker registration failed
         });
     }

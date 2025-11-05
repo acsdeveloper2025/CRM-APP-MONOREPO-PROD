@@ -19,10 +19,10 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { locationsService } from '@/services/locations';
 
-interface Area {
-  id: string;
-  name: string;
-}
+// interface Area {
+//   id: string;
+//   name: string;
+// }
 
 interface AreasMultiSelectProps {
   selectedAreaIds: string[];
