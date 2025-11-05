@@ -16,7 +16,7 @@ export const baseBadgeStyle = 'bg-green-600 text-white hover:bg-green-700 upperc
  * Get standardized status badge styling
  * All status badges use green background with white text
  */
-export function getStatusBadgeStyle(status?: string): string {
+export function getStatusBadgeStyle(_status?: string): string {
   return twMerge(baseBadgeStyle, 'text-xs');
 }
 
@@ -24,7 +24,7 @@ export function getStatusBadgeStyle(status?: string): string {
  * Get standardized priority badge styling
  * All priority badges use green background with white text
  */
-export function getPriorityBadgeStyle(priority?: number | string): string {
+export function getPriorityBadgeStyle(_priority?: number | string): string {
   return twMerge(baseBadgeStyle, 'text-xs');
 }
 
@@ -32,7 +32,7 @@ export function getPriorityBadgeStyle(priority?: number | string): string {
  * Get standardized verification type badge styling
  * All verification type badges use green background with white text
  */
-export function getVerificationTypeBadgeStyle(type?: string): string {
+export function getVerificationTypeBadgeStyle(_type?: string): string {
   return twMerge(baseBadgeStyle, 'text-xs');
 }
 
@@ -40,7 +40,7 @@ export function getVerificationTypeBadgeStyle(type?: string): string {
  * Get standardized task status badge styling
  * All task status badges use green background with white text
  */
-export function getTaskStatusBadgeStyle(status?: string): string {
+export function getTaskStatusBadgeStyle(_status?: string): string {
   return twMerge(baseBadgeStyle, 'text-xs');
 }
 
@@ -48,7 +48,7 @@ export function getTaskStatusBadgeStyle(status?: string): string {
  * Get standardized task priority badge styling
  * All task priority badges use green background with white text
  */
-export function getTaskPriorityBadgeStyle(priority?: string): string {
+export function getTaskPriorityBadgeStyle(_priority?: string): string {
   return twMerge(baseBadgeStyle, 'text-xs');
 }
 

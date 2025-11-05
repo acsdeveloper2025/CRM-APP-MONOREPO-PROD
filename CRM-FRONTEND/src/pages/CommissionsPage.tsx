@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Calculator, BarChart3, FileText, HelpCircle, Download, DollarSign, Clock, CheckCircle, Users, TrendingUp } from 'lucide-react';
+import { Calculator, BarChart3, FileText, HelpCircle, Download, DollarSign, Clock, CheckCircle, TrendingUp } from 'lucide-react';
 import { CommissionCalculationsTab } from '@/components/commission/CommissionCalculationsTab';
 import { CommissionStatsTab } from '@/components/commission/CommissionStatsTab';
 import { commissionManagementService } from '@/services/commissionManagement';

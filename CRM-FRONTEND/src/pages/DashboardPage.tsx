@@ -6,7 +6,7 @@ import { CaseStatusChart } from '@/components/dashboard/CaseStatusChart';
 import { MonthlyTrendsChart } from '@/components/dashboard/MonthlyTrendsChart';
 import { RecentActivities } from '@/components/dashboard/RecentActivities';
 import { useDashboardStats, useRecentActivities, useCaseStatusDistribution, useMonthlyTrends, useTATStats } from '@/hooks/useDashboard';
-import { FileText, Building2, CheckSquare, Receipt, Users, Download, Plus, CheckCircle, Clock, AlertTriangle, XCircle } from 'lucide-react';
+import { FileText, Building2, CheckSquare, Users, Download, Plus, CheckCircle, Clock, AlertTriangle, XCircle } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 
 export const DashboardPage: React.FC = () => {
