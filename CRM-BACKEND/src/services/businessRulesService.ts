@@ -199,7 +199,7 @@ class BusinessRulesService {
     return [];
   }
 
-  async updateRule(ruleId: string, updates: Partial<BusinessRule>): Promise<BusinessRule | null> {
+  async updateRule(_ruleId: string, _updates: Partial<BusinessRule>): Promise<BusinessRule | null> {
     // For now, return null - can be implemented with database storage
     return null;
   }
