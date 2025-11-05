@@ -12,7 +12,7 @@ import {
   MobileTableField,
 } from '@/components/ui/responsive-table';
 import { Badge } from '@/components/ui/badge';
-import { SearchableSelect, SearchableSelectOption } from '@/components/ui/searchable-select';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 import { UnifiedSearchInput } from '@/components/ui/unified-search-input';
 import { UnifiedFilterPanel, FilterGrid } from '@/components/ui/unified-filter-panel';
 import { useUnifiedSearch, useUnifiedFilters } from '@/hooks/useUnifiedSearch';
