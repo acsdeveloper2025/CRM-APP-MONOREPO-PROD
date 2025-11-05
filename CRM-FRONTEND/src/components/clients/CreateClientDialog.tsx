@@ -117,7 +117,7 @@ export function CreateClientDialog({ open, onOpenChange }: CreateClientDialogPro
       // Return a context object with the snapshotted value
       return { previousClients };
     },
-    onSuccess: (response) => {
+    onSuccess: () => {
       // Invalidate all client-related queries to ensure the list updates with real data
       queryClient.invalidateQueries({
         queryKey: ['clients'],
@@ -127,7 +127,7 @@ export function CreateClientDialog({ open, onOpenChange }: CreateClientDialogPro
       form.reset();
       onOpenChange(false);
     },
-    onError: (error: any, newClient, context) => {
+    onError: (error: any, _newClient, context) => {
       // If the mutation fails, use the context returned from onMutate to roll back
       if (context?.previousClients) {
         context.previousClients.forEach(([queryKey, data]) => {
