@@ -23,8 +23,7 @@ import {
 import { documentTypesService } from '@/services/documentTypes';
 import { EditDocumentTypeDialog } from './EditDocumentTypeDialog';
 import { ViewDocumentTypeDialog } from './ViewDocumentTypeDialog';
-import { DOCUMENT_TYPE_DISPLAY_NAMES, DOCUMENT_TYPE_COLORS, type DocumentType } from '@/types/documentType';
-import { cn } from '@/lib/utils';
+import { type DocumentType } from '@/types/documentType';
 
 interface DocumentTypesTableProps {
   data: DocumentType[];

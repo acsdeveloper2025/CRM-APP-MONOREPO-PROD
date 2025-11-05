@@ -1,13 +1,9 @@
 import React from 'react';
-import { 
-  Shield, 
-  Crown, 
-  Server, 
-  Building2, 
-  MapPin, 
-  User,
+import {
+  Crown,
+  Server,
+  MapPin,
   UserCog,
-  Settings
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
