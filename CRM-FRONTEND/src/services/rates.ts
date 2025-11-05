@@ -2,13 +2,8 @@ import { apiService } from './api';
 import type { ApiResponse, PaginationQuery, PaginatedResponse } from '@/types/api';
 import type {
   Rate,
-  CreateRateData,
-  UpdateRateData,
-  RateQuery,
   RateStats,
-  AvailableRateType,
-  RateWithDetails,
-  RateManagementView
+  AvailableRateType
 } from '@/types/rateManagement';
 
 export interface CreateOrUpdateRateData {
