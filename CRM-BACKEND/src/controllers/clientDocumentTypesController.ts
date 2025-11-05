@@ -1,5 +1,4 @@
 import type { Response } from 'express';
-import { Request } from 'express';
 import type { AuthenticatedRequest } from '../middleware/auth';
 import { logger } from '../utils/logger';
 import { query, withTransaction } from '../config/database';
