@@ -19,7 +19,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 import { apiService } from '@/services/api';
