@@ -1,17 +1,10 @@
 import type { Request, Response } from 'express';
-import { Pool } from 'pg';
 import type { AuthenticatedRequest } from '../middleware/auth';
 import type {
   VerificationTask,
   UpdateVerificationTaskData,
   AssignVerificationTaskData,
   CompleteVerificationTaskData,
-} from '../types/verificationTask';
-import {
-  CreateVerificationTaskData,
-  VerificationTaskFilters,
-  TaskStatus,
-  TaskPriority,
 } from '../types/verificationTask';
 import { createAuditLog } from '../utils/auditLogger';
 import { logger } from '../utils/logger';

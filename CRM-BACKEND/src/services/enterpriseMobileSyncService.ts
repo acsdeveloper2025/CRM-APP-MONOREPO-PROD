@@ -1,6 +1,5 @@
 import { query, pool } from '../config/database';
 import { logger } from '../config/logger';
-import { notificationQueue } from '../config/queue';
 
 export interface MobileSyncRequest {
   userId: string;

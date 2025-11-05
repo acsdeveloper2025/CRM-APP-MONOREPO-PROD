@@ -11,7 +11,6 @@ import {
 } from '../middleware/enterpriseCache';
 import {
   validateCaseAccess,
-  validateClientAccess,
   validateCaseCreationAccess,
 } from '@/middleware/clientAccess';
 import {
@@ -19,10 +18,6 @@ import {
   getCaseById,
   createCase,
   updateCase,
-  assignCase,
-  bulkAssignCases,
-  getBulkAssignmentStatus,
-  reassignCase,
   getCaseAssignmentHistory,
   getFieldAgentWorkload,
   exportCases,
