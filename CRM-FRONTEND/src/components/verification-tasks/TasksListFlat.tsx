@@ -18,8 +18,7 @@ import {
   Eye,
   ExternalLink
 } from 'lucide-react';
-import { VerificationTask, TaskStatus, TaskPriority } from '@/types/verificationTask';
-import { format } from 'date-fns';
+import { VerificationTask, TaskStatus } from '@/types/verificationTask';
 import {
   getTaskStatusBadgeStyle,
   getTaskPriorityBadgeStyle,

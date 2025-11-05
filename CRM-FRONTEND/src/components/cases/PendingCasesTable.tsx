@@ -116,7 +116,7 @@ export const PendingCasesTable: React.FC<PendingCasesTableProps> = ({
     setIsUserModalOpen(true);
   };
 
-  const handleUserSelection = (userId: string, userName: string) => {
+  const handleUserSelection = (userId: string, _userName: string) => {
     if (selectedCaseForAssignment && onAssignCase) {
       onAssignCase(selectedCaseForAssignment.id, userId);
     }
