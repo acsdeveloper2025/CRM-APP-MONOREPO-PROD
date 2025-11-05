@@ -1,7 +1,5 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { 
   Select,
   SelectContent,
@@ -23,13 +21,9 @@ import {
   ResponsiveContainer 
 } from 'recharts';
 import { useCaseAnalytics } from '@/hooks/useAnalytics';
-import { 
-  FileText, 
-  TrendingUp, 
-  Users, 
-  Building2,
-  Package,
-  AlertCircle,
+import {
+  FileText,
+  TrendingUp,
   CheckCircle2,
   Clock,
   XCircle

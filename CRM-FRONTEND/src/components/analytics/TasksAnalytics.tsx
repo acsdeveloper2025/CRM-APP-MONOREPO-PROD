@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { 
   Select,
   SelectContent,
@@ -23,14 +22,11 @@ import {
 } from 'recharts';
 import { useQuery } from '@tanstack/react-query';
 import { apiService } from '@/services/api';
-import { 
-  CheckSquare, 
-  Clock, 
+import {
+  CheckSquare,
+  Clock,
   DollarSign,
-  Users,
   FileCheck,
-  AlertCircle,
-  TrendingUp,
   XCircle
 } from 'lucide-react';
 
@@ -41,13 +37,6 @@ const STATUS_COLORS: Record<string, string> = {
   COMPLETED: '#10b981',
   CANCELLED: '#ef4444',
   ON_HOLD: '#6b7280'
-};
-
-const PRIORITY_COLORS: Record<string, string> = {
-  LOW: '#6b7280',
-  MEDIUM: '#3b82f6',
-  HIGH: '#f59e0b',
-  URGENT: '#ef4444'
 };
 
 const getDateFromRange = (range: string): string => {
@@ -82,7 +71,6 @@ export const TasksAnalytics: React.FC = () => {
   });
 
   const tasks = tasksData?.data?.data || [];
-  const pagination = tasksData?.data?.pagination || {};
 
   // Calculate metrics
   const totalTasks = tasks.length;
