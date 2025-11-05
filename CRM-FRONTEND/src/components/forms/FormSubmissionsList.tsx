@@ -1,11 +1,11 @@
 import React, { useState, useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FormSubmission } from '@/types/form';
-import { Search, Filter, SortAsc, SortDesc, FileText, Clock, User, MapPin, Camera, Eye } from 'lucide-react';
+import { Search, FileText, Clock, User, MapPin, Camera, Eye } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
 interface FormSubmissionsListProps {
