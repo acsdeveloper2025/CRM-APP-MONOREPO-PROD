@@ -5,7 +5,6 @@ import type {
   WebSocketState,
   WebSocketEventHandlers,
   WebSocketEventType,
-  SubscriptionOptions,
   ConnectionStatus,
 } from '@/types/websocket';
 
