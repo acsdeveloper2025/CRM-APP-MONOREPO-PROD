@@ -48,7 +48,7 @@ export function EnhancedAreaManager({ pincode, className }: EnhancedAreaManagerP
 
   // Convert areas to dropdown options with search filtering
   const areaOptions: MultiSelectOption[] = useMemo(() => {
-    if (!allAreas) return [];
+    if (!allAreas) {return [];}
 
     // Get current area IDs to filter out already assigned areas
     const currentAreaIds = pincode.areas?.map(area => area.id) || [];
@@ -56,10 +56,10 @@ export function EnhancedAreaManager({ pincode, className }: EnhancedAreaManagerP
     return allAreas
       .filter(area => {
         // Filter out already assigned areas
-        if (currentAreaIds.includes(area.id)) return false;
+        if (currentAreaIds.includes(area.id)) {return false;}
 
         // Apply search filter
-        if (!areaSearchQuery) return true;
+        if (!areaSearchQuery) {return true;}
         const query = areaSearchQuery.toLowerCase();
         return area.name.toLowerCase().includes(query);
       })

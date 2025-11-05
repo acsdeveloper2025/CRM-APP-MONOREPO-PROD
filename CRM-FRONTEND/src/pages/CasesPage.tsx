@@ -144,7 +144,7 @@ export const CasesPage: React.FC = () => {
   const inProgressCases = cases.filter(c => c.status === 'IN_PROGRESS').length;
   const completedCases = cases.filter(c => c.status === 'COMPLETED').length;
   const overdueCases = cases.filter(c => {
-    if (!c.createdAt) return false;
+    if (!c.createdAt) {return false;}
     const created = new Date(c.createdAt);
     const now = new Date();
     const diffInHours = Math.floor((now.getTime() - created.getTime()) / (1000 * 60 * 60));

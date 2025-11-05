@@ -58,7 +58,7 @@ export const CommissionCalculationsTab: React.FC = () => {
 
   // Format date to "MMM YYYY" format
   const formatMonth = (dateString: string): string => {
-    if (!dateString) return 'N/A';
+    if (!dateString) {return 'N/A';}
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
   };
@@ -97,7 +97,7 @@ export const CommissionCalculationsTab: React.FC = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-green-600"></div>
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-green-600" />
       </div>
     );
   }

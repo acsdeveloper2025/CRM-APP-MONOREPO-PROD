@@ -77,7 +77,7 @@ export const VerificationTasksList: React.FC<VerificationTasksListProps> = ({
 
   // Format date
   const formatDate = (dateString?: string) => {
-    if (!dateString) return '-';
+    if (!dateString) {return '-';}
     try {
       return formatDistanceToNow(new Date(dateString), { addSuffix: true });
     } catch {
@@ -92,7 +92,7 @@ export const VerificationTasksList: React.FC<VerificationTasksListProps> = ({
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
         <span className="ml-2">Loading tasks...</span>
       </div>
     );

@@ -103,28 +103,28 @@ export const PendingReviewTable: React.FC<PendingReviewTableProps> = ({
             {[1, 2, 3, 4, 5].map((item) => (
               <TableRow key={item}>
                 <TableCell>
-                  <div className="h-4 bg-muted rounded animate-pulse"></div>
+                  <div className="h-4 bg-muted rounded animate-pulse" />
                 </TableCell>
                 <TableCell>
-                  <div className="h-4 bg-muted rounded animate-pulse"></div>
+                  <div className="h-4 bg-muted rounded animate-pulse" />
                 </TableCell>
                 <TableCell>
-                  <div className="h-6 bg-muted rounded animate-pulse w-16"></div>
+                  <div className="h-6 bg-muted rounded animate-pulse w-16" />
                 </TableCell>
                 <TableCell>
-                  <div className="h-4 bg-muted rounded animate-pulse"></div>
+                  <div className="h-4 bg-muted rounded animate-pulse" />
                 </TableCell>
                 <TableCell>
-                  <div className="h-4 bg-muted rounded animate-pulse"></div>
+                  <div className="h-4 bg-muted rounded animate-pulse" />
                 </TableCell>
                 <TableCell>
-                  <div className="h-4 bg-muted rounded animate-pulse"></div>
+                  <div className="h-4 bg-muted rounded animate-pulse" />
                 </TableCell>
                 <TableCell>
-                  <div className="h-4 bg-muted rounded animate-pulse w-12"></div>
+                  <div className="h-4 bg-muted rounded animate-pulse w-12" />
                 </TableCell>
                 <TableCell>
-                  <div className="h-8 bg-muted rounded animate-pulse"></div>
+                  <div className="h-8 bg-muted rounded animate-pulse" />
                 </TableCell>
               </TableRow>
             ))}

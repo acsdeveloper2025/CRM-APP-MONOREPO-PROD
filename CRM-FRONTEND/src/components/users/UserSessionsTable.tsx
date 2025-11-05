@@ -49,10 +49,10 @@ export function UserSessionsTable({ data, isLoading }: UserSessionsTableProps) {
 
   const getDeviceInfo = (userAgent: string) => {
     // Simple user agent parsing
-    if (userAgent.includes('Chrome')) return 'Chrome';
-    if (userAgent.includes('Firefox')) return 'Firefox';
-    if (userAgent.includes('Safari')) return 'Safari';
-    if (userAgent.includes('Edge')) return 'Edge';
+    if (userAgent.includes('Chrome')) {return 'Chrome';}
+    if (userAgent.includes('Firefox')) {return 'Firefox';}
+    if (userAgent.includes('Safari')) {return 'Safari';}
+    if (userAgent.includes('Edge')) {return 'Edge';}
     return 'Unknown Browser';
   };
 

@@ -64,9 +64,9 @@ export const TaskCompletionModal: React.FC<TaskCompletionModalProps> = ({
     setLoading(true);
 
     const completionData: CompleteVerificationTaskRequest = {
-      verificationOutcome: verificationOutcome,
-      actualAmount: actualAmount,
-      completionNotes: completionNotes,
+      verificationOutcome,
+      actualAmount,
+      completionNotes,
       formSubmissionId: formSubmissionId || undefined
     };
 

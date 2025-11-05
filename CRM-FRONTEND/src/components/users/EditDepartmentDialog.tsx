@@ -88,7 +88,7 @@ export function EditDepartmentDialog({ open, onOpenChange, department }: EditDep
 
   const updateMutation = useMutation({
     mutationFn: (data: UpdateDepartmentRequest) => {
-      if (!department) throw new Error('No department selected');
+      if (!department) {throw new Error('No department selected');}
       // Remove empty strings to send null values
       const cleanData = {
         ...data,
@@ -118,7 +118,7 @@ export function EditDepartmentDialog({ open, onOpenChange, department }: EditDep
 
   const users = usersData?.data || [];
 
-  if (!department) return null;
+  if (!department) {return null;}
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

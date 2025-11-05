@@ -125,7 +125,7 @@ export const TemplateReportCard: React.FC<TemplateReportCardProps> = ({
   };
 
   const downloadReport = () => {
-    if (!report) return;
+    if (!report) {return;}
 
     const content = `VERIFICATION REPORT
 Generated: ${new Date(report.createdAt).toLocaleString()}

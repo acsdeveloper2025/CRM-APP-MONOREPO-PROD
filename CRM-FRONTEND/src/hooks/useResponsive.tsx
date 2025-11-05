@@ -139,9 +139,9 @@ export function useResponsiveClasses() {
     const classArray: string[] = [];
 
     // Add device category classes
-    if (classes.mobile && isMobile) classArray.push(classes.mobile);
-    if (classes.tablet && isTablet) classArray.push(classes.tablet);
-    if (classes.desktop && isDesktop) classArray.push(classes.desktop);
+    if (classes.mobile && isMobile) {classArray.push(classes.mobile);}
+    if (classes.tablet && isTablet) {classArray.push(classes.tablet);}
+    if (classes.desktop && isDesktop) {classArray.push(classes.desktop);}
 
     // Add specific breakpoint class
     if (classes[currentBreakpoint]) {
@@ -175,8 +175,8 @@ export function useResponsiveSpacing() {
   const { isMobile, isTablet } = useResponsive();
 
   const getSpacing = (mobile: string, tablet: string, desktop: string) => {
-    if (isMobile) return mobile;
-    if (isTablet) return tablet;
+    if (isMobile) {return mobile;}
+    if (isTablet) {return tablet;}
     return desktop;
   };
 
@@ -213,7 +213,7 @@ interface ResponsiveProps {
 export function Responsive({ children, breakpoint, up, down, only }: ResponsiveProps) {
   const { isBreakpoint, isBreakpointUp, isBreakpointDown } = useResponsive();
 
-  if (!breakpoint) return <>{children}</>;
+  if (!breakpoint) {return <>{children}</>;}
 
   let shouldRender = false;
 

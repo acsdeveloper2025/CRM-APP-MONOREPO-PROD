@@ -86,41 +86,41 @@ export const CaseTable: React.FC<CaseTableProps> = ({
               <TableHead>Priority</TableHead>
               <TableHead>Verification Tasks</TableHead>
               <TableHead>Updated</TableHead>
-              <TableHead className="w-[70px]"></TableHead>
+              <TableHead className="w-[70px]" />
             </TableRow>
           </TableHeader>
           <TableBody>
             {[1, 2, 3, 4, 5].map((item) => (
               <TableRow key={item}>
                 <TableCell>
-                  <div className="h-4 bg-muted rounded animate-pulse"></div>
+                  <div className="h-4 bg-muted rounded animate-pulse" />
                 </TableCell>
                 <TableCell>
-                  <div className="h-4 bg-muted rounded animate-pulse"></div>
+                  <div className="h-4 bg-muted rounded animate-pulse" />
                 </TableCell>
                 <TableCell>
-                  <div className="h-4 bg-muted rounded animate-pulse"></div>
+                  <div className="h-4 bg-muted rounded animate-pulse" />
                 </TableCell>
                 <TableCell>
-                  <div className="h-4 bg-muted rounded animate-pulse"></div>
+                  <div className="h-4 bg-muted rounded animate-pulse" />
                 </TableCell>
                 <TableCell>
-                  <div className="h-6 bg-muted rounded animate-pulse w-20"></div>
+                  <div className="h-6 bg-muted rounded animate-pulse w-20" />
                 </TableCell>
                 <TableCell>
-                  <div className="h-6 bg-muted rounded animate-pulse w-16"></div>
+                  <div className="h-6 bg-muted rounded animate-pulse w-16" />
                 </TableCell>
                 <TableCell>
-                  <div className="h-6 bg-muted rounded animate-pulse w-16"></div>
+                  <div className="h-6 bg-muted rounded animate-pulse w-16" />
                 </TableCell>
                 <TableCell>
-                  <div className="h-4 bg-muted rounded animate-pulse"></div>
+                  <div className="h-4 bg-muted rounded animate-pulse" />
                 </TableCell>
                 <TableCell>
-                  <div className="h-4 bg-muted rounded animate-pulse"></div>
+                  <div className="h-4 bg-muted rounded animate-pulse" />
                 </TableCell>
                 <TableCell>
-                  <div className="h-8 w-8 bg-muted rounded animate-pulse"></div>
+                  <div className="h-8 w-8 bg-muted rounded animate-pulse" />
                 </TableCell>
               </TableRow>
             ))}
@@ -154,7 +154,7 @@ export const CaseTable: React.FC<CaseTableProps> = ({
               <TableHead className="hidden lg:table-cell">Priority</TableHead>
               <TableHead className="hidden lg:table-cell">Verification Tasks</TableHead>
               <TableHead className="hidden xl:table-cell">Updated</TableHead>
-              <TableHead className="w-[70px]"></TableHead>
+              <TableHead className="w-[70px]" />
             </TableRow>
           </TableHeader>
         <TableBody>

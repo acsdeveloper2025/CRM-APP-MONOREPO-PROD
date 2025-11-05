@@ -63,19 +63,19 @@ export class VerificationTasksService {
   }> {
     const params = new URLSearchParams();
 
-    if (filters?.page) params.append('page', filters.page.toString());
-    if (filters?.limit) params.append('limit', filters.limit.toString());
-    if (filters?.sortBy) params.append('sortBy', filters.sortBy);
-    if (filters?.sortOrder) params.append('sortOrder', filters.sortOrder);
-    if (filters?.status) params.append('status', filters.status);
-    if (filters?.priority) params.append('priority', filters.priority);
-    if (filters?.assignedTo) params.append('assignedTo', filters.assignedTo);
-    if (filters?.verificationTypeId) params.append('verificationTypeId', filters.verificationTypeId.toString());
-    if (filters?.clientId) params.append('clientId', filters.clientId.toString());
-    if (filters?.productId) params.append('productId', filters.productId.toString());
-    if (filters?.search) params.append('search', filters.search);
-    if (filters?.dateFrom) params.append('dateFrom', filters.dateFrom);
-    if (filters?.dateTo) params.append('dateTo', filters.dateTo);
+    if (filters?.page) {params.append('page', filters.page.toString());}
+    if (filters?.limit) {params.append('limit', filters.limit.toString());}
+    if (filters?.sortBy) {params.append('sortBy', filters.sortBy);}
+    if (filters?.sortOrder) {params.append('sortOrder', filters.sortOrder);}
+    if (filters?.status) {params.append('status', filters.status);}
+    if (filters?.priority) {params.append('priority', filters.priority);}
+    if (filters?.assignedTo) {params.append('assignedTo', filters.assignedTo);}
+    if (filters?.verificationTypeId) {params.append('verificationTypeId', filters.verificationTypeId.toString());}
+    if (filters?.clientId) {params.append('clientId', filters.clientId.toString());}
+    if (filters?.productId) {params.append('productId', filters.productId.toString());}
+    if (filters?.search) {params.append('search', filters.search);}
+    if (filters?.dateFrom) {params.append('dateFrom', filters.dateFrom);}
+    if (filters?.dateTo) {params.append('dateTo', filters.dateTo);}
 
     const response = await apiService.get(`/verification-tasks?${params.toString()}`);
     return response as any;
@@ -103,10 +103,10 @@ export class VerificationTasksService {
   ): Promise<TasksForCaseResponse> {
     const params = new URLSearchParams();
 
-    if (filters?.status) params.append('status', filters.status);
-    if (filters?.assignedTo) params.append('assigned_to', filters.assignedTo);
-    if (filters?.verificationTypeId) params.append('verification_type_id', filters.verificationTypeId.toString());
-    if (filters?.priority) params.append('priority', filters.priority);
+    if (filters?.status) {params.append('status', filters.status);}
+    if (filters?.assignedTo) {params.append('assigned_to', filters.assignedTo);}
+    if (filters?.verificationTypeId) {params.append('verification_type_id', filters.verificationTypeId.toString());}
+    if (filters?.priority) {params.append('priority', filters.priority);}
 
     const response = await apiService.get(`/cases/${caseId}/verification-tasks?${params.toString()}`);
     // apiService.get returns { success, data, message }
@@ -264,8 +264,8 @@ export class VerificationTasksService {
     message: string;
   }> {
     const params = new URLSearchParams();
-    if (filters?.status) params.append('status', filters.status);
-    if (filters?.priority) params.append('priority', filters.priority);
+    if (filters?.status) {params.append('status', filters.status);}
+    if (filters?.priority) {params.append('priority', filters.priority);}
 
     const response = await apiService.get(`/mobile/my-verification-tasks?${params.toString()}`);
     return response.data;

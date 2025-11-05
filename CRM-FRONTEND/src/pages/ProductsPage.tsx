@@ -118,7 +118,7 @@ export function ProductsPage() {
           <CardContent>
             <div className="text-2xl font-bold">
               {products.filter(p => {
-                if (!p.createdAt) return false;
+                if (!p.createdAt) {return false;}
                 const created = new Date(p.createdAt);
                 const thirtyDaysAgo = new Date();
                 thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);

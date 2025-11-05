@@ -87,7 +87,7 @@ export const FormsTestPage: React.FC = () => {
           <div className="flex items-center space-x-4">
             {isLoading && (
               <div className="flex items-center space-x-2 text-green-600">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600"></div>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600" />
                 <span>Loading...</span>
               </div>
             )}

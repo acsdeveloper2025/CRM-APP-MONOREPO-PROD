@@ -93,8 +93,8 @@ export const NewCasePage: React.FC = () => {
           priority: caseItem.priority || 'MEDIUM', // Keep as string
           trigger: String(caseItem.trigger || caseItem.notes || ''), // Use 'trigger' not 'notes'
           address: String(caseItem.address || ''),
-          pincodeId: pincodeId, // Map pincode code to pincode ID
-          areaId: areaId, // Use the found area ID
+          pincodeId, // Map pincode code to pincode ID
+          areaId, // Use the found area ID
         };
 
         const mappedData = {

@@ -99,7 +99,7 @@ export const TerritoryAssignmentSection: React.FC<TerritoryAssignmentSectionProp
 
   // Memoize the load function to prevent unnecessary re-renders
   const loadUserTerritoryData = useCallback(async () => {
-    if (!userId || userRole !== 'FIELD_AGENT') return;
+    if (!userId || userRole !== 'FIELD_AGENT') {return;}
 
     try {
       // Fetch user's current territory assignments
@@ -141,7 +141,7 @@ export const TerritoryAssignmentSection: React.FC<TerritoryAssignmentSectionProp
 
   const handleAddPincode = useCallback(async () => {
     if (!selectedPincodeId || isUpdating) {
-      if (!selectedPincodeId) toast.error("Please select a pincode to add");
+      if (!selectedPincodeId) {toast.error("Please select a pincode to add");}
       return;
     }
 
@@ -179,7 +179,7 @@ export const TerritoryAssignmentSection: React.FC<TerritoryAssignmentSectionProp
   }, [selectedPincodeId, territorySelections, assignPincodes, userId, onAssignmentsChange, isUpdating]);
 
   const handleRemovePincode = useCallback(async (pincodeId: number) => {
-    if (isUpdating) return;
+    if (isUpdating) {return;}
 
     try {
       setIsUpdating(true);
@@ -199,7 +199,7 @@ export const TerritoryAssignmentSection: React.FC<TerritoryAssignmentSectionProp
   }, [removePincodeAssignment, userId, territorySelections, onAssignmentsChange, isUpdating]);
 
   const handleAreaToggle = useCallback(async (pincodeId: number, areaId: number, checked: boolean) => {
-    if (isUpdating) return;
+    if (isUpdating) {return;}
 
     try {
       setIsUpdating(true);

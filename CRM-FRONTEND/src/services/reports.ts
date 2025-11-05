@@ -239,17 +239,17 @@ export class ReportsService {
   async getMISDashboardData(filters: MISFilters = {}): Promise<MISDataResponse> {
     const params = new URLSearchParams();
 
-    if (filters.dateFrom) params.append('dateFrom', filters.dateFrom);
-    if (filters.dateTo) params.append('dateTo', filters.dateTo);
-    if (filters.clientId) params.append('clientId', filters.clientId.toString());
-    if (filters.productId) params.append('productId', filters.productId.toString());
-    if (filters.verificationTypeId) params.append('verificationTypeId', filters.verificationTypeId.toString());
-    if (filters.caseStatus) params.append('caseStatus', filters.caseStatus);
-    if (filters.fieldAgentId) params.append('fieldAgentId', filters.fieldAgentId);
-    if (filters.backendUserId) params.append('backendUserId', filters.backendUserId);
-    if (filters.priority) params.append('priority', filters.priority);
-    if (filters.page) params.append('page', filters.page.toString());
-    if (filters.limit) params.append('limit', filters.limit.toString());
+    if (filters.dateFrom) {params.append('dateFrom', filters.dateFrom);}
+    if (filters.dateTo) {params.append('dateTo', filters.dateTo);}
+    if (filters.clientId) {params.append('clientId', filters.clientId.toString());}
+    if (filters.productId) {params.append('productId', filters.productId.toString());}
+    if (filters.verificationTypeId) {params.append('verificationTypeId', filters.verificationTypeId.toString());}
+    if (filters.caseStatus) {params.append('caseStatus', filters.caseStatus);}
+    if (filters.fieldAgentId) {params.append('fieldAgentId', filters.fieldAgentId);}
+    if (filters.backendUserId) {params.append('backendUserId', filters.backendUserId);}
+    if (filters.priority) {params.append('priority', filters.priority);}
+    if (filters.page) {params.append('page', filters.page.toString());}
+    if (filters.limit) {params.append('limit', filters.limit.toString());}
 
     const response = await apiService.get<MISDataResponse>(
       `/reports/mis-dashboard-data?${params.toString()}`
@@ -265,15 +265,15 @@ export class ReportsService {
   async exportMISDashboardData(filters: MISFilters = {}, format: ExportFormat = 'EXCEL'): Promise<Blob> {
     const params = new URLSearchParams();
 
-    if (filters.dateFrom) params.append('dateFrom', filters.dateFrom);
-    if (filters.dateTo) params.append('dateTo', filters.dateTo);
-    if (filters.clientId) params.append('clientId', filters.clientId.toString());
-    if (filters.productId) params.append('productId', filters.productId.toString());
-    if (filters.verificationTypeId) params.append('verificationTypeId', filters.verificationTypeId.toString());
-    if (filters.caseStatus) params.append('caseStatus', filters.caseStatus);
-    if (filters.fieldAgentId) params.append('fieldAgentId', filters.fieldAgentId);
-    if (filters.backendUserId) params.append('backendUserId', filters.backendUserId);
-    if (filters.priority) params.append('priority', filters.priority);
+    if (filters.dateFrom) {params.append('dateFrom', filters.dateFrom);}
+    if (filters.dateTo) {params.append('dateTo', filters.dateTo);}
+    if (filters.clientId) {params.append('clientId', filters.clientId.toString());}
+    if (filters.productId) {params.append('productId', filters.productId.toString());}
+    if (filters.verificationTypeId) {params.append('verificationTypeId', filters.verificationTypeId.toString());}
+    if (filters.caseStatus) {params.append('caseStatus', filters.caseStatus);}
+    if (filters.fieldAgentId) {params.append('fieldAgentId', filters.fieldAgentId);}
+    if (filters.backendUserId) {params.append('backendUserId', filters.backendUserId);}
+    if (filters.priority) {params.append('priority', filters.priority);}
     params.append('format', format);
 
     const apiBaseUrl = getApiBaseUrl();

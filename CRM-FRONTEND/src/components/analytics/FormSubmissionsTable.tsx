@@ -288,7 +288,7 @@ export const FormSubmissionsTable: React.FC = () => {
                     <TableRow key={index}>
                       {Array.from({ length: 6 }).map((_, cellIndex) => (
                         <TableCell key={cellIndex}>
-                          <div className="h-4 bg-muted rounded animate-pulse"></div>
+                          <div className="h-4 bg-muted rounded animate-pulse" />
                         </TableCell>
                       ))}
                     </TableRow>

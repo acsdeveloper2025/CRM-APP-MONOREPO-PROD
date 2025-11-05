@@ -306,7 +306,7 @@ export const CaseAnalyticsDashboard: React.FC = () => {
                     <TableRow key={index}>
                       {Array.from({ length: 8 }).map((_, cellIndex) => (
                         <TableCell key={cellIndex}>
-                          <div className="h-4 bg-muted rounded animate-pulse"></div>
+                          <div className="h-4 bg-muted rounded animate-pulse" />
                         </TableCell>
                       ))}
                     </TableRow>
@@ -368,7 +368,7 @@ export const CaseAnalyticsDashboard: React.FC = () => {
                             <div 
                               className="bg-blue-600 h-2 rounded-full" 
                               style={{ width: `${caseItem.formCompletionPercentage}%` }}
-                            ></div>
+                             />
                           </div>
                         </div>
                       </TableCell>

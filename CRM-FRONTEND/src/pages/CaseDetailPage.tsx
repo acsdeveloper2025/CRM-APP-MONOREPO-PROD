@@ -17,10 +17,10 @@ import { formatDistanceToNow } from 'date-fns';
 
 // Helper function to safely format dates
 const safeFormatDistanceToNow = (dateValue: string | null | undefined): string => {
-  if (!dateValue) return 'Unknown';
+  if (!dateValue) {return 'Unknown';}
   try {
     const date = new Date(dateValue);
-    if (isNaN(date.getTime())) return 'Invalid date';
+    if (isNaN(date.getTime())) {return 'Invalid date';}
     return formatDistanceToNow(date, { addSuffix: true });
   } catch (error) {
     return 'Invalid date';
@@ -66,17 +66,17 @@ export const CaseDetailPage: React.FC = () => {
     return (
       <div className="space-y-6">
         <div className="flex items-center space-x-4">
-          <div className="h-8 w-8 bg-muted rounded animate-pulse"></div>
-          <div className="h-8 bg-muted rounded w-48 animate-pulse"></div>
+          <div className="h-8 w-8 bg-muted rounded animate-pulse" />
+          <div className="h-8 bg-muted rounded w-48 animate-pulse" />
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
-            <div className="h-64 bg-muted rounded animate-pulse"></div>
-            <div className="h-48 bg-muted rounded animate-pulse"></div>
+            <div className="h-64 bg-muted rounded animate-pulse" />
+            <div className="h-48 bg-muted rounded animate-pulse" />
           </div>
           <div className="space-y-6">
-            <div className="h-32 bg-muted rounded animate-pulse"></div>
-            <div className="h-48 bg-muted rounded animate-pulse"></div>
+            <div className="h-32 bg-muted rounded animate-pulse" />
+            <div className="h-48 bg-muted rounded animate-pulse" />
           </div>
         </div>
       </div>
@@ -356,7 +356,7 @@ export const CaseDetailPage: React.FC = () => {
                   <Card>
                     <CardContent className="p-6">
                       <div className="flex items-center justify-center">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600" />
                         <span className="ml-2">Loading form submissions...</span>
                       </div>
                     </CardContent>

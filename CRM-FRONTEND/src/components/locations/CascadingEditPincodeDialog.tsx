@@ -62,7 +62,7 @@ export function CascadingEditPincodeDialog({ pincode, open, onOpenChange }: Casc
   const { data: statesData } = useQuery({
     queryKey: ['states-for-edit', cityData?.data?.country],
     queryFn: () => {
-      if (!cityData?.data?.country) return Promise.resolve({ data: [] });
+      if (!cityData?.data?.country) {return Promise.resolve({ data: [] });}
       return locationsService.getStates({ country: cityData.data.country, limit: 100 });
     },
     enabled: !!cityData?.data?.country,

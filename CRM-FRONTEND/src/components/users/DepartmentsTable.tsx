@@ -118,7 +118,7 @@ export function DepartmentsTable({ onEditDepartment }: DepartmentsTableProps) {
               <TableHead>Users</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Created</TableHead>
-              <TableHead className="w-[70px]"></TableHead>
+              <TableHead className="w-[70px]" />
             </TableRow>
           </TableHeader>
           <TableBody>

@@ -66,7 +66,7 @@ export function BulkImportLocationDialog({ open, onOpenChange, type }: BulkImpor
   };
 
   const handleImport = () => {
-    if (!selectedFile) return;
+    if (!selectedFile) {return;}
     importMutation.mutate(selectedFile);
   };
 

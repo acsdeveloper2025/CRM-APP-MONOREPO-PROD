@@ -86,8 +86,8 @@ export const TATMonitoringPage: React.FC = () => {
   };
 
   const getDaysOverdueColor = (days: number) => {
-    if (days > 3) return 'text-red-600 font-bold';
-    if (days > 1) return 'text-yellow-600 font-semibold';
+    if (days > 3) {return 'text-red-600 font-bold';}
+    if (days > 1) {return 'text-yellow-600 font-semibold';}
     return 'text-yellow-600';
   };
 
@@ -95,7 +95,7 @@ export const TATMonitoringPage: React.FC = () => {
     if (isLoading) {
       return (
         <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
         </div>
       );
     }
@@ -310,7 +310,7 @@ export const TATMonitoringPage: React.FC = () => {
           <CardContent>
             <div className="text-2xl font-bold">
               {criticalTasks.filter(t => {
-                if (!t.completed_at) return false;
+                if (!t.completed_at) {return false;}
                 const completed = new Date(t.completed_at);
                 const today = new Date();
                 return completed.toDateString() === today.toDateString();

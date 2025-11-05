@@ -14,7 +14,7 @@ interface MISDataTableProps {
 export function MISDataTable({ data, pagination, onPageChange, isLoading }: MISDataTableProps) {
 
   const formatDate = (dateString: string | null) => {
-    if (!dateString) return '-';
+    if (!dateString) {return '-';}
     try {
       return format(new Date(dateString), 'dd MMM yyyy');
     } catch {

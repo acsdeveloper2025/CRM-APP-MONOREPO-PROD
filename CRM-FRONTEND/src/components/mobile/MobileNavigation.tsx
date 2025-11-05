@@ -62,7 +62,7 @@ export const MobileNavigation: React.FC<MobileNavigationProps> = ({
   ];
 
   const getConnectionIcon = () => {
-    if (!isOnline) return <WifiOff className="h-4 w-4 text-red-500" />;
+    if (!isOnline) {return <WifiOff className="h-4 w-4 text-red-500" />;}
     
     switch (connectionQuality) {
       case 'excellent':
@@ -254,7 +254,7 @@ export const MobileNavigation: React.FC<MobileNavigationProps> = ({
                 </div>
                 <span className="text-xs">{item.label}</span>
                 {isActive && (
-                  <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-8 h-1 bg-blue-600 rounded-b"></div>
+                  <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-8 h-1 bg-blue-600 rounded-b" />
                 )}
               </Button>
             );

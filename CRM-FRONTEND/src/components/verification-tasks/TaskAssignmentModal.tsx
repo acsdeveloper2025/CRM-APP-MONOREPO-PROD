@@ -73,8 +73,8 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
     setLoading(true);
 
     const assignmentData: AssignVerificationTaskRequest = {
-      assignedTo: assignedTo,
-      assignmentReason: assignmentReason,
+      assignedTo,
+      assignmentReason,
       priority
     };
 

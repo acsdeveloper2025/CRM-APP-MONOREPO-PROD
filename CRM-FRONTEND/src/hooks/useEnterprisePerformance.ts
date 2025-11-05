@@ -62,7 +62,7 @@ export const useInfiniteScroll = (
   }, [handleScroll]);
 
   useEffect(() => {
-    if (!isFetching) return;
+    if (!isFetching) {return;}
     onLoadMore();
     setIsFetching(false);
   }, [isFetching, onLoadMore]);
@@ -259,7 +259,7 @@ export const useMemoryMonitor = () => {
   }, []);
 
   const getMemoryUsagePercentage = useCallback(() => {
-    if (!memoryInfo) return 0;
+    if (!memoryInfo) {return 0;}
     return (memoryInfo.usedJSHeapSize / memoryInfo.jsHeapSizeLimit) * 100;
   }, [memoryInfo]);
 
@@ -344,7 +344,7 @@ export const useEnterpriseList = <T extends { id: string }>(
 
   // Memoized sorted and paginated items
   const processedItems = useMemo(() => {
-    let sortedItems = [...items];
+    const sortedItems = [...items];
 
     // Apply sorting
     if (sortConfig) {

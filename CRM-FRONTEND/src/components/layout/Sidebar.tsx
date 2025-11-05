@@ -30,7 +30,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     // Check permission-based access first
     if (item.permission) {
       const hasAccess = hasPermission(item.permission.resource, item.permission.action);
-      if (!hasAccess) return false;
+      if (!hasAccess) {return false;}
     }
     // Fallback to role-based access for backward compatibility
     else if (item.roles && !hasAnyRole(item.roles)) {
@@ -47,14 +47,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
 
   const isItemActive = (item: NavigationItem): boolean => {
     // Direct match
-    if (location.pathname === item.href || location.pathname.startsWith(item.href + '/')) {
+    if (location.pathname === item.href || location.pathname.startsWith(`${item.href  }/`)) {
       return true;
     }
 
     // Check if any child is active (for parent items)
     if (item.children && item.children.length > 0) {
       return item.children.some(child =>
-        location.pathname === child.href || location.pathname.startsWith(child.href + '/')
+        location.pathname === child.href || location.pathname.startsWith(`${child.href  }/`)
       );
     }
 
@@ -62,7 +62,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   };
 
   const renderNavigationItem = (item: NavigationItem, level = 0) => {
-    if (!isItemVisible(item)) return null;
+    if (!isItemVisible(item)) {return null;}
 
     const hasChildren = item.children && item.children.length > 0;
     const isActive = isItemActive(item);

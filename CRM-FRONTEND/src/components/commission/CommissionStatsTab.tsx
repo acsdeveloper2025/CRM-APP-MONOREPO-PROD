@@ -26,7 +26,7 @@ export const CommissionStatsTab: React.FC = () => {
   };
 
   const exportStats = () => {
-    if (!stats) return;
+    if (!stats) {return;}
 
     const csvContent = [
       ['Metric', 'Value'],
@@ -51,7 +51,7 @@ export const CommissionStatsTab: React.FC = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600" />
       </div>
     );
   }

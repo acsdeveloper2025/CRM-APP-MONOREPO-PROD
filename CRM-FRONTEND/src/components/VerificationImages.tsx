@@ -187,7 +187,7 @@ const VerificationImages: React.FC<VerificationImagesProps> = ({
       // Create a canvas to composite the image with metadata
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
-      if (!ctx) throw new Error('Canvas context not available');
+      if (!ctx) {throw new Error('Canvas context not available');}
 
       // Create an image element to load the blob
       const img = new Image();
@@ -262,13 +262,13 @@ const VerificationImages: React.FC<VerificationImagesProps> = ({
         let lineY = currentY;
 
         for (let n = 0; n < words.length; n++) {
-          const testLine = line + words[n] + ' ';
+          const testLine = `${line + words[n]  } `;
           const metrics = ctx.measureText(testLine);
           const testWidth = metrics.width;
 
           if (testWidth > maxWidth && n > 0) {
             ctx.fillText(line, 150, lineY);
-            line = words[n] + ' ';
+            line = `${words[n]  } `;
             lineY += 20;
           } else {
             line = testLine;
@@ -306,7 +306,7 @@ const VerificationImages: React.FC<VerificationImagesProps> = ({
   };
 
   const formatGeoLocation = (geoLocation: any) => {
-    if (!geoLocation) return null;
+    if (!geoLocation) {return null;}
     return `${geoLocation.latitude.toFixed(6)}, ${geoLocation.longitude.toFixed(6)}`;
   };
 

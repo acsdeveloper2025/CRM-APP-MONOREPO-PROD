@@ -15,10 +15,10 @@ class DepartmentsService {
   async getDepartments(params: DepartmentsQueryParams = {}): Promise<PaginatedResponse<Department>> {
     const queryParams = new URLSearchParams();
     
-    if (params.page) queryParams.append('page', params.page.toString());
-    if (params.limit) queryParams.append('limit', params.limit.toString());
-    if (params.search) queryParams.append('search', params.search);
-    if (params.includeInactive) queryParams.append('includeInactive', params.includeInactive.toString());
+    if (params.page) {queryParams.append('page', params.page.toString());}
+    if (params.limit) {queryParams.append('limit', params.limit.toString());}
+    if (params.search) {queryParams.append('search', params.search);}
+    if (params.includeInactive) {queryParams.append('includeInactive', params.includeInactive.toString());}
 
     const response = await apiService.get<PaginatedResponse<Department>>(`/departments?${queryParams.toString()}`);
     return response;

@@ -37,11 +37,11 @@ class DesignationsService {
   async getDesignations(params: DesignationsParams = {}): Promise<DesignationsResponse> {
     const searchParams = new URLSearchParams();
     
-    if (params.page) searchParams.append('page', params.page.toString());
-    if (params.limit) searchParams.append('limit', params.limit.toString());
-    if (params.search) searchParams.append('search', params.search);
-    if (params.isActive !== undefined) searchParams.append('isActive', params.isActive.toString());
-    if (params.departmentId) searchParams.append('departmentId', params.departmentId);
+    if (params.page) {searchParams.append('page', params.page.toString());}
+    if (params.limit) {searchParams.append('limit', params.limit.toString());}
+    if (params.search) {searchParams.append('search', params.search);}
+    if (params.isActive !== undefined) {searchParams.append('isActive', params.isActive.toString());}
+    if (params.departmentId) {searchParams.append('departmentId', params.departmentId);}
 
     const queryString = searchParams.toString();
     const url = queryString ? `${this.baseUrl}?${queryString}` : this.baseUrl;
@@ -72,7 +72,7 @@ class DesignationsService {
 
   async getActiveDesignations(departmentId?: string): Promise<DesignationsResponse> {
     const searchParams = new URLSearchParams();
-    if (departmentId) searchParams.append('departmentId', departmentId);
+    if (departmentId) {searchParams.append('departmentId', departmentId);}
     
     const queryString = searchParams.toString();
     const url = queryString ? `${this.baseUrl}/active?${queryString}` : `${this.baseUrl}/active`;

@@ -52,14 +52,14 @@ export function RealTimeDashboard({ refreshInterval = 30000 }: RealTimeDashboard
   }, [isConnected, refreshInterval]);
 
   const getSystemLoadColor = (load: number) => {
-    if (load < 50) return 'text-green-600';
-    if (load < 80) return 'text-yellow-600';
+    if (load < 50) {return 'text-green-600';}
+    if (load < 80) {return 'text-yellow-600';}
     return 'text-red-600';
   };
 
   const getSystemLoadVariant = (load: number) => {
-    if (load < 50) return 'default' as const;
-    if (load < 80) return 'secondary' as const;
+    if (load < 50) {return 'default' as const;}
+    if (load < 80) {return 'secondary' as const;}
     return 'destructive' as const;
   };
 

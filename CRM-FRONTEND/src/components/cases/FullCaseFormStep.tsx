@@ -80,7 +80,7 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
 
   // Helper function to get user display name
   const getUserDisplayName = (user: any) => {
-    if (!user) return '';
+    if (!user) {return '';}
 
     // Try different possible name formats
     if (user.name && typeof user.name === 'string' && user.name.trim()) {

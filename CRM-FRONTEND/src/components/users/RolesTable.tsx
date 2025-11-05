@@ -80,12 +80,12 @@ export function RolesTable({ onEditRole }: RolesTableProps) {
   };
 
   const getPermissionCount = (permissions: any) => {
-    if (!permissions) return 0;
+    if (!permissions) {return 0;}
     let count = 0;
     Object.values(permissions).forEach((resource: any) => {
       if (resource && typeof resource === 'object') {
         Object.values(resource).forEach((permission) => {
-          if (permission === true) count++;
+          if (permission === true) {count++;}
         });
       }
     });
@@ -113,7 +113,7 @@ export function RolesTable({ onEditRole }: RolesTableProps) {
               <TableHead>Permissions</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Created</TableHead>
-              <TableHead className="w-[70px]"></TableHead>
+              <TableHead className="w-[70px]" />
             </TableRow>
           </TableHeader>
           <TableBody>

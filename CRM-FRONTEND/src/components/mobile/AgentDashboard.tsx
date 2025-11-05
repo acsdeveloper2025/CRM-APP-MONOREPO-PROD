@@ -75,7 +75,7 @@ export const AgentDashboard: React.FC = () => {
   };
 
   const getConnectionIcon = () => {
-    if (!isOnline) return <WifiOff className="h-4 w-4 text-red-500" />;
+    if (!isOnline) {return <WifiOff className="h-4 w-4 text-red-500" />;}
     
     switch (connectionQuality) {
       case 'excellent':
@@ -90,16 +90,16 @@ export const AgentDashboard: React.FC = () => {
   };
 
   const getQualityScoreColor = (score: number) => {
-    if (score >= 90) return 'text-green-600';
-    if (score >= 80) return 'text-green-600';
-    if (score >= 70) return 'text-yellow-600';
+    if (score >= 90) {return 'text-green-600';}
+    if (score >= 80) {return 'text-green-600';}
+    if (score >= 70) {return 'text-yellow-600';}
     return 'text-red-600';
   };
 
   const getQualityScoreBadge = (score: number) => {
-    if (score >= 90) return 'bg-green-100 text-green-800';
-    if (score >= 80) return 'bg-green-100 text-green-800';
-    if (score >= 70) return 'bg-yellow-100 text-yellow-800';
+    if (score >= 90) {return 'bg-green-100 text-green-800';}
+    if (score >= 80) {return 'bg-green-100 text-green-800';}
+    if (score >= 70) {return 'bg-yellow-100 text-yellow-800';}
     return 'bg-red-100 text-red-800';
   };
 
@@ -145,7 +145,7 @@ export const AgentDashboard: React.FC = () => {
           {/* Connection Status */}
           <div className="mt-2 flex items-center justify-between text-xs">
             <span className={`flex items-center space-x-1 ${isOnline ? 'text-green-600' : 'text-red-600'}`}>
-              <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-green-500' : 'bg-red-500'}`}></span>
+              <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-green-500' : 'bg-red-500'}`} />
               <span>{isOnline ? `Online (${connectionQuality})` : 'Offline'}</span>
             </span>
             {lastSync && (

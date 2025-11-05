@@ -78,9 +78,9 @@ export function CascadingLocationSelector({
   const { data: statesData, isLoading: statesLoading } = useQuery({
     queryKey: ['states', selectedCountryId],
     queryFn: () => {
-      if (!selectedCountryId) return Promise.resolve({ data: [] });
+      if (!selectedCountryId) {return Promise.resolve({ data: [] });}
       const selectedCountry = countries.find(c => c.id === selectedCountryId);
-      if (!selectedCountry) return Promise.resolve({ data: [] });
+      if (!selectedCountry) {return Promise.resolve({ data: [] });}
       return locationsService.getStates({ country: selectedCountry.name, limit: 100 });
     },
     enabled: !!selectedCountryId,
@@ -90,9 +90,9 @@ export function CascadingLocationSelector({
   const { data: citiesData, isLoading: citiesLoading } = useQuery({
     queryKey: ['cities', selectedStateId],
     queryFn: () => {
-      if (!selectedStateId) return Promise.resolve({ data: [] });
+      if (!selectedStateId) {return Promise.resolve({ data: [] });}
       const selectedState = states.find(s => s.id === selectedStateId);
-      if (!selectedState) return Promise.resolve({ data: [] });
+      if (!selectedState) {return Promise.resolve({ data: [] });}
       return locationsService.getCities({ state: selectedState.name, limit: 100 });
     },
     enabled: !!selectedStateId,
@@ -102,7 +102,7 @@ export function CascadingLocationSelector({
   const { data: pincodesData, isLoading: pincodesLoading } = useQuery({
     queryKey: ['pincodes', selectedCityId],
     queryFn: () => {
-      if (!selectedCityId || mode === 'create') return Promise.resolve({ data: [] });
+      if (!selectedCityId || mode === 'create') {return Promise.resolve({ data: [] });}
       return locationsService.getPincodesByCity(selectedCityId);
     },
     enabled: !!selectedCityId && mode === 'edit',
@@ -121,30 +121,30 @@ export function CascadingLocationSelector({
     form.setValue(countryField, countryId);
     form.setValue(stateField, '');
     form.setValue(cityField, '');
-    if (showPincodeInput) form.setValue(pincodeField, '');
+    if (showPincodeInput) {form.setValue(pincodeField, '');}
     // Only clear areas in create mode
-    if (showAreasSelect && mode === 'create') form.setValue(areasField, []);
+    if (showAreasSelect && mode === 'create') {form.setValue(areasField, []);}
   };
 
   const handleStateChange = (stateId: string) => {
     form.setValue(stateField, stateId);
     form.setValue(cityField, '');
-    if (showPincodeInput) form.setValue(pincodeField, '');
+    if (showPincodeInput) {form.setValue(pincodeField, '');}
     // Only clear areas in create mode
-    if (showAreasSelect && mode === 'create') form.setValue(areasField, []);
+    if (showAreasSelect && mode === 'create') {form.setValue(areasField, []);}
   };
 
   const handleCityChange = (cityId: string) => {
     form.setValue(cityField, cityId);
-    if (showPincodeInput) form.setValue(pincodeField, '');
+    if (showPincodeInput) {form.setValue(pincodeField, '');}
     // Only clear areas in create mode
-    if (showAreasSelect && mode === 'create') form.setValue(areasField, []);
+    if (showAreasSelect && mode === 'create') {form.setValue(areasField, []);}
   };
 
   const handlePincodeChange = (pincodeCode: string) => {
     form.setValue(pincodeField, pincodeCode);
     // Only clear areas in create mode
-    if (showAreasSelect && mode === 'create') form.setValue(areasField, []);
+    if (showAreasSelect && mode === 'create') {form.setValue(areasField, []);}
   };
 
 

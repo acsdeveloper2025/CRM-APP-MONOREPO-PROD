@@ -43,34 +43,34 @@ class ApiService {
     // 1. Check if we're on localhost (development)
     if (isLocalhost) {
       const url = 'http://localhost:3000/api';
-      if (import.meta.env.DEV) console.log('🏠 Frontend API Service - Using localhost API URL:', url);
+      if (import.meta.env.DEV) {console.log('🏠 Frontend API Service - Using localhost API URL:', url);}
       return url;
     }
 
     // 2. Check if we're on the local network IP (hairpin NAT workaround)
     if (isLocalNetwork) {
       const url = `http://${staticIP}:3000/api`;
-      if (import.meta.env.DEV) console.log('🏠 Frontend API Service - Using local network API URL (hairpin NAT workaround):', url);
+      if (import.meta.env.DEV) {console.log('🏠 Frontend API Service - Using local network API URL (hairpin NAT workaround):', url);}
       return url;
     }
 
     // 3. Check if we're on the domain name (production access)
     if (isDomain) {
       const url = 'https://example.com/api';
-      if (import.meta.env.DEV) console.log('🌐 Frontend API Service - Using domain API URL:', url);
+      if (import.meta.env.DEV) {console.log('🌐 Frontend API Service - Using domain API URL:', url);}
       return url;
     }
 
     // 4. Check if we're on the static IP (external access)
     if (isStaticIP) {
       const url = `http://${staticIP}:3000/api`;
-      if (import.meta.env.DEV) console.log('🌐 Frontend API Service - Using static IP API URL:', url);
+      if (import.meta.env.DEV) {console.log('🌐 Frontend API Service - Using static IP API URL:', url);}
       return url;
     }
 
     // 5. Fallback to environment variable or localhost
     const fallbackUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
-    if (import.meta.env.DEV) console.log('🔄 Frontend API Service - Using fallback API URL:', fallbackUrl);
+    if (import.meta.env.DEV) {console.log('🔄 Frontend API Service - Using fallback API URL:', fallbackUrl);}
     return fallbackUrl;
   }
 

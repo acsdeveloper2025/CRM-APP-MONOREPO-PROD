@@ -153,8 +153,8 @@ export const EnterpriseDashboard: React.FC = () => {
 
   // Performance status indicators
   const getPerformanceStatus = (value: number, thresholds: { good: number; warning: number }) => {
-    if (value <= thresholds.good) return { status: 'good', color: 'text-green-600' };
-    if (value <= thresholds.warning) return { status: 'warning', color: 'text-yellow-600' };
+    if (value <= thresholds.good) {return { status: 'good', color: 'text-green-600' };}
+    if (value <= thresholds.warning) {return { status: 'warning', color: 'text-yellow-600' };}
     return { status: 'critical', color: 'text-red-600' };
   };
 

@@ -198,7 +198,7 @@ export const CompletedCasesPage: React.FC = () => {
                 <p className="text-2xl font-bold text-foreground">
                   {cases.length > 0
                     ? Math.round(cases.reduce((acc, c) => {
-                        if (!c.createdAt || !c.completedAt) return acc;
+                        if (!c.createdAt || !c.completedAt) {return acc;}
                         const created = new Date(c.createdAt);
                         const completed = new Date(c.completedAt);
                         const tatInDays = Math.floor((completed.getTime() - created.getTime()) / (1000 * 60 * 60 * 24));

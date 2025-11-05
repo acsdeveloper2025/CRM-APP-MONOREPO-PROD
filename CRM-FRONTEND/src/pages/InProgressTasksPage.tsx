@@ -77,7 +77,7 @@ export const InProgressTasksPage: React.FC = () => {
   // Calculate statistics
   const activeAgents = new Set(tasks.map(t => t.assignedTo).filter(Boolean)).size;
   const longRunningTasks = tasks.filter(t => {
-    if (!t.startedAt) return false;
+    if (!t.startedAt) {return false;}
     const hoursSinceStart = (Date.now() - new Date(t.startedAt).getTime()) / (1000 * 60 * 60);
     return hoursSinceStart > 24; // More than 24 hours
   }).length;

@@ -129,7 +129,7 @@ export function EditRoleDialog({ open, onOpenChange, role }: EditRoleDialogProps
 
   const updateMutation = useMutation({
     mutationFn: (data: UpdateRoleRequest) => {
-      if (!role) throw new Error('No role selected');
+      if (!role) {throw new Error('No role selected');}
       return rolesService.updateRole(role.id, data);
     },
     onSuccess: () => {
@@ -164,7 +164,7 @@ export function EditRoleDialog({ open, onOpenChange, role }: EditRoleDialogProps
     { key: 'delete', label: 'Delete', description: 'Remove records' },
   ];
 
-  if (!role) return null;
+  if (!role) {return null;}
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

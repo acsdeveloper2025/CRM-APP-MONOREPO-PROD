@@ -50,18 +50,18 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
 
   const getPageTitle = () => {
     const path = location.pathname;
-    if (path === '/dashboard') return 'Dashboard';
-    if (path === '/cases') return 'Cases';
-    if (path === '/cases/pending') return 'Pending Review';
-    if (path === '/clients') return 'Clients';
-    if (path === '/users') return 'Users';
-    if (path === '/reports') return 'Reports';
-    if (path === '/billing') return 'Billing';
-    if (path === '/locations') return 'Locations';
-    if (path === '/realtime') return 'Real-time';
-    if (path === '/forms') return 'Forms';
-    if (path === '/security-ux') return 'Security & UX';
-    if (path === '/settings') return 'Settings';
+    if (path === '/dashboard') {return 'Dashboard';}
+    if (path === '/cases') {return 'Cases';}
+    if (path === '/cases/pending') {return 'Pending Review';}
+    if (path === '/clients') {return 'Clients';}
+    if (path === '/users') {return 'Users';}
+    if (path === '/reports') {return 'Reports';}
+    if (path === '/billing') {return 'Billing';}
+    if (path === '/locations') {return 'Locations';}
+    if (path === '/realtime') {return 'Real-time';}
+    if (path === '/forms') {return 'Forms';}
+    if (path === '/security-ux') {return 'Security & UX';}
+    if (path === '/settings') {return 'Settings';}
     return 'Dashboard';
   };
 

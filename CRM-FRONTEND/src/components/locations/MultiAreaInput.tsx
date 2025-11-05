@@ -43,7 +43,7 @@ export function MultiAreaInput({
   }, [editingId]);
 
   const addArea = () => {
-    if (areas.length >= maxAreas) return;
+    if (areas.length >= maxAreas) {return;}
     
     const newArea: AreaItem = {
       id: `new-${Date.now()}`,
@@ -59,7 +59,7 @@ export function MultiAreaInput({
   };
 
   const removeArea = (id: string) => {
-    if (areas.length <= minAreas) return;
+    if (areas.length <= minAreas) {return;}
     
     const updatedAreas = areas
       .filter(area => area.id !== id)
@@ -82,14 +82,14 @@ export function MultiAreaInput({
   };
 
   const saveEdit = () => {
-    if (!editingId || editingValue.trim().length < 2) return;
+    if (!editingId || editingValue.trim().length < 2) {return;}
     
     // Check for duplicates
     const isDuplicate = areas.some(
       area => area.id !== editingId && area.name.toLowerCase() === editingValue.trim().toLowerCase()
     );
     
-    if (isDuplicate) return;
+    if (isDuplicate) {return;}
     
     const updatedAreas = areas.map(area =>
       area.id === editingId
@@ -115,10 +115,10 @@ export function MultiAreaInput({
 
   const moveArea = (id: string, direction: 'up' | 'down') => {
     const currentIndex = areas.findIndex(area => area.id === id);
-    if (currentIndex === -1) return;
+    if (currentIndex === -1) {return;}
     
     const newIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
-    if (newIndex < 0 || newIndex >= areas.length) return;
+    if (newIndex < 0 || newIndex >= areas.length) {return;}
     
     const updatedAreas = [...areas];
     [updatedAreas[currentIndex], updatedAreas[newIndex]] = [updatedAreas[newIndex], updatedAreas[currentIndex]];
@@ -142,7 +142,7 @@ export function MultiAreaInput({
   };
 
   const getDuplicateError = () => {
-    if (!editingId || !editingValue.trim()) return null;
+    if (!editingId || !editingValue.trim()) {return null;}
     
     const isDuplicate = areas.some(
       area => area.id !== editingId && area.name.toLowerCase() === editingValue.trim().toLowerCase()
@@ -152,7 +152,7 @@ export function MultiAreaInput({
   };
 
   const getValidationError = () => {
-    if (!editingId || !editingValue.trim()) return null;
+    if (!editingId || !editingValue.trim()) {return null;}
     
     if (editingValue.trim().length < 2) {
       return 'Area name must be at least 2 characters';

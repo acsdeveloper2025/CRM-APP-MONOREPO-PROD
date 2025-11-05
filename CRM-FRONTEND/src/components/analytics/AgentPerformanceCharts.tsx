@@ -105,9 +105,9 @@ export const AgentPerformanceCharts: React.FC = () => {
 
   function getPerformanceLevel(qualityScore: number, completionRate: number): string {
     const avgScore = (qualityScore + completionRate) / 2;
-    if (avgScore >= 90) return 'excellent';
-    if (avgScore >= 75) return 'good';
-    if (avgScore >= 60) return 'average';
+    if (avgScore >= 90) {return 'excellent';}
+    if (avgScore >= 75) {return 'good';}
+    if (avgScore >= 60) {return 'average';}
     return 'poor';
   }
 
@@ -133,7 +133,7 @@ export const AgentPerformanceCharts: React.FC = () => {
   }
 
   function generateRadarData(agent: any) {
-    if (!agent) return [];
+    if (!agent) {return [];}
     
     const completionRate = agent.totalCasesAssigned > 0 ? (agent.casesCompleted / agent.totalCasesAssigned) * 100 : 0;
     
@@ -412,7 +412,7 @@ export const AgentPerformanceCharts: React.FC = () => {
               {selectedAgent !== 'all' ? (
                 (() => {
                   const agent = agents.find(a => a.id === selectedAgent);
-                  if (!agent) return <div>Agent not found</div>;
+                  if (!agent) {return <div>Agent not found</div>;}
                   
                   const completionRate = agent.totalCasesAssigned > 0 ? (agent.casesCompleted / agent.totalCasesAssigned) * 100 : 0;
                   

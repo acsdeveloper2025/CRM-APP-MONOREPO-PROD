@@ -245,7 +245,7 @@ export const CaseWithTasksCreationForm: React.FC<CaseWithTasksCreationFormProps>
 
   // Helper function to get user display name
   const getUserDisplayName = (user: any) => {
-    if (!user) return '';
+    if (!user) {return '';}
     if (user.name && typeof user.name === 'string' && user.name.trim()) {
       return user.name;
     }

@@ -48,7 +48,7 @@ export const OptimizedFormSubmissionViewer: React.FC<OptimizedFormSubmissionView
   const submissionDate = (() => {
     // Try submittedAt first, then metadata.submissionTimestamp
     const dateStr = submission.submittedAt || submission.metadata?.submissionTimestamp;
-    if (!dateStr) return null;
+    if (!dateStr) {return null;}
 
     // Clean up the malformed date string (remove duplicate timezone info)
     const cleanDateStr = dateStr.replace(/T00:00:00\.000Z$/, '').replace(/GMT\+0530 \(India Standard Time\)/, '');

@@ -12,17 +12,17 @@ export function usePermissions() {
 
   // Check if user has a specific permission
   const hasPermission = (resource: string, action: string): boolean => {
-    if (!user) return false;
+    if (!user) {return false;}
 
     // SUPER_ADMIN and ADMIN users have all permissions
-    if (user.role === 'SUPER_ADMIN' || user.role === 'ADMIN') return true;
+    if (user.role === 'SUPER_ADMIN' || user.role === 'ADMIN') {return true;}
 
     // Check if user has role-based permissions
     const permissions = user.permissions as UserPermissions;
-    if (!permissions) return false;
+    if (!permissions) {return false;}
 
     const resourcePermissions = permissions[resource];
-    if (!resourcePermissions) return false;
+    if (!resourcePermissions) {return false;}
 
     return resourcePermissions[action] === true;
   };
@@ -100,7 +100,7 @@ export function usePermissions() {
 
   // Get all user permissions
   const getAllPermissions = (): UserPermissions => {
-    if (!user) return {};
+    if (!user) {return {};}
     if (user.role === 'SUPER_ADMIN' || user.role === 'ADMIN') {
       // Return all permissions for admin
       return Object.values(RESOURCES).reduce((acc, resource) => {

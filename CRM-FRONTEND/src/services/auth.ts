@@ -144,7 +144,7 @@ export class AuthService {
   async refreshUserData(): Promise<User | null> {
     try {
       const token = this.getToken();
-      if (!token) return null;
+      if (!token) {return null;}
 
       const apiBaseUrl = this.getApiBaseUrl();
       console.log('🔄 Auth Service - Refreshing user data with URL:', apiBaseUrl);
