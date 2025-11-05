@@ -1,10 +1,7 @@
 import { apiService } from './api';
 import type { ApiResponse, PaginationQuery, PaginatedResponse } from '@/types/api';
 import type {
-  RateTypeAssignment,
-  CreateRateTypeAssignmentData,
-  RateTypeAssignmentQuery,
-  AvailableRateType
+  RateTypeAssignment
 } from '@/types/rateManagement';
 
 export interface RateTypeAssignmentStatus {
