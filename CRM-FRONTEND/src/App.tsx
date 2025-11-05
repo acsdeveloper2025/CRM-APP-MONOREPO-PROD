@@ -15,7 +15,7 @@ import { useWebSocket } from '@/hooks/useWebSocket';
 function GlobalWebSocket() {
   useWebSocket({
     autoConnect: true,
-    onNotification: (notification) => {
+    onNotification: (_notification) => {
       // Handle global notifications
     },
   });

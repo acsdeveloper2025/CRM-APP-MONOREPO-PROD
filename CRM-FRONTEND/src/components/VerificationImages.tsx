@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Skeleton } from '@/components/ui/skeleton';
 import { useVerificationImages, useVerificationImagesBySubmission } from '@/hooks/useVerificationImages';
 import { verificationImagesService } from '@/services/verificationImages';
-import { Camera, MapPin, Calendar, Download, Eye, Image as ImageIcon, ExternalLink, Navigation, Clock, Home } from 'lucide-react';
+import { Camera, MapPin, Download, Eye, Image as ImageIcon, ExternalLink, Clock, Home } from 'lucide-react';
 import { format } from 'date-fns';
 
 // Custom hook to handle async image URL loading
@@ -148,14 +148,17 @@ const VerificationImages: React.FC<VerificationImagesProps> = ({
   title = "Verification Images",
   showStats = true,
   submissionAddress,
-  customerName
+  // customerName - unused parameter
 }) => {
   const [selectedImage, setSelectedImage] = useState<{ url: string; name: string; imageId?: number } | null>(null);
 
   // Use appropriate hook based on whether submissionId is provided
-  const { data, isLoading, error } = submissionId
-    ? useVerificationImagesBySubmission(caseId, submissionId)
-    : useVerificationImages(caseId);
+  // Call both hooks unconditionally to follow Rules of Hooks
+  const submissionData = useVerificationImagesBySubmission(caseId, submissionId || 0);
+  const caseData = useVerificationImages(caseId);
+
+  // Select the appropriate data based on whether submissionId is provided
+  const { data, isLoading, error } = submissionId ? submissionData : caseData;
 
   const images = data?.data || [];
 
@@ -305,35 +308,7 @@ const VerificationImages: React.FC<VerificationImagesProps> = ({
     }
   };
 
-  const formatGeoLocation = (geoLocation: any) => {
-    if (!geoLocation) {return null;}
-    return `${geoLocation.latitude.toFixed(6)}, ${geoLocation.longitude.toFixed(6)}`;
-  };
 
-  const getAccuracyBadge = (accuracy: number) => {
-    if (accuracy <= 5) {
-      return { text: 'High Accuracy', className: 'bg-green-100 text-green-800' };
-    } else if (accuracy <= 20) {
-      return { text: 'Medium Accuracy', className: 'bg-yellow-100 text-yellow-800' };
-    } else {
-      return { text: 'Low Accuracy', className: 'bg-red-100 text-red-800' };
-    }
-  };
-
-  const openInGoogleMaps = (lat: number, lng: number) => {
-    const url = `https://www.google.com/maps?q=${lat},${lng}`;
-    window.open(url, '_blank');
-  };
-
-  const openInAppleMaps = (lat: number, lng: number) => {
-    const url = `https://maps.apple.com/?q=${lat},${lng}`;
-    window.open(url, '_blank');
-  };
-
-  const copyCoordinates = (lat: number, lng: number) => {
-    const coordinates = `${lat}, ${lng}`;
-    navigator.clipboard.writeText(coordinates);
-  };
 
   const getPhotoTypeColor = (photoType: string) => {
     switch (photoType) {

@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState, AppDispatch, fetchCases, fetchFieldAgentWorkload } from '../store/enterpriseStore';
 import { VirtualizedCaseList } from './VirtualizedCaseList';
-import { usePerformanceMonitor, useMemoryMonitor, useEnterpriseList } from '../hooks/useEnterprisePerformance';
+import { usePerformanceMonitor, useMemoryMonitor } from '../hooks/useEnterprisePerformance';
 import { 
   Users, 
   FileText, 
@@ -39,22 +39,22 @@ interface PerformanceMetrics {
 export const EnterpriseDashboard: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const { getPerformanceStats } = usePerformanceMonitor('EnterpriseDashboard');
-  const { memoryInfo, getMemoryUsagePercentage } = useMemoryMonitor();
-  
+  const { getMemoryUsagePercentage } = useMemoryMonitor();
+
   const {
     items: cases,
     totalCount,
     loading,
-    error,
+    // error, - unused
     filters,
     searchQuery,
-    selectedCases,
+    // selectedCases, - unused
     hasMore,
   } = useSelector((state: RootState) => state.cases);
 
   const {
     workloadData,
-    currentUser,
+    // currentUser, - unused
   } = useSelector((state: RootState) => state.users);
 
   const {
@@ -124,7 +124,7 @@ export const EnterpriseDashboard: React.FC = () => {
     setDashboardMetrics(calculatedMetrics);
   }, [calculatedMetrics]);
 
-  const handleCaseSelect = (caseItem: any) => {
+  const handleCaseSelect = (_caseItem: any) => {
     // Navigate to case details
     // TODO: Implement navigation to case details
   };

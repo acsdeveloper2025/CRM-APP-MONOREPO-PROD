@@ -13,9 +13,8 @@ import { DashboardPage } from '@/pages/DashboardPage';
 import { CasesPage } from '@/pages/CasesPage';
 import { CaseDetailPage } from '@/pages/CaseDetailPage';
 
-import { PendingCasesPage } from '@/pages/PendingCasesPage';
+// Unused imports removed: PendingCasesPage, InProgressCasesPage
 import { CompletedCasesPage } from '@/pages/CompletedCasesPage';
-import { InProgressCasesPage } from '@/pages/InProgressCasesPage';
 import { PendingTasksPage } from '@/pages/PendingTasksPage';
 import { RevokedTasksPage } from '@/pages/RevokedTasksPage';
 import { InProgressTasksPage } from '@/pages/InProgressTasksPage';
