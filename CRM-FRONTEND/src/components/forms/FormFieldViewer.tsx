@@ -1,4 +1,3 @@
-import React from 'react';
 import { Check, X, FileText, Calendar, Hash, Type, List, MessageSquare } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -69,7 +68,7 @@ export function FormFieldViewer({ field, readonly = true, onChange }: FormFieldV
 
       case 'textarea':
         return (
-          <div className="text-sm whitespace-pre-wrap bg-muted/50 rounded-md p-3 min-h-[80px]">
+          <div className="text-sm whitespace-pre-wrap bg-muted/50 rounded-md p-3 min-h-20">
             {field.value || 'No value provided'}
           </div>
         );

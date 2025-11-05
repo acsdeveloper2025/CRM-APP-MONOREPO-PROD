@@ -47,7 +47,7 @@ export const CommissionCalculationsTab: React.FC = () => {
         search: debouncedSearchValue || undefined,
       });
 
-      setCalculations(response.data);
+      setCalculations(response.data || []);
       setTotalPages(response.pagination?.totalPages || 1);
     } catch (error) {
       console.error('Error loading calculations:', error);

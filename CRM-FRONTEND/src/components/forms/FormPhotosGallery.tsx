@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { MapPin, Clock, Download, Eye, Camera, User } from 'lucide-react';
+import { MapPin, Download, Eye, Camera, User } from 'lucide-react';
 import { FormPhoto } from '@/types/form';
 import { formatDistanceToNow } from 'date-fns';
 

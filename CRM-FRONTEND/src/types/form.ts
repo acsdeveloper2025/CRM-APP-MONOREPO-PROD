@@ -81,7 +81,7 @@ export interface FormField {
   id: string;
   name: string;
   label: string;
-  type: 'text' | 'number' | 'select' | 'multiselect' | 'date' | 'boolean' | 'textarea';
+  type: 'text' | 'number' | 'select' | 'multiselect' | 'date' | 'boolean' | 'textarea' | 'checkbox' | 'radio' | 'file';
   value: any;
   displayValue?: string;
   options?: { value: string; label: string }[];
