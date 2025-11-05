@@ -18,7 +18,6 @@ import {
   getCaseById,
   createCase,
   updateCase,
-  getCaseAssignmentHistory,
   getFieldAgentWorkload,
   exportCases,
   getCaseSummaryWithTasks,
