@@ -46,7 +46,7 @@ const fullCaseFormSchema = z.object({
 
   // Assignment Information
   createdByBackendUser: z.string().min(1, 'Created by backend user is required'),
-  backendContactNumber: z.string().min(1, 'Backend contact number is required').regex(/^[+]?[\d\s\-\(\)]{10,15}$/, 'Please enter a valid phone number'),
+  backendContactNumber: z.string().min(1, 'Backend contact number is required').regex(/^[+]?[\d\s\-()]{10,15}$/, 'Please enter a valid phone number'),
   pincodeId: z.string().min(1, 'Pincode selection is required'),
   areaId: z.string().min(1, 'Area selection is required'),
   assignedToId: z.string().min(1, 'Field user assignment is required'),

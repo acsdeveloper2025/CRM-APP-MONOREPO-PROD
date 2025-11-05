@@ -131,7 +131,7 @@ const caseDetailsSchema = z.object({
 
   // Assignment Information
   createdByBackendUser: z.string().min(1, 'Created by backend user is required'),
-  backendContactNumber: z.string().min(1, 'Backend contact number is required').regex(/^[+]?[\d\s\-\(\)]{10,15}$/, 'Please enter a valid phone number'),
+  backendContactNumber: z.string().min(1, 'Backend contact number is required').regex(/^[+]?[\d\s\-()]{10,15}$/, 'Please enter a valid phone number'),
 });
 
 // Task schema (commented out - not currently used)

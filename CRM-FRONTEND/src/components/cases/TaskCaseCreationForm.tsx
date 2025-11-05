@@ -39,7 +39,7 @@ import type { CaseFormAttachment } from '@/components/attachments/CaseFormAttach
 const caseLevelSchema = z.object({
   clientId: z.string().min(1, 'Client selection is required'),
   productId: z.string().min(1, 'Product selection is required'),
-  backendContactNumber: z.string().min(1, 'Backend contact number is required').regex(/^[+]?[\d\s\-\(\)]{10,15}$/, 'Please enter a valid phone number'),
+  backendContactNumber: z.string().min(1, 'Backend contact number is required').regex(/^[+]?[\d\s\-()]{10,15}$/, 'Please enter a valid phone number'),
   createdByBackendUser: z.string().min(1, 'Created by backend user is required'),
 });
 
