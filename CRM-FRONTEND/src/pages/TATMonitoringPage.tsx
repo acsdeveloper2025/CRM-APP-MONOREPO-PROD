@@ -13,7 +13,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useOverdueTasks } from '@/hooks/useDashboard';
-import { Clock, AlertTriangle, User, FileText, ArrowUpDown, ChevronLeft, ChevronRight, CheckCircle, TrendingUp } from 'lucide-react';
+import { Clock, AlertTriangle, User, ArrowUpDown, ChevronLeft, ChevronRight, CheckCircle, TrendingUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export const TATMonitoringPage: React.FC = () => {

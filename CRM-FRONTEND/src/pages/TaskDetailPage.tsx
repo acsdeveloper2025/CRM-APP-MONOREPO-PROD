@@ -8,8 +8,6 @@ import {
   ArrowLeft,
   User,
   MapPin,
-  FileText,
-  DollarSign,
   Clock,
   CheckCircle2,
   AlertCircle,
