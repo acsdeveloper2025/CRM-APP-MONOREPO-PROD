@@ -3,12 +3,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { 
-  Brain, 
-  FileText, 
-  AlertTriangle, 
-  CheckCircle, 
-  Clock, 
+import {
+  Brain,
+  FileText,
+  CheckCircle,
+  Clock,
   Download,
   RefreshCw,
   TrendingUp,
@@ -269,7 +268,7 @@ export const AIReportCard: React.FC<AIReportCardProps> = ({
           <ul className="space-y-2">
             {report.keyFindings.map((finding, index) => (
               <li key={index} className="flex items-start space-x-2 text-sm">
-                <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
                 <span className="text-gray-900">{finding}</span>
               </li>
             ))}
@@ -287,7 +286,7 @@ export const AIReportCard: React.FC<AIReportCardProps> = ({
           <ul className="space-y-2">
             {report.recommendations.map((recommendation, index) => (
               <li key={index} className="flex items-start space-x-2 text-sm">
-                <span className="text-green-500 mt-1 flex-shrink-0">•</span>
+                <span className="text-green-500 mt-1 shrink-0">•</span>
                 <span className="text-gray-900">{recommendation}</span>
               </li>
             ))}
