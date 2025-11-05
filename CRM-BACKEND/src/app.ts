@@ -7,11 +7,12 @@ import { logger } from '@/config/logger';
 import { errorHandler, notFoundHandler } from '@/middleware/errorHandler';
 import { ScheduledReportsService } from '@/services/ScheduledReportsService';
 import { generalRateLimit } from '@/middleware/rateLimiter';
-import {
-  performanceMonitoring,
-  memoryMonitoring,
-  databaseMonitoring,
-} from '@/middleware/performanceMonitoring';
+// Performance monitoring middleware available for future use
+// import {
+//   performanceMonitoring,
+//   memoryMonitoring,
+//   databaseMonitoring,
+// } from '@/middleware/performanceMonitoring';
 
 // Import routes
 import authRoutes from '@/routes/auth';
@@ -24,7 +25,8 @@ import dashboardRoutes from '@/routes/dashboard';
 import productsRoutes from '@/routes/products';
 import verificationTypesRoutes from '@/routes/verification-types';
 import documentTypesRoutes from './routes/document-types';
-import clientDocumentTypesRoutes from './routes/client-document-types';
+// Client document types routes available for future use
+// import clientDocumentTypesRoutes from './routes/client-document-types';
 import documentTypeRatesRoutes from './routes/document-type-rates';
 import invoicesRoutes from '@/routes/invoices';
 import commissionsRoutes from '@/routes/commissions';
