@@ -6,7 +6,6 @@ import sharp from 'sharp';
 import { v4 as uuidv4 } from 'uuid';
 import crypto from 'crypto';
 import type { MobileAttachmentResponse } from '../types/mobile';
-import { MobileFileUploadRequest } from '../types/mobile';
 import { createAuditLog } from '../utils/auditLogger';
 import { config } from '../config';
 import { query } from '@/config/database';
