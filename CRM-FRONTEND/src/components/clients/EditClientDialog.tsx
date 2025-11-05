@@ -138,9 +138,7 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
 
   const products = productsData?.data || [];
   const verificationTypes = verificationTypesData?.data || [];
-  const documentTypes = documentTypesData?.data || [];
   const currentProducts = clientData?.data?.products || [];
-  const currentVerificationTypes = clientData?.data?.verificationTypes || [];
   const currentDocumentTypes = clientData?.data?.documentTypes || [];
 
   return (
