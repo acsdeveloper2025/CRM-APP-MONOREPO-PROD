@@ -1526,7 +1526,7 @@ export class MobileFormController {
   // Fallback method for basic form sections from report
   private static createBasicFormSectionsFromReport(
     report: any,
-    verificationType: string
+    _verificationType: string
   ): FormSection[] {
     return [
       {
@@ -1687,7 +1687,7 @@ export class MobileFormController {
     req: Request,
     res: Response,
     verificationType: string,
-    reportTableName?: string
+    _reportTableName?: string
   ) {
     try {
       const { caseId } = req.params;
@@ -2102,7 +2102,7 @@ export class MobileFormController {
             ),
 
             // Convert verification images to photos format
-            photos: imagesRes.rows.map((img, index) => ({
+            photos: imagesRes.rows.map((img, _index) => ({
               id: img.id,
               attachmentId: img.id,
               type: img.photoType === 'selfie' ? 'selfie' : 'verification',
