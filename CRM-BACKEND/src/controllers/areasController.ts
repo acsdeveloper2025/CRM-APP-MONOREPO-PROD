@@ -281,7 +281,7 @@ export const createArea = async (req: AuthenticatedRequest, res: Response) => {
 export const updateArea = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const { name, displayOrder } = req.body;
+    const { name } = req.body;
 
     if (!name || typeof name !== 'string' || name.trim().length < 2) {
       return res.status(400).json({
