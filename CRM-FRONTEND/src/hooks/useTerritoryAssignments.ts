@@ -9,7 +9,6 @@ import type {
   AssignPincodesResponse,
   AssignAreasResponse
 } from '@/types/territoryAssignment';
-import type { ApiResponse } from '@/types/api';
 
 export interface UseTerritoryAssignmentsResult {
   fieldAgents: FieldAgentTerritory[];
