@@ -25,7 +25,6 @@ import {
 import { MoreHorizontal, Eye, Edit, UserCheck } from 'lucide-react';
 import { format } from 'date-fns';
 import type { Case } from '@/types/case';
-import { cn } from '@/lib/utils';
 import { UserSelectionModal } from './UserSelectionModal';
 import {
   getStatusBadgeStyle,

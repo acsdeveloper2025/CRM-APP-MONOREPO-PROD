@@ -18,10 +18,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, Eye, Download, FileText, MapPin, Calendar } from 'lucide-react';
+import { MoreHorizontal, Eye, Download, FileText, MapPin } from 'lucide-react';
 import { format } from 'date-fns';
 import type { Case } from '@/types/case';
-import { cn } from '@/lib/utils';
 import {
   getVerificationTypeBadgeStyle,
   getPriorityBadgeStyle,

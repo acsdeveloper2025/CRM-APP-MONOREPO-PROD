@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -22,7 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { ArrowLeft, Send, Loader2, User, MapPin, Building2, CreditCard, AlertCircle, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, Send, Loader2, User, Building2, AlertCircle, Plus, Trash2 } from 'lucide-react';
 import { useFieldUsers } from '@/hooks/useUsers';
 import { useClients, useVerificationTypes, useProductsByClient } from '@/hooks/useClients';
 import { usePincodes } from '@/hooks/useLocations';
@@ -32,7 +32,7 @@ import { useQuery } from '@tanstack/react-query';
 import { rateTypesService } from '@/services/rateTypes';
 import { EnhancedCasesService } from '@/services/verificationTasks';
 import type { CustomerInfoData } from './CustomerInfoStep';
-import type { CreateCaseWithMultipleTasksRequest, CreateVerificationTaskRequest } from '@/types/verificationTask';
+import type { CreateCaseWithMultipleTasksRequest } from '@/types/verificationTask';
 import toast from 'react-hot-toast';
 
 // Task Area Select Component
