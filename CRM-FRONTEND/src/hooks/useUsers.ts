@@ -1,7 +1,6 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { usersService } from '@/services/users';
 import type { UserQuery } from '@/services/users';
-import toast from 'react-hot-toast';
 
 // Query keys
 export const userKeys = {

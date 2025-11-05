@@ -3,7 +3,6 @@ import { useQuery } from '@tanstack/react-query';
 import { Plus, FileCheck, CheckCircle, XCircle, Layers, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { verificationTypesService } from '@/services/verificationTypes';
 import { VerificationTypesTable } from '@/components/clients/VerificationTypesTable';
 import { CreateVerificationTypeDialog } from '@/components/clients/CreateVerificationTypeDialog';
