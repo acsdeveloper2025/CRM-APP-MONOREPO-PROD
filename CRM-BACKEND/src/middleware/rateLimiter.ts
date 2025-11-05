@@ -46,7 +46,7 @@ const createRateLimiter = (
               decoded.role &&
               ['SUPER_ADMIN', 'ADMIN', 'BACKEND_USER', 'FIELD_AGENT'].includes(decoded.role)
             );
-          } catch (error) {
+          } catch (_error) {
             return false; // Apply rate limiting if token verification fails
           }
         }
