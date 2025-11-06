@@ -173,7 +173,7 @@ export function TerritoryAssignmentDropdown({ user }: TerritoryAssignmentDropdow
 
   const isLoading = pincodesLoading || territoryLoading;
   const isSaving = saveAssignmentMutation.isPending || removeAllAssignmentsMutation.isPending;
-  const canSave = selectedPincodeId !== null;
+  const _canSave = selectedPincodeId !== null;
 
   if (isLoading) {
     return (
