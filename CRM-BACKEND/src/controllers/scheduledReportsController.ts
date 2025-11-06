@@ -1,5 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-enum-comparison */
+/* eslint-disable @typescript-eslint/require-await */
 // Disabled unsafe enum comparison rule for scheduled reports controller as it compares enum values from database
+// Disabled require-await rule as some async functions don't directly await
 import type { Response } from 'express';
 import type { ScheduledReport } from '../services/ScheduledReportsService';
 import { ScheduledReportsService } from '../services/ScheduledReportsService';

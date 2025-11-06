@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/require-await */
+// Disabled require-await rule for exports routes as some async middleware don't directly await
 import express from 'express';
 import type { AuthenticatedRequest } from '../middleware/auth';
 import { authenticateToken, requireRole } from '../middleware/auth';

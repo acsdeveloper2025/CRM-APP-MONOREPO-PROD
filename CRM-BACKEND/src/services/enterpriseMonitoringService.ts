@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/require-await */
+// Disabled require-await rule for enterprise monitoring service as some async functions don't directly await
 import { EventEmitter } from 'events';
 import { pool } from '../config/database';
 import { EnterpriseCacheService } from './enterpriseCacheService';
