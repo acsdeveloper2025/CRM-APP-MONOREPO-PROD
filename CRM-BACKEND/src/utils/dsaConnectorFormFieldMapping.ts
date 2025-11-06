@@ -729,10 +729,10 @@ function getRelevantDsaConnectorFieldsForFormType(formType: string): string[] {
 /**
  * Gets appropriate default value for a DSA Connector database field
  *
- * @param fieldName - Database field name
+ * @param _fieldName - Database field name
  * @returns Default value for the field
  */
-function getDefaultDsaConnectorValueForField(fieldName: string): any {
+function getDefaultDsaConnectorValueForField(_fieldName: string): any {
   // All fields default to null for missing/irrelevant data
   return null;
 }
