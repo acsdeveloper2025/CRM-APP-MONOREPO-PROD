@@ -85,8 +85,8 @@ router.post(
   authenticateToken,
   async (req: AuthenticatedRequest, res) => {
     try {
-      const { taskId } = req.params;
-      const userId = req.user?.id;
+      const { taskId: _taskId } = req.params;
+      const _userId = req.user?.id;
 
       // Update task status to IN_PROGRESS and set started_at
       await VerificationTasksController.updateTask(
@@ -215,7 +215,7 @@ router.post(
   authenticateToken,
   async (req: AuthenticatedRequest, res) => {
     try {
-      const { taskId } = req.params;
+      const { taskId: _taskId } = req.params;
       const { cancellation_reason } = req.body;
       const userId = req.user?.id;
 
@@ -372,8 +372,8 @@ router.post(
   authenticateToken,
   async (req: AuthenticatedRequest, res) => {
     try {
-      const { taskId } = req.params;
-      const { verification_outcome, form_data, attachments, geo_location } = req.body;
+      const { taskId: _taskId } = req.params;
+      const { verification_outcome, form_data, attachments: _attachments, geo_location } = req.body;
 
       // This would integrate with the existing form submission system
       // For now, we'll just complete the task
