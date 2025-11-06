@@ -6,8 +6,7 @@ import { CasePagination } from '@/components/cases/CasePagination';
 import { useCases, useRefreshCases } from '@/hooks/useCases';
 import { useUnifiedSearch, useUnifiedFilters } from '@/hooks/useUnifiedSearch';
 import { Download, RefreshCw, CheckCircle } from 'lucide-react';
-import type { CaseListQuery } from '@/services/cases';
-import { casesService } from '@/services/cases';
+import { casesService, type CaseListQuery } from '@/services/cases';
 
 interface CompletedCaseFilters {
   priority?: string;
@@ -17,11 +16,11 @@ interface CompletedCaseFilters {
 export const CompletedCasesPage: React.FC = () => {
   // Unified search with 800ms debounce
   const {
-    searchValue,
+    searchValue: _searchValue,
     debouncedSearchValue,
-    setSearchValue,
-    clearSearch,
-    isDebouncing,
+    setSearchValue: _setSearchValue,
+    clearSearch: _clearSearch,
+    isDebouncing: _isDebouncing,
   } = useUnifiedSearch({
     syncWithUrl: true,
   });

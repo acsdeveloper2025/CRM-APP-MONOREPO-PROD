@@ -20,11 +20,11 @@ export function BillingPage() {
 
   // Unified search with 800ms debounce
   const {
-    searchValue,
+    searchValue: _searchValue,
     debouncedSearchValue,
-    setSearchValue,
-    clearSearch,
-    isDebouncing,
+    setSearchValue: _setSearchValue,
+    clearSearch: _clearSearch,
+    isDebouncing: _isDebouncing,
   } = useUnifiedSearch({
     syncWithUrl: true,
   });
