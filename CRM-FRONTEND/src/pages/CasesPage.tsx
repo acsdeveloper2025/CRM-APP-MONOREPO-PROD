@@ -64,7 +64,7 @@ export const CasesPage: React.FC = () => {
     clientId: activeFilters.clientId || undefined,
   };
 
-  const { data: casesData, isLoading, error, refetch } = useCases(query);
+  const { data: casesData, isLoading, error: _error, refetch } = useCases(query);
   const updateStatusMutation = useUpdateCaseStatus();
   const assignCaseMutation = useAssignCase();
   const { refreshCases } = useRefreshCases();
