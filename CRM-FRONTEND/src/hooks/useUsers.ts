@@ -1,6 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { usersService } from '@/services/users';
-import type { UserQuery } from '@/services/users';
+import { usersService, type UserQuery } from '@/services/users';
 
 // Query keys
 export const userKeys = {
