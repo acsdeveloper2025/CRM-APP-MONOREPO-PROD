@@ -439,7 +439,7 @@ export class VerificationTasksController {
           COALESCE(vt.applicant_type, '') ILIKE $${paramIndex} OR
           COALESCE(c."caseId"::text, '') ILIKE $${paramIndex}
         )`);
-        params.push(`%${search}%`);
+        params.push(`%${String(search)}%`);
         paramIndex++;
       }
 
@@ -510,7 +510,7 @@ export class VerificationTasksController {
         LEFT JOIN "rateTypes" rt ON vt.rate_type_id = rt.id
         LEFT JOIN task_commission_calculations tcc ON vt.id = tcc.verification_task_id
         ${whereClause}
-        ORDER BY vt.${safeSortBy} ${safeSortOrder}
+        ORDER BY vt.${String(safeSortBy)} ${safeSortOrder}
         LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
       `,
         [...params, Number(limit), offset]

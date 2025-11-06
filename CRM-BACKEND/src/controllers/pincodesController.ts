@@ -146,7 +146,7 @@ export const getPincodes = async (req: AuthenticatedRequest, res: Response) => {
         s.name ILIKE $${countParamCount} OR
         a.name ILIKE $${countParamCount}
       )`;
-      countParams.push(`%${search}%`);
+      countParams.push(`%${String(search)}%`);
     }
 
     const countResult = await query<{ count: string }>(countSql, countParams);
