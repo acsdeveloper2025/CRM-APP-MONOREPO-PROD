@@ -556,10 +556,10 @@ function getRelevantResidenceCumOfficeFieldsForFormType(formType: string): strin
 /**
  * Gets appropriate default value for a residence-cum-office database field
  *
- * @param fieldName - Database field name
+ * @param _fieldName - Database field name
  * @returns Default value for the field
  */
-function getDefaultResidenceCumOfficeValueForField(fieldName: string): any {
+function getDefaultResidenceCumOfficeValueForField(_fieldName: string): any {
   // All fields default to null for missing/irrelevant data
   return null;
 }

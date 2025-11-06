@@ -584,10 +584,10 @@ function getRelevantFieldsForFormType(formType: string): string[] {
 /**
  * Gets appropriate default value for a database field
  *
- * @param fieldName - Database field name
+ * @param _fieldName - Database field name
  * @returns Default value for the field
  */
-function getDefaultValueForField(fieldName: string): any {
+function getDefaultValueForField(_fieldName: string): any {
   // All fields default to null for missing/irrelevant data
   return null;
 }
