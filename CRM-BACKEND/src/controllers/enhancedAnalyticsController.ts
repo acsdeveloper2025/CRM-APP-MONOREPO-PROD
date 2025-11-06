@@ -356,6 +356,7 @@ export const getEnhancedCaseAnalytics = async (req: Request, res: Response) => {
       paramIndex++;
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     if (clientId) {
       whereConditions.push(`c."clientId" = $${paramIndex}`);
       queryParams.push(clientId);
