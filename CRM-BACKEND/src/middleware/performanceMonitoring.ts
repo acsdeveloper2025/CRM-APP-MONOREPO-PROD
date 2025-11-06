@@ -77,7 +77,7 @@ export const performanceMonitoring = (
  * Process and store performance metrics
  */
 async function processPerformanceMetrics(metrics: PerformanceMetrics): Promise<void> {
-  const { requestId, method, url, statusCode, responseTime, memoryUsage, userId } = metrics;
+  const { requestId, method, url, statusCode, responseTime, memoryUsage, userId: _userId } = metrics;
 
   // Log performance data
   const logData = {
