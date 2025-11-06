@@ -3,6 +3,7 @@ import { pool, query } from '@/config/database';
 import { redisClient } from '@/config/redis';
 import { logger } from '@/config/logger';
 import { performance } from 'perf_hooks';
+import fs from 'fs/promises';
 
 const router = Router();
 
@@ -275,7 +276,6 @@ async function checkDisk(): Promise<ServiceHealth> {
 
   try {
     // Test file system write capability
-    const fs = require('fs').promises;
     const testFile = `/tmp/health_check_${Date.now()}.tmp`;
 
     await fs.writeFile(testFile, 'health check test');
