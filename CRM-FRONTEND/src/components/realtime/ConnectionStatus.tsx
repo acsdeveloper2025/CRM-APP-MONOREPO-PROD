@@ -16,7 +16,7 @@ interface ConnectionStatusProps {
 }
 
 export function ConnectionStatus({ showText = false, size = 'sm' }: ConnectionStatusProps) {
-  const { connectionStatus, isConnected, isConnecting, error, latency } = useWebSocket();
+  const { connectionStatus: _connectionStatus, isConnected, isConnecting, error, latency } = useWebSocket();
 
   const getStatusConfig = () => {
     if (isConnected) {
