@@ -36,7 +36,7 @@ export function LocationsPage() {
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(100); // Increased default page size
+  const [pageSize, _setPageSize] = useState(100); // Increased default page size
 
   // Get active tab from URL or default to 'countries'
   const activeTab = searchParams.get('tab') || 'countries';

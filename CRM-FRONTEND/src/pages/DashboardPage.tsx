@@ -20,7 +20,7 @@ export const DashboardPage: React.FC = () => {
   const { data: tatStatsData } = useTATStats();
 
   // Mock data fallback for development
-  const mockStats = {
+  const _mockStats = {
     totalCases: 1234,
     inProgressCases: 456,
     completedCases: 789,
@@ -49,8 +49,8 @@ export const DashboardPage: React.FC = () => {
   };
 
   // Mock data removed - using real API data only
-  const caseDistribution: any[] = [];
-  const trends: any[] = [];
+  const _caseDistribution: any[] = [];
+  const _trends: any[] = [];
 
   // Fallback data for charts when API data is not available
   const mockCaseDistribution = [
