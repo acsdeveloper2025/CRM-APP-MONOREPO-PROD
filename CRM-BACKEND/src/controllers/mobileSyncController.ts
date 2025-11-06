@@ -475,7 +475,7 @@ export class MobileSyncController {
     const { id, action, data, timestamp } = attachmentChange;
 
     switch (action) {
-      case 'CREATE':
+      case 'CREATE': {
         // Create attachment record (file should already be uploaded)
         const attCols: string[] = ['id', 'uploadedById', 'uploadedAt'];
         const attVals: any[] = [id, userId, new Date(timestamp)];
@@ -493,6 +493,7 @@ export class MobileSyncController {
 
         syncResults.processedAttachments++;
         break;
+      }
 
       case 'DELETE':
         // Delete attachment
