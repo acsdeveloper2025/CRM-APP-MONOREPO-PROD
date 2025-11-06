@@ -2,6 +2,7 @@ import type { Response } from 'express';
 import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
 import { pool } from '@/config/database';
+import { Role } from '@/types/auth';
 
 // Mock data removed - using database operations only
 
@@ -361,7 +362,7 @@ export const getDashboardStats = async (req: AuthenticatedRequest, res: Response
     // Role-based filtering - FIELD_AGENT users can only see their own stats
     const userRole = req.user?.role;
     const currentUserId = req.user?.id;
-    const effectiveUserId = userRole === 'FIELD_AGENT' ? currentUserId : userId;
+    const effectiveUserId = userRole === Role.FIELD_AGENT ? currentUserId : userId;
 
     // Calculate date range based on period
     const now = new Date();
@@ -462,7 +463,7 @@ export const getCaseStatusDistribution = async (req: AuthenticatedRequest, res: 
     // Role-based filtering - FIELD_AGENT users can only see their own stats
     const userRole = req.user?.role;
     const currentUserId = req.user?.id;
-    const effectiveUserId = userRole === 'FIELD_AGENT' ? currentUserId : userId;
+    const effectiveUserId = userRole === Role.FIELD_AGENT ? currentUserId : userId;
 
     // Calculate date range based on period
     const now = new Date();
@@ -564,7 +565,7 @@ export const getMonthlyTrends = async (req: AuthenticatedRequest, res: Response)
     // Role-based filtering - FIELD_AGENT users can only see their own stats
     const userRole = req.user?.role;
     const currentUserId = req.user?.id;
-    const effectiveUserId = userRole === 'FIELD_AGENT' ? currentUserId : userId;
+    const effectiveUserId = userRole === Role.FIELD_AGENT ? currentUserId : userId;
     const monthsCount = parseInt(months as string);
 
     // Calculate start date based on months parameter
@@ -707,7 +708,7 @@ export const getOverdueTasks = async (req: AuthenticatedRequest, res: Response) 
     // Role-based filtering - FIELD_AGENT users can only see their own tasks
     const userRole = req.user?.role;
     const currentUserId = req.user?.id;
-    const effectiveUserId = userRole === 'FIELD_AGENT' ? currentUserId : null;
+    const effectiveUserId = userRole === Role.FIELD_AGENT ? currentUserId : null;
 
     const thresholdDays = parseInt(threshold as string);
     const pageNum = parseInt(page as string);
@@ -880,7 +881,7 @@ export const getTATStats = async (req: AuthenticatedRequest, res: Response) => {
     // Role-based filtering - FIELD_AGENT users can only see their own stats
     const userRole = req.user?.role;
     const currentUserId = req.user?.id;
-    const effectiveUserId = userRole === 'FIELD_AGENT' ? currentUserId : null;
+    const effectiveUserId = userRole === Role.FIELD_AGENT ? currentUserId : null;
 
     let statsQuery = `
       SELECT
