@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unsafe-enum-comparison */
+// Disabled unsafe enum comparison rule for scheduled reports controller as it compares enum values from database
 import type { Response } from 'express';
 import type { ScheduledReport } from '../services/ScheduledReportsService';
 import { ScheduledReportsService } from '../services/ScheduledReportsService';
