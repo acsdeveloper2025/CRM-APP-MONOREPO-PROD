@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/restrict-template-expressions */
+/* eslint-disable @typescript-eslint/no-base-to-string */
+// Disabled template expression rules for commission management controller as it handles query params in template literals
 import type { Response } from 'express';
 import type { AuthenticatedRequest } from '../types/auth';
 import { query } from '../config/database';
