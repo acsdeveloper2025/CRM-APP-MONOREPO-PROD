@@ -656,7 +656,7 @@ export const bulkImportPincodes = async (
       });
     }
 
-    const { parseCSV, validateCSVRow } = await import('@/utils/csvParser');
+    const { parseCSV, validateCSVRow: _validateCSVRow } = await import('@/utils/csvParser');
     const pincodes = await parseCSV(req.file.buffer);
 
     const results = {
