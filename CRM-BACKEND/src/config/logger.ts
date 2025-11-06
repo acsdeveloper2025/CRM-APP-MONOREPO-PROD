@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/restrict-template-expressions */
+/* eslint-disable @typescript-eslint/no-base-to-string */
+// Disabled template expression rules for logger as it handles various types in template literals
 import winston from 'winston';
 
 const logLevel = process.env.LOG_LEVEL || 'info';

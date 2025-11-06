@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/restrict-template-expressions */
+// Disabled template expression rules for email service as it handles various types in template literals
 import nodemailer from 'nodemailer';
 import { logger } from '../utils/logger';
 import path from 'path';
