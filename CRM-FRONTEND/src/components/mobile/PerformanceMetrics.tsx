@@ -143,7 +143,7 @@ export const PerformanceMetrics: React.FC = () => {
     }
   };
 
-  const getMetricValue = (item: any) => {
+  const _getMetricValue = (item: any) => {
     switch (selectedMetric) {
       case 'submissions':
         return item.submissions;

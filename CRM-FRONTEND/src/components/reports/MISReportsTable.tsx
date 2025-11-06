@@ -40,7 +40,7 @@ interface MISReportsTableProps {
 }
 
 export function MISReportsTable({ data, isLoading }: MISReportsTableProps) {
-  const [selectedReport, setSelectedReport] = useState<MISReport | null>(null);
+  const [_selectedReport, _setSelectedReport] = useState<MISReport | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [reportToDelete, setReportToDelete] = useState<MISReport | null>(null);
 
