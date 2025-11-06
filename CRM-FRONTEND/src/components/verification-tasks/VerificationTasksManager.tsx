@@ -52,8 +52,8 @@ export const VerificationTasksManager: React.FC<VerificationTasksManagerProps> =
     selectAllTasks,
     clearSelection,
     getTasksByStatus,
-    setFilters,
-    clearFilters
+    setFilters: _setFilters,
+    clearFilters: _clearFilters
   } = useVerificationTasks(caseId);
 
   // Auto-fetch tasks when component mounts
