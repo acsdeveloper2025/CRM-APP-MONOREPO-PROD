@@ -630,10 +630,10 @@ function getRelevantNocFieldsForFormType(formType: string): string[] {
 /**
  * Gets appropriate default value for a NOC database field
  *
- * @param fieldName - Database field name
+ * @param _fieldName - Database field name
  * @returns Default value for the field
  */
-function getDefaultNocValueForField(fieldName: string): any {
+function getDefaultNocValueForField(_fieldName: string): any {
   // All fields default to null for missing/irrelevant data
   return null;
 }
