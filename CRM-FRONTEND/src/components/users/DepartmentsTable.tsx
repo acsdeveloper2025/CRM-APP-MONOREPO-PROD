@@ -44,7 +44,7 @@ export function DepartmentsTable({ onEditDepartment }: DepartmentsTableProps) {
   const pageSize = 20;
   const queryClient = useQueryClient();
 
-  const { data: departmentsData, isLoading, error } = useQuery({
+  const { data: departmentsData, isLoading, error: _error } = useQuery({
     queryKey: ['departments', currentPage, pageSize],
     queryFn: () => departmentsService.getDepartments({
       page: currentPage,
