@@ -264,7 +264,7 @@ export class MobileAuthController {
   }
 
   // Check app version compatibility
-  static async checkVersion(req: Request, res: Response) {
+  static checkVersion(req: Request, res: Response) {
     try {
       const { currentVersion, platform, buildNumber }: MobileVersionCheckRequest = req.body;
 
@@ -355,7 +355,7 @@ export class MobileAuthController {
   }
 
   // Get mobile app configuration
-  static async getAppConfig(req: Request, res: Response) {
+  static getAppConfig(req: Request, res: Response) {
     try {
       const response: MobileAppConfigResponse = {
         apiVersion: config.mobile.apiVersion,
@@ -395,7 +395,7 @@ export class MobileAuthController {
   }
 
   // Register device for push notifications (simplified)
-  static async registerNotifications(req: Request, res: Response) {
+  static registerNotifications(req: Request, res: Response) {
     try {
       const { pushToken: _pushToken, platform: _platform, enabled: _enabled, preferences: _preferences } = req.body;
       const _userId = (req as any).user?.userId;
