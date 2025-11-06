@@ -65,7 +65,7 @@ export const getPincodes = async (req: AuthenticatedRequest, res: Response) => {
     if (state) {
       paramCount++;
       sql += ` AND COALESCE(s.name, '') ILIKE $${paramCount}`;
-      params.push(`%${state}%`);
+      params.push(`%${String(state)}%`);
     }
 
     if (search) {
@@ -76,7 +76,7 @@ export const getPincodes = async (req: AuthenticatedRequest, res: Response) => {
         COALESCE(s.name, '') ILIKE $${paramCount} OR
         COALESCE(a.name, '') ILIKE $${paramCount}
       )`;
-      params.push(`%${search}%`);
+      params.push(`%${String(search)}%`);
     }
 
     // Add GROUP BY clause for area aggregation
@@ -135,7 +135,7 @@ export const getPincodes = async (req: AuthenticatedRequest, res: Response) => {
     if (state) {
       countParamCount++;
       countSql += ` AND s.name ILIKE $${countParamCount}`;
-      countParams.push(`%${state}%`);
+      countParams.push(`%${String(state)}%`);
     }
 
     if (search) {
