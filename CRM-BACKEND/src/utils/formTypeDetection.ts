@@ -519,30 +519,24 @@ function detectByPatterns(formData: any, _verificationType: string): FormTypeRes
   ) {
     formType = 'UNTRACEABLE';
     confidence = 85;
-  }
-
-  // Pattern 2: Location/address patterns for SHIFTED
-  else if (
+  } else if (
+    // Pattern 2: Location/address patterns for SHIFTED
     (formData.currentLocation && formData.shiftedPeriod) ||
     formData.premisesStatus?.toLowerCase().includes('vacant') ||
     formData.addressStatus?.toLowerCase().includes('shifted')
   ) {
     formType = 'SHIFTED';
     confidence = 80;
-  }
-
-  // Pattern 3: Access/security patterns for ENTRY_RESTRICTED
-  else if (
+  } else if (
+    // Pattern 3: Access/security patterns for ENTRY_RESTRICTED
     formData.entryRestrictionReason ||
     (formData.securityPersonName && !formData.metPersonName) ||
     formData.accessStatus?.toLowerCase().includes('denied')
   ) {
     formType = 'ENTRY_RESTRICTED';
     confidence = 75;
-  }
-
-  // Pattern 4: Temporary/status patterns for NSP
-  else if (
+  } else if (
+    // Pattern 4: Temporary/status patterns for NSP
     formData.temporaryStay ||
     formData.temporaryBusiness ||
     formData.temporaryOffice ||
