@@ -291,8 +291,8 @@ export class VerificationTasksController {
           FROM cases c
           WHERE c.id = $1
         `;
-        const caseResult = await client.query(caseQuery, [actualCaseId]);
-        const caseData = caseResult.rows[0];
+        const caseQueryResult = await client.query(caseQuery, [actualCaseId]);
+        const caseData = caseQueryResult.rows[0];
 
         const { queueCaseAssignmentNotification } = await import('../queues/notificationQueue');
 

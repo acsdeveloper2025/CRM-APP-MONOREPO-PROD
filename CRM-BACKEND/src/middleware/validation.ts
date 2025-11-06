@@ -56,11 +56,11 @@ export function validate(
 
   // Pattern 2: validate(validations) - returns middleware function
   const validations = reqOrValidations as ValidationChain[];
-  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  return async (req: Request, resParam: Response, nextParam: NextFunction): Promise<void> => {
     // Run all validations
     await Promise.all(validations.map(validation => validation.run(req)));
 
     // Check for validation errors
-    handleValidationErrors(req, res, next);
+    handleValidationErrors(req, resParam, nextParam);
   };
 }

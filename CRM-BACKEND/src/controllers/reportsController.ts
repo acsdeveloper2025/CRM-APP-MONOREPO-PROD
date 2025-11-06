@@ -642,10 +642,10 @@ export const getAgentPerformance = async (req: AuthenticatedRequest, res: Respon
     const agentMap = new Map();
 
     tasks.forEach(task => {
-      const agentId = task.agent_id;
+      const taskAgentId = task.agent_id;
 
-      if (!agentMap.has(agentId)) {
-        agentMap.set(agentId, {
+      if (!agentMap.has(taskAgentId)) {
+        agentMap.set(taskAgentId, {
           id: task.agent_id,
           name: task.agent_name,
           employee_id: task.employee_id,
@@ -662,7 +662,7 @@ export const getAgentPerformance = async (req: AuthenticatedRequest, res: Respon
         });
       }
 
-      const agent = agentMap.get(agentId);
+      const agent = agentMap.get(taskAgentId);
       agent.total_tasks++;
       agent.tasks.push(task);
 
