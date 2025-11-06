@@ -36,7 +36,7 @@ export interface CreateProductData {
   isActive?: boolean;
 }
 
-export interface UpdateProductData extends Partial<CreateProductData> {}
+export type UpdateProductData = Partial<CreateProductData>;
 
 export interface ProductListQuery extends PaginationQuery {
   clientId?: string;
