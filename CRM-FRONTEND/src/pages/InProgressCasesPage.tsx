@@ -15,8 +15,7 @@ import { useCases, useRefreshCases } from '@/hooks/useCases';
 import { useUnifiedSearch, useUnifiedFilters } from '@/hooks/useUnifiedSearch';
 import { UnifiedSearchFilterLayout, FilterGrid } from '@/components/ui/unified-search-filter-layout';
 import { Download, RefreshCw, PlayCircle } from 'lucide-react';
-import type { CaseListQuery } from '@/services/cases';
-import { casesService } from '@/services/cases';
+import { casesService, type CaseListQuery } from '@/services/cases';
 
 interface InProgressCaseFilters {
   priority?: string;
