@@ -195,7 +195,7 @@ const searchValidation = [
     .withMessage('Limit must be between 1 and 50'),
 ];
 
-const bulkImportValidation = [
+const _bulkImportValidation = [
   body('pincodes').isArray({ min: 1 }).withMessage('Pincodes array is required'),
   body('pincodes.*.code')
     .trim()
