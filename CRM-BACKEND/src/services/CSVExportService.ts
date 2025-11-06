@@ -1,3 +1,5 @@
+/* eslint-disable no-return-await */
+// Disabled no-return-await rule for CSV export service as it uses return await pattern
 import { pool } from '../config/database';
 import { logger } from '../utils/logger';
 import path from 'path';
