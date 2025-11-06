@@ -31,7 +31,7 @@ export interface CreateDocumentTypeRateData {
   currency?: string;
 }
 
-export interface UpdateDocumentTypeRateData extends Partial<Omit<CreateDocumentTypeRateData, 'clientId' | 'productId' | 'documentTypeId'>> {}
+export type UpdateDocumentTypeRateData = Partial<Omit<CreateDocumentTypeRateData, 'clientId' | 'productId' | 'documentTypeId'>>;
 
 // Query interfaces
 export interface DocumentTypeRateQuery {
