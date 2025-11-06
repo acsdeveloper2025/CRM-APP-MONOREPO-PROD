@@ -851,7 +851,7 @@ export const getCasesReport = async (req: AuthenticatedRequest, res: Response) =
       assignedToId,
       status,
       priority,
-      format = 'JSON',
+      format: _format = 'JSON',
     } = req.query;
 
     // Build WHERE conditions for database query
@@ -979,7 +979,7 @@ export const getCasesReport = async (req: AuthenticatedRequest, res: Response) =
 // GET /api/reports/users - User performance report
 export const getUserPerformanceReport = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { dateFrom, dateTo, department, role, isActive, format = 'JSON' } = req.query;
+    const { dateFrom, dateTo, department, role, isActive, format: _format = 'JSON' } = req.query;
 
     // Build WHERE conditions for users query
     const userConditions: string[] = [];
@@ -1052,7 +1052,7 @@ export const getUserPerformanceReport = async (req: AuthenticatedRequest, res: R
 // GET /api/reports/clients - Client report
 export const getClientReport = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { isActive, format = 'JSON' } = req.query;
+    const { isActive, format: _format = 'JSON' } = req.query;
 
     // Build WHERE conditions for clients query
     const conditions: string[] = [];
