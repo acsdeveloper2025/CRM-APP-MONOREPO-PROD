@@ -106,6 +106,7 @@ router.get('/health/detailed', async (req, res) => {
       version: process.env.npm_package_version || '1.0.0',
       environment: process.env.NODE_ENV || 'development',
       services,
+      // eslint-disable-next-line camelcase
       performance: performance_data,
     };
 
