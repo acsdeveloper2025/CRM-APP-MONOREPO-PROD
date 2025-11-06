@@ -138,7 +138,7 @@ export class EnterpriseCache {
    * Cache invalidation middleware
    */
   static invalidate(patterns: string[]) {
-    return async (req: Request, res: Response, next: NextFunction) => {
+    return (req: Request, res: Response, next: NextFunction) => {
       // Store original end method
       const originalEnd = res.end;
 
