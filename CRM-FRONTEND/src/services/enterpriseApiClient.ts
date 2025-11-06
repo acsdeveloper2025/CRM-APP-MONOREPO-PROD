@@ -159,7 +159,7 @@ class EnterpriseApiClient {
     );
   }
 
-  private recordMetrics(response: AxiosResponse | undefined, isError = false): void {
+  private recordMetrics(response: AxiosResponse | undefined, _isError = false): void {
     if (!response?.config?.metadata) {return;}
 
     const duration = Date.now() - response.config.metadata.startTime;
