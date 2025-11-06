@@ -336,7 +336,7 @@ export class PDFExportService {
   }
 
   private async generateHTMLContent(data: any, options: PDFExportOptions): Promise<string> {
-    const { template = 'standard', includeCharts = false } = options;
+    const { template: _template = 'standard', includeCharts: _includeCharts = false } = options;
 
     const baseHTML = `
       <!DOCTYPE html>

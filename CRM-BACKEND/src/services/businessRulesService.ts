@@ -145,7 +145,7 @@ class BusinessRulesService {
       RETURNING *
     `;
 
-    const result = await this.pool.query(query, [priority, caseId]);
+    const _result = await this.pool.query(query, [priority, caseId]);
     return { type: 'UPDATE_PRIORITY', caseId, priority, success: true };
   }
 

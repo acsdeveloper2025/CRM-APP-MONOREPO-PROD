@@ -320,7 +320,7 @@ export class ScheduledReportsService {
       // Generate the report
       let result;
       switch (report.format) {
-        case 'pdf':
+        case 'pdf': {
           const pdfService = PDFExportService.getInstance();
           result = await pdfService.generatePDFReport({
             reportType: report.reportType,
@@ -330,8 +330,9 @@ export class ScheduledReportsService {
             ...report.options,
           });
           break;
+        }
 
-        case 'excel':
+        case 'excel': {
           const excelService = ExcelExportService.getInstance();
           result = await excelService.generateExcelReport({
             reportType: report.reportType,
@@ -341,8 +342,9 @@ export class ScheduledReportsService {
             ...report.options,
           });
           break;
+        }
 
-        case 'csv':
+        case 'csv': {
           const csvService = CSVExportService.getInstance();
           result = await csvService.generateCSVReport({
             reportType: report.reportType,
@@ -352,6 +354,7 @@ export class ScheduledReportsService {
             ...report.options,
           });
           break;
+        }
 
         default:
           throw new Error(`Unsupported format: ${report.format}`);
@@ -458,11 +461,12 @@ export class ScheduledReportsService {
         nextRun.setDate(now.getDate() + 1);
         nextRun.setHours(8, 0, 0, 0);
         break;
-      case 'weekly':
+      case 'weekly': {
         const daysUntilMonday = (8 - now.getDay()) % 7 || 7;
         nextRun.setDate(now.getDate() + daysUntilMonday);
         nextRun.setHours(8, 0, 0, 0);
         break;
+      }
       case 'monthly':
         nextRun.setMonth(now.getMonth() + 1, 1);
         nextRun.setHours(8, 0, 0, 0);
