@@ -602,10 +602,10 @@ function getRelevantBuilderFieldsForFormType(formType: string): string[] {
 /**
  * Gets appropriate default value for a builder database field
  *
- * @param fieldName - Database field name
+ * @param _fieldName - Database field name
  * @returns Default value for the field
  */
-function getDefaultBuilderValueForField(fieldName: string): any {
+function getDefaultBuilderValueForField(_fieldName: string): any {
   // All fields default to null for missing/irrelevant data
   return null;
 }

@@ -602,10 +602,10 @@ function getRelevantOfficeFieldsForFormType(formType: string): string[] {
 /**
  * Gets appropriate default value for an office database field
  *
- * @param fieldName - Database field name
+ * @param _fieldName - Database field name
  * @returns Default value for the field
  */
-function getDefaultOfficeValueForField(fieldName: string): any {
+function getDefaultOfficeValueForField(_fieldName: string): any {
   // All fields default to null for missing/irrelevant data
   return null;
 }
