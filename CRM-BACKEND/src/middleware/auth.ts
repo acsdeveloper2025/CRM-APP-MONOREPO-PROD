@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/require-await */
+// Disabled require-await rule for this file as some middleware functions are async for consistency
 import type { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { config } from '@/config';

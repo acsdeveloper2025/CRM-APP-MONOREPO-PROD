@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/require-await */
+// Disabled require-await rule for this file as some methods are async for consistency
 import type { Pool } from 'pg';
 
 export interface BusinessRule {

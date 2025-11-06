@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/require-await */
+// Disabled require-await rule for this file as some methods are async for consistency
 import * as cron from 'node-cron';
 import { pool } from '../config/database';
 import { logger } from '../utils/logger';
