@@ -93,7 +93,7 @@ export class ExcelExportService {
       case 'validation-status':
         return await this.fetchValidationStatusData(dateFrom, dateTo, filters);
       default:
-        throw new Error(`Unsupported report type: ${reportType}`);
+        throw new Error(`Unsupported report type: ${String(reportType)}`);
     }
   }
 

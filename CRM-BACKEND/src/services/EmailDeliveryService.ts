@@ -43,6 +43,7 @@ export interface EmailResult {
 
 export class EmailDeliveryService {
   private static instance: EmailDeliveryService;
+  // eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
   private transporter: nodemailer.Transporter | null = null;
   private config: EmailConfig;
 
