@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/require-await */
+// Disabled require-await rule for push notification service as some async functions don't directly await
 import admin from 'firebase-admin';
 import apn from 'node-apn';
 import { logger } from '../utils/logger';
