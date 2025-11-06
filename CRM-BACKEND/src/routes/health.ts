@@ -233,7 +233,7 @@ async function checkRedis(): Promise<ServiceHealth> {
 /**
  * Memory health check
  */
-async function checkMemory(): Promise<ServiceHealth> {
+function checkMemory(): ServiceHealth {
   const usage = process.memoryUsage();
   const totalMB = (usage.rss / 1024 / 1024).toFixed(2);
   const heapUsedMB = (usage.heapUsed / 1024 / 1024).toFixed(2);
