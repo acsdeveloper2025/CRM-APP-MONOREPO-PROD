@@ -10,6 +10,7 @@ import type {
 } from '../types/verificationTask';
 import { createAuditLog } from '../utils/auditLogger';
 import { logger } from '../utils/logger';
+import { Role } from '../types/auth';
 
 // Database connection (assuming it's imported from your existing setup)
 import { pool } from '../config/database';
@@ -381,7 +382,7 @@ export class VerificationTasksController {
       const userRole = req.user?.role;
       const userId = req.user?.id;
 
-      if (userRole === 'FIELD_AGENT') {
+      if (userRole === Role.FIELD_AGENT) {
         conditions.push(`vt.assigned_to = $${paramIndex}`);
         params.push(userId);
         paramIndex++;
