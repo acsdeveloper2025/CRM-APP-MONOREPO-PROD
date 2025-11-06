@@ -71,12 +71,12 @@ const clientsReportValidation = [
   query('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
 ];
 
-const financialReportValidation = [
+const _financialReportValidation = [
   ...dateRangeValidation,
   query('clientId').optional().trim().notEmpty().withMessage('Client ID must not be empty'),
 ];
 
-const productivityReportValidation = [
+const _productivityReportValidation = [
   ...dateRangeValidation,
   query('userId').optional().trim().notEmpty().withMessage('User ID must not be empty'),
   query('department')
@@ -86,7 +86,7 @@ const productivityReportValidation = [
     .withMessage('Department must be less than 100 characters'),
 ];
 
-const customReportValidation = [
+const _customReportValidation = [
   body('reportType')
     .isIn(['cases', 'users', 'clients', 'invoices', 'commissions'])
     .withMessage('Invalid report type'),

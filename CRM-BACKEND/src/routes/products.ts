@@ -131,7 +131,7 @@ const listProductsValidation = [
 //     .withMessage('Client ID is required'),
 // ];
 
-const clientProductsValidation = [
+const _clientProductsValidation = [
   param('id').isInt({ min: 1 }).withMessage('Client ID must be a positive integer'),
   query('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
 ];

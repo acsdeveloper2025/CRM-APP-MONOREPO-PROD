@@ -45,14 +45,14 @@ const recentActivitiesValidation = [
     .withMessage('Limit must be between 1 and 50'),
 ];
 
-const topPerformersValidation = [
+const _topPerformersValidation = [
   query('limit')
     .optional()
     .isInt({ min: 1, max: 20 })
     .withMessage('Limit must be between 1 and 20'),
 ];
 
-const exportValidation = [
+const _exportValidation = [
   body('period')
     .optional()
     .isIn(['week', 'month', 'quarter', 'year'])
