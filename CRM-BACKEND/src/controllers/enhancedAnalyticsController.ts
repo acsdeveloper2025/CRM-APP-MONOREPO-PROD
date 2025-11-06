@@ -316,6 +316,7 @@ export const getEnhancedAgentPerformance = async (req: Request, res: Response) =
 // Enhanced Case Analytics with Timeline
 export const getEnhancedCaseAnalytics = async (req: Request, res: Response) => {
   try {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const {
       limit = 50,
       offset = 0,
@@ -356,7 +357,6 @@ export const getEnhancedCaseAnalytics = async (req: Request, res: Response) => {
       paramIndex++;
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     if (clientId) {
       whereConditions.push(`c."clientId" = $${paramIndex}`);
       queryParams.push(clientId);
