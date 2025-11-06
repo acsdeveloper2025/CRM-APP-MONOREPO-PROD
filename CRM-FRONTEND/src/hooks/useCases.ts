@@ -200,7 +200,7 @@ export const useRefreshCases = () => {
   }) => {
     const {
       clearCache = true,
-      preserveFilters = true,
+      preserveFilters: _preserveFilters = true,
       showToast = true
     } = options || {};
 
