@@ -77,7 +77,15 @@ export const performanceMonitoring = (
  * Process and store performance metrics
  */
 function processPerformanceMetrics(metrics: PerformanceMetrics): void {
-  const { requestId, method, url, statusCode, responseTime, memoryUsage, userId: _userId } = metrics;
+  const {
+    requestId,
+    method,
+    url,
+    statusCode,
+    responseTime,
+    memoryUsage,
+    userId: _userId,
+  } = metrics;
 
   // Log performance data
   const logData = {
