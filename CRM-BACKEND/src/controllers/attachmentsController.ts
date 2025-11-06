@@ -719,7 +719,7 @@ export const serveAttachment = async (req: AuthenticatedRequest, res: Response) 
 };
 
 // GET /api/attachments/types - Get supported file types
-export const getSupportedFileTypes = async (req: AuthenticatedRequest, res: Response) => {
+export const getSupportedFileTypes = (req: AuthenticatedRequest, res: Response) => {
   try {
     const fileTypes = {
       images: {
@@ -754,7 +754,7 @@ export const getSupportedFileTypes = async (req: AuthenticatedRequest, res: Resp
 };
 
 // POST /api/attachments/bulk-upload - Bulk upload attachments
-export const bulkUploadAttachments = async (req: AuthenticatedRequest, res: Response) => {
+export const bulkUploadAttachments = (req: AuthenticatedRequest, res: Response) => {
   try {
     // Use multer middleware for multiple files
     upload.array('files', 50)(req, res, async err => {
@@ -853,7 +853,7 @@ export const bulkUploadAttachments = async (req: AuthenticatedRequest, res: Resp
 };
 
 // POST /api/attachments/bulk-delete - Bulk delete attachments
-export const bulkDeleteAttachments = async (req: AuthenticatedRequest, res: Response) => {
+export const bulkDeleteAttachments = (req: AuthenticatedRequest, res: Response) => {
   try {
     const { attachmentIds } = req.body;
 
