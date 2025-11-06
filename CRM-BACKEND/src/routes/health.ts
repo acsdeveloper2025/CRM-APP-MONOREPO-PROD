@@ -1,8 +1,7 @@
 import { Router } from 'express';
-import { pool } from '@/config/database';
+import { pool, query } from '@/config/database';
 import { redisClient } from '@/config/redis';
 import { logger } from '@/config/logger';
-import { query } from '@/config/database';
 import { performance } from 'perf_hooks';
 
 const router = Router();

@@ -1,5 +1,4 @@
-import type { Browser, PDFOptions } from 'puppeteer';
-import puppeteer from 'puppeteer';
+import puppeteer, { type Browser, type PDFOptions } from 'puppeteer';
 import { pool } from '../config/database';
 import { logger } from '../utils/logger';
 import path from 'path';
