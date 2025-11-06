@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/restrict-template-expressions */
+/* eslint-disable @typescript-eslint/no-base-to-string */
+// Disabled template expression rules for roles controller as it handles query params in template literals
 import type { Response } from 'express';
 import { query } from '../config/database';
 import type { AuthenticatedRequest } from '../middleware/auth';
