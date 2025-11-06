@@ -445,9 +445,11 @@ export function NotificationHistoryPage() {
                         <DropdownMenuItem
                           onClick={(e) => {
                             e.stopPropagation();
-                            notification.isRead
-                              ? markAsUnread([notification.id])
-                              : markAsRead([notification.id]);
+                            if (notification.isRead) {
+                              markAsUnread([notification.id]);
+                            } else {
+                              markAsRead([notification.id]);
+                            }
                           }}
                         >
                           {notification.isRead ? (

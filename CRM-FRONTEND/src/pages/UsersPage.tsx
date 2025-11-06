@@ -26,7 +26,7 @@ export function UsersPage() {
 
   // Pagination state for each tab
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  const [pageSize, _setPageSize] = useState(20);
   const [activitiesPage, setActivitiesPage] = useState(1);
   const [sessionsPage, setSessionsPage] = useState(1);
 
