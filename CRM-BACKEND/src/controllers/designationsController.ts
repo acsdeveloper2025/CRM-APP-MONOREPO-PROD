@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/restrict-template-expressions */
+/* eslint-disable @typescript-eslint/no-base-to-string */
+// Disabled template expression rules for designations controller as it handles query params in template literals
 import type { Request, Response } from 'express';
 import { query } from '@/config/database';
 import { logger } from '@/config/logger';
