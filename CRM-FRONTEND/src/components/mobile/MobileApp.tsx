@@ -44,7 +44,7 @@ export const MobileApp: React.FC = () => {
     });
   };
 
-  const handleOpenReport = (reportType: 'performance' | 'submissions' | 'analytics', reportId?: string) => {
+  const _handleOpenReport = (reportType: 'performance' | 'submissions' | 'analytics', reportId?: string) => {
     setAppState({
       activeView: 'report-viewer',
       reportViewer: {

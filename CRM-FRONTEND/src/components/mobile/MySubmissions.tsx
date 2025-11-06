@@ -44,7 +44,7 @@ interface FormSubmission {
 }
 
 export const MySubmissions: React.FC = () => {
-  const { user } = useAuth();
+  const { user: _user } = useAuth();
   const [submissions, setSubmissions] = useState<FormSubmission[]>([]);
   const [filteredSubmissions, setFilteredSubmissions] = useState<FormSubmission[]>([]);
   const [isLoading, setIsLoading] = useState(true);

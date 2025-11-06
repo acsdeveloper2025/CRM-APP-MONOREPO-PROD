@@ -46,7 +46,7 @@ export const MobileReportViewer: React.FC<MobileReportViewerProps> = ({
   const { getReport, updateLastAccessed } = useOfflineStorage();
   const [reportData, setReportData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('overview');
+  const [_activeTab, _setActiveTab] = useState('overview');
 
   useEffect(() => {
     loadReportData();
