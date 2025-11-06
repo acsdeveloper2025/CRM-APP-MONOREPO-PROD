@@ -5,6 +5,7 @@ import { PDFExportService } from './PDFExportService';
 import { ExcelExportService } from './ExcelExportService';
 import { CSVExportService } from './CSVExportService';
 import { EmailDeliveryService } from './EmailDeliveryService';
+import fs from 'fs/promises';
 
 export interface ScheduledReport {
   id: string;
@@ -380,7 +381,6 @@ export class ScheduledReportsService {
 
         // Clean up the file
         try {
-          const fs = require('fs/promises');
           await fs.unlink(result.filePath);
         } catch (cleanupError) {
           logger.warn('Failed to clean up report file:', cleanupError);

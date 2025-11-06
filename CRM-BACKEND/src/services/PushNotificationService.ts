@@ -62,6 +62,7 @@ export class PushNotificationService {
   private async initializeFCM(): Promise<void> {
     try {
       if (config.firebase?.serviceAccountPath) {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-require-imports
         const serviceAccount = require(config.firebase.serviceAccountPath);
 
         this.fcmApp = admin.initializeApp(
