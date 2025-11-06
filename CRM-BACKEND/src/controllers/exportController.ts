@@ -187,7 +187,7 @@ export const downloadReport = async (req: Request, res: Response) => {
 };
 
 // Get export history
-export const getExportHistory = async (req: AuthenticatedRequest, res: Response) => {
+export const getExportHistory = (req: AuthenticatedRequest, res: Response) => {
   try {
     const { limit = 50, offset = 0 } = req.query;
     const userId = req.user?.id;
