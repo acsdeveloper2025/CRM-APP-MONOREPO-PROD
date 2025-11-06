@@ -371,13 +371,13 @@ export class MobileCaseController {
       const userId = (req as any).user?.userId;
       const userRole = (req as any).user?.role;
 
-      const where: any = { id: caseId };
+      const _where: any = { id: caseId };
 
       // Role-based access control
       // For FIELD_AGENT: Check if they have an assigned task for this case
       // For other roles: No additional filtering
       const vals2: any[] = [caseId];
-      const userIdForTaskFilter = userRole === 'FIELD_AGENT' ? userId : null;
+      const _userIdForTaskFilter = userRole === 'FIELD_AGENT' ? userId : null;
 
       let caseSql = `
         SELECT c.*,
@@ -458,7 +458,7 @@ export class MobileCaseController {
       `,
         [caseId]
       );
-      const locRes = await query(
+      const _locRes = await query(
         `SELECT id, latitude, longitude, accuracy, timestamp, source FROM locations WHERE "caseId" = $1 ORDER BY timestamp DESC LIMIT 10`,
         [caseId]
       );

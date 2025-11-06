@@ -397,8 +397,8 @@ export class MobileAuthController {
   // Register device for push notifications (simplified)
   static async registerNotifications(req: Request, res: Response) {
     try {
-      const { pushToken: _pushToken, platform: _platform, enabled, preferences } = req.body;
-      const userId = (req as any).user?.userId;
+      const { pushToken: _pushToken, platform: _platform, enabled: _enabled, preferences: _preferences } = req.body;
+      const _userId = (req as any).user?.userId;
 
       // Store notification preferences in user profile or separate table
       // For now, just return success since we removed device table
