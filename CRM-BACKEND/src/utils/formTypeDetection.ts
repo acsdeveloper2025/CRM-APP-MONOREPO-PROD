@@ -666,7 +666,7 @@ export function detectFormType(verificationType: string, formData: any): FormTyp
  */
 export function isValidFormType(verificationType: string, formType: string): boolean {
   const validFormTypes = ['POSITIVE', 'SHIFTED', 'NSP', 'ENTRY_RESTRICTED', 'UNTRACEABLE'];
-  const normalizedType = verificationType.toUpperCase();
+  const _normalizedType = verificationType.toUpperCase();
   const normalizedFormType = formType.toUpperCase();
 
   // All verification types support the same form types
@@ -680,7 +680,7 @@ export function isValidFormType(verificationType: string, formType: string): boo
  * @returns Array of valid form types
  */
 export function getValidFormTypes(verificationType: string): string[] {
-  const normalizedType = verificationType.toUpperCase();
+  const _normalizedType = verificationType.toUpperCase();
 
   // All verification types support the same form types
   return ['POSITIVE', 'SHIFTED', 'NSP', 'ENTRY_RESTRICTED', 'UNTRACEABLE'];

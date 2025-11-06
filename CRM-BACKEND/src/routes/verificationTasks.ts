@@ -265,6 +265,7 @@ router.post(
         return;
       }
 
+      // eslint-disable-next-line camelcase
       if (!assigned_to) {
         res.status(400).json({
           success: false,
@@ -281,6 +282,7 @@ router.post(
 
         const updatedTasks = [];
 
+        // eslint-disable-next-line camelcase
         for (const taskId of task_ids) {
           // Update task assignment
           const result = await client.query(
@@ -299,6 +301,7 @@ router.post(
             WHERE id = $3
             RETURNING *
           `,
+            // eslint-disable-next-line camelcase
             [assigned_to, userId, taskId]
           );
 
@@ -314,11 +317,13 @@ router.post(
                 assignment_reason, task_status_after
               ) VALUES ($1, $2, $3, $4, $5, $6)
             `,
+              // eslint-disable-next-line camelcase
               [
                 taskId,
                 task.case_id,
                 assigned_to,
                 userId,
+                // eslint-disable-next-line camelcase
                 assignment_reason || 'Bulk assignment',
                 task.status,
               ]
@@ -380,6 +385,7 @@ router.post(
         verification_outcome,
         form_data,
         attachments: _attachments,
+        // eslint-disable-next-line camelcase
         geo_location: _geo_location,
       } = req.body;
 

@@ -718,10 +718,10 @@ function getRelevantPropertyIndividualFieldsForFormType(formType: string): strin
 /**
  * Gets appropriate default value for a Property Individual database field
  *
- * @param fieldName - Database field name
+ * @param _fieldName - Database field name
  * @returns Default value for the field
  */
-function getDefaultPropertyIndividualValueForField(fieldName: string): any {
+function getDefaultPropertyIndividualValueForField(_fieldName: string): any {
   // All fields default to null for missing/irrelevant data
   return null;
 }
