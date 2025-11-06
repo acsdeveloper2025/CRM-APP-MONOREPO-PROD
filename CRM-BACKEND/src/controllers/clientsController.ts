@@ -869,8 +869,9 @@ export const getClientVerificationTypes = async (req: AuthenticatedRequest, res:
 
     // Build where clause for active filter
     const whereClause = isActive !== undefined ? 'AND vt."isActive" = $2' : '';
+    const isActiveStr2 = typeof isActive === 'string' || typeof isActive === 'number' ? String(isActive) : 'false';
     const params =
-      isActive !== undefined ? [Number(id), String(isActive) === 'true'] : [Number(id)];
+      isActive !== undefined ? [Number(id), isActiveStr2 === 'true'] : [Number(id)];
 
     const vtRes = await query(
       `SELECT DISTINCT vt.id, vt.name, vt.code, vt.description, vt."isActive"

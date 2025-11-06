@@ -65,7 +65,7 @@ export const getPincodes = async (req: AuthenticatedRequest, res: Response) => {
     if (state) {
       paramCount++;
       sql += ` AND COALESCE(s.name, '') ILIKE $${paramCount}`;
-      params.push(`%${String(state)}%`);
+      params.push(`%${typeof state === 'string' || typeof state === 'number' ? String(state) : ''}%`);
     }
 
     if (search) {
