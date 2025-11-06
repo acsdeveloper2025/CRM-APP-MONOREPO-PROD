@@ -225,7 +225,7 @@ const _noteValidation = [
     .withMessage('Note must be between 1 and 1000 characters'),
 ];
 
-const completeValidation = [
+const _completeValidation = [
   body('notes')
     .optional()
     .trim()
@@ -234,7 +234,7 @@ const completeValidation = [
   body('attachments').optional().isArray().withMessage('Attachments must be an array'),
 ];
 
-const approveValidation = [
+const _approveValidation = [
   body('feedback')
     .optional()
     .trim()
@@ -242,14 +242,14 @@ const approveValidation = [
     .withMessage('Feedback must be less than 1000 characters'),
 ];
 
-const rejectValidation = [
+const _rejectValidation = [
   body('reason')
     .trim()
     .isLength({ min: 1, max: 1000 })
     .withMessage('Rejection reason is required and must be less than 1000 characters'),
 ];
 
-const reworkValidation = [
+const _reworkValidation = [
   body('feedback')
     .trim()
     .isLength({ min: 1, max: 1000 })
