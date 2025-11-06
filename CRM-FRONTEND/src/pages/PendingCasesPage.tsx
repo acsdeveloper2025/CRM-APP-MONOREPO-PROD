@@ -22,11 +22,11 @@ export const PendingCasesPage: React.FC = () => {
 
   // Unified search with 800ms debounce
   const {
-    searchValue,
+    searchValue: _searchValue,
     debouncedSearchValue,
-    setSearchValue,
-    clearSearch,
-    isDebouncing,
+    setSearchValue: _setSearchValue,
+    clearSearch: _clearSearch,
+    isDebouncing: _isDebouncing,
   } = useUnifiedSearch({
     syncWithUrl: true,
   });
@@ -34,9 +34,9 @@ export const PendingCasesPage: React.FC = () => {
   // Unified filters with URL sync
   const {
     filters: activeFilters,
-    setFilter,
-    clearFilters,
-    hasActiveFilters,
+    setFilter: _setFilter,
+    clearFilters: _clearFilters,
+    hasActiveFilters: _hasActiveFilters,
   } = useUnifiedFilters<PendingCaseFilters>({
     syncWithUrl: true,
   });
