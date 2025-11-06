@@ -63,7 +63,7 @@ export class EnterpriseCache {
         const originalSend = res.json;
         const originalStatus = res.status;
         let statusCode = 200;
-        let responseData: any;
+        let _responseData: any;
 
         // Override status method
         res.status = function (code: number) {
@@ -73,7 +73,7 @@ export class EnterpriseCache {
 
         // Override json method to cache response
         res.json = function (data: any) {
-          responseData = data;
+          _responseData = data;
 
           // Check if we should cache this response
           const shouldCache = !config.condition || config.condition(req, res);
