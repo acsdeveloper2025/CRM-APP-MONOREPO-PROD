@@ -60,7 +60,7 @@ export const InProgressCasesPage: React.FC = () => {
     clientId: activeFilters.clientId || undefined,
   };
 
-  const { data: casesData, isLoading, refetch } = useCases(query);
+  const { data: casesData, isLoading, refetch: _refetch } = useCases(query);
   const { refreshCases } = useRefreshCases();
 
   const cases = casesData?.data || [];
