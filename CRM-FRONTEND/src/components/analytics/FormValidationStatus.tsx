@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { 
   Select,
@@ -24,7 +23,7 @@ import {
   Bar
 } from 'recharts';
 import { useFormValidationStatus } from '@/hooks/useAnalytics';
-import { CheckCircle, Clock, XCircle, TrendingUp, Filter } from 'lucide-react';
+import { CheckCircle, Clock, XCircle, TrendingUp, Filter, FileText } from 'lucide-react';
 
 const VALIDATION_COLORS = {
   valid: '#10b981',
@@ -96,14 +95,22 @@ export const FormValidationStatus: React.FC = () => {
   }
 
   const getValidationRateColor = (rate: number) => {
-    if (rate >= 90) return 'text-green-600';
-    if (rate >= 70) return 'text-yellow-600';
+    if (rate >= 90) {
+      return 'text-green-600';
+    }
+    if (rate >= 70) {
+      return 'text-yellow-600';
+    }
     return 'text-red-600';
   };
 
   const getValidationRateBadge = (rate: number) => {
-    if (rate >= 90) return 'bg-green-100 text-green-800';
-    if (rate >= 70) return 'bg-yellow-100 text-yellow-800';
+    if (rate >= 90) {
+      return 'bg-green-100 text-green-800';
+    }
+    if (rate >= 70) {
+      return 'bg-yellow-100 text-yellow-800';
+    }
     return 'bg-red-100 text-red-800';
   };
 
