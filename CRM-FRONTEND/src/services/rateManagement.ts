@@ -134,7 +134,7 @@ export class RateManagementService {
           availableRateTypes: availableResponse.data || []
         }
       };
-    } catch (error) {
+    } catch (_error) {
       return {
         success: false,
         message: 'Failed to initialize workflow',
@@ -191,7 +191,7 @@ export class RateManagementService {
         success: true,
         message: 'Rate setup workflow completed successfully'
       };
-    } catch (error) {
+    } catch (_error) {
       return {
         success: false,
         message: 'Failed to complete rate setup workflow',
@@ -253,7 +253,7 @@ export class RateManagementService {
           documentTypeRates: documentTypeRateStats.data
         }
       };
-    } catch (error) {
+    } catch (_error) {
       return {
         success: false,
         message: 'Failed to retrieve statistics',
