@@ -447,11 +447,11 @@ export class MobileSyncController {
 
         const cols: string[] = ['id', 'createdAt', 'updatedAt'];
         const vals11: any[] = [id, new Date(timestamp), new Date()];
-        let idx2 = 4;
+        let _idx2 = 4;
         for (const [key, value] of Object.entries(data)) {
           cols.push(`"${key}"`);
           vals11.push(value);
-          idx2++;
+          _idx2++;
         }
         const placeholders = vals11.map((_, i) => `$${i + 1}`).join(', ');
         await query(`INSERT INTO cases (${cols.join(', ')}) VALUES (${placeholders})`, vals11);
@@ -477,11 +477,11 @@ export class MobileSyncController {
         // Create attachment record (file should already be uploaded)
         const attCols: string[] = ['id', 'uploadedById', 'uploadedAt'];
         const attVals: any[] = [id, userId, new Date(timestamp)];
-        let attIdx = 4;
+        let _attIdx = 4;
         for (const [key, value] of Object.entries(data)) {
           attCols.push(`"${key}"`);
           attVals.push(value);
-          attIdx++;
+          _attIdx++;
         }
         const attPlaceholders = attVals.map((_, i) => `$${i + 1}`).join(', ');
         await query(
