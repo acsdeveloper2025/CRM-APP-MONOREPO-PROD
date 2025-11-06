@@ -210,7 +210,7 @@ export const createUser = async (req: AuthenticatedRequest, res: Response) => {
       isActive = true,
       // Legacy fields for backward compatibility
       role,
-      department,
+      department: _department,
     } = req.body;
 
     // Convert empty strings to null for UUID fields and handle numeric IDs

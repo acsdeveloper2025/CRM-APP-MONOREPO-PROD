@@ -135,7 +135,7 @@ export class MobileLocationController {
         latitude,
         longitude,
         expectedAddress,
-        radius = 100,
+        radius: _radius = 100,
       }: MobileLocationValidationRequest = req.body;
 
       if (!latitude || !longitude) {
