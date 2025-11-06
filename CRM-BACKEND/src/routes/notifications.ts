@@ -107,7 +107,7 @@ const notificationIdValidation = [
   param('notificationId').isUUID().withMessage('Notification ID must be a valid UUID'),
 ];
 
-const getNotificationsValidation = [
+const _getNotificationsValidation = [
   body('limit')
     .optional()
     .isInt({ min: 1, max: 100 })
