@@ -395,7 +395,7 @@ export class MobileSyncController {
     const { id, action, data, timestamp } = caseChange;
 
     switch (action) {
-      case 'UPDATE':
+      case 'UPDATE': {
         // Check if case exists and user has access
         const vals9: any[] = [id];
         let exSql7 = `SELECT id, "updatedAt" FROM cases WHERE id = $1`;
@@ -438,8 +438,9 @@ export class MobileSyncController {
 
         syncResults.processedCases++;
         break;
+      }
 
-      case 'CREATE':
+      case 'CREATE': {
         // Create new case (if allowed)
         if (userRole === 'FIELD_AGENT') {
           throw new Error('Field users cannot create cases');
@@ -458,6 +459,7 @@ export class MobileSyncController {
 
         syncResults.processedCases++;
         break;
+      }
 
       default:
         throw new Error(`Unsupported case action: ${action}`);
