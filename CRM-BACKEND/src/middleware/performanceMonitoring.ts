@@ -1,5 +1,6 @@
-/* eslint-disable camelcase */
+/* eslint-disable camelcase, @typescript-eslint/unbound-method */
 // Disabled camelcase rule for this file as it uses snake_case database column names
+// Disabled unbound-method rule for this file as it uses method references in middleware
 import type { Request, Response, NextFunction } from 'express';
 import { logger } from '@/config/logger';
 import { query } from '@/config/database';
