@@ -28,9 +28,9 @@ export const CompletedCasesPage: React.FC = () => {
   // Unified filters with URL sync
   const {
     filters: activeFilters,
-    setFilter,
-    clearFilters,
-    hasActiveFilters,
+    setFilter: _setFilter,
+    clearFilters: _clearFilters,
+    hasActiveFilters: _hasActiveFilters,
   } = useUnifiedFilters<CompletedCaseFilters>({
     syncWithUrl: true,
   });
@@ -51,11 +51,11 @@ export const CompletedCasesPage: React.FC = () => {
     clientId: activeFilters.clientId || undefined,
   };
 
-  const { data: casesData, isLoading, refetch } = useCases(query);
+  const { data: casesData, isLoading, refetch: _refetch } = useCases(query);
   const { refreshCases } = useRefreshCases();
 
   const cases = casesData?.data || [];
-  const paginationData = casesData?.pagination || { page: 1, limit: 20, total: 0, totalPages: 0 };
+  const _paginationData = casesData?.pagination || { page: 1, limit: 20, total: 0, totalPages: 0 };
 
   const handlePageChange = (page: number) => {
     setPagination(prev => ({ ...prev, page }));
@@ -65,7 +65,7 @@ export const CompletedCasesPage: React.FC = () => {
     setPagination(prev => ({ ...prev, limit, page: 1 }));
   };
 
-  const activeFilterCount = Object.keys(activeFilters).filter(
+  const _activeFilterCount = Object.keys(activeFilters).filter(
     key => activeFilters[key as keyof CompletedCaseFilters] !== undefined
   ).length;
 
