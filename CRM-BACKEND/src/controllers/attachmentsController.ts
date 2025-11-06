@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unsafe-enum-comparison */
+/* eslint-disable @typescript-eslint/require-await */
+// Disabled unsafe enum comparison and require-await rules for attachments controller
 import type { Response } from 'express';
 import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
