@@ -11,6 +11,7 @@ import type { LoginRequest, LoginResponse, JwtPayload, RefreshTokenPayload } fro
 import type { ApiResponse } from '@/types/api';
 
 export const login = async (req: Request, res: Response): Promise<void> => {
+  // eslint-disable-next-line no-useless-catch
   try {
     const { username, password }: LoginRequest = req.body;
 
@@ -126,6 +127,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 };
 
 export const logout = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  // eslint-disable-next-line no-useless-catch
   try {
     if (!req.user) {
       throw createError('User not authenticated', 401, 'UNAUTHORIZED');
