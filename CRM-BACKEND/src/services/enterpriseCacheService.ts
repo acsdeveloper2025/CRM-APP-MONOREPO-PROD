@@ -1,5 +1,4 @@
-import type { RedisClientType, RedisClusterType } from 'redis';
-import { createClient, createCluster } from 'redis';
+import { createClient, createCluster, type RedisClientType, type RedisClusterType } from 'redis';
 import { config } from '../config';
 import { logger } from '../config/logger';
 

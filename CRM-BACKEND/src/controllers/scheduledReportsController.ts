@@ -3,8 +3,7 @@
 // Disabled unsafe enum comparison rule for scheduled reports controller as it compares enum values from database
 // Disabled require-await rule as some async functions don't directly await
 import type { Response } from 'express';
-import type { ScheduledReport } from '../services/ScheduledReportsService';
-import { ScheduledReportsService } from '../services/ScheduledReportsService';
+import { ScheduledReportsService, type ScheduledReport } from '../services/ScheduledReportsService';
 import { logger } from '../utils/logger';
 import type { AuthenticatedRequest } from '../middleware/auth';
 
