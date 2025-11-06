@@ -707,7 +707,9 @@ export class ExcelExportService {
   private autoFitColumns(worksheet: ExcelJS.Worksheet): void {
     worksheet.columns.forEach(column => {
       if (column.values) {
-        const lengths = column.values.map(v => (v && (typeof v === 'string' || typeof v === 'number') ? v.toString().length : 0));
+        const lengths = column.values.map(v =>
+          v && (typeof v === 'string' || typeof v === 'number') ? v.toString().length : 0
+        );
         const maxLength = Math.max(...lengths.filter(v => typeof v === 'number'));
         column.width = Math.min(Math.max(maxLength + 2, 10), 50);
       }

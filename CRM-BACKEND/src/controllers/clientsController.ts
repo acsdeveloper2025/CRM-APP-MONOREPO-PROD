@@ -60,7 +60,9 @@ export const getClients = async (req: AuthenticatedRequest, res: Response) => {
       whereConditions.push(
         `(COALESCE(name, '') ILIKE $${paramIndex} OR COALESCE(code, '') ILIKE $${paramIndex})`
       );
-      queryParams.push(`%${typeof search === 'string' || typeof search === 'number' ? String(search) : ''}%`);
+      queryParams.push(
+        `%${typeof search === 'string' || typeof search === 'number' ? String(search) : ''}%`
+      );
       paramIndex += 1;
     }
 
@@ -75,11 +77,11 @@ export const getClients = async (req: AuthenticatedRequest, res: Response) => {
 
     // Get clients with pagination
     const offset = (Number(page) - 1) * Number(limit);
-    const sortByStr = typeof sortBy === 'string' || typeof sortBy === 'number' ? String(sortBy) : 'name';
-    const sortCol = ['name', 'createdAt', 'updatedAt'].includes(sortByStr)
-      ? sortByStr
-      : 'name';
-    const sortOrderStr = typeof sortOrder === 'string' || typeof sortOrder === 'number' ? String(sortOrder) : 'asc';
+    const sortByStr =
+      typeof sortBy === 'string' || typeof sortBy === 'number' ? String(sortBy) : 'name';
+    const sortCol = ['name', 'createdAt', 'updatedAt'].includes(sortByStr) ? sortByStr : 'name';
+    const sortOrderStr =
+      typeof sortOrder === 'string' || typeof sortOrder === 'number' ? String(sortOrder) : 'asc';
     const sortDir = sortOrderStr.toLowerCase() === 'desc' ? 'DESC' : 'ASC';
 
     const clientsRes = await query(
@@ -819,9 +821,9 @@ export const getClientProducts = async (req: AuthenticatedRequest, res: Response
 
     // Build where clause for active filter
     const whereClause = isActive !== undefined ? 'AND cp."isActive" = $2' : '';
-    const isActiveStr = typeof isActive === 'string' || typeof isActive === 'number' ? String(isActive) : 'false';
-    const params =
-      isActive !== undefined ? [Number(id), isActiveStr === 'true'] : [Number(id)];
+    const isActiveStr =
+      typeof isActive === 'string' || typeof isActive === 'number' ? String(isActive) : 'false';
+    const params = isActive !== undefined ? [Number(id), isActiveStr === 'true'] : [Number(id)];
 
     const productsRes = await query(
       `SELECT p.id, p.name, p.code, p.description, cp."createdAt" as "assignedAt"
@@ -869,9 +871,9 @@ export const getClientVerificationTypes = async (req: AuthenticatedRequest, res:
 
     // Build where clause for active filter
     const whereClause = isActive !== undefined ? 'AND vt."isActive" = $2' : '';
-    const isActiveStr2 = typeof isActive === 'string' || typeof isActive === 'number' ? String(isActive) : 'false';
-    const params =
-      isActive !== undefined ? [Number(id), isActiveStr2 === 'true'] : [Number(id)];
+    const isActiveStr2 =
+      typeof isActive === 'string' || typeof isActive === 'number' ? String(isActive) : 'false';
+    const params = isActive !== undefined ? [Number(id), isActiveStr2 === 'true'] : [Number(id)];
 
     const vtRes = await query(
       `SELECT DISTINCT vt.id, vt.name, vt.code, vt.description, vt."isActive"
