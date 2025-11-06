@@ -2059,6 +2059,7 @@ export const createCase = [
             fileSize: att.fileSize,
           })),
           summary: {
+            // eslint-disable-next-line camelcase
             total_tasks: verification_tasks.length,
             assigned_tasks: createdTasks.filter(t => t.assigned_to).length,
             pending_tasks: createdTasks.filter(t => !t.assigned_to).length,

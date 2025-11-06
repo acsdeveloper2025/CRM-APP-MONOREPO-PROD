@@ -1,3 +1,5 @@
+/* eslint-disable camelcase */
+// Disabled camelcase rule for this file as it uses snake_case database column names
 import type { Request, Response } from 'express';
 import type { AuthenticatedRequest } from '../middleware/auth';
 import type {

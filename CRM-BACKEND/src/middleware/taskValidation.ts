@@ -1,3 +1,5 @@
+/* eslint-disable camelcase */
+// Disabled camelcase rule for this file as it uses snake_case for request body properties
 import type { Request, Response, NextFunction } from 'express';
 import type { TaskStatus, TaskPriority } from '../types/verificationTask';
 
