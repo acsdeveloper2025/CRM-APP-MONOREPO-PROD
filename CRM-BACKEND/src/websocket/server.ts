@@ -132,7 +132,7 @@ export const initializeWebSocket = (io: SocketIOServer): void => {
     });
 
     // Handle mobile sync requests
-    socket.on('mobile:sync:request', (data: { lastSyncTimestamp?: string }) => {
+    socket.on('mobile:sync:request', (_data: { lastSyncTimestamp?: string }) => {
       socket.emit('mobile:sync:start', {
         message: 'Sync started',
         timestamp: new Date().toISOString(),
