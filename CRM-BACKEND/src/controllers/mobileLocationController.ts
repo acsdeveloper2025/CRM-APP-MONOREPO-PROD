@@ -342,6 +342,7 @@ export class MobileLocationController {
   }
 
   // Helper method for reverse geocoding
+  // eslint-disable-next-line @typescript-eslint/require-await
   private static async reverseGeocodeHelper(
     _latitude: number,
     _longitude: number

@@ -763,7 +763,7 @@ export const getDesignations = async (req: AuthenticatedRequest, res: Response) 
 };
 
 // Placeholder functions for activities and sessions (to be implemented)
-export const getUserActivities = async (req: AuthenticatedRequest, res: Response) => {
+export const getUserActivities = (req: AuthenticatedRequest, res: Response) => {
   res.json({
     success: true,
     data: [],
@@ -772,7 +772,7 @@ export const getUserActivities = async (req: AuthenticatedRequest, res: Response
   });
 };
 
-export const getUserSessions = async (req: AuthenticatedRequest, res: Response) => {
+export const getUserSessions = (req: AuthenticatedRequest, res: Response) => {
   res.json({
     success: true,
     data: [],
@@ -781,7 +781,7 @@ export const getUserSessions = async (req: AuthenticatedRequest, res: Response) 
   });
 };
 
-export const getRolePermissions = async (req: AuthenticatedRequest, res: Response) => {
+export const getRolePermissions = (req: AuthenticatedRequest, res: Response) => {
   res.json({
     success: true,
     data: [],
@@ -790,7 +790,7 @@ export const getRolePermissions = async (req: AuthenticatedRequest, res: Respons
   });
 };
 
-export const bulkUserOperation = async (req: AuthenticatedRequest, res: Response) => {
+export const bulkUserOperation = (req: AuthenticatedRequest, res: Response) => {
   res.status(501).json({
     success: false,
     message: 'Bulk operations feature coming soon',
