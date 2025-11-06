@@ -188,6 +188,7 @@ export class CasesService extends BaseApiService {
     return attachmentsService.getAttachmentsByCase(id);
   }
 
+  // eslint-disable-next-line camelcase
   async uploadCaseAttachments(caseId: string, files: File[], verification_task_id?: string): Promise<ApiResponse<any>> {
     // Delegate to attachments service which uses the correct /api/attachments base path
     return attachmentsService.uploadAttachments({ caseId, files, verification_task_id });
