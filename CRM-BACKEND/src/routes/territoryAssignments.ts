@@ -76,7 +76,7 @@ const assignAreasValidation = [
     .withMessage('Each area ID must be a positive integer'),
 ];
 
-const removeAssignmentValidation = [
+const _removeAssignmentValidation = [
   param('userId').isUUID().withMessage('User ID must be a valid UUID'),
   param('pincodeId')
     .optional()

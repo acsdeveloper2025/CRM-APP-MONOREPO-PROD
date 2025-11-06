@@ -300,7 +300,7 @@ router.get(
 );
 
 // Mobile Audit Routes
-const createAuditLogValidation = [
+const _createAuditLogValidation = [
   body('action')
     .trim()
     .isLength({ min: 1, max: 100 })
