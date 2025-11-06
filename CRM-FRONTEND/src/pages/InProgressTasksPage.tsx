@@ -23,11 +23,11 @@ export const InProgressTasksPage: React.FC = () => {
 
   // Unified search with 800ms debounce
   const {
-    searchValue,
+    searchValue: _searchValue,
     debouncedSearchValue,
-    setSearchValue,
-    clearSearch,
-    isDebouncing,
+    setSearchValue: _setSearchValue,
+    clearSearch: _clearSearch,
+    isDebouncing: _isDebouncing,
   } = useUnifiedSearch({
     syncWithUrl: true,
   });
@@ -35,14 +35,14 @@ export const InProgressTasksPage: React.FC = () => {
   // Unified filters with URL sync
   const {
     filters: activeFilters,
-    setFilter,
-    clearFilters,
-    hasActiveFilters,
+    setFilter: _setFilter,
+    clearFilters: _clearFilters,
+    hasActiveFilters: _hasActiveFilters,
   } = useUnifiedFilters<InProgressTaskFilters>({
     syncWithUrl: true,
   });
 
-  const [paginationState, setPaginationState] = useState({
+  const [paginationState, _setPaginationState] = useState({
     page: 1,
     limit: 20,
     sortBy: 'started_at',
@@ -58,7 +58,7 @@ export const InProgressTasksPage: React.FC = () => {
 
   const { tasks, loading, error, pagination, statistics, refreshTasks } = useAllVerificationTasks(queryFilters);
 
-  const activeFilterCount = Object.keys(activeFilters).filter(
+  const _activeFilterCount = Object.keys(activeFilters).filter(
     key => activeFilters[key as keyof InProgressTaskFilters] !== undefined
   ).length;
 
