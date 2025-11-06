@@ -213,6 +213,7 @@ export const uploadAttachment = (req: AuthenticatedRequest, res: Response) => {
             req.user?.id,
             caseId,
             caseUUID, // Add the case UUID for mobile compatibility
+            // eslint-disable-next-line camelcase
             verification_task_id || null, // Add verification_task_id if provided
           ]
         );

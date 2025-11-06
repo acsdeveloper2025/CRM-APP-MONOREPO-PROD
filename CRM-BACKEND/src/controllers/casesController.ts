@@ -1519,11 +1519,13 @@ export const createCase = [
         });
       }
 
+      // eslint-disable-next-line camelcase
       const { case_details, verification_tasks } = requestData;
 
       // ========== COMPREHENSIVE VALIDATION ==========
 
       // Validate case_details
+      // eslint-disable-next-line camelcase
       if (!case_details || typeof case_details !== 'object') {
         await client.query('ROLLBACK');
         await cleanupFiles();
@@ -1535,6 +1537,7 @@ export const createCase = [
       }
 
       // Validate verification_tasks
+      // eslint-disable-next-line camelcase
       if (
         !verification_tasks ||
         !Array.isArray(verification_tasks) ||
@@ -1550,6 +1553,7 @@ export const createCase = [
       }
 
       // Limit maximum tasks per case to prevent abuse
+      // eslint-disable-next-line camelcase
       if (verification_tasks.length > 50) {
         await client.query('ROLLBACK');
         await cleanupFiles();
@@ -1560,6 +1564,7 @@ export const createCase = [
         });
       }
 
+      // eslint-disable-next-line camelcase
       const {
         customerName,
         customerPhone,
@@ -1628,7 +1633,9 @@ export const createCase = [
       }
 
       // Validate each task
+      // eslint-disable-next-line camelcase
       for (let i = 0; i < verification_tasks.length; i++) {
+        // eslint-disable-next-line camelcase
         const task = verification_tasks[i];
         if (!task.verification_type_id) {
           await client.query('ROLLBACK');
@@ -1738,6 +1745,7 @@ export const createCase = [
 
       // ========== CREATE CASE ==========
 
+      // eslint-disable-next-line camelcase
       const firstTask = verification_tasks[0];
       const firstTaskVerificationTypeId = firstTask.verification_type_id;
       const firstTaskPincode = firstTask.pincode;
@@ -1773,7 +1781,9 @@ export const createCase = [
         backendContactNumber || customerPhone,
         'PENDING',
         userId,
+        // eslint-disable-next-line camelcase
         verification_tasks.length > 1,
+        // eslint-disable-next-line camelcase
         verification_tasks.length,
         0,
         0.0,
@@ -1786,6 +1796,7 @@ export const createCase = [
         caseId: newCase.id,
         caseNumber: newCase.caseId,
         customerName,
+        // eslint-disable-next-line camelcase
         tasksCount: verification_tasks.length,
         userId,
       });
