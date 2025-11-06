@@ -130,7 +130,7 @@ export function LocationsPage() {
 
   const stats = getTabStats();
 
-  const continents = ['Africa', 'Antarctica', 'Asia', 'Europe', 'North America', 'Oceania', 'South America'];
+  const _continents = ['Africa', 'Antarctica', 'Asia', 'Europe', 'North America', 'Oceania', 'South America'];
 
   return (
     <div className="space-y-6">
