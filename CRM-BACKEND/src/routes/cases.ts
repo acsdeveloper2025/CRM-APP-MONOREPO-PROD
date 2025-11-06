@@ -190,7 +190,7 @@ const _assignValidation = [
     .withMessage('Reason must be less than 500 characters'),
 ];
 
-const bulkAssignValidation = [
+const _bulkAssignValidation = [
   body('caseIds')
     .isArray({ min: 1, max: 100 })
     .withMessage('Case IDs must be an array with 1-100 items'),
@@ -207,7 +207,7 @@ const bulkAssignValidation = [
     .withMessage('Priority must be one of: LOW, MEDIUM, HIGH, URGENT'),
 ];
 
-const reassignValidation = [
+const _reassignValidation = [
   body('fromUserId').trim().notEmpty().withMessage('From user ID is required'),
   body('toUserId').trim().notEmpty().withMessage('To user ID is required'),
   body('reason')
@@ -218,7 +218,7 @@ const reassignValidation = [
     .withMessage('Reason must be between 10 and 500 characters'),
 ];
 
-const noteValidation = [
+const _noteValidation = [
   body('note')
     .trim()
     .isLength({ min: 1, max: 1000 })
