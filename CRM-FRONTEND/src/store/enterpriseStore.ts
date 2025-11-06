@@ -226,7 +226,7 @@ const casesSlice = createSlice({
       })
       .addCase(fetchCases.fulfilled, (state, action) => {
         state.loading = false;
-        const { cases, totalCount, page, hasMore, metadata } = action.payload;
+        const { cases, totalCount, page, hasMore, metadata: _metadata } = action.payload;
         
         if (page === 1) {
           state.items = cases;

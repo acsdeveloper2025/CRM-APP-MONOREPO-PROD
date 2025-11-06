@@ -68,7 +68,7 @@ class AIReportsService {
   /**
    * Download AI report as PDF (placeholder for future implementation)
    */
-  async downloadReport(caseId: string, submissionId: string, format: 'PDF' | 'DOCX' = 'PDF'): Promise<Blob> {
+  async downloadReport(caseId: string, submissionId: string, _format: 'PDF' | 'DOCX' = 'PDF'): Promise<Blob> {
     // TODO: Implement download functionality
     throw new Error('Download functionality not yet implemented');
   }

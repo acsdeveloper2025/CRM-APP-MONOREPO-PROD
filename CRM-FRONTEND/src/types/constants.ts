@@ -339,7 +339,7 @@ export const API_ENDPOINTS = {
 // Regular Expressions
 export const REGEX_PATTERNS = {
   EMAIL: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-  PHONE: /^[+]?[\d\s\-\(\)]{10,15}$/,
+  PHONE: /^[+]?[\d\s\-()]{10,15}$/,
   PINCODE: /^\d{6}$/,
   PAN: /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/,
   AADHAAR: /^\d{12}$/,
