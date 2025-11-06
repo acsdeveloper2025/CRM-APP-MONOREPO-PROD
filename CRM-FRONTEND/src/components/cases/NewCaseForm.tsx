@@ -22,7 +22,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { useFieldUsers } from '@/hooks/useUsers';
-import { useClients, useVerificationTypes } from '@/hooks/useClients';
+import { useClients } from '@/hooks/useClients';
 import { Send, Loader2 } from 'lucide-react';
 import type { CreateCaseData } from '@/services/cases';
 

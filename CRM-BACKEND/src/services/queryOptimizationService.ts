@@ -1,5 +1,4 @@
 import type { Pool, QueryResult } from 'pg';
-import { PoolClient } from 'pg';
 import { logger } from '@/config/logger';
 import { performance } from 'perf_hooks';
 
