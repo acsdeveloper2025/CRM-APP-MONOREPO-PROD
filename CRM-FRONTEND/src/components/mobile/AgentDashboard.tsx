@@ -88,7 +88,7 @@ export const AgentDashboard: React.FC = () => {
     }
   };
 
-  const getQualityScoreColor = (score: number) => {
+  const _getQualityScoreColor = (score: number) => {
     if (score >= 90) {return 'text-green-600';}
     if (score >= 80) {return 'text-green-600';}
     if (score >= 70) {return 'text-yellow-600';}
