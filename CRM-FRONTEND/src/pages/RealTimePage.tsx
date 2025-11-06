@@ -14,7 +14,7 @@ import toast from 'react-hot-toast';
 export function RealTimePage() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [testCaseId, setTestCaseId] = useState('');
-  const [testMessage, setTestMessage] = useState('');
+  const [_testMessage, _setTestMessage] = useState('');
 
   const {
     isConnected,
