@@ -224,7 +224,7 @@ export const getAuditLogById = (req: AuthenticatedRequest, res: Response) => {
 };
 
 // POST /api/mobile/audit/logs - Create mobile audit log batch
-export const createMobileAuditLogs = async (req: AuthenticatedRequest, res: Response) => {
+export const createMobileAuditLogs = (req: AuthenticatedRequest, res: Response) => {
   try {
     const { logs, batchId, deviceId } = req.body;
 
@@ -282,7 +282,7 @@ export const createMobileAuditLogs = async (req: AuthenticatedRequest, res: Resp
 };
 
 // POST /api/audit-logs - Create audit log entry
-export const createAuditLog = async (req: AuthenticatedRequest, res: Response) => {
+export const createAuditLog = (req: AuthenticatedRequest, res: Response) => {
   try {
     const { action, resource, resourceId, details, severity = 'INFO', category } = req.body;
 
@@ -326,7 +326,7 @@ export const createAuditLog = async (req: AuthenticatedRequest, res: Response) =
 };
 
 // GET /api/audit-logs/actions - Get available actions
-export const getAuditActions = async (req: AuthenticatedRequest, res: Response) => {
+export const getAuditActions = (req: AuthenticatedRequest, res: Response) => {
   try {
     const actions = [
       // Authentication actions
@@ -397,7 +397,7 @@ export const getAuditActions = async (req: AuthenticatedRequest, res: Response) 
 };
 
 // GET /api/audit-logs/categories - Get available categories
-export const getAuditCategories = async (req: AuthenticatedRequest, res: Response) => {
+export const getAuditCategories = (req: AuthenticatedRequest, res: Response) => {
   try {
     const categories = [
       'AUTHENTICATION',
@@ -427,7 +427,7 @@ export const getAuditCategories = async (req: AuthenticatedRequest, res: Respons
 };
 
 // GET /api/audit-logs/stats - Get audit log statistics
-export const getAuditStats = async (req: AuthenticatedRequest, res: Response) => {
+export const getAuditStats = (req: AuthenticatedRequest, res: Response) => {
   try {
     const { period = 'week' } = req.query;
 
@@ -542,7 +542,7 @@ export const getAuditStats = async (req: AuthenticatedRequest, res: Response) =>
 };
 
 // POST /api/audit-logs/export - Export audit logs
-export const exportAuditLogs = async (req: AuthenticatedRequest, res: Response) => {
+export const exportAuditLogs = (req: AuthenticatedRequest, res: Response) => {
   try {
     const { format = 'CSV', dateFrom, dateTo, filters = {} } = req.body;
 
