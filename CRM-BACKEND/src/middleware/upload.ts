@@ -1,5 +1,4 @@
-import type { FileFilterCallback } from 'multer';
-import multer from 'multer';
+import multer, { type FileFilterCallback } from 'multer';
 import type { Request } from 'express';
 
 // Configure multer for memory storage (files stored in memory as Buffer)

@@ -1,6 +1,5 @@
 import type { Request, Response, NextFunction } from 'express';
-import type { ValidationChain } from 'express-validator';
-import { validationResult } from 'express-validator';
+import { validationResult, type ValidationChain } from 'express-validator';
 import type { ApiResponse, ValidationError } from '@/types/api';
 
 export const handleValidationErrors = (req: Request, res: Response, next: NextFunction): void => {

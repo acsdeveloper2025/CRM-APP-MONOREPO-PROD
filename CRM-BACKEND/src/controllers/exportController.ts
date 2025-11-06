@@ -146,7 +146,7 @@ export const downloadReport = async (req: Request, res: Response) => {
     // Check if file exists
     try {
       await fs.access(filePath);
-    } catch (error) {
+    } catch (_error) {
       return res.status(404).json({
         success: false,
         message: 'Report file not found',

@@ -201,8 +201,6 @@ export class MobileAttachmentController {
       // Process each file
       for (const file of files) {
         try {
-          let _thumbnailUrl: string | null = null;
-
           // Generate thumbnail for images
           if (file.mimetype.startsWith('image/')) {
             const thumbnailPath = path.join(
@@ -220,8 +218,6 @@ export class MobileAttachmentController {
               })
               .jpeg({ quality: 80 })
               .toFile(thumbnailPath);
-
-            const _thumbnailUrl = `/uploads/mobile/thumbnails/thumb_${path.basename(file.path)}`;
           }
 
           // Save attachment to database with verification_task_id for field agents
