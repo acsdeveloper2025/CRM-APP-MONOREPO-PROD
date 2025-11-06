@@ -216,7 +216,7 @@ export function mapResidenceCumOfficeFormDataToDatabase(
     } else {
       // Log unmapped fields for debugging but don't include them in database insertion
       console.warn(
-        `⚠️ Unmapped residence-cum-office field: ${mobileField} (value: ${value}) - skipping to prevent database errors`
+        `⚠️ Unmapped residence-cum-office field: ${mobileField} (value: ${String(value)}) - skipping to prevent database errors`
       );
     }
   }
