@@ -235,7 +235,7 @@ export const createMobileAuditLogs = (req: AuthenticatedRequest, res: Response) 
       });
     }
 
-    console.log(`📝 Processing ${logs.length} mobile audit logs (batch: ${batchId})`);
+    console.info(`📝 Processing ${logs.length} mobile audit logs (batch: ${batchId})`);
 
     // Process each log in the batch
     const processedLogs = logs.map(log => ({
@@ -263,7 +263,7 @@ export const createMobileAuditLogs = (req: AuthenticatedRequest, res: Response) 
     // Add to mock storage (replace with actual database operations)
     auditLogs.push(...processedLogs);
 
-    console.log(`✅ Successfully processed ${processedLogs.length} mobile audit logs`);
+    console.info(`✅ Successfully processed ${processedLogs.length} mobile audit logs`);
 
     res.status(201).json({
       success: true,
