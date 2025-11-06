@@ -99,7 +99,7 @@ const upload = multer({
 });
 
 // POST /api/attachments/upload - Upload attachment
-export const uploadAttachment = async (req: AuthenticatedRequest, res: Response) => {
+export const uploadAttachment = (req: AuthenticatedRequest, res: Response) => {
   try {
     // Use multer middleware
     upload.array('files', 10)(req, res, async err => {
@@ -488,7 +488,7 @@ export const deleteAttachment = async (req: AuthenticatedRequest, res: Response)
 };
 
 // PUT /api/attachments/:id - Update attachment metadata
-export const updateAttachment = async (req: AuthenticatedRequest, res: Response) => {
+export const updateAttachment = (req: AuthenticatedRequest, res: Response) => {
   try {
     const { id } = req.params;
     const { description, category, isPublic } = req.body;
