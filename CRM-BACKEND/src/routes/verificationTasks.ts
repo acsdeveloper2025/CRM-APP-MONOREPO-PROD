@@ -196,7 +196,7 @@ router.get(
         data: result.rows[0],
         message: 'Verification task retrieved successfully',
       });
-    } catch (error) {
+    } catch (_error) {
       res.status(500).json({
         success: false,
         message: 'Failed to get verification task',
@@ -376,7 +376,12 @@ router.post(
   async (req: AuthenticatedRequest, res) => {
     try {
       const { taskId: _taskId } = req.params;
-      const { verification_outcome, form_data, attachments: _attachments, geo_location } = req.body;
+      const {
+        verification_outcome,
+        form_data,
+        attachments: _attachments,
+        geo_location: _geo_location,
+      } = req.body;
 
       // This would integrate with the existing form submission system
       // For now, we'll just complete the task
