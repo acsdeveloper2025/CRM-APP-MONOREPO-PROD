@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/unbound-method */
+// Disabled unbound-method rule for this file as it uses method references in routes
 import { Router } from 'express';
 import { body, param } from 'express-validator';
 import { authenticateToken } from '@/middleware/auth';

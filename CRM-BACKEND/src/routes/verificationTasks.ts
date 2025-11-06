@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/unbound-method */
+// Disabled unbound-method rule for this file as it uses method references in routes
 import express from 'express';
 import { VerificationTasksController } from '../controllers/verificationTasksController';
 import { authenticateToken, type AuthenticatedRequest } from '../middleware/auth';

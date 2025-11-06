@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/unbound-method */
+// Disabled unbound-method rule for this file as it uses method references in middleware
 import type { Request, Response, NextFunction } from 'express';
 import { EnterpriseCacheService, CacheKeys } from '../services/enterpriseCacheService';
 import { logger } from '../config/logger';

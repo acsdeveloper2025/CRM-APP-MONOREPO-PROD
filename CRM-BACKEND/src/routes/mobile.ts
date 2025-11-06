@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/unbound-method */
+// Disabled unbound-method rule for this file as it uses method references in routes
 import { Router } from 'express';
 import { MobileAuthController } from '../controllers/mobileAuthController';
 import { MobileCaseController } from '../controllers/mobileCaseController';
