@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unsafe-enum-comparison */
+// Disabled unsafe enum comparison rule for cases controller as it compares enum values from database
 import type { Response } from 'express';
 import type { AuthenticatedRequest } from '../middleware/auth';
 import { logger } from '../utils/logger';
