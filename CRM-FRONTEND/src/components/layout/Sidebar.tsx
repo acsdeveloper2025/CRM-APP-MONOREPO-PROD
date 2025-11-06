@@ -3,8 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
-import { navigationItems } from '@/constants/navigation';
-import type { NavigationItem } from '@/constants/navigation';
+import { navigationItems, type NavigationItem } from '@/constants/navigation';
 import { cn } from '@/lib/utils';
 
 interface SidebarProps {

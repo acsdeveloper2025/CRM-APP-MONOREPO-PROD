@@ -1,6 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { casesService } from '@/services/cases';
-import type { CaseListQuery, CaseUpdateData, CreateCaseData } from '@/services/cases';
+import { casesService, type CaseListQuery, type CaseUpdateData, type CreateCaseData } from '@/services/cases';
 import toast from 'react-hot-toast';
 import { useCallback } from 'react';
 
