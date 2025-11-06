@@ -28,11 +28,11 @@ import { useOfflineStorage } from '@/hooks/useOfflineStorage';
 //   type: 'performance' | 'submissions' | 'analytics';
 //   size: number; // bytes
 //   downloadedAt: string;
-  lastAccessed?: string;
-  expiresAt: string;
-  isExpired: boolean;
-  syncStatus: 'synced' | 'pending' | 'failed';
-}
+//   lastAccessed?: string;
+//   expiresAt: string;
+//   isExpired: boolean;
+//   syncStatus: 'synced' | 'pending' | 'failed';
+// }
 
 interface SyncStatus {
   isActive: boolean;
