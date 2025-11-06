@@ -32,7 +32,7 @@ export interface CreateVerificationTypeData {
   }[];
 }
 
-export interface UpdateVerificationTypeData extends Partial<CreateVerificationTypeData> {}
+export type UpdateVerificationTypeData = Partial<CreateVerificationTypeData>;
 
 export interface VerificationTypeListQuery extends PaginationQuery {
   category?: string;

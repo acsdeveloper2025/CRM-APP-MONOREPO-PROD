@@ -21,7 +21,7 @@ export interface CreateCommissionRateTypeData {
   isActive?: boolean;
 }
 
-export interface UpdateCommissionRateTypeData extends Partial<Omit<CreateCommissionRateTypeData, 'rateTypeId'>> {}
+export type UpdateCommissionRateTypeData = Partial<Omit<CreateCommissionRateTypeData, 'rateTypeId'>>;
 
 export interface FieldUserCommissionAssignment {
   id: string;
@@ -54,7 +54,7 @@ export interface CreateFieldUserCommissionAssignmentData {
   effectiveTo?: string;
 }
 
-export interface UpdateFieldUserCommissionAssignmentData extends Partial<Omit<CreateFieldUserCommissionAssignmentData, 'userId'>> {}
+export type UpdateFieldUserCommissionAssignmentData = Partial<Omit<CreateFieldUserCommissionAssignmentData, 'userId'>>;
 
 export interface CommissionCalculation {
   id: string;

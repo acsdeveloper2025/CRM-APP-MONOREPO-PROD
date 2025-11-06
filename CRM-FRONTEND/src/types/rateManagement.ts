@@ -16,7 +16,7 @@ export interface CreateRateTypeData {
   isActive?: boolean;
 }
 
-export interface UpdateRateTypeData extends Partial<CreateRateTypeData> {}
+export type UpdateRateTypeData = Partial<CreateRateTypeData>;
 
 export interface RateTypeAssignment {
   id: number; // Changed from string (UUID) to number (BIGSERIAL)
@@ -71,7 +71,7 @@ export interface CreateRateData {
   effectiveFrom?: string;
 }
 
-export interface UpdateRateData extends Partial<Omit<CreateRateData, 'clientId' | 'productId' | 'verificationTypeId' | 'rateTypeId'>> {}
+export type UpdateRateData = Partial<Omit<CreateRateData, 'clientId' | 'productId' | 'verificationTypeId' | 'rateTypeId'>>;
 
 export interface RateHistory {
   id: number; // Changed from string (UUID) to number (BIGSERIAL)
