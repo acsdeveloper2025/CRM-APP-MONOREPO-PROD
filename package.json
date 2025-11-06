@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "description": "CRM Application",
   "scripts": {
-    "start": "node start-all-services.sh"
+    "start": "node start-all-services.sh",
+    "prepare": "husky"
   },
   "dependencies": {
     "axios": "^1.11.0",
@@ -11,5 +12,17 @@
     "node-fetch": "^3.3.2",
     "playwright": "^1.55.0",
     "socket.io-client": "^4.8.1"
+  },
+  "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.6"
+  },
+  "lint-staged": {
+    "CRM-FRONTEND/src/**/*.{ts,tsx}": [
+      "cd CRM-FRONTEND && npm run lint:fix"
+    ],
+    "CRM-BACKEND/src/**/*.ts": [
+      "cd CRM-BACKEND && npm run lint:fix"
+    ]
   }
 }
