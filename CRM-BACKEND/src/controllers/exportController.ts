@@ -322,7 +322,7 @@ async function generatePDFReport(request: ExportRequest): Promise<any> {
     orientation: request.options?.orientation || 'portrait',
   };
 
-  return await pdfService.generatePDFReport(options);
+  return pdfService.generatePDFReport(options);
 }
 
 async function generateExcelReport(request: ExportRequest): Promise<any> {
@@ -337,7 +337,7 @@ async function generateExcelReport(request: ExportRequest): Promise<any> {
     includeSummary: request.options?.includeSummary !== false,
   };
 
-  return await excelService.generateExcelReport(options);
+  return excelService.generateExcelReport(options);
 }
 
 async function generateCSVReport(request: ExportRequest): Promise<any> {
@@ -353,7 +353,7 @@ async function generateCSVReport(request: ExportRequest): Promise<any> {
     encoding: request.options?.encoding || 'utf8',
   };
 
-  return await csvService.generateCSVReport(options);
+  return csvService.generateCSVReport(options);
 }
 
 async function generateJSONReport(request: ExportRequest): Promise<any> {
@@ -424,7 +424,7 @@ async function deliverReportByEmail(
 ): Promise<any> {
   const emailService = EmailDeliveryService.getInstance();
 
-  return await emailService.sendReportEmail(
+  return emailService.sendReportEmail(
     recipients,
     reportType,
     reportResult.filePath,
