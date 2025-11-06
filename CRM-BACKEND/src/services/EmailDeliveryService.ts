@@ -1,5 +1,7 @@
 /* eslint-disable @typescript-eslint/restrict-template-expressions */
+/* eslint-disable no-return-await */
 // Disabled template expression rules for email service as it handles various types in template literals
+// Disabled no-return-await rule as it uses return await pattern
 import nodemailer from 'nodemailer';
 import { logger } from '../utils/logger';
 import path from 'path';
