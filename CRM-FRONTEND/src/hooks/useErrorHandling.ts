@@ -116,13 +116,13 @@ export function useErrorHandling() {
     delay: number = 1000,
     options: ErrorHandlingOptions = {}
   ): Promise<T | null> => {
-    let lastError: any;
-    
+    let _lastError: any;
+
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         return await operation();
       } catch (error) {
-        lastError = error;
+        _lastError = error;
         
         if (attempt === maxRetries) {
           handleError(error, {
@@ -175,8 +175,8 @@ function getUserFriendlyMessage(error: AppError): string {
 function logErrorToService(appError: AppError, originalError: any) {
   // In a real application, you would send this to your error monitoring service
   // Examples: Sentry, LogRocket, Bugsnag, etc.
-  
-  const errorData = {
+
+  const _errorData = {
     ...appError,
     userAgent: navigator.userAgent,
     url: window.location.href,
@@ -192,12 +192,12 @@ function logErrorToService(appError: AppError, originalError: any) {
   };
 
   // Example: Send to monitoring service
-  // console.log('Error logged to service:', errorData); // silenced in production
-  
+  // console.log('Error logged to service:', _errorData); // silenced in production
+
   // Uncomment and configure for your monitoring service:
-  // Sentry.captureException(originalError, { extra: errorData });
+  // Sentry.captureException(originalError, { extra: _errorData });
   // LogRocket.captureException(originalError);
-  // Bugsnag.notify(originalError, event => { event.addMetadata('custom', errorData); });
+  // Bugsnag.notify(originalError, event => { event.addMetadata('custom', _errorData); });
 }
 
 function getUserId(): string | null {
