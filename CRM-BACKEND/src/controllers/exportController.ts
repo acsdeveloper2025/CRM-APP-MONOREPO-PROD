@@ -167,7 +167,7 @@ export const downloadReport = async (req: Request, res: Response) => {
     fileStream.pipe(res);
 
     // Clean up file after download (optional)
-    fileStream.on('end', async () => {
+    fileStream.on('end', () => {
       try {
         // Optionally delete file after download
         // await fs.unlink(filePath);
