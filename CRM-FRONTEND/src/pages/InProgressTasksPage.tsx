@@ -9,7 +9,8 @@ import {
   Play,
   Clock,
   RefreshCw,
-  TrendingUp
+  TrendingUp,
+  Users
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
