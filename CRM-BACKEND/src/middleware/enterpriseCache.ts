@@ -341,7 +341,7 @@ export const EnterpriseCacheConfigs = {
     ttl: 600, // 10 minutes
     keyGenerator: (req: Request) => {
       const role = req.query.role || 'all';
-      return `users:list:${String(role)}`;
+      return `users:list:${typeof role === 'string' || typeof role === 'number' ? String(role) : 'all'}`;
     },
     condition: (req: Request) => req.method === 'GET',
   },
