@@ -35,14 +35,14 @@ export const CompletedTasksPage: React.FC = () => {
   // Unified filters with URL sync
   const {
     filters: activeFilters,
-    setFilter,
-    clearFilters,
-    hasActiveFilters,
+    setFilter: _setFilter,
+    clearFilters: _clearFilters,
+    hasActiveFilters: _hasActiveFilters,
   } = useUnifiedFilters<CompletedTaskFilters>({
     syncWithUrl: true,
   });
 
-  const [paginationState, setPaginationState] = useState({
+  const [paginationState, _setPaginationState] = useState({
     page: 1,
     limit: 20,
     sortBy: 'completed_at',
@@ -58,7 +58,7 @@ export const CompletedTasksPage: React.FC = () => {
 
   const { tasks, loading, error, pagination, statistics, refreshTasks } = useAllVerificationTasks(queryFilters);
 
-  const activeFilterCount = Object.keys(activeFilters).filter(
+  const _activeFilterCount = Object.keys(activeFilters).filter(
     key => activeFilters[key as keyof CompletedTaskFilters] !== undefined
   ).length;
 
