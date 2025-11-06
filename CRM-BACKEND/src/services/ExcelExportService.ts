@@ -1,3 +1,5 @@
+/* eslint-disable no-return-await */
+// Disabled no-return-await rule for Excel export service as it uses return await pattern
 import ExcelJS from 'exceljs';
 import { pool } from '../config/database';
 import { logger } from '../utils/logger';

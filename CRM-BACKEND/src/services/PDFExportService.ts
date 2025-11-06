@@ -1,3 +1,5 @@
+/* eslint-disable no-return-await */
+// Disabled no-return-await rule for PDF export service as it uses return await pattern
 import puppeteer, { type Browser, type PDFOptions } from 'puppeteer';
 import { pool } from '../config/database';
 import { logger } from '../utils/logger';
