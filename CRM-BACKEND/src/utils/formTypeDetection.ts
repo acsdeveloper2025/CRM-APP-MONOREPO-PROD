@@ -441,7 +441,7 @@ export function detectFormTypeEnhanced(
 function detectByFieldIndicators(
   formData: any,
   indicators: FormTypeIndicators,
-  verificationType: string
+  _verificationType: string
 ): FormTypeResult {
   const scores = {
     POSITIVE: 0,
@@ -503,10 +503,10 @@ function detectByFieldIndicators(
  * Detects form type based on data patterns and combinations
  *
  * @param formData - The form data submitted from mobile app
- * @param verificationType - The verification type
+ * @param _verificationType - The verification type
  * @returns FormTypeResult with confidence score
  */
-function detectByPatterns(formData: any, verificationType: string): FormTypeResult {
+function detectByPatterns(formData: any, _verificationType: string): FormTypeResult {
   let confidence = 40;
   let formType = 'POSITIVE';
   const detectionMethod = 'pattern_analysis';
