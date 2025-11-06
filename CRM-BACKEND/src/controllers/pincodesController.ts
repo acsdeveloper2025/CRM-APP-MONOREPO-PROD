@@ -152,6 +152,7 @@ export const getPincodes = async (req: AuthenticatedRequest, res: Response) => {
         s.name ILIKE $${countParamCount} OR
         a.name ILIKE $${countParamCount}
       )`;
+      // eslint-disable-next-line @typescript-eslint/no-base-to-string
       countParams.push(`%${String(search)}%`);
     }
 

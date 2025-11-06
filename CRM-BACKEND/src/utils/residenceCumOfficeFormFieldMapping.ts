@@ -215,6 +215,7 @@ export function mapResidenceCumOfficeFormDataToDatabase(
       mappedData[columnName] = processResidenceCumOfficeFieldValue(mobileField, value);
     } else {
       // Log unmapped fields for debugging but don't include them in database insertion
+      // eslint-disable-next-line @typescript-eslint/no-base-to-string
       console.warn(
         `⚠️ Unmapped residence-cum-office field: ${mobileField} (value: ${String(value)}) - skipping to prevent database errors`
       );
