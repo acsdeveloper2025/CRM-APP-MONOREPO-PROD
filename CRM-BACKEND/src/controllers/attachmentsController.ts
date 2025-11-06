@@ -301,7 +301,7 @@ export const getAttachmentsByCase = async (req: AuthenticatedRequest, res: Respo
     }
 
     queryText += ` ORDER BY "createdAt" DESC LIMIT $${queryParams.length + 1}`;
-    queryParams.push(limit.toString());
+    queryParams.push(String(limit));
 
     const result = await query(queryText, queryParams);
     const caseAttachments = result.rows;

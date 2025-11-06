@@ -155,7 +155,7 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
         COALESCE(c.trigger, '') ILIKE $${paramIndex} OR
         COALESCE(c."applicantType", '') ILIKE $${paramIndex}
       )`);
-      params.push(`%${search}%`);
+      params.push(`%${String(search)}%`);
       paramIndex++;
     }
 
@@ -255,7 +255,7 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
           END ${safeSortOrder}
       `;
     } else {
-      orderByClause = `ORDER BY c."${safeSortBy}" ${safeSortOrder}`;
+      orderByClause = `ORDER BY c."${String(safeSortBy)}" ${safeSortOrder}`;
     }
 
     const casesQuery = `
@@ -980,7 +980,7 @@ export const exportCases = async (req: AuthenticatedRequest, res: Response) => {
         c."customerPhone" ILIKE $${paramIndex} OR
         c."caseId"::text ILIKE $${paramIndex}
       )`);
-      queryParams.push(`%${search}%`);
+      queryParams.push(`%${String(search)}%`);
       paramIndex++;
     }
 
@@ -1021,7 +1021,7 @@ export const exportCases = async (req: AuthenticatedRequest, res: Response) => {
 
     if (dateTo) {
       whereConditions.push(`c."createdAt" <= $${paramIndex}`);
-      queryParams.push(`${dateTo} 23:59:59`);
+      queryParams.push(`${String(dateTo)} 23:59:59`);
       paramIndex++;
     }
 
@@ -1076,7 +1076,7 @@ export const exportCases = async (req: AuthenticatedRequest, res: Response) => {
     workbook.created = new Date();
 
     // Create worksheet
-    const worksheet = workbook.addWorksheet(`Cases Export - ${exportType || 'All'}`);
+    const worksheet = workbook.addWorksheet(`Cases Export - ${String(exportType || 'All')}`);
 
     // Define columns based on export type
     const baseColumns = [
