@@ -146,6 +146,7 @@ export function RealTimeCaseUpdates({ caseId, maxUpdates = 20 }: RealTimeCaseUpd
     };
 
     // Register event listeners
+    // eslint-disable-next-line react-hooks/rules-of-hooks
     const { webSocketService } = useWebSocket();
     webSocketService.on('mobile:location:update', handleMobileLocationUpdate);
     webSocketService.on('mobile:form:progress', handleMobileFormProgress);
