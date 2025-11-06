@@ -7,7 +7,7 @@ export const validateMobileVersion = (req: Request, res: Response, next: NextFun
     const appVersion = req.headers['x-app-version'] as string;
     const platform = req.headers['x-platform'] as string;
 
-    console.log(`📱 Received headers:`, {
+    console.info(`📱 Received headers:`, {
       'x-app-version': appVersion,
       'x-platform': platform,
       'user-agent': req.headers['user-agent'],
@@ -26,12 +26,12 @@ export const validateMobileVersion = (req: Request, res: Response, next: NextFun
 
     // Check if force update is required
     const comparisonResult = compareVersions(appVersion, config.mobile.forceUpdateVersion);
-    console.log(
+    console.info(
       `🔍 Version validation: ${appVersion} vs ${config.mobile.forceUpdateVersion} = ${comparisonResult}`
     );
 
     if (comparisonResult < 0) {
-      console.log(`❌ Force update required: ${appVersion} < ${config.mobile.forceUpdateVersion}`);
+      console.warn(`❌ Force update required: ${appVersion} < ${config.mobile.forceUpdateVersion}`);
       return res.status(426).json({
         success: false,
         message: 'App update required',
@@ -71,7 +71,7 @@ export const validateMobileVersion = (req: Request, res: Response, next: NextFun
     }
 
     // Version validation passed
-    console.log(
+    console.info(
       `✅ Version validation passed: ${appVersion} >= ${config.mobile.forceUpdateVersion}`
     );
     next();
