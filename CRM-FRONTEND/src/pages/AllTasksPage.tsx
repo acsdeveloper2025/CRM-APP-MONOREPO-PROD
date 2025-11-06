@@ -55,7 +55,7 @@ export const AllTasksPage: React.FC = () => {
     syncWithUrl: true,
   });
 
-  const [paginationState, setPaginationState] = useState({
+  const [paginationState, _setPaginationState] = useState({
     page: 1,
     limit: 20,
     sortBy: 'created_at',

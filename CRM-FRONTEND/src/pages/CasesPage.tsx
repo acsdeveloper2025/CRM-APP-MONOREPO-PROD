@@ -16,8 +16,7 @@ import { useCases, useUpdateCaseStatus, useAssignCase, useRefreshCases } from '@
 import { useUnifiedSearch, useUnifiedFilters } from '@/hooks/useUnifiedSearch';
 import { UnifiedSearchFilterLayout, FilterGrid } from '@/components/ui/unified-search-filter-layout';
 import { Download, Plus, RefreshCw, FileText, Clock, CheckCircle, PlayCircle, AlertTriangle } from 'lucide-react';
-import type { CaseListQuery } from '@/services/cases';
-import { casesService } from '@/services/cases';
+import { casesService, type CaseListQuery } from '@/services/cases';
 
 interface CaseFilters {
   status?: string;
