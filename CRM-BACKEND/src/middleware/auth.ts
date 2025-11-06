@@ -1,8 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { config } from '@/config';
-import type { JwtPayload } from '@/types/auth';
-import { Role } from '@/types/auth';
+import { Role, type JwtPayload } from '@/types/auth';
 import type { ApiResponse } from '@/types/api';
 import { logger } from '@/config/logger';
 import { query } from '@/config/database';
