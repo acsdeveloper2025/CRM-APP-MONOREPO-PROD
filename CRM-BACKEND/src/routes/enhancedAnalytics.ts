@@ -1,8 +1,7 @@
 /* eslint-disable @typescript-eslint/require-await */
 // Disabled require-await rule for enhanced analytics routes as some async middleware don't directly await
 import express from 'express';
-import type { AuthenticatedRequest } from '../middleware/auth';
-import { authenticateToken, requireRole } from '../middleware/auth';
+import { authenticateToken, requireRole, type AuthenticatedRequest } from '../middleware/auth';
 import { Role } from '../types/auth';
 import {
   getEnhancedFormSubmissions,
