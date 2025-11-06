@@ -1,6 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { locationsService } from '@/services/locations';
-import type { LocationQuery } from '@/services/locations';
+import { locationsService, type LocationQuery } from '@/services/locations';
 
 export const useCountries = (query: LocationQuery = {}) => {
   return useQuery({

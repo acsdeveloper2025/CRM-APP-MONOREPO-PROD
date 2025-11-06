@@ -314,7 +314,7 @@ export function useVerificationTasks(initialCaseId?: string): UseVerificationTas
   // Start task
   const startTask = useCallback(async (taskId: string): Promise<boolean> => {
     try {
-      const response = await VerificationTasksService.startTask(taskId);
+      const _response = await VerificationTasksService.startTask(taskId);
       toast.success('Task started successfully');
       
       // Update task in local state
