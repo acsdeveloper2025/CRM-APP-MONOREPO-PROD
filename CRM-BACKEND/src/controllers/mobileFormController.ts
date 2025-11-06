@@ -2208,7 +2208,7 @@ export class MobileFormController {
       const {
         verificationTaskId,
         formData,
-        attachmentIds,
+        attachmentIds: _attachmentIds,
         geoLocation,
         photos,
         images,
