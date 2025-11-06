@@ -60,7 +60,7 @@ export const getClients = async (req: AuthenticatedRequest, res: Response) => {
       whereConditions.push(
         `(COALESCE(name, '') ILIKE $${paramIndex} OR COALESCE(code, '') ILIKE $${paramIndex})`
       );
-      queryParams.push(`%${search}%`);
+      queryParams.push(`%${String(search)}%`);
       paramIndex += 1;
     }
 
