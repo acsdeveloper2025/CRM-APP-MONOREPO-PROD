@@ -321,6 +321,7 @@ router.post(
               [
                 taskId,
                 task.case_id,
+                // eslint-disable-next-line camelcase
                 assigned_to,
                 userId,
                 // eslint-disable-next-line camelcase
