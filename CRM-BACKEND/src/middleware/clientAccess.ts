@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unsafe-enum-comparison */
+// Disabled unsafe enum comparison rule for client access middleware as it compares user roles
 import type { Response, NextFunction } from 'express';
 import { query } from '@/config/database';
 import { logger } from '@/config/logger';
