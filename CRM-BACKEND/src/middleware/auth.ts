@@ -169,7 +169,7 @@ export const auth = async (
   req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
-): Promise<void> => {
+): void => {
   try {
     // First run the basic token authentication
     authenticateToken(req, res, async () => {
