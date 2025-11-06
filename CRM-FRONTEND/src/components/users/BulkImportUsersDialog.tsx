@@ -65,7 +65,7 @@ export function BulkImportUsersDialog({ open, onOpenChange }: BulkImportUsersDia
       a.download = 'users_import_template.csv';
       a.click();
       window.URL.revokeObjectURL(url);
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to download template');
     }
   };

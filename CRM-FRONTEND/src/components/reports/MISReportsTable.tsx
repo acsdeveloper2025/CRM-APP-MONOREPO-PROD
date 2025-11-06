@@ -69,7 +69,7 @@ export function MISReportsTable({ data, isLoading }: MISReportsTableProps) {
       a.click();
       window.URL.revokeObjectURL(url);
       toast.success('Report downloaded successfully');
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to download report');
     }
   };
