@@ -301,8 +301,10 @@ export const FormValidationStatus: React.FC = () => {
           </ResponsiveContainer>
         </CardContent>
       </Card>
+      )}
 
       {/* Validation Rate Trend */}
+      {hasData && (
       <Card>
         <CardHeader>
           <CardTitle className="text-base sm:text-lg">Validation Rate Trend</CardTitle>
@@ -328,8 +330,10 @@ export const FormValidationStatus: React.FC = () => {
           </ResponsiveContainer>
         </CardContent>
       </Card>
+      )}
 
       {/* Form Type Breakdown */}
+      {hasData && (
       <Card>
         <CardHeader>
           <CardTitle>Validation by Form Type</CardTitle>
