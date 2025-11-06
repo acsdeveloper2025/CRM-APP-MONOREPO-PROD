@@ -1,3 +1,5 @@
+/* eslint-disable camelcase */
+// Disabled camelcase rule for this file as it uses snake_case database column names
 import type { Request, Response, NextFunction } from 'express';
 import { logger } from '@/config/logger';
 import { query } from '@/config/database';
