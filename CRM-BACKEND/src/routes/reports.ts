@@ -106,7 +106,7 @@ const _customReportValidation = [
     .withMessage('Format must be one of: JSON, CSV, PDF, EXCEL'),
 ];
 
-const scheduleReportValidation = [
+const _scheduleReportValidation = [
   body('reportType')
     .isIn(['cases', 'users', 'clients', 'financial', 'productivity', 'custom'])
     .withMessage('Invalid report type'),

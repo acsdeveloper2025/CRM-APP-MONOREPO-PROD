@@ -90,7 +90,7 @@ const updateStateValidation = [
     .withMessage('Country must be between 1 and 100 characters'),
 ];
 
-const bulkImportValidation = [
+const _bulkImportValidation = [
   // File validation would be handled by multer middleware
   body('overwrite').optional().isBoolean().withMessage('Overwrite must be a boolean'),
 ];
