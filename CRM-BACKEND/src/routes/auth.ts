@@ -1,10 +1,9 @@
-import { Router } from 'express';
+import { Router, type Request, type Response } from 'express';
 import { body } from 'express-validator';
 import { login, logout, getCurrentUser, preloginInfo } from '@/controllers/authController';
 import { authenticateToken } from '@/middleware/auth';
 import { validate } from '@/middleware/validation';
 import { EnterpriseRateLimit } from '@/middleware/enterpriseRateLimit';
-import type { Request, Response } from 'express';
 
 const router = Router();
 

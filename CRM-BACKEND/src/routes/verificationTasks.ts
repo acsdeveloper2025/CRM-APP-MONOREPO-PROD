@@ -1,7 +1,6 @@
 import express from 'express';
 import { VerificationTasksController } from '../controllers/verificationTasksController';
-import type { AuthenticatedRequest } from '../middleware/auth';
-import { authenticateToken } from '../middleware/auth';
+import { authenticateToken, type AuthenticatedRequest } from '../middleware/auth';
 import {
   validateTaskCreation,
   validateTaskUpdate,

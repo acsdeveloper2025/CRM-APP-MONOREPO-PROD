@@ -1,5 +1,4 @@
-import type { Job } from 'bullmq';
-import { Worker } from 'bullmq';
+import { Worker, type Job } from 'bullmq';
 import { config } from '../config';
 import { logger } from '../config/logger';
 import { query, pool } from '../config/database';

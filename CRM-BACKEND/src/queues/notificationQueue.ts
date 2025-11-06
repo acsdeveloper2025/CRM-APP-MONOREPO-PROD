@@ -1,7 +1,6 @@
 import Bull from 'bull';
 import { logger } from '@/utils/logger';
-import type { NotificationData } from '@/services/NotificationService';
-import { NotificationService } from '@/services/NotificationService';
+import { NotificationService, type NotificationData } from '@/services/NotificationService';
 import { config } from '@/config';
 
 // Notification job data interfaces

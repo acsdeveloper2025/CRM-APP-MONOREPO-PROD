@@ -1,6 +1,5 @@
 import type { Request, Response } from 'express';
-import type { SearchFilters, SearchOptions } from '../services/searchService';
-import SearchService from '../services/searchService';
+import SearchService, { type SearchFilters, type SearchOptions } from '../services/searchService';
 import BusinessRulesService from '../services/businessRulesService';
 import AddressStandardizationService from '../services/addressStandardizationService';
 import { createAuditLog } from '../utils/auditLogger';
