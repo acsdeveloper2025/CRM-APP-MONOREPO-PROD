@@ -5980,7 +5980,7 @@ export class MobileFormController {
   }
 
   // Get verification form template
-  static async getFormTemplate(req: Request, res: Response) {
+  static getFormTemplate(req: Request, res: Response) {
     try {
       const { formType } = req.params;
 
