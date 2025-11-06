@@ -1579,9 +1579,9 @@ export const createCase = [
         backendContactNumber,
         priority = 'MEDIUM',
         pincode,
-        deduplicationDecision,
-        deduplicationRationale,
-        panNumber,
+        deduplicationDecision: _deduplicationDecision,
+        deduplicationRationale: _deduplicationRationale,
+        panNumber: _panNumber,
         // eslint-disable-next-line camelcase
       } = case_details;
 
