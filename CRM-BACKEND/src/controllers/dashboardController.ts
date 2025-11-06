@@ -383,8 +383,9 @@ export const getDashboardStats = async (req: AuthenticatedRequest, res: Response
     }
 
     // Build role-based filtering condition for verification tasks
+    const effectiveUserIdStr = typeof effectiveUserId === 'string' || typeof effectiveUserId === 'number' ? String(effectiveUserId) : '';
     const taskFilter = effectiveUserId
-      ? ` AND EXISTS (SELECT 1 FROM verification_tasks vt WHERE vt.case_id = c.id AND vt.assigned_to = '${String(effectiveUserId)}')`
+      ? ` AND EXISTS (SELECT 1 FROM verification_tasks vt WHERE vt.case_id = c.id AND vt.assigned_to = '${effectiveUserIdStr}')`
       : '';
 
     // Get comprehensive statistics from database
@@ -775,7 +776,8 @@ export const getOverdueTasks = async (req: AuthenticatedRequest, res: Response) 
     ];
     const sortColumn = validSortColumns.includes(sortBy as string) ? sortBy : 'days_overdue';
     const sortDirection = sortOrder === 'asc' ? 'ASC' : 'DESC';
-    overdueQuery += ` ORDER BY ${String(sortColumn)} ${sortDirection}`;
+    const sortColumnStr = typeof sortColumn === 'string' || typeof sortColumn === 'number' ? String(sortColumn) : 'days_overdue';
+    overdueQuery += ` ORDER BY ${sortColumnStr} ${sortDirection}`;
 
     // Add pagination
     overdueQuery += ` LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;

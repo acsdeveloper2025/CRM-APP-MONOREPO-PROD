@@ -75,10 +75,12 @@ export const getClients = async (req: AuthenticatedRequest, res: Response) => {
 
     // Get clients with pagination
     const offset = (Number(page) - 1) * Number(limit);
-    const sortCol = ['name', 'createdAt', 'updatedAt'].includes(String(sortBy))
-      ? String(sortBy)
+    const sortByStr = typeof sortBy === 'string' || typeof sortBy === 'number' ? String(sortBy) : 'name';
+    const sortCol = ['name', 'createdAt', 'updatedAt'].includes(sortByStr)
+      ? sortByStr
       : 'name';
-    const sortDir = String(sortOrder).toLowerCase() === 'desc' ? 'DESC' : 'ASC';
+    const sortOrderStr = typeof sortOrder === 'string' || typeof sortOrder === 'number' ? String(sortOrder) : 'asc';
+    const sortDir = sortOrderStr.toLowerCase() === 'desc' ? 'DESC' : 'ASC';
 
     const clientsRes = await query(
       `SELECT id, name, code, "createdAt", "updatedAt"
@@ -817,8 +819,9 @@ export const getClientProducts = async (req: AuthenticatedRequest, res: Response
 
     // Build where clause for active filter
     const whereClause = isActive !== undefined ? 'AND cp."isActive" = $2' : '';
+    const isActiveStr = typeof isActive === 'string' || typeof isActive === 'number' ? String(isActive) : 'false';
     const params =
-      isActive !== undefined ? [Number(id), String(isActive) === 'true'] : [Number(id)];
+      isActive !== undefined ? [Number(id), isActiveStr === 'true'] : [Number(id)];
 
     const productsRes = await query(
       `SELECT p.id, p.name, p.code, p.description, cp."createdAt" as "assignedAt"
