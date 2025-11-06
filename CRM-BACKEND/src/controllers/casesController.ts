@@ -1539,8 +1539,11 @@ export const createCase = [
       // Validate verification_tasks
       // eslint-disable-next-line camelcase
       if (
+        // eslint-disable-next-line camelcase
         !verification_tasks ||
+        // eslint-disable-next-line camelcase
         !Array.isArray(verification_tasks) ||
+        // eslint-disable-next-line camelcase
         verification_tasks.length === 0
       ) {
         await client.query('ROLLBACK');
@@ -1577,6 +1580,7 @@ export const createCase = [
         deduplicationDecision,
         deduplicationRationale,
         panNumber,
+        // eslint-disable-next-line camelcase
       } = case_details;
 
       // Validate required fields with specific error messages
@@ -1806,7 +1810,9 @@ export const createCase = [
       const createdTasks = [];
       let totalEstimatedAmount = 0;
 
+      // eslint-disable-next-line camelcase
       for (let i = 0; i < verification_tasks.length; i++) {
+        // eslint-disable-next-line camelcase
         const taskData = verification_tasks[i];
         const {
           verification_type_id,
@@ -1829,9 +1835,13 @@ export const createCase = [
           attachment_keys,
         } = taskData;
 
+        // eslint-disable-next-line camelcase
         const taskAssignedTo = assignedTo || assigned_to;
+        // eslint-disable-next-line camelcase
         const taskApplicantType = applicantType || applicant_type;
+        // eslint-disable-next-line camelcase
         const finalTaskTitle = task_title || `Verification Task ${i + 1}`;
+        // eslint-disable-next-line camelcase
         const finalTaskDescription = task_description || taskTrigger || 'Verification required';
 
         // Insert verification task
@@ -1853,19 +1863,26 @@ export const createCase = [
         `,
           [
             newCase.id,
+            // eslint-disable-next-line camelcase
             verification_type_id,
             finalTaskTitle,
             finalTaskDescription,
             taskPriority,
             taskAssignedTo || null,
             userId,
+            // eslint-disable-next-line camelcase
             rate_type_id || null,
+            // eslint-disable-next-line camelcase
             estimated_amount || null,
             taskAddress || null,
             taskPincode || pincode || null,
+            // eslint-disable-next-line camelcase
             document_type || null,
+            // eslint-disable-next-line camelcase
             document_number || null,
+            // eslint-disable-next-line camelcase
             document_details ? JSON.stringify(document_details) : null,
+            // eslint-disable-next-line camelcase
             estimated_completion_date || null,
             taskTrigger || finalTaskDescription,
             taskApplicantType || null,
@@ -1876,8 +1893,10 @@ export const createCase = [
         const task = taskResult.rows[0];
         createdTasks.push({
           ...task,
+          // eslint-disable-next-line camelcase
           attachment_keys: attachment_keys || [],
         });
+        // eslint-disable-next-line camelcase
         totalEstimatedAmount += estimated_amount || 0;
 
         logger.info('Task created:', {
@@ -2005,6 +2024,7 @@ export const createCase = [
 
       res.status(201).json({
         success: true,
+        // eslint-disable-next-line camelcase
         message: `Case created successfully with ${verification_tasks.length} verification task${verification_tasks.length > 1 ? 's' : ''}`,
         data: {
           case: {
