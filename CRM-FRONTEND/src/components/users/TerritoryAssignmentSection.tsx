@@ -80,7 +80,7 @@ export const TerritoryAssignmentSection: React.FC<TerritoryAssignmentSectionProp
 }) => {
   const [territorySelections, setTerritorySelections] = useState<TerritorySelection[]>([]);
   const [selectedPincodeId, setSelectedPincodeId] = useState<string>('');
-  const [userTerritoryData, setUserTerritoryData] = useState<FieldAgentTerritoryDetail | null>(null);
+  const [_userTerritoryData, setUserTerritoryData] = useState<FieldAgentTerritoryDetail | null>(null);
   const [isUpdating, setIsUpdating] = useState<boolean>(false);
 
   // Real API hooks
