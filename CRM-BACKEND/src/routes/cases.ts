@@ -96,7 +96,7 @@ const _createCaseValidation = [
     ),
   body('backendContactNumber')
     .trim()
-    .matches(/^[+]?[\d\s\-\(\)]{10,15}$/)
+    .matches(/^[+]?[\d\s\-()]{10,15}$/)
     .withMessage('Backend contact number must be valid'),
   body('trigger').trim().isLength({ min: 1 }).withMessage('TRIGGER field is required'),
   body('rateTypeId')
