@@ -224,6 +224,7 @@ router.post(
           ...req,
           body: {
             status: 'CANCELLED',
+            // eslint-disable-next-line camelcase
             cancellationReason: cancellation_reason,
             cancelledAt: new Date().toISOString(),
             cancelledBy: userId,
@@ -250,9 +251,11 @@ router.post(
   authenticateToken,
   async (req: AuthenticatedRequest, res) => {
     try {
+      // eslint-disable-next-line camelcase
       const { task_ids, assigned_to, assignment_reason } = req.body;
       const userId = req.user?.id;
 
+      // eslint-disable-next-line camelcase
       if (!task_ids || !Array.isArray(task_ids) || task_ids.length === 0) {
         res.status(400).json({
           success: false,

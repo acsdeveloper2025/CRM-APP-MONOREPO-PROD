@@ -84,6 +84,7 @@ router.get('/health/detailed', async (req, res) => {
           : { status: 'ERROR' as const, message: disk.reason?.message },
     };
 
+    // eslint-disable-next-line camelcase
     const performance_data =
       performanceMetrics.status === 'fulfilled' ? performanceMetrics.value : null;
 
