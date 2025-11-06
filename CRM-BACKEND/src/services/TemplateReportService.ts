@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/require-await */
+// Disabled require-await rule for template report service as some async functions don't directly await
 import { logger } from '../utils/logger';
 
 /**

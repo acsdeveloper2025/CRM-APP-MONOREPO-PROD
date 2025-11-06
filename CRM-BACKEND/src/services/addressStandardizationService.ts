@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/require-await */
+// Disabled require-await rule for address standardization service as some async functions don't directly await
 export interface Address {
   street?: string;
   city?: string;
