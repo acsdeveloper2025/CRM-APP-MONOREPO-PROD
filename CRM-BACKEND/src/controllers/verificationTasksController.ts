@@ -439,7 +439,9 @@ export class VerificationTasksController {
           COALESCE(vt.applicant_type, '') ILIKE $${paramIndex} OR
           COALESCE(c."caseId"::text, '') ILIKE $${paramIndex}
         )`);
-        params.push(`%${typeof search === 'string' || typeof search === 'number' ? String(search) : ''}%`);
+        params.push(
+          `%${typeof search === 'string' || typeof search === 'number' ? String(search) : ''}%`
+        );
         paramIndex++;
       }
 

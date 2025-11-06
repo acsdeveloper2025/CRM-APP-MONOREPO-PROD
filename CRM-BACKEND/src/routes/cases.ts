@@ -9,10 +9,7 @@ import {
   EnterpriseCacheConfigs,
   CacheInvalidationPatterns,
 } from '../middleware/enterpriseCache';
-import {
-  validateCaseAccess,
-  validateCaseCreationAccess,
-} from '@/middleware/clientAccess';
+import { validateCaseAccess, validateCaseCreationAccess } from '@/middleware/clientAccess';
 import {
   getCases,
   getCaseById,

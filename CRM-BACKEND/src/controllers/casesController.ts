@@ -155,7 +155,9 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
         COALESCE(c.trigger, '') ILIKE $${paramIndex} OR
         COALESCE(c."applicantType", '') ILIKE $${paramIndex}
       )`);
-      params.push(`%${typeof search === 'string' || typeof search === 'number' ? String(search) : ''}%`);
+      params.push(
+        `%${typeof search === 'string' || typeof search === 'number' ? String(search) : ''}%`
+      );
       paramIndex++;
     }
 
@@ -980,7 +982,9 @@ export const exportCases = async (req: AuthenticatedRequest, res: Response) => {
         c."customerPhone" ILIKE $${paramIndex} OR
         c."caseId"::text ILIKE $${paramIndex}
       )`);
-      queryParams.push(`%${typeof search === 'string' || typeof search === 'number' ? String(search) : ''}%`);
+      queryParams.push(
+        `%${typeof search === 'string' || typeof search === 'number' ? String(search) : ''}%`
+      );
       paramIndex++;
     }
 
@@ -1021,7 +1025,9 @@ export const exportCases = async (req: AuthenticatedRequest, res: Response) => {
 
     if (dateTo) {
       whereConditions.push(`c."createdAt" <= $${paramIndex}`);
-      queryParams.push(`${typeof dateTo === 'string' || typeof dateTo === 'number' ? String(dateTo) : new Date().toISOString().split('T')[0]} 23:59:59`);
+      queryParams.push(
+        `${typeof dateTo === 'string' || typeof dateTo === 'number' ? String(dateTo) : new Date().toISOString().split('T')[0]} 23:59:59`
+      );
       paramIndex++;
     }
 
@@ -1076,7 +1082,9 @@ export const exportCases = async (req: AuthenticatedRequest, res: Response) => {
     workbook.created = new Date();
 
     // Create worksheet
-    const worksheet = workbook.addWorksheet(`Cases Export - ${typeof exportType === 'string' || typeof exportType === 'number' ? String(exportType) : 'All'}`);
+    const worksheet = workbook.addWorksheet(
+      `Cases Export - ${typeof exportType === 'string' || typeof exportType === 'number' ? String(exportType) : 'All'}`
+    );
 
     // Define columns based on export type
     const baseColumns = [
@@ -1161,7 +1169,10 @@ export const exportCases = async (req: AuthenticatedRequest, res: Response) => {
       if (column.eachCell) {
         let maxLength = 0;
         column.eachCell({ includeEmpty: true }, cell => {
-          const columnLength = cell.value && (typeof cell.value === 'string' || typeof cell.value === 'number') ? cell.value.toString().length : 10;
+          const columnLength =
+            cell.value && (typeof cell.value === 'string' || typeof cell.value === 'number')
+              ? cell.value.toString().length
+              : 10;
           if (columnLength > maxLength) {
             maxLength = columnLength;
           }
