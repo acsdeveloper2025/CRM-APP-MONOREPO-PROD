@@ -58,13 +58,14 @@ export function FormFieldViewer({ field, readonly = true, onChange }: FormFieldV
         );
 
       case 'select':
-      case 'radio':
+      case 'radio': {
         const selectedOption = field.options?.find(opt => opt.value === field.value);
         return (
           <div className="text-sm">
             {selectedOption ? selectedOption.label : field.value || 'Not selected'}
           </div>
         );
+      }
 
       case 'textarea':
         return (
