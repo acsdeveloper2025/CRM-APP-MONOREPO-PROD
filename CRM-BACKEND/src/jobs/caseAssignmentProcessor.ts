@@ -131,7 +131,7 @@ async function processCaseReassignment(
       RETURNING *
     `;
 
-    const updateResult = await client.query(updateQuery, [toUserId, caseId]);
+    const _updateResult = await client.query(updateQuery, [toUserId, caseId]);
 
     // Create audit log
     await createAuditLog({
@@ -283,7 +283,7 @@ async function processSingleAssignment(
 
     // Get previous assignee details if exists
     let previousAssigneeName = null;
-    let previousAssigneeEmail = null;
+    let _previousAssigneeEmail = null;
 
     if (previousAssignee) {
       const prevUserQuery = `
@@ -294,7 +294,7 @@ async function processSingleAssignment(
       const prevUserResult = await client.query(prevUserQuery, [previousAssignee]);
       if (prevUserResult.rows.length > 0) {
         previousAssigneeName = prevUserResult.rows[0].name;
-        previousAssigneeEmail = prevUserResult.rows[0].email;
+        _previousAssigneeEmail = prevUserResult.rows[0].email;
       }
     }
 
@@ -328,7 +328,7 @@ async function processSingleAssignment(
       RETURNING *
     `;
 
-    const updateResult = await client.query(updateQuery, [assignedToId, caseId]);
+    const _updateResult = await client.query(updateQuery, [assignedToId, caseId]);
 
     // Create audit log
     await createAuditLog({

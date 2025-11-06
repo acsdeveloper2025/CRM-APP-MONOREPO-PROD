@@ -17,7 +17,7 @@ export class SearchController {
   static async searchFormSubmissions(req: Request, res: Response) {
     try {
       const userId = (req as any).user?.id;
-      const userRole = (req as any).user?.role;
+      const _userRole = (req as any).user?.role;
 
       // Extract search filters from query parameters
       const filters: SearchFilters = {

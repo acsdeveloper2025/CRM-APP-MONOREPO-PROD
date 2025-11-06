@@ -32,7 +32,7 @@ router.use(requireFieldOrHigher);
 router.use(caseRateLimit);
 
 // Validation schemas
-const createCaseValidation = [
+const _createCaseValidation = [
   // Optional legacy fields for backward compatibility
   body('title')
     .optional()
@@ -169,19 +169,19 @@ const listCasesValidation = [
   query('dateTo').optional().isISO8601().withMessage('Date to must be a valid date'),
 ];
 
-const statusUpdateValidation = [
+const _statusUpdateValidation = [
   body('status')
     .isIn(['PENDING', 'IN_PROGRESS', 'COMPLETED', 'APPROVED', 'REJECTED', 'REWORK_REQUIRED'])
     .withMessage('Invalid status'),
 ];
 
-const priorityUpdateValidation = [
+const _priorityUpdateValidation = [
   body('priority')
     .isIn(['LOW', 'MEDIUM', 'HIGH', 'URGENT'])
     .withMessage('Priority must be one of: LOW, MEDIUM, HIGH, URGENT'),
 ];
 
-const assignValidation = [
+const _assignValidation = [
   body('assignedToId').trim().notEmpty().withMessage('Assigned user ID is required'),
   body('reason')
     .optional()
