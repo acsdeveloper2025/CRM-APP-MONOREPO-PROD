@@ -29,10 +29,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     // Check permission-based access first
     if (item.permission) {
       const hasAccess = hasPermission(item.permission.resource, item.permission.action);
-      if (!hasAccess) {return false;}
-    }
-    // Fallback to role-based access for backward compatibility
-    else if (item.roles && !hasAnyRole(item.roles)) {
+      if (!hasAccess) {
+        return false;
+      }
+    } else if (item.roles && !hasAnyRole(item.roles)) {
+      // Fallback to role-based access for backward compatibility
       return false;
     }
 
