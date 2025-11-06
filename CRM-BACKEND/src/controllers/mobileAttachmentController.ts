@@ -201,7 +201,7 @@ export class MobileAttachmentController {
       // Process each file
       for (const file of files) {
         try {
-          let thumbnailUrl: string | null = null;
+          let _thumbnailUrl: string | null = null;
 
           // Generate thumbnail for images
           if (file.mimetype.startsWith('image/')) {

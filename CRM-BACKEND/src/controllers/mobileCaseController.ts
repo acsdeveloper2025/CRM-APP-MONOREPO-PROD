@@ -15,7 +15,7 @@ import { queueCaseRevocationNotification } from '../queues/notificationQueue';
  */
 function getApiBaseUrl(req: Request): string {
   const host = req.get('host');
-  const protocol = req.get('x-forwarded-proto') || (req.secure ? 'https' : 'http');
+  const _protocol = req.get('x-forwarded-proto') || (req.secure ? 'https' : 'http');
 
   // Check if request is coming from domain
   if (
