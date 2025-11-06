@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs/promises';
+import { createReadStream } from 'fs';
 import sharp from 'sharp';
 import { v4 as uuidv4 } from 'uuid';
 import crypto from 'crypto';
@@ -548,7 +549,7 @@ export class MobileAttachmentController {
       res.setHeader('Content-Length', (attachment.fileSize || attachment.size || 0).toString());
 
       // Stream the file
-      const fileStream = require('fs').createReadStream(filePath);
+      const fileStream = createReadStream(filePath);
       fileStream.pipe(res);
 
       await createAuditLog({

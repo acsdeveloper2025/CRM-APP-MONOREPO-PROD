@@ -673,14 +673,16 @@ export class MobileCaseController {
 
       // Emit WebSocket events to notify frontend about case status change
       try {
-        const { emitCaseStatusChanged, emitCaseUpdate } = await import('../websocket/server');
+        const { emitCaseStatusChanged, emitCaseUpdate, getSocketIO } = await import(
+          '../websocket/server'
+        );
         const username = (req as any).user?.username || 'Mobile User';
 
         // Emit case status change notification
         emitCaseStatusChanged(actualCaseId, existingCase.status, status, username);
 
         // Emit general case update notification
-        emitCaseUpdate(require('../websocket/server').getSocketIO(), actualCaseId, {
+        emitCaseUpdate(getSocketIO(), actualCaseId, {
           type: 'STATUS_UPDATE',
           status,
           updatedBy: username,

@@ -10,6 +10,7 @@ import { logger } from '../utils/logger';
 import type { AuthenticatedRequest } from '../middleware/auth';
 import path from 'path';
 import fs from 'fs/promises';
+import { createReadStream } from 'fs';
 
 export interface ExportRequest {
   format: 'pdf' | 'excel' | 'csv' | 'json';
@@ -163,7 +164,7 @@ export const downloadReport = async (req: Request, res: Response) => {
     res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
 
     // Stream file to response
-    const fileStream = require('fs').createReadStream(filePath);
+    const fileStream = createReadStream(filePath);
     fileStream.pipe(res);
 
     // Clean up file after download (optional)
