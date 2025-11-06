@@ -94,7 +94,7 @@ const updateCountryValidation = [
     ),
 ];
 
-const bulkImportValidation = [
+const _bulkImportValidation = [
   // File validation would be handled by multer middleware
   body('overwrite').optional().isBoolean().withMessage('Overwrite must be a boolean'),
 ];
