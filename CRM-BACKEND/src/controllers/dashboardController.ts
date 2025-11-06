@@ -356,7 +356,7 @@ export const getPerformanceMetrics = async (req: AuthenticatedRequest, res: Resp
 // GET /api/dashboard/stats - Get dashboard statistics
 export const getDashboardStats = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { period = 'month', clientId, userId } = req.query;
+    const { period = 'month', clientId: _clientId, userId } = req.query;
 
     // Role-based filtering - FIELD_AGENT users can only see their own stats
     const userRole = req.user?.role;
