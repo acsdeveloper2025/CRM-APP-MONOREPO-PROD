@@ -45,7 +45,7 @@ export function AreaSelector({
   const [searchValue, setSearchValue] = useState('');
 
   // Fetch areas for selection
-  const { data: areasData, isLoading, error: queryError } = useQuery({
+  const { data: areasData, isLoading } = useQuery({
     queryKey: ['areas-for-selection', cityId, searchValue],
     queryFn: () => locationsService.getAreasForSelection({
       cityId,
