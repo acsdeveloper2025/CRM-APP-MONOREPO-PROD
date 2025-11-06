@@ -96,7 +96,7 @@ let auditLogs: any[] = [
 ];
 
 // GET /api/audit-logs - List audit logs with pagination and filters
-export const getAuditLogs = async (req: AuthenticatedRequest, res: Response) => {
+export const getAuditLogs = (req: AuthenticatedRequest, res: Response) => {
   try {
     const {
       page = 1,
@@ -194,7 +194,7 @@ export const getAuditLogs = async (req: AuthenticatedRequest, res: Response) => 
 };
 
 // GET /api/audit-logs/:id - Get audit log by ID
-export const getAuditLogById = async (req: AuthenticatedRequest, res: Response) => {
+export const getAuditLogById = (req: AuthenticatedRequest, res: Response) => {
   try {
     const { id } = req.params;
     const auditLog = auditLogs.find(log => log.id === id);
