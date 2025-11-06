@@ -107,7 +107,7 @@ export function FormViewer({
     return <Badge variant={config.variant} className={config.color}>{config.label}</Badge>;
   };
 
-  const getDeviceIcon = (platform: string) => {
+  const _getDeviceIcon = (platform: string) => {
     switch (platform) {
       case 'IOS':
         return <Smartphone className="h-4 w-4" />;
