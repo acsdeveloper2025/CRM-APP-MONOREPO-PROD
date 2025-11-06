@@ -619,7 +619,7 @@ export const exportAuditLogs = (req: AuthenticatedRequest, res: Response) => {
 };
 
 // DELETE /api/audit-logs/cleanup - Cleanup old audit logs
-export const cleanupAuditLogs = async (req: AuthenticatedRequest, res: Response) => {
+export const cleanupAuditLogs = (req: AuthenticatedRequest, res: Response) => {
   try {
     const { olderThanDays = 90 } = req.body;
 
