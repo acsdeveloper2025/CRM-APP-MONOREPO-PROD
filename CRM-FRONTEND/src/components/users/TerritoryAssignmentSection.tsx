@@ -191,7 +191,7 @@ export const TerritoryAssignmentSection: React.FC<TerritoryAssignmentSectionProp
       onAssignmentsChange?.(updatedSelections);
 
       toast.success("Pincode assignment removed successfully");
-    } catch (error) {
+    } catch (_error) {
       toast.error("Failed to remove pincode assignment");
     } finally {
       setIsUpdating(false);

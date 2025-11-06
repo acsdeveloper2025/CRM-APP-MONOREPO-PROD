@@ -438,7 +438,7 @@ class EnterpriseApiClient {
         latency,
         timestamp: Date.now(),
       };
-    } catch (error) {
+    } catch (_error) {
       return {
         status: 'unhealthy',
         latency: Date.now() - start,

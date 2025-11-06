@@ -90,7 +90,7 @@ export function InlineAreaManager({ pincode, className }: InlineAreaManagerProps
   };
 
   // Get current area IDs to filter out from selection
-  const currentAreaIds = pincode.areas?.map(area => area.id) || [];
+  const _currentAreaIds = pincode.areas?.map(area => area.id) || [];
 
   return (
     <div className={`flex flex-wrap gap-1 items-center ${className}`}>
