@@ -193,21 +193,21 @@ export function DesignationList({ onEdit }: DesignationListProps) {
               </p>
             </div>
           ) : (
-            <div className="rounded-md border">
+            <div className="border rounded-lg overflow-hidden">
               <Table>
-                <TableHeader>
+                <TableHeader className="bg-gray-50 border-b border-gray-200">
                   <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead>Department</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Created</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Name</TableHead>
+                    <TableHead className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Description</TableHead>
+                    <TableHead className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Department</TableHead>
+                    <TableHead className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Status</TableHead>
+                    <TableHead className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Created</TableHead>
+                    <TableHead className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
-                <TableBody>
+                <TableBody className="bg-white divide-y divide-gray-200">
                   {designations.map((designation) => (
-                    <TableRow key={designation.id}>
+                    <TableRow key={designation.id} className="hover:bg-green-50 transition-colors">
                       <TableCell className="font-medium">
                         {designation.name}
                       </TableCell>
