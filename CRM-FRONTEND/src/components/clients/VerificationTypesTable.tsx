@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
+import { useStandardizedMutation } from '@/hooks/useStandardizedMutation';
 import { MoreHorizontal, Edit, Trash2, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -30,7 +30,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { toast } from 'sonner';
 import { clientsService } from '@/services/clients';
 import { VerificationType } from '@/types/client';
 import { EditVerificationTypeDialog } from './EditVerificationTypeDialog';
@@ -46,18 +45,18 @@ export function VerificationTypesTable({ data, isLoading }: VerificationTypesTab
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [typeToDelete, setTypeToDelete] = useState<VerificationType | null>(null);
 
-  const queryClient = useQueryClient();
-
-  const deleteMutation = useMutation({
+  const deleteMutation = useStandardizedMutation({
     mutationFn: (id: string) => clientsService.deleteVerificationType(id),
+    successMessage: 'Verification type deleted successfully',
+    errorContext: 'Verification Type Deletion',
+    errorFallbackMessage: 'Failed to delete verification type',
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['verification-types'] });
-      toast.success('Verification type deleted successfully');
       setShowDeleteDialog(false);
       setTypeToDelete(null);
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to delete verification type');
+    onErrorCallback: () => {
+      setShowDeleteDialog(false);
+      setTypeToDelete(null);
     },
   });
 
