@@ -69,7 +69,12 @@ export const useUpdateCaseStatus = () => {
     mutationFn: ({ id, status }: { id: string; status: string }) =>
       casesService.updateCaseStatus(id, status),
     onSuccess: () => {
+      // Invalidate case-related queries
       queryClient.invalidateQueries({ queryKey: caseKeys.all });
+      // Invalidate dashboard stats (affects case status distribution, pending/completed counts)
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      // Invalidate verification tasks (task status may change with case status)
+      queryClient.invalidateQueries({ queryKey: ['verification-tasks'] });
       toast.success('Case status updated successfully');
     },
     onError: (error: any) => {
@@ -101,7 +106,10 @@ export const useUpdateCase = () => {
     mutationFn: ({ id, data }: { id: string; data: CaseUpdateData }) =>
       casesService.updateCase(id, data),
     onSuccess: () => {
+      // Invalidate case-related queries
       queryClient.invalidateQueries({ queryKey: caseKeys.all });
+      // Invalidate dashboard stats
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       toast.success('Case updated successfully');
     },
     onError: (error: any) => {
@@ -132,7 +140,12 @@ export const useCreateCase = () => {
   return useMutation({
     mutationFn: (data: CreateCaseData) => casesService.createCase(data),
     onSuccess: () => {
+      // Invalidate case-related queries
       queryClient.invalidateQueries({ queryKey: caseKeys.all });
+      // Invalidate dashboard stats (affects Total Cases, Pending Cases, etc.)
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      // Invalidate verification tasks queries (new tasks created with case)
+      queryClient.invalidateQueries({ queryKey: ['verification-tasks'] });
       toast.success('Case created and assigned successfully');
     },
     onError: (error: any) => {
@@ -148,7 +161,12 @@ export const useApproveCase = () => {
     mutationFn: ({ id, feedback }: { id: string; feedback?: string }) =>
       casesService.approveCase(id, feedback),
     onSuccess: () => {
+      // Invalidate case-related queries
       queryClient.invalidateQueries({ queryKey: caseKeys.all });
+      // Invalidate dashboard stats (affects completed cases, approval rates)
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      // Invalidate verification tasks
+      queryClient.invalidateQueries({ queryKey: ['verification-tasks'] });
       toast.success('Case approved successfully');
     },
     onError: (error: any) => {
@@ -164,7 +182,12 @@ export const useRejectCase = () => {
     mutationFn: ({ id, reason }: { id: string; reason: string }) =>
       casesService.rejectCase(id, reason),
     onSuccess: () => {
+      // Invalidate case-related queries
       queryClient.invalidateQueries({ queryKey: caseKeys.all });
+      // Invalidate dashboard stats (affects rejected cases count)
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      // Invalidate verification tasks
+      queryClient.invalidateQueries({ queryKey: ['verification-tasks'] });
       toast.success('Case rejected successfully');
     },
     onError: (error: any) => {
@@ -180,7 +203,12 @@ export const useRequestRework = () => {
     mutationFn: ({ id, feedback }: { id: string; feedback: string }) =>
       casesService.requestRework(id, feedback),
     onSuccess: () => {
+      // Invalidate case-related queries
       queryClient.invalidateQueries({ queryKey: caseKeys.all });
+      // Invalidate dashboard stats
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      // Invalidate verification tasks
+      queryClient.invalidateQueries({ queryKey: ['verification-tasks'] });
       toast.success('Rework requested successfully');
     },
     onError: (error: any) => {
