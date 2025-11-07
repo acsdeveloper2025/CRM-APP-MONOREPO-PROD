@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { MapPin, Save, Search, Info } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,6 +12,23 @@ import { locationsService } from '@/services/locations';
 import type { User } from '@/types/user';
 import { LoadingSpinner } from '@/components/ui/loading';
 
+// Custom hook for debounced value
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+}
+
 interface AreaAssignmentSectionProps {
   user: User;
   selectedPincodeIds: number[];
@@ -21,11 +38,16 @@ export function AreaAssignmentSection({ user, selectedPincodeIds }: AreaAssignme
   const queryClient = useQueryClient();
   const [selectedAreaIds, setSelectedAreaIds] = useState<number[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearchQuery = useDebounce(searchQuery, 300); // 300ms debounce
 
-  // Fetch all areas from backend using the service
+  // Fetch all areas from backend using the service with aggressive caching for performance
   const { data: areasData, isLoading: areasLoading } = useQuery({
     queryKey: ['areas', 'all'],
     queryFn: () => locationsService.getAreas({ limit: 1000 }),
+    staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
+    gcTime: 30 * 60 * 1000, // Keep in cache for 30 minutes (formerly cacheTime)
+    refetchOnWindowFocus: false, // Don't refetch on window focus
+    refetchOnMount: false, // Don't refetch on component mount if data exists
   });
 
   // Fetch current user area assignments from territory assignments
@@ -87,11 +109,11 @@ export function AreaAssignmentSection({ user, selectedPincodeIds }: AreaAssignme
     },
   });
 
-  const handleToggleArea = (areaId: number) => {
+  const handleToggleArea = useCallback((areaId: number) => {
     setSelectedAreaIds(prev =>
       prev.includes(areaId) ? prev.filter(id => id !== areaId) : [...prev, areaId]
     );
-  };
+  }, []);
 
   const handleSave = () => {
     saveAssignmentsMutation.mutate(selectedAreaIds);
@@ -114,15 +136,15 @@ export function AreaAssignmentSection({ user, selectedPincodeIds }: AreaAssignme
     );
   }, [allAreas, allowedAreaIds, selectedPincodeIds.length]);
 
-  // Apply search filter
+  // Apply search filter with debounced query for better performance
   const filteredAreas = useMemo(() => {
-    if (!searchQuery.trim()) return availableAreas;
+    if (!debouncedSearchQuery.trim()) return availableAreas;
 
-    const query = searchQuery.toLowerCase();
+    const query = debouncedSearchQuery.toLowerCase();
     return availableAreas.filter((area: any) =>
       area.name.toLowerCase().includes(query)
     );
-  }, [availableAreas, searchQuery]);
+  }, [availableAreas, debouncedSearchQuery]);
 
   const isLoading = areasLoading || assignmentsLoading;
 

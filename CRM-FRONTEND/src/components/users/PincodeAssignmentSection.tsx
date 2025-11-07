@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { MapPin, Save, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -17,35 +17,54 @@ interface PincodeAssignmentSectionProps {
   onSelectedPincodesChange: (ids: number[]) => void;
 }
 
+// Custom hook for debounced value
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+}
+
 export function PincodeAssignmentSection({
   user,
   selectedPincodeIds,
   onSelectedPincodesChange
 }: PincodeAssignmentSectionProps) {
-  const [searchQuery, setSearchQuery] = useState('');
-  const queryClient = useQueryClient();
-
-  // Only show for FIELD_AGENT users
+  // Only show for FIELD_AGENT users - check early before hooks
   if (user.role !== 'FIELD_AGENT') {
     return null;
   }
 
-  // Fetch all pincodes
-  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearchQuery = useDebounce(searchQuery, 300); // 300ms debounce
+  const queryClient = useQueryClient();
+
+  // Fetch all pincodes with aggressive caching for performance
   const { data: pincodesData, isLoading: pincodesLoading } = useQuery({
     queryKey: ['pincodes', 'all'],
     queryFn: () => locationsService.getPincodes({ limit: 1000 }),
+    staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
+    gcTime: 30 * 60 * 1000, // Keep in cache for 30 minutes (formerly cacheTime)
+    refetchOnWindowFocus: false, // Don't refetch on window focus
+    refetchOnMount: false, // Don't refetch on component mount if data exists
   });
 
   // Fetch current user pincode assignments
-  // eslint-disable-next-line react-hooks/rules-of-hooks
   const { data: assignmentsData, isLoading: assignmentsLoading } = useQuery({
     queryKey: ['user-pincode-assignments', user.id],
     queryFn: () => usersService.getUserPincodeAssignments(user.id),
   });
 
   // Update selected pincodes when assignments data loads
-  // eslint-disable-next-line react-hooks/rules-of-hooks
   useEffect(() => {
     if (assignmentsData?.data?.territoryAssignments) {
       const assignedPincodeIds = assignmentsData.data.territoryAssignments.map((assignment: any) => assignment.pincodeId);
@@ -54,7 +73,6 @@ export function PincodeAssignmentSection({
   }, [assignmentsData, onSelectedPincodesChange]);
 
   // Save assignments mutation
-  // eslint-disable-next-line react-hooks/rules-of-hooks
   const saveAssignmentsMutation = useMutation({
     mutationFn: (pincodeIds: number[]) => usersService.assignPincodesToUser(user.id, pincodeIds),
     onSuccess: () => {
@@ -78,25 +96,25 @@ export function PincodeAssignmentSection({
 
   const pincodes = pincodesData?.data || [];
 
-  // Apply search filter
+  // Apply search filter with debounced query for better performance
   const filteredPincodes = useMemo(() => {
-    if (!searchQuery.trim()) return pincodes;
+    if (!debouncedSearchQuery.trim()) return pincodes;
 
-    const query = searchQuery.toLowerCase();
+    const query = debouncedSearchQuery.toLowerCase();
     return pincodes.filter((pincode: any) =>
       pincode.code?.toLowerCase().includes(query) ||
       pincode.cityName?.toLowerCase().includes(query) ||
       pincode.state?.toLowerCase().includes(query)
     );
-  }, [pincodes, searchQuery]);
+  }, [pincodes, debouncedSearchQuery]);
 
-  const handlePincodeToggle = (pincodeId: number, checked: boolean) => {
+  const handlePincodeToggle = useCallback((pincodeId: number, checked: boolean) => {
     if (checked) {
       onSelectedPincodesChange([...selectedPincodeIds, pincodeId]);
     } else {
       onSelectedPincodesChange(selectedPincodeIds.filter(id => id !== pincodeId));
     }
-  };
+  }, [selectedPincodeIds, onSelectedPincodesChange]);
 
   const handleSaveAssignments = () => {
     saveAssignmentsMutation.mutate(selectedPincodeIds);
@@ -136,7 +154,7 @@ export function PincodeAssignmentSection({
               </div>
             </div>
 
-            {/* Pincodes list */}
+            {/* Pincodes list with optimized rendering */}
             <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
               {filteredPincodes.length === 0 ? (
                 <div className="text-sm text-gray-500 text-center py-4">
