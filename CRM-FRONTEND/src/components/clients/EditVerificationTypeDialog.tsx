@@ -1,8 +1,8 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
+import { useCRUDMutation } from '@/hooks/useStandardizedMutation';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -22,7 +22,6 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { toast } from 'sonner';
 import { clientsService } from '@/services/clients';
 import { VerificationType } from '@/types/client';
 
@@ -39,8 +38,6 @@ interface EditVerificationTypeDialogProps {
 }
 
 export function EditVerificationTypeDialog({ verificationType, open, onOpenChange }: EditVerificationTypeDialogProps) {
-  const queryClient = useQueryClient();
-
   const form = useForm<EditVerificationTypeFormData>({
     resolver: zodResolver(editVerificationTypeSchema),
     defaultValues: {
@@ -56,16 +53,15 @@ export function EditVerificationTypeDialog({ verificationType, open, onOpenChang
     }
   }, [verificationType, form]);
 
-  const updateMutation = useMutation({
-    mutationFn: (data: EditVerificationTypeFormData) => 
+  const updateMutation = useCRUDMutation({
+    mutationFn: (data: EditVerificationTypeFormData) =>
       clientsService.updateVerificationType(verificationType.id, data),
+    queryKey: ['verification-types'],
+    resourceName: 'Verification Type',
+    operation: 'update',
+    additionalInvalidateKeys: [['verification-types-stats'], ['dashboard']],
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['verification-types'] });
-      toast.success('Verification type updated successfully');
       onOpenChange(false);
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to update verification type');
     },
   });
 

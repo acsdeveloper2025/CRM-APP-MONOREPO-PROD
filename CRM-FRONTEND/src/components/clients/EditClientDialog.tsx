@@ -1,8 +1,9 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
+import { useCRUDMutation } from '@/hooks/useStandardizedMutation';
+import { useStandardizedQuery } from '@/hooks/useStandardizedQuery';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -26,7 +27,6 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import toast from 'react-hot-toast';
 import { clientsService } from '@/services/clients';
 import { productsService } from '@/services/products';
 import { verificationTypesService } from '@/services/verificationTypes';
@@ -53,8 +53,6 @@ interface EditClientDialogProps {
 }
 
 export function EditClientDialog({ open, onOpenChange, client }: EditClientDialogProps) {
-  const queryClient = useQueryClient();
-
   const form = useForm<EditClientFormData>({
     resolver: zodResolver(editClientSchema),
     defaultValues: {
@@ -67,31 +65,39 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
   });
 
   // Fetch products for selection
-  const { data: productsData } = useQuery({
+  const { data: productsData } = useStandardizedQuery({
     queryKey: ['products'],
     queryFn: () => productsService.getProducts(),
     enabled: open,
+    errorContext: 'Loading Products',
+    errorFallbackMessage: 'Failed to load products',
   });
 
   // Fetch verification types for selection
-  const { data: verificationTypesData } = useQuery({
+  const { data: verificationTypesData } = useStandardizedQuery({
     queryKey: ['verification-types'],
     queryFn: () => verificationTypesService.getVerificationTypes(),
     enabled: open,
+    errorContext: 'Loading Verification Types',
+    errorFallbackMessage: 'Failed to load verification types',
   });
 
   // Fetch document types for selection
-  const { data: documentTypesData } = useQuery({
+  const { data: documentTypesData } = useStandardizedQuery({
     queryKey: ['document-types'],
     queryFn: () => documentTypesService.getDocumentTypes({ isActive: true }),
     enabled: open,
+    errorContext: 'Loading Document Types',
+    errorFallbackMessage: 'Failed to load document types',
   });
 
   // Fetch client details with current associations
-  const { data: clientData } = useQuery({
+  const { data: clientData } = useStandardizedQuery({
     queryKey: ['client', client?.id],
     queryFn: () => clientsService.getClientById(client!.id),
     enabled: open && !!client?.id,
+    errorContext: 'Loading Client Details',
+    errorFallbackMessage: 'Failed to load client details',
   });
 
   // Update form when client data changes
@@ -108,25 +114,24 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
     }
   }, [clientData, form]);
 
-  const updateMutation = useMutation({
+  const updateMutation = useCRUDMutation({
     mutationFn: async (data: EditClientFormData) => {
       // Update client with replace-all semantics for mappings
-      await clientsService.updateClient(client!.id, {
+      const cleanData = {
         name: data.name,
         code: data.code,
-        productIds: data.productIds,
+        productIds: data.productIds?.map(id => parseInt(id, 10)),
         verificationTypeIds: data.verificationTypeIds,
         documentTypeIds: data.documentTypeIds,
-      });
+      };
+      return clientsService.updateClient(client!.id, cleanData as any);
     },
+    queryKey: ['clients'],
+    resourceName: 'Client',
+    operation: 'update',
+    additionalInvalidateKeys: [['client', client?.id], ['dashboard']],
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['clients'] });
-      queryClient.invalidateQueries({ queryKey: ['client', client?.id] });
-      toast.success('Client updated successfully');
       onOpenChange(false);
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to update client');
     },
   });
 

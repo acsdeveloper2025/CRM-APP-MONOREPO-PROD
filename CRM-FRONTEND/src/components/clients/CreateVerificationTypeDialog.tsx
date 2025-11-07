@@ -1,8 +1,7 @@
-import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
+import { useCRUDMutation } from '@/hooks/useStandardizedMutation';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -22,7 +21,6 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import toast from 'react-hot-toast';
 import { verificationTypesService } from '@/services/verificationTypes';
 
 const createVerificationTypeSchema = z.object({
@@ -38,8 +36,6 @@ interface CreateVerificationTypeDialogProps {
 }
 
 export function CreateVerificationTypeDialog({ open, onOpenChange }: CreateVerificationTypeDialogProps) {
-  const queryClient = useQueryClient();
-
   const form = useForm<CreateVerificationTypeFormData>({
     resolver: zodResolver(createVerificationTypeSchema),
     defaultValues: {
@@ -48,20 +44,18 @@ export function CreateVerificationTypeDialog({ open, onOpenChange }: CreateVerif
     },
   });
 
-  const createMutation = useMutation({
+  const createMutation = useCRUDMutation({
     mutationFn: (data: CreateVerificationTypeFormData) => verificationTypesService.createVerificationType({
       name: data.name,
       code: data.code,
     }),
+    queryKey: ['verification-types'],
+    resourceName: 'Verification Type',
+    operation: 'create',
+    additionalInvalidateKeys: [['verification-types-stats'], ['dashboard']],
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['verification-types'] });
-      queryClient.invalidateQueries({ queryKey: ['verification-types-stats'] });
-      toast.success('Verification type created successfully');
       form.reset();
       onOpenChange(false);
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to create verification type');
     },
   });
 
