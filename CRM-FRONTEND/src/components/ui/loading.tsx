@@ -73,10 +73,10 @@ export function LoadingOverlay({
     <div className={cn('relative', className)}>
       {children}
       {isLoading && (
-        <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50">
+        <div className="absolute inset-0 bg-[#FAFAFA]/95 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="flex flex-col items-center space-y-4">
-            <LoadingSpinner size={spinnerSize} variant={spinnerVariant} />
-            <p className="text-sm text-gray-600">{loadingText}</p>
+            <LoadingSpinner size={spinnerSize} variant={spinnerVariant} className="text-[#10B981]" />
+            <p className="text-sm text-[#1F2937] font-medium">{loadingText}</p>
           </div>
         </div>
       )}
@@ -190,18 +190,18 @@ interface LoadingPageProps {
   className?: string;
 }
 
-export function LoadingPage({ 
-  title = 'Loading', 
+export function LoadingPage({
+  title = 'Loading',
   description = 'Please wait while we load your content',
-  className 
+  className
 }: LoadingPageProps) {
   return (
-    <div className={cn('min-h-screen flex items-center justify-center', className)}>
+    <div className={cn('min-h-screen flex items-center justify-center bg-[#FAFAFA]', className)}>
       <div className="text-center space-y-4">
-        <LoadingSpinner size="xl" />
+        <LoadingSpinner size="xl" className="text-[#10B981]" />
         <div>
-          <h2 className="text-2xl font-semibold">{title}</h2>
-          <p className="text-gray-600">{description}</p>
+          <h2 className="text-2xl font-semibold text-[#1F2937]">{title}</h2>
+          <p className="text-[#1F2937]/70">{description}</p>
         </div>
       </div>
     </div>
@@ -255,5 +255,28 @@ export function LoadingButton({
       {isLoading && <LoadingSpinner size="sm" className="mr-2" />}
       {isLoading ? loadingText || 'Loading...' : children}
     </button>
+  );
+}
+
+interface LoadingStateProps {
+  message?: string;
+  size?: LoadingSpinnerProps['size'];
+  className?: string;
+}
+
+/**
+ * Simple centered loading state for inline use in pages
+ * Follows CRM design system colors
+ */
+export function LoadingState({
+  message = 'Loading...',
+  size = 'lg',
+  className
+}: LoadingStateProps) {
+  return (
+    <div className={cn('flex flex-col items-center justify-center py-12 space-y-4', className)}>
+      <LoadingSpinner size={size} className="text-[#10B981]" />
+      <p className="text-sm text-[#1F2937] font-medium">{message}</p>
+    </div>
   );
 }
