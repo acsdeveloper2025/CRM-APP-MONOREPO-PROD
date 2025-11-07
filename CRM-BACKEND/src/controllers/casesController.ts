@@ -1603,12 +1603,13 @@ export const createCase = [
         validationErrors.push('customerName is required and must be a non-empty string');
       }
 
-      if (
-        !customerPhone ||
-        typeof customerPhone !== 'string' ||
-        customerPhone.trim().length === 0
-      ) {
-        validationErrors.push('customerPhone is required and must be a non-empty string');
+      // customerPhone is optional - only validate if provided
+      if (customerPhone !== undefined && customerPhone !== null && typeof customerPhone === 'string' && customerPhone.trim().length > 0) {
+        // Validate phone format if provided
+        const phoneDigits = customerPhone.replace(/\D/g, '');
+        if (phoneDigits.length < 10) {
+          validationErrors.push('customerPhone must be at least 10 digits if provided');
+        }
       }
 
       if (!clientId) {
