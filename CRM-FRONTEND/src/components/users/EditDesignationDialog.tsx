@@ -70,7 +70,7 @@ export function EditDesignationDialog({ open, onOpenChange, designation }: EditD
       form.reset({
         name: designation.name,
         description: designation.description || '',
-        departmentId: designation.departmentId || '__all__',
+        departmentId: designation.departmentId ? String(designation.departmentId) : '__all__',
         isActive: designation.isActive,
       });
     }
@@ -102,7 +102,7 @@ export function EditDesignationDialog({ open, onOpenChange, designation }: EditD
     const submitData: UpdateDesignationRequest = {
       name: data.name,
       description: data.description || undefined,
-      departmentId: data.departmentId === "__all__" ? undefined : data.departmentId || undefined,
+      departmentId: data.departmentId === "__all__" ? undefined : (data.departmentId ? parseInt(data.departmentId, 10) : undefined),
       isActive: data.isActive,
     };
     updateMutation.mutate(submitData);
@@ -154,7 +154,7 @@ export function EditDesignationDialog({ open, onOpenChange, designation }: EditD
                       <SelectContent>
                         <SelectItem value="__all__">All departments</SelectItem>
                         {departments.map((dept) => (
-                          <SelectItem key={dept.id} value={dept.id}>
+                          <SelectItem key={dept.id} value={String(dept.id)}>
                             {dept.name}
                           </SelectItem>
                         ))}
