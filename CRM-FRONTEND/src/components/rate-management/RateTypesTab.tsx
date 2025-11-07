@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Plus, Edit, Trash2, Search } from 'lucide-react';
+import { useStandardizedMutation } from '@/hooks/useStandardizedMutation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,7 +19,6 @@ import { rateTypesService, type RateType } from '@/services/rateTypes';
 import { CreateRateTypeDialog } from './CreateRateTypeDialog';
 import { EditRateTypeDialog } from './EditRateTypeDialog';
 import { DeleteConfirmationDialog } from './DeleteConfirmationDialog';
-import toast from 'react-hot-toast';
 
 export function RateTypesTab() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -28,10 +28,8 @@ export function RateTypesTab() {
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 20;
 
-  const queryClient = useQueryClient();
-
   // Reset to page 1 when search changes
-  React.useEffect(() => {
+  useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery]);
 
@@ -48,31 +46,25 @@ export function RateTypesTab() {
   const rateTypes = rateTypesData?.data || [];
 
   // Delete mutation
-  const deleteMutation = useMutation({
+  const deleteMutation = useStandardizedMutation({
     mutationFn: (id: string) => rateTypesService.deleteRateType(id),
+    invalidateKeys: [['rate-types'], ['rate-management-stats']],
+    successMessage: 'Rate type deleted successfully',
+    errorContext: 'Rate Type Deletion',
+    errorFallbackMessage: 'Failed to delete rate type',
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['rate-types'] });
-      queryClient.invalidateQueries({ queryKey: ['rate-management-stats'] });
-      toast.success('Rate type deleted successfully');
       setDeletingRateType(null);
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to delete rate type');
     },
   });
 
   // Toggle active status mutation
-  const toggleActiveMutation = useMutation({
+  const toggleActiveMutation = useStandardizedMutation({
     mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
       rateTypesService.updateRateType(id, { isActive }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['rate-types'] });
-      queryClient.invalidateQueries({ queryKey: ['rate-management-stats'] });
-      toast.success('Rate type status updated');
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to update rate type');
-    },
+    invalidateKeys: [['rate-types'], ['rate-management-stats']],
+    successMessage: 'Rate type status updated',
+    errorContext: 'Rate Type Status Update',
+    errorFallbackMessage: 'Failed to update rate type',
   });
 
   const handleDelete = (rateType: RateType) => {
