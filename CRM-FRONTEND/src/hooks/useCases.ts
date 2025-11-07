@@ -1,7 +1,8 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { casesService, type CaseListQuery, type CaseUpdateData, type CreateCaseData } from '@/services/cases';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 import { useCallback } from 'react';
+import { useMutationWithInvalidation } from './useStandardizedMutation';
 
 // Query keys
 export const caseKeys = {
@@ -63,157 +64,89 @@ export const usePendingCases = () => {
 
 // Mutations
 export const useUpdateCaseStatus = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
+  return useMutationWithInvalidation({
     mutationFn: ({ id, status }: { id: string; status: string }) =>
       casesService.updateCaseStatus(id, status),
-    onSuccess: () => {
-      // Invalidate case-related queries
-      queryClient.invalidateQueries({ queryKey: caseKeys.all });
-      // Invalidate dashboard stats (affects case status distribution, pending/completed counts)
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-      // Invalidate verification tasks (task status may change with case status)
-      queryClient.invalidateQueries({ queryKey: ['verification-tasks'] });
-      toast.success('Case status updated successfully');
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to update case status');
-    },
+    invalidateKeys: [caseKeys.all, ['dashboard'], ['verification-tasks']],
+    successMessage: 'Case status updated successfully',
+    errorContext: 'Case Status Update',
+    errorFallbackMessage: 'Failed to update case status',
   });
 };
 
 export const useUpdateCasePriority = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({ id, priority }: { id: string; priority: number }) =>
+  return useMutationWithInvalidation({
+    mutationFn: ({ id, priority }: { id: string; priority: string }) =>
       casesService.updateCasePriority(id, priority),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: caseKeys.all });
-      toast.success('Case priority updated successfully');
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to update case priority');
-    },
+    invalidateKeys: [caseKeys.all],
+    successMessage: 'Case priority updated successfully',
+    errorContext: 'Case Priority Update',
+    errorFallbackMessage: 'Failed to update case priority',
   });
 };
 
 export const useUpdateCase = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
+  return useMutationWithInvalidation({
     mutationFn: ({ id, data }: { id: string; data: CaseUpdateData }) =>
       casesService.updateCase(id, data),
-    onSuccess: () => {
-      // Invalidate case-related queries
-      queryClient.invalidateQueries({ queryKey: caseKeys.all });
-      // Invalidate dashboard stats
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-      toast.success('Case updated successfully');
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to update case');
-    },
+    invalidateKeys: [caseKeys.all, ['dashboard']],
+    successMessage: 'Case updated successfully',
+    errorContext: 'Case Update',
+    errorFallbackMessage: 'Failed to update case',
   });
 };
 
 export const useAssignCase = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
+  return useMutationWithInvalidation({
     mutationFn: ({ id, assignedToId, reason }: { id: string; assignedToId: string; reason?: string }) =>
       casesService.assignCase(id, assignedToId, reason),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: caseKeys.all });
-      toast.success('Case reassigned successfully');
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to reassign case');
-    },
+    invalidateKeys: [caseKeys.all],
+    successMessage: 'Case reassigned successfully',
+    errorContext: 'Case Assignment',
+    errorFallbackMessage: 'Failed to reassign case',
   });
 };
 
 export const useCreateCase = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
+  return useMutationWithInvalidation({
     mutationFn: (data: CreateCaseData) => casesService.createCase(data),
-    onSuccess: () => {
-      // Invalidate case-related queries
-      queryClient.invalidateQueries({ queryKey: caseKeys.all });
-      // Invalidate dashboard stats (affects Total Cases, Pending Cases, etc.)
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-      // Invalidate verification tasks queries (new tasks created with case)
-      queryClient.invalidateQueries({ queryKey: ['verification-tasks'] });
-      toast.success('Case created and assigned successfully');
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to create case');
-    },
+    invalidateKeys: [caseKeys.all, ['dashboard'], ['verification-tasks']],
+    successMessage: 'Case created and assigned successfully',
+    errorContext: 'Case Creation',
+    errorFallbackMessage: 'Failed to create case',
   });
 };
 
 export const useApproveCase = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
+  return useMutationWithInvalidation({
     mutationFn: ({ id, feedback }: { id: string; feedback?: string }) =>
       casesService.approveCase(id, feedback),
-    onSuccess: () => {
-      // Invalidate case-related queries
-      queryClient.invalidateQueries({ queryKey: caseKeys.all });
-      // Invalidate dashboard stats (affects completed cases, approval rates)
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-      // Invalidate verification tasks
-      queryClient.invalidateQueries({ queryKey: ['verification-tasks'] });
-      toast.success('Case approved successfully');
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to approve case');
-    },
+    invalidateKeys: [caseKeys.all, ['dashboard'], ['verification-tasks']],
+    successMessage: 'Case approved successfully',
+    errorContext: 'Case Approval',
+    errorFallbackMessage: 'Failed to approve case',
   });
 };
 
 export const useRejectCase = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
+  return useMutationWithInvalidation({
     mutationFn: ({ id, reason }: { id: string; reason: string }) =>
       casesService.rejectCase(id, reason),
-    onSuccess: () => {
-      // Invalidate case-related queries
-      queryClient.invalidateQueries({ queryKey: caseKeys.all });
-      // Invalidate dashboard stats (affects rejected cases count)
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-      // Invalidate verification tasks
-      queryClient.invalidateQueries({ queryKey: ['verification-tasks'] });
-      toast.success('Case rejected successfully');
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to reject case');
-    },
+    invalidateKeys: [caseKeys.all, ['dashboard'], ['verification-tasks']],
+    successMessage: 'Case rejected successfully',
+    errorContext: 'Case Rejection',
+    errorFallbackMessage: 'Failed to reject case',
   });
 };
 
 export const useRequestRework = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
+  return useMutationWithInvalidation({
     mutationFn: ({ id, feedback }: { id: string; feedback: string }) =>
       casesService.requestRework(id, feedback),
-    onSuccess: () => {
-      // Invalidate case-related queries
-      queryClient.invalidateQueries({ queryKey: caseKeys.all });
-      // Invalidate dashboard stats
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-      // Invalidate verification tasks
-      queryClient.invalidateQueries({ queryKey: ['verification-tasks'] });
-      toast.success('Rework requested successfully');
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to request rework');
-    },
+    invalidateKeys: [caseKeys.all, ['dashboard'], ['verification-tasks']],
+    successMessage: 'Rework requested successfully',
+    errorContext: 'Rework Request',
+    errorFallbackMessage: 'Failed to request rework',
   });
 };
 
