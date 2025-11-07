@@ -73,16 +73,18 @@ export const TaskDetailPage: React.FC = () => {
       fetchTaskDetails();
       fetchAssignmentHistory();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [taskId]);
 
   const fetchTaskDetails = async () => {
     try {
       setLoading(true);
       const response = await apiService.get(`/verification-tasks/${taskId}`);
-      
+
       if (response.success) {
         // Transform snake_case to camelCase
-        const taskData = response.data;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const taskData = response.data as any;
         setTask({
           id: taskData.id,
           taskNumber: taskData.task_number,
@@ -115,8 +117,8 @@ export const TaskDetailPage: React.FC = () => {
         });
       }
       setLoading(false);
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.message || 'Failed to fetch task details';
+    } catch (err) {
+      const errorMessage = (err as { response?: { data?: { message?: string } } }).response?.data?.message || 'Failed to fetch task details';
       setError(errorMessage);
       setLoading(false);
       toast.error(errorMessage);
@@ -126,9 +128,10 @@ export const TaskDetailPage: React.FC = () => {
   const fetchAssignmentHistory = async () => {
     try {
       const response = await apiService.get(`/verification-tasks/${taskId}/assignment-history`);
-      
+
       if (response.success) {
-        const history = response.data.map((item: any) => ({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const history = (response.data as any[]).map((item: any) => ({
           id: item.id,
           assignedToName: item.assigned_to_name,
           assignedByName: item.assigned_by_name,
@@ -139,13 +142,16 @@ export const TaskDetailPage: React.FC = () => {
         }));
         setAssignmentHistory(history);
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error('Failed to fetch assignment history:', err);
     }
   };
 
   const getStatusBadge = (status: string) => {
-    const statusConfig: Record<string, { variant: any; label: string; icon: any }> = {
+    type BadgeVariant = 'default' | 'secondary' | 'destructive' | 'outline';
+    type IconComponent = typeof Clock | typeof User | typeof CheckCircle2 | typeof XCircle | typeof AlertCircle;
+
+    const statusConfig: Record<string, { variant: BadgeVariant; label: string; icon: IconComponent }> = {
       PENDING: { variant: 'secondary', label: 'Pending', icon: Clock },
       ASSIGNED: { variant: 'default', label: 'Assigned', icon: User },
       IN_PROGRESS: { variant: 'default', label: 'In Progress', icon: Clock },
