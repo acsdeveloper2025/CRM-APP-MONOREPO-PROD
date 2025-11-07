@@ -370,7 +370,7 @@ export function NotificationHistoryPage() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <LoadingState message="Loading notifications..." size="md" />
+            <LoadingState message="Fetching your notifications..." size="md" />
           ) : notifications.length === 0 ? (
             <div className="text-center py-8">
               <Bell className="h-12 w-12 mx-auto text-gray-600 mb-4" />

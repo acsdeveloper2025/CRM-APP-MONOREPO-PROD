@@ -405,7 +405,7 @@ export function MISDashboard() {
               </p>
             </div>
           ) : (
-            <LoadingState message="Loading MIS data..." size="lg" />
+            <LoadingState message="Generating report..." size="lg" />
           )}
         </CardContent>
       </Card>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Loader2 } from 'lucide-react';
+import { Oval } from 'react-loader-spinner';
 import { cn } from '@/lib/utils';
 
 interface LoadingSpinnerProps {
@@ -9,12 +9,15 @@ interface LoadingSpinnerProps {
 }
 
 export function LoadingSpinner({ size = 'md', variant = 'default', className }: LoadingSpinnerProps) {
-  const sizeClasses = {
-    sm: 'h-4 w-4',
-    md: 'h-6 w-6',
-    lg: 'h-8 w-8',
-    xl: 'h-12 w-12',
+  // Map size to pixel values for Oval spinner
+  const sizeMap = {
+    sm: 30,
+    md: 50,
+    lg: 70,
+    xl: 100,
   };
+
+  const spinnerSize = sizeMap[size];
 
   if (variant === 'dots') {
     return (
@@ -24,8 +27,8 @@ export function LoadingSpinner({ size = 'md', variant = 'default', className }: 
             key={i}
             className={cn(
               'rounded-full bg-primary animate-bounce',
-              size === 'sm' ? 'h-2 w-2' : 
-              size === 'md' ? 'h-3 w-3' : 
+              size === 'sm' ? 'h-2 w-2' :
+              size === 'md' ? 'h-3 w-3' :
               size === 'lg' ? 'h-4 w-4' : 'h-6 w-6'
             )}
             style={{ animationDelay: `${i * 0.1}s` }}
@@ -37,18 +40,40 @@ export function LoadingSpinner({ size = 'md', variant = 'default', className }: 
 
   if (variant === 'pulse') {
     return (
-      <div className={cn('rounded-full bg-primary animate-pulse', sizeClasses[size], className)} />
+      <div className={cn('rounded-full bg-primary animate-pulse',
+        size === 'sm' ? 'h-4 w-4' :
+        size === 'md' ? 'h-6 w-6' :
+        size === 'lg' ? 'h-8 w-8' : 'h-12 w-12',
+        className)}
+      />
     );
   }
 
   if (variant === 'bounce') {
     return (
-      <div className={cn('rounded-full bg-primary animate-bounce', sizeClasses[size], className)} />
+      <div className={cn('rounded-full bg-primary animate-bounce',
+        size === 'sm' ? 'h-4 w-4' :
+        size === 'md' ? 'h-6 w-6' :
+        size === 'lg' ? 'h-8 w-8' : 'h-12 w-12',
+        className)}
+      />
     );
   }
 
+  // Default: Use Oval spinner (smooth, professional look)
   return (
-    <Loader2 className={cn('animate-spin', sizeClasses[size], className)} />
+    <div className={cn('flex items-center justify-center', className)}>
+      <Oval
+        height={spinnerSize}
+        width={spinnerSize}
+        color="#10B981"
+        secondaryColor="#10B981"
+        strokeWidth={4}
+        strokeWidthSecondary={4}
+        ariaLabel="loading"
+        visible={true}
+      />
+    </div>
   );
 }
 
