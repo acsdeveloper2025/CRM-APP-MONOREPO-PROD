@@ -144,7 +144,7 @@ export interface RoleData {
 }
 
 export interface Department {
-  id: string;
+  id: number;
   name: string;
   description?: string;
   departmentHeadId?: string;
@@ -187,10 +187,10 @@ export interface UpdateDepartmentRequest {
 
 // Designation types
 export interface Designation {
-  id: string;
+  id: number;
   name: string;
   description?: string;
-  departmentId?: string;
+  departmentId?: number;
   departmentName?: string;
   isActive: boolean;
   createdAt: string;
@@ -202,14 +202,14 @@ export interface Designation {
 export interface CreateDesignationRequest {
   name: string;
   description?: string;
-  departmentId?: string;
+  departmentId?: number;
   isActive?: boolean;
 }
 
 export interface UpdateDesignationRequest {
   name?: string;
   description?: string;
-  departmentId?: string;
+  departmentId?: number;
   isActive?: boolean;
 }
 
