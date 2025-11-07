@@ -70,7 +70,7 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
     const countResult = await query(countQuery, params);
     const total = parseInt(countResult.rows[0].total);
 
-    // Get paginated results
+    // Get paginated results with assignment counts
     const offset = (Number(page) - 1) * Number(limit);
     const usersQuery = `
       SELECT
@@ -92,11 +92,25 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
 
         r.name as "roleName",
         d.name as "departmentName",
-        des.name as "designationName"
+        des.name as "designationName",
+
+        -- Assignment counts for BACKEND_USER role
+        COALESCE(client_counts.count, 0) as "assignedClientsCount",
+        COALESCE(product_counts.count, 0) as "assignedProductsCount"
       FROM users u
       LEFT JOIN roles r ON u."roleId" = r.id
       LEFT JOIN departments d ON u."departmentId" = d.id
       LEFT JOIN designations des ON u."designationId" = des.id
+      LEFT JOIN (
+        SELECT "userId", COUNT(*) as count
+        FROM "userClientAssignments"
+        GROUP BY "userId"
+      ) client_counts ON u.id = client_counts."userId"
+      LEFT JOIN (
+        SELECT "userId", COUNT(*) as count
+        FROM "userProductAssignments"
+        GROUP BY "userId"
+      ) product_counts ON u.id = product_counts."userId"
       ${whereClause}
       ORDER BY u.${safeSortBy} ${safeSortOrder}
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
@@ -159,11 +173,27 @@ export const getUserById = async (req: AuthenticatedRequest, res: Response) => {
         r.permissions as "rolePermissions",
         d.name as "departmentName",
         d.description as "departmentDescription",
-        des.name as "designationName"
+        des.name as "designationName",
+
+        -- Assignment counts for BACKEND_USER role
+        COALESCE(client_counts.count, 0) as "assignedClientsCount",
+        COALESCE(product_counts.count, 0) as "assignedProductsCount"
       FROM users u
       LEFT JOIN roles r ON u."roleId" = r.id
       LEFT JOIN departments d ON u."departmentId" = d.id
       LEFT JOIN designations des ON u."designationId" = des.id
+      LEFT JOIN (
+        SELECT "userId", COUNT(*) as count
+        FROM "userClientAssignments"
+        WHERE "userId" = $1
+        GROUP BY "userId"
+      ) client_counts ON u.id = client_counts."userId"
+      LEFT JOIN (
+        SELECT "userId", COUNT(*) as count
+        FROM "userProductAssignments"
+        WHERE "userId" = $1
+        GROUP BY "userId"
+      ) product_counts ON u.id = product_counts."userId"
       WHERE u.id = $1
     `;
 
