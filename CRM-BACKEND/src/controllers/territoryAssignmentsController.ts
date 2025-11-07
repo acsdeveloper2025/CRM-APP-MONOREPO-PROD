@@ -310,12 +310,15 @@ export const assignPincodesToFieldAgent = async (req: Request, res: Response) =>
 
       // Then, insert new pincode assignments (only if pincodeIds is not empty)
       if (pincodeIds.length > 0) {
+        // Get the assignedBy user ID - use authenticated user or the user being assigned
+        const assignedBy = (req as any).user?.id || userId;
+
         const insertPromises = pincodeIds.map(async (pincodeId: number) => {
           const result = await query(
             `INSERT INTO "userPincodeAssignments" ("userId", "pincodeId", "assignedBy", "isActive")
              VALUES ($1, $2, $3, true)
              RETURNING id, "pincodeId", "assignedAt"`,
-            [userId, pincodeId, (req as any).user?.id]
+            [userId, pincodeId, assignedBy]
           );
           return result.rows[0];
         });
