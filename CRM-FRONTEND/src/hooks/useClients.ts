@@ -114,6 +114,8 @@ export const useCreateClient = () => {
         queryKey: clientKeys.all,
         exact: false // This will invalidate all queries that start with ['clients']
       });
+      // Invalidate dashboard stats (affects Total Clients count)
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       toast.success('Client created successfully');
     },
     onError: (error: any) => {
@@ -134,6 +136,8 @@ export const useUpdateClient = () => {
         queryKey: clientKeys.all,
         exact: false // This will invalidate all queries that start with ['clients']
       });
+      // Invalidate dashboard stats
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       toast.success('Client updated successfully');
     },
     onError: (error: any) => {
@@ -153,6 +157,8 @@ export const useDeleteClient = () => {
         queryKey: clientKeys.all,
         exact: false // This will invalidate all queries that start with ['clients']
       });
+      // Invalidate dashboard stats (affects Total Clients count)
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       toast.success('Client deleted successfully');
     },
     onError: (error: any) => {

@@ -114,7 +114,11 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
   const updateMutation = useMutation({
     mutationFn: (data: EditUserFormData) => usersService.updateUser(user.id, data),
     onSuccess: () => {
+      // Invalidate user-related queries
       queryClient.invalidateQueries({ queryKey: ['users'] });
+      queryClient.invalidateQueries({ queryKey: ['user-stats'] });
+      // Invalidate dashboard stats (affects user counts, active users, etc.)
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       toast.success('User updated successfully');
       onOpenChange(false);
     },

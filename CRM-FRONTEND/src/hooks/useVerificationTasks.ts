@@ -11,6 +11,7 @@ import {
   TaskPriority
 } from '../types/verificationTask';
 import { VerificationTasksService } from '../services/verificationTasks';
+import { useTaskMutations } from './useTaskMutations';
 
 /**
  * Transform snake_case task data from backend to camelCase for frontend
@@ -120,6 +121,9 @@ export function useVerificationTasks(initialCaseId?: string): UseVerificationTas
 
   const [currentCaseId, setCurrentCaseId] = useState<string | undefined>(initialCaseId);
 
+  // Get task mutation helpers for invalidating queries
+  const { invalidateTaskQueries } = useTaskMutations();
+
   // Update summary when tasks change
   useEffect(() => {
     const totalTasks = state.tasks.length;
@@ -198,7 +202,7 @@ export function useVerificationTasks(initialCaseId?: string): UseVerificationTas
 
   // Create multiple tasks
   const createMultipleTasks = useCallback(async (
-    caseId: string, 
+    caseId: string,
     tasks: CreateVerificationTaskRequest[]
   ): Promise<boolean> => {
     setState(prev => ({ ...prev, loading: true }));
@@ -206,12 +210,15 @@ export function useVerificationTasks(initialCaseId?: string): UseVerificationTas
     try {
       const response = await VerificationTasksService.createMultipleTasksForCase(caseId, tasks);
       toast.success(response.message);
-      
+
       // Refresh tasks if this is the current case
       if (caseId === currentCaseId) {
         await fetchTasksForCase(caseId);
       }
-      
+
+      // Invalidate related queries to update statistics
+      invalidateTaskQueries();
+
       return true;
     } catch (error: any) {
       const errorMessage = error.response?.data?.message || 'Failed to create tasks';
@@ -219,149 +226,164 @@ export function useVerificationTasks(initialCaseId?: string): UseVerificationTas
       setState(prev => ({ ...prev, loading: false }));
       return false;
     }
-  }, [currentCaseId, fetchTasksForCase]);
+  }, [currentCaseId, fetchTasksForCase, invalidateTaskQueries]);
 
   // Update task
   const updateTask = useCallback(async (
-    taskId: string, 
+    taskId: string,
     updateData: UpdateVerificationTaskRequest
   ): Promise<boolean> => {
     try {
       const response = await VerificationTasksService.updateTask(taskId, updateData);
       toast.success(response.message);
-      
+
       // Update task in local state
       setState(prev => ({
         ...prev,
-        tasks: prev.tasks.map(task => 
+        tasks: prev.tasks.map(task =>
           task.id === taskId ? { ...task, ...updateData } : task
         )
       }));
-      
+
+      // Invalidate related queries to update statistics
+      invalidateTaskQueries();
+
       return true;
     } catch (error: any) {
       const errorMessage = error.response?.data?.message || 'Failed to update task';
       toast.error(errorMessage);
       return false;
     }
-  }, []);
+  }, [invalidateTaskQueries]);
 
   // Assign task
   const assignTask = useCallback(async (
-    taskId: string, 
+    taskId: string,
     assignmentData: AssignVerificationTaskRequest
   ): Promise<boolean> => {
     try {
       const response = await VerificationTasksService.assignTask(taskId, assignmentData);
       toast.success(response.message);
-      
+
       // Update task in local state
       setState(prev => ({
         ...prev,
-        tasks: prev.tasks.map(task => 
-          task.id === taskId 
-            ? { 
-                ...task, 
+        tasks: prev.tasks.map(task =>
+          task.id === taskId
+            ? {
+                ...task,
                 assignedTo: assignmentData.assignedTo,
                 status: 'ASSIGNED' as TaskStatus,
                 assignedAt: new Date().toISOString()
-              } 
+              }
             : task
         )
       }));
-      
+
+      // Invalidate related queries to update statistics
+      invalidateTaskQueries();
+
       return true;
     } catch (error: any) {
       const errorMessage = error.response?.data?.message || 'Failed to assign task';
       toast.error(errorMessage);
       return false;
     }
-  }, []);
+  }, [invalidateTaskQueries]);
 
   // Complete task
   const completeTask = useCallback(async (
-    taskId: string, 
+    taskId: string,
     completionData: CompleteVerificationTaskRequest
   ): Promise<boolean> => {
     try {
       const response = await VerificationTasksService.completeTask(taskId, completionData);
       toast.success(response.message);
-      
+
       // Update task in local state
       setState(prev => ({
         ...prev,
-        tasks: prev.tasks.map(task => 
-          task.id === taskId 
-            ? { 
-                ...task, 
+        tasks: prev.tasks.map(task =>
+          task.id === taskId
+            ? {
+                ...task,
                 status: 'COMPLETED' as TaskStatus,
                 verificationOutcome: completionData.verificationOutcome,
                 actualAmount: completionData.actualAmount,
                 completedAt: new Date().toISOString()
-              } 
+              }
             : task
         )
       }));
-      
+
+      // Invalidate related queries to update statistics
+      invalidateTaskQueries();
+
       return true;
     } catch (error: any) {
       const errorMessage = error.response?.data?.message || 'Failed to complete task';
       toast.error(errorMessage);
       return false;
     }
-  }, []);
+  }, [invalidateTaskQueries]);
 
   // Start task
   const startTask = useCallback(async (taskId: string): Promise<boolean> => {
     try {
-      const _response = await VerificationTasksService.startTask(taskId);
+      await VerificationTasksService.startTask(taskId);
       toast.success('Task started successfully');
-      
+
       // Update task in local state
       setState(prev => ({
         ...prev,
-        tasks: prev.tasks.map(task => 
-          task.id === taskId 
-            ? { 
-                ...task, 
+        tasks: prev.tasks.map(task =>
+          task.id === taskId
+            ? {
+                ...task,
                 status: 'IN_PROGRESS' as TaskStatus,
                 startedAt: new Date().toISOString()
-              } 
+              }
             : task
         )
       }));
-      
+
+      // Invalidate related queries to update statistics
+      invalidateTaskQueries();
+
       return true;
     } catch (error: any) {
       const errorMessage = error.response?.data?.message || 'Failed to start task';
       toast.error(errorMessage);
       return false;
     }
-  }, []);
+  }, [invalidateTaskQueries]);
 
   // Cancel task
   const cancelTask = useCallback(async (taskId: string, reason?: string): Promise<boolean> => {
     try {
       const response = await VerificationTasksService.cancelTask(taskId, reason);
       toast.success(response.message);
-      
+
       // Update task in local state
       setState(prev => ({
         ...prev,
-        tasks: prev.tasks.map(task => 
-          task.id === taskId 
-            ? { ...task, status: 'CANCELLED' as TaskStatus } 
+        tasks: prev.tasks.map(task =>
+          task.id === taskId
+            ? { ...task, status: 'CANCELLED' as TaskStatus }
             : task
         )
       }));
-      
+
+      // Invalidate related queries to update statistics
+      invalidateTaskQueries();
+
       return true;
     } catch (error: any) {
       const errorMessage = error.response?.data?.message || 'Failed to cancel task';
       toast.error(errorMessage);
       return false;
     }
-  }, []);
+  }, [invalidateTaskQueries]);
 
   // Bulk assign tasks
   const bulkAssignTasks = useCallback(async (
