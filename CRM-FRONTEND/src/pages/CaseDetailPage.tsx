@@ -13,6 +13,7 @@ import { ArrowLeft, MapPin, Phone, Mail, Calendar, User, Building2, FileText, Ed
 import { CaseAttachmentsSection } from '@/components/attachments/CaseAttachmentsSection';
 import { VerificationTasksManager } from '@/components/verification-tasks';
 import { formatDistanceToNow } from 'date-fns';
+import { LoadingState } from '@/components/ui/loading';
 
 // Helper function to safely format dates
 const safeFormatDistanceToNow = (dateValue: string | null | undefined): string => {
@@ -62,24 +63,7 @@ export const CaseDetailPage: React.FC = () => {
   };
 
   if (isLoading) {
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center space-x-4">
-          <div className="h-8 w-8 bg-muted rounded animate-pulse" />
-          <div className="h-8 bg-muted rounded w-48 animate-pulse" />
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
-            <div className="h-64 bg-muted rounded animate-pulse" />
-            <div className="h-48 bg-muted rounded animate-pulse" />
-          </div>
-          <div className="space-y-6">
-            <div className="h-32 bg-muted rounded animate-pulse" />
-            <div className="h-48 bg-muted rounded animate-pulse" />
-          </div>
-        </div>
-      </div>
-    );
+    return <LoadingState message="Loading case details..." size="lg" className="min-h-[400px]" />;
   }
 
   if (!caseItem) {

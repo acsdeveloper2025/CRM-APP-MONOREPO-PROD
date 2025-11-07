@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 import type { CustomerInfoData } from '@/components/cases/CustomerInfoStep';
 import type { FullCaseFormData } from '@/components/cases/FullCaseFormStep';
+import { LoadingState } from '@/components/ui/loading';
 
 export const NewCasePage: React.FC = () => {
   const navigate = useNavigate();
@@ -127,9 +128,7 @@ export const NewCasePage: React.FC = () => {
           <h1 className="text-3xl font-bold tracking-tight">Edit Case</h1>
           <p className="text-gray-600">Loading case data... (ID: {editCaseId})</p>
         </div>
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin" />
-        </div>
+        <LoadingState message="Loading case data..." size="lg" />
       </div>
     );
   }
@@ -167,9 +166,7 @@ export const NewCasePage: React.FC = () => {
           <h1 className="text-3xl font-bold tracking-tight">Edit Case</h1>
           <p className="text-gray-600">Preparing form data... (ID: {editCaseId})</p>
         </div>
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin" />
-        </div>
+        <LoadingState message="Preparing form data..." size="lg" />
       </div>
     );
   }
