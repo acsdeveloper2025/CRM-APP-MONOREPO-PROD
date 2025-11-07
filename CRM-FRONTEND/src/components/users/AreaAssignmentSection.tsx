@@ -172,7 +172,7 @@ export function AreaAssignmentSection({ user, selectedPincodeIds }: AreaAssignme
             <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
               {filteredAreas.length === 0 ? (
                 <div className="text-sm text-gray-500 text-center py-4">
-                  {searchQuery ? 'No areas match your search' : assignedPincodeIds.length === 0 ? 'Please assign pincodes first to see available areas' : 'No areas available for assigned pincodes'}
+                  {searchQuery ? 'No areas match your search' : selectedPincodeIds.length === 0 ? 'Please select pincodes first to see available areas' : 'No areas available for selected pincodes'}
                 </div>
               ) : (
                 filteredAreas.map((area: any) => (
