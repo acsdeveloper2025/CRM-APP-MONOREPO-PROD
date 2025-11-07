@@ -1,9 +1,7 @@
-import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
+import { useCRUDMutation } from '@/hooks/useStandardizedMutation';
 import {
   Dialog,
   DialogContent,
@@ -39,8 +37,6 @@ interface CreateAreaDialogProps {
 }
 
 export function CreateAreaDialog({ open, onOpenChange }: CreateAreaDialogProps) {
-  const queryClient = useQueryClient();
-
   const form = useForm<CreateAreaFormData>({
     resolver: zodResolver(createAreaSchema),
     defaultValues: {
@@ -48,7 +44,7 @@ export function CreateAreaDialog({ open, onOpenChange }: CreateAreaDialogProps) 
     },
   });
 
-  const createMutation = useMutation({
+  const createMutation = useCRUDMutation({
     mutationFn: async (data: CreateAreaFormData) => {
       // Validate data before sending
       if (!data.name || data.name.trim() === '') {
@@ -60,15 +56,13 @@ export function CreateAreaDialog({ open, onOpenChange }: CreateAreaDialogProps) 
         name: data.name.trim(),
       });
     },
+    queryKey: ['areas'],
+    resourceName: 'Area',
+    operation: 'create',
+    additionalInvalidateKeys: [['pincodes']],
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['areas'] });
-      queryClient.invalidateQueries({ queryKey: ['pincodes'] });
-      toast.success('Area created successfully');
       form.reset();
       onOpenChange(false);
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to create area');
     },
   });
 

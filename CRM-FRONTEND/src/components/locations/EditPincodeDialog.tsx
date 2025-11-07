@@ -1,8 +1,9 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
+import { useCRUDMutation } from '@/hooks/useStandardizedMutation';
+import { useStandardizedQuery } from '@/hooks/useStandardizedQuery';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -29,7 +30,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { toast } from 'sonner';
 import { locationsService } from '@/services/locations';
 import { Pincode } from '@/types/location';
 import { EnhancedAreasMultiSelect } from './EnhancedAreasMultiSelect';
@@ -52,8 +52,6 @@ interface EditPincodeDialogProps {
 }
 
 export function EditPincodeDialog({ pincode, open, onOpenChange }: EditPincodeDialogProps) {
-  const queryClient = useQueryClient();
-
   const form = useForm<EditPincodeFormData>({
     resolver: zodResolver(editPincodeSchema),
     defaultValues: {
@@ -73,22 +71,22 @@ export function EditPincodeDialog({ pincode, open, onOpenChange }: EditPincodeDi
     }
   }, [pincode, form]);
 
-  const { data: citiesData } = useQuery({
+  const { data: citiesData } = useStandardizedQuery({
     queryKey: ['cities'],
     queryFn: () => locationsService.getCities(),
     enabled: open,
+    errorContext: 'Loading Cities',
+    errorFallbackMessage: 'Failed to load cities',
   });
 
-  const updateMutation = useMutation({
+  const updateMutation = useCRUDMutation({
     mutationFn: (data: EditPincodeFormData) => locationsService.updatePincode(pincode.id, data),
+    queryKey: ['pincodes'],
+    resourceName: 'Pincode',
+    operation: 'update',
+    additionalInvalidateKeys: [['cities']],
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['pincodes'] });
-      queryClient.invalidateQueries({ queryKey: ['cities'] });
-      toast.success('Pincode updated successfully');
       onOpenChange(false);
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to update pincode');
     },
   });
 
