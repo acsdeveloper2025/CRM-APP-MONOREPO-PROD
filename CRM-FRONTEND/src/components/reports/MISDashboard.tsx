@@ -21,6 +21,7 @@ import { toast } from 'react-hot-toast';
 import { useClients, useProducts } from '@/hooks/useClients';
 import { useVerificationTypes } from '@/hooks/useVerificationTypes';
 import { useUsers } from '@/hooks/useUsers';
+import { LoadingState } from '@/components/ui/loading';
 
 interface MISFilterValues {
   dateFrom?: string;
@@ -404,10 +405,7 @@ export function MISDashboard() {
               </p>
             </div>
           ) : (
-            <div className="text-center py-8">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto" />
-              <p className="mt-4 text-gray-600">Loading MIS data...</p>
-            </div>
+            <LoadingState message="Loading MIS data..." size="lg" />
           )}
         </CardContent>
       </Card>

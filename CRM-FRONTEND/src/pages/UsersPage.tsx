@@ -18,6 +18,7 @@ import { UnifiedSearchInput } from '@/components/ui/unified-search-input';
 import { UnifiedFilterPanel, FilterGrid } from '@/components/ui/unified-filter-panel';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { LoadingState } from '@/components/ui/loading';
 
 export function UsersPage() {
   const [activeTab, setActiveTab] = useState('users');
@@ -167,10 +168,7 @@ export function UsersPage() {
   if (usersLoading && !usersData) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto" />
-          <p className="mt-2 text-sm text-gray-600">Loading users...</p>
-        </div>
+        <LoadingState message="Loading users..." size="lg" />
       </div>
     );
   }

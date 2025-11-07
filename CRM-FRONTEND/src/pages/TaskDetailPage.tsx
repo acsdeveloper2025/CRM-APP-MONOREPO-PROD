@@ -17,6 +17,7 @@ import {
 import { format } from 'date-fns';
 import { toast } from 'react-hot-toast';
 import { apiService } from '@/services/api';
+import { LoadingState } from '@/components/ui/loading';
 
 interface TaskDetail {
   id: string;
@@ -184,10 +185,7 @@ export const TaskDetailPage: React.FC = () => {
   if (loading) {
     return (
       <div className="container mx-auto py-6">
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-gray-200 rounded w-1/4" />
-          <div className="h-64 bg-gray-200 rounded" />
-        </div>
+        <LoadingState message="Loading task details..." size="lg" />
       </div>
     );
   }

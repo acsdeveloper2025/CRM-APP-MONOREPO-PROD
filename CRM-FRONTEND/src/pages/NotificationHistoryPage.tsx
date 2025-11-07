@@ -23,6 +23,7 @@ import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 import { apiService } from '@/services/api';
 import { useNavigate } from 'react-router-dom';
+import { LoadingState } from '@/components/ui/loading';
 
 interface Notification {
   id: string;
@@ -369,9 +370,7 @@ export function NotificationHistoryPage() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="flex items-center justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600" />
-            </div>
+            <LoadingState message="Loading notifications..." size="md" />
           ) : notifications.length === 0 ? (
             <div className="text-center py-8">
               <Bell className="h-12 w-12 mx-auto text-gray-600 mb-4" />

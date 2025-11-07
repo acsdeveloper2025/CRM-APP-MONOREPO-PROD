@@ -25,6 +25,7 @@ import {
   getTaskPriorityBadgeStyle,
   getStatusLabel,
 } from '@/lib/badgeStyles';
+import { LoadingState } from '@/components/ui/loading';
 
 interface TasksListFlatProps {
   tasks: VerificationTask[];
@@ -54,30 +55,7 @@ export const TasksListFlat: React.FC<TasksListFlatProps> = ({
   };
 
   if (loading) {
-    return (
-      <div className="grid grid-cols-1 gap-4">
-        {[1, 2, 3, 4, 5].map(i => (
-          <Card key={i} className="animate-pulse">
-            <CardContent className="p-6">
-              <div className="space-y-3">
-                <div className="flex items-center space-x-2">
-                  <div className="h-6 bg-gray-200 rounded w-20" />
-                  <div className="h-6 bg-gray-200 rounded w-16" />
-                  <div className="h-6 bg-gray-200 rounded w-24" />
-                </div>
-                <div className="h-6 bg-gray-200 rounded w-3/4" />
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="h-4 bg-gray-200 rounded" />
-                  <div className="h-4 bg-gray-200 rounded" />
-                  <div className="h-4 bg-gray-200 rounded" />
-                  <div className="h-4 bg-gray-200 rounded" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    );
+    return <LoadingState message="Loading tasks..." size="lg" />;
   }
 
   if (tasks.length === 0) {

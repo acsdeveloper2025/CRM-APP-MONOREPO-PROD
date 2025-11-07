@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import type { LoginRequest } from '@/types/auth';
+import { LoadingPage } from '@/components/ui/loading';
 
 const loginSchema = z.object({
   username: z.string().min(1, 'Username is required'),
@@ -54,11 +55,7 @@ export const LoginPage: React.FC = () => {
   };
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#FAFAFA]">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-green-500" />
-      </div>
-    );
+    return <LoadingPage title="Authenticating" description="Please wait while we verify your credentials..." />;
   }
 
 
