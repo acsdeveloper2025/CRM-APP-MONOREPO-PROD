@@ -2,7 +2,7 @@
 // Complete ACS CRM Application with Full Routing
 import { BrowserRouter as Router } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Toaster } from 'react-hot-toast';
+import { Toaster } from 'sonner';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -44,7 +44,7 @@ function App() {
                 <AppRoutes />
               </div>
             </Router>
-            <Toaster position="top-right" />
+            <Toaster position="top-right" richColors closeButton />
           </AuthProvider>
         </QueryClientProvider>
       </ThemeProvider>
