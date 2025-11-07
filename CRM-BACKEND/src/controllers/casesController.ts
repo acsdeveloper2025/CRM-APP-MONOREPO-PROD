@@ -127,6 +127,33 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
       )`);
       params.push(userId);
       paramIndex++;
+    } else if (userRole === 'BACKEND_USER') {
+      // Filter by client and product assignments for BACKEND_USER
+      const { getAssignedClientIds } = await import('@/middleware/clientAccess');
+      const { getAssignedProductIds } = await import('@/middleware/productAccess');
+
+      const assignedClientIds = await getAssignedClientIds(userId!, userRole);
+      const assignedProductIds = await getAssignedProductIds(userId!, userRole);
+
+      // If user has client assignments, filter by them
+      if (assignedClientIds && assignedClientIds.length > 0) {
+        conditions.push(`c."clientId" = ANY($${paramIndex}::int[])`);
+        params.push(assignedClientIds);
+        paramIndex++;
+      } else if (assignedClientIds && assignedClientIds.length === 0) {
+        // User has no client assignments, show no cases
+        conditions.push('FALSE');
+      }
+
+      // If user has product assignments, filter by them
+      if (assignedProductIds && assignedProductIds.length > 0) {
+        conditions.push(`c."productId" = ANY($${paramIndex}::int[])`);
+        params.push(assignedProductIds);
+        paramIndex++;
+      } else if (assignedProductIds && assignedProductIds.length === 0) {
+        // User has no product assignments, show no cases
+        conditions.push('FALSE');
+      }
     } else if (assignedTo) {
       // For other roles, filter by task-level assignment if explicitly provided
       conditions.push(`EXISTS (
@@ -485,6 +512,38 @@ export const getCaseById = async (req: AuthenticatedRequest, res: Response) => {
         AND vt.assigned_to = $2
       )`;
       queryParams.push(userId);
+    } else if (userRole === 'BACKEND_USER') {
+      // Filter by client and product assignments for BACKEND_USER
+      const { getAssignedClientIds } = await import('@/middleware/clientAccess');
+      const { getAssignedProductIds } = await import('@/middleware/productAccess');
+
+      const assignedClientIds = await getAssignedClientIds(userId!, userRole);
+      const assignedProductIds = await getAssignedProductIds(userId!, userRole);
+
+      // Check if user has access to this case's client and product
+      if (assignedClientIds && assignedClientIds.length > 0) {
+        caseQuery += ` AND c."clientId" = ANY($${queryParams.length + 1}::int[])`;
+        queryParams.push(assignedClientIds as any);
+      } else if (assignedClientIds && assignedClientIds.length === 0) {
+        // User has no client assignments, deny access
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied: No clients assigned to your account',
+          error: { code: 'NO_CLIENT_ACCESS' },
+        });
+      }
+
+      if (assignedProductIds && assignedProductIds.length > 0) {
+        caseQuery += ` AND c."productId" = ANY($${queryParams.length + 1}::int[])`;
+        queryParams.push(assignedProductIds as any);
+      } else if (assignedProductIds && assignedProductIds.length === 0) {
+        // User has no product assignments, deny access
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied: No products assigned to your account',
+          error: { code: 'NO_PRODUCT_ACCESS' },
+        });
+      }
     }
 
     const result = await pool.query(caseQuery, queryParams);
