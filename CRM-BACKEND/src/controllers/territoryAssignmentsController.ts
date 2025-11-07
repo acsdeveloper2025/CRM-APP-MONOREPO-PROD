@@ -357,10 +357,14 @@ export const assignPincodesToFieldAgent = async (req: Request, res: Response) =>
     }
   } catch (error) {
     logger.error('Error updating pincode assignments for field agent:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     res.status(500).json({
       success: false,
       message: 'Failed to update pincode assignments for field agent',
-      error: { code: 'INTERNAL_ERROR' },
+      error: {
+        code: 'INTERNAL_ERROR',
+        details: errorMessage
+      },
     });
   }
 };
