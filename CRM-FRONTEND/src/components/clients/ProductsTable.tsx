@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
+import { useStandardizedMutation } from '@/hooks/useStandardizedMutation';
 import { MoreHorizontal, Edit, Trash2, Eye, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -30,7 +30,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { toast } from 'sonner';
 import { clientsService } from '@/services/clients';
 import { Product } from '@/types/client';
 import { EditProductDialog } from './EditProductDialog';
@@ -48,18 +47,18 @@ export function ProductsTable({ data, isLoading }: ProductsTableProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
 
-  const queryClient = useQueryClient();
-
-  const deleteMutation = useMutation({
+  const deleteMutation = useStandardizedMutation({
     mutationFn: (id: string) => clientsService.deleteProduct(id),
+    successMessage: 'Product deleted successfully',
+    errorContext: 'Product Deletion',
+    errorFallbackMessage: 'Failed to delete product',
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['products'] });
-      toast.success('Product deleted successfully');
       setShowDeleteDialog(false);
       setProductToDelete(null);
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to delete product');
+    onErrorCallback: () => {
+      setShowDeleteDialog(false);
+      setProductToDelete(null);
     },
   });
 
