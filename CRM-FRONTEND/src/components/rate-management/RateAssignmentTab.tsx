@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useMutationWithInvalidation } from '@/hooks/useStandardizedMutation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,7 +25,6 @@ import { clientsService } from '@/services/clients';
 import { productsService } from '@/services/products';
 import { verificationTypesService } from '@/services/verificationTypes';
 import { ratesService } from '@/services/rates';
-import toast from 'react-hot-toast';
 
 interface RateInput {
   rateTypeId: string;
@@ -37,8 +37,6 @@ export function RateAssignmentTab() {
   const [selectedProductId, setSelectedProductId] = useState<number | null>(null);
   const [selectedVerificationTypeId, setSelectedVerificationTypeId] = useState<number | null>(null);
   const [rateInputs, setRateInputs] = useState<Record<number, RateInput>>({});
-
-  const queryClient = useQueryClient();
 
   // Fetch clients
   const { data: clientsData } = useQuery({
@@ -87,7 +85,7 @@ export function RateAssignmentTab() {
   }, [availableRateTypesData]);
 
   // Save rate mutation
-  const saveRateMutation = useMutation({
+  const saveRateMutation = useMutationWithInvalidation({
     mutationFn: async (rateData: { rateTypeId: number; amount: number; currency: string }) => {
       return ratesService.createOrUpdateRate({
         clientId: selectedClientId!,
@@ -98,16 +96,13 @@ export function RateAssignmentTab() {
         currency: rateData.currency,
       });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ['available-rate-types', selectedClientId, selectedProductId, selectedVerificationTypeId]
-      });
-      queryClient.invalidateQueries({ queryKey: ['rate-management-stats'] });
-      toast.success('Rate saved successfully');
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to save rate');
-    },
+    invalidateKeys: [
+      ['available-rate-types', selectedClientId, selectedProductId, selectedVerificationTypeId],
+      ['rate-management-stats']
+    ],
+    successMessage: 'Rate saved successfully',
+    errorContext: 'Rate Assignment',
+    errorFallbackMessage: 'Failed to save rate',
   });
 
   const clients = clientsData?.data || [];

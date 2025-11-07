@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState, useEffect } from 'react';
+import { useStandardizedQuery } from '@/hooks/useStandardizedQuery';
 import { Search, Download, Filter, Trash2 } from 'lucide-react';
+import { useMutationWithInvalidation } from '@/hooks/useStandardizedMutation';
+import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,7 +28,6 @@ import { productsService } from '@/services/products';
 import { verificationTypesService } from '@/services/verificationTypes';
 import { rateTypesService } from '@/services/rateTypes';
 import { DeleteConfirmationDialog } from './DeleteConfirmationDialog';
-import toast from 'react-hot-toast';
 
 export function RateViewReportTab() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -35,14 +36,12 @@ export function RateViewReportTab() {
   const [selectedVerificationTypeId, setSelectedVerificationTypeId] = useState<string>('all');
   const [selectedRateTypeId, setSelectedRateTypeId] = useState<string>('all');
   const [isActiveFilter, setIsActiveFilter] = useState<string>('all');
-  const [deletingRate, setDeletingRate] = useState<Rate | null>(null);
+  const [deletingRate, setDeletingRate] = useState<any>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 20;
 
-  const queryClient = useQueryClient();
-
   // Reset to page 1 when filters change
-  React.useEffect(() => {
+  useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery, selectedClientId, selectedProductId, selectedVerificationTypeId, selectedRateTypeId, isActiveFilter]);
 
@@ -59,43 +58,51 @@ export function RateViewReportTab() {
   };
 
   // Fetch rates
-  const { data: ratesData, isLoading: ratesLoading } = useQuery({
+  const { data: ratesData, isLoading: ratesLoading } = useStandardizedQuery({
     queryKey: ['rates', rateFilters],
     queryFn: () => ratesService.getRates(rateFilters),
+    errorContext: 'Loading Rates',
+    errorFallbackMessage: 'Failed to load rates',
   });
 
   // Fetch filter options
-  const { data: clientsData } = useQuery({
+  const { data: clientsData } = useStandardizedQuery({
     queryKey: ['clients'],
     queryFn: () => clientsService.getClients({ limit: 100 }),
+    errorContext: 'Loading Clients',
+    errorFallbackMessage: 'Failed to load clients',
   });
 
-  const { data: productsData } = useQuery({
+  const { data: productsData } = useStandardizedQuery({
     queryKey: ['products'],
     queryFn: () => productsService.getProducts({ limit: 100 }),
+    errorContext: 'Loading Products',
+    errorFallbackMessage: 'Failed to load products',
   });
 
-  const { data: verificationTypesData } = useQuery({
+  const { data: verificationTypesData } = useStandardizedQuery({
     queryKey: ['verification-types'],
     queryFn: () => verificationTypesService.getVerificationTypes({ limit: 100 }),
+    errorContext: 'Loading Verification Types',
+    errorFallbackMessage: 'Failed to load verification types',
   });
 
-  const { data: rateTypesData } = useQuery({
+  const { data: rateTypesData } = useStandardizedQuery({
     queryKey: ['rate-types'],
     queryFn: () => rateTypesService.getRateTypes({ limit: 100 }),
+    errorContext: 'Loading Rate Types',
+    errorFallbackMessage: 'Failed to load rate types',
   });
 
   // Delete rate mutation
-  const deleteRateMutation = useMutation({
-    mutationFn: (rateId: string) => ratesService.deleteRate(rateId),
+  const deleteRateMutation = useMutationWithInvalidation({
+    mutationFn: (rateId: number) => ratesService.deleteRate(rateId),
+    invalidateKeys: [['rates'], ['rate-management-stats']],
+    successMessage: 'Rate deleted successfully',
+    errorContext: 'Rate Deletion',
+    errorFallbackMessage: 'Failed to delete rate',
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['rates'] });
-      queryClient.invalidateQueries({ queryKey: ['rate-management-stats'] });
-      toast.success('Rate deleted successfully');
       setDeletingRate(null);
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to delete rate');
     },
   });
 

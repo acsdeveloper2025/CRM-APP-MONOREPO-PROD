@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useStandardizedQuery } from '@/hooks/useStandardizedQuery';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -14,9 +14,11 @@ export function RateManagementPage() {
   const [activeTab, setActiveTab] = useState('rate-types');
 
   // Fetch rate management statistics
-  const { data: statsData, isLoading: _statsLoading } = useQuery({
+  const { data: statsData, isLoading: _statsLoading } = useStandardizedQuery({
     queryKey: ['rate-management-stats'],
     queryFn: () => rateManagementService.getRateManagementStats(),
+    errorContext: 'Loading Rate Management Statistics',
+    errorFallbackMessage: 'Failed to load rate management statistics',
   });
 
   const stats = statsData?.data || {

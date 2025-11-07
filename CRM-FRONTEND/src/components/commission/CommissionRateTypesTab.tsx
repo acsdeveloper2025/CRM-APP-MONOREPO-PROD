@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus, Search, Edit, Trash2, Settings } from 'lucide-react';
+import { useMutationWithInvalidation } from '@/hooks/useStandardizedMutation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -43,15 +44,12 @@ export const CommissionRateTypesTab: React.FC = () => {
   });
 
   // Delete mutation
-  const deleteMutation = useMutation({
+  const deleteMutation = useMutationWithInvalidation({
     mutationFn: (id: number) => commissionManagementService.deleteCommissionRateType(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['commission-rate-types'] });
-      toast.success('Commission rate type deleted successfully');
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to delete commission rate type');
-    },
+    invalidateKeys: [['commission-rate-types']],
+    successMessage: 'Commission rate type deleted successfully',
+    errorContext: 'Commission Rate Type Deletion',
+    errorFallbackMessage: 'Failed to delete commission rate type',
   });
 
   const rateTypes = rateTypesData?.data || [];

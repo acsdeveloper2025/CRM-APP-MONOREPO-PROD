@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useStandardizedQuery } from '@/hooks/useStandardizedQuery';
+import { useMutationWithInvalidation } from '@/hooks/useStandardizedMutation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -16,7 +17,6 @@ import { clientsService } from '@/services/clients';
 import { productsService } from '@/services/products';
 import { verificationTypesService } from '@/services/verificationTypes';
 import { rateTypeAssignmentsService } from '@/services/rateTypeAssignments';
-import toast from 'react-hot-toast';
 
 export function RateTypeAssignmentTab() {
   const [selectedClientId, setSelectedClientId] = useState<string>('');
@@ -24,30 +24,34 @@ export function RateTypeAssignmentTab() {
   const [selectedVerificationTypeId, setSelectedVerificationTypeId] = useState<string>('');
   const [assignedRateTypeIds, setAssignedRateTypeIds] = useState<string[]>([]);
 
-  const queryClient = useQueryClient();
-
   // Fetch clients
-  const { data: clientsData } = useQuery({
+  const { data: clientsData } = useStandardizedQuery({
     queryKey: ['clients'],
     queryFn: () => clientsService.getClients({ limit: 100 }),
+    errorContext: 'Loading Clients',
+    errorFallbackMessage: 'Failed to load clients',
   });
 
   // Fetch products for selected client
-  const { data: productsData } = useQuery({
+  const { data: productsData } = useStandardizedQuery({
     queryKey: ['client-products', selectedClientId],
     queryFn: () => productsService.getProductsByClient(selectedClientId),
     enabled: !!selectedClientId,
+    errorContext: 'Loading Products',
+    errorFallbackMessage: 'Failed to load products',
   });
 
   // Fetch verification types for selected product
-  const { data: verificationTypesData } = useQuery({
+  const { data: verificationTypesData } = useStandardizedQuery({
     queryKey: ['product-verification-types', selectedProductId],
     queryFn: () => verificationTypesService.getVerificationTypesByProduct(selectedProductId),
     enabled: !!selectedProductId,
+    errorContext: 'Loading Verification Types',
+    errorFallbackMessage: 'Failed to load verification types',
   });
 
   // Fetch assignment status for selected combination
-  const { data: assignmentStatusData, isLoading: assignmentLoading } = useQuery({
+  const { data: assignmentStatusData, isLoading: assignmentLoading } = useStandardizedQuery({
     queryKey: ['rate-type-assignments', selectedClientId, selectedProductId, selectedVerificationTypeId],
     queryFn: () => rateTypeAssignmentsService.getAssignmentsByCombination({
       clientId: selectedClientId,
@@ -55,6 +59,8 @@ export function RateTypeAssignmentTab() {
       verificationTypeId: selectedVerificationTypeId,
     }),
     enabled: !!(selectedClientId && selectedProductId && selectedVerificationTypeId),
+    errorContext: 'Loading Rate Type Assignments',
+    errorFallbackMessage: 'Failed to load rate type assignments',
   });
 
   // Update assigned rate types when assignment status changes
@@ -68,22 +74,20 @@ export function RateTypeAssignmentTab() {
   }, [assignmentStatusData]);
 
   // Save assignments mutation
-  const saveAssignmentsMutation = useMutation({
+  const saveAssignmentsMutation = useMutationWithInvalidation({
     mutationFn: () => rateTypeAssignmentsService.bulkAssignRateTypes({
       clientId: selectedClientId,
       productId: selectedProductId,
       verificationTypeId: selectedVerificationTypeId,
       rateTypeIds: assignedRateTypeIds,
     }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ['rate-type-assignments', selectedClientId, selectedProductId, selectedVerificationTypeId]
-      });
-      toast.success('Rate type assignments saved successfully');
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to save assignments');
-    },
+    invalidateKeys: [
+      ['rate-type-assignments', selectedClientId, selectedProductId, selectedVerificationTypeId],
+      ['rate-management-stats']
+    ],
+    successMessage: 'Rate type assignments saved successfully',
+    errorContext: 'Rate Type Assignment',
+    errorFallbackMessage: 'Failed to save rate type assignments',
   });
 
   const clients = clientsData?.data || [];
