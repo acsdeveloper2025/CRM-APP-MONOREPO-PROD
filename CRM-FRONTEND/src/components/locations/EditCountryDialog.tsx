@@ -1,8 +1,8 @@
-import React, { useEffect } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { useCRUDMutation } from '@/hooks/useStandardizedMutation';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -28,7 +28,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import toast from 'react-hot-toast';
 import { locationsService } from '@/services/locations';
 import { Country } from '@/types/location';
 
@@ -60,8 +59,6 @@ const continents = [
 ];
 
 export function EditCountryDialog({ country, open, onOpenChange }: EditCountryDialogProps) {
-  const queryClient = useQueryClient();
-
   const form = useForm<EditCountryFormData>({
     resolver: zodResolver(editCountrySchema),
     defaultValues: {
@@ -82,24 +79,22 @@ export function EditCountryDialog({ country, open, onOpenChange }: EditCountryDi
     }
   }, [country, form]);
 
-  const updateCountryMutation = useMutation({
-    mutationFn: (data: EditCountryFormData) => 
-      locationsService.updateCountry(country.id, data),
+  const updateCountryMutation = useCRUDMutation({
+    mutationFn: (data: EditCountryFormData) =>
+      locationsService.updateCountry(country.id, {
+        ...data,
+        code: data.code.toUpperCase(),
+      }),
+    queryKey: ['countries'],
+    resourceName: 'Country',
+    operation: 'update',
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['countries'] });
-      toast.success('Country updated successfully');
       onOpenChange(false);
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to update country');
     },
   });
 
   const onSubmit = (data: EditCountryFormData) => {
-    updateCountryMutation.mutate({
-      ...data,
-      code: data.code.toUpperCase(),
-    });
+    updateCountryMutation.mutate(data);
   };
 
   const handleCodeChange = (value: string) => {

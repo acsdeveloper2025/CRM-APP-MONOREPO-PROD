@@ -1,8 +1,8 @@
-import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { z } from 'zod';
+import { useCRUDMutation } from '@/hooks/useStandardizedMutation';
+import { useStandardizedQuery } from '@/hooks/useStandardizedQuery';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -28,7 +28,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { toast } from 'sonner';
 import { locationsService } from '@/services/locations';
 import type { CreateStateData } from '@/types/location';
 
@@ -49,8 +48,6 @@ interface CreateStateDialogProps {
 }
 
 export function CreateStateDialog({ open, onOpenChange }: CreateStateDialogProps) {
-  const queryClient = useQueryClient();
-
   const form = useForm<CreateStateFormData>({
     resolver: zodResolver(createStateSchema),
     defaultValues: {
@@ -61,21 +58,22 @@ export function CreateStateDialog({ open, onOpenChange }: CreateStateDialogProps
   });
 
   // Fetch countries for dropdown
-  const { data: countriesData } = useQuery({
+  const { data: countriesData } = useStandardizedQuery({
     queryKey: ['countries'],
     queryFn: () => locationsService.getCountries(),
+    enabled: open,
+    errorContext: 'Loading Countries',
+    errorFallbackMessage: 'Failed to load countries',
   });
 
-  const createStateMutation = useMutation({
+  const createStateMutation = useCRUDMutation({
     mutationFn: (data: CreateStateData) => locationsService.createState(data),
+    queryKey: ['states'],
+    resourceName: 'State',
+    operation: 'create',
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['states'] });
-      toast.success('State created successfully');
       form.reset();
       onOpenChange(false);
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to create state');
     },
   });
 

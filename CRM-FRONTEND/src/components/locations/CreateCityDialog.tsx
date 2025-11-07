@@ -1,8 +1,8 @@
-import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
+import { useCRUDMutation } from '@/hooks/useStandardizedMutation';
+import { useStandardizedQuery } from '@/hooks/useStandardizedQuery';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -29,7 +29,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { toast } from 'sonner';
 import { locationsService } from '@/services/locations';
 
 const createCitySchema = z.object({
@@ -46,8 +45,6 @@ interface CreateCityDialogProps {
 }
 
 export function CreateCityDialog({ open, onOpenChange }: CreateCityDialogProps) {
-  const queryClient = useQueryClient();
-
   const form = useForm<CreateCityFormData>({
     resolver: zodResolver(createCitySchema),
     defaultValues: {
@@ -58,28 +55,30 @@ export function CreateCityDialog({ open, onOpenChange }: CreateCityDialogProps) 
   });
 
   // Fetch states and countries for dropdowns
-  const { data: statesData } = useQuery({
+  const { data: statesData } = useStandardizedQuery({
     queryKey: ['states'],
     queryFn: () => locationsService.getStates(),
     enabled: open,
+    errorContext: 'Loading States',
+    errorFallbackMessage: 'Failed to load states',
   });
 
-  const { data: countriesData } = useQuery({
+  const { data: countriesData } = useStandardizedQuery({
     queryKey: ['countries'],
     queryFn: () => locationsService.getCountries(),
     enabled: open,
+    errorContext: 'Loading Countries',
+    errorFallbackMessage: 'Failed to load countries',
   });
 
-  const createMutation = useMutation({
+  const createMutation = useCRUDMutation({
     mutationFn: (data: CreateCityFormData) => locationsService.createCity(data),
+    queryKey: ['cities'],
+    resourceName: 'City',
+    operation: 'create',
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['cities'] });
-      toast.success('City created successfully');
       form.reset();
       onOpenChange(false);
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to create city');
     },
   });
 
