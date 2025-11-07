@@ -106,7 +106,6 @@ export function ProductsTable({ data, isLoading }: ProductsTableProps) {
           <TableHeader>
             <TableRow>
               <TableHead>Product Name</TableHead>
-              <TableHead>Verification Types</TableHead>
               <TableHead>Created Date</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Actions</TableHead>
@@ -122,12 +121,6 @@ export function ProductsTable({ data, isLoading }: ProductsTableProps) {
                     </div>
                     <span>{product.name}</span>
                   </div>
-                </TableCell>
-
-                <TableCell>
-                  <span className="text-sm text-gray-600">
-                    {product.verificationTypes?.length || 0} types
-                  </span>
                 </TableCell>
                 <TableCell>
                   {new Date(product.createdAt).toLocaleDateString()}
