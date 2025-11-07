@@ -96,15 +96,15 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
 
   const createMutation = useMutation({
     mutationFn: (data: CreateUserFormData) => {
-      // Convert empty strings to undefined for optional fields only
+      // Convert string IDs to numbers for API
       const cleanData = {
         ...data,
-        // Required fields - keep as is
-        roleId: data.roleId,
+        // Required fields - parse roleId to number
+        roleId: data.roleId ? parseInt(data.roleId, 10) : undefined,
         employeeId: data.employeeId,
-        // Optional fields - convert empty strings to undefined
-        departmentId: data.departmentId || undefined,
-        designationId: data.designationId || undefined,
+        // Optional fields - parse to number or undefined
+        departmentId: data.departmentId ? parseInt(data.departmentId, 10) : undefined,
+        designationId: data.designationId ? parseInt(data.designationId, 10) : undefined,
       };
       return usersService.createUser(cleanData as any);
     },
