@@ -102,21 +102,21 @@ export function RolesTable({ onEditRole }: RolesTableProps) {
 
   return (
     <>
-      <div className="rounded-md border">
+      <div className="border rounded-lg overflow-hidden">
         <Table>
-          <TableHeader>
+          <TableHeader className="bg-gray-50 border-b border-gray-200">
             <TableRow>
-              <TableHead>Role</TableHead>
-              <TableHead>Description</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Users</TableHead>
-              <TableHead>Permissions</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Created</TableHead>
-              <TableHead className="w-[70px]" />
+              <TableHead className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Role</TableHead>
+              <TableHead className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Description</TableHead>
+              <TableHead className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Type</TableHead>
+              <TableHead className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Users</TableHead>
+              <TableHead className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Permissions</TableHead>
+              <TableHead className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Status</TableHead>
+              <TableHead className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Created</TableHead>
+              <TableHead className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider w-[70px]" />
             </TableRow>
           </TableHeader>
-          <TableBody>
+          <TableBody className="bg-white divide-y divide-gray-200">
             {roles.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={8} className="text-center py-8">
@@ -127,7 +127,7 @@ export function RolesTable({ onEditRole }: RolesTableProps) {
               </TableRow>
             ) : (
               roles.map((role) => (
-                <TableRow key={role.id}>
+                <TableRow key={role.id} className="hover:bg-green-50 transition-colors">
                   <TableCell>
                     <div className="flex items-center space-x-2">
                       {getRoleIcon(role.name, 'md')}

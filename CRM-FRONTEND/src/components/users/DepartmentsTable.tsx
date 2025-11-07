@@ -108,20 +108,20 @@ export function DepartmentsTable({ onEditDepartment }: DepartmentsTableProps) {
         </Button>
       </div>
 
-      <div className="rounded-md border">
+      <div className="border rounded-lg overflow-hidden">
         <Table>
-          <TableHeader>
+          <TableHeader className="bg-gray-50 border-b border-gray-200">
             <TableRow>
-              <TableHead>Department</TableHead>
-              <TableHead>Description</TableHead>
-              <TableHead>Head</TableHead>
-              <TableHead>Users</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Created</TableHead>
-              <TableHead className="w-[70px]" />
+              <TableHead className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Department</TableHead>
+              <TableHead className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Description</TableHead>
+              <TableHead className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Head</TableHead>
+              <TableHead className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Users</TableHead>
+              <TableHead className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Status</TableHead>
+              <TableHead className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Created</TableHead>
+              <TableHead className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider w-[70px]" />
             </TableRow>
           </TableHeader>
-          <TableBody>
+          <TableBody className="bg-white divide-y divide-gray-200">
             {departments.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="text-center py-8">
@@ -132,7 +132,7 @@ export function DepartmentsTable({ onEditDepartment }: DepartmentsTableProps) {
               </TableRow>
             ) : (
               departments.map((department) => (
-                <TableRow key={department.id}>
+                <TableRow key={department.id} className="hover:bg-green-50 transition-colors">
                   <TableCell>
                     <div className="flex items-center space-x-2">
                       <Building className="h-4 w-4 text-gray-600" />
