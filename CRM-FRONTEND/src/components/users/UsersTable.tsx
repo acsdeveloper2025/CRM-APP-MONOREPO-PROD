@@ -96,7 +96,22 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
       setUserToDelete(null);
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to delete user');
+      const errorData = error.response?.data;
+      const errorMessage = errorData?.message || 'Failed to delete user';
+
+      // Check if there are detailed dependency errors
+      if (errorData?.error?.details) {
+        // Show detailed error with blocking records and cascade warnings
+        toast.error(errorMessage, {
+          description: errorData.error.details,
+          duration: 10000, // Show for 10 seconds so user can read the details
+        });
+      } else {
+        toast.error(errorMessage);
+      }
+
+      setShowDeleteDialog(false);
+      setUserToDelete(null);
     },
   });
 
