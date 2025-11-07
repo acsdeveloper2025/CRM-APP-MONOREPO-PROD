@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient, UseMutationOptions, MutationFunction } from '@tanstack/react-query';
 import { useErrorHandling, ErrorHandlingOptions } from './useErrorHandling';
+import { toast } from 'sonner';
 
 /**
  * Standardized mutation hook that wraps useMutation with automatic error handling
@@ -71,10 +72,9 @@ export function useStandardizedMutation<
     onSuccess: (data, variables, context) => {
       // Show success message if provided
       if (successMessage) {
-        const { toast } = require('sonner');
         toast.success(successMessage);
       }
-      
+
       // Call custom onSuccess handler
       if (onSuccess) {
         onSuccess(data, variables, context);
