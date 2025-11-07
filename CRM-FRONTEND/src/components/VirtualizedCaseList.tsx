@@ -2,8 +2,9 @@ import React, { useMemo, useCallback, useState, useEffect } from 'react';
 import { FixedSizeList as List } from 'react-window';
 import { Case } from '../types/case';
 import { CaseCard } from './CaseCard';
-import { Loader2, Search, Filter, RefreshCw } from 'lucide-react';
+import { Search, Filter, RefreshCw } from 'lucide-react';
 import { useDebounce } from '../hooks/useDebounce';
+import { LoadingSpinner } from './ui/loading';
 
 interface VirtualizedCaseListProps {
   cases: Case[];
@@ -55,7 +56,7 @@ const CaseItem: React.FC<CaseItemProps> = React.memo(({ index, style, data }) =>
   if (index >= cases.length) {
     return (
       <div style={style} className="flex items-center justify-center p-4">
-        <Loader2 className="h-6 w-6 animate-spin text-green-500" />
+        <LoadingSpinner size="sm" />
         <span className="ml-2 text-gray-600">Loading more cases...</span>
       </div>
     );
@@ -333,7 +334,7 @@ export const VirtualizedCaseList: React.FC<VirtualizedCaseListProps> = ({
       {/* Loading indicator */}
       {loading && cases.length === 0 && (
         <div className="flex items-center justify-center p-8">
-          <Loader2 className="h-8 w-8 animate-spin text-green-500" />
+          <LoadingSpinner size="lg" />
           <span className="ml-3 text-gray-600">Loading cases...</span>
         </div>
       )}

@@ -11,7 +11,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Skeleton } from '@/components/ui/skeleton';
+import { LoadingSpinner } from '@/components/ui/loading';
 import { clientsService } from '@/services/clients';
 import { Client } from '@/types/client';
 
@@ -60,10 +60,8 @@ export function ClientDetailsDialog({ client, open, onOpenChange }: ClientDetail
             </CardHeader>
             <CardContent className="space-y-4">
               {isLoading ? (
-                <div className="space-y-3">
-                  <Skeleton className="h-4 w-full" />
-                  <Skeleton className="h-4 w-3/4" />
-                  <Skeleton className="h-4 w-1/2" />
+                <div className="flex items-center justify-center py-8">
+                  <LoadingSpinner size="md" />
                 </div>
               ) : (
                 <div className="grid grid-cols-2 gap-4">

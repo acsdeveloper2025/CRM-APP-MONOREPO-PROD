@@ -11,7 +11,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Skeleton } from '@/components/ui/skeleton';
+import { LoadingSpinner } from '@/components/ui/loading';
 import { locationsService } from '@/services/locations';
 import { City } from '@/types/location';
 
@@ -101,10 +101,8 @@ export function CityDetailsDialog({ city, open, onOpenChange }: CityDetailsDialo
             </CardHeader>
             <CardContent>
               {isLoading ? (
-                <div className="space-y-2">
-                  {[...Array(3)].map((_, i) => (
-                    <Skeleton key={i} className="h-12 w-full" />
-                  ))}
+                <div className="flex items-center justify-center py-8">
+                  <LoadingSpinner size="md" />
                 </div>
               ) : pincodes.length > 0 ? (
                 <div className="grid gap-3">

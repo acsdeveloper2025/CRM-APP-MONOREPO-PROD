@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
+import { LoadingSpinner } from '@/components/ui/loading';
 import { locationsService } from '@/services/locations';
 import type { State } from '@/types/location';
 
@@ -94,10 +94,8 @@ export function StateDetailsDialog({ state, open, onOpenChange }: StateDetailsDi
             </CardHeader>
             <CardContent>
               {citiesLoading ? (
-                <div className="space-y-2">
-                  {[...Array(3)].map((_, i) => (
-                    <Skeleton key={i} className="h-8 w-full" />
-                  ))}
+                <div className="flex items-center justify-center py-8">
+                  <LoadingSpinner size="md" />
                 </div>
               ) : cities.length > 0 ? (
                 <div className="space-y-2">

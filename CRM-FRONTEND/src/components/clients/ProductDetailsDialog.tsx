@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
+import { LoadingSpinner } from '@/components/ui/loading';
 import { clientsService } from '@/services/clients';
 import { Product } from '@/types/client';
 
@@ -54,9 +54,8 @@ export function ProductDetailsDialog({ product, open, onOpenChange }: ProductDet
             </CardHeader>
             <CardContent className="space-y-4">
               {isLoading ? (
-                <div className="space-y-3">
-                  <Skeleton className="h-4 w-full" />
-                  <Skeleton className="h-4 w-3/4" />
+                <div className="flex items-center justify-center py-8">
+                  <LoadingSpinner size="md" />
                 </div>
               ) : (
                 <div className="grid grid-cols-2 gap-4">
