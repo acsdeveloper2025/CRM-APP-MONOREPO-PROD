@@ -242,6 +242,7 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
               <TableHead>User</TableHead>
               <TableHead>Role</TableHead>
               <TableHead className="hidden lg:table-cell">Department</TableHead>
+              <TableHead className="hidden lg:table-cell">Assignments</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="hidden xl:table-cell">Last Login</TableHead>
               <TableHead className="hidden xl:table-cell">Created</TableHead>
@@ -286,6 +287,22 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
                     <div className="font-medium">{user.departmentName || 'No Department'}</div>
                     <div className="text-sm text-gray-600">{user.designation}</div>
                   </div>
+                </TableCell>
+                <TableCell className="hidden lg:table-cell">
+                  {user.role === 'BACKEND_USER' ? (
+                    <div className="text-sm">
+                      <div className="flex items-center gap-1">
+                        <span className="font-medium text-green-700">{user.assignedClientsCount || 0}</span>
+                        <span className="text-gray-600">clients</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <span className="font-medium text-green-700">{user.assignedProductsCount || 0}</span>
+                        <span className="text-gray-600">products</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <span className="text-sm text-gray-400">N/A</span>
+                  )}
                 </TableCell>
                 <TableCell>
                   {getStatusBadge(user.isActive ?? false)}
@@ -470,6 +487,23 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
                   </div>
                 }
               />
+              {user.role === 'BACKEND_USER' && (
+                <MobileTableField
+                  label="Assignments"
+                  value={
+                    <div className="text-sm">
+                      <div className="flex items-center gap-1">
+                        <span className="font-medium text-green-700">{user.assignedClientsCount || 0}</span>
+                        <span className="text-gray-600">clients</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <span className="font-medium text-green-700">{user.assignedProductsCount || 0}</span>
+                        <span className="text-gray-600">products</span>
+                      </div>
+                    </div>
+                  }
+                />
+              )}
               <MobileTableField
                 label="Last Login"
                 value={

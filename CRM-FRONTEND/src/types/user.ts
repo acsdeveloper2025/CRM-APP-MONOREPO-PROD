@@ -28,6 +28,9 @@ export interface User {
   updatedAt?: string;
   createdBy?: string;
   updatedBy?: string;
+  // Assignment counts for BACKEND_USER role
+  assignedClientsCount?: number;
+  assignedProductsCount?: number;
 }
 
 export interface CreateUserData {
