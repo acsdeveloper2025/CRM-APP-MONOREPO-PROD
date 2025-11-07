@@ -167,7 +167,7 @@ export const requireFieldOrHigher = requireRole([
 ]);
 
 // Enhanced auth middleware that loads user permissions
-export const auth = async (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
+export const auth = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     // First run the basic token authentication
     authenticateToken(req, res, async () => {
