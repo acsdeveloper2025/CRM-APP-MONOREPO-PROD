@@ -241,6 +241,23 @@ export const assignPincodesToFieldAgent = async (req: Request, res: Response) =>
     const { userId } = req.params;
     const { pincodeIds } = req.body;
 
+    // Validate authentication - assignedBy field is required and must reference a valid user
+    const authenticatedUserId = (req as any).user?.id;
+    if (!authenticatedUserId) {
+      logger.error('Pincode assignment attempted without authentication', {
+        userId,
+        pincodeIds: pincodeIds?.length,
+      });
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required. Please log in and try again.',
+        error: {
+          code: 'AUTHENTICATION_REQUIRED',
+          details: 'User authentication is required to assign pincodes'
+        },
+      });
+    }
+
     // Validate input - allow empty arrays for removing all assignments
     if (!Array.isArray(pincodeIds)) {
       return res.status(400).json({
@@ -310,8 +327,8 @@ export const assignPincodesToFieldAgent = async (req: Request, res: Response) =>
 
       // Then, insert new pincode assignments (only if pincodeIds is not empty)
       if (pincodeIds.length > 0) {
-        // Get the assignedBy user ID - use authenticated user or the user being assigned
-        const assignedBy = (req as any).user?.id || userId;
+        // Use authenticated user ID (already validated above)
+        const assignedBy = authenticatedUserId;
 
         const insertPromises = pincodeIds.map(async (pincodeId: number) => {
           const result = await query(
@@ -374,6 +391,23 @@ export const assignAreasToFieldAgent = async (req: Request, res: Response) => {
   try {
     const { userId } = req.params;
     const { assignments } = req.body; // Array of { pincodeId, areaIds }
+
+    // Validate authentication - assignedBy field is required and must reference a valid user
+    const authenticatedUserId = (req as any).user?.id;
+    if (!authenticatedUserId) {
+      logger.error('Area assignment attempted without authentication', {
+        userId,
+        assignmentsCount: assignments?.length,
+      });
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required. Please log in and try again.',
+        error: {
+          code: 'AUTHENTICATION_REQUIRED',
+          details: 'User authentication is required to assign areas'
+        },
+      });
+    }
 
     // Validate input - allow empty arrays for removing all area assignments
     if (!Array.isArray(assignments)) {
@@ -473,7 +507,7 @@ export const assignAreasToFieldAgent = async (req: Request, res: Response) => {
           continue;
         }
 
-        // Insert area assignments
+        // Insert area assignments using authenticated user ID
         const insertPromises = validAreaIds.map(async (areaId: number) => {
           try {
             const result = await query(
@@ -481,7 +515,7 @@ export const assignAreasToFieldAgent = async (req: Request, res: Response) => {
                ("userId", "pincodeId", "areaId", "userPincodeAssignmentId", "assignedBy")
                VALUES ($1, $2, $3, $4, $5)
                RETURNING id, "areaId"`,
-              [userId, pincodeId, areaId, userPincodeAssignmentId, (req as any).user?.id]
+              [userId, pincodeId, areaId, userPincodeAssignmentId, authenticatedUserId]
             );
             return result.rows[0];
           } catch (error) {
