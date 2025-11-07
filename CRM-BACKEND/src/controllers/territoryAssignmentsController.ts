@@ -373,7 +373,14 @@ export const assignPincodesToFieldAgent = async (req: Request, res: Response) =>
       throw transactionError;
     }
   } catch (error) {
-    logger.error('Error updating pincode assignments for field agent:', error);
+    logger.error('Error updating pincode assignments for field agent:', {
+      error,
+      errorMessage: error instanceof Error ? error.message : 'Unknown error',
+      errorStack: error instanceof Error ? error.stack : undefined,
+      userId: req.params.userId,
+      pincodeIdsCount: req.body.pincodeIds?.length,
+      authenticatedUserId: (req as any).user?.id,
+    });
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     res.status(500).json({
       success: false,
