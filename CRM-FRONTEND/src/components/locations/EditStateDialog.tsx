@@ -1,8 +1,9 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { z } from 'zod';
+import { useCRUDMutation } from '@/hooks/useStandardizedMutation';
+import { useStandardizedQuery } from '@/hooks/useStandardizedQuery';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -28,7 +29,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { toast } from 'sonner';
 import { locationsService } from '@/services/locations';
 import type { State, UpdateStateData } from '@/types/location';
 
@@ -50,8 +50,6 @@ interface EditStateDialogProps {
 }
 
 export function EditStateDialog({ state, open, onOpenChange }: EditStateDialogProps) {
-  const queryClient = useQueryClient();
-
   const form = useForm<UpdateStateFormData>({
     resolver: zodResolver(updateStateSchema),
     defaultValues: {
@@ -73,20 +71,21 @@ export function EditStateDialog({ state, open, onOpenChange }: EditStateDialogPr
   }, [state, form]);
 
   // Fetch countries for dropdown
-  const { data: countriesData } = useQuery({
+  const { data: countriesData } = useStandardizedQuery({
     queryKey: ['countries'],
     queryFn: () => locationsService.getCountries(),
+    enabled: open,
+    errorContext: 'Loading Countries',
+    errorFallbackMessage: 'Failed to load countries',
   });
 
-  const updateStateMutation = useMutation({
+  const updateStateMutation = useCRUDMutation({
     mutationFn: (data: UpdateStateData) => locationsService.updateState(state.id, data),
+    queryKey: ['states'],
+    resourceName: 'State',
+    operation: 'update',
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['states'] });
-      toast.success('State updated successfully');
       onOpenChange(false);
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to update state');
     },
   });
 
