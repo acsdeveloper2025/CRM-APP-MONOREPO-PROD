@@ -104,7 +104,7 @@ export function EditCountryDialog({ country, open, onOpenChange }: EditCountryDi
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="max-w-[95vw] sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Edit Country</DialogTitle>
           <DialogDescription>
@@ -179,18 +179,19 @@ export function EditCountryDialog({ country, open, onOpenChange }: EditCountryDi
               )}
             />
 
-            <DialogFooter>
+            <DialogFooter className="flex-col sm:flex-row gap-2">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
+                className="w-full sm:w-auto"
               >
                 Cancel
               </Button>
               <Button 
                 type="submit" 
                 disabled={updateCountryMutation.isPending}
-              >
+               className="w-full sm:w-auto">
                 {updateCountryMutation.isPending ? 'Updating...' : 'Update Country'}
               </Button>
             </DialogFooter>

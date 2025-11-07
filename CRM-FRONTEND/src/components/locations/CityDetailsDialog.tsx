@@ -32,7 +32,7 @@ export function CityDetailsDialog({ city, open, onOpenChange }: CityDetailsDialo
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="max-w-[95vw] sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2">
             <Building className="h-5 w-5" />
@@ -50,7 +50,7 @@ export function CityDetailsDialog({ city, open, onOpenChange }: CityDetailsDialo
               <CardTitle className="text-lg">City Information</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <div className="flex items-center space-x-2">
                     <Building className="h-4 w-4 text-gray-600" />

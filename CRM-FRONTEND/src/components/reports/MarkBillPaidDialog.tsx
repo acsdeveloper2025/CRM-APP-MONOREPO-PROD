@@ -61,7 +61,7 @@ export function MarkBillPaidDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="max-w-[95vw] sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Mark Bill as Paid</DialogTitle>
           <DialogDescription>
@@ -137,11 +137,12 @@ export function MarkBillPaidDialog({
                 </div>
               )}
 
-              <DialogFooter>
+              <DialogFooter className="flex-col sm:flex-row gap-2">
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => onOpenChange(false)}
+                className="w-full sm:w-auto"
                   disabled={isLoading}
                 >
                   Cancel
@@ -149,6 +150,7 @@ export function MarkBillPaidDialog({
                 <Button
                   type="submit"
                   disabled={isLoading || watchedAmount <= 0 || watchedAmount > bill.pendingAmount}
+                  className="w-full sm:w-auto"
                 >
                   {isLoading ? 'Processing...' : 'Record Payment'}
                 </Button>

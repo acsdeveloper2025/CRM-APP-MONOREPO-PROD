@@ -89,7 +89,7 @@ export function CreateRateTypeDialog({ open, onOpenChange }: CreateRateTypeDialo
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="max-w-[95vw] sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>Create Rate Type</DialogTitle>
           <DialogDescription>
@@ -102,7 +102,7 @@ export function CreateRateTypeDialog({ open, onOpenChange }: CreateRateTypeDialo
             {/* Predefined Rate Types */}
             <div className="space-y-3">
               <FormLabel>Quick Select (Predefined Rate Types)</FormLabel>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {predefinedRateTypes.map((rateType) => (
                   <Button
                     key={rateType.name}
@@ -182,16 +182,17 @@ export function CreateRateTypeDialog({ open, onOpenChange }: CreateRateTypeDialo
               )}
             />
 
-            <DialogFooter>
+            <DialogFooter className="flex-col sm:flex-row gap-2">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => handleOpenChange(false)}
+                className="w-full sm:w-auto"
                 disabled={createMutation.isPending}
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={createMutation.isPending}>
+              <Button type="submit" disabled={createMutation.isPending} className="w-full sm:w-auto">
                 {createMutation.isPending ? 'Creating...' : 'Create Rate Type'}
               </Button>
             </DialogFooter>

@@ -89,7 +89,7 @@ export function BulkImportDialog({ open, onOpenChange, type }: BulkImportDialogP
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="max-w-[95vw] sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2">
             <Upload className="h-5 w-5" />
@@ -152,10 +152,11 @@ export function BulkImportDialog({ open, onOpenChange, type }: BulkImportDialogP
           </Alert>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="flex-col sm:flex-row gap-2">
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
+                className="w-full sm:w-auto"
             disabled={importMutation.isPending}
           >
             Cancel
@@ -163,7 +164,7 @@ export function BulkImportDialog({ open, onOpenChange, type }: BulkImportDialogP
           <Button
             onClick={handleImport}
             disabled={!file || importMutation.isPending}
-          >
+           className="w-full sm:w-auto">
             {importMutation.isPending ? 'Importing...' : 'Import'}
           </Button>
         </DialogFooter>

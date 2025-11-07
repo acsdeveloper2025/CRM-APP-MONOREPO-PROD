@@ -119,7 +119,7 @@ export function CreateClientDialog({ open, onOpenChange }: CreateClientDialogPro
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[80vh]">
+      <DialogContent className="max-w-[95vw] sm:max-w-[600px] max-h-[90vh] sm:max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Create New Client</DialogTitle>
           <DialogDescription>
@@ -130,11 +130,11 @@ export function CreateClientDialog({ open, onOpenChange }: CreateClientDialogPro
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <Tabs defaultValue="basic" className="w-full">
-              <TabsList className="grid w-full grid-cols-4">
-                <TabsTrigger value="basic">Basic Info</TabsTrigger>
-                <TabsTrigger value="products">Products</TabsTrigger>
-                <TabsTrigger value="verification-types">Verification Types</TabsTrigger>
-                <TabsTrigger value="document-types">Document Types</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 gap-1">
+                <TabsTrigger value="basic" className="text-xs sm:text-sm">Basic Info</TabsTrigger>
+                <TabsTrigger value="products" className="text-xs sm:text-sm">Products</TabsTrigger>
+                <TabsTrigger value="verification-types" className="text-xs sm:text-sm">Verification</TabsTrigger>
+                <TabsTrigger value="document-types" className="text-xs sm:text-sm">Documents</TabsTrigger>
               </TabsList>
 
               <TabsContent value="basic" className="space-y-4">
@@ -353,18 +353,20 @@ export function CreateClientDialog({ open, onOpenChange }: CreateClientDialogPro
               </TabsContent>
             </Tabs>
 
-            <DialogFooter>
+            <DialogFooter className="flex-col sm:flex-row gap-2">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
                 disabled={createMutation.isPending}
+                className="w-full sm:w-auto"
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
                 disabled={createMutation.isPending}
+                className="w-full sm:w-auto"
               >
                 {createMutation.isPending ? 'Creating...' : 'Create Client'}
               </Button>

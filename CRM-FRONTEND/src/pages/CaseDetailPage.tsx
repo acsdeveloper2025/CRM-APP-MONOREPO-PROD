@@ -69,7 +69,7 @@ export const CaseDetailPage: React.FC = () => {
   if (!caseItem) {
     return (
       <div className="text-center py-12">
-        <h2 className="text-2xl font-bold text-gray-900">Case not found</h2>
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Case not found</h2>
         <p className="mt-2 text-gray-600">The case you're looking for doesn't exist.</p>
         <Link to="/cases">
           <Button className="mt-4">
@@ -143,7 +143,7 @@ export const CaseDetailPage: React.FC = () => {
             </Button>
           </Link>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
               Case #{caseItem.caseId || caseItem.id?.slice(-8) || 'N/A'}
             </h1>
             <p className="mt-2 text-gray-600">{caseItem.title || 'Case Details'}</p>

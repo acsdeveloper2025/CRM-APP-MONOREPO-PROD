@@ -144,7 +144,7 @@ export const ReviewDialog: React.FC<ReviewDialogProps> = ({
           {/* Case Summary */}
           <div className="p-4 bg-muted rounded-lg">
             <h4 className="font-medium text-gray-900 mb-2">Case Summary</h4>
-            <div className="grid grid-cols-2 gap-4 text-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
               <div>
                 <span className="text-gray-600">Customer:</span>
                 <span className="ml-2 font-medium">{caseItem.customerName}</span>
@@ -257,8 +257,8 @@ export const ReviewDialog: React.FC<ReviewDialogProps> = ({
                 )}
               </div>
 
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={handleClose}>
+              <DialogFooter className="flex-col sm:flex-row gap-2">
+                <Button type="button" variant="outline" onClick={handleClose} className="w-full sm:w-auto">
                   Cancel
                 </Button>
                 <Button

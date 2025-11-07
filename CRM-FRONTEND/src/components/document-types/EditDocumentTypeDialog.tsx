@@ -130,7 +130,7 @@ export const EditDocumentTypeDialog: React.FC<EditDocumentTypeDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-[95vw] sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Edit Document Type</DialogTitle>
           <DialogDescription>
@@ -140,7 +140,7 @@ export const EditDocumentTypeDialog: React.FC<EditDocumentTypeDialogProps> = ({
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="name"
@@ -216,7 +216,7 @@ export const EditDocumentTypeDialog: React.FC<EditDocumentTypeDialogProps> = ({
               )}
             />
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="validityPeriodMonths"
@@ -322,14 +322,14 @@ export const EditDocumentTypeDialog: React.FC<EditDocumentTypeDialogProps> = ({
               />
             </div>
 
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={handleClose}>
+            <DialogFooter className="flex-col sm:flex-row gap-2">
+              <Button type="button" variant="outline" onClick={handleClose} className="w-full sm:w-auto">
                 Cancel
               </Button>
               <Button 
                 type="submit" 
                 disabled={updateDocumentTypeMutation.isPending}
-              >
+               className="w-full sm:w-auto">
                 {updateDocumentTypeMutation.isPending ? 'Updating...' : 'Update Document Type'}
               </Button>
             </DialogFooter>
