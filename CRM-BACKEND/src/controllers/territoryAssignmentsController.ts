@@ -310,18 +310,19 @@ export const assignPincodesToFieldAgent = async (req: Request, res: Response) =>
     await query('BEGIN');
 
     try {
-      // First, deactivate all existing pincode assignments for this user (and their related area assignments)
-      const deactivateAreasResult = await query(
-        'UPDATE "userAreaAssignments" SET "isActive" = false WHERE "userId" = $1 AND "isActive" = true RETURNING id',
+      // First, delete all existing area assignments for this user
+      const deleteAreasResult = await query(
+        'DELETE FROM "userAreaAssignments" WHERE "userId" = $1 RETURNING id',
         [userId]
       );
-      const deactivatedAreasCount = deactivateAreasResult.rows.length;
+      const deletedAreasCount = deleteAreasResult.rows.length;
 
-      const deactivatePincodesResult = await query(
-        'UPDATE "userPincodeAssignments" SET "isActive" = false WHERE "userId" = $1 AND "isActive" = true RETURNING id',
+      // Delete all existing pincode assignments for this user
+      const deletePincodesResult = await query(
+        'DELETE FROM "userPincodeAssignments" WHERE "userId" = $1 RETURNING id',
         [userId]
       );
-      const deactivatedPincodesCount = deactivatePincodesResult.rows.length;
+      const deletedPincodesCount = deletePincodesResult.rows.length;
 
       let insertedCount = 0;
 
@@ -330,18 +331,21 @@ export const assignPincodesToFieldAgent = async (req: Request, res: Response) =>
         // Use authenticated user ID (already validated above)
         const assignedBy = authenticatedUserId;
 
-        const insertPromises = pincodeIds.map(async (pincodeId: number) => {
-          const result = await query(
-            `INSERT INTO "userPincodeAssignments" ("userId", "pincodeId", "assignedBy", "isActive")
-             VALUES ($1, $2, $3, true)
-             RETURNING id, "pincodeId", "assignedAt"`,
-            [userId, pincodeId, assignedBy]
-          );
-          return result.rows[0];
-        });
+        // Use bulk INSERT for better performance
+        const values = pincodeIds.map((pincodeId: number, index: number) => {
+          const offset = index * 3;
+          return `($${offset + 1}, $${offset + 2}, $${offset + 3}, true)`;
+        }).join(', ');
 
-        const results = await Promise.all(insertPromises);
-        insertedCount = results.length;
+        const params = pincodeIds.flatMap((pincodeId: number) => [userId, pincodeId, assignedBy]);
+
+        const result = await query(
+          `INSERT INTO "userPincodeAssignments" ("userId", "pincodeId", "assignedBy", "isActive")
+           VALUES ${values}
+           RETURNING id, "pincodeId", "assignedAt"`,
+          params
+        );
+        insertedCount = result.rows.length;
       }
 
       // Commit transaction
@@ -351,8 +355,8 @@ export const assignPincodesToFieldAgent = async (req: Request, res: Response) =>
         userId: (req as any).user?.id,
         targetUserId: userId,
         pincodeIds,
-        deactivatedPincodesCount,
-        deactivatedAreasCount,
+        deletedPincodesCount,
+        deletedAreasCount,
         insertedCount,
       });
 
@@ -360,8 +364,8 @@ export const assignPincodesToFieldAgent = async (req: Request, res: Response) =>
         success: true,
         data: {
           userId,
-          deactivatedPincodes: deactivatedPincodesCount,
-          deactivatedAreas: deactivatedAreasCount,
+          deletedPincodes: deletedPincodesCount,
+          deletedAreas: deletedAreasCount,
           newPincodeAssignments: insertedCount,
           totalRequested: pincodeIds.length,
         },
@@ -514,33 +518,46 @@ export const assignAreasToFieldAgent = async (req: Request, res: Response) => {
           continue;
         }
 
-        // Insert area assignments using authenticated user ID
-        const insertPromises = validAreaIds.map(async (areaId: number) => {
-          try {
+        // Insert area assignments using bulk INSERT for better performance
+        try {
+          if (validAreaIds.length > 0) {
+            const values = validAreaIds.map((areaId: number, index: number) => {
+              const offset = index * 5;
+              return `($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5})`;
+            }).join(', ');
+
+            const params = validAreaIds.flatMap((areaId: number) =>
+              [userId, pincodeId, areaId, userPincodeAssignmentId, authenticatedUserId]
+            );
+
             const result = await query(
               `INSERT INTO "userAreaAssignments"
                ("userId", "pincodeId", "areaId", "userPincodeAssignmentId", "assignedBy")
-               VALUES ($1, $2, $3, $4, $5)
+               VALUES ${values}
                RETURNING id, "areaId"`,
-              [userId, pincodeId, areaId, userPincodeAssignmentId, authenticatedUserId]
+              params
             );
-            return result.rows[0];
-          } catch (error) {
-            logger.warn(`Failed to assign area ${areaId} to user ${userId}:`, error);
-            return null;
+
+            const newAreaAssignments = result.rows;
+            totalAssigned += newAreaAssignments.length;
+
+            assignmentResults.push({
+              pincodeId,
+              assigned: newAreaAssignments.length,
+              requested: areaIds.length,
+              failed: 0,
+            });
           }
-        });
-
-        const results = await Promise.all(insertPromises);
-        const newAreaAssignments = results.filter(result => result !== null);
-        totalAssigned += newAreaAssignments.length;
-
-        assignmentResults.push({
-          pincodeId,
-          assigned: newAreaAssignments.length,
-          requested: areaIds.length,
-          failed: areaIds.length - newAreaAssignments.length,
-        });
+        } catch (error) {
+          logger.warn(`Failed to assign areas for pincode ${pincodeId} to user ${userId}:`, error);
+          assignmentResults.push({
+            pincodeId,
+            assigned: 0,
+            requested: areaIds.length,
+            failed: areaIds.length,
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
+        }
       }
     }
 
