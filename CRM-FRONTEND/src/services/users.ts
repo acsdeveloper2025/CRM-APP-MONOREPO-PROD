@@ -360,6 +360,19 @@ export class UsersService {
   async removeProductAssignment(userId: string, productId: number): Promise<ApiResponse<void>> {
     return apiService.delete(`/users/${userId}/product-assignments/${productId}`);
   }
+
+  // Pincode assignment management for FIELD_AGENT users
+  async getUserPincodeAssignments(userId: string): Promise<ApiResponse<any>> {
+    return apiService.get(`/territory-assignments/field-agents/${userId}`);
+  }
+
+  async assignPincodesToUser(userId: string, pincodeIds: number[]): Promise<ApiResponse<void>> {
+    return apiService.post(`/territory-assignments/field-agents/${userId}/pincodes`, { pincodeIds });
+  }
+
+  async removePincodeAssignment(userId: string, pincodeId: number): Promise<ApiResponse<void>> {
+    return apiService.delete(`/territory-assignments/field-agents/${userId}/pincodes/${pincodeId}`);
+  }
 }
 
 export const usersService = new UsersService();

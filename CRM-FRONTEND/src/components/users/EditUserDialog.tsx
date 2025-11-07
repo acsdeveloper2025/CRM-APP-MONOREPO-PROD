@@ -42,7 +42,7 @@ import { departmentsService } from '@/services/departments';
 import { designationsService } from '@/services/designations';
 import { ClientAssignmentSection } from './ClientAssignmentSection';
 import { ProductAssignmentSection } from './ProductAssignmentSection';
-import { TerritoryAssignmentSection } from './TerritoryAssignmentSection';
+import { PincodeAssignmentSection } from './PincodeAssignmentSection';
 
 import { User } from '@/types/user';
 
@@ -173,8 +173,8 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
             <TabsTrigger value="products" disabled={user.role !== 'BACKEND_USER'}>
               Products
             </TabsTrigger>
-            <TabsTrigger value="territories" disabled={user.role !== 'FIELD_AGENT'}>
-              Territories
+            <TabsTrigger value="pincodes" disabled={user.role !== 'FIELD_AGENT'}>
+              Pincodes
             </TabsTrigger>
           </TabsList>
 
@@ -351,8 +351,8 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
             <ProductAssignmentSection user={user} />
           </TabsContent>
 
-          <TabsContent value="territories" className="space-y-4 mt-4">
-            <TerritoryAssignmentSection userId={user.id} userRole={user.role} />
+          <TabsContent value="pincodes" className="space-y-4 mt-4">
+            <PincodeAssignmentSection user={user} />
           </TabsContent>
         </Tabs>
       </DialogContent>
