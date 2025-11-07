@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
 import { MoreHorizontal, Edit, Trash2, Eye, MapPin } from 'lucide-react';
+import { useStandardizedMutation } from '@/hooks/useStandardizedMutation';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -30,7 +30,6 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { toast } from 'sonner';
 import { baseBadgeStyle, formatBadgeLabel } from '@/lib/badgeStyles';
 import { locationsService } from '@/services/locations';
 import { EditStateDialog } from './EditStateDialog';
@@ -48,18 +47,16 @@ export function StatesTable({ data, isLoading }: StatesTableProps) {
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [stateToDelete, setStateToDelete] = useState<State | null>(null);
-  const queryClient = useQueryClient();
 
-  const deleteStateMutation = useMutation({
+  const deleteStateMutation = useStandardizedMutation({
     mutationFn: (id: string) => locationsService.deleteState(id),
+    invalidateKeys: [['states']],
+    successMessage: 'State deleted successfully',
+    errorContext: 'State Deletion',
+    errorFallbackMessage: 'Failed to delete state',
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['states'] });
-      toast.success('State deleted successfully');
       setShowDeleteDialog(false);
       setStateToDelete(null);
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to delete state');
     },
   });
 

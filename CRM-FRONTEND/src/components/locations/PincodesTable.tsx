@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
 import { MoreHorizontal, Edit, Trash2, MapPin, Building } from 'lucide-react';
+import { useStandardizedMutation } from '@/hooks/useStandardizedMutation';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -31,7 +31,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { toast } from 'sonner';
 import { locationsService } from '@/services/locations';
 import { Pincode } from '@/types/location';
 import { CascadingEditPincodeDialog } from './CascadingEditPincodeDialog';
@@ -48,18 +47,15 @@ export function PincodesTable({ data, isLoading }: PincodesTableProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [pincodeToDelete, setPincodeToDelete] = useState<Pincode | null>(null);
 
-  const queryClient = useQueryClient();
-
-  const deleteMutation = useMutation({
+  const deleteMutation = useStandardizedMutation({
     mutationFn: (id: string) => locationsService.deletePincode(id),
+    invalidateKeys: [['pincodes']],
+    successMessage: 'Pincode deleted successfully',
+    errorContext: 'Pincode Deletion',
+    errorFallbackMessage: 'Failed to delete pincode',
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['pincodes'] });
-      toast.success('Pincode deleted successfully');
       setShowDeleteDialog(false);
       setPincodeToDelete(null);
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to delete pincode');
     },
   });
 

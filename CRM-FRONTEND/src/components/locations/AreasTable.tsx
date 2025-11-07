@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
 import { MoreHorizontal, Edit, Trash2, MapPin, Hash } from 'lucide-react';
+import { useStandardizedMutation } from '@/hooks/useStandardizedMutation';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -30,7 +30,6 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { toast } from 'sonner';
 import { locationsService } from '@/services/locations';
 import { EditAreaDialog } from './EditAreaDialog';
 import { PincodeArea } from '@/types/location';
@@ -49,18 +48,15 @@ export function AreasTable({ data, isLoading }: AreasTableProps) {
   const [areaToDelete, setAreaToDelete] = useState<AreaWithDetails | null>(null);
   const [areaToEdit, setAreaToEdit] = useState<AreaWithDetails | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
-  const queryClient = useQueryClient();
 
-  const deleteMutation = useMutation({
+  const deleteMutation = useStandardizedMutation({
     mutationFn: (id: string) => locationsService.deleteArea(id),
+    invalidateKeys: [['areas'], ['pincodes']],
+    successMessage: 'Area deleted successfully',
+    errorContext: 'Area Deletion',
+    errorFallbackMessage: 'Failed to delete area',
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['areas'] });
-      queryClient.invalidateQueries({ queryKey: ['pincodes'] });
-      toast.success('Area deleted successfully');
       setAreaToDelete(null);
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to delete area');
     },
   });
 
