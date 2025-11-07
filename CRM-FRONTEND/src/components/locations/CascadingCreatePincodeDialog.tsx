@@ -89,7 +89,7 @@ export function CascadingCreatePincodeDialog({ open, onOpenChange }: CascadingCr
 
   return (
     <Dialog open={open} onOpenChange={handleDialogClose}>
-      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-[95vw] sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Create New Pincode</DialogTitle>
           <DialogDescription>
@@ -112,11 +112,12 @@ export function CascadingCreatePincodeDialog({ open, onOpenChange }: CascadingCr
               areasField="areas"
             />
 
-            <DialogFooter>
+            <DialogFooter className="flex-col sm:flex-row gap-2">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => handleDialogClose(false)}
+                className="w-full sm:w-auto"
                 disabled={createMutation.isPending}
               >
                 Cancel
@@ -124,7 +125,7 @@ export function CascadingCreatePincodeDialog({ open, onOpenChange }: CascadingCr
               <Button
                 type="submit"
                 disabled={createMutation.isPending}
-              >
+               className="w-full sm:w-auto">
                 {createMutation.isPending ? 'Creating...' : 'Create Pincode'}
               </Button>
             </DialogFooter>

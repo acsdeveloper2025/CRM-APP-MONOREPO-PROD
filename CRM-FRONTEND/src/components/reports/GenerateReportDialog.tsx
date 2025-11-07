@@ -119,7 +119,7 @@ export function GenerateReportDialog({ open, onOpenChange }: GenerateReportDialo
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="max-w-[95vw] sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Generate MIS Report</DialogTitle>
           <DialogDescription>
@@ -246,11 +246,12 @@ export function GenerateReportDialog({ open, onOpenChange }: GenerateReportDialo
               )}
             />
 
-            <DialogFooter>
+            <DialogFooter className="flex-col sm:flex-row gap-2">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
+                className="w-full sm:w-auto"
                 disabled={generateMutation.isPending}
               >
                 Cancel
@@ -258,7 +259,7 @@ export function GenerateReportDialog({ open, onOpenChange }: GenerateReportDialo
               <Button
                 type="submit"
                 disabled={generateMutation.isPending}
-              >
+               className="w-full sm:w-auto">
                 {generateMutation.isPending ? 'Generating...' : 'Generate Report'}
               </Button>
             </DialogFooter>

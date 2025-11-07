@@ -32,7 +32,7 @@ export function RateManagementPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Rate Management</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Rate Management</h1>
           <p className="text-gray-600">
             Manage rate types, assignments, and pricing for verification services
           </p>
@@ -47,7 +47,7 @@ export function RateManagementPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.rateTypes.total}</div>
-            <div className="flex gap-2 mt-2">
+            <div className="flex flex-col sm:flex-row gap-2 mt-2">
               <Badge variant="secondary" className="text-xs">
                 {stats.rateTypes.active} Active
               </Badge>
@@ -66,7 +66,7 @@ export function RateManagementPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.rates.total}</div>
-            <div className="flex gap-2 mt-2">
+            <div className="flex flex-col sm:flex-row gap-2 mt-2">
               <Badge variant="secondary" className="text-xs">
                 {stats.rates.active} Active
               </Badge>

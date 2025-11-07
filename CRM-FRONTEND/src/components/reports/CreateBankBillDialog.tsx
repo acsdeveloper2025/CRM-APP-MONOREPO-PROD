@@ -122,7 +122,7 @@ export function CreateBankBillDialog({ open, onOpenChange }: CreateBankBillDialo
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-[95vw] sm:max-w-[600px] max-h-[90vh] sm:max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Create Bank Bill</DialogTitle>
           <DialogDescription>
@@ -179,7 +179,7 @@ export function CreateBankBillDialog({ open, onOpenChange }: CreateBankBillDialo
               )}
             />
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="billDate"
@@ -255,11 +255,12 @@ export function CreateBankBillDialog({ open, onOpenChange }: CreateBankBillDialo
               />
             )}
 
-            <DialogFooter>
+            <DialogFooter className="flex-col sm:flex-row gap-2">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
+                className="w-full sm:w-auto"
                 disabled={createMutation.isPending}
               >
                 Cancel
@@ -267,7 +268,7 @@ export function CreateBankBillDialog({ open, onOpenChange }: CreateBankBillDialo
               <Button
                 type="submit"
                 disabled={createMutation.isPending || !selectedClient}
-              >
+               className="w-full sm:w-auto">
                 {createMutation.isPending ? 'Creating...' : 'Create Bank Bill'}
               </Button>
             </DialogFooter>

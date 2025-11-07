@@ -92,7 +92,7 @@ export function CreateStateDialog({ open, onOpenChange }: CreateStateDialogProps
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="max-w-[95vw] sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Create New State</DialogTitle>
           <DialogDescription>
@@ -167,18 +167,19 @@ export function CreateStateDialog({ open, onOpenChange }: CreateStateDialogProps
               )}
             />
 
-            <DialogFooter>
+            <DialogFooter className="flex-col sm:flex-row gap-2">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => handleOpenChange(false)}
+                className="w-full sm:w-auto"
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
                 disabled={createStateMutation.isPending}
-              >
+               className="w-full sm:w-auto">
                 {createStateMutation.isPending ? 'Creating...' : 'Create State'}
               </Button>
             </DialogFooter>

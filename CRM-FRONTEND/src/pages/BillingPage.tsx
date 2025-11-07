@@ -111,7 +111,7 @@ export function BillingPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Billing & Commission</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Billing & Commission</h1>
           <p className="text-gray-600">
             Manage invoices, track payments, and monitor commission payouts
           </p>

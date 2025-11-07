@@ -98,7 +98,7 @@ export function EditPincodeDialog({ pincode, open, onOpenChange }: EditPincodeDi
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="max-w-[95vw] sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Edit Pincode</DialogTitle>
           <DialogDescription>
@@ -178,16 +178,17 @@ export function EditPincodeDialog({ pincode, open, onOpenChange }: EditPincodeDi
               )}
             />
 
-            <DialogFooter>
+            <DialogFooter className="flex-col sm:flex-row gap-2">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
+                className="w-full sm:w-auto"
                 disabled={updateMutation.isPending}
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={updateMutation.isPending}>
+              <Button type="submit" disabled={updateMutation.isPending} className="w-full sm:w-auto">
                 {updateMutation.isPending ? 'Updating...' : 'Update Pincode'}
               </Button>
             </DialogFooter>

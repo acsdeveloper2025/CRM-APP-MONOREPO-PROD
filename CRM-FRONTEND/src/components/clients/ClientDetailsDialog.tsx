@@ -41,7 +41,7 @@ export function ClientDetailsDialog({ client, open, onOpenChange }: ClientDetail
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-[95vw] sm:max-w-[600px] max-h-[90vh] sm:max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2">
             <Building2 className="h-5 w-5" />
@@ -64,7 +64,7 @@ export function ClientDetailsDialog({ client, open, onOpenChange }: ClientDetail
                   <LoadingSpinner size="md" />
                 </div>
               ) : (
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <div className="flex items-center space-x-2 text-sm text-gray-600">
                       <Building2 className="h-4 w-4" />
@@ -171,7 +171,7 @@ export function ClientDetailsDialog({ client, open, onOpenChange }: ClientDetail
                   <p>No verification types found for this client</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {verificationTypes.map((vt: any) => (
                     <div key={vt.id} className="flex items-center justify-between p-3 rounded-lg border">
                       <div className="space-y-1">
@@ -206,7 +206,7 @@ export function ClientDetailsDialog({ client, open, onOpenChange }: ClientDetail
                   <p>No document types assigned to this client</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {documentTypes.map((dt: any) => (
                     <div key={dt.id} className="flex items-center justify-between p-3 rounded-lg border">
                       <div className="space-y-1">
@@ -233,7 +233,7 @@ export function ClientDetailsDialog({ client, open, onOpenChange }: ClientDetail
               <CardTitle className="text-lg">Statistics</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-3 gap-4 text-center">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-center">
                 <div className="space-y-2">
                   <p className="text-2xl font-bold text-primary">{products.length}</p>
                   <p className="text-sm text-gray-600">Products</p>

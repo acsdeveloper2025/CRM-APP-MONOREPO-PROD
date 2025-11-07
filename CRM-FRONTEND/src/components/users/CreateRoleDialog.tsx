@@ -234,16 +234,17 @@ export function CreateRoleDialog({ open, onOpenChange }: CreateRoleDialogProps) 
               </div>
             </div>
 
-            <DialogFooter>
+            <DialogFooter className="flex-col sm:flex-row gap-2">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
+                className="w-full sm:w-auto"
                 disabled={createMutation.isPending}
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={createMutation.isPending}>
+              <Button type="submit" disabled={createMutation.isPending} className="w-full sm:w-auto">
                 {createMutation.isPending ? 'Creating...' : 'Create Role'}
               </Button>
             </DialogFooter>

@@ -104,7 +104,7 @@ export const CreateDocumentTypeDialog: React.FC<CreateDocumentTypeDialogProps> =
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-[95vw] sm:max-w-[600px] max-h-[90vh] sm:max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Create Document Type</DialogTitle>
           <DialogDescription>
@@ -114,7 +114,7 @@ export const CreateDocumentTypeDialog: React.FC<CreateDocumentTypeDialogProps> =
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="name"
@@ -190,7 +190,7 @@ export const CreateDocumentTypeDialog: React.FC<CreateDocumentTypeDialogProps> =
               )}
             />
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="validityPeriodMonths"
@@ -296,13 +296,14 @@ export const CreateDocumentTypeDialog: React.FC<CreateDocumentTypeDialogProps> =
               />
             </div>
 
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={handleClose}>
+            <DialogFooter className="flex-col sm:flex-row gap-2">
+              <Button type="button" variant="outline" onClick={handleClose} className="w-full sm:w-auto">
                 Cancel
               </Button>
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 disabled={createDocumentTypeMutation.isPending}
+                className="w-full sm:w-auto"
               >
                 {createDocumentTypeMutation.isPending ? 'Creating...' : 'Create Document Type'}
               </Button>

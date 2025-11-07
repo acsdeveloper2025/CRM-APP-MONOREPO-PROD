@@ -45,7 +45,7 @@ export function CountryDetailsDialog({ country, open, onOpenChange }: CountryDet
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-[95vw] sm:max-w-[600px] max-h-[90vh] sm:max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2">
             <Globe className="h-5 w-5" />
@@ -63,7 +63,7 @@ export function CountryDetailsDialog({ country, open, onOpenChange }: CountryDet
               <CardTitle className="text-lg">Basic Information</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <div className="flex items-center space-x-2 text-sm text-gray-600">
                     <Globe className="h-4 w-4" />
@@ -162,7 +162,7 @@ export function CountryDetailsDialog({ country, open, onOpenChange }: CountryDet
               <CardTitle className="text-lg">Statistics</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-3 gap-4 text-center">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-center">
                 <div className="space-y-1">
                   <p className="text-2xl font-bold text-green-600">{states.length}</p>
                   <p className="text-sm text-gray-600">States</p>

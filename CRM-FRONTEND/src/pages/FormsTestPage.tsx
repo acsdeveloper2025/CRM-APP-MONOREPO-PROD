@@ -35,7 +35,7 @@ export const FormsTestPage: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center space-x-2">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 flex items-center space-x-2">
             <TestTube className="h-8 w-8 text-green-600" />
             <span>Forms System Test Page</span>
           </h1>

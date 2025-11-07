@@ -101,7 +101,7 @@ export function CountriesTable({ data, isLoading }: CountriesTableProps) {
 
   return (
     <>
-      <div className="rounded-md border">
+      <div className="rounded-md border overflow-auto">
         <Table>
           <TableHeader>
             <TableRow>

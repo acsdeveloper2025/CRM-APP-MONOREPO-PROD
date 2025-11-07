@@ -111,7 +111,7 @@ export function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoiceDialogP
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-[95vw] sm:max-w-[600px] max-h-[90vh] sm:max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Create New Invoice</DialogTitle>
           <DialogDescription>
@@ -253,11 +253,12 @@ export function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoiceDialogP
               </div>
             </div>
 
-            <DialogFooter>
+            <DialogFooter className="flex-col sm:flex-row gap-2">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
+                className="w-full sm:w-auto"
                 disabled={createMutation.isPending}
               >
                 Cancel
@@ -265,7 +266,7 @@ export function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoiceDialogP
               <Button
                 type="submit"
                 disabled={createMutation.isPending}
-              >
+               className="w-full sm:w-auto">
                 {createMutation.isPending ? 'Creating...' : 'Create Invoice'}
               </Button>
             </DialogFooter>

@@ -63,7 +63,7 @@ export function ResetPasswordDialog({ user, open, onOpenChange }: ResetPasswordD
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="max-w-[95vw] sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2">
             <Key className="h-5 w-5" />
@@ -212,13 +212,13 @@ export function ResetPasswordDialog({ user, open, onOpenChange }: ResetPasswordD
           )}
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="flex-col sm:flex-row gap-2">
           <Button
             type="button"
             variant="outline"
             onClick={handleClose}
             disabled={generatePasswordMutation.isPending}
-          >
+           className="w-full sm:w-auto">
             {generatedPassword ? 'Close' : 'Cancel'}
           </Button>
         </DialogFooter>

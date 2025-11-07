@@ -65,7 +65,7 @@ export function CreateProductDialog({ open, onOpenChange }: CreateProductDialogP
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="max-w-[95vw] sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Create New Product</DialogTitle>
           <DialogDescription>
@@ -112,18 +112,20 @@ export function CreateProductDialog({ open, onOpenChange }: CreateProductDialogP
               )}
             />
 
-            <DialogFooter>
+            <DialogFooter className="flex-col sm:flex-row gap-2">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
                 disabled={createMutation.isPending}
+                className="w-full sm:w-auto"
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
                 disabled={createMutation.isPending}
+                className="w-full sm:w-auto"
               >
                 {createMutation.isPending ? 'Creating...' : 'Create Product'}
               </Button>

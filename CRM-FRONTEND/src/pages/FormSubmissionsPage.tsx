@@ -75,7 +75,7 @@ export const FormSubmissionsPage: React.FC = () => {
     return (
       <div className="text-center py-12">
         <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Error Loading Form Submissions</h2>
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">Error Loading Form Submissions</h2>
         <p className="text-gray-600">There was an error loading the form submissions for this case.</p>
       </div>
     );
@@ -86,7 +86,7 @@ export const FormSubmissionsPage: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Form Submissions</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Form Submissions</h1>
           <p className="mt-2 text-gray-600">Case #{caseId}</p>
         </div>
         <Badge variant="outline" className="text-lg px-3 py-1">

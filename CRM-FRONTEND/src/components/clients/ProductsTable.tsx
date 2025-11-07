@@ -101,7 +101,7 @@ export function ProductsTable({ data, isLoading }: ProductsTableProps) {
 
   return (
     <>
-      <div className="rounded-md border">
+      <div className="rounded-md border overflow-auto">
         <Table>
           <TableHeader>
             <TableRow>

@@ -82,7 +82,7 @@ export function BulkImportUsersDialog({ open, onOpenChange }: BulkImportUsersDia
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="max-w-[95vw] sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2">
             <Upload className="h-5 w-5" />
@@ -182,15 +182,15 @@ export function BulkImportUsersDialog({ open, onOpenChange }: BulkImportUsersDia
           )}
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={handleClose}>
+        <DialogFooter className="flex-col sm:flex-row gap-2">
+          <Button variant="outline" onClick={handleClose} className="w-full sm:w-auto">
             {importResult ? 'Close' : 'Cancel'}
           </Button>
           {!importResult && (
             <Button
               onClick={handleImport}
               disabled={!selectedFile || importMutation.isPending}
-            >
+             className="w-full sm:w-auto">
               {importMutation.isPending ? 'Importing...' : 'Import Users'}
             </Button>
           )}

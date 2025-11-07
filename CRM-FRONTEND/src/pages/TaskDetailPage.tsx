@@ -222,7 +222,7 @@ export const TaskDetailPage: React.FC = () => {
             Back
           </Button>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">{task.taskNumber}</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{task.taskNumber}</h1>
             <p className="text-gray-600 mt-1">{task.taskTitle}</p>
           </div>
         </div>

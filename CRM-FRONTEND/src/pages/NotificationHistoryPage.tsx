@@ -248,7 +248,7 @@ export function NotificationHistoryPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Notification History</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Notification History</h1>
           <p className="text-gray-600">
             View and manage your notification history ({totalCount} total, {unreadCount} unread)
           </p>

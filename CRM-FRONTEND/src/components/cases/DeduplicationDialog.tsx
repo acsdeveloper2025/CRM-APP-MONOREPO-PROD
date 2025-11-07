@@ -166,7 +166,7 @@ export const DeduplicationDialog: React.FC<DeduplicationDialogProps> = ({
                         </span>
                       </div>
                       
-                      <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                         <div className="flex items-center gap-2">
                           <User className="h-4 w-4 text-gray-600" />
                           <span>{duplicate.customerName}</span>
@@ -262,20 +262,20 @@ export const DeduplicationDialog: React.FC<DeduplicationDialogProps> = ({
         </div>
 
         <DialogFooter className="flex gap-2">
-          <Button variant="outline" onClick={onClose} disabled={isProcessing}>
+          <Button variant="outline" onClick={onClose} disabled={isProcessing} className="w-full sm:w-auto">
             Cancel
           </Button>
           <Button 
             variant="outline" 
             onClick={handleUseExisting}
             disabled={!selectedCaseId || !rationale.trim() || isProcessing}
-          >
+           className="w-full sm:w-auto">
             Use Selected Case
           </Button>
           <Button 
             onClick={handleCreateNew}
             disabled={!rationale.trim() || isProcessing}
-          >
+           className="w-full sm:w-auto">
             Create New Case Anyway
           </Button>
         </DialogFooter>

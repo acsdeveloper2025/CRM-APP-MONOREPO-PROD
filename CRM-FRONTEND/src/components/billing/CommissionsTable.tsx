@@ -170,7 +170,7 @@ export function CommissionsTable({ data, isLoading }: CommissionsTableProps) {
         </div>
       )}
 
-      <div className="rounded-md border">
+      <div className="rounded-md border overflow-auto">
         <Table>
           <TableHeader>
             <TableRow>

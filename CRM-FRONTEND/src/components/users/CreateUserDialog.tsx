@@ -134,7 +134,7 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-[95vw] sm:max-w-[500px] max-h-[90vh] sm:max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Create New User</DialogTitle>
           <DialogDescription>
@@ -144,7 +144,7 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="name"
@@ -219,7 +219,7 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
               )}
             />
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="roleId"
@@ -274,7 +274,7 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="designationId"
@@ -355,18 +355,20 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
 
 
 
-            <DialogFooter>
+            <DialogFooter className="flex-col sm:flex-row gap-2">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
                 disabled={createMutation.isPending}
+                className="w-full sm:w-auto"
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
                 disabled={createMutation.isPending}
+                className="w-full sm:w-auto"
               >
                 {createMutation.isPending ? 'Creating...' : 'Create User'}
               </Button>
