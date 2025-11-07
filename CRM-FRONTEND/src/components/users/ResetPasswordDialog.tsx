@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
 import { Key, RefreshCw, Copy, Eye, EyeOff, Mail, CheckCircle } from 'lucide-react';
+import { useMutationWithInvalidation } from '@/hooks/useStandardizedMutation';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -24,25 +24,21 @@ interface ResetPasswordDialogProps {
 }
 
 export function ResetPasswordDialog({ user, open, onOpenChange }: ResetPasswordDialogProps) {
-  const queryClient = useQueryClient();
   const [generatedPassword, setGeneratedPassword] = useState<string>('');
   const [showPassword, setShowPassword] = useState(false);
   const [resetMethod, setResetMethod] = useState<'show' | 'email' | null>(null);
 
-  const generatePasswordMutation = useMutation({
+  const generatePasswordMutation = useMutationWithInvalidation({
     mutationFn: (userId: string) => usersService.generateTemporaryPassword(userId),
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['users'] });
+    invalidateKeys: [['users']],
+    successMessage: resetMethod === 'email'
+      ? 'Temporary password generated and sent via email'
+      : 'Temporary password generated successfully',
+    errorContext: 'Generate Temporary Password',
+    errorFallbackMessage: 'Failed to generate temporary password',
+    onSuccess: (data: any) => {
       setGeneratedPassword(data.data?.temporaryPassword || '');
       setShowPassword(true); // Show password by default when generated
-      if (resetMethod === 'email') {
-        toast.success('Temporary password generated and sent via email');
-      } else {
-        toast.success('Temporary password generated successfully');
-      }
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to generate temporary password');
     },
   });
 
