@@ -1,8 +1,8 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
+import { useCRUDMutation } from '@/hooks/useStandardizedMutation';
 import {
   Dialog,
   DialogContent,
@@ -25,7 +25,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { rateTypesService, type RateType, type UpdateRateTypeData } from '@/services/rateTypes';
-import toast from 'react-hot-toast';
 
 const updateRateTypeSchema = z.object({
   name: z.string().min(1, 'Rate type name is required').max(100, 'Name must be less than 100 characters'),
@@ -42,8 +41,6 @@ interface EditRateTypeDialogProps {
 }
 
 export function EditRateTypeDialog({ rateType, open, onOpenChange }: EditRateTypeDialogProps) {
-  const queryClient = useQueryClient();
-
   const form = useForm<UpdateRateTypeFormData>({
     resolver: zodResolver(updateRateTypeSchema),
     defaultValues: {
@@ -62,16 +59,14 @@ export function EditRateTypeDialog({ rateType, open, onOpenChange }: EditRateTyp
     });
   }, [rateType, form]);
 
-  const updateMutation = useMutation({
+  const updateMutation = useCRUDMutation({
     mutationFn: (data: UpdateRateTypeData) => rateTypesService.updateRateType(rateType.id, data),
+    queryKey: ['rate-types'],
+    resourceName: 'Rate Type',
+    operation: 'update',
+    additionalInvalidateKeys: [['rate-management-stats']],
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['rate-types'] });
-      queryClient.invalidateQueries({ queryKey: ['rate-management-stats'] });
-      toast.success('Rate type updated successfully');
       onOpenChange(false);
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to update rate type');
     },
   });
 

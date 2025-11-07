@@ -1,8 +1,7 @@
-import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
+import { useCRUDMutation } from '@/hooks/useStandardizedMutation';
 import {
   Dialog,
   DialogContent,
@@ -25,7 +24,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { rateTypesService, type CreateRateTypeData } from '@/services/rateTypes';
-import toast from 'react-hot-toast';
 
 const createRateTypeSchema = z.object({
   name: z.string().min(1, 'Rate type name is required').max(100, 'Name must be less than 100 characters'),
@@ -41,8 +39,6 @@ interface CreateRateTypeDialogProps {
 }
 
 export function CreateRateTypeDialog({ open, onOpenChange }: CreateRateTypeDialogProps) {
-  const queryClient = useQueryClient();
-
   const form = useForm<CreateRateTypeFormData>({
     resolver: zodResolver(createRateTypeSchema),
     defaultValues: {
@@ -52,17 +48,15 @@ export function CreateRateTypeDialog({ open, onOpenChange }: CreateRateTypeDialo
     },
   });
 
-  const createMutation = useMutation({
+  const createMutation = useCRUDMutation({
     mutationFn: (data: CreateRateTypeData) => rateTypesService.createRateType(data),
+    queryKey: ['rate-types'],
+    resourceName: 'Rate Type',
+    operation: 'create',
+    additionalInvalidateKeys: [['rate-management-stats']],
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['rate-types'] });
-      queryClient.invalidateQueries({ queryKey: ['rate-management-stats'] });
-      toast.success('Rate type created successfully');
       form.reset();
       onOpenChange(false);
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to create rate type');
     },
   });
 
