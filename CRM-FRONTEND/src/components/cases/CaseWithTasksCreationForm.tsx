@@ -28,12 +28,13 @@ import { useClients, useVerificationTypes, useProductsByClient } from '@/hooks/u
 import { usePincodes } from '@/hooks/useLocations';
 import { useAreasByPincode } from '@/hooks/useAreas';
 import { useAuth } from '@/contexts/AuthContext';
-import { useQuery } from '@tanstack/react-query';
+import { useStandardizedQuery } from '@/hooks/useStandardizedQuery';
+import { useMutationWithInvalidation } from '@/hooks/useStandardizedMutation';
 import { rateTypesService } from '@/services/rateTypes';
 import { EnhancedCasesService } from '@/services/verificationTasks';
 import type { CustomerInfoData } from './CustomerInfoStep';
 import type { CreateCaseWithMultipleTasksRequest } from '@/types/verificationTask';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 
 // Task Area Select Component
 const TaskAreaSelect: React.FC<{
@@ -78,7 +79,7 @@ const TaskRateTypeSelect: React.FC<{
   clientId: string;
   productId: string;
 }> = ({ task, updateTask, clientId, productId }) => {
-  const { data: rateTypesResponse } = useQuery({
+  const { data: rateTypesResponse } = useStandardizedQuery({
     queryKey: ['availableRateTypes', clientId, productId, task.verificationTypeId],
     queryFn: () => rateTypesService.getAvailableRateTypesForCase(
       parseInt(clientId),
@@ -86,6 +87,8 @@ const TaskRateTypeSelect: React.FC<{
       task.verificationTypeId!
     ),
     enabled: !!(clientId && productId && task.verificationTypeId),
+    errorContext: 'Loading Rate Types',
+    errorFallbackMessage: 'Failed to load available rate types',
   });
 
   const rateTypes = rateTypesResponse?.data || [];
@@ -212,6 +215,19 @@ export const CaseWithTasksCreationForm: React.FC<CaseWithTasksCreationFormProps>
   // Fetch all pincodes for dropdown (high limit to get all)
   const { data: pincodesResponse } = usePincodes({ limit: 10000 });
 
+  // Mutation for creating case with multiple tasks
+  const createCaseMutation = useMutationWithInvalidation({
+    mutationFn: (data: CreateCaseWithMultipleTasksRequest) =>
+      EnhancedCasesService.createCaseWithMultipleTasks(data),
+    invalidateKeys: [['cases'], ['verification-tasks'], ['dashboard']],
+    successMessage: (data) => {
+      const taskCount = data?.data?.verification_tasks?.length || 0;
+      return `Case created successfully with ${taskCount} verification task${taskCount > 1 ? 's' : ''}`;
+    },
+    errorContext: 'Case Creation',
+    errorFallbackMessage: 'Failed to create case with tasks',
+  });
+
   // Form setup
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -312,68 +328,64 @@ export const CaseWithTasksCreationForm: React.FC<CaseWithTasksCreationFormProps>
 
   // Form submission
   const handleSubmit = async (data: FormData) => {
-    try {
-      // Validate tasks
-      const validTasks = tasks.filter(task =>
-        task.verificationTypeId &&
-        task.rateTypeId &&
-        task.pincode &&
-        task.areaId &&
-        task.applicantType &&
-        task.trigger
-      );
+    // Validate tasks
+    const validTasks = tasks.filter(task =>
+      task.verificationTypeId &&
+      task.rateTypeId &&
+      task.pincode &&
+      task.areaId &&
+      task.applicantType &&
+      task.trigger
+    );
 
-      if (validTasks.length === 0) {
-        toast.error('Please fill in all required fields for at least one task');
-        return;
-      }
-
-      // Prepare case data
-      const caseData: CreateCaseWithMultipleTasksRequest = {
-        case_details: {
-          customerName: customerInfo.customerName,
-          customerPhone: customerInfo.mobileNumber || '', // Map mobileNumber to customerPhone
-          customerCallingCode: customerInfo.customerCallingCode,
-          clientId: parseInt(data.caseDetails.clientId),
-          productId: parseInt(data.caseDetails.productId),
-          backendContactNumber: data.caseDetails.backendContactNumber,
-        },
-        verification_tasks: validTasks.map((task, index) => {
-          // Get verification type name for task title
-          const verificationType = verificationTypes.find(vt => vt.id === task.verificationTypeId);
-          const taskTitle = `${verificationType?.name || 'Verification'} - Task ${index + 1}`;
-
-          return {
-            verification_type_id: task.verificationTypeId!,
-            task_title: taskTitle,
-            priority: task.priority,
-            assigned_to: task.assignedTo && task.assignedTo !== 'unassigned' ? task.assignedTo : undefined,
-            rate_type_id: parseInt(task.rateTypeId!),
-            address: task.address || undefined,
-            pincode: task.pincode!,
-            area_id: parseInt(task.areaId!),
-            applicant_type: task.applicantType!,
-            trigger: task.trigger!,
-            document_type: task.documentType || undefined,
-            document_number: task.documentNumber || undefined,
-          };
-        }),
-      };
-
-      // Debug logging
-      console.log('📤 Case creation request payload:', JSON.stringify(caseData, null, 2));
-
-      // Create case with tasks
-      const result = await EnhancedCasesService.createCaseWithMultipleTasks(caseData);
-
-      if (result.success) {
-        toast.success(`Case created successfully with ${validTasks.length} verification task${validTasks.length > 1 ? 's' : ''}`);
-        onSubmit(result.data.case.id);
-      }
-    } catch (error: any) {
-      console.error('Error creating case with tasks:', error);
-      toast.error(error.response?.data?.message || 'Failed to create case with tasks');
+    if (validTasks.length === 0) {
+      toast.error('Please fill in all required fields for at least one task');
+      return;
     }
+
+    // Prepare case data
+    const caseData: CreateCaseWithMultipleTasksRequest = {
+      case_details: {
+        customerName: customerInfo.customerName,
+        customerPhone: customerInfo.mobileNumber || '', // Map mobileNumber to customerPhone
+        customerCallingCode: customerInfo.customerCallingCode,
+        clientId: parseInt(data.caseDetails.clientId),
+        productId: parseInt(data.caseDetails.productId),
+        backendContactNumber: data.caseDetails.backendContactNumber,
+      },
+      verification_tasks: validTasks.map((task, index) => {
+        // Get verification type name for task title
+        const verificationType = verificationTypes.find(vt => vt.id === task.verificationTypeId);
+        const taskTitle = `${verificationType?.name || 'Verification'} - Task ${index + 1}`;
+
+        return {
+          verification_type_id: task.verificationTypeId!,
+          task_title: taskTitle,
+          priority: task.priority,
+          assigned_to: task.assignedTo && task.assignedTo !== 'unassigned' ? task.assignedTo : undefined,
+          rate_type_id: parseInt(task.rateTypeId!),
+          address: task.address || undefined,
+          pincode: task.pincode!,
+          area_id: parseInt(task.areaId!),
+          applicant_type: task.applicantType!,
+          trigger: task.trigger!,
+          document_type: task.documentType || undefined,
+          document_number: task.documentNumber || undefined,
+        };
+      }),
+    };
+
+    // Debug logging
+    console.log('📤 Case creation request payload:', JSON.stringify(caseData, null, 2));
+
+    // Create case with tasks using mutation
+    createCaseMutation.mutate(caseData, {
+      onSuccess: (result) => {
+        if (result.success) {
+          onSubmit(result.data.case.id);
+        }
+      },
+    });
   };
 
   return (
@@ -723,10 +735,10 @@ export const CaseWithTasksCreationForm: React.FC<CaseWithTasksCreationFormProps>
 
             <Button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || createCaseMutation.isPending}
               className="ml-auto"
             >
-              {isSubmitting ? (
+              {(isSubmitting || createCaseMutation.isPending) ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   Creating Case...

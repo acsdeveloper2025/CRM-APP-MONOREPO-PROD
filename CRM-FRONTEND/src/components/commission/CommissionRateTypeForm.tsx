@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useMutationWithInvalidation } from '@/hooks/useStandardizedMutation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -43,34 +44,27 @@ export const CommissionRateTypeForm: React.FC<CommissionRateTypeFormProps> = ({
     queryFn: () => rateTypesService.getRateTypes({ isActive: true }),
   });
 
-  // Create mutation
-  const createMutation = useMutation({
-    mutationFn: commissionManagementService.createCommissionRateType,
-    onSuccess: () => {
-      toast.success('Commission rate type created successfully');
-      onSuccess();
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to create commission rate type');
-    },
-  });
+  const isEditing = !!rateType;
 
-  // Update mutation
-  const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: any }) =>
-      commissionManagementService.updateCommissionRateType(id, data),
-    onSuccess: () => {
-      toast.success('Commission rate type updated successfully');
-      onSuccess();
+  // Create/Update mutation
+  const saveMutation = useMutationWithInvalidation({
+    mutationFn: (data: CommissionFormData) => {
+      if (isEditing) {
+        return commissionManagementService.updateCommissionRateType(rateType.id, data);
+      }
+      return commissionManagementService.createCommissionRateType(data);
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to update commission rate type');
+    invalidateKeys: [['commission-rate-types']],
+    successMessage: isEditing ? 'Commission rate type updated successfully' : 'Commission rate type created successfully',
+    errorContext: isEditing ? 'Commission Rate Type Update' : 'Commission Rate Type Creation',
+    errorFallbackMessage: isEditing ? 'Failed to update commission rate type' : 'Failed to create commission rate type',
+    onSuccess: () => {
+      onSuccess();
     },
   });
 
   const rateTypes = rateTypesData?.data || [];
-  const isEditing = !!rateType;
-  const isLoading = createMutation.isPending || updateMutation.isPending;
+  const isLoading = saveMutation.isPending;
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -105,11 +99,7 @@ export const CommissionRateTypeForm: React.FC<CommissionRateTypeFormProps> = ({
       isActive: formData.isActive,
     };
 
-    if (isEditing && rateType) {
-      updateMutation.mutate({ id: rateType.id, data: submitData });
-    } else {
-      createMutation.mutate(submitData);
-    }
+    saveMutation.mutate(submitData);
   };
 
 
