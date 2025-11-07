@@ -498,15 +498,18 @@ export const deleteUser = async (req: AuthenticatedRequest, res: Response) => {
       });
     }
 
-    // Check for related records that would prevent deletion
+    // Check for related records that would prevent deletion (RESTRICT constraints)
     const relatedRecordsCheck = await query(
       `SELECT
         (SELECT COUNT(*) FROM attachments WHERE "uploadedBy" = $1) as attachments_count,
         (SELECT COUNT(*) FROM locations WHERE "recordedBy" = $1) as locations_count,
-        (SELECT COUNT(*) FROM "userAreaAssignments" WHERE "userId" = $1) as area_assignments_count,
-        (SELECT COUNT(*) FROM "userPincodeAssignments" WHERE "userId" = $1) as pincode_assignments_count,
-        (SELECT COUNT(*) FROM "territoryAssignmentAudit" WHERE "userId" = $1) as territory_audit_count,
-        (SELECT COUNT(*) FROM "caseDeduplicationAudit" WHERE "performedBy" = $1) as dedup_audit_count
+        (SELECT COUNT(*) FROM "userAreaAssignments" WHERE "userId" = $1 OR "assignedBy" = $1) as area_assignments_count,
+        (SELECT COUNT(*) FROM "userPincodeAssignments" WHERE "userId" = $1 OR "assignedBy" = $1) as pincode_assignments_count,
+        (SELECT COUNT(*) FROM "territoryAssignmentAudit" WHERE "userId" = $1 OR "performedBy" = $1) as territory_audit_count,
+        (SELECT COUNT(*) FROM "caseDeduplicationAudit" WHERE "performedBy" = $1) as dedup_audit_count,
+        (SELECT COUNT(*) FROM cases WHERE "createdByBackendUser" = $1) as cases_count,
+        (SELECT COUNT(*) FROM verification_tasks WHERE "assigned_to" = $1 OR "assigned_by" = $1) as tasks_count,
+        (SELECT COUNT(*) FROM commission_calculations WHERE user_id = $1) as commission_count
       `,
       [id]
     );
@@ -534,6 +537,15 @@ export const deleteUser = async (req: AuthenticatedRequest, res: Response) => {
       }
       if (parseInt(counts.dedup_audit_count) > 0) {
         recordTypes.push(`${counts.dedup_audit_count} deduplication audit record(s)`);
+      }
+      if (parseInt(counts.cases_count) > 0) {
+        recordTypes.push(`${counts.cases_count} case(s)`);
+      }
+      if (parseInt(counts.tasks_count) > 0) {
+        recordTypes.push(`${counts.tasks_count} verification task(s)`);
+      }
+      if (parseInt(counts.commission_count) > 0) {
+        recordTypes.push(`${counts.commission_count} commission record(s)`);
       }
 
       const detailMessage = recordTypes.length > 0
@@ -575,12 +587,17 @@ export const deleteUser = async (req: AuthenticatedRequest, res: Response) => {
 
     // Check if it's a foreign key constraint error
     if (error.code === '23503') {
+      // Extract table name from error detail if available
+      const tableMatch = error.detail?.match(/table "([^"]+)"/);
+      const tableName = tableMatch ? tableMatch[1] : 'unknown table';
+
       return res.status(400).json({
         success: false,
-        message: 'Cannot delete user: user has related records in the system. User has been deactivated instead.',
+        message: 'Cannot delete user: user has related records in the system',
         error: {
           code: 'FOREIGN_KEY_CONSTRAINT',
-          detail: error.detail || 'User is referenced by other records',
+          details: `User is referenced by records in ${tableName}. Please remove or reassign these records before deleting the user.`,
+          technicalDetail: error.detail || 'User is referenced by other records',
         },
       });
     }
@@ -588,7 +605,10 @@ export const deleteUser = async (req: AuthenticatedRequest, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Failed to delete user',
-      error: { code: 'INTERNAL_ERROR' },
+      error: {
+        code: 'INTERNAL_ERROR',
+        details: error.message || 'An unexpected error occurred',
+      },
     });
   }
 };
