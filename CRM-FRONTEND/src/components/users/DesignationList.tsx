@@ -66,7 +66,7 @@ export function DesignationList({ onEdit }: DesignationListProps) {
     queryKey: ['designations', debouncedSearchValue, departmentFilter, statusFilter, currentPage, pageSize],
     queryFn: () => designationsService.getDesignations({
       search: debouncedSearchValue || undefined,
-      departmentId: departmentFilter === '__all__' || departmentFilter === '__none__' || !departmentFilter ? undefined : departmentFilter,
+      departmentId: departmentFilter === '__all__' || departmentFilter === '__none__' || !departmentFilter ? undefined : parseInt(departmentFilter, 10),
       isActive: statusFilter === '__all__' || !statusFilter ? undefined : statusFilter === 'active',
       page: currentPage,
       limit: pageSize,
@@ -81,7 +81,7 @@ export function DesignationList({ onEdit }: DesignationListProps) {
 
   // Delete mutation
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => designationsService.deleteDesignation(id),
+    mutationFn: (id: number) => designationsService.deleteDesignation(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['designations'] });
       toast.success('Designation deleted successfully');

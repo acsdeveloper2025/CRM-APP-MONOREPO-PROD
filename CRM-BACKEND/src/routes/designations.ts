@@ -25,12 +25,12 @@ const createDesignationValidation = [
     .trim()
     .isLength({ max: 500 })
     .withMessage('Description must be less than 500 characters'),
-  body('departmentId').optional().isUUID().withMessage('Department ID must be a valid UUID'),
+  body('departmentId').optional().isInt({ min: 1 }).withMessage('Department ID must be a valid integer'),
   body('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
 ];
 
 const updateDesignationValidation = [
-  param('id').isUUID().withMessage('Designation ID must be a valid UUID'),
+  param('id').isInt({ min: 1 }).withMessage('Designation ID must be a valid integer'),
   body('name')
     .optional()
     .trim()
@@ -41,7 +41,7 @@ const updateDesignationValidation = [
     .trim()
     .isLength({ max: 500 })
     .withMessage('Description must be less than 500 characters'),
-  body('departmentId').optional().isUUID().withMessage('Department ID must be a valid UUID'),
+  body('departmentId').optional().isInt({ min: 1 }).withMessage('Department ID must be a valid integer'),
   body('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
 ];
 
@@ -57,11 +57,11 @@ const getDesignationsValidation = [
     .isLength({ max: 100 })
     .withMessage('Search term must be less than 100 characters'),
   query('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
-  query('departmentId').optional().isUUID().withMessage('Department ID must be a valid UUID'),
+  query('departmentId').optional().isInt({ min: 1 }).withMessage('Department ID must be a valid integer'),
 ];
 
 const designationIdValidation = [
-  param('id').isUUID().withMessage('Designation ID must be a valid UUID'),
+  param('id').isInt({ min: 1 }).withMessage('Designation ID must be a valid integer'),
 ];
 
 // Routes
@@ -80,7 +80,7 @@ router.get(
 router.get(
   '/active',
   auth,
-  query('departmentId').optional().isUUID().withMessage('Department ID must be a valid UUID'),
+  query('departmentId').optional().isInt({ min: 1 }).withMessage('Department ID must be a valid integer'),
   validate,
   getActiveDesignations
 );

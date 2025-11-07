@@ -87,7 +87,7 @@ export function CreateDesignationDialog({ open, onOpenChange }: CreateDesignatio
     const submitData: CreateDesignationRequest = {
       name: data.name,
       description: data.description || undefined,
-      departmentId: data.departmentId === "__all__" ? undefined : data.departmentId || undefined,
+      departmentId: data.departmentId === "__all__" ? undefined : (data.departmentId ? parseInt(data.departmentId, 10) : undefined),
       isActive: data.isActive,
     };
     createMutation.mutate(submitData);
