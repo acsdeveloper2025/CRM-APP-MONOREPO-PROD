@@ -112,6 +112,8 @@ export function ClientsTable({ data, isLoading }: ClientsTableProps) {
               <TableHead>Client Name</TableHead>
               <TableHead>Client Code</TableHead>
               <TableHead>Products</TableHead>
+              <TableHead>Verification Types</TableHead>
+              <TableHead>Document Types</TableHead>
               <TableHead>Created Date</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Actions</TableHead>
@@ -134,6 +136,16 @@ export function ClientsTable({ data, isLoading }: ClientsTableProps) {
                 <TableCell>
                   <span className="text-sm text-gray-600">
                     {client.products?.length || 0} products
+                  </span>
+                </TableCell>
+                <TableCell>
+                  <span className="text-sm text-gray-600">
+                    {client.verificationTypes?.length || 0} types
+                  </span>
+                </TableCell>
+                <TableCell>
+                  <span className="text-sm text-gray-600">
+                    {client.documentTypes?.length || 0} types
                   </span>
                 </TableCell>
                 <TableCell>
