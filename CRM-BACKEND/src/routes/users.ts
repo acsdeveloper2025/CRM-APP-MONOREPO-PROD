@@ -147,6 +147,42 @@ const updateUserValidation = [
     .withMessage(
       'Role must be one of: SUPER_ADMIN, ADMIN, BACKEND_USER, FIELD_AGENT, MANAGER, REPORT_PERSON'
     ),
+  body('roleId')
+    .optional()
+    .custom(value => {
+      if (value && value.toString().trim() !== '') {
+        // If provided and not empty, must be a valid integer
+        const intValue = parseInt(value, 10);
+        if (isNaN(intValue) || intValue < 1) {
+          throw new Error('Role ID must be a valid positive integer');
+        }
+      }
+      return true;
+    }),
+  body('departmentId')
+    .optional()
+    .custom(value => {
+      if (value && value.toString().trim() !== '') {
+        // If provided and not empty, must be a valid integer
+        const intValue = parseInt(value, 10);
+        if (isNaN(intValue) || intValue < 1) {
+          throw new Error('Department ID must be a valid positive integer');
+        }
+      }
+      return true;
+    }),
+  body('designationId')
+    .optional()
+    .custom(value => {
+      if (value && value.toString().trim() !== '') {
+        // If provided and not empty, must be a valid integer
+        const intValue = parseInt(value, 10);
+        if (isNaN(intValue) || intValue < 1) {
+          throw new Error('Designation ID must be a valid positive integer');
+        }
+      }
+      return true;
+    }),
   body('department')
     .optional()
     .trim()

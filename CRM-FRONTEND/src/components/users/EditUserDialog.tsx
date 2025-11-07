@@ -112,7 +112,16 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
   }, [user, form]);
 
   const updateMutation = useMutation({
-    mutationFn: (data: EditUserFormData) => usersService.updateUser(user.id, data),
+    mutationFn: (data: EditUserFormData) => {
+      // Convert string IDs to numbers for API
+      const cleanData = {
+        ...data,
+        roleId: data.roleId ? parseInt(data.roleId, 10) : undefined,
+        departmentId: data.departmentId ? parseInt(data.departmentId, 10) : undefined,
+        designationId: data.designationId ? parseInt(data.designationId, 10) : undefined,
+      };
+      return usersService.updateUser(user.id, cleanData as any);
+    },
     onSuccess: () => {
       // Invalidate user-related queries
       queryClient.invalidateQueries({ queryKey: ['users'] });

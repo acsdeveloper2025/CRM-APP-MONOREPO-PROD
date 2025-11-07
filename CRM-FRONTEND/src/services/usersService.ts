@@ -9,12 +9,14 @@ import { BaseApiService } from './base';
 import type {
   User,
   UserActivity,
-  UserFilters,
-  Role
+  Role,
+  CreateUserData,
+  UpdateUserData,
+  ChangePasswordData
 } from '@/types/user';
-import type { 
-  ApiResponse, 
-  PaginatedResponse, 
+import type {
+  ApiResponse,
+  PaginatedResponse,
   PaginationQuery,
   BulkOperationResult,
   ExportOptions
@@ -29,51 +31,6 @@ export interface UserListQuery extends PaginationQuery {
   search?: string;
   clientId?: number;
   productId?: number;
-}
-
-export interface CreateUserData {
-  name: string;
-  username: string;
-  email: string;
-  password: string;
-  role: Role;
-  employeeId: string;
-  designation: string;
-  department: string;
-  departmentId?: string;
-  profilePhotoUrl?: string;
-  isActive?: boolean;
-  
-  // Contact information
-  phone?: string;
-  address?: string;
-  
-  // Assignment data
-  clientIds?: number[];
-  productIds?: number[];
-  pincodeIds?: number[];
-  areaIds?: number[];
-}
-
-export interface UpdateUserData {
-  name?: string;
-  email?: string;
-  role?: Role;
-  designation?: string;
-  department?: string;
-  departmentId?: string;
-  profilePhotoUrl?: string;
-  isActive?: boolean;
-  
-  // Contact information
-  phone?: string;
-  address?: string;
-}
-
-export interface ChangePasswordData {
-  currentPassword: string;
-  newPassword: string;
-  confirmPassword: string;
 }
 
 export interface UserAssignmentData {
@@ -303,7 +260,7 @@ export class UsersService extends BaseApiService {
   /**
    * Get user statistics
    */
-  async getUserStats(filters?: UserFilters): Promise<ApiResponse<UserStatsResponse>> {
+  async getUserStats(filters?: Record<string, any>): Promise<ApiResponse<UserStatsResponse>> {
     return this.get('/stats', filters);
   }
 
@@ -404,7 +361,7 @@ export class UsersService extends BaseApiService {
   /**
    * Search users
    */
-  async searchUsers(query: string, filters?: UserFilters): Promise<ApiResponse<User[]>> {
+  async searchUsers(query: string, filters?: UserListQuery): Promise<ApiResponse<User[]>> {
     return this.get('/search', { query, ...filters });
   }
 

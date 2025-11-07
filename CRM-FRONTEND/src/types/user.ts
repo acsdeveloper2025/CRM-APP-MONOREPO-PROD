@@ -11,12 +11,13 @@ export interface User {
   email: string;
   phone?: string;
   role: Role;
-  roleId?: string;
+  roleId?: number;
   roleName?: string;
   employeeId: string;
   designation: string;
+  designationId?: number;
   department?: string; // Legacy display field
-  departmentId?: string;
+  departmentId?: number;
   departmentName?: string;
   profilePhotoUrl?: string;
   deviceId?: string; // Device ID for field agents
@@ -35,12 +36,12 @@ export interface CreateUserData {
   email: string;
   password: string;
   role?: Role; // Legacy display only
-  roleId?: string; // New role system
+  roleId?: number; // New role system
   employeeId: string;
   designation?: string; // Legacy display only
-  designationId?: string; // New designation system
+  designationId?: number; // New designation system
   department?: string; // Legacy display only
-  departmentId?: string; // New department system
+  departmentId?: number; // New department system
   deviceId?: string; // Device ID for field agents
   profilePhotoUrl?: string;
 }
@@ -49,12 +50,12 @@ export interface UpdateUserData {
   name?: string;
   email?: string;
   role?: Role; // Legacy display only
-  roleId?: string; // New role system
+  roleId?: number; // New role system
   employeeId?: string;
   designation?: string; // Legacy display only
-  designationId?: string; // New designation system
+  designationId?: number; // New designation system
   department?: string; // Legacy display only
-  departmentId?: string; // New department system
+  departmentId?: number; // New department system
   deviceId?: string; // Device ID for field agents
   profilePhotoUrl?: string;
   isActive?: boolean;
