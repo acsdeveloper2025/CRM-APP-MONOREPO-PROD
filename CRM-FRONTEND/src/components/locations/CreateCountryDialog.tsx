@@ -1,8 +1,7 @@
-import React from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { useCRUDMutation } from '@/hooks/useStandardizedMutation';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -28,7 +27,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import toast from 'react-hot-toast';
 import { locationsService } from '@/services/locations';
 import type { CreateCountryData } from '@/types/location';
 
@@ -59,8 +57,6 @@ const continents = [
 ];
 
 export function CreateCountryDialog({ open, onOpenChange }: CreateCountryDialogProps) {
-  const queryClient = useQueryClient();
-
   const form = useForm<CreateCountryFormData>({
     resolver: zodResolver(createCountrySchema),
     defaultValues: {
@@ -70,24 +66,22 @@ export function CreateCountryDialog({ open, onOpenChange }: CreateCountryDialogP
     },
   });
 
-  const createCountryMutation = useMutation({
-    mutationFn: (data: CreateCountryData) => locationsService.createCountry(data),
+  const createCountryMutation = useCRUDMutation({
+    mutationFn: (data: CreateCountryData) => locationsService.createCountry({
+      ...data,
+      code: data.code.toUpperCase(),
+    }),
+    queryKey: ['countries'],
+    resourceName: 'Country',
+    operation: 'create',
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['countries'] });
-      toast.success('Country created successfully');
       form.reset();
       onOpenChange(false);
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to create country');
     },
   });
 
   const onSubmit = (data: CreateCountryFormData) => {
-    createCountryMutation.mutate({
-      ...data,
-      code: data.code.toUpperCase(),
-    });
+    createCountryMutation.mutate(data);
   };
 
   const handleCodeChange = (value: string) => {
