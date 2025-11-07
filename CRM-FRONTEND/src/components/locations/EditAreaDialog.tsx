@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import { useMutationWithInvalidation } from '@/hooks/useStandardizedMutation';
 import {
   Dialog,
   DialogContent,
@@ -11,7 +11,6 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { toast } from 'sonner';
 import { locationsService } from '@/services/locations';
 
 interface Area {
@@ -30,31 +29,27 @@ interface EditAreaDialogProps {
 
 export function EditAreaDialog({ area, open, onOpenChange }: EditAreaDialogProps) {
   const [name, setName] = useState(area.name);
-  const queryClient = useQueryClient();
 
   // Reset form when area changes
   useEffect(() => {
     setName(area.name);
   }, [area]);
 
-  const updateMutation = useMutation({
+  const updateMutation = useMutationWithInvalidation({
     mutationFn: (data: { name: string }) => locationsService.updateArea(area.id, data),
+    invalidateKeys: [['areas'], ['pincodes']],
+    successMessage: 'Area updated successfully',
+    errorContext: 'Area Update',
+    errorFallbackMessage: 'Failed to update area',
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['areas'] });
-      queryClient.invalidateQueries({ queryKey: ['pincodes'] });
-      toast.success('Area updated successfully');
       onOpenChange(false);
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to update area');
     },
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!name.trim()) {
-      toast.error('Area name is required');
       return;
     }
 

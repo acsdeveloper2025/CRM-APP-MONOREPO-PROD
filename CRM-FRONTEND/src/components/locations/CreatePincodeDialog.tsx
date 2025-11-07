@@ -1,8 +1,8 @@
-import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
+import { useCRUDMutation } from '@/hooks/useStandardizedMutation';
+import { useStandardizedQuery } from '@/hooks/useStandardizedQuery';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -29,7 +29,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { toast } from 'sonner';
 import { locationsService } from '@/services/locations';
 import { EnhancedAreasMultiSelect } from './EnhancedAreasMultiSelect';
 
@@ -50,8 +49,6 @@ interface CreatePincodeDialogProps {
 }
 
 export function CreatePincodeDialog({ open, onOpenChange }: CreatePincodeDialogProps) {
-  const queryClient = useQueryClient();
-
   const form = useForm<CreatePincodeFormData>({
     resolver: zodResolver(createPincodeSchema),
     defaultValues: {
@@ -62,25 +59,25 @@ export function CreatePincodeDialog({ open, onOpenChange }: CreatePincodeDialogP
   });
 
   // Fetch cities for the dropdown
-  const { data: citiesData } = useQuery({
+  const { data: citiesData } = useStandardizedQuery({
     queryKey: ['cities'],
     queryFn: () => locationsService.getCities(),
     enabled: open,
+    errorContext: 'Loading Cities',
+    errorFallbackMessage: 'Failed to load cities',
   });
 
   // Areas will be loaded by AreasMultiSelect component
 
-  const createMutation = useMutation({
+  const createMutation = useCRUDMutation({
     mutationFn: (data: CreatePincodeFormData) => locationsService.createPincode(data),
+    queryKey: ['pincodes'],
+    resourceName: 'Pincode',
+    operation: 'create',
+    additionalInvalidateKeys: [['cities']],
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['pincodes'] });
-      queryClient.invalidateQueries({ queryKey: ['cities'] });
-      toast.success('Pincode created successfully');
       form.reset();
       onOpenChange(false);
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to create pincode');
     },
   });
 
