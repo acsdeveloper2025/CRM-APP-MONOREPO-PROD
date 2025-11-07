@@ -300,6 +300,17 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
                         <span className="text-gray-600">products</span>
                       </div>
                     </div>
+                  ) : user.role === 'FIELD_AGENT' ? (
+                    <div className="text-sm">
+                      <div className="flex items-center gap-1">
+                        <span className="font-medium text-green-700">{user.assignedPincodesCount || 0}</span>
+                        <span className="text-gray-600">pincodes</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <span className="font-medium text-green-700">{user.assignedAreasCount || 0}</span>
+                        <span className="text-gray-600">areas</span>
+                      </div>
+                    </div>
                   ) : (
                     <span className="text-sm text-gray-400">N/A</span>
                   )}
@@ -499,6 +510,23 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
                       <div className="flex items-center gap-1">
                         <span className="font-medium text-green-700">{user.assignedProductsCount || 0}</span>
                         <span className="text-gray-600">products</span>
+                      </div>
+                    </div>
+                  }
+                />
+              )}
+              {user.role === 'FIELD_AGENT' && (
+                <MobileTableField
+                  label="Territory Assignments"
+                  value={
+                    <div className="text-sm">
+                      <div className="flex items-center gap-1">
+                        <span className="font-medium text-green-700">{user.assignedPincodesCount || 0}</span>
+                        <span className="text-gray-600">pincodes</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <span className="font-medium text-green-700">{user.assignedAreasCount || 0}</span>
+                        <span className="text-gray-600">areas</span>
                       </div>
                     </div>
                   }

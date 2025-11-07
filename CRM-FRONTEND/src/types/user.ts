@@ -31,6 +31,9 @@ export interface User {
   // Assignment counts for BACKEND_USER role
   assignedClientsCount?: number;
   assignedProductsCount?: number;
+  // Assignment counts for FIELD_AGENT role
+  assignedPincodesCount?: number;
+  assignedAreasCount?: number;
 }
 
 export interface CreateUserData {
