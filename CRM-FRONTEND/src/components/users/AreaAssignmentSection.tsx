@@ -40,6 +40,9 @@ export function AreaAssignmentSection({ user, selectedPincodeIds }: AreaAssignme
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearchQuery = useDebounce(searchQuery, 300); // 300ms debounce
 
+  // Track which pincode each area belongs to for proper API formatting
+  const [areaToPincodeMap, setAreaToPincodeMap] = useState<Map<number, number>>(new Map());
+
   // Fetch all areas from backend using the service with aggressive caching for performance
   const { data: areasData, isLoading: areasLoading } = useQuery({
     queryKey: ['areas', 'all'],
@@ -60,23 +63,44 @@ export function AreaAssignmentSection({ user, selectedPincodeIds }: AreaAssignme
   const { data: pincodeAreasData } = useQuery({
     queryKey: ['pincode-areas', selectedPincodeIds],
     queryFn: async () => {
-      if (selectedPincodeIds.length === 0) return [];
+      if (selectedPincodeIds.length === 0) return { areaIds: [], areaMap: new Map() };
 
       // Fetch areas for each selected pincode
       const areasPromises = selectedPincodeIds.map((pincodeId: number) =>
-        locationsService.getAreasByPincode(pincodeId)
+        locationsService.getAreasByPincode(pincodeId).then(result => ({
+          pincodeId,
+          areas: result.data || []
+        }))
       );
 
       const results = await Promise.all(areasPromises);
 
-      // Combine all areas and remove duplicates
-      const allAreas = results.flatMap((result: any) => result.data || []);
-      const uniqueAreaIds = new Set(allAreas.map((area: any) => parseInt(area.id)));
+      // Build area-to-pincode mapping and collect unique area IDs
+      const areaMap = new Map<number, number>();
+      const uniqueAreaIds = new Set<number>();
 
-      return Array.from(uniqueAreaIds);
+      results.forEach(({ pincodeId, areas }) => {
+        areas.forEach((area: any) => {
+          const areaId = parseInt(area.id);
+          uniqueAreaIds.add(areaId);
+          // Store the first pincode this area belongs to (areas can belong to multiple pincodes)
+          if (!areaMap.has(areaId)) {
+            areaMap.set(areaId, pincodeId);
+          }
+        });
+      });
+
+      return { areaIds: Array.from(uniqueAreaIds), areaMap };
     },
     enabled: selectedPincodeIds.length > 0,
   });
+
+  // Update area-to-pincode map when pincode areas data changes
+  useEffect(() => {
+    if (pincodeAreasData?.areaMap) {
+      setAreaToPincodeMap(pincodeAreasData.areaMap);
+    }
+  }, [pincodeAreasData]);
 
   // Update selected areas when assignments data loads
   useEffect(() => {
@@ -96,9 +120,29 @@ export function AreaAssignmentSection({ user, selectedPincodeIds }: AreaAssignme
     }
   }, [assignmentsData]);
 
-  // Save assignments mutation
+  // Save assignments mutation - format data as [{ pincodeId, areaIds }]
   const saveAssignmentsMutation = useMutation({
-    mutationFn: (areaIds: number[]) => usersService.assignAreasToUser(user.id, areaIds),
+    mutationFn: () => {
+      // Group selected area IDs by their pincode
+      const assignmentsByPincode = new Map<number, number[]>();
+
+      selectedAreaIds.forEach(areaId => {
+        const pincodeId = areaToPincodeMap.get(areaId);
+        if (pincodeId) {
+          const existing = assignmentsByPincode.get(pincodeId) || [];
+          existing.push(areaId);
+          assignmentsByPincode.set(pincodeId, existing);
+        }
+      });
+
+      // Convert to array format expected by API
+      const assignments = Array.from(assignmentsByPincode.entries()).map(([pincodeId, areaIds]) => ({
+        pincodeId,
+        areaIds
+      }));
+
+      return usersService.assignAreasToUser(user.id, assignments);
+    },
     onSuccess: () => {
       toast.success('Area assignments updated successfully');
       queryClient.invalidateQueries({ queryKey: ['users'] });
@@ -116,12 +160,12 @@ export function AreaAssignmentSection({ user, selectedPincodeIds }: AreaAssignme
   }, []);
 
   const handleSave = () => {
-    saveAssignmentsMutation.mutate(selectedAreaIds);
+    saveAssignmentsMutation.mutate();
   };
 
   // Get all areas and apply smart filtering
   const allAreas = areasData?.data || [];
-  const allowedAreaIds = pincodeAreasData || [];
+  const allowedAreaIds = pincodeAreasData?.areaIds || [];
 
   // Filter areas based on selected pincodes (smart filtering)
   const availableAreas = useMemo(() => {
