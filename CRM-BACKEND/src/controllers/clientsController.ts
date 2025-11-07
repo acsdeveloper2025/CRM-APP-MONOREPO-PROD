@@ -98,6 +98,7 @@ export const getClients = async (req: AuthenticatedRequest, res: Response) => {
     const dbClientIds = dbClients.map(c => c.id);
     const productsByClient = new Map<string, any[]>();
     const vtsByClient = new Map<string, any[]>();
+    const dtsByClient = new Map<string, any[]>();
     const casesByClient = new Map<string, any[]>();
     if (dbClientIds.length > 0) {
       const prodMapRes = await query(
@@ -127,6 +128,20 @@ export const getClients = async (req: AuthenticatedRequest, res: Response) => {
         vtsByClient.set(r.clientId, arr);
       });
 
+      // Load document types through client relationships
+      const dtMapRes = await query(
+        `SELECT cdt."clientId", dt.id, dt.name, dt.code, dt.category
+         FROM "clientDocumentTypes" cdt
+         JOIN "documentTypes" dt ON cdt."documentTypeId" = dt.id
+         WHERE cdt."clientId" = ANY($1::integer[])`,
+        [dbClientIds.map(Number)]
+      );
+      dtMapRes.rows.forEach(r => {
+        const arr = dtsByClient.get(r.clientId) || [];
+        arr.push({ id: r.id, name: r.name, code: r.code, category: r.category });
+        dtsByClient.set(r.clientId, arr);
+      });
+
       const casesRes = await query(
         `SELECT "caseId", status, "clientId" FROM cases WHERE "clientId" = ANY($1::integer[])`,
         [dbClientIds.map(Number)]
@@ -143,6 +158,7 @@ export const getClients = async (req: AuthenticatedRequest, res: Response) => {
       ...client,
       products: productsByClient.get(client.id) || [],
       verificationTypes: vtsByClient.get(client.id) || [],
+      documentTypes: dtsByClient.get(client.id) || [],
       cases: casesByClient.get(client.id) || [],
     }));
 
