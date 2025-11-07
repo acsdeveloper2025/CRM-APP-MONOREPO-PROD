@@ -74,7 +74,7 @@ export function RolePermissionsTable({ data, isLoading }: RolePermissionsTablePr
                     <h4 className="font-medium text-sm text-gray-600 mb-3 uppercase tracking-wide">
                       {module}
                     </h4>
-                    <div className="rounded-md border">
+                    <div className="rounded-md border overflow-auto">
                       <Table>
                         <TableHeader>
                           <TableRow>

@@ -159,7 +159,7 @@ export function CascadingEditPincodeDialog({ pincode, open, onOpenChange }: Casc
 
   return (
     <Dialog open={open} onOpenChange={handleDialogClose}>
-      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-[95vw] sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Edit Pincode</DialogTitle>
           <DialogDescription>
@@ -182,11 +182,12 @@ export function CascadingEditPincodeDialog({ pincode, open, onOpenChange }: Casc
               areasField="areas"
             />
 
-            <DialogFooter>
+            <DialogFooter className="flex-col sm:flex-row gap-2">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => handleDialogClose(false)}
+                className="w-full sm:w-auto"
                 disabled={updateMutation.isPending}
               >
                 Cancel
@@ -194,7 +195,7 @@ export function CascadingEditPincodeDialog({ pincode, open, onOpenChange }: Casc
               <Button
                 type="submit"
                 disabled={updateMutation.isPending}
-              >
+               className="w-full sm:w-auto">
                 {updateMutation.isPending ? 'Updating...' : 'Update Pincode'}
               </Button>
             </DialogFooter>

@@ -91,7 +91,7 @@ export function CreateCountryDialog({ open, onOpenChange }: CreateCountryDialogP
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="max-w-[95vw] sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Create New Country</DialogTitle>
           <DialogDescription>
@@ -166,18 +166,19 @@ export function CreateCountryDialog({ open, onOpenChange }: CreateCountryDialogP
               )}
             />
 
-            <DialogFooter>
+            <DialogFooter className="flex-col sm:flex-row gap-2">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
+                className="w-full sm:w-auto"
               >
                 Cancel
               </Button>
               <Button 
                 type="submit" 
                 disabled={createCountryMutation.isPending}
-              >
+               className="w-full sm:w-auto">
                 {createCountryMutation.isPending ? 'Creating...' : 'Create Country'}
               </Button>
             </DialogFooter>

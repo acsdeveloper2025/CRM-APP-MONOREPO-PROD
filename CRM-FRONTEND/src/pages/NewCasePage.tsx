@@ -125,7 +125,7 @@ export const NewCasePage: React.FC = () => {
     return (
       <div className="space-y-6">
         <div className="text-center">
-          <h1 className="text-3xl font-bold tracking-tight">Edit Case</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Edit Case</h1>
           <p className="text-gray-600">Loading case data... (ID: {editCaseId})</p>
         </div>
         <LoadingState message="Fetching case data..." size="lg" />
@@ -138,7 +138,7 @@ export const NewCasePage: React.FC = () => {
     return (
       <div className="space-y-6">
         <div className="text-center">
-          <h1 className="text-3xl font-bold tracking-tight text-red-600">Edit Mode - No Data</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-red-600">Edit Mode - No Data</h1>
           <div className="text-gray-600 space-y-2">
             <p>Edit Case ID: {editCaseId}</p>
             <p>Loading: {loadingCase ? 'Yes' : 'No'}</p>
@@ -163,7 +163,7 @@ export const NewCasePage: React.FC = () => {
     return (
       <div className="space-y-6">
         <div className="text-center">
-          <h1 className="text-3xl font-bold tracking-tight">Edit Case</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Edit Case</h1>
           <p className="text-gray-600">Preparing form data... (ID: {editCaseId})</p>
         </div>
         <LoadingState message="Preparing form data..." size="lg" />
@@ -176,7 +176,7 @@ export const NewCasePage: React.FC = () => {
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h1 className="text-3xl font-bold tracking-tight">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
           {isEditMode ? 'Edit Case' : 'Create New Case'}
         </h1>
         <p className="text-gray-600">

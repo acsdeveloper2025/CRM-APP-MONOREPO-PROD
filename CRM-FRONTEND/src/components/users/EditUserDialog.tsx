@@ -149,7 +149,7 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[700px] max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-w-[95vw] sm:max-w-[700px] max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Edit User</DialogTitle>
           <DialogDescription>
@@ -188,7 +188,7 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
               )}
             />
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="roleId"
@@ -229,7 +229,7 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="designationId"
@@ -304,16 +304,17 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
               )}
             />
 
-                <DialogFooter>
+                <DialogFooter className="flex-col sm:flex-row gap-2">
                   <Button
                     type="button"
                     variant="outline"
                     onClick={() => onOpenChange(false)}
+                className="w-full sm:w-auto"
                     disabled={updateMutation.isPending}
                   >
                     Cancel
                   </Button>
-                  <Button type="submit" disabled={updateMutation.isPending}>
+                  <Button type="submit" disabled={updateMutation.isPending} className="w-full sm:w-auto">
                     {updateMutation.isPending ? 'Updating...' : 'Update User'}
                   </Button>
                 </DialogFooter>

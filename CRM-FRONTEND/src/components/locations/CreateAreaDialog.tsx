@@ -77,7 +77,7 @@ export function CreateAreaDialog({ open, onOpenChange }: CreateAreaDialogProps) 
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="max-w-[95vw] sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Create New Area</DialogTitle>
           <DialogDescription>

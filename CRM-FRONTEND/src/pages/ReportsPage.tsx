@@ -137,7 +137,7 @@ export function ReportsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Bank Bills & MIS Reports</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Bank Bills & MIS Reports</h1>
           <p className="text-gray-600">
             Manage bank bills, generate MIS reports, and analyze performance metrics
           </p>

@@ -50,7 +50,7 @@ export function UserActivitiesTable({ data, isLoading }: UserActivitiesTableProp
   };
 
   return (
-    <div className="rounded-md border">
+    <div className="rounded-md border overflow-auto">
       <Table>
         <TableHeader>
           <TableRow>

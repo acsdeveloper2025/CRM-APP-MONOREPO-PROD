@@ -70,7 +70,7 @@ export const DocumentTypesTable: React.FC<DocumentTypesTableProps> = ({
 
   return (
     <>
-      <div className="rounded-md border">
+      <div className="rounded-md border overflow-auto">
         <Table>
           <TableHeader>
             <TableRow>

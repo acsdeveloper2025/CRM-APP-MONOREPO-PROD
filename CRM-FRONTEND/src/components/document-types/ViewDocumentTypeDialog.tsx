@@ -56,7 +56,7 @@ export const ViewDocumentTypeDialog: React.FC<ViewDocumentTypeDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-[95vw] sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2">
             <FileText className="h-5 w-5" />
@@ -72,7 +72,7 @@ export const ViewDocumentTypeDialog: React.FC<ViewDocumentTypeDialogProps> = ({
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">Basic Information</h3>
             
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium text-gray-600">Name</label>
                 <p className="text-sm font-medium">{documentType.name}</p>
@@ -108,7 +108,7 @@ export const ViewDocumentTypeDialog: React.FC<ViewDocumentTypeDialogProps> = ({
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">Properties</h3>
             
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="flex items-center space-x-2">
                 {documentType.isGovernmentIssued ? (
                   <CheckCircle className="h-4 w-4 text-green-500" />
@@ -162,7 +162,7 @@ export const ViewDocumentTypeDialog: React.FC<ViewDocumentTypeDialogProps> = ({
                   </div>
                 )}
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {documentType.minLength && (
                     <div>
                       <label className="text-sm font-medium text-gray-600">Minimum Length</label>
@@ -187,7 +187,7 @@ export const ViewDocumentTypeDialog: React.FC<ViewDocumentTypeDialogProps> = ({
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">Usage Statistics</h3>
             
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium text-gray-600">Clients Using</label>
                 <p className="text-sm mt-1">{documentType.clientCount || 0} clients</p>
@@ -224,8 +224,9 @@ export const ViewDocumentTypeDialog: React.FC<ViewDocumentTypeDialogProps> = ({
           </div>
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+        <DialogFooter className="flex-col sm:flex-row gap-2">
+          <Button variant="outline" onClick={() => onOpenChange(false)}
+                className="w-full sm:w-auto">
             Close
           </Button>
         </DialogFooter>

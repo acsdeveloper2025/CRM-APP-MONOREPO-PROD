@@ -33,7 +33,7 @@ export function BankBillDetailsDialog({ bill, open, onOpenChange }: BankBillDeta
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[700px] max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-[95vw] sm:max-w-[700px] max-h-[90vh] sm:max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
@@ -49,7 +49,7 @@ export function BankBillDetailsDialog({ bill, open, onOpenChange }: BankBillDeta
 
         <div className="space-y-6">
           {/* Bill Information */}
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg flex items-center space-x-2">

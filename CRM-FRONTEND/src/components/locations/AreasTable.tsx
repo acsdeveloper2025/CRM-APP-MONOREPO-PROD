@@ -81,7 +81,7 @@ export function AreasTable({ data, isLoading }: AreasTableProps) {
 
   if (!data || data.length === 0) {
     return (
-      <div className="rounded-md border">
+      <div className="rounded-md border overflow-auto">
         <Table>
           <TableHeader>
             <TableRow>
@@ -105,7 +105,7 @@ export function AreasTable({ data, isLoading }: AreasTableProps) {
 
   return (
     <>
-      <div className="rounded-md border">
+      <div className="rounded-md border overflow-auto">
         <Table>
           <TableHeader>
             <TableRow>

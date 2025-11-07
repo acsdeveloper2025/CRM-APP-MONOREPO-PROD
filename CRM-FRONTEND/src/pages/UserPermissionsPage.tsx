@@ -165,7 +165,7 @@ export function UserPermissionsPage() {
             Back to Users
           </Button>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">User Permissions</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">User Permissions</h1>
             <p className="text-gray-600">
               Manage access control and permissions for {user.name}
             </p>

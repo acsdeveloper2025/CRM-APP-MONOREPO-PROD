@@ -91,7 +91,7 @@ export function CreateCityDialog({ open, onOpenChange }: CreateCityDialogProps) 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="max-w-[95vw] sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Create New City</DialogTitle>
           <DialogDescription>
@@ -177,11 +177,12 @@ export function CreateCityDialog({ open, onOpenChange }: CreateCityDialogProps) 
               )}
             />
 
-            <DialogFooter>
+            <DialogFooter className="flex-col sm:flex-row gap-2">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
+                className="w-full sm:w-auto"
                 disabled={createMutation.isPending}
               >
                 Cancel
@@ -189,7 +190,7 @@ export function CreateCityDialog({ open, onOpenChange }: CreateCityDialogProps) 
               <Button
                 type="submit"
                 disabled={createMutation.isPending}
-              >
+               className="w-full sm:w-auto">
                 {createMutation.isPending ? 'Creating...' : 'Create City'}
               </Button>
             </DialogFooter>

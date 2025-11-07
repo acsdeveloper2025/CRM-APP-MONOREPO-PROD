@@ -116,7 +116,7 @@ export function MISReportsTable({ data, isLoading }: MISReportsTableProps) {
 
   return (
     <>
-      <div className="rounded-md border">
+      <div className="rounded-md border overflow-auto">
         <Table>
           <TableHeader>
             <TableRow>

@@ -95,7 +95,7 @@ export const AllTasksPage: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">All Verification Tasks</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">All Verification Tasks</h1>
           <p className="text-gray-600 mt-1">
             Comprehensive task management with advanced filtering and bulk actions
           </p>

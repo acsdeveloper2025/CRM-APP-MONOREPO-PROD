@@ -94,7 +94,7 @@ export function VerificationTypesTable({ data, isLoading }: VerificationTypesTab
 
   return (
     <>
-      <div className="rounded-md border">
+      <div className="rounded-md border overflow-auto">
         <Table>
           <TableHeader>
             <TableRow>

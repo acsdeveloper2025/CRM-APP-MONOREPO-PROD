@@ -105,7 +105,7 @@ export function ClientsTable({ data, isLoading }: ClientsTableProps) {
     <>
 
 
-      <div className="rounded-md border">
+      <div className="rounded-md border overflow-auto">
         <Table>
           <TableHeader>
             <TableRow>

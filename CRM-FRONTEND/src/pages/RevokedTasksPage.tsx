@@ -85,7 +85,7 @@ export const RevokedTasksPage: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight" style={{ color: '#000000' }}>Revoked Tasks</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight" style={{ color: '#000000' }}>Revoked Tasks</h1>
           <p className="mt-1" style={{ color: '#1F2937' }}>
             Verification tasks that have been revoked by field agents
           </p>

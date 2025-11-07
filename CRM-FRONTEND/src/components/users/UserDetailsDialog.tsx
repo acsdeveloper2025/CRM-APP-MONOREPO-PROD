@@ -52,7 +52,7 @@ export function UserDetailsDialog({ user, open, onOpenChange }: UserDetailsDialo
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[700px] max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-[95vw] sm:max-w-[700px] max-h-[90vh] sm:max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2">
             <User className="h-5 w-5" />
@@ -91,7 +91,7 @@ export function UserDetailsDialog({ user, open, onOpenChange }: UserDetailsDialo
 
               <Separator className="my-4" />
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <h4 className="font-medium text-sm text-gray-600">Contact Information</h4>
                   <div className="mt-2 space-y-1">
@@ -163,7 +163,7 @@ export function UserDetailsDialog({ user, open, onOpenChange }: UserDetailsDialo
               <CardTitle className="text-lg">Account Information</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <h4 className="font-medium text-sm text-gray-600">Account Created</h4>
                   <p className="text-sm mt-1">{new Date(user.createdAt).toLocaleDateString()}</p>

@@ -32,7 +32,7 @@ export function StateDetailsDialog({ state, open, onOpenChange }: StateDetailsDi
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-[95vw] sm:max-w-[600px] max-h-[90vh] sm:max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <MapPin className="h-5 w-5" />
@@ -50,7 +50,7 @@ export function StateDetailsDialog({ state, open, onOpenChange }: StateDetailsDi
               <CardTitle className="text-lg">Basic Information</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium text-gray-600">State Name</label>
                   <p className="text-sm font-medium">{state.name}</p>
@@ -134,7 +134,7 @@ export function StateDetailsDialog({ state, open, onOpenChange }: StateDetailsDi
               <CardTitle className="text-lg">Statistics</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-3 gap-4 text-center">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-center">
                 <div>
                   <p className="text-2xl font-bold">{cities.length}</p>
                   <p className="text-sm text-gray-600">Cities</p>
