@@ -1,8 +1,8 @@
-import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
+import { useCRUDMutation } from '@/hooks/useStandardizedMutation';
+import { useStandardizedQuery } from '@/hooks/useStandardizedQuery';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -25,7 +25,6 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import toast from 'react-hot-toast';
 import { clientsService } from '@/services/clients';
 import { productsService } from '@/services/products';
 import { verificationTypesService } from '@/services/verificationTypes';
@@ -50,8 +49,6 @@ interface CreateClientDialogProps {
 }
 
 export function CreateClientDialog({ open, onOpenChange }: CreateClientDialogProps) {
-  const queryClient = useQueryClient();
-
   const form = useForm<CreateClientFormData>({
     resolver: zodResolver(createClientSchema),
     defaultValues: {
@@ -64,91 +61,48 @@ export function CreateClientDialog({ open, onOpenChange }: CreateClientDialogPro
   });
 
   // Fetch products for selection
-  const { data: productsData } = useQuery({
+  const { data: productsData } = useStandardizedQuery({
     queryKey: ['products'],
     queryFn: () => productsService.getProducts(),
     enabled: open,
+    errorContext: 'Loading Products',
+    errorFallbackMessage: 'Failed to load products',
   });
 
   // Fetch verification types for selection
-  const { data: verificationTypesData } = useQuery({
+  const { data: verificationTypesData } = useStandardizedQuery({
     queryKey: ['verification-types'],
     queryFn: () => verificationTypesService.getVerificationTypes(),
     enabled: open,
+    errorContext: 'Loading Verification Types',
+    errorFallbackMessage: 'Failed to load verification types',
   });
 
   // Fetch document types for selection
-  const { data: documentTypesData } = useQuery({
+  const { data: documentTypesData } = useStandardizedQuery({
     queryKey: ['document-types'],
     queryFn: () => documentTypesService.getDocumentTypes({ isActive: true }),
     enabled: open,
+    errorContext: 'Loading Document Types',
+    errorFallbackMessage: 'Failed to load document types',
   });
 
-  const createMutation = useMutation({
-    mutationFn: (data: CreateClientFormData) => clientsService.createClient(data),
-    onMutate: async (newClient) => {
-      // Cancel any outgoing refetches (so they don't overwrite our optimistic update)
-      await queryClient.cancelQueries({ queryKey: ['clients'] });
-
-      // Snapshot the previous value
-      const previousClients = queryClient.getQueriesData({ queryKey: ['clients'] });
-
-      // Optimistically update to the new value
-      queryClient.setQueriesData(
-        { queryKey: ['clients'] },
-        (old: any) => {
-          if (!old?.data) {return old;}
-
-          const optimisticClient = {
-            id: `temp_${Date.now()}`,
-            name: newClient.name,
-            code: newClient.code,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          };
-
-          return {
-            ...old,
-            data: [optimisticClient, ...old.data]
-          };
-        }
-      );
-
-      // Return a context object with the snapshotted value
-      return { previousClients };
+  const createMutation = useCRUDMutation({
+    mutationFn: (data: CreateClientFormData) => {
+      // Convert productIds from string[] to number[]
+      const cleanData = {
+        ...data,
+        productIds: data.productIds?.map(id => parseInt(id, 10)),
+      };
+      return clientsService.createClient(cleanData as any);
     },
+    queryKey: ['clients'],
+    resourceName: 'Client',
+    operation: 'create',
+    additionalInvalidateKeys: [['dashboard']],
     onSuccess: () => {
-      // Invalidate all client-related queries to ensure the list updates with real data
-      queryClient.invalidateQueries({
-        queryKey: ['clients'],
-        exact: false // This will invalidate all queries that start with ['clients']
-      });
-      toast.success('Client created successfully');
       form.reset();
       onOpenChange(false);
-    },
-    onError: (error: any, _newClient, context) => {
-      // If the mutation fails, use the context returned from onMutate to roll back
-      if (context?.previousClients) {
-        context.previousClients.forEach(([queryKey, data]) => {
-          queryClient.setQueryData(queryKey, data);
-        });
-      }
-
-      console.error('Error creating client:', error);
-
-      // Handle different types of errors
-      if (error.response?.status === 400 && error.response?.data?.error?.code === 'DUPLICATE_CODE') {
-        toast.error('Client code already exists. Please choose a different code.');
-      } else if (error.response?.status === 401) {
-        toast.error('You are not authorized to create clients. Please log in again.');
-      } else if (error.response?.status === 403) {
-        toast.error('You do not have permission to create clients.');
-      } else if (error.response?.status >= 500) {
-        toast.error('Server error. Please try again later.');
-      } else {
-        toast.error(error.response?.data?.message || 'Failed to create client. Please try again.');
-      }
     },
   });
 

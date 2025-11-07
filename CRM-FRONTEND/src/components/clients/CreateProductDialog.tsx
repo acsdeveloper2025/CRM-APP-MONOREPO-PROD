@@ -1,8 +1,7 @@
-import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
+import { useCRUDMutation } from '@/hooks/useStandardizedMutation';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -22,7 +21,6 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import toast from 'react-hot-toast';
 import { productsService } from '@/services/products';
 
 const createProductSchema = z.object({
@@ -38,8 +36,6 @@ interface CreateProductDialogProps {
 }
 
 export function CreateProductDialog({ open, onOpenChange }: CreateProductDialogProps) {
-  const queryClient = useQueryClient();
-
   const form = useForm<CreateProductFormData>({
     resolver: zodResolver(createProductSchema),
     defaultValues: {
@@ -48,20 +44,18 @@ export function CreateProductDialog({ open, onOpenChange }: CreateProductDialogP
     },
   });
 
-  const createMutation = useMutation({
+  const createMutation = useCRUDMutation({
     mutationFn: (data: CreateProductFormData) => productsService.createProduct({
       name: data.name,
       code: data.code,
     }),
+    queryKey: ['products'],
+    resourceName: 'Product',
+    operation: 'create',
+    additionalInvalidateKeys: [['product-stats'], ['dashboard']],
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['products'] });
-      queryClient.invalidateQueries({ queryKey: ['product-stats'] });
-      toast.success('Product created successfully');
       form.reset();
       onOpenChange(false);
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to create product');
     },
   });
 

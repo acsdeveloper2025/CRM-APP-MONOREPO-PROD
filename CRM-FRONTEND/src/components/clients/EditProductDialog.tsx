@@ -1,8 +1,8 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
+import { useCRUDMutation } from '@/hooks/useStandardizedMutation';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -22,7 +22,6 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { toast } from 'sonner';
 import { clientsService } from '@/services/clients';
 import { Product } from '@/types/client';
 
@@ -39,8 +38,6 @@ interface EditProductDialogProps {
 }
 
 export function EditProductDialog({ product, open, onOpenChange }: EditProductDialogProps) {
-  const queryClient = useQueryClient();
-
   const form = useForm<EditProductFormData>({
     resolver: zodResolver(editProductSchema),
     defaultValues: {
@@ -56,15 +53,14 @@ export function EditProductDialog({ product, open, onOpenChange }: EditProductDi
     }
   }, [product, form]);
 
-  const updateMutation = useMutation({
+  const updateMutation = useCRUDMutation({
     mutationFn: (data: EditProductFormData) => clientsService.updateProduct(product.id, data),
+    queryKey: ['products'],
+    resourceName: 'Product',
+    operation: 'update',
+    additionalInvalidateKeys: [['product-stats'], ['dashboard']],
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['products'] });
-      toast.success('Product updated successfully');
       onOpenChange(false);
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to update product');
     },
   });
 
