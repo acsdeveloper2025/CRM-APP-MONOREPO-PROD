@@ -378,14 +378,48 @@ export class VerificationTasksController {
       const params: any[] = [];
       let paramIndex = 1;
 
-      // Role-based filtering - FIELD_AGENT users can only see their assigned tasks
+      // Role-based filtering - FIELD_AGENT users can see tasks assigned to them OR in their territory
       const userRole = req.user?.role;
       const userId = req.user?.id;
 
       if (userRole === Role.FIELD_AGENT) {
-        conditions.push(`vt.assigned_to = $${paramIndex}`);
+        // FIELD_AGENT can see tasks if:
+        // 1. They are assigned to the task, OR
+        // 2. The task is in their assigned pincodes/areas
+        const { getAssignedPincodeIds } = await import('@/middleware/pincodeAccess');
+        const { getAssignedAreaIds } = await import('@/middleware/areaAccess');
+
+        const assignedPincodeIds = await getAssignedPincodeIds(userId!, userRole);
+        const assignedAreaIds = await getAssignedAreaIds(userId!, userRole);
+
+        const fieldAgentConditions: string[] = [];
+
+        // Condition 1: Directly assigned to task
+        fieldAgentConditions.push(`vt.assigned_to = $${paramIndex}`);
         params.push(userId);
         paramIndex++;
+
+        // Condition 2: Task in assigned pincode
+        if (assignedPincodeIds && assignedPincodeIds.length > 0) {
+          fieldAgentConditions.push(`vt.pincode_id = ANY($${paramIndex}::int[])`);
+          params.push(assignedPincodeIds);
+          paramIndex++;
+        }
+
+        // Condition 3: Task in assigned area
+        if (assignedAreaIds && assignedAreaIds.length > 0) {
+          fieldAgentConditions.push(`vt.area_id = ANY($${paramIndex}::int[])`);
+          params.push(assignedAreaIds);
+          paramIndex++;
+        }
+
+        // Apply the combined filter
+        if (fieldAgentConditions.length > 0) {
+          conditions.push(`(${fieldAgentConditions.join(' OR ')})`);
+        } else {
+          // No assignments, show nothing
+          conditions.push('FALSE');
+        }
       } else if (assignedTo) {
         conditions.push(`vt.assigned_to = $${paramIndex}`);
         params.push(assignedTo);
