@@ -9,7 +9,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
+import { LoadingState } from '@/components/ui/loading';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { RolePermission } from '@/types/user';
 import { getRoleBadge, getRoleIcon } from '@/utils/roleUtils';
@@ -21,25 +21,7 @@ interface RolePermissionsTableProps {
 
 export function RolePermissionsTable({ data, isLoading }: RolePermissionsTableProps) {
   if (isLoading) {
-    return (
-      <div className="space-y-3">
-        {[...Array(4)].map((_, i) => (
-          <Card key={i}>
-            <CardHeader>
-              <Skeleton className="h-6 w-[100px]" />
-              <Skeleton className="h-4 w-[200px]" />
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {[...Array(3)].map((_, j) => (
-                  <Skeleton key={j} className="h-4 w-full" />
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    );
+    return <LoadingState message="Loading role permissions..." size="lg" />;
   }
 
   if (!data || data.length === 0) {

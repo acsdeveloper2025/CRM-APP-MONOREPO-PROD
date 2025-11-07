@@ -1,5 +1,5 @@
 import React from 'react';
-import { Oval } from 'react-loader-spinner';
+import { Atom } from 'react-loading-indicators';
 import { cn } from '@/lib/utils';
 
 interface LoadingSpinnerProps {
@@ -9,12 +9,12 @@ interface LoadingSpinnerProps {
 }
 
 export function LoadingSpinner({ size = 'md', variant = 'default', className }: LoadingSpinnerProps) {
-  // Map size to pixel values for Oval spinner
+  // Map size to react-loading-indicators size values
   const sizeMap = {
-    sm: 30,
-    md: 50,
-    lg: 70,
-    xl: 100,
+    sm: 'small' as const,
+    md: 'medium' as const,
+    lg: 'large' as const,
+    xl: 'large' as const,
   };
 
   const spinnerSize = sizeMap[size];
@@ -60,19 +60,10 @@ export function LoadingSpinner({ size = 'md', variant = 'default', className }: 
     );
   }
 
-  // Default: Use Oval spinner (smooth, professional look)
+  // Default: Use Atom spinner (smooth, professional look with green color)
   return (
     <div className={cn('flex items-center justify-center', className)}>
-      <Oval
-        height={spinnerSize}
-        width={spinnerSize}
-        color="#10B981"
-        secondaryColor="#10B981"
-        strokeWidth={4}
-        strokeWidthSecondary={4}
-        ariaLabel="loading"
-        visible={true}
-      />
+      <Atom color="#32cd32" size={spinnerSize} text="" textColor="" />
     </div>
   );
 }

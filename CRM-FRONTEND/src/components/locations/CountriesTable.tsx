@@ -29,7 +29,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
+import { LoadingState } from '@/components/ui/loading';
 import { baseBadgeStyle, formatBadgeLabel } from '@/lib/badgeStyles';
 import { locationsService } from '@/services/locations';
 import { EditCountryDialog } from './EditCountryDialog';
@@ -82,13 +82,7 @@ export function CountriesTable({ data, isLoading }: CountriesTableProps) {
   };
 
   if (isLoading) {
-    return (
-      <div className="space-y-3">
-        {[...Array(5)].map((_, i) => (
-          <Skeleton key={i} className="h-12 w-full" />
-        ))}
-      </div>
-    );
+    return <LoadingState message="Loading countries..." size="lg" />;
   }
 
   if (!data.length) {

@@ -19,7 +19,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
+import { LoadingState } from '@/components/ui/loading';
 import { baseBadgeStyle, formatBadgeLabel } from '@/lib/badgeStyles';
 import {
   AlertDialog,
@@ -82,19 +82,7 @@ export function CitiesTable({ data, isLoading }: CitiesTableProps) {
   };
 
   if (isLoading) {
-    return (
-      <div className="space-y-3">
-        {[...Array(5)].map((_, i) => (
-          <div key={i} className="flex items-center space-x-4">
-            <Skeleton className="h-12 w-12 rounded" />
-            <div className="space-y-2">
-              <Skeleton className="h-4 w-[200px]" />
-              <Skeleton className="h-4 w-[150px]" />
-            </div>
-          </div>
-        ))}
-      </div>
-    );
+    return <LoadingState message="Loading cities..." size="lg" />;
   }
 
   if (!data || data.length === 0) {

@@ -8,6 +8,7 @@ import { FormViewer } from '@/components/forms/FormViewer';
 import { FormSubmissionsList } from '@/components/forms/FormSubmissionsList';
 import { FormsDebug } from '@/components/debug/FormsDebug';
 import { FileText, TestTube, AlertCircle, CheckCircle } from 'lucide-react';
+import { LoadingSpinner } from '@/components/ui/loading';
 
 export const FormsTestPage: React.FC = () => {
   const [testCaseId, setTestCaseId] = useState('22'); // One of our newly created cases
@@ -86,9 +87,9 @@ export const FormsTestPage: React.FC = () => {
         <CardContent>
           <div className="flex items-center space-x-4">
             {isLoading && (
-              <div className="flex items-center space-x-2 text-green-600">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600" />
-                <span>Loading...</span>
+              <div className="flex items-center space-x-2">
+                <LoadingSpinner size="sm" />
+                <span className="text-sm text-gray-600">Loading...</span>
               </div>
             )}
             

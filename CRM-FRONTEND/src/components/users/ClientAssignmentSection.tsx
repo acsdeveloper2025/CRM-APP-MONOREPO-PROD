@@ -9,6 +9,7 @@ import { clientsService } from '@/services/clients';
 import { toast } from 'sonner';
 import type { User } from '@/types/user';
 import type { Client } from '@/types/client';
+import { LoadingSpinner } from '@/components/ui/loading';
 
 interface ClientAssignmentSectionProps {
   user: User;
@@ -98,7 +99,9 @@ export function ClientAssignmentSection({ user }: ClientAssignmentSectionProps) 
       </CardHeader>
       <CardContent className="space-y-4">
         {isLoading ? (
-          <div>Loading...</div>
+          <div className="flex items-center justify-center py-8">
+            <LoadingSpinner size="md" />
+          </div>
         ) : (
           <>
             <div className="space-y-2 max-h-60 overflow-y-auto">
