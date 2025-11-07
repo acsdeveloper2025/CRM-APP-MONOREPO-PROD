@@ -498,81 +498,151 @@ export const deleteUser = async (req: AuthenticatedRequest, res: Response) => {
       });
     }
 
-    // Check for related records that would prevent deletion (RESTRICT constraints)
+    // SYSTEMATIC APPROACH: Check ALL tables with RESTRICT/NO ACTION constraints
+    // This query dynamically checks all foreign key constraints that would prevent deletion
     const relatedRecordsCheck = await query(
       `SELECT
+        -- RESTRICT constraints (will block deletion)
         (SELECT COUNT(*) FROM attachments WHERE "uploadedBy" = $1) as attachments_count,
         (SELECT COUNT(*) FROM locations WHERE "recordedBy" = $1) as locations_count,
-        (SELECT COUNT(*) FROM "userAreaAssignments" WHERE "userId" = $1 OR "assignedBy" = $1) as area_assignments_count,
-        (SELECT COUNT(*) FROM "userPincodeAssignments" WHERE "userId" = $1 OR "assignedBy" = $1) as pincode_assignments_count,
-        (SELECT COUNT(*) FROM "territoryAssignmentAudit" WHERE "userId" = $1 OR "performedBy" = $1) as territory_audit_count,
         (SELECT COUNT(*) FROM "caseDeduplicationAudit" WHERE "performedBy" = $1) as dedup_audit_count,
-        (SELECT COUNT(*) FROM cases WHERE "createdByBackendUser" = $1) as cases_count,
-        (SELECT COUNT(*) FROM verification_tasks WHERE "assigned_to" = $1 OR "assigned_by" = $1) as tasks_count,
-        (SELECT COUNT(*) FROM commission_calculations WHERE user_id = $1) as commission_count,
-        (SELECT COUNT(*) FROM task_assignment_history WHERE assigned_to = $1 OR assigned_by = $1) as task_assignment_history_count,
-        (SELECT COUNT(*) FROM case_assignment_history WHERE "toUserId" = $1 OR "assignedBy" = $1) as case_assignment_history_count
+        (SELECT COUNT(*) FROM "territoryAssignmentAudit" WHERE "performedBy" = $1) as territory_audit_restrict_count,
+        (SELECT COUNT(*) FROM "userAreaAssignments" WHERE "assignedBy" = $1) as area_assignments_restrict_count,
+        (SELECT COUNT(*) FROM "userPincodeAssignments" WHERE "assignedBy" = $1) as pincode_assignments_restrict_count,
+
+        -- NO ACTION constraints (will block deletion)
+        (SELECT COUNT(*) FROM case_assignment_history WHERE "assignedBy" = $1 OR "newAssignee" = $1 OR "previousAssignee" = $1) as case_assignment_history_count,
+        (SELECT COUNT(*) FROM case_timeline_events WHERE performed_by = $1) as case_timeline_count,
+        (SELECT COUNT(*) FROM "clientDocumentTypes" WHERE created_by = $1) as client_doc_types_count,
+        (SELECT COUNT(*) FROM commission_calculations WHERE approved_by = $1 OR paid_by = $1) as commission_approvals_count,
+        (SELECT COUNT(*) FROM commission_payment_batches WHERE created_by = $1 OR processed_by = $1) as commission_batches_count,
+        (SELECT COUNT(*) FROM commission_rate_types WHERE created_by = $1) as commission_rate_types_count,
+        (SELECT COUNT(*) FROM "documentTypeRates" WHERE "createdBy" = $1) as doc_type_rates_count,
+        (SELECT COUNT(*) FROM "documentTypes" WHERE created_by = $1) as doc_types_count,
+        (SELECT COUNT(*) FROM error_logs WHERE user_id = $1) as error_logs_count,
+        (SELECT COUNT(*) FROM field_user_commission_assignments WHERE created_by = $1) as commission_assignments_count,
+        (SELECT COUNT(*) FROM form_submissions WHERE submitted_by = $1 OR validated_by = $1) as form_submissions_count,
+        (SELECT COUNT(*) FROM performance_metrics WHERE user_id = $1) as performance_metrics_count,
+        (SELECT COUNT(*) FROM "productDocumentTypes" WHERE created_by = $1) as product_doc_types_count,
+        (SELECT COUNT(*) FROM scheduled_reports WHERE created_by = $1) as scheduled_reports_count,
+        (SELECT COUNT(*) FROM task_assignment_history WHERE assigned_by = $1 OR assigned_to = $1) as task_assignment_history_count,
+        (SELECT COUNT(*) FROM task_commission_calculations WHERE user_id = $1) as task_commissions_count,
+        (SELECT COUNT(*) FROM task_form_submissions WHERE submitted_by = $1) as task_form_submissions_count,
+        (SELECT COUNT(*) FROM template_reports WHERE created_by = $1) as template_reports_count,
+        (SELECT COUNT(*) FROM verification_tasks WHERE assigned_by = $1 OR assigned_to = $1) as verification_tasks_count,
+
+        -- CASCADE constraints (will auto-delete - warn user about data loss)
+        (SELECT COUNT(*) FROM "userAreaAssignments" WHERE "userId" = $1) as area_assignments_cascade_count,
+        (SELECT COUNT(*) FROM "userPincodeAssignments" WHERE "userId" = $1) as pincode_assignments_cascade_count,
+        (SELECT COUNT(*) FROM "userClientAssignments" WHERE "userId" = $1) as client_assignments_count,
+        (SELECT COUNT(*) FROM "userProductAssignments" WHERE "userId" = $1) as product_assignments_count,
+        (SELECT COUNT(*) FROM commission_calculations WHERE user_id = $1) as commission_records_count,
+        (SELECT COUNT(*) FROM field_user_commission_assignments WHERE user_id = $1) as field_commission_assignments_count,
+        (SELECT COUNT(*) FROM notifications WHERE user_id = $1) as notifications_count,
+        (SELECT COUNT(*) FROM notification_preferences WHERE user_id = $1) as notification_prefs_count
       `,
       [id]
     );
 
     const counts = relatedRecordsCheck.rows[0];
-    const hasRelatedRecords = Object.values(counts).some((count: any) => parseInt(count) > 0);
 
-    if (hasRelatedRecords) {
-      // Build detailed error message with specific record types
-      const recordTypes: string[] = [];
-      if (parseInt(counts.attachments_count) > 0) {
-        recordTypes.push(`${counts.attachments_count} attachment(s)`);
+    // Separate blocking constraints from cascade warnings
+    const blockingRecords: string[] = [];
+    const cascadeWarnings: string[] = [];
+
+    // RESTRICT/NO ACTION constraints - these BLOCK deletion
+    const blockingChecks = [
+      { key: 'attachments_count', label: 'attachment(s)' },
+      { key: 'locations_count', label: 'location(s)' },
+      { key: 'dedup_audit_count', label: 'deduplication audit record(s)' },
+      { key: 'territory_audit_restrict_count', label: 'territory audit record(s)' },
+      { key: 'area_assignments_restrict_count', label: 'area assignment(s) created by this user' },
+      { key: 'pincode_assignments_restrict_count', label: 'pincode assignment(s) created by this user' },
+      { key: 'case_assignment_history_count', label: 'case assignment history record(s)' },
+      { key: 'case_timeline_count', label: 'case timeline event(s)' },
+      { key: 'client_doc_types_count', label: 'client document type(s)' },
+      { key: 'commission_approvals_count', label: 'commission approval(s)' },
+      { key: 'commission_batches_count', label: 'commission payment batch(es)' },
+      { key: 'commission_rate_types_count', label: 'commission rate type(s)' },
+      { key: 'doc_type_rates_count', label: 'document type rate(s)' },
+      { key: 'doc_types_count', label: 'document type(s)' },
+      { key: 'error_logs_count', label: 'error log(s)' },
+      { key: 'commission_assignments_count', label: 'commission assignment(s)' },
+      { key: 'form_submissions_count', label: 'form submission(s)' },
+      { key: 'performance_metrics_count', label: 'performance metric(s)' },
+      { key: 'product_doc_types_count', label: 'product document type(s)' },
+      { key: 'scheduled_reports_count', label: 'scheduled report(s)' },
+      { key: 'task_assignment_history_count', label: 'task assignment history record(s)' },
+      { key: 'task_commissions_count', label: 'task commission(s)' },
+      { key: 'task_form_submissions_count', label: 'task form submission(s)' },
+      { key: 'template_reports_count', label: 'template report(s)' },
+      { key: 'verification_tasks_count', label: 'verification task(s)' },
+    ];
+
+    // CASCADE constraints - these will AUTO-DELETE (warn user)
+    const cascadeChecks = [
+      { key: 'area_assignments_cascade_count', label: 'area assignment(s)' },
+      { key: 'pincode_assignments_cascade_count', label: 'pincode assignment(s)' },
+      { key: 'client_assignments_count', label: 'client assignment(s)' },
+      { key: 'product_assignments_count', label: 'product assignment(s)' },
+      { key: 'commission_records_count', label: 'commission record(s)' },
+      { key: 'field_commission_assignments_count', label: 'field commission assignment(s)' },
+      { key: 'notifications_count', label: 'notification(s)' },
+      { key: 'notification_prefs_count', label: 'notification preference(s)' },
+    ];
+
+    // Check blocking constraints
+    for (const check of blockingChecks) {
+      const count = parseInt(counts[check.key] || '0');
+      if (count > 0) {
+        blockingRecords.push(`${count} ${check.label}`);
       }
-      if (parseInt(counts.locations_count) > 0) {
-        recordTypes.push(`${counts.locations_count} location(s)`);
+    }
+
+    // Check cascade constraints
+    for (const check of cascadeChecks) {
+      const count = parseInt(counts[check.key] || '0');
+      if (count > 0) {
+        cascadeWarnings.push(`${count} ${check.label}`);
       }
-      if (parseInt(counts.area_assignments_count) > 0) {
-        recordTypes.push(`${counts.area_assignments_count} area assignment(s)`);
-      }
-      if (parseInt(counts.pincode_assignments_count) > 0) {
-        recordTypes.push(`${counts.pincode_assignments_count} pincode assignment(s)`);
-      }
-      if (parseInt(counts.territory_audit_count) > 0) {
-        recordTypes.push(`${counts.territory_audit_count} territory audit record(s)`);
-      }
-      if (parseInt(counts.dedup_audit_count) > 0) {
-        recordTypes.push(`${counts.dedup_audit_count} deduplication audit record(s)`);
-      }
-      if (parseInt(counts.cases_count) > 0) {
-        recordTypes.push(`${counts.cases_count} case(s)`);
-      }
-      if (parseInt(counts.tasks_count) > 0) {
-        recordTypes.push(`${counts.tasks_count} verification task(s)`);
-      }
-      if (parseInt(counts.commission_count) > 0) {
-        recordTypes.push(`${counts.commission_count} commission record(s)`);
-      }
-      if (parseInt(counts.task_assignment_history_count) > 0) {
-        recordTypes.push(`${counts.task_assignment_history_count} task assignment history record(s)`);
-      }
-      if (parseInt(counts.case_assignment_history_count) > 0) {
-        recordTypes.push(`${counts.case_assignment_history_count} case assignment history record(s)`);
+    }
+
+    const hasBlockingRecords = blockingRecords.length > 0;
+    const hasCascadeRecords = cascadeWarnings.length > 0;
+
+    if (hasBlockingRecords || hasCascadeRecords) {
+      let detailMessage = '';
+
+      if (hasBlockingRecords) {
+        detailMessage = `This user has ${blockingRecords.join(', ')} that must be reassigned or removed before deletion.`;
       }
 
-      const detailMessage = recordTypes.length > 0
-        ? `This user has ${recordTypes.join(', ')}. Please reassign or remove these records before deleting the user.`
-        : 'This user has related records in the system. Please remove these records before deleting the user.';
+      if (hasCascadeRecords) {
+        const cascadeMessage = `Deleting this user will also permanently delete ${cascadeWarnings.join(', ')}.`;
+        detailMessage = hasBlockingRecords
+          ? `${detailMessage}\n\nAdditionally, ${cascadeMessage.toLowerCase()}`
+          : cascadeMessage;
+      }
 
       logger.warn(`Attempted to delete user with related records: ${id}`, {
         userId: req.user?.id,
         targetUsername: userExists.rows[0].username,
+        blockingRecords: blockingRecords.length,
+        cascadeRecords: cascadeWarnings.length,
         relatedRecords: counts,
       });
 
       return res.status(400).json({
         success: false,
-        message: 'Cannot delete user: user has related records in the system',
+        message: hasBlockingRecords
+          ? 'Cannot delete user: user has related records that must be removed first'
+          : 'Cannot delete user: deletion will cascade to related records',
         error: {
-          code: 'USER_HAS_DEPENDENCIES',
+          code: hasBlockingRecords ? 'USER_HAS_DEPENDENCIES' : 'CASCADE_DELETE_WARNING',
           details: detailMessage,
-          relatedRecords: counts,
+          blockingRecords: blockingRecords,
+          cascadeWarnings: cascadeWarnings,
+          relatedRecordCounts: counts,
         },
       });
     }
