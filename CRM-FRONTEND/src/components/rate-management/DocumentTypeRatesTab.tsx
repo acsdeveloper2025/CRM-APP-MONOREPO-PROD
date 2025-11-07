@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useMutationWithInvalidation } from '@/hooks/useStandardizedMutation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,7 +25,6 @@ import { clientsService } from '@/services/clients';
 import { productsService } from '@/services/products';
 import { documentTypeRatesService } from '@/services/documentTypeRates';
 import { apiService } from '@/services/api';
-import toast from 'react-hot-toast';
 import { Trash2, Edit, Plus, IndianRupee } from 'lucide-react';
 import type { DocumentType } from '@/types/documentTypeRates';
 
@@ -38,10 +38,8 @@ export function DocumentTypeRatesTab() {
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 20;
 
-  const queryClient = useQueryClient();
-
   // Reset to page 1 when filters change
-  React.useEffect(() => {
+  useEffect(() => {
     setCurrentPage(1);
   }, [selectedClientId, selectedProductId]);
 
@@ -81,32 +79,26 @@ export function DocumentTypeRatesTab() {
   });
 
   // Create/Update mutation
-  const saveRateMutation = useMutation({
+  const saveRateMutation = useMutationWithInvalidation({
     mutationFn: async (data: { clientId: number; productId: number; documentTypeId: number; amount: number; currency: string }) => {
       return documentTypeRatesService.createOrUpdateDocumentTypeRate(data);
     },
+    invalidateKeys: [['document-type-rates'], ['rate-management-stats']],
+    successMessage: editingRateId ? 'Rate updated successfully' : 'Rate created successfully',
+    errorContext: 'Document Type Rate Save',
+    errorFallbackMessage: 'Failed to save rate',
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['document-type-rates'] });
-      queryClient.invalidateQueries({ queryKey: ['rate-management-stats'] });
-      toast.success(editingRateId ? 'Rate updated successfully' : 'Rate created successfully');
       resetForm();
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to save rate');
     },
   });
 
   // Delete mutation
-  const deleteRateMutation = useMutation({
+  const deleteRateMutation = useMutationWithInvalidation({
     mutationFn: (rateId: number) => documentTypeRatesService.deleteDocumentTypeRate(rateId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['document-type-rates'] });
-      queryClient.invalidateQueries({ queryKey: ['rate-management-stats'] });
-      toast.success('Rate deleted successfully');
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to delete rate');
-    },
+    invalidateKeys: [['document-type-rates'], ['rate-management-stats']],
+    successMessage: 'Rate deleted successfully',
+    errorContext: 'Document Type Rate Deletion',
+    errorFallbackMessage: 'Failed to delete rate',
   });
 
   const clients = clientsData?.data || [];

@@ -31,6 +31,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { locationsService } from '@/services/locations';
 import { EnhancedAreasMultiSelect } from './EnhancedAreasMultiSelect';
+import { toast } from 'sonner';
 
 const createPincodeSchema = z.object({
   code: z.string()
