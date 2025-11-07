@@ -38,7 +38,10 @@ export function CommissionsTable({ data, isLoading }: CommissionsTableProps) {
   const approveCommissionMutation = useMutation({
     mutationFn: (id: string) => billingService.approveCommission(id),
     onSuccess: () => {
+      // Invalidate commission-related queries
       queryClient.invalidateQueries({ queryKey: ['commissions'] });
+      // Invalidate dashboard stats (affects commission amounts, pending commissions)
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       toast.success('Commission approved successfully');
     },
     onError: (error: any) => {
@@ -49,7 +52,10 @@ export function CommissionsTable({ data, isLoading }: CommissionsTableProps) {
   const markPaidMutation = useMutation({
     mutationFn: (id: string) => billingService.markCommissionPaid(id),
     onSuccess: () => {
+      // Invalidate commission-related queries
       queryClient.invalidateQueries({ queryKey: ['commissions'] });
+      // Invalidate dashboard stats (affects paid commissions, outstanding amounts)
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       toast.success('Commission marked as paid');
     },
     onError: (error: any) => {
@@ -60,7 +66,10 @@ export function CommissionsTable({ data, isLoading }: CommissionsTableProps) {
   const bulkApproveMutation = useMutation({
     mutationFn: (ids: string[]) => billingService.bulkApproveCommissions(ids),
     onSuccess: () => {
+      // Invalidate commission-related queries
       queryClient.invalidateQueries({ queryKey: ['commissions'] });
+      // Invalidate dashboard stats
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       toast.success('Commissions approved successfully');
       setSelectedCommissions([]);
     },
@@ -72,7 +81,10 @@ export function CommissionsTable({ data, isLoading }: CommissionsTableProps) {
   const bulkMarkPaidMutation = useMutation({
     mutationFn: (ids: string[]) => billingService.bulkMarkCommissionsPaid(ids),
     onSuccess: () => {
+      // Invalidate commission-related queries
       queryClient.invalidateQueries({ queryKey: ['commissions'] });
+      // Invalidate dashboard stats
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       toast.success('Commissions marked as paid');
       setSelectedCommissions([]);
     },
