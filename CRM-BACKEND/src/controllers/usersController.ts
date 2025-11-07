@@ -658,7 +658,8 @@ export const getUserStats = async (req: AuthenticatedRequest, res: Response) => 
       SELECT
         COUNT(*) as "totalUsers",
         COUNT(CASE WHEN "isActive" = true THEN 1 END) as "activeUsers",
-        COUNT(CASE WHEN "isActive" = false THEN 1 END) as "inactiveUsers"
+        COUNT(CASE WHEN "isActive" = false THEN 1 END) as "inactiveUsers",
+        COUNT(CASE WHEN "createdAt" >= DATE_TRUNC('month', CURRENT_DATE) THEN 1 END) as "newUsersThisMonth"
       FROM users
     `;
     const userCounts = await query(userCountsQuery);
@@ -687,6 +688,20 @@ export const getUserStats = async (req: AuthenticatedRequest, res: Response) => 
     `;
     const departmentStats = await query(departmentStatsQuery);
 
+    // Get recent logins (last 24 hours)
+    // Since we don't have a login tracking table yet, we'll use lastLogin field
+    const recentLoginsQuery = `
+      SELECT
+        id as "userId",
+        name as "userName",
+        "lastLogin" as "lastLoginAt"
+      FROM users
+      WHERE "lastLogin" >= NOW() - INTERVAL '24 hours'
+      ORDER BY "lastLogin" DESC
+      LIMIT 10
+    `;
+    const recentLoginsResult = await query(recentLoginsQuery);
+
     const stats = userCounts.rows[0];
 
     res.json({
@@ -695,9 +710,10 @@ export const getUserStats = async (req: AuthenticatedRequest, res: Response) => 
         totalUsers: parseInt(stats.totalUsers),
         activeUsers: parseInt(stats.activeUsers),
         inactiveUsers: parseInt(stats.inactiveUsers),
+        newUsersThisMonth: parseInt(stats.newUsersThisMonth) || 0,
         usersByRole: roleStats.rows,
         usersByDepartment: departmentStats.rows,
-        recentLogins: 0, // TODO: Implement when login tracking is added
+        recentLogins: recentLoginsResult.rows,
       },
     });
   } catch (error) {
