@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
+import { useStandardizedMutation } from '@/hooks/useStandardizedMutation';
 import { MoreHorizontal, Edit, Trash2, Eye, Building2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -31,7 +31,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { toast } from 'sonner';
 import { clientsService } from '@/services/clients';
 import { Client } from '@/types/client';
 import { EditClientDialog } from './EditClientDialog';
@@ -49,24 +48,18 @@ export function ClientsTable({ data, isLoading }: ClientsTableProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [clientToDelete, setClientToDelete] = useState<Client | null>(null);
 
-  const queryClient = useQueryClient();
-
-
-
-  const deleteMutation = useMutation({
+  const deleteMutation = useStandardizedMutation({
     mutationFn: (id: number) => clientsService.deleteClient(id),
+    successMessage: 'Client deleted successfully',
+    errorContext: 'Client Deletion',
+    errorFallbackMessage: 'Failed to delete client',
     onSuccess: () => {
-      // Invalidate all client-related queries to ensure the list updates
-      queryClient.invalidateQueries({
-        queryKey: ['clients'],
-        exact: false // This will invalidate all queries that start with ['clients']
-      });
-      toast.success('Client deleted successfully');
       setShowDeleteDialog(false);
       setClientToDelete(null);
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to delete client');
+    onErrorCallback: () => {
+      setShowDeleteDialog(false);
+      setClientToDelete(null);
     },
   });
 
