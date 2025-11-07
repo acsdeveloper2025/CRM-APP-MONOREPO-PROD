@@ -8,7 +8,6 @@ import { usersService } from '@/services/users';
 import { locationsService } from '@/services/locations';
 import { toast } from 'sonner';
 import type { User } from '@/types/user';
-import type { Pincode } from '@/types/location';
 import { LoadingSpinner } from '@/components/ui/loading';
 
 interface PincodeAssignmentSectionProps {
@@ -105,18 +104,18 @@ export function PincodeAssignmentSection({ user }: PincodeAssignmentSectionProps
         ) : (
           <>
             <div className="space-y-2 max-h-60 overflow-y-auto">
-              {pincodes.map((pincode: Pincode) => (
+              {pincodes.map((pincode: any) => (
                 <div key={pincode.id} className="flex items-center space-x-2">
                   <Checkbox
                     id={`pincode-${pincode.id}`}
-                    checked={selectedPincodeIds.includes(pincode.id)}
-                    onCheckedChange={(checked) => handlePincodeToggle(pincode.id, checked as boolean)}
+                    checked={selectedPincodeIds.includes(parseInt(pincode.id))}
+                    onCheckedChange={(checked) => handlePincodeToggle(parseInt(pincode.id), checked as boolean)}
                   />
                   <label
                     htmlFor={`pincode-${pincode.id}`}
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
                   >
-                    {pincode.pincode}
+                    {pincode.code} - {pincode.cityName}, {pincode.state}
                   </label>
                 </div>
               ))}

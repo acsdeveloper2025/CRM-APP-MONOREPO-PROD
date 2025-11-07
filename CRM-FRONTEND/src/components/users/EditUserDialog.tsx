@@ -43,6 +43,7 @@ import { designationsService } from '@/services/designations';
 import { ClientAssignmentSection } from './ClientAssignmentSection';
 import { ProductAssignmentSection } from './ProductAssignmentSection';
 import { PincodeAssignmentSection } from './PincodeAssignmentSection';
+import { AreaAssignmentSection } from './AreaAssignmentSection';
 
 import { User } from '@/types/user';
 
@@ -165,17 +166,20 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
         </DialogHeader>
 
         <Tabs defaultValue="details" className="w-full">
-          <TabsList className={`grid w-full ${user.role === 'BACKEND_USER' ? 'grid-cols-3' : user.role === 'FIELD_AGENT' ? 'grid-cols-2' : 'grid-cols-1'}`}>
+          <TabsList className={`grid w-full ${user.role === 'BACKEND_USER' ? 'grid-cols-3' : user.role === 'FIELD_AGENT' ? 'grid-cols-3' : 'grid-cols-1'}`}>
             <TabsTrigger value="details">User Details</TabsTrigger>
-            <TabsTrigger value="clients" disabled={user.role !== 'BACKEND_USER'}>
-              Clients
-            </TabsTrigger>
-            <TabsTrigger value="products" disabled={user.role !== 'BACKEND_USER'}>
-              Products
-            </TabsTrigger>
-            <TabsTrigger value="pincodes" disabled={user.role !== 'FIELD_AGENT'}>
-              Pincodes
-            </TabsTrigger>
+            {user.role === 'BACKEND_USER' && (
+              <>
+                <TabsTrigger value="clients">Clients</TabsTrigger>
+                <TabsTrigger value="products">Products</TabsTrigger>
+              </>
+            )}
+            {user.role === 'FIELD_AGENT' && (
+              <>
+                <TabsTrigger value="pincodes">Pincodes</TabsTrigger>
+                <TabsTrigger value="areas">Areas</TabsTrigger>
+              </>
+            )}
           </TabsList>
 
           <TabsContent value="details" className="space-y-4 mt-4">
@@ -353,6 +357,10 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
 
           <TabsContent value="pincodes" className="space-y-4 mt-4">
             <PincodeAssignmentSection user={user} />
+          </TabsContent>
+
+          <TabsContent value="areas" className="space-y-4 mt-4">
+            <AreaAssignmentSection user={user} />
           </TabsContent>
         </Tabs>
       </DialogContent>
