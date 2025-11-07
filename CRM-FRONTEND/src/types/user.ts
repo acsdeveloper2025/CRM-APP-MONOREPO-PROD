@@ -92,6 +92,7 @@ export interface UserStats {
   totalUsers: number;
   activeUsers: number;
   inactiveUsers: number;
+  newUsersThisMonth: number;
   usersByRole: {
     role: Role;
     count: number;
