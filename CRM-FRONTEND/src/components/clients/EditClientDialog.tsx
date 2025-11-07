@@ -201,7 +201,7 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
 
               <TabsContent value="products" className="space-y-4">
                 <div>
-                  <h4 className="text-sm font-medium mb-2">Current Products</h4>
+                  <h4 className="text-sm font-medium text-gray-900 mb-2">Current Products</h4>
                   <div className="flex flex-wrap gap-2 mb-4">
                     {currentProducts.map((product: any) => (
                       <Badge key={product.id} variant="secondary">
@@ -243,7 +243,7 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
                                 />
                                 <label
                                   htmlFor={`product-${product.id}`}
-                                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                                  className="text-sm font-medium leading-none text-gray-900 peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
                                 >
                                   {product.name}
                                   <Badge variant="outline" className="ml-2 text-xs">
@@ -294,7 +294,7 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
                                 />
                                 <label
                                   htmlFor={`vtype-${verificationType.id}`}
-                                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                                  className="text-sm font-medium leading-none text-gray-900 peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
                                 >
                                   {verificationType.name}
                                   {verificationType.code && (
@@ -320,7 +320,7 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
 
               <TabsContent value="document-types" className="space-y-4">
                 <div>
-                  <h4 className="text-sm font-medium mb-2">Current Document Types</h4>
+                  <h4 className="text-sm font-medium text-gray-900 mb-2">Current Document Types</h4>
                   <div className="flex flex-wrap gap-2 mb-4">
                     {currentDocumentTypes.map((documentType: any) => (
                       <Badge key={documentType.id} variant="secondary">
@@ -359,11 +359,11 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
                                 />
                                 <label
                                   htmlFor={`dtype-${documentType.id}`}
-                                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex-1"
+                                  className="text-sm font-medium leading-none text-gray-900 peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex-1"
                                 >
                                   <div className="flex items-center justify-between">
                                     <div>
-                                      <div>{documentType.name}</div>
+                                      <div className="text-gray-900">{documentType.name}</div>
                                       <div className="text-xs text-gray-600">
                                         {documentType.code} • {documentType.category}
                                       </div>
