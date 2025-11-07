@@ -2,6 +2,7 @@ import React from 'react';
 import { TrendingUp, TrendingDown, Minus, Clock, CheckCircle, BarChart3, DollarSign } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ReportSummary } from '@/types/reports';
+import { LoadingSpinner } from '@/components/ui/loading';
 
 interface ReportSummaryCardsProps {
   summaries: ReportSummary[];
@@ -55,7 +56,12 @@ export function ReportSummaryCards({ summaries }: ReportSummaryCardsProps) {
         {[...Array(5)].map((_, i) => (
           <Card key={i}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Loading...</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                <div className="flex items-center space-x-2">
+                  <LoadingSpinner size="sm" />
+                  <span>Loading...</span>
+                </div>
+              </CardTitle>
               <BarChart3 className="h-4 w-4 text-gray-600" />
             </CardHeader>
             <CardContent>

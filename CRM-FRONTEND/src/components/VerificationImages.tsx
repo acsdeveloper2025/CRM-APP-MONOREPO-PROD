@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Skeleton } from '@/components/ui/skeleton';
+import { LoadingSpinner } from '@/components/ui/loading';
 import { useVerificationImages, useVerificationImagesBySubmission } from '@/hooks/useVerificationImages';
 import { verificationImagesService } from '@/services/verificationImages';
 import { Camera, MapPin, Download, Eye, Image as ImageIcon, ExternalLink, Clock, Home } from 'lucide-react';
@@ -84,7 +84,11 @@ const AsyncImage: React.FC<AsyncImageProps> = ({
   const isLoading = thumbnailUrl ? thumbLoading : imageLoading;
 
   if (isLoading) {
-    return <Skeleton className={className || "w-full h-full"} />;
+    return (
+      <div className={`flex items-center justify-center ${className || "w-full h-full"}`}>
+        <LoadingSpinner size="sm" />
+      </div>
+    );
   }
 
   return (
@@ -128,7 +132,9 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ imageUrl, imageId, imageName,
         </DialogHeader>
         <div className="flex justify-center">
           {loading ? (
-            <Skeleton className="w-full h-96" />
+            <div className="flex items-center justify-center w-full h-96">
+              <LoadingSpinner size="lg" />
+            </div>
           ) : (
             <img
               src={displayUrl}
@@ -331,14 +337,8 @@ const VerificationImages: React.FC<VerificationImagesProps> = ({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[...Array(3)].map((_, i) => (
-              <div key={i} className="space-y-2">
-                <Skeleton className="h-48 w-full rounded-lg" />
-                <Skeleton className="h-4 w-3/4" />
-                <Skeleton className="h-3 w-1/2" />
-              </div>
-            ))}
+          <div className="flex items-center justify-center py-12">
+            <LoadingSpinner size="lg" />
           </div>
         </CardContent>
       </Card>
