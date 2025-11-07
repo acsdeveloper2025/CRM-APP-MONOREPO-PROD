@@ -13,10 +13,15 @@ import { LoadingSpinner } from '@/components/ui/loading';
 
 interface PincodeAssignmentSectionProps {
   user: User;
+  selectedPincodeIds: number[];
+  onSelectedPincodesChange: (ids: number[]) => void;
 }
 
-export function PincodeAssignmentSection({ user }: PincodeAssignmentSectionProps) {
-  const [selectedPincodeIds, setSelectedPincodeIds] = useState<number[]>([]);
+export function PincodeAssignmentSection({
+  user,
+  selectedPincodeIds,
+  onSelectedPincodesChange
+}: PincodeAssignmentSectionProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const queryClient = useQueryClient();
 
@@ -44,9 +49,9 @@ export function PincodeAssignmentSection({ user }: PincodeAssignmentSectionProps
   useEffect(() => {
     if (assignmentsData?.data?.territoryAssignments) {
       const assignedPincodeIds = assignmentsData.data.territoryAssignments.map((assignment: any) => assignment.pincodeId);
-      setSelectedPincodeIds(assignedPincodeIds);
+      onSelectedPincodesChange(assignedPincodeIds);
     }
-  }, [assignmentsData]);
+  }, [assignmentsData, onSelectedPincodesChange]);
 
   // Save assignments mutation
   // eslint-disable-next-line react-hooks/rules-of-hooks
@@ -87,9 +92,9 @@ export function PincodeAssignmentSection({ user }: PincodeAssignmentSectionProps
 
   const handlePincodeToggle = (pincodeId: number, checked: boolean) => {
     if (checked) {
-      setSelectedPincodeIds(prev => [...prev, pincodeId]);
+      onSelectedPincodesChange([...selectedPincodeIds, pincodeId]);
     } else {
-      setSelectedPincodeIds(prev => prev.filter(id => id !== pincodeId));
+      onSelectedPincodesChange(selectedPincodeIds.filter(id => id !== pincodeId));
     }
   };
 

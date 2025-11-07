@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -67,6 +67,8 @@ interface EditUserDialogProps {
 }
 
 export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps) {
+  const [selectedPincodeIds, setSelectedPincodeIds] = useState<number[]>([]);
+
   const form = useForm<EditUserFormData>({
     resolver: zodResolver(editUserSchema),
     defaultValues: {
@@ -356,11 +358,18 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
           </TabsContent>
 
           <TabsContent value="pincodes" className="space-y-4 mt-4">
-            <PincodeAssignmentSection user={user} />
+            <PincodeAssignmentSection
+              user={user}
+              selectedPincodeIds={selectedPincodeIds}
+              onSelectedPincodesChange={setSelectedPincodeIds}
+            />
           </TabsContent>
 
           <TabsContent value="areas" className="space-y-4 mt-4">
-            <AreaAssignmentSection user={user} />
+            <AreaAssignmentSection
+              user={user}
+              selectedPincodeIds={selectedPincodeIds}
+            />
           </TabsContent>
         </Tabs>
       </DialogContent>

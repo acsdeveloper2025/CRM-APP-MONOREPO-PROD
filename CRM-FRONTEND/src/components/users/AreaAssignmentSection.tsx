@@ -14,9 +14,10 @@ import { LoadingSpinner } from '@/components/ui/loading';
 
 interface AreaAssignmentSectionProps {
   user: User;
+  selectedPincodeIds: number[];
 }
 
-export function AreaAssignmentSection({ user }: AreaAssignmentSectionProps) {
+export function AreaAssignmentSection({ user, selectedPincodeIds }: AreaAssignmentSectionProps) {
   const queryClient = useQueryClient();
   const [selectedAreaIds, setSelectedAreaIds] = useState<number[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -33,32 +34,26 @@ export function AreaAssignmentSection({ user }: AreaAssignmentSectionProps) {
     queryFn: () => usersService.getUserPincodeAssignments(user.id),
   });
 
-  // Fetch assigned pincodes to filter areas
-  const assignedPincodeIds = useMemo(() => {
-    if (!assignmentsData?.data?.territoryAssignments) return [];
-    return assignmentsData.data.territoryAssignments.map((assignment: any) => assignment.pincodeId);
-  }, [assignmentsData]);
-
-  // Fetch areas for assigned pincodes to enable smart filtering
+  // Fetch areas for selected pincodes to enable smart filtering
   const { data: pincodeAreasData } = useQuery({
-    queryKey: ['pincode-areas', assignedPincodeIds],
+    queryKey: ['pincode-areas', selectedPincodeIds],
     queryFn: async () => {
-      if (assignedPincodeIds.length === 0) return [];
+      if (selectedPincodeIds.length === 0) return [];
 
-      // Fetch areas for each assigned pincode
-      const areasPromises = assignedPincodeIds.map((pincodeId: number) =>
+      // Fetch areas for each selected pincode
+      const areasPromises = selectedPincodeIds.map((pincodeId: number) =>
         locationsService.getAreasByPincode(pincodeId)
       );
 
       const results = await Promise.all(areasPromises);
 
       // Combine all areas and remove duplicates
-      const allAreas = results.flatMap(result => result.data || []);
+      const allAreas = results.flatMap((result: any) => result.data || []);
       const uniqueAreaIds = new Set(allAreas.map((area: any) => parseInt(area.id)));
 
       return Array.from(uniqueAreaIds);
     },
-    enabled: assignedPincodeIds.length > 0,
+    enabled: selectedPincodeIds.length > 0,
   });
 
   // Update selected areas when assignments data loads
@@ -106,18 +101,18 @@ export function AreaAssignmentSection({ user }: AreaAssignmentSectionProps) {
   const allAreas = areasData?.data || [];
   const allowedAreaIds = pincodeAreasData || [];
 
-  // Filter areas based on assigned pincodes (smart filtering)
+  // Filter areas based on selected pincodes (smart filtering)
   const availableAreas = useMemo(() => {
-    if (assignedPincodeIds.length === 0) {
-      // No pincodes assigned, show all areas
+    if (selectedPincodeIds.length === 0) {
+      // No pincodes selected, show all areas
       return allAreas;
     }
 
-    // Only show areas that belong to assigned pincodes
+    // Only show areas that belong to selected pincodes
     return allAreas.filter((area: any) =>
       allowedAreaIds.includes(parseInt(area.id))
     );
-  }, [allAreas, allowedAreaIds, assignedPincodeIds.length]);
+  }, [allAreas, allowedAreaIds, selectedPincodeIds.length]);
 
   // Apply search filter
   const filteredAreas = useMemo(() => {
@@ -150,11 +145,11 @@ export function AreaAssignmentSection({ user }: AreaAssignmentSectionProps) {
         ) : (
           <>
             {/* Smart filtering info alert */}
-            {assignedPincodeIds.length > 0 && (
+            {selectedPincodeIds.length > 0 && (
               <Alert className="mb-4 border-[#10B981] bg-green-50">
                 <Info className="h-4 w-4 text-[#10B981]" />
                 <AlertDescription className="text-sm text-[#1F2937]">
-                  Showing only areas from assigned pincodes ({assignedPincodeIds.length} pincode{assignedPincodeIds.length !== 1 ? 's' : ''})
+                  Showing only areas from selected pincodes ({selectedPincodeIds.length} pincode{selectedPincodeIds.length !== 1 ? 's' : ''})
                 </AlertDescription>
               </Alert>
             )}
