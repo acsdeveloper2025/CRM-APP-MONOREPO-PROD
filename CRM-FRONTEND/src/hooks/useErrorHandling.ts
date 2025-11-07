@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 
 export interface AppError {
   code: string;
@@ -55,10 +55,17 @@ export function useErrorHandling() {
     // Show toast notification
     if (showToast) {
       const toastMessage = getUserFriendlyMessage(appError);
-      
+
+      // Check if there are detailed error descriptions from backend
+      const hasDetailedError = appError.details && typeof appError.details === 'string' && appError.details.length > 0;
+
+      // Determine toast duration based on error complexity
+      const toastDuration = hasDetailedError ? 10000 : undefined; // 10 seconds for detailed errors
+
       if (appError.statusCode && appError.statusCode >= 500) {
         toast.error(toastMessage, {
-          description: 'Please try again later or contact support if the problem persists.',
+          description: hasDetailedError ? appError.details : 'Please try again later or contact support if the problem persists.',
+          duration: toastDuration,
         });
       } else if (appError.statusCode === 401) {
         toast.error('Authentication required', {
@@ -71,6 +78,12 @@ export function useErrorHandling() {
       } else if (appError.statusCode === 404) {
         toast.error('Not found', {
           description: 'The requested resource could not be found.',
+        });
+      } else if (hasDetailedError) {
+        // Show detailed error with description for 400-level errors
+        toast.error(toastMessage, {
+          description: appError.details,
+          duration: toastDuration,
         });
       } else {
         toast.error(toastMessage);
