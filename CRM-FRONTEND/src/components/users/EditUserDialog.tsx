@@ -13,7 +13,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from '@/components/ui/tabs';
 import {
   Form,
   FormControl,
@@ -35,7 +40,8 @@ import { usersService } from '@/services/users';
 import { rolesService } from '@/services/roles';
 import { departmentsService } from '@/services/departments';
 import { designationsService } from '@/services/designations';
-
+import { ClientAssignmentSection } from './ClientAssignmentSection';
+import { ProductAssignmentSection } from './ProductAssignmentSection';
 
 import { User } from '@/types/user';
 
@@ -149,7 +155,7 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] sm:max-w-[700px] max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-w-[95vw] sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Edit User</DialogTitle>
           <DialogDescription>
@@ -157,7 +163,18 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <Tabs defaultValue="details" className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="details">User Details</TabsTrigger>
+            <TabsTrigger value="clients" disabled={user.role !== 'BACKEND_USER'}>
+              Clients
+            </TabsTrigger>
+            <TabsTrigger value="products" disabled={user.role !== 'BACKEND_USER'}>
+              Products
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="details" className="space-y-4 mt-4">
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
@@ -309,7 +326,7 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
                     type="button"
                     variant="outline"
                     onClick={() => onOpenChange(false)}
-                className="w-full sm:w-auto"
+                    className="w-full sm:w-auto"
                     disabled={updateMutation.isPending}
                   >
                     Cancel
@@ -320,9 +337,16 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
                 </DialogFooter>
               </form>
             </Form>
+          </TabsContent>
 
+          <TabsContent value="clients" className="space-y-4 mt-4">
+            <ClientAssignmentSection user={user} />
+          </TabsContent>
 
-        </div>
+          <TabsContent value="products" className="space-y-4 mt-4">
+            <ProductAssignmentSection user={user} />
+          </TabsContent>
+        </Tabs>
       </DialogContent>
     </Dialog>
   );
