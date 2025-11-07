@@ -96,7 +96,11 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
 
         -- Assignment counts for BACKEND_USER role
         COALESCE(client_counts.count, 0) as "assignedClientsCount",
-        COALESCE(product_counts.count, 0) as "assignedProductsCount"
+        COALESCE(product_counts.count, 0) as "assignedProductsCount",
+
+        -- Assignment counts for FIELD_AGENT role
+        COALESCE(pincode_counts.count, 0) as "assignedPincodesCount",
+        COALESCE(area_counts.count, 0) as "assignedAreasCount"
       FROM users u
       LEFT JOIN roles r ON u."roleId" = r.id
       LEFT JOIN departments d ON u."departmentId" = d.id
@@ -111,6 +115,18 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
         FROM "userProductAssignments"
         GROUP BY "userId"
       ) product_counts ON u.id = product_counts."userId"
+      LEFT JOIN (
+        SELECT "userId", COUNT(*) as count
+        FROM "userPincodeAssignments"
+        WHERE "isActive" = true
+        GROUP BY "userId"
+      ) pincode_counts ON u.id = pincode_counts."userId"
+      LEFT JOIN (
+        SELECT "userId", COUNT(*) as count
+        FROM "userAreaAssignments"
+        WHERE "isActive" = true
+        GROUP BY "userId"
+      ) area_counts ON u.id = area_counts."userId"
       ${whereClause}
       ORDER BY u.${safeSortBy} ${safeSortOrder}
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
@@ -177,7 +193,11 @@ export const getUserById = async (req: AuthenticatedRequest, res: Response) => {
 
         -- Assignment counts for BACKEND_USER role
         COALESCE(client_counts.count, 0) as "assignedClientsCount",
-        COALESCE(product_counts.count, 0) as "assignedProductsCount"
+        COALESCE(product_counts.count, 0) as "assignedProductsCount",
+
+        -- Assignment counts for FIELD_AGENT role
+        COALESCE(pincode_counts.count, 0) as "assignedPincodesCount",
+        COALESCE(area_counts.count, 0) as "assignedAreasCount"
       FROM users u
       LEFT JOIN roles r ON u."roleId" = r.id
       LEFT JOIN departments d ON u."departmentId" = d.id
@@ -194,6 +214,18 @@ export const getUserById = async (req: AuthenticatedRequest, res: Response) => {
         WHERE "userId" = $1
         GROUP BY "userId"
       ) product_counts ON u.id = product_counts."userId"
+      LEFT JOIN (
+        SELECT "userId", COUNT(*) as count
+        FROM "userPincodeAssignments"
+        WHERE "userId" = $1 AND "isActive" = true
+        GROUP BY "userId"
+      ) pincode_counts ON u.id = pincode_counts."userId"
+      LEFT JOIN (
+        SELECT "userId", COUNT(*) as count
+        FROM "userAreaAssignments"
+        WHERE "userId" = $1 AND "isActive" = true
+        GROUP BY "userId"
+      ) area_counts ON u.id = area_counts."userId"
       WHERE u.id = $1
     `;
 

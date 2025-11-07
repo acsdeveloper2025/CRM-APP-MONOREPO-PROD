@@ -42,6 +42,7 @@ import { departmentsService } from '@/services/departments';
 import { designationsService } from '@/services/designations';
 import { ClientAssignmentSection } from './ClientAssignmentSection';
 import { ProductAssignmentSection } from './ProductAssignmentSection';
+import { TerritoryAssignmentSection } from './TerritoryAssignmentSection';
 
 import { User } from '@/types/user';
 
@@ -164,13 +165,16 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
         </DialogHeader>
 
         <Tabs defaultValue="details" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className={`grid w-full ${user.role === 'BACKEND_USER' ? 'grid-cols-3' : user.role === 'FIELD_AGENT' ? 'grid-cols-2' : 'grid-cols-1'}`}>
             <TabsTrigger value="details">User Details</TabsTrigger>
             <TabsTrigger value="clients" disabled={user.role !== 'BACKEND_USER'}>
               Clients
             </TabsTrigger>
             <TabsTrigger value="products" disabled={user.role !== 'BACKEND_USER'}>
               Products
+            </TabsTrigger>
+            <TabsTrigger value="territories" disabled={user.role !== 'FIELD_AGENT'}>
+              Territories
             </TabsTrigger>
           </TabsList>
 
@@ -345,6 +349,10 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
 
           <TabsContent value="products" className="space-y-4 mt-4">
             <ProductAssignmentSection user={user} />
+          </TabsContent>
+
+          <TabsContent value="territories" className="space-y-4 mt-4">
+            <TerritoryAssignmentSection userId={user.id} userRole={user.role} />
           </TabsContent>
         </Tabs>
       </DialogContent>

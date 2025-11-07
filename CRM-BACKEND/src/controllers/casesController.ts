@@ -119,14 +119,57 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
     const userId = req.user?.id;
 
     if (userRole === 'FIELD_AGENT') {
-      // Filter by task-level assignment
-      conditions.push(`EXISTS (
+      // Filter by task-level assignment AND pincode/area assignments
+      // FIELD_AGENT can see cases if:
+      // 1. They are assigned to a verification task in the case, OR
+      // 2. The case has tasks in their assigned pincodes/areas
+      const { getAssignedPincodeIds } = await import('@/middleware/pincodeAccess');
+      const { getAssignedAreaIds } = await import('@/middleware/areaAccess');
+
+      const assignedPincodeIds = await getAssignedPincodeIds(userId!, userRole);
+      const assignedAreaIds = await getAssignedAreaIds(userId!, userRole);
+
+      // Build complex filter: (assigned to task) OR (task in assigned pincode/area)
+      const fieldAgentConditions: string[] = [];
+
+      // Condition 1: Directly assigned to a task
+      fieldAgentConditions.push(`EXISTS (
         SELECT 1 FROM verification_tasks vt
         WHERE vt.case_id = c.id
         AND vt.assigned_to = $${paramIndex}
       )`);
       params.push(userId);
       paramIndex++;
+
+      // Condition 2: Task in assigned pincode
+      if (assignedPincodeIds && assignedPincodeIds.length > 0) {
+        fieldAgentConditions.push(`EXISTS (
+          SELECT 1 FROM verification_tasks vt
+          WHERE vt.case_id = c.id
+          AND vt.pincode_id = ANY($${paramIndex}::int[])
+        )`);
+        params.push(assignedPincodeIds);
+        paramIndex++;
+      }
+
+      // Condition 3: Task in assigned area
+      if (assignedAreaIds && assignedAreaIds.length > 0) {
+        fieldAgentConditions.push(`EXISTS (
+          SELECT 1 FROM verification_tasks vt
+          WHERE vt.case_id = c.id
+          AND vt.area_id = ANY($${paramIndex}::int[])
+        )`);
+        params.push(assignedAreaIds);
+        paramIndex++;
+      }
+
+      // If user has no assignments at all, show only directly assigned tasks
+      if (fieldAgentConditions.length > 0) {
+        conditions.push(`(${fieldAgentConditions.join(' OR ')})`);
+      } else {
+        // No assignments, show nothing
+        conditions.push('FALSE');
+      }
     } else if (userRole === 'BACKEND_USER') {
       // Filter by client and product assignments for BACKEND_USER
       const { getAssignedClientIds } = await import('@/middleware/clientAccess');
@@ -504,14 +547,60 @@ export const getCaseById = async (req: AuthenticatedRequest, res: Response) => {
 
     const queryParams = [isNumeric ? parseInt(id) : id];
 
-    // Add role-based filtering for FIELD_AGENT - filter by task-level assignment
+    // Add role-based filtering for FIELD_AGENT - filter by task-level assignment AND pincode/area
     if (userRole === 'FIELD_AGENT') {
-      caseQuery += ` AND EXISTS (
+      const { getAssignedPincodeIds } = await import('@/middleware/pincodeAccess');
+      const { getAssignedAreaIds } = await import('@/middleware/areaAccess');
+
+      const assignedPincodeIds = await getAssignedPincodeIds(userId!, userRole);
+      const assignedAreaIds = await getAssignedAreaIds(userId!, userRole);
+
+      // Build complex filter: (assigned to task) OR (task in assigned pincode/area)
+      const fieldAgentConditions: string[] = [];
+      let paramIndex = queryParams.length + 1;
+
+      // Condition 1: Directly assigned to a task
+      fieldAgentConditions.push(`EXISTS (
         SELECT 1 FROM verification_tasks vt
         WHERE vt.case_id = c.id
-        AND vt.assigned_to = $2
-      )`;
+        AND vt.assigned_to = $${paramIndex}
+      )`);
       queryParams.push(userId);
+      paramIndex++;
+
+      // Condition 2: Task in assigned pincode
+      if (assignedPincodeIds && assignedPincodeIds.length > 0) {
+        fieldAgentConditions.push(`EXISTS (
+          SELECT 1 FROM verification_tasks vt
+          WHERE vt.case_id = c.id
+          AND vt.pincode_id = ANY($${paramIndex}::int[])
+        )`);
+        queryParams.push(assignedPincodeIds as any);
+        paramIndex++;
+      }
+
+      // Condition 3: Task in assigned area
+      if (assignedAreaIds && assignedAreaIds.length > 0) {
+        fieldAgentConditions.push(`EXISTS (
+          SELECT 1 FROM verification_tasks vt
+          WHERE vt.case_id = c.id
+          AND vt.area_id = ANY($${paramIndex}::int[])
+        )`);
+        queryParams.push(assignedAreaIds as any);
+        paramIndex++;
+      }
+
+      // Apply the combined filter
+      if (fieldAgentConditions.length > 0) {
+        caseQuery += ` AND (${fieldAgentConditions.join(' OR ')})`;
+      } else {
+        // No assignments, deny access
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied: No territory assignments found for your account',
+          error: { code: 'NO_TERRITORY_ACCESS' },
+        });
+      }
     } else if (userRole === 'BACKEND_USER') {
       // Filter by client and product assignments for BACKEND_USER
       const { getAssignedClientIds } = await import('@/middleware/clientAccess');
