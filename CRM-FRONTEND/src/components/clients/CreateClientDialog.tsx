@@ -25,6 +25,7 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { clientsService } from '@/services/clients';
 import { productsService } from '@/services/products';
 import { verificationTypesService } from '@/services/verificationTypes';
@@ -118,86 +119,91 @@ export function CreateClientDialog({ open, onOpenChange }: CreateClientDialogPro
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[600px] max-h-[80vh]">
         <DialogHeader>
           <DialogTitle>Create New Client</DialogTitle>
           <DialogDescription>
-            Add a new client organization to the system. The client code will be used for identification.
+            Add a new client organization to the system.
           </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            {createMutation.isPending && (
-              <div className="text-sm text-gray-600">
-                Creating client...
-              </div>
-            )}
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Client Name</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="Enter client name"
-                      {...field}
-                      onChange={(e) => {
-                        field.onChange(e);
-                        // Auto-generate code from name if code is empty
-                        if (!form.getValues('code')) {
-                          const autoCode = e.target.value
-                            .toUpperCase()
-                            .replace(/[^A-Z0-9\s]/g, '')
-                            .replace(/\s+/g, '_')
-                            .substring(0, 10);
-                          form.setValue('code', autoCode);
-                        }
-                      }}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    The full name of the client organization
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <Tabs defaultValue="basic" className="w-full">
+              <TabsList className="grid w-full grid-cols-4">
+                <TabsTrigger value="basic">Basic Info</TabsTrigger>
+                <TabsTrigger value="products">Products</TabsTrigger>
+                <TabsTrigger value="verification-types">Verification Types</TabsTrigger>
+                <TabsTrigger value="document-types">Document Types</TabsTrigger>
+              </TabsList>
 
-            <FormField
-              control={form.control}
-              name="code"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Client Code</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="Enter client code"
-                      {...field}
-                      onChange={(e) => handleCodeChange(e.target.value)}
-                      className="font-mono"
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    Unique identifier for the client (uppercase letters, numbers, and underscores only)
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              <TabsContent value="basic" className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Client Name</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Enter client name"
+                          {...field}
+                          onChange={(e) => {
+                            field.onChange(e);
+                            // Auto-generate code from name if code is empty
+                            if (!form.getValues('code')) {
+                              const autoCode = e.target.value
+                                .toUpperCase()
+                                .replace(/[^A-Z0-9\s]/g, '')
+                                .replace(/\s+/g, '_')
+                                .substring(0, 10);
+                              form.setValue('code', autoCode);
+                            }
+                          }}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        The full name of the client organization
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-            {/* Products Selection */}
-            <FormField
-              control={form.control}
-              name="productIds"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Products</FormLabel>
-                  <FormDescription>
-                    Select products to assign to this client (optional)
-                  </FormDescription>
-                  <ScrollArea className="h-32 w-full border rounded-md p-3">
+                <FormField
+                  control={form.control}
+                  name="code"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Client Code</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Enter client code"
+                          {...field}
+                          onChange={(e) => handleCodeChange(e.target.value)}
+                          className="font-mono"
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Unique identifier for the client (uppercase letters, numbers, and underscores only)
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </TabsContent>
+
+              <TabsContent value="products" className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="productIds"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Available Products</FormLabel>
+                      <FormDescription>
+                        Select products to assign to this client
+                      </FormDescription>
+                      <ScrollArea className="h-48 w-full border rounded-md p-3">
                     {productsData?.data?.length ? (
                       <div className="space-y-2">
                         {productsData.data.map((product) => (
@@ -217,7 +223,7 @@ export function CreateClientDialog({ open, onOpenChange }: CreateClientDialogPro
                             />
                             <label
                               htmlFor={`product-${product.id}`}
-                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                              className="text-sm font-medium leading-none text-gray-900 peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
                             >
                               {product.name}
                               <Badge variant="outline" className="ml-2 text-xs">
@@ -237,18 +243,19 @@ export function CreateClientDialog({ open, onOpenChange }: CreateClientDialogPro
                 </FormItem>
               )}
             />
+              </TabsContent>
 
-            {/* Verification Types Selection */}
-            <FormField
-              control={form.control}
-              name="verificationTypeIds"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Verification Types</FormLabel>
-                  <FormDescription>
-                    Select verification types to assign to this client (optional)
-                  </FormDescription>
-                  <ScrollArea className="h-32 w-full border rounded-md p-3">
+              <TabsContent value="verification-types" className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="verificationTypeIds"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Available Verification Types</FormLabel>
+                      <FormDescription>
+                        Select verification types to assign to this client
+                      </FormDescription>
+                      <ScrollArea className="h-48 w-full border rounded-md p-3">
                     {verificationTypesData?.data?.length ? (
                       <div className="space-y-2">
                         {verificationTypesData.data.map((verificationType) => (
@@ -267,7 +274,7 @@ export function CreateClientDialog({ open, onOpenChange }: CreateClientDialogPro
                             />
                             <label
                               htmlFor={`vtype-${verificationType.id}`}
-                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                              className="text-sm font-medium leading-none text-gray-900 peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
                             >
                               {verificationType.name}
                               {verificationType.code && (
@@ -289,18 +296,19 @@ export function CreateClientDialog({ open, onOpenChange }: CreateClientDialogPro
                 </FormItem>
               )}
             />
+              </TabsContent>
 
-            {/* Document Types Selection */}
-            <FormField
-              control={form.control}
-              name="documentTypeIds"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Document Types</FormLabel>
-                  <FormDescription>
-                    Select document types to assign to this client (optional)
-                  </FormDescription>
-                  <ScrollArea className="h-32 w-full border rounded-md p-3">
+              <TabsContent value="document-types" className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="documentTypeIds"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Available Document Types</FormLabel>
+                      <FormDescription>
+                        Select document types to assign to this client
+                      </FormDescription>
+                      <ScrollArea className="h-48 w-full border rounded-md p-3">
                     {documentTypesData?.data?.length ? (
                       <div className="space-y-2">
                         {documentTypesData.data.map((documentType) => (
@@ -319,7 +327,7 @@ export function CreateClientDialog({ open, onOpenChange }: CreateClientDialogPro
                             />
                             <label
                               htmlFor={`dtype-${documentType.id}`}
-                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                              className="text-sm font-medium leading-none text-gray-900 peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
                             >
                               {documentType.name}
                               <Badge variant="outline" className="ml-2 text-xs">
@@ -342,6 +350,8 @@ export function CreateClientDialog({ open, onOpenChange }: CreateClientDialogPro
                 </FormItem>
               )}
             />
+              </TabsContent>
+            </Tabs>
 
             <DialogFooter>
               <Button
