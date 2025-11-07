@@ -509,7 +509,9 @@ export const deleteUser = async (req: AuthenticatedRequest, res: Response) => {
         (SELECT COUNT(*) FROM "caseDeduplicationAudit" WHERE "performedBy" = $1) as dedup_audit_count,
         (SELECT COUNT(*) FROM cases WHERE "createdByBackendUser" = $1) as cases_count,
         (SELECT COUNT(*) FROM verification_tasks WHERE "assigned_to" = $1 OR "assigned_by" = $1) as tasks_count,
-        (SELECT COUNT(*) FROM commission_calculations WHERE user_id = $1) as commission_count
+        (SELECT COUNT(*) FROM commission_calculations WHERE user_id = $1) as commission_count,
+        (SELECT COUNT(*) FROM task_assignment_history WHERE assigned_to = $1 OR assigned_by = $1) as task_assignment_history_count,
+        (SELECT COUNT(*) FROM case_assignment_history WHERE "toUserId" = $1 OR "assignedBy" = $1) as case_assignment_history_count
       `,
       [id]
     );
@@ -546,6 +548,12 @@ export const deleteUser = async (req: AuthenticatedRequest, res: Response) => {
       }
       if (parseInt(counts.commission_count) > 0) {
         recordTypes.push(`${counts.commission_count} commission record(s)`);
+      }
+      if (parseInt(counts.task_assignment_history_count) > 0) {
+        recordTypes.push(`${counts.task_assignment_history_count} task assignment history record(s)`);
+      }
+      if (parseInt(counts.case_assignment_history_count) > 0) {
+        recordTypes.push(`${counts.case_assignment_history_count} case assignment history record(s)`);
       }
 
       const detailMessage = recordTypes.length > 0
