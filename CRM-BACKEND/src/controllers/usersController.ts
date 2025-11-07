@@ -498,11 +498,55 @@ export const deleteUser = async (req: AuthenticatedRequest, res: Response) => {
       });
     }
 
-    // Delete user
+    // Check for related records that would prevent deletion
+    const relatedRecordsCheck = await query(
+      `SELECT
+        (SELECT COUNT(*) FROM attachments WHERE "uploadedBy" = $1) as attachments_count,
+        (SELECT COUNT(*) FROM locations WHERE "recordedBy" = $1) as locations_count,
+        (SELECT COUNT(*) FROM "userAreaAssignments" WHERE "userId" = $1) as area_assignments_count,
+        (SELECT COUNT(*) FROM "userPincodeAssignments" WHERE "userId" = $1) as pincode_assignments_count,
+        (SELECT COUNT(*) FROM "territoryAssignmentAudit" WHERE "userId" = $1) as territory_audit_count,
+        (SELECT COUNT(*) FROM "caseDeduplicationAudit" WHERE "performedBy" = $1) as dedup_audit_count
+      `,
+      [id]
+    );
+
+    const counts = relatedRecordsCheck.rows[0];
+    const hasRelatedRecords = Object.values(counts).some((count: any) => parseInt(count) > 0);
+
+    if (hasRelatedRecords) {
+      // Instead of hard delete, perform soft delete by deactivating the user
+      const deactivateQuery = `
+        UPDATE users
+        SET "isActive" = false, "updatedAt" = CURRENT_TIMESTAMP
+        WHERE id = $1
+        RETURNING id, username, "isActive"
+      `;
+      const result = await query(deactivateQuery, [id]);
+
+      logger.info(`Soft deleted (deactivated) user with related records: ${id}`, {
+        userId: req.user?.id,
+        deletedUsername: userExists.rows[0].username,
+        relatedRecords: counts,
+      });
+
+      return res.json({
+        success: true,
+        message: 'User has related records and has been deactivated instead of deleted',
+        data: result.rows[0],
+        info: {
+          softDelete: true,
+          reason: 'User has related records (attachments, locations, assignments, etc.)',
+          relatedRecords: counts,
+        },
+      });
+    }
+
+    // No related records - safe to hard delete
     const deleteQuery = `DELETE FROM users WHERE id = $1`;
     await query(deleteQuery, [id]);
 
-    logger.info(`Deleted user: ${id}`, {
+    logger.info(`Hard deleted user: ${id}`, {
       userId: req.user?.id,
       deletedUsername: userExists.rows[0].username,
     });
@@ -511,8 +555,21 @@ export const deleteUser = async (req: AuthenticatedRequest, res: Response) => {
       success: true,
       message: 'User deleted successfully',
     });
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Error deleting user:', error);
+
+    // Check if it's a foreign key constraint error
+    if (error.code === '23503') {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot delete user: user has related records in the system. User has been deactivated instead.',
+        error: {
+          code: 'FOREIGN_KEY_CONSTRAINT',
+          detail: error.detail || 'User is referenced by other records',
+        },
+      });
+    }
+
     res.status(500).json({
       success: false,
       message: 'Failed to delete user',
