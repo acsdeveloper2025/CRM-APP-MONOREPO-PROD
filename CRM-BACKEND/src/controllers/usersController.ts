@@ -515,28 +515,43 @@ export const deleteUser = async (req: AuthenticatedRequest, res: Response) => {
     const hasRelatedRecords = Object.values(counts).some((count: any) => parseInt(count) > 0);
 
     if (hasRelatedRecords) {
-      // Instead of hard delete, perform soft delete by deactivating the user
-      const deactivateQuery = `
-        UPDATE users
-        SET "isActive" = false, "updatedAt" = CURRENT_TIMESTAMP
-        WHERE id = $1
-        RETURNING id, username, "isActive"
-      `;
-      const result = await query(deactivateQuery, [id]);
+      // Build detailed error message with specific record types
+      const recordTypes: string[] = [];
+      if (parseInt(counts.attachments_count) > 0) {
+        recordTypes.push(`${counts.attachments_count} attachment(s)`);
+      }
+      if (parseInt(counts.locations_count) > 0) {
+        recordTypes.push(`${counts.locations_count} location(s)`);
+      }
+      if (parseInt(counts.area_assignments_count) > 0) {
+        recordTypes.push(`${counts.area_assignments_count} area assignment(s)`);
+      }
+      if (parseInt(counts.pincode_assignments_count) > 0) {
+        recordTypes.push(`${counts.pincode_assignments_count} pincode assignment(s)`);
+      }
+      if (parseInt(counts.territory_audit_count) > 0) {
+        recordTypes.push(`${counts.territory_audit_count} territory audit record(s)`);
+      }
+      if (parseInt(counts.dedup_audit_count) > 0) {
+        recordTypes.push(`${counts.dedup_audit_count} deduplication audit record(s)`);
+      }
 
-      logger.info(`Soft deleted (deactivated) user with related records: ${id}`, {
+      const detailMessage = recordTypes.length > 0
+        ? `This user has ${recordTypes.join(', ')}. Please reassign or remove these records before deleting the user.`
+        : 'This user has related records in the system. Please remove these records before deleting the user.';
+
+      logger.warn(`Attempted to delete user with related records: ${id}`, {
         userId: req.user?.id,
-        deletedUsername: userExists.rows[0].username,
+        targetUsername: userExists.rows[0].username,
         relatedRecords: counts,
       });
 
-      return res.json({
-        success: true,
-        message: 'User has related records and has been deactivated instead of deleted',
-        data: result.rows[0],
-        info: {
-          softDelete: true,
-          reason: 'User has related records (attachments, locations, assignments, etc.)',
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot delete user: user has related records in the system',
+        error: {
+          code: 'USER_HAS_DEPENDENCIES',
+          details: detailMessage,
           relatedRecords: counts,
         },
       });
