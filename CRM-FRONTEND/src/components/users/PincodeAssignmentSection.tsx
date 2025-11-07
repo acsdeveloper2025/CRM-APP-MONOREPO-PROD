@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { MapPin, Save } from 'lucide-react';
+import { MapPin, Save, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
 import { usersService } from '@/services/users';
 import { locationsService } from '@/services/locations';
 import { toast } from 'sonner';
@@ -16,6 +17,7 @@ interface PincodeAssignmentSectionProps {
 
 export function PincodeAssignmentSection({ user }: PincodeAssignmentSectionProps) {
   const [selectedPincodeIds, setSelectedPincodeIds] = useState<number[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
   const queryClient = useQueryClient();
 
   // Only show for FIELD_AGENT users
@@ -71,6 +73,18 @@ export function PincodeAssignmentSection({ user }: PincodeAssignmentSectionProps
 
   const pincodes = pincodesData?.data || [];
 
+  // Apply search filter
+  const filteredPincodes = useMemo(() => {
+    if (!searchQuery.trim()) return pincodes;
+
+    const query = searchQuery.toLowerCase();
+    return pincodes.filter((pincode: any) =>
+      pincode.code?.toLowerCase().includes(query) ||
+      pincode.cityName?.toLowerCase().includes(query) ||
+      pincode.state?.toLowerCase().includes(query)
+    );
+  }, [pincodes, searchQuery]);
+
   const handlePincodeToggle = (pincodeId: number, checked: boolean) => {
     if (checked) {
       setSelectedPincodeIds(prev => [...prev, pincodeId]);
@@ -86,48 +100,74 @@ export function PincodeAssignmentSection({ user }: PincodeAssignmentSectionProps
   const isLoading = pincodesLoading || assignmentsLoading || saveAssignmentsMutation.isPending;
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <MapPin className="h-5 w-5" />
-          Pincode Assignments
-        </CardTitle>
-        <CardDescription>
+    <Card className="border-gray-200">
+      <CardHeader className="bg-[#FAFAFA]">
+        <div className="flex items-center gap-2">
+          <MapPin className="h-5 w-5 text-[#10B981]" />
+          <CardTitle className="text-lg font-semibold text-[#1F2937]">Pincode Assignments</CardTitle>
+        </div>
+        <CardDescription className="text-sm text-gray-600">
           Select which pincodes this field agent can access
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="pt-6">
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
             <LoadingSpinner size="md" />
           </div>
         ) : (
           <>
-            <div className="space-y-2 max-h-60 overflow-y-auto">
-              {pincodes.map((pincode: any) => (
-                <div key={pincode.id} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={`pincode-${pincode.id}`}
-                    checked={selectedPincodeIds.includes(parseInt(pincode.id))}
-                    onCheckedChange={(checked) => handlePincodeToggle(parseInt(pincode.id), checked as boolean)}
-                  />
-                  <label
-                    htmlFor={`pincode-${pincode.id}`}
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                  >
-                    {pincode.code} - {pincode.cityName}, {pincode.state}
-                  </label>
-                </div>
-              ))}
+            {/* Search input */}
+            <div className="mb-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  type="text"
+                  placeholder="Search by pincode, city, or state..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 border-gray-300 focus:border-[#10B981] focus:ring-[#10B981]"
+                />
+              </div>
             </div>
-            <Button 
-              onClick={handleSaveAssignments}
-              disabled={saveAssignmentsMutation.isPending}
-              className="w-full"
-            >
-              <Save className="h-4 w-4 mr-2" />
-              Save Pincode Assignments
-            </Button>
+
+            {/* Pincodes list */}
+            <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
+              {filteredPincodes.length === 0 ? (
+                <div className="text-sm text-gray-500 text-center py-4">
+                  {searchQuery ? 'No pincodes match your search' : 'No pincodes available'}
+                </div>
+              ) : (
+                filteredPincodes.map((pincode: any) => (
+                  <div key={pincode.id} className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded">
+                    <Checkbox
+                      id={`pincode-${pincode.id}`}
+                      checked={selectedPincodeIds.includes(parseInt(pincode.id))}
+                      onCheckedChange={(checked) => handlePincodeToggle(parseInt(pincode.id), checked as boolean)}
+                      className="border-gray-300"
+                    />
+                    <label
+                      htmlFor={`pincode-${pincode.id}`}
+                      className="text-sm font-medium text-[#1F2937] cursor-pointer flex-1"
+                    >
+                      {pincode.code} - {pincode.cityName}, {pincode.state}
+                    </label>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Save button */}
+            <div className="mt-6 pt-4 border-t border-gray-200">
+              <Button
+                onClick={handleSaveAssignments}
+                disabled={saveAssignmentsMutation.isPending}
+                className="w-full bg-[#10B981] hover:bg-[#059669] text-white"
+              >
+                <Save className="h-4 w-4 mr-2" />
+                {saveAssignmentsMutation.isPending ? 'Saving...' : 'Save Pincode Assignments'}
+              </Button>
+            </div>
           </>
         )}
       </CardContent>
