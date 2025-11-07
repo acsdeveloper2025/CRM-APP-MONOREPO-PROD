@@ -1,6 +1,6 @@
-import React, { useState, useRef } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState, useRef } from 'react';
 import { Upload, Download, FileText, AlertCircle, CheckCircle } from 'lucide-react';
+import { useMutationWithInvalidation } from '@/hooks/useStandardizedMutation';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 import { usersService } from '@/services/users';
 
 interface BulkImportUsersDialogProps {
@@ -24,18 +24,15 @@ export function BulkImportUsersDialog({ open, onOpenChange }: BulkImportUsersDia
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [importResult, setImportResult] = useState<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const queryClient = useQueryClient();
 
-  const importMutation = useMutation({
+  const importMutation = useMutationWithInvalidation({
     mutationFn: (file: File) => usersService.importUsers(file),
-    onSuccess: (result) => {
+    invalidateKeys: [['users'], ['user-stats'], ['dashboard']],
+    successMessage: 'Users imported successfully',
+    errorContext: 'Bulk Import Users',
+    errorFallbackMessage: 'Failed to import users',
+    onSuccess: (result: any) => {
       setImportResult(result.data);
-      queryClient.invalidateQueries({ queryKey: ['users'] });
-      queryClient.invalidateQueries({ queryKey: ['user-stats'] });
-      toast.success('Users imported successfully');
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to import users');
     },
   });
 

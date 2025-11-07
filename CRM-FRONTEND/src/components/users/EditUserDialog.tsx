@@ -1,8 +1,9 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
+import { useCRUDMutation } from '@/hooks/useStandardizedMutation';
+import { useStandardizedQuery } from '@/hooks/useStandardizedQuery';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -30,7 +31,6 @@ import {
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
-import { toast } from 'sonner';
 import { usersService } from '@/services/users';
 import { rolesService } from '@/services/roles';
 import { departmentsService } from '@/services/departments';
@@ -59,8 +59,6 @@ interface EditUserDialogProps {
 }
 
 export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps) {
-  const queryClient = useQueryClient();
-
   const form = useForm<EditUserFormData>({
     resolver: zodResolver(editUserSchema),
     defaultValues: {
@@ -76,24 +74,30 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
   });
 
   // Fetch roles for dropdown
-  const { data: rolesData } = useQuery({
+  const { data: rolesData } = useStandardizedQuery({
     queryKey: ['roles', 'active'],
     queryFn: () => rolesService.getActiveRoles(),
     enabled: open,
+    errorContext: 'Loading Roles',
+    errorFallbackMessage: 'Failed to load roles',
   });
 
   // Fetch departments for dropdown
-  const { data: departmentsData } = useQuery({
+  const { data: departmentsData } = useStandardizedQuery({
     queryKey: ['departments', 'active'],
     queryFn: () => departmentsService.getActiveDepartments(),
     enabled: open,
+    errorContext: 'Loading Departments',
+    errorFallbackMessage: 'Failed to load departments',
   });
 
   // Fetch designations for dropdown
-  const { data: designationsData } = useQuery({
+  const { data: designationsData } = useStandardizedQuery({
     queryKey: ['designations', 'active'],
     queryFn: () => designationsService.getActiveDesignations(),
     enabled: open,
+    errorContext: 'Loading Designations',
+    errorFallbackMessage: 'Failed to load designations',
   });
 
   useEffect(() => {
@@ -111,7 +115,7 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
     }
   }, [user, form]);
 
-  const updateMutation = useMutation({
+  const updateMutation = useCRUDMutation({
     mutationFn: (data: EditUserFormData) => {
       // Convert string IDs to numbers for API
       const cleanData = {
@@ -122,17 +126,12 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
       };
       return usersService.updateUser(user.id, cleanData as any);
     },
+    queryKey: ['users'],
+    resourceName: 'User',
+    operation: 'update',
+    additionalInvalidateKeys: [['user-stats'], ['dashboard']],
     onSuccess: () => {
-      // Invalidate user-related queries
-      queryClient.invalidateQueries({ queryKey: ['users'] });
-      queryClient.invalidateQueries({ queryKey: ['user-stats'] });
-      // Invalidate dashboard stats (affects user counts, active users, etc.)
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-      toast.success('User updated successfully');
       onOpenChange(false);
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to update user');
     },
   });
 

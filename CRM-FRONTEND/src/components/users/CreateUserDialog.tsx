@@ -1,8 +1,8 @@
-import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
+import { useCRUDMutation } from '@/hooks/useStandardizedMutation';
+import { useStandardizedQuery } from '@/hooks/useStandardizedQuery';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -29,7 +29,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { toast } from 'sonner';
 import { usersService } from '@/services/users';
 import { rolesService } from '@/services/roles';
 import { departmentsService } from '@/services/departments';
@@ -54,9 +53,6 @@ interface CreateUserDialogProps {
 }
 
 export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) {
-  const queryClient = useQueryClient();
-
-
   const form = useForm<CreateUserFormData>({
     resolver: zodResolver(createUserSchema),
     defaultValues: {
@@ -72,29 +68,33 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
   });
 
   // Fetch roles for dropdown
-  const { data: rolesData, isLoading: rolesLoading, error: rolesError } = useQuery({
+  const { data: rolesData, isLoading: rolesLoading } = useStandardizedQuery({
     queryKey: ['roles', 'active'],
     queryFn: () => rolesService.getActiveRoles(),
     enabled: open,
+    errorContext: 'Loading Roles',
+    errorFallbackMessage: 'Failed to load roles',
   });
 
   // Fetch departments for dropdown
-  const { data: departmentsData, isLoading: departmentsLoading, error: departmentsError } = useQuery({
+  const { data: departmentsData, isLoading: departmentsLoading } = useStandardizedQuery({
     queryKey: ['departments', 'active'],
     queryFn: () => departmentsService.getActiveDepartments(),
     enabled: open,
+    errorContext: 'Loading Departments',
+    errorFallbackMessage: 'Failed to load departments',
   });
 
   // Fetch designations for dropdown
-  const { data: designationsData, isLoading: designationsLoading, error: designationsError } = useQuery({
+  const { data: designationsData, isLoading: designationsLoading } = useStandardizedQuery({
     queryKey: ['designations', 'active'],
     queryFn: () => designationsService.getActiveDesignations(),
     enabled: open,
+    errorContext: 'Loading Designations',
+    errorFallbackMessage: 'Failed to load designations',
   });
 
-
-
-  const createMutation = useMutation({
+  const createMutation = useCRUDMutation({
     mutationFn: (data: CreateUserFormData) => {
       // Convert string IDs to numbers for API
       const cleanData = {
@@ -108,19 +108,13 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
       };
       return usersService.createUser(cleanData as any);
     },
+    queryKey: ['users'],
+    resourceName: 'User',
+    operation: 'create',
+    additionalInvalidateKeys: [['user-stats'], ['dashboard']],
     onSuccess: () => {
-      // Invalidate user-related queries
-      queryClient.invalidateQueries({ queryKey: ['users'] });
-      queryClient.invalidateQueries({ queryKey: ['user-stats'] });
-      // Invalidate dashboard stats (affects Total Users, Active Users, etc.)
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-      toast.success('User created successfully');
-
       form.reset();
       onOpenChange(false);
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to create user');
     },
   });
 
@@ -249,8 +243,6 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
                       <SelectContent>
                         {rolesLoading ? (
                           <SelectItem value="loading" disabled>Loading roles...</SelectItem>
-                        ) : rolesError ? (
-                          <SelectItem value="error" disabled>Error loading roles</SelectItem>
                         ) : roles.length === 0 ? (
                           <SelectItem value="empty" disabled>No roles available</SelectItem>
                         ) : (
@@ -306,8 +298,6 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
                       <SelectContent>
                         {designationsLoading ? (
                           <SelectItem value="loading" disabled>Loading designations...</SelectItem>
-                        ) : designationsError ? (
-                          <SelectItem value="error" disabled>Error loading designations</SelectItem>
                         ) : designations.length === 0 ? (
                           <SelectItem value="empty" disabled>No designations available</SelectItem>
                         ) : (
@@ -346,8 +336,6 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
                       <SelectContent>
                         {departmentsLoading ? (
                           <SelectItem value="loading" disabled>Loading departments...</SelectItem>
-                        ) : departmentsError ? (
-                          <SelectItem value="error" disabled>Error loading departments</SelectItem>
                         ) : departments.length === 0 ? (
                           <SelectItem value="empty" disabled>No departments available</SelectItem>
                         ) : (

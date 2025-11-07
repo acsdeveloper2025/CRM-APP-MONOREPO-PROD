@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
+import { useCRUDMutation, useStandardizedMutation } from '@/hooks/useStandardizedMutation';
 import { MoreHorizontal, Edit, Trash2, UserCheck, UserX, Eye, Shield, Key, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -65,51 +66,43 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
 
   const queryClient = useQueryClient();
 
-  const activateUserMutation = useMutation({
+  const activateUserMutation = useStandardizedMutation({
     mutationFn: (id: string) => usersService.activateUser(id),
+    successMessage: 'User activated successfully',
+    errorContext: 'User Activation',
+    errorFallbackMessage: 'Failed to activate user',
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
-      toast.success('User activated successfully');
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to activate user');
+      queryClient.invalidateQueries({ queryKey: ['user-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
   });
 
-  const deactivateUserMutation = useMutation({
+  const deactivateUserMutation = useStandardizedMutation({
     mutationFn: (id: string) => usersService.deactivateUser(id),
+    successMessage: 'User deactivated successfully',
+    errorContext: 'User Deactivation',
+    errorFallbackMessage: 'Failed to deactivate user',
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
-      toast.success('User deactivated successfully');
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to deactivate user');
+      queryClient.invalidateQueries({ queryKey: ['user-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
   });
 
-  const deleteUserMutation = useMutation({
+  const deleteUserMutation = useStandardizedMutation({
     mutationFn: (id: string) => usersService.deleteUser(id),
+    successMessage: 'User deleted successfully',
+    errorContext: 'User Deletion',
+    errorFallbackMessage: 'Failed to delete user',
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
-      toast.success('User deleted successfully');
+      queryClient.invalidateQueries({ queryKey: ['user-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       setShowDeleteDialog(false);
       setUserToDelete(null);
     },
-    onError: (error: any) => {
-      const errorData = error.response?.data;
-      const errorMessage = errorData?.message || 'Failed to delete user';
-
-      // Check if there are detailed dependency errors
-      if (errorData?.error?.details) {
-        // Show detailed error with blocking records and cascade warnings
-        toast.error(errorMessage, {
-          description: errorData.error.details,
-          duration: 10000, // Show for 10 seconds so user can read the details
-        });
-      } else {
-        toast.error(errorMessage);
-      }
-
+    onErrorCallback: () => {
       setShowDeleteDialog(false);
       setUserToDelete(null);
     },
