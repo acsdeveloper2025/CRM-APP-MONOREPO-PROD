@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
 import { MoreHorizontal, Edit, Trash2, Eye, Globe } from 'lucide-react';
+import { useStandardizedMutation } from '@/hooks/useStandardizedMutation';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -30,7 +30,6 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import toast from 'react-hot-toast';
 import { baseBadgeStyle, formatBadgeLabel } from '@/lib/badgeStyles';
 import { locationsService } from '@/services/locations';
 import { EditCountryDialog } from './EditCountryDialog';
@@ -48,18 +47,16 @@ export function CountriesTable({ data, isLoading }: CountriesTableProps) {
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [countryToDelete, setCountryToDelete] = useState<Country | null>(null);
-  const queryClient = useQueryClient();
 
-  const deleteCountryMutation = useMutation({
+  const deleteCountryMutation = useStandardizedMutation({
     mutationFn: (id: string) => locationsService.deleteCountry(id),
+    invalidateKeys: [['countries']],
+    successMessage: 'Country deleted successfully',
+    errorContext: 'Country Deletion',
+    errorFallbackMessage: 'Failed to delete country',
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['countries'] });
-      toast.success('Country deleted successfully');
       setShowDeleteDialog(false);
       setCountryToDelete(null);
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to delete country');
     },
   });
 

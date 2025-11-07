@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
 import { MoreHorizontal, Edit, Trash2, Eye, Building, MapPin } from 'lucide-react';
+import { useStandardizedMutation } from '@/hooks/useStandardizedMutation';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -31,7 +31,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { toast } from 'sonner';
 import { locationsService } from '@/services/locations';
 import { City } from '@/types/location';
 import { EditCityDialog } from './EditCityDialog';
@@ -49,18 +48,15 @@ export function CitiesTable({ data, isLoading }: CitiesTableProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [cityToDelete, setCityToDelete] = useState<City | null>(null);
 
-  const queryClient = useQueryClient();
-
-  const deleteMutation = useMutation({
+  const deleteMutation = useStandardizedMutation({
     mutationFn: (id: string) => locationsService.deleteCity(id),
+    invalidateKeys: [['cities']],
+    successMessage: 'City deleted successfully',
+    errorContext: 'City Deletion',
+    errorFallbackMessage: 'Failed to delete city',
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['cities'] });
-      toast.success('City deleted successfully');
       setShowDeleteDialog(false);
       setCityToDelete(null);
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to delete city');
     },
   });
 
