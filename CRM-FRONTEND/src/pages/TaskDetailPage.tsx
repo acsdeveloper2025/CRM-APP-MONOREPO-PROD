@@ -191,7 +191,7 @@ export const TaskDetailPage: React.FC = () => {
   if (loading) {
     return (
       <div className="container mx-auto py-6">
-        <LoadingState message="Loading task details..." size="lg" />
+        <LoadingState message="Fetching task details..." size="lg" />
       </div>
     );
   }

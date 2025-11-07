@@ -63,7 +63,7 @@ export const CaseDetailPage: React.FC = () => {
   };
 
   if (isLoading) {
-    return <LoadingState message="Loading case details..." size="lg" className="min-h-[400px]" />;
+    return <LoadingState message="Fetching case details..." size="lg" className="min-h-[400px]" />;
   }
 
   if (!caseItem) {

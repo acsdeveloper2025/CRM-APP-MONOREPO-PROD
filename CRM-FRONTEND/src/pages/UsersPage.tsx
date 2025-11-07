@@ -168,7 +168,7 @@ export function UsersPage() {
   if (usersLoading && !usersData) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <LoadingState message="Loading users..." size="lg" />
+        <LoadingState message="Fetching user data..." size="lg" />
       </div>
     );
   }

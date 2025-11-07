@@ -55,7 +55,7 @@ export const LoginPage: React.FC = () => {
   };
 
   if (isLoading) {
-    return <LoadingPage title="Authenticating" description="Please wait while we verify your credentials..." />;
+    return <LoadingPage title="Authenticating" description="Verifying your credentials..." />;
   }
 
 

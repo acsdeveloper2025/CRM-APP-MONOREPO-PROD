@@ -55,7 +55,7 @@ export const TasksListFlat: React.FC<TasksListFlatProps> = ({
   };
 
   if (loading) {
-    return <LoadingState message="Loading tasks..." size="lg" />;
+    return <LoadingState message="Fetching your tasks..." size="lg" />;
   }
 
   if (tasks.length === 0) {

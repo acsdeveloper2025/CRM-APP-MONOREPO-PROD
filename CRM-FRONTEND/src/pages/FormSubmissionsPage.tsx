@@ -68,7 +68,7 @@ export const FormSubmissionsPage: React.FC = () => {
   };
 
   if (isLoading) {
-    return <LoadingState message="Loading form submissions..." size="lg" className="min-h-[400px]" />;
+    return <LoadingState message="Fetching form submissions..." size="lg" className="min-h-[400px]" />;
   }
 
   if (error) {
