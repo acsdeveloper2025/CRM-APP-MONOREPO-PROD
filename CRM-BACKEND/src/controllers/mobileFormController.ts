@@ -50,12 +50,12 @@ import {
 } from '../utils/dsaConnectorFormValidator';
 import {
   mapOfficeFormDataToDatabase as _mapOfficeFormDataToDatabase,
-  validateOfficeRequiredFields as _validateOfficeRequiredFields,
+  validateOfficeRequiredFields,
   getOfficeAvailableDbColumns as _getOfficeAvailableDbColumns,
 } from '../utils/officeFormFieldMapping';
 import {
   mapBusinessFormDataToDatabase as _mapBusinessFormDataToDatabase,
-  validateBusinessRequiredFields as _validateBusinessRequiredFields,
+  validateBusinessRequiredFields,
   getBusinessAvailableDbColumns as _getBusinessAvailableDbColumns,
 } from '../utils/businessFormFieldMapping';
 import {
@@ -66,7 +66,7 @@ import {
 import {
   mapBuilderFormDataToDatabase as _mapBuilderFormDataToDatabase,
   validateBuilderRequiredFields as _validateBuilderRequiredFields,
-  getBuilderAvailableDbColumns as _getBuilderAvailableDbColumns,
+  getBuilderAvailableDbColumns,
 } from '../utils/builderFormFieldMapping';
 import {
   mapResidenceCumOfficeFormDataToDatabase as _mapResidenceCumOfficeFormDataToDatabase,
@@ -76,12 +76,12 @@ import {
 import {
   mapNocFormDataToDatabase as _mapNocFormDataToDatabase,
   validateNocRequiredFields as _validateNocRequiredFields,
-  getNocAvailableDbColumns as _getNocAvailableDbColumns,
+  getNocAvailableDbColumns,
 } from '../utils/nocFormFieldMapping';
 import {
   mapPropertyApfFormDataToDatabase as _mapPropertyApfFormDataToDatabase,
   validatePropertyApfRequiredFields as _validatePropertyApfRequiredFields,
-  getPropertyApfAvailableDbColumns as _getPropertyApfAvailableDbColumns,
+  getPropertyApfAvailableDbColumns,
 } from '../utils/propertyApfFormFieldMapping';
 import {
   mapPropertyIndividualFormDataToDatabase as _mapPropertyIndividualFormDataToDatabase,
@@ -91,7 +91,7 @@ import {
 import {
   mapDsaConnectorFormDataToDatabase as _mapDsaConnectorFormDataToDatabase,
   validateDsaConnectorRequiredFields as _validateDsaConnectorRequiredFields,
-  getDsaConnectorAvailableDbColumns as _getDsaConnectorAvailableDbColumns,
+  getDsaConnectorAvailableDbColumns,
 } from '../utils/dsaConnectorFormFieldMapping';
 import { query } from '@/config/database';
 import path from 'path';
