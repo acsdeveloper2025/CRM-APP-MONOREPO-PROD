@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -13,12 +13,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from '@/components/ui/tabs';
 import {
   Form,
   FormControl,
@@ -40,10 +34,6 @@ import { usersService } from '@/services/users';
 import { rolesService } from '@/services/roles';
 import { departmentsService } from '@/services/departments';
 import { designationsService } from '@/services/designations';
-import { ClientAssignmentSection } from './ClientAssignmentSection';
-import { ProductAssignmentSection } from './ProductAssignmentSection';
-import { PincodeAssignmentSection } from './PincodeAssignmentSection';
-import { AreaAssignmentSection } from './AreaAssignmentSection';
 
 import { User } from '@/types/user';
 
@@ -67,8 +57,6 @@ interface EditUserDialogProps {
 }
 
 export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps) {
-  const [selectedPincodeIds, setSelectedPincodeIds] = useState<number[]>([]);
-
   const form = useForm<EditUserFormData>({
     resolver: zodResolver(editUserSchema),
     defaultValues: {
@@ -163,30 +151,12 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
         <DialogHeader>
           <DialogTitle>Edit User</DialogTitle>
           <DialogDescription>
-            Update user information and manage permissions.
+            Update user information. Use "Manage Permissions" to assign clients, products, pincodes, or areas.
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs defaultValue="details" className="w-full">
-          <TabsList className={`grid w-full ${user.role === 'BACKEND_USER' ? 'grid-cols-3' : user.role === 'FIELD_AGENT' ? 'grid-cols-3' : 'grid-cols-1'}`}>
-            <TabsTrigger value="details">User Details</TabsTrigger>
-            {user.role === 'BACKEND_USER' && (
-              <>
-                <TabsTrigger value="clients">Clients</TabsTrigger>
-                <TabsTrigger value="products">Products</TabsTrigger>
-              </>
-            )}
-            {user.role === 'FIELD_AGENT' && (
-              <>
-                <TabsTrigger value="pincodes">Pincodes</TabsTrigger>
-                <TabsTrigger value="areas">Areas</TabsTrigger>
-              </>
-            )}
-          </TabsList>
-
-          <TabsContent value="details" className="space-y-4 mt-4">
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
               control={form.control}
               name="name"
@@ -331,47 +301,22 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
               )}
             />
 
-                <DialogFooter className="flex-col sm:flex-row gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => onOpenChange(false)}
-                    className="w-full sm:w-auto"
-                    disabled={updateMutation.isPending}
-                  >
-                    Cancel
-                  </Button>
-                  <Button type="submit" disabled={updateMutation.isPending} className="w-full sm:w-auto">
-                    {updateMutation.isPending ? 'Updating...' : 'Update User'}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </Form>
-          </TabsContent>
-
-          <TabsContent value="clients" className="space-y-4 mt-4">
-            <ClientAssignmentSection user={user} />
-          </TabsContent>
-
-          <TabsContent value="products" className="space-y-4 mt-4">
-            <ProductAssignmentSection user={user} />
-          </TabsContent>
-
-          <TabsContent value="pincodes" className="space-y-4 mt-4">
-            <PincodeAssignmentSection
-              user={user}
-              selectedPincodeIds={selectedPincodeIds}
-              onSelectedPincodesChange={setSelectedPincodeIds}
-            />
-          </TabsContent>
-
-          <TabsContent value="areas" className="space-y-4 mt-4">
-            <AreaAssignmentSection
-              user={user}
-              selectedPincodeIds={selectedPincodeIds}
-            />
-          </TabsContent>
-        </Tabs>
+            <DialogFooter className="flex-col sm:flex-row gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+                className="w-full sm:w-auto"
+                disabled={updateMutation.isPending}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={updateMutation.isPending} className="w-full sm:w-auto">
+                {updateMutation.isPending ? 'Updating...' : 'Update User'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );
