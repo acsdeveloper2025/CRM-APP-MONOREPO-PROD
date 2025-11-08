@@ -1752,7 +1752,12 @@ export const createCase = [
       }
 
       // customerPhone is optional - only validate if provided
-      if (customerPhone !== undefined && customerPhone !== null && typeof customerPhone === 'string' && customerPhone.trim().length > 0) {
+      if (
+        customerPhone !== undefined &&
+        customerPhone !== null &&
+        typeof customerPhone === 'string' &&
+        customerPhone.trim().length > 0
+      ) {
         // Validate phone format if provided
         const phoneDigits = customerPhone.replace(/\D/g, '');
         if (phoneDigits.length < 10) {

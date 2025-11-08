@@ -185,4 +185,3 @@ export const addAreaFiltering = async (
 
 // Export helper function for use in other modules
 export { getAssignedAreaIds };
-

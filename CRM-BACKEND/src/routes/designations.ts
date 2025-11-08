@@ -25,7 +25,10 @@ const createDesignationValidation = [
     .trim()
     .isLength({ max: 500 })
     .withMessage('Description must be less than 500 characters'),
-  body('departmentId').optional().isInt({ min: 1 }).withMessage('Department ID must be a valid integer'),
+  body('departmentId')
+    .optional()
+    .isInt({ min: 1 })
+    .withMessage('Department ID must be a valid integer'),
   body('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
 ];
 
@@ -41,7 +44,10 @@ const updateDesignationValidation = [
     .trim()
     .isLength({ max: 500 })
     .withMessage('Description must be less than 500 characters'),
-  body('departmentId').optional().isInt({ min: 1 }).withMessage('Department ID must be a valid integer'),
+  body('departmentId')
+    .optional()
+    .isInt({ min: 1 })
+    .withMessage('Department ID must be a valid integer'),
   body('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
 ];
 
@@ -57,7 +63,10 @@ const getDesignationsValidation = [
     .isLength({ max: 100 })
     .withMessage('Search term must be less than 100 characters'),
   query('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
-  query('departmentId').optional().isInt({ min: 1 }).withMessage('Department ID must be a valid integer'),
+  query('departmentId')
+    .optional()
+    .isInt({ min: 1 })
+    .withMessage('Department ID must be a valid integer'),
 ];
 
 const designationIdValidation = [
@@ -80,7 +89,10 @@ router.get(
 router.get(
   '/active',
   auth,
-  query('departmentId').optional().isInt({ min: 1 }).withMessage('Department ID must be a valid integer'),
+  query('departmentId')
+    .optional()
+    .isInt({ min: 1 })
+    .withMessage('Department ID must be a valid integer'),
   validate,
   getActiveDesignations
 );

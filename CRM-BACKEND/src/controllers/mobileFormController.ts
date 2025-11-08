@@ -49,14 +49,14 @@ import {
   generateDsaConnectorFieldCoverageReport,
 } from '../utils/dsaConnectorFormValidator';
 import {
-  mapOfficeFormDataToDatabase,
-  validateOfficeRequiredFields,
-  getOfficeAvailableDbColumns,
+  mapOfficeFormDataToDatabase as _mapOfficeFormDataToDatabase,
+  validateOfficeRequiredFields as _validateOfficeRequiredFields,
+  getOfficeAvailableDbColumns as _getOfficeAvailableDbColumns,
 } from '../utils/officeFormFieldMapping';
 import {
-  mapBusinessFormDataToDatabase,
-  validateBusinessRequiredFields,
-  getBusinessAvailableDbColumns,
+  mapBusinessFormDataToDatabase as _mapBusinessFormDataToDatabase,
+  validateBusinessRequiredFields as _validateBusinessRequiredFields,
+  getBusinessAvailableDbColumns as _getBusinessAvailableDbColumns,
 } from '../utils/businessFormFieldMapping';
 import {
   createComprehensiveFormSections,
@@ -64,34 +64,34 @@ import {
   // getVerificationTableName,
 } from '../utils/comprehensiveFormFieldMapping';
 import {
-  mapBuilderFormDataToDatabase,
-  validateBuilderRequiredFields,
-  getBuilderAvailableDbColumns,
+  mapBuilderFormDataToDatabase as _mapBuilderFormDataToDatabase,
+  validateBuilderRequiredFields as _validateBuilderRequiredFields,
+  getBuilderAvailableDbColumns as _getBuilderAvailableDbColumns,
 } from '../utils/builderFormFieldMapping';
 import {
-  mapResidenceCumOfficeFormDataToDatabase,
-  validateResidenceCumOfficeRequiredFields,
-  getResidenceCumOfficeAvailableDbColumns,
+  mapResidenceCumOfficeFormDataToDatabase as _mapResidenceCumOfficeFormDataToDatabase,
+  validateResidenceCumOfficeRequiredFields as _validateResidenceCumOfficeRequiredFields,
+  getResidenceCumOfficeAvailableDbColumns as _getResidenceCumOfficeAvailableDbColumns,
 } from '../utils/residenceCumOfficeFormFieldMapping';
 import {
-  mapNocFormDataToDatabase,
-  validateNocRequiredFields,
-  getNocAvailableDbColumns,
+  mapNocFormDataToDatabase as _mapNocFormDataToDatabase,
+  validateNocRequiredFields as _validateNocRequiredFields,
+  getNocAvailableDbColumns as _getNocAvailableDbColumns,
 } from '../utils/nocFormFieldMapping';
 import {
-  mapPropertyApfFormDataToDatabase,
-  validatePropertyApfRequiredFields,
-  getPropertyApfAvailableDbColumns,
+  mapPropertyApfFormDataToDatabase as _mapPropertyApfFormDataToDatabase,
+  validatePropertyApfRequiredFields as _validatePropertyApfRequiredFields,
+  getPropertyApfAvailableDbColumns as _getPropertyApfAvailableDbColumns,
 } from '../utils/propertyApfFormFieldMapping';
 import {
-  mapPropertyIndividualFormDataToDatabase,
-  validatePropertyIndividualRequiredFields,
-  getPropertyIndividualAvailableDbColumns,
+  mapPropertyIndividualFormDataToDatabase as _mapPropertyIndividualFormDataToDatabase,
+  validatePropertyIndividualRequiredFields as _validatePropertyIndividualRequiredFields,
+  getPropertyIndividualAvailableDbColumns as _getPropertyIndividualAvailableDbColumns,
 } from '../utils/propertyIndividualFormFieldMapping';
 import {
-  mapDsaConnectorFormDataToDatabase,
-  validateDsaConnectorRequiredFields,
-  getDsaConnectorAvailableDbColumns,
+  mapDsaConnectorFormDataToDatabase as _mapDsaConnectorFormDataToDatabase,
+  validateDsaConnectorRequiredFields as _validateDsaConnectorRequiredFields,
+  getDsaConnectorAvailableDbColumns as _getDsaConnectorAvailableDbColumns,
 } from '../utils/dsaConnectorFormFieldMapping';
 import { query } from '@/config/database';
 import path from 'path';
