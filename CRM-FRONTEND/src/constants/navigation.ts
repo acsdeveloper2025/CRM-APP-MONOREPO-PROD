@@ -84,6 +84,13 @@ export const navigationItems: NavigationItem[] = [
         permission: { resource: 'tasks', action: 'read' },
       },
       {
+        id: 'tat-monitoring',
+        label: 'TAT Monitoring',
+        href: '/case-management/tat-monitoring',
+        icon: Clock,
+        permission: { resource: 'tasks', action: 'read' },
+      },
+      {
         id: 'tasks-all',
         label: 'All Tasks',
         href: '/tasks',

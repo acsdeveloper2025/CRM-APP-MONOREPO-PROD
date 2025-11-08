@@ -220,9 +220,11 @@ export const AppRoutes: React.FC = () => {
         path="/case-management/tat-monitoring"
         element={
           <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND_USER', 'SUPER_ADMIN']}>
-            <Layout>
-              <TATMonitoringPage />
-            </Layout>
+            <PermissionProtectedRoute resource="tasks" action="read">
+              <Layout>
+                <TATMonitoringPage />
+              </Layout>
+            </PermissionProtectedRoute>
           </ProtectedRoute>
         }
       />
