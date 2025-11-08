@@ -36,9 +36,9 @@ export const DeduplicationDialog: React.FC<DeduplicationDialogProps> = ({
   const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
   const [rationale, setRationale] = useState('');
 
-  // Filter to show only 100% matches
-  const allDuplicates = deduplicationResult?.duplicatesFound || [];
-  const duplicates = allDuplicates.filter(dup => dup.matchScore === 100);
+  // CRITICAL FIX: Show ALL duplicates, not just 100% matches
+  // Let the user review and decide based on all potential matches
+  const duplicates = deduplicationResult?.duplicatesFound || [];
   const hasHighScoreMatches = duplicates.some(dup => dup.matchScore >= 80);
 
   const handleCreateNew = () => {
@@ -146,10 +146,12 @@ export const DeduplicationDialog: React.FC<DeduplicationDialogProps> = ({
           <div className="space-y-3">
             <h4 className="font-medium">Potential Duplicate Cases:</h4>
             {duplicates.map((duplicate) => (
-              <Card 
-                key={duplicate.id} 
-                className={`cursor-pointer transition-colors ${
-                  selectedCaseId === duplicate.id ? 'ring-2 ring-blue-500 bg-green-50' : 'hover:bg-muted'
+              <Card
+                key={duplicate.id}
+                className={`cursor-pointer transition-colors border-2 ${
+                  selectedCaseId === duplicate.id
+                    ? 'ring-2 ring-emerald-500 bg-emerald-50 border-emerald-500'
+                    : 'hover:bg-[#FAFAFA] hover:border-emerald-300 border-gray-200'
                 }`}
                 onClick={() => setSelectedCaseId(duplicate.id)}
               >

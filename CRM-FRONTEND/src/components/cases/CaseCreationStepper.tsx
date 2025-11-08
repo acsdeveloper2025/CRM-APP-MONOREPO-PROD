@@ -170,38 +170,57 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
       const validation = deduplicationService.validateCriteria(criteria);
       if (!validation.isValid) {
         toast.error(`Validation errors: ${validation.errors.join(', ')}`);
+        setIsSearching(false);
         return;
       }
 
+      console.log('🔍 Performing deduplication search with criteria:', criteria);
       const result = await deduplicationService.searchDuplicates(criteria);
+      console.log('🔍 Deduplication search result:', result);
 
       if (result.success && result.data.duplicatesFound.length > 0) {
-        // Filter to show only 100% matches
-        const perfectMatches = result.data.duplicatesFound.filter(dup => dup.matchScore === 100);
+        // CRITICAL FIX: Show ALL duplicates, not just 100% matches
+        // Let the user review and decide what to do
+        console.log(`⚠️ Found ${result.data.duplicatesFound.length} potential duplicate(s)`);
 
-        if (perfectMatches.length > 0) {
-          // Show dialog only if there are 100% matches
-          setDeduplicationResult(result.data);
-          setShowDeduplicationDialog(true);
-          setDeduplicationCompleted(true);
-        } else {
-          // No 100% matches - auto-proceed as "No Duplicates Found"
-          toast.success('No duplicate cases found. Proceeding to create new case.');
-          setDeduplicationRationale('No duplicate cases found during automated check (no 100% matches)');
-          setDeduplicationCompleted(true);
-          proceedToCaseDetails(data);
-        }
+        // Show detailed match information in console for debugging
+        result.data.duplicatesFound.forEach((dup, index) => {
+          console.log(`  Duplicate ${index + 1}:`, {
+            caseId: dup.caseId,
+            customerName: dup.customerName,
+            matchScore: dup.matchScore,
+            matchType: dup.matchType,
+          });
+        });
+
+        // Always show the dialog when duplicates are found
+        setDeduplicationResult(result.data);
+        setShowDeduplicationDialog(true);
+        setDeduplicationCompleted(true);
+
+        // Use toast.error with orange/warning styling for duplicate alerts
+        toast(`⚠️ Found ${result.data.duplicatesFound.length} potential duplicate case(s). Please review.`, {
+          duration: 5000,
+          icon: '⚠️',
+          style: {
+            background: '#FEF3C7',
+            color: '#92400E',
+            border: '1px solid #FCD34D',
+          },
+        });
       } else {
         // No duplicates at all - auto-proceed as "No Duplicates Found"
+        console.log('✅ No duplicate cases found');
         toast.success('No duplicate cases found. Proceeding to create new case.');
         setDeduplicationRationale('No duplicate cases found during automated check');
         setDeduplicationCompleted(true);
         proceedToCaseDetails(data);
       }
     } catch (error) {
-      console.error('Deduplication search failed:', error);
-      toast.error('Deduplication search failed. You can still create a new case.');
-      setDeduplicationCompleted(true);
+      console.error('❌ Deduplication search failed:', error);
+      toast.error('Deduplication search failed. Please try again or contact support.');
+      setDeduplicationCompleted(false);
+      setIsSearching(false);
     } finally {
       setIsSearching(false);
     }
