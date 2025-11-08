@@ -619,7 +619,10 @@ export const deleteUser = async (req: AuthenticatedRequest, res: Response) => {
       { key: 'dedup_audit_count', label: 'deduplication audit record(s)' },
       { key: 'territory_audit_restrict_count', label: 'territory audit record(s)' },
       { key: 'area_assignments_restrict_count', label: 'area assignment(s) created by this user' },
-      { key: 'pincode_assignments_restrict_count', label: 'pincode assignment(s) created by this user' },
+      {
+        key: 'pincode_assignments_restrict_count',
+        label: 'pincode assignment(s) created by this user',
+      },
       { key: 'case_assignment_history_count', label: 'case assignment history record(s)' },
       { key: 'case_timeline_count', label: 'case timeline event(s)' },
       { key: 'client_doc_types_count', label: 'client document type(s)' },
@@ -702,8 +705,8 @@ export const deleteUser = async (req: AuthenticatedRequest, res: Response) => {
         error: {
           code: hasBlockingRecords ? 'USER_HAS_DEPENDENCIES' : 'CASCADE_DELETE_WARNING',
           details: detailMessage,
-          blockingRecords: blockingRecords,
-          cascadeWarnings: cascadeWarnings,
+          blockingRecords,
+          cascadeWarnings,
           relatedRecordCounts: counts,
         },
       });

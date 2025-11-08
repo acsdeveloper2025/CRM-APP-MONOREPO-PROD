@@ -253,7 +253,7 @@ export const assignPincodesToFieldAgent = async (req: Request, res: Response) =>
         message: 'Authentication required. Please log in and try again.',
         error: {
           code: 'AUTHENTICATION_REQUIRED',
-          details: 'User authentication is required to assign pincodes'
+          details: 'User authentication is required to assign pincodes',
         },
       });
     }
@@ -332,10 +332,12 @@ export const assignPincodesToFieldAgent = async (req: Request, res: Response) =>
         const assignedBy = authenticatedUserId;
 
         // Use bulk INSERT for better performance
-        const values = pincodeIds.map((pincodeId: number, index: number) => {
-          const offset = index * 3;
-          return `($${offset + 1}, $${offset + 2}, $${offset + 3}, true)`;
-        }).join(', ');
+        const values = pincodeIds
+          .map((pincodeId: number, index: number) => {
+            const offset = index * 3;
+            return `($${offset + 1}, $${offset + 2}, $${offset + 3}, true)`;
+          })
+          .join(', ');
 
         const params = pincodeIds.flatMap((pincodeId: number) => [userId, pincodeId, assignedBy]);
 
@@ -391,7 +393,7 @@ export const assignPincodesToFieldAgent = async (req: Request, res: Response) =>
       message: 'Failed to update pincode assignments for field agent',
       error: {
         code: 'INTERNAL_ERROR',
-        details: errorMessage
+        details: errorMessage,
       },
     });
   }
@@ -415,7 +417,7 @@ export const assignAreasToFieldAgent = async (req: Request, res: Response) => {
         message: 'Authentication required. Please log in and try again.',
         error: {
           code: 'AUTHENTICATION_REQUIRED',
-          details: 'User authentication is required to assign areas'
+          details: 'User authentication is required to assign areas',
         },
       });
     }
@@ -521,14 +523,20 @@ export const assignAreasToFieldAgent = async (req: Request, res: Response) => {
         // Insert area assignments using bulk INSERT for better performance
         try {
           if (validAreaIds.length > 0) {
-            const values = validAreaIds.map((areaId: number, index: number) => {
-              const offset = index * 5;
-              return `($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5})`;
-            }).join(', ');
+            const values = validAreaIds
+              .map((areaId: number, index: number) => {
+                const offset = index * 5;
+                return `($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5})`;
+              })
+              .join(', ');
 
-            const params = validAreaIds.flatMap((areaId: number) =>
-              [userId, pincodeId, areaId, userPincodeAssignmentId, authenticatedUserId]
-            );
+            const params = validAreaIds.flatMap((areaId: number) => [
+              userId,
+              pincodeId,
+              areaId,
+              userPincodeAssignmentId,
+              authenticatedUserId,
+            ]);
 
             const result = await query(
               `INSERT INTO "userAreaAssignments"
