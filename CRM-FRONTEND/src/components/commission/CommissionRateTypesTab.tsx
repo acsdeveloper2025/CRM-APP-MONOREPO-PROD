@@ -25,7 +25,6 @@ import {
 } from '@/components/ui/dialog';
 import { commissionManagementService } from '@/services/commissionManagement';
 import { CommissionRateTypeForm } from './CommissionRateTypeForm';
-import { toast } from 'sonner';
 import type { CommissionRateType } from '@/types/commission';
 
 export const CommissionRateTypesTab: React.FC = () => {

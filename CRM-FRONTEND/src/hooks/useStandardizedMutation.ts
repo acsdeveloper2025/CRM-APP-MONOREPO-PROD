@@ -55,8 +55,7 @@ export function useStandardizedMutation<
   options: StandardizedMutationOptions<TData, TError, TVariables, TContext>
 ) {
   const { handleError } = useErrorHandling();
-  const queryClient = useQueryClient();
-  
+
   const {
     successMessage,
     errorContext,
@@ -80,7 +79,7 @@ export function useStandardizedMutation<
         onSuccess(data, variables, context);
       }
     },
-    onError: (error, variables, context) => {
+    onError: (error, _variables, _context) => {
       // Use standardized error handling
       handleError(error, {
         context: errorContext,

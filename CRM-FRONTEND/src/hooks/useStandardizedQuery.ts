@@ -1,4 +1,4 @@
-import { useQuery, UseQueryOptions, QueryFunction, QueryKey } from '@tanstack/react-query';
+import { useQuery, UseQueryOptions, QueryKey } from '@tanstack/react-query';
 import { useErrorHandling, ErrorHandlingOptions } from './useErrorHandling';
 
 /**
@@ -182,8 +182,8 @@ export function usePaginatedQuery<
 >(
   options: PaginatedQueryOptions<TQueryFnData, TError, TData, TQueryKey>
 ) {
-  const { page, limit, ...restOptions } = options;
-  
+  const { page: _page, limit: _limit, ...restOptions } = options;
+
   return useStandardizedQuery({
     ...restOptions,
     // Keep previous data while fetching new page

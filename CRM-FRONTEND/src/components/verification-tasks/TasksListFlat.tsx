@@ -76,7 +76,7 @@ export const TasksListFlat: React.FC<TasksListFlatProps> = ({
   }
 
   const formatDate = (dateString: string | null | undefined) => {
-    if (!dateString) return '-';
+    if (!dateString) {return '-';}
     try {
       return format(new Date(dateString), 'dd MMM yyyy');
     } catch {
