@@ -63,14 +63,8 @@ export const NewCasePage: React.FC = () => {
         const pincodeId = foundPincode?.id?.toString() || '';
 
         // Find the correct area based on case data
-        let areaId = '';
-        if (caseItem.areaId) {
-          // If case has areaId, use it
-          areaId = String(caseItem.areaId);
-        } else if (areas.length > 0) {
-          // Otherwise use first available area
-          areaId = areas[0].id.toString();
-        }
+        // Note: Case type doesn't have areaId property, use first available area
+        const areaId = areas.length > 0 ? areas[0].id.toString() : '';
 
         // Map case data to CustomerInfoData format
         const customerInfo: CustomerInfoData = {
@@ -84,14 +78,13 @@ export const NewCasePage: React.FC = () => {
         const caseFormData: FullCaseFormData = {
           clientId: String(caseItem.clientId || ''),
           productId: String(caseItem.productId || ''),
-          verificationType: String(caseItem.verificationTypeName || ''), // Use the joined name
           verificationTypeId: String(caseItem.verificationTypeId || ''),
           applicantType: String(caseItem.applicantType || ''),
           createdByBackendUser: '', // Will be set to current user
           backendContactNumber: String(caseItem.backendContactNumber || ''),
-          assignedToId: String(caseItem.assignedTo || ''),
-          priority: caseItem.priority || 'MEDIUM', // Keep as string
-          trigger: String(caseItem.trigger || caseItem.notes || ''), // Use 'trigger' not 'notes'
+          assignedToId: '', // Case-level assignment is deprecated, leave empty
+          priority: String(caseItem.priority || 'MEDIUM'), // Convert to string
+          trigger: String(caseItem.trigger || caseItem.notes || ''), // Use trigger not notes
           address: String(caseItem.address || ''),
           pincodeId, // Map pincode code to pincode ID
           areaId, // Use the found area ID
@@ -105,7 +98,10 @@ export const NewCasePage: React.FC = () => {
         setInitialData(mappedData);
       }
     } catch (error) {
-      console.error('❌ Error in NewCasePage useEffect:', error);
+      // Only log errors in development mode
+      if (import.meta.env.DEV) {
+        console.error('Error in NewCasePage useEffect:', error);
+      }
       // Don't redirect on error, just log it
     }
   }, [isEditMode, caseData, pincodesResponse, areasResponse]);
