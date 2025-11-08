@@ -5,7 +5,6 @@ import { useCase } from '@/hooks/useCases';
 import { usePincodes } from '@/hooks/useLocations';
 import { useAreasByPincode } from '@/hooks/useAreas';
 import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
 import type { CustomerInfoData } from '@/components/cases/CustomerInfoStep';
 import type { FullCaseFormData } from '@/components/cases/FullCaseFormStep';
 import { LoadingState } from '@/components/ui/loading';

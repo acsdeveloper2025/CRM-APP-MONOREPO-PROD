@@ -15,7 +15,6 @@ import { Switch } from '@/components/ui/switch';
 
 import { commissionManagementService } from '@/services/commissionManagement';
 import { rateTypesService } from '@/services/rateTypes';
-import { toast } from 'sonner';
 import type { CommissionRateType, CommissionFormData } from '@/types/commission';
 
 interface CommissionRateTypeFormProps {
