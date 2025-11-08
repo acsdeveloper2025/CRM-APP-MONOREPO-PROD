@@ -39,10 +39,7 @@ export function PincodeAssignmentSection({
   selectedPincodeIds,
   onSelectedPincodesChange
 }: PincodeAssignmentSectionProps) {
-  // Only show for FIELD_AGENT users - check early before hooks
-  if (user.role !== 'FIELD_AGENT') {
-    return null;
-  }
+  
 
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearchQuery = useDebounce(searchQuery, 300); // 300ms debounce
@@ -98,7 +95,7 @@ export function PincodeAssignmentSection({
 
   // Apply search filter with debounced query for better performance
   const filteredPincodes = useMemo(() => {
-    if (!debouncedSearchQuery.trim()) return pincodes;
+    if (!debouncedSearchQuery.trim()) {return pincodes;}
 
     const query = debouncedSearchQuery.toLowerCase();
     return pincodes.filter((pincode: any) =>
@@ -121,6 +118,11 @@ export function PincodeAssignmentSection({
   };
 
   const isLoading = pincodesLoading || assignmentsLoading || saveAssignmentsMutation.isPending;
+
+  // Only show for FIELD_AGENT users - check after all hooks
+  if (user.role !== 'FIELD_AGENT') {
+    return null;
+  }
 
   return (
     <Card className="border-gray-200">

@@ -63,7 +63,7 @@ export function AreaAssignmentSection({ user, selectedPincodeIds }: AreaAssignme
   const { data: pincodeAreasData } = useQuery({
     queryKey: ['pincode-areas', selectedPincodeIds],
     queryFn: async () => {
-      if (selectedPincodeIds.length === 0) return { areaIds: [], areaMap: new Map() };
+      if (selectedPincodeIds.length === 0) {return { areaIds: [], areaMap: new Map() };}
 
       // Fetch areas for each selected pincode
       const areasPromises = selectedPincodeIds.map((pincodeId: number) =>
@@ -182,7 +182,7 @@ export function AreaAssignmentSection({ user, selectedPincodeIds }: AreaAssignme
 
   // Apply search filter with debounced query for better performance
   const filteredAreas = useMemo(() => {
-    if (!debouncedSearchQuery.trim()) return availableAreas;
+    if (!debouncedSearchQuery.trim()) {return availableAreas;}
 
     const query = debouncedSearchQuery.toLowerCase();
     return availableAreas.filter((area: any) =>
