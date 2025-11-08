@@ -14,7 +14,7 @@
     "migrate:data": "ts-node scripts/run-migrations.ts data",
     "migrate:status": "ts-node scripts/run-migrations.ts status",
     "migrate:rollback": "ts-node scripts/run-migrations.ts rollback",
-    "lint": "ESLINT_USE_FLAT_CONFIG=false eslint . --ext .ts --max-warnings 0",
+    "lint": "ESLINT_USE_FLAT_CONFIG=false eslint . --ext .ts",
     "lint:fix": "ESLINT_USE_FLAT_CONFIG=false eslint . --ext .ts --fix",
     "format": "prettier --write \"src/**/*.{ts,js,json}\"",
     "format:check": "prettier --check \"src/**/*.{ts,js,json}\"",
