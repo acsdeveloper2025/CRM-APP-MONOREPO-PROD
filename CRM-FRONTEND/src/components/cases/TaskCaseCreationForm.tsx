@@ -34,6 +34,7 @@ import { rateTypesService } from '@/services/rateTypes';
 import { useQuery } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import type { CaseFormAttachment } from '@/components/attachments/CaseFormAttachmentsSection';
+import { useMemo } from 'react';
 
 // Case-level schema (fields filled once)
 const caseLevelSchema = z.object({
@@ -114,14 +115,35 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
   // Fetch all pincodes for dropdown (high limit to get all)
   const { data: pincodesResponse } = usePincodes({ limit: 10000 });
 
-  const clients = clientsResponse?.data || [];
+  const allClients = clientsResponse?.data || [];
   const verificationTypes = verificationTypesResponse?.data || [];
   const pincodes = pincodesResponse?.data || [];
 
   // Watch for client selection to fetch products
   const selectedClientId = form.watch('clientId');
   const { data: productsResponse } = useProductsByClient(selectedClientId);
-  const products = productsResponse?.data || [];
+  const allProducts = productsResponse?.data || [];
+
+  // Filter clients and products based on user role and assignments
+  const clients = useMemo(() => {
+    if (!user || user.role === 'SUPER_ADMIN' || user.role === 'ADMIN') {
+      return allClients; // No filtering for admins
+    }
+    if (user.role === 'BACKEND_USER' && user.assignedClients) {
+      return allClients.filter(client => user.assignedClients?.includes(client.id));
+    }
+    return allClients;
+  }, [allClients, user]);
+
+  const products = useMemo(() => {
+    if (!user || user.role === 'SUPER_ADMIN' || user.role === 'ADMIN') {
+      return allProducts; // No filtering for admins
+    }
+    if (user.role === 'BACKEND_USER' && user.assignedProducts) {
+      return allProducts.filter(product => user.assignedProducts?.includes(product.id));
+    }
+    return allProducts;
+  }, [allProducts, user]);
 
   // Reset product when client changes
   useEffect(() => {
@@ -257,11 +279,17 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {clients.map((client) => (
-                              <SelectItem key={client.id} value={String(client.id)}>
-                                {client.name}
+                            {clients.length === 0 ? (
+                              <SelectItem value="no-clients" disabled>
+                                No clients assigned to your account
                               </SelectItem>
-                            ))}
+                            ) : (
+                              clients.map((client) => (
+                                <SelectItem key={client.id} value={String(client.id)}>
+                                  {client.name}
+                                </SelectItem>
+                              ))
+                            )}
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -282,11 +310,17 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {products.map((product) => (
-                              <SelectItem key={product.id} value={product.id.toString()}>
-                                {product.name} ({product.code})
+                            {products.length === 0 && selectedClientId ? (
+                              <SelectItem value="no-products" disabled>
+                                No products assigned to your account for this client
                               </SelectItem>
-                            ))}
+                            ) : (
+                              products.map((product) => (
+                                <SelectItem key={product.id} value={product.id.toString()}>
+                                  {product.name} ({product.code})
+                                </SelectItem>
+                              ))
+                            )}
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -414,6 +448,21 @@ const TaskCard: React.FC<TaskCardProps> = ({
   pincodes,
   fieldUsers,
 }) => {
+  // Filter field users based on pincode and area access
+  const filteredFieldUsers = useMemo(() => {
+    if (!task.pincodeId || !task.areaId) {
+      return fieldUsers; // Show all if no pincode/area selected
+    }
+
+    const selectedPincodeId = parseInt(task.pincodeId, 10);
+    const selectedAreaId = parseInt(task.areaId, 10);
+
+    return fieldUsers.filter((user: any) => {
+      const hasPincodeAccess = user.assignedPincodes?.includes(selectedPincodeId) ?? false;
+      const hasAreaAccess = user.assignedAreas?.includes(selectedAreaId) ?? false;
+      return hasPincodeAccess && hasAreaAccess;
+    });
+  }, [fieldUsers, task.pincodeId, task.areaId]);
   // Fetch areas based on selected pincode
   const { data: areasResponse } = useAreasByPincode(task.pincodeId ? parseInt(task.pincodeId) : undefined);
   const areas = areasResponse?.data || [];
@@ -668,20 +717,40 @@ const TaskCard: React.FC<TaskCardProps> = ({
               onValueChange={(value) => updateTask(task.id, 'assignedTo', value)}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select field user" />
+                <SelectValue placeholder={
+                  !task.pincodeId || !task.areaId
+                    ? "Select pincode and area first"
+                    : filteredFieldUsers.length === 0
+                      ? "No field users available"
+                      : "Select field user"
+                } />
               </SelectTrigger>
               <SelectContent>
-                {fieldUsers.map((user) => (
-                  <SelectItem key={user.id} value={user.id}>
-                    {user.name} ({user.email})
+                {filteredFieldUsers.length === 0 ? (
+                  <SelectItem value="no-users" disabled>
+                    {!task.pincodeId || !task.areaId
+                      ? "Please select pincode and area first"
+                      : "No field users have access to this pincode and area"}
                   </SelectItem>
-                ))}
+                ) : (
+                  filteredFieldUsers.map((user: any) => (
+                    <SelectItem key={user.id} value={user.id}>
+                      {user.name} ({user.email})
+                    </SelectItem>
+                  ))
+                )}
               </SelectContent>
             </Select>
             {!task.assignedTo && (
               <p className="text-sm text-red-600 mt-1">
                 <AlertCircle className="h-3 w-3 inline mr-1" />
                 Field user assignment is required
+              </p>
+            )}
+            {task.pincodeId && task.areaId && filteredFieldUsers.length === 0 && (
+              <p className="text-sm text-amber-600 mt-1">
+                <AlertCircle className="h-3 w-3 inline mr-1" />
+                No field users have access to the selected pincode and area
               </p>
             )}
           </div>

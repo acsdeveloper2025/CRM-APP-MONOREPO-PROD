@@ -34,6 +34,12 @@ export interface User {
   // Assignment counts for FIELD_AGENT role
   assignedPincodesCount?: number;
   assignedAreasCount?: number;
+  // Assignment arrays for BACKEND_USER role (for filtering)
+  assignedClients?: number[];
+  assignedProducts?: number[];
+  // Assignment arrays for FIELD_AGENT role (for filtering)
+  assignedPincodes?: number[];
+  assignedAreas?: number[];
 }
 
 export interface CreateUserData {
