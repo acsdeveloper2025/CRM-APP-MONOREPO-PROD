@@ -101,7 +101,7 @@ export const AppRoutes: React.FC = () => {
       <Route
         path="/cases"
         element={
-          <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND', 'SUPER_ADMIN']}>
+          <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND_USER', 'SUPER_ADMIN']}>
             <Layout>
               <CasesPage />
             </Layout>
@@ -111,7 +111,7 @@ export const AppRoutes: React.FC = () => {
       <Route
         path="/cases/:id"
         element={
-          <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND', 'SUPER_ADMIN']}>
+          <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND_USER', 'SUPER_ADMIN']}>
             <Layout>
               <CaseDetailPage />
             </Layout>
@@ -121,7 +121,7 @@ export const AppRoutes: React.FC = () => {
       <Route
         path="/tasks/pending"
         element={
-          <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND', 'SUPER_ADMIN']}>
+          <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND_USER', 'SUPER_ADMIN']}>
             <Layout>
               <PendingTasksPage />
             </Layout>
@@ -132,7 +132,7 @@ export const AppRoutes: React.FC = () => {
       <Route
         path="/tasks/revoked"
         element={
-          <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND', 'SUPER_ADMIN']}>
+          <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND_USER', 'SUPER_ADMIN']}>
             <Layout>
               <RevokedTasksPage />
             </Layout>
@@ -143,7 +143,7 @@ export const AppRoutes: React.FC = () => {
       <Route
         path="/tasks/in-progress"
         element={
-          <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND', 'SUPER_ADMIN']}>
+          <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND_USER', 'SUPER_ADMIN']}>
             <Layout>
               <InProgressTasksPage />
             </Layout>
@@ -154,7 +154,7 @@ export const AppRoutes: React.FC = () => {
       <Route
         path="/tasks/completed"
         element={
-          <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND', 'SUPER_ADMIN']}>
+          <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND_USER', 'SUPER_ADMIN']}>
             <Layout>
               <CompletedTasksPage />
             </Layout>
@@ -165,7 +165,7 @@ export const AppRoutes: React.FC = () => {
       <Route
         path="/cases/completed"
         element={
-          <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND', 'SUPER_ADMIN']}>
+          <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND_USER', 'SUPER_ADMIN']}>
             <Layout>
               <CompletedCasesPage />
             </Layout>
@@ -175,7 +175,7 @@ export const AppRoutes: React.FC = () => {
       <Route
         path="/cases/new"
         element={
-          <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND', 'SUPER_ADMIN']}>
+          <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND_USER', 'SUPER_ADMIN']}>
             <Layout>
               <NewCasePage />
             </Layout>
@@ -187,7 +187,7 @@ export const AppRoutes: React.FC = () => {
       <Route
         path="/tasks"
         element={
-          <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND', 'SUPER_ADMIN']}>
+          <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND_USER', 'SUPER_ADMIN']}>
             <Layout>
               <AllTasksPage />
             </Layout>
@@ -197,7 +197,7 @@ export const AppRoutes: React.FC = () => {
       <Route
         path="/tasks/:taskId"
         element={
-          <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND', 'SUPER_ADMIN']}>
+          <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND_USER', 'SUPER_ADMIN']}>
             <Layout>
               <TaskDetailPage />
             </Layout>
@@ -207,7 +207,7 @@ export const AppRoutes: React.FC = () => {
       <Route
         path="/verification-tasks/:taskId"
         element={
-          <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND', 'SUPER_ADMIN']}>
+          <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND_USER', 'SUPER_ADMIN']}>
             <Layout>
               <TaskDetailPage />
             </Layout>
@@ -219,7 +219,7 @@ export const AppRoutes: React.FC = () => {
       <Route
         path="/case-management/tat-monitoring"
         element={
-          <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND', 'SUPER_ADMIN']}>
+          <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND_USER', 'SUPER_ADMIN']}>
             <Layout>
               <TATMonitoringPage />
             </Layout>
@@ -231,7 +231,7 @@ export const AppRoutes: React.FC = () => {
       <Route
         path="/clients"
         element={
-          <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND', 'SUPER_ADMIN']}>
+          <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND_USER', 'SUPER_ADMIN']}>
             <Layout>
               <ClientsPage />
             </Layout>
@@ -244,9 +244,11 @@ export const AppRoutes: React.FC = () => {
         path="/products"
         element={
           <ProtectedRoute requiredRoles={['ADMIN', 'SUPER_ADMIN']}>
-            <Layout>
-              <ProductsPage />
-            </Layout>
+            <PermissionProtectedRoute resource="products" action="read">
+              <Layout>
+                <ProductsPage />
+              </Layout>
+            </PermissionProtectedRoute>
           </ProtectedRoute>
         }
       />
@@ -256,9 +258,11 @@ export const AppRoutes: React.FC = () => {
         path="/verification-types"
         element={
           <ProtectedRoute requiredRoles={['ADMIN', 'SUPER_ADMIN']}>
-            <Layout>
-              <VerificationTypesPage />
-            </Layout>
+            <PermissionProtectedRoute resource="verification_types" action="read">
+              <Layout>
+                <VerificationTypesPage />
+              </Layout>
+            </PermissionProtectedRoute>
           </ProtectedRoute>
         }
       />
@@ -268,9 +272,11 @@ export const AppRoutes: React.FC = () => {
         path="/document-types"
         element={
           <ProtectedRoute requiredRoles={['ADMIN', 'SUPER_ADMIN']}>
-            <Layout>
-              <DocumentTypesPage />
-            </Layout>
+            <PermissionProtectedRoute resource="document_types" action="read">
+              <Layout>
+                <DocumentTypesPage />
+              </Layout>
+            </PermissionProtectedRoute>
           </ProtectedRoute>
         }
       />
@@ -280,9 +286,11 @@ export const AppRoutes: React.FC = () => {
         path="/rate-management"
         element={
           <ProtectedRoute requiredRoles={['ADMIN', 'SUPER_ADMIN']}>
-            <Layout>
-              <RateManagementPage />
-            </Layout>
+            <PermissionProtectedRoute resource="rate_management" action="read">
+              <Layout>
+                <RateManagementPage />
+              </Layout>
+            </PermissionProtectedRoute>
           </ProtectedRoute>
         }
       />
@@ -348,7 +356,7 @@ export const AppRoutes: React.FC = () => {
       <Route
         path="/reports"
         element={
-          <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND', 'SUPER_ADMIN']}>
+          <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND_USER', 'SUPER_ADMIN']}>
             <Layout>
               <ReportsPage />
             </Layout>
@@ -360,10 +368,12 @@ export const AppRoutes: React.FC = () => {
       <Route
         path="/analytics"
         element={
-          <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND', 'SUPER_ADMIN']}>
-            <Layout>
-              <AnalyticsPage />
-            </Layout>
+          <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND_USER', 'SUPER_ADMIN']}>
+            <PermissionProtectedRoute resource="analytics" action="read">
+              <Layout>
+                <AnalyticsPage />
+              </Layout>
+            </PermissionProtectedRoute>
           </ProtectedRoute>
         }
       />
@@ -372,10 +382,12 @@ export const AppRoutes: React.FC = () => {
       <Route
         path="/reports/mis"
         element={
-          <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND', 'SUPER_ADMIN']}>
-            <Layout>
-              <MISDashboardPage />
-            </Layout>
+          <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND_USER', 'SUPER_ADMIN']}>
+            <PermissionProtectedRoute resource="analytics" action="read">
+              <Layout>
+                <MISDashboardPage />
+              </Layout>
+            </PermissionProtectedRoute>
           </ProtectedRoute>
         }
       />
@@ -384,37 +396,43 @@ export const AppRoutes: React.FC = () => {
       <Route
         path="/billing"
         element={
-          <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND', 'SUPER_ADMIN']}>
-            <Layout>
-              <BillingPage />
-            </Layout>
+          <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND_USER', 'SUPER_ADMIN']}>
+            <PermissionProtectedRoute resource="billing" action="read">
+              <Layout>
+                <BillingPage />
+              </Layout>
+            </PermissionProtectedRoute>
           </ProtectedRoute>
         }
       />
       <Route
         path="/commissions"
         element={
-          <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND', 'SUPER_ADMIN']}>
-            <Layout>
-              <CommissionsPage />
-            </Layout>
+          <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND_USER', 'SUPER_ADMIN']}>
+            <PermissionProtectedRoute resource="commissions" action="read">
+              <Layout>
+                <CommissionsPage />
+              </Layout>
+            </PermissionProtectedRoute>
           </ProtectedRoute>
         }
       />
       <Route
         path="/commission-management"
         element={
-          <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND', 'SUPER_ADMIN']}>
-            <Layout>
-              <CommissionManagementPage />
-            </Layout>
+          <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND_USER', 'SUPER_ADMIN']}>
+            <PermissionProtectedRoute resource="commissions" action="read">
+              <Layout>
+                <CommissionManagementPage />
+              </Layout>
+            </PermissionProtectedRoute>
           </ProtectedRoute>
         }
       />
       <Route
         path="/realtime"
         element={
-          <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND', 'SUPER_ADMIN']}>
+          <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND_USER', 'SUPER_ADMIN']}>
             <Layout>
               <RealTimePage />
             </Layout>
@@ -424,10 +442,12 @@ export const AppRoutes: React.FC = () => {
       <Route
         path="/forms"
         element={
-          <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND', 'SUPER_ADMIN']}>
-            <Layout>
-              <FormViewerPage />
-            </Layout>
+          <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND_USER', 'SUPER_ADMIN']}>
+            <PermissionProtectedRoute resource="forms" action="read">
+              <Layout>
+                <FormViewerPage />
+              </Layout>
+            </PermissionProtectedRoute>
           </ProtectedRoute>
         }
       />
