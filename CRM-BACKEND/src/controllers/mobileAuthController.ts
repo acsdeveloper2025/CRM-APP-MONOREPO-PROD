@@ -110,6 +110,26 @@ export class MobileAuthController {
         [refreshToken, user.id, new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)]
       );
 
+      // Fetch role-based assignments for FIELD_AGENT users (mobile app is primarily for field agents)
+      let assignedPincodes: number[] = [];
+      let assignedAreas: number[] = [];
+
+      if (user.role === 'FIELD_AGENT') {
+        // Fetch assigned pincodes
+        const pincodesRes = await query(
+          'SELECT "pincodeId" FROM "userPincodeAssignments" WHERE "userId" = $1 AND "isActive" = true',
+          [user.id]
+        );
+        assignedPincodes = pincodesRes.rows.map(row => row.pincodeId);
+
+        // Fetch assigned areas
+        const areasRes = await query(
+          'SELECT "areaId" FROM "userAreaAssignments" WHERE "userId" = $1 AND "isActive" = true',
+          [user.id]
+        );
+        assignedAreas = areasRes.rows.map(row => row.areaId);
+      }
+
       await createAuditLog({
         action: 'MOBILE_LOGIN_SUCCESS',
         entityType: 'USER',
@@ -136,6 +156,11 @@ export class MobileAuthController {
             designation: user.designation,
             department: user.department,
             profilePhotoUrl: user.profilePhotoUrl,
+            // Include field agent assignments for mobile app
+            ...(user.role === 'FIELD_AGENT' && {
+              assignedPincodes,
+              assignedAreas,
+            }),
           },
           tokens: {
             accessToken,
