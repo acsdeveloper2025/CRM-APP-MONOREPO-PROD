@@ -188,11 +188,44 @@ export function EditRoleDialog({ open, onOpenChange, role }: EditRoleDialogProps
   // Update form when role changes
   useEffect(() => {
     if (role) {
+      // Merge role permissions with default structure to ensure all resources are present
+      const defaultPermissions = {
+        users: { create: false, read: false, update: false, delete: false },
+        roles: { create: false, read: false, update: false, delete: false },
+        departments: { create: false, read: false, update: false, delete: false },
+        locations: { create: false, read: false, update: false, delete: false },
+        clients: { create: false, read: false, update: false, delete: false },
+        cases: { create: false, read: false, update: false, delete: false },
+        reports: { create: false, read: false, update: false, delete: false },
+        settings: { create: false, read: false, update: false, delete: false },
+        products: { create: false, read: false, update: false, delete: false },
+        verification_types: { create: false, read: false, update: false, delete: false },
+        document_types: { create: false, read: false, update: false, delete: false },
+        rate_management: { create: false, read: false, update: false, delete: false },
+        commissions: { create: false, read: false, update: false, delete: false },
+        billing: { create: false, read: false, update: false, delete: false },
+        forms: { create: false, read: false, update: false, delete: false },
+        analytics: { create: false, read: false, update: false, delete: false },
+        tasks: { create: false, read: false, update: false, delete: false },
+        designations: { create: false, read: false, update: false, delete: false },
+      };
+
+      // Merge existing permissions with defaults
+      const mergedPermissions = { ...defaultPermissions };
+      Object.keys(role.permissions).forEach((resource) => {
+        if (mergedPermissions[resource as keyof typeof mergedPermissions]) {
+          mergedPermissions[resource as keyof typeof mergedPermissions] = {
+            ...defaultPermissions[resource as keyof typeof defaultPermissions],
+            ...role.permissions[resource as keyof typeof role.permissions],
+          };
+        }
+      });
+
       form.reset({
         name: role.name,
         description: role.description || '',
         isActive: role.isActive,
-        permissions: role.permissions,
+        permissions: mergedPermissions,
       });
     }
   }, [role, form]);
