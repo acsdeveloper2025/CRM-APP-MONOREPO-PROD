@@ -212,17 +212,17 @@ android/local.properties
 # PACKAGE MANAGERS
 # =====================================================
 # npm
-package-lock.json
-npm-shrinkwrap.json
+# NOTE: package-lock.json should be committed for production consistency
+# npm-shrinkwrap.json
 
 # Yarn
-yarn.lock
-.yarn/
-.yarnrc.yml
+# NOTE: yarn.lock should be committed for production consistency
+# .yarn/
+# .yarnrc.yml
 
 # pnpm
-pnpm-lock.yaml
-.pnpm-store/
+# NOTE: pnpm-lock.yaml should be committed for production consistency
+# .pnpm-store/
 
 # =====================================================
 # MONOREPO SPECIFIC
