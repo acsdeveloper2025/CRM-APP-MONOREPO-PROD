@@ -87,6 +87,42 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     // Update user's lastLogin timestamp
     await query(`UPDATE users SET "lastLogin" = CURRENT_TIMESTAMP WHERE id = $1`, [user.id]);
 
+    // Fetch role-based assignments for BACKEND_USER and FIELD_AGENT users
+    let assignedClients: number[] = [];
+    let assignedProducts: number[] = [];
+    let assignedPincodes: number[] = [];
+    let assignedAreas: number[] = [];
+
+    if (user.role === 'BACKEND_USER') {
+      // Fetch assigned clients
+      const clientsRes = await query(
+        'SELECT "clientId" FROM "userClientAssignments" WHERE "userId" = $1',
+        [user.id]
+      );
+      assignedClients = clientsRes.rows.map(row => row.clientId);
+
+      // Fetch assigned products
+      const productsRes = await query(
+        'SELECT "productId" FROM "userProductAssignments" WHERE "userId" = $1',
+        [user.id]
+      );
+      assignedProducts = productsRes.rows.map(row => row.productId);
+    } else if (user.role === 'FIELD_AGENT') {
+      // Fetch assigned pincodes
+      const pincodesRes = await query(
+        'SELECT "pincodeId" FROM "userPincodeAssignments" WHERE "userId" = $1 AND "isActive" = true',
+        [user.id]
+      );
+      assignedPincodes = pincodesRes.rows.map(row => row.pincodeId);
+
+      // Fetch assigned areas
+      const areasRes = await query(
+        'SELECT "areaId" FROM "userAreaAssignments" WHERE "userId" = $1 AND "isActive" = true',
+        [user.id]
+      );
+      assignedAreas = areasRes.rows.map(row => row.areaId);
+    }
+
     // Audit success
     await createAuditLog({
       action: 'WEB_LOGIN_SUCCESS',
@@ -112,6 +148,15 @@ export const login = async (req: Request, res: Response): Promise<void> => {
           designation: user.designation,
           department: user.department,
           ...(user.profilePhotoUrl && { profilePhotoUrl: user.profilePhotoUrl }),
+          // Include role-based assignments
+          ...(user.role === 'BACKEND_USER' && {
+            assignedClients,
+            assignedProducts,
+          }),
+          ...(user.role === 'FIELD_AGENT' && {
+            assignedPincodes,
+            assignedAreas,
+          }),
         } as any,
         tokens: {
           accessToken,
