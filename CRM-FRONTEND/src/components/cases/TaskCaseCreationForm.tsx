@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -34,7 +34,6 @@ import { rateTypesService } from '@/services/rateTypes';
 import { useQuery } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import type { CaseFormAttachment } from '@/components/attachments/CaseFormAttachmentsSection';
-import { useMemo } from 'react';
 
 // Case-level schema (fields filled once)
 const caseLevelSchema = z.object({
