@@ -138,6 +138,16 @@ export interface RolePermissions {
   cases: Permission;
   reports: Permission;
   settings: Permission;
+  products: Permission;
+  verification_types: Permission;
+  document_types: Permission;
+  rate_management: Permission;
+  commissions: Permission;
+  billing: Permission;
+  forms: Permission;
+  analytics: Permission;
+  tasks: Permission;
+  designations: Permission;
 }
 
 export interface RoleData {
