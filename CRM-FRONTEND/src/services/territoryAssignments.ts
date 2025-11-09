@@ -1,4 +1,4 @@
-import api from './api';
+import { apiService } from './api';
 import type {
   UserTerritoryAssignments,
   TerritoryAssignment,
@@ -22,11 +22,11 @@ class TerritoryAssignmentsService {
       return {};
     }
 
-    const response = await api.get<{ success: boolean; data: AreasByPincode }>(
+    const response = await apiService.get<AreasByPincode>(
       `/areas/by-pincodes?pincodeIds=${pincodeIds.join(',')}`
     );
 
-    return response.data.data;
+    return response.data || {};
   }
 
   /**
@@ -35,11 +35,11 @@ class TerritoryAssignmentsService {
    * @returns User's territory assignments
    */
   async getUserTerritoryAssignments(userId: string): Promise<UserTerritoryAssignments> {
-    const response = await api.get<{ success: boolean; data: UserTerritoryAssignments }>(
+    const response = await apiService.get<UserTerritoryAssignments>(
       `/users/${userId}/territory-assignments`
     );
 
-    return response.data.data;
+    return response.data || { pincodeAssignments: [] };
   }
 
   /**
@@ -52,12 +52,20 @@ class TerritoryAssignmentsService {
     userId: string,
     assignments: TerritoryAssignment[]
   ): Promise<BulkSaveTerritoryAssignmentsResponse> {
-    const response = await api.post<BulkSaveTerritoryAssignmentsResponse>(
-      `/users/${userId}/territory-assignments/bulk`,
-      { assignments }
-    );
+    const response = await apiService.post<{
+      pincodeAssignmentsCreated: number;
+      areaAssignmentsCreated: number;
+      message: string;
+    }>(`/users/${userId}/territory-assignments/bulk`, { assignments });
 
-    return response.data;
+    return {
+      success: response.success,
+      data: response.data || {
+        pincodeAssignmentsCreated: 0,
+        areaAssignmentsCreated: 0,
+        message: 'No data returned',
+      },
+    };
   }
 
   /**
@@ -76,11 +84,11 @@ class TerritoryAssignmentsService {
       params.append('areaId', areaId.toString());
     }
 
-    const response = await api.get<{ success: boolean; data: AvailableFieldAgent[] }>(
+    const response = await apiService.get<AvailableFieldAgent[]>(
       `/users/field-agents/available?${params.toString()}`
     );
 
-    return response.data.data;
+    return response.data || [];
   }
 }
 
