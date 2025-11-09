@@ -1743,3 +1743,89 @@ export const resetPassword = async (req: AuthenticatedRequest, res: Response) =>
     });
   }
 };
+
+/**
+ * GET /api/users/field-agents/available?pincodeId=1&areaId=2
+ * Get available field agents filtered by pincode and optionally area
+ * Used in task assignment to show only field agents with access to the selected territory
+ */
+export const getAvailableFieldAgents = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { pincodeId, areaId } = req.query;
+
+    if (!pincodeId) {
+      return res.status(400).json({
+        success: false,
+        message: 'pincodeId is required',
+        error: { code: 'VALIDATION_ERROR' },
+      });
+    }
+
+    let sql: string;
+    let params: any[];
+
+    if (areaId) {
+      // Filter by both pincode AND area
+      sql = `
+        SELECT DISTINCT
+          u.id,
+          u.name,
+          u.email,
+          u."employeeId"
+        FROM users u
+        INNER JOIN "userPincodeAssignments" upa
+          ON u.id = upa."userId"
+          AND upa."pincodeId" = $1
+          AND upa."isActive" = true
+        INNER JOIN "userAreaAssignments" uaa
+          ON u.id = uaa."userId"
+          AND uaa."pincodeId" = $1
+          AND uaa."areaId" = $2
+          AND uaa."isActive" = true
+        WHERE u.role = 'FIELD_AGENT'
+          AND u."isActive" = true
+        ORDER BY u.name
+      `;
+      params = [pincodeId, areaId];
+    } else {
+      // Filter by pincode only
+      sql = `
+        SELECT DISTINCT
+          u.id,
+          u.name,
+          u.email,
+          u."employeeId"
+        FROM users u
+        INNER JOIN "userPincodeAssignments" upa
+          ON u.id = upa."userId"
+          AND upa."pincodeId" = $1
+          AND upa."isActive" = true
+        WHERE u.role = 'FIELD_AGENT'
+          AND u."isActive" = true
+        ORDER BY u.name
+      `;
+      params = [pincodeId];
+    }
+
+    const result = await query(sql, params);
+
+    logger.info(`Retrieved ${result.rows.length} available field agents`, {
+      userId: req.user?.id,
+      pincodeId,
+      areaId,
+      count: result.rows.length,
+    });
+
+    res.json({
+      success: true,
+      data: result.rows,
+    });
+  } catch (error) {
+    logger.error('Error fetching available field agents:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch field agents',
+      error: { code: 'INTERNAL_ERROR' },
+    });
+  }
+};

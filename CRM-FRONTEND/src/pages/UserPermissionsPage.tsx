@@ -9,6 +9,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { usersService } from '@/services/users';
 import { ClientAssignmentSection } from '@/components/users/ClientAssignmentSection';
 import { ProductAssignmentSection } from '@/components/users/ProductAssignmentSection';
+import { TerritoryAssignmentSection } from '@/components/users/TerritoryAssignmentSection';
 import type { User as UserType } from '@/types/user';
 
 export function UserPermissionsPage() {
@@ -160,6 +161,9 @@ export function UserPermissionsPage() {
           <ProductAssignmentSection user={user} />
         </>
       )}
+
+      {/* Territory Assignment Section */}
+      {user.role === 'FIELD_AGENT' && <TerritoryAssignmentSection user={user} />}
 
       {/* Additional Permissions Info */}
       <Card>

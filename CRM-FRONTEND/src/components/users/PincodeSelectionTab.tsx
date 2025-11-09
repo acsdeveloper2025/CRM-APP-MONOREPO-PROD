@@ -1,0 +1,188 @@
+import React, { useState, useMemo } from 'react';
+import { Search, CheckSquare, Square } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
+import type { PincodeWithCity } from '@/types/territoryAssignment';
+
+interface PincodeSelectionTabProps {
+  pincodes: PincodeWithCity[];
+  selectedPincodeIds: Set<number>;
+  onPincodeToggle: (pincodeId: number) => void;
+  areaCountByPincode: Record<number, number>;
+}
+
+const ITEMS_PER_PAGE = 20;
+
+export const PincodeSelectionTab: React.FC<PincodeSelectionTabProps> = ({
+  pincodes,
+  selectedPincodeIds,
+  onPincodeToggle,
+  areaCountByPincode,
+}) => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Filter pincodes by search term
+  const filteredPincodes = useMemo(() => {
+    if (!searchTerm.trim()) return pincodes;
+
+    const search = searchTerm.toLowerCase();
+    return pincodes.filter(
+      (pincode) =>
+        pincode.code.toLowerCase().includes(search) ||
+        pincode.cityName.toLowerCase().includes(search) ||
+        pincode.stateName.toLowerCase().includes(search)
+    );
+  }, [pincodes, searchTerm]);
+
+  // Paginate filtered pincodes
+  const paginatedPincodes = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    return filteredPincodes.slice(startIndex, endIndex);
+  }, [filteredPincodes, currentPage]);
+
+  const totalPages = Math.ceil(filteredPincodes.length / ITEMS_PER_PAGE);
+
+  // Select all visible pincodes
+  const handleSelectAll = () => {
+    paginatedPincodes.forEach((pincode) => {
+      if (!selectedPincodeIds.has(pincode.id)) {
+        onPincodeToggle(pincode.id);
+      }
+    });
+  };
+
+  // Clear all selected pincodes
+  const handleClearAll = () => {
+    paginatedPincodes.forEach((pincode) => {
+      if (selectedPincodeIds.has(pincode.id)) {
+        onPincodeToggle(pincode.id);
+      }
+    });
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Header with search and actions */}
+      <div className="flex items-center justify-between gap-4">
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Input
+            type="text"
+            placeholder="Search by pincode, city, or state..."
+            value={searchTerm}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setCurrentPage(1); // Reset to first page on search
+            }}
+            className="pl-10"
+          />
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Badge variant="secondary" className="bg-emerald-50 text-emerald-700 border-emerald-200">
+            {selectedPincodeIds.size} selected
+          </Badge>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleSelectAll}
+            disabled={paginatedPincodes.length === 0}
+          >
+            <CheckSquare className="h-4 w-4 mr-2" />
+            Select All
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleClearAll}
+            disabled={selectedPincodeIds.size === 0}
+          >
+            <Square className="h-4 w-4 mr-2" />
+            Clear All
+          </Button>
+        </div>
+      </div>
+
+      {/* Pincode list */}
+      <div className="border rounded-lg divide-y max-h-[500px] overflow-y-auto">
+        {paginatedPincodes.length === 0 ? (
+          <div className="p-8 text-center text-gray-500">
+            {searchTerm ? 'No pincodes found matching your search' : 'No pincodes available'}
+          </div>
+        ) : (
+          paginatedPincodes.map((pincode) => {
+            const isSelected = selectedPincodeIds.has(pincode.id);
+            const areaCount = areaCountByPincode[pincode.id] || 0;
+
+            return (
+              <div
+                key={pincode.id}
+                className={`flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer transition-colors ${
+                  isSelected ? 'bg-emerald-50' : ''
+                }`}
+                onClick={() => onPincodeToggle(pincode.id)}
+              >
+                <Checkbox checked={isSelected} onCheckedChange={() => onPincodeToggle(pincode.id)} />
+
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-gray-900">{pincode.code}</span>
+                    <span className="text-gray-500">-</span>
+                    <span className="text-gray-700">{pincode.cityName}</span>
+                    <span className="text-gray-400 text-sm">({pincode.stateName})</span>
+                  </div>
+                </div>
+
+                {areaCount > 0 && (
+                  <Badge variant="outline" className="text-xs">
+                    {areaCount} {areaCount === 1 ? 'area' : 'areas'}
+                  </Badge>
+                )}
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-gray-600">
+            Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1} to{' '}
+            {Math.min(currentPage * ITEMS_PER_PAGE, filteredPincodes.length)} of{' '}
+            {filteredPincodes.length} pincodes
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+              disabled={currentPage === 1}
+            >
+              Previous
+            </Button>
+
+            <div className="text-sm text-gray-600">
+              Page {currentPage} of {totalPages}
+            </div>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+              disabled={currentPage === totalPages}
+            >
+              Next
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
