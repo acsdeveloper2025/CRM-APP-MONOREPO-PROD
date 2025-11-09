@@ -408,3 +408,79 @@ export const deleteArea = async (req: AuthenticatedRequest, res: Response) => {
     });
   }
 };
+
+/**
+ * GET /api/areas/by-pincodes?pincodeIds=1,2,3
+ * Batch fetch areas for multiple pincodes
+ * Returns areas grouped by pincodeId
+ */
+export const getAreasByPincodes = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { pincodeIds } = req.query;
+
+    if (!pincodeIds || typeof pincodeIds !== 'string') {
+      return res.status(400).json({
+        success: false,
+        message: 'pincodeIds query parameter is required',
+        error: { code: 'VALIDATION_ERROR' },
+      });
+    }
+
+    const pincodeIdArray = pincodeIds.split(',').map(id => parseInt(id.trim(), 10));
+
+    if (pincodeIdArray.some(isNaN)) {
+      return res.status(400).json({
+        success: false,
+        message: 'All pincodeIds must be valid integers',
+        error: { code: 'VALIDATION_ERROR' },
+      });
+    }
+
+    // Fetch areas grouped by pincode
+    const result = await query(
+      `
+      SELECT
+        pa."pincodeId",
+        a.id,
+        a.name,
+        pa."displayOrder"
+      FROM "pincodeAreas" pa
+      JOIN areas a ON pa."areaId" = a.id
+      WHERE pa."pincodeId" = ANY($1::int[])
+      ORDER BY pa."pincodeId", pa."displayOrder"
+    `,
+      [pincodeIdArray]
+    );
+
+    // Group areas by pincodeId
+    const areasByPincode: Record<number, Array<{ id: number; name: string }>> = {};
+
+    result.rows.forEach(row => {
+      if (!areasByPincode[row.pincodeId]) {
+        areasByPincode[row.pincodeId] = [];
+      }
+      areasByPincode[row.pincodeId].push({
+        id: row.id,
+        name: row.name,
+      });
+    });
+
+    logger.info(`Retrieved areas for ${pincodeIdArray.length} pincodes`, {
+      userId: req.user?.id,
+      pincodeCount: pincodeIdArray.length,
+      totalAreas: result.rows.length,
+    });
+
+    res.json({
+      success: true,
+      data: areasByPincode,
+    });
+  } catch (error) {
+    logger.error('Error fetching areas by pincodes:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch areas',
+      error: { code: 'INTERNAL_ERROR' },
+    });
+  }
+};

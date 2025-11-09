@@ -32,6 +32,7 @@ import {
   generateTemporaryPassword,
   changePassword,
   resetPassword,
+  getAvailableFieldAgents,
 } from '@/controllers/usersController';
 
 const router = express.Router();
@@ -116,7 +117,7 @@ const createUserValidation = [
     .withMessage('Phone number must be valid'),
   body('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
   // Custom validation to ensure either roleId or role is provided
-  body().custom((value, { req }) => {
+  body().custom((_value, { req }) => {
     const hasRoleId = req.body.roleId && req.body.roleId.trim() !== '';
     const hasRole = req.body.role && req.body.role.trim() !== '';
 
@@ -289,6 +290,9 @@ router.get(
   validate,
   searchUsers
 );
+
+// Get available field agents filtered by territory (must come before /stats)
+router.get('/field-agents/available', authenticateToken, getAvailableFieldAgents);
 
 router.get(
   '/stats',

@@ -9,6 +9,7 @@ import {
   updateArea,
   deleteArea,
   getStandaloneAreas,
+  getAreasByPincodes,
 } from '@/controllers/areasController';
 
 const router = express.Router();
@@ -67,6 +68,9 @@ const listAreasValidation = [
 
 // Standalone areas route (must come before /:id route)
 router.get('/standalone', getStandaloneAreas);
+
+// Batch fetch areas by pincodes (must come before /:id route)
+router.get('/by-pincodes', getAreasByPincodes);
 
 // Core CRUD routes
 router.get('/', listAreasValidation, validate, getAreas);
