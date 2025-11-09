@@ -127,11 +127,11 @@ export const TerritoryAssignmentSection: React.FC<TerritoryAssignmentSectionProp
 
   // Get selected pincodes with city info
   const selectedPincodes = useMemo<PincodeWithCity[]>(() => {
-    if (!pincodesData?.pincodes) {
+    if (!pincodesData?.data) {
       return [];
     }
 
-    return pincodesData.pincodes.filter((p) => selectedPincodeIds.has(p.id));
+    return pincodesData.data.filter((p) => selectedPincodeIds.has(p.id));
   }, [pincodesData, selectedPincodeIds]);
 
   // Generate summary items
@@ -180,7 +180,7 @@ export const TerritoryAssignmentSection: React.FC<TerritoryAssignmentSectionProp
     );
   }
 
-  const pincodes = pincodesData?.pincodes || [];
+  const pincodes = pincodesData?.data || [];
 
   return (
     <Card>
