@@ -55,7 +55,6 @@ import deduplicationRoutes from '@/routes/deduplication';
 import rateTypesRoutes from '@/routes/rate-types';
 import rateTypeAssignmentsRoutes from '@/routes/rate-type-assignments';
 import ratesRoutes from '@/routes/rates';
-import territoryAssignmentsRoutes from '@/routes/territoryAssignments';
 import healthRoutes from '@/routes/health';
 import aiReportsRoutes from '@/routes/aiReports';
 import verificationTasksRoutes from '@/routes/verificationTasks';
@@ -189,7 +188,6 @@ app.use('/api/cases/deduplication', deduplicationRoutes);
 app.use('/api/rate-types', rateTypesRoutes);
 app.use('/api/rate-type-assignments', rateTypeAssignmentsRoutes);
 app.use('/api/rates', ratesRoutes);
-app.use('/api/territory-assignments', territoryAssignmentsRoutes);
 app.use('/api/ai-reports', aiReportsRoutes);
 app.use('/api/template-reports', templateReportsRoutes);
 
