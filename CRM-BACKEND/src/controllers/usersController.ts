@@ -171,7 +171,7 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
       pagination: { page, limit },
     });
 
-    res.json({
+    const responseData = {
       success: true,
       data: usersResult.rows,
       pagination: {
@@ -180,7 +180,9 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
         total,
         totalPages: Math.ceil(total / Number(limit)),
       },
-    });
+    };
+
+    res.json(responseData);
   } catch (error) {
     logger.error('Error fetching users:', error);
     res.status(500).json({

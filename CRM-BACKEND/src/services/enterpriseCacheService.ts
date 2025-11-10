@@ -72,22 +72,15 @@ export class EnterpriseCacheService {
    * Get cached data with enterprise-level error handling
    */
   static async get<T>(key: string): Promise<T | null> {
-    console.log(`🔍 [CACHE GET START] Key: ${key}`);
     try {
-      console.log(`🔍 [CACHE GET] About to call redis.get for key: ${key}`);
       const data = await this.redis.get(key);
-      const dataLength = typeof data === 'string' ? data.length : 0;
-      console.log(`🔍 [CACHE GET] Key: ${key}, Data type: ${typeof data}, Data length: ${dataLength}`);
       if (!data || typeof data !== 'string') {
-        console.log(`⚠️ [CACHE GET] No data or invalid type for key: ${key}`);
         return null;
       }
 
       const parsed = JSON.parse(data) as T;
-      console.log(`✅ [CACHE GET SUCCESS] Key: ${key}`);
       return parsed;
     } catch (error) {
-      console.error('❌ [CACHE GET ERROR]:', { key, error, errorMessage: error instanceof Error ? error.message : 'Unknown error', errorStack: error instanceof Error ? error.stack : undefined });
       logger.error('Cache get error:', { key, error });
       return null; // Graceful degradation
     }
@@ -99,12 +92,9 @@ export class EnterpriseCacheService {
   static async set(key: string, value: any, ttlSeconds = 3600): Promise<boolean> {
     try {
       const serialized = JSON.stringify(value);
-      console.log(`🔍 [CACHE SET] Key: ${key}, Value length: ${serialized.length}, TTL: ${ttlSeconds}`);
       await this.redis.setEx(key, ttlSeconds, serialized);
-      console.log(`✅ [CACHE SET SUCCESS] Key: ${key}`);
       return true;
     } catch (error) {
-      console.error('❌ [CACHE SET ERROR]:', { key, error, errorMessage: error instanceof Error ? error.message : 'Unknown error', errorStack: error instanceof Error ? error.stack : undefined });
       logger.error('Cache set error:', { key, error });
       return false; // Graceful degradation
     }
