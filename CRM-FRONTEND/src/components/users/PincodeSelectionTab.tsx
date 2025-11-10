@@ -75,7 +75,7 @@ export const PincodeSelectionTab: React.FC<PincodeSelectionTabProps> = ({
             variant="outline"
             size="sm"
             onClick={handleSelectAll}
-            disabled={paginatedPincodes.length === 0}
+            disabled={filteredPincodes.length === 0}
           >
             <CheckSquare className="h-4 w-4 mr-2" />
             Select All
