@@ -456,11 +456,13 @@ const TaskCard: React.FC<TaskCardProps> = ({
     const selectedPincodeId = parseInt(task.pincodeId, 10);
     const selectedAreaId = parseInt(task.areaId, 10);
 
-    return fieldUsers.filter((user: any) => {
+    const filtered = fieldUsers.filter((user: any) => {
       const hasPincodeAccess = user.assignedPincodes?.includes(selectedPincodeId) ?? false;
       const hasAreaAccess = user.assignedAreas?.includes(selectedAreaId) ?? false;
       return hasPincodeAccess && hasAreaAccess;
     });
+
+    return filtered;
   }, [fieldUsers, task.pincodeId, task.areaId]);
   // Fetch areas based on selected pincode
   const { data: areasResponse } = useAreasByPincode(task.pincodeId ? parseInt(task.pincodeId) : undefined);

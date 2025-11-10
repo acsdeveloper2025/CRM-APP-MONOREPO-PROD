@@ -272,19 +272,21 @@ const productIdValidation = [
   param('productId').isInt({ min: 1 }).withMessage('Product ID must be a positive integer'),
 ];
 
-// Middleware to disable browser caching
+// Middleware to disable browser caching and prevent 304 responses
 const noBrowserCache = (req: any, res: any, next: any) => {
-  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private, max-age=0');
   res.set('Pragma', 'no-cache');
   res.set('Expires', '0');
+  // Set a unique ETag to prevent 304 responses
+  res.set('ETag', `W/"${Date.now()}-${Math.random()}"`);
   next();
 };
 
-// Core CRUD routes (CACHED)
+// Core CRUD routes
 router.get(
   '/',
   authenticateToken,
-  noBrowserCache, // Disable browser caching to ensure fresh data
+  noBrowserCache, // Prevent browser caching and 304 responses
   EnterpriseCache.create(EnterpriseCacheConfigs.usersList),
   listUsersValidation,
   validate,
