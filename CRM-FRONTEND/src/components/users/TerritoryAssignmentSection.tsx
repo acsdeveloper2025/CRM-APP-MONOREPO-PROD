@@ -116,16 +116,28 @@ export const TerritoryAssignmentSection: React.FC<TerritoryAssignmentSectionProp
       return [];
     }
 
-    return pincodesData.data.filter((p) => selectedPincodeIds.has(p.id));
+    // Convert pincode.id to number for comparison (API returns string IDs)
+    return pincodesData.data.filter((p) => {
+      const pincodeIdNum = typeof p.id === 'string' ? parseInt(p.id, 10) : p.id;
+      return selectedPincodeIds.has(pincodeIdNum);
+    });
   }, [pincodesData, selectedPincodeIds]);
 
   // Generate summary items
   const summaryItems = useMemo<AssignmentSummaryItem[]>(() => {
     return selectedPincodes.map((pincode) => {
-      const areaIds = Array.from(selectedAreasByPincode.get(pincode.id) || []);
-      const areas = areasByPincode[pincode.id] || [];
+      // Convert pincode.id to number for lookup (API returns string IDs)
+      const pincodeIdNum = typeof pincode.id === 'string' ? parseInt(pincode.id, 10) : pincode.id;
+      const areaIds = Array.from(selectedAreasByPincode.get(pincodeIdNum) || []);
+      const areas = areasByPincode[pincodeIdNum] || [];
       const areaNames = areaIds
-        .map((areaId) => areas.find((a) => a.id === areaId)?.name)
+        .map((areaId) => {
+          const areaIdNum = typeof areaId === 'string' ? parseInt(areaId, 10) : areaId;
+          return areas.find((a) => {
+            const aNum = typeof a.id === 'string' ? parseInt(a.id, 10) : a.id;
+            return aNum === areaIdNum;
+          })?.name;
+        })
         .filter((name): name is string => !!name);
 
       return {
