@@ -183,8 +183,8 @@ export class CacheWarmingService {
           headers: {
             'Content-Type': 'application/json',
             'Cache-Control': 'no-store, no-cache, must-revalidate, private',
-            'Pragma': 'no-cache',
-            'Expires': '0',
+            Pragma: 'no-cache',
+            Expires: '0',
           },
           statusCode: 200,
           timestamp: Date.now(),
@@ -255,8 +255,8 @@ export class CacheWarmingService {
         headers: {
           'Content-Type': 'application/json',
           'Cache-Control': 'no-store, no-cache, must-revalidate, private',
-          'Pragma': 'no-cache',
-          'Expires': '0',
+          Pragma: 'no-cache',
+          Expires: '0',
         },
         statusCode: 200,
         timestamp: Date.now(),
