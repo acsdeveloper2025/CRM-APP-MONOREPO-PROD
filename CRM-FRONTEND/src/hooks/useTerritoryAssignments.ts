@@ -54,6 +54,12 @@ export const useBulkSaveTerritoryAssignments = (userId: string) => {
       // Invalidate and refetch territory assignments
       queryClient.invalidateQueries({ queryKey: ['userTerritoryAssignments', userId] });
 
+      // Invalidate field users cache so case creation forms get updated assignments
+      queryClient.invalidateQueries({ queryKey: ['users', 'field'] });
+
+      // Invalidate specific user cache
+      queryClient.invalidateQueries({ queryKey: ['user', userId] });
+
       toast.success(
         `Territory assignments saved! ${data.data.pincodeAssignmentsCreated} pincodes, ${data.data.areaAssignmentsCreated} areas.`
       );
