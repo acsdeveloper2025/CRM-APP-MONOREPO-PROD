@@ -58,6 +58,13 @@ export class EnterpriseCache {
             'X-Cache-Age': Math.floor((Date.now() - cached.timestamp) / 1000).toString(),
           });
 
+          // Force no browser caching for users endpoint
+          if (cacheKey.startsWith('users:list:')) {
+            res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+            res.set('Pragma', 'no-cache');
+            res.set('Expires', '0');
+          }
+
           return res.status(cached.statusCode).json(cached.data);
         }
 

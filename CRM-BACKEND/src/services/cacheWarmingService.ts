@@ -180,7 +180,12 @@ export class CacheWarmingService {
               totalPages: Math.ceil(result.rows.length / 20),
             },
           },
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-store, no-cache, must-revalidate, private',
+            'Pragma': 'no-cache',
+            'Expires': '0',
+          },
           statusCode: 200,
           timestamp: Date.now(),
         };
@@ -247,7 +252,12 @@ export class CacheWarmingService {
             totalPages: Math.ceil(allResult.rows.length / 20),
           },
         },
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-store, no-cache, must-revalidate, private',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+        },
         statusCode: 200,
         timestamp: Date.now(),
       };
