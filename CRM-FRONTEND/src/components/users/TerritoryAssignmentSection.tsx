@@ -124,7 +124,7 @@ export const TerritoryAssignmentSection: React.FC<TerritoryAssignmentSectionProp
   }, [pincodesData, selectedPincodeIds]);
 
   // Generate summary items
-  const summaryItems = useMemo<AssignmentSummaryItem[]>(() => {
+  const _summaryItems = useMemo<AssignmentSummaryItem[]>(() => {
     return selectedPincodes.map((pincode) => {
       // Convert pincode.id to number for lookup (API returns string IDs)
       const pincodeIdNum = typeof pincode.id === 'string' ? parseInt(pincode.id, 10) : pincode.id;

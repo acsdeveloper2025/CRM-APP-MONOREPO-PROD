@@ -23,7 +23,9 @@ export const PincodeSelectionTab: React.FC<PincodeSelectionTabProps> = ({
 
   // Filter pincodes by search term
   const filteredPincodes = useMemo(() => {
-    if (!searchTerm.trim()) return pincodes;
+    if (!searchTerm.trim()) {
+      return pincodes;
+    }
 
     const search = searchTerm.toLowerCase();
     return pincodes.filter(
