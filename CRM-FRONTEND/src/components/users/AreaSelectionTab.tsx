@@ -27,7 +27,9 @@ export const AreaSelectionTab: React.FC<AreaSelectionTabProps> = ({
 
   // Filter areas by search term
   const filteredPincodes = useMemo(() => {
-    if (!searchTerm.trim()) return selectedPincodes;
+    if (!searchTerm.trim()) {
+      return selectedPincodes;
+    }
 
     const search = searchTerm.toLowerCase();
     return selectedPincodes
