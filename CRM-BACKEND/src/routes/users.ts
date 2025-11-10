@@ -272,10 +272,19 @@ const productIdValidation = [
   param('productId').isInt({ min: 1 }).withMessage('Product ID must be a positive integer'),
 ];
 
+// Middleware to disable browser caching
+const noBrowserCache = (req: any, res: any, next: any) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  res.set('Pragma', 'no-cache');
+  res.set('Expires', '0');
+  next();
+};
+
 // Core CRUD routes (CACHED)
 router.get(
   '/',
   authenticateToken,
+  noBrowserCache, // Disable browser caching to ensure fresh data
   EnterpriseCache.create(EnterpriseCacheConfigs.usersList),
   listUsersValidation,
   validate,

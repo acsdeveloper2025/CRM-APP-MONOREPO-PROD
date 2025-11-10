@@ -121,27 +121,137 @@ export class CacheWarmingService {
       for (const role of roles) {
         const result = await pool.query(
           `
-          SELECT id, username, email, role, name, phone, "isActive"
-          FROM users
-          WHERE role = $1 AND "isActive" = true
-          ORDER BY username ASC
+          SELECT
+            u.id,
+            u.username,
+            u.email,
+            u.role,
+            u.name,
+            u.phone,
+            u."isActive",
+
+            -- Assignment arrays for BACKEND_USER role
+            COALESCE(client_arrays.ids, ARRAY[]::int[]) as "assignedClients",
+            COALESCE(product_arrays.ids, ARRAY[]::int[]) as "assignedProducts",
+
+            -- Assignment arrays for FIELD_AGENT role
+            COALESCE(pincode_arrays.ids, ARRAY[]::int[]) as "assignedPincodes",
+            COALESCE(area_arrays.ids, ARRAY[]::int[]) as "assignedAreas"
+          FROM users u
+          LEFT JOIN (
+            SELECT "userId", ARRAY_AGG("clientId") as ids
+            FROM "userClientAssignments"
+            GROUP BY "userId"
+          ) client_arrays ON u.id = client_arrays."userId"
+          LEFT JOIN (
+            SELECT "userId", ARRAY_AGG("productId") as ids
+            FROM "userProductAssignments"
+            GROUP BY "userId"
+          ) product_arrays ON u.id = product_arrays."userId"
+          LEFT JOIN (
+            SELECT "userId", ARRAY_AGG("pincodeId") as ids
+            FROM "userPincodeAssignments"
+            WHERE "isActive" = true
+            GROUP BY "userId"
+          ) pincode_arrays ON u.id = pincode_arrays."userId"
+          LEFT JOIN (
+            SELECT "userId", ARRAY_AGG("areaId") as ids
+            FROM "userAreaAssignments"
+            WHERE "isActive" = true
+            GROUP BY "userId"
+          ) area_arrays ON u.id = area_arrays."userId"
+          WHERE u.role = $1 AND u."isActive" = true
+          ORDER BY u.username ASC
         `,
           [role]
         );
 
-        await EnterpriseCacheService.set(`users:list:${role}`, result.rows, 600); // 10 minutes
+        // Store in the same format as the cache middleware expects
+        // The cache middleware expects: { data: <API response>, headers, statusCode, timestamp }
+        // The API response format is: { success: true, data: [...], pagination: {...} }
+        const cacheData = {
+          data: {
+            success: true,
+            data: result.rows,
+            pagination: {
+              page: 1,
+              limit: 20,
+              total: result.rows.length,
+              totalPages: Math.ceil(result.rows.length / 20),
+            },
+          },
+          headers: { 'Content-Type': 'application/json' },
+          statusCode: 200,
+          timestamp: Date.now(),
+        };
+        await EnterpriseCacheService.set(`users:list:${role}`, cacheData, 600); // 10 minutes
         logger.debug(`✓ Warmed users cache for ${role}: ${result.rows.length} users`);
       }
 
       // Cache all active users
       const allResult = await pool.query(`
-        SELECT id, username, email, role, name, phone, "isActive"
-        FROM users
-        WHERE "isActive" = true
-        ORDER BY username ASC
+        SELECT
+          u.id,
+          u.username,
+          u.email,
+          u.role,
+          u.name,
+          u.phone,
+          u."isActive",
+
+          -- Assignment arrays for BACKEND_USER role
+          COALESCE(client_arrays.ids, ARRAY[]::int[]) as "assignedClients",
+          COALESCE(product_arrays.ids, ARRAY[]::int[]) as "assignedProducts",
+
+          -- Assignment arrays for FIELD_AGENT role
+          COALESCE(pincode_arrays.ids, ARRAY[]::int[]) as "assignedPincodes",
+          COALESCE(area_arrays.ids, ARRAY[]::int[]) as "assignedAreas"
+        FROM users u
+        LEFT JOIN (
+          SELECT "userId", ARRAY_AGG("clientId") as ids
+          FROM "userClientAssignments"
+          GROUP BY "userId"
+        ) client_arrays ON u.id = client_arrays."userId"
+        LEFT JOIN (
+          SELECT "userId", ARRAY_AGG("productId") as ids
+          FROM "userProductAssignments"
+          GROUP BY "userId"
+        ) product_arrays ON u.id = product_arrays."userId"
+        LEFT JOIN (
+          SELECT "userId", ARRAY_AGG("pincodeId") as ids
+          FROM "userPincodeAssignments"
+          WHERE "isActive" = true
+          GROUP BY "userId"
+        ) pincode_arrays ON u.id = pincode_arrays."userId"
+        LEFT JOIN (
+          SELECT "userId", ARRAY_AGG("areaId") as ids
+          FROM "userAreaAssignments"
+          WHERE "isActive" = true
+          GROUP BY "userId"
+        ) area_arrays ON u.id = area_arrays."userId"
+        WHERE u."isActive" = true
+        ORDER BY u.username ASC
       `);
 
-      await EnterpriseCacheService.set('users:list:all', allResult.rows, 600); // 10 minutes
+      // Store in the same format as the cache middleware expects
+      // The cache middleware expects: { data: <API response>, headers, statusCode, timestamp }
+      // The API response format is: { success: true, data: [...], pagination: {...} }
+      const allCacheData = {
+        data: {
+          success: true,
+          data: allResult.rows,
+          pagination: {
+            page: 1,
+            limit: 20,
+            total: allResult.rows.length,
+            totalPages: Math.ceil(allResult.rows.length / 20),
+          },
+        },
+        headers: { 'Content-Type': 'application/json' },
+        statusCode: 200,
+        timestamp: Date.now(),
+      };
+      await EnterpriseCacheService.set('users:list:all', allCacheData, 600); // 10 minutes
       logger.debug(`✓ Warmed all users cache: ${allResult.rows.length} users`);
     } catch (error) {
       logger.error('Failed to warm users cache:', error);
