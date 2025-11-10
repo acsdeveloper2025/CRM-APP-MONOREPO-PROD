@@ -96,21 +96,6 @@ export const TerritoryAssignmentSection: React.FC<TerritoryAssignmentSectionProp
     });
   };
 
-  // Handle remove assignment from summary
-  const handleRemoveAssignment = (pincodeId: number) => {
-    setSelectedPincodeIds((prev) => {
-      const newSet = new Set(prev);
-      newSet.delete(pincodeId);
-      return newSet;
-    });
-
-    setSelectedAreasByPincode((prev) => {
-      const newMap = new Map(prev);
-      newMap.delete(pincodeId);
-      return newMap;
-    });
-  };
-
   // Generate assignments for save
   const generateAssignments = (): TerritoryAssignment[] => {
     return Array.from(selectedPincodeIds).map((pincodeId) => ({
@@ -227,16 +212,16 @@ export const TerritoryAssignmentSection: React.FC<TerritoryAssignmentSectionProp
                 areasByPincode={areasByPincode}
                 selectedAreasByPincode={selectedAreasByPincode}
                 onAreaToggle={handleAreaToggle}
+                onSave={handleSave}
+                isSaving={saveMutation.isPending}
               />
             )}
           </TabsContent>
 
           <TabsContent value="summary" className="mt-6">
             <AssignmentSummary
-              summaryItems={summaryItems}
-              onRemove={handleRemoveAssignment}
-              onSave={handleSave}
-              isSaving={saveMutation.isPending}
+              savedAssignments={existingAssignments?.pincodeAssignments || []}
+              isLoading={assignmentsLoading}
             />
           </TabsContent>
         </Tabs>

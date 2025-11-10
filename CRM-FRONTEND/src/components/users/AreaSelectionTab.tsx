@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Search, CheckSquare, Square, AlertCircle } from 'lucide-react';
+import { Search, CheckSquare, Square, AlertCircle, Save } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -11,6 +11,8 @@ interface AreaSelectionTabProps {
   areasByPincode: Record<number, Area[]>;
   selectedAreasByPincode: Map<number, Set<number>>;
   onAreaToggle: (pincodeId: number, areaId: number) => void;
+  onSave: () => void;
+  isSaving: boolean;
 }
 
 export const AreaSelectionTab: React.FC<AreaSelectionTabProps> = ({
@@ -18,6 +20,8 @@ export const AreaSelectionTab: React.FC<AreaSelectionTabProps> = ({
   areasByPincode,
   selectedAreasByPincode,
   onAreaToggle,
+  onSave,
+  isSaving,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -180,6 +184,20 @@ export const AreaSelectionTab: React.FC<AreaSelectionTabProps> = ({
           })
         )}
       </div>
+
+      {/* Save button */}
+      {selectedPincodes.length > 0 && (
+        <div className="flex justify-end pt-4 border-t">
+          <Button
+            onClick={onSave}
+            disabled={isSaving || selectedPincodes.length === 0}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white"
+          >
+            <Save className="h-4 w-4 mr-2" />
+            {isSaving ? 'Saving...' : 'Save All Assignments'}
+          </Button>
+        </div>
+      )}
     </div>
   );
 };
