@@ -70,7 +70,7 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
     const countResult = await query(countQuery, params);
     const total = parseInt(countResult.rows[0].total);
 
-    // Get paginated results with assignment counts
+    // Get paginated results with assignment counts AND arrays
     const offset = (Number(page) - 1) * Number(limit);
     const usersQuery = `
       SELECT
@@ -100,7 +100,15 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
 
         -- Assignment counts for FIELD_AGENT role
         COALESCE(pincode_counts.count, 0) as "assignedPincodesCount",
-        COALESCE(area_counts.count, 0) as "assignedAreasCount"
+        COALESCE(area_counts.count, 0) as "assignedAreasCount",
+
+        -- Assignment arrays for BACKEND_USER role
+        COALESCE(client_arrays.ids, ARRAY[]::int[]) as "assignedClients",
+        COALESCE(product_arrays.ids, ARRAY[]::int[]) as "assignedProducts",
+
+        -- Assignment arrays for FIELD_AGENT role
+        COALESCE(pincode_arrays.ids, ARRAY[]::int[]) as "assignedPincodes",
+        COALESCE(area_arrays.ids, ARRAY[]::int[]) as "assignedAreas"
       FROM users u
       LEFT JOIN roles r ON u."roleId" = r.id
       LEFT JOIN departments d ON u."departmentId" = d.id
@@ -127,6 +135,28 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
         WHERE "isActive" = true
         GROUP BY "userId"
       ) area_counts ON u.id = area_counts."userId"
+      LEFT JOIN (
+        SELECT "userId", ARRAY_AGG("clientId") as ids
+        FROM "userClientAssignments"
+        GROUP BY "userId"
+      ) client_arrays ON u.id = client_arrays."userId"
+      LEFT JOIN (
+        SELECT "userId", ARRAY_AGG("productId") as ids
+        FROM "userProductAssignments"
+        GROUP BY "userId"
+      ) product_arrays ON u.id = product_arrays."userId"
+      LEFT JOIN (
+        SELECT "userId", ARRAY_AGG("pincodeId") as ids
+        FROM "userPincodeAssignments"
+        WHERE "isActive" = true
+        GROUP BY "userId"
+      ) pincode_arrays ON u.id = pincode_arrays."userId"
+      LEFT JOIN (
+        SELECT "userId", ARRAY_AGG("areaId") as ids
+        FROM "userAreaAssignments"
+        WHERE "isActive" = true
+        GROUP BY "userId"
+      ) area_arrays ON u.id = area_arrays."userId"
       ${whereClause}
       ORDER BY u.${safeSortBy} ${safeSortOrder}
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
@@ -197,7 +227,15 @@ export const getUserById = async (req: AuthenticatedRequest, res: Response) => {
 
         -- Assignment counts for FIELD_AGENT role
         COALESCE(pincode_counts.count, 0) as "assignedPincodesCount",
-        COALESCE(area_counts.count, 0) as "assignedAreasCount"
+        COALESCE(area_counts.count, 0) as "assignedAreasCount",
+
+        -- Assignment arrays for BACKEND_USER role
+        COALESCE(client_arrays.ids, ARRAY[]::int[]) as "assignedClients",
+        COALESCE(product_arrays.ids, ARRAY[]::int[]) as "assignedProducts",
+
+        -- Assignment arrays for FIELD_AGENT role
+        COALESCE(pincode_arrays.ids, ARRAY[]::int[]) as "assignedPincodes",
+        COALESCE(area_arrays.ids, ARRAY[]::int[]) as "assignedAreas"
       FROM users u
       LEFT JOIN roles r ON u."roleId" = r.id
       LEFT JOIN departments d ON u."departmentId" = d.id
@@ -226,6 +264,30 @@ export const getUserById = async (req: AuthenticatedRequest, res: Response) => {
         WHERE "userId" = $1 AND "isActive" = true
         GROUP BY "userId"
       ) area_counts ON u.id = area_counts."userId"
+      LEFT JOIN (
+        SELECT "userId", ARRAY_AGG("clientId") as ids
+        FROM "userClientAssignments"
+        WHERE "userId" = $1
+        GROUP BY "userId"
+      ) client_arrays ON u.id = client_arrays."userId"
+      LEFT JOIN (
+        SELECT "userId", ARRAY_AGG("productId") as ids
+        FROM "userProductAssignments"
+        WHERE "userId" = $1
+        GROUP BY "userId"
+      ) product_arrays ON u.id = product_arrays."userId"
+      LEFT JOIN (
+        SELECT "userId", ARRAY_AGG("pincodeId") as ids
+        FROM "userPincodeAssignments"
+        WHERE "userId" = $1 AND "isActive" = true
+        GROUP BY "userId"
+      ) pincode_arrays ON u.id = pincode_arrays."userId"
+      LEFT JOIN (
+        SELECT "userId", ARRAY_AGG("areaId") as ids
+        FROM "userAreaAssignments"
+        WHERE "userId" = $1 AND "isActive" = true
+        GROUP BY "userId"
+      ) area_arrays ON u.id = area_arrays."userId"
       WHERE u.id = $1
     `;
 
