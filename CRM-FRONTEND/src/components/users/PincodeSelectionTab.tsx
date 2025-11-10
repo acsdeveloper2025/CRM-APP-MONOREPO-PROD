@@ -37,8 +37,9 @@ export const PincodeSelectionTab: React.FC<PincodeSelectionTabProps> = ({
   // Select all filtered pincodes
   const handleSelectAll = () => {
     filteredPincodes.forEach((pincode) => {
-      if (!selectedPincodeIds.has(pincode.id)) {
-        onPincodeToggle(pincode.id);
+      const pincodeIdNum = typeof pincode.id === 'string' ? parseInt(pincode.id, 10) : pincode.id;
+      if (!selectedPincodeIds.has(pincodeIdNum)) {
+        onPincodeToggle(pincodeIdNum);
       }
     });
   };
@@ -46,8 +47,9 @@ export const PincodeSelectionTab: React.FC<PincodeSelectionTabProps> = ({
   // Clear all selected pincodes
   const handleClearAll = () => {
     filteredPincodes.forEach((pincode) => {
-      if (selectedPincodeIds.has(pincode.id)) {
-        onPincodeToggle(pincode.id);
+      const pincodeIdNum = typeof pincode.id === 'string' ? parseInt(pincode.id, 10) : pincode.id;
+      if (selectedPincodeIds.has(pincodeIdNum)) {
+        onPincodeToggle(pincodeIdNum);
       }
     });
   };
@@ -101,8 +103,10 @@ export const PincodeSelectionTab: React.FC<PincodeSelectionTabProps> = ({
         ) : (
           <>
             {filteredPincodes.map((pincode) => {
-              const isSelected = selectedPincodeIds.has(pincode.id);
-              const areaCount = areaCountByPincode[pincode.id] || 0;
+              // Convert pincode.id to number for comparison (API returns string IDs)
+              const pincodeIdNum = typeof pincode.id === 'string' ? parseInt(pincode.id, 10) : pincode.id;
+              const isSelected = selectedPincodeIds.has(pincodeIdNum);
+              const areaCount = areaCountByPincode[pincodeIdNum] || 0;
 
               return (
                 <div
@@ -110,9 +114,9 @@ export const PincodeSelectionTab: React.FC<PincodeSelectionTabProps> = ({
                   className={`flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer transition-colors ${
                     isSelected ? 'bg-emerald-50' : ''
                   }`}
-                  onClick={() => onPincodeToggle(pincode.id)}
+                  onClick={() => onPincodeToggle(pincodeIdNum)}
                 >
-                  <Checkbox checked={isSelected} onCheckedChange={() => onPincodeToggle(pincode.id)} />
+                  <Checkbox checked={isSelected} onCheckedChange={() => onPincodeToggle(pincodeIdNum)} />
 
                   <div className="flex-1">
                     <div className="flex items-center gap-2">

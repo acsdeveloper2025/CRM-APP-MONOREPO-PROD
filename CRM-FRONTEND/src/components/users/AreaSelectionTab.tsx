@@ -32,7 +32,9 @@ export const AreaSelectionTab: React.FC<AreaSelectionTabProps> = ({
     const search = searchTerm.toLowerCase();
     return selectedPincodes
       .map((pincode) => {
-        const areas = areasByPincode[pincode.id] || [];
+        // Convert pincode.id to number for lookup (API returns string IDs)
+        const pincodeIdNum = typeof pincode.id === 'string' ? parseInt(pincode.id, 10) : pincode.id;
+        const areas = areasByPincode[pincodeIdNum] || [];
         const filteredAreas = areas.filter((area) => area.name.toLowerCase().includes(search));
 
         return filteredAreas.length > 0 ? { ...pincode, filteredAreas } : null;
@@ -46,8 +48,10 @@ export const AreaSelectionTab: React.FC<AreaSelectionTabProps> = ({
     const selectedAreas = selectedAreasByPincode.get(pincodeId) || new Set();
 
     areas.forEach((area) => {
-      if (!selectedAreas.has(area.id)) {
-        onAreaToggle(pincodeId, area.id);
+      // Convert area.id to number for comparison (API returns string IDs)
+      const areaIdNum = typeof area.id === 'string' ? parseInt(area.id, 10) : area.id;
+      if (!selectedAreas.has(areaIdNum)) {
+        onAreaToggle(pincodeId, areaIdNum);
       }
     });
   };
@@ -109,11 +113,16 @@ export const AreaSelectionTab: React.FC<AreaSelectionTabProps> = ({
           <div className="p-8 text-center text-gray-500">No areas found matching your search</div>
         ) : (
           filteredPincodes.map((pincode) => {
+            // Convert pincode.id to number for lookup (API returns string IDs)
+            const pincodeIdNum = typeof pincode.id === 'string' ? parseInt(pincode.id, 10) : pincode.id;
             const areas = searchTerm
               ? (pincode as any).filteredAreas
-              : areasByPincode[pincode.id] || [];
-            const selectedAreas = selectedAreasByPincode.get(pincode.id) || new Set();
-            const allSelected = areas.length > 0 && areas.every((area: Area) => selectedAreas.has(area.id));
+              : areasByPincode[pincodeIdNum] || [];
+            const selectedAreas = selectedAreasByPincode.get(pincodeIdNum) || new Set();
+            const allSelected = areas.length > 0 && areas.every((area: Area) => {
+              const areaIdNum = typeof area.id === 'string' ? parseInt(area.id, 10) : area.id;
+              return selectedAreas.has(areaIdNum);
+            });
 
             return (
               <div key={pincode.id} className="border rounded-lg overflow-hidden">
@@ -133,7 +142,7 @@ export const AreaSelectionTab: React.FC<AreaSelectionTabProps> = ({
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => handleSelectAllForPincode(pincode.id)}
+                      onClick={() => handleSelectAllForPincode(pincodeIdNum)}
                       disabled={allSelected}
                     >
                       <CheckSquare className="h-4 w-4 mr-1" />
@@ -142,7 +151,7 @@ export const AreaSelectionTab: React.FC<AreaSelectionTabProps> = ({
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => handleClearAllForPincode(pincode.id)}
+                      onClick={() => handleClearAllForPincode(pincodeIdNum)}
                       disabled={selectedAreas.size === 0}
                     >
                       <Square className="h-4 w-4 mr-1" />
@@ -159,7 +168,9 @@ export const AreaSelectionTab: React.FC<AreaSelectionTabProps> = ({
                     </div>
                   ) : (
                     areas.map((area: Area) => {
-                      const isSelected = selectedAreas.has(area.id);
+                      // Convert area.id to number for comparison (API returns string IDs)
+                      const areaIdNum = typeof area.id === 'string' ? parseInt(area.id, 10) : area.id;
+                      const isSelected = selectedAreas.has(areaIdNum);
 
                       return (
                         <div
@@ -167,11 +178,11 @@ export const AreaSelectionTab: React.FC<AreaSelectionTabProps> = ({
                           className={`flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer transition-colors ${
                             isSelected ? 'bg-emerald-50' : ''
                           }`}
-                          onClick={() => onAreaToggle(pincode.id, area.id)}
+                          onClick={() => onAreaToggle(pincodeIdNum, areaIdNum)}
                         >
                           <Checkbox
                             checked={isSelected}
-                            onCheckedChange={() => onAreaToggle(pincode.id, area.id)}
+                            onCheckedChange={() => onAreaToggle(pincodeIdNum, areaIdNum)}
                           />
                           <span className="text-gray-900">{area.name}</span>
                         </div>
