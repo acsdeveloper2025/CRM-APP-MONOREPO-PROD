@@ -13,8 +13,6 @@ interface PincodeSelectionTabProps {
   areaCountByPincode: Record<number, number>;
 }
 
-const ITEMS_PER_PAGE = 20;
-
 export const PincodeSelectionTab: React.FC<PincodeSelectionTabProps> = ({
   pincodes,
   selectedPincodeIds,
@@ -22,7 +20,6 @@ export const PincodeSelectionTab: React.FC<PincodeSelectionTabProps> = ({
   areaCountByPincode,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
 
   // Filter pincodes by search term
   const filteredPincodes = useMemo(() => {
@@ -37,18 +34,9 @@ export const PincodeSelectionTab: React.FC<PincodeSelectionTabProps> = ({
     );
   }, [pincodes, searchTerm]);
 
-  // Paginate filtered pincodes
-  const paginatedPincodes = useMemo(() => {
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    const endIndex = startIndex + ITEMS_PER_PAGE;
-    return filteredPincodes.slice(startIndex, endIndex);
-  }, [filteredPincodes, currentPage]);
-
-  const totalPages = Math.ceil(filteredPincodes.length / ITEMS_PER_PAGE);
-
-  // Select all visible pincodes
+  // Select all filtered pincodes
   const handleSelectAll = () => {
-    paginatedPincodes.forEach((pincode) => {
+    filteredPincodes.forEach((pincode) => {
       if (!selectedPincodeIds.has(pincode.id)) {
         onPincodeToggle(pincode.id);
       }
@@ -57,7 +45,7 @@ export const PincodeSelectionTab: React.FC<PincodeSelectionTabProps> = ({
 
   // Clear all selected pincodes
   const handleClearAll = () => {
-    paginatedPincodes.forEach((pincode) => {
+    filteredPincodes.forEach((pincode) => {
       if (selectedPincodeIds.has(pincode.id)) {
         onPincodeToggle(pincode.id);
       }
@@ -74,10 +62,7 @@ export const PincodeSelectionTab: React.FC<PincodeSelectionTabProps> = ({
             type="text"
             placeholder="Search by pincode, city, or state..."
             value={searchTerm}
-            onChange={(e) => {
-              setSearchTerm(e.target.value);
-              setCurrentPage(1); // Reset to first page on search
-            }}
+            onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10"
           />
         </div>
@@ -107,79 +92,54 @@ export const PincodeSelectionTab: React.FC<PincodeSelectionTabProps> = ({
         </div>
       </div>
 
-      {/* Pincode list */}
+      {/* Pincode list - Scrollable, shows all pincodes */}
       <div className="border rounded-lg divide-y max-h-[500px] overflow-y-auto">
-        {paginatedPincodes.length === 0 ? (
+        {filteredPincodes.length === 0 ? (
           <div className="p-8 text-center text-gray-500">
             {searchTerm ? 'No pincodes found matching your search' : 'No pincodes available'}
           </div>
         ) : (
-          paginatedPincodes.map((pincode) => {
-            const isSelected = selectedPincodeIds.has(pincode.id);
-            const areaCount = areaCountByPincode[pincode.id] || 0;
+          <>
+            {filteredPincodes.map((pincode) => {
+              const isSelected = selectedPincodeIds.has(pincode.id);
+              const areaCount = areaCountByPincode[pincode.id] || 0;
 
-            return (
-              <div
-                key={pincode.id}
-                className={`flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer transition-colors ${
-                  isSelected ? 'bg-emerald-50' : ''
-                }`}
-                onClick={() => onPincodeToggle(pincode.id)}
-              >
-                <Checkbox checked={isSelected} onCheckedChange={() => onPincodeToggle(pincode.id)} />
+              return (
+                <div
+                  key={pincode.id}
+                  className={`flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer transition-colors ${
+                    isSelected ? 'bg-emerald-50' : ''
+                  }`}
+                  onClick={() => onPincodeToggle(pincode.id)}
+                >
+                  <Checkbox checked={isSelected} onCheckedChange={() => onPincodeToggle(pincode.id)} />
 
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium text-gray-900">{pincode.code}</span>
-                    <span className="text-gray-500">-</span>
-                    <span className="text-gray-700">{pincode.cityName}</span>
-                    <span className="text-gray-400 text-sm">({pincode.stateName})</span>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-gray-900">{pincode.code}</span>
+                      <span className="text-gray-500">-</span>
+                      <span className="text-gray-700">{pincode.cityName}</span>
+                      <span className="text-gray-400 text-sm">({pincode.stateName})</span>
+                    </div>
                   </div>
-                </div>
 
-                {areaCount > 0 && (
-                  <Badge variant="outline" className="text-xs">
-                    {areaCount} {areaCount === 1 ? 'area' : 'areas'}
-                  </Badge>
-                )}
-              </div>
-            );
-          })
+                  {areaCount > 0 && (
+                    <Badge variant="outline" className="text-xs">
+                      {areaCount} {areaCount === 1 ? 'area' : 'areas'}
+                    </Badge>
+                  )}
+                </div>
+              );
+            })}
+          </>
         )}
       </div>
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between">
-          <div className="text-sm text-gray-600">
-            Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1} to{' '}
-            {Math.min(currentPage * ITEMS_PER_PAGE, filteredPincodes.length)} of{' '}
-            {filteredPincodes.length} pincodes
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-              disabled={currentPage === 1}
-            >
-              Previous
-            </Button>
-
-            <div className="text-sm text-gray-600">
-              Page {currentPage} of {totalPages}
-            </div>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-              disabled={currentPage === totalPages}
-            >
-              Next
-            </Button>
-          </div>
+      {/* Total count display */}
+      {filteredPincodes.length > 0 && (
+        <div className="text-sm text-gray-600 text-center">
+          Showing {filteredPincodes.length} {filteredPincodes.length === 1 ? 'pincode' : 'pincodes'}
+          {searchTerm && ' (filtered)'}
         </div>
       )}
     </div>
