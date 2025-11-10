@@ -29,8 +29,10 @@ export const getPincodes = async (req: AuthenticatedRequest, res: Response) => {
         p.code,
         p."cityId" as "cityId",
         c.name as "cityName",
-        s.name as state,
-        co.name as country,
+        c."stateId" as "stateId",
+        s.name as "stateName",
+        c."countryId" as "countryId",
+        co.name as "countryName",
         p."createdAt" as "createdAt",
         p."updatedAt" as "updatedAt",
         COALESCE(
@@ -84,7 +86,7 @@ export const getPincodes = async (req: AuthenticatedRequest, res: Response) => {
     }
 
     // Add GROUP BY clause for area aggregation
-    sql += ` GROUP BY p.id, p.code, p."cityId", c.name, s.name, co.name, p."createdAt", p."updatedAt"`;
+    sql += ` GROUP BY p.id, p.code, p."cityId", c.name, c."stateId", s.name, c."countryId", co.name, p."createdAt", p."updatedAt"`;
 
     // Apply sorting
     const sortDirection = sortOrder === 'desc' ? 'DESC' : 'ASC';
