@@ -95,7 +95,8 @@ export class EnterpriseCacheService {
       await this.redis.setEx(key, ttlSeconds, serialized);
       return true;
     } catch (error) {
-      logger.error('Cache set error:', { key, error });
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      logger.error('Cache set error:', { key, errorMessage, error });
       return false; // Graceful degradation
     }
   }
