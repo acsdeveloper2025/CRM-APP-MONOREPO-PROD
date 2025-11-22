@@ -128,14 +128,17 @@ router.post(
 
 router.put(
   '/field-user-assignments/:id',
-  createFieldUserCommissionAssignmentValidation,
+  [
+    param('id').isInt({ min: 1 }).withMessage('Assignment ID must be a positive integer'),
+    ...createFieldUserCommissionAssignmentValidation,
+  ],
   validate,
   updateFieldUserCommissionAssignment as any
 );
 
 router.delete(
   '/field-user-assignments/:id',
-  param('id').isUUID().withMessage('Assignment ID must be a valid UUID'),
+  param('id').isInt({ min: 1 }).withMessage('Assignment ID must be a positive integer'),
   validate,
   deleteFieldUserCommissionAssignment as any
 );

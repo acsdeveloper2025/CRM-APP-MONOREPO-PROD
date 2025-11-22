@@ -538,7 +538,7 @@ export const updateFieldUserCommissionAssignment = async (
     // Check if assignment exists
     const existingAssignment = await query(
       'SELECT id FROM field_user_commission_assignments WHERE id = $1',
-      [id]
+      [Number(id)]
     );
 
     if (existingAssignment.rows.length === 0) {
@@ -573,7 +573,7 @@ export const updateFieldUserCommissionAssignment = async (
       clientId || null,
       effectiveFrom || new Date().toISOString(),
       effectiveTo || null,
-      id,
+      Number(id),
     ]);
 
     logger.info('Updated field user commission assignment', {
@@ -609,7 +609,7 @@ export const deleteFieldUserCommissionAssignment = async (
     // Check if assignment exists
     const existingAssignment = await query(
       'SELECT id FROM field_user_commission_assignments WHERE id = $1',
-      [id]
+      [Number(id)]
     );
 
     if (existingAssignment.rows.length === 0) {
@@ -621,7 +621,7 @@ export const deleteFieldUserCommissionAssignment = async (
     }
 
     // Delete the assignment
-    await query('DELETE FROM field_user_commission_assignments WHERE id = $1', [id]);
+    await query('DELETE FROM field_user_commission_assignments WHERE id = $1', [Number(id)]);
 
     logger.info('Deleted field user commission assignment', {
       userId: req.user?.id,
