@@ -628,6 +628,19 @@ const CaseCard: React.FC<CaseCardProps> = ({ caseData, isReorderable = false, is
           </div>
           <div className="flex justify-end items-center mt-2">
             <div className="flex items-center gap-3">
+              {/* Show Info button for In Progress cases */}
+              {(caseData.taskStatus || caseData.status) === CaseStatus.InProgress && (
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        setIsInfoModalOpen(true);
+                    }}
+                    className="flex flex-col items-center text-blue-400 hover:text-blue-300 transition-colors"
+                >
+                    <InfoIcon />
+                    <span className="text-xs mt-1">Info</span>
+                </button>
+              )}
               {/* Show attachment button for In Progress cases */}
               {(caseData.taskStatus || caseData.status) === CaseStatus.InProgress && (
                 <button
