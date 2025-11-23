@@ -4,6 +4,7 @@ import { CaseCreationStepper } from '@/components/cases/CaseCreationStepper';
 import { useCase } from '@/hooks/useCases';
 import { usePincodes } from '@/hooks/useLocations';
 import { useAreasByPincode } from '@/hooks/useAreas';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import type { CustomerInfoData } from '@/components/cases/CustomerInfoStep';
 import type { FullCaseFormData } from '@/components/cases/FullCaseFormStep';
@@ -34,7 +35,17 @@ export const NewCasePage: React.FC = () => {
   const { data: caseData, isLoading: loadingCase } = useCase(shouldFetchCase ? editCaseId : '');
 
   // Fetch pincodes for mapping pincode code to ID in edit mode
-  const { data: pincodesResponse } = usePincodes();
+  const { data: pincodesResponse } = usePincodes({ limit: 10000 });
+  
+  // Fetch verification tasks to get address (address is stored at task level, not case level)
+  const { data: verificationTasksResponse } = useQuery({
+    queryKey: ['verification-tasks', 'case', editCaseId],
+    queryFn: async () => {
+      const { VerificationTasksService } = await import('@/services/verificationTasks');
+      return await VerificationTasksService.getTasksForCase(editCaseId);
+    },
+    enabled: isEditMode && !!editCaseId,
+  });
 
   // Get pincode ID for fetching areas
   const [pincodeIdForAreas, setPincodeIdForAreas] = useState<number | undefined>();
@@ -64,6 +75,11 @@ export const NewCasePage: React.FC = () => {
         const caseItem = caseData.data;
         const pincodes = pincodesResponse.data;
         const areas = areasResponse?.data || [];
+        
+        // Get address from first verification task (address is stored at task level)
+        const tasks = verificationTasksResponse?.data?.tasks || [];
+        const firstTask = tasks[0];
+        const taskAddress = firstTask?.address || '';
 
         // Find pincode ID based on pincode code
         const foundPincode = pincodes.find(p => p.code === caseItem.pincode);
@@ -82,6 +98,8 @@ export const NewCasePage: React.FC = () => {
         };
 
         // Map case data to FullCaseFormData format
+        const addressValue = taskAddress || caseItem.address || [caseItem.addressStreet, caseItem.addressCity, caseItem.addressState, caseItem.addressPincode].filter(Boolean).join(', ') || '';
+        
         const caseFormData: FullCaseFormData = {
           clientId: String(caseItem.clientId || ''),
           productId: String(caseItem.productId || ''),
@@ -92,7 +110,7 @@ export const NewCasePage: React.FC = () => {
           assignedToId: '', // Case-level assignment is deprecated, leave empty
           priority: String(caseItem.priority || 'MEDIUM'), // Convert to string
           trigger: String(caseItem.trigger || caseItem.notes || ''), // Use trigger not notes
-          address: caseItem.address || [caseItem.addressStreet, caseItem.addressCity, caseItem.addressState, caseItem.addressPincode].filter(Boolean).join(', ') || '',
+          address: addressValue,
           pincodeId, // Map pincode code to pincode ID
           areaId, // Use the found area ID
         };
