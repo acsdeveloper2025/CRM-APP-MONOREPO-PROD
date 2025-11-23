@@ -360,7 +360,7 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
                       <FormItem>
                         <FormLabel>Created By *</FormLabel>
                         <FormControl>
-                          <Input {...field} disabled className="bg-muted" />
+                          <Input {...field} disabled className="bg-muted text-foreground" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
