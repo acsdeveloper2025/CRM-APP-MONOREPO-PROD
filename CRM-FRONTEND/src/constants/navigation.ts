@@ -17,7 +17,8 @@ import {
   DollarSign,
   PlayCircle,
   List,
-  XCircle
+  XCircle,
+  Copy
 } from 'lucide-react';
 
 export interface NavigationItem {
@@ -74,6 +75,13 @@ export const navigationItems: NavigationItem[] = [
         label: 'In Progress Tasks',
         href: '/tasks/in-progress',
         icon: PlayCircle,
+        permission: { resource: 'tasks', action: 'read' },
+      },
+      {
+        id: 'tasks-revisit',
+        label: 'Revisit Tasks',
+        href: '/tasks/revisit',
+        icon: Copy,
         permission: { resource: 'tasks', action: 'read' },
       },
       {

@@ -85,6 +85,12 @@ export const InProgressTasksPage: React.FC = () => {
     }
   };
 
+  const handleEditCase = (caseId: string) => {
+    if (caseId) {
+      navigate(`/cases/new?edit=${caseId}`);
+    }
+  };
+
 
 
   return (
@@ -204,6 +210,7 @@ export const InProgressTasksPage: React.FC = () => {
         onAssignTask={handleAssignTask}
         onViewTask={handleViewTask}
         onViewCase={handleViewCase}
+        onEditCase={handleEditCase}
       />
 
       {/* Pagination - Always show for better UX */}

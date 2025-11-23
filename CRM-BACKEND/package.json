@@ -5,7 +5,7 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
-    "dev": "ts-node -r module-alias/register src/index.ts",
+    "dev": "ts-node src/index.ts",
     "start": "node -r module-alias/register dist/index.js",
     "start:prod": "npm run build && npm start",
     "clean-and-seed": "node scripts/clean-and-seed-cases.js",
