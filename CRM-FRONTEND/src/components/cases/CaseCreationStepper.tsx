@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Check, User, FileText, Target } from 'lucide-react';
+import { Check, User, Target } from 'lucide-react';
 import { CustomerInfoStep, type CustomerInfoData } from './CustomerInfoStep';
 import { FullCaseFormStep, type FullCaseFormData } from './FullCaseFormStep';
 import { TaskCaseCreationForm, type CaseLevelFormData, type TaskFormData } from './TaskCaseCreationForm';
@@ -83,7 +83,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
   initialData
 }) => {
   const [currentStep, setCurrentStep] = useState<Step>(
-    editMode ? 'case-details' : 'customer-info'
+    editMode ? 'multi-task-details' : 'customer-info'
   );
   // Always using multi-task mode - keeping state for future use
   const [_caseCreationMode, _setCaseCreationMode] = useState<CaseCreationMode>('multi-task');
@@ -126,15 +126,15 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
     {
       id: 'customer-info' as const,
       title: 'Customer Information',
-      description: 'Enter customer details',
+      description: 'Update customer details',
       icon: User,
-      completed: editMode || currentStep === 'case-details' || (currentStep === 'customer-info' && customerInfo !== null),
+      completed: currentStep === 'multi-task-details',
     },
     {
-      id: 'case-details' as const,
-      title: 'Case Details',
-      description: 'Complete case information',
-      icon: FileText,
+      id: 'multi-task-details' as const,
+      title: 'Case & Task Details',
+      description: 'Update case and verification tasks',
+      icon: Target,
       completed: false,
     },
   ] : [
@@ -277,6 +277,89 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
         const pincode = pincodes.find(p => p.id.toString() === pincodeId);
         return pincode?.code || pincodeId;
       };
+
+      // Handle Edit Mode - Update Case
+      if (editMode && editCaseId) {
+        // For edit mode, we currently only support updating the case details and the first task
+        // This is a limitation of the current backend API for updates
+        const task = tasks[0];
+        const selectedVerificationType = verificationTypes.find(vt => vt.id === task.verificationTypeId);
+        const verificationTypeName = selectedVerificationType?.name || '';
+
+        const caseData: CreateCaseData = {
+          // Core case fields
+          customerName: customerInfo.customerName,
+          customerCallingCode: customerInfo.customerCallingCode,
+          customerPhone: customerInfo.mobileNumber,
+          createdByBackendUser: caseLevelData.createdByBackendUser,
+          verificationType: mapVerificationType(verificationTypeName),
+          address: task.address,
+          pincode: getPincodeCode(task.pincodeId),
+          assignedToId: task.assignedTo,
+          clientId: caseLevelData.clientId,
+          productId: caseLevelData.productId,
+          verificationTypeId: task.verificationTypeId!.toString(),
+          applicantType: task.applicantType,
+          backendContactNumber: caseLevelData.backendContactNumber,
+          priority: task.priority,
+          trigger: task.trigger,
+          rateTypeId: task.rateTypeId,
+
+          // Deduplication fields
+          panNumber: customerInfo.panNumber,
+          deduplicationDecision: 'NO_DUPLICATES_FOUND', // Not relevant for update
+          deduplicationRationale: 'Case update',
+        };
+
+        const response = await casesService.updateCaseDetails(editCaseId, caseData);
+
+        if (response.success) {
+          // Upload attachments if any
+          if (task.attachments && task.attachments.length > 0) {
+            try {
+              const files = task.attachments.map(att => att.file);
+              // For updates, we upload to the case generally or need task ID if available
+              // Current update response might not return task IDs easily, so we upload to case
+              // Ideally we should get the task ID for the updated task
+              
+              const formData = new FormData();
+              files.forEach(file => {
+                formData.append('files', file);
+              });
+              formData.append('caseId', String(editCaseId));
+              formData.append('category', 'DOCUMENT');
+
+              const apiBaseUrl = getApiBaseUrl();
+              const uploadResponse = await fetch(`${apiBaseUrl}/attachments/upload`, {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`,
+                },
+                body: formData,
+              });
+
+              if (uploadResponse.ok) {
+                toast.success(`${files.length} attachment(s) uploaded successfully`);
+              } else {
+                console.error('Attachment upload failed');
+                toast.error('Case updated but attachments failed to upload');
+              }
+            } catch (error: any) {
+              console.error('Error uploading attachments:', error);
+              toast.error(`Case updated but attachments failed: ${error.message || 'Unknown error'}`);
+            }
+          } else {
+            toast.success('Case updated successfully!');
+          }
+
+          if (onSuccess) {
+            onSuccess(editCaseId);
+          }
+        } else {
+          toast.error(response.message || 'Failed to update case');
+        }
+        return;
+      }
 
       // If only 1 task, use the regular single-task case creation endpoint
       if (tasks.length === 1) {
@@ -724,7 +807,9 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
           />
         )}
 
-        {currentStep === 'case-details' && (editMode || customerInfo) && (
+        {/* FullCaseFormStep removed for edit mode as we now use TaskCaseCreationForm */
+        /* Keeping logic for reference if needed, but it won't be rendered based on steps config */
+        currentStep === 'case-details' && !editMode && (editMode || customerInfo) && (
           <FullCaseFormStep
             customerInfo={customerInfo || initialData?.customerInfo || {}}
             onSubmit={handleCaseFormSubmit}
@@ -735,12 +820,31 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
           />
         )}
 
-        {currentStep === 'multi-task-details' && customerInfo && (
+        {currentStep === 'multi-task-details' && (editMode || customerInfo) && (
           <TaskCaseCreationForm
-            customerInfo={customerInfo}
+            customerInfo={customerInfo || initialData?.customerInfo || {}}
             onSubmit={handleMultiTaskCaseCreation}
-            onBack={handleBackToCustomerInfo}
+            onBack={editMode ? undefined : handleBackToCustomerInfo}
             isSubmitting={isSubmitting}
+            initialData={editMode ? {
+              caseLevelData: initialData?.caseFormData,
+              tasks: initialData?.caseFormData ? [{
+                id: '1',
+                applicantType: initialData.caseFormData.applicantType || '',
+                verificationTypeId: initialData.caseFormData.verificationTypeId ? parseInt(initialData.caseFormData.verificationTypeId) : null,
+                rateTypeId: initialData.caseFormData.rateTypeId || '',
+                pincodeId: initialData.caseFormData.pincodeId || '',
+                areaId: initialData.caseFormData.areaId || '',
+                address: initialData.caseFormData.address || '',
+                trigger: initialData.caseFormData.trigger || '',
+                priority: (initialData.caseFormData.priority as any) || 'MEDIUM',
+                assignedTo: initialData.caseFormData.assignedToId || '',
+                documentType: '',
+                documentNumber: '',
+                attachments: [],
+              }] : undefined
+            } : undefined}
+            editMode={editMode}
           />
         )}
       </div>

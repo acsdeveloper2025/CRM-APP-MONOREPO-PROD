@@ -13,6 +13,7 @@ import {
   Award
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { VerificationTasksService } from '@/services/verificationTasks';
 
 interface CompletedTaskFilters {
   priority?: string;
@@ -69,6 +70,24 @@ export const CompletedTasksPage: React.FC = () => {
   const handleViewCase = (caseId: string) => {
     if (caseId) {
       navigate(`/cases/${caseId}`);
+    }
+  };
+
+  const handleEditCase = (caseId: string) => {
+    if (caseId) {
+      navigate(`/cases/new?edit=${caseId}`);
+    }
+  };
+
+  const handleRevisitTask = async (taskId: string) => {
+    try {
+      await VerificationTasksService.revisitTask(taskId);
+      console.log('Revisit task created successfully');
+      // Refresh tasks to show any updates if needed (though new task won't be in completed list)
+      refreshTasks();
+    } catch (error) {
+      console.error('Error creating revisit task:', error);
+      alert('Failed to create revisit task. Please try again.');
     }
   };
 
@@ -200,8 +219,11 @@ export const CompletedTasksPage: React.FC = () => {
       <TasksListFlat
         tasks={tasks}
         loading={loading}
+        onAssignTask={() => {}}
         onViewTask={handleViewTask}
         onViewCase={handleViewCase}
+        onEditCase={handleEditCase}
+        onRevisitTask={handleRevisitTask}
       />
 
       {/* Pagination - Always show for better UX */}
@@ -217,7 +239,7 @@ export const CompletedTasksPage: React.FC = () => {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => handleFilterChange('page', pagination.page - 1)}
+                    onClick={() => _setPaginationState(prev => ({ ...prev, page: prev.page - 1 }))}
                     disabled={pagination.page === 1}
                   >
                     Previous
@@ -228,7 +250,7 @@ export const CompletedTasksPage: React.FC = () => {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => handleFilterChange('page', pagination.page + 1)}
+                    onClick={() => _setPaginationState(prev => ({ ...prev, page: prev.page + 1 }))}
                     disabled={pagination.page === pagination.totalPages}
                   >
                     Next

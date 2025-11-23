@@ -38,6 +38,7 @@ export class VerificationTasksService {
     search?: string;
     dateFrom?: string;
     dateTo?: string;
+    task_type?: string;
   }): Promise<{
     success: boolean;
     data: {
@@ -76,6 +77,7 @@ export class VerificationTasksService {
     if (filters?.search) {params.append('search', filters.search);}
     if (filters?.dateFrom) {params.append('dateFrom', filters.dateFrom);}
     if (filters?.dateTo) {params.append('dateTo', filters.dateTo);}
+    if (filters?.task_type) {params.append('task_type', filters.task_type);}
 
     const response = await apiService.get(`/verification-tasks?${params.toString()}`);
     return response as any;
@@ -90,6 +92,19 @@ export class VerificationTasksService {
   ): Promise<CreateMultipleTasksResponse> {
     const response = await apiService.post(`/cases/${caseId}/verification-tasks`, {
       tasks
+    });
+    return response.data;
+  }
+
+  /**
+   * Create a revisit task from an existing completed task
+   */
+  static async revisitTask(
+    taskId: string,
+    assignedTo?: string
+  ): Promise<VerificationTaskResponse> {
+    const response = await apiService.post(`/verification-tasks/revisit/${taskId}`, {
+      assigned_to: assignedTo
     });
     return response.data;
   }

@@ -365,7 +365,8 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
         COALESCE(task_stats.total_tasks, 0) as "totalTasks",
         COALESCE(task_stats.completed_tasks, 0) as "completedTasks",
         COALESCE(task_stats.pending_tasks, 0) as "pendingTasks",
-        COALESCE(task_stats.in_progress_tasks, 0) as "inProgressTasks"
+        COALESCE(task_stats.in_progress_tasks, 0) as "inProgressTasks",
+        COALESCE(task_stats.revisit_tasks, 0) as "revisitTasks"
       FROM cases c
       LEFT JOIN clients cl ON c."clientId" = cl.id
       LEFT JOIN users created_user ON c."createdByBackendUser" = created_user.id
@@ -377,7 +378,8 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
           COUNT(*) as total_tasks,
           COUNT(*) FILTER (WHERE status = 'COMPLETED') as completed_tasks,
           COUNT(*) FILTER (WHERE status = 'PENDING') as pending_tasks,
-          COUNT(*) FILTER (WHERE status = 'IN_PROGRESS') as in_progress_tasks
+          COUNT(*) FILTER (WHERE status = 'IN_PROGRESS') as in_progress_tasks,
+          COUNT(*) FILTER (WHERE task_type = 'REVISIT') as revisit_tasks
         FROM verification_tasks
         WHERE case_id = c.id
       ) task_stats ON true
@@ -409,6 +411,7 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
       completedTasks: row.completedTasks || 0,
       pendingTasks: row.pendingTasks || 0,
       inProgressTasks: row.inProgressTasks || 0,
+      revisitTasks: row.revisitTasks || 0,
       // Transform client data to nested object
       client: row.clientName
         ? {
@@ -502,6 +505,7 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
 export const getCaseById = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { id } = req.params;
+    console.log('DEBUG: getCaseById called with id:', id);
 
     // Check if id is numeric (caseId) or UUID (id)
     const isNumeric = /^\d+$/.test(id);
@@ -535,13 +539,29 @@ export const getCaseById = async (req: AuthenticatedRequest, res: Response) => {
         END as "areaType",
         -- Created by backend user information (Field 7: Created By Backend User)
         created_user.name as "createdByBackendUserName",
-        created_user.email as "createdByBackendUserEmail"
+        created_user.email as "createdByBackendUserEmail",
+        -- Verification task statistics
+        COALESCE(task_stats.total_tasks, 0) as "totalTasks",
+        COALESCE(task_stats.completed_tasks, 0) as "completedTasks",
+        COALESCE(task_stats.pending_tasks, 0) as "pendingTasks",
+        COALESCE(task_stats.in_progress_tasks, 0) as "inProgressTasks",
+        COALESCE(task_stats.revisit_tasks, 0) as "revisitTasks"
       FROM cases c
       LEFT JOIN clients cl ON c."clientId" = cl.id
       LEFT JOIN users created_user ON c."createdByBackendUser" = created_user.id
       LEFT JOIN products p ON c."productId" = p.id
       LEFT JOIN "verificationTypes" vt ON c."verificationTypeId" = vt.id
       LEFT JOIN "rateTypes" rt ON c."rateTypeId" = rt.id
+      LEFT JOIN LATERAL (
+        SELECT
+          COUNT(*) as total_tasks,
+          COUNT(*) FILTER (WHERE status = 'COMPLETED') as completed_tasks,
+          COUNT(*) FILTER (WHERE status = 'PENDING') as pending_tasks,
+          COUNT(*) FILTER (WHERE status = 'IN_PROGRESS') as in_progress_tasks,
+          COUNT(*) FILTER (WHERE task_type = 'REVISIT') as revisit_tasks
+        FROM verification_tasks
+        WHERE case_id = c.id
+      ) task_stats ON true
       WHERE ${isNumeric ? 'c."caseId" = $1' : 'c.id = $1'}
     `;
 
@@ -660,6 +680,12 @@ export const getCaseById = async (req: AuthenticatedRequest, res: Response) => {
       assignedToName: row.assignedToName,
       productName: row.productName,
       productCode: row.productCode,
+      // Task statistics
+      totalTasks: row.totalTasks || 0,
+      completedTasks: row.completedTasks || 0,
+      pendingTasks: row.pendingTasks || 0,
+      inProgressTasks: row.inProgressTasks || 0,
+      revisitTasks: row.revisitTasks || 0,
       // Transform client data to nested object
       client: row.clientName
         ? {

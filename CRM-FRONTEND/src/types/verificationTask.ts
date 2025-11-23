@@ -16,10 +16,17 @@ export interface VerificationTask {
   priority: TaskPriority;
   
   // Assignment Details
-  assignedTo?: string;
-  assignedToName?: string;
+  assignedTo?: {
+    id: string;
+    name: string;
+    employeeId?: string;
+  } | null;
+  assignedToName?: string; // Keep for backward compatibility if needed
   assignedToEmployeeId?: string;
-  assignedBy?: string;
+  assignedBy?: {
+    id: string;
+    name: string;
+  } | null;
   assignedByName?: string;
   assignedAt?: string;
   

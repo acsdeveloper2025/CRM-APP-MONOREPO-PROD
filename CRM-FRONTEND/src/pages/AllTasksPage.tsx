@@ -90,6 +90,12 @@ export const AllTasksPage: React.FC = () => {
     }
   };
 
+  const handleEditCase = (caseId: string) => {
+    if (caseId) {
+      navigate(`/cases/new?edit=${caseId}`);
+    }
+  };
+
   return (
     <div className="container mx-auto py-6 space-y-6">
       {/* Header */}
@@ -263,6 +269,7 @@ export const AllTasksPage: React.FC = () => {
         onAssignTask={handleAssignTask}
         onViewTask={handleViewTask}
         onViewCase={handleViewCase}
+        onEditCase={handleEditCase}
       />
 
       {/* Pagination - Always show for better UX */}

@@ -21,8 +21,10 @@ import { InProgressTasksPage } from '@/pages/InProgressTasksPage';
 import { CompletedTasksPage } from '@/pages/CompletedTasksPage';
 import { AllTasksPage } from '@/pages/AllTasksPage';
 import { TaskDetailPage } from '@/pages/TaskDetailPage';
+import { RevisitTasksPage } from '@/pages/RevisitTasksPage';
 import { TATMonitoringPage } from '@/pages/TATMonitoringPage';
 import { NewCasePage } from '@/pages/NewCasePage';
+import { EditCasePage } from '@/pages/EditCasePage';
 import { ClientsPage } from '@/pages/ClientsPage';
 import { UsersPage } from '@/pages/UsersPage';
 import { UserPermissionsPage } from '@/pages/UserPermissionsPage';
@@ -119,6 +121,16 @@ export const AppRoutes: React.FC = () => {
         }
       />
       <Route
+        path="/cases/:id/edit"
+        element={
+          <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND_USER', 'SUPER_ADMIN']}>
+            <Layout>
+              <EditCasePage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/tasks/pending"
         element={
           <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND_USER', 'SUPER_ADMIN']}>
@@ -157,6 +169,17 @@ export const AppRoutes: React.FC = () => {
           <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND_USER', 'SUPER_ADMIN']}>
             <Layout>
               <CompletedTasksPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/tasks/revisit"
+        element={
+          <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND_USER', 'SUPER_ADMIN']}>
+            <Layout>
+              <RevisitTasksPage />
             </Layout>
           </ProtectedRoute>
         }

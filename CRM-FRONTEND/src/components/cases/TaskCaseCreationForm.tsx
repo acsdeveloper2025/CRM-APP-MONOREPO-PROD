@@ -67,6 +67,11 @@ interface TaskCaseCreationFormProps {
   onSubmit: (caseLevelData: CaseLevelFormData, tasks: TaskFormData[]) => void;
   onBack?: () => void;
   isSubmitting?: boolean;
+  initialData?: {
+    caseLevelData?: CaseLevelFormData;
+    tasks?: TaskFormData[];
+  };
+  editMode?: boolean;
 }
 
 export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
@@ -74,6 +79,8 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
   onSubmit,
   onBack,
   isSubmitting = false,
+  initialData,
+  editMode = false,
 }) => {
   const { user } = useAuth();
   
@@ -106,6 +113,23 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
       attachments: [],
     },
   ]);
+
+  // Populate form with initial data
+  useEffect(() => {
+    if (initialData) {
+      if (initialData.caseLevelData) {
+        form.reset({
+          clientId: initialData.caseLevelData.clientId,
+          productId: initialData.caseLevelData.productId,
+          backendContactNumber: initialData.caseLevelData.backendContactNumber,
+          createdByBackendUser: initialData.caseLevelData.createdByBackendUser,
+        });
+      }
+      if (initialData.tasks && initialData.tasks.length > 0) {
+        setTasks(initialData.tasks);
+      }
+    }
+  }, [initialData, form]);
 
   // Fetch data
   const { data: fieldUsers } = useFieldUsers();
@@ -214,7 +238,7 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
       <div className="text-center space-y-2">
         <h2 className="text-2xl font-bold tracking-tight">Create Case with Tasks</h2>
         <p className="text-gray-600">
-          Fill in case details once, then configure verification tasks
+          {editMode ? 'Update case details and verification tasks' : 'Fill in case details once, then configure verification tasks'}
         </p>
       </div>
 
@@ -410,7 +434,7 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
               ) : (
                 <>
                   <Send className="h-4 w-4 mr-2" />
-                  Create Case with {tasks.length} {tasks.length === 1 ? 'Task' : 'Tasks'}
+                  {editMode ? 'Update Case' : `Create Case with ${tasks.length} ${tasks.length === 1 ? 'Task' : 'Tasks'}`}
                 </>
               )}
             </Button>
