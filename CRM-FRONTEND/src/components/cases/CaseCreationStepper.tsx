@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Check, User, Target } from 'lucide-react';
 import { CustomerInfoStep, type CustomerInfoData } from './CustomerInfoStep';
