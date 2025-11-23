@@ -2,26 +2,23 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { TasksListFlat } from '@/components/verification-tasks/TasksListFlat';
-import { TaskAssignmentModal } from '@/components/verification-tasks/TaskAssignmentModal';
 import { useAllVerificationTasks } from '@/hooks/useVerificationTasks';
 import { useUnifiedSearch, useUnifiedFilters } from '@/hooks/useUnifiedSearch';
 import {
-  Clock,
-  AlertTriangle,
   RefreshCw,
-  Package,
-  UserCheck,
-  TrendingUp
+  Copy,
+  TrendingUp,
+  Calendar
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-interface PendingTaskFilters {
+interface RevisitTaskFilters {
   priority?: string;
+  status?: string;
 }
 
-export const PendingTasksPage: React.FC = () => {
+export const RevisitTasksPage: React.FC = () => {
   const navigate = useNavigate();
-  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
 
   // Unified search with 800ms debounce
   const {
@@ -40,7 +37,7 @@ export const PendingTasksPage: React.FC = () => {
     setFilter: _setFilter,
     clearFilters: _clearFilters,
     hasActiveFilters: _hasActiveFilters,
-  } = useUnifiedFilters<PendingTaskFilters>({
+  } = useUnifiedFilters<RevisitTaskFilters>({
     syncWithUrl: true,
   });
 
@@ -49,24 +46,17 @@ export const PendingTasksPage: React.FC = () => {
     limit: 20,
     sortBy: 'created_at',
     sortOrder: 'desc' as 'asc' | 'desc',
-    status: 'PENDING,ASSIGNED',
+    task_type: 'REVISIT',
   });
 
   const queryFilters = {
     ...paginationState,
     search: debouncedSearchValue || undefined,
     priority: activeFilters.priority || undefined,
+    status: activeFilters.status || undefined,
   };
 
   const { tasks, loading, error, pagination, statistics, refreshTasks } = useAllVerificationTasks(queryFilters);
-
-  const _activeFilterCount = Object.keys(activeFilters).filter(
-    key => activeFilters[key as keyof PendingTaskFilters] !== undefined
-  ).length;
-
-  const handleAssignTask = (taskId: string) => {
-    setSelectedTaskId(taskId);
-  };
 
   const handleViewTask = (taskId: string) => {
     navigate(`/tasks/${taskId}`);
@@ -84,16 +74,14 @@ export const PendingTasksPage: React.FC = () => {
     }
   };
 
-
-
   return (
     <div className="container mx-auto py-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Pending Tasks</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Revisit Tasks</h1>
           <p className="text-gray-600 mt-1">
-            Verification tasks that need assignment or are waiting to be started
+            Verification tasks that have been cloned for re-verification
           </p>
         </div>
         <div className="flex items-center space-x-2">
@@ -110,83 +98,73 @@ export const PendingTasksPage: React.FC = () => {
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Pending</CardTitle>
-            <Clock className="h-4 w-4 text-gray-600" />
+            <CardTitle className="text-sm font-medium">Total Revisit Tasks</CardTitle>
+            <Copy className="h-4 w-4 text-blue-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{pagination.total}</div>
+            <p className="text-xs text-gray-600">
+              All revisit tasks
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">This Month</CardTitle>
+            <Calendar className="h-4 w-4 text-purple-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {tasks.filter(t => {
+                if (!t.createdAt) {
+                  return false;
+                }
+                const created = new Date(t.createdAt);
+                const now = new Date();
+                return created.getMonth() === now.getMonth() && 
+                       created.getFullYear() === now.getFullYear();
+              }).length}
+            </div>
+            <p className="text-xs text-gray-600">
+              Current period
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Completion Rate</CardTitle>
+            <TrendingUp className="h-4 w-4 text-green-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {pagination.total > 0
+                ? Math.round((statistics.completed / pagination.total) * 100)
+                : 0}%
+            </div>
+            <p className="text-xs text-gray-600">
+              Completed revisits
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Pending</CardTitle>
+            <Copy className="h-4 w-4 text-orange-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{statistics.pending + statistics.assigned}</div>
             <p className="text-xs text-gray-600">
-              {statistics.pending} unassigned, {statistics.assigned} assigned
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Unassigned</CardTitle>
-            <Package className="h-4 w-4 text-yellow-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{statistics.pending}</div>
-            <p className="text-xs text-gray-600">
-              Need assignment
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Assigned</CardTitle>
-            <UserCheck className="h-4 w-4 text-blue-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{statistics.assigned}</div>
-            <p className="text-xs text-gray-600">
-              Waiting to start
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Urgent</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-red-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{statistics.urgent}</div>
-            <p className="text-xs text-gray-600">
-              High priority
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg Age</CardTitle>
-            <TrendingUp className="h-4 w-4 text-purple-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {tasks.length > 0
-                ? Math.round(tasks.reduce((acc, t) => {
-                    const created = new Date(t.createdAt);
-                    const now = new Date();
-                    const ageInDays = Math.floor((now.getTime() - created.getTime()) / (1000 * 60 * 60 * 24));
-                    return acc + ageInDays;
-                  }, 0) / tasks.length)
-                : 0} days
-            </div>
-            <p className="text-xs text-gray-600">
-              Average task age
+              Awaiting verification
             </p>
           </CardContent>
         </Card>
       </div>
-
-
 
       {/* Tasks List */}
       {error && (
@@ -200,9 +178,8 @@ export const PendingTasksPage: React.FC = () => {
       <TasksListFlat
         tasks={tasks}
         loading={loading}
-        onAssignTask={handleAssignTask}
+        onAssignTask={() => {}}
         onViewTask={handleViewTask}
-
         onViewCase={handleViewCase}
         onEditCase={handleEditCase}
       />
@@ -242,20 +219,6 @@ export const PendingTasksPage: React.FC = () => {
           </CardContent>
         </Card>
       )}
-
-      {/* Task Assignment Modal */}
-      {selectedTaskId && (
-        <TaskAssignmentModal
-          taskId={selectedTaskId}
-          isOpen={!!selectedTaskId}
-          onClose={() => setSelectedTaskId(null)}
-          onSuccess={() => {
-            setSelectedTaskId(null);
-            refreshTasks();
-          }}
-        />
-      )}
     </div>
   );
 };
-

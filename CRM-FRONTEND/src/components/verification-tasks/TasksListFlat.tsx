@@ -11,7 +11,9 @@ import {
   Play,
   Eye,
   ExternalLink,
-  MoreHorizontal
+  MoreHorizontal,
+  Copy,
+  Edit
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -36,6 +38,8 @@ interface TasksListFlatProps {
   onAssignTask: (taskId: string) => void;
   onViewTask?: (taskId: string) => void;
   onViewCase?: (caseId: string) => void;
+  onRevisitTask?: (taskId: string) => void;
+  onEditCase?: (caseId: string) => void;
 }
 
 export const TasksListFlat: React.FC<TasksListFlatProps> = ({
@@ -43,7 +47,9 @@ export const TasksListFlat: React.FC<TasksListFlatProps> = ({
   loading,
   onAssignTask,
   onViewTask,
-  onViewCase
+  onViewCase,
+  onRevisitTask,
+  onEditCase
 }) => {
   const getStatusIcon = (status: TaskStatus) => {
     const icons = {
@@ -131,7 +137,7 @@ export const TasksListFlat: React.FC<TasksListFlatProps> = ({
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {tasks.map((task) => {
+              {tasks.map((task, _index) => {
                 const StatusIcon = getStatusIcon(task.status);
 
                 return (
@@ -207,12 +213,12 @@ export const TasksListFlat: React.FC<TasksListFlatProps> = ({
 
                     {/* Assigned To */}
                     <td className="px-4 py-4 whitespace-nowrap">
-                      {task.assignedToName ? (
+                      {task.assignedTo?.name ? (
                         <div className="text-sm text-gray-900">
-                          {task.assignedToName}
-                          {task.assignedToEmployeeId && (
+                          {task.assignedTo.name}
+                          {task.assignedTo.employeeId && (
                             <div className="text-xs text-gray-600">
-                              {task.assignedToEmployeeId}
+                              {task.assignedTo.employeeId}
                             </div>
                           )}
                         </div>
@@ -224,7 +230,7 @@ export const TasksListFlat: React.FC<TasksListFlatProps> = ({
                     {/* Assigned By */}
                     <td className="px-4 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">
-                        {task.assignedByName || '-'}
+                        {task.assignedBy?.name || '-'}
                       </div>
                     </td>
 
@@ -260,6 +266,18 @@ export const TasksListFlat: React.FC<TasksListFlatProps> = ({
                             <DropdownMenuItem onClick={() => onViewCase(task.caseId)}>
                               <ExternalLink className="h-4 w-4 mr-2" />
                               View Case
+                            </DropdownMenuItem>
+                          )}
+                          {onRevisitTask && task.status === 'COMPLETED' && (
+                            <DropdownMenuItem onClick={() => onRevisitTask(task.id)}>
+                              <Copy className="h-4 w-4 mr-2" />
+                              Revisit Task
+                            </DropdownMenuItem>
+                          )}
+                          {onEditCase && (
+                            <DropdownMenuItem onClick={() => onEditCase(task.caseId)}>
+                              <Edit className="h-4 w-4 mr-2" />
+                              Edit Case
                             </DropdownMenuItem>
                           )}
                         </DropdownMenuContent>

@@ -80,6 +80,12 @@ export const RevokedTasksPage: React.FC = () => {
     }
   };
 
+  const handleEditCase = (caseId: string) => {
+    if (caseId) {
+      navigate(`/cases/new?edit=${caseId}`);
+    }
+  };
+
   return (
     <div className="container mx-auto py-6 space-y-6" style={{ backgroundColor: '#FAFAFA' }}>
       {/* Header */}
@@ -215,6 +221,7 @@ export const RevokedTasksPage: React.FC = () => {
             loading={loading}
             onViewTask={handleViewTask}
             onViewCase={handleViewCase}
+            onEditCase={handleEditCase}
             emptyMessage="No revoked tasks found"
             emptyDescription="Tasks revoked by field agents will appear here"
             pagination={{

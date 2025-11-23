@@ -266,10 +266,10 @@ docs/.vuepress/dist/
 # CUSTOM PROJECT FILES
 # =====================================================
 # Add any project-specific files here
-fix-admin-password.js
-test-login.js
-check-admin.js
-test-mobile-login.js
+# fix-admin-password.js (Deleted)
+# test-login.js (Deleted)
+# check-admin.js (Deleted)
+# test-mobile-login.js (Deleted)
 
 # =====================================================
 # MOBILE APK FILES

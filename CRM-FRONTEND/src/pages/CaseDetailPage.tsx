@@ -45,7 +45,7 @@ export const CaseDetailPage: React.FC = () => {
 
   // Handler functions
   const handleEditCase = () => {
-    navigate(`/cases/new?edit=${id}`);
+    navigate(`/cases/${id}/edit`);
   };
 
   const handleReassignCase = async (assignedToId: string, reason: string) => {

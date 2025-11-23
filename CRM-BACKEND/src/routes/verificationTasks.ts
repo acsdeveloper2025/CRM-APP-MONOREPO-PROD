@@ -47,6 +47,17 @@ router.get(
 );
 
 /**
+ * Create a revisit task from an existing completed task
+ * POST /api/verification-tasks/revisit/:taskId
+ * IMPORTANT: Must come before generic /verification-tasks/:taskId routes
+ */
+router.post(
+  '/verification-tasks/revisit/:taskId',
+  authenticateToken,
+  VerificationTasksController.revisitTask
+);
+
+/**
  * Update a verification task
  * PUT /api/verification-tasks/:taskId
  */

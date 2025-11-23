@@ -19,7 +19,14 @@ export const NewCasePage: React.FC = () => {
 
   const [initialData, setInitialData] = useState<{
     customerInfo?: CustomerInfoData;
-    caseFormData?: FullCaseFormData;
+    caseFormData?: FullCaseFormData; // Keeping for backward compatibility if needed, but mainly using new structure
+    caseLevelData?: {
+      clientId: string;
+      productId: string;
+      backendContactNumber: string;
+      createdByBackendUser: string;
+    };
+    tasks?: any[]; // Using any[] to avoid importing TaskFormData here, but structure matches
   } | undefined>();
 
   // Only fetch case data if we're in edit mode
@@ -80,19 +87,40 @@ export const NewCasePage: React.FC = () => {
           productId: String(caseItem.productId || ''),
           verificationTypeId: String(caseItem.verificationTypeId || ''),
           applicantType: String(caseItem.applicantType || ''),
-          createdByBackendUser: '', // Will be set to current user
+          createdByBackendUser: caseItem.createdByBackendUser?.name || String(caseItem.createdByBackendUser || ''), // Handle object or string
           backendContactNumber: String(caseItem.backendContactNumber || ''),
           assignedToId: '', // Case-level assignment is deprecated, leave empty
           priority: String(caseItem.priority || 'MEDIUM'), // Convert to string
           trigger: String(caseItem.trigger || caseItem.notes || ''), // Use trigger not notes
-          address: String(caseItem.address || ''),
+          address: caseItem.address || [caseItem.addressStreet, caseItem.addressCity, caseItem.addressState, caseItem.addressPincode].filter(Boolean).join(', ') || '',
           pincodeId, // Map pincode code to pincode ID
           areaId, // Use the found area ID
         };
 
         const mappedData = {
           customerInfo,
-          caseFormData
+          caseFormData, // Keeping for reference
+          caseLevelData: {
+            clientId: caseFormData.clientId,
+            productId: caseFormData.productId,
+            backendContactNumber: caseFormData.backendContactNumber,
+            createdByBackendUser: caseFormData.createdByBackendUser,
+          },
+          tasks: [{
+            id: '1',
+            applicantType: caseFormData.applicantType,
+            verificationTypeId: caseFormData.verificationTypeId ? parseInt(caseFormData.verificationTypeId) : null,
+            rateTypeId: caseFormData.rateTypeId || '',
+            pincodeId: caseFormData.pincodeId,
+            areaId: caseFormData.areaId,
+            address: caseFormData.address,
+            trigger: caseFormData.trigger,
+            priority: (caseFormData.priority as any) || 'MEDIUM',
+            assignedTo: caseFormData.assignedToId,
+            documentType: '',
+            documentNumber: '',
+            attachments: [],
+          }]
         };
 
         setInitialData(mappedData);
