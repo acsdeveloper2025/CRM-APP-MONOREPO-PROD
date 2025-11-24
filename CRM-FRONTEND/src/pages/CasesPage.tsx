@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/select';
 import { CaseTable } from '@/components/cases/CaseTable';
 import { CasePagination } from '@/components/cases/CasePagination';
-import { useCases, useUpdateCaseStatus, useAssignCase, useRefreshCases } from '@/hooks/useCases';
+import { useCases, useRefreshCases } from '@/hooks/useCases';
 import { useUnifiedSearch, useUnifiedFilters } from '@/hooks/useUnifiedSearch';
 import { UnifiedSearchFilterLayout, FilterGrid } from '@/components/ui/unified-search-filter-layout';
 import { Download, Plus, RefreshCw, FileText, Clock, CheckCircle, PlayCircle, AlertTriangle } from 'lucide-react';
@@ -60,13 +60,12 @@ export const CasesPage: React.FC = () => {
     ...pagination,
     search: debouncedSearchValue || undefined,
     status: activeFilters.status || undefined,
-    priority: activeFilters.priority ? parseInt(activeFilters.priority) : undefined,
+    priority: activeFilters.priority || undefined,
     clientId: activeFilters.clientId || undefined,
   };
 
-  const { data: casesData, isLoading, error: _error, refetch } = useCases(query);
-  const updateStatusMutation = useUpdateCaseStatus();
-  const assignCaseMutation = useAssignCase();
+  const { data: casesData, isLoading, error: _error } = useCases(query);
+
   const { refreshCases } = useRefreshCases();
 
   const cases = casesData?.data || [];
@@ -85,23 +84,7 @@ export const CasesPage: React.FC = () => {
     setPagination(prev => ({ ...prev, limit, page: 1 }));
   };
 
-  const handleUpdateStatus = async (caseId: string, status: string) => {
-    try {
-      await updateStatusMutation.mutateAsync({ id: caseId, status });
-      refetch();
-    } catch (error) {
-      console.error('Failed to update case status:', error);
-    }
-  };
 
-  const handleAssignCase = async (caseId: string, userId: string) => {
-    try {
-      await assignCaseMutation.mutateAsync({ id: caseId, assignedToId: userId });
-      refetch();
-    } catch (error) {
-      console.error('Failed to assign case:', error);
-    }
-  };
 
   const handleExport = async () => {
     try {
@@ -241,7 +224,7 @@ export const CasesPage: React.FC = () => {
         activeFilterCount={activeFilterCount}
         onClearFilters={clearFilters}
         filterContent={
-          <FilterGrid columns={{ sm: 1, md: 2, lg: 3 }}>
+          <FilterGrid columns={3}>
             {/* Status Filter */}
             <div className="space-y-2">
               <Label htmlFor="status">Status</Label>
@@ -338,8 +321,6 @@ export const CasesPage: React.FC = () => {
           <CaseTable
             cases={cases}
             isLoading={isLoading}
-            onUpdateStatus={handleUpdateStatus}
-            onAssignCase={handleAssignCase}
           />
         </CardContent>
       </Card>

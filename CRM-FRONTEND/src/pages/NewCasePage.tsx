@@ -42,7 +42,7 @@ export const NewCasePage: React.FC = () => {
     queryKey: ['verification-tasks', 'case', editCaseId],
     queryFn: async () => {
       const { VerificationTasksService } = await import('@/services/verificationTasks');
-      return await VerificationTasksService.getTasksForCase(editCaseId);
+      return await VerificationTasksService.getTasksForCase(editCaseId || '');
     },
     enabled: isEditMode && !!editCaseId,
   });
@@ -208,6 +208,40 @@ export const NewCasePage: React.FC = () => {
           <p className="text-gray-600">Preparing form data... (ID: {editCaseId})</p>
         </div>
         <LoadingState message="Preparing form data..." size="lg" />
+      </div>
+    );
+  }
+
+  // Prevent editing completed cases ONLY if there are no pending/in-progress tasks
+  // This handles cases where the status might be cached but revisit tasks exist
+  const hasPendingTasks = (caseData?.data?.pendingTasks || 0) > 0 || (caseData?.data?.inProgressTasks || 0) > 0;
+  const isCompleted = caseData?.data?.status === 'COMPLETED' && !hasPendingTasks;
+  
+  if (isEditMode && isCompleted) {
+    return (
+      <div className="space-y-6">
+        <div className="text-center py-12">
+          <div className="max-w-md mx-auto">
+            <div className="mb-4">
+              <span className="inline-block bg-green-100 text-green-800 text-lg px-4 py-2 rounded-md font-medium">
+                COMPLETED
+              </span>
+            </div>
+            <h2 className="text-xl font-bold mb-2">Cannot Edit Completed Case</h2>
+            <p className="text-gray-600 mb-6">
+              This case has been marked as completed and can no longer be edited.
+              If you need to make changes, please contact your administrator.
+            </p>
+            <div className="flex gap-2 justify-center">
+              <Button onClick={() => navigate(-1)} variant="outline">
+                Go Back
+              </Button>
+              <Button onClick={() => navigate(`/cases/${editCaseId}`)}>
+                View Case Details
+              </Button>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }

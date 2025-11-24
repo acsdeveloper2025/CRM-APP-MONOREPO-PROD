@@ -47,13 +47,16 @@ export const RevisitTasksPage: React.FC = () => {
     sortBy: 'created_at',
     sortOrder: 'desc' as 'asc' | 'desc',
     task_type: 'REVISIT',
+    // Exclude completed tasks - they should only show in Completed Tasks page
+    status: activeFilters.status || 'PENDING,ASSIGNED,IN_PROGRESS',
   });
 
   const queryFilters = {
     ...paginationState,
     search: debouncedSearchValue || undefined,
     priority: activeFilters.priority || undefined,
-    status: activeFilters.status || undefined,
+    // Override status if user has a specific filter, otherwise use the default from paginationState
+    status: activeFilters.status || paginationState.status,
   };
 
   const { tasks, loading, error, pagination, statistics, refreshTasks } = useAllVerificationTasks(queryFilters);

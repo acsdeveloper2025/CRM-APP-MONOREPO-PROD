@@ -14,18 +14,9 @@ import {
 } from '@/components/ui/responsive-table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, Eye, Edit, UserCheck } from 'lucide-react';
+import { Eye } from 'lucide-react';
 import { format } from 'date-fns';
 import type { Case } from '@/types/case';
-import { UserSelectionModal } from './UserSelectionModal';
 import {
   getStatusBadgeStyle,
   getPriorityBadgeStyle,
@@ -36,40 +27,12 @@ import {
 interface CaseTableProps {
   cases: Case[];
   isLoading?: boolean;
-  onUpdateStatus?: (caseId: string, status: string) => void;
-  onAssignCase?: (caseId: string, userId: string) => void;
 }
 
 export const CaseTable: React.FC<CaseTableProps> = ({
   cases,
   isLoading,
-  onUpdateStatus,
-  onAssignCase,
 }) => {
-  // State for user selection modal
-  const [isUserModalOpen, setIsUserModalOpen] = React.useState(false);
-  const [selectedCaseForAssignment, setSelectedCaseForAssignment] = React.useState<Case | null>(null);
-
-  // Handle opening user selection modal
-  const handleOpenUserModal = (caseItem: Case) => {
-    setSelectedCaseForAssignment(caseItem);
-    setIsUserModalOpen(true);
-  };
-
-  // Handle user selection from modal
-  const handleUserSelection = (userId: string) => {
-    if (selectedCaseForAssignment && onAssignCase) {
-      onAssignCase(selectedCaseForAssignment.id, userId);
-    }
-    setIsUserModalOpen(false);
-    setSelectedCaseForAssignment(null);
-  };
-
-  // Handle modal close
-  const handleCloseUserModal = () => {
-    setIsUserModalOpen(false);
-    setSelectedCaseForAssignment(null);
-  };
   if (isLoading) {
     return (
       <div className="border rounded-lg">
@@ -214,41 +177,12 @@ export const CaseTable: React.FC<CaseTableProps> = ({
                 </div>
               </TableCell>
               <TableCell>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="h-8 w-8 p-0">
-                      <span className="sr-only">Open menu</span>
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                    <DropdownMenuItem asChild>
-                      <Link to={`/cases/${caseItem.caseId || caseItem.id}`}>
-                        <Eye className="mr-2 h-4 w-4" />
-                        View Details
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link to={`/cases/new?edit=${caseItem.caseId || caseItem.id}`}>
-                        <Edit className="mr-2 h-4 w-4" />
-                        Edit Case
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    {onAssignCase && (
-                      <DropdownMenuItem onClick={() => handleOpenUserModal(caseItem)}>
-                        <UserCheck className="mr-2 h-4 w-4" />
-                        Assign to Field Agent
-                      </DropdownMenuItem>
-                    )}
-                    {onUpdateStatus && caseItem.status !== 'COMPLETED' && (
-                      <DropdownMenuItem onClick={() => onUpdateStatus(caseItem.id, 'COMPLETED')}>
-                        Mark Complete
-                      </DropdownMenuItem>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <Button variant="ghost" size="sm" asChild>
+                  <Link to={`/cases/${caseItem.caseId || caseItem.id}`}>
+                    <Eye className="mr-2 h-4 w-4" />
+                    View
+                  </Link>
+                </Button>
               </TableCell>
             </TableRow>
           ))}
@@ -271,40 +205,12 @@ export const CaseTable: React.FC<CaseTableProps> = ({
                 <Badge className={getStatusBadgeStyle(caseItem.status)}>
                   {getStatusLabel(caseItem.status)}
                 </Badge>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon-sm">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                    <DropdownMenuItem asChild>
-                      <Link to={`/cases/${caseItem.caseId || caseItem.id}`}>
-                        <Eye className="mr-2 h-4 w-4" />
-                        View Details
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link to={`/cases/new?edit=${caseItem.caseId || caseItem.id}`}>
-                        <Edit className="mr-2 h-4 w-4" />
-                        Edit Case
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    {onAssignCase && (
-                      <DropdownMenuItem onClick={() => handleOpenUserModal(caseItem)}>
-                        <UserCheck className="mr-2 h-4 w-4" />
-                        Assign to Field Agent
-                      </DropdownMenuItem>
-                    )}
-                    {onUpdateStatus && caseItem.status !== 'COMPLETED' && (
-                      <DropdownMenuItem onClick={() => onUpdateStatus(caseItem.id, 'COMPLETED')}>
-                        Mark Complete
-                      </DropdownMenuItem>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <Button variant="ghost" size="sm" asChild>
+                  <Link to={`/cases/${caseItem.caseId || caseItem.id}`}>
+                    <Eye className="mr-2 h-4 w-4" />
+                    View
+                  </Link>
+                </Button>
               </div>
             </div>
 
@@ -348,15 +254,6 @@ export const CaseTable: React.FC<CaseTableProps> = ({
           </MobileTableCard>
         ))}
       </div>
-
-      {/* User Selection Modal */}
-      <UserSelectionModal
-        isOpen={isUserModalOpen}
-        onClose={handleCloseUserModal}
-        onSelectUser={handleUserSelection}
-        currentAssignedUserId={selectedCaseForAssignment?.assignedTo}
-        title="Assign Case to Field Agent"
-      />
     </>
   );
 };
