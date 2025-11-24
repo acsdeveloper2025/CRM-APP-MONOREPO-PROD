@@ -46,10 +46,12 @@ export class EnterpriseCache {
           // Serve from cache
           logger.debug('Cache hit', { key: cacheKey, age: Date.now() - cached.timestamp });
 
-          // Set cached headers
-          Object.entries(cached.headers).forEach(([key, value]) => {
-            res.set(key, value);
-          });
+          // Set cached headers (with null check)
+          if (cached.headers && typeof cached.headers === 'object') {
+            Object.entries(cached.headers).forEach(([key, value]) => {
+              res.set(key, value);
+            });
+          }
 
           // Add cache headers
           res.set({

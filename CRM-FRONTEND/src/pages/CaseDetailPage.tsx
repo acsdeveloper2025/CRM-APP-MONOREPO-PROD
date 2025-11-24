@@ -430,6 +430,12 @@ export const CaseDetailPage: React.FC = () => {
                 className="w-full"
                 variant="outline"
                 onClick={handleEditCase}
+                disabled={caseItem.status === 'COMPLETED' && (caseItem.pendingTasks || 0) === 0 && (caseItem.inProgressTasks || 0) === 0}
+                title={
+                  caseItem.status === 'COMPLETED' && (caseItem.pendingTasks || 0) === 0 && (caseItem.inProgressTasks || 0) === 0
+                    ? 'Cannot edit completed cases'
+                    : 'Edit case details'
+                }
               >
                 <Edit className="mr-2 h-4 w-4" />
                 Edit Case

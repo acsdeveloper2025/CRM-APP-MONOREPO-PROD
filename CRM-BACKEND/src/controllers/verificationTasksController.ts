@@ -467,7 +467,9 @@ export class VerificationTasksController {
         );
       }
 
-      // 5. Update case total tasks count
+      // 5. Update case total tasks count and status
+      // When a revisit task is created, the case should no longer be COMPLETED
+      // Set it to IN_PROGRESS so it can be edited
       await client.query(
         `
         UPDATE cases
@@ -475,6 +477,10 @@ export class VerificationTasksController {
           total_tasks_count = (
             SELECT COUNT(*) FROM verification_tasks WHERE case_id = $1
           ),
+          status = CASE
+            WHEN status = 'COMPLETED' THEN 'IN_PROGRESS'
+            ELSE status
+          END,
           "updatedAt" = NOW()
         WHERE id = $1
       `,
@@ -1043,6 +1049,27 @@ export class VerificationTasksController {
     const userId = req.user?.id;
 
     try {
+      // First, fetch the current task to check if it's a REVISIT task
+      const currentTaskResult = await pool.query(
+        'SELECT task_type, status FROM verification_tasks WHERE id = $1',
+        [taskId]
+      );
+
+      if (currentTaskResult.rows.length === 0) {
+        res.status(404).json({
+          success: false,
+          message: 'Verification task not found',
+          error: { code: 'TASK_NOT_FOUND' },
+        });
+        return;
+      }
+
+      const currentTask = currentTaskResult.rows[0];
+      const isRevisitTask = currentTask.task_type === 'REVISIT';
+
+      // Check if this is an assignment update
+      const isAssignment = updateData.assignedTo !== undefined;
+
       // Build dynamic update query
       const updateFields: string[] = [];
       const queryParams: any[] = [];
@@ -1064,6 +1091,25 @@ export class VerificationTasksController {
           error: { code: 'INVALID_INPUT' },
         });
         return;
+      }
+
+      // If this is a REVISIT task being updated, convert it to a regular task
+      // by clearing the task_type field
+      if (isRevisitTask) {
+        updateFields.push(`task_type = NULL`);
+        logger.info('Converting REVISIT task to regular task', { taskId });
+      }
+
+      // If assigning a task, also update status and assignment metadata
+      if (isAssignment && updateData.assignedTo) {
+        // Update status to ASSIGNED if currently PENDING
+        updateFields.push(`status = CASE WHEN status = 'PENDING' THEN 'ASSIGNED' ELSE status END`);
+        // Set assigned_at timestamp
+        updateFields.push(`assigned_at = NOW()`);
+        // Set assigned_by to current user
+        updateFields.push(`assigned_by = $${paramIndex}`);
+        queryParams.push(userId);
+        paramIndex++;
       }
 
       updateFields.push(`updated_at = NOW()`);
@@ -1088,6 +1134,32 @@ export class VerificationTasksController {
       }
 
       const updatedTask = result.rows[0];
+
+      // If this was an assignment, create assignment history
+      if (isAssignment && updateData.assignedTo) {
+        try {
+          await pool.query(
+            `
+            INSERT INTO task_assignment_history (
+              verification_task_id, case_id, assigned_to, assigned_by,
+              assignment_reason, task_status_before, task_status_after
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+          `,
+            [
+              taskId,
+              updatedTask.case_id,
+              updateData.assignedTo,
+              userId,
+              'Task assigned during case edit',
+              'PENDING',
+              'ASSIGNED',
+            ]
+          );
+        } catch (historyError) {
+          logger.error('Error creating assignment history:', historyError);
+          // Don't fail the request if history creation fails
+        }
+      }
 
       // Create audit log
       await createAuditLog({
