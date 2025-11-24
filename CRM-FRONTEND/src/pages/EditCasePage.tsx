@@ -125,6 +125,38 @@ export const EditCasePage: React.FC = () => {
     );
   }
 
+  // Prevent editing completed cases ONLY if there are no pending/in-progress tasks
+  // This handles cases where the status might be cached but revisit tasks exist
+  const hasPendingTasks = (caseItem.pendingTasks || 0) > 0 || (caseItem.inProgressTasks || 0) > 0;
+  const isCompleted = caseItem.status === 'COMPLETED' && !hasPendingTasks;
+  
+  if (isCompleted) {
+    return (
+      <div className="text-center py-12">
+        <div className="max-w-md mx-auto">
+          <div className="mb-4">
+            <Badge className="bg-green-100 text-green-800 text-lg px-4 py-2">
+              COMPLETED
+            </Badge>
+          </div>
+          <h2 className="text-xl font-bold mb-2">Cannot Edit Completed Case</h2>
+          <p className="text-gray-600 mb-6">
+            This case has been marked as completed and can no longer be edited.
+            If you need to make changes, please contact your administrator.
+          </p>
+          <div className="flex gap-2 justify-center">
+            <Button onClick={() => navigate(-1)} variant="outline">
+              Go Back
+            </Button>
+            <Button onClick={() => navigate(`/cases/${id}`)}>
+              View Case Details
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}

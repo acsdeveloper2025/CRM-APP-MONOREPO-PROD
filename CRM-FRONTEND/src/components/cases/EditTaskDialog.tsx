@@ -28,13 +28,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { VerificationTask } from '@/types/verificationTask';
+import { User } from '@/types/user';
 import { useUpdateVerificationTask } from '@/hooks/useVerificationTasks';
+import { useFieldUsers } from '@/hooks/useUsers';
 import { toast } from 'sonner';
 
 const editTaskSchema = z.object({
   taskTitle: z.string().min(1, 'Task title is required'),
   taskDescription: z.string().optional(),
   priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']),
+  assignedTo: z.string().optional(), // Add assignedTo field
   address: z.string().min(1, 'Address is required'),
   pincode: z.string().min(1, 'Pincode is required'),
   trigger: z.string().optional(),
@@ -46,7 +50,7 @@ type EditTaskFormData = z.infer<typeof editTaskSchema>;
 interface EditTaskDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  task: any;
+  task: VerificationTask;
   onSuccess: () => void;
 }
 
@@ -57,6 +61,7 @@ export const EditTaskDialog: React.FC<EditTaskDialogProps> = ({
   onSuccess,
 }) => {
   const updateTaskMutation = useUpdateVerificationTask();
+  const { data: fieldUsers = [] } = useFieldUsers();
   // const { data: pincodesResponse } = usePincodes({ limit: 10000 }); // Unused
 
   const form = useForm<EditTaskFormData>({
@@ -65,6 +70,7 @@ export const EditTaskDialog: React.FC<EditTaskDialogProps> = ({
       taskTitle: '',
       taskDescription: '',
       priority: 'MEDIUM',
+      assignedTo: '',
       address: '',
       pincode: '',
       trigger: '',
@@ -78,6 +84,7 @@ export const EditTaskDialog: React.FC<EditTaskDialogProps> = ({
         taskTitle: task.taskTitle || '',
         taskDescription: task.taskDescription || '',
         priority: task.priority || 'MEDIUM',
+        assignedTo: (task.assignedTo && typeof task.assignedTo === 'object') ? task.assignedTo.id : (typeof task.assignedTo === 'string' ? task.assignedTo : ''),
         address: task.address || '',
         pincode: task.pincode || '',
         trigger: task.trigger || '',
@@ -88,9 +95,15 @@ export const EditTaskDialog: React.FC<EditTaskDialogProps> = ({
 
   const handleSubmit = async (data: EditTaskFormData) => {
     try {
+      // Handle "unassigned" value by converting to null
+      const submissionData = {
+        ...data,
+        assignedTo: data.assignedTo === 'unassigned' ? null : data.assignedTo,
+      };
+
       await updateTaskMutation.mutateAsync({
         id: task.id,
-        data,
+        data: submissionData as any, // Cast to any to allow null for assignedTo
       });
       toast.success('Task updated successfully');
       onSuccess();
@@ -175,6 +188,32 @@ export const EditTaskDialog: React.FC<EditTaskDialogProps> = ({
                 )}
               />
             </div>
+
+            <FormField
+              control={form.control}
+              name="assignedTo"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Assign To</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value || 'unassigned'}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select field agent" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="unassigned">Unassigned</SelectItem>
+                      {fieldUsers.map((user: User) => (
+                        <SelectItem key={user.id} value={user.id}>
+                          {user.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <FormField
               control={form.control}

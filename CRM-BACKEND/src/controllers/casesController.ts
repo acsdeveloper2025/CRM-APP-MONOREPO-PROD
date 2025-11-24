@@ -760,7 +760,6 @@ export const updateCase = async (req: AuthenticatedRequest, res: Response) => {
       trigger,
       applicantType,
       backendContactNumber,
-      assignedToId,
     } = req.body;
 
     // Build dynamic update query
@@ -823,11 +822,8 @@ export const updateCase = async (req: AuthenticatedRequest, res: Response) => {
       values.push(backendContactNumber);
       paramIndex++;
     }
-    if (assignedToId !== undefined) {
-      updateFields.push(`"assignedTo" = $${paramIndex}`);
-      values.push(assignedToId);
-      paramIndex++;
-    }
+    // Note: assignedTo is not a field on cases table
+    // Assignment is handled through verification_tasks table
 
     if (updateFields.length === 0) {
       return res.status(400).json({
@@ -840,13 +836,13 @@ export const updateCase = async (req: AuthenticatedRequest, res: Response) => {
     // Always update the updatedAt timestamp
     updateFields.push(`"updatedAt" = NOW()`);
 
-    // Add case ID as the last parameter
-    values.push(parseInt(id));
+    // Add case ID as the last parameter (UUID, not numeric caseId)
+    values.push(id);
 
     const updateQuery = `
       UPDATE cases
       SET ${updateFields.join(', ')}
-      WHERE "caseId" = $${paramIndex}
+      WHERE id = $${paramIndex}
       RETURNING *
     `;
 

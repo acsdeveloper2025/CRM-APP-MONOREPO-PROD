@@ -58,7 +58,8 @@ export const TasksListFlat: React.FC<TasksListFlatProps> = ({
       IN_PROGRESS: Play,
       COMPLETED: CheckCircle,
       CANCELLED: X,
-      ON_HOLD: AlertTriangle
+      ON_HOLD: AlertTriangle,
+      REVOKED: AlertTriangle // Using AlertTriangle for REVOKED as well
     };
     return icons[status] || Clock;
   };
@@ -213,14 +214,10 @@ export const TasksListFlat: React.FC<TasksListFlatProps> = ({
 
                     {/* Assigned To */}
                     <td className="px-4 py-4 whitespace-nowrap">
-                      {task.assignedTo?.name ? (
+                      {task.assignedToName ? (
                         <div className="text-sm text-gray-900">
-                          {task.assignedTo.name}
-                          {task.assignedTo.employeeId && (
-                            <div className="text-xs text-gray-600">
-                              {task.assignedTo.employeeId}
-                            </div>
-                          )}
+                          {task.assignedToName}
+                          {/* Employee ID not currently available in flattened response */}
                         </div>
                       ) : (
                         <span className="text-sm text-yellow-600 font-medium">Unassigned</span>
@@ -230,7 +227,7 @@ export const TasksListFlat: React.FC<TasksListFlatProps> = ({
                     {/* Assigned By */}
                     <td className="px-4 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">
-                        {task.assignedBy?.name || '-'}
+                        {task.assignedByName || '-'}
                       </div>
                     </td>
 

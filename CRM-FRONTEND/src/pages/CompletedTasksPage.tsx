@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { VerificationTasksService } from '@/services/verificationTasks';
+import toast from 'react-hot-toast';
 
 interface CompletedTaskFilters {
   priority?: string;
@@ -82,12 +83,26 @@ export const CompletedTasksPage: React.FC = () => {
   const handleRevisitTask = async (taskId: string) => {
     try {
       await VerificationTasksService.revisitTask(taskId);
-      console.log('Revisit task created successfully');
-      // Refresh tasks to show any updates if needed (though new task won't be in completed list)
+      
+      // Show success notification
+      toast.success(
+        'Revisit task created successfully! The task has been moved to the Revisit tab.',
+        {
+          duration: 5000,
+          icon: '✅',
+        }
+      );
+      
+      // Refresh tasks to remove the completed task from the list
       refreshTasks();
+      
+      // Optionally navigate to revisit tasks page after a short delay
+      setTimeout(() => {
+        navigate('/tasks/revisit');
+      }, 1500);
     } catch (error) {
       console.error('Error creating revisit task:', error);
-      alert('Failed to create revisit task. Please try again.');
+      toast.error('Failed to create revisit task. Please try again.');
     }
   };
 

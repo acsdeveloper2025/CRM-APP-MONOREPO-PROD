@@ -90,6 +90,7 @@ export interface UpdateVerificationTaskData {
   taskDescription?: string;
   priority?: TaskPriority;
   status?: TaskStatus;
+  assignedTo?: string; // Allow assignment during update
   verificationOutcome?: string;
   actualAmount?: number;
   address?: string;
