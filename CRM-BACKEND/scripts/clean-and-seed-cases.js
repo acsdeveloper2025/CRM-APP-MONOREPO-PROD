@@ -7,6 +7,8 @@
 
 const { Pool } = require('pg');
 const redis = require('redis');
+const fs = require('fs');
+const path = require('path');
 require('dotenv').config();
 
 // Parse DATABASE_URL if available, otherwise use individual env vars
@@ -81,16 +83,30 @@ async function cleanDatabase() {
     }
 
     // Reset sequences
+    // Note: verification_tasks uses UUIDs, so no sequence to reset
+    // cases uses a custom sequence for caseId (not the primary key id which is UUID)
     const sequences = [
-      'cases_id_seq',
-      'verification_tasks_id_seq',
+      'cases_caseId_seq', // Correct sequence name for caseId
       'form_submissions_id_seq',
     ];
 
     for (const seq of sequences) {
       try {
-        await client.query(`ALTER SEQUENCE IF EXISTS ${seq} RESTART WITH 1;`);
-        console.log(`✅ Reset sequence: ${seq}`);
+        // Check if sequence exists first
+        const seqExists = await client.query(`
+          SELECT EXISTS (
+            SELECT 1 FROM pg_class c
+            JOIN pg_namespace n ON n.oid = c.relnamespace
+            WHERE c.relname = $1
+          );
+        `, [seq]);
+
+        if (seqExists.rows[0].exists) {
+          await client.query(`ALTER SEQUENCE "${seq}" RESTART WITH 1;`);
+          console.log(`✅ Reset sequence: ${seq}`);
+        } else {
+          console.log(`⚠️  Sequence not found (skipping): ${seq}`);
+        }
       } catch (error) {
         console.log(`⚠️  Could not reset ${seq}: ${error.message}`);
       }
@@ -149,6 +165,49 @@ async function cleanRedis() {
   }
 }
 
+async function cleanUploads() {
+  console.log('🗑️  Starting uploads cleanup...');
+  const uploadsDir = path.join(__dirname, '..', 'uploads');
+
+  if (!fs.existsSync(uploadsDir)) {
+    console.log('✅ Uploads directory does not exist (nothing to clean)');
+    return;
+  }
+
+  let deletedCount = 0;
+
+  function deleteFilesRecursively(directory) {
+    if (!fs.existsSync(directory)) {return;}
+
+    const files = fs.readdirSync(directory);
+
+    for (const file of files) {
+      const filePath = path.join(directory, file);
+      const stat = fs.statSync(filePath);
+
+      if (stat.isDirectory()) {
+        deleteFilesRecursively(filePath);
+        // Optionally remove empty directories, but keeping structure might be safer for now
+        // fs.rmdirSync(filePath); 
+      } else {
+        // Don't delete .gitkeep or similar placeholder files if they exist
+        if (file !== '.gitkeep') {
+          fs.unlinkSync(filePath);
+          deletedCount++;
+        }
+      }
+    }
+  }
+
+  try {
+    deleteFilesRecursively(uploadsDir);
+    console.log(`✅ Cleared ${deletedCount} files from uploads directory`);
+  } catch (error) {
+    console.error('❌ Uploads cleanup failed:', error);
+    // Don't throw, just log error so other cleanups can proceed/finish
+  }
+}
+
 async function cleanMobileCache() {
   console.log('🗑️  Starting mobile cache cleanup...');
   console.log('✅ Mobile cache cleanup complete (handled by app on next sync)');
@@ -171,6 +230,9 @@ async function main() {
     await cleanRedis();
     console.log('');
 
+    await cleanUploads();
+    console.log('');
+
     await cleanMobileCache();
     console.log('');
 
@@ -184,6 +246,7 @@ async function main() {
     console.log('Summary:');
     console.log('✅ Database: All case data cleared');
     console.log('✅ Redis: All case-related keys cleared');
+    console.log('✅ Uploads: All physical files deleted');
     console.log('✅ Mobile: Cache will be cleared on next sync');
     console.log('✅ Frontend: Cache will be cleared on next refresh');
     console.log('');

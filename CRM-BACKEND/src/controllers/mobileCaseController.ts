@@ -223,7 +223,8 @@ export class MobileCaseController {
           )
           ORDER BY
             CASE WHEN vt.assigned_to = $${taskFilterParamIndex}::uuid THEN 0 ELSE 1 END,  -- Prioritize user's task
-            vt.created_at ASC
+            CASE WHEN vt.status IN ('PENDING', 'ASSIGNED', 'IN_PROGRESS') THEN 0 ELSE 1 END,  -- Prioritize active tasks over completed
+            vt.created_at DESC  -- Show newest task first (Revisit tasks are newer)
           LIMIT 1
         ) vtask ON true
         LEFT JOIN (
@@ -271,9 +272,12 @@ export class MobileCaseController {
 
       // Transform cases for mobile response with all required assignment fields
       const mobileCases: MobileCaseResponse[] = cases.map(caseItem => ({
-        id: caseItem.id,
+        // CRITICAL FIX: Use Verification Task ID as the unique identifier for the list item
+        // This allows multiple tasks for the same case (e.g. Revisit) to appear as separate items
+        id: caseItem.verificationTaskId || caseItem.id,
         caseId: caseItem.caseId, // User-friendly auto-incrementing case ID
-        title: caseItem.customerName || 'Verification Case',
+        // CRITICAL FIX: Show Task Number as title for field agents to distinguish Revisit tasks
+        title: caseItem.verificationTaskNumber || caseItem.customerName || 'Verification Case',
         description: `${caseItem.verificationTypeName || 'Verification'} for ${caseItem.customerName}`,
         customerName: caseItem.customerName || caseItem.applicantName, // Customer Name
         customerCallingCode: caseItem.customerCallingCode, // Customer Calling Code
@@ -376,7 +380,21 @@ export class MobileCaseController {
       // Role-based access control
       // For FIELD_AGENT: Check if they have an assigned task for this case
       // For other roles: No additional filtering
-      const vals2: any[] = [caseId];
+      // Check if the ID provided is actually a Verification Task ID
+      // This is needed because we now return Task ID as 'id' in the list for field agents
+      let lookupCaseId = caseId;
+      let specificTaskId = null;
+
+      // Check if it looks like a UUID
+      if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(caseId)) {
+        const taskRes = await query(`SELECT case_id FROM verification_tasks WHERE id = $1`, [caseId]);
+        if (taskRes.rows.length > 0) {
+          lookupCaseId = taskRes.rows[0].case_id;
+          specificTaskId = caseId;
+        }
+      }
+
+      const vals2: any[] = [lookupCaseId];
       const _userIdForTaskFilter = userRole === 'FIELD_AGENT' ? userId : null;
 
       let caseSql = `
@@ -407,12 +425,18 @@ export class MobileCaseController {
           LEFT JOIN users u ON u.id = vt.assigned_to
           WHERE vt.case_id = c.id
           AND (
-            $2::uuid IS NULL  -- For non-field-agents, show first task
-            OR vt.assigned_to = $2::uuid  -- For field agents, show their task
+            $3::uuid IS NOT NULL AND vt.id = $3::uuid -- If specific task requested, must match
+            OR
+            $3::uuid IS NULL AND (
+              $2::uuid IS NULL  -- For non-field-agents, show first task
+              OR vt.assigned_to = $2::uuid  -- For field agents, show their task
+            )
           )
           ORDER BY
+            CASE WHEN $3::uuid IS NOT NULL AND vt.id = $3::uuid THEN 0 ELSE 1 END, -- Prioritize specific task
             CASE WHEN vt.assigned_to = $2::uuid THEN 0 ELSE 1 END,  -- Prioritize user's task
-            vt.created_at ASC
+            CASE WHEN vt.status IN ('PENDING', 'ASSIGNED', 'IN_PROGRESS') THEN 0 ELSE 1 END,  -- Prioritize active tasks over completed
+            vt.created_at DESC  -- Show newest task first (Revisit tasks are newer)
           LIMIT 1
         ) vtask ON true
         WHERE c.id = $1`;
@@ -428,6 +452,9 @@ export class MobileCaseController {
       } else {
         vals2.push(null); // For non-field-agents, pass NULL for task filter
       }
+      
+      // Add specificTaskId as 3rd parameter
+      vals2.push(specificTaskId);
 
       const caseRes = await query(caseSql, vals2);
       const caseItem = caseRes.rows[0];
@@ -477,7 +504,8 @@ export class MobileCaseController {
       const mobileCase: MobileCaseResponse = {
         id: caseItem.id,
         caseId: caseItem.caseId, // User-friendly auto-incrementing case ID
-        title: caseItem.customerName || 'Verification Case',
+        // CRITICAL FIX: Show Task Number as title for field agents to distinguish Revisit tasks
+        title: caseItem.verificationTaskNumber || caseItem.customerName || 'Verification Case',
         description: `${caseItem.verificationTypeName || 'Verification'} for ${caseItem.customerName}`,
         customerName: caseItem.customerName || caseItem.applicantName, // Customer Name
         customerCallingCode: caseItem.customerCallingCode, // Customer Calling Code

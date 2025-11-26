@@ -117,6 +117,8 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
   // Populate form with initial data
   useEffect(() => {
     if (initialData) {
+      console.log('📝 TaskCaseCreationForm - Populating form with initialData', initialData);
+      
       if (initialData.caseLevelData) {
         form.reset({
           clientId: initialData.caseLevelData.clientId,
@@ -126,7 +128,18 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
         });
       }
       if (initialData.tasks && initialData.tasks.length > 0) {
+        console.log('📝 TaskCaseCreationForm - Setting tasks', initialData.tasks);
         setTasks(initialData.tasks);
+        
+        // Verify state was set correctly
+        setTimeout(() => {
+          console.log('📝 TaskCaseCreationForm - Tasks state after setTasks', {
+            tasksLength: initialData.tasks?.length,
+            firstTask: initialData.tasks?.[0],
+            rateTypeId: initialData.tasks?.[0]?.rateTypeId,
+            assignedTo: initialData.tasks?.[0]?.assignedTo,
+          });
+        }, 100);
       }
     }
   }, [initialData, form]);
@@ -504,17 +517,19 @@ const TaskCard: React.FC<TaskCardProps> = ({
   });
   const rateTypes = rateTypesResponse?.data || [];
 
-  // Reset area when pincode changes
-  useEffect(() => {
-    if (task.pincodeId) {
-      updateTask(task.id, 'areaId', '');
-    }
-  }, [task.pincodeId]);
+  // Note: We removed the auto-reset logic for rateTypeId and areaId
+  // because it was clearing pre-filled values from Revisit tasks.
+  // Users can manually change these values if needed.
 
-  // Reset rate type when dependencies change
-  useEffect(() => {
-    updateTask(task.id, 'rateTypeId', '');
-  }, [clientId, productId, task.verificationTypeId]);
+  // Debug logging to verify task prop values
+  console.log(`🎯 TaskCard ${index + 1} - Rendering with task:`, {
+    taskId: task.id,
+    rateTypeId: task.rateTypeId,
+    assignedTo: task.assignedTo,
+    verificationTypeId: task.verificationTypeId,
+    pincodeId: task.pincodeId,
+    areaId: task.areaId,
+  });
 
   return (
     <Card className="relative">

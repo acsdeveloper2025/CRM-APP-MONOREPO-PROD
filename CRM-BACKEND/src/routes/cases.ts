@@ -325,6 +325,7 @@ router.put(
   updateCaseValidation,
   validate,
   validateCaseAccess,
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.assignmentUpdate),
   updateCase
 );
 

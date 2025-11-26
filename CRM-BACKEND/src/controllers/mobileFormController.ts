@@ -2070,7 +2070,7 @@ export class MobileFormController {
           const actualSubmissionId =
             imagesRes.rows.length > 0
               ? imagesRes.rows[0].submissionId
-              : `${verificationType.toLowerCase()}_${Date.now()}`;
+              : `${verificationType.toLowerCase()}_${task.task_id}_${Date.now()}`;
 
           // Create comprehensive form submission WITH TASK INFORMATION
           const submission: FormSubmissionData = {

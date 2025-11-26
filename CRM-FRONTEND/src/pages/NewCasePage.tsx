@@ -14,8 +14,8 @@ export const NewCasePage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const editCaseId = searchParams.get('edit');
+  const editTaskId = searchParams.get('taskId'); // Get the specific task ID to edit
   const isEditMode = !!editCaseId;
-
 
 
   const [initialData, setInitialData] = useState<{
@@ -76,10 +76,27 @@ export const NewCasePage: React.FC = () => {
         const pincodes = pincodesResponse.data;
         const areas = areasResponse?.data || [];
         
-        // Get address from first verification task (address is stored at task level)
+        // Get address from verification task (address is stored at task level)
         const tasks = verificationTasksResponse?.data?.tasks || [];
-        const firstTask = tasks[0];
+        // If editTaskId is provided, find that specific task; otherwise use first task
+        const firstTask = editTaskId 
+          ? tasks.find((t: any) => t.id === editTaskId) as any
+          : tasks[0] as any; // Use 'any' to access snake_case fields from API
+        
+        if (!firstTask) {
+          console.error('❌ Task not found', { editTaskId, availableTasks: tasks.map((t: any) => t.id) });
+          return;
+        }
+        
         const taskAddress = firstTask?.address || '';
+
+        console.log('🔍 NewCasePage - Mapping case data for edit mode', {
+          caseId: editCaseId,
+          taskId: editTaskId || firstTask?.id,
+          firstTask,
+          rate_type_id: firstTask?.rate_type_id,
+          assigned_to: firstTask?.assigned_to,
+        });
 
         // Find pincode ID based on pincode code
         const foundPincode = pincodes.find(p => p.code === caseItem.pincode);
@@ -115,6 +132,9 @@ export const NewCasePage: React.FC = () => {
           areaId, // Use the found area ID
         };
 
+        // Extract assignedTo from API response (snake_case)
+        const assignedToId = firstTask?.assigned_to || '';
+
         const mappedData = {
           customerInfo,
           caseFormData, // Keeping for reference
@@ -125,21 +145,26 @@ export const NewCasePage: React.FC = () => {
             createdByBackendUser: caseFormData.createdByBackendUser,
           },
           tasks: [{
-            id: '1',
+            id: editTaskId || firstTask?.id || '1', // Use the actual task ID
             applicantType: caseFormData.applicantType,
             verificationTypeId: caseFormData.verificationTypeId ? parseInt(caseFormData.verificationTypeId) : null,
-            rateTypeId: caseFormData.rateTypeId || '',
+            rateTypeId: firstTask?.rate_type_id?.toString() || '', // ✅ Use snake_case from API
             pincodeId: caseFormData.pincodeId,
             areaId: caseFormData.areaId,
             address: caseFormData.address,
             trigger: caseFormData.trigger,
-            priority: (caseFormData.priority as any) || 'MEDIUM',
-            assignedTo: caseFormData.assignedToId,
+            priority: (caseFormData.priority as 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT') || 'MEDIUM',
+            assignedTo: assignedToId, // ✅ Use snake_case from API
             documentType: '',
             documentNumber: '',
             attachments: [],
           }]
         };
+
+        console.log('✅ NewCasePage - Mapped data ready', {
+          rateTypeId: mappedData.tasks[0].rateTypeId,
+          assignedTo: mappedData.tasks[0].assignedTo,
+        });
 
         setInitialData(mappedData);
       }
@@ -150,7 +175,7 @@ export const NewCasePage: React.FC = () => {
       }
       // Don't redirect on error, just log it
     }
-  }, [isEditMode, caseData, pincodesResponse, areasResponse]);
+  }, [isEditMode, caseData, pincodesResponse, areasResponse, verificationTasksResponse, editCaseId]);
 
   const handleSuccess = (caseId: string) => {
     navigate(`/cases/${caseId}`);
