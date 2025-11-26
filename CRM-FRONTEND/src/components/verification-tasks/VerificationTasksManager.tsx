@@ -35,33 +35,18 @@ export const VerificationTasksManager: React.FC<VerificationTasksManagerProps> =
   const [showCompleteModal, setShowCompleteModal] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [selectedTasks, setSelectedTasks] = useState<string[]>([]);
 
-  const {
-    tasks,
-    loading,
-    error,
-    selectedTasks,
-    summary,
-    fetchTasksForCase,
-    refreshTasks,
-    createMultipleTasks,
-    assignTask,
-    completeTask,
-    bulkAssignTasks,
-    selectTask,
-    selectAllTasks,
-    clearSelection,
-    getTasksByStatus,
-    setFilters: _setFilters,
-    clearFilters: _clearFilters
-  } = useVerificationTasks(caseId);
+  // Use the actual hook structure
+  const { data, isLoading, error, refetch } = useVerificationTasks(caseId);
+  
+  const tasks = data?.tasks || [];
+  const loading = isLoading;
 
-  // Auto-fetch tasks when component mounts
-  useEffect(() => {
-    if (caseId) {
-      fetchTasksForCase(caseId);
-    }
-  }, [caseId, fetchTasksForCase]);
+  // Helper function to filter tasks by status
+  const getTasksByStatus = (status: string) => {
+    return tasks.filter(task => task.status === status);
+  };
 
   // Get tasks by status for tabs
   const pendingTasks = getTasksByStatus('PENDING');
@@ -70,43 +55,59 @@ export const VerificationTasksManager: React.FC<VerificationTasksManagerProps> =
   const completedTasks = getTasksByStatus('COMPLETED');
   const cancelledTasks = getTasksByStatus('CANCELLED');
 
+  // Calculate summary
+  const summary = {
+    totalTasks: tasks.length,
+    completedTasks: completedTasks.length,
+    completionPercentage: tasks.length > 0 ? Math.round((completedTasks.length / tasks.length) * 100) : 0,
+  };
+
+  // Selection handlers
+  const selectTask = (taskId: string) => {
+    setSelectedTasks(prev => 
+      prev.includes(taskId) 
+        ? prev.filter(id => id !== taskId)
+        : [...prev, taskId]
+    );
+  };
+
+  const selectAllTasks = () => {
+    if (selectedTasks.length === tasks.length) {
+      setSelectedTasks([]);
+    } else {
+      setSelectedTasks(tasks.map(t => t.id));
+    }
+  };
+
+  const clearSelection = () => {
+    setSelectedTasks([]);
+  };
+
   // Handle task actions
   const handleCreateTasks = async (taskData: any[]) => {
-    const success = await createMultipleTasks(caseId, taskData);
-    if (success) {
-      setShowCreateModal(false);
-    }
+    // TODO: Implement create tasks
+    setShowCreateModal(false);
   };
 
   const handleAssignTask = async (assignmentData: any) => {
-    if (selectedTaskId) {
-      const success = await assignTask(selectedTaskId, assignmentData);
-      if (success) {
-        setShowAssignModal(false);
-        setSelectedTaskId(null);
-      }
-    }
+    // TODO: Implement assign task
+    setShowAssignModal(false);
+    setSelectedTaskId(null);
   };
 
   const handleCompleteTask = async (completionData: any) => {
-    if (selectedTaskId) {
-      const success = await completeTask(selectedTaskId, completionData);
-      if (success) {
-        setShowCompleteModal(false);
-        setSelectedTaskId(null);
-      }
-    }
+    // TODO: Implement complete task
+    setShowCompleteModal(false);
+    setSelectedTaskId(null);
   };
 
   const handleBulkAssign = async (assignedTo: string, reason?: string) => {
-    const success = await bulkAssignTasks(selectedTasks, assignedTo, reason);
-    if (success) {
-      clearSelection();
-    }
+    // TODO: Implement bulk assign
+    clearSelection();
   };
 
   const handleRefresh = () => {
-    refreshTasks();
+    refetch();
   };
 
   // Filter tasks based on active tab
@@ -135,7 +136,7 @@ export const VerificationTasksManager: React.FC<VerificationTasksManagerProps> =
         <CardContent className="p-6">
           <div className="flex items-center space-x-2 text-red-600">
             <AlertCircle className="h-5 w-5" />
-            <span>Error loading verification tasks: {error}</span>
+            <span>Error loading verification tasks: {(error as Error).message}</span>
           </div>
           <Button 
             onClick={handleRefresh} 

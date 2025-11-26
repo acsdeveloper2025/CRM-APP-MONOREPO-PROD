@@ -20,6 +20,13 @@ interface CaseCreationStepperProps {
   initialData?: {
     customerInfo?: CustomerInfoData;
     caseFormData?: FullCaseFormData;
+    caseLevelData?: {
+      clientId: string;
+      productId: string;
+      backendContactNumber: string;
+      createdByBackendUser: string;
+    };
+    tasks?: TaskFormData[];
   };
 }
 
@@ -286,7 +293,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
         const selectedVerificationType = verificationTypes.find(vt => vt.id === task.verificationTypeId);
         const verificationTypeName = selectedVerificationType?.name || '';
 
-        const caseData: CreateCaseData = {
+        const caseData: any = {
           // Core case fields
           customerName: customerInfo.customerName,
           customerCallingCode: customerInfo.customerCallingCode,
@@ -304,6 +311,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
           priority: task.priority,
           trigger: task.trigger,
           rateTypeId: task.rateTypeId,
+          taskId: task.id, // ✅ Pass the specific task ID to update
 
           // Deduplication fields
           panNumber: customerInfo.panNumber,
@@ -826,23 +834,9 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
             onSubmit={handleMultiTaskCaseCreation}
             onBack={editMode ? undefined : handleBackToCustomerInfo}
             isSubmitting={isSubmitting}
-            initialData={editMode ? {
-              caseLevelData: initialData?.caseFormData,
-              tasks: initialData?.caseFormData ? [{
-                id: '1',
-                applicantType: initialData.caseFormData.applicantType || '',
-                verificationTypeId: initialData.caseFormData.verificationTypeId ? parseInt(initialData.caseFormData.verificationTypeId) : null,
-                rateTypeId: initialData.caseFormData.rateTypeId || '',
-                pincodeId: initialData.caseFormData.pincodeId || '',
-                areaId: initialData.caseFormData.areaId || '',
-                address: initialData.caseFormData.address || '',
-                trigger: initialData.caseFormData.trigger || '',
-                priority: (initialData.caseFormData.priority as any) || 'MEDIUM',
-                assignedTo: initialData.caseFormData.assignedToId || '',
-                documentType: '',
-                documentNumber: '',
-                attachments: [],
-              }] : undefined
+            initialData={editMode && initialData ? {
+              caseLevelData: initialData.caseLevelData || initialData.caseFormData,
+              tasks: initialData.tasks // ✅ Use tasks directly from NewCasePage
             } : undefined}
             editMode={editMode}
           />

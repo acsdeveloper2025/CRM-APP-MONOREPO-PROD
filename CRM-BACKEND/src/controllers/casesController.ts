@@ -760,9 +760,27 @@ export const updateCase = async (req: AuthenticatedRequest, res: Response) => {
       trigger,
       applicantType,
       backendContactNumber,
+      assignedToId, // Task-level field
+      rateTypeId,   // Task-level field
+      address,      // Task-level field
+      taskId,       // ✅ Specific task ID to update
     } = req.body;
 
-    // Build dynamic update query
+    logger.info('🔍 updateCase called', {
+      caseId: id,
+      taskId,
+      userId: req.user?.id,
+      receivedFields: {
+        assignedToId,
+        rateTypeId,
+        address,
+        customerName,
+        clientId,
+        productId,
+      }
+    });
+
+    // Build dynamic update query for cases table
     const updateFields: string[] = [];
     const values: any[] = [];
     let paramIndex = 1;
@@ -822,10 +840,8 @@ export const updateCase = async (req: AuthenticatedRequest, res: Response) => {
       values.push(backendContactNumber);
       paramIndex++;
     }
-    // Note: assignedTo is not a field on cases table
-    // Assignment is handled through verification_tasks table
 
-    if (updateFields.length === 0) {
+    if (updateFields.length === 0 && !assignedToId && !rateTypeId && !address) {
       return res.status(400).json({
         success: false,
         message: 'No fields to update',
@@ -833,42 +849,135 @@ export const updateCase = async (req: AuthenticatedRequest, res: Response) => {
       });
     }
 
-    // Always update the updatedAt timestamp
-    updateFields.push(`"updatedAt" = NOW()`);
+    // Update cases table if there are case-level fields
+    if (updateFields.length > 0) {
+      // Always update the updatedAt timestamp
+      updateFields.push(`"updatedAt" = NOW()`);
 
-    // Add case ID as the last parameter (UUID, not numeric caseId)
-    values.push(id);
+      // Add case ID as the last parameter (UUID, not numeric caseId)
+      values.push(id);
 
-    const updateQuery = `
-      UPDATE cases
-      SET ${updateFields.join(', ')}
-      WHERE id = $${paramIndex}
-      RETURNING *
-    `;
+      const updateQuery = `
+        UPDATE cases
+        SET ${updateFields.join(', ')}
+        WHERE id = $${paramIndex}
+        RETURNING *
+      `;
 
-    const result = await pool.query(updateQuery, values);
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'Case not found',
-        error: { code: 'NOT_FOUND' },
+      logger.info('📝 Executing cases table update', {
+        query: updateQuery,
+        values: values.map((v, i) => `$${i + 1} = ${v}`),
       });
+
+      const result = await pool.query(updateQuery, values);
+
+      if (result.rows.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: 'Case not found',
+          error: { code: 'NOT_FOUND' },
+        });
+      }
     }
 
-    logger.info('Case updated', {
+    // Update verification task if task-level fields are provided
+    if (assignedToId !== undefined || rateTypeId !== undefined || address !== undefined) {
+      logger.info('🎯 Updating verification task', {
+        caseId: id,
+        taskId,
+        assignedToId,
+        rateTypeId,
+        address,
+      });
+
+      const taskUpdateFields: string[] = [];
+      const taskValues: any[] = [];
+      let taskParamIndex = 1;
+
+      if (assignedToId !== undefined) {
+        taskUpdateFields.push(`assigned_to = $${taskParamIndex}`);
+        taskValues.push(assignedToId || null);
+        taskParamIndex++;
+        
+        // If assigning, update status and timestamps
+        if (assignedToId) {
+          taskUpdateFields.push(`status = $${taskParamIndex}`);
+          taskValues.push('ASSIGNED');
+          taskParamIndex++;
+          
+          taskUpdateFields.push(`assigned_at = NOW()`);
+          taskUpdateFields.push(`assigned_by = $${taskParamIndex}`);
+          taskValues.push(req.user?.id);
+          taskParamIndex++;
+        }
+      }
+
+      if (rateTypeId !== undefined) {
+        taskUpdateFields.push(`rate_type_id = $${taskParamIndex}`);
+        taskValues.push(rateTypeId ? parseInt(rateTypeId) : null);
+        taskParamIndex++;
+      }
+
+      if (address !== undefined) {
+        taskUpdateFields.push(`address = $${taskParamIndex}`);
+        taskValues.push(address);
+        taskParamIndex++;
+      }
+
+      if (taskUpdateFields.length > 0) {
+        taskUpdateFields.push(`updated_at = NOW()`);
+        
+        // ✅ CRITICAL FIX: Use taskId if provided, otherwise fall back to case_id
+        // This ensures we update the specific task being edited, not all tasks for the case
+        const whereClause = taskId 
+          ? `id = $${taskParamIndex}`
+          : `case_id = $${taskParamIndex}`;
+        
+        taskValues.push(taskId || id);
+
+        const taskUpdateQuery = `
+          UPDATE verification_tasks
+          SET ${taskUpdateFields.join(', ')}
+          WHERE ${whereClause}
+          RETURNING *
+        `;
+
+        logger.info('📝 Executing verification_tasks table update', {
+          query: taskUpdateQuery,
+          values: taskValues.map((v, i) => `$${i + 1} = ${v}`),
+          whereClause,
+          taskId,
+        });
+
+        const taskResult = await pool.query(taskUpdateQuery, taskValues);
+
+        logger.info('✅ Verification task update result', {
+          rowsAffected: taskResult.rowCount,
+          updatedTask: taskResult.rows[0] ? {
+            id: taskResult.rows[0].id,
+            status: taskResult.rows[0].status,
+            assigned_to: taskResult.rows[0].assigned_to,
+            rate_type_id: taskResult.rows[0].rate_type_id,
+          } : null,
+        });
+      }
+    }
+
+    logger.info('✅ Case and task updated successfully', {
       userId: req.user?.id,
       caseId: id,
-      updatedFields: updateFields.filter(field => !field.includes('updatedAt')),
+      taskId,
+      updatedCaseFields: updateFields.filter(field => !field.includes('updatedAt')),
+      updatedTaskFields: { assignedToId, rateTypeId, address },
     });
 
     res.json({
       success: true,
-      data: result.rows[0],
+      data: { id },
       message: 'Case updated successfully',
     });
   } catch (error) {
-    logger.error('Error updating case:', error);
+    logger.error('❌ Error updating case:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to update case',

@@ -71,9 +71,11 @@ export const RevisitTasksPage: React.FC = () => {
     }
   };
 
-  const handleEditCase = (caseId: string) => {
+  const handleEditCase = (caseId: string, taskId?: string) => {
     if (caseId) {
-      navigate(`/cases/new?edit=${caseId}`);
+      // Pass both case ID and task ID so we know which specific task to update
+      const url = taskId ? `/cases/new?edit=${caseId}&taskId=${taskId}` : `/cases/new?edit=${caseId}`;
+      navigate(url);
     }
   };
 

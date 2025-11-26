@@ -759,6 +759,8 @@ export class VerificationTasksController {
         id: row.id,
         taskNumber: row.task_number,
         caseId: row.case_id,
+        taskType: row.task_type,
+        parentTaskId: row.parent_task_id,
         caseNumber: row.case_number,
         customerName: row.customer_name,
         caseStatus: row.case_status,
@@ -814,8 +816,6 @@ export class VerificationTasksController {
         calculatedCommission: parseFloat(row.calculated_commission || '0'),
         createdAt: row.created_at,
         updatedAt: row.updated_at,
-        taskType: row.task_type,
-        parentTaskId: row.parent_task_id,
       }));
 
       // Calculate statistics
@@ -1070,6 +1070,13 @@ export class VerificationTasksController {
       // Check if this is an assignment update
       const isAssignment = updateData.assignedTo !== undefined;
 
+      logger.info('=== UPDATE TASK DEBUG ===', {
+        taskId,
+        updateData,
+        isAssignment,
+        currentTask,
+      });
+
       // Build dynamic update query
       const updateFields: string[] = [];
       const queryParams: any[] = [];
@@ -1093,12 +1100,12 @@ export class VerificationTasksController {
         return;
       }
 
-      // If this is a REVISIT task being updated, convert it to a regular task
-      // by clearing the task_type field
-      if (isRevisitTask) {
-        updateFields.push(`task_type = NULL`);
-        logger.info('Converting REVISIT task to regular task', { taskId });
-      }
+      // If this is a REVISIT task being updated, we do NOT want to convert it to a regular task
+      // The requirement is to keep task_type = 'REVISIT'
+      // if (isRevisitTask) {
+      //   updateFields.push(`task_type = NULL`);
+      //   logger.info('Converting REVISIT task to regular task', { taskId });
+      // }
 
       // If assigning a task, also update status and assignment metadata
       if (isAssignment && updateData.assignedTo) {
@@ -1122,7 +1129,18 @@ export class VerificationTasksController {
         RETURNING *
       `;
 
+      logger.info('=== EXECUTING UPDATE QUERY ===', {
+        updateQuery,
+        queryParams,
+        updateFields,
+      });
+
       const result = await pool.query(updateQuery, queryParams);
+
+      logger.info('=== UPDATE QUERY RESULT ===', {
+        rowCount: result.rowCount,
+        updatedTask: result.rows[0],
+      });
 
       if (result.rows.length === 0) {
         res.status(404).json({
@@ -1168,6 +1186,15 @@ export class VerificationTasksController {
         entityType: 'VERIFICATION_TASK',
         entityId: taskId,
         details: updateData,
+      });
+
+      logger.info('=== TASK UPDATE COMPLETE ===', {
+        taskId,
+        updatedStatus: updatedTask.status,
+        updatedAssignedTo: updatedTask.assigned_to,
+        updatedAssignedBy: updatedTask.assigned_by,
+        updatedAssignedAt: updatedTask.assigned_at,
+        taskType: updatedTask.task_type,
       });
 
       res.json({
@@ -1544,6 +1571,7 @@ export class VerificationTasksController {
           vt.status, vt.priority, vt.address, vt.estimated_amount,
           vt.assigned_at, vt.estimated_completion_date,
           vt.document_type, vt.document_details,
+          vt.task_type, vt.parent_task_id,
           c."caseId" as case_number, c."customerName" as customer_name,
           vtype.name as verification_type
         FROM verification_tasks vt

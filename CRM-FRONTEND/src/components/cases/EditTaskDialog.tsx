@@ -32,6 +32,7 @@ import { VerificationTask } from '@/types/verificationTask';
 import { User } from '@/types/user';
 import { useUpdateVerificationTask } from '@/hooks/useVerificationTasks';
 import { useFieldUsers } from '@/hooks/useUsers';
+import { useRateTypes } from '@/hooks/useRateTypes';
 import { toast } from 'sonner';
 
 const editTaskSchema = z.object({
@@ -39,6 +40,7 @@ const editTaskSchema = z.object({
   taskDescription: z.string().optional(),
   priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']),
   assignedTo: z.string().optional(), // Add assignedTo field
+  rateTypeId: z.number().optional(), // Add rateTypeId field
   address: z.string().min(1, 'Address is required'),
   pincode: z.string().min(1, 'Pincode is required'),
   trigger: z.string().optional(),
@@ -62,7 +64,8 @@ export const EditTaskDialog: React.FC<EditTaskDialogProps> = ({
 }) => {
   const updateTaskMutation = useUpdateVerificationTask();
   const { data: fieldUsers = [] } = useFieldUsers();
-  // const { data: pincodesResponse } = usePincodes({ limit: 10000 }); // Unused
+  const { data: rateTypesData } = useRateTypes();
+  const rateTypes = rateTypesData?.data || [];
 
   const form = useForm<EditTaskFormData>({
     resolver: zodResolver(editTaskSchema),
@@ -71,6 +74,7 @@ export const EditTaskDialog: React.FC<EditTaskDialogProps> = ({
       taskDescription: '',
       priority: 'MEDIUM',
       assignedTo: '',
+      rateTypeId: undefined,
       address: '',
       pincode: '',
       trigger: '',
@@ -85,6 +89,7 @@ export const EditTaskDialog: React.FC<EditTaskDialogProps> = ({
         taskDescription: task.taskDescription || '',
         priority: task.priority || 'MEDIUM',
         assignedTo: (task.assignedTo && typeof task.assignedTo === 'object') ? task.assignedTo.id : (typeof task.assignedTo === 'string' ? task.assignedTo : ''),
+        rateTypeId: task.rateTypeId || undefined,
         address: task.address || '',
         pincode: task.pincode || '',
         trigger: task.trigger || '',
@@ -95,15 +100,66 @@ export const EditTaskDialog: React.FC<EditTaskDialogProps> = ({
 
   const handleSubmit = async (data: EditTaskFormData) => {
     try {
-      // Handle "unassigned" value by converting to null
-      const submissionData = {
-        ...data,
-        assignedTo: data.assignedTo === 'unassigned' ? null : data.assignedTo,
+      console.log('🔍 EditTaskDialog - handleSubmit START', {
+        taskId: task.id,
+        taskStatus: task.status,
+        taskType: (task as any).taskType,
+        currentAssignedTo: task.assignedTo,
+        formData: data,
+      });
+
+      // Build submission data, only including assignedTo if actually assigned
+      const submissionData: any = {
+        taskTitle: data.taskTitle,
+        taskDescription: data.taskDescription,
+        priority: data.priority,
+        address: data.address,
+        pincode: data.pincode,
+        trigger: data.trigger,
+        applicantType: data.applicantType,
+        rateTypeId: data.rateTypeId || task.rateTypeId, // Preserve existing if not changed
+        caseId: task.caseId, // Preserve case association
       };
+
+      // Only include assignedTo if it has changed
+      const currentAssignedToId = (task.assignedTo && typeof task.assignedTo === 'object') 
+        ? task.assignedTo.id 
+        : (typeof task.assignedTo === 'string' ? task.assignedTo : undefined);
+
+      console.log('🔍 Assignment Logic Check', {
+        'data.assignedTo': data.assignedTo,
+        currentAssignedToId,
+        'task.assignedTo (raw)': task.assignedTo,
+        'typeof task.assignedTo': typeof task.assignedTo,
+        'data.assignedTo !== currentAssignedToId': data.assignedTo !== currentAssignedToId,
+      });
+
+      if (data.assignedTo && data.assignedTo !== 'unassigned') {
+        if (data.assignedTo !== currentAssignedToId) {
+          submissionData.assignedTo = data.assignedTo;
+          console.log('✅ Including assignedTo in submission:', data.assignedTo);
+        } else {
+          console.log('⏭️ Skipping assignedTo (no change)');
+        }
+      } else if (data.assignedTo === 'unassigned' && currentAssignedToId) {
+        // Explicitly unassign if it was previously assigned
+        submissionData.assignedTo = null;
+        console.log('🗑️ Unassigning task');
+      } else {
+        console.log('⚠️ No assignment action taken', {
+          'data.assignedTo': data.assignedTo,
+          currentAssignedToId,
+        });
+      }
+
+      console.log('📤 Final submission data:', submissionData);
+
+      // Debug: Show what we're submitting
+      toast.success(`Submitting: Assigned To = ${submissionData.assignedTo || 'NOT SET'}, Rate Type = ${submissionData.rateTypeId || 'NOT SET'}`);
 
       await updateTaskMutation.mutateAsync({
         id: task.id,
-        data: submissionData as any, // Cast to any to allow null for assignedTo
+        data: submissionData,
       });
       toast.success('Task updated successfully');
       onSuccess();
@@ -189,31 +245,61 @@ export const EditTaskDialog: React.FC<EditTaskDialogProps> = ({
               />
             </div>
 
-            <FormField
-              control={form.control}
-              name="assignedTo"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Assign To</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value || 'unassigned'}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select field agent" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="unassigned">Unassigned</SelectItem>
-                      {fieldUsers.map((user: User) => (
-                        <SelectItem key={user.id} value={user.id}>
-                          {user.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="rateTypeId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Rate Type</FormLabel>
+                    <Select
+                      onValueChange={(value) => field.onChange(value ? parseInt(value) : undefined)}
+                      value={field.value?.toString() || ''}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select rate type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {rateTypes.map((rateType: any) => (
+                          <SelectItem key={rateType.id} value={rateType.id.toString()}>
+                            {rateType.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="assignedTo"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Assign To</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value || 'unassigned'}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select field agent" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="unassigned">Unassigned</SelectItem>
+                        {fieldUsers.map((user: User) => (
+                          <SelectItem key={user.id} value={user.id}>
+                            {user.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <FormField
               control={form.control}
