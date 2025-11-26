@@ -39,7 +39,7 @@ interface TasksListFlatProps {
   onViewTask?: (taskId: string) => void;
   onViewCase?: (caseId: string) => void;
   onRevisitTask?: (taskId: string) => void;
-  onEditCase?: (caseId: string) => void;
+  onEditCase?: (caseId: string, taskId?: string) => void;
 }
 
 export const TasksListFlat: React.FC<TasksListFlatProps> = ({
@@ -272,9 +272,9 @@ export const TasksListFlat: React.FC<TasksListFlatProps> = ({
                             </DropdownMenuItem>
                           )}
                           {onEditCase && (
-                            <DropdownMenuItem onClick={() => onEditCase(task.caseId)}>
-                              <Edit className="h-4 w-4 mr-2" />
-                              Edit Case
+                            <DropdownMenuItem onClick={() => onEditCase(task.caseId, task.id)}>
+                              <Edit className="mr-2 h-4 w-4" />
+                              Edit
                             </DropdownMenuItem>
                           )}
                         </DropdownMenuContent>
