@@ -128,7 +128,9 @@ const mapBackendCaseToMobile = (backendCase: BackendCase): Case => {
 
   return {
     // Core mobile app fields
-    id: backendCase.id, // Use the actual UUID from backend
+    // CRITICAL FIX: Use Verification Task ID as unique identifier to support multiple tasks per case
+    // This allows revisit tasks and multiple verification tasks from the same case to appear separately
+    id: backendCase.verificationTaskId || backendCase.id, // Use task ID first, fallback to case ID
     title: `${backendCase.verificationType || 'Verification'} - ${backendCase.customerName}`,
     description: `${backendCase.verificationType || 'Verification'} for ${backendCase.customerName}`,
     customer: {
