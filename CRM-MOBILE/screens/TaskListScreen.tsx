@@ -10,18 +10,18 @@ import { useTabSearch } from '../hooks/useTabSearch';
 
 
 
-interface CaseListScreenProps {
+interface TaskListScreenProps {
   title: string;
-  filter: (caseData: Case) => boolean;
+  filter: (taskData: VerificationTask) => boolean;
   emptyMessage: string;
-  sort?: (a: Case, b: Case) => number;
+  sort?: (a: VerificationTask, b: VerificationTask) => number;
   isReorderable?: boolean;
   tabKey: string; // Unique identifier for search state management
   searchPlaceholder?: string;
   customHeaderActions?: React.ReactNode;
 }
 
-const CaseListScreen: React.FC<CaseListScreenProps> = ({
+const TaskListScreen: React.FC<CaseListScreenProps> = ({
   title,
   filter,
   emptyMessage,
@@ -134,15 +134,15 @@ const CaseListScreen: React.FC<CaseListScreenProps> = ({
     <View style={{ flex: 1, backgroundColor: '#111827' }}>
       <FlatList
         data={processedCases}
-        renderItem={({ item, index }: { item: Case, index: number }) => (
+        renderItem={({ item, index }: { item: VerificationTask, index: number }) => (
           <CaseCard
-            caseData={item}
+            taskData={item}
             isReorderable={isReorderable}
             isFirst={index === 0}
             isLast={index === processedCases.length - 1}
           />
         )}
-        keyExtractor={(item: Case) => item.id}
+        keyExtractor={(item: VerificationTask) => item.id}
         ListHeaderComponent={ListHeader}
         ListEmptyComponent={renderEmpty}
         contentContainerStyle={{ paddingBottom: 100 }}
@@ -151,4 +151,4 @@ const CaseListScreen: React.FC<CaseListScreenProps> = ({
   );
 };
 
-export default CaseListScreen;
+export default TaskListScreen;

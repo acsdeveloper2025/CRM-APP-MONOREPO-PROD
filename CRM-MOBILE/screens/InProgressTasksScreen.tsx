@@ -13,7 +13,7 @@ const InProgressCasesScreen: React.FC = () => {
   // Create sort function based on current mode
   const sortFunction = useMemo(() => {
     if (sortMode === 'priority') {
-      return (a: Case, b: Case) => {
+      return (a: VerificationTask, b: VerificationTask) => {
         const casesWithPriorities = getCasesWithPriorities();
         const caseA = casesWithPriorities.find(c => c.id === a.id);
         const caseB = casesWithPriorities.find(c => c.id === b.id);
@@ -36,14 +36,14 @@ const InProgressCasesScreen: React.FC = () => {
       };
     } else {
       // Default order sorting
-      return (a: Case, b: Case) => (a.order || 0) - (b.order || 0);
+      return (a: VerificationTask, b: VerificationTask) => (a.order || 0) - (b.order || 0);
     }
   }, [sortMode, getCasesWithPriorities]);
 
   return (
     <CaseListScreen
       title="In Progress Cases"
-      filter={(c) => (c.taskStatus || c.status) === CaseStatus.InProgress && !c.isSaved}
+      filter={(c) => (c.taskStatus || c.status) === TaskStatus.InProgress && !c.isSaved}
       sort={sortFunction}
       isReorderable={sortMode === 'order'}
       emptyMessage="No cases are currently in progress."
