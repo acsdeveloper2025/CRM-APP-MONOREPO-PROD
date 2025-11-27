@@ -225,7 +225,6 @@ export class MobileCaseController {
             CASE WHEN vt.assigned_to = $${taskFilterParamIndex}::uuid THEN 0 ELSE 1 END,  -- Prioritize user's task
             CASE WHEN vt.status IN ('PENDING', 'ASSIGNED', 'IN_PROGRESS') THEN 0 ELSE 1 END,  -- Prioritize active tasks over completed
             vt.created_at DESC  -- Show newest task first (Revisit tasks are newer)
-          LIMIT 1
         ) vtask ON true
         LEFT JOIN (
           SELECT "caseId", COUNT(*) as attachment_count
