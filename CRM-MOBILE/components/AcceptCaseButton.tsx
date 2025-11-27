@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { VerificationTask, TaskStatus } from '../types';
 import { CheckIcon } from './Icons';
-import CaseStatusService from '../services/caseStatusService';
+import TaskStatusService from "./services/taskStatusService"
 import AuditService from '../services/auditService';
 
 /**
@@ -45,7 +45,7 @@ const AcceptCaseButton: React.FC<AcceptCaseButtonProps> = ({
       };
 
       // Update case status
-      const result = await CaseStatusService.updateCaseStatus(
+      const result = await TaskStatusService.updateCaseStatus(
         caseData.id,
         CaseStatus.InProgress
       );
