@@ -1065,8 +1065,7 @@ export class VerificationTasksController {
       }
 
       const currentTask = currentTaskResult.rows[0];
-      const isRevisitTask = currentTask.task_type === 'REVISIT';
-
+      const _isRevisitTask = currentTask.task_type === 'REVISIT';
       // Check if this is an assignment update
       const isAssignment = updateData.assignedTo !== undefined;
 
