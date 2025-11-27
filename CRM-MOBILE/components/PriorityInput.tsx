@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useTasks } from "./context/TaskContext"
 
 interface PriorityInputProps {
-  caseId: string;
+  taskId: string;
   className?: string;
 }
 

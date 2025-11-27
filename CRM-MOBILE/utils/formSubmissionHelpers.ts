@@ -15,7 +15,7 @@
  * @param setSubmissionSuccess - State setter for success message
  */
 export const handleSuccessfulSubmission = async (
-  caseId: string,
+  taskId: string,
   fetchCases: () => void,
   navigate: (path: string) => void,
   setSubmissionSuccess: (success: boolean) => void

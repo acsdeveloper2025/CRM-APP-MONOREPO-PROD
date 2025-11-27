@@ -6,7 +6,7 @@ import AttachmentViewer from './AttachmentViewer';
 import Spinner from './Spinner';
 
 interface AttachmentsModalProps {
-  caseId: string;
+  taskId: string;
   isVisible: boolean;
   onClose: () => void;
 }

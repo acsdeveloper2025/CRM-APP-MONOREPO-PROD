@@ -301,7 +301,7 @@ class NotificationService {
   /**
    * Navigate to case details
    */
-  private navigateToCase(caseId: string): void {
+  private navigateToCase(taskId: string): void {
     // This would be implemented with your navigation system
     console.log('🔗 Navigate to case:', caseId);
     // Example: NavigationService.navigate('CaseDetails', { caseId });

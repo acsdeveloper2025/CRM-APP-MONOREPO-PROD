@@ -31,7 +31,7 @@ export interface UseAutoSaveReturn {
  * Custom hook for auto-save functionality
  */
 export const useAutoSave = (
-  caseId: string,
+  taskId: string,
   formType: string,
   options: UseAutoSaveOptions = {}
 ): UseAutoSaveReturn => {

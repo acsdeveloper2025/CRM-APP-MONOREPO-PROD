@@ -99,7 +99,7 @@ class VerificationFormService {
    * Submit residence verification form with enhanced error recovery, progress tracking, and compression
    */
   static async submitResidenceVerification(
-    caseId: string,
+    taskId: string,
     verificationTaskId: string,
     formData: VerificationFormData,
     images: CapturedImage[],
@@ -250,7 +250,7 @@ class VerificationFormService {
    * Submit office verification form
    */
   static async submitOfficeVerification(
-    caseId: string,
+    taskId: string,
     verificationTaskId: string,
     formData: VerificationFormData,
     images: CapturedImage[],
@@ -263,7 +263,7 @@ class VerificationFormService {
    * Submit business verification form
    */
   static async submitBusinessVerification(
-    caseId: string,
+    taskId: string,
     verificationTaskId: string,
     formData: VerificationFormData,
     images: CapturedImage[],
@@ -276,7 +276,7 @@ class VerificationFormService {
    * Submit builder verification form
    */
   static async submitBuilderVerification(
-    caseId: string,
+    taskId: string,
     verificationTaskId: string,
     formData: VerificationFormData,
     images: CapturedImage[],
@@ -289,7 +289,7 @@ class VerificationFormService {
    * Submit residence-cum-office verification form
    */
   static async submitResidenceCumOfficeVerification(
-    caseId: string,
+    taskId: string,
     verificationTaskId: string,
     formData: VerificationFormData,
     images: CapturedImage[],
@@ -302,7 +302,7 @@ class VerificationFormService {
    * Submit DSA/DST connector verification form
    */
   static async submitDsaConnectorVerification(
-    caseId: string,
+    taskId: string,
     verificationTaskId: string,
     formData: VerificationFormData,
     images: CapturedImage[],
@@ -315,7 +315,7 @@ class VerificationFormService {
    * Submit property individual verification form
    */
   static async submitPropertyIndividualVerification(
-    caseId: string,
+    taskId: string,
     verificationTaskId: string,
     formData: VerificationFormData,
     images: CapturedImage[],
@@ -328,7 +328,7 @@ class VerificationFormService {
    * Submit property APF verification form
    */
   static async submitPropertyApfVerification(
-    caseId: string,
+    taskId: string,
     verificationTaskId: string,
     formData: VerificationFormData,
     images: CapturedImage[],
@@ -341,7 +341,7 @@ class VerificationFormService {
    * Submit NOC verification form
    */
   static async submitNocVerification(
-    caseId: string,
+    taskId: string,
     verificationTaskId: string,
     formData: VerificationFormData,
     images: CapturedImage[],
@@ -354,7 +354,7 @@ class VerificationFormService {
    * Helper method for verification form submission
    */
   private static async submitVerificationForm(
-    caseId: string,
+    taskId: string,
     verificationTaskId: string,
     verificationType: string,
     formData: VerificationFormData,
@@ -613,7 +613,7 @@ class VerificationFormService {
    * Upload image to backend and return database attachment ID
    * @deprecated - No longer used with new direct submission approach
    */
-  private static async uploadImageToBackend(caseId: string, image: CapturedImage): Promise<string> {
+  private static async uploadImageToBackend(taskId: string, image: CapturedImage): Promise<string> {
     try {
       const authToken = await AuthStorageService.getCurrentAccessToken();
       const envConfig = getEnvironmentConfig();
@@ -855,7 +855,7 @@ class VerificationFormService {
    * This retrieves the auto-saved form data and creates a new submission
    */
   static async retryVerificationSubmission(
-    caseId: string,
+    taskId: string,
     verificationType: 'residence' | 'office' | 'business' | 'builder' | 'residence-cum-office' | 'dsa-connector' | 'property-individual' | 'property-apf' | 'noc',
     verificationTaskId?: string
   ): Promise<VerificationSubmissionResult> {
@@ -958,7 +958,7 @@ class VerificationFormService {
    * This is used by retryVerificationSubmission to actually submit the form
    */
   private static async submitVerification(
-    caseId: string,
+    taskId: string,
     verificationType: string,
     payload: any
   ): Promise<VerificationSubmissionResult> {

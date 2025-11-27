@@ -6,7 +6,7 @@ import AutoSaveIndicator from './AutoSaveIndicator';
 // AutoSaveRecoveryModal removed - auto-restore is now automatic
 
 interface AutoSaveFormWrapperProps {
-  caseId: string;
+  taskId: string;
   formType: string;
   formData: any;
   images?: CapturedImage[];
@@ -180,7 +180,7 @@ const AutoSaveFormWrapper: React.FC<AutoSaveFormWrapperProps> = ({
 export default AutoSaveFormWrapper;
 
 // Export additional utilities for manual control
-export const useAutoSaveFormWrapper = (caseId: string, formType: string) => {
+export const useAutoSaveFormWrapper = (taskId: string, formType: string) => {
   const autoSave = useAutoSave(caseId, formType);
   
   return {

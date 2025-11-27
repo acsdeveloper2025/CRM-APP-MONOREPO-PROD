@@ -14,8 +14,8 @@ import { CapturedImage } from '../types';
  * @returns Image change handler function
  */
 export const createImageChangeHandler = (
-  updateReport: (caseId: string, updates: any) => void,
-  caseId: string,
+  updateReport: (taskId: string, updates: any) => void,
+  taskId: string,
   report: any,
   handleAutoSaveImagesChange: (images: CapturedImage[]) => void
 ) => {
@@ -51,8 +51,8 @@ export const createImageChangeHandler = (
  * @returns Selfie image change handler function
  */
 export const createSelfieImageChangeHandler = (
-  updateReport: (caseId: string, updates: any) => void,
-  caseId: string,
+  updateReport: (taskId: string, updates: any) => void,
+  taskId: string,
   report: any,
   handleAutoSaveImagesChange: (images: CapturedImage[]) => void
 ) => {
@@ -89,8 +89,8 @@ export const createSelfieImageChangeHandler = (
  * @returns Auto-save images change handler function
  */
 export const createAutoSaveImagesChangeHandler = (
-  updateReport: (caseId: string, updates: any) => void,
-  caseId: string,
+  updateReport: (taskId: string, updates: any) => void,
+  taskId: string,
   report: any,
   isReadOnly: boolean
 ) => {
@@ -132,8 +132,8 @@ export const combineImagesForAutoSave = (report: any): CapturedImage[] => {
  * @returns Form data change handler function
  */
 export const createFormDataChangeHandler = (
-  updateReport: (caseId: string, updates: any) => void,
-  caseId: string,
+  updateReport: (taskId: string, updates: any) => void,
+  taskId: string,
   isReadOnly: boolean
 ) => {
   return (formData: any) => {
@@ -151,8 +151,8 @@ export const createFormDataChangeHandler = (
  * @returns Data restored handler function
  */
 export const createDataRestoredHandler = (
-  updateReport: (caseId: string, updates: any) => void,
-  caseId: string,
+  updateReport: (taskId: string, updates: any) => void,
+  taskId: string,
   isReadOnly: boolean
 ) => {
   return (data: any) => {

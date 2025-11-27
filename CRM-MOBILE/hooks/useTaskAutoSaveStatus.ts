@@ -5,7 +5,7 @@ import { getAllFormTypes } from '../constants/formTypes';
 /**
  * Hook to check if a case has auto-saved draft data
  */
-export const useCaseAutoSaveStatus = (caseId: string) => {
+export const useTaskAutoSaveStatus = (taskId: string) => {
   const [hasAutoSaveData, setHasAutoSaveData] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -19,7 +19,7 @@ export const useCaseAutoSaveStatus = (caseId: string) => {
 
         let hasData = false;
         for (const formType of formTypes) {
-          const hasSaved = await autoSaveService.hasAutoSaveData(caseId, formType);
+          const hasSaved = await autoSaveService.hasAutoSaveData(taskId, formType);
           if (hasSaved) {
             hasData = true;
             break;
@@ -37,7 +37,7 @@ export const useCaseAutoSaveStatus = (caseId: string) => {
     };
 
     checkAutoSaveData();
-  }, [caseId]);
+  }, [taskId]);
 
   return { hasAutoSaveData, isLoading };
 };

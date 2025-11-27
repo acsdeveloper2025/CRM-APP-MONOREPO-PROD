@@ -233,7 +233,7 @@ const mapBackendCaseToMobile = (backendCase: BackendCase): VerificationTask => {
 };
 
 // Helper function to generate realistic attachments
-const generateAttachments = (caseId: string, count: number): Attachment[] => {
+const generateAttachments = (taskId: string, count: number): Attachment[] => {
   const baseUrl = 'https://api.caseflow.com/v1';
   const attachmentTemplates = [
     { name: 'Property_Documents.pdf', type: 'pdf' as const, mimeType: 'application/pdf' as const, size: 2048576, uploadedBy: 'System Admin' },

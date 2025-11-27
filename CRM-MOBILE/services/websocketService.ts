@@ -21,7 +21,7 @@ export interface WebSocketState {
 }
 
 export interface CaseUpdate {
-  caseId: string;
+  taskId: string;
   status: string;
   updatedBy: string;
   timestamp: string;

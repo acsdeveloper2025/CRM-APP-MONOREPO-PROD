@@ -20,7 +20,7 @@ class TaskStatusService {
    * Update case status with direct backend sync
    */
   static async updateTaskStatus(
-    caseId: string,
+    taskId: string,
     newStatus: VerificationTaskStatus,
     options?: { optimistic?: boolean; auditMetadata?: any }
   ): Promise<StatusUpdateResult> {
@@ -120,7 +120,7 @@ class TaskStatusService {
    * Sync status update with backend
    */
   private static async syncStatusWithBackend(
-    caseId: string,
+    taskId: string,
     status: VerificationTaskStatus,
     metadata: Record<string, any>
   ): Promise<{ success: boolean; error?: string }> {

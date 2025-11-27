@@ -277,7 +277,7 @@ export class EnterpriseOfflineDatabase {
     });
   }
 
-  // Case operations
+  // Task operations
   async saveCase(caseData: Case): Promise<void> {
     const sql = `
       INSERT OR REPLACE INTO cases (
@@ -405,7 +405,7 @@ export class EnterpriseOfflineDatabase {
     await this.query(sql, params);
   }
 
-  async getFormSubmissions(caseId: string): Promise<FormSubmission[]> {
+  async getFormSubmissions(taskId: string): Promise<FormSubmission[]> {
     const result = await this.query(
       'SELECT * FROM form_submissions WHERE case_id = ? ORDER BY submission_time DESC',
       [caseId]
@@ -461,7 +461,7 @@ export class EnterpriseOfflineDatabase {
     await this.query(sql, params);
   }
 
-  async getAttachments(caseId: string): Promise<Attachment[]> {
+  async getAttachments(taskId: string): Promise<Attachment[]> {
     const result = await this.query(
       'SELECT * FROM attachments WHERE case_id = ? ORDER BY created_at DESC',
       [caseId]

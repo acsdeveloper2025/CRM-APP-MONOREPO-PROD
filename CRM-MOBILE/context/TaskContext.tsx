@@ -1097,7 +1097,7 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   // Note: submitCase and resubmitCase methods have been removed
-  // Case submission should now be handled through VerificationFormService
+  // Task submission should now be handled through VerificationFormService
   // in the individual form components
 
   // Priority management functions
