@@ -1,8 +1,8 @@
 import React, { createContext, useState, useContext, useEffect, ReactNode, useCallback } from 'react';
 import { Case, CaseStatus, VerificationOutcome, ResidenceReportData, ShiftedResidenceReportData, NspResidenceReportData, EntryRestrictedResidenceReportData, UntraceableResidenceReportData, ResiCumOfficeReportData, ShiftedResiCumOfficeReportData, NspResiCumOfficeReportData, EntryRestrictedResiCumOfficeReportData, UntraceableResiCumOfficeReportData, PositiveOfficeReportData, ShiftedOfficeReportData, NspOfficeReportData, EntryRestrictedOfficeReportData, UntraceableOfficeReportData, PositiveBusinessReportData, ShiftedBusinessReportData, NspBusinessReportData, EntryRestrictedBusinessReportData, UntraceableBusinessReportData, PositiveBuilderReportData, ShiftedBuilderReportData, NspBuilderReportData, EntryRestrictedBuilderReportData, UntraceableBuilderReportData, PositiveNocReportData, ShiftedNocReportData, NspNocReportData, EntryRestrictedNocReportData, UntraceableNocReportData, PositiveDsaReportData, ShiftedDsaReportData, NspDsaReportData, EntryRestrictedDsaReportData, UntraceableDsaReportData, PositivePropertyApfReportData, NspPropertyApfReportData, EntryRestrictedPropertyApfReportData, UntraceablePropertyApfReportData, PositivePropertyIndividualReportData, NspPropertyIndividualReportData, EntryRestrictedPropertyIndividualReportData, UntraceablePropertyIndividualReportData, RevokeReason } from '../types';
-import { caseService } from '../services/caseService';
+import { taskService } from "./services/taskService"
 import { priorityService } from '../services/priorityService';
-import CaseStatusService from '../services/caseStatusService';
+import TaskStatusService from "./services/taskStatusService"
 import AuditService from '../services/auditService';
 import NetworkService from '../services/networkService';
 import CaseCounterService from '../services/caseCounterService';
@@ -88,7 +88,7 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       // Force fresh data from API to ensure we get the latest task status
       // This prevents showing stale cached data after sign in/out
-      const data = await caseService.getCases(true);
+      const data = await taskService.getCases(true);
       const sortedCases = data.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
       setCases(sortedCases);
 
@@ -126,7 +126,7 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       };
 
       // Use enhanced task status service with optimistic UI and offline support
-      const result = await CaseStatusService.updateCaseStatus(taskId, status, {
+      const result = await TaskStatusService.updateCaseStatus(taskId, status, {
         optimistic: true,
         auditMetadata,
       });
@@ -195,7 +195,7 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
       }
 
-      await caseService.updateCase(taskId, updates);
+      await taskService.updateCase(taskId, updates);
 
       // Update local state immediately instead of refetching from API
       // This preserves any local status changes (like In Progress status)
@@ -217,7 +217,7 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.residenceReport || {}), ...reportData };
-      await caseService.updateCase(taskId, { residenceReport: updatedReport as ResidenceReportData });
+      await taskService.updateCase(taskId, { residenceReport: updatedReport as ResidenceReportData });
       setCases(prevCases => prevCases.map(c =>
         c.id === taskId
           ? { ...c, residenceReport: updatedReport as ResidenceReportData, updatedAt: new Date().toISOString(), savedAt: new Date().toISOString() }
@@ -235,7 +235,7 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.shiftedResidenceReport || {}), ...reportData };
-      await caseService.updateCase(taskId, { shiftedResidenceReport: updatedReport as ShiftedResidenceReportData });
+      await taskService.updateCase(taskId, { shiftedResidenceReport: updatedReport as ShiftedResidenceReportData });
       setCases(prevCases => prevCases.map(c =>
         c.id === taskId
           ? { ...c, shiftedResidenceReport: updatedReport as ShiftedResidenceReportData, updatedAt: new Date().toISOString(), savedAt: new Date().toISOString() }
@@ -253,7 +253,7 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.nspResidenceReport || {}), ...reportData };
-      await caseService.updateCase(taskId, { nspResidenceReport: updatedReport as NspResidenceReportData });
+      await taskService.updateCase(taskId, { nspResidenceReport: updatedReport as NspResidenceReportData });
       setCases(prevCases => prevCases.map(c => 
         c.id === taskId 
           ? { ...c, nspResidenceReport: updatedReport as NspResidenceReportData, updatedAt: new Date().toISOString() } 
@@ -271,7 +271,7 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.entryRestrictedResidenceReport || {}), ...reportData };
-      await caseService.updateCase(taskId, { entryRestrictedResidenceReport: updatedReport as EntryRestrictedResidenceReportData });
+      await taskService.updateCase(taskId, { entryRestrictedResidenceReport: updatedReport as EntryRestrictedResidenceReportData });
       setCases(prevCases => prevCases.map(c => 
         c.id === taskId 
           ? { ...c, entryRestrictedResidenceReport: updatedReport as EntryRestrictedResidenceReportData, updatedAt: new Date().toISOString() } 
@@ -289,7 +289,7 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.untraceableResidenceReport || {}), ...reportData };
-      await caseService.updateCase(taskId, { untraceableResidenceReport: updatedReport as UntraceableResidenceReportData });
+      await taskService.updateCase(taskId, { untraceableResidenceReport: updatedReport as UntraceableResidenceReportData });
       setCases(prevCases => prevCases.map(c => 
         c.id === taskId 
           ? { ...c, untraceableResidenceReport: updatedReport as UntraceableResidenceReportData, updatedAt: new Date().toISOString() } 
@@ -307,7 +307,7 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.resiCumOfficeReport || {}), ...reportData };
-      await caseService.updateCase(taskId, { resiCumOfficeReport: updatedReport as ResiCumOfficeReportData });
+      await taskService.updateCase(taskId, { resiCumOfficeReport: updatedReport as ResiCumOfficeReportData });
       setCases(prevCases => prevCases.map(c => 
         c.id === taskId 
           ? { ...c, resiCumOfficeReport: updatedReport as ResiCumOfficeReportData, updatedAt: new Date().toISOString() } 
@@ -325,7 +325,7 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.shiftedResiCumOfficeReport || {}), ...reportData };
-      await caseService.updateCase(taskId, { shiftedResiCumOfficeReport: updatedReport as ShiftedResiCumOfficeReportData });
+      await taskService.updateCase(taskId, { shiftedResiCumOfficeReport: updatedReport as ShiftedResiCumOfficeReportData });
       setCases(prevCases => prevCases.map(c => 
         c.id === taskId 
           ? { ...c, shiftedResiCumOfficeReport: updatedReport as ShiftedResiCumOfficeReportData, updatedAt: new Date().toISOString() } 
@@ -343,7 +343,7 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.nspResiCumOfficeReport || {}), ...reportData };
-      await caseService.updateCase(taskId, { nspResiCumOfficeReport: updatedReport as NspResiCumOfficeReportData });
+      await taskService.updateCase(taskId, { nspResiCumOfficeReport: updatedReport as NspResiCumOfficeReportData });
       setCases(prevCases => prevCases.map(c => 
         c.id === taskId 
           ? { ...c, nspResiCumOfficeReport: updatedReport as NspResiCumOfficeReportData, updatedAt: new Date().toISOString() } 
@@ -361,7 +361,7 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.entryRestrictedResiCumOfficeReport || {}), ...reportData };
-      await caseService.updateCase(taskId, { entryRestrictedResiCumOfficeReport: updatedReport as EntryRestrictedResiCumOfficeReportData });
+      await taskService.updateCase(taskId, { entryRestrictedResiCumOfficeReport: updatedReport as EntryRestrictedResiCumOfficeReportData });
       setCases(prevCases => prevCases.map(c => 
         c.id === taskId 
           ? { ...c, entryRestrictedResiCumOfficeReport: updatedReport as EntryRestrictedResiCumOfficeReportData, updatedAt: new Date().toISOString() } 
@@ -379,7 +379,7 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.untraceableResiCumOfficeReport || {}), ...reportData };
-      await caseService.updateCase(taskId, { untraceableResiCumOfficeReport: updatedReport as UntraceableResiCumOfficeReportData });
+      await taskService.updateCase(taskId, { untraceableResiCumOfficeReport: updatedReport as UntraceableResiCumOfficeReportData });
       setCases(prevCases => prevCases.map(c => 
         c.id === taskId 
           ? { ...c, untraceableResiCumOfficeReport: updatedReport as UntraceableResiCumOfficeReportData, updatedAt: new Date().toISOString() } 
@@ -397,7 +397,7 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.positiveOfficeReport || {}), ...reportData };
-      await caseService.updateCase(taskId, { positiveOfficeReport: updatedReport as PositiveOfficeReportData });
+      await taskService.updateCase(taskId, { positiveOfficeReport: updatedReport as PositiveOfficeReportData });
       setCases(prevCases => prevCases.map(c => 
         c.id === taskId 
           ? { ...c, positiveOfficeReport: updatedReport as PositiveOfficeReportData, updatedAt: new Date().toISOString() } 
@@ -415,7 +415,7 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.shiftedOfficeReport || {}), ...reportData };
-      await caseService.updateCase(taskId, { shiftedOfficeReport: updatedReport as ShiftedOfficeReportData });
+      await taskService.updateCase(taskId, { shiftedOfficeReport: updatedReport as ShiftedOfficeReportData });
       setCases(prevCases => prevCases.map(c => 
         c.id === taskId 
           ? { ...c, shiftedOfficeReport: updatedReport as ShiftedOfficeReportData, updatedAt: new Date().toISOString() } 
@@ -433,7 +433,7 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.nspOfficeReport || {}), ...reportData };
-      await caseService.updateCase(taskId, { nspOfficeReport: updatedReport as NspOfficeReportData });
+      await taskService.updateCase(taskId, { nspOfficeReport: updatedReport as NspOfficeReportData });
       setCases(prevCases => prevCases.map(c => 
         c.id === taskId 
           ? { ...c, nspOfficeReport: updatedReport as NspOfficeReportData, updatedAt: new Date().toISOString() } 
@@ -451,7 +451,7 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.entryRestrictedOfficeReport || {}), ...reportData };
-      await caseService.updateCase(taskId, { entryRestrictedOfficeReport: updatedReport as EntryRestrictedOfficeReportData });
+      await taskService.updateCase(taskId, { entryRestrictedOfficeReport: updatedReport as EntryRestrictedOfficeReportData });
       setCases(prevCases => prevCases.map(c => 
         c.id === taskId 
           ? { ...c, entryRestrictedOfficeReport: updatedReport as EntryRestrictedOfficeReportData, updatedAt: new Date().toISOString() } 
@@ -469,7 +469,7 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.untraceableOfficeReport || {}), ...reportData };
-      await caseService.updateCase(taskId, { untraceableOfficeReport: updatedReport as UntraceableOfficeReportData });
+      await taskService.updateCase(taskId, { untraceableOfficeReport: updatedReport as UntraceableOfficeReportData });
       setCases(prevCases => prevCases.map(c => 
         c.id === taskId 
           ? { ...c, untraceableOfficeReport: updatedReport as UntraceableOfficeReportData, updatedAt: new Date().toISOString() } 
@@ -487,7 +487,7 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.positiveBusinessReport || {}), ...reportData };
-      await caseService.updateCase(taskId, { positiveBusinessReport: updatedReport as PositiveBusinessReportData });
+      await taskService.updateCase(taskId, { positiveBusinessReport: updatedReport as PositiveBusinessReportData });
       setCases(prevCases => prevCases.map(c =>
         c.id === taskId
           ? { ...c, positiveBusinessReport: updatedReport as PositiveBusinessReportData, updatedAt: new Date().toISOString(), savedAt: new Date().toISOString() }
@@ -505,7 +505,7 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.shiftedBusinessReport || {}), ...reportData };
-      await caseService.updateCase(taskId, { shiftedBusinessReport: updatedReport as ShiftedBusinessReportData });
+      await taskService.updateCase(taskId, { shiftedBusinessReport: updatedReport as ShiftedBusinessReportData });
       setCases(prevCases => prevCases.map(c => 
         c.id === taskId 
           ? { ...c, shiftedBusinessReport: updatedReport as ShiftedBusinessReportData, updatedAt: new Date().toISOString() } 
@@ -523,7 +523,7 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.nspBusinessReport || {}), ...reportData };
-      await caseService.updateCase(taskId, { nspBusinessReport: updatedReport as NspBusinessReportData });
+      await taskService.updateCase(taskId, { nspBusinessReport: updatedReport as NspBusinessReportData });
       setCases(prevCases => prevCases.map(c => 
         c.id === taskId 
           ? { ...c, nspBusinessReport: updatedReport as NspBusinessReportData, updatedAt: new Date().toISOString() } 
@@ -541,7 +541,7 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.entryRestrictedBusinessReport || {}), ...reportData };
-      await caseService.updateCase(taskId, { entryRestrictedBusinessReport: updatedReport as EntryRestrictedBusinessReportData });
+      await taskService.updateCase(taskId, { entryRestrictedBusinessReport: updatedReport as EntryRestrictedBusinessReportData });
       setCases(prevCases => prevCases.map(c => 
         c.id === taskId 
           ? { ...c, entryRestrictedBusinessReport: updatedReport as EntryRestrictedBusinessReportData, updatedAt: new Date().toISOString() } 
@@ -559,7 +559,7 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.untraceableBusinessReport || {}), ...reportData };
-      await caseService.updateCase(taskId, { untraceableBusinessReport: updatedReport as UntraceableBusinessReportData });
+      await taskService.updateCase(taskId, { untraceableBusinessReport: updatedReport as UntraceableBusinessReportData });
       setCases(prevCases => prevCases.map(c => 
         c.id === taskId 
           ? { ...c, untraceableBusinessReport: updatedReport as UntraceableBusinessReportData, updatedAt: new Date().toISOString() } 
@@ -577,7 +577,7 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.positiveBuilderReport || {}), ...reportData };
-      await caseService.updateCase(taskId, { positiveBuilderReport: updatedReport as PositiveBuilderReportData });
+      await taskService.updateCase(taskId, { positiveBuilderReport: updatedReport as PositiveBuilderReportData });
       setCases(prevCases => prevCases.map(c => 
         c.id === taskId 
           ? { ...c, positiveBuilderReport: updatedReport as PositiveBuilderReportData, updatedAt: new Date().toISOString() } 
@@ -595,7 +595,7 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.shiftedBuilderReport || {}), ...reportData };
-      await caseService.updateCase(taskId, { shiftedBuilderReport: updatedReport as ShiftedBuilderReportData });
+      await taskService.updateCase(taskId, { shiftedBuilderReport: updatedReport as ShiftedBuilderReportData });
       setCases(prevCases => prevCases.map(c => 
         c.id === taskId 
           ? { ...c, shiftedBuilderReport: updatedReport as ShiftedBuilderReportData, updatedAt: new Date().toISOString() } 
@@ -613,7 +613,7 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.nspBuilderReport || {}), ...reportData };
-      await caseService.updateCase(taskId, { nspBuilderReport: updatedReport as NspBuilderReportData });
+      await taskService.updateCase(taskId, { nspBuilderReport: updatedReport as NspBuilderReportData });
       setCases(prevCases => prevCases.map(c => 
         c.id === taskId 
           ? { ...c, nspBuilderReport: updatedReport as NspBuilderReportData, updatedAt: new Date().toISOString() } 
@@ -631,7 +631,7 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.entryRestrictedBuilderReport || {}), ...reportData };
-      await caseService.updateCase(taskId, { entryRestrictedBuilderReport: updatedReport as EntryRestrictedBuilderReportData });
+      await taskService.updateCase(taskId, { entryRestrictedBuilderReport: updatedReport as EntryRestrictedBuilderReportData });
       setCases(prevCases => prevCases.map(c => 
         c.id === taskId 
           ? { ...c, entryRestrictedBuilderReport: updatedReport as EntryRestrictedBuilderReportData, updatedAt: new Date().toISOString() } 
@@ -649,7 +649,7 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.untraceableBuilderReport || {}), ...reportData };
-      await caseService.updateCase(taskId, { untraceableBuilderReport: updatedReport as UntraceableBuilderReportData });
+      await taskService.updateCase(taskId, { untraceableBuilderReport: updatedReport as UntraceableBuilderReportData });
       setCases(prevCases => prevCases.map(c => 
         c.id === taskId 
           ? { ...c, untraceableBuilderReport: updatedReport as UntraceableBuilderReportData, updatedAt: new Date().toISOString() } 
@@ -667,7 +667,7 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.positiveNocReport || {}), ...reportData };
-      await caseService.updateCase(taskId, { positiveNocReport: updatedReport as PositiveNocReportData });
+      await taskService.updateCase(taskId, { positiveNocReport: updatedReport as PositiveNocReportData });
       setCases(prevCases => prevCases.map(c => 
         c.id === taskId 
           ? { ...c, positiveNocReport: updatedReport as PositiveNocReportData, updatedAt: new Date().toISOString() } 
@@ -685,7 +685,7 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.shiftedNocReport || {}), ...reportData };
-      await caseService.updateCase(taskId, { shiftedNocReport: updatedReport as ShiftedNocReportData });
+      await taskService.updateCase(taskId, { shiftedNocReport: updatedReport as ShiftedNocReportData });
       setCases(prevCases => prevCases.map(c => 
         c.id === taskId 
           ? { ...c, shiftedNocReport: updatedReport as ShiftedNocReportData, updatedAt: new Date().toISOString() } 
@@ -703,7 +703,7 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.nspNocReport || {}), ...reportData };
-      await caseService.updateCase(taskId, { nspNocReport: updatedReport as NspNocReportData });
+      await taskService.updateCase(taskId, { nspNocReport: updatedReport as NspNocReportData });
       setCases(prevCases => prevCases.map(c => 
         c.id === taskId 
           ? { ...c, nspNocReport: updatedReport as NspNocReportData, updatedAt: new Date().toISOString() } 
@@ -721,7 +721,7 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.entryRestrictedNocReport || {}), ...reportData };
-      await caseService.updateCase(taskId, { entryRestrictedNocReport: updatedReport as EntryRestrictedNocReportData });
+      await taskService.updateCase(taskId, { entryRestrictedNocReport: updatedReport as EntryRestrictedNocReportData });
       setCases(prevCases => prevCases.map(c => 
         c.id === taskId 
           ? { ...c, entryRestrictedNocReport: updatedReport as EntryRestrictedNocReportData, updatedAt: new Date().toISOString() } 
@@ -739,7 +739,7 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.untraceableNocReport || {}), ...reportData };
-      await caseService.updateCase(taskId, { untraceableNocReport: updatedReport as UntraceableNocReportData });
+      await taskService.updateCase(taskId, { untraceableNocReport: updatedReport as UntraceableNocReportData });
       setCases(prevCases => prevCases.map(c => 
         c.id === taskId 
           ? { ...c, untraceableNocReport: updatedReport as UntraceableNocReportData, updatedAt: new Date().toISOString() } 
@@ -757,7 +757,7 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.positiveDsaReport || {}), ...reportData };
-      await caseService.updateCase(taskId, { positiveDsaReport: updatedReport as PositiveDsaReportData });
+      await taskService.updateCase(taskId, { positiveDsaReport: updatedReport as PositiveDsaReportData });
       setCases(prevCases => prevCases.map(c => 
         c.id === taskId 
           ? { ...c, positiveDsaReport: updatedReport as PositiveDsaReportData, updatedAt: new Date().toISOString() } 
@@ -775,7 +775,7 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.shiftedDsaReport || {}), ...reportData };
-      await caseService.updateCase(taskId, { shiftedDsaReport: updatedReport as ShiftedDsaReportData });
+      await taskService.updateCase(taskId, { shiftedDsaReport: updatedReport as ShiftedDsaReportData });
       setCases(prevCases => prevCases.map(c => 
         c.id === taskId 
           ? { ...c, shiftedDsaReport: updatedReport as ShiftedDsaReportData, updatedAt: new Date().toISOString() } 
@@ -793,7 +793,7 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.nspDsaReport || {}), ...reportData };
-      await caseService.updateCase(taskId, { nspDsaReport: updatedReport as NspDsaReportData });
+      await taskService.updateCase(taskId, { nspDsaReport: updatedReport as NspDsaReportData });
       setCases(prevCases => prevCases.map(c => 
         c.id === taskId 
           ? { ...c, nspDsaReport: updatedReport as NspDsaReportData, updatedAt: new Date().toISOString() } 
@@ -811,7 +811,7 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.entryRestrictedDsaReport || {}), ...reportData };
-      await caseService.updateCase(taskId, { entryRestrictedDsaReport: updatedReport as EntryRestrictedDsaReportData });
+      await taskService.updateCase(taskId, { entryRestrictedDsaReport: updatedReport as EntryRestrictedDsaReportData });
       setCases(prevCases => prevCases.map(c => 
         c.id === taskId 
           ? { ...c, entryRestrictedDsaReport: updatedReport as EntryRestrictedDsaReportData, updatedAt: new Date().toISOString() } 
@@ -829,7 +829,7 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.untraceableDsaReport || {}), ...reportData };
-      await caseService.updateCase(taskId, { untraceableDsaReport: updatedReport as UntraceableDsaReportData });
+      await taskService.updateCase(taskId, { untraceableDsaReport: updatedReport as UntraceableDsaReportData });
       setCases(prevCases => prevCases.map(c => 
         c.id === taskId 
           ? { ...c, untraceableDsaReport: updatedReport as UntraceableDsaReportData, updatedAt: new Date().toISOString() } 
@@ -847,7 +847,7 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.positivePropertyApfReport || {}), ...reportData };
-      await caseService.updateCase(taskId, { positivePropertyApfReport: updatedReport as PositivePropertyApfReportData });
+      await taskService.updateCase(taskId, { positivePropertyApfReport: updatedReport as PositivePropertyApfReportData });
       setCases(prevCases => prevCases.map(c => 
         c.id === taskId 
           ? { ...c, positivePropertyApfReport: updatedReport as PositivePropertyApfReportData, updatedAt: new Date().toISOString() } 
@@ -865,7 +865,7 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.nspPropertyApfReport || {}), ...reportData };
-      await caseService.updateCase(taskId, { nspPropertyApfReport: updatedReport as NspPropertyApfReportData });
+      await taskService.updateCase(taskId, { nspPropertyApfReport: updatedReport as NspPropertyApfReportData });
       setCases(prevCases => prevCases.map(c => 
         c.id === taskId 
           ? { ...c, nspPropertyApfReport: updatedReport as NspPropertyApfReportData, updatedAt: new Date().toISOString() } 
@@ -883,7 +883,7 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.entryRestrictedPropertyApfReport || {}), ...reportData };
-      await caseService.updateCase(taskId, { entryRestrictedPropertyApfReport: updatedReport as EntryRestrictedPropertyApfReportData });
+      await taskService.updateCase(taskId, { entryRestrictedPropertyApfReport: updatedReport as EntryRestrictedPropertyApfReportData });
       setCases(prevCases => prevCases.map(c => 
         c.id === taskId 
           ? { ...c, entryRestrictedPropertyApfReport: updatedReport as EntryRestrictedPropertyApfReportData, updatedAt: new Date().toISOString() } 
@@ -901,7 +901,7 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.untraceablePropertyApfReport || {}), ...reportData };
-      await caseService.updateCase(taskId, { untraceablePropertyApfReport: updatedReport as UntraceablePropertyApfReportData });
+      await taskService.updateCase(taskId, { untraceablePropertyApfReport: updatedReport as UntraceablePropertyApfReportData });
       setCases(prevCases => prevCases.map(c => 
         c.id === taskId 
           ? { ...c, untraceablePropertyApfReport: updatedReport as UntraceablePropertyApfReportData, updatedAt: new Date().toISOString() } 
@@ -919,7 +919,7 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.positivePropertyIndividualReport || {}), ...reportData };
-      await caseService.updateCase(taskId, { positivePropertyIndividualReport: updatedReport as PositivePropertyIndividualReportData });
+      await taskService.updateCase(taskId, { positivePropertyIndividualReport: updatedReport as PositivePropertyIndividualReportData });
       setCases(prevCases => prevCases.map(c => 
         c.id === taskId 
           ? { ...c, positivePropertyIndividualReport: updatedReport as PositivePropertyIndividualReportData, updatedAt: new Date().toISOString() } 
@@ -937,7 +937,7 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.nspPropertyIndividualReport || {}), ...reportData };
-      await caseService.updateCase(taskId, { nspPropertyIndividualReport: updatedReport as NspPropertyIndividualReportData });
+      await taskService.updateCase(taskId, { nspPropertyIndividualReport: updatedReport as NspPropertyIndividualReportData });
       setCases(prevCases => prevCases.map(c => 
         c.id === taskId 
           ? { ...c, nspPropertyIndividualReport: updatedReport as NspPropertyIndividualReportData, updatedAt: new Date().toISOString() } 
@@ -955,7 +955,7 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.entryRestrictedPropertyIndividualReport || {}), ...reportData };
-      await caseService.updateCase(taskId, { entryRestrictedPropertyIndividualReport: updatedReport as EntryRestrictedPropertyIndividualReportData });
+      await taskService.updateCase(taskId, { entryRestrictedPropertyIndividualReport: updatedReport as EntryRestrictedPropertyIndividualReportData });
       setCases(prevCases => prevCases.map(c => 
         c.id === taskId 
           ? { ...c, entryRestrictedPropertyIndividualReport: updatedReport as EntryRestrictedPropertyIndividualReportData, updatedAt: new Date().toISOString() } 
@@ -973,7 +973,7 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.untraceablePropertyIndividualReport || {}), ...reportData };
-      await caseService.updateCase(taskId, { untraceablePropertyIndividualReport: updatedReport as UntraceablePropertyIndividualReportData });
+      await taskService.updateCase(taskId, { untraceablePropertyIndividualReport: updatedReport as UntraceablePropertyIndividualReportData });
       setCases(prevCases => prevCases.map(c => 
         c.id === taskId 
           ? { ...c, untraceablePropertyIndividualReport: updatedReport as UntraceablePropertyIndividualReportData, updatedAt: new Date().toISOString() } 
@@ -992,7 +992,7 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (isSaved) {
         updates.savedAt = new Date().toISOString();
       }
-      await caseService.updateCase(taskId, updates);
+      await taskService.updateCase(taskId, updates);
       fetchCases();
     } catch (err) {
       setError('Failed to update save status.');
@@ -1002,7 +1002,7 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   
   const revokeCase = async (taskId: string, reason: RevokeReason) => {
     try {
-        await caseService.revokeCase(taskId, reason);
+        await taskService.revokeCase(taskId, reason);
         fetchCases(); // Refetch to update UI
     } catch (err) {
         setError('Failed to revoke task.');
@@ -1036,8 +1036,8 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const orderB = caseB.order;
 
         await Promise.all([
-            caseService.updateCase(caseA.id, { order: orderB }),
-            caseService.updateCase(caseB.id, { order: orderA }),
+            taskService.updateCase(caseA.id, { order: orderB }),
+            taskService.updateCase(caseB.id, { order: orderA }),
         ]);
 
         fetchCases();
@@ -1052,7 +1052,7 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setSyncing(true);
     setError(null);
     try {
-      const serverData = await caseService.syncWithServer();
+      const serverData = await taskService.syncWithServer();
 
       // Preserve local status changes that haven't been synced to server
       const mergedCases = serverData.map(serverCase => {
@@ -1162,8 +1162,8 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           : c
       ));
 
-      // Persist to local storage (caseService handles this)
-      await caseService.updateCase(taskId, updates);
+      // Persist to local storage (taskService handles this)
+      await taskService.updateCase(taskId, updates);
 
       console.log(`✅ Submission status updated successfully for task ${taskId}`);
     } catch (err) {
