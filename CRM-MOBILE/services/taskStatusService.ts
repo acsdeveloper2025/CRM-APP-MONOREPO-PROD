@@ -1,5 +1,5 @@
 import { VerificationTask, TaskStatus } from '../types';
-import { caseService } from './caseService';
+import { taskService } from './taskService';
 import AuthStorageService from './authStorageService';
 import { getEnvironmentConfig } from '../config/environment';
 
@@ -10,25 +10,25 @@ import { getEnvironmentConfig } from '../config/environment';
 
 export interface StatusUpdateResult {
   success: boolean;
-  case?: Case;
+  case?: VerificationTask;
   error?: string;
 }
 
-class CaseStatusService {
+class TaskStatusService {
 
   /**
    * Update case status with direct backend sync
    */
-  static async updateCaseStatus(
+  static async updateTaskStatus(
     caseId: string,
-    newStatus: CaseStatus,
+    newStatus: VerificationTaskStatus,
     options?: { optimistic?: boolean; auditMetadata?: any }
   ): Promise<StatusUpdateResult> {
     try {
       console.log(`🔄 Updating case ${caseId} status to ${newStatus}...`);
 
       // Get current case
-      const currentCase = await caseService.getCase(caseId);
+      const currentCase = await taskService.getCase(caseId);
       if (!currentCase) {
         return { success: false, error: 'Case not found' };
       }
@@ -42,8 +42,8 @@ class CaseStatusService {
       }
 
       // Update local state
-      await caseService.updateCase(caseId, { status: newStatus });
-      console.log(`✅ Local update: Case ${caseId} status updated to ${newStatus}`);
+      await taskService.updateCase(caseId, { status: newStatus });
+      console.log(`✅ Local update: VerificationTask ${caseId} status updated to ${newStatus}`);
 
       // Try to sync with backend, but don't fail if it's not available
       try {
@@ -58,7 +58,7 @@ class CaseStatusService {
       }
 
       // Always return success for local update
-      const updatedCase = await caseService.getCase(caseId);
+      const updatedCase = await taskService.getCase(caseId);
       return {
         success: true,
         case: updatedCase,
@@ -75,11 +75,11 @@ class CaseStatusService {
   /**
    * Validate if status transition is allowed
    */
-  private static isValidStatusTransition(from: CaseStatus, to: CaseStatus): boolean {
+  private static isValidStatusTransition(from: VerificationTaskStatus, to: VerificationTaskStatus): boolean {
     const validTransitions: Record<CaseStatus, CaseStatus[]> = {
-      [CaseStatus.Assigned]: [CaseStatus.InProgress],
-      [CaseStatus.InProgress]: [CaseStatus.Completed, CaseStatus.Assigned], // Allow back to assigned for revoke
-      [CaseStatus.Completed]: [], // Completed cases cannot change status
+      [TaskStatus.Assigned]: [TaskStatus.InProgress],
+      [TaskStatus.InProgress]: [TaskStatus.Completed, TaskStatus.Assigned], // Allow back to assigned for revoke
+      [TaskStatus.Completed]: [], // Completed cases cannot change status
     };
 
     return validTransitions[from]?.includes(to) || false;
@@ -121,7 +121,7 @@ class CaseStatusService {
    */
   private static async syncStatusWithBackend(
     caseId: string,
-    status: CaseStatus,
+    status: VerificationTaskStatus,
     metadata: Record<string, any>
   ): Promise<{ success: boolean; error?: string }> {
     try {
@@ -190,11 +190,11 @@ class CaseStatusService {
   /**
    * Map mobile status to backend status format
    */
-  private static mapMobileStatusToBackend(status: CaseStatus): string {
+  private static mapMobileStatusToBackend(status: VerificationTaskStatus): string {
     const statusMap: Record<CaseStatus, string> = {
-      [CaseStatus.Assigned]: 'PENDING',
-      [CaseStatus.InProgress]: 'IN_PROGRESS',
-      [CaseStatus.Completed]: 'COMPLETED',
+      [TaskStatus.Assigned]: 'PENDING',
+      [TaskStatus.InProgress]: 'IN_PROGRESS',
+      [TaskStatus.Completed]: 'COMPLETED',
     };
 
     return statusMap[status] || 'PENDING';
@@ -203,4 +203,4 @@ class CaseStatusService {
 
 }
 
-export default CaseStatusService;
+export default TaskStatusService;

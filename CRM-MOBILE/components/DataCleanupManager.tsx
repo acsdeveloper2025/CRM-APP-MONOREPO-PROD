@@ -95,7 +95,7 @@ const DataCleanupManager: React.FC = () => {
         key.startsWith('caseList_') ||
         key.startsWith('caseDetails_') ||
         key.startsWith('cases') ||
-        key === 'LOCAL_STORAGE_KEY' // The key used by caseService
+        key === 'LOCAL_STORAGE_KEY' // The key used by taskService
       );
 
       if (caseKeys.length > 0) {

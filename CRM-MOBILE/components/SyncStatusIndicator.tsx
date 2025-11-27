@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Wifi, WifiOff, RefreshCw, CheckCircle, AlertCircle } from 'lucide-react';
 import NetworkService from '../services/networkService';
-import CaseStatusService from '../services/caseStatusService';
+import TaskStatusService from "./services/taskStatusService"
 import RetryService from '../services/retryService';
 
 interface SyncStatusIndicatorProps {
@@ -44,7 +44,7 @@ export const SyncStatusIndicator: React.FC<SyncStatusIndicatorProps> = ({ classN
     
     setIsSync(true);
     try {
-      // await CaseStatusService.processPendingStatusUpdates();
+      // await TaskStatusService.processPendingStatusUpdates();
       setPendingCount(0);
     } catch (error) {
       console.error('Manual sync failed:', error);
