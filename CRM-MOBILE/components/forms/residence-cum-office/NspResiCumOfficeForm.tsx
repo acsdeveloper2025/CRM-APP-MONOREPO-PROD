@@ -4,7 +4,7 @@ import {
   Case, NspResiCumOfficeReportData, AddressTraceable, AddressLocatable, AddressRating, ResiCumOfficeStatus,
   MetPersonStatusShifted, TPCMetPerson, LocalityTypeResiCumOffice, SightStatus, DominatedArea, FinalStatus, CaseStatus, CapturedImage
 } from '../../../types';
-import { useCases } from '../../../context/CaseContext';
+import { useTasks } from "./context/TaskContext"
 import { FormField, SelectField, TextAreaField, NumberDropdownField } from '../../FormControls';
 import ConfirmationModal from '../../ConfirmationModal';
 import ImageCapture from '../../ImageCapture';
@@ -33,7 +33,7 @@ const getEnumOptions = (enumObject: object) => Object.values(enumObject).map(val
 
 const NspResiCumOfficeForm: React.FC<NspResiCumOfficeFormProps> = ({ caseData }) => {
   const navigate = useNavigate();
-  const { updateNspResiCumOfficeReport, updateCaseStatus, toggleSaveCase , fetchCases } = useCases();
+  const { updateNspResiCumOfficeReport, updateCaseStatus, toggleSaveCase , fetchCases } = useTasks();
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionError, setSubmissionError] = useState<string | null>(null);

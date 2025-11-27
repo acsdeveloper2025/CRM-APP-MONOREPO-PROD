@@ -4,7 +4,7 @@ import {
   Case, UntraceableResiCumOfficeReportData, CallRemarkUntraceable, LocalityTypeResiCumOffice,
   DominatedArea, FinalStatus, CaseStatus, CapturedImage
 } from '../../../types';
-import { useCases } from '../../../context/CaseContext';
+import { useTasks } from "./context/TaskContext"
 import { FormField, SelectField, TextAreaField } from '../../FormControls';
 import ConfirmationModal from '../../ConfirmationModal';
 import ImageCapture from '../../ImageCapture';
@@ -33,7 +33,7 @@ const getEnumOptions = (enumObject: object) => Object.values(enumObject).map(val
 
 const UntraceableResiCumOfficeForm: React.FC<UntraceableResiCumOfficeFormProps> = ({ caseData }) => {
   const navigate = useNavigate();
-  const { updateUntraceableResiCumOfficeReport, updateCaseStatus, toggleSaveCase , fetchCases } = useCases();
+  const { updateUntraceableResiCumOfficeReport, updateCaseStatus, toggleSaveCase , fetchCases } = useTasks();
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionError, setSubmissionError] = useState<string | null>(null);

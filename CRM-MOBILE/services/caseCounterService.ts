@@ -1,4 +1,4 @@
-import { Case, CaseStatus } from '../types';
+import { VerificationTask, TaskStatus } from '../types';
 
 /**
  * Case Counter Service

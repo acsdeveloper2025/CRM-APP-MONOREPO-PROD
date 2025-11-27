@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useCases } from '../context/CaseContext';
+import { useTasks } from "./context/TaskContext"
 
 interface PriorityInputProps {
   caseId: string;
@@ -7,7 +7,7 @@ interface PriorityInputProps {
 }
 
 const PriorityInput: React.FC<PriorityInputProps> = ({ caseId, className = '' }) => {
-  const { getCasePriority, setCasePriority } = useCases();
+  const { getCasePriority, setCasePriority } = useTasks();
   const [priority, setPriority] = useState<string>('');
   const [isEditing, setIsEditing] = useState(false);
 
