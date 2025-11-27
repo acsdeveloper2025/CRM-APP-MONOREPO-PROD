@@ -3,7 +3,7 @@ import { View, Text, FlatList, ActivityIndicator, SafeAreaView, FlatListProps, T
 import { useNavigate } from 'react-router-dom';
 import { Case } from '../types';
 import { useTasks } from "./context/TaskContext"
-import CaseCard from '../components/CaseCard';
+import CaseCard from "./components/TaskCard"
 import TabSearch from '../components/TabSearch';
 import { useTabSearch } from '../hooks/useTabSearch';
 
