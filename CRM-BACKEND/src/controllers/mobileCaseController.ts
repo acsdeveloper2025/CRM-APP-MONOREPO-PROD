@@ -386,7 +386,9 @@ export class MobileCaseController {
 
       // Check if it looks like a UUID
       if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(caseId)) {
-        const taskRes = await query(`SELECT case_id FROM verification_tasks WHERE id = $1`, [caseId]);
+        const taskRes = await query(`SELECT case_id FROM verification_tasks WHERE id = $1`, [
+          caseId,
+        ]);
         if (taskRes.rows.length > 0) {
           lookupCaseId = taskRes.rows[0].case_id;
           specificTaskId = caseId;
@@ -451,7 +453,7 @@ export class MobileCaseController {
       } else {
         vals2.push(null); // For non-field-agents, pass NULL for task filter
       }
-      
+
       // Add specificTaskId as 3rd parameter
       vals2.push(specificTaskId);
 

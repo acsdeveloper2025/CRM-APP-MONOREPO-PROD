@@ -761,9 +761,9 @@ export const updateCase = async (req: AuthenticatedRequest, res: Response) => {
       applicantType,
       backendContactNumber,
       assignedToId, // Task-level field
-      rateTypeId,   // Task-level field
-      address,      // Task-level field
-      taskId,       // ✅ Specific task ID to update
+      rateTypeId, // Task-level field
+      address, // Task-level field
+      taskId, // ✅ Specific task ID to update
     } = req.body;
 
     logger.info('🔍 updateCase called', {
@@ -777,7 +777,7 @@ export const updateCase = async (req: AuthenticatedRequest, res: Response) => {
         customerName,
         clientId,
         productId,
-      }
+      },
     });
 
     // Build dynamic update query for cases table
@@ -898,13 +898,13 @@ export const updateCase = async (req: AuthenticatedRequest, res: Response) => {
         taskUpdateFields.push(`assigned_to = $${taskParamIndex}`);
         taskValues.push(assignedToId || null);
         taskParamIndex++;
-        
+
         // If assigning, update status and timestamps
         if (assignedToId) {
           taskUpdateFields.push(`status = $${taskParamIndex}`);
           taskValues.push('ASSIGNED');
           taskParamIndex++;
-          
+
           taskUpdateFields.push(`assigned_at = NOW()`);
           taskUpdateFields.push(`assigned_by = $${taskParamIndex}`);
           taskValues.push(req.user?.id);
@@ -926,13 +926,11 @@ export const updateCase = async (req: AuthenticatedRequest, res: Response) => {
 
       if (taskUpdateFields.length > 0) {
         taskUpdateFields.push(`updated_at = NOW()`);
-        
+
         // ✅ CRITICAL FIX: Use taskId if provided, otherwise fall back to case_id
         // This ensures we update the specific task being edited, not all tasks for the case
-        const whereClause = taskId 
-          ? `id = $${taskParamIndex}`
-          : `case_id = $${taskParamIndex}`;
-        
+        const whereClause = taskId ? `id = $${taskParamIndex}` : `case_id = $${taskParamIndex}`;
+
         taskValues.push(taskId || id);
 
         const taskUpdateQuery = `
@@ -953,12 +951,14 @@ export const updateCase = async (req: AuthenticatedRequest, res: Response) => {
 
         logger.info('✅ Verification task update result', {
           rowsAffected: taskResult.rowCount,
-          updatedTask: taskResult.rows[0] ? {
-            id: taskResult.rows[0].id,
-            status: taskResult.rows[0].status,
-            assigned_to: taskResult.rows[0].assigned_to,
-            rate_type_id: taskResult.rows[0].rate_type_id,
-          } : null,
+          updatedTask: taskResult.rows[0]
+            ? {
+                id: taskResult.rows[0].id,
+                status: taskResult.rows[0].status,
+                assigned_to: taskResult.rows[0].assigned_to,
+                rate_type_id: taskResult.rows[0].rate_type_id,
+              }
+            : null,
         });
       }
     }
