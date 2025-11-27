@@ -17,7 +17,7 @@ export interface CaseCounts {
 export interface CaseCountUpdate {
   fromStatus?: CaseStatus;
   toStatus: CaseStatus;
-  caseId: string;
+  taskId: string;
   timestamp: string;
 }
 
@@ -119,7 +119,7 @@ class CaseCounterService {
    * Record a case status change for count tracking
    */
   static async recordStatusChange(
-    caseId: string,
+    taskId: string,
     fromStatus: CaseStatus | undefined,
     toStatus: CaseStatus
   ): Promise<void> {

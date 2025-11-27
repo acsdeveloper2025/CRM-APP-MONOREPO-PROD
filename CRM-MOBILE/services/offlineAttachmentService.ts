@@ -20,7 +20,7 @@ export interface OfflineAttachment {
   type: 'pdf' | 'image';
   mimeType: string;
   size: number;
-  caseId: string;
+  taskId: string;
   isAvailableOffline: boolean;
   downloadedAt?: string;
   lastSyncedAt?: string;
@@ -72,7 +72,7 @@ export class OfflineAttachmentService {
       type: 'pdf' | 'image';
       mimeType: string;
       size: number;
-      caseId: string;
+      taskId: string;
     }
   ): Promise<boolean> {
     try {
@@ -372,7 +372,7 @@ export class OfflineAttachmentService {
   /**
    * Get server attachments (mock implementation)
    */
-  private async getServerAttachments(caseId: string): Promise<any[]> {
+  private async getServerAttachments(taskId: string): Promise<any[]> {
     // Mock server response - in real app, this would be an API call
     return [
       {

@@ -5,7 +5,7 @@ import { ChevronDownIcon, ChevronUpIcon, CheckIcon, XIcon, InfoIcon, ArrowUpIcon
 import Spinner from './Spinner';
 import Modal from './Modal';
 import PriorityInput from './PriorityInput';
-import { useCaseAutoSaveStatus } from '../hooks/useCaseAutoSaveStatus';
+import { useTaskAutoSaveStatus } from "./hooks/useTaskAutoSaveStatus"
 import CaseTimeline from "./components/TaskTimeline"
 import AttachmentsModal from './AttachmentsModal';
 import { VerificationTaskService } from '../services/verificationTaskService';
@@ -116,7 +116,7 @@ const TaskCard: React.FC<CaseCardProps> = ({ taskData, isReorderable = false, is
   const [attachmentCountLoaded, setAttachmentCountLoaded] = useState<boolean>(false);
 
   // Check for auto-saved data for this case
-  const { hasAutoSaveData } = useCaseAutoSaveStatus(taskData.id);
+  const { hasAutoSaveData } = useTaskAutoSaveStatus(taskData.id);
 
   // Fetch real attachment count
   useEffect(() => {

@@ -14,7 +14,7 @@ export interface SubmissionStep {
 
 export interface SubmissionProgress {
   id: string;
-  caseId: string;
+  taskId: string;
   verificationType: string;
   status: 'PREPARING' | 'UPLOADING' | 'SUBMITTING' | 'COMPLETED' | 'FAILED';
   overallProgress: number; // 0-100
@@ -101,7 +101,7 @@ class ProgressTrackingService {
    * Start tracking a new submission
    */
   startSubmission(
-    caseId: string, 
+    taskId: string, 
     verificationType: string,
     totalBytes?: number
   ): string {

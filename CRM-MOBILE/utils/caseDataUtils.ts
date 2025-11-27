@@ -15,7 +15,7 @@ export const getProductName = (product: string | { id: number; name: string; cod
 
 export interface CaseDataInfo {
   key: string;
-  caseId: string;
+  taskId: string;
   type: 'case' | 'draft' | 'autosave' | 'verification' | 'temp';
   timestamp: string;
   status?: CaseStatus;

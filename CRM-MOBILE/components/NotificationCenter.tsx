@@ -17,7 +17,7 @@ import { formatDistanceToNow } from 'date-fns';
 interface NotificationCenterProps {
   visible: boolean;
   onClose: () => void;
-  onNavigateToCase?: (caseId: string) => void;
+  onNavigateToCase?: (taskId: string) => void;
 }
 
 export const NotificationCenter: React.FC<NotificationCenterProps> = ({

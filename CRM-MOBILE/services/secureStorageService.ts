@@ -14,7 +14,7 @@ export interface EncryptedAttachment {
   encryptionKey: string;
   createdAt: string;
   lastAccessed: string;
-  caseId: string;
+  taskId: string;
   checksum: string;
 }
 
@@ -96,7 +96,7 @@ export class SecureStorageService {
       originalName: string;
       mimeType: string;
       size: number;
-      caseId: string;
+      taskId: string;
       checksum?: string; // Optional checksum from backend for verification
     }
   ): Promise<void> {
@@ -321,7 +321,7 @@ export class SecureStorageService {
   /**
    * Get all attachments for a specific case
    */
-  async getCaseAttachments(caseId: string): Promise<EncryptedAttachment[]> {
+  async getCaseAttachments(taskId: string): Promise<EncryptedAttachment[]> {
     try {
       const attachments: EncryptedAttachment[] = [];
 
@@ -459,7 +459,7 @@ export class SecureStorageService {
   /**
    * Clear all attachments for a specific case after submission
    */
-  async clearCaseAttachments(caseId: string): Promise<void> {
+  async clearCaseAttachments(taskId: string): Promise<void> {
     try {
       console.log(`🗑️ Clearing all attachments for case: ${caseId}`);
 
