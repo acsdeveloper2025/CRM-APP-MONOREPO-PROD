@@ -10,7 +10,7 @@
  * when ALL its verification tasks are completed.
  *
  * @param caseId - The ID of the case that was submitted
- * @param fetchCases - Function to refresh case list from CaseContext
+ * @param fetchCases - Function to refresh case list from "./context/TaskContext"
  * @param navigate - React Router navigate function
  * @param setSubmissionSuccess - State setter for success message
  */

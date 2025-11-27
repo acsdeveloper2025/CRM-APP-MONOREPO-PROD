@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { View, Text, FlatList, ActivityIndicator, SafeAreaView, FlatListProps, TouchableOpacity } from 'react-native';
 import { useNavigate } from 'react-router-dom';
 import { Case } from '../types';
-import { useCases } from '../context/CaseContext';
+import { useTasks } from "./context/TaskContext"
 import CaseCard from '../components/CaseCard';
 import TabSearch from '../components/TabSearch';
 import { useTabSearch } from '../hooks/useTabSearch';
@@ -31,7 +31,7 @@ const CaseListScreen: React.FC<CaseListScreenProps> = ({
   searchPlaceholder = "Search cases...",
   customHeaderActions
 }) => {
-  const { cases, loading } = useCases();
+  const { cases, loading } = useTasks();
   const navigate = useNavigate();
 
   // First apply the tab filter to get tab-specific cases

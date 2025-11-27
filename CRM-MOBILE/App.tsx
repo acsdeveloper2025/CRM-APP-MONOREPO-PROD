@@ -1,7 +1,7 @@
 import React, { useEffect, useState, Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import { CaseProvider } from './context/CaseContext';
+import { CaseProvider } from "./context/TaskContext"
 import BottomNavigation from './components/BottomNavigation';
 import { SafeAreaProvider, MobileContainer } from './components/SafeAreaProvider';
 import { ResponsiveLayoutProvider } from './components/ResponsiveLayout';

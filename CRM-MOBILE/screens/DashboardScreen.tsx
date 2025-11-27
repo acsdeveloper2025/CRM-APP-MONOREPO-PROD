@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Image } from 'react-native';
-import { useCases } from '../context/CaseContext';
+import { useTasks } from "./context/TaskContext"
 import { useAuth } from '../context/AuthContext';
 import { CaseStatus } from '../types';
 import { useNavigate } from 'react-router-dom';
@@ -55,7 +55,7 @@ const StatCard: React.FC<StatCardProps> = ({ title, count, color, path }) => {
 };
 
 const DashboardScreen: React.FC = () => {
-  const { cases, loading, syncing, syncCases } = useCases();
+  const { cases, loading, syncing, syncCases } = useTasks();
   const { user } = useAuth();
   const navigate = useNavigate();
   

@@ -6,7 +6,7 @@ import {
   LocalityTypeResiCumOffice, SightStatus, PoliticalConnection, DominatedArea,
   FeedbackFromNeighbour, FinalStatus, CaseStatus, CapturedImage
 } from '../../../types';
-import { useCases } from '../../../context/CaseContext';
+import { useTasks } from "./context/TaskContext"
 import { FormField, SelectField, TextAreaField, NumberDropdownField } from '../../FormControls';
 import ConfirmationModal from '../../ConfirmationModal';
 import ImageCapture from '../../ImageCapture';
@@ -54,7 +54,7 @@ const getEnumOptions = (enumObject: object) => Object.values(enumObject).map(val
 
 const PositiveNegativePropertyApfForm: React.FC<PositiveNegativePropertyApfFormProps> = ({ caseData }) => {
   const navigate = useNavigate();
-  const { updatePositivePropertyApfReport, updateNspPropertyApfReport, updateCaseStatus, toggleSaveCase , fetchCases } = useCases();
+  const { updatePositivePropertyApfReport, updateNspPropertyApfReport, updateCaseStatus, toggleSaveCase , fetchCases } = useTasks();
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionError, setSubmissionError] = useState<string | null>(null);

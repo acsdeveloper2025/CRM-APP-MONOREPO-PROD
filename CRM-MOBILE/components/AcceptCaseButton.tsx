@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Case, CaseStatus } from '../types';
+import { VerificationTask, TaskStatus } from '../types';
 import { CheckIcon } from './Icons';
 import CaseStatusService from '../services/caseStatusService';
 import AuditService from '../services/auditService';

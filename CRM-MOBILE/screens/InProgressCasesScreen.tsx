@@ -1,14 +1,14 @@
 
 import React, { useState, useMemo } from 'react';
 import { CaseStatus, Case } from '../types';
-import { useCases } from '../context/CaseContext';
+import { useTasks } from "./context/TaskContext"
 import CaseListScreen from './CaseListScreen';
 
 type SortMode = 'order' | 'priority';
 
 const InProgressCasesScreen: React.FC = () => {
   const [sortMode, setSortMode] = useState<SortMode>('order');
-  const { getCasesWithPriorities } = useCases();
+  const { getCasesWithPriorities } = useTasks();
 
   // Create sort function based on current mode
   const sortFunction = useMemo(() => {

@@ -5,7 +5,7 @@ import {
   PremisesStatusBusiness, SightStatus, TPCMetPerson, TPCConfirmation, LocalityTypeResiCumOffice, PoliticalConnection,
   DominatedArea, FeedbackFromNeighbour, FinalStatus, CaseStatus, CapturedImage
 } from '../../../types';
-import { useCases } from '../../../context/CaseContext';
+import { useTasks } from "./context/TaskContext"
 import { FormField, SelectField, TextAreaField, NumberDropdownField } from '../../FormControls';
 import ConfirmationModal from '../../ConfirmationModal';
 import ImageCapture from '../../ImageCapture';
@@ -34,7 +34,7 @@ const getEnumOptions = (enumObject: object) => Object.values(enumObject).map(val
 
 const ShiftedDsaForm: React.FC<ShiftedDsaFormProps> = ({ caseData }) => {
   const navigate = useNavigate();
-  const { updateShiftedDsaReport, toggleSaveCase , fetchCases } = useCases();
+  const { updateShiftedDsaReport, toggleSaveCase , fetchCases } = useTasks();
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionError, setSubmissionError] = useState<string | null>(null);
