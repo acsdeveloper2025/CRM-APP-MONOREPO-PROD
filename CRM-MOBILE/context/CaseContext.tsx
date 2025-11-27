@@ -151,7 +151,11 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         // This preserves the optimistic UI update
         const updatedCases = cases.map(c =>
           c.id === caseId
-            ? { ...c, status, updatedAt: new Date().toISOString(),
+            ? { 
+                ...c, 
+                status, 
+                taskStatus: status, // FIX: Also update taskStatus to keep it in sync with status for correct tab filtering
+                updatedAt: new Date().toISOString(),
                 ...(status === CaseStatus.InProgress && !c.inProgressAt ? { inProgressAt: new Date().toISOString() } : {}),
                 ...(status === CaseStatus.Completed ? { completedAt: new Date().toISOString(), submissionStatus: 'pending' as const, isSaved: false } : {})
               }

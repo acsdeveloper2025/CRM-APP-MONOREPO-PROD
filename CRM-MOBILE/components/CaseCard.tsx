@@ -296,27 +296,15 @@ const CaseCard: React.FC<CaseCardProps> = ({ caseData, isReorderable = false, is
     setAcceptMessage(null);
 
     try {
-      console.log(`🎯 Starting verification task ${caseData.verificationTaskId}...`);
+      console.log(`🎯 Accepting task ${caseData.id}...`);
 
-      // Check if we have a verification task ID
-      if (!caseData.verificationTaskId) {
-        throw new Error('No verification task ID found');
-      }
-
-      // Start the verification task (ASSIGNED → IN_PROGRESS)
-      const result = await VerificationTaskService.startTask(caseData.verificationTaskId);
-
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to start task');
-      }
-
-      // Refresh cases from backend to get updated task status
-      // The backend has already updated the task status, we just need to fetch the latest data
-      fetchCases();
+      // ✅ OFFLINE-FIRST: Use CaseContext's updateCaseStatus for immediate local update
+      // This updates local state instantly and syncs with backend in background
+      await updateCaseStatus(caseData.id, CaseStatus.InProgress);
 
       // Show success feedback
       setShowAcceptSuccess(true);
-      setAcceptMessage('Task started successfully!');
+      setAcceptMessage('Task accepted successfully!');
 
       // Clear success state after animation
       setTimeout(() => {
@@ -324,11 +312,11 @@ const CaseCard: React.FC<CaseCardProps> = ({ caseData, isReorderable = false, is
         setAcceptMessage(null);
       }, 2000);
 
-      console.log(`✅ Task ${caseData.verificationTaskId} started successfully`);
+      console.log(`✅ Task ${caseData.id} accepted successfully`);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to start task';
+      const errorMessage = error instanceof Error ? error.message : 'Failed to accept task';
       setAcceptMessage(errorMessage);
-      console.error(`❌ Error starting task:`, error);
+      console.error(`❌ Error accepting task:`, error);
 
       // Clear error message after 5 seconds
       setTimeout(() => setAcceptMessage(null), 5000);
