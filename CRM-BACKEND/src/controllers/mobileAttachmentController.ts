@@ -125,10 +125,12 @@ export class MobileAttachmentController {
       // Resolve Task ID to Case ID if needed
       let lookupCaseId = caseId;
       if (isUUID) {
-         const taskRes = await query(`SELECT case_id FROM verification_tasks WHERE id = $1`, [caseId]);
-         if (taskRes.rows.length > 0) {
-           lookupCaseId = taskRes.rows[0].case_id;
-         }
+        const taskRes = await query(`SELECT case_id FROM verification_tasks WHERE id = $1`, [
+          caseId,
+        ]);
+        if (taskRes.rows.length > 0) {
+          lookupCaseId = taskRes.rows[0].case_id;
+        }
       }
 
       // Verify case access and get case details
@@ -322,10 +324,12 @@ export class MobileAttachmentController {
       // Resolve Task ID to Case ID if needed
       let lookupCaseId = caseId;
       if (isUUID) {
-         const taskRes = await query(`SELECT case_id FROM verification_tasks WHERE id = $1`, [caseId]);
-         if (taskRes.rows.length > 0) {
-           lookupCaseId = taskRes.rows[0].case_id;
-         }
+        const taskRes = await query(`SELECT case_id FROM verification_tasks WHERE id = $1`, [
+          caseId,
+        ]);
+        if (taskRes.rows.length > 0) {
+          lookupCaseId = taskRes.rows[0].case_id;
+        }
       }
 
       // Verify case access and get case details
