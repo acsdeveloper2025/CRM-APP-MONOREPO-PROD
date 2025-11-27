@@ -1,5 +1,5 @@
 
-export enum CaseStatus {
+export enum TaskStatus {
   Assigned = 'Assigned',
   InProgress = 'In Progress',
   Completed = 'Completed',
@@ -1747,7 +1747,7 @@ export interface UntraceablePropertyIndividualReportData {
 }
 
 
-export interface Case {
+export interface VerificationTask {
   id: string;
   title: string;
   description: string;
@@ -1755,8 +1755,8 @@ export interface Case {
     name: string;
     contact: string;
   };
-  status: CaseStatus;
-  taskStatus?: CaseStatus; // Task-level status (from verification_tasks table)
+  status: TaskStatus;
+  taskStatus?: TaskStatus; // Task-level status (from verification_tasks table)
   isSaved: boolean;
   createdAt: string; // Case Assignment Date/Time
   updatedAt: string; // Last Update Date/Time
