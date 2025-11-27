@@ -267,7 +267,7 @@ class DeepLinkingService {
   /**
    * Generate case deep link
    */
-  public generateCaseLink(caseId: string, action?: string, params?: Record<string, any>): string {
+  public generateCaseLink(taskId: string, action?: string, params?: Record<string, any>): string {
     return this.generateDeepLink({
       type: 'case',
       id: caseId,
@@ -281,7 +281,7 @@ class DeepLinkingService {
    */
   public generateFormLink(
     formType: string,
-    caseId: string,
+    taskId: string,
     params?: Record<string, any>
   ): string {
     return this.generateDeepLink({
@@ -305,7 +305,7 @@ class DeepLinkingService {
   /**
    * Share case via deep link
    */
-  public async shareCase(caseId: string, caseNumber?: string): Promise<void> {
+  public async shareCase(taskId: string, caseNumber?: string): Promise<void> {
     try {
       const url = this.generateCaseLink(caseId);
       const message = caseNumber 

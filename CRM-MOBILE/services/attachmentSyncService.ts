@@ -201,7 +201,7 @@ class AttachmentSyncService {
    * Clear synced attachments for a specific case
    * Called when a case is submitted or deleted
    */
-  async clearAttachmentsForCase(caseId: string): Promise<void> {
+  async clearAttachmentsForCase(taskId: string): Promise<void> {
     try {
       console.log(`🗑️ Clearing attachments for case ${caseId}...`);
       

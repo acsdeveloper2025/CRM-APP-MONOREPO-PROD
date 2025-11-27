@@ -87,7 +87,7 @@ class AttachmentService {
   /**
    * Fetch attachments for a specific case from the backend API
    */
-  async getCaseAttachments(caseId: string): Promise<Attachment[]> {
+  async getCaseAttachments(taskId: string): Promise<Attachment[]> {
     try {
       console.log(`📎 Fetching real attachments for case ${caseId}...`);
 
@@ -319,7 +319,7 @@ class AttachmentService {
   /**
    * Generate realistic attachments for demo purposes
    */
-  private generateRealisticAttachments(caseId: string): Attachment[] {
+  private generateRealisticAttachments(taskId: string): Attachment[] {
     // Create deterministic but varied attachment scenarios based on case ID
     const caseHash = this.hashString(caseId);
     const attachmentCount = caseHash % 6; // 0-5 attachments
@@ -799,7 +799,7 @@ ${500 + this.calculateContentLength(docInfo)}
   /**
    * Check if attachments for a case are stored securely (not in gallery)
    */
-  async areAttachmentsStoredSecurely(caseId: string): Promise<boolean> {
+  async areAttachmentsStoredSecurely(taskId: string): Promise<boolean> {
     try {
       await this.initialize();
       const attachments = await secureStorageService.getCaseAttachments(caseId);
@@ -818,7 +818,7 @@ ${500 + this.calculateContentLength(docInfo)}
   /**
    * Get count of securely stored attachments for a case
    */
-  async getSecureAttachmentCount(caseId: string): Promise<number> {
+  async getSecureAttachmentCount(taskId: string): Promise<number> {
     try {
       await this.initialize();
       const attachments = await secureStorageService.getCaseAttachments(caseId);

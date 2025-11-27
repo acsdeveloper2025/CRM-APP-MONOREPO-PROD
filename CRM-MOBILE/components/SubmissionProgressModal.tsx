@@ -7,7 +7,7 @@ interface SubmissionProgressModalProps {
   isOpen: boolean;
   onClose: () => void;
   submissionId: string;
-  caseId: string;
+  taskId: string;
 }
 
 export const SubmissionProgressModal: React.FC<SubmissionProgressModalProps> = ({

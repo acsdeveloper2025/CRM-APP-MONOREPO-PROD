@@ -1758,7 +1758,7 @@ export interface VerificationTask {
   status: TaskStatus;
   taskStatus?: TaskStatus; // Task-level status (from verification_tasks table)
   isSaved: boolean;
-  createdAt: string; // Case Assignment Date/Time
+  createdAt: string; // Task Assignment Date/Time
   updatedAt: string; // Last Update Date/Time
   inProgressAt?: string; // In Progress Date/Time
   savedAt?: string; // Save Date/Time
@@ -1842,7 +1842,7 @@ export interface VerificationTask {
   verificationOutcome: VerificationOutcome | null;
   order?: number;
   notes?: string;
-  attachments?: Attachment[]; // Case attachments (PDFs and images, max 10 attachments, 10MB each)
+  attachments?: Attachment[]; // Task attachments (PDFs and images, max 10 attachments, 10MB each)
   residenceReport?: ResidenceReportData;
   shiftedResidenceReport?: ShiftedResidenceReportData;
   nspResidenceReport?: NspResidenceReportData;

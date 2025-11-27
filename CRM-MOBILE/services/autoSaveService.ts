@@ -5,7 +5,7 @@ import { Case, CapturedImage } from '../types';
  * Auto-save service for form data with encrypted local storage
  */
 export interface AutoSaveData {
-  caseId: string;
+  taskId: string;
   formType: string;
   formData: any;
   images: CapturedImage[];
@@ -59,7 +59,7 @@ class AutoSaveService {
    * Save form data with auto-save
    */
   async saveFormData(
-    caseId: string,
+    taskId: string,
     formType: string,
     formData: any,
     images: CapturedImage[] = [],
@@ -150,7 +150,7 @@ class AutoSaveService {
   /**
    * Retrieve saved form data with mobile/web compatibility
    */
-  async getFormData(caseId: string, formType: string): Promise<AutoSaveData | null> {
+  async getFormData(taskId: string, formType: string): Promise<AutoSaveData | null> {
     try {
       const key = this.getAutoSaveKeyInternal(caseId, formType);
       const data = await encryptedStorage.getItem<AutoSaveData>(key);
@@ -186,7 +186,7 @@ class AutoSaveService {
   /**
    * Check if auto-saved data exists for a form
    */
-  async hasAutoSaveData(caseId: string, formType: string): Promise<boolean> {
+  async hasAutoSaveData(taskId: string, formType: string): Promise<boolean> {
     try {
       const data = await this.getFormData(caseId, formType);
       return data !== null;
@@ -198,7 +198,7 @@ class AutoSaveService {
   /**
    * Mark form as completed and clean up auto-save data after 15 days
    */
-  async markFormCompleted(caseId: string, formType: string): Promise<void> {
+  async markFormCompleted(taskId: string, formType: string): Promise<void> {
     try {
       const key = this.getAutoSaveKeyInternal(caseId, formType);
       const data = await this.getFormData(caseId, formType);
@@ -224,7 +224,7 @@ class AutoSaveService {
   /**
    * Remove auto-save data
    */
-  async removeAutoSaveData(caseId: string, formType: string): Promise<void> {
+  async removeAutoSaveData(taskId: string, formType: string): Promise<void> {
     try {
       const key = this.getAutoSaveKeyInternal(caseId, formType);
       await encryptedStorage.removeItem(key);
@@ -342,7 +342,7 @@ class AutoSaveService {
   /**
    * Get auto-save key for external use
    */
-  getAutoSaveKey(caseId: string, formType: string): string {
+  getAutoSaveKey(taskId: string, formType: string): string {
     return this.getAutoSaveKeyInternal(caseId, formType);
   }
 
@@ -379,7 +379,7 @@ class AutoSaveService {
   }
 
   // Private helper methods
-  private getAutoSaveKeyInternal(caseId: string, formType: string): string {
+  private getAutoSaveKeyInternal(taskId: string, formType: string): string {
     return `${this.AUTOSAVE_PREFIX}${caseId}_${formType}`;
   }
 

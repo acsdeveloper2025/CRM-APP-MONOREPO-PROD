@@ -6,7 +6,7 @@
 const PRIORITY_STORAGE_KEY = 'case_priorities';
 
 export interface CasePriority {
-  caseId: string;
+  taskId: string;
   priority: number;
   updatedAt: string;
 }
@@ -39,7 +39,7 @@ class PriorityService {
   /**
    * Set priority for a specific case
    */
-  setPriority(caseId: string, priority: number): void {
+  setPriority(taskId: string, priority: number): void {
     const priorities = this.getPriorities();
     priorities[caseId] = {
       caseId,
@@ -52,7 +52,7 @@ class PriorityService {
   /**
    * Get priority for a specific case
    */
-  getPriority(caseId: string): number | null {
+  getPriority(taskId: string): number | null {
     const priorities = this.getPriorities();
     return priorities[caseId]?.priority || null;
   }
@@ -60,7 +60,7 @@ class PriorityService {
   /**
    * Remove priority for a specific case
    */
-  removePriority(caseId: string): void {
+  removePriority(taskId: string): void {
     const priorities = this.getPriorities();
     delete priorities[caseId];
     this.savePriorities(priorities);

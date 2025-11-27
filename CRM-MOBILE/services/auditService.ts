@@ -53,7 +53,7 @@ class AuditService {
    * Log a case status change
    */
   static async logCaseStatusChange(
-    caseId: string,
+    taskId: string,
     fromStatus: CaseStatus,
     toStatus: CaseStatus,
     caseDetails: {
@@ -425,7 +425,7 @@ class AuditService {
   /**
    * Get audit logs for a specific case
    */
-  static async getCaseAuditLogs(caseId: string): Promise<AuditLogEntry[]> {
+  static async getCaseAuditLogs(taskId: string): Promise<AuditLogEntry[]> {
     try {
       const logs = await this.getLocalAuditLogs();
       return logs.filter(log => 

@@ -11,7 +11,7 @@ import AuditService from '../services/auditService';
 
 interface AcceptTaskButtonProps {
   taskData: VerificationTask;
-  onStatusUpdate: (caseId: string, newStatus: VerificationTaskStatus) => void;
+  onStatusUpdate: (taskId: string, newStatus: VerificationTaskStatus) => void;
   onError?: (error: string) => void;
   onSuccess?: (message: string) => void;
 }
