@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Case, CaseStatus, VerificationType, VerificationOutcome, RevokeReason } from '../types';
-import { useCases } from '../context/CaseContext';
+import { useTasks } from "./context/TaskContext"
 import { ChevronDownIcon, ChevronUpIcon, CheckIcon, XIcon, InfoIcon, ArrowUpIcon, ArrowDownIcon, AttachmentIcon } from './Icons';
 import Spinner from './Spinner';
 import Modal from './Modal';
@@ -96,7 +96,7 @@ const verificationOptionsMap: { [key in VerificationType]?: React.ReactElement[]
 };
 
 const CaseCard: React.FC<CaseCardProps> = ({ caseData, isReorderable = false, isFirst, isLast }) => {
-  const { updateCaseStatus, updateVerificationOutcome, reorderInProgressCase, updateCaseSubmissionStatus, verifyCaseSubmissionStatus, fetchCases } = useCases();
+  const { updateCaseStatus, updateVerificationOutcome, reorderInProgressCase, updateCaseSubmissionStatus, verifyCaseSubmissionStatus, fetchCases } = useTasks();
   const [isExpanded, setIsExpanded] = useState(false);
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
   const [isRevokeModalOpen, setIsRevokeModalOpen] = useState(false);

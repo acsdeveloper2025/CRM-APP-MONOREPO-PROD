@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { dataCleanupService, CleanupResult } from '../services/dataCleanupService';
-import { useCases } from '../context/CaseContext';
+import { useTasks } from "./context/TaskContext"
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface CleanupStats {
@@ -21,7 +21,7 @@ const DataCleanupManager: React.FC = () => {
   const [isCacheClearing, setIsCacheClearing] = useState(false);
   const [isAttachmentClearing, setIsAttachmentClearing] = useState(false);
 
-  const { syncCases } = useCases();
+  const { syncCases } = useTasks();
 
   useEffect(() => {
     loadCleanupData();

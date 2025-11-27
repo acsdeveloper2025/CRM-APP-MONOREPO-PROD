@@ -9,80 +9,80 @@ import CaseCounterService from '../services/caseCounterService';
 import { useAuth } from './AuthContext';
 import { getReportInfo } from '../data/initialReportData';
 
-interface CaseContextType {
-  cases: Case[];
+interface TaskContextType {
+  tasks: VerificationTask[];
   loading: boolean;
   syncing: boolean;
   error: string | null;
   fetchCases: () => void;
-  updateCaseStatus: (caseId: string, status: CaseStatus) => Promise<void>;
-  updateVerificationOutcome: (caseId: string, outcome: VerificationOutcome | null) => Promise<void>;
-  updateResidenceReport: (caseId: string, reportData: Partial<ResidenceReportData>) => Promise<void>;
-  updateShiftedResidenceReport: (caseId: string, reportData: Partial<ShiftedResidenceReportData>) => Promise<void>;
-  updateNspResidenceReport: (caseId: string, reportData: Partial<NspResidenceReportData>) => Promise<void>;
-  updateEntryRestrictedResidenceReport: (caseId: string, reportData: Partial<EntryRestrictedResidenceReportData>) => Promise<void>;
-  updateUntraceableResidenceReport: (caseId: string, reportData: Partial<UntraceableResidenceReportData>) => Promise<void>;
-  updateResiCumOfficeReport: (caseId: string, reportData: Partial<ResiCumOfficeReportData>) => Promise<void>;
-  updateShiftedResiCumOfficeReport: (caseId: string, reportData: Partial<ShiftedResiCumOfficeReportData>) => Promise<void>;
-  updateNspResiCumOfficeReport: (caseId: string, reportData: Partial<NspResiCumOfficeReportData>) => Promise<void>;
-  updateEntryRestrictedResiCumOfficeReport: (caseId: string, reportData: Partial<EntryRestrictedResiCumOfficeReportData>) => Promise<void>;
-  updateUntraceableResiCumOfficeReport: (caseId: string, reportData: Partial<UntraceableResiCumOfficeReportData>) => Promise<void>;
-  updatePositiveOfficeReport: (caseId: string, reportData: Partial<PositiveOfficeReportData>) => Promise<void>;
-  updateShiftedOfficeReport: (caseId: string, reportData: Partial<ShiftedOfficeReportData>) => Promise<void>;
-  updateNspOfficeReport: (caseId: string, reportData: Partial<NspOfficeReportData>) => Promise<void>;
-  updateEntryRestrictedOfficeReport: (caseId: string, reportData: Partial<EntryRestrictedOfficeReportData>) => Promise<void>;
-  updateUntraceableOfficeReport: (caseId: string, reportData: Partial<UntraceableOfficeReportData>) => Promise<void>;
-  updatePositiveBusinessReport: (caseId: string, reportData: Partial<PositiveBusinessReportData>) => Promise<void>;
-  updateShiftedBusinessReport: (caseId: string, reportData: Partial<ShiftedBusinessReportData>) => Promise<void>;
-  updateNspBusinessReport: (caseId: string, reportData: Partial<NspBusinessReportData>) => Promise<void>;
-  updateEntryRestrictedBusinessReport: (caseId: string, reportData: Partial<EntryRestrictedBusinessReportData>) => Promise<void>;
-  updateUntraceableBusinessReport: (caseId: string, reportData: Partial<UntraceableBusinessReportData>) => Promise<void>;
-  updatePositiveBuilderReport: (caseId: string, reportData: Partial<PositiveBuilderReportData>) => Promise<void>;
-  updateShiftedBuilderReport: (caseId: string, reportData: Partial<ShiftedBuilderReportData>) => Promise<void>;
-  updateNspBuilderReport: (caseId: string, reportData: Partial<NspBuilderReportData>) => Promise<void>;
-  updateEntryRestrictedBuilderReport: (caseId: string, reportData: Partial<EntryRestrictedBuilderReportData>) => Promise<void>;
-  updateUntraceableBuilderReport: (caseId: string, reportData: Partial<UntraceableBuilderReportData>) => Promise<void>;
-  updatePositiveNocReport: (caseId: string, reportData: Partial<PositiveNocReportData>) => Promise<void>;
-  updateShiftedNocReport: (caseId: string, reportData: Partial<ShiftedNocReportData>) => Promise<void>;
-  updateNspNocReport: (caseId: string, reportData: Partial<NspNocReportData>) => Promise<void>;
-  updateEntryRestrictedNocReport: (caseId: string, reportData: Partial<EntryRestrictedNocReportData>) => Promise<void>;
-  updateUntraceableNocReport: (caseId: string, reportData: Partial<UntraceableNocReportData>) => Promise<void>;
-  updatePositiveDsaReport: (caseId: string, reportData: Partial<PositiveDsaReportData>) => Promise<void>;
-  updateShiftedDsaReport: (caseId: string, reportData: Partial<ShiftedDsaReportData>) => Promise<void>;
-  updateNspDsaReport: (caseId: string, reportData: Partial<NspDsaReportData>) => Promise<void>;
-  updateEntryRestrictedDsaReport: (caseId: string, reportData: Partial<EntryRestrictedDsaReportData>) => Promise<void>;
-  updateUntraceableDsaReport: (caseId: string, reportData: Partial<UntraceableDsaReportData>) => Promise<void>;
-  updatePositivePropertyApfReport: (caseId: string, reportData: Partial<PositivePropertyApfReportData>) => Promise<void>;
-  updateNspPropertyApfReport: (caseId: string, reportData: Partial<NspPropertyApfReportData>) => Promise<void>;
-  updateEntryRestrictedPropertyApfReport: (caseId: string, reportData: Partial<EntryRestrictedPropertyApfReportData>) => Promise<void>;
-  updateUntraceablePropertyApfReport: (caseId: string, reportData: Partial<UntraceablePropertyApfReportData>) => Promise<void>;
-  updatePositivePropertyIndividualReport: (caseId: string, reportData: Partial<PositivePropertyIndividualReportData>) => Promise<void>;
-  updateNspPropertyIndividualReport: (caseId: string, reportData: Partial<NspPropertyIndividualReportData>) => Promise<void>;
-  updateEntryRestrictedPropertyIndividualReport: (caseId: string, reportData: Partial<EntryRestrictedPropertyIndividualReportData>) => Promise<void>;
-  updateUntraceablePropertyIndividualReport: (caseId: string, reportData: Partial<UntraceablePropertyIndividualReportData>) => Promise<void>;
-  toggleSaveCase: (caseId: string, isSaved: boolean) => Promise<void>;
-  revokeCase: (caseId: string, reason: RevokeReason) => Promise<void>;
-  reorderInProgressCase: (caseId: string, direction: 'up' | 'down') => Promise<void>;
+  updateCaseStatus: (taskId: string, status: VerificationTaskStatus) => Promise<void>;
+  updateVerificationOutcome: (taskId: string, outcome: VerificationOutcome | null) => Promise<void>;
+  updateResidenceReport: (taskId: string, reportData: Partial<ResidenceReportData>) => Promise<void>;
+  updateShiftedResidenceReport: (taskId: string, reportData: Partial<ShiftedResidenceReportData>) => Promise<void>;
+  updateNspResidenceReport: (taskId: string, reportData: Partial<NspResidenceReportData>) => Promise<void>;
+  updateEntryRestrictedResidenceReport: (taskId: string, reportData: Partial<EntryRestrictedResidenceReportData>) => Promise<void>;
+  updateUntraceableResidenceReport: (taskId: string, reportData: Partial<UntraceableResidenceReportData>) => Promise<void>;
+  updateResiCumOfficeReport: (taskId: string, reportData: Partial<ResiCumOfficeReportData>) => Promise<void>;
+  updateShiftedResiCumOfficeReport: (taskId: string, reportData: Partial<ShiftedResiCumOfficeReportData>) => Promise<void>;
+  updateNspResiCumOfficeReport: (taskId: string, reportData: Partial<NspResiCumOfficeReportData>) => Promise<void>;
+  updateEntryRestrictedResiCumOfficeReport: (taskId: string, reportData: Partial<EntryRestrictedResiCumOfficeReportData>) => Promise<void>;
+  updateUntraceableResiCumOfficeReport: (taskId: string, reportData: Partial<UntraceableResiCumOfficeReportData>) => Promise<void>;
+  updatePositiveOfficeReport: (taskId: string, reportData: Partial<PositiveOfficeReportData>) => Promise<void>;
+  updateShiftedOfficeReport: (taskId: string, reportData: Partial<ShiftedOfficeReportData>) => Promise<void>;
+  updateNspOfficeReport: (taskId: string, reportData: Partial<NspOfficeReportData>) => Promise<void>;
+  updateEntryRestrictedOfficeReport: (taskId: string, reportData: Partial<EntryRestrictedOfficeReportData>) => Promise<void>;
+  updateUntraceableOfficeReport: (taskId: string, reportData: Partial<UntraceableOfficeReportData>) => Promise<void>;
+  updatePositiveBusinessReport: (taskId: string, reportData: Partial<PositiveBusinessReportData>) => Promise<void>;
+  updateShiftedBusinessReport: (taskId: string, reportData: Partial<ShiftedBusinessReportData>) => Promise<void>;
+  updateNspBusinessReport: (taskId: string, reportData: Partial<NspBusinessReportData>) => Promise<void>;
+  updateEntryRestrictedBusinessReport: (taskId: string, reportData: Partial<EntryRestrictedBusinessReportData>) => Promise<void>;
+  updateUntraceableBusinessReport: (taskId: string, reportData: Partial<UntraceableBusinessReportData>) => Promise<void>;
+  updatePositiveBuilderReport: (taskId: string, reportData: Partial<PositiveBuilderReportData>) => Promise<void>;
+  updateShiftedBuilderReport: (taskId: string, reportData: Partial<ShiftedBuilderReportData>) => Promise<void>;
+  updateNspBuilderReport: (taskId: string, reportData: Partial<NspBuilderReportData>) => Promise<void>;
+  updateEntryRestrictedBuilderReport: (taskId: string, reportData: Partial<EntryRestrictedBuilderReportData>) => Promise<void>;
+  updateUntraceableBuilderReport: (taskId: string, reportData: Partial<UntraceableBuilderReportData>) => Promise<void>;
+  updatePositiveNocReport: (taskId: string, reportData: Partial<PositiveNocReportData>) => Promise<void>;
+  updateShiftedNocReport: (taskId: string, reportData: Partial<ShiftedNocReportData>) => Promise<void>;
+  updateNspNocReport: (taskId: string, reportData: Partial<NspNocReportData>) => Promise<void>;
+  updateEntryRestrictedNocReport: (taskId: string, reportData: Partial<EntryRestrictedNocReportData>) => Promise<void>;
+  updateUntraceableNocReport: (taskId: string, reportData: Partial<UntraceableNocReportData>) => Promise<void>;
+  updatePositiveDsaReport: (taskId: string, reportData: Partial<PositiveDsaReportData>) => Promise<void>;
+  updateShiftedDsaReport: (taskId: string, reportData: Partial<ShiftedDsaReportData>) => Promise<void>;
+  updateNspDsaReport: (taskId: string, reportData: Partial<NspDsaReportData>) => Promise<void>;
+  updateEntryRestrictedDsaReport: (taskId: string, reportData: Partial<EntryRestrictedDsaReportData>) => Promise<void>;
+  updateUntraceableDsaReport: (taskId: string, reportData: Partial<UntraceableDsaReportData>) => Promise<void>;
+  updatePositivePropertyApfReport: (taskId: string, reportData: Partial<PositivePropertyApfReportData>) => Promise<void>;
+  updateNspPropertyApfReport: (taskId: string, reportData: Partial<NspPropertyApfReportData>) => Promise<void>;
+  updateEntryRestrictedPropertyApfReport: (taskId: string, reportData: Partial<EntryRestrictedPropertyApfReportData>) => Promise<void>;
+  updateUntraceablePropertyApfReport: (taskId: string, reportData: Partial<UntraceablePropertyApfReportData>) => Promise<void>;
+  updatePositivePropertyIndividualReport: (taskId: string, reportData: Partial<PositivePropertyIndividualReportData>) => Promise<void>;
+  updateNspPropertyIndividualReport: (taskId: string, reportData: Partial<NspPropertyIndividualReportData>) => Promise<void>;
+  updateEntryRestrictedPropertyIndividualReport: (taskId: string, reportData: Partial<EntryRestrictedPropertyIndividualReportData>) => Promise<void>;
+  updateUntraceablePropertyIndividualReport: (taskId: string, reportData: Partial<UntraceablePropertyIndividualReportData>) => Promise<void>;
+  toggleSaveCase: (taskId: string, isSaved: boolean) => Promise<void>;
+  revokeCase: (taskId: string, reason: RevokeReason) => Promise<void>;
+  reorderInProgressCase: (taskId: string, direction: 'up' | 'down') => Promise<void>;
   syncCases: () => Promise<void>;
   // Priority management functions
-  setCasePriority: (caseId: string, priority: number | null) => void;
-  getCasePriority: (caseId: string) => number | null;
+  setCasePriority: (taskId: string, priority: number | null) => void;
+  getCasePriority: (taskId: string) => number | null;
   getCasesWithPriorities: () => Case[];
   // Submission status management
-  updateCaseSubmissionStatus: (caseId: string, status: 'pending' | 'submitting' | 'success' | 'failed', error?: string) => Promise<void>;
-  verifyCaseSubmissionStatus: (caseId: string) => Promise<{ submitted: boolean; taskStatus?: string; error?: string }>;
+  updateCaseSubmissionStatus: (taskId: string, status: 'pending' | 'submitting' | 'success' | 'failed', error?: string) => Promise<void>;
+  verifyCaseSubmissionStatus: (taskId: string) => Promise<{ submitted: boolean; taskStatus?: string; error?: string }>;
 }
 
-const CaseContext = createContext<CaseContextType | undefined>(undefined);
+const TaskContext = createContext<CaseContextType | undefined>(undefined);
 
 export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [cases, setCases] = useState<Case[]>([]);
+  const [tasks, setTasks] = useState<Case[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [syncing, setSyncing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const { isAuthenticated } = useAuth();
 
-  const fetchCases = useCallback(async () => {
+  const fetchTasks = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -92,10 +92,10 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const sortedCases = data.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
       setCases(sortedCases);
 
-      // Update case counters
+      // Update task counters
       await CaseCounterService.updateCounts(sortedCases);
     } catch (err) {
-      setError('Failed to fetch cases.');
+      setError('Failed to fetch tasks.');
       console.error(err);
     } finally {
       setLoading(false);
@@ -110,23 +110,23 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, [isAuthenticated, fetchCases]);
 
-  const updateCaseStatus = async (caseId: string, status: CaseStatus) => {
+  const updateTaskStatus = async (taskId: string, status: VerificationTaskStatus) => {
     try {
-      const currentCase = cases.find(c => c.id === caseId);
-      if (!currentCase) throw new Error("Case not found");
+      const currentTask = tasks.find(c => c.id === taskId);
+      if (!currentTask) throw new Error("Case not found");
 
       // Prepare audit metadata
       const auditMetadata = {
-        customerName: currentCase.customer.name,
-        verificationType: currentCase.verificationType,
-        caseTitle: currentCase.title,
-        address: currentCase.address || currentCase.visitAddress,
+        customerName: currentTask.customer.name,
+        verificationType: currentTask.verificationType,
+        caseTitle: currentTask.title,
+        address: currentTask.address || currentTask.visitAddress,
         updatedAt: new Date().toISOString(),
         networkStatus: NetworkService.isOnline() ? 'online' : 'offline',
       };
 
-      // Use enhanced case status service with optimistic UI and offline support
-      const result = await CaseStatusService.updateCaseStatus(caseId, status, {
+      // Use enhanced task status service with optimistic UI and offline support
+      const result = await CaseStatusService.updateCaseStatus(taskId, status, {
         optimistic: true,
         auditMetadata,
       });
@@ -134,52 +134,52 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (result.success) {
         // Log the status change for audit purposes
         await AuditService.logCaseStatusChange(
-          caseId,
-          currentCase.status,
+          taskId,
+          currentTask.status,
           status,
           {
-            customerName: currentCase.customer.name,
-            verificationType: currentCase.verificationType,
+            customerName: currentTask.customer.name,
+            verificationType: currentTask.verificationType,
             metadata: auditMetadata,
           }
         );
 
         // Record status change for counter tracking
-        await CaseCounterService.recordStatusChange(caseId, currentCase.status, status);
+        await CaseCounterService.recordStatusChange(taskId, currentTask.status, status);
 
         // Update local state immediately instead of refetching from API
         // This preserves the optimistic UI update
-        const updatedCases = cases.map(c =>
-          c.id === caseId
+        const updatedCases = tasks.map(c =>
+          c.id === taskId
             ? { 
                 ...c, 
                 status, 
                 taskStatus: status, // FIX: Also update taskStatus to keep it in sync with status for correct tab filtering
                 updatedAt: new Date().toISOString(),
-                ...(status === CaseStatus.InProgress && !c.inProgressAt ? { inProgressAt: new Date().toISOString() } : {}),
-                ...(status === CaseStatus.Completed ? { completedAt: new Date().toISOString(), submissionStatus: 'pending' as const, isSaved: false } : {})
+                ...(status === TaskStatus.InProgress && !c.inProgressAt ? { inProgressAt: new Date().toISOString() } : {}),
+                ...(status === TaskStatus.Completed ? { completedAt: new Date().toISOString(), submissionStatus: 'pending' as const, isSaved: false } : {})
               }
             : c
         );
         setCases(updatedCases);
 
-        // Update case counters with the new state
+        // Update task counters with the new state
         await CaseCounterService.updateCounts(updatedCases);
 
         // Update completed successfully
       } else {
-        throw new Error(result.error || 'Failed to update case status');
+        throw new Error(result.error || 'Failed to update task status');
       }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to update case status';
+      const errorMessage = err instanceof Error ? err.message : 'Failed to update task status';
       setError(errorMessage);
-      console.error(`❌ Error updating case ${caseId}:`, err);
+      console.error(`❌ Error updating task ${taskId}:`, err);
     }
   };
   
-  const updateVerificationOutcome = async (caseId: string, outcome: VerificationOutcome | null) => {
+  const updateVerificationOutcome = async (taskId: string, outcome: VerificationOutcome | null) => {
     try {
-      const caseToUpdate = cases.find(c => c.id === caseId);
+      const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) {
         throw new Error("Case not found");
       }
@@ -189,18 +189,18 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (outcome) {
         const reportInfo = getReportInfo(caseToUpdate.verificationType, outcome);
         
-        // Check if the report key exists on the case object and is undefined/null
+        // Check if the report key exists on the task object and is undefined/null
         if (reportInfo && !caseToUpdate[reportInfo.key as keyof Case]) {
           (updates as any)[reportInfo.key] = reportInfo.data;
         }
       }
 
-      await caseService.updateCase(caseId, updates);
+      await caseService.updateCase(taskId, updates);
 
       // Update local state immediately instead of refetching from API
       // This preserves any local status changes (like In Progress status)
-      const updatedCases = cases.map(c =>
-        c.id === caseId
+      const updatedCases = tasks.map(c =>
+        c.id === taskId
           ? { ...c, ...updates, updatedAt: new Date().toISOString() }
           : c
       );
@@ -208,18 +208,18 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to update verification outcome';
       setError(errorMessage);
-      console.error(`❌ Error updating verification outcome for case ${caseId}:`, err);
+      console.error(`❌ Error updating verification outcome for task ${taskId}:`, err);
     }
   };
 
-  const updateResidenceReport = async (caseId: string, reportData: Partial<ResidenceReportData>) => {
+  const updateResidenceReport = async (taskId: string, reportData: Partial<ResidenceReportData>) => {
     try {
-      const caseToUpdate = cases.find(c => c.id === caseId);
+      const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.residenceReport || {}), ...reportData };
-      await caseService.updateCase(caseId, { residenceReport: updatedReport as ResidenceReportData });
+      await caseService.updateCase(taskId, { residenceReport: updatedReport as ResidenceReportData });
       setCases(prevCases => prevCases.map(c =>
-        c.id === caseId
+        c.id === taskId
           ? { ...c, residenceReport: updatedReport as ResidenceReportData, updatedAt: new Date().toISOString(), savedAt: new Date().toISOString() }
           : c
       ));
@@ -230,14 +230,14 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const updateShiftedResidenceReport = async (caseId: string, reportData: Partial<ShiftedResidenceReportData>) => {
+  const updateShiftedResidenceReport = async (taskId: string, reportData: Partial<ShiftedResidenceReportData>) => {
     try {
-      const caseToUpdate = cases.find(c => c.id === caseId);
+      const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.shiftedResidenceReport || {}), ...reportData };
-      await caseService.updateCase(caseId, { shiftedResidenceReport: updatedReport as ShiftedResidenceReportData });
+      await caseService.updateCase(taskId, { shiftedResidenceReport: updatedReport as ShiftedResidenceReportData });
       setCases(prevCases => prevCases.map(c =>
-        c.id === caseId
+        c.id === taskId
           ? { ...c, shiftedResidenceReport: updatedReport as ShiftedResidenceReportData, updatedAt: new Date().toISOString(), savedAt: new Date().toISOString() }
           : c
       ));
@@ -248,14 +248,14 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const updateNspResidenceReport = async (caseId: string, reportData: Partial<NspResidenceReportData>) => {
+  const updateNspResidenceReport = async (taskId: string, reportData: Partial<NspResidenceReportData>) => {
     try {
-      const caseToUpdate = cases.find(c => c.id === caseId);
+      const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.nspResidenceReport || {}), ...reportData };
-      await caseService.updateCase(caseId, { nspResidenceReport: updatedReport as NspResidenceReportData });
+      await caseService.updateCase(taskId, { nspResidenceReport: updatedReport as NspResidenceReportData });
       setCases(prevCases => prevCases.map(c => 
-        c.id === caseId 
+        c.id === taskId 
           ? { ...c, nspResidenceReport: updatedReport as NspResidenceReportData, updatedAt: new Date().toISOString() } 
           : c
       ));
@@ -266,14 +266,14 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const updateEntryRestrictedResidenceReport = async (caseId: string, reportData: Partial<EntryRestrictedResidenceReportData>) => {
+  const updateEntryRestrictedResidenceReport = async (taskId: string, reportData: Partial<EntryRestrictedResidenceReportData>) => {
     try {
-      const caseToUpdate = cases.find(c => c.id === caseId);
+      const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.entryRestrictedResidenceReport || {}), ...reportData };
-      await caseService.updateCase(caseId, { entryRestrictedResidenceReport: updatedReport as EntryRestrictedResidenceReportData });
+      await caseService.updateCase(taskId, { entryRestrictedResidenceReport: updatedReport as EntryRestrictedResidenceReportData });
       setCases(prevCases => prevCases.map(c => 
-        c.id === caseId 
+        c.id === taskId 
           ? { ...c, entryRestrictedResidenceReport: updatedReport as EntryRestrictedResidenceReportData, updatedAt: new Date().toISOString() } 
           : c
       ));
@@ -284,14 +284,14 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
   
-  const updateUntraceableResidenceReport = async (caseId: string, reportData: Partial<UntraceableResidenceReportData>) => {
+  const updateUntraceableResidenceReport = async (taskId: string, reportData: Partial<UntraceableResidenceReportData>) => {
     try {
-      const caseToUpdate = cases.find(c => c.id === caseId);
+      const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.untraceableResidenceReport || {}), ...reportData };
-      await caseService.updateCase(caseId, { untraceableResidenceReport: updatedReport as UntraceableResidenceReportData });
+      await caseService.updateCase(taskId, { untraceableResidenceReport: updatedReport as UntraceableResidenceReportData });
       setCases(prevCases => prevCases.map(c => 
-        c.id === caseId 
+        c.id === taskId 
           ? { ...c, untraceableResidenceReport: updatedReport as UntraceableResidenceReportData, updatedAt: new Date().toISOString() } 
           : c
       ));
@@ -302,14 +302,14 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
   
-  const updateResiCumOfficeReport = async (caseId: string, reportData: Partial<ResiCumOfficeReportData>) => {
+  const updateResiCumOfficeReport = async (taskId: string, reportData: Partial<ResiCumOfficeReportData>) => {
     try {
-      const caseToUpdate = cases.find(c => c.id === caseId);
+      const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.resiCumOfficeReport || {}), ...reportData };
-      await caseService.updateCase(caseId, { resiCumOfficeReport: updatedReport as ResiCumOfficeReportData });
+      await caseService.updateCase(taskId, { resiCumOfficeReport: updatedReport as ResiCumOfficeReportData });
       setCases(prevCases => prevCases.map(c => 
-        c.id === caseId 
+        c.id === taskId 
           ? { ...c, resiCumOfficeReport: updatedReport as ResiCumOfficeReportData, updatedAt: new Date().toISOString() } 
           : c
       ));
@@ -320,14 +320,14 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const updateShiftedResiCumOfficeReport = async (caseId: string, reportData: Partial<ShiftedResiCumOfficeReportData>) => {
+  const updateShiftedResiCumOfficeReport = async (taskId: string, reportData: Partial<ShiftedResiCumOfficeReportData>) => {
     try {
-      const caseToUpdate = cases.find(c => c.id === caseId);
+      const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.shiftedResiCumOfficeReport || {}), ...reportData };
-      await caseService.updateCase(caseId, { shiftedResiCumOfficeReport: updatedReport as ShiftedResiCumOfficeReportData });
+      await caseService.updateCase(taskId, { shiftedResiCumOfficeReport: updatedReport as ShiftedResiCumOfficeReportData });
       setCases(prevCases => prevCases.map(c => 
-        c.id === caseId 
+        c.id === taskId 
           ? { ...c, shiftedResiCumOfficeReport: updatedReport as ShiftedResiCumOfficeReportData, updatedAt: new Date().toISOString() } 
           : c
       ));
@@ -338,14 +338,14 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
   
-  const updateNspResiCumOfficeReport = async (caseId: string, reportData: Partial<NspResiCumOfficeReportData>) => {
+  const updateNspResiCumOfficeReport = async (taskId: string, reportData: Partial<NspResiCumOfficeReportData>) => {
     try {
-      const caseToUpdate = cases.find(c => c.id === caseId);
+      const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.nspResiCumOfficeReport || {}), ...reportData };
-      await caseService.updateCase(caseId, { nspResiCumOfficeReport: updatedReport as NspResiCumOfficeReportData });
+      await caseService.updateCase(taskId, { nspResiCumOfficeReport: updatedReport as NspResiCumOfficeReportData });
       setCases(prevCases => prevCases.map(c => 
-        c.id === caseId 
+        c.id === taskId 
           ? { ...c, nspResiCumOfficeReport: updatedReport as NspResiCumOfficeReportData, updatedAt: new Date().toISOString() } 
           : c
       ));
@@ -356,14 +356,14 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const updateEntryRestrictedResiCumOfficeReport = async (caseId: string, reportData: Partial<EntryRestrictedResiCumOfficeReportData>) => {
+  const updateEntryRestrictedResiCumOfficeReport = async (taskId: string, reportData: Partial<EntryRestrictedResiCumOfficeReportData>) => {
     try {
-      const caseToUpdate = cases.find(c => c.id === caseId);
+      const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.entryRestrictedResiCumOfficeReport || {}), ...reportData };
-      await caseService.updateCase(caseId, { entryRestrictedResiCumOfficeReport: updatedReport as EntryRestrictedResiCumOfficeReportData });
+      await caseService.updateCase(taskId, { entryRestrictedResiCumOfficeReport: updatedReport as EntryRestrictedResiCumOfficeReportData });
       setCases(prevCases => prevCases.map(c => 
-        c.id === caseId 
+        c.id === taskId 
           ? { ...c, entryRestrictedResiCumOfficeReport: updatedReport as EntryRestrictedResiCumOfficeReportData, updatedAt: new Date().toISOString() } 
           : c
       ));
@@ -374,14 +374,14 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const updateUntraceableResiCumOfficeReport = async (caseId: string, reportData: Partial<UntraceableResiCumOfficeReportData>) => {
+  const updateUntraceableResiCumOfficeReport = async (taskId: string, reportData: Partial<UntraceableResiCumOfficeReportData>) => {
     try {
-      const caseToUpdate = cases.find(c => c.id === caseId);
+      const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.untraceableResiCumOfficeReport || {}), ...reportData };
-      await caseService.updateCase(caseId, { untraceableResiCumOfficeReport: updatedReport as UntraceableResiCumOfficeReportData });
+      await caseService.updateCase(taskId, { untraceableResiCumOfficeReport: updatedReport as UntraceableResiCumOfficeReportData });
       setCases(prevCases => prevCases.map(c => 
-        c.id === caseId 
+        c.id === taskId 
           ? { ...c, untraceableResiCumOfficeReport: updatedReport as UntraceableResiCumOfficeReportData, updatedAt: new Date().toISOString() } 
           : c
       ));
@@ -392,14 +392,14 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const updatePositiveOfficeReport = async (caseId: string, reportData: Partial<PositiveOfficeReportData>) => {
+  const updatePositiveOfficeReport = async (taskId: string, reportData: Partial<PositiveOfficeReportData>) => {
     try {
-      const caseToUpdate = cases.find(c => c.id === caseId);
+      const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.positiveOfficeReport || {}), ...reportData };
-      await caseService.updateCase(caseId, { positiveOfficeReport: updatedReport as PositiveOfficeReportData });
+      await caseService.updateCase(taskId, { positiveOfficeReport: updatedReport as PositiveOfficeReportData });
       setCases(prevCases => prevCases.map(c => 
-        c.id === caseId 
+        c.id === taskId 
           ? { ...c, positiveOfficeReport: updatedReport as PositiveOfficeReportData, updatedAt: new Date().toISOString() } 
           : c
       ));
@@ -410,14 +410,14 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const updateShiftedOfficeReport = async (caseId: string, reportData: Partial<ShiftedOfficeReportData>) => {
+  const updateShiftedOfficeReport = async (taskId: string, reportData: Partial<ShiftedOfficeReportData>) => {
     try {
-      const caseToUpdate = cases.find(c => c.id === caseId);
+      const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.shiftedOfficeReport || {}), ...reportData };
-      await caseService.updateCase(caseId, { shiftedOfficeReport: updatedReport as ShiftedOfficeReportData });
+      await caseService.updateCase(taskId, { shiftedOfficeReport: updatedReport as ShiftedOfficeReportData });
       setCases(prevCases => prevCases.map(c => 
-        c.id === caseId 
+        c.id === taskId 
           ? { ...c, shiftedOfficeReport: updatedReport as ShiftedOfficeReportData, updatedAt: new Date().toISOString() } 
           : c
       ));
@@ -428,14 +428,14 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
   
-  const updateNspOfficeReport = async (caseId: string, reportData: Partial<NspOfficeReportData>) => {
+  const updateNspOfficeReport = async (taskId: string, reportData: Partial<NspOfficeReportData>) => {
     try {
-      const caseToUpdate = cases.find(c => c.id === caseId);
+      const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.nspOfficeReport || {}), ...reportData };
-      await caseService.updateCase(caseId, { nspOfficeReport: updatedReport as NspOfficeReportData });
+      await caseService.updateCase(taskId, { nspOfficeReport: updatedReport as NspOfficeReportData });
       setCases(prevCases => prevCases.map(c => 
-        c.id === caseId 
+        c.id === taskId 
           ? { ...c, nspOfficeReport: updatedReport as NspOfficeReportData, updatedAt: new Date().toISOString() } 
           : c
       ));
@@ -446,14 +446,14 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
   
-  const updateEntryRestrictedOfficeReport = async (caseId: string, reportData: Partial<EntryRestrictedOfficeReportData>) => {
+  const updateEntryRestrictedOfficeReport = async (taskId: string, reportData: Partial<EntryRestrictedOfficeReportData>) => {
     try {
-      const caseToUpdate = cases.find(c => c.id === caseId);
+      const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.entryRestrictedOfficeReport || {}), ...reportData };
-      await caseService.updateCase(caseId, { entryRestrictedOfficeReport: updatedReport as EntryRestrictedOfficeReportData });
+      await caseService.updateCase(taskId, { entryRestrictedOfficeReport: updatedReport as EntryRestrictedOfficeReportData });
       setCases(prevCases => prevCases.map(c => 
-        c.id === caseId 
+        c.id === taskId 
           ? { ...c, entryRestrictedOfficeReport: updatedReport as EntryRestrictedOfficeReportData, updatedAt: new Date().toISOString() } 
           : c
       ));
@@ -464,14 +464,14 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const updateUntraceableOfficeReport = async (caseId: string, reportData: Partial<UntraceableOfficeReportData>) => {
+  const updateUntraceableOfficeReport = async (taskId: string, reportData: Partial<UntraceableOfficeReportData>) => {
     try {
-      const caseToUpdate = cases.find(c => c.id === caseId);
+      const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.untraceableOfficeReport || {}), ...reportData };
-      await caseService.updateCase(caseId, { untraceableOfficeReport: updatedReport as UntraceableOfficeReportData });
+      await caseService.updateCase(taskId, { untraceableOfficeReport: updatedReport as UntraceableOfficeReportData });
       setCases(prevCases => prevCases.map(c => 
-        c.id === caseId 
+        c.id === taskId 
           ? { ...c, untraceableOfficeReport: updatedReport as UntraceableOfficeReportData, updatedAt: new Date().toISOString() } 
           : c
       ));
@@ -482,14 +482,14 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const updatePositiveBusinessReport = async (caseId: string, reportData: Partial<PositiveBusinessReportData>) => {
+  const updatePositiveBusinessReport = async (taskId: string, reportData: Partial<PositiveBusinessReportData>) => {
     try {
-      const caseToUpdate = cases.find(c => c.id === caseId);
+      const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.positiveBusinessReport || {}), ...reportData };
-      await caseService.updateCase(caseId, { positiveBusinessReport: updatedReport as PositiveBusinessReportData });
+      await caseService.updateCase(taskId, { positiveBusinessReport: updatedReport as PositiveBusinessReportData });
       setCases(prevCases => prevCases.map(c =>
-        c.id === caseId
+        c.id === taskId
           ? { ...c, positiveBusinessReport: updatedReport as PositiveBusinessReportData, updatedAt: new Date().toISOString(), savedAt: new Date().toISOString() }
           : c
       ));
@@ -500,14 +500,14 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const updateShiftedBusinessReport = async (caseId: string, reportData: Partial<ShiftedBusinessReportData>) => {
+  const updateShiftedBusinessReport = async (taskId: string, reportData: Partial<ShiftedBusinessReportData>) => {
     try {
-      const caseToUpdate = cases.find(c => c.id === caseId);
+      const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.shiftedBusinessReport || {}), ...reportData };
-      await caseService.updateCase(caseId, { shiftedBusinessReport: updatedReport as ShiftedBusinessReportData });
+      await caseService.updateCase(taskId, { shiftedBusinessReport: updatedReport as ShiftedBusinessReportData });
       setCases(prevCases => prevCases.map(c => 
-        c.id === caseId 
+        c.id === taskId 
           ? { ...c, shiftedBusinessReport: updatedReport as ShiftedBusinessReportData, updatedAt: new Date().toISOString() } 
           : c
       ));
@@ -518,14 +518,14 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const updateNspBusinessReport = async (caseId: string, reportData: Partial<NspBusinessReportData>) => {
+  const updateNspBusinessReport = async (taskId: string, reportData: Partial<NspBusinessReportData>) => {
     try {
-      const caseToUpdate = cases.find(c => c.id === caseId);
+      const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.nspBusinessReport || {}), ...reportData };
-      await caseService.updateCase(caseId, { nspBusinessReport: updatedReport as NspBusinessReportData });
+      await caseService.updateCase(taskId, { nspBusinessReport: updatedReport as NspBusinessReportData });
       setCases(prevCases => prevCases.map(c => 
-        c.id === caseId 
+        c.id === taskId 
           ? { ...c, nspBusinessReport: updatedReport as NspBusinessReportData, updatedAt: new Date().toISOString() } 
           : c
       ));
@@ -536,14 +536,14 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const updateEntryRestrictedBusinessReport = async (caseId: string, reportData: Partial<EntryRestrictedBusinessReportData>) => {
+  const updateEntryRestrictedBusinessReport = async (taskId: string, reportData: Partial<EntryRestrictedBusinessReportData>) => {
     try {
-      const caseToUpdate = cases.find(c => c.id === caseId);
+      const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.entryRestrictedBusinessReport || {}), ...reportData };
-      await caseService.updateCase(caseId, { entryRestrictedBusinessReport: updatedReport as EntryRestrictedBusinessReportData });
+      await caseService.updateCase(taskId, { entryRestrictedBusinessReport: updatedReport as EntryRestrictedBusinessReportData });
       setCases(prevCases => prevCases.map(c => 
-        c.id === caseId 
+        c.id === taskId 
           ? { ...c, entryRestrictedBusinessReport: updatedReport as EntryRestrictedBusinessReportData, updatedAt: new Date().toISOString() } 
           : c
       ));
@@ -554,14 +554,14 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const updateUntraceableBusinessReport = async (caseId: string, reportData: Partial<UntraceableBusinessReportData>) => {
+  const updateUntraceableBusinessReport = async (taskId: string, reportData: Partial<UntraceableBusinessReportData>) => {
     try {
-      const caseToUpdate = cases.find(c => c.id === caseId);
+      const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.untraceableBusinessReport || {}), ...reportData };
-      await caseService.updateCase(caseId, { untraceableBusinessReport: updatedReport as UntraceableBusinessReportData });
+      await caseService.updateCase(taskId, { untraceableBusinessReport: updatedReport as UntraceableBusinessReportData });
       setCases(prevCases => prevCases.map(c => 
-        c.id === caseId 
+        c.id === taskId 
           ? { ...c, untraceableBusinessReport: updatedReport as UntraceableBusinessReportData, updatedAt: new Date().toISOString() } 
           : c
       ));
@@ -572,14 +572,14 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
   
-  const updatePositiveBuilderReport = async (caseId: string, reportData: Partial<PositiveBuilderReportData>) => {
+  const updatePositiveBuilderReport = async (taskId: string, reportData: Partial<PositiveBuilderReportData>) => {
     try {
-      const caseToUpdate = cases.find(c => c.id === caseId);
+      const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.positiveBuilderReport || {}), ...reportData };
-      await caseService.updateCase(caseId, { positiveBuilderReport: updatedReport as PositiveBuilderReportData });
+      await caseService.updateCase(taskId, { positiveBuilderReport: updatedReport as PositiveBuilderReportData });
       setCases(prevCases => prevCases.map(c => 
-        c.id === caseId 
+        c.id === taskId 
           ? { ...c, positiveBuilderReport: updatedReport as PositiveBuilderReportData, updatedAt: new Date().toISOString() } 
           : c
       ));
@@ -590,14 +590,14 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const updateShiftedBuilderReport = async (caseId: string, reportData: Partial<ShiftedBuilderReportData>) => {
+  const updateShiftedBuilderReport = async (taskId: string, reportData: Partial<ShiftedBuilderReportData>) => {
     try {
-      const caseToUpdate = cases.find(c => c.id === caseId);
+      const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.shiftedBuilderReport || {}), ...reportData };
-      await caseService.updateCase(caseId, { shiftedBuilderReport: updatedReport as ShiftedBuilderReportData });
+      await caseService.updateCase(taskId, { shiftedBuilderReport: updatedReport as ShiftedBuilderReportData });
       setCases(prevCases => prevCases.map(c => 
-        c.id === caseId 
+        c.id === taskId 
           ? { ...c, shiftedBuilderReport: updatedReport as ShiftedBuilderReportData, updatedAt: new Date().toISOString() } 
           : c
       ));
@@ -608,14 +608,14 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
   
-  const updateNspBuilderReport = async (caseId: string, reportData: Partial<NspBuilderReportData>) => {
+  const updateNspBuilderReport = async (taskId: string, reportData: Partial<NspBuilderReportData>) => {
     try {
-      const caseToUpdate = cases.find(c => c.id === caseId);
+      const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.nspBuilderReport || {}), ...reportData };
-      await caseService.updateCase(caseId, { nspBuilderReport: updatedReport as NspBuilderReportData });
+      await caseService.updateCase(taskId, { nspBuilderReport: updatedReport as NspBuilderReportData });
       setCases(prevCases => prevCases.map(c => 
-        c.id === caseId 
+        c.id === taskId 
           ? { ...c, nspBuilderReport: updatedReport as NspBuilderReportData, updatedAt: new Date().toISOString() } 
           : c
       ));
@@ -626,14 +626,14 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
   
-  const updateEntryRestrictedBuilderReport = async (caseId: string, reportData: Partial<EntryRestrictedBuilderReportData>) => {
+  const updateEntryRestrictedBuilderReport = async (taskId: string, reportData: Partial<EntryRestrictedBuilderReportData>) => {
     try {
-      const caseToUpdate = cases.find(c => c.id === caseId);
+      const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.entryRestrictedBuilderReport || {}), ...reportData };
-      await caseService.updateCase(caseId, { entryRestrictedBuilderReport: updatedReport as EntryRestrictedBuilderReportData });
+      await caseService.updateCase(taskId, { entryRestrictedBuilderReport: updatedReport as EntryRestrictedBuilderReportData });
       setCases(prevCases => prevCases.map(c => 
-        c.id === caseId 
+        c.id === taskId 
           ? { ...c, entryRestrictedBuilderReport: updatedReport as EntryRestrictedBuilderReportData, updatedAt: new Date().toISOString() } 
           : c
       ));
@@ -644,14 +644,14 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const updateUntraceableBuilderReport = async (caseId: string, reportData: Partial<UntraceableBuilderReportData>) => {
+  const updateUntraceableBuilderReport = async (taskId: string, reportData: Partial<UntraceableBuilderReportData>) => {
     try {
-      const caseToUpdate = cases.find(c => c.id === caseId);
+      const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.untraceableBuilderReport || {}), ...reportData };
-      await caseService.updateCase(caseId, { untraceableBuilderReport: updatedReport as UntraceableBuilderReportData });
+      await caseService.updateCase(taskId, { untraceableBuilderReport: updatedReport as UntraceableBuilderReportData });
       setCases(prevCases => prevCases.map(c => 
-        c.id === caseId 
+        c.id === taskId 
           ? { ...c, untraceableBuilderReport: updatedReport as UntraceableBuilderReportData, updatedAt: new Date().toISOString() } 
           : c
       ));
@@ -662,14 +662,14 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
   
-  const updatePositiveNocReport = async (caseId: string, reportData: Partial<PositiveNocReportData>) => {
+  const updatePositiveNocReport = async (taskId: string, reportData: Partial<PositiveNocReportData>) => {
     try {
-      const caseToUpdate = cases.find(c => c.id === caseId);
+      const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.positiveNocReport || {}), ...reportData };
-      await caseService.updateCase(caseId, { positiveNocReport: updatedReport as PositiveNocReportData });
+      await caseService.updateCase(taskId, { positiveNocReport: updatedReport as PositiveNocReportData });
       setCases(prevCases => prevCases.map(c => 
-        c.id === caseId 
+        c.id === taskId 
           ? { ...c, positiveNocReport: updatedReport as PositiveNocReportData, updatedAt: new Date().toISOString() } 
           : c
       ));
@@ -680,14 +680,14 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const updateShiftedNocReport = async (caseId: string, reportData: Partial<ShiftedNocReportData>) => {
+  const updateShiftedNocReport = async (taskId: string, reportData: Partial<ShiftedNocReportData>) => {
     try {
-      const caseToUpdate = cases.find(c => c.id === caseId);
+      const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.shiftedNocReport || {}), ...reportData };
-      await caseService.updateCase(caseId, { shiftedNocReport: updatedReport as ShiftedNocReportData });
+      await caseService.updateCase(taskId, { shiftedNocReport: updatedReport as ShiftedNocReportData });
       setCases(prevCases => prevCases.map(c => 
-        c.id === caseId 
+        c.id === taskId 
           ? { ...c, shiftedNocReport: updatedReport as ShiftedNocReportData, updatedAt: new Date().toISOString() } 
           : c
       ));
@@ -698,14 +698,14 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
   
-  const updateNspNocReport = async (caseId: string, reportData: Partial<NspNocReportData>) => {
+  const updateNspNocReport = async (taskId: string, reportData: Partial<NspNocReportData>) => {
     try {
-      const caseToUpdate = cases.find(c => c.id === caseId);
+      const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.nspNocReport || {}), ...reportData };
-      await caseService.updateCase(caseId, { nspNocReport: updatedReport as NspNocReportData });
+      await caseService.updateCase(taskId, { nspNocReport: updatedReport as NspNocReportData });
       setCases(prevCases => prevCases.map(c => 
-        c.id === caseId 
+        c.id === taskId 
           ? { ...c, nspNocReport: updatedReport as NspNocReportData, updatedAt: new Date().toISOString() } 
           : c
       ));
@@ -716,14 +716,14 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const updateEntryRestrictedNocReport = async (caseId: string, reportData: Partial<EntryRestrictedNocReportData>) => {
+  const updateEntryRestrictedNocReport = async (taskId: string, reportData: Partial<EntryRestrictedNocReportData>) => {
     try {
-      const caseToUpdate = cases.find(c => c.id === caseId);
+      const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.entryRestrictedNocReport || {}), ...reportData };
-      await caseService.updateCase(caseId, { entryRestrictedNocReport: updatedReport as EntryRestrictedNocReportData });
+      await caseService.updateCase(taskId, { entryRestrictedNocReport: updatedReport as EntryRestrictedNocReportData });
       setCases(prevCases => prevCases.map(c => 
-        c.id === caseId 
+        c.id === taskId 
           ? { ...c, entryRestrictedNocReport: updatedReport as EntryRestrictedNocReportData, updatedAt: new Date().toISOString() } 
           : c
       ));
@@ -734,14 +734,14 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const updateUntraceableNocReport = async (caseId: string, reportData: Partial<UntraceableNocReportData>) => {
+  const updateUntraceableNocReport = async (taskId: string, reportData: Partial<UntraceableNocReportData>) => {
     try {
-      const caseToUpdate = cases.find(c => c.id === caseId);
+      const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.untraceableNocReport || {}), ...reportData };
-      await caseService.updateCase(caseId, { untraceableNocReport: updatedReport as UntraceableNocReportData });
+      await caseService.updateCase(taskId, { untraceableNocReport: updatedReport as UntraceableNocReportData });
       setCases(prevCases => prevCases.map(c => 
-        c.id === caseId 
+        c.id === taskId 
           ? { ...c, untraceableNocReport: updatedReport as UntraceableNocReportData, updatedAt: new Date().toISOString() } 
           : c
       ));
@@ -752,14 +752,14 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const updatePositiveDsaReport = async (caseId: string, reportData: Partial<PositiveDsaReportData>) => {
+  const updatePositiveDsaReport = async (taskId: string, reportData: Partial<PositiveDsaReportData>) => {
     try {
-      const caseToUpdate = cases.find(c => c.id === caseId);
+      const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.positiveDsaReport || {}), ...reportData };
-      await caseService.updateCase(caseId, { positiveDsaReport: updatedReport as PositiveDsaReportData });
+      await caseService.updateCase(taskId, { positiveDsaReport: updatedReport as PositiveDsaReportData });
       setCases(prevCases => prevCases.map(c => 
-        c.id === caseId 
+        c.id === taskId 
           ? { ...c, positiveDsaReport: updatedReport as PositiveDsaReportData, updatedAt: new Date().toISOString() } 
           : c
       ));
@@ -770,14 +770,14 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
   
-  const updateShiftedDsaReport = async (caseId: string, reportData: Partial<ShiftedDsaReportData>) => {
+  const updateShiftedDsaReport = async (taskId: string, reportData: Partial<ShiftedDsaReportData>) => {
     try {
-      const caseToUpdate = cases.find(c => c.id === caseId);
+      const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.shiftedDsaReport || {}), ...reportData };
-      await caseService.updateCase(caseId, { shiftedDsaReport: updatedReport as ShiftedDsaReportData });
+      await caseService.updateCase(taskId, { shiftedDsaReport: updatedReport as ShiftedDsaReportData });
       setCases(prevCases => prevCases.map(c => 
-        c.id === caseId 
+        c.id === taskId 
           ? { ...c, shiftedDsaReport: updatedReport as ShiftedDsaReportData, updatedAt: new Date().toISOString() } 
           : c
       ));
@@ -788,14 +788,14 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const updateNspDsaReport = async (caseId: string, reportData: Partial<NspDsaReportData>) => {
+  const updateNspDsaReport = async (taskId: string, reportData: Partial<NspDsaReportData>) => {
     try {
-      const caseToUpdate = cases.find(c => c.id === caseId);
+      const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.nspDsaReport || {}), ...reportData };
-      await caseService.updateCase(caseId, { nspDsaReport: updatedReport as NspDsaReportData });
+      await caseService.updateCase(taskId, { nspDsaReport: updatedReport as NspDsaReportData });
       setCases(prevCases => prevCases.map(c => 
-        c.id === caseId 
+        c.id === taskId 
           ? { ...c, nspDsaReport: updatedReport as NspDsaReportData, updatedAt: new Date().toISOString() } 
           : c
       ));
@@ -806,14 +806,14 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const updateEntryRestrictedDsaReport = async (caseId: string, reportData: Partial<EntryRestrictedDsaReportData>) => {
+  const updateEntryRestrictedDsaReport = async (taskId: string, reportData: Partial<EntryRestrictedDsaReportData>) => {
     try {
-      const caseToUpdate = cases.find(c => c.id === caseId);
+      const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.entryRestrictedDsaReport || {}), ...reportData };
-      await caseService.updateCase(caseId, { entryRestrictedDsaReport: updatedReport as EntryRestrictedDsaReportData });
+      await caseService.updateCase(taskId, { entryRestrictedDsaReport: updatedReport as EntryRestrictedDsaReportData });
       setCases(prevCases => prevCases.map(c => 
-        c.id === caseId 
+        c.id === taskId 
           ? { ...c, entryRestrictedDsaReport: updatedReport as EntryRestrictedDsaReportData, updatedAt: new Date().toISOString() } 
           : c
       ));
@@ -824,14 +824,14 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
   
-  const updateUntraceableDsaReport = async (caseId: string, reportData: Partial<UntraceableDsaReportData>) => {
+  const updateUntraceableDsaReport = async (taskId: string, reportData: Partial<UntraceableDsaReportData>) => {
     try {
-      const caseToUpdate = cases.find(c => c.id === caseId);
+      const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.untraceableDsaReport || {}), ...reportData };
-      await caseService.updateCase(caseId, { untraceableDsaReport: updatedReport as UntraceableDsaReportData });
+      await caseService.updateCase(taskId, { untraceableDsaReport: updatedReport as UntraceableDsaReportData });
       setCases(prevCases => prevCases.map(c => 
-        c.id === caseId 
+        c.id === taskId 
           ? { ...c, untraceableDsaReport: updatedReport as UntraceableDsaReportData, updatedAt: new Date().toISOString() } 
           : c
       ));
@@ -842,14 +842,14 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
   
-  const updatePositivePropertyApfReport = async (caseId: string, reportData: Partial<PositivePropertyApfReportData>) => {
+  const updatePositivePropertyApfReport = async (taskId: string, reportData: Partial<PositivePropertyApfReportData>) => {
     try {
-      const caseToUpdate = cases.find(c => c.id === caseId);
+      const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.positivePropertyApfReport || {}), ...reportData };
-      await caseService.updateCase(caseId, { positivePropertyApfReport: updatedReport as PositivePropertyApfReportData });
+      await caseService.updateCase(taskId, { positivePropertyApfReport: updatedReport as PositivePropertyApfReportData });
       setCases(prevCases => prevCases.map(c => 
-        c.id === caseId 
+        c.id === taskId 
           ? { ...c, positivePropertyApfReport: updatedReport as PositivePropertyApfReportData, updatedAt: new Date().toISOString() } 
           : c
       ));
@@ -860,14 +860,14 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const updateNspPropertyApfReport = async (caseId: string, reportData: Partial<NspPropertyApfReportData>) => {
+  const updateNspPropertyApfReport = async (taskId: string, reportData: Partial<NspPropertyApfReportData>) => {
     try {
-      const caseToUpdate = cases.find(c => c.id === caseId);
+      const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.nspPropertyApfReport || {}), ...reportData };
-      await caseService.updateCase(caseId, { nspPropertyApfReport: updatedReport as NspPropertyApfReportData });
+      await caseService.updateCase(taskId, { nspPropertyApfReport: updatedReport as NspPropertyApfReportData });
       setCases(prevCases => prevCases.map(c => 
-        c.id === caseId 
+        c.id === taskId 
           ? { ...c, nspPropertyApfReport: updatedReport as NspPropertyApfReportData, updatedAt: new Date().toISOString() } 
           : c
       ));
@@ -878,14 +878,14 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const updateEntryRestrictedPropertyApfReport = async (caseId: string, reportData: Partial<EntryRestrictedPropertyApfReportData>) => {
+  const updateEntryRestrictedPropertyApfReport = async (taskId: string, reportData: Partial<EntryRestrictedPropertyApfReportData>) => {
     try {
-      const caseToUpdate = cases.find(c => c.id === caseId);
+      const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.entryRestrictedPropertyApfReport || {}), ...reportData };
-      await caseService.updateCase(caseId, { entryRestrictedPropertyApfReport: updatedReport as EntryRestrictedPropertyApfReportData });
+      await caseService.updateCase(taskId, { entryRestrictedPropertyApfReport: updatedReport as EntryRestrictedPropertyApfReportData });
       setCases(prevCases => prevCases.map(c => 
-        c.id === caseId 
+        c.id === taskId 
           ? { ...c, entryRestrictedPropertyApfReport: updatedReport as EntryRestrictedPropertyApfReportData, updatedAt: new Date().toISOString() } 
           : c
       ));
@@ -896,14 +896,14 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const updateUntraceablePropertyApfReport = async (caseId: string, reportData: Partial<UntraceablePropertyApfReportData>) => {
+  const updateUntraceablePropertyApfReport = async (taskId: string, reportData: Partial<UntraceablePropertyApfReportData>) => {
     try {
-      const caseToUpdate = cases.find(c => c.id === caseId);
+      const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.untraceablePropertyApfReport || {}), ...reportData };
-      await caseService.updateCase(caseId, { untraceablePropertyApfReport: updatedReport as UntraceablePropertyApfReportData });
+      await caseService.updateCase(taskId, { untraceablePropertyApfReport: updatedReport as UntraceablePropertyApfReportData });
       setCases(prevCases => prevCases.map(c => 
-        c.id === caseId 
+        c.id === taskId 
           ? { ...c, untraceablePropertyApfReport: updatedReport as UntraceablePropertyApfReportData, updatedAt: new Date().toISOString() } 
           : c
       ));
@@ -914,14 +914,14 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const updatePositivePropertyIndividualReport = async (caseId: string, reportData: Partial<PositivePropertyIndividualReportData>) => {
+  const updatePositivePropertyIndividualReport = async (taskId: string, reportData: Partial<PositivePropertyIndividualReportData>) => {
     try {
-      const caseToUpdate = cases.find(c => c.id === caseId);
+      const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.positivePropertyIndividualReport || {}), ...reportData };
-      await caseService.updateCase(caseId, { positivePropertyIndividualReport: updatedReport as PositivePropertyIndividualReportData });
+      await caseService.updateCase(taskId, { positivePropertyIndividualReport: updatedReport as PositivePropertyIndividualReportData });
       setCases(prevCases => prevCases.map(c => 
-        c.id === caseId 
+        c.id === taskId 
           ? { ...c, positivePropertyIndividualReport: updatedReport as PositivePropertyIndividualReportData, updatedAt: new Date().toISOString() } 
           : c
       ));
@@ -932,14 +932,14 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const updateNspPropertyIndividualReport = async (caseId: string, reportData: Partial<NspPropertyIndividualReportData>) => {
+  const updateNspPropertyIndividualReport = async (taskId: string, reportData: Partial<NspPropertyIndividualReportData>) => {
     try {
-      const caseToUpdate = cases.find(c => c.id === caseId);
+      const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.nspPropertyIndividualReport || {}), ...reportData };
-      await caseService.updateCase(caseId, { nspPropertyIndividualReport: updatedReport as NspPropertyIndividualReportData });
+      await caseService.updateCase(taskId, { nspPropertyIndividualReport: updatedReport as NspPropertyIndividualReportData });
       setCases(prevCases => prevCases.map(c => 
-        c.id === caseId 
+        c.id === taskId 
           ? { ...c, nspPropertyIndividualReport: updatedReport as NspPropertyIndividualReportData, updatedAt: new Date().toISOString() } 
           : c
       ));
@@ -950,14 +950,14 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const updateEntryRestrictedPropertyIndividualReport = async (caseId: string, reportData: Partial<EntryRestrictedPropertyIndividualReportData>) => {
+  const updateEntryRestrictedPropertyIndividualReport = async (taskId: string, reportData: Partial<EntryRestrictedPropertyIndividualReportData>) => {
     try {
-      const caseToUpdate = cases.find(c => c.id === caseId);
+      const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.entryRestrictedPropertyIndividualReport || {}), ...reportData };
-      await caseService.updateCase(caseId, { entryRestrictedPropertyIndividualReport: updatedReport as EntryRestrictedPropertyIndividualReportData });
+      await caseService.updateCase(taskId, { entryRestrictedPropertyIndividualReport: updatedReport as EntryRestrictedPropertyIndividualReportData });
       setCases(prevCases => prevCases.map(c => 
-        c.id === caseId 
+        c.id === taskId 
           ? { ...c, entryRestrictedPropertyIndividualReport: updatedReport as EntryRestrictedPropertyIndividualReportData, updatedAt: new Date().toISOString() } 
           : c
       ));
@@ -968,14 +968,14 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const updateUntraceablePropertyIndividualReport = async (caseId: string, reportData: Partial<UntraceablePropertyIndividualReportData>) => {
+  const updateUntraceablePropertyIndividualReport = async (taskId: string, reportData: Partial<UntraceablePropertyIndividualReportData>) => {
     try {
-      const caseToUpdate = cases.find(c => c.id === caseId);
+      const caseToUpdate = tasks.find(c => c.id === taskId);
       if (!caseToUpdate) throw new Error("Case not found");
       const updatedReport = { ...(caseToUpdate.untraceablePropertyIndividualReport || {}), ...reportData };
-      await caseService.updateCase(caseId, { untraceablePropertyIndividualReport: updatedReport as UntraceablePropertyIndividualReportData });
+      await caseService.updateCase(taskId, { untraceablePropertyIndividualReport: updatedReport as UntraceablePropertyIndividualReportData });
       setCases(prevCases => prevCases.map(c => 
-        c.id === caseId 
+        c.id === taskId 
           ? { ...c, untraceablePropertyIndividualReport: updatedReport as UntraceablePropertyIndividualReportData, updatedAt: new Date().toISOString() } 
           : c
       ));
@@ -986,13 +986,13 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const toggleSaveCase = async (caseId: string, isSaved: boolean) => {
+  const toggleSaveCase = async (taskId: string, isSaved: boolean) => {
     try {
       const updates: Partial<Case> = { isSaved };
       if (isSaved) {
         updates.savedAt = new Date().toISOString();
       }
-      await caseService.updateCase(caseId, updates);
+      await caseService.updateCase(taskId, updates);
       fetchCases();
     } catch (err) {
       setError('Failed to update save status.');
@@ -1000,23 +1000,23 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
   
-  const revokeCase = async (caseId: string, reason: RevokeReason) => {
+  const revokeCase = async (taskId: string, reason: RevokeReason) => {
     try {
-        await caseService.revokeCase(caseId, reason);
+        await caseService.revokeCase(taskId, reason);
         fetchCases(); // Refetch to update UI
     } catch (err) {
-        setError('Failed to revoke case.');
+        setError('Failed to revoke task.');
         console.error(err);
     }
   };
 
-  const reorderInProgressCase = async (caseId: string, direction: 'up' | 'down') => {
+  const reorderInProgressCase = async (taskId: string, direction: 'up' | 'down') => {
     try {
-        const inProgressCases = cases
-            .filter(c => c.status === CaseStatus.InProgress && !c.isSaved)
+        const inProgressCases = tasks
+            .filter(c => c.status === TaskStatus.InProgress && !c.isSaved)
             .sort((a, b) => (a.order || 0) - (b.order || 0));
 
-        const currentIndex = inProgressCases.findIndex(c => c.id === caseId);
+        const currentIndex = inProgressCases.findIndex(c => c.id === taskId);
         if (currentIndex === -1) return;
 
         let swapIndex;
@@ -1043,7 +1043,7 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         fetchCases();
 
     } catch (err) {
-        setError('Failed to reorder cases.');
+        setError('Failed to reorder tasks.');
         console.error(err);
     }
   };
@@ -1056,15 +1056,15 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       // Preserve local status changes that haven't been synced to server
       const mergedCases = serverData.map(serverCase => {
-        const localCase = cases.find(c => c.id === serverCase.id);
+        const localCase = tasks.find(c => c.id === serverCase.id);
 
-        // If we have a local case with a different status, preserve the local status
-        // unless the server case has been updated more recently
+        // If we have a local task with a different status, preserve the local status
+        // unless the server task has been updated more recently
         if (localCase && (localCase.status !== serverCase.status || localCase.taskStatus !== serverCase.taskStatus)) {
           const localUpdatedAt = new Date(localCase.updatedAt || localCase.createdAt);
           const serverUpdatedAt = new Date(serverCase.updatedAt || serverCase.createdAt);
 
-          // If local case was updated more recently, preserve local status
+          // If local task was updated more recently, preserve local status
           if (localUpdatedAt > serverUpdatedAt) {
             return {
               ...serverCase,
@@ -1082,14 +1082,14 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return serverCase;
       });
 
-      // Add any local cases that don't exist on server (shouldn't happen, but safety check)
+      // Add any local tasks that don't exist on server (shouldn't happen, but safety check)
       const serverCaseIds = new Set(serverData.map(c => c.id));
-      const localOnlyCases = cases.filter(c => !serverCaseIds.has(c.id));
+      const localOnlyCases = tasks.filter(c => !serverCaseIds.has(c.id));
 
       const finalCases = [...mergedCases, ...localOnlyCases];
       setCases(finalCases.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()));
     } catch (err) {
-      setError('Failed to sync cases.');
+      setError('Failed to sync tasks.');
       console.error(err);
     } finally {
       setSyncing(false);
@@ -1101,45 +1101,45 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // in the individual form components
 
   // Priority management functions
-  const setCasePriority = (caseId: string, priority: number | null) => {
+  const setCasePriority = (taskId: string, priority: number | null) => {
     if (priority === null || priority === undefined) {
-      priorityService.removePriority(caseId);
+      priorityService.removePriority(taskId);
     } else {
-      priorityService.setPriority(caseId, priority);
+      priorityService.setPriority(taskId, priority);
     }
   };
 
-  const getCasePriority = (caseId: string): number | null => {
-    return priorityService.getPriority(caseId);
+  const getCasePriority = (taskId: string): number | null => {
+    return priorityService.getPriority(taskId);
   };
 
-  const getCasesWithPriorities = (): Case[] => {
+  const getCasesWithPriorities = (): VerificationTask[] => {
     const priorities = priorityService.getAllPriorities();
-    return cases.map(caseItem => ({
+    return tasks.map(caseItem => ({
       ...caseItem,
       priority: priorities[caseItem.id] || undefined
     }));
   };
 
-  // Clean up priorities for non-existent cases on load
+  // Clean up priorities for non-existent tasks on load
   useEffect(() => {
-    if (cases.length > 0) {
-      const caseIds = cases.map(c => c.id);
+    if (tasks.length > 0) {
+      const caseIds = tasks.map(c => c.id);
       priorityService.cleanupPriorities(caseIds);
     }
-  }, [cases]);
+  }, [tasks]);
 
   /**
-   * Update case submission status (pending/submitting/success/failed)
+   * Update task submission status (pending/submitting/success/failed)
    * This is used to track the status of form submissions to the backend
    */
   const updateCaseSubmissionStatus = async (
-    caseId: string,
+    taskId: string,
     status: 'pending' | 'submitting' | 'success' | 'failed',
     error?: string
   ) => {
     try {
-      console.log(`📊 Updating submission status for case ${caseId}: ${status}`);
+      console.log(`📊 Updating submission status for task ${taskId}: ${status}`);
 
       // Prepare updates
       const updates: any = {
@@ -1149,54 +1149,54 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       };
 
       // If submission is successful, clear the isSaved flag
-      // This ensures the case doesn't appear in the "Saved" tab anymore
+      // This ensures the task doesn't appear in the "Saved" tab anymore
       if (status === 'success') {
         updates.isSaved = false;
-        console.log(`🔓 Clearing isSaved flag for successfully submitted case ${caseId}`);
+        console.log(`🔓 Clearing isSaved flag for successfully submitted task ${taskId}`);
       }
 
       // Update local state immediately for responsive UI
       setCases(prevCases => prevCases.map(c =>
-        c.id === caseId
+        c.id === taskId
           ? { ...c, ...updates }
           : c
       ));
 
       // Persist to local storage (caseService handles this)
-      await caseService.updateCase(caseId, updates);
+      await caseService.updateCase(taskId, updates);
 
-      console.log(`✅ Submission status updated successfully for case ${caseId}`);
+      console.log(`✅ Submission status updated successfully for task ${taskId}`);
     } catch (err) {
-      console.error(`❌ Failed to update submission status for case ${caseId}:`, err);
+      console.error(`❌ Failed to update submission status for task ${taskId}:`, err);
       setError('Failed to update submission status.');
     }
   };
 
   /**
-   * Verify if a case was successfully submitted to the backend
+   * Verify if a task was successfully submitted to the backend
    * Checks the verification task status on the server
    */
-  const verifyCaseSubmissionStatus = async (caseId: string): Promise<{
+  const verifyCaseSubmissionStatus = async (taskId: string): Promise<{
     submitted: boolean;
     taskStatus?: string;
     error?: string;
   }> => {
     try {
-      console.log(`🔍 Verifying submission status for case ${caseId}...`);
+      console.log(`🔍 Verifying submission status for task ${taskId}...`);
 
-      // Find the case to get verification task ID
-      const caseData = cases.find(c => c.id === caseId);
-      if (!caseData) {
+      // Find the task to get verification task ID
+      const taskData = tasks.find(c => c.id === taskId);
+      if (!taskData) {
         return {
           submitted: false,
           error: 'Case not found'
         };
       }
 
-      if (!caseData.verificationTaskId) {
+      if (!taskData.verificationTaskId) {
         return {
           submitted: false,
-          error: 'No verification task ID found for this case'
+          error: 'No verification task ID found for this task'
         };
       }
 
@@ -1206,7 +1206,7 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         ? 'https://example.com/api'
         : (import.meta.env.VITE_API_BASE_URL_STATIC_IP || import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api');
 
-      const response = await fetch(`${apiBaseUrl}/mobile/verification-tasks/${caseData.verificationTaskId}/status`, {
+      const response = await fetch(`${apiBaseUrl}/mobile/verification-tasks/${taskData.verificationTaskId}/status`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${authToken}`,
@@ -1227,11 +1227,11 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const taskStatus = result.data.status;
         const isSubmitted = taskStatus === 'COMPLETED';
 
-        console.log(`✅ Verification status check: Task ${caseData.verificationTaskId} is ${taskStatus}`);
+        console.log(`✅ Verification status check: Task ${taskData.verificationTaskId} is ${taskStatus}`);
 
         // Update local submission status based on server status
-        if (isSubmitted && caseData.submissionStatus !== 'success') {
-          await updateCaseSubmissionStatus(caseId, 'success');
+        if (isSubmitted && taskData.submissionStatus !== 'success') {
+          await updateCaseSubmissionStatus(taskId, 'success');
         }
 
         return {
@@ -1245,7 +1245,7 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         };
       }
     } catch (err) {
-      console.error(`❌ Error verifying submission status for case ${caseId}:`, err);
+      console.error(`❌ Error verifying submission status for task ${taskId}:`, err);
       return {
         submitted: false,
         error: err instanceof Error ? err.message : 'Unknown error occurred'
@@ -1254,8 +1254,8 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   return (
-    <CaseContext.Provider value={{
-      cases,
+    <TaskContext.Provider value={{
+      tasks,
       loading,
       syncing,
       error,
@@ -1316,14 +1316,14 @@ export const CaseProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       verifyCaseSubmissionStatus,
     }}>
       {children}
-    </CaseContext.Provider>
+    </TaskContext.Provider>
   );
 };
 
-export const useCases = (): CaseContextType => {
-  const context = useContext(CaseContext);
+export const useTasks = (): VerificationTaskContextType => {
+  const context = useContext(TaskContext);
   if (!context) {
-    throw new Error('useCases must be used within a CaseProvider');
+    throw new Error('useTasks must be used within a CaseProvider');
   }
   return context;
 };

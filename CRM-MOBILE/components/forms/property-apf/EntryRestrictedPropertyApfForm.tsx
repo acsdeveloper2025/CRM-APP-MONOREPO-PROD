@@ -5,7 +5,7 @@ import {
   LocalityTypeResiCumOffice, SightStatus, BuildingStatusApf, PoliticalConnection, DominatedArea, FeedbackFromNeighbour,
   FinalStatus, CaseStatus, CapturedImage, TPCMetPerson
 } from '../../../types';
-import { useCases } from '../../../context/CaseContext';
+import { useTasks } from "./context/TaskContext"
 import { FormField, SelectField, TextAreaField } from '../../FormControls';
 import ConfirmationModal from '../../ConfirmationModal';
 import ImageCapture from '../../ImageCapture';
@@ -34,7 +34,7 @@ const getEnumOptions = (enumObject: object) => Object.values(enumObject).map(val
 
 const EntryRestrictedPropertyApfForm: React.FC<EntryRestrictedPropertyApfFormProps> = ({ caseData }) => {
   const navigate = useNavigate();
-  const { updateEntryRestrictedPropertyApfReport, toggleSaveCase , fetchCases } = useCases();
+  const { updateEntryRestrictedPropertyApfReport, toggleSaveCase , fetchCases } = useTasks();
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionError, setSubmissionError] = useState<string | null>(null);

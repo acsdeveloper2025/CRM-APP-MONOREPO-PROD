@@ -5,7 +5,7 @@ import {
   BusinessType, OwnershipTypeBusiness, AddressStatusBusiness, SightStatus, TPCMetPerson, TPCConfirmation,
   LocalityTypeResiCumOffice, PoliticalConnection, DominatedArea, FeedbackFromNeighbour, FinalStatus, CaseStatus, CapturedImage
 } from '../../../types';
-import { useCases } from '../../../context/CaseContext';
+import { useTasks } from "./context/TaskContext"
 import { FormField, SelectField, TextAreaField, NumberDropdownField } from '../../FormControls';
 import ConfirmationModal from '../../ConfirmationModal';
 import ImageCapture from '../../ImageCapture';
@@ -34,7 +34,7 @@ const getEnumOptions = (enumObject: object) => Object.values(enumObject).map(val
 
 const PositiveBuilderForm: React.FC<PositiveBuilderFormProps> = ({ caseData }) => {
   const navigate = useNavigate();
-  const { updatePositiveBuilderReport, toggleSaveCase , fetchCases } = useCases();
+  const { updatePositiveBuilderReport, toggleSaveCase , fetchCases } = useTasks();
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionError, setSubmissionError] = useState<string | null>(null);

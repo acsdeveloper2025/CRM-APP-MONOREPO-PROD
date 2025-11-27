@@ -1,4 +1,4 @@
-import { Case, CaseStatus } from '../types';
+import { VerificationTask, TaskStatus } from '../types';
 import { caseService } from './caseService';
 import AuthStorageService from './authStorageService';
 import { getEnvironmentConfig } from '../config/environment';
