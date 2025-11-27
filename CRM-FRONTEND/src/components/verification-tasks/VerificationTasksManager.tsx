@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -84,24 +84,24 @@ export const VerificationTasksManager: React.FC<VerificationTasksManagerProps> =
   };
 
   // Handle task actions
-  const handleCreateTasks = async (taskData: any[]) => {
+  const handleCreateTasks = async (_taskData: any[]) => {
     // TODO: Implement create tasks
     setShowCreateModal(false);
   };
 
-  const handleAssignTask = async (assignmentData: any) => {
+  const handleAssignTask = async (_assignmentData: any) => {
     // TODO: Implement assign task
     setShowAssignModal(false);
     setSelectedTaskId(null);
   };
 
-  const handleCompleteTask = async (completionData: any) => {
+  const handleCompleteTask = async (_completionData: any) => {
     // TODO: Implement complete task
     setShowCompleteModal(false);
     setSelectedTaskId(null);
   };
 
-  const handleBulkAssign = async (assignedTo: string, reason?: string) => {
+  const handleBulkAssign = async (_assignedTo: string, _reason?: string) => {
     // TODO: Implement bulk assign
     clearSelection();
   };
