@@ -7,7 +7,7 @@ const AssignedCasesScreen: React.FC = () => {
   return (
     <CaseListScreen
       title="Assigned Cases"
-      filter={(c) => (c.taskStatus || c.status) === CaseStatus.Assigned}
+      filter={(c) => (c.taskStatus || c.status) === TaskStatus.Assigned}
       emptyMessage="No assigned cases at the moment."
       tabKey="assigned"
       searchPlaceholder="Search assigned cases..."

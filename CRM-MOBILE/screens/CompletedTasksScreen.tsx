@@ -7,7 +7,7 @@ const CompletedCasesScreen: React.FC = () => {
   return (
     <CaseListScreen
       title="Completed Cases"
-      filter={(c) => (c.taskStatus || c.status) === CaseStatus.Completed}
+      filter={(c) => (c.taskStatus || c.status) === TaskStatus.Completed}
       emptyMessage="You have not completed any cases yet."
       tabKey="completed"
       searchPlaceholder="Search completed cases..."
