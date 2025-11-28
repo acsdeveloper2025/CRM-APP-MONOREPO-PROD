@@ -8,7 +8,7 @@ import { CapturedImage } from '../types';
 /**
  * Creates image change handler that triggers auto-save for regular photos
  * @param updateReport - Function to update the report in context
- * @param caseId - Case ID
+ * @param taskId - Task ID
  * @param report - Current report data
  * @param handleAutoSaveImagesChange - Auto-save callback from AutoSaveFormWrapper
  * @returns Image change handler function
@@ -45,7 +45,7 @@ export const createImageChangeHandler = (
 /**
  * Creates selfie image change handler that triggers auto-save for selfie photos
  * @param updateReport - Function to update the report in context
- * @param caseId - Case ID
+ * @param taskId - Task ID
  * @param report - Current report data
  * @param handleAutoSaveImagesChange - Auto-save callback from AutoSaveFormWrapper
  * @returns Selfie image change handler function

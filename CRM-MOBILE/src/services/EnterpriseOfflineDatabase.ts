@@ -34,7 +34,7 @@ export class EnterpriseOfflineDatabase {
 
   private config: DatabaseConfig = {
     name: 'CRMEnterpriseDB.db',
-    version: '2.0.0',
+    version: '3.0.0', // Bumped version for migration
     displayName: 'CRM Enterprise Database',
     size: 50 * 1024 * 1024, // 50MB
   };
@@ -67,7 +67,9 @@ export class EnterpriseOfflineDatabase {
     if (!this.db) throw new Error('Database not initialized');
 
     const tables = [
-      // Cases table with enterprise features
+      // Verification Tasks table (renamed from cases)
+      // Note: We keep table name 'cases' for now to avoid massive data migration complexity,
+      // but internal columns will be updated where appropriate
       `CREATE TABLE IF NOT EXISTS cases (
         id TEXT PRIMARY KEY,
         customer_name TEXT NOT NULL,
@@ -99,7 +101,7 @@ export class EnterpriseOfflineDatabase {
       // Form submissions with enhanced metadata
       `CREATE TABLE IF NOT EXISTS form_submissions (
         id TEXT PRIMARY KEY,
-        case_id TEXT NOT NULL,
+        verification_task_id TEXT NOT NULL, -- Renamed from case_id
         form_type TEXT NOT NULL,
         form_data TEXT NOT NULL,
         submission_time INTEGER,
@@ -112,13 +114,13 @@ export class EnterpriseOfflineDatabase {
         sync_status TEXT DEFAULT 'pending',
         created_at INTEGER,
         updated_at INTEGER,
-        FOREIGN KEY (case_id) REFERENCES cases (id)
+        FOREIGN KEY (verification_task_id) REFERENCES cases (id)
       )`,
 
       // Attachments with compression and metadata
       `CREATE TABLE IF NOT EXISTS attachments (
         id TEXT PRIMARY KEY,
-        case_id TEXT,
+        verification_task_id TEXT, -- Renamed from case_id
         form_submission_id TEXT,
         file_name TEXT NOT NULL,
         file_type TEXT NOT NULL,
@@ -131,7 +133,7 @@ export class EnterpriseOfflineDatabase {
         metadata TEXT,
         created_at INTEGER,
         updated_at INTEGER,
-        FOREIGN KEY (case_id) REFERENCES cases (id),
+        FOREIGN KEY (verification_task_id) REFERENCES cases (id),
         FOREIGN KEY (form_submission_id) REFERENCES form_submissions (id)
       )`,
 
@@ -215,8 +217,8 @@ export class EnterpriseOfflineDatabase {
       'CREATE INDEX IF NOT EXISTS idx_cases_assigned_to ON cases (assigned_to)',
       'CREATE INDEX IF NOT EXISTS idx_cases_sync_status ON cases (sync_status)',
       'CREATE INDEX IF NOT EXISTS idx_cases_updated_at ON cases (updated_at)',
-      'CREATE INDEX IF NOT EXISTS idx_form_submissions_case_id ON form_submissions (case_id)',
-      'CREATE INDEX IF NOT EXISTS idx_attachments_case_id ON attachments (case_id)',
+      'CREATE INDEX IF NOT EXISTS idx_form_submissions_task_id ON form_submissions (verification_task_id)',
+      'CREATE INDEX IF NOT EXISTS idx_attachments_task_id ON attachments (verification_task_id)',
       'CREATE INDEX IF NOT EXISTS idx_sync_actions_status ON sync_actions (status)',
       'CREATE INDEX IF NOT EXISTS idx_cache_expires_at ON cache (expires_at)',
     ];
@@ -234,6 +236,11 @@ export class EnterpriseOfflineDatabase {
     if (currentVersion < 2) {
       await this.migrateToVersion2();
       await this.db!.executeSql('PRAGMA user_version = 2');
+    }
+
+    if (currentVersion < 3) {
+      await this.migrateToVersion3();
+      await this.db!.executeSql('PRAGMA user_version = 3');
     }
   }
 
@@ -255,6 +262,104 @@ export class EnterpriseOfflineDatabase {
         console.log('Migration step skipped:', migration);
       }
     }
+  }
+
+  private async migrateToVersion3(): Promise<void> {
+    console.log('Migrating to version 3: Renaming case_id to verification_task_id');
+    
+    // 1. Migrate form_submissions table
+    try {
+      // Check if column exists first to avoid errors if partially migrated
+      const checkTable = await this.query("PRAGMA table_info(form_submissions)");
+      const columns = checkTable.rows.raw().map(c => c.name);
+      
+      if (columns.includes('case_id') && !columns.includes('verification_task_id')) {
+        // SQLite doesn't support renaming columns directly in older versions, 
+        // but newer versions do. We'll try ALTER TABLE RENAME COLUMN first.
+        try {
+          await this.db!.executeSql('ALTER TABLE form_submissions RENAME COLUMN case_id TO verification_task_id');
+        } catch (e) {
+          // Fallback: Create new table, copy data, drop old table
+          console.log('Fallback migration for form_submissions');
+          await this.db!.executeSql(`CREATE TABLE IF NOT EXISTS form_submissions_new (
+            id TEXT PRIMARY KEY,
+            verification_task_id TEXT NOT NULL,
+            form_type TEXT NOT NULL,
+            form_data TEXT NOT NULL,
+            submission_time INTEGER,
+            location_latitude REAL,
+            location_longitude REAL,
+            location_accuracy REAL,
+            location_address TEXT,
+            device_info TEXT,
+            app_version TEXT,
+            sync_status TEXT DEFAULT 'pending',
+            created_at INTEGER,
+            updated_at INTEGER,
+            FOREIGN KEY (verification_task_id) REFERENCES cases (id)
+          )`);
+          
+          await this.db!.executeSql(`INSERT INTO form_submissions_new SELECT 
+            id, case_id, form_type, form_data, submission_time, location_latitude, 
+            location_longitude, location_accuracy, location_address, device_info, 
+            app_version, sync_status, created_at, updated_at FROM form_submissions`);
+            
+          await this.db!.executeSql('DROP TABLE form_submissions');
+          await this.db!.executeSql('ALTER TABLE form_submissions_new RENAME TO form_submissions');
+        }
+      }
+    } catch (error) {
+      console.error('Error migrating form_submissions:', error);
+    }
+
+    // 2. Migrate attachments table
+    try {
+      const checkTable = await this.query("PRAGMA table_info(attachments)");
+      const columns = checkTable.rows.raw().map(c => c.name);
+      
+      if (columns.includes('case_id') && !columns.includes('verification_task_id')) {
+        try {
+          await this.db!.executeSql('ALTER TABLE attachments RENAME COLUMN case_id TO verification_task_id');
+        } catch (e) {
+          // Fallback
+          console.log('Fallback migration for attachments');
+          await this.db!.executeSql(`CREATE TABLE IF NOT EXISTS attachments_new (
+            id TEXT PRIMARY KEY,
+            verification_task_id TEXT,
+            form_submission_id TEXT,
+            file_name TEXT NOT NULL,
+            file_type TEXT NOT NULL,
+            file_size INTEGER,
+            file_path TEXT NOT NULL,
+            thumbnail_path TEXT,
+            compressed_path TEXT,
+            upload_status TEXT DEFAULT 'pending',
+            upload_progress REAL DEFAULT 0,
+            metadata TEXT,
+            created_at INTEGER,
+            updated_at INTEGER,
+            FOREIGN KEY (verification_task_id) REFERENCES cases (id),
+            FOREIGN KEY (form_submission_id) REFERENCES form_submissions (id)
+          )`);
+          
+          await this.db!.executeSql(`INSERT INTO attachments_new SELECT 
+            id, case_id, form_submission_id, file_name, file_type, file_size, 
+            file_path, thumbnail_path, compressed_path, upload_status, upload_progress, 
+            metadata, created_at, updated_at FROM attachments`);
+            
+          await this.db!.executeSql('DROP TABLE attachments');
+          await this.db!.executeSql('ALTER TABLE attachments_new RENAME TO attachments');
+        }
+      }
+    } catch (error) {
+      console.error('Error migrating attachments:', error);
+    }
+    
+    // Recreate indexes
+    await this.db!.executeSql('DROP INDEX IF EXISTS idx_form_submissions_case_id');
+    await this.db!.executeSql('DROP INDEX IF EXISTS idx_attachments_case_id');
+    await this.db!.executeSql('CREATE INDEX IF NOT EXISTS idx_form_submissions_task_id ON form_submissions (verification_task_id)');
+    await this.db!.executeSql('CREATE INDEX IF NOT EXISTS idx_attachments_task_id ON attachments (verification_task_id)');
   }
 
   async query(sql: string, params: any[] = []): Promise<QueryResult> {
@@ -383,7 +488,7 @@ export class EnterpriseOfflineDatabase {
   async saveFormSubmission(submission: FormSubmission): Promise<void> {
     const sql = `
       INSERT OR REPLACE INTO form_submissions (
-        id, case_id, form_type, form_data, submission_time,
+        id, verification_task_id, form_type, form_data, submission_time,
         location_latitude, location_longitude, location_accuracy,
         location_address, device_info, app_version, sync_status,
         created_at, updated_at
@@ -392,7 +497,7 @@ export class EnterpriseOfflineDatabase {
 
     const params = [
       submission.id,
-      submission.caseId,
+      submission.taskId, // Updated from caseId
       submission.formType,
       JSON.stringify(submission.formData),
       submission.submissionTime,
@@ -412,13 +517,13 @@ export class EnterpriseOfflineDatabase {
 
   async getFormSubmissions(taskId: string): Promise<FormSubmission[]> {
     const result = await this.query(
-      'SELECT * FROM form_submissions WHERE case_id = ? ORDER BY submission_time DESC',
+      'SELECT * FROM form_submissions WHERE verification_task_id = ? ORDER BY submission_time DESC',
       [taskId]
     );
     
     return result.rows.raw().map(row => ({
       id: row.id,
-      caseId: row.case_id,
+      taskId: row.verification_task_id, // Updated from caseId
       formType: row.form_type,
       formData: JSON.parse(row.form_data),
       submissionTime: row.submission_time,
@@ -440,7 +545,7 @@ export class EnterpriseOfflineDatabase {
   async saveAttachment(attachment: Attachment): Promise<void> {
     const sql = `
       INSERT OR REPLACE INTO attachments (
-        id, case_id, form_submission_id, file_name, file_type,
+        id, verification_task_id, form_submission_id, file_name, file_type,
         file_size, file_path, thumbnail_path, compressed_path,
         upload_status, upload_progress, metadata, created_at, updated_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -448,7 +553,7 @@ export class EnterpriseOfflineDatabase {
 
     const params = [
       attachment.id,
-      attachment.caseId,
+      attachment.taskId, // Updated from caseId
       attachment.formSubmissionId,
       attachment.fileName,
       attachment.fileType,
@@ -468,13 +573,13 @@ export class EnterpriseOfflineDatabase {
 
   async getAttachments(taskId: string): Promise<Attachment[]> {
     const result = await this.query(
-      'SELECT * FROM attachments WHERE case_id = ? ORDER BY created_at DESC',
+      'SELECT * FROM attachments WHERE verification_task_id = ? ORDER BY created_at DESC',
       [taskId]
     );
     
     return result.rows.raw().map(row => ({
       id: row.id,
-      caseId: row.case_id,
+      taskId: row.verification_task_id, // Updated from caseId
       formSubmissionId: row.form_submission_id,
       fileName: row.file_name,
       fileType: row.file_type,

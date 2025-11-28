@@ -149,11 +149,11 @@ class TaskStatusService {
       };
 
       console.log('🔍 Case Status Update - Headers being sent:', headers);
-      console.log('🔍 Case Status Update - URL:', `${API_BASE_URL}/mobile/cases/${taskId}/status`);
+      console.log('🔍 Case Status Update - URL:', `${API_BASE_URL}/mobile/verification-tasks/${taskId}/status`);
       console.log('🔍 Case Status Update - Environment config:', envConfig);
 
       // Add cache-busting parameter
-      const url = `${API_BASE_URL}/mobile/cases/${taskId}/status?t=${Date.now()}`;
+      const url = `${API_BASE_URL}/mobile/verification-tasks/${taskId}/status?t=${Date.now()}`;
       console.log('🔍 Case Status Update - Final URL with cache-buster:', url);
 
       const response = await fetch(url, {

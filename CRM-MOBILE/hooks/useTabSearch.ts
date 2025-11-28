@@ -53,8 +53,8 @@ export const useTabSearch = ({ tasks, tabKey }: UseTabSearchProps): UseTabSearch
         return true;
       }
 
-      // Search in case ID number (the number users see, like #124)
-      if (taskItem.caseId && taskItem.caseId.toString().includes(searchTerm)) {
+      // Search by business case ID
+      if (taskItem.businessCaseId && taskItem.businessCaseId.toString().includes(searchTerm)) {
         return true;
       }
 

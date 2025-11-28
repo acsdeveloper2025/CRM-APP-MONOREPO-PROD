@@ -101,10 +101,10 @@ class AttachmentService {
         return [];
       }
 
-      console.log(`🌐 API Request: GET ${baseUrl}/mobile/cases/${taskId}/attachments`);
+      console.log(`🌐 API Request: GET ${baseUrl}/mobile/verification-tasks/${taskId}/attachments`);
       console.log(`📝 Case ID format: ${taskId} (length: ${taskId.length})`);
 
-      const response = await fetch(`${baseUrl}/mobile/cases/${taskId}/attachments`, {
+      const response = await fetch(`${baseUrl}/mobile/verification-tasks/${taskId}/attachments`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${authToken}`,
