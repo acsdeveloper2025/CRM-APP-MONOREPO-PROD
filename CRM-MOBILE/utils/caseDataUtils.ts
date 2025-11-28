@@ -62,16 +62,16 @@ export async function analyzeCaseData(key: string): Promise<CaseDataInfo | null>
     else if (key.startsWith('verification_')) type = 'verification';
     else if (key.includes('_temp_')) type = 'temp';
 
-    // Extract case ID
-    let caseId = '';
-    if (parsedData.caseId) {
-      caseId = parsedData.caseId;
-    } else if (parsedData.id) {
-      caseId = parsedData.id;
+    // Extract task ID
+    let taskId = '';
+    if (parsedData.id) {
+      taskId = parsedData.id;
+    } else if (parsedData.taskId) {
+      taskId = parsedData.taskId;
     } else {
       // Try to extract from key
-      const matches = key.match(/case_(.+?)_/);
-      caseId = matches ? matches[1] : key;
+      const matches = key.match(/task_(.+?)_|case_(.+?)_/);
+      taskId = matches ? (matches[1] || matches[2]) : key;
     }
 
     // Get timestamp
@@ -88,7 +88,7 @@ export async function analyzeCaseData(key: string): Promise<CaseDataInfo | null>
 
     return {
       key,
-      taskId: caseId,
+      taskId,
       type,
       timestamp,
       status: parsedData.status,
