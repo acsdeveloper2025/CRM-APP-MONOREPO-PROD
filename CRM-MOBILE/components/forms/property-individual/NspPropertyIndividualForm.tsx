@@ -1,11 +1,11 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Case, NspPropertyIndividualReportData, AddressLocatable, AddressRating, BuildingStatusApf, FlatStatusApf,
+  VerificationTask, NspPropertyIndividualReportData, AddressLocatable, AddressRating, BuildingStatusApf, FlatStatusApf,
   TPCMetPerson, TPCConfirmation, LocalityTypeResiCumOffice, SightStatus, PoliticalConnection, DominatedArea,
-  FeedbackFromNeighbour, FinalStatus, CaseStatus, CapturedImage
+  FeedbackFromNeighbour, FinalStatus, TaskStatus, CapturedImage
 } from '../../../types';
-import { useTasks } from "./context/TaskContext"
+import { useTasks } from "../../../context/TaskContext"
 import { FormField, SelectField, TextAreaField, NumberDropdownField } from '../../FormControls';
 import ConfirmationModal from '../../ConfirmationModal';
 import ImageCapture from '../../ImageCapture';
@@ -25,41 +25,41 @@ import {
 } from '../../../utils/imageAutoSaveHelpers';
 
 interface NspPropertyIndividualFormProps {
-  caseData: Case;
+  taskData: VerificationTask;
 }
 
 const getEnumOptions = (enumObject: object) => Object.values(enumObject).map(value => (
   <option key={value} value={value}>{value}</option>
 ));
 
-const NspPropertyIndividualForm: React.FC<NspPropertyIndividualFormProps> = ({ caseData }) => {
+const NspPropertyIndividualForm: React.FC<NspPropertyIndividualFormProps> = ({ taskData }) => {
   const navigate = useNavigate();
-  const { updateNspPropertyIndividualReport, toggleSaveCase , fetchCases } = useTasks();
+  const { updateNspPropertyIndividualReport, toggleSaveTask , fetchTasks } = useTasks();
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionError, setSubmissionError] = useState<string | null>(null);
   const [submissionSuccess, setSubmissionSuccess] = useState(false);
-  const report = caseData.nspPropertyIndividualReport;
-  const isReadOnly = caseData.status === CaseStatus.Completed || caseData.isSaved;
+  const report = taskData.nspPropertyIndividualReport;
+  const isReadOnly = taskData.status === TaskStatus.Completed || taskData.isSaved;
   const MIN_IMAGES = 5;
 
   // Auto-save handlers using helper functions for complete auto-save functionality
   const handleFormDataChange = createFormDataChangeHandler(
     updateNspPropertyIndividualReport,
-    caseData.id,
+    taskData.id,
     isReadOnly
   );
 
   const handleAutoSaveImagesChange = createAutoSaveImagesChangeHandler(
     updateNspPropertyIndividualReport,
-    caseData.id,
+    taskData.id,
     report,
     isReadOnly
   );
 
   const handleDataRestored = createDataRestoredHandler(
     updateNspPropertyIndividualReport,
-    caseData.id,
+    taskData.id,
     isReadOnly
   );
 
@@ -120,19 +120,19 @@ const NspPropertyIndividualForm: React.FC<NspPropertyIndividualFormProps> = ({ c
     }
 
     const updates: Partial<NspPropertyIndividualReportData> = { [name]: processedValue };
-    updateNspPropertyIndividualReport(caseData.id, updates);
+    updateNspPropertyIndividualReport(taskData.id, updates);
   };
   
   const handleImagesChange = createImageChangeHandler(
     updateNspPropertyIndividualReport,
-    caseData.id,
+    taskData.id,
     report,
     handleAutoSaveImagesChange
   );
 
   const handleSelfieImagesChange = createSelfieImageChangeHandler(
     updateNspPropertyIndividualReport,
-    caseData.id,
+    taskData.id,
     report,
     handleAutoSaveImagesChange
   );
@@ -153,7 +153,7 @@ const NspPropertyIndividualForm: React.FC<NspPropertyIndividualFormProps> = ({ c
 
   return (
     <AutoSaveFormWrapper
-      caseId={caseData.id}
+      taskId={taskData.id}
       formType={FORM_TYPES.PROPERTY_INDIVIDUAL_NSP}
       formData={report}
       images={combineImagesForAutoSave(report)}
@@ -170,16 +170,16 @@ const NspPropertyIndividualForm: React.FC<NspPropertyIndividualFormProps> = ({ c
       <div className="p-4 bg-gray-900/50 rounded-lg space-y-4 border border-dark-border mb-4">
         <h5 className="font-semibold text-brand-primary">Case Details</h5>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField label="Customer Name" id="case-customerName" name="case-customerName" value={caseData.customer.name} onChange={() => {}} disabled />
-            <FormField label="Bank Name" id="case-bankName" name="case-bankName" value={caseData.client?.name || caseData.clientName || ''} onChange={() => {}} disabled />
-            <FormField label="Product" id="case-product" name="case-product" value={caseData.product?.name || caseData.productName || ''} onChange={() => {}} disabled />
-            <FormField label="Trigger" id="case-trigger" name="case-trigger" value={caseData.notes || caseData.trigger || ''} onChange={() => {}} disabled />
+            <FormField label="Customer Name" id="case-customerName" name="case-customerName" value={taskData.customer.name} onChange={() => {}} disabled />
+            <FormField label="Bank Name" id="case-bankName" name="case-bankName" value={typeof taskData.client === 'object' ? taskData.client?.name : taskData.client || taskData.clientName || ''} onChange={() => {}} disabled />
+            <FormField label="Product" id="case-product" name="case-product" value={typeof taskData.product === 'object' ? taskData.product?.name : taskData.product || taskData.productName || ''} onChange={() => {}} disabled />
+            <FormField label="Trigger" id="case-trigger" name="case-trigger" value={taskData.notes || taskData.trigger || ''} onChange={() => {}} disabled />
             <div className="md:col-span-2">
-              <FormField label="Visit Address" id="case-visitAddress" name="case-visitAddress" value={caseData.addressStreet || caseData.visitAddress || caseData.address || ''} onChange={() => {}} disabled />
+              <FormField label="Visit Address" id="case-visitAddress" name="case-visitAddress" value={taskData.addressStreet || taskData.visitAddress || taskData.address || ''} onChange={() => {}} disabled />
             </div>
-            <FormField label="System Contact Number" id="case-systemContactNumber" name="case-systemContactNumber" value={caseData.systemContactNumber || ''} onChange={() => {}} disabled />
-            <FormField label="Customer Calling Code" id="case-customerCallingCode" name="case-customerCallingCode" value={caseData.customerCallingCode || ''} onChange={() => {}} disabled />
-            <FormField label="Applicant Status" id="case-applicantStatus" name="case-applicantStatus" value={caseData.applicantStatus || ''} onChange={() => {}} disabled />
+            <FormField label="System Contact Number" id="case-systemContactNumber" name="case-systemContactNumber" value={taskData.systemContactNumber || ''} onChange={() => {}} disabled />
+            <FormField label="Customer Calling Code" id="case-customerCallingCode" name="case-customerCallingCode" value={taskData.customerCallingCode || ''} onChange={() => {}} disabled />
+            <FormField label="Applicant Status" id="case-applicantStatus" name="case-applicantStatus" value={taskData.applicantStatus || ''} onChange={() => {}} disabled />
         </div>
       </div>
 
@@ -281,7 +281,7 @@ const NspPropertyIndividualForm: React.FC<NspPropertyIndividualFormProps> = ({ c
           compact={true}
         />
 
-      {!isReadOnly && caseData.status === CaseStatus.InProgress && (
+      {!isReadOnly && taskData.status === TaskStatus.InProgress && (
           <>
             <div className="mt-6">
                 <button 
@@ -308,7 +308,7 @@ const NspPropertyIndividualForm: React.FC<NspPropertyIndividualFormProps> = ({ c
                     setSubmissionError(null);
                 }}
                 onSave={() => {
-                    toggleSaveCase(caseData.id, true);
+                    toggleSaveTask(taskData.id, true);
                     setIsConfirmModalOpen(false);
                 }}
                 onConfirm={async () => {
@@ -342,8 +342,8 @@ const NspPropertyIndividualForm: React.FC<NspPropertyIndividualFormProps> = ({ c
 
                         // Submit verification form to backend
                         const result = await VerificationFormService.submitPropertyIndividualVerification(
-                            caseData.id,
-                            caseData.verificationTaskId!,
+                            taskData.id,
+                            taskData.verificationTaskId!,
                             formData,
                             allImages,
                             geoLocation
@@ -361,8 +361,8 @@ const NspPropertyIndividualForm: React.FC<NspPropertyIndividualFormProps> = ({ c
                             
                             // Handle post-submission: update status, refresh list, navigate
                             await handleSuccessfulSubmission(
-                                caseData.id,
-                                fetchCases,
+                                taskData.id,
+                                fetchTasks,
                                 navigate,
                                 setSubmissionSuccess
                             );

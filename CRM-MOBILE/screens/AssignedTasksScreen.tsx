@@ -1,11 +1,11 @@
 
 import React from 'react';
-import { CaseStatus } from '../types';
-import CaseListScreen from './CaseListScreen';
+import { TaskStatus } from '../types';
+import TaskListScreen from './TaskListScreen';
 
-const AssignedCasesScreen: React.FC = () => {
+const AssignedTasksScreen: React.FC = () => {
   return (
-    <CaseListScreen
+    <TaskListScreen
       title="Assigned Cases"
       filter={(c) => (c.taskStatus || c.status) === TaskStatus.Assigned}
       emptyMessage="No assigned cases at the moment."
@@ -15,4 +15,4 @@ const AssignedCasesScreen: React.FC = () => {
   );
 };
 
-export default AssignedCasesScreen;
+export default AssignedTasksScreen;

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { dataCleanupService, CleanupResult } from '../services/dataCleanupService';
-import { useTasks } from "./context/TaskContext"
+import { useTasks } from "../context/TaskContext"
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface CleanupStats {
@@ -21,7 +21,7 @@ const DataCleanupManager: React.FC = () => {
   const [isCacheClearing, setIsCacheClearing] = useState(false);
   const [isAttachmentClearing, setIsAttachmentClearing] = useState(false);
 
-  const { syncCases } = useTasks();
+  const { syncTasks } = useTasks();
 
   useEffect(() => {
     loadCleanupData();
@@ -107,7 +107,7 @@ const DataCleanupManager: React.FC = () => {
 
       // Trigger fresh sync from server
       console.log('🔄 Syncing fresh data from server...');
-      await syncCases();
+      await syncTasks();
 
       alert('✅ Cache cleared and fresh data synced!\n\nThe app now shows the latest data from the server.');
     } catch (error) {

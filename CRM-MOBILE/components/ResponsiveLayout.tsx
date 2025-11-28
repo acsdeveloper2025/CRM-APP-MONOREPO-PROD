@@ -91,7 +91,7 @@ export const ResponsiveContainer: React.FC<ResponsiveContainerProps> = ({
     width: '100%',
     maxWidth: screen.isTablet ? maxWidth : '100%',
     margin: '0 auto',
-    paddingHorizontal: typeof padding === 'number' ? `${padding}px` : padding,
+    padding: typeof padding === 'number' ? `${padding}px` : padding,
     ...style,
   };
 

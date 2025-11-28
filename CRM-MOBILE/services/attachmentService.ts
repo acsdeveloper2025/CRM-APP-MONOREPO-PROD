@@ -89,22 +89,22 @@ class AttachmentService {
    */
   async getCaseAttachments(taskId: string): Promise<Attachment[]> {
     try {
-      console.log(`📎 Fetching real attachments for case ${caseId}...`);
+      console.log(`📎 Fetching real attachments for case ${taskId}...`);
 
       // Get authentication token
       const authToken = await this.getAuthToken();
       const baseUrl = this.getApiBaseUrl();
 
       // Validate case ID format
-      if (!caseId || caseId.trim() === '') {
-        console.warn(`⚠️ Invalid case ID: ${caseId}`);
+      if (!taskId || taskId.trim() === '') {
+        console.warn(`⚠️ Invalid case ID: ${taskId}`);
         return [];
       }
 
-      console.log(`🌐 API Request: GET ${baseUrl}/mobile/cases/${caseId}/attachments`);
-      console.log(`📝 Case ID format: ${caseId} (length: ${caseId.length})`);
+      console.log(`🌐 API Request: GET ${baseUrl}/mobile/cases/${taskId}/attachments`);
+      console.log(`📝 Case ID format: ${taskId} (length: ${taskId.length})`);
 
-      const response = await fetch(`${baseUrl}/mobile/cases/${caseId}/attachments`, {
+      const response = await fetch(`${baseUrl}/mobile/cases/${taskId}/attachments`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${authToken}`,
@@ -152,7 +152,7 @@ class AttachmentService {
         description: att.description || ''
       }));
 
-      console.log(`✅ Successfully loaded ${attachments.length} real attachments for case ${caseId}`);
+      console.log(`✅ Successfully loaded ${attachments.length} real attachments for case ${taskId}`);
 
       // Log attachment details for debugging
       attachments.forEach(att => {
@@ -162,10 +162,10 @@ class AttachmentService {
       return attachments;
 
     } catch (error) {
-      console.error(`❌ Failed to fetch attachments for case ${caseId}:`, error);
+      console.error(`❌ Failed to fetch attachments for case ${taskId}:`, error);
 
       // Return empty array instead of throwing error to prevent app crashes
-      console.log(`📝 Returning empty attachment list for case ${caseId}`);
+      console.log(`📝 Returning empty attachment list for case ${taskId}`);
       return [];
     }
   }
@@ -221,7 +221,7 @@ class AttachmentService {
   /**
    * Download attachment for offline access
    */
-  private async downloadForOfflineAccess(attachment: Attachment, content: string, caseId?: string): Promise<void> {
+  private async downloadForOfflineAccess(attachment: Attachment, content: string, taskId?: string): Promise<void> {
     try {
       // Validate input parameters
       if (!attachment || !attachment.id || !content) {
@@ -233,7 +233,7 @@ class AttachmentService {
         originalName: attachment.name || 'unknown-file',
         mimeType: attachment.mimeType || 'application/octet-stream',
         size: attachment.size || content.length,
-        caseId: caseId || 'unknown'
+        taskId: taskId || 'unknown'
       };
 
       console.log(`📱 Attempting to store attachment: ${attachmentData.originalName} (${attachmentData.size} bytes)`);
@@ -258,7 +258,7 @@ class AttachmentService {
   /**
    * Download attachment for offline access (public method)
    */
-  async downloadAttachmentForOffline(attachment: Attachment, caseId?: string): Promise<boolean> {
+  async downloadAttachmentForOffline(attachment: Attachment, taskId?: string): Promise<boolean> {
     try {
       await this.initialize();
 
@@ -273,7 +273,7 @@ class AttachmentService {
           originalName: attachment.name,
           mimeType: attachment.mimeType,
           size: attachment.size,
-          caseId: caseId || 'unknown'
+          taskId: taskId || 'unknown'
         }
       );
 
@@ -295,9 +295,9 @@ class AttachmentService {
   /**
    * Get offline attachments for a case
    */
-  async getOfflineAttachments(caseId?: string) {
+  async getOfflineAttachments(taskId?: string) {
     await this.initialize();
-    return await offlineAttachmentService.getOfflineAttachments(caseId);
+    return await offlineAttachmentService.getOfflineAttachments(taskId);
   }
 
   /**
@@ -321,7 +321,7 @@ class AttachmentService {
    */
   private generateRealisticAttachments(taskId: string): Attachment[] {
     // Create deterministic but varied attachment scenarios based on case ID
-    const caseHash = this.hashString(caseId);
+    const caseHash = this.hashString(taskId);
     const attachmentCount = caseHash % 6; // 0-5 attachments
 
     if (attachmentCount === 0) return [];
@@ -329,115 +329,115 @@ class AttachmentService {
     const baseUrl = this.getApiBaseUrl();
     const allAttachments: Attachment[] = [
       {
-        id: `att-${caseId}-1`,
+        id: `att-${taskId}-1`,
         name: 'download.pdf',
         type: 'pdf',
         mimeType: 'application/pdf',
         size: 2048576, // 2MB
-        url: `${baseUrl}/files/download-${caseId}.pdf`,
+        url: `${baseUrl}/files/download-${taskId}.pdf`,
         uploadedAt: this.getRandomDate(-7),
         uploadedBy: 'System Admin',
         description: 'Official property documentation and ownership papers'
       },
       {
-        id: `att-${caseId}-2`,
+        id: `att-${taskId}-2`,
         name: 'Bank_Statement_Jan2024.pdf',
         type: 'pdf',
         mimeType: 'application/pdf',
         size: 1536000, // 1.5MB
-        url: `${baseUrl}/files/bank-statement-${caseId}.pdf`,
+        url: `${baseUrl}/files/bank-statement-${taskId}.pdf`,
         uploadedAt: this.getRandomDate(-5),
         uploadedBy: 'Financial Analyst',
         description: 'Monthly bank statement for verification'
       },
       {
-        id: `att-${caseId}-3`,
+        id: `att-${taskId}-3`,
         name: 'Identity_Verification.jpg',
         type: 'image',
         mimeType: 'image/jpeg',
         size: 892000, // 892KB
-        url: `${baseUrl}/files/identity-${caseId}.jpg`,
-        thumbnailUrl: `${baseUrl}/files/identity-${caseId}-thumb.jpg`,
+        url: `${baseUrl}/files/identity-${taskId}.jpg`,
+        thumbnailUrl: `${baseUrl}/files/identity-${taskId}-thumb.jpg`,
         uploadedAt: this.getRandomDate(-3),
         uploadedBy: 'Verification Officer',
         description: 'Identity document photograph'
       },
       {
-        id: `att-${caseId}-4`,
+        id: `att-${taskId}-4`,
         name: 'Site_Photo_Exterior.png',
         type: 'image',
         mimeType: 'image/png',
         size: 1024000, // 1MB
-        url: `${baseUrl}/files/site-exterior-${caseId}.png`,
-        thumbnailUrl: `${baseUrl}/files/site-exterior-${caseId}-thumb.png`,
+        url: `${baseUrl}/files/site-exterior-${taskId}.png`,
+        thumbnailUrl: `${baseUrl}/files/site-exterior-${taskId}-thumb.png`,
         uploadedAt: this.getRandomDate(-2),
         uploadedBy: 'Field Agent',
         description: 'Exterior view of the property'
       },
       {
-        id: `att-${caseId}-5`,
+        id: `att-${taskId}-5`,
         name: 'Legal_Agreement.pdf',
         type: 'pdf',
         mimeType: 'application/pdf',
         size: 3145728, // 3MB
-        url: `${baseUrl}/files/legal-agreement-${caseId}.pdf`,
+        url: `${baseUrl}/files/legal-agreement-${taskId}.pdf`,
         uploadedAt: this.getRandomDate(-1),
         uploadedBy: 'Legal Team',
         description: 'Legal agreement and contract documents'
       },
       {
-        id: `att-${caseId}-6`,
+        id: `att-${taskId}-6`,
         name: 'Address_Proof.jpg',
         type: 'image',
         mimeType: 'image/jpeg',
         size: 756000, // 756KB
-        url: `${baseUrl}/files/address-proof-${caseId}.jpg`,
-        thumbnailUrl: `${baseUrl}/files/address-proof-${caseId}-thumb.jpg`,
+        url: `${baseUrl}/files/address-proof-${taskId}.jpg`,
+        thumbnailUrl: `${baseUrl}/files/address-proof-${taskId}-thumb.jpg`,
         uploadedAt: this.getRandomDate(-1),
         uploadedBy: 'Document Specialist',
         description: 'Address verification document'
       },
       {
-        id: `att-${caseId}-7`,
+        id: `att-${taskId}-7`,
         name: 'Compliance_Report.pdf',
         type: 'pdf',
         mimeType: 'application/pdf',
         size: 2097152, // 2MB
-        url: `${baseUrl}/files/compliance-${caseId}.pdf`,
+        url: `${baseUrl}/files/compliance-${taskId}.pdf`,
         uploadedAt: this.getRandomDate(-4),
         uploadedBy: 'Compliance Officer',
         description: 'Compliance verification report'
       },
       {
-        id: `att-${caseId}-8`,
+        id: `att-${taskId}-8`,
         name: 'Building_Interior.png',
         type: 'image',
         mimeType: 'image/png',
         size: 1310720, // 1.25MB
-        url: `${baseUrl}/files/building-interior-${caseId}.png`,
-        thumbnailUrl: `${baseUrl}/files/building-interior-${caseId}-thumb.png`,
+        url: `${baseUrl}/files/building-interior-${taskId}.png`,
+        thumbnailUrl: `${baseUrl}/files/building-interior-${taskId}-thumb.png`,
         uploadedAt: this.getRandomDate(-2),
         uploadedBy: 'Site Inspector',
         description: 'Interior view of the building'
       },
       {
-        id: `att-${caseId}-9`,
+        id: `att-${taskId}-9`,
         name: 'download.pdf',
         type: 'pdf',
         mimeType: 'application/pdf',
         size: 1024000, // 1MB
-        url: `${baseUrl}/files/download-copy-${caseId}.pdf`,
+        url: `${baseUrl}/files/download-copy-${taskId}.pdf`,
         uploadedAt: this.getRandomDate(-5),
         uploadedBy: 'Data Analyst',
         description: 'Additional verification document'
       },
       {
-        id: `att-${caseId}-10`,
+        id: `att-${taskId}-10`,
         name: 'Financial_Statement.pdf',
         type: 'pdf',
         mimeType: 'application/pdf',
         size: 1800000, // 1.8MB
-        url: `${baseUrl}/files/financial-statement-${caseId}.pdf`,
+        url: `${baseUrl}/files/financial-statement-${taskId}.pdf`,
         uploadedAt: this.getRandomDate(-6),
         uploadedBy: 'Finance Team',
         description: 'Financial statement and income verification'
@@ -802,15 +802,15 @@ ${500 + this.calculateContentLength(docInfo)}
   async areAttachmentsStoredSecurely(taskId: string): Promise<boolean> {
     try {
       await this.initialize();
-      const attachments = await secureStorageService.getCaseAttachments(caseId);
+      const attachments = await secureStorageService.getCaseAttachments(taskId);
 
-      console.log(`🔒 Secure storage check for case ${caseId}: ${attachments.length} attachments found`);
+      console.log(`🔒 Secure storage check for case ${taskId}: ${attachments.length} attachments found`);
 
       // All attachments stored via this service are automatically secure
       // They are encrypted and stored in app-specific storage, not device gallery
       return attachments.length > 0;
     } catch (error) {
-      console.error(`❌ Failed to check secure storage for case ${caseId}:`, error);
+      console.error(`❌ Failed to check secure storage for case ${taskId}:`, error);
       return false;
     }
   }
@@ -821,10 +821,10 @@ ${500 + this.calculateContentLength(docInfo)}
   async getSecureAttachmentCount(taskId: string): Promise<number> {
     try {
       await this.initialize();
-      const attachments = await secureStorageService.getCaseAttachments(caseId);
+      const attachments = await secureStorageService.getCaseAttachments(taskId);
       return attachments.length;
     } catch (error) {
-      console.error(`❌ Failed to get secure attachment count for case ${caseId}:`, error);
+      console.error(`❌ Failed to get secure attachment count for case ${taskId}:`, error);
       return 0;
     }
   }

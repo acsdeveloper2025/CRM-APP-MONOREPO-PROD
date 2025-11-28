@@ -41,8 +41,8 @@ class PriorityService {
    */
   setPriority(taskId: string, priority: number): void {
     const priorities = this.getPriorities();
-    priorities[caseId] = {
-      caseId,
+    priorities[taskId] = {
+      taskId,
       priority,
       updatedAt: new Date().toISOString()
     };
@@ -54,7 +54,7 @@ class PriorityService {
    */
   getPriority(taskId: string): number | null {
     const priorities = this.getPriorities();
-    return priorities[caseId]?.priority || null;
+    return priorities[taskId]?.priority || null;
   }
 
   /**
@@ -62,19 +62,19 @@ class PriorityService {
    */
   removePriority(taskId: string): void {
     const priorities = this.getPriorities();
-    delete priorities[caseId];
+    delete priorities[taskId];
     this.savePriorities(priorities);
   }
 
   /**
-   * Get all priorities as a map of caseId -> priority
+   * Get all priorities as a map of taskId -> priority
    */
   getAllPriorities(): Record<string, number> {
     const priorities = this.getPriorities();
     const result: Record<string, number> = {};
     
-    Object.values(priorities).forEach(({ caseId, priority }) => {
-      result[caseId] = priority;
+    Object.values(priorities).forEach(({ taskId, priority }) => {
+      result[taskId] = priority;
     });
     
     return result;
@@ -99,9 +99,9 @@ class PriorityService {
     const existingSet = new Set(existingCaseIds);
     let hasChanges = false;
 
-    Object.keys(priorities).forEach(caseId => {
-      if (!existingSet.has(caseId)) {
-        delete priorities[caseId];
+    Object.keys(priorities).forEach(taskId => {
+      if (!existingSet.has(taskId)) {
+        delete priorities[taskId];
         hasChanges = true;
       }
     });

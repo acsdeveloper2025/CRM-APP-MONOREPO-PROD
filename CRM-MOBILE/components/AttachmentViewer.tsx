@@ -71,7 +71,7 @@ const AttachmentViewer: React.FC<AttachmentViewerProps> = ({ attachment, isVisib
         console.log(`✅ Data URL loaded for ${attachment.name}:`, attachmentContent.substring(0, 50) + '...');
 
         // For PDFs, convert data URL to Blob URL to avoid Chrome blocking
-        if (attachment.type === 'application/pdf') {
+        if (attachment.type === 'pdf') {
           console.log('🔄 Converting PDF data URL to Blob URL...');
           const blob = dataURLtoBlob(attachmentContent);
           const url = URL.createObjectURL(blob);

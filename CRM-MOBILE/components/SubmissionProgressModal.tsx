@@ -14,7 +14,7 @@ export const SubmissionProgressModal: React.FC<SubmissionProgressModalProps> = (
   isOpen,
   onClose,
   submissionId,
-  caseId
+  taskId
 }) => {
   const [progress, setProgress] = useState<SubmissionProgress | null>(null);
   const [retryQueue, setRetryQueue] = useState({ pending: 0, retrying: 0, failed: 0 });
@@ -89,7 +89,7 @@ export const SubmissionProgressModal: React.FC<SubmissionProgressModalProps> = (
         <div className="flex items-center justify-between p-6 border-b">
           <div>
             <h3 className="text-lg font-semibold text-gray-900">Submission Progress</h3>
-            <p className="text-sm text-gray-600">Case #{caseId}</p>
+            <p className="text-sm text-gray-600">Task #{taskId}</p>
           </div>
           <button
             onClick={onClose}

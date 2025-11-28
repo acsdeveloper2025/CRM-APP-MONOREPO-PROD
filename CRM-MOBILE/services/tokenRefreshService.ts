@@ -201,7 +201,7 @@ class TokenRefreshService {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
 
-      const response = await fetch(`${this.API_BASE_URL}/health`, {
+      const response = await fetch(`${this.getApiBaseUrl()}/health`, {
         method: 'GET',
         signal: controller.signal,
       });

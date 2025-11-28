@@ -1,9 +1,9 @@
 import React, { useMemo } from 'react';
 import { View, Text, FlatList, ActivityIndicator, SafeAreaView, FlatListProps, TouchableOpacity } from 'react-native';
 import { useNavigate } from 'react-router-dom';
-import { Case } from '../types';
-import { useTasks } from "./context/TaskContext"
-import CaseCard from "./components/TaskCard"
+import { VerificationTask } from '../types';
+import { useTasks } from "../context/TaskContext"
+import TaskCard from "../components/TaskCard"
 import TabSearch from '../components/TabSearch';
 import { useTabSearch } from '../hooks/useTabSearch';
 
@@ -19,9 +19,10 @@ interface TaskListScreenProps {
   tabKey: string; // Unique identifier for search state management
   searchPlaceholder?: string;
   customHeaderActions?: React.ReactNode;
+  showTimeline?: boolean;
 }
 
-const TaskListScreen: React.FC<CaseListScreenProps> = ({
+const TaskListScreen: React.FC<TaskListScreenProps> = ({
   title,
   filter,
   emptyMessage,
@@ -31,33 +32,33 @@ const TaskListScreen: React.FC<CaseListScreenProps> = ({
   searchPlaceholder = "Search cases...",
   customHeaderActions
 }) => {
-  const { cases, loading } = useTasks();
+  const { tasks, loading } = useTasks();
   const navigate = useNavigate();
 
-  // First apply the tab filter to get tab-specific cases
-  const tabCases = useMemo(() => {
-    const filtered = cases.filter(filter);
+  // First apply the tab filter to get tab-specific tasks
+  const tabTasks = useMemo(() => {
+    const filtered = tasks.filter(filter);
     if (sort) {
       filtered.sort(sort);
     }
     return filtered;
-  }, [cases, filter, sort]);
+  }, [tasks, filter, sort]);
 
   // Use tab search hook for search functionality
   const {
     searchQuery,
     setSearchQuery,
-    filteredCases,
+    filteredTasks,
     resultCount,
     totalCount,
     clearSearch
   } = useTabSearch({
-    cases: tabCases,
+    tasks: tabTasks,
     tabKey
   });
 
-  // Final processed cases are the search-filtered results
-  const processedCases = filteredCases;
+  // Final processed tasks are the search-filtered results
+  const processedTasks = filteredTasks;
 
   const renderEmpty = () => (
     <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', marginTop: 40, paddingHorizontal: 16 }}>
@@ -133,13 +134,13 @@ const TaskListScreen: React.FC<CaseListScreenProps> = ({
   return (
     <View style={{ flex: 1, backgroundColor: '#111827' }}>
       <FlatList
-        data={processedCases}
+        data={processedTasks}
         renderItem={({ item, index }: { item: VerificationTask, index: number }) => (
-          <CaseCard
+          <TaskCard
             taskData={item}
             isReorderable={isReorderable}
             isFirst={index === 0}
-            isLast={index === processedCases.length - 1}
+            isLast={index === processedTasks.length - 1}
           />
         )}
         keyExtractor={(item: VerificationTask) => item.id}

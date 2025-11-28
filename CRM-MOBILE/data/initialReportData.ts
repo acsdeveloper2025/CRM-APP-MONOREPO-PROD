@@ -1,4 +1,4 @@
-import { VerificationType, VerificationOutcome, ResidenceReportData, ShiftedResidenceReportData, NspResidenceReportData, EntryRestrictedResidenceReportData, UntraceableResidenceReportData, ResiCumOfficeReportData, ShiftedResiCumOfficeReportData, NspResiCumOfficeReportData, EntryRestrictedResiCumOfficeReportData, UntraceableResiCumOfficeReportData, PositiveOfficeReportData, ShiftedOfficeReportData, NspOfficeReportData, EntryRestrictedOfficeReportData, UntraceableOfficeReportData, PositiveBusinessReportData, ShiftedBusinessReportData, NspBusinessReportData, EntryRestrictedBusinessReportData, UntraceableBusinessReportData, PositiveBuilderReportData, ShiftedBuilderReportData, NspBuilderReportData, EntryRestrictedBuilderReportData, UntraceableBuilderReportData, PositiveNocReportData, ShiftedNocReportData, NspNocReportData, EntryRestrictedNocReportData, UntraceableNocReportData, PositiveDsaReportData, ShiftedDsaReportData, NspDsaReportData, EntryRestrictedDsaReportData, UntraceableDsaReportData, PositivePropertyApfReportData, NspPropertyApfReportData, EntryRestrictedPropertyApfReportData, UntraceablePropertyApfReportData, PositivePropertyIndividualReportData, NspPropertyIndividualReportData, EntryRestrictedPropertyIndividualReportData, UntraceablePropertyIndividualReportData, Case } from '../types';
+import { VerificationType, VerificationOutcome, ResidenceReportData, ShiftedResidenceReportData, NspResidenceReportData, EntryRestrictedResidenceReportData, UntraceableResidenceReportData, ResiCumOfficeReportData, ShiftedResiCumOfficeReportData, NspResiCumOfficeReportData, EntryRestrictedResiCumOfficeReportData, UntraceableResiCumOfficeReportData, PositiveOfficeReportData, ShiftedOfficeReportData, NspOfficeReportData, EntryRestrictedOfficeReportData, UntraceableOfficeReportData, PositiveBusinessReportData, ShiftedBusinessReportData, NspBusinessReportData, EntryRestrictedBusinessReportData, UntraceableBusinessReportData, PositiveBuilderReportData, ShiftedBuilderReportData, NspBuilderReportData, EntryRestrictedBuilderReportData, UntraceableBuilderReportData, PositiveNocReportData, ShiftedNocReportData, NspNocReportData, EntryRestrictedNocReportData, UntraceableNocReportData, PositiveDsaReportData, ShiftedDsaReportData, NspDsaReportData, EntryRestrictedDsaReportData, UntraceableDsaReportData, PositivePropertyApfReportData, NspPropertyApfReportData, EntryRestrictedPropertyApfReportData, UntraceablePropertyApfReportData, PositivePropertyIndividualReportData, NspPropertyIndividualReportData, EntryRestrictedPropertyIndividualReportData, UntraceablePropertyIndividualReportData, VerificationTask } from '../types';
 
 export const initialResidenceReport: ResidenceReportData = {
   addressLocatable: null,
@@ -1268,7 +1268,7 @@ export const initialUntraceablePropertyIndividualReport: UntraceablePropertyIndi
     selfieImages: [],
 };
 
-const reportMap: { [key in VerificationType]?: { [key in VerificationOutcome]?: { key: keyof Case, data: any } } } = {
+const reportMap: { [key in VerificationType]?: { [key in VerificationOutcome]?: { key: keyof VerificationTask, data: any } } } = {
     [VerificationType.Residence]: {
         [VerificationOutcome.PositiveAndDoorLocked]: { key: 'residenceReport', data: initialResidenceReport },
         [VerificationOutcome.ShiftedAndDoorLocked]: { key: 'shiftedResidenceReport', data: initialShiftedResidenceReport },
@@ -1332,6 +1332,6 @@ const reportMap: { [key in VerificationType]?: { [key in VerificationOutcome]?: 
     }
 };
 
-export const getReportInfo = (type: VerificationType, outcome: VerificationOutcome): { key: keyof Case, data: any } | null => {
+export const getReportInfo = (type: VerificationType, outcome: VerificationOutcome): { key: keyof VerificationTask, data: any } | null => {
     return reportMap[type]?.[outcome] ?? null;
 }

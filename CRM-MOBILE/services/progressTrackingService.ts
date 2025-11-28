@@ -111,7 +111,7 @@ class ProgressTrackingService {
     
     const progress: SubmissionProgress = {
       id: submissionId,
-      caseId,
+      taskId,
       verificationType,
       status: 'PREPARING',
       overallProgress: 0,
@@ -126,7 +126,7 @@ class ProgressTrackingService {
     this.activeSubmissions.set(submissionId, progress);
     this.saveActiveSubmissions();
     
-    console.log(`📊 Started tracking submission: ${submissionId} for case ${caseId}`);
+    console.log(`📊 Started tracking submission: ${submissionId} for case ${taskId}`);
     this.notifyProgress(submissionId);
     
     return submissionId;

@@ -401,7 +401,7 @@ class RetryService {
   /**
    * Get pending requests from retry queue
    */
-  async getPendingRequests(): Promise<RetryRequest[]> {
+  async getPendingRequests(): Promise<RetryableRequest[]> {
     return this.retryQueue.filter(r => r.attempts < RetryService.DEFAULT_CONFIG.maxAttempts);
   }
 
@@ -422,7 +422,7 @@ class RetryService {
     console.log(`🔄 Manually retrying request ${requestId}...`);
 
     try {
-      const result = await this.executeRequest(request);
+      const result = await this.executeRequest(request.id);
 
       if (result.success) {
         // Remove successful request from queue

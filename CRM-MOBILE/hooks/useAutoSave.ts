@@ -83,7 +83,7 @@ export const useAutoSave = (
       lastFormDataRef.current = currentDataString;
 
       await autoSaveService.saveFormData(
-        caseId,
+        taskId,
         formType,
         formData,
         images,
@@ -100,7 +100,7 @@ export const useAutoSave = (
 
       // Call success callback
       if (onAutoSaveSuccess) {
-        const savedData = await autoSaveService.getFormData(caseId, formType);
+        const savedData = await autoSaveService.getFormData(taskId, formType);
         if (savedData) {
           onAutoSaveSuccess(savedData);
         }
@@ -120,14 +120,14 @@ export const useAutoSave = (
 
       console.error('Auto-save error:', error);
     }
-  }, [caseId, formType, enableAutoSave, debounceMs, onAutoSaveSuccess, onAutoSaveError, updateStatus]);
+  }, [taskId, formType, enableAutoSave, debounceMs, onAutoSaveSuccess, onAutoSaveError, updateStatus]);
 
   /**
    * Restore form data from auto-save
    */
   const restoreFormData = useCallback(async (): Promise<AutoSaveData | null> => {
     try {
-      const savedData = await autoSaveService.getFormData(caseId, formType);
+      const savedData = await autoSaveService.getFormData(taskId, formType);
       
       if (savedData) {
         updateStatus({ 
@@ -146,14 +146,14 @@ export const useAutoSave = (
       updateStatus({ autoSaveError: 'Failed to restore saved data' });
       return null;
     }
-  }, [caseId, formType, onDataRestored, updateStatus]);
+  }, [taskId, formType, onDataRestored, updateStatus]);
 
   /**
    * Clear auto-save data
    */
   const clearAutoSaveData = useCallback(async (): Promise<void> => {
     try {
-      await autoSaveService.removeAutoSaveData(caseId, formType);
+      await autoSaveService.removeAutoSaveData(taskId, formType);
       updateStatus({
         hasSavedData: false,
         lastSaved: null,
@@ -165,14 +165,14 @@ export const useAutoSave = (
       console.error('Error clearing auto-save data:', error);
       updateStatus({ autoSaveError: 'Failed to clear saved data' });
     }
-  }, [caseId, formType, updateStatus]);
+  }, [taskId, formType, updateStatus]);
 
   /**
    * Mark form as completed
    */
   const markFormCompleted = useCallback(async (): Promise<void> => {
     try {
-      await autoSaveService.markFormCompleted(caseId, formType);
+      await autoSaveService.markFormCompleted(taskId, formType);
       updateStatus({
         hasUnsavedChanges: false,
         autoSaveError: null
@@ -181,25 +181,7 @@ export const useAutoSave = (
       console.error('Error marking form as completed:', error);
       updateStatus({ autoSaveError: 'Failed to mark form as completed' });
     }
-  }, [caseId, formType, updateStatus]);
-
-  /**
-   * Immediately clean up completed form (for use after successful submission)
-   */
-  const cleanupCompletedForm = useCallback(async (): Promise<void> => {
-    try {
-      await autoSaveService.cleanupCompletedForm(caseId, formType);
-      updateStatus({
-        hasUnsavedChanges: false,
-        hasSavedData: false,
-        lastSaved: null,
-        autoSaveError: null
-      });
-    } catch (error) {
-      console.error('Error cleaning up completed form:', error);
-      updateStatus({ autoSaveError: 'Failed to cleanup completed form' });
-    }
-  }, [caseId, formType, updateStatus]);
+  }, [taskId, formType, updateStatus]);
 
   /**
    * Force save immediately
@@ -223,7 +205,7 @@ export const useAutoSave = (
       
       const checkForSavedData = async () => {
         try {
-          const hasSaved = await autoSaveService.hasAutoSaveData(caseId, formType);
+          const hasSaved = await autoSaveService.hasAutoSaveData(taskId, formType);
           updateStatus({ hasSavedData: hasSaved });
         } catch (error) {
           console.error('Error checking for saved data:', error);
@@ -232,13 +214,13 @@ export const useAutoSave = (
 
       checkForSavedData();
     }
-  }, [caseId, formType, updateStatus]);
+  }, [taskId, formType, updateStatus]);
 
   /**
    * Set up auto-save listener
    */
   useEffect(() => {
-    const key = `autosave_${caseId}_${formType}`;
+    const key = `autosave_${taskId}_${formType}`;
     
     const handleAutoSaveUpdate = (data: AutoSaveData | null) => {
       if (data) {
@@ -259,7 +241,7 @@ export const useAutoSave = (
     return () => {
       autoSaveService.removeListener(key, handleAutoSaveUpdate);
     };
-  }, [caseId, formType, updateStatus]);
+  }, [taskId, formType, updateStatus]);
 
   /**
    * Handle page visibility changes

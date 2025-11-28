@@ -454,8 +454,11 @@ export interface CapturedImage {
   };
   // Browser optimization properties
   compressed?: boolean;
+  compressedData?: string;
+  type?: string;
   originalSize?: number;
   compressedSize?: number;
+  metadata?: any;
 }
 
 export interface Attachment {
