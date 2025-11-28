@@ -1,11 +1,11 @@
 
 import React from 'react';
-import { CaseStatus } from '../types';
-import CaseListScreen from './CaseListScreen';
+import { TaskStatus } from '../types';
+import TaskListScreen from './TaskListScreen';
 
-const CompletedCasesScreen: React.FC = () => {
+const CompletedTasksScreen: React.FC = () => {
   return (
-    <CaseListScreen
+    <TaskListScreen
       title="Completed Cases"
       filter={(c) => (c.taskStatus || c.status) === TaskStatus.Completed}
       emptyMessage="You have not completed any cases yet."
@@ -16,4 +16,4 @@ const CompletedCasesScreen: React.FC = () => {
   );
 };
 
-export default CompletedCasesScreen;
+export default CompletedTasksScreen;

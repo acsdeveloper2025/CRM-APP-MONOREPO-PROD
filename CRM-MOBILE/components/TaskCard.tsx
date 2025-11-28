@@ -1,12 +1,12 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { Case, CaseStatus, VerificationType, VerificationOutcome, RevokeReason } from '../types';
-import { useTasks } from "./context/TaskContext"
+import { VerificationTask, TaskStatus, VerificationType, VerificationOutcome, RevokeReason } from '../types';
+import { useTasks } from "../context/TaskContext"
 import { ChevronDownIcon, ChevronUpIcon, CheckIcon, XIcon, InfoIcon, ArrowUpIcon, ArrowDownIcon, AttachmentIcon } from './Icons';
 import Spinner from './Spinner';
 import Modal from './Modal';
 import PriorityInput from './PriorityInput';
-import { useTaskAutoSaveStatus } from "./hooks/useTaskAutoSaveStatus"
-import CaseTimeline from "./components/TaskTimeline"
+import { useTaskAutoSaveStatus } from "../hooks/useTaskAutoSaveStatus"
+import TaskTimeline from "./TaskTimeline"
 import AttachmentsModal from './AttachmentsModal';
 import { VerificationTaskService } from '../services/verificationTaskService';
 import VerificationFormService from '../services/verificationFormService';
@@ -95,8 +95,8 @@ const verificationOptionsMap: { [key in VerificationType]?: React.ReactElement[]
     }),
 };
 
-const TaskCard: React.FC<CaseCardProps> = ({ taskData, isReorderable = false, isFirst, isLast }) => {
-  const { updateTaskStatus, updateVerificationOutcome, reorderInProgressCase, updateCaseSubmissionStatus, verifyCaseSubmissionStatus, fetchCases } = useTasks();
+const TaskCard: React.FC<TaskCardProps> = ({ taskData, isReorderable = false, isFirst, isLast }) => {
+  const { updateTaskStatus, updateVerificationOutcome, reorderInProgressTask, updateTaskSubmissionStatus, verifyTaskSubmissionStatus, fetchTasks } = useTasks();
   const [isExpanded, setIsExpanded] = useState(false);
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
   const [isRevokeModalOpen, setIsRevokeModalOpen] = useState(false);
@@ -197,7 +197,7 @@ const TaskCard: React.FC<CaseCardProps> = ({ taskData, isReorderable = false, is
         console.log('✅ Task revoked successfully');
         setIsRevokeModalOpen(false);
         // Refresh cases to update the UI
-        await fetchCases();
+        await fetchTasks();
       } else {
         console.error('❌ Failed to revoke task:', result.error);
         alert(`Failed to revoke task: ${result.error || 'Unknown error'}`);
@@ -221,7 +221,7 @@ const TaskCard: React.FC<CaseCardProps> = ({ taskData, isReorderable = false, is
       const verificationType = taskData.verificationType?.toLowerCase().replace(/\s+/g, '-') as any;
 
       // Update submission status to 'submitting'
-      await updateCaseSubmissionStatus(taskData.id, 'submitting');
+      await updateTaskSubmissionStatus(taskData.id, 'submitting');
 
       // Retry the verification submission with verificationTaskId
       const result = await VerificationFormService.retryVerificationSubmission(
@@ -232,19 +232,19 @@ const TaskCard: React.FC<CaseCardProps> = ({ taskData, isReorderable = false, is
 
       if (result.success) {
         // Update submission status to 'success'
-        await updateCaseSubmissionStatus(taskData.id, 'success');
+        await updateTaskSubmissionStatus(taskData.id, 'success');
         setSubmissionMessage('✅ Case submitted successfully!');
         setTimeout(() => setSubmissionMessage(null), 5000);
       } else {
         // Update submission status to 'failed' with error message
-        await updateCaseSubmissionStatus(taskData.id, 'failed', result.error);
+        await updateTaskSubmissionStatus(taskData.id, 'failed', result.error);
         setSubmissionMessage(`❌ Submission failed: ${result.error}`);
         setTimeout(() => setSubmissionMessage(null), 8000);
       }
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      await updateCaseSubmissionStatus(taskData.id, 'failed', errorMessage);
+      await updateTaskSubmissionStatus(taskData.id, 'failed', errorMessage);
       setSubmissionMessage(`❌ Submission failed: ${errorMessage}`);
       setTimeout(() => setSubmissionMessage(null), 8000);
     } finally {
@@ -264,12 +264,12 @@ const TaskCard: React.FC<CaseCardProps> = ({ taskData, isReorderable = false, is
     try {
       console.log('🔍 Verifying submission status with backend...');
 
-      const result = await verifyCaseSubmissionStatus(taskData.id);
+      const result = await verifyTaskSubmissionStatus(taskData.id);
 
       if (result.submitted) {
         setSubmissionMessage(`✅ Verified: VerificationTask successfully submitted. Task status: ${result.taskStatus}`);
         // Update local status to success
-        await updateCaseSubmissionStatus(taskData.id, 'success');
+        await updateTaskSubmissionStatus(taskData.id, 'success');
       } else {
         setSubmissionMessage(`⚠️ Not submitted: ${result.error || 'Task not completed on server'}`);
       }
@@ -649,7 +649,7 @@ const TaskCard: React.FC<CaseCardProps> = ({ taskData, isReorderable = false, is
               )}
               {/* Show priority input only for In Progress cases */}
               {(taskData.taskStatus || taskData.status) === TaskStatus.InProgress && !taskData.isSaved && (
-                <PriorityInput caseId={taskData.id} />
+                <PriorityInput taskId={taskData.id} />
               )}
             </div>
           </div>
@@ -908,10 +908,10 @@ const TaskCard: React.FC<CaseCardProps> = ({ taskData, isReorderable = false, is
             <div>
               {isReorderable ? (
                 <div className="flex items-center space-x-2">
-                  <button onClick={(e) => { e.stopPropagation(); reorderInProgressCase(taskData.id, 'up'); }} disabled={isFirst} className="p-2 rounded-full disabled:text-gray-600 disabled:cursor-not-allowed text-medium-text hover:text-light-text transition-colors">
+                  <button onClick={(e) => { e.stopPropagation(); reorderInProgressTask(taskData.id, 'up'); }} disabled={isFirst} className="p-2 rounded-full disabled:text-gray-600 disabled:cursor-not-allowed text-medium-text hover:text-light-text transition-colors">
                       <ArrowUpIcon />
                   </button>
-                  <button onClick={(e) => { e.stopPropagation(); reorderInProgressCase(taskData.id, 'down'); }} disabled={isLast} className="p-2 rounded-full disabled:text-gray-600 disabled:cursor-not-allowed text-medium-text hover:text-light-text transition-colors">
+                  <button onClick={(e) => { e.stopPropagation(); reorderInProgressTask(taskData.id, 'down'); }} disabled={isLast} className="p-2 rounded-full disabled:text-gray-600 disabled:cursor-not-allowed text-medium-text hover:text-light-text transition-colors">
                       <ArrowDownIcon />
                   </button>
                 </div>
@@ -1085,8 +1085,8 @@ const TaskCard: React.FC<CaseCardProps> = ({ taskData, isReorderable = false, is
 
     {/* Attachments Modal */}
     <AttachmentsModal
-      caseId={taskData.id}
-      isVisible={isAttachmentsModalOpen}
+      taskId={taskData.id}
+      isOpen={isAttachmentsModalOpen}
       onClose={() => setIsAttachmentsModalOpen(false)}
     />
 

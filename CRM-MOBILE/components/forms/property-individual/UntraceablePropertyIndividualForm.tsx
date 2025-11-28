@@ -1,9 +1,9 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Case, UntraceablePropertyIndividualReportData, CallRemarkUntraceable, LocalityTypeResiCumOffice, DominatedArea, FinalStatus, CaseStatus, CapturedImage
+  VerificationTask, UntraceablePropertyIndividualReportData, CallRemarkUntraceable, LocalityTypeResiCumOffice, DominatedArea, FinalStatus, TaskStatus, CapturedImage
 } from '../../../types';
-import { useTasks } from "./context/TaskContext"
+import { useTasks } from "../../../context/TaskContext"
 import { FormField, SelectField, TextAreaField } from '../../FormControls';
 import ConfirmationModal from '../../ConfirmationModal';
 import ImageCapture from '../../ImageCapture';
@@ -23,41 +23,41 @@ import {
 } from '../../../utils/imageAutoSaveHelpers';
 
 interface UntraceablePropertyIndividualFormProps {
-  caseData: Case;
+  taskData: VerificationTask;
 }
 
 const getEnumOptions = (enumObject: object) => Object.values(enumObject).map(value => (
   <option key={value} value={value}>{value}</option>
 ));
 
-const UntraceablePropertyIndividualForm: React.FC<UntraceablePropertyIndividualFormProps> = ({ caseData }) => {
+const UntraceablePropertyIndividualForm: React.FC<UntraceablePropertyIndividualFormProps> = ({ taskData }) => {
   const navigate = useNavigate();
-  const { updateUntraceablePropertyIndividualReport, toggleSaveCase , fetchCases } = useTasks();
+  const { updateUntraceablePropertyIndividualReport, toggleSaveTask , fetchTasks } = useTasks();
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionError, setSubmissionError] = useState<string | null>(null);
   const [submissionSuccess, setSubmissionSuccess] = useState(false);
-  const report = caseData.untraceablePropertyIndividualReport;
-  const isReadOnly = caseData.status === CaseStatus.Completed || caseData.isSaved;
+  const report = taskData.untraceablePropertyIndividualReport;
+  const isReadOnly = taskData.status === TaskStatus.Completed || taskData.isSaved;
   const MIN_IMAGES = 5;
 
   // Auto-save handlers using helper functions for complete auto-save functionality
   const handleFormDataChange = createFormDataChangeHandler(
     updateUntraceablePropertyIndividualReport,
-    caseData.id,
+    taskData.id,
     isReadOnly
   );
 
   const handleAutoSaveImagesChange = createAutoSaveImagesChangeHandler(
     updateUntraceablePropertyIndividualReport,
-    caseData.id,
+    taskData.id,
     report,
     isReadOnly
   );
 
   const handleDataRestored = createDataRestoredHandler(
     updateUntraceablePropertyIndividualReport,
-    caseData.id,
+    taskData.id,
     isReadOnly
   );
 
@@ -100,19 +100,19 @@ const UntraceablePropertyIndividualForm: React.FC<UntraceablePropertyIndividualF
     }
 
     const updates: Partial<UntraceablePropertyIndividualReportData> = { [name]: processedValue };
-    updateUntraceablePropertyIndividualReport(caseData.id, updates);
+    updateUntraceablePropertyIndividualReport(taskData.id, updates);
   };
   
   const handleImagesChange = createImageChangeHandler(
     updateUntraceablePropertyIndividualReport,
-    caseData.id,
+    taskData.id,
     report,
     handleAutoSaveImagesChange
   );
 
   const handleSelfieImagesChange = createSelfieImageChangeHandler(
     updateUntraceablePropertyIndividualReport,
-    caseData.id,
+    taskData.id,
     report,
     handleAutoSaveImagesChange
   );
@@ -125,7 +125,7 @@ const UntraceablePropertyIndividualForm: React.FC<UntraceablePropertyIndividualF
 
   return (
     <AutoSaveFormWrapper
-      caseId={caseData.id}
+      taskId={taskData.id}
       formType={FORM_TYPES.PROPERTY_INDIVIDUAL_UNTRACEABLE}
       formData={report}
       images={combineImagesForAutoSave(report)}
@@ -142,16 +142,16 @@ const UntraceablePropertyIndividualForm: React.FC<UntraceablePropertyIndividualF
       <div className="p-4 bg-gray-900/50 rounded-lg space-y-4 border border-dark-border mb-4">
         <h5 className="font-semibold text-brand-primary">Case Details</h5>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField label="Customer Name" id="case-customerName" name="case-customerName" value={caseData.customer.name} onChange={() => {}} disabled />
-            <FormField label="Bank Name" id="case-bankName" name="case-bankName" value={caseData.client?.name || caseData.clientName || ''} onChange={() => {}} disabled />
-            <FormField label="Product" id="case-product" name="case-product" value={caseData.product?.name || caseData.productName || ''} onChange={() => {}} disabled />
-            <FormField label="Trigger" id="case-trigger" name="case-trigger" value={caseData.notes || caseData.trigger || ''} onChange={() => {}} disabled />
+            <FormField label="Customer Name" id="case-customerName" name="case-customerName" value={taskData.customer.name} onChange={() => {}} disabled />
+            <FormField label="Bank Name" id="case-bankName" name="case-bankName" value={typeof taskData.client === 'object' ? taskData.client?.name : taskData.client || taskData.clientName || ''} onChange={() => {}} disabled />
+            <FormField label="Product" id="case-product" name="case-product" value={typeof taskData.product === 'object' ? taskData.product?.name : taskData.product || taskData.productName || ''} onChange={() => {}} disabled />
+            <FormField label="Trigger" id="case-trigger" name="case-trigger" value={taskData.notes || taskData.trigger || ''} onChange={() => {}} disabled />
             <div className="md:col-span-2">
-              <FormField label="Visit Address" id="case-visitAddress" name="case-visitAddress" value={caseData.addressStreet || caseData.visitAddress || caseData.address || ''} onChange={() => {}} disabled />
+              <FormField label="Visit Address" id="case-visitAddress" name="case-visitAddress" value={taskData.addressStreet || taskData.visitAddress || taskData.address || ''} onChange={() => {}} disabled />
             </div>
-            <FormField label="System Contact Number" id="case-systemContactNumber" name="case-systemContactNumber" value={caseData.systemContactNumber || ''} onChange={() => {}} disabled />
-            <FormField label="Customer Calling Code" id="case-customerCallingCode" name="case-customerCallingCode" value={caseData.customerCallingCode || ''} onChange={() => {}} disabled />
-            <FormField label="Applicant Status" id="case-applicantStatus" name="case-applicantStatus" value={caseData.applicantStatus || ''} onChange={() => {}} disabled />
+            <FormField label="System Contact Number" id="case-systemContactNumber" name="case-systemContactNumber" value={taskData.systemContactNumber || ''} onChange={() => {}} disabled />
+            <FormField label="Customer Calling Code" id="case-customerCallingCode" name="case-customerCallingCode" value={taskData.customerCallingCode || ''} onChange={() => {}} disabled />
+            <FormField label="Applicant Status" id="case-applicantStatus" name="case-applicantStatus" value={taskData.applicantStatus || ''} onChange={() => {}} disabled />
         </div>
       </div>
       
@@ -194,7 +194,7 @@ const UntraceablePropertyIndividualForm: React.FC<UntraceablePropertyIndividualF
         compact={true}
       />
 
-      {!isReadOnly && caseData.status === CaseStatus.InProgress && (
+      {!isReadOnly && taskData.status === TaskStatus.InProgress && (
           <>
             <div className="mt-6">
                 <button 
@@ -221,7 +221,7 @@ const UntraceablePropertyIndividualForm: React.FC<UntraceablePropertyIndividualF
                     setSubmissionError(null);
                 }}
                 onSave={() => {
-                    toggleSaveCase(caseData.id, true);
+                    toggleSaveTask(taskData.id, true);
                     setIsConfirmModalOpen(false);
                 }}
                 onConfirm={async () => {
@@ -255,8 +255,8 @@ const UntraceablePropertyIndividualForm: React.FC<UntraceablePropertyIndividualF
 
                         // Submit verification form to backend
                         const result = await VerificationFormService.submitPropertyIndividualVerification(
-                            caseData.id,
-                            caseData.verificationTaskId!,
+                            taskData.id,
+                            taskData.verificationTaskId!,
                             formData,
                             allImages,
                             geoLocation
@@ -274,8 +274,8 @@ const UntraceablePropertyIndividualForm: React.FC<UntraceablePropertyIndividualF
                             
                             // Handle post-submission: update status, refresh list, navigate
                             await handleSuccessfulSubmission(
-                                caseData.id,
-                                fetchCases,
+                                taskData.id,
+                                fetchTasks,
                                 navigate,
                                 setSubmissionSuccess
                             );

@@ -1,6 +1,5 @@
-import { Case, CaseStatus, VerificationType, Attachment } from '../types';
+import { VerificationTask, TaskStatus, VerificationType, Attachment } from '../types';
 import AsyncStorage from '../polyfills/AsyncStorage';
-import { migrateCasesVerificationOutcomes, isDeprecatedOutcome } from '../utils/verificationOutcomeMigration';
 import { apiService } from './apiService';
 
 const LOCAL_STORAGE_KEY = 'caseflow_cases';
@@ -72,7 +71,7 @@ interface BackendTask {
 }
 
 // Function to map backend task data to mobile Case interface
-const mapBackendCaseToMobile = (backendCase: BackendCase): VerificationTask => {
+const mapBackendTaskToMobile = (backendCase: BackendTask): VerificationTask => {
   // Map backend priority string to mobile priority number
   const priorityMap: { [key: string]: number } = {
     'LOW': 1,
@@ -81,25 +80,25 @@ const mapBackendCaseToMobile = (backendCase: BackendCase): VerificationTask => {
     'URGENT': 4
   };
 
-  // Map backend status to mobile CaseStatus
+  // Map backend status to mobile TaskStatus
   // This maps task status from verification_tasks table
-  const statusMap: { [key: string]: VerificationTaskStatus } = {
-    'PENDING': VerificationTaskStatus.Assigned,
-    'ASSIGNED': VerificationTaskStatus.Assigned,
-    'IN_PROGRESS': VerificationTaskStatus.InProgress,
-    'COMPLETED': VerificationTaskStatus.Completed,
-    'CANCELLED': VerificationTaskStatus.Assigned,
-    'ON_HOLD': VerificationTaskStatus.InProgress,
+  const statusMap: { [key: string]: TaskStatus } = {
+    'PENDING': TaskStatus.Assigned,
+    'ASSIGNED': TaskStatus.Assigned,
+    'IN_PROGRESS': TaskStatus.InProgress,
+    'COMPLETED': TaskStatus.Completed,
+    'CANCELLED': TaskStatus.Assigned,
+    'ON_HOLD': TaskStatus.InProgress,
   };
 
   // Map backend status to task status (preserves task-level status)
-  const taskStatusMap: { [key: string]: VerificationTaskStatus } = {
-    'PENDING': VerificationTaskStatus.Assigned,
-    'ASSIGNED': VerificationTaskStatus.Assigned,
-    'IN_PROGRESS': VerificationTaskStatus.InProgress,
-    'COMPLETED': VerificationTaskStatus.Completed,
-    'CANCELLED': VerificationTaskStatus.Assigned,
-    'ON_HOLD': VerificationTaskStatus.InProgress,
+  const taskStatusMap: { [key: string]: TaskStatus } = {
+    'PENDING': TaskStatus.Assigned,
+    'ASSIGNED': TaskStatus.Assigned,
+    'IN_PROGRESS': TaskStatus.InProgress,
+    'COMPLETED': TaskStatus.Completed,
+    'CANCELLED': TaskStatus.Assigned,
+    'ON_HOLD': TaskStatus.InProgress,
   };
 
   // Map backend verification type to mobile VerificationType
@@ -247,16 +246,16 @@ const generateAttachments = (taskId: string, count: number): Attachment[] => {
   ];
 
   return attachmentTemplates.slice(0, count).map((template, index) => ({
-    id: `att-${caseId}-${index + 1}`,
+    id: `att-${taskId}-${index + 1}`,
     name: template.name,
     type: template.type,
     mimeType: template.mimeType,
     size: template.size,
-    url: `${baseUrl}/files/${template.name.toLowerCase().replace(/[^a-z0-9]/g, '-')}-${caseId}`,
-    thumbnailUrl: template.type === 'image' ? `${baseUrl}/files/${template.name.toLowerCase().replace(/[^a-z0-9]/g, '-')}-${caseId}-thumb` : undefined,
+    url: `${baseUrl}/files/${template.name.toLowerCase().replace(/[^a-z0-9]/g, '-')}-${taskId}`,
+    thumbnailUrl: template.type === 'image' ? `${baseUrl}/files/${template.name.toLowerCase().replace(/[^a-z0-9]/g, '-')}-${taskId}-thumb` : undefined,
     uploadedAt: new Date(Date.now() - (index + 1) * 24 * 60 * 60 * 1000).toISOString(),
     uploadedBy: template.uploadedBy,
-    description: `${template.name} for task ${caseId}`
+    description: `${template.name} for task ${taskId}`
   }));
 };
 
@@ -275,7 +274,7 @@ class CaseService {
     console.log('Case service initialized');
   }
 
-  private async readFromStorage(): Promise<Case[]> {
+  private async readFromStorage(): Promise<VerificationTask[]> {
     const data = await AsyncStorage.getItem(LOCAL_STORAGE_KEY);
     return data ? JSON.parse(data) : [];
   }
@@ -287,7 +286,7 @@ class CaseService {
 
 
   // Fetch tasks from backend API
-  private async fetchCasesFromAPI(): Promise<Case[]> {
+  private async fetchTasksFromAPI(): Promise<VerificationTask[]> {
     try {
       const result = await apiService.request('/mobile/tasks?limit=200', {
         method: 'GET',
@@ -299,8 +298,8 @@ class CaseService {
       }
 
       // Map backend tasks to mobile format
-      const mobileCases = result.data.tasks.map((backendCase: BackendCase) =>
-        mapBackendCaseToMobile(backendCase)
+      const mobileCases = result.data.tasks.map((backendCase: BackendTask) =>
+        mapBackendTaskToMobile(backendCase)
       );
 
       // Cache the tasks locally for offline access
@@ -317,17 +316,17 @@ class CaseService {
   }
 
   // No mock tasks - all mock data removed
-  private async getMockCases(): Promise<Case[]> {
+  private async getMockCases(): Promise<VerificationTask[]> {
     console.log('No mock data available - returning empty array');
     return [];
   }
 
-  async getTasks(forceFresh: boolean = false): Promise<Case[]> {
+  async getTasks(forceFresh: boolean = false): Promise<VerificationTask[]> {
     // If forcing fresh data, skip local storage
     if (forceFresh) {
       console.log("🔄 Forcing fresh data from API");
       if (this.useRealAPI) {
-        return this.fetchCasesFromAPI();
+        return this.fetchTasksFromAPI();
       } else {
         return this.getMockCases();
       }
@@ -343,18 +342,18 @@ class CaseService {
 
     // If no local tasks, fetch from API
     if (this.useRealAPI) {
-      return this.fetchCasesFromAPI();
+      return this.fetchTasksFromAPI();
     } else {
       return this.getMockCases();
     }
   }
 
-  async getTask(id: string): Promise<Case | undefined> {
+  async getTask(id: string): Promise<VerificationTask | undefined> {
     const tasks = await this.readFromStorage();
     return tasks.find(c => c.id === id);
   }
 
-  async updateTask(id: string, updates: Partial<Case>): Promise<Case> {
+  async updateTask(id: string, updates: Partial<VerificationTask>): Promise<VerificationTask> {
     const tasks = await this.readFromStorage();
     const caseIndex = tasks.findIndex(c => c.id === id);
     if (caseIndex === -1) {
@@ -366,14 +365,14 @@ class CaseService {
     return updatedCase;
   }
   
-  async revokeCase(id: string, reason: string): Promise<void> {
+  async revokeTask(id: string, reason: string): Promise<void> {
     const tasks = await this.readFromStorage();
     const updatedCases = tasks.filter(c => c.id !== id);
     console.log(`Case ${id} revoked. Reason: ${reason}. Simulating sending to server.`);
     await this.writeToStorage(updatedCases);
   }
 
-  async syncWithServer(): Promise<Case[]> {
+  async syncWithServer(): Promise<VerificationTask[]> {
     console.log("Syncing with server...");
 
     if (this.useRealAPI) {
@@ -382,7 +381,7 @@ class CaseService {
       console.log("🗑️ Cleared local cache");
 
       // Fetch fresh data from API and save to storage
-      const freshCases = await this.fetchCasesFromAPI();
+      const freshCases = await this.fetchTasksFromAPI();
       await this.writeToStorage(freshCases);
       console.log(`💾 Saved ${freshCases.length} fresh tasks to storage`);
 
@@ -456,6 +455,11 @@ class CaseService {
     return this.useRealAPI;
   }
 
+  // Helper to get auth token
+  private async getAuthToken(): Promise<string | null> {
+    return await AsyncStorage.getItem('auth_token');
+  }
+
   // Test API connection and field mapping
   async testAPIConnection(): Promise<{ success: boolean; message: string; sampleCase?: any }> {
     try {
@@ -483,7 +487,7 @@ class CaseService {
       }
 
       const backendCase = result.data[0];
-      const mobileCase = mapBackendCaseToMobile(backendCase);
+      const mobileCase = mapBackendTaskToMobile(backendCase);
 
       // Verify all 13 required fields are present
       const requiredFields = [
@@ -493,7 +497,7 @@ class CaseService {
       ];
 
       const missingFields = requiredFields.filter(field => {
-        const value = mobileCase[field as keyof Case];
+        const value = mobileCase[field as keyof VerificationTask];
         return value === undefined || value === null || value === '';
       });
 

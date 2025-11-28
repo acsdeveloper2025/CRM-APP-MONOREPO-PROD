@@ -75,8 +75,8 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
         console.log('Navigate to task:', notification.taskId);
         // TODO: Implement task navigation when task detail screen is ready
         onClose();
-      } else if (notification.actionType === 'OPEN_CASE' && notification.caseId && onNavigateToCase) {
-        onNavigateToCase(notification.caseId);
+      } else if (notification.actionType === 'OPEN_CASE' && notification.taskId && onNavigateToCase) {
+        onNavigateToCase(notification.taskId);
         onClose();
       } else if (notification.actionUrl) {
         // Handle other navigation types

@@ -19,37 +19,40 @@ class TaskStatusService {
   /**
    * Update case status with direct backend sync
    */
+  /**
+   * Update case status with direct backend sync
+   */
   static async updateTaskStatus(
     taskId: string,
-    newStatus: VerificationTaskStatus,
+    newStatus: TaskStatus,
     options?: { optimistic?: boolean; auditMetadata?: any }
   ): Promise<StatusUpdateResult> {
     try {
-      console.log(`🔄 Updating case ${caseId} status to ${newStatus}...`);
+      console.log(`🔄 Updating case ${taskId} status to ${newStatus}...`);
 
       // Get current case
-      const currentCase = await taskService.getCase(caseId);
-      if (!currentCase) {
+      const task = await taskService.getTask(taskId);
+      if (!task) {
         return { success: false, error: 'Case not found' };
       }
 
       // Validate status transition
-      if (!this.isValidStatusTransition(currentCase.status, newStatus)) {
+      if (!this.isValidStatusTransition(task.status, newStatus)) {
         return {
           success: false,
-          error: `Invalid status transition from ${currentCase.status} to ${newStatus}`
+          error: `Invalid status transition from ${task.status} to ${newStatus}`
         };
       }
 
       // Update local state
-      await taskService.updateCase(caseId, { status: newStatus });
-      console.log(`✅ Local update: VerificationTask ${caseId} status updated to ${newStatus}`);
+      await taskService.updateTask(taskId, { status: newStatus });
+      console.log(`✅ Local update: VerificationTask ${taskId} status updated to ${newStatus}`);
 
       // Try to sync with backend, but don't fail if it's not available
       try {
-        const syncResult = await this.syncStatusWithBackend(caseId, newStatus, {});
+        const syncResult = await this.syncStatusWithBackend(taskId, newStatus, {});
         if (syncResult.success) {
-          console.log(`🌐 Backend sync successful for case ${caseId}`);
+          console.log(`🌐 Backend sync successful for case ${taskId}`);
         } else {
           console.log(`⚠️ Backend sync failed (offline mode): ${syncResult.error}`);
         }
@@ -58,13 +61,13 @@ class TaskStatusService {
       }
 
       // Always return success for local update
-      const updatedCase = await taskService.getCase(caseId);
+      const updatedCase = await taskService.getTask(taskId);
       return {
         success: true,
         case: updatedCase,
       };
     } catch (error) {
-      console.error(`❌ Failed to update case ${caseId} status:`, error);
+      console.error(`❌ Failed to update case ${taskId} status:`, error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error occurred',
@@ -75,11 +78,12 @@ class TaskStatusService {
   /**
    * Validate if status transition is allowed
    */
-  private static isValidStatusTransition(from: VerificationTaskStatus, to: VerificationTaskStatus): boolean {
-    const validTransitions: Record<CaseStatus, CaseStatus[]> = {
+  private static isValidStatusTransition(from: TaskStatus, to: TaskStatus): boolean {
+    const validTransitions: Record<TaskStatus, TaskStatus[]> = {
       [TaskStatus.Assigned]: [TaskStatus.InProgress],
       [TaskStatus.InProgress]: [TaskStatus.Completed, TaskStatus.Assigned], // Allow back to assigned for revoke
       [TaskStatus.Completed]: [], // Completed cases cannot change status
+      [TaskStatus.Saved]: [TaskStatus.InProgress, TaskStatus.Completed], // Saved cases can resume
     };
 
     return validTransitions[from]?.includes(to) || false;
@@ -121,7 +125,7 @@ class TaskStatusService {
    */
   private static async syncStatusWithBackend(
     taskId: string,
-    status: VerificationTaskStatus,
+    status: TaskStatus,
     metadata: Record<string, any>
   ): Promise<{ success: boolean; error?: string }> {
     try {
@@ -145,11 +149,11 @@ class TaskStatusService {
       };
 
       console.log('🔍 Case Status Update - Headers being sent:', headers);
-      console.log('🔍 Case Status Update - URL:', `${API_BASE_URL}/mobile/cases/${caseId}/status`);
+      console.log('🔍 Case Status Update - URL:', `${API_BASE_URL}/mobile/cases/${taskId}/status`);
       console.log('🔍 Case Status Update - Environment config:', envConfig);
 
       // Add cache-busting parameter
-      const url = `${API_BASE_URL}/mobile/cases/${caseId}/status?t=${Date.now()}`;
+      const url = `${API_BASE_URL}/mobile/cases/${taskId}/status?t=${Date.now()}`;
       console.log('🔍 Case Status Update - Final URL with cache-buster:', url);
 
       const response = await fetch(url, {
@@ -190,11 +194,12 @@ class TaskStatusService {
   /**
    * Map mobile status to backend status format
    */
-  private static mapMobileStatusToBackend(status: VerificationTaskStatus): string {
-    const statusMap: Record<CaseStatus, string> = {
+  private static mapMobileStatusToBackend(status: TaskStatus): string {
+    const statusMap: Record<TaskStatus, string> = {
       [TaskStatus.Assigned]: 'PENDING',
       [TaskStatus.InProgress]: 'IN_PROGRESS',
       [TaskStatus.Completed]: 'COMPLETED',
+      [TaskStatus.Saved]: 'IN_PROGRESS', // Saved maps to In Progress on backend
     };
 
     return statusMap[status] || 'PENDING';

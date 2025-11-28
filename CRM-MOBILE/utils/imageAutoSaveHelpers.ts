@@ -26,10 +26,10 @@ export const createImageChangeHandler = (
       componentType: 'photo' as const
     }));
 
-    console.log(`📸 Regular images changed: ${imagesWithMetadata.length} photos for case ${caseId}`);
+    console.log(`📸 Regular images changed: ${imagesWithMetadata.length} photos for task ${taskId}`);
 
     const updatedReport = { ...report, images: imagesWithMetadata };
-    updateReport(caseId, updatedReport);
+    updateReport(taskId, updatedReport);
 
     // Trigger auto-save with all images (regular + selfie)
     const allImages = [
@@ -63,10 +63,10 @@ export const createSelfieImageChangeHandler = (
       componentType: 'selfie' as const
     }));
 
-    console.log(`🤳 Selfie images changed: ${selfieImagesWithMetadata.length} selfies for case ${caseId}`);
+    console.log(`🤳 Selfie images changed: ${selfieImagesWithMetadata.length} selfies for task ${taskId}`);
 
     const updatedReport = { ...report, selfieImages: selfieImagesWithMetadata };
-    updateReport(caseId, updatedReport);
+    updateReport(taskId, updatedReport);
 
     // Trigger auto-save with all images (regular + selfie)
     const allImages = [
@@ -83,7 +83,7 @@ export const createSelfieImageChangeHandler = (
  * Creates auto-save images change handler for AutoSaveFormWrapper
  * This handler is used when restoring draft data from auto-save
  * @param updateReport - Function to update the report in context
- * @param caseId - Case ID
+ * @param taskId - Task ID
  * @param report - Current report data
  * @param isReadOnly - Whether the form is in read-only mode
  * @returns Auto-save images change handler function
@@ -101,9 +101,9 @@ export const createAutoSaveImagesChangeHandler = (
       const selfieImages = allImages.filter(img => img.componentType === 'selfie');
       const regularImages = allImages.filter(img => img.componentType !== 'selfie');
 
-      console.log(`🔄 Auto-save images handler: ${regularImages.length} photos, ${selfieImages.length} selfies for case ${caseId}`);
+      console.log(`🔄 Auto-save images handler: ${regularImages.length} photos, ${selfieImages.length} selfies for task ${taskId}`);
 
-      updateReport(caseId, {
+      updateReport(taskId, {
         ...report,
         images: regularImages,
         selfieImages: selfieImages
@@ -127,7 +127,7 @@ export const combineImagesForAutoSave = (report: any): CapturedImage[] => {
 /**
  * Type-safe wrapper for form data change handler
  * @param updateReport - Function to update the report in context
- * @param caseId - Case ID
+ * @param taskId - Task ID
  * @param isReadOnly - Whether the form is in read-only mode
  * @returns Form data change handler function
  */
@@ -138,7 +138,7 @@ export const createFormDataChangeHandler = (
 ) => {
   return (formData: any) => {
     if (!isReadOnly) {
-      updateReport(caseId, formData);
+      updateReport(taskId, formData);
     }
   };
 };
@@ -146,7 +146,7 @@ export const createFormDataChangeHandler = (
 /**
  * Creates data restored handler for AutoSaveFormWrapper
  * @param updateReport - Function to update the report in context
- * @param caseId - Case ID
+ * @param taskId - Task ID
  * @param isReadOnly - Whether the form is in read-only mode
  * @returns Data restored handler function
  */
@@ -170,10 +170,10 @@ export const createDataRestoredHandler = (
         restoredData.images = regularImages;
         restoredData.selfieImages = selfieImages;
 
-        console.log(`🔄 Auto-save restored: ${regularImages.length} photos, ${selfieImages.length} selfies for case ${caseId}`);
+        console.log(`🔄 Auto-save restored: ${regularImages.length} photos, ${selfieImages.length} selfies for task ${taskId}`);
       }
 
-      updateReport(caseId, restoredData);
+      updateReport(taskId, restoredData);
     }
   };
 };

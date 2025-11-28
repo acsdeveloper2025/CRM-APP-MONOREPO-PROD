@@ -98,7 +98,7 @@ class GoogleMapsService {
    * Check if Google Maps API is available
    */
   isAvailable(): boolean {
-    return this.isLoaded && typeof google !== 'undefined' && google.maps;
+    return this.isLoaded && typeof google !== 'undefined' && !!google.maps;
   }
 
   /**

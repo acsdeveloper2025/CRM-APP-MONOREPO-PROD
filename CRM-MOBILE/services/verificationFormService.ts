@@ -6,6 +6,7 @@ import retryService from './retryService';
 import progressTrackingService from './progressTrackingService';
 import compressionService from './compressionService';
 import { secureStorageService } from './secureStorageService';
+import { autoSaveService } from './autoSaveService';
 
 export interface VerificationFormData {
   [key: string]: any;
@@ -46,7 +47,7 @@ export interface VerificationSubmissionRequest {
 export interface VerificationSubmissionResult {
   success: boolean;
   error?: string;
-  caseId?: string;
+  taskId?: string;
   status?: string;
   completedAt?: string;
   submissionId?: string;
@@ -107,7 +108,7 @@ class VerificationFormService {
     onProgress?: (progress: any) => void
   ): Promise<VerificationSubmissionResult> {
     // Start progress tracking
-    const submissionId = progressTrackingService.startSubmission(caseId, 'residence');
+    const submissionId = progressTrackingService.startSubmission(taskId, 'residence');
 
     // Subscribe to progress updates
     const unsubscribe = onProgress ?
@@ -115,7 +116,7 @@ class VerificationFormService {
       () => {};
 
     try {
-      console.log(`🏠 Submitting residence verification for case ${caseId}...`);
+      console.log(`🏠 Submitting residence verification for case ${taskId}...`);
 
       // Step 1: Validation
       progressTrackingService.updateStepProgress(submissionId, 'validation', 0, 'IN_PROGRESS');
@@ -191,22 +192,23 @@ class VerificationFormService {
       progressTrackingService.updateStepProgress(submissionId, 'submit_form', 0, 'IN_PROGRESS');
 
       const result = await this.submitToBackendWithRetry(
-        `${this.getApiBaseUrl()}/mobile/cases/${caseId}/verification/residence`,
+        `${this.getApiBaseUrl()}/mobile/cases/${taskId}/verification/residence`,
         submissionData,
         'VERIFICATION_SUBMISSION',
         'HIGH',
-        submissionId
+        submissionId,
+        taskId
       );
 
       if (result.success) {
         progressTrackingService.markSubmissionCompleted(submissionId);
-        console.log(`✅ Residence verification submitted successfully for case ${caseId}`);
+        console.log(`✅ Residence verification submitted successfully for case ${taskId}`);
 
         // Clean up offline attachments after successful submission
         try {
           const { attachmentSyncService } = await import('./attachmentSyncService');
-          await attachmentSyncService.clearAttachmentsForCase(caseId);
-          console.log(`🗑️ Cleared offline attachments for case ${caseId}`);
+          await attachmentSyncService.clearAttachmentsForCase(taskId);
+          console.log(`🗑️ Cleared offline attachments for case ${taskId}`);
         } catch (error) {
           console.warn('⚠️ Failed to clear offline attachments:', error);
           // Don't fail the submission if cleanup fails
@@ -224,7 +226,7 @@ class VerificationFormService {
         };
       } else {
         progressTrackingService.markSubmissionFailed(submissionId, result.error || 'Submission failed', 'submit_form');
-        console.error(`❌ Residence verification submission failed for case ${caseId}:`, result.error);
+        console.error(`❌ Residence verification submission failed for case ${taskId}:`, result.error);
 
         unsubscribe();
         return {
@@ -237,7 +239,7 @@ class VerificationFormService {
       progressTrackingService.markSubmissionFailed(submissionId, errorMessage);
       unsubscribe();
 
-      console.error(`❌ Residence verification submission error for case ${caseId}:`, error);
+      console.error(`❌ Residence verification submission error for case ${taskId}:`, error);
       return {
         success: false,
         error: errorMessage,
@@ -256,7 +258,7 @@ class VerificationFormService {
     images: CapturedImage[],
     geoLocation?: { latitude: number; longitude: number; accuracy?: number }
   ): Promise<VerificationSubmissionResult> {
-    return this.submitVerificationForm(caseId, verificationTaskId, 'office', formData, images, geoLocation);
+    return this.submitVerificationForm(taskId, verificationTaskId, 'office', formData, images, geoLocation);
   }
 
   /**
@@ -269,7 +271,7 @@ class VerificationFormService {
     images: CapturedImage[],
     geoLocation?: { latitude: number; longitude: number; accuracy?: number }
   ): Promise<VerificationSubmissionResult> {
-    return this.submitVerificationForm(caseId, verificationTaskId, 'business', formData, images, geoLocation);
+    return this.submitVerificationForm(taskId, verificationTaskId, 'business', formData, images, geoLocation);
   }
 
   /**
@@ -282,7 +284,7 @@ class VerificationFormService {
     images: CapturedImage[],
     geoLocation?: { latitude: number; longitude: number; accuracy?: number }
   ): Promise<VerificationSubmissionResult> {
-    return this.submitVerificationForm(caseId, verificationTaskId, 'builder', formData, images, geoLocation);
+    return this.submitVerificationForm(taskId, verificationTaskId, 'builder', formData, images, geoLocation);
   }
 
   /**
@@ -295,7 +297,7 @@ class VerificationFormService {
     images: CapturedImage[],
     geoLocation?: { latitude: number; longitude: number; accuracy?: number }
   ): Promise<VerificationSubmissionResult> {
-    return this.submitVerificationForm(caseId, verificationTaskId, 'residence-cum-office', formData, images, geoLocation);
+    return this.submitVerificationForm(taskId, verificationTaskId, 'residence-cum-office', formData, images, geoLocation);
   }
 
   /**
@@ -308,7 +310,7 @@ class VerificationFormService {
     images: CapturedImage[],
     geoLocation?: { latitude: number; longitude: number; accuracy?: number }
   ): Promise<VerificationSubmissionResult> {
-    return this.submitVerificationForm(caseId, verificationTaskId, 'dsa-connector', formData, images, geoLocation);
+    return this.submitVerificationForm(taskId, verificationTaskId, 'dsa-connector', formData, images, geoLocation);
   }
 
   /**
@@ -321,7 +323,7 @@ class VerificationFormService {
     images: CapturedImage[],
     geoLocation?: { latitude: number; longitude: number; accuracy?: number }
   ): Promise<VerificationSubmissionResult> {
-    return this.submitVerificationForm(caseId, verificationTaskId, 'property-individual', formData, images, geoLocation);
+    return this.submitVerificationForm(taskId, verificationTaskId, 'property-individual', formData, images, geoLocation);
   }
 
   /**
@@ -334,7 +336,7 @@ class VerificationFormService {
     images: CapturedImage[],
     geoLocation?: { latitude: number; longitude: number; accuracy?: number }
   ): Promise<VerificationSubmissionResult> {
-    return this.submitVerificationForm(caseId, verificationTaskId, 'property-apf', formData, images, geoLocation);
+    return this.submitVerificationForm(taskId, verificationTaskId, 'property-apf', formData, images, geoLocation);
   }
 
   /**
@@ -347,7 +349,7 @@ class VerificationFormService {
     images: CapturedImage[],
     geoLocation?: { latitude: number; longitude: number; accuracy?: number }
   ): Promise<VerificationSubmissionResult> {
-    return this.submitVerificationForm(caseId, verificationTaskId, 'noc', formData, images, geoLocation);
+    return this.submitVerificationForm(taskId, verificationTaskId, 'noc', formData, images, geoLocation);
   }
 
   /**
@@ -363,8 +365,8 @@ class VerificationFormService {
   ): Promise<VerificationSubmissionResult> {
     try {
       // Debug logging to identify parameter values
-      console.log('Debug - Function parameters:', { caseId, verificationType, typeof_caseId: typeof caseId });
-      console.log(`📋 Submitting ${verificationType} verification for case ${caseId}...`);
+      console.log('Debug - Function parameters:', { taskId, verificationType, typeof_taskId: typeof taskId });
+      console.log(`📋 Submitting ${verificationType} verification for case ${taskId}...`);
 
       // Validate minimum requirements
       if (images.length < 5) {
@@ -411,67 +413,67 @@ class VerificationFormService {
 
       // Debug logging for submission data
       console.log(`🔍 ${verificationType} submission debug info:`, {
-        caseId,
+        taskId,
         verificationType,
         formDataKeys: Object.keys(formData),
         imageCount: images.length,
         hasGeoLocation: !!geoLocation,
         submissionDataSize: JSON.stringify(submissionData).length,
-        endpoint: `${this.getApiBaseUrl()}/mobile/cases/${caseId}/verification/${verificationType}`
+        endpoint: `${this.getApiBaseUrl()}/mobile/cases/${taskId}/verification/${verificationType}`
       });
 
       // Submit to backend with enhanced retry mechanism
       const result = await this.submitToBackendWithRetry(
-        `${this.getApiBaseUrl()}/mobile/cases/${caseId}/verification/${verificationType}`,
+        `${this.getApiBaseUrl()}/mobile/cases/${taskId}/verification/${verificationType}`,
         submissionData,
         'VERIFICATION_SUBMISSION',
         'HIGH',
-        `${caseId}-${verificationType}-${Date.now()}`
+        `${taskId}-${verificationType}-${Date.now()}`,
+        taskId
       );
 
       // Enhanced response validation and error handling
       if (result.success) {
         // Validate that the response contains expected data structure
-        const responseData = result.data;
-        const hasValidCaseId = responseData?.caseId || responseData?.data?.caseId;
+        const hasValidCaseId = result.taskId;
 
         if (hasValidCaseId) {
-          console.log(`✅ ${verificationType.charAt(0).toUpperCase() + verificationType.slice(1)} verification submitted successfully for case ${caseId}`);
+          console.log(`✅ ${verificationType.charAt(0).toUpperCase() + verificationType.slice(1)} verification submitted successfully for case ${taskId}`);
           console.log(`📋 Response data:`, {
-            caseId: responseData?.caseId || responseData?.data?.caseId,
-            status: responseData?.status || responseData?.data?.status,
-            completedAt: responseData?.completedAt || responseData?.data?.completedAt
+            taskId: result.taskId,
+            status: result.status,
+            completedAt: result.completedAt
           });
         } else {
           // Success response but missing expected data - this might be the source of the error
-          console.warn(`⚠️ ${verificationType.charAt(0).toUpperCase() + verificationType.slice(1)} verification submitted but response missing caseId. Full response:`, responseData);
+          console.warn(`⚠️ ${verificationType.charAt(0).toUpperCase() + verificationType.slice(1)} verification submitted but response missing taskId. Full response:`, result);
           // Still treat as success since backend processed it successfully
         }
 
         // Clean up offline attachments after successful submission
         try {
           const { attachmentSyncService } = await import('./attachmentSyncService');
-          await attachmentSyncService.clearAttachmentsForCase(caseId);
-          console.log(`🗑️ Cleared offline attachments for case ${caseId}`);
+          await attachmentSyncService.clearAttachmentsForCase(taskId);
+          console.log(`🗑️ Cleared offline attachments for case ${taskId}`);
         } catch (error) {
           console.warn('⚠️ Failed to clear offline attachments:', error);
           // Don't fail the submission if cleanup fails
         }
       } else {
-        console.error(`❌ ${verificationType.charAt(0).toUpperCase() + verificationType.slice(1)} verification submission failed for case ${caseId}:`, result.error);
+        console.error(`❌ ${verificationType.charAt(0).toUpperCase() + verificationType.slice(1)} verification submission failed for case ${taskId}:`, result.error);
 
         // Enhanced error analysis
         if (result.error && typeof result.error === 'string') {
-          if (result.error.includes('caseId is not defined')) {
-            console.error('🔍 Detected "caseId is not defined" error - this may be a false positive if backend logs show success');
-            console.error('🔍 Function parameters were valid:', { caseId, verificationType, typeof_caseId: typeof caseId });
+          if (result.error.includes('taskId is not defined')) {
+            console.error('🔍 Detected "taskId is not defined" error - this may be a false positive if backend logs show success');
+            console.error('🔍 Function parameters were valid:', { taskId, verificationType, typeof_taskId: typeof taskId });
           }
         }
       }
 
       return result;
     } catch (error) {
-      console.error(`❌ ${verificationType.charAt(0).toUpperCase() + verificationType.slice(1)} verification submission error for case ${caseId}:`, error);
+      console.error(`❌ ${verificationType.charAt(0).toUpperCase() + verificationType.slice(1)} verification submission error for case ${taskId}:`, error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error occurred'
@@ -487,7 +489,8 @@ class VerificationFormService {
     data: VerificationSubmissionRequest,
     type: 'VERIFICATION_SUBMISSION' | 'ATTACHMENT_UPLOAD' | 'CASE_UPDATE',
     priority: 'HIGH' | 'MEDIUM' | 'LOW',
-    submissionId: string
+    submissionId: string,
+    taskId: string
   ): Promise<VerificationSubmissionResult> {
     try {
       // Check network connectivity
@@ -513,11 +516,7 @@ class VerificationFormService {
       }
 
       // Execute with retry mechanism
-      const result = await retryService.executeWithRetry<{
-        caseId?: string;
-        status?: string;
-        completedAt?: string;
-      }>(
+      const result = await retryService.executeWithRetry<any>(
         url,
         'POST',
         await this.getHeaders(),
@@ -550,34 +549,34 @@ class VerificationFormService {
 
         // Try different response structure patterns
         if (responseData?.data) {
-          // Backend returns { success: true, data: { caseId, status, completedAt } }
-          extractedCaseId = responseData.data.caseId;
+          // Backend returns { success: true, data: { taskId, status, completedAt } }
+          extractedCaseId = responseData.data.taskId;
           extractedStatus = responseData.data.status;
           extractedCompletedAt = responseData.data.completedAt;
-        } else if (responseData?.caseId) {
+        } else if (responseData?.taskId) {
           // Direct response structure
-          extractedCaseId = responseData.caseId;
+          extractedCaseId = responseData.taskId;
           extractedStatus = responseData.status;
           extractedCompletedAt = responseData.completedAt;
         } else {
-          // Fallback: use the original caseId parameter if response doesn't contain it
-          extractedCaseId = caseId;
-          console.warn(`⚠️ Response missing caseId, using original parameter: ${caseId}`);
+          // Fallback: use the original taskId parameter if response doesn't contain it
+          extractedCaseId = taskId;
+          console.warn(`⚠️ Response missing taskId, using original parameter: ${taskId}`);
         }
 
         // Clear secure attachments after successful case submission
         try {
           console.log(`🗑️ Clearing secure attachments for completed case: ${extractedCaseId}`);
-          await secureStorageService.clearCaseAttachments(extractedCaseId || caseId);
-          console.log(`✅ Secure attachments cleared for case: ${extractedCaseId || caseId}`);
+          await secureStorageService.clearCaseAttachments(extractedCaseId || taskId);
+          console.log(`✅ Secure attachments cleared for case: ${extractedCaseId || taskId}`);
         } catch (error) {
-          console.warn(`⚠️ Failed to clear attachments for case ${extractedCaseId || caseId}:`, error);
+          console.warn(`⚠️ Failed to clear attachments for case ${extractedCaseId || taskId}:`, error);
           // Don't fail the submission if attachment cleanup fails
         }
 
         return {
           success: true,
-          caseId: extractedCaseId,
+          taskId: extractedCaseId,
           status: extractedStatus,
           completedAt: extractedCompletedAt
         };
@@ -642,7 +641,7 @@ class VerificationFormService {
       }
 
       // Upload to backend
-      const uploadResponse = await fetch(`${this.getApiBaseUrl()}/mobile/cases/${caseId}/attachments`, {
+      const uploadResponse = await fetch(`${this.getApiBaseUrl()}/mobile/cases/${taskId}/attachments`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${authToken}`,
@@ -819,13 +818,13 @@ class VerificationFormService {
 
       // Clear secure attachments after successful case submission
       try {
-        // Extract caseId from URL (format: /mobile/cases/{caseId}/verification/{type})
-        const caseIdMatch = url.match(/\/mobile\/cases\/([^\/]+)\/verification/);
-        if (caseIdMatch && caseIdMatch[1]) {
-          const caseId = caseIdMatch[1];
-          console.log(`🗑️ Clearing secure attachments for completed case: ${caseId}`);
-          await secureStorageService.clearCaseAttachments(caseId);
-          console.log(`✅ Secure attachments cleared for case: ${caseId}`);
+        // Extract taskId from URL (format: /mobile/cases/{taskId}/verification/{type})
+        const taskIdMatch = url.match(/\/mobile\/cases\/([^\/]+)\/verification/);
+        if (taskIdMatch && taskIdMatch[1]) {
+          const taskId = taskIdMatch[1];
+          console.log(`🗑️ Clearing secure attachments for completed case: ${taskId}`);
+          await secureStorageService.clearCaseAttachments(taskId);
+          console.log(`✅ Secure attachments cleared for case: ${taskId}`);
         }
       } catch (error) {
         console.warn(`⚠️ Failed to clear attachments:`, error);
@@ -834,7 +833,7 @@ class VerificationFormService {
 
       return {
         success: true,
-        caseId: result.data?.caseId,
+        taskId: result.data?.taskId,
         status: result.data?.status,
         completedAt: result.data?.completedAt
       };
@@ -860,10 +859,7 @@ class VerificationFormService {
     verificationTaskId?: string
   ): Promise<VerificationSubmissionResult> {
     try {
-      console.log(`🔄 Resubmitting ${verificationType} verification for case ${caseId}...`);
-
-      // Import auto-save service
-      const { autoSaveService } = await import('./autoSaveService');
+      console.log(`🔄 Resubmitting ${verificationType} verification for case ${taskId}...`);
 
       // Determine the form type from verification type
       const formTypeMap: Record<string, string> = {
@@ -887,8 +883,8 @@ class VerificationFormService {
       }
 
       // Retrieve auto-saved data
-      console.log(`📂 Retrieving auto-saved data for case ${caseId}, form type ${formType}...`);
-      const autoSavedData = await autoSaveService.getFormData(caseId, formType);
+      console.log(`📂 Retrieving auto-saved data for case ${taskId}, form type ${formType}...`);
+      const autoSavedData = await autoSaveService.getFormData(taskId, formType);
 
       if (!autoSavedData) {
         return {
@@ -902,9 +898,9 @@ class VerificationFormService {
       console.log(`   - Images: ${autoSavedData.images?.length || 0}`);
 
       // Use provided verificationTaskId or try to get it from auto-saved data
-      const taskId = verificationTaskId || autoSavedData.formData?.verificationTaskId;
+      const vTaskId = verificationTaskId || autoSavedData.formData?.verificationTaskId;
 
-      if (!taskId) {
+      if (!vTaskId) {
         return {
           success: false,
           error: 'No verification task ID found. Cannot submit verification.'
@@ -913,7 +909,7 @@ class VerificationFormService {
 
       // Prepare the submission payload
       const submissionPayload = {
-        verificationTaskId: taskId,
+        verificationTaskId: vTaskId,
         formData: autoSavedData.formData,
         images: autoSavedData.images || [],
         geoLocation: autoSavedData.formData?.geoLocation || null,
@@ -923,17 +919,17 @@ class VerificationFormService {
       console.log(`📤 Submitting verification with ${submissionPayload.images.length} images...`);
 
       // Submit the verification using the appropriate method
-      const result = await this.submitVerification(caseId, verificationType, submissionPayload);
+      const result = await this.submitVerification(taskId, verificationType, submissionPayload);
 
       if (result.success) {
-        console.log(`✅ Verification resubmitted successfully for case ${caseId}`);
+        console.log(`✅ Verification resubmitted successfully for case ${taskId}`);
 
         // Mark the auto-saved data as completed
-        await autoSaveService.markFormCompleted(caseId, formType);
+        await autoSaveService.markFormCompleted(taskId, formType);
 
         return {
           success: true,
-          caseId: result.caseId || caseId,
+          taskId: result.taskId || taskId,
           status: result.status,
           completedAt: result.completedAt
         };
@@ -945,7 +941,7 @@ class VerificationFormService {
       }
 
     } catch (error) {
-      console.error(`❌ Error resubmitting ${verificationType} verification for case ${caseId}:`, error);
+      console.error(`❌ Error resubmitting ${verificationType} verification for case ${taskId}:`, error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Resubmission error occurred'
@@ -963,13 +959,13 @@ class VerificationFormService {
     payload: any
   ): Promise<VerificationSubmissionResult> {
     try {
-      const token = await AuthStorageService.getToken();
+      const token = await AuthStorageService.getCurrentAccessToken();
       if (!token) {
         throw new Error('No authentication token found');
       }
 
       const apiBaseUrl = this.getApiBaseUrl();
-      const endpoint = `${apiBaseUrl}/api/mobile/cases/${caseId}/verification/${verificationType}`;
+      const endpoint = `${apiBaseUrl}/api/mobile/cases/${taskId}/verification/${verificationType}`;
 
       console.log(`📤 Submitting to: ${endpoint}`);
 
@@ -992,7 +988,7 @@ class VerificationFormService {
       if (result.success) {
         return {
           success: true,
-          caseId: result.data?.caseId || caseId,
+          taskId: result.data?.taskId || taskId,
           status: result.data?.status,
           completedAt: result.data?.completedAt,
           submissionId: result.data?.submissionId

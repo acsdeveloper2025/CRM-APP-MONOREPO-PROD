@@ -186,7 +186,7 @@ class CompressionService {
 
           const compressedData = canvas.toDataURL(
             `image/${options.format}`,
-            options.quality
+            options.imageQuality
           );
 
           const originalSize = this.estimateBase64Size(image.dataUrl);
@@ -201,7 +201,7 @@ class CompressionService {
             compressionRatio,
             format: options.format,
             dimensions: { width: newWidth, height: newHeight },
-            quality: options.quality,
+            quality: options.imageQuality,
             compressionTime
           });
 
