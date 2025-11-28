@@ -8,9 +8,6 @@ import {
   detectBusinessFormType,
   detectPropertyIndividualFormType,
   detectResidenceCumOfficeFormType,
-  detectNocFormType,
-  detectPropertyApfFormType,
-  detectDsaConnectorFormType,
 } from '../utils/formTypeDetection';
 // import {
 //   mapFormDataToDatabase,
@@ -29,10 +26,7 @@ import {
   validateAndPrepareBusinessForm,
   generateBusinessFieldCoverageReport,
 } from '../utils/businessFormValidator';
-import {
-  validateAndPrepareResidenceCumOfficeForm,
-  generateResidenceCumOfficeFieldCoverageReport,
-} from '../utils/residenceCumOfficeFormValidator';
+import { validateAndPrepareResidenceCumOfficeForm } from '../utils/residenceCumOfficeFormValidator';
 import {
   validateAndPrepareBuilderForm,
   generateBuilderFieldCoverageReport,
@@ -45,10 +39,7 @@ import {
   validateAndPreparePropertyApfForm,
   generatePropertyApfFieldCoverageReport,
 } from '../utils/propertyApfFormValidator';
-import {
-  validateAndPreparePropertyIndividualForm,
-  generatePropertyIndividualFieldCoverageReport,
-} from '../utils/propertyIndividualFormValidator';
+import { validateAndPreparePropertyIndividualForm } from '../utils/propertyIndividualFormValidator';
 import {
   validateAndPrepareDsaConnectorForm,
   generateDsaConnectorFieldCoverageReport,
@@ -3903,7 +3894,9 @@ export class MobileFormController {
 
       const caseId = await TaskLookupService.resolveCaseId(taskId);
 
-      console.log(`📱 Residence-cum-office verification submission for task ${taskId} (case ${caseId})`);
+      console.log(
+        `📱 Residence-cum-office verification submission for task ${taskId} (case ${caseId})`
+      );
 
       if (userRole === 'FIELD_AGENT') {
         const hasAccess = await TaskLookupService.verifyTaskAccess(taskId, userId);
@@ -3916,9 +3909,14 @@ export class MobileFormController {
         }
       }
 
-      const { formType, verificationOutcome } = detectResidenceCumOfficeFormType(submissionData.formData);
+      const { formType, verificationOutcome } = detectResidenceCumOfficeFormType(
+        submissionData.formData
+      );
 
-      const { validationResult, preparedData } = validateAndPrepareResidenceCumOfficeForm(submissionData.formData, formType);
+      const { validationResult, preparedData } = validateAndPrepareResidenceCumOfficeForm(
+        submissionData.formData,
+        formType
+      );
 
       if (!validationResult.isValid) {
         return res.status(400).json({
@@ -3932,7 +3930,7 @@ export class MobileFormController {
       }
 
       const submissionId = `sub_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      
+
       await query(
         `INSERT INTO form_submissions (
           id, case_id, verification_task_id, form_type, form_data, 
@@ -3952,7 +3950,7 @@ export class MobileFormController {
           submissionData.geoLocation?.accuracy,
           submissionData.geoLocation?.address,
           JSON.stringify(submissionData.metadata.deviceInfo),
-          submissionData.metadata?.deviceInfo?.appVersion || 'Unknown'
+          submissionData.metadata?.deviceInfo?.appVersion || 'Unknown',
         ]
       );
 
@@ -4465,7 +4463,9 @@ export class MobileFormController {
 
       const caseId = await TaskLookupService.resolveCaseId(taskId);
 
-      console.log(`📱 Property Individual verification submission for task ${taskId} (case ${caseId})`);
+      console.log(
+        `📱 Property Individual verification submission for task ${taskId} (case ${caseId})`
+      );
 
       if (userRole === 'FIELD_AGENT') {
         const hasAccess = await TaskLookupService.verifyTaskAccess(taskId, userId);
@@ -4478,9 +4478,14 @@ export class MobileFormController {
         }
       }
 
-      const { formType, verificationOutcome } = detectPropertyIndividualFormType(submissionData.formData);
+      const { formType, verificationOutcome } = detectPropertyIndividualFormType(
+        submissionData.formData
+      );
 
-      const { validationResult, preparedData } = validateAndPreparePropertyIndividualForm(submissionData.formData, formType);
+      const { validationResult, preparedData } = validateAndPreparePropertyIndividualForm(
+        submissionData.formData,
+        formType
+      );
 
       if (!validationResult.isValid) {
         return res.status(400).json({
@@ -4494,7 +4499,7 @@ export class MobileFormController {
       }
 
       const submissionId = `sub_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      
+
       await query(
         `INSERT INTO form_submissions (
           id, case_id, verification_task_id, form_type, form_data, 
@@ -4514,7 +4519,7 @@ export class MobileFormController {
           submissionData.geoLocation?.accuracy,
           submissionData.geoLocation?.address,
           JSON.stringify(submissionData.metadata.deviceInfo),
-          submissionData.metadata?.deviceInfo?.appVersion || 'Unknown'
+          submissionData.metadata?.deviceInfo?.appVersion || 'Unknown',
         ]
       );
 
