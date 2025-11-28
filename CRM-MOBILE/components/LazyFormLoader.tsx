@@ -85,7 +85,7 @@ export type FormType = keyof typeof lazyForms;
 
 interface LazyFormLoaderProps {
   formType: FormType;
-  [key: string]: any; // Allow passing through any props to the form
+  [key: string]: any; // Allow passing through any props to the form (including taskData)
 }
 
 /**
@@ -107,7 +107,7 @@ const LazyFormLoader: React.FC<LazyFormLoaderProps> = ({ formType, ...props }) =
 
   return (
     <Suspense fallback={<FormLoader />}>
-      <FormComponent {...props} />
+      <FormComponent {...props as any} />
     </Suspense>
   );
 };

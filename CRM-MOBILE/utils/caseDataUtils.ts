@@ -4,7 +4,7 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { CaseStatus } from '../types';
+import { TaskStatus } from '../types';
 
 // Utility function to safely get product name
 export const getProductName = (product: string | { id: number; name: string; code: string } | undefined): string => {
@@ -15,10 +15,10 @@ export const getProductName = (product: string | { id: number; name: string; cod
 
 export interface CaseDataInfo {
   key: string;
-  caseId: string;
+  taskId: string;
   type: 'case' | 'draft' | 'autosave' | 'verification' | 'temp';
   timestamp: string;
-  status?: CaseStatus;
+  status?: TaskStatus;
   size: number;
   isActive: boolean;
 }
@@ -82,13 +82,13 @@ export async function analyzeCaseData(key: string): Promise<CaseDataInfo | null>
                      new Date().toISOString();
 
     // Check if case is currently active (in progress)
-    const isActive = parsedData.status === CaseStatus.InProgress ||
+    const isActive = parsedData.status === TaskStatus.InProgress ||
                     parsedData.isActive === true ||
                     (type === 'autosave' && isRecentData(timestamp));
 
     return {
       key,
-      caseId,
+      taskId: caseId,
       type,
       timestamp,
       status: parsedData.status,
@@ -153,7 +153,7 @@ export async function getExpiredCaseData(retentionDays: number): Promise<CaseDat
 /**
  * Get case data by status
  */
-export async function getCaseDataByStatus(status: CaseStatus): Promise<CaseDataInfo[]> {
+export async function getCaseDataByStatus(status: TaskStatus): Promise<CaseDataInfo[]> {
   const allCaseData = await getAllCaseDataInfo();
   return allCaseData.filter(caseData => caseData.status === status);
 }
@@ -301,16 +301,16 @@ export async function getCaseDataSummary(): Promise<{
   // Count by status/tab
   allCaseData.forEach(caseData => {
     switch (caseData.status) {
-      case CaseStatus.Assigned:
+      case TaskStatus.Assigned:
         byTab.assigned++;
         break;
-      case CaseStatus.InProgress:
+      case TaskStatus.InProgress:
         byTab.inProgress++;
         break;
-      case CaseStatus.Completed:
+      case TaskStatus.Completed:
         byTab.completed++;
         break;
-      case CaseStatus.Saved:
+      case TaskStatus.Saved:
         byTab.saved++;
         break;
     }

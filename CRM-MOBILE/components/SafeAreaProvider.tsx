@@ -124,7 +124,7 @@ export const SafeAreaProvider: React.FC<SafeAreaProviderProps> = ({ children }) 
 
             // Get status bar info and calculate safe areas
             if (Capacitor.getPlatform() === 'android') {
-              const info = await StatusBar.getInfo();
+              const info = await StatusBar.getInfo() as any;
               // Use actual status bar height without additional padding
               const topInset = info.height || 24; // Default to 24px if not available
 
@@ -151,7 +151,7 @@ export const SafeAreaProvider: React.FC<SafeAreaProviderProps> = ({ children }) 
               }
             } else if (Capacitor.getPlatform() === 'ios') {
               // For iOS, get status bar info and use system safe areas
-              const info = await StatusBar.getInfo();
+              const info = await StatusBar.getInfo() as any;
               const topInset = info.height || 0;
               const bottomInset = detectedDeviceInfo.hasHomeIndicator ? 34 : 0;
 

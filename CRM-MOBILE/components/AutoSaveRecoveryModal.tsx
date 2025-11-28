@@ -27,6 +27,8 @@ const AutoSaveRecoveryModal: React.FC<AutoSaveRecoveryModalProps> = ({
     setIsRestoring(true);
     try {
       await onRestore(savedData);
+      // Log restoration
+      console.log(`Restored auto-save data for task ${savedData.taskId}`);
     } finally {
       setIsRestoring(false);
     }
@@ -107,8 +109,8 @@ const AutoSaveRecoveryModal: React.FC<AutoSaveRecoveryModalProps> = ({
               </div>
 
               <div className="flex items-center gap-2 text-sm">
-                <span className="text-medium-text">Case ID:</span>
-                <span className="text-light-text font-medium font-mono">{savedData.caseId}</span>
+                <span className="text-medium-text">Task ID:</span>
+                <span className="text-light-text font-medium font-mono">{savedData.taskId}</span>
               </div>
             </div>
 

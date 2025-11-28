@@ -1,10 +1,10 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Case, EntryRestrictedOfficeReportData, AddressLocatable, AddressRating, MetPersonErt, TPCConfirmation,
-  OfficeStatusErtOffice, LocalityTypeResiCumOffice, PoliticalConnection, DominatedArea, FeedbackFromNeighbour, FinalStatus, CaseStatus, CapturedImage
+  VerificationTask, EntryRestrictedOfficeReportData, AddressLocatable, AddressRating, MetPersonErt, TPCConfirmation,
+  OfficeStatusErtOffice, LocalityTypeResiCumOffice, PoliticalConnection, DominatedArea, FeedbackFromNeighbour, FinalStatus, TaskStatus, CapturedImage
 } from '../../../types';
-import { useCases } from '../../../context/CaseContext';
+import { useTasks } from "../../../context/TaskContext"
 import { FormField, SelectField, TextAreaField, NumberDropdownField } from '../../FormControls';
 import ConfirmationModal from '../../ConfirmationModal';
 import ImageCapture from '../../ImageCapture';
@@ -13,6 +13,7 @@ import PermissionStatus from '../../PermissionStatus';
 import AutoSaveFormWrapper from '../../AutoSaveFormWrapper';
 import { FORM_TYPES } from '../../../constants/formTypes';
 import VerificationFormService from '../../../services/verificationFormService';
+import { handleSuccessfulSubmission } from '../../../utils/formSubmissionHelpers';
 import {
   createImageChangeHandler,
   createSelfieImageChangeHandler,
@@ -23,41 +24,41 @@ import {
 } from '../../../utils/imageAutoSaveHelpers';
 
 interface EntryRestrictedOfficeFormProps {
-  caseData: Case;
+  taskData: VerificationTask;
 }
 
 const getEnumOptions = (enumObject: object) => Object.values(enumObject).map(value => (
   <option key={value} value={value}>{value}</option>
 ));
 
-const EntryRestrictedOfficeForm: React.FC<EntryRestrictedOfficeFormProps> = ({ caseData }) => {
+const EntryRestrictedOfficeForm: React.FC<EntryRestrictedOfficeFormProps> = ({ taskData }) => {
   const navigate = useNavigate();
-  const { updateEntryRestrictedOfficeReport, toggleSaveCase , fetchCases } = useCases();
+  const { updateEntryRestrictedOfficeReport, toggleSaveTask , fetchTasks } = useTasks();
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionError, setSubmissionError] = useState<string | null>(null);
   const [submissionSuccess, setSubmissionSuccess] = useState(false);
-  const report = caseData.entryRestrictedOfficeReport;
-  const isReadOnly = caseData.status === CaseStatus.Completed || caseData.isSaved;
+  const report = taskData.entryRestrictedOfficeReport;
+  const isReadOnly = taskData.status === TaskStatus.Completed || taskData.isSaved;
   const MIN_IMAGES = 5;
 
   // Auto-save handlers using helper functions for complete auto-save functionality
   const handleFormDataChange = createFormDataChangeHandler(
     updateEntryRestrictedOfficeReport,
-    caseData.id,
+    taskData.id,
     isReadOnly
   );
 
   const handleAutoSaveImagesChange = createAutoSaveImagesChangeHandler(
     updateEntryRestrictedOfficeReport,
-    caseData.id,
+    taskData.id,
     report,
     isReadOnly
   );
 
   const handleDataRestored = createDataRestoredHandler(
     updateEntryRestrictedOfficeReport,
-    caseData.id,
+    taskData.id,
     isReadOnly
   );
 
@@ -102,19 +103,19 @@ const EntryRestrictedOfficeForm: React.FC<EntryRestrictedOfficeFormProps> = ({ c
     }
 
     const updates: Partial<EntryRestrictedOfficeReportData> = { [name]: processedValue };
-    updateEntryRestrictedOfficeReport(caseData.id, updates);
+    updateEntryRestrictedOfficeReport(taskData.id, updates);
   };
   
   const handleImagesChange = createImageChangeHandler(
     updateEntryRestrictedOfficeReport,
-    caseData.id,
+    taskData.id,
     report,
     handleAutoSaveImagesChange
   );
 
   const handleSelfieImagesChange = createSelfieImageChangeHandler(
     updateEntryRestrictedOfficeReport,
-    caseData.id,
+    taskData.id,
     report,
     handleAutoSaveImagesChange
   );
@@ -133,7 +134,7 @@ const EntryRestrictedOfficeForm: React.FC<EntryRestrictedOfficeFormProps> = ({ c
 
   return (
     <AutoSaveFormWrapper
-      caseId={caseData.id}
+      taskId={taskData.id}
       formType={FORM_TYPES.OFFICE_ENTRY_RESTRICTED}
       formData={report}
       images={combineImagesForAutoSave(report)}
@@ -155,35 +156,35 @@ const EntryRestrictedOfficeForm: React.FC<EntryRestrictedOfficeFormProps> = ({ c
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <span className="text-sm text-medium-text">Customer Name</span>
-            <span className="block text-light-text">{caseData.customer.name}</span>
+            <span className="block text-light-text">{taskData.customer.name}</span>
           </div>
           <div>
             <span className="text-sm text-medium-text">Bank Name</span>
-            <span className="block text-light-text">{caseData.client?.name || caseData.clientName || 'N/A'}</span>
+            <span className="block text-light-text">{typeof taskData.client === 'object' ? taskData.client?.name : taskData.client || taskData.clientName || 'N/A'}</span>
           </div>
           <div>
             <span className="text-sm text-medium-text">Product</span>
-            <span className="block text-light-text">{caseData.product?.name || caseData.productName || 'N/A'}</span>
+            <span className="block text-light-text">{typeof taskData.product === 'object' ? taskData.product?.name : taskData.product || taskData.productName || 'N/A'}</span>
           </div>
           <div>
             <span className="text-sm text-medium-text">Trigger</span>
-            <span className="block text-light-text">{caseData.notes || caseData.trigger || 'N/A'}</span>
+            <span className="block text-light-text">{taskData.notes || taskData.trigger || 'N/A'}</span>
           </div>
           <div className="md:col-span-2">
             <span className="text-sm text-medium-text">Visit Address</span>
-            <span className="block text-light-text">{caseData.addressStreet || caseData.visitAddress || caseData.address || 'N/A'}</span>
+            <span className="block text-light-text">{taskData.addressStreet || taskData.visitAddress || taskData.address || 'N/A'}</span>
           </div>
           <div>
             <span className="text-sm text-medium-text">System Contact Number</span>
-            <span className="block text-light-text">{caseData.systemContactNumber || 'N/A'}</span>
+            <span className="block text-light-text">{taskData.systemContactNumber || 'N/A'}</span>
           </div>
           <div>
             <span className="text-sm text-medium-text">Customer Calling Code</span>
-            <span className="block text-light-text">{caseData.customerCallingCode || 'N/A'}</span>
+            <span className="block text-light-text">{taskData.customerCallingCode || 'N/A'}</span>
           </div>
           <div>
             <span className="text-sm text-medium-text">Applicant Status</span>
-            <span className="block text-light-text">{caseData.applicantStatus || 'N/A'}</span>
+            <span className="block text-light-text">{taskData.applicantStatus || 'N/A'}</span>
           </div>
         </div>
       </div>
@@ -295,7 +296,7 @@ const EntryRestrictedOfficeForm: React.FC<EntryRestrictedOfficeFormProps> = ({ c
         compact={true}
       />
 
-      {!isReadOnly && caseData.status === CaseStatus.InProgress && (
+      {!isReadOnly && taskData.status === TaskStatus.InProgress && (
           <>
             <div className="mt-6">
                 <button 
@@ -322,7 +323,7 @@ const EntryRestrictedOfficeForm: React.FC<EntryRestrictedOfficeFormProps> = ({ c
                     setSubmissionError(null);
                 }}
                 onSave={() => {
-                    toggleSaveCase(caseData.id, true);
+                    toggleSaveTask(taskData.id, true);
                     setIsConfirmModalOpen(false);
                 }}
                 onConfirm={async () => {
@@ -334,7 +335,7 @@ const EntryRestrictedOfficeForm: React.FC<EntryRestrictedOfficeFormProps> = ({ c
                         const formData = {
                             remarks: report.otherObservation || '',
                             ...report, // Include all report data
-                            outcome: caseData.verificationOutcome // Use ONLY case verification outcome, no fallback (MUST be after spread)
+                            outcome: taskData.verificationOutcome // Use ONLY case verification outcome, no fallback (MUST be after spread)
                         };
 
                         // Combine all images (regular + selfie)
@@ -352,8 +353,8 @@ const EntryRestrictedOfficeForm: React.FC<EntryRestrictedOfficeFormProps> = ({ c
 
                         // Submit verification form to backend
                         const result = await VerificationFormService.submitOfficeVerification(
-                            caseData.id,
-                            caseData.verificationTaskId!,
+                            taskData.id,
+                            taskData.verificationTaskId!,
                             formData,
                             allImages,
                             geoLocation
@@ -371,8 +372,8 @@ const EntryRestrictedOfficeForm: React.FC<EntryRestrictedOfficeFormProps> = ({ c
                             
                             // Handle post-submission: update status, refresh list, navigate
                             await handleSuccessfulSubmission(
-                                caseData.id,
-                                fetchCases,
+                                taskData.id,
+                                fetchTasks,
                                 navigate,
                                 setSubmissionSuccess
                             );

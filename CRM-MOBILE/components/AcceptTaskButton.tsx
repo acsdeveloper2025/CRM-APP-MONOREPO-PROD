@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Case, CaseStatus } from '../types';
+import { VerificationTask, TaskStatus } from '../types';
 import { CheckIcon } from './Icons';
-import CaseStatusService from '../services/caseStatusService';
+import TaskStatusService from "../services/taskStatusService"
 import AuditService from '../services/auditService';
 
 /**
@@ -9,15 +9,15 @@ import AuditService from '../services/auditService';
  * Handles case acceptance with optimistic UI, offline support, and loading states
  */
 
-interface AcceptCaseButtonProps {
-  caseData: Case;
-  onStatusUpdate: (caseId: string, newStatus: CaseStatus) => void;
+interface AcceptTaskButtonProps {
+  taskData: VerificationTask;
+  onStatusUpdate: (taskId: string, newStatus: TaskStatus) => void;
   onError?: (error: string) => void;
   onSuccess?: (message: string) => void;
 }
 
-const AcceptCaseButton: React.FC<AcceptCaseButtonProps> = ({
-  caseData,
+const AcceptTaskButton: React.FC<AcceptTaskButtonProps> = ({
+  taskData,
   onStatusUpdate,
   onError,
   onSuccess,
@@ -25,46 +25,46 @@ const AcceptCaseButton: React.FC<AcceptCaseButtonProps> = ({
   const [isAccepting, setIsAccepting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 
-  const handleAcceptCase = async () => {
-    if (isAccepting || (caseData.taskStatus || caseData.status) !== CaseStatus.Assigned) {
+  const handleAcceptTask = async () => {
+    if (isAccepting || (taskData.taskStatus || taskData.status) !== TaskStatus.Assigned) {
       return;
     }
 
     setIsAccepting(true);
 
     try {
-      console.log(`🎯 Accepting case ${caseData.id}...`);
+      console.log(`🎯 Accepting case ${taskData.id}...`);
 
       // Prepare audit metadata
       const auditMetadata = {
-        customerName: caseData.customer.name,
-        verificationType: caseData.verificationType,
-        caseTitle: caseData.title,
-        address: caseData.address || caseData.visitAddress,
+        customerName: taskData.customer.name,
+        verificationType: taskData.verificationType,
+        caseTitle: taskData.title,
+        address: taskData.address || taskData.visitAddress,
         acceptedAt: new Date().toISOString(),
       };
 
       // Update case status
-      const result = await CaseStatusService.updateCaseStatus(
-        caseData.id,
-        CaseStatus.InProgress
+      const result = await TaskStatusService.updateTaskStatus(
+        taskData.id,
+        TaskStatus.InProgress
       );
 
       if (result.success) {
         // Log the status change for audit purposes
-        await AuditService.logCaseStatusChange(
-          caseData.id,
-          CaseStatus.Assigned,
-          CaseStatus.InProgress,
+        await AuditService.logTaskStatusChange(
+          taskData.id,
+          TaskStatus.Assigned,
+          TaskStatus.InProgress,
           {
-            customerName: caseData.customer.name,
-            verificationType: caseData.verificationType,
+            customerName: taskData.customer.name,
+            verificationType: taskData.verificationType,
             metadata: auditMetadata,
           }
         );
 
         // Update parent component
-        onStatusUpdate(caseData.id, CaseStatus.InProgress);
+        onStatusUpdate(taskData.id, TaskStatus.InProgress);
 
         // Show success feedback
         setShowSuccess(true);
@@ -74,15 +74,15 @@ const AcceptCaseButton: React.FC<AcceptCaseButtonProps> = ({
         const successMessage = 'Case accepted successfully!';
         onSuccess?.(successMessage);
 
-        console.log(`✅ Case ${caseData.id} accepted successfully`);
+        console.log(`✅ Case ${taskData.id} accepted successfully`);
       } else {
         const errorMessage = result.error || 'Failed to accept case';
-        console.error(`❌ Failed to accept case ${caseData.id}:`, errorMessage);
+        console.error(`❌ Failed to accept case ${taskData.id}:`, errorMessage);
         onError?.(errorMessage);
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      console.error(`❌ Error accepting case ${caseData.id}:`, error);
+      console.error(`❌ Error accepting case ${taskData.id}:`, error);
       onError?.(errorMessage);
     } finally {
       setIsAccepting(false);
@@ -90,13 +90,13 @@ const AcceptCaseButton: React.FC<AcceptCaseButtonProps> = ({
   };
 
   // Don't render if case is not assigned
-  if ((caseData.taskStatus || caseData.status) !== CaseStatus.Assigned) {
+  if ((taskData.taskStatus || taskData.status) !== TaskStatus.Assigned) {
     return null;
   }
 
   return (
     <button
-      onClick={handleAcceptCase}
+      onClick={handleAcceptTask}
       disabled={isAccepting}
       className={`
         flex flex-col items-center transition-all duration-200
@@ -140,4 +140,4 @@ const AcceptCaseButton: React.FC<AcceptCaseButtonProps> = ({
   );
 };
 
-export default AcceptCaseButton;
+export default AcceptTaskButton;

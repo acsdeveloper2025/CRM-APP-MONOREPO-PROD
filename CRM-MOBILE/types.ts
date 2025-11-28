@@ -1,5 +1,5 @@
 
-export enum CaseStatus {
+export enum TaskStatus {
   Assigned = 'Assigned',
   InProgress = 'In Progress',
   Completed = 'Completed',
@@ -454,8 +454,11 @@ export interface CapturedImage {
   };
   // Browser optimization properties
   compressed?: boolean;
+  compressedData?: string;
+  type?: string;
   originalSize?: number;
   compressedSize?: number;
+  metadata?: any;
 }
 
 export interface Attachment {
@@ -1747,7 +1750,7 @@ export interface UntraceablePropertyIndividualReportData {
 }
 
 
-export interface Case {
+export interface VerificationTask {
   id: string;
   title: string;
   description: string;
@@ -1755,10 +1758,10 @@ export interface Case {
     name: string;
     contact: string;
   };
-  status: CaseStatus;
-  taskStatus?: CaseStatus; // Task-level status (from verification_tasks table)
+  status: TaskStatus;
+  taskStatus?: TaskStatus; // Task-level status (from verification_tasks table)
   isSaved: boolean;
-  createdAt: string; // Case Assignment Date/Time
+  createdAt: string; // Task Assignment Date/Time
   updatedAt: string; // Last Update Date/Time
   inProgressAt?: string; // In Progress Date/Time
   savedAt?: string; // Save Date/Time
@@ -1842,7 +1845,7 @@ export interface Case {
   verificationOutcome: VerificationOutcome | null;
   order?: number;
   notes?: string;
-  attachments?: Attachment[]; // Case attachments (PDFs and images, max 10 attachments, 10MB each)
+  attachments?: Attachment[]; // Task attachments (PDFs and images, max 10 attachments, 10MB each)
   residenceReport?: ResidenceReportData;
   shiftedResidenceReport?: ShiftedResidenceReportData;
   nspResidenceReport?: NspResidenceReportData;

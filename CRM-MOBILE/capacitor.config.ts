@@ -41,8 +41,7 @@ const config: CapacitorConfig = {
     StatusBar: {
       style: 'dark',
       backgroundColor: "#111827",
-      overlaysWebView: false,
-      backgroundColor: "#111827"
+      overlaysWebView: false
     },
     Filesystem: {
       iosDocumentPath: 'DOCUMENTS',

@@ -1,6 +1,6 @@
 import { apiService } from './apiService';
 import { secureStorageService } from './secureStorageService';
-import { Case } from '../types/case';
+import { VerificationTask } from '../types';
 
 /**
  * Attachment Sync Service
@@ -15,7 +15,7 @@ class AttachmentSyncService {
    * Sync attachments for all cases
    * Downloads and encrypts attachments for offline access
    */
-  async syncAttachmentsForCases(cases: Case[]): Promise<{
+  async syncAttachmentsForCases(cases: VerificationTask[]): Promise<{
     success: boolean;
     totalAttachments: number;
     syncedCount: number;
@@ -75,7 +75,7 @@ class AttachmentSyncService {
   /**
    * Sync attachments for a single case
    */
-  private async syncAttachmentsForCase(caseItem: Case): Promise<{
+  private async syncAttachmentsForCase(caseItem: VerificationTask): Promise<{
     totalAttachments: number;
     syncedCount: number;
     failedCount: number;
@@ -164,7 +164,7 @@ class AttachmentSyncService {
               originalName: attachment.originalName,
               mimeType: attachment.mimeType,
               size: attachment.size,
-              caseId: caseItem.id,
+              taskId: caseItem.id,
               // Don't pass checksum here since we already verified it above
               // and the data format is different now (data URL vs base64)
             }
@@ -201,12 +201,12 @@ class AttachmentSyncService {
    * Clear synced attachments for a specific case
    * Called when a case is submitted or deleted
    */
-  async clearAttachmentsForCase(caseId: string): Promise<void> {
+  async clearAttachmentsForCase(taskId: string): Promise<void> {
     try {
-      console.log(`🗑️ Clearing attachments for case ${caseId}...`);
+      console.log(`🗑️ Clearing attachments for task ${taskId}...`);
       
       // Get all attachments for this case
-      const attachments = await secureStorageService.listAttachments(caseId);
+      const attachments = await secureStorageService.listAttachments(taskId);
       
       let deletedCount = 0;
       for (const attachment of attachments) {
@@ -219,9 +219,9 @@ class AttachmentSyncService {
         }
       }
 
-      console.log(`✅ Cleared ${deletedCount} attachments for case ${caseId}`);
+      console.log(`✅ Cleared ${deletedCount} attachments for task ${taskId}`);
     } catch (error) {
-      console.error(`❌ Failed to clear attachments for case ${caseId}:`, error);
+      console.error(`❌ Failed to clear attachments for task ${taskId}:`, error);
       throw error;
     }
   }
@@ -234,7 +234,7 @@ class AttachmentSyncService {
     try {
       console.log('🗑️ Clearing all synced attachments...');
       
-      await secureStorageService.clearAllAttachments();
+      await secureStorageService.clearCache();
       this.syncedAttachments.clear();
       
       console.log('✅ All attachments cleared');
