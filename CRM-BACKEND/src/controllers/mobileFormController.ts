@@ -2178,7 +2178,7 @@ export class MobileFormController {
       console.error('Error details:', {
         message: error.message,
         stack: error.stack,
-        caseId: req.params.caseId,
+        taskId: req.params.taskId,
         userId: (req as any).user?.id,
       });
       res.status(500).json({
