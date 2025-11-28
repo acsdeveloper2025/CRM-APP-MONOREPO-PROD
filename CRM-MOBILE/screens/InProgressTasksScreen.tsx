@@ -1,25 +1,25 @@
 
 import React, { useState, useMemo } from 'react';
-import { CaseStatus, Case } from '../types';
-import { useTasks } from "./context/TaskContext"
-import CaseListScreen from './CaseListScreen';
+import { TaskStatus, VerificationTask } from '../types';
+import { useTasks } from "../context/TaskContext"
+import TaskListScreen from './TaskListScreen';
 
 type SortMode = 'order' | 'priority';
 
-const InProgressCasesScreen: React.FC = () => {
+const InProgressTasksScreen: React.FC = () => {
   const [sortMode, setSortMode] = useState<SortMode>('order');
-  const { getCasesWithPriorities } = useTasks();
+  const { getTasksWithPriorities } = useTasks();
 
   // Create sort function based on current mode
   const sortFunction = useMemo(() => {
     if (sortMode === 'priority') {
       return (a: VerificationTask, b: VerificationTask) => {
-        const casesWithPriorities = getCasesWithPriorities();
-        const caseA = casesWithPriorities.find(c => c.id === a.id);
-        const caseB = casesWithPriorities.find(c => c.id === b.id);
+        const tasksWithPriorities = getTasksWithPriorities();
+        const taskA = tasksWithPriorities.find(c => c.id === a.id);
+        const taskB = tasksWithPriorities.find(c => c.id === b.id);
 
-        const priorityA = caseA?.priority;
-        const priorityB = caseB?.priority;
+        const priorityA = taskA?.priority;
+        const priorityB = taskB?.priority;
 
         // Cases with priority come first, sorted by priority number (ascending)
         // Cases without priority come last, sorted by order
@@ -38,10 +38,10 @@ const InProgressCasesScreen: React.FC = () => {
       // Default order sorting
       return (a: VerificationTask, b: VerificationTask) => (a.order || 0) - (b.order || 0);
     }
-  }, [sortMode, getCasesWithPriorities]);
+  }, [sortMode, getTasksWithPriorities]);
 
   return (
-    <CaseListScreen
+    <TaskListScreen
       title="In Progress Cases"
       filter={(c) => (c.taskStatus || c.status) === TaskStatus.InProgress && !c.isSaved}
       sort={sortFunction}
@@ -78,4 +78,4 @@ const InProgressCasesScreen: React.FC = () => {
   );
 };
 
-export default InProgressCasesScreen;
+export default InProgressTasksScreen;

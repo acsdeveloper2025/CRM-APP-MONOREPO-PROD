@@ -112,22 +112,23 @@ class VersionService {
 
       const data = response;
       
-      if (data.success) {
+      if (data.success && data.data) {
         // Only create update info if there's actually an update available
-        const hasUpdate = this.compareVersions(data.currentVersion, data.latestVersion) < 0;
+        const versionData = data.data;
+        const hasUpdate = this.compareVersions(versionData.currentVersion, versionData.latestVersion) < 0;
 
-        if (hasUpdate || data.forceUpdate) {
+        if (hasUpdate || versionData.forceUpdate) {
           this.updateInfo = {
             available: hasUpdate,
-            required: data.forceUpdate || data.updateRequired,
-            urgent: data.urgent || false,
-            version: data.latestVersion,
-            downloadUrl: data.downloadUrl,
-            releaseNotes: data.releaseNotes ? data.releaseNotes.split('\n') : [],
-            features: data.features || [],
-            bugFixes: data.bugFixes || [],
-            size: data.size,
-            releaseDate: data.releaseDate || new Date().toISOString(),
+            required: versionData.forceUpdate || versionData.updateRequired,
+            urgent: versionData.urgent || false,
+            version: versionData.latestVersion,
+            downloadUrl: versionData.downloadUrl,
+            releaseNotes: versionData.releaseNotes ? versionData.releaseNotes.split('\n') : [],
+            features: versionData.features || [],
+            bugFixes: versionData.bugFixes || [],
+            size: versionData.size,
+            releaseDate: versionData.releaseDate || new Date().toISOString(),
           };
 
           console.log('✅ Update available:', this.updateInfo);

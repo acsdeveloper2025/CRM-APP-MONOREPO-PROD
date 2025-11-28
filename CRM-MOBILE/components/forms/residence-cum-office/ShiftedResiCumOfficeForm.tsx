@@ -1,11 +1,11 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Case, ShiftedResiCumOfficeReportData, AddressLocatable, AddressRating, ResiCumOfficeStatus,
+  VerificationTask, ShiftedResiCumOfficeReportData, AddressLocatable, AddressRating, ResiCumOfficeStatus,
   MetPersonStatusShifted, TPCMetPerson, LocalityTypeResiCumOffice, SightStatus, PoliticalConnection,
-  DominatedArea, FeedbackFromNeighbour, FinalStatus, CaseStatus, CapturedImage
+  DominatedArea, FeedbackFromNeighbour, FinalStatus, TaskStatus, CapturedImage
 } from '../../../types';
-import { useTasks } from "./context/TaskContext"
+import { useTasks } from "../../../context/TaskContext"
 import { FormField, SelectField, TextAreaField, NumberDropdownField } from '../../FormControls';
 import ConfirmationModal from '../../ConfirmationModal';
 import ImageCapture from '../../ImageCapture';
@@ -25,41 +25,41 @@ import {
 } from '../../../utils/imageAutoSaveHelpers';
 
 interface ShiftedResiCumOfficeFormProps {
-  caseData: Case;
+  taskData: VerificationTask;
 }
 
 const getEnumOptions = (enumObject: object) => Object.values(enumObject).map(value => (
   <option key={value} value={value}>{value}</option>
 ));
 
-const ShiftedResiCumOfficeForm: React.FC<ShiftedResiCumOfficeFormProps> = ({ caseData }) => {
+const ShiftedResiCumOfficeForm: React.FC<ShiftedResiCumOfficeFormProps> = ({ taskData }) => {
   const navigate = useNavigate();
-  const { updateShiftedResiCumOfficeReport, updateCaseStatus, toggleSaveCase , fetchCases } = useTasks();
+  const { updateShiftedResiCumOfficeReport, updateTaskStatus, toggleSaveTask , fetchTasks } = useTasks();
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionError, setSubmissionError] = useState<string | null>(null);
   const [submissionSuccess, setSubmissionSuccess] = useState(false);
-  const report = caseData.shiftedResiCumOfficeReport;
-  const isReadOnly = caseData.status === CaseStatus.Completed || caseData.isSaved;
+  const report = taskData.shiftedResiCumOfficeReport;
+  const isReadOnly = taskData.status === TaskStatus.Completed || taskData.isSaved;
   const MIN_IMAGES = 5;
 
   // Auto-save handlers using helper functions for complete auto-save functionality
   const handleFormDataChange = createFormDataChangeHandler(
     updateShiftedResiCumOfficeReport,
-    caseData.id,
+    taskData.id,
     isReadOnly
   );
 
   const handleAutoSaveImagesChange = createAutoSaveImagesChangeHandler(
     updateShiftedResiCumOfficeReport,
-    caseData.id,
+    taskData.id,
     report,
     isReadOnly
   );
 
   const handleDataRestored = createDataRestoredHandler(
     updateShiftedResiCumOfficeReport,
-    caseData.id,
+    taskData.id,
     isReadOnly
   );
 
@@ -128,19 +128,19 @@ const ShiftedResiCumOfficeForm: React.FC<ShiftedResiCumOfficeFormProps> = ({ cas
     }
 
     const updates: Partial<ShiftedResiCumOfficeReportData> = { [name]: processedValue };
-    updateShiftedResiCumOfficeReport(caseData.id, updates);
+    updateShiftedResiCumOfficeReport(taskData.id, updates);
   };
   
   const handleImagesChange = createImageChangeHandler(
     updateShiftedResiCumOfficeReport,
-    caseData.id,
+    taskData.id,
     report,
     handleAutoSaveImagesChange
   );
 
   const handleSelfieImagesChange = createSelfieImageChangeHandler(
     updateShiftedResiCumOfficeReport,
-    caseData.id,
+    taskData.id,
     report,
     handleAutoSaveImagesChange
   );
@@ -161,7 +161,7 @@ const ShiftedResiCumOfficeForm: React.FC<ShiftedResiCumOfficeFormProps> = ({ cas
 
   return (
     <AutoSaveFormWrapper
-      caseId={caseData.id}
+      taskId={taskData.id}
       formType={FORM_TYPES.RESIDENCE_CUM_OFFICE_SHIFTED}
       formData={report}
       images={combineImagesForAutoSave(report)}
@@ -183,37 +183,37 @@ const ShiftedResiCumOfficeForm: React.FC<ShiftedResiCumOfficeFormProps> = ({ cas
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="text-sm">
             <span className="text-medium-text">Customer Name: </span>
-            <span className="text-light-text">{caseData.customer.name}</span>
+            <span className="text-light-text">{taskData.customer.name}</span>
           </div>
           <div className="text-sm">
             <span className="text-medium-text">Bank Name: </span>
-            <span className="text-light-text">{caseData.client?.name || caseData.clientName || 'N/A'}</span>
+            <span className="text-light-text">{typeof taskData.client === 'object' ? taskData.client?.name : taskData.client || taskData.clientName || 'N/A'}</span>
           </div>
           <div className="text-sm">
             <span className="text-medium-text">Product: </span>
-            <span className="text-light-text">{caseData.product?.name || caseData.productName || 'N/A'}</span>
+            <span className="text-light-text">{typeof taskData.product === 'object' ? taskData.product?.name : taskData.product || taskData.productName || 'N/A'}</span>
           </div>
           <div className="text-sm">
             <span className="text-medium-text">Trigger: </span>
-            <span className="text-light-text">{caseData.notes || caseData.trigger || 'N/A'}</span>
+            <span className="text-light-text">{taskData.notes || taskData.trigger || 'N/A'}</span>
           </div>
         </div>
         <div className="text-sm">
           <span className="text-medium-text">Visit Address: </span>
-          <span className="text-light-text">{caseData.addressStreet || caseData.visitAddress || caseData.address || 'N/A'}</span>
+          <span className="text-light-text">{taskData.addressStreet || taskData.visitAddress || taskData.address || 'N/A'}</span>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="text-sm">
             <span className="text-medium-text">System Contact: </span>
-            <span className="text-light-text">{caseData.systemContactNumber || 'N/A'}</span>
+            <span className="text-light-text">{taskData.systemContactNumber || 'N/A'}</span>
           </div>
           <div className="text-sm">
             <span className="text-medium-text">Customer Code: </span>
-            <span className="text-light-text">{caseData.customerCallingCode || 'N/A'}</span>
+            <span className="text-light-text">{taskData.customerCallingCode || 'N/A'}</span>
           </div>
           <div className="text-sm">
             <span className="text-medium-text">Applicant Status: </span>
-            <span className="text-light-text">{caseData.applicantStatus || 'N/A'}</span>
+            <span className="text-light-text">{taskData.applicantStatus || 'N/A'}</span>
           </div>
         </div>
       </div>
@@ -327,7 +327,7 @@ const ShiftedResiCumOfficeForm: React.FC<ShiftedResiCumOfficeFormProps> = ({ cas
         compact={true}
       />
 
-      {!isReadOnly && caseData.status === CaseStatus.InProgress && (
+      {!isReadOnly && taskData.status === TaskStatus.InProgress && (
           <>
             <div className="mt-6">
                 <button 
@@ -354,7 +354,7 @@ const ShiftedResiCumOfficeForm: React.FC<ShiftedResiCumOfficeFormProps> = ({ cas
                     setSubmissionError(null);
                 }}
                 onSave={() => {
-                    toggleSaveCase(caseData.id, true);
+                    toggleSaveTask(taskData.id, true);
                     setIsConfirmModalOpen(false);
                 }}
                 onConfirm={async () => {
@@ -366,7 +366,7 @@ const ShiftedResiCumOfficeForm: React.FC<ShiftedResiCumOfficeFormProps> = ({ cas
                         const formData = {
                             remarks: report.otherObservation || '',
                             ...report, // Include all report data
-                            outcome: caseData.verificationOutcome // Use ONLY case verification outcome, no fallback (MUST be after spread)
+                            outcome: taskData.verificationOutcome // Use ONLY case verification outcome, no fallback (MUST be after spread)
                         };
 
                         // Combine all images (regular + selfie)
@@ -384,8 +384,8 @@ const ShiftedResiCumOfficeForm: React.FC<ShiftedResiCumOfficeFormProps> = ({ cas
 
                         // Submit verification form to backend
                         const result = await VerificationFormService.submitResidenceCumOfficeVerification(
-                            caseData.id,
-                            caseData.verificationTaskId!,
+                            taskData.id,
+                            taskData.verificationTaskId!,
                             formData,
                             allImages,
                             geoLocation
@@ -403,9 +403,8 @@ const ShiftedResiCumOfficeForm: React.FC<ShiftedResiCumOfficeFormProps> = ({ cas
                             
                             // Handle post-submission: update status, refresh list, navigate
                             await handleSuccessfulSubmission(
-                                caseData.id,
-                                updateCaseStatus,
-                                fetchCases,
+                                taskData.id,
+                                fetchTasks,
                                 navigate,
                                 setSubmissionSuccess
                             );

@@ -1,5 +1,10 @@
 import SQLite from 'react-native-sqlite-storage';
-import { Case, FormSubmission, Attachment, SyncAction } from '../types';
+import { VerificationTask } from '../../types';
+
+// Legacy types for enterprise features (not in main types file)
+type FormSubmission = any;
+type Attachment = any;
+type SyncAction = any;
 
 // Enable debugging in development
 SQLite.DEBUG(process.env.NODE_ENV === 'development');
@@ -278,7 +283,7 @@ export class EnterpriseOfflineDatabase {
   }
 
   // Task operations
-  async saveCase(caseData: Case): Promise<void> {
+  async saveCase(caseData: any): Promise<void> {
     const sql = `
       INSERT OR REPLACE INTO cases (
         id, customer_name, customer_phone, customer_email, address,
@@ -323,7 +328,7 @@ export class EnterpriseOfflineDatabase {
     assignedTo?: string;
     limit?: number;
     offset?: number;
-  } = {}): Promise<Case[]> {
+  } = {}): Promise<any[]> {
     let sql = 'SELECT * FROM cases WHERE 1=1';
     const params: any[] = [];
 
@@ -353,13 +358,13 @@ export class EnterpriseOfflineDatabase {
     return result.rows.raw().map(this.mapRowToCase);
   }
 
-  async getCaseById(id: string): Promise<Case | null> {
+  async getCaseById(id: string): Promise<any | null> {
     const result = await this.query('SELECT * FROM cases WHERE id = ?', [id]);
     if (result.rows.length === 0) return null;
     return this.mapRowToCase(result.rows.item(0));
   }
 
-  async updateCaseStatus(id: string, status: string): Promise<void> {
+  async updateTaskStatus(id: string, status: string): Promise<void> {
     await this.query(
       'UPDATE cases SET status = ?, updated_at = ?, sync_status = ? WHERE id = ?',
       [status, Date.now(), 'pending', id]
@@ -408,7 +413,7 @@ export class EnterpriseOfflineDatabase {
   async getFormSubmissions(taskId: string): Promise<FormSubmission[]> {
     const result = await this.query(
       'SELECT * FROM form_submissions WHERE case_id = ? ORDER BY submission_time DESC',
-      [caseId]
+      [taskId]
     );
     
     return result.rows.raw().map(row => ({
@@ -464,7 +469,7 @@ export class EnterpriseOfflineDatabase {
   async getAttachments(taskId: string): Promise<Attachment[]> {
     const result = await this.query(
       'SELECT * FROM attachments WHERE case_id = ? ORDER BY created_at DESC',
-      [caseId]
+      [taskId]
     );
     
     return result.rows.raw().map(row => ({
@@ -565,7 +570,7 @@ export class EnterpriseOfflineDatabase {
   }
 
   // Utility methods
-  private mapRowToCase(row: any): Case {
+  private mapRowToCase(row: any): any {
     return {
       id: row.id,
       customerName: row.customer_name,

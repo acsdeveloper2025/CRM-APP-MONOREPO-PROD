@@ -1,11 +1,11 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Case, ShiftedOfficeReportData, AddressLocatable, AddressRating, OfficeStatusOffice, DesignationShiftedOffice,
+  VerificationTask, ShiftedOfficeReportData, AddressLocatable, AddressRating, OfficeStatusOffice, DesignationShiftedOffice,
   SightStatus, TPCMetPerson, TPCConfirmation, LocalityTypeResiCumOffice, PoliticalConnection, DominatedArea,
-  FeedbackFromNeighbour, FinalStatus, CaseStatus, CapturedImage
+  FeedbackFromNeighbour, FinalStatus, TaskStatus, CapturedImage
 } from '../../../types';
-import { useTasks } from "./context/TaskContext"
+import { useTasks } from "../../../context/TaskContext"
 import { FormField, SelectField, TextAreaField, NumberDropdownField } from '../../FormControls';
 import ConfirmationModal from '../../ConfirmationModal';
 import ImageCapture from '../../ImageCapture';
@@ -14,6 +14,7 @@ import PermissionStatus from '../../PermissionStatus';
 import AutoSaveFormWrapper from '../../AutoSaveFormWrapper';
 import { FORM_TYPES } from '../../../constants/formTypes';
 import VerificationFormService from '../../../services/verificationFormService';
+import { handleSuccessfulSubmission } from '../../../utils/formSubmissionHelpers';
 import {
   createImageChangeHandler,
   createSelfieImageChangeHandler,
@@ -24,41 +25,41 @@ import {
 } from '../../../utils/imageAutoSaveHelpers';
 
 interface ShiftedOfficeFormProps {
-  caseData: Case;
+  taskData: VerificationTask;
 }
 
 const getEnumOptions = (enumObject: object) => Object.values(enumObject).map(value => (
   <option key={value} value={value}>{value}</option>
 ));
 
-const ShiftedOfficeForm: React.FC<ShiftedOfficeFormProps> = ({ caseData }) => {
+const ShiftedOfficeForm: React.FC<ShiftedOfficeFormProps> = ({ taskData }) => {
   const navigate = useNavigate();
-  const { updateShiftedOfficeReport, toggleSaveCase , fetchCases } = useTasks();
+  const { updateShiftedOfficeReport, toggleSaveTask , fetchTasks } = useTasks();
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionError, setSubmissionError] = useState<string | null>(null);
   const [submissionSuccess, setSubmissionSuccess] = useState(false);
-  const report = caseData.shiftedOfficeReport;
-  const isReadOnly = caseData.status === CaseStatus.Completed || caseData.isSaved;
+  const report = taskData.shiftedOfficeReport;
+  const isReadOnly = taskData.status === TaskStatus.Completed || taskData.isSaved;
   const MIN_IMAGES = 5;
 
   // Auto-save handlers using helper functions for complete auto-save functionality
   const handleFormDataChange = createFormDataChangeHandler(
     updateShiftedOfficeReport,
-    caseData.id,
+    taskData.id,
     isReadOnly
   );
 
   const handleAutoSaveImagesChange = createAutoSaveImagesChangeHandler(
     updateShiftedOfficeReport,
-    caseData.id,
+    taskData.id,
     report,
     isReadOnly
   );
 
   const handleDataRestored = createDataRestoredHandler(
     updateShiftedOfficeReport,
-    caseData.id,
+    taskData.id,
     isReadOnly
   );
 
@@ -130,19 +131,19 @@ const ShiftedOfficeForm: React.FC<ShiftedOfficeFormProps> = ({ caseData }) => {
     }
 
     const updates: Partial<ShiftedOfficeReportData> = { [name]: processedValue };
-    updateShiftedOfficeReport(caseData.id, updates);
+    updateShiftedOfficeReport(taskData.id, updates);
   };
   
   const handleImagesChange = createImageChangeHandler(
     updateShiftedOfficeReport,
-    caseData.id,
+    taskData.id,
     report,
     handleAutoSaveImagesChange
   );
 
   const handleSelfieImagesChange = createSelfieImageChangeHandler(
     updateShiftedOfficeReport,
-    caseData.id,
+    taskData.id,
     report,
     handleAutoSaveImagesChange
   );
@@ -163,7 +164,7 @@ const ShiftedOfficeForm: React.FC<ShiftedOfficeFormProps> = ({ caseData }) => {
 
   return (
     <AutoSaveFormWrapper
-      caseId={caseData.id}
+      taskId={taskData.id}
       formType={FORM_TYPES.OFFICE_SHIFTED}
       formData={report}
       images={combineImagesForAutoSave(report)}
@@ -185,37 +186,37 @@ const ShiftedOfficeForm: React.FC<ShiftedOfficeFormProps> = ({ caseData }) => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="text-sm">
             <span className="text-medium-text">Customer Name: </span>
-            <span className="text-light-text">{caseData.customer.name}</span>
+            <span className="text-light-text">{taskData.customer.name}</span>
           </div>
           <div className="text-sm">
             <span className="text-medium-text">Bank Name: </span>
-            <span className="text-light-text">{caseData.client?.name || caseData.clientName || 'N/A'}</span>
+            <span className="text-light-text">{typeof taskData.client === 'object' ? taskData.client?.name : taskData.client || taskData.clientName || 'N/A'}</span>
           </div>
           <div className="text-sm">
             <span className="text-medium-text">Product: </span>
-            <span className="text-light-text">{caseData.product?.name || caseData.productName || 'N/A'}</span>
+            <span className="text-light-text">{typeof taskData.product === 'object' ? taskData.product?.name : taskData.product || taskData.productName || 'N/A'}</span>
           </div>
           <div className="text-sm">
             <span className="text-medium-text">Trigger: </span>
-            <span className="text-light-text">{caseData.notes || caseData.trigger || 'N/A'}</span>
+            <span className="text-light-text">{taskData.notes || taskData.trigger || 'N/A'}</span>
           </div>
         </div>
         <div className="text-sm">
           <span className="text-medium-text">Visit Address: </span>
-          <span className="text-light-text">{caseData.addressStreet || caseData.visitAddress || caseData.address || 'N/A'}</span>
+          <span className="text-light-text">{taskData.addressStreet || taskData.visitAddress || taskData.address || 'N/A'}</span>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="text-sm">
             <span className="text-medium-text">System Contact: </span>
-            <span className="text-light-text">{caseData.systemContactNumber || 'N/A'}</span>
+            <span className="text-light-text">{taskData.systemContactNumber || 'N/A'}</span>
           </div>
           <div className="text-sm">
             <span className="text-medium-text">Customer Code: </span>
-            <span className="text-light-text">{caseData.customerCallingCode || 'N/A'}</span>
+            <span className="text-light-text">{taskData.customerCallingCode || 'N/A'}</span>
           </div>
           <div className="text-sm">
             <span className="text-medium-text">Applicant Status: </span>
-            <span className="text-light-text">{caseData.applicantStatus || 'N/A'}</span>
+            <span className="text-light-text">{taskData.applicantStatus || 'N/A'}</span>
           </div>
         </div>
       </div>
@@ -343,7 +344,7 @@ const ShiftedOfficeForm: React.FC<ShiftedOfficeFormProps> = ({ caseData }) => {
         compact={true}
       />
 
-      {!isReadOnly && caseData.status === CaseStatus.InProgress && (
+      {!isReadOnly && taskData.status === TaskStatus.InProgress && (
           <>
             <div className="mt-6">
                 <button 
@@ -370,7 +371,7 @@ const ShiftedOfficeForm: React.FC<ShiftedOfficeFormProps> = ({ caseData }) => {
                     setSubmissionError(null);
                 }}
                 onSave={() => {
-                    toggleSaveCase(caseData.id, true);
+                    toggleSaveTask(taskData.id, true);
                     setIsConfirmModalOpen(false);
                 }}
                 onConfirm={async () => {
@@ -380,15 +381,15 @@ const ShiftedOfficeForm: React.FC<ShiftedOfficeFormProps> = ({ caseData }) => {
                     try {
                         // Prepare form data for submission
                         console.log('🔍 ShiftedOfficeForm submission debug:', {
-                            caseVerificationOutcome: caseData.verificationOutcome,
+                            caseVerificationOutcome: taskData.verificationOutcome,
                             reportOutcome: report.outcome,
-                            finalOutcome: caseData.verificationOutcome || report.outcome || 'Shifted & Door Lock'
+                            finalOutcome: taskData.verificationOutcome || report.outcome || 'Shifted & Door Lock'
                         });
 
                         const formData = {
                             remarks: report.otherObservation || '',
                             ...report, // Include all report data
-                            outcome: caseData.verificationOutcome // Use ONLY case verification outcome, no fallback (MUST be after spread)
+                            outcome: taskData.verificationOutcome // Use ONLY case verification outcome, no fallback (MUST be after spread)
                         };
 
                         // Combine all images (regular + selfie)
@@ -406,8 +407,8 @@ const ShiftedOfficeForm: React.FC<ShiftedOfficeFormProps> = ({ caseData }) => {
 
                         // Submit verification form to backend
                         const result = await VerificationFormService.submitOfficeVerification(
-                            caseData.id,
-                            caseData.verificationTaskId!,
+                            taskData.id,
+                            taskData.verificationTaskId!,
                             formData,
                             allImages,
                             geoLocation
@@ -425,8 +426,8 @@ const ShiftedOfficeForm: React.FC<ShiftedOfficeFormProps> = ({ caseData }) => {
                             
                             // Handle post-submission: update status, refresh list, navigate
                             await handleSuccessfulSubmission(
-                                caseData.id,
-                                fetchCases,
+                                taskData.id,
+                                fetchTasks,
                                 navigate,
                                 setSubmissionSuccess
                             );

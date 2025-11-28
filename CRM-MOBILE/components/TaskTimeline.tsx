@@ -1,5 +1,5 @@
 import React from 'react';
-import { VerificationTask } from '../types';
+import { VerificationTask, TaskStatus } from '../types';
 
 interface TaskTimelineProps {
   taskData: VerificationTask;
@@ -14,7 +14,7 @@ interface TimelineEvent {
   description: string;
 }
 
-const TaskTimeline: React.FC<CaseTimelineProps> = ({ taskData, compact = false }) => {
+const TaskTimeline: React.FC<TaskTimelineProps> = ({ taskData, compact = false }) => {
   
   const formatTimestamp = (isoString?: string): string => {
     if (!isoString) return 'Not available';
@@ -41,7 +41,7 @@ const TaskTimeline: React.FC<CaseTimelineProps> = ({ taskData, compact = false }
       },
       {
         label: 'In Progress',
-        timestamp: taskData.inProgressAt || (taskData.status === 'In Progress' || taskData.status === 'IN_PROGRESS' ? taskData.updatedAt : undefined),
+        timestamp: taskData.inProgressAt || (taskData.status === TaskStatus.InProgress ? taskData.updatedAt : undefined),
         icon: '🚀',
         color: 'text-yellow-400',
         description: 'Case moved to in-progress status'

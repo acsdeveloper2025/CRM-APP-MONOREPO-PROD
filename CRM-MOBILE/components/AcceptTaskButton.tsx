@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { VerificationTask, TaskStatus } from '../types';
 import { CheckIcon } from './Icons';
-import TaskStatusService from "./services/taskStatusService"
+import TaskStatusService from "../services/taskStatusService"
 import AuditService from '../services/auditService';
 
 /**
@@ -11,12 +11,12 @@ import AuditService from '../services/auditService';
 
 interface AcceptTaskButtonProps {
   taskData: VerificationTask;
-  onStatusUpdate: (taskId: string, newStatus: VerificationTaskStatus) => void;
+  onStatusUpdate: (taskId: string, newStatus: TaskStatus) => void;
   onError?: (error: string) => void;
   onSuccess?: (message: string) => void;
 }
 
-const AcceptTaskButton: React.FC<AcceptCaseButtonProps> = ({
+const AcceptTaskButton: React.FC<AcceptTaskButtonProps> = ({
   taskData,
   onStatusUpdate,
   onError,
@@ -45,14 +45,14 @@ const AcceptTaskButton: React.FC<AcceptCaseButtonProps> = ({
       };
 
       // Update case status
-      const result = await TaskStatusService.updateCaseStatus(
+      const result = await TaskStatusService.updateTaskStatus(
         taskData.id,
         TaskStatus.InProgress
       );
 
       if (result.success) {
         // Log the status change for audit purposes
-        await AuditService.logCaseStatusChange(
+        await AuditService.logTaskStatusChange(
           taskData.id,
           TaskStatus.Assigned,
           TaskStatus.InProgress,

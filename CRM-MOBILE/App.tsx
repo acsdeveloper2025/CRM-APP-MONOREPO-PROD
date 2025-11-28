@@ -1,7 +1,7 @@
 import React, { useEffect, useState, Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import { CaseProvider } from "./context/TaskContext"
+import { TaskProvider } from "./context/TaskContext"
 import BottomNavigation from './components/BottomNavigation';
 import { SafeAreaProvider, MobileContainer } from './components/SafeAreaProvider';
 import { ResponsiveLayoutProvider } from './components/ResponsiveLayout';
@@ -19,11 +19,11 @@ import { initializeAppPermissions } from './utils/permissions';
 // Lazy load screens for better code splitting
 const NewLoginScreen = lazy(() => import('./screens/NewLoginScreen'));
 const DashboardScreen = lazy(() => import('./screens/DashboardScreen'));
-const CaseListScreen = lazy(() => import('./screens/CaseListScreen'));
-const AssignedCasesScreen = lazy(() => import('./screens/AssignedCasesScreen'));
-const InProgressCasesScreen = lazy(() => import('./screens/InProgressCasesScreen'));
-const CompletedCasesScreen = lazy(() => import('./screens/CompletedCasesScreen'));
-const SavedCasesScreen = lazy(() => import('./screens/SavedCasesScreen'));
+const TaskListScreen = lazy(() => import('./screens/TaskListScreen'));
+const AssignedTasksScreen = lazy(() => import('./screens/AssignedTasksScreen'));
+const InProgressTasksScreen = lazy(() => import('./screens/InProgressTasksScreen'));
+const CompletedTasksScreen = lazy(() => import('./screens/CompletedTasksScreen'));
+const SavedTasksScreen = lazy(() => import('./screens/SavedTasksScreen'));
 const ProfileScreen = lazy(() => import('./screens/ProfileScreen'));
 const DigitalIdCardScreen = lazy(() => import('./screens/DigitalIdCardScreen'));
 
@@ -140,11 +140,11 @@ const AppNavigator: React.FC = () => {
           {isAuthenticated ? (
             <>
               <Route path="/" element={<DashboardScreen />} />
-              <Route path="/cases" element={<CaseListScreen title="All Cases" filter={() => true} emptyMessage="No cases available." tabKey="all" searchPlaceholder="Search all cases..." />} />
-              <Route path="/cases/assigned" element={<AssignedCasesScreen />} />
-              <Route path="/cases/in-progress" element={<InProgressCasesScreen />} />
-              <Route path="/cases/completed" element={<CompletedCasesScreen />} />
-              <Route path="/cases/saved" element={<SavedCasesScreen />} />
+              <Route path="/cases" element={<TaskListScreen title="All Cases" filter={() => true} emptyMessage="No cases available." tabKey="all" searchPlaceholder="Search all cases..." />} />
+              <Route path="/cases/assigned" element={<AssignedTasksScreen />} />
+              <Route path="/cases/in-progress" element={<InProgressTasksScreen />} />
+              <Route path="/cases/completed" element={<CompletedTasksScreen />} />
+              <Route path="/cases/saved" element={<SavedTasksScreen />} />
               <Route path="/profile" element={<ProfileScreen />} />
               <Route path="/digital-id-card" element={<DigitalIdCardScreen />} />
               <Route path="*" element={<Navigate to="/" replace />} />
@@ -180,19 +180,15 @@ const App: React.FC = () => {
       <ErrorBoundary>
         <BrowserRouter
           basename={import.meta.env.PROD ? '/mobile' : ''}
-          future={{
-            v7_startTransition: true,
-            v7_relativeSplatPath: true
-          }}
         >
           <SafeAreaProvider>
             <ResponsiveLayoutProvider>
               <AuthProvider>
-                <CaseProvider>
+                <TaskProvider>
                   <UpdateManager>
                     <AppNavigator />
                   </UpdateManager>
-                </CaseProvider>
+                </TaskProvider>
               </AuthProvider>
             </ResponsiveLayoutProvider>
           </SafeAreaProvider>

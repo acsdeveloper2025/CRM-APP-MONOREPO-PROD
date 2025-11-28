@@ -114,9 +114,7 @@ const ImageModal: React.FC<ImageModalProps> = ({
             scrollbarWidth: 'thin',
             scrollbarColor: '#4B5563 #1F2937',
             // Ensure scrolling works on mobile
-            touchAction: 'pan-y',
-            // Add momentum scrolling for iOS
-            WebkitOverflowScrolling: 'touch' as any
+            touchAction: 'pan-y'
           }}
         >
           <div className="flex flex-col lg:grid lg:grid-cols-2 gap-6 p-6">
@@ -225,7 +223,7 @@ const ImageModal: React.FC<ImageModalProps> = ({
                           latitude: image.latitude,
                           longitude: image.longitude,
                           accuracy: (image as any).accuracy,
-                          timestamp: image.timestamp
+                          timestamp: new Date(image.timestamp).getTime()
                         }}
                         address={currentAddress}
                         height="250px"
