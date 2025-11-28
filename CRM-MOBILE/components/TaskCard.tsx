@@ -591,7 +591,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ taskData, isReorderable = false, is
 
                   {/* 2. Case ID */}
                   <div className="mb-2">
-                    <p className="text-sm font-semibold text-light-text">Case ID: #{taskData.caseId || taskData.id?.slice(-8)}</p>
+                    <p className="text-sm font-semibold text-light-text">Case ID: #{taskData.businessCaseId || taskData.id?.slice(-8)}</p>
                   </div>
 
                   {/* 3. Customer Name */}
@@ -960,7 +960,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ taskData, isReorderable = false, is
                 {/* 2. Case ID */}
                 <div>
                     <h4 className="font-bold text-sm text-medium-text">Case ID *</h4>
-                    <p>#{taskData.caseId || taskData.id?.slice(-8) || 'N/A'}</p>
+                    <p>#{taskData.businessCaseId || taskData.id?.slice(-8) || 'N/A'}</p>
                 </div>
 
                 {/* 2.5. Verification Task ID */}
