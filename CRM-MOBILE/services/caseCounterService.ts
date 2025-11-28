@@ -1,4 +1,4 @@
-import { Case, CaseStatus } from '../types';
+import { VerificationTask, TaskStatus } from '../types';
 
 /**
  * Case Counter Service
@@ -15,9 +15,9 @@ export interface CaseCounts {
 }
 
 export interface CaseCountUpdate {
-  fromStatus?: CaseStatus;
-  toStatus: CaseStatus;
-  caseId: string;
+  fromStatus?: TaskStatus;
+  toStatus: TaskStatus;
+  taskId: string;
   timestamp: string;
 }
 
@@ -29,7 +29,7 @@ class CaseCounterService {
   /**
    * Calculate case counts from case array
    */
-  static calculateCounts(cases: Case[]): CaseCounts {
+  static calculateCounts(cases: VerificationTask[]): CaseCounts {
     const counts: CaseCounts = {
       assigned: 0,
       inProgress: 0,
@@ -41,13 +41,13 @@ class CaseCounterService {
 
     cases.forEach(caseItem => {
       switch (caseItem.status) {
-        case CaseStatus.Assigned:
+        case TaskStatus.Assigned:
           counts.assigned++;
           break;
-        case CaseStatus.InProgress:
+        case TaskStatus.InProgress:
           counts.inProgress++;
           break;
-        case CaseStatus.Completed:
+        case TaskStatus.Completed:
           counts.completed++;
           break;
       }
@@ -68,9 +68,9 @@ class CaseCounterService {
   /**
    * Update case counts and notify listeners
    */
-  static async updateCounts(cases: Case[]): Promise<void> {
+  static async updateCounts(tasks: VerificationTask[]): Promise<void> {
     try {
-      const newCounts = this.calculateCounts(cases);
+      const newCounts = this.calculateCounts(tasks);
       await this.storeCounts(newCounts);
       this.notifyListeners(newCounts);
       
@@ -119,15 +119,15 @@ class CaseCounterService {
    * Record a case status change for count tracking
    */
   static async recordStatusChange(
-    caseId: string,
-    fromStatus: CaseStatus | undefined,
-    toStatus: CaseStatus
+    taskId: string,
+    fromStatus: TaskStatus | undefined,
+    toStatus: TaskStatus
   ): Promise<void> {
     try {
       const update: CaseCountUpdate = {
         fromStatus,
         toStatus,
-        caseId,
+        taskId,
         timestamp: new Date().toISOString(),
       };
 
@@ -141,7 +141,7 @@ class CaseCounterService {
 
       await this.storeCountUpdates(existingUpdates);
       
-      console.log(`📈 Recorded status change: ${caseId} ${fromStatus || 'new'} → ${toStatus}`);
+      console.log(`📈 Recorded status change: ${taskId} ${fromStatus || 'new'} → ${toStatus}`);
     } catch (error) {
       console.error('Failed to record status change:', error);
     }

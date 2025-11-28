@@ -1,11 +1,12 @@
 import { encryptedStorage } from './encryptedStorage';
-import { Case, CapturedImage } from '../types';
+import { CapturedImage, VerificationTask } from '../types';
+import AsyncStorage from '../polyfills/AsyncStorage';
 
 /**
  * Auto-save service for form data with encrypted local storage
  */
 export interface AutoSaveData {
-  caseId: string;
+  taskId: string;
   formType: string;
   formData: any;
   images: CapturedImage[];
@@ -59,18 +60,18 @@ class AutoSaveService {
    * Save form data with auto-save
    */
   async saveFormData(
-    caseId: string,
+    taskId: string,
     formType: string,
     formData: any,
     images: CapturedImage[] = [],
     options: AutoSaveOptions = {}
   ): Promise<void> {
     const { debounceMs = 1000 } = options;
-    const key = this.getAutoSaveKeyInternal(caseId, formType);
+    const key = this.getAutoSaveKeyInternal(taskId, formType);
 
     // Create auto-save data
     const autoSaveData: AutoSaveData = {
-      caseId,
+      taskId,
       formType,
       formData: this.sanitizeFormData(formData),
       images,
@@ -123,17 +124,17 @@ class AutoSaveService {
           if (storageInfo.platform === 'mobile') {
             await encryptedStorage.setItem(key, data);
             this.saveQueue.delete(key);
-            console.log(`📱 Mobile auto-save: Saved complete form with images for ${data.caseId} (${data.formType}) - Size: ${JSON.stringify(data).length} chars`);
+            console.log(`📱 Mobile auto-save: Saved complete form with images for ${data.taskId} (${data.formType}) - Size: ${JSON.stringify(data).length} chars`);
           } else {
             // For web, use optimized storage strategy
             const optimizedData = await this.optimizeDataForStorage(data);
             await encryptedStorage.setItem(key, optimizedData);
             this.saveQueue.delete(key);
-            console.log(`🌐 Web auto-save: Saved optimized form for ${data.caseId} (${data.formType}) - Size: ${JSON.stringify(optimizedData).length} chars`);
+            console.log(`🌐 Web auto-save: Saved optimized form for ${data.taskId} (${data.formType}) - Size: ${JSON.stringify(optimizedData).length} chars`);
           }
         } catch (storageError: any) {
           if (storageError.name === 'QuotaExceededError') {
-            console.warn(`⚠️ Storage quota exceeded for ${data.caseId}, using fallback strategy...`);
+            console.warn(`⚠️ Storage quota exceeded for ${data.taskId}, using fallback strategy...`);
             await this.handleStorageQuotaExceeded(key, data, storageInfo);
           } else {
             throw storageError;
@@ -150,29 +151,29 @@ class AutoSaveService {
   /**
    * Retrieve saved form data with mobile/web compatibility
    */
-  async getFormData(caseId: string, formType: string): Promise<AutoSaveData | null> {
+  async getFormData(taskId: string, formType: string): Promise<AutoSaveData | null> {
     try {
-      const key = this.getAutoSaveKeyInternal(caseId, formType);
+      const key = this.getAutoSaveKeyInternal(taskId, formType);
       const data = await encryptedStorage.getItem<AutoSaveData>(key);
 
       if (data && this.isValidAutoSaveData(data)) {
         // Check if this is chunked storage (web fallback)
         if (data.hasChunkedImages) {
-          console.log(`🔄 Restoring chunked images for ${caseId}`);
+          console.log(`🔄 Restoring chunked images for ${taskId}`);
           return await this.restoreChunkedImages(key, data);
         }
 
         // Check if images were skipped (web fallback)
         if (data.imagesSkipped) {
-          console.log(`⚠️ Form ${caseId} was saved without images due to storage constraints`);
+          console.log(`⚠️ Form ${taskId} was saved without images due to storage constraints`);
         }
 
         // Check if this is minimal data (last resort fallback)
         if (data.isMinimal) {
-          console.log(`⚠️ Form ${caseId} has minimal data only due to storage constraints`);
+          console.log(`⚠️ Form ${taskId} has minimal data only due to storage constraints`);
         }
 
-        console.log(`✅ Retrieved auto-save data for ${caseId} (${data.platform || 'unknown'} platform)`);
+        console.log(`✅ Retrieved auto-save data for ${taskId} (${data.platform || 'unknown'} platform)`);
         return data;
       }
 
@@ -186,9 +187,9 @@ class AutoSaveService {
   /**
    * Check if auto-saved data exists for a form
    */
-  async hasAutoSaveData(caseId: string, formType: string): Promise<boolean> {
+  async hasAutoSaveData(taskId: string, formType: string): Promise<boolean> {
     try {
-      const data = await this.getFormData(caseId, formType);
+      const data = await this.getFormData(taskId, formType);
       return data !== null;
     } catch (error) {
       return false;
@@ -198,10 +199,10 @@ class AutoSaveService {
   /**
    * Mark form as completed and clean up auto-save data after 15 days
    */
-  async markFormCompleted(caseId: string, formType: string): Promise<void> {
+  async markFormCompleted(taskId: string, formType: string): Promise<void> {
     try {
-      const key = this.getAutoSaveKeyInternal(caseId, formType);
-      const data = await this.getFormData(caseId, formType);
+      const key = this.getAutoSaveKeyInternal(taskId, formType);
+      const data = await this.getFormData(taskId, formType);
 
       if (data) {
         data.isComplete = true;
@@ -211,7 +212,7 @@ class AutoSaveService {
 
       // Schedule cleanup after a delay
       setTimeout(() => {
-        this.removeAutoSaveData(caseId, formType);
+        this.removeAutoSaveData(taskId, formType);
       }, 5000); // 5 seconds delay
 
     } catch (error) {
@@ -224,9 +225,9 @@ class AutoSaveService {
   /**
    * Remove auto-save data
    */
-  async removeAutoSaveData(caseId: string, formType: string): Promise<void> {
+  async removeAutoSaveData(taskId: string, formType: string): Promise<void> {
     try {
-      const key = this.getAutoSaveKeyInternal(caseId, formType);
+      const key = this.getAutoSaveKeyInternal(taskId, formType);
       await encryptedStorage.removeItem(key);
 
       // Clear any pending saves
@@ -240,7 +241,7 @@ class AutoSaveService {
       // Notify listeners
       this.notifyListeners(key, null);
 
-      console.log(`Removed auto-save data for ${caseId} (${formType})`);
+      console.log(`Removed auto-save data for ${taskId} (${formType})`);
     } catch (error) {
       console.error('Error removing auto-save data:', error);
     }
@@ -342,8 +343,8 @@ class AutoSaveService {
   /**
    * Get auto-save key for external use
    */
-  getAutoSaveKey(caseId: string, formType: string): string {
-    return this.getAutoSaveKeyInternal(caseId, formType);
+  getAutoSaveKey(taskId: string, formType: string): string {
+    return this.getAutoSaveKeyInternal(taskId, formType);
   }
 
   /**
@@ -379,8 +380,8 @@ class AutoSaveService {
   }
 
   // Private helper methods
-  private getAutoSaveKeyInternal(caseId: string, formType: string): string {
-    return `${this.AUTOSAVE_PREFIX}${caseId}_${formType}`;
+  private getAutoSaveKeyInternal(taskId: string, formType: string): string {
+    return `${this.AUTOSAVE_PREFIX}${taskId}_${formType}`;
   }
 
   private sanitizeFormData(formData: any): any {
@@ -392,7 +393,7 @@ class AutoSaveService {
     return (
       data &&
       typeof data === 'object' &&
-      typeof data.caseId === 'string' &&
+      typeof data.taskId === 'string' &&
       typeof data.formType === 'string' &&
       typeof data.lastSaved === 'string' &&
       typeof data.version === 'number' &&
@@ -440,8 +441,6 @@ class AutoSaveService {
    */
   private async getStorageInfo(): Promise<{ platform: string; estimatedSize?: number }> {
     try {
-      // Import AsyncStorage to get platform info
-      const AsyncStorage = (await import('../polyfills/AsyncStorage')).default;
       return await AsyncStorage.getStorageInfo();
     } catch (error) {
       console.warn('Error getting storage info:', error);
@@ -456,20 +455,20 @@ class AutoSaveService {
     try {
       if (storageInfo.platform === 'mobile') {
         // Mobile apps rarely hit quota limits, but if they do, clean up old data
-        console.log(`📱 Mobile storage cleanup for ${data.caseId}`);
+        console.log(`📱 Mobile storage cleanup for ${data.taskId}`);
         await this.cleanupOldAutoSaveData();
 
         // Retry with full data
         await encryptedStorage.setItem(key, data);
         this.saveQueue.delete(key);
-        console.log(`✅ Mobile retry successful for ${data.caseId}`);
+        console.log(`✅ Mobile retry successful for ${data.taskId}`);
       } else {
         // Web browser - use chunked storage strategy
-        console.log(`🌐 Web storage fallback for ${data.caseId}`);
+        console.log(`🌐 Web storage fallback for ${data.taskId}`);
         await this.handleLargeFormStorage(key, data);
       }
     } catch (error) {
-      console.error(`❌ Failed to handle storage quota exceeded for ${data.caseId}:`, error);
+      console.error(`❌ Failed to handle storage quota exceeded for ${data.taskId}:`, error);
       // Last resort: store minimal data
       await this.storeMinimalFormData(key, data);
     }
@@ -503,7 +502,7 @@ class AutoSaveService {
       const optimizedSize = JSON.stringify(optimizedData).length;
       const compressionRatio = ((originalSize - optimizedSize) / originalSize * 100).toFixed(1);
 
-      console.log(`📊 Browser optimization complete for ${data.caseId}:`);
+      console.log(`📊 Browser optimization complete for ${data.taskId}:`);
       console.log(`   Original: ${originalSize} chars`);
       console.log(`   Optimized: ${optimizedSize} chars`);
       console.log(`   Compression: ${compressionRatio}% reduction`);
@@ -605,7 +604,7 @@ class AutoSaveService {
    */
   private async handleLargeFormStorage(key: string, data: any): Promise<void> {
     try {
-      console.log(`🔧 Implementing smart storage for large form: ${data.caseId}`);
+      console.log(`🔧 Implementing smart storage for large form: ${data.taskId}`);
 
       // Strategy 1: Clean up old auto-save data first
       await this.cleanupOldAutoSaveData();
@@ -615,14 +614,14 @@ class AutoSaveService {
 
       if (success) {
         this.saveQueue.delete(key);
-        console.log(`✅ Successfully stored large form using chunked strategy: ${data.caseId}`);
+        console.log(`✅ Successfully stored large form using chunked strategy: ${data.taskId}`);
       } else {
         // Strategy 3: Store form data without images as fallback
         await this.storeFormDataOnly(key, data);
-        console.log(`⚠️ Stored form data without images due to storage constraints: ${data.caseId}`);
+        console.log(`⚠️ Stored form data without images due to storage constraints: ${data.taskId}`);
       }
     } catch (error) {
-      console.error(`❌ Failed to store large form ${data.caseId}:`, error);
+      console.error(`❌ Failed to store large form ${data.taskId}:`, error);
       // Last resort: store minimal form data
       await this.storeMinimalFormData(key, data);
     }
@@ -655,12 +654,12 @@ class AutoSaveService {
             isRegularImage: i < (images?.length || 0)
           });
         } catch (imageError) {
-          console.warn(`⚠️ Failed to store image ${i} for ${data.caseId}, continuing...`);
+          console.warn(`⚠️ Failed to store image ${i} for ${data.taskId}, continuing...`);
           // Continue with other images even if one fails
         }
       }
 
-      console.log(`📸 Stored ${allImages.length} images in chunks for ${data.caseId}`);
+      console.log(`📸 Stored ${allImages.length} images in chunks for ${data.taskId}`);
       return true;
     } catch (error) {
       console.error('❌ Chunked image storage failed:', error);
@@ -686,14 +685,14 @@ class AutoSaveService {
    */
   private async storeMinimalFormData(key: string, data: any): Promise<void> {
     const minimalData = {
-      caseId: data.caseId,
+      taskId: data.taskId,
       formType: data.formType,
       lastSaved: new Date().toISOString(),
       isMinimal: true,
       originalDataSize: JSON.stringify(data).length
     };
     await encryptedStorage.setItem(key, minimalData);
-    console.log(`💾 Stored minimal data for ${data.caseId} due to storage constraints`);
+    console.log(`💾 Stored minimal data for ${data.taskId} due to storage constraints`);
   }
 
   /**
@@ -760,7 +759,7 @@ class AutoSaveService {
             }
           }
         } catch {
-          console.warn(`⚠️ Failed to restore image chunk ${i} for ${formData.caseId}`);
+          console.warn(`⚠️ Failed to restore image chunk ${i} for ${formData.taskId}`);
         }
       }
 
@@ -773,7 +772,7 @@ class AutoSaveService {
         restoredFromChunks: true
       };
 
-      console.log(`📸 Restored ${images.length} photos and ${selfieImages.length} selfies from chunks for ${formData.caseId}`);
+      console.log(`📸 Restored ${images.length} photos and ${selfieImages.length} selfies from chunks for ${formData.taskId}`);
       return restoredData;
     } catch (error) {
       console.error('❌ Error restoring chunked images:', error);

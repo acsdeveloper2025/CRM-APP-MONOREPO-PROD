@@ -1,8 +1,8 @@
 import React from 'react';
-import { Case } from '../types';
+import { VerificationTask, TaskStatus } from '../types';
 
-interface CaseTimelineProps {
-  caseData: Case;
+interface TaskTimelineProps {
+  taskData: VerificationTask;
   compact?: boolean;
 }
 
@@ -14,7 +14,7 @@ interface TimelineEvent {
   description: string;
 }
 
-const CaseTimeline: React.FC<CaseTimelineProps> = ({ caseData, compact = false }) => {
+const TaskTimeline: React.FC<TaskTimelineProps> = ({ taskData, compact = false }) => {
   
   const formatTimestamp = (isoString?: string): string => {
     if (!isoString) return 'Not available';
@@ -34,28 +34,28 @@ const CaseTimeline: React.FC<CaseTimelineProps> = ({ caseData, compact = false }
     const events: TimelineEvent[] = [
       {
         label: 'Case Assigned',
-        timestamp: caseData.createdAt,
+        timestamp: taskData.createdAt,
         icon: '📋',
         color: 'text-blue-400',
         description: 'Case was initially assigned to you'
       },
       {
         label: 'In Progress',
-        timestamp: caseData.inProgressAt || (caseData.status === 'In Progress' || caseData.status === 'IN_PROGRESS' ? caseData.updatedAt : undefined),
+        timestamp: taskData.inProgressAt || (taskData.status === TaskStatus.InProgress ? taskData.updatedAt : undefined),
         icon: '🚀',
         color: 'text-yellow-400',
         description: 'Case moved to in-progress status'
       },
       {
         label: 'Last Updated',
-        timestamp: caseData.savedAt || caseData.updatedAt,
+        timestamp: taskData.savedAt || taskData.updatedAt,
         icon: '💾',
         color: 'text-purple-400',
         description: 'Case data was last updated'
       },
       {
         label: 'Completed',
-        timestamp: caseData.completedAt,
+        timestamp: taskData.completedAt,
         icon: '✅',
         color: 'text-green-400',
         description: 'Case was marked as complete'
@@ -157,13 +157,13 @@ const CaseTimeline: React.FC<CaseTimelineProps> = ({ caseData, compact = false }
           <div>
             <span className="text-gray-400">Total Duration:</span>
             <span className="ml-2 text-white font-mono">
-              {calculateDuration(caseData.createdAt, caseData.completedAt)}
+              {calculateDuration(taskData.createdAt, taskData.completedAt)}
             </span>
           </div>
           <div>
             <span className="text-gray-400">Processing Time:</span>
             <span className="ml-2 text-white font-mono">
-              {calculateDuration(caseData.inProgressAt, caseData.completedAt)}
+              {calculateDuration(taskData.inProgressAt, taskData.completedAt)}
             </span>
           </div>
         </div>
@@ -192,4 +192,4 @@ const calculateDuration = (startTime?: string, endTime?: string): string => {
   }
 };
 
-export default CaseTimeline;
+export default TaskTimeline;

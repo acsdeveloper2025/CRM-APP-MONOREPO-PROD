@@ -1,12 +1,12 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { Case, CaseStatus, VerificationType, VerificationOutcome, RevokeReason } from '../types';
-import { useCases } from '../context/CaseContext';
+import { VerificationTask, TaskStatus, VerificationType, VerificationOutcome, RevokeReason } from '../types';
+import { useTasks } from "../context/TaskContext"
 import { ChevronDownIcon, ChevronUpIcon, CheckIcon, XIcon, InfoIcon, ArrowUpIcon, ArrowDownIcon, AttachmentIcon } from './Icons';
 import Spinner from './Spinner';
 import Modal from './Modal';
 import PriorityInput from './PriorityInput';
-import { useCaseAutoSaveStatus } from '../hooks/useCaseAutoSaveStatus';
-import CaseTimeline from './CaseTimeline';
+import { useTaskAutoSaveStatus } from "../hooks/useTaskAutoSaveStatus"
+import TaskTimeline from "./TaskTimeline"
 import AttachmentsModal from './AttachmentsModal';
 import { VerificationTaskService } from '../services/verificationTaskService';
 import VerificationFormService from '../services/verificationFormService';
@@ -55,8 +55,8 @@ import EntryRestrictedPropertyIndividualForm from './forms/property-individual/E
 import UntraceablePropertyIndividualForm from './forms/property-individual/UntraceablePropertyIndividualForm';
 import { SelectField } from './FormControls';
 
-interface CaseCardProps {
-  caseData: Case;
+interface TaskCardProps {
+  taskData: VerificationTask;
   isReorderable?: boolean;
   isFirst?: boolean;
   isLast?: boolean;
@@ -95,8 +95,8 @@ const verificationOptionsMap: { [key in VerificationType]?: React.ReactElement[]
     }),
 };
 
-const CaseCard: React.FC<CaseCardProps> = ({ caseData, isReorderable = false, isFirst, isLast }) => {
-  const { updateCaseStatus, updateVerificationOutcome, reorderInProgressCase, updateCaseSubmissionStatus, verifyCaseSubmissionStatus, fetchCases } = useCases();
+const TaskCard: React.FC<TaskCardProps> = ({ taskData, isReorderable = false, isFirst, isLast }) => {
+  const { updateTaskStatus, updateVerificationOutcome, reorderInProgressTask, updateTaskSubmissionStatus, verifyTaskSubmissionStatus, fetchTasks } = useTasks();
   const [isExpanded, setIsExpanded] = useState(false);
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
   const [isRevokeModalOpen, setIsRevokeModalOpen] = useState(false);
@@ -116,14 +116,14 @@ const CaseCard: React.FC<CaseCardProps> = ({ caseData, isReorderable = false, is
   const [attachmentCountLoaded, setAttachmentCountLoaded] = useState<boolean>(false);
 
   // Check for auto-saved data for this case
-  const { hasAutoSaveData } = useCaseAutoSaveStatus(caseData.id);
+  const { hasAutoSaveData } = useTaskAutoSaveStatus(taskData.id);
 
   // Fetch real attachment count
   useEffect(() => {
     const fetchAttachmentCount = async () => {
       if (!attachmentCountLoaded) {
         try {
-          const attachments = await attachmentService.getCaseAttachments(caseData.id);
+          const attachments = await attachmentService.getCaseAttachments(taskData.id);
           setAttachmentCount(attachments.length);
           setAttachmentCountLoaded(true);
         } catch (error) {
@@ -135,13 +135,13 @@ const CaseCard: React.FC<CaseCardProps> = ({ caseData, isReorderable = false, is
     };
 
     fetchAttachmentCount();
-  }, [caseData.id, attachmentCountLoaded]);
+  }, [taskData.id, attachmentCountLoaded]);
   const [isFormExpanding, setIsFormExpanding] = useState(false);
   const [isFormScrollable, setIsFormScrollable] = useState(false);
   const formContentRef = useRef<HTMLDivElement>(null);
   
-  const isAssigned = (caseData.taskStatus || caseData.status) === CaseStatus.Assigned;
-  const isInProgress = (caseData.taskStatus || caseData.status) === CaseStatus.InProgress;
+  const isAssigned = (taskData.taskStatus || taskData.status) === TaskStatus.Assigned;
+  const isInProgress = (taskData.taskStatus || taskData.status) === TaskStatus.InProgress;
 
 
 
@@ -150,7 +150,7 @@ const CaseCard: React.FC<CaseCardProps> = ({ caseData, isReorderable = false, is
     e.stopPropagation();
 
     const newOutcome = e.target.value as VerificationOutcome || null;
-    updateVerificationOutcome(caseData.id, newOutcome);
+    updateVerificationOutcome(taskData.id, newOutcome);
 
     // Automatically expand the card to show the form when an outcome is selected
     if (newOutcome && !isExpanded) {
@@ -180,7 +180,7 @@ const CaseCard: React.FC<CaseCardProps> = ({ caseData, isReorderable = false, is
   };
 
   const handleRevokeConfirm = async () => {
-    if (!revokeReason || !caseData.verificationTaskId) {
+    if (!revokeReason || !taskData.verificationTaskId) {
       console.error('❌ Cannot revoke: Missing reason or task ID');
       return;
     }
@@ -189,7 +189,7 @@ const CaseCard: React.FC<CaseCardProps> = ({ caseData, isReorderable = false, is
 
     try {
       const result = await VerificationTaskService.revokeTask(
-        caseData.verificationTaskId,
+        taskData.verificationTaskId,
         revokeReason
       );
 
@@ -197,7 +197,7 @@ const CaseCard: React.FC<CaseCardProps> = ({ caseData, isReorderable = false, is
         console.log('✅ Task revoked successfully');
         setIsRevokeModalOpen(false);
         // Refresh cases to update the UI
-        await fetchCases();
+        await fetchTasks();
       } else {
         console.error('❌ Failed to revoke task:', result.error);
         alert(`Failed to revoke task: ${result.error || 'Unknown error'}`);
@@ -218,33 +218,33 @@ const CaseCard: React.FC<CaseCardProps> = ({ caseData, isReorderable = false, is
       console.log('📤 Submitting case from completed tab...');
 
       // Determine verification type from case data
-      const verificationType = caseData.verificationType?.toLowerCase().replace(/\s+/g, '-') as any;
+      const verificationType = taskData.verificationType?.toLowerCase().replace(/\s+/g, '-') as any;
 
       // Update submission status to 'submitting'
-      await updateCaseSubmissionStatus(caseData.id, 'submitting');
+      await updateTaskSubmissionStatus(taskData.id, 'submitting');
 
       // Retry the verification submission with verificationTaskId
       const result = await VerificationFormService.retryVerificationSubmission(
-        caseData.id,
+        taskData.id,
         verificationType,
-        caseData.verificationTaskId
+        taskData.verificationTaskId
       );
 
       if (result.success) {
         // Update submission status to 'success'
-        await updateCaseSubmissionStatus(caseData.id, 'success');
+        await updateTaskSubmissionStatus(taskData.id, 'success');
         setSubmissionMessage('✅ Case submitted successfully!');
         setTimeout(() => setSubmissionMessage(null), 5000);
       } else {
         // Update submission status to 'failed' with error message
-        await updateCaseSubmissionStatus(caseData.id, 'failed', result.error);
+        await updateTaskSubmissionStatus(taskData.id, 'failed', result.error);
         setSubmissionMessage(`❌ Submission failed: ${result.error}`);
         setTimeout(() => setSubmissionMessage(null), 8000);
       }
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      await updateCaseSubmissionStatus(caseData.id, 'failed', errorMessage);
+      await updateTaskSubmissionStatus(taskData.id, 'failed', errorMessage);
       setSubmissionMessage(`❌ Submission failed: ${errorMessage}`);
       setTimeout(() => setSubmissionMessage(null), 8000);
     } finally {
@@ -264,12 +264,12 @@ const CaseCard: React.FC<CaseCardProps> = ({ caseData, isReorderable = false, is
     try {
       console.log('🔍 Verifying submission status with backend...');
 
-      const result = await verifyCaseSubmissionStatus(caseData.id);
+      const result = await verifyTaskSubmissionStatus(taskData.id);
 
       if (result.submitted) {
-        setSubmissionMessage(`✅ Verified: Case successfully submitted. Task status: ${result.taskStatus}`);
+        setSubmissionMessage(`✅ Verified: VerificationTask successfully submitted. Task status: ${result.taskStatus}`);
         // Update local status to success
-        await updateCaseSubmissionStatus(caseData.id, 'success');
+        await updateTaskSubmissionStatus(taskData.id, 'success');
       } else {
         setSubmissionMessage(`⚠️ Not submitted: ${result.error || 'Task not completed on server'}`);
       }
@@ -287,8 +287,8 @@ const CaseCard: React.FC<CaseCardProps> = ({ caseData, isReorderable = false, is
   /**
    * Enhanced Accept button handler with optimistic UI and offline support
    */
-  const handleAcceptCase = async () => {
-    if (isAccepting || (caseData.taskStatus || caseData.status) !== CaseStatus.Assigned) {
+  const handleAcceptTask = async () => {
+    if (isAccepting || (taskData.taskStatus || taskData.status) !== TaskStatus.Assigned) {
       return;
     }
 
@@ -296,11 +296,11 @@ const CaseCard: React.FC<CaseCardProps> = ({ caseData, isReorderable = false, is
     setAcceptMessage(null);
 
     try {
-      console.log(`🎯 Accepting task ${caseData.id}...`);
+      console.log(`🎯 Accepting task ${taskData.id}...`);
 
-      // ✅ OFFLINE-FIRST: Use CaseContext's updateCaseStatus for immediate local update
+      // ✅ OFFLINE-FIRST: Use CaseContext's updateTaskStatus for immediate local update
       // This updates local state instantly and syncs with backend in background
-      await updateCaseStatus(caseData.id, CaseStatus.InProgress);
+      await updateTaskStatus(taskData.id, TaskStatus.InProgress);
 
       // Show success feedback
       setShowAcceptSuccess(true);
@@ -312,7 +312,7 @@ const CaseCard: React.FC<CaseCardProps> = ({ caseData, isReorderable = false, is
         setAcceptMessage(null);
       }, 2000);
 
-      console.log(`✅ Task ${caseData.id} accepted successfully`);
+      console.log(`✅ Task ${taskData.id} accepted successfully`);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to accept task';
       setAcceptMessage(errorMessage);
@@ -326,9 +326,9 @@ const CaseCard: React.FC<CaseCardProps> = ({ caseData, isReorderable = false, is
   };
 
   const getStatusColor = () => {
-    const currentStatus = caseData.taskStatus || caseData.status;
-    if (currentStatus === CaseStatus.Completed) {
-      switch (caseData.submissionStatus) {
+    const currentStatus = taskData.taskStatus || taskData.status;
+    if (currentStatus === TaskStatus.Completed) {
+      switch (taskData.submissionStatus) {
         case 'success':
           return 'border-l-4 border-green-500 bg-green-900/20';
         case 'failed':
@@ -342,15 +342,15 @@ const CaseCard: React.FC<CaseCardProps> = ({ caseData, isReorderable = false, is
     }
 
     const statusColor = {
-      [CaseStatus.Assigned]: 'border-l-4 border-blue-500',
-      [CaseStatus.InProgress]: 'border-l-4 border-yellow-500',
-      [CaseStatus.Completed]: 'border-l-4 border-green-500',
+      [TaskStatus.Assigned]: 'border-l-4 border-blue-500',
+      [TaskStatus.InProgress]: 'border-l-4 border-yellow-500',
+      [TaskStatus.Completed]: 'border-l-4 border-green-500',
     };
 
     return statusColor[currentStatus];
   };
   
-  const verificationOutcomeOptions = useMemo(() => verificationOptionsMap[caseData.verificationType], [caseData.verificationType]);
+  const verificationOutcomeOptions = useMemo(() => verificationOptionsMap[taskData.verificationType], [taskData.verificationType]);
 
   const formatDate = (isoString?: string) => {
     if (!isoString) return null;
@@ -375,19 +375,19 @@ const CaseCard: React.FC<CaseCardProps> = ({ caseData, isReorderable = false, is
   };
 
   const getTimestampInfo = () => {
-      if (caseData.isSaved) {
-          return { label: 'Saved', value: formatDate(caseData.savedAt) };
+      if (taskData.isSaved) {
+          return { label: 'Saved', value: formatDate(taskData.savedAt) };
       }
-      const currentStatus = caseData.taskStatus || caseData.status;
+      const currentStatus = taskData.taskStatus || taskData.status;
       switch (currentStatus) {
-          case CaseStatus.Assigned:
-              return { label: 'Assigned', value: formatDate(caseData.createdAt) };
-          case CaseStatus.InProgress:
-              return { label: 'Started', value: formatDate(caseData.inProgressAt) };
-          case CaseStatus.Completed:
-              return { label: 'Completed', value: formatDate(caseData.completedAt) };
+          case TaskStatus.Assigned:
+              return { label: 'Assigned', value: formatDate(taskData.createdAt) };
+          case TaskStatus.InProgress:
+              return { label: 'Started', value: formatDate(taskData.inProgressAt) };
+          case TaskStatus.Completed:
+              return { label: 'Completed', value: formatDate(taskData.completedAt) };
           default:
-              return { label: 'Updated', value: formatDate(caseData.updatedAt) };
+              return { label: 'Updated', value: formatDate(taskData.updatedAt) };
       }
   };
 
@@ -413,151 +413,151 @@ const CaseCard: React.FC<CaseCardProps> = ({ caseData, isReorderable = false, is
   );
 
   const renderFormContent = () => {
-    if (caseData.verificationType === VerificationType.Residence) {
-      switch (caseData.verificationOutcome) {
+    if (taskData.verificationType === VerificationType.Residence) {
+      switch (taskData.verificationOutcome) {
         case VerificationOutcome.PositiveAndDoorLocked:
-          return caseData.residenceReport ? <PositiveResidenceForm caseData={caseData} /> : <p>Loading Residence Form...</p>;
+          return taskData.residenceReport ? <PositiveResidenceForm taskData={taskData} /> : <p>Loading Residence Form...</p>;
         case VerificationOutcome.ShiftedAndDoorLocked:
-          return caseData.shiftedResidenceReport ? <ShiftedResidenceForm caseData={caseData} /> : <p>Loading Shifted Residence Form...</p>;
+          return taskData.shiftedResidenceReport ? <ShiftedResidenceForm taskData={taskData} /> : <p>Loading Shifted Residence Form...</p>;
         case VerificationOutcome.NSPAndDoorLocked:
-          return caseData.nspResidenceReport ? <NspResidenceForm caseData={caseData} /> : <p>Loading NSP Residence Form...</p>;
+          return taskData.nspResidenceReport ? <NspResidenceForm taskData={taskData} /> : <p>Loading NSP Residence Form...</p>;
         case VerificationOutcome.ERT:
-            return caseData.entryRestrictedResidenceReport ? <EntryRestrictedResidenceForm caseData={caseData} /> : <p>Loading Entry Restricted Form...</p>;
+            return taskData.entryRestrictedResidenceReport ? <EntryRestrictedResidenceForm taskData={taskData} /> : <p>Loading Entry Restricted Form...</p>;
         case VerificationOutcome.Untraceable:
-            return caseData.untraceableResidenceReport ? <UntraceableResidenceForm caseData={caseData} /> : <p>Loading Untraceable Residence Form...</p>;
+            return taskData.untraceableResidenceReport ? <UntraceableResidenceForm taskData={taskData} /> : <p>Loading Untraceable Residence Form...</p>;
         default:
             return renderOutcomeSelectionPrompt();
       }
     }
 
-    if (caseData.verificationType === VerificationType.ResidenceCumOffice) {
-        switch (caseData.verificationOutcome) {
+    if (taskData.verificationType === VerificationType.ResidenceCumOffice) {
+        switch (taskData.verificationOutcome) {
             case VerificationOutcome.PositiveAndDoorLocked:
-                return caseData.resiCumOfficeReport ? <PositiveResiCumOfficeForm caseData={caseData} /> : <p>Loading Resi-cum-Office Form...</p>;
+                return taskData.resiCumOfficeReport ? <PositiveResiCumOfficeForm taskData={taskData} /> : <p>Loading Resi-cum-Office Form...</p>;
             case VerificationOutcome.ShiftedAndDoorLocked:
-                return caseData.shiftedResiCumOfficeReport ? <ShiftedResiCumOfficeForm caseData={caseData} /> : <p>Loading Shifted Resi-cum-Office Form...</p>;
+                return taskData.shiftedResiCumOfficeReport ? <ShiftedResiCumOfficeForm taskData={taskData} /> : <p>Loading Shifted Resi-cum-Office Form...</p>;
             case VerificationOutcome.NSPAndDoorLocked:
-                return caseData.nspResiCumOfficeReport ? <NspResiCumOfficeForm caseData={caseData} /> : <p>Loading NSP Resi-cum-Office Form...</p>;
+                return taskData.nspResiCumOfficeReport ? <NspResiCumOfficeForm taskData={taskData} /> : <p>Loading NSP Resi-cum-Office Form...</p>;
             case VerificationOutcome.ERT:
-                return caseData.entryRestrictedResiCumOfficeReport ? <EntryRestrictedResiCumOfficeForm caseData={caseData} /> : <p>Loading ERT Resi-cum-Office Form...</p>;
+                return taskData.entryRestrictedResiCumOfficeReport ? <EntryRestrictedResiCumOfficeForm taskData={taskData} /> : <p>Loading ERT Resi-cum-Office Form...</p>;
             case VerificationOutcome.Untraceable:
-                return caseData.untraceableResiCumOfficeReport ? <UntraceableResiCumOfficeForm caseData={caseData} /> : <p>Loading Untraceable Resi-cum-Office Form...</p>;
+                return taskData.untraceableResiCumOfficeReport ? <UntraceableResiCumOfficeForm taskData={taskData} /> : <p>Loading Untraceable Resi-cum-Office Form...</p>;
             default:
                 return renderOutcomeSelectionPrompt();
         }
     }
 
-    if (caseData.verificationType === VerificationType.Office) {
-        switch (caseData.verificationOutcome) {
+    if (taskData.verificationType === VerificationType.Office) {
+        switch (taskData.verificationOutcome) {
             case VerificationOutcome.PositiveAndDoorLocked:
-                return caseData.positiveOfficeReport ? <PositiveOfficeForm caseData={caseData} /> : <p>Loading Office Form...</p>;
+                return taskData.positiveOfficeReport ? <PositiveOfficeForm taskData={taskData} /> : <p>Loading Office Form...</p>;
             case VerificationOutcome.ShiftedAndDoorLocked:
-                return caseData.shiftedOfficeReport ? <ShiftedOfficeForm caseData={caseData} /> : <p>Loading Shifted Office Form...</p>;
+                return taskData.shiftedOfficeReport ? <ShiftedOfficeForm taskData={taskData} /> : <p>Loading Shifted Office Form...</p>;
             case VerificationOutcome.NSPAndDoorLocked:
-                return caseData.nspOfficeReport ? <NspOfficeForm caseData={caseData} /> : <p>Loading NSP Office Form...</p>;
+                return taskData.nspOfficeReport ? <NspOfficeForm taskData={taskData} /> : <p>Loading NSP Office Form...</p>;
             case VerificationOutcome.ERT:
-                return caseData.entryRestrictedOfficeReport ? <EntryRestrictedOfficeForm caseData={caseData} /> : <p>Loading ERT Office Form...</p>;
+                return taskData.entryRestrictedOfficeReport ? <EntryRestrictedOfficeForm taskData={taskData} /> : <p>Loading ERT Office Form...</p>;
             case VerificationOutcome.Untraceable:
-                return caseData.untraceableOfficeReport ? <UntraceableOfficeForm caseData={caseData} /> : <p>Loading Untraceable Office Form...</p>;
+                return taskData.untraceableOfficeReport ? <UntraceableOfficeForm taskData={taskData} /> : <p>Loading Untraceable Office Form...</p>;
             default:
                 return renderOutcomeSelectionPrompt();
         }
     }
 
-    if (caseData.verificationType === VerificationType.Business) {
-        switch (caseData.verificationOutcome) {
+    if (taskData.verificationType === VerificationType.Business) {
+        switch (taskData.verificationOutcome) {
             case VerificationOutcome.PositiveAndDoorLocked:
-                return caseData.positiveBusinessReport ? <PositiveBusinessForm caseData={caseData} /> : <p>Loading Business Form...</p>;
+                return taskData.positiveBusinessReport ? <PositiveBusinessForm taskData={taskData} /> : <p>Loading Business Form...</p>;
             case VerificationOutcome.ShiftedAndDoorLocked:
-                return caseData.shiftedBusinessReport ? <ShiftedBusinessForm caseData={caseData} /> : <p>Loading Shifted Business Form...</p>;
+                return taskData.shiftedBusinessReport ? <ShiftedBusinessForm taskData={taskData} /> : <p>Loading Shifted Business Form...</p>;
             case VerificationOutcome.NSPAndDoorLocked:
-                return caseData.nspBusinessReport ? <NspBusinessForm caseData={caseData} /> : <p>Loading NSP Business Form...</p>;
+                return taskData.nspBusinessReport ? <NspBusinessForm taskData={taskData} /> : <p>Loading NSP Business Form...</p>;
             case VerificationOutcome.ERT:
-                return caseData.entryRestrictedBusinessReport ? <EntryRestrictedBusinessForm caseData={caseData} /> : <p>Loading ERT Business Form...</p>;
+                return taskData.entryRestrictedBusinessReport ? <EntryRestrictedBusinessForm taskData={taskData} /> : <p>Loading ERT Business Form...</p>;
             case VerificationOutcome.Untraceable:
-                return caseData.untraceableBusinessReport ? <UntraceableBusinessForm caseData={caseData} /> : <p>Loading Untraceable Business Form...</p>;
+                return taskData.untraceableBusinessReport ? <UntraceableBusinessForm taskData={taskData} /> : <p>Loading Untraceable Business Form...</p>;
             default:
                 return renderOutcomeSelectionPrompt();
         }
     }
     
-    if (caseData.verificationType === VerificationType.Builder) {
-        switch (caseData.verificationOutcome) {
+    if (taskData.verificationType === VerificationType.Builder) {
+        switch (taskData.verificationOutcome) {
             case VerificationOutcome.PositiveAndDoorLocked:
-                return caseData.positiveBuilderReport ? <PositiveBuilderForm caseData={caseData} /> : <p>Loading Builder Form...</p>;
+                return taskData.positiveBuilderReport ? <PositiveBuilderForm taskData={taskData} /> : <p>Loading Builder Form...</p>;
             case VerificationOutcome.ShiftedAndDoorLocked:
-                return caseData.shiftedBuilderReport ? <ShiftedBuilderForm caseData={caseData} /> : <p>Loading Shifted Builder Form...</p>;
+                return taskData.shiftedBuilderReport ? <ShiftedBuilderForm taskData={taskData} /> : <p>Loading Shifted Builder Form...</p>;
             case VerificationOutcome.NSPAndDoorLocked:
-                return caseData.nspBuilderReport ? <NspBuilderForm caseData={caseData} /> : <p>Loading NSP Builder Form...</p>;
+                return taskData.nspBuilderReport ? <NspBuilderForm taskData={taskData} /> : <p>Loading NSP Builder Form...</p>;
             case VerificationOutcome.ERT:
-                return caseData.entryRestrictedBuilderReport ? <EntryRestrictedBuilderForm caseData={caseData} /> : <p>Loading ERT Builder Form...</p>;
+                return taskData.entryRestrictedBuilderReport ? <EntryRestrictedBuilderForm taskData={taskData} /> : <p>Loading ERT Builder Form...</p>;
             case VerificationOutcome.Untraceable:
-                return caseData.untraceableBuilderReport ? <UntraceableBuilderForm caseData={caseData} /> : <p>Loading Untraceable Builder Form...</p>;
+                return taskData.untraceableBuilderReport ? <UntraceableBuilderForm taskData={taskData} /> : <p>Loading Untraceable Builder Form...</p>;
             default:
                 return renderOutcomeSelectionPrompt();
         }
     }
 
-    if (caseData.verificationType === VerificationType.NOC) {
-        switch (caseData.verificationOutcome) {
+    if (taskData.verificationType === VerificationType.NOC) {
+        switch (taskData.verificationOutcome) {
             case VerificationOutcome.PositiveAndDoorLocked:
-                return caseData.positiveNocReport ? <PositiveNocForm caseData={caseData} /> : <p>Loading NOC Form...</p>;
+                return taskData.positiveNocReport ? <PositiveNocForm taskData={taskData} /> : <p>Loading NOC Form...</p>;
             case VerificationOutcome.ShiftedAndDoorLocked:
-                return caseData.shiftedNocReport ? <ShiftedNocForm caseData={caseData} /> : <p>Loading Shifted NOC Form...</p>;
+                return taskData.shiftedNocReport ? <ShiftedNocForm taskData={taskData} /> : <p>Loading Shifted NOC Form...</p>;
             case VerificationOutcome.NSPAndDoorLocked:
-                return caseData.nspNocReport ? <NspNocForm caseData={caseData} /> : <p>Loading NSP NOC Form...</p>;
+                return taskData.nspNocReport ? <NspNocForm taskData={taskData} /> : <p>Loading NSP NOC Form...</p>;
             case VerificationOutcome.ERT:
-                return caseData.entryRestrictedNocReport ? <EntryRestrictedNocForm caseData={caseData} /> : <p>Loading ERT NOC Form...</p>;
+                return taskData.entryRestrictedNocReport ? <EntryRestrictedNocForm taskData={taskData} /> : <p>Loading ERT NOC Form...</p>;
             case VerificationOutcome.Untraceable:
-                return caseData.untraceableNocReport ? <UntraceableNocForm caseData={caseData} /> : <p>Loading Untraceable NOC Form...</p>;
+                return taskData.untraceableNocReport ? <UntraceableNocForm taskData={taskData} /> : <p>Loading Untraceable NOC Form...</p>;
             default:
                 return renderOutcomeSelectionPrompt();
         }
     }
 
-    if (caseData.verificationType === VerificationType.Connector) {
-        switch (caseData.verificationOutcome) {
+    if (taskData.verificationType === VerificationType.Connector) {
+        switch (taskData.verificationOutcome) {
             case VerificationOutcome.PositiveAndDoorLocked:
-                return caseData.positiveDsaReport ? <PositiveDsaForm caseData={caseData} /> : <p>Loading DSA/DST Form...</p>;
+                return taskData.positiveDsaReport ? <PositiveDsaForm taskData={taskData} /> : <p>Loading DSA/DST Form...</p>;
             case VerificationOutcome.ShiftedAndDoorLocked:
-                return caseData.shiftedDsaReport ? <ShiftedDsaForm caseData={caseData} /> : <p>Loading Shifted DSA/DST Form...</p>;
+                return taskData.shiftedDsaReport ? <ShiftedDsaForm taskData={taskData} /> : <p>Loading Shifted DSA/DST Form...</p>;
             case VerificationOutcome.NSPAndDoorLocked:
-                return caseData.nspDsaReport ? <NspDsaForm caseData={caseData} /> : <p>Loading NSP DSA/DST Form...</p>;
+                return taskData.nspDsaReport ? <NspDsaForm taskData={taskData} /> : <p>Loading NSP DSA/DST Form...</p>;
             case VerificationOutcome.ERT:
-                return caseData.entryRestrictedDsaReport ? <EntryRestrictedDsaForm caseData={caseData} /> : <p>Loading ERT DSA/DST Form...</p>;
+                return taskData.entryRestrictedDsaReport ? <EntryRestrictedDsaForm taskData={taskData} /> : <p>Loading ERT DSA/DST Form...</p>;
             case VerificationOutcome.Untraceable:
-                return caseData.untraceableDsaReport ? <UntraceableDsaForm caseData={caseData} /> : <p>Loading Untraceable DSA/DST Form...</p>;
+                return taskData.untraceableDsaReport ? <UntraceableDsaForm taskData={taskData} /> : <p>Loading Untraceable DSA/DST Form...</p>;
             default:
                 return renderOutcomeSelectionPrompt();
         }
     }
 
-    if (caseData.verificationType === VerificationType.PropertyAPF) {
-        switch (caseData.verificationOutcome) {
+    if (taskData.verificationType === VerificationType.PropertyAPF) {
+        switch (taskData.verificationOutcome) {
             case VerificationOutcome.PositiveAndDoorLocked:
             case VerificationOutcome.NSPAndDoorLocked:
-                return (caseData.positivePropertyApfReport || caseData.nspPropertyApfReport) ?
-                    <PositiveNegativePropertyApfForm caseData={caseData} /> :
+                return (taskData.positivePropertyApfReport || taskData.nspPropertyApfReport) ?
+                    <PositiveNegativePropertyApfForm taskData={taskData} /> :
                     <p>Loading Property APF Form...</p>;
             case VerificationOutcome.ERT:
-                return caseData.entryRestrictedPropertyApfReport ? <EntryRestrictedPropertyApfForm caseData={caseData} /> : <p>Loading ERT Property APF Form...</p>;
+                return taskData.entryRestrictedPropertyApfReport ? <EntryRestrictedPropertyApfForm taskData={taskData} /> : <p>Loading ERT Property APF Form...</p>;
             case VerificationOutcome.Untraceable:
-                return caseData.untraceablePropertyApfReport ? <UntraceablePropertyApfForm caseData={caseData} /> : <p>Loading Untraceable Property APF Form...</p>;
+                return taskData.untraceablePropertyApfReport ? <UntraceablePropertyApfForm taskData={taskData} /> : <p>Loading Untraceable Property APF Form...</p>;
             default:
                 return renderOutcomeSelectionPrompt();
         }
     }
 
-    if (caseData.verificationType === VerificationType.PropertyIndividual) {
-        switch (caseData.verificationOutcome) {
+    if (taskData.verificationType === VerificationType.PropertyIndividual) {
+        switch (taskData.verificationOutcome) {
             case VerificationOutcome.PositiveAndDoorLocked:
-                return caseData.positivePropertyIndividualReport ? <PositivePropertyIndividualForm caseData={caseData} /> : <p>Loading Property Individual Form...</p>;
+                return taskData.positivePropertyIndividualReport ? <PositivePropertyIndividualForm taskData={taskData} /> : <p>Loading Property Individual Form...</p>;
             case VerificationOutcome.NSPAndDoorLocked:
-                return caseData.nspPropertyIndividualReport ? <NspPropertyIndividualForm caseData={caseData} /> : <p>Loading NSP Property Individual Form...</p>;
+                return taskData.nspPropertyIndividualReport ? <NspPropertyIndividualForm taskData={taskData} /> : <p>Loading NSP Property Individual Form...</p>;
             case VerificationOutcome.ERT:
-                return caseData.entryRestrictedPropertyIndividualReport ? <EntryRestrictedPropertyIndividualForm caseData={caseData} /> : <p>Loading ERT Property Individual Form...</p>;
+                return taskData.entryRestrictedPropertyIndividualReport ? <EntryRestrictedPropertyIndividualForm taskData={taskData} /> : <p>Loading ERT Property Individual Form...</p>;
             case VerificationOutcome.Untraceable:
-                return caseData.untraceablePropertyIndividualReport ? <UntraceablePropertyIndividualForm caseData={caseData} /> : <p>Loading Untraceable Property Individual Form...</p>;
+                return taskData.untraceablePropertyIndividualReport ? <UntraceablePropertyIndividualForm taskData={taskData} /> : <p>Loading Untraceable Property Individual Form...</p>;
             default:
                 return renderOutcomeSelectionPrompt();
         }
@@ -573,15 +573,15 @@ const CaseCard: React.FC<CaseCardProps> = ({ caseData, isReorderable = false, is
     <>
     <div className={`bg-dark-card rounded-lg shadow-lg mb-4 mx-4 p-4 transition-all duration-300 ${getStatusColor()} ${hasAutoSaveData ? 'ring-2 ring-yellow-400 bg-yellow-900/20 border-yellow-400/50' : ''}`}>
       <div
-        className={`flex justify-between items-start ${((caseData.taskStatus || caseData.status) !== CaseStatus.Assigned && (caseData.taskStatus || caseData.status) !== CaseStatus.Completed && !caseData.isSaved) ? 'cursor-pointer' : ''}`}
-        onClick={((caseData.taskStatus || caseData.status) !== CaseStatus.Assigned && (caseData.taskStatus || caseData.status) !== CaseStatus.Completed && !caseData.isSaved) ? () => setIsExpanded(!isExpanded) : undefined}
+        className={`flex justify-between items-start ${((taskData.taskStatus || taskData.status) !== TaskStatus.Assigned && (taskData.taskStatus || taskData.status) !== TaskStatus.Completed && !taskData.isSaved) ? 'cursor-pointer' : ''}`}
+        onClick={((taskData.taskStatus || taskData.status) !== TaskStatus.Assigned && (taskData.taskStatus || taskData.status) !== TaskStatus.Completed && !taskData.isSaved) ? () => setIsExpanded(!isExpanded) : undefined}
       >
         <div className="flex-1">
           <div className="flex justify-between items-start">
               <div className="flex-1">
                   {/* 1. Verification Type */}
                   <div className="flex items-center gap-2 mb-2">
-                    <p className="text-xs font-semibold uppercase tracking-wider text-brand-primary">{caseData.verificationType}</p>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-brand-primary">{taskData.verificationType}</p>
                     {hasAutoSaveData && (
                       <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-400/20 text-yellow-300 border border-yellow-400/30">
                         📝 Draft Saved
@@ -591,18 +591,18 @@ const CaseCard: React.FC<CaseCardProps> = ({ caseData, isReorderable = false, is
 
                   {/* 2. Case ID */}
                   <div className="mb-2">
-                    <p className="text-sm font-semibold text-light-text">Case ID: #{caseData.caseId || caseData.id?.slice(-8)}</p>
+                    <p className="text-sm font-semibold text-light-text">Case ID: #{taskData.caseId || taskData.id?.slice(-8)}</p>
                   </div>
 
                   {/* 3. Customer Name */}
                   <div className="mb-2">
-                    <h3 className="font-bold text-lg text-light-text">{caseData.customerName || caseData.customer.name}</h3>
+                    <h3 className="font-bold text-lg text-light-text">{taskData.customerName || taskData.customer.name}</h3>
                   </div>
 
                   {/* 4. Address */}
                   <div className="mb-2">
                     <p className="text-sm text-medium-text">
-                      📍 {caseData.addressStreet || caseData.visitAddress || caseData.address || 'Address not available'}
+                      📍 {taskData.addressStreet || taskData.visitAddress || taskData.address || 'Address not available'}
                     </p>
                   </div>
               </div>
@@ -617,7 +617,7 @@ const CaseCard: React.FC<CaseCardProps> = ({ caseData, isReorderable = false, is
           <div className="flex justify-end items-center mt-2">
             <div className="flex items-center gap-3">
               {/* Show Info button for In Progress cases */}
-              {(caseData.taskStatus || caseData.status) === CaseStatus.InProgress && (
+              {(taskData.taskStatus || taskData.status) === TaskStatus.InProgress && (
                 <button
                     onClick={(e) => {
                         e.stopPropagation();
@@ -630,7 +630,7 @@ const CaseCard: React.FC<CaseCardProps> = ({ caseData, isReorderable = false, is
                 </button>
               )}
               {/* Show attachment button for In Progress cases */}
-              {(caseData.taskStatus || caseData.status) === CaseStatus.InProgress && (
+              {(taskData.taskStatus || taskData.status) === TaskStatus.InProgress && (
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -648,8 +648,8 @@ const CaseCard: React.FC<CaseCardProps> = ({ caseData, isReorderable = false, is
                 </button>
               )}
               {/* Show priority input only for In Progress cases */}
-              {(caseData.taskStatus || caseData.status) === CaseStatus.InProgress && !caseData.isSaved && (
-                <PriorityInput caseId={caseData.id} />
+              {(taskData.taskStatus || taskData.status) === TaskStatus.InProgress && !taskData.isSaved && (
+                <PriorityInput taskId={taskData.id} />
               )}
             </div>
           </div>
@@ -657,45 +657,45 @@ const CaseCard: React.FC<CaseCardProps> = ({ caseData, isReorderable = false, is
       </div>
 
       {/* Show comprehensive timeline for completed cases */}
-      {(caseData.taskStatus || caseData.status) === CaseStatus.Completed && (
-        <CaseTimeline caseData={caseData} compact={true} />
+      {(taskData.taskStatus || taskData.status) === TaskStatus.Completed && (
+        <TaskTimeline taskData={taskData} compact={true} />
       )}
 
       {/* Submission status and re-submit functionality for completed cases */}
-      {(caseData.taskStatus || caseData.status) === CaseStatus.Completed && (
+      {(taskData.taskStatus || taskData.status) === TaskStatus.Completed && (
         <div className="mt-3">
           {/* Submission Status Indicator */}
-          {caseData.submissionStatus && (
+          {taskData.submissionStatus && (
             <div className="mb-3">
-              {caseData.submissionStatus === 'success' && (
+              {taskData.submissionStatus === 'success' && (
                 <div className="flex items-center gap-2 text-green-400 text-sm">
                   <span>✅</span>
                   <span>Successfully submitted to server</span>
                 </div>
               )}
 
-              {caseData.submissionStatus === 'failed' && (
+              {taskData.submissionStatus === 'failed' && (
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-red-400 text-sm">
                     <span>❌</span>
                     <span>Submission failed</span>
                   </div>
-                  {caseData.submissionError && (
+                  {taskData.submissionError && (
                     <div className="text-xs text-red-300 bg-red-900/20 p-2 rounded border border-red-500/30">
-                      {caseData.submissionError}
+                      {taskData.submissionError}
                     </div>
                   )}
                 </div>
               )}
 
-              {caseData.submissionStatus === 'submitting' && (
+              {taskData.submissionStatus === 'submitting' && (
                 <div className="flex items-center gap-2 text-yellow-400 text-sm">
                   <span>⏳</span>
                   <span>Submitting to server...</span>
                 </div>
               )}
 
-              {caseData.submissionStatus === 'pending' && (
+              {taskData.submissionStatus === 'pending' && (
                 <div className="flex items-center gap-2 text-red-400 text-sm">
                   <span>⚠️</span>
                   <span>Pending submission - Action required</span>
@@ -718,7 +718,7 @@ const CaseCard: React.FC<CaseCardProps> = ({ caseData, isReorderable = false, is
           )}
 
           {/* Action Buttons - Only show Submit button for pending submissions */}
-          {caseData.submissionStatus === 'pending' && (
+          {taskData.submissionStatus === 'pending' && (
             <div className="flex gap-2 flex-wrap">
               {/* Submit Button */}
               <button
@@ -763,15 +763,15 @@ const CaseCard: React.FC<CaseCardProps> = ({ caseData, isReorderable = false, is
       )}
 
       {/* For security reasons, do NOT render forms in Completed or Saved tabs */}
-      {(caseData.taskStatus || caseData.status) !== CaseStatus.Completed && !caseData.isSaved && (
+      {(taskData.taskStatus || taskData.status) !== TaskStatus.Completed && !taskData.isSaved && (
         <div className={`transition-all duration-500 ease-in-out ${isExpanded ? 'max-h-[8000px] mt-4' : 'max-h-0 overflow-hidden'}`}>
           {isInProgress && verificationOutcomeOptions && (
               <div className="mb-4" onClick={(e) => e.stopPropagation()}>
                   <SelectField
                       label="Verification Outcome"
-                      id={`outcome-${caseData.id}`}
+                      id={`outcome-${taskData.id}`}
                       name="verificationOutcome"
-                      value={caseData.verificationOutcome || ''}
+                      value={taskData.verificationOutcome || ''}
                       onChange={handleOutcomeChange}
                   >
                       <option value="">Select Outcome...</option>
@@ -835,7 +835,7 @@ const CaseCard: React.FC<CaseCardProps> = ({ caseData, isReorderable = false, is
         {isAssigned ? (
             <div className="flex justify-around items-center">
                 <button
-                    onClick={handleAcceptCase}
+                    onClick={handleAcceptTask}
                     disabled={isAccepting}
                     className={`
                       flex flex-col items-center transition-all duration-200
@@ -908,10 +908,10 @@ const CaseCard: React.FC<CaseCardProps> = ({ caseData, isReorderable = false, is
             <div>
               {isReorderable ? (
                 <div className="flex items-center space-x-2">
-                  <button onClick={(e) => { e.stopPropagation(); reorderInProgressCase(caseData.id, 'up'); }} disabled={isFirst} className="p-2 rounded-full disabled:text-gray-600 disabled:cursor-not-allowed text-medium-text hover:text-light-text transition-colors">
+                  <button onClick={(e) => { e.stopPropagation(); reorderInProgressTask(taskData.id, 'up'); }} disabled={isFirst} className="p-2 rounded-full disabled:text-gray-600 disabled:cursor-not-allowed text-medium-text hover:text-light-text transition-colors">
                       <ArrowUpIcon />
                   </button>
-                  <button onClick={(e) => { e.stopPropagation(); reorderInProgressCase(caseData.id, 'down'); }} disabled={isLast} className="p-2 rounded-full disabled:text-gray-600 disabled:cursor-not-allowed text-medium-text hover:text-light-text transition-colors">
+                  <button onClick={(e) => { e.stopPropagation(); reorderInProgressTask(taskData.id, 'down'); }} disabled={isLast} className="p-2 rounded-full disabled:text-gray-600 disabled:cursor-not-allowed text-medium-text hover:text-light-text transition-colors">
                       <ArrowDownIcon />
                   </button>
                 </div>
@@ -919,12 +919,12 @@ const CaseCard: React.FC<CaseCardProps> = ({ caseData, isReorderable = false, is
             </div>
 
             <div className="flex items-center gap-2">
-              {caseData.isSaved && (caseData.taskStatus || caseData.status) !== CaseStatus.Completed && (
+              {taskData.isSaved && (taskData.taskStatus || taskData.status) !== TaskStatus.Completed && (
                   <button
                       onClick={async (e) => {
                           e.stopPropagation();
                           // First mark as completed, then submit
-                          await updateCaseStatus(caseData.id, CaseStatus.Completed);
+                          await updateTaskStatus(taskData.id, TaskStatus.Completed);
                           // The submission will be handled by the re-submit button that appears for completed cases
                       }}
                       className="px-4 py-2 text-sm font-semibold rounded-md bg-green-600 hover:bg-green-500 text-white transition-colors"
@@ -934,7 +934,7 @@ const CaseCard: React.FC<CaseCardProps> = ({ caseData, isReorderable = false, is
               )}
 
               {/* Only show expand/collapse button for non-completed and non-saved cases */}
-              {!((caseData.taskStatus || caseData.status) === CaseStatus.Completed || caseData.isSaved) && (
+              {!((taskData.taskStatus || taskData.status) === TaskStatus.Completed || taskData.isSaved) && (
                 <button onClick={() => setIsExpanded(!isExpanded)} className="flex items-center text-medium-text p-2 rounded-md hover:bg-white/10">
                     {isExpanded ? <ChevronUpIcon /> : <ChevronDownIcon />}
                     <span className="text-xs ml-1">
@@ -954,85 +954,85 @@ const CaseCard: React.FC<CaseCardProps> = ({ caseData, isReorderable = false, is
                 {/* 1. Customer Name */}
                 <div>
                     <h4 className="font-bold text-sm text-medium-text">Customer Name *</h4>
-                    <p>{caseData.customerName || caseData.customer.name || 'N/A'}</p>
+                    <p>{taskData.customerName || taskData.customer.name || 'N/A'}</p>
                 </div>
 
                 {/* 2. Case ID */}
                 <div>
                     <h4 className="font-bold text-sm text-medium-text">Case ID *</h4>
-                    <p>#{caseData.caseId || caseData.id?.slice(-8) || 'N/A'}</p>
+                    <p>#{taskData.caseId || taskData.id?.slice(-8) || 'N/A'}</p>
                 </div>
 
                 {/* 2.5. Verification Task ID */}
                 <div>
                     <h4 className="font-bold text-sm text-medium-text">Verification Task ID</h4>
-                    <p>{caseData.verificationTaskNumber ? `#${caseData.verificationTaskNumber}` : 'N/A'}</p>
+                    <p>{taskData.verificationTaskNumber ? `#${taskData.verificationTaskNumber}` : 'N/A'}</p>
                 </div>
 
                 {/* 3. Client */}
                 <div>
                     <h4 className="font-bold text-sm text-medium-text">Client *</h4>
-                    <p>{caseData.client?.name || caseData.clientName || 'N/A'}</p>
+                    <p>{taskData.client?.name || taskData.clientName || 'N/A'}</p>
                 </div>
 
                 {/* 4. Product */}
                 <div>
                     <h4 className="font-bold text-sm text-medium-text">Product *</h4>
-                    <p>{typeof caseData.product === 'object' && caseData.product?.name ? caseData.product.name : caseData.productName || 'N/A'}</p>
+                    <p>{typeof taskData.product === 'object' && taskData.product?.name ? taskData.product.name : taskData.productName || 'N/A'}</p>
                 </div>
 
                 {/* 5. Verification Type */}
                 <div>
                     <h4 className="font-bold text-sm text-medium-text">Verification Type *</h4>
-                    <p>{caseData.verificationTypeName || caseData.verificationType || 'N/A'}</p>
+                    <p>{taskData.verificationTypeName || taskData.verificationType || 'N/A'}</p>
                 </div>
 
                 {/* 6. Applicant Type */}
                 <div>
                     <h4 className="font-bold text-sm text-medium-text">Applicant Type *</h4>
-                    <p>{caseData.applicantType || 'N/A'}</p>
+                    <p>{taskData.applicantType || 'N/A'}</p>
                 </div>
 
                 {/* 7. Created By Backend User */}
                 <div>
                     <h4 className="font-bold text-sm text-medium-text">Created By Backend User *</h4>
-                    <p>{caseData.createdByBackendUserName || caseData.createdByBackendUser || 'N/A'}</p>
+                    <p>{taskData.createdByBackendUserName || taskData.createdByBackendUser || 'N/A'}</p>
                 </div>
 
                 {/* 8. Backend Contact Number */}
                 <div>
                     <h4 className="font-bold text-sm text-medium-text">Backend Contact Number *</h4>
-                    <p>{caseData.backendContactNumber || caseData.systemContactNumber || 'N/A'}</p>
+                    <p>{taskData.backendContactNumber || taskData.systemContactNumber || 'N/A'}</p>
                 </div>
 
                 {/* 9. Assign to Field User */}
                 <div>
                     <h4 className="font-bold text-sm text-medium-text">Assign to Field User *</h4>
-                    <p>{caseData.assignedToFieldUser || caseData.assignedToName || 'N/A'}</p>
+                    <p>{taskData.assignedToFieldUser || taskData.assignedToName || 'N/A'}</p>
                 </div>
 
                 {/* 10. Priority */}
                 <div>
                     <h4 className="font-bold text-sm text-medium-text">Priority *</h4>
-                    <p>{getPriorityText(caseData.priority) || 'N/A'}</p>
+                    <p>{getPriorityText(taskData.priority) || 'N/A'}</p>
                 </div>
 
                 {/* 11. TRIGGER */}
                 <div>
                     <h4 className="font-bold text-sm text-medium-text">TRIGGER *</h4>
-                    <p>{caseData.notes || caseData.trigger || 'N/A'}</p>
+                    <p>{taskData.notes || taskData.trigger || 'N/A'}</p>
                 </div>
 
                 {/* 12. Customer Calling Code */}
                 <div>
                     <h4 className="font-bold text-sm text-medium-text">Customer Calling Code *</h4>
-                    <p>{caseData.customerCallingCode || 'N/A'}</p>
+                    <p>{taskData.customerCallingCode || 'N/A'}</p>
                 </div>
 
                 {/* 13. Address */}
                 <div className="sm:col-span-2">
                     <h4 className="font-bold text-sm text-medium-text">Address *</h4>
-                    <p>{caseData.addressStreet || caseData.visitAddress || caseData.address || 'N/A'}</p>
+                    <p>{taskData.addressStreet || taskData.visitAddress || taskData.address || 'N/A'}</p>
                 </div>
             </div>
              <div className="flex justify-end pt-4">
@@ -1050,7 +1050,7 @@ const CaseCard: React.FC<CaseCardProps> = ({ caseData, isReorderable = false, is
         <div className="space-y-4">
             <SelectField
                 label="Reason for Revocation"
-                id={`revoke-reason-${caseData.id}`}
+                id={`revoke-reason-${taskData.id}`}
                 name="revokeReason"
                 value={revokeReason}
                 onChange={(e) => setRevokeReason(e.target.value as RevokeReason)}
@@ -1085,8 +1085,8 @@ const CaseCard: React.FC<CaseCardProps> = ({ caseData, isReorderable = false, is
 
     {/* Attachments Modal */}
     <AttachmentsModal
-      caseId={caseData.id}
-      isVisible={isAttachmentsModalOpen}
+      taskId={taskData.id}
+      isOpen={isAttachmentsModalOpen}
       onClose={() => setIsAttachmentsModalOpen(false)}
     />
 
@@ -1094,4 +1094,4 @@ const CaseCard: React.FC<CaseCardProps> = ({ caseData, isReorderable = false, is
   );
 };
 
-export default CaseCard;
+export default TaskCard;

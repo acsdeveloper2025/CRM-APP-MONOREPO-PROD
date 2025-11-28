@@ -20,7 +20,7 @@ export interface OfflineAttachment {
   type: 'pdf' | 'image';
   mimeType: string;
   size: number;
-  caseId: string;
+  taskId: string;
   isAvailableOffline: boolean;
   downloadedAt?: string;
   lastSyncedAt?: string;
@@ -72,7 +72,7 @@ export class OfflineAttachmentService {
       type: 'pdf' | 'image';
       mimeType: string;
       size: number;
-      caseId: string;
+      taskId: string;
     }
   ): Promise<boolean> {
     try {
@@ -101,7 +101,7 @@ export class OfflineAttachmentService {
         originalName: metadata.name,
         mimeType: metadata.mimeType,
         size: metadata.size,
-        caseId: metadata.caseId
+        taskId: metadata.taskId
       });
 
       this.updateDownloadStatus(attachmentId, 'completed', 100);
@@ -153,9 +153,9 @@ export class OfflineAttachmentService {
   /**
    * Get list of offline attachments for a case
    */
-  async getOfflineAttachments(caseId?: string): Promise<OfflineAttachment[]> {
+  async getOfflineAttachments(taskId?: string): Promise<OfflineAttachment[]> {
     try {
-      const encryptedAttachments = await secureStorageService.listAttachments(caseId);
+      const encryptedAttachments = await secureStorageService.listAttachments(taskId);
       
       return encryptedAttachments.map(attachment => ({
         id: attachment.id,
@@ -163,7 +163,7 @@ export class OfflineAttachmentService {
         type: this.getAttachmentType(attachment.mimeType),
         mimeType: attachment.mimeType,
         size: attachment.size,
-        caseId: attachment.caseId,
+        taskId: attachment.taskId,
         isAvailableOffline: true,
         downloadedAt: attachment.createdAt,
         lastSyncedAt: attachment.lastAccessed
@@ -199,7 +199,7 @@ export class OfflineAttachmentService {
   /**
    * Sync offline attachments with server
    */
-  async syncAttachments(caseIds: string[]): Promise<{ success: number; failed: number }> {
+  async syncAttachments(taskIds: string[]): Promise<{ success: number; failed: number }> {
     if (this.syncInProgress) {
       console.log('⏳ Sync already in progress');
       return { success: 0, failed: 0 };
@@ -212,10 +212,10 @@ export class OfflineAttachmentService {
       let successCount = 0;
       let failedCount = 0;
 
-      for (const caseId of caseIds) {
+      for (const taskId of taskIds) {
         try {
           // In a real app, this would fetch attachment list from server
-          const serverAttachments = await this.getServerAttachments(caseId);
+          const serverAttachments = await this.getServerAttachments(taskId);
           
           for (const serverAttachment of serverAttachments) {
             const isOffline = await this.isAttachmentAvailableOffline(serverAttachment.id);
@@ -229,7 +229,7 @@ export class OfflineAttachmentService {
                   type: this.getAttachmentType(serverAttachment.mimeType),
                   mimeType: serverAttachment.mimeType,
                   size: serverAttachment.size,
-                  caseId: caseId
+                  taskId: taskId
                 }
               );
               
@@ -241,7 +241,7 @@ export class OfflineAttachmentService {
             }
           }
         } catch (error) {
-          console.error(`❌ Failed to sync attachments for case ${caseId}:`, error);
+          console.error(`❌ Failed to sync attachments for case ${taskId}:`, error);
           failedCount++;
         }
       }
@@ -372,18 +372,18 @@ export class OfflineAttachmentService {
   /**
    * Get server attachments (mock implementation)
    */
-  private async getServerAttachments(caseId: string): Promise<any[]> {
+  private async getServerAttachments(taskId: string): Promise<any[]> {
     // Mock server response - in real app, this would be an API call
     return [
       {
-        id: `${caseId}-attachment-1`,
+        id: `${taskId}-attachment-1`,
         name: 'Property_Documents.pdf',
         mimeType: 'application/pdf',
         size: 1024000,
         url: '/api/attachments/property-docs.pdf'
       },
       {
-        id: `${caseId}-attachment-2`,
+        id: `${taskId}-attachment-2`,
         name: 'Bank_Statement.pdf',
         mimeType: 'application/pdf',
         size: 512000,

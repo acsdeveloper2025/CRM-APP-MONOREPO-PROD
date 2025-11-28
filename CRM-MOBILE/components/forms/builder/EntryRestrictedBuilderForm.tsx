@@ -1,10 +1,10 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Case, EntryRestrictedBuilderReportData, AddressLocatable, AddressRating, MetPersonErt, TPCConfirmation,
-  OfficeStatusErtBusiness, LocalityTypeResiCumOffice, PoliticalConnection, DominatedArea, FeedbackFromNeighbour, FinalStatus, CaseStatus, CapturedImage
+  VerificationTask, EntryRestrictedBuilderReportData, AddressLocatable, AddressRating, MetPersonErt, TPCConfirmation,
+  OfficeStatusErtBusiness, LocalityTypeResiCumOffice, PoliticalConnection, DominatedArea, FeedbackFromNeighbour, FinalStatus, TaskStatus, CapturedImage
 } from '../../../types';
-import { useCases } from '../../../context/CaseContext';
+import { useTasks } from "../../../context/TaskContext"
 import { FormField, SelectField, TextAreaField, NumberDropdownField } from '../../FormControls';
 import ConfirmationModal from '../../ConfirmationModal';
 import ImageCapture from '../../ImageCapture';
@@ -24,41 +24,41 @@ import {
 } from '../../../utils/imageAutoSaveHelpers';
 
 interface EntryRestrictedBuilderFormProps {
-  caseData: Case;
+  taskData: VerificationTask;
 }
 
 const getEnumOptions = (enumObject: object) => Object.values(enumObject).map(value => (
   <option key={value} value={value}>{value}</option>
 ));
 
-const EntryRestrictedBuilderForm: React.FC<EntryRestrictedBuilderFormProps> = ({ caseData }) => {
+const EntryRestrictedBuilderForm: React.FC<EntryRestrictedBuilderFormProps> = ({ taskData }) => {
   const navigate = useNavigate();
-  const { updateEntryRestrictedBuilderReport, toggleSaveCase , fetchCases } = useCases();
+  const { updateEntryRestrictedBuilderReport, toggleSaveTask , fetchTasks } = useTasks();
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionError, setSubmissionError] = useState<string | null>(null);
   const [submissionSuccess, setSubmissionSuccess] = useState(false);
-  const report = caseData.entryRestrictedBuilderReport;
-  const isReadOnly = caseData.status === CaseStatus.Completed || caseData.isSaved;
+  const report = taskData.entryRestrictedBuilderReport;
+  const isReadOnly = taskData.status === TaskStatus.Completed || taskData.isSaved;
   const MIN_IMAGES = 5;
 
   // Auto-save handlers using helper functions for complete auto-save functionality
   const handleFormDataChange = createFormDataChangeHandler(
     updateEntryRestrictedBuilderReport,
-    caseData.id,
+    taskData.id,
     isReadOnly
   );
 
   const handleAutoSaveImagesChange = createAutoSaveImagesChangeHandler(
     updateEntryRestrictedBuilderReport,
-    caseData.id,
+    taskData.id,
     report,
     isReadOnly
   );
 
   const handleDataRestored = createDataRestoredHandler(
     updateEntryRestrictedBuilderReport,
-    caseData.id,
+    taskData.id,
     isReadOnly
   );
 
@@ -102,19 +102,19 @@ const EntryRestrictedBuilderForm: React.FC<EntryRestrictedBuilderFormProps> = ({
     }
 
     const updates: Partial<EntryRestrictedBuilderReportData> = { [name]: processedValue };
-    updateEntryRestrictedBuilderReport(caseData.id, updates);
+    updateEntryRestrictedBuilderReport(taskData.id, updates);
   };
 
   const handleImagesChange = createImageChangeHandler(
     updateEntryRestrictedBuilderReport,
-    caseData.id,
+    taskData.id,
     report,
     handleAutoSaveImagesChange
   );
 
   const handleSelfieImagesChange = createSelfieImageChangeHandler(
     updateEntryRestrictedBuilderReport,
-    caseData.id,
+    taskData.id,
     report,
     handleAutoSaveImagesChange
   );
@@ -133,7 +133,7 @@ const EntryRestrictedBuilderForm: React.FC<EntryRestrictedBuilderFormProps> = ({
 
   return (
     <AutoSaveFormWrapper
-      caseId={caseData.id}
+      taskId={taskData.id}
       formType={FORM_TYPES.BUILDER_ENTRY_RESTRICTED}
       formData={report}
       images={combineImagesForAutoSave(report)}
@@ -155,35 +155,35 @@ const EntryRestrictedBuilderForm: React.FC<EntryRestrictedBuilderFormProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <span className="text-sm text-medium-text">Customer Name</span>
-            <span className="block text-light-text">{caseData.customer.name}</span>
+            <span className="block text-light-text">{taskData.customer.name}</span>
           </div>
           <div>
             <span className="text-sm text-medium-text">Bank Name</span>
-            <span className="block text-light-text">{caseData.client?.name || caseData.clientName || 'N/A'}</span>
+            <span className="block text-light-text">{typeof taskData.client === 'object' ? taskData.client?.name : taskData.client || taskData.clientName || 'N/A'}</span>
           </div>
           <div>
             <span className="text-sm text-medium-text">Product</span>
-            <span className="block text-light-text">{caseData.product?.name || caseData.productName || 'N/A'}</span>
+            <span className="block text-light-text">{typeof taskData.product === 'object' ? taskData.product?.name : taskData.product || taskData.productName || 'N/A'}</span>
           </div>
           <div>
             <span className="text-sm text-medium-text">Trigger</span>
-            <span className="block text-light-text">{caseData.notes || caseData.trigger || 'N/A'}</span>
+            <span className="block text-light-text">{taskData.notes || taskData.trigger || 'N/A'}</span>
           </div>
           <div className="md:col-span-2">
             <span className="text-sm text-medium-text">Visit Address</span>
-            <span className="block text-light-text">{caseData.addressStreet || caseData.visitAddress || caseData.address || 'N/A'}</span>
+            <span className="block text-light-text">{taskData.addressStreet || taskData.visitAddress || taskData.address || 'N/A'}</span>
           </div>
           <div>
             <span className="text-sm text-medium-text">System Contact Number</span>
-            <span className="block text-light-text">{caseData.systemContactNumber || 'N/A'}</span>
+            <span className="block text-light-text">{taskData.systemContactNumber || 'N/A'}</span>
           </div>
           <div>
             <span className="text-sm text-medium-text">Customer Calling Code</span>
-            <span className="block text-light-text">{caseData.customerCallingCode || 'N/A'}</span>
+            <span className="block text-light-text">{taskData.customerCallingCode || 'N/A'}</span>
           </div>
           <div>
             <span className="text-sm text-medium-text">Applicant Status</span>
-            <span className="block text-light-text">{caseData.applicantStatus || 'N/A'}</span>
+            <span className="block text-light-text">{taskData.applicantStatus || 'N/A'}</span>
           </div>
         </div>
       </div>
@@ -294,7 +294,7 @@ const EntryRestrictedBuilderForm: React.FC<EntryRestrictedBuilderFormProps> = ({
         compact={true}
       />
 
-      {!isReadOnly && caseData.status === CaseStatus.InProgress && (
+      {!isReadOnly && taskData.status === TaskStatus.InProgress && (
           <>
             <div className="mt-6">
                 <button 
@@ -321,7 +321,7 @@ const EntryRestrictedBuilderForm: React.FC<EntryRestrictedBuilderFormProps> = ({
                     setSubmissionError(null);
                 }}
                 onSave={() => {
-                    toggleSaveCase(caseData.id, true);
+                    toggleSaveTask(taskData.id, true);
                     setIsConfirmModalOpen(false);
                 }}
                 onConfirm={async () => {
@@ -331,7 +331,7 @@ const EntryRestrictedBuilderForm: React.FC<EntryRestrictedBuilderFormProps> = ({
                     try {
                         // Prepare form data for submission
                         const formData = {
-                            outcome: caseData.verificationOutcome, // Use ONLY case verification outcome, no fallback
+                            outcome: taskData.verificationOutcome, // Use ONLY case verification outcome, no fallback
                             remarks: report.otherObservation || '',
                             ...report // Include all report data
                         };
@@ -351,8 +351,8 @@ const EntryRestrictedBuilderForm: React.FC<EntryRestrictedBuilderFormProps> = ({
 
                         // Submit verification form to backend
                         const result = await VerificationFormService.submitBuilderVerification(
-                            caseData.id,
-                            caseData.verificationTaskId!,
+                            taskData.id,
+                            taskData.verificationTaskId!,
                             formData,
                             allImages,
                             geoLocation
@@ -370,8 +370,8 @@ const EntryRestrictedBuilderForm: React.FC<EntryRestrictedBuilderFormProps> = ({
                             
                             // Handle post-submission: update status, refresh list, navigate
                             await handleSuccessfulSubmission(
-                                caseData.id,
-                                fetchCases,
+                                taskData.id,
+                                fetchTasks,
                                 navigate,
                                 setSubmissionSuccess
                             );

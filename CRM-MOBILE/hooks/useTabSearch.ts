@@ -1,15 +1,15 @@
 import { useState, useMemo, useCallback } from 'react';
-import { Case } from '../types';
+import { VerificationTask } from '../types';
 
 interface UseTabSearchProps {
-  cases: Case[];
+  tasks: VerificationTask[];
   tabKey: string; // Unique identifier for the tab (e.g., 'assigned', 'in-progress', etc.)
 }
 
 interface UseTabSearchReturn {
   searchQuery: string;
   setSearchQuery: (query: string) => void;
-  filteredCases: Case[];
+  filteredTasks: VerificationTask[];
   resultCount: number;
   totalCount: number;
   clearSearch: () => void;
@@ -22,7 +22,7 @@ const tabSearchQueries: Record<string, string> = {};
  * Custom hook for tab-specific search functionality
  * Maintains search state per tab and provides filtered results
  */
-export const useTabSearch = ({ cases, tabKey }: UseTabSearchProps): UseTabSearchReturn => {
+export const useTabSearch = ({ tasks, tabKey }: UseTabSearchProps): UseTabSearchReturn => {
   // Initialize search query from global state or empty string
   const [searchQuery, setSearchQueryState] = useState<string>(
     tabSearchQueries[tabKey] || ''
@@ -40,96 +40,96 @@ export const useTabSearch = ({ cases, tabKey }: UseTabSearchProps): UseTabSearch
   }, [setSearchQuery]);
 
   // Search function that checks multiple fields
-  const searchCases = useCallback((cases: Case[], query: string): Case[] => {
+  const searchTasks = useCallback((tasks: VerificationTask[], query: string): VerificationTask[] => {
     if (!query.trim()) {
-      return cases;
+      return tasks;
     }
 
     const searchTerm = query.toLowerCase().trim();
 
-    return cases.filter(caseItem => {
+    return tasks.filter(taskItem => {
       // Search in case UUID
-      if (caseItem.id.toLowerCase().includes(searchTerm)) {
+      if (taskItem.id.toLowerCase().includes(searchTerm)) {
         return true;
       }
 
       // Search in case ID number (the number users see, like #124)
-      if (caseItem.caseId && caseItem.caseId.toString().includes(searchTerm)) {
+      if (taskItem.caseId && taskItem.caseId.toString().includes(searchTerm)) {
         return true;
       }
 
       // Search in title
-      if (caseItem.title.toLowerCase().includes(searchTerm)) {
+      if (taskItem.title.toLowerCase().includes(searchTerm)) {
         return true;
       }
 
       // Search in description
-      if (caseItem.description.toLowerCase().includes(searchTerm)) {
+      if (taskItem.description.toLowerCase().includes(searchTerm)) {
         return true;
       }
 
       // Search in customer name
-      if (caseItem.customer.name.toLowerCase().includes(searchTerm)) {
+      if (taskItem.customer.name.toLowerCase().includes(searchTerm)) {
         return true;
       }
 
       // Search in customer contact
-      if (caseItem.customer.contact.toLowerCase().includes(searchTerm)) {
+      if (taskItem.customer.contact.toLowerCase().includes(searchTerm)) {
         return true;
       }
 
       // Search in bank name
-      if (caseItem.bankName?.toLowerCase().includes(searchTerm)) {
+      if (taskItem.bankName?.toLowerCase().includes(searchTerm)) {
         return true;
       }
 
       // Search in product (handle both string and object types)
-      if (caseItem.product) {
-        if (typeof caseItem.product === 'string') {
-          if (caseItem.product.toLowerCase().includes(searchTerm)) {
+      if (taskItem.product) {
+        if (typeof taskItem.product === 'string') {
+          if (taskItem.product.toLowerCase().includes(searchTerm)) {
             return true;
           }
-        } else if (typeof caseItem.product === 'object') {
+        } else if (typeof taskItem.product === 'object') {
           // Search in product object properties
-          if (caseItem.product.name?.toLowerCase().includes(searchTerm) ||
-              caseItem.product.code?.toLowerCase().includes(searchTerm)) {
+          if (taskItem.product.name?.toLowerCase().includes(searchTerm) ||
+              taskItem.product.code?.toLowerCase().includes(searchTerm)) {
             return true;
           }
         }
       }
 
       // Search in trigger
-      if (caseItem.trigger?.toLowerCase().includes(searchTerm)) {
+      if (taskItem.trigger?.toLowerCase().includes(searchTerm)) {
         return true;
       }
 
       // Search in visit address
-      if (caseItem.visitAddress?.toLowerCase().includes(searchTerm)) {
+      if (taskItem.visitAddress?.toLowerCase().includes(searchTerm)) {
         return true;
       }
 
       // Search in verification type
-      if (caseItem.verificationType.toLowerCase().includes(searchTerm)) {
+      if (taskItem.verificationType.toLowerCase().includes(searchTerm)) {
         return true;
       }
 
       // Search in verification outcome
-      if (caseItem.verificationOutcome?.toLowerCase().includes(searchTerm)) {
+      if (taskItem.verificationOutcome?.toLowerCase().includes(searchTerm)) {
         return true;
       }
 
       // Search in system contact number
-      if (caseItem.systemContactNumber?.toLowerCase().includes(searchTerm)) {
+      if (taskItem.systemContactNumber?.toLowerCase().includes(searchTerm)) {
         return true;
       }
 
       // Search in applicant status
-      if (caseItem.applicantStatus?.toLowerCase().includes(searchTerm)) {
+      if (taskItem.applicantStatus?.toLowerCase().includes(searchTerm)) {
         return true;
       }
 
       // Search in notes
-      if (caseItem.notes?.toLowerCase().includes(searchTerm)) {
+      if (taskItem.notes?.toLowerCase().includes(searchTerm)) {
         return true;
       }
 
@@ -137,19 +137,19 @@ export const useTabSearch = ({ cases, tabKey }: UseTabSearchProps): UseTabSearch
     });
   }, []);
 
-  // Memoized filtered cases
-  const filteredCases = useMemo(() => {
-    return searchCases(cases, searchQuery);
-  }, [cases, searchQuery, searchCases]);
+  // Memoized filtered tasks
+  const filteredTasks = useMemo(() => {
+    return searchTasks(tasks, searchQuery);
+  }, [tasks, searchQuery, searchTasks]);
 
   // Result counts
-  const resultCount = filteredCases.length;
-  const totalCount = cases.length;
+  const resultCount = filteredTasks.length;
+  const totalCount = tasks.length;
 
   return {
     searchQuery,
     setSearchQuery,
-    filteredCases,
+    filteredTasks,
     resultCount,
     totalCount,
     clearSearch
