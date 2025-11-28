@@ -1,11 +1,16 @@
 import type { Request, Response } from 'express';
 import type { MobileFormSubmissionRequest, FormSubmissionData, FormSection } from '../types/mobile';
+import { TaskLookupService } from '../services/taskLookupService';
 import { createAuditLog } from '../utils/auditLogger';
 import {
   detectResidenceFormType,
   detectOfficeFormType,
   detectBusinessFormType,
   detectPropertyIndividualFormType,
+  detectResidenceCumOfficeFormType,
+  detectNocFormType,
+  detectPropertyApfFormType,
+  detectDsaConnectorFormType,
 } from '../utils/formTypeDetection';
 // import {
 //   mapFormDataToDatabase,
@@ -2178,7 +2183,7 @@ export class MobileFormController {
       console.error('Error details:', {
         message: error.message,
         stack: error.stack,
-        caseId: req.params.caseId,
+        taskId: req.params.taskId,
         userId: (req as any).user?.id,
       });
       res.status(500).json({
@@ -3891,394 +3896,110 @@ export class MobileFormController {
   // Submit residence-cum-office verification form
   static async submitResidenceCumOfficeVerification(req: Request, res: Response) {
     try {
-      const { caseId } = req.params;
-      const {
-        verificationTaskId,
-        formData,
-        geoLocation,
-        photos,
-        images,
-      }: MobileFormSubmissionRequest = req.body;
+      const { taskId } = req.params;
+      const submissionData: MobileFormSubmissionRequest = req.body;
       const userId = (req as any).user?.id;
       const userRole = (req as any).user?.role;
 
-      console.log(`📱 Residence-cum-office verification submission for case: ${caseId}`);
-      console.log(`   - User: ${userId} (${userRole})`);
-      console.log(`   - Verification Task ID: ${verificationTaskId}`);
-      console.log(`   - Images: ${images?.length || 0}`);
-      console.log(`   - Form data keys: ${Object.keys(formData || {}).join(', ')}`);
-      console.log(
-        `   - Form data outcome: ${formData?.outcome || formData?.finalStatus || 'Not specified'}`
-      );
+      const caseId = await TaskLookupService.resolveCaseId(taskId);
 
-      if (!userId) {
-        return res.status(401).json({
-          success: false,
-          message: 'User authentication required',
-          error: {
-            code: 'AUTHENTICATION_REQUIRED',
-            timestamp: new Date().toISOString(),
-          },
-        });
-      }
+      console.log(`📱 Residence-cum-office verification submission for task ${taskId} (case ${caseId})`);
 
-      if (!verificationTaskId) {
-        return res.status(400).json({
-          success: false,
-          message: 'Verification task ID is required',
-          error: {
-            code: 'MISSING_TASK_ID',
-            timestamp: new Date().toISOString(),
-          },
-        });
-      }
-
-      if (!caseId) {
-        return res.status(400).json({
-          success: false,
-          message: 'Case ID is required',
-          error: {
-            code: 'CASE_ID_REQUIRED',
-            timestamp: new Date().toISOString(),
-          },
-        });
-      }
-
-      if (!formData) {
-        return res.status(400).json({
-          success: false,
-          message: 'Form data is required',
-          error: {
-            code: 'FORM_DATA_REQUIRED',
-            timestamp: new Date().toISOString(),
-          },
-        });
-      }
-
-      // Validate case exists
-      const caseQuery = await query(
-        `SELECT id, "caseId", "customerName", "backendContactNumber" as "systemContact" FROM cases WHERE id = $1`,
-        [caseId]
-      );
-      if (caseQuery.rows.length === 0) {
-        return res.status(404).json({
-          success: false,
-          message: 'Case not found',
-          error: {
-            code: 'CASE_NOT_FOUND',
-            timestamp: new Date().toISOString(),
-          },
-        });
-      }
-
-      const existingCase = caseQuery.rows[0];
-      const actualCaseId = existingCase.id;
-
-      console.log(`✅ Case found: ${actualCaseId} (Case #${existingCase.caseId})`);
-
-      // Verify verification task exists and belongs to this case
-      const taskSql = `
-        SELECT vt.*, vtype.name as verification_type_name, vtype.id as verification_type_id
-        FROM verification_tasks vt
-        LEFT JOIN "verificationTypes" vtype ON vt.verification_type_id = vtype.id
-        WHERE vt.id = $1 AND vt.case_id = $2
-      `;
-      const taskRes = await query(taskSql, [verificationTaskId, actualCaseId]);
-      const task = taskRes.rows[0];
-
-      if (!task) {
-        return res.status(404).json({
-          success: false,
-          message: 'Verification task not found or does not belong to this case',
-          error: {
-            code: 'TASK_NOT_FOUND',
-            timestamp: new Date().toISOString(),
-            verificationTaskId,
-            caseId: actualCaseId,
-          },
-        });
-      }
-
-      if (userRole === 'FIELD_AGENT' && task.assigned_to !== userId) {
-        return res.status(403).json({
-          success: false,
-          message: 'This verification task is not assigned to you',
-          error: {
-            code: 'TASK_NOT_ASSIGNED',
-            timestamp: new Date().toISOString(),
-            verificationTaskId,
-          },
-        });
-      }
-
-      console.log(
-        `✅ Verification task validated: ${task.task_number} (Type: ${task.verification_type_name})`
-      );
-
-      // Determine form type and verification outcome based on form data
-      const { formType, verificationOutcome } = detectResidenceFormType(formData); // Use residence detection for hybrid form
-
-      console.log(
-        `🔍 Detected form type: ${formType}, verification outcome: ${verificationOutcome}`
-      );
-
-      // Use comprehensive validation and preparation for residence-cum-office form data
-      const { validationResult, preparedData } = validateAndPrepareResidenceCumOfficeForm(
-        formData,
-        formType
-      );
-
-      // Log comprehensive validation results
-      console.log(
-        `📊 Comprehensive validation for ${formType} residence-cum-office verification:`,
-        {
-          isValid: validationResult.isValid,
-          missingFields: validationResult.missingFields,
-          warnings: validationResult.warnings,
-          fieldCoverage: validationResult.fieldCoverage,
-        }
-      );
-
-      // Generate and log field coverage report
-      const coverageReport = generateResidenceCumOfficeFieldCoverageReport(
-        formData,
-        preparedData,
-        formType
-      );
-      console.log(coverageReport);
-
-      // Use the prepared data (which includes all fields with proper defaults)
-      const mappedFormData = preparedData;
-
-      // Log warnings if any
-      if (!validationResult.isValid) {
-        console.warn(
-          `⚠️ Missing required fields for ${formType} residence-cum-office form:`,
-          validationResult.missingFields
-        );
-      }
-      if (validationResult.warnings.length > 0) {
-        console.warn(
-          `⚠️ Validation warnings for ${formType} residence-cum-office form:`,
-          validationResult.warnings
-        );
-      }
-
-      // Validate minimum photo requirement (≥5 geo-tagged photos)
-      // Use images array for new submission format
-      const photoCount = images?.length || photos?.length || 0;
-      if (photoCount < 5) {
-        return res.status(400).json({
-          success: false,
-          message: 'Minimum 5 geo-tagged photos required for residence-cum-office verification',
-          error: {
-            code: 'INSUFFICIENT_PHOTOS',
-            details: {
-              required: 5,
-              provided: photoCount,
-            },
-            timestamp: new Date().toISOString(),
-          },
-        });
-      }
-
-      // Validate that all photos have geo-location (only if photos array exists)
-      if (photos && photos.length > 0) {
-        const photosWithoutGeo = photos.filter(
-          photo => !photo.geoLocation?.latitude || !photo.geoLocation.longitude
-        );
-
-        if (photosWithoutGeo.length > 0) {
-          return res.status(400).json({
+      if (userRole === 'FIELD_AGENT') {
+        const hasAccess = await TaskLookupService.verifyTaskAccess(taskId, userId);
+        if (!hasAccess) {
+          return res.status(403).json({
             success: false,
-            message: 'All photos must have geo-location data',
-            error: {
-              code: 'MISSING_GEO_LOCATION',
-              details: {
-                photosWithoutGeo: photosWithoutGeo.length,
-              },
-              timestamp: new Date().toISOString(),
-            },
+            message: 'Access denied. You are not assigned to this task.',
+            error: { code: 'ACCESS_DENIED' },
           });
         }
       }
 
-      // Generate unique submission ID
-      const submissionId = `residence_cum_office_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+      const { formType, verificationOutcome } = detectResidenceCumOfficeFormType(submissionData.formData);
 
-      // Process verification images separately from case attachments
+      const { validationResult, preparedData } = validateAndPrepareResidenceCumOfficeForm(submissionData.formData, formType);
+
+      if (!validationResult.isValid) {
+        return res.status(400).json({
+          success: false,
+          message: 'Form validation failed',
+          error: {
+            code: 'VALIDATION_FAILED',
+            details: validationResult.missingFields,
+          },
+        });
+      }
+
+      const submissionId = `sub_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      await query(
+        `INSERT INTO form_submissions (
+          id, case_id, verification_task_id, form_type, form_data, 
+          submission_time, location_latitude, location_longitude, 
+          location_accuracy, location_address, device_info, app_version, 
+          created_at, updated_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), NOW())`,
+        [
+          submissionId,
+          caseId,
+          taskId,
+          'RESIDENCE_CUM_OFFICE',
+          JSON.stringify(preparedData),
+          new Date(submissionData.metadata.submissionTimestamp),
+          submissionData.geoLocation?.latitude,
+          submissionData.geoLocation?.longitude,
+          submissionData.geoLocation?.accuracy,
+          submissionData.geoLocation?.address,
+          JSON.stringify(submissionData.metadata.deviceInfo),
+          submissionData.metadata?.deviceInfo?.appVersion || 'Unknown'
+        ]
+      );
+
       const uploadedImages = await MobileFormController.processVerificationImages(
-        images || [],
-        actualCaseId,
+        submissionData.images || [],
+        caseId,
         'RESIDENCE_CUM_OFFICE',
         submissionId,
         userId,
-        verificationTaskId
+        taskId
       );
 
-      console.log(
-        `✅ Processed ${uploadedImages.length} verification images for residence-cum-office verification (Task: ${task.task_number})`
-      );
-
-      // Prepare verification data (excluding old attachment references)
-      const verificationData = {
-        formType: 'RESIDENCE_CUM_OFFICE',
-        submissionId,
-        submittedAt: new Date().toISOString(),
-        submittedBy: userId,
-        geoLocation,
-        formData,
-        verificationImages: uploadedImages.map(img => ({
-          id: img.id,
-          url: img.url,
-          thumbnailUrl: img.thumbnailUrl,
-          photoType: img.photoType,
-          geoLocation: img.geoLocation,
-        })),
-        verification: {
-          ...formData,
-          imageCount: uploadedImages.length,
-          geoTaggedImages: uploadedImages.filter(img => img.geoLocation).length,
-          submissionLocation: geoLocation,
-        },
-      };
-
-      // Update verification task status to COMPLETED
       await query(
-        `
-        UPDATE verification_tasks
-        SET status = 'COMPLETED', completed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
-        WHERE id = $1
-      `,
-        [verificationTaskId]
+        `UPDATE verification_tasks 
+         SET status = 'COMPLETED', 
+             completed_at = NOW(), 
+             verification_outcome = $1,
+             updated_at = NOW() 
+         WHERE id = $2`,
+        [verificationOutcome || 'VERIFIED', taskId]
       );
 
-      // Update case status based on ALL tasks (only mark as COMPLETED if all tasks are done)
-      await MobileFormController.updateCaseStatusBasedOnTasks(actualCaseId);
-
-      // Update case with verification data (without changing status)
-      await query(
-        `UPDATE cases SET "verificationData" = $1, "verificationType" = 'RESIDENCE_CUM_OFFICE', "verificationOutcome" = $2, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $3`,
-        [JSON.stringify(verificationData), verificationOutcome, actualCaseId]
-      );
-      const caseUpd = await query(
-        `SELECT id, "caseId", status, "completedAt", "customerName", "backendContactNumber" FROM cases WHERE id = $1`,
-        [actualCaseId]
-      );
-      const updatedCase = caseUpd.rows[0];
-
-      // Create comprehensive residence-cum-office verification report using all available fields
-      const dbInsertData = {
-        // Core case information
-        case_id: actualCaseId,
-        verification_task_id: verificationTaskId,
-        caseId: parseInt(updatedCase.caseId) || null,
-        form_type: formType,
-        verification_outcome: verificationOutcome,
-        customer_name: updatedCase.customerName || 'Unknown',
-        customer_phone: updatedCase.backendContactNumber || null,
-        customer_email: null, // Not available from case data
-        full_address: updatedCase.address || 'Address not provided',
-
-        // Verification metadata
-        verification_date: new Date().toISOString().split('T')[0],
-        verification_time: new Date().toTimeString().split(' ')[0],
-        verified_by: userId,
-        total_images: uploadedImages.length || 0,
-        total_selfies: uploadedImages.filter(img => img.photoType === 'selfie').length || 0,
-        remarks: formData.remarks || `${formType} residence-cum-office verification completed`,
-
-        // Merge all mapped form data
-        ...mappedFormData,
-      };
-
-      // Build dynamic INSERT query based on available data
-      const columns = Object.keys(dbInsertData).filter(key => dbInsertData[key] !== undefined);
-      const values = columns.map(key => dbInsertData[key]);
-      const placeholders = columns.map((_, index) => `$${index + 1}`).join(', ');
-      const columnNames = columns.map(col => `"${col}"`).join(', ');
-
-      const insertQuery = `
-        INSERT INTO "residenceCumOfficeVerificationReports" (${columnNames})
-        VALUES (${placeholders})
-      `;
-
-      // Log comprehensive database insert data for debugging
-      const nullFields = Object.entries(dbInsertData).filter(([_, value]) => value === null);
-      const populatedFields = Object.entries(dbInsertData).filter(
-        ([_, value]) => value !== null && value !== undefined && value !== ''
-      );
-
-      console.log(
-        `📝 Final database insert data for ${formType} residence-cum-office verification:`,
-        {
-          totalFields: Object.keys(dbInsertData).length,
-          populatedFields: populatedFields.length,
-          fieldsWithNullValues: nullFields.length,
-          fieldCoveragePercentage: Math.round(
-            (populatedFields.length / Object.keys(dbInsertData).length) * 100
-          ),
-          nullFieldNames: nullFields.map(([key]) => key).slice(0, 10), // Show first 10 null fields
-          samplePopulatedData: Object.fromEntries(populatedFields.slice(0, 10)), // Show first 10 populated fields
-        }
-      );
-
-      console.log(
-        `📝 Inserting residence-cum-office verification with ${columns.length} fields:`,
-        columns
-      );
-
-      await query(insertQuery, values);
-
-      // Remove auto-save data
-      await query(`DELETE FROM "autoSaves" WHERE case_id = $1::uuid`, [actualCaseId]);
+      await MobileFormController.updateCaseStatusBasedOnTasks(caseId);
 
       await createAuditLog({
         action: 'RESIDENCE_CUM_OFFICE_VERIFICATION_SUBMITTED',
-        entityType: 'CASE',
-        entityId: actualCaseId,
+        entityType: 'VERIFICATION_TASK',
+        entityId: taskId,
         userId,
         details: {
-          formType,
-          verificationOutcome,
-          imageCount: uploadedImages.length,
-          submissionId,
-          hasGeoLocation: !!geoLocation,
+          caseId,
+          formType: 'RESIDENCE_CUM_OFFICE',
+          photoCount: uploadedImages.length,
+          outcome: verificationOutcome,
         },
         ipAddress: req.ip,
         userAgent: req.get('User-Agent'),
       });
 
-      console.log(`✅ Residence-cum-office verification completed successfully:`, {
-        caseId: actualCaseId,
-        formType,
-        verificationOutcome,
-        imageCount: uploadedImages.length,
-      });
-
-      // Send case completion notification to backend users
-      await MobileFormController.sendCaseCompletionNotification(
-        actualCaseId,
-        updatedCase.caseId,
-        updatedCase.customerName || 'Unknown Customer',
-        userId,
-        'COMPLETED',
-        verificationOutcome
-      );
-
       res.json({
         success: true,
-        message: `${formType} residence-cum-office verification submitted successfully`,
+        message: 'Residence-cum-office verification submitted successfully',
         data: {
-          caseId: updatedCase.id,
-          caseNumber: updatedCase.caseId,
-          status: updatedCase.status,
-          completedAt: updatedCase.completedAt?.toISOString(),
           submissionId,
-          formType,
-          verificationOutcome,
-          verificationImageCount: uploadedImages.length,
-          verificationData,
+          taskId,
+          status: 'COMPLETED',
+          completedAt: new Date().toISOString(),
         },
       });
     } catch (error) {
@@ -4737,395 +4458,114 @@ export class MobileFormController {
   // Submit property individual verification form
   static async submitPropertyIndividualVerification(req: Request, res: Response) {
     try {
-      const { caseId } = req.params;
-      const {
-        verificationTaskId,
-        formData,
-        geoLocation,
-        photos,
-        images,
-      }: MobileFormSubmissionRequest = req.body;
+      const { taskId } = req.params;
+      const submissionData: MobileFormSubmissionRequest = req.body;
       const userId = (req as any).user?.id;
       const userRole = (req as any).user?.role;
 
-      console.log(`📱 Property Individual verification submission for case: ${caseId}`);
-      console.log(`   - User: ${userId} (${userRole})`);
-      console.log(`   - Verification Task ID: ${verificationTaskId}`);
-      console.log(`   - Images: ${images?.length || 0}`);
-      console.log(`   - Form data keys: ${Object.keys(formData || {}).join(', ')}`);
-      console.log(
-        `   - Form data outcome: ${formData?.outcome || formData?.finalStatus || 'Not specified'}`
-      );
+      const caseId = await TaskLookupService.resolveCaseId(taskId);
 
-      if (!userId) {
-        return res.status(401).json({
-          success: false,
-          message: 'User authentication required',
-          error: {
-            code: 'AUTHENTICATION_REQUIRED',
-            timestamp: new Date().toISOString(),
-          },
-        });
-      }
+      console.log(`📱 Property Individual verification submission for task ${taskId} (case ${caseId})`);
 
-      if (!verificationTaskId) {
-        return res.status(400).json({
-          success: false,
-          message: 'Verification task ID is required',
-          error: {
-            code: 'MISSING_TASK_ID',
-            timestamp: new Date().toISOString(),
-          },
-        });
-      }
-
-      if (!caseId) {
-        return res.status(400).json({
-          success: false,
-          message: 'Case ID is required',
-          error: {
-            code: 'CASE_ID_REQUIRED',
-            timestamp: new Date().toISOString(),
-          },
-        });
-      }
-
-      if (!formData) {
-        return res.status(400).json({
-          success: false,
-          message: 'Form data is required',
-          error: {
-            code: 'FORM_DATA_REQUIRED',
-            timestamp: new Date().toISOString(),
-          },
-        });
-      }
-
-      // Validate case exists
-      const caseQuery = await query(
-        `SELECT id, "caseId", "customerName", "backendContactNumber" as "systemContact" FROM cases WHERE id = $1`,
-        [caseId]
-      );
-      if (caseQuery.rows.length === 0) {
-        return res.status(404).json({
-          success: false,
-          message: 'Case not found',
-          error: {
-            code: 'CASE_NOT_FOUND',
-            timestamp: new Date().toISOString(),
-          },
-        });
-      }
-
-      const existingCase = caseQuery.rows[0];
-      const actualCaseId = existingCase.id;
-
-      console.log(`✅ Case found: ${actualCaseId} (Case #${existingCase.caseId})`);
-
-      // Verify verification task exists and belongs to this case
-      const taskSql = `
-        SELECT vt.*, vtype.name as verification_type_name, vtype.id as verification_type_id
-        FROM verification_tasks vt
-        LEFT JOIN "verificationTypes" vtype ON vt.verification_type_id = vtype.id
-        WHERE vt.id = $1 AND vt.case_id = $2
-      `;
-      const taskRes = await query(taskSql, [verificationTaskId, actualCaseId]);
-      const task = taskRes.rows[0];
-
-      if (!task) {
-        return res.status(404).json({
-          success: false,
-          message: 'Verification task not found or does not belong to this case',
-          error: {
-            code: 'TASK_NOT_FOUND',
-            timestamp: new Date().toISOString(),
-            verificationTaskId,
-            caseId: actualCaseId,
-          },
-        });
-      }
-
-      if (userRole === 'FIELD_AGENT' && task.assigned_to !== userId) {
-        return res.status(403).json({
-          success: false,
-          message: 'This verification task is not assigned to you',
-          error: {
-            code: 'TASK_NOT_ASSIGNED',
-            timestamp: new Date().toISOString(),
-            verificationTaskId,
-          },
-        });
-      }
-
-      console.log(
-        `✅ Verification task validated: ${task.task_number} (Type: ${task.verification_type_name})`
-      );
-
-      // Determine form type and verification outcome based on form data
-      const { formType, verificationOutcome } = detectPropertyIndividualFormType(formData);
-
-      console.log(
-        `🔍 Detected form type: ${formType}, verification outcome: ${verificationOutcome}`
-      );
-
-      // Use comprehensive validation and preparation for Property Individual form data
-      const { validationResult, preparedData } = validateAndPreparePropertyIndividualForm(
-        formData,
-        formType
-      );
-
-      // Log comprehensive validation results
-      console.log(`📊 Comprehensive validation for ${formType} Property Individual verification:`, {
-        isValid: validationResult.isValid,
-        missingFields: validationResult.missingFields,
-        warnings: validationResult.warnings,
-        fieldCoverage: validationResult.fieldCoverage,
-      });
-
-      // Generate and log field coverage report
-      const coverageReport = generatePropertyIndividualFieldCoverageReport(
-        formData,
-        preparedData,
-        formType
-      );
-      console.log(coverageReport);
-
-      // Use the prepared data (which includes all fields with proper defaults)
-      const mappedFormData = preparedData;
-
-      // Log warnings if any
-      if (!validationResult.isValid) {
-        console.warn(
-          `⚠️ Missing required fields for ${formType} Property Individual form:`,
-          validationResult.missingFields
-        );
-      }
-      if (validationResult.warnings.length > 0) {
-        console.warn(
-          `⚠️ Validation warnings for ${formType} Property Individual form:`,
-          validationResult.warnings
-        );
-      }
-
-      // Validate minimum photo requirement (≥5 geo-tagged photos)
-      // Use images array for new submission format
-      const photoCount = images?.length || photos?.length || 0;
-      if (photoCount < 5) {
-        return res.status(400).json({
-          success: false,
-          message: 'Minimum 5 geo-tagged photos required for Property Individual verification',
-          error: {
-            code: 'INSUFFICIENT_PHOTOS',
-            details: {
-              required: 5,
-              provided: photoCount,
-            },
-            timestamp: new Date().toISOString(),
-          },
-        });
-      }
-
-      // Validate that all photos have geo-location (only if photos array exists)
-      if (photos && photos.length > 0) {
-        const photosWithoutGeo = photos.filter(
-          photo => !photo.geoLocation?.latitude || !photo.geoLocation.longitude
-        );
-
-        if (photosWithoutGeo.length > 0) {
-          return res.status(400).json({
+      if (userRole === 'FIELD_AGENT') {
+        const hasAccess = await TaskLookupService.verifyTaskAccess(taskId, userId);
+        if (!hasAccess) {
+          return res.status(403).json({
             success: false,
-            message: 'All photos must have geo-location data',
-            error: {
-              code: 'MISSING_GEO_LOCATION',
-              details: {
-                photosWithoutGeo: photosWithoutGeo.length,
-              },
-              timestamp: new Date().toISOString(),
-            },
+            message: 'Access denied. You are not assigned to this task.',
+            error: { code: 'ACCESS_DENIED' },
           });
         }
       }
 
-      // Generate unique submission ID
-      const submissionId = `property_individual_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+      const { formType, verificationOutcome } = detectPropertyIndividualFormType(submissionData.formData);
 
-      // Process verification images separately from case attachments
+      const { validationResult, preparedData } = validateAndPreparePropertyIndividualForm(submissionData.formData, formType);
+
+      if (!validationResult.isValid) {
+        return res.status(400).json({
+          success: false,
+          message: 'Form validation failed',
+          error: {
+            code: 'VALIDATION_FAILED',
+            details: validationResult.missingFields,
+          },
+        });
+      }
+
+      const submissionId = `sub_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      await query(
+        `INSERT INTO form_submissions (
+          id, case_id, verification_task_id, form_type, form_data, 
+          submission_time, location_latitude, location_longitude, 
+          location_accuracy, location_address, device_info, app_version, 
+          created_at, updated_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), NOW())`,
+        [
+          submissionId,
+          caseId,
+          taskId,
+          'PROPERTY_INDIVIDUAL',
+          JSON.stringify(preparedData),
+          new Date(submissionData.metadata.submissionTimestamp),
+          submissionData.geoLocation?.latitude,
+          submissionData.geoLocation?.longitude,
+          submissionData.geoLocation?.accuracy,
+          submissionData.geoLocation?.address,
+          JSON.stringify(submissionData.metadata.deviceInfo),
+          submissionData.metadata?.deviceInfo?.appVersion || 'Unknown'
+        ]
+      );
+
       const uploadedImages = await MobileFormController.processVerificationImages(
-        images || [],
-        actualCaseId,
+        submissionData.images || [],
+        caseId,
         'PROPERTY_INDIVIDUAL',
         submissionId,
         userId,
-        verificationTaskId
+        taskId
       );
 
-      console.log(
-        `✅ Processed ${uploadedImages.length} verification images for Property Individual verification (Task: ${task.task_number})`
-      );
-
-      // Prepare verification data (excluding old attachment references)
-      const verificationData = {
-        formType: 'PROPERTY_INDIVIDUAL',
-        submissionId,
-        submittedAt: new Date().toISOString(),
-        submittedBy: userId,
-        geoLocation,
-        formData,
-        verificationImages: uploadedImages.map(img => ({
-          id: img.id,
-          url: img.url,
-          thumbnailUrl: img.thumbnailUrl,
-          photoType: img.photoType,
-          geoLocation: img.geoLocation,
-        })),
-        verification: {
-          ...formData,
-          imageCount: uploadedImages.length,
-          geoTaggedImages: uploadedImages.filter(img => img.geoLocation).length,
-          submissionLocation: geoLocation,
-        },
-      };
-
-      // Update verification task status to COMPLETED
       await query(
-        `
-        UPDATE verification_tasks
-        SET status = 'COMPLETED', completed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
-        WHERE id = $1
-      `,
-        [verificationTaskId]
+        `UPDATE verification_tasks 
+         SET status = 'COMPLETED', 
+             completed_at = NOW(), 
+             verification_outcome = $1,
+             updated_at = NOW() 
+         WHERE id = $2`,
+        [verificationOutcome || 'VERIFIED', taskId]
       );
 
-      // Update case status based on ALL tasks (only mark as COMPLETED if all tasks are done)
-      await MobileFormController.updateCaseStatusBasedOnTasks(actualCaseId);
-
-      // Update case with verification data (without changing status)
-      await query(
-        `UPDATE cases SET "verificationData" = $1, "verificationType" = 'PROPERTY_INDIVIDUAL', "verificationOutcome" = $2, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $3`,
-        [JSON.stringify(verificationData), verificationOutcome, actualCaseId]
-      );
-      const caseUpd = await query(
-        `SELECT id, "caseId", status, "completedAt", "customerName", "backendContactNumber" FROM cases WHERE id = $1`,
-        [actualCaseId]
-      );
-      const updatedCase = caseUpd.rows[0];
-
-      // Create comprehensive Property Individual verification report using all available fields
-      const dbInsertData = {
-        // Core case information
-        case_id: actualCaseId,
-        verification_task_id: verificationTaskId,
-        caseId: parseInt(updatedCase.caseId) || null,
-        form_type: formType,
-        verification_outcome: verificationOutcome,
-        customer_name: updatedCase.customerName || 'Unknown',
-        customer_phone: updatedCase.backendContactNumber || null,
-        customer_email: null, // Not available from case data
-        full_address: updatedCase.address || 'Address not provided',
-
-        // Verification metadata
-        verification_date: new Date().toISOString().split('T')[0],
-        verification_time: new Date().toTimeString().split(' ')[0],
-        verified_by: userId,
-        total_images: uploadedImages.length || 0,
-        total_selfies: uploadedImages.filter(img => img.photoType === 'selfie').length || 0,
-        remarks: formData.remarks || `${formType} Property Individual verification completed`,
-
-        // Merge all mapped form data
-        ...mappedFormData,
-      };
-
-      // Build dynamic INSERT query based on available data
-      const columns = Object.keys(dbInsertData).filter(key => dbInsertData[key] !== undefined);
-      const values = columns.map(key => dbInsertData[key]);
-      const placeholders = columns.map((_, index) => `$${index + 1}`).join(', ');
-      const columnNames = columns.map(col => `"${col}"`).join(', ');
-
-      const insertQuery = `
-        INSERT INTO "propertyIndividualVerificationReports" (${columnNames})
-        VALUES (${placeholders})
-      `;
-
-      // Log comprehensive database insert data for debugging
-      const nullFields = Object.entries(dbInsertData).filter(([_, value]) => value === null);
-      const populatedFields = Object.entries(dbInsertData).filter(
-        ([_, value]) => value !== null && value !== undefined && value !== ''
-      );
-
-      console.log(
-        `📝 Final database insert data for ${formType} Property Individual verification:`,
-        {
-          totalFields: Object.keys(dbInsertData).length,
-          populatedFields: populatedFields.length,
-          fieldsWithNullValues: nullFields.length,
-          fieldCoveragePercentage: Math.round(
-            (populatedFields.length / Object.keys(dbInsertData).length) * 100
-          ),
-          nullFieldNames: nullFields.map(([key]) => key).slice(0, 10), // Show first 10 null fields
-          samplePopulatedData: Object.fromEntries(populatedFields.slice(0, 10)), // Show first 10 populated fields
-        }
-      );
-
-      console.log(
-        `📝 Inserting Property Individual verification with ${columns.length} fields:`,
-        columns
-      );
-
-      await query(insertQuery, values);
-
-      // Remove auto-save data
-      await query(`DELETE FROM "autoSaves" WHERE case_id = $1::uuid`, [actualCaseId]);
+      await MobileFormController.updateCaseStatusBasedOnTasks(caseId);
 
       await createAuditLog({
         action: 'PROPERTY_INDIVIDUAL_VERIFICATION_SUBMITTED',
-        entityType: 'CASE',
-        entityId: actualCaseId,
+        entityType: 'VERIFICATION_TASK',
+        entityId: taskId,
         userId,
         details: {
-          formType,
-          verificationOutcome,
-          imageCount: uploadedImages.length,
-          submissionId,
-          hasGeoLocation: !!geoLocation,
+          caseId,
+          formType: 'PROPERTY_INDIVIDUAL',
+          photoCount: uploadedImages.length,
+          outcome: verificationOutcome,
         },
         ipAddress: req.ip,
         userAgent: req.get('User-Agent'),
       });
 
-      console.log(`✅ Property Individual verification completed successfully:`, {
-        caseId: actualCaseId,
-        formType,
-        verificationOutcome,
-        imageCount: uploadedImages.length,
-      });
-
-      // Send case completion notification to backend users
-      await MobileFormController.sendCaseCompletionNotification(
-        actualCaseId,
-        updatedCase.caseId,
-        updatedCase.customerName || 'Unknown Customer',
-        userId,
-        'COMPLETED',
-        verificationOutcome
-      );
-
       res.json({
         success: true,
-        message: `${formType} Property Individual verification submitted successfully`,
+        message: 'Property Individual verification submitted successfully',
         data: {
-          caseId: updatedCase.id,
-          caseNumber: updatedCase.caseId,
-          status: updatedCase.status,
-          completedAt: updatedCase.completedAt?.toISOString(),
           submissionId,
-          formType,
-          verificationOutcome,
-          verificationImageCount: uploadedImages.length,
-          verificationData,
+          taskId,
+          status: 'COMPLETED',
+          completedAt: new Date().toISOString(),
         },
       });
     } catch (error) {
-      console.error('Submit Property Individual verification error:', error);
+      console.error('Submit property individual verification error:', error);
       res.status(500).json({
         success: false,
         message: 'Internal server error',
