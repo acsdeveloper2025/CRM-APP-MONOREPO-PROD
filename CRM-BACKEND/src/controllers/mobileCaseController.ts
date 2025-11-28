@@ -384,7 +384,7 @@ export class MobileCaseController {
       // Role-based access control
       // For FIELD_AGENT: Check if they have an assigned task for this case
       // For other roles: No additional filtering
-      
+
       const vals2: any[] = [caseId];
       const _userIdForTaskFilter = userRole === 'FIELD_AGENT' ? userId : null;
 
@@ -738,7 +738,7 @@ export class MobileCaseController {
     try {
       const { taskId } = req.params; // Changed from caseId to taskId
       const { priority } = req.body;
-      
+
       // Resolve taskId to caseId
       const caseId = await TaskLookupService.resolveCaseId(taskId);
 
@@ -835,7 +835,9 @@ export class MobileCaseController {
       // Resolve taskId to caseId
       const caseId = await TaskLookupService.resolveCaseId(taskId);
 
-      console.log(`📱 Auto-save request for task ${taskId} (case ${caseId}), formType: ${formType}`);
+      console.log(
+        `📱 Auto-save request for task ${taskId} (case ${caseId}), formType: ${formType}`
+      );
 
       const vals5: any[] = [caseId];
       let exSql3 = `SELECT id FROM cases WHERE id = $1`;
@@ -919,7 +921,9 @@ export class MobileCaseController {
       // Resolve taskId to caseId
       const caseId = await TaskLookupService.resolveCaseId(taskId);
 
-      console.log(`📱 Get auto-saved form for task ${taskId} (case ${caseId}), formType: ${formType}`);
+      console.log(
+        `📱 Get auto-saved form for task ${taskId} (case ${caseId}), formType: ${formType}`
+      );
 
       const vals7: any[] = [caseId];
       let exSql5 = `SELECT id FROM cases WHERE id = $1`;
