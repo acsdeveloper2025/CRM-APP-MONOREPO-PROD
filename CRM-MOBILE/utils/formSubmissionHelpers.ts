@@ -9,7 +9,7 @@
  * the correct case status based on ALL verification tasks. A case is only marked as COMPLETED
  * when ALL its verification tasks are completed.
  *
- * @param caseId - The ID of the case that was submitted
+ * @param taskId - The ID of the task that was submitted
  * @param fetchTasks - Function to refresh case list from "./context/TaskContext"
  * @param navigate - React Router navigate function
  * @param setSubmissionSuccess - State setter for success message

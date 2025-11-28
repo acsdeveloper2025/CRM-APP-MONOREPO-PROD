@@ -54,7 +54,7 @@ class AttachmentSyncService {
           errors.push(...result.errors);
         } catch (error) {
           console.error(`❌ Failed to sync attachments for case ${caseItem.id}:`, error);
-          errors.push(`Case ${caseItem.caseId}: ${error.message}`);
+          errors.push(`Case ${caseItem.businessCaseId}: ${error.message}`);
         }
       }
 
@@ -88,7 +88,7 @@ class AttachmentSyncService {
     try {
       // Fetch attachments with base64 data from backend
       const result = await apiService.request(
-        `/mobile/cases/${caseItem.id}/attachments?includeAttachmentData=true`,
+        `/mobile/verification-tasks/${caseItem.id}/attachments?includeAttachmentData=true`,
         {
           method: 'GET',
           requireAuth: true,
@@ -108,7 +108,7 @@ class AttachmentSyncService {
         checksum?: string;
       }>;
 
-      console.log(`📎 Found ${attachments.length} attachments for case ${caseItem.caseId}`);
+      console.log(`📎 Found ${attachments.length} attachments for case ${caseItem.businessCaseId}`);
 
       for (const attachment of attachments) {
         try {
@@ -187,7 +187,7 @@ class AttachmentSyncService {
         errors
       };
     } catch (error) {
-      console.error(`❌ Failed to fetch attachments for case ${caseItem.caseId}:`, error);
+      console.error(`❌ Failed to fetch attachments for case ${caseItem.businessCaseId}:`, error);
       return {
         totalAttachments: 0,
         syncedCount: 0,

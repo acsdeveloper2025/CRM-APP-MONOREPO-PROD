@@ -53,33 +53,19 @@ router.get(
   EnterpriseCache.create(EnterpriseCacheConfigs.mobileSync),
   MobileCaseController.getMobileCases
 );
+
+// STRICT MIGRATION: Removed legacy /cases/:caseId routes
+// All individual case/task operations must use /verification-tasks/:taskId
+
+// Mobile Verification Task Routes
 router.get(
-  '/cases/:caseId',
+  '/verification-tasks/:taskId',
   authenticateToken,
   validateMobileVersion,
   EnterpriseCache.create(EnterpriseCacheConfigs.caseDetails),
-  MobileCaseController.getMobileCase
-);
-router.put(
-  '/cases/:caseId/status',
-  authenticateToken,
-  validateMobileVersion,
-  MobileCaseController.updateCaseStatus
-);
-router.put(
-  '/cases/:caseId/priority',
-  authenticateToken,
-  validateMobileVersion,
-  MobileCaseController.updateCasePriority
-);
-router.post(
-  '/cases/:caseId/revoke',
-  authenticateToken,
-  validateMobileVersion,
-  MobileCaseController.revokeCase
+  MobileCaseController.getMobileCase // Updated to accept taskId
 );
 
-// Mobile Verification Task Routes
 router.get(
   '/verification-tasks/:taskId/status',
   authenticateToken,
@@ -113,13 +99,13 @@ router.post(
 
 // Mobile Auto-save Routes (CACHED)
 router.post(
-  '/cases/:caseId/auto-save',
+  '/verification-tasks/:taskId/auto-save',
   authenticateToken,
   validateMobileVersion,
   MobileCaseController.autoSaveForm
 );
 router.get(
-  '/cases/:caseId/auto-save/:formType',
+  '/verification-tasks/:taskId/auto-save/:formType',
   authenticateToken,
   validateMobileVersion,
   EnterpriseCache.create(EnterpriseCacheConfigs.caseDetails),
@@ -134,21 +120,22 @@ router.post(
   validateMobileVersion,
   MobileAttachmentController.getBatchAttachments
 );
+
 router.post(
-  '/cases/:caseId/attachments',
+  '/verification-tasks/:taskId/attachments',
   authenticateToken,
   validateMobileVersion,
   mobileUpload.array('files', 15),
   MobileAttachmentController.uploadFiles
 );
 router.get(
-  '/cases/:caseId/attachments',
+  '/verification-tasks/:taskId/attachments',
   authenticateToken,
   validateMobileVersion,
   MobileAttachmentController.getCaseAttachments
 );
 router.get(
-  '/cases/:caseId/attachments/:attachmentId',
+  '/verification-tasks/:taskId/attachments/:attachmentId',
   authenticateToken,
   validateMobileVersion,
   MobileAttachmentController.getAttachmentContent
@@ -168,73 +155,83 @@ router.delete(
 
 // Verification Attachment Routes (separate from regular case attachments)
 router.get(
-  '/cases/:caseId/verification-images',
+  '/verification-tasks/:taskId/verification-images',
   authenticateToken,
   validateMobileVersion,
   VerificationAttachmentController.getVerificationImages
 );
 
-// Mobile Form Submission Routes
+// Mobile Form Submission Routes - STRICT TASK ID ONLY
 router.post(
-  '/cases/:caseId/verification/residence',
+  '/verification-tasks/:taskId/verification/residence',
   authenticateToken,
   validateMobileVersion,
   MobileFormController.submitResidenceVerification
 );
 router.post(
-  '/cases/:caseId/verification/office',
+  '/verification-tasks/:taskId/verification/office',
   authenticateToken,
   validateMobileVersion,
   MobileFormController.submitOfficeVerification
 );
 router.post(
-  '/cases/:caseId/verification/business',
+  '/verification-tasks/:taskId/verification/business',
   authenticateToken,
   validateMobileVersion,
   MobileFormController.submitBusinessVerification
 );
 router.post(
-  '/cases/:caseId/verification/builder',
+  '/verification-tasks/:taskId/verification/builder',
   authenticateToken,
   validateMobileVersion,
   MobileFormController.submitBuilderVerification
 );
 router.post(
-  '/cases/:caseId/verification/residence-cum-office',
+  '/verification-tasks/:taskId/verification/residence-cum-office',
   authenticateToken,
   validateMobileVersion,
   MobileFormController.submitResidenceCumOfficeVerification
 );
 router.post(
-  '/cases/:caseId/verification/dsa-connector',
+  '/verification-tasks/:taskId/verification/dsa-connector',
   authenticateToken,
   validateMobileVersion,
   MobileFormController.submitDsaConnectorVerification
 );
 router.post(
-  '/cases/:caseId/verification/property-individual',
+  '/verification-tasks/:taskId/verification/property-individual',
   authenticateToken,
   validateMobileVersion,
   MobileFormController.submitPropertyIndividualVerification
 );
 router.post(
-  '/cases/:caseId/verification/property-apf',
+  '/verification-tasks/:taskId/verification/property-apf',
   authenticateToken,
   validateMobileVersion,
   MobileFormController.submitPropertyApfVerification
 );
 router.post(
-  '/cases/:caseId/verification/noc',
+  '/verification-tasks/:taskId/verification/noc',
   authenticateToken,
   validateMobileVersion,
   MobileFormController.submitNocVerification
 );
+
 router.get(
-  '/cases/:caseId/forms',
+  '/verification-tasks/:taskId/forms',
   authenticateToken,
   validateMobileVersion,
   MobileFormController.getCaseFormSubmissions
 );
+
+// Additional verification-tasks routes for status, etc.
+router.put(
+  '/verification-tasks/:taskId/priority',
+  authenticateToken,
+  validateMobileVersion,
+  MobileCaseController.updateCasePriority
+);
+
 router.get(
   '/forms/:formType/template',
   authenticateToken,
@@ -262,7 +259,7 @@ router.get(
   MobileLocationController.reverseGeocode
 );
 router.get(
-  '/cases/:caseId/location-history',
+  '/verification-tasks/:taskId/location-history',
   authenticateToken,
   validateMobileVersion,
   MobileLocationController.getCaseLocationHistory

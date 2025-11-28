@@ -35,19 +35,21 @@ function getApiBaseUrl(): string {
 
 // Backend task interface for API responses
 interface BackendTask {
-  id: string; // UUID primary key
-  caseId: number; // Business identifier
+  id: string; // UUID
+  verificationTaskId: string; // UUID
+  taskNumber: string; // Human-readable
+  businessCaseId: number; // Business identifier for display
   customerName: string;
   customerCallingCode?: string;
   customerPhone?: string;
   clientId: number;
-  clientName?: string;
+  clientName: string;
   clientCode?: string;
   productId?: number;
-  productName?: string;
+  productName: string;
   productCode?: string;
   verificationTypeId?: number;
-  verificationType?: string;
+  verificationType: string;
   verificationTypeName?: string;
   verificationTypeCode?: string;
   applicantType?: string;
@@ -60,9 +62,9 @@ interface BackendTask {
   assignedToEmail?: string;
   priority?: string;
   trigger?: string;
-  address?: string;
-  verificationTaskId?: string; // Verification Task UUID
-  verificationTaskNumber?: string; // Verification Task Number (e.g., VT-000127)
+  address: string;
+  city: string;
+  state: string;
   status: string;
   assignedAt: string; // Backend sends this as creation time
   updatedAt: string;
@@ -157,16 +159,15 @@ const mapBackendTaskToMobile = (backendCase: BackendTask): VerificationTask => {
     verificationOutcome: null,
     priority: priorityMap[backendCase.priority || 'MEDIUM'] || 2,
 
-    // Enhanced fields for 13 required task fields
     // Field 1: Customer Name
     customerName: backendCase.customerName,
 
-    // Field 2: VerificationTask ID
-    caseId: backendCase.caseId,
+    // Field 2: Business Case ID (for display)
+    businessCaseId: backendCase.businessCaseId,
 
     // Verification Task Information
     verificationTaskId: backendCase.verificationTaskId,
-    verificationTaskNumber: backendCase.verificationTaskNumber,
+    verificationTaskNumber: backendCase.taskNumber,
 
     // Field 3: Client
     clientId: backendCase.clientId,
@@ -491,7 +492,7 @@ class CaseService {
 
       // Verify all 13 required fields are present
       const requiredFields = [
-        'customerName', 'caseId', 'clientName', 'productName', 'verificationType',
+        'customerName', 'businessCaseId', 'clientName', 'productName', 'verificationType',
         'applicantType', 'createdByBackendUserName', 'backendContactNumber',
         'assignedToName', 'priority', 'trigger', 'customerCallingCode', 'address'
       ];
