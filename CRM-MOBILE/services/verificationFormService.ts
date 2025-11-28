@@ -192,7 +192,7 @@ class VerificationFormService {
       progressTrackingService.updateStepProgress(submissionId, 'submit_form', 0, 'IN_PROGRESS');
 
       const result = await this.submitToBackendWithRetry(
-        `${this.getApiBaseUrl()}/mobile/cases/${taskId}/verification/residence`,
+        `${this.getApiBaseUrl()}/mobile/verification-tasks/${taskId}/verification/residence`,
         submissionData,
         'VERIFICATION_SUBMISSION',
         'HIGH',
@@ -419,12 +419,12 @@ class VerificationFormService {
         imageCount: images.length,
         hasGeoLocation: !!geoLocation,
         submissionDataSize: JSON.stringify(submissionData).length,
-        endpoint: `${this.getApiBaseUrl()}/mobile/cases/${taskId}/verification/${verificationType}`
+        endpoint: `${this.getApiBaseUrl()}/mobile/verification-tasks/${taskId}/verification/${verificationType}`
       });
 
       // Submit to backend with enhanced retry mechanism
       const result = await this.submitToBackendWithRetry(
-        `${this.getApiBaseUrl()}/mobile/cases/${taskId}/verification/${verificationType}`,
+        `${this.getApiBaseUrl()}/mobile/verification-tasks/${taskId}/verification/${verificationType}`,
         submissionData,
         'VERIFICATION_SUBMISSION',
         'HIGH',
@@ -641,7 +641,7 @@ class VerificationFormService {
       }
 
       // Upload to backend
-      const uploadResponse = await fetch(`${this.getApiBaseUrl()}/mobile/cases/${taskId}/attachments`, {
+      const uploadResponse = await fetch(`${this.getApiBaseUrl()}/mobile/verification-tasks/${taskId}/attachments`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${authToken}`,
@@ -818,7 +818,7 @@ class VerificationFormService {
 
       // Clear secure attachments after successful case submission
       try {
-        // Extract taskId from URL (format: /mobile/cases/{taskId}/verification/{type})
+        // Extract taskId from URL (format: /mobile/verification-tasks/{taskId}/verification/{type})
         const taskIdMatch = url.match(/\/mobile\/cases\/([^\/]+)\/verification/);
         if (taskIdMatch && taskIdMatch[1]) {
           const taskId = taskIdMatch[1];
@@ -965,7 +965,8 @@ class VerificationFormService {
       }
 
       const apiBaseUrl = this.getApiBaseUrl();
-      const endpoint = `${apiBaseUrl}/api/mobile/cases/${taskId}/verification/${verificationType}`;
+      // Use the new verification-tasks endpoint
+      const endpoint = `${apiBaseUrl}/api/mobile/verification-tasks/${taskId}/verification/${verificationType}`;
 
       console.log(`📤 Submitting to: ${endpoint}`);
 

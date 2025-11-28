@@ -1774,11 +1774,11 @@ export interface VerificationTask {
   // Field 1: Customer Name (already available as customer.name)
   customerName?: string; // Direct field from backend
 
-  // Field 2: Case ID (already available as id)
-  caseId?: number; // Backend auto-increment case ID
-
-  // Verification Task Information
-  verificationTaskId?: string; // Verification Task UUID
+  // Field 2: Case  priority?: TaskPriority;
+  priorityReason?: string;
+  businessCaseId?: number; // Backend auto-increment case ID for display purposes
+  verificationTaskId?: string; // UUID from backend
+  taskNumber?: string; // Human-readable task numberUUID
   verificationTaskNumber?: string; // Verification Task Number (e.g., VT-000127)
 
   // Field 3: Client

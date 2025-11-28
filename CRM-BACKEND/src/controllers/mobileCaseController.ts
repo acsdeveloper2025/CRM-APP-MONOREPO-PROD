@@ -9,6 +9,7 @@ import { createAuditLog } from '../utils/auditLogger';
 import { config } from '../config';
 import { query } from '@/config/database';
 import { queueCaseRevocationNotification } from '../queues/notificationQueue';
+import { TaskLookupService } from '../services/taskLookupService';
 
 /**
  * Get the appropriate API base URL based on request headers
@@ -370,32 +371,21 @@ export class MobileCaseController {
   // Get single case for mobile
   static async getMobileCase(req: Request, res: Response) {
     try {
-      const { caseId } = req.params;
+      const { taskId } = req.params;
       const userId = (req as any).user?.userId;
       const userRole = (req as any).user?.role;
+
+      // Resolve taskId to caseId
+      const caseId = await TaskLookupService.resolveCaseId(taskId);
+      const specificTaskId = taskId;
 
       const _where: any = { id: caseId };
 
       // Role-based access control
       // For FIELD_AGENT: Check if they have an assigned task for this case
       // For other roles: No additional filtering
-      // Check if the ID provided is actually a Verification Task ID
-      // This is needed because we now return Task ID as 'id' in the list for field agents
-      let lookupCaseId = caseId;
-      let specificTaskId = null;
-
-      // Check if it looks like a UUID
-      if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(caseId)) {
-        const taskRes = await query(`SELECT case_id FROM verification_tasks WHERE id = $1`, [
-          caseId,
-        ]);
-        if (taskRes.rows.length > 0) {
-          lookupCaseId = taskRes.rows[0].case_id;
-          specificTaskId = caseId;
-        }
-      }
-
-      const vals2: any[] = [lookupCaseId];
+      
+      const vals2: any[] = [caseId];
       const _userIdForTaskFilter = userRole === 'FIELD_AGENT' ? userId : null;
 
       let caseSql = `
@@ -601,12 +591,16 @@ export class MobileCaseController {
   // Update case status from mobile
   static async updateCaseStatus(req: Request, res: Response) {
     try {
-      const { caseId } = req.params;
+      const { taskId } = req.params; // Changed from caseId to taskId
       const { status, notes = null } = req.body;
-      const userId = (req as any).user?.id; // Fixed: auth middleware sets 'id', not 'userId'
+      const userId = (req as any).user?.id;
       const userRole = (req as any).user?.role;
 
+      // Resolve taskId to caseId
+      const caseId = await TaskLookupService.resolveCaseId(taskId);
+
       console.log(`📱 Mobile case status update request:`, {
+        taskId,
         caseId,
         status,
         notes,
@@ -614,19 +608,8 @@ export class MobileCaseController {
         userRole,
       });
 
-      // Check if caseId is a UUID (mobile sends UUID) or case number (web sends case number)
-      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(caseId);
-
       const vals3: any[] = [caseId];
-      let exSql: string;
-
-      if (isUUID) {
-        // Mobile app sends UUID
-        exSql = `SELECT id, "caseId", status, trigger, "completedAt" FROM cases WHERE id = $1`;
-      } else {
-        // Web app sends case number
-        exSql = `SELECT id, "caseId", status, trigger, "completedAt" FROM cases WHERE "caseId" = $1`;
-      }
+      let exSql = `SELECT id, "caseId", status, trigger, "completedAt" FROM cases WHERE id = $1`;
 
       if (userRole === 'FIELD_AGENT') {
         exSql += ` AND EXISTS (
@@ -642,15 +625,14 @@ export class MobileCaseController {
       const existingCase = exRes.rows[0];
 
       if (!existingCase) {
-        console.log(`❌ Case not found: ${caseId} (isUUID: ${isUUID})`);
+        console.log(`❌ Case not found for task: ${taskId}`);
         return res.status(404).json({
           success: false,
           message: 'Case not found or access denied',
           error: {
             code: 'CASE_NOT_FOUND',
             timestamp: new Date().toISOString(),
-            caseId,
-            isUUID,
+            taskId,
           },
         });
       }
@@ -754,8 +736,12 @@ export class MobileCaseController {
   // Update case priority from mobile
   static async updateCasePriority(req: Request, res: Response) {
     try {
-      const { caseId } = req.params;
+      const { taskId } = req.params; // Changed from caseId to taskId
       const { priority } = req.body;
+      
+      // Resolve taskId to caseId
+      const caseId = await TaskLookupService.resolveCaseId(taskId);
+
       const userId = (req as any).user?.userId;
       const userRole = (req as any).user?.role;
 
@@ -841,26 +827,18 @@ export class MobileCaseController {
   // Auto-save form data
   static async autoSaveForm(req: Request, res: Response) {
     try {
-      const { caseId } = req.params;
+      const { taskId } = req.params; // Changed from caseId to taskId
       const { formType, formData, timestamp }: MobileAutoSaveRequest = req.body;
       const userId = (req as any).user?.userId;
       const userRole = (req as any).user?.role;
 
-      console.log(`📱 Auto-save request for case ${caseId}, formType: ${formType}`);
+      // Resolve taskId to caseId
+      const caseId = await TaskLookupService.resolveCaseId(taskId);
 
-      // Check if caseId is a UUID (mobile sends UUID) or case number (web sends case number)
-      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(caseId);
+      console.log(`📱 Auto-save request for task ${taskId} (case ${caseId}), formType: ${formType}`);
 
       const vals5: any[] = [caseId];
-      let exSql3: string;
-
-      if (isUUID) {
-        // Mobile app sends UUID
-        exSql3 = `SELECT id FROM cases WHERE id = $1`;
-      } else {
-        // Web app sends case number
-        exSql3 = `SELECT id FROM cases WHERE "caseId" = $1`;
-      }
+      let exSql3 = `SELECT id FROM cases WHERE id = $1`;
 
       if (userRole === 'FIELD_AGENT') {
         exSql3 += ` AND EXISTS (
@@ -874,15 +852,14 @@ export class MobileCaseController {
       const exRes3 = await query(exSql3, vals5);
       const existingCase = exRes3.rows[0];
       if (!existingCase) {
-        console.log(`❌ Auto-save: Case not found: ${caseId} (isUUID: ${isUUID})`);
+        console.log(`❌ Auto-save: Case not found for task ${taskId}`);
         return res.status(404).json({
           success: false,
           message: 'Case not found or access denied',
           error: {
             code: 'CASE_NOT_FOUND',
             timestamp: new Date().toISOString(),
-            caseId,
-            isUUID,
+            taskId,
           },
         });
       }
@@ -935,25 +912,17 @@ export class MobileCaseController {
   // Get auto-saved form data
   static async getAutoSavedForm(req: Request, res: Response) {
     try {
-      const { caseId, formType } = req.params;
+      const { taskId, formType } = req.params; // Changed from caseId to taskId
       const userId = (req as any).user?.userId;
       const userRole = (req as any).user?.role;
 
-      console.log(`📱 Get auto-saved form for case ${caseId}, formType: ${formType}`);
+      // Resolve taskId to caseId
+      const caseId = await TaskLookupService.resolveCaseId(taskId);
 
-      // Check if caseId is a UUID (mobile sends UUID) or case number (web sends case number)
-      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(caseId);
+      console.log(`📱 Get auto-saved form for task ${taskId} (case ${caseId}), formType: ${formType}`);
 
       const vals7: any[] = [caseId];
-      let exSql5: string;
-
-      if (isUUID) {
-        // Mobile app sends UUID
-        exSql5 = `SELECT id FROM cases WHERE id = $1`;
-      } else {
-        // Web app sends case number
-        exSql5 = `SELECT id FROM cases WHERE "caseId" = $1`;
-      }
+      let exSql5 = `SELECT id FROM cases WHERE id = $1`;
 
       if (userRole === 'FIELD_AGENT') {
         exSql5 += ` AND EXISTS (
@@ -968,15 +937,14 @@ export class MobileCaseController {
       const existingCase = exRes5.rows[0];
 
       if (!existingCase) {
-        console.log(`❌ Get auto-saved: Case not found: ${caseId} (isUUID: ${isUUID})`);
+        console.log(`❌ Get auto-saved: Case not found for task ${taskId}`);
         return res.status(404).json({
           success: false,
           message: 'Case not found or access denied',
           error: {
             code: 'CASE_NOT_FOUND',
             timestamp: new Date().toISOString(),
-            caseId,
-            isUUID,
+            taskId,
           },
         });
       }
