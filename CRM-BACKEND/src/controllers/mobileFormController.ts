@@ -1,11 +1,16 @@
 import type { Request, Response } from 'express';
 import type { MobileFormSubmissionRequest, FormSubmissionData, FormSection } from '../types/mobile';
+import { TaskLookupService } from '../services/taskLookupService';
 import { createAuditLog } from '../utils/auditLogger';
 import {
   detectResidenceFormType,
   detectOfficeFormType,
   detectBusinessFormType,
   detectPropertyIndividualFormType,
+  detectResidenceCumOfficeFormType,
+  detectNocFormType,
+  detectPropertyApfFormType,
+  detectDsaConnectorFormType,
 } from '../utils/formTypeDetection';
 // import {
 //   mapFormDataToDatabase,
