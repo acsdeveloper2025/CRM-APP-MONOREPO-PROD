@@ -1,11 +1,11 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Case, NspOfficeReportData, AddressLocatable, AddressRating, OfficeStatusOffice, OfficeExistence,
+  VerificationTask, NspOfficeReportData, AddressLocatable, AddressRating, OfficeStatusOffice, OfficeExistence,
   DesignationShiftedOffice, SightStatus, TPCMetPerson, TPCConfirmation, LocalityTypeResiCumOffice,
-  DominatedArea, FeedbackFromNeighbour, FinalStatus, CaseStatus, CapturedImage
+  DominatedArea, FeedbackFromNeighbour, FinalStatus, TaskStatus, CapturedImage
 } from '../../../types';
-import { useCases } from '../../../context/CaseContext';
+import { useTasks } from "../../../context/TaskContext"
 import { FormField, SelectField, TextAreaField, NumberDropdownField } from '../../FormControls';
 import ConfirmationModal from '../../ConfirmationModal';
 import ImageCapture from '../../ImageCapture';
@@ -25,41 +25,41 @@ import {
 } from '../../../utils/imageAutoSaveHelpers';
 
 interface NspOfficeFormProps {
-  caseData: Case;
+  taskData: VerificationTask;
 }
 
 const getEnumOptions = (enumObject: object) => Object.values(enumObject).map(value => (
   <option key={value} value={value}>{value}</option>
 ));
 
-const NspOfficeForm: React.FC<NspOfficeFormProps> = ({ caseData }) => {
+const NspOfficeForm: React.FC<NspOfficeFormProps> = ({ taskData }) => {
   const navigate = useNavigate();
-  const { updateNspOfficeReport, toggleSaveCase, fetchCases } = useCases();
+  const { updateNspOfficeReport, toggleSaveTask, fetchTasks } = useTasks();
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionError, setSubmissionError] = useState<string | null>(null);
   const [submissionSuccess, setSubmissionSuccess] = useState(false);
-  const report = caseData.nspOfficeReport;
-  const isReadOnly = caseData.status === CaseStatus.Completed || caseData.isSaved;
+  const report = taskData.nspOfficeReport;
+  const isReadOnly = taskData.status === TaskStatus.Completed || taskData.isSaved;
   const MIN_IMAGES = 5;
 
   // Auto-save handlers using helper functions for complete auto-save functionality
   const handleFormDataChange = createFormDataChangeHandler(
     updateNspOfficeReport,
-    caseData.id,
+    taskData.id,
     isReadOnly
   );
 
   const handleAutoSaveImagesChange = createAutoSaveImagesChangeHandler(
     updateNspOfficeReport,
-    caseData.id,
+    taskData.id,
     report,
     isReadOnly
   );
 
   const handleDataRestored = createDataRestoredHandler(
     updateNspOfficeReport,
-    caseData.id,
+    taskData.id,
     isReadOnly
   );
 
@@ -125,19 +125,19 @@ const NspOfficeForm: React.FC<NspOfficeFormProps> = ({ caseData }) => {
     }
 
     const updates: Partial<NspOfficeReportData> = { [name]: processedValue };
-    updateNspOfficeReport(caseData.id, updates);
+    updateNspOfficeReport(taskData.id, updates);
   };
   
   const handleImagesChange = createImageChangeHandler(
     updateNspOfficeReport,
-    caseData.id,
+    taskData.id,
     report,
     handleAutoSaveImagesChange
   );
 
   const handleSelfieImagesChange = createSelfieImageChangeHandler(
     updateNspOfficeReport,
-    caseData.id,
+    taskData.id,
     report,
     handleAutoSaveImagesChange
   );
@@ -158,7 +158,7 @@ const NspOfficeForm: React.FC<NspOfficeFormProps> = ({ caseData }) => {
 
   return (
     <AutoSaveFormWrapper
-      caseId={caseData.id}
+      taskId={taskData.id}
       formType={FORM_TYPES.OFFICE_NSP}
       formData={report}
       images={combineImagesForAutoSave(report)}
@@ -175,16 +175,16 @@ const NspOfficeForm: React.FC<NspOfficeFormProps> = ({ caseData }) => {
         <div className="p-4 bg-gray-900/50 rounded-lg space-y-4 border border-dark-border mb-4">
             <h5 className="font-semibold text-brand-primary">Case Details</h5>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField label="Customer Name" id="case-customerName" name="case-customerName" value={caseData.customer.name} onChange={() => {}} disabled />
-                <FormField label="Bank Name" id="case-bankName" name="case-bankName" value={caseData.client?.name || caseData.clientName || ''} onChange={() => {}} disabled />
-                <FormField label="Product" id="case-product" name="case-product" value={caseData.product?.name || caseData.productName || ''} onChange={() => {}} disabled />
-                <FormField label="Trigger" id="case-trigger" name="case-trigger" value={caseData.notes || caseData.trigger || ''} onChange={() => {}} disabled />
+                <FormField label="Customer Name" id="case-customerName" name="case-customerName" value={taskData.customer.name} onChange={() => {}} disabled />
+                <FormField label="Bank Name" id="case-bankName" name="case-bankName" value={typeof taskData.client === 'object' ? taskData.client?.name : taskData.client || taskData.clientName || ''} onChange={() => {}} disabled />
+                <FormField label="Product" id="case-product" name="case-product" value={typeof taskData.product === 'object' ? taskData.product?.name : taskData.product || taskData.productName || ''} onChange={() => {}} disabled />
+                <FormField label="Trigger" id="case-trigger" name="case-trigger" value={taskData.notes || taskData.trigger || ''} onChange={() => {}} disabled />
                 <div className="md:col-span-2">
-                <FormField label="Visit Address" id="case-visitAddress" name="case-visitAddress" value={caseData.addressStreet || caseData.visitAddress || caseData.address || ''} onChange={() => {}} disabled />
+                <FormField label="Visit Address" id="case-visitAddress" name="case-visitAddress" value={taskData.addressStreet || taskData.visitAddress || taskData.address || ''} onChange={() => {}} disabled />
                 </div>
-                <FormField label="System Contact Number" id="case-systemContactNumber" name="case-systemContactNumber" value={caseData.systemContactNumber || ''} onChange={() => {}} disabled />
-                <FormField label="Customer Calling Code" id="case-customerCallingCode" name="case-customerCallingCode" value={caseData.customerCallingCode || ''} onChange={() => {}} disabled />
-                <FormField label="Applicant Status" id="case-applicantStatus" name="case-applicantStatus" value={caseData.applicantStatus || ''} onChange={() => {}} disabled />
+                <FormField label="System Contact Number" id="case-systemContactNumber" name="case-systemContactNumber" value={taskData.systemContactNumber || ''} onChange={() => {}} disabled />
+                <FormField label="Customer Calling Code" id="case-customerCallingCode" name="case-customerCallingCode" value={taskData.customerCallingCode || ''} onChange={() => {}} disabled />
+                <FormField label="Applicant Status" id="case-applicantStatus" name="case-applicantStatus" value={taskData.applicantStatus || ''} onChange={() => {}} disabled />
             </div>
         </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -295,7 +295,7 @@ const NspOfficeForm: React.FC<NspOfficeFormProps> = ({ caseData }) => {
         compact={true}
       />
 
-      {!isReadOnly && caseData.status === CaseStatus.InProgress && (
+      {!isReadOnly && taskData.status === TaskStatus.InProgress && (
           <>
             <div className="mt-6">
                 <button 
@@ -322,7 +322,7 @@ const NspOfficeForm: React.FC<NspOfficeFormProps> = ({ caseData }) => {
                     setSubmissionError(null);
                 }}
                 onSave={() => {
-                    toggleSaveCase(caseData.id, true);
+                    toggleSaveTask(taskData.id, true);
                     setIsConfirmModalOpen(false);
                 }}
                 onConfirm={async () => {
@@ -334,7 +334,7 @@ const NspOfficeForm: React.FC<NspOfficeFormProps> = ({ caseData }) => {
                         const formData = {
                             remarks: report.otherObservation || '',
                             ...report, // Include all report data
-                            outcome: caseData.verificationOutcome // Use ONLY case verification outcome, no fallback (MUST be after spread)
+                            outcome: taskData.verificationOutcome // Use ONLY case verification outcome, no fallback (MUST be after spread)
                         };
 
                         // Combine all images (regular + selfie)
@@ -352,8 +352,8 @@ const NspOfficeForm: React.FC<NspOfficeFormProps> = ({ caseData }) => {
 
                         // Submit verification form to backend
                         const result = await VerificationFormService.submitOfficeVerification(
-                            caseData.id,
-                            caseData.verificationTaskId!,
+                            taskData.id,
+                            taskData.verificationTaskId!,
                             formData,
                             allImages,
                             geoLocation
@@ -371,8 +371,8 @@ const NspOfficeForm: React.FC<NspOfficeFormProps> = ({ caseData }) => {
 
                             // Handle post-submission: update status, refresh list, navigate
                             await handleSuccessfulSubmission(
-                                caseData.id,
-                                fetchCases,
+                                taskData.id,
+                                fetchTasks,
                                 navigate,
                                 setSubmissionSuccess
                             );

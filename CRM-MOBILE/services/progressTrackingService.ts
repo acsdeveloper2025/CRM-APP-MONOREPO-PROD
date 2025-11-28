@@ -14,7 +14,7 @@ export interface SubmissionStep {
 
 export interface SubmissionProgress {
   id: string;
-  caseId: string;
+  taskId: string;
   verificationType: string;
   status: 'PREPARING' | 'UPLOADING' | 'SUBMITTING' | 'COMPLETED' | 'FAILED';
   overallProgress: number; // 0-100
@@ -101,7 +101,7 @@ class ProgressTrackingService {
    * Start tracking a new submission
    */
   startSubmission(
-    caseId: string, 
+    taskId: string, 
     verificationType: string,
     totalBytes?: number
   ): string {
@@ -111,7 +111,7 @@ class ProgressTrackingService {
     
     const progress: SubmissionProgress = {
       id: submissionId,
-      caseId,
+      taskId,
       verificationType,
       status: 'PREPARING',
       overallProgress: 0,
@@ -126,7 +126,7 @@ class ProgressTrackingService {
     this.activeSubmissions.set(submissionId, progress);
     this.saveActiveSubmissions();
     
-    console.log(`📊 Started tracking submission: ${submissionId} for case ${caseId}`);
+    console.log(`📊 Started tracking submission: ${submissionId} for case ${taskId}`);
     this.notifyProgress(submissionId);
     
     return submissionId;

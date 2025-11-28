@@ -14,7 +14,7 @@ export interface EncryptedAttachment {
   encryptionKey: string;
   createdAt: string;
   lastAccessed: string;
-  caseId: string;
+  taskId: string;
   checksum: string;
 }
 
@@ -96,7 +96,7 @@ export class SecureStorageService {
       originalName: string;
       mimeType: string;
       size: number;
-      caseId: string;
+      taskId: string;
       checksum?: string; // Optional checksum from backend for verification
     }
   ): Promise<void> {
@@ -138,7 +138,7 @@ export class SecureStorageService {
         encryptionKey: encryptionKey,
         createdAt: new Date().toISOString(),
         lastAccessed: new Date().toISOString(),
-        caseId: metadata.caseId,
+        taskId: metadata.taskId,
         checksum: checksum
       };
 
@@ -292,7 +292,7 @@ export class SecureStorageService {
   /**
    * List all stored attachments for a case
    */
-  async listAttachments(caseId?: string): Promise<EncryptedAttachment[]> {
+  async listAttachments(taskId?: string): Promise<EncryptedAttachment[]> {
     try {
       const attachments: EncryptedAttachment[] = [];
       const { keys } = await Preferences.keys();
@@ -302,7 +302,7 @@ export class SecureStorageService {
           const { value } = await Preferences.get({ key });
           if (value) {
             const metadata = JSON.parse(value) as EncryptedAttachment;
-            if (!caseId || metadata.caseId === caseId) {
+            if (!taskId || metadata.taskId === taskId) {
               attachments.push(metadata);
             }
           }
@@ -321,7 +321,7 @@ export class SecureStorageService {
   /**
    * Get all attachments for a specific case
    */
-  async getCaseAttachments(caseId: string): Promise<EncryptedAttachment[]> {
+  async getCaseAttachments(taskId: string): Promise<EncryptedAttachment[]> {
     try {
       const attachments: EncryptedAttachment[] = [];
 
@@ -334,7 +334,7 @@ export class SecureStorageService {
             const result = await Preferences.get({ key });
             if (result.value) {
               const metadata: EncryptedAttachment = JSON.parse(result.value);
-              if (metadata.caseId === caseId) {
+              if (metadata.taskId === taskId) {
                 attachments.push(metadata);
               }
             }
@@ -344,10 +344,10 @@ export class SecureStorageService {
         }
       }
 
-      console.log(`📋 Found ${attachments.length} attachments for case ${caseId}`);
+      console.log(`📋 Found ${attachments.length} attachments for case ${taskId}`);
       return attachments;
     } catch (error) {
-      console.error(`❌ Failed to get case attachments for ${caseId}:`, error);
+      console.error(`❌ Failed to get case attachments for ${taskId}:`, error);
       return [];
     }
   }
@@ -459,11 +459,11 @@ export class SecureStorageService {
   /**
    * Clear all attachments for a specific case after submission
    */
-  async clearCaseAttachments(caseId: string): Promise<void> {
+  async clearCaseAttachments(taskId: string): Promise<void> {
     try {
-      console.log(`🗑️ Clearing all attachments for case: ${caseId}`);
+      console.log(`🗑️ Clearing all attachments for case: ${taskId}`);
 
-      const attachments = await this.getCaseAttachments(caseId);
+      const attachments = await this.getCaseAttachments(taskId);
       let clearedCount = 0;
 
       for (const attachment of attachments) {
@@ -491,9 +491,9 @@ export class SecureStorageService {
       // Update storage statistics
       await this.updateStorageStatsAfterCleanup(clearedCount);
 
-      console.log(`🎯 Successfully cleared ${clearedCount} attachments for case ${caseId}`);
+      console.log(`🎯 Successfully cleared ${clearedCount} attachments for case ${taskId}`);
     } catch (error) {
-      console.error(`❌ Failed to clear case attachments for ${caseId}:`, error);
+      console.error(`❌ Failed to clear case attachments for ${taskId}:`, error);
       throw error;
     }
   }

@@ -6,12 +6,13 @@ import AttachmentViewer from './AttachmentViewer';
 import Spinner from './Spinner';
 
 interface AttachmentsModalProps {
-  caseId: string;
-  isVisible: boolean;
+  isOpen: boolean;
   onClose: () => void;
+  taskId: string;
+  onAttachmentsChange?: () => void;
 }
 
-const AttachmentsModal: React.FC<AttachmentsModalProps> = ({ caseId, isVisible, onClose }) => {
+const AttachmentsModal: React.FC<AttachmentsModalProps> = ({ taskId, isOpen, onClose, onAttachmentsChange }) => {
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -19,24 +20,24 @@ const AttachmentsModal: React.FC<AttachmentsModalProps> = ({ caseId, isVisible, 
   const [viewerVisible, setViewerVisible] = useState(false);
 
   useEffect(() => {
-    if (isVisible && caseId) {
+    if (isOpen && taskId) {
       fetchAttachments();
     }
     // Reset state when modal closes
-    if (!isVisible) {
+    if (!isOpen) {
       setAttachments([]);
       setError(null);
       setSelectedAttachment(null);
       setViewerVisible(false);
     }
-  }, [isVisible, caseId]);
+  }, [isOpen, taskId]);
 
   const fetchAttachments = async () => {
     setLoading(true);
     setError(null);
 
     try {
-      const caseAttachments = await attachmentService.getCaseAttachments(caseId);
+      const caseAttachments = await attachmentService.getCaseAttachments(taskId);
       setAttachments(caseAttachments);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load attachments');
@@ -156,7 +157,7 @@ const AttachmentsModal: React.FC<AttachmentsModalProps> = ({ caseId, isVisible, 
   return (
     <>
       <Modal
-        isVisible={isVisible}
+        isVisible={isOpen}
         onClose={onClose}
         title={
           <div className="flex items-center gap-2">

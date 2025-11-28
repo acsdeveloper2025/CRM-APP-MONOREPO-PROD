@@ -10,25 +10,25 @@
  * when ALL its verification tasks are completed.
  *
  * @param caseId - The ID of the case that was submitted
- * @param fetchCases - Function to refresh case list from CaseContext
+ * @param fetchTasks - Function to refresh case list from "./context/TaskContext"
  * @param navigate - React Router navigate function
  * @param setSubmissionSuccess - State setter for success message
  */
 export const handleSuccessfulSubmission = async (
-  caseId: string,
-  fetchCases: () => void,
+  taskId: string,
+  fetchTasks: () => void,
   navigate: (path: string) => void,
   setSubmissionSuccess: (success: boolean) => void
 ): Promise<void> => {
   try {
-    console.log(`✅ Handling successful submission for case ${caseId}`);
+    console.log(`✅ Handling successful submission for task ${taskId}`);
 
     // Show success message
     setSubmissionSuccess(true);
 
     // Refresh case list to get updated data from backend
     // The backend will automatically update case status based on all verification tasks
-    fetchCases();
+    fetchTasks();
 
     // Navigate to in-progress cases screen after a brief delay to show success message
     // The case will appear in completed cases only when ALL tasks are done (backend handles this)

@@ -12,8 +12,9 @@ export interface NotificationData {
   title: string;
   message: string;
   type: string;
-  caseId?: string;
+  taskId?: string;
   caseNumber?: string;
+  taskNumber?: string;
   actionUrl?: string;
   actionType?: string;
   priority?: 'URGENT' | 'HIGH' | 'MEDIUM' | 'LOW';
@@ -227,7 +228,7 @@ class NotificationService {
         title: remoteMessage.notification?.title || 'Notification',
         message: remoteMessage.notification?.body || '',
         type: remoteMessage.data?.type || 'GENERAL',
-        caseId: remoteMessage.data?.caseId,
+        taskId: remoteMessage.data?.taskId,
         caseNumber: remoteMessage.data?.caseNumber,
         actionUrl: remoteMessage.data?.actionUrl,
         actionType: remoteMessage.data?.actionType,
@@ -281,9 +282,9 @@ class NotificationService {
     try {
       const data = notification.data || notification.userInfo || {};
       
-      if (data.actionType === 'OPEN_CASE' && data.caseId) {
+      if (data.actionType === 'OPEN_CASE' && data.taskId) {
         // Navigate to case details
-        this.navigateToCase(data.caseId);
+        this.navigateToCase(data.taskId);
       } else if (data.actionUrl) {
         // Navigate to specific URL
         this.navigateToUrl(data.actionUrl);
@@ -301,10 +302,10 @@ class NotificationService {
   /**
    * Navigate to case details
    */
-  private navigateToCase(caseId: string): void {
+  private navigateToCase(taskId: string): void {
     // This would be implemented with your navigation system
-    console.log('🔗 Navigate to case:', caseId);
-    // Example: NavigationService.navigate('CaseDetails', { caseId });
+    console.log('🔗 Navigate to case:', taskId);
+    // Example: NavigationService.navigate('CaseDetails', { taskId });
   }
 
   /**

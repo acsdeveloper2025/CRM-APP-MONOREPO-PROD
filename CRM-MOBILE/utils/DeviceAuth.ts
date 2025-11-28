@@ -58,9 +58,8 @@ class DeviceAuthManager {
             components.push(navigator.hardwareConcurrency.toString());
           }
           
-          if (navigator.deviceMemory) {
-            components.push(navigator.deviceMemory.toString());
-          }
+          const memory = ((navigator as any).deviceMemory || 4).toString();
+          components.push(memory);
         }
       }
     } catch (error) {

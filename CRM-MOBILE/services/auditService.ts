@@ -1,4 +1,4 @@
-import { CaseStatus } from '../types';
+import { TaskStatus } from '../types';
 import AuthStorageService from './authStorageService';
 import NetworkService from './networkService';
 import { apiService } from './apiService';
@@ -17,12 +17,14 @@ export interface AuditLogEntry {
   entityType: 'case' | 'user' | 'system';
   entityId: string;
   details: {
-    fromStatus?: CaseStatus;
-    toStatus?: CaseStatus;
-    caseId?: string;
+    fromStatus?: TaskStatus;
+    toStatus?: TaskStatus;
+    taskId?: string;
     customerName?: string;
     verificationType?: string;
     metadata?: Record<string, any>;
+    synced?: boolean;
+    syncedAt?: string;
   };
   deviceInfo: {
     userAgent: string;
@@ -52,10 +54,10 @@ class AuditService {
   /**
    * Log a case status change
    */
-  static async logCaseStatusChange(
-    caseId: string,
-    fromStatus: CaseStatus,
-    toStatus: CaseStatus,
+  static async logTaskStatusChange(
+    taskId: string,
+    fromStatus: TaskStatus,
+    toStatus: TaskStatus,
     caseDetails: {
       customerName?: string;
       verificationType?: string;
@@ -73,7 +75,7 @@ class AuditService {
       const existingLogs = await this.getLocalAuditLogs();
       const recentDuplicate = existingLogs.find(log =>
         log.action === 'case_status_change' &&
-        log.entityId === caseId &&
+        log.entityId === taskId &&
         log.details.fromStatus === fromStatus &&
         log.details.toStatus === toStatus &&
         // Check if logged within the last 5 minutes to prevent duplicates
@@ -81,7 +83,7 @@ class AuditService {
       );
 
       if (recentDuplicate) {
-        console.log(`⚠️ Skipping duplicate audit log for case ${caseId} status change: ${fromStatus} → ${toStatus}`);
+        console.log(`⚠️ Skipping duplicate audit log for case ${taskId} status change: ${fromStatus} → ${toStatus}`);
         return;
       }
 
@@ -92,11 +94,11 @@ class AuditService {
         username: authData.user.username,
         action: 'case_status_change',
         entityType: 'case',
-        entityId: caseId,
+        entityId: taskId,
         details: {
           fromStatus,
           toStatus,
-          caseId,
+          taskId,
           customerName: caseDetails.customerName,
           verificationType: caseDetails.verificationType,
           metadata: caseDetails.metadata,
@@ -121,7 +123,7 @@ class AuditService {
       }
 
       await this.storeAuditLog(logEntry);
-      console.log(`📝 Audit log created for case ${caseId} status change: ${fromStatus} → ${toStatus}`);
+      console.log(`📝 Audit log created for case ${taskId} status change: ${fromStatus} → ${toStatus}`);
 
       // Attempt immediate sync if online
       if (NetworkService.isOnline()) {
@@ -425,12 +427,12 @@ class AuditService {
   /**
    * Get audit logs for a specific case
    */
-  static async getCaseAuditLogs(caseId: string): Promise<AuditLogEntry[]> {
+  static async getCaseAuditLogs(taskId: string): Promise<AuditLogEntry[]> {
     try {
       const logs = await this.getLocalAuditLogs();
       return logs.filter(log => 
         log.entityType === 'case' && 
-        (log.entityId === caseId || log.details.caseId === caseId)
+        (log.entityId === taskId || log.details.taskId === taskId)
       );
     } catch (error) {
       console.error('Failed to get case audit logs:', error);

@@ -1,4 +1,4 @@
-import { Case, VerificationOutcome } from '../types';
+import { VerificationTask, VerificationOutcome } from '../types';
 
 /**
  * Migration mapping for deprecated verification outcomes to new ones
@@ -23,7 +23,7 @@ const OUTCOME_MIGRATION_MAP: Record<string, VerificationOutcome> = {
  * @param caseData - The case to migrate
  * @returns The migrated case with updated verification outcome
  */
-export function migrateCaseVerificationOutcome(caseData: Case): Case {
+export function migrateVerificationTaskVerificationOutcome(caseData: VerificationTask): VerificationTask {
   const currentOutcome = caseData.verificationOutcome;
   
   // Check if the current outcome needs migration
@@ -50,8 +50,8 @@ export function migrateCaseVerificationOutcome(caseData: Case): Case {
  * @param cases - Array of cases to migrate
  * @returns Array of migrated cases
  */
-export function migrateCasesVerificationOutcomes(cases: Case[]): Case[] {
-  return cases.map(migrateCaseVerificationOutcome);
+export function migrateVerificationTasksVerificationOutcomes(cases: VerificationTask[]): VerificationTask[] {
+  return cases.map(migrateVerificationTaskVerificationOutcome);
 }
 
 /**

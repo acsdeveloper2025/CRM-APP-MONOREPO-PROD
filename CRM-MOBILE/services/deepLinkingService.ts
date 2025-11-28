@@ -6,10 +6,14 @@ export interface DeepLinkData {
   id?: string;
   action?: string;
   params?: Record<string, any>;
+  path?: string;
+  queryParams?: Record<string, string>;
+  taskId?: string;
 }
 
 class DeepLinkingService {
   private static instance: DeepLinkingService;
+  private navigationRef: any = null;
   private navigate: ((path: string) => void) | null = null;
   private pendingLink: string | null = null;
 
@@ -25,7 +29,7 @@ class DeepLinkingService {
   /**
    * Initialize deep linking service
    */
-  public initialize(navigationRef: NavigationContainerRef<any>): void {
+  public initialize(navigationRef: any): void {
     this.navigationRef = navigationRef;
 
     // Handle initial URL if app was opened from a link
@@ -147,8 +151,8 @@ class DeepLinkingService {
   /**
    * Navigate to case details
    */
-  private navigateToCase(caseId?: string, action?: string, params?: Record<string, any>): void {
-    if (!caseId) {
+  private navigateToCase(taskId?: string, action?: string, params?: Record<string, any>): void {
+    if (!taskId) {
       console.warn('⚠️ Case ID not provided, navigating to cases list');
       this.navigationRef?.navigate('Cases');
       return;
@@ -156,16 +160,16 @@ class DeepLinkingService {
 
     switch (action) {
       case 'edit':
-        this.navigationRef?.navigate('CaseEdit', { caseId, ...params });
+        this.navigationRef?.navigate('CaseEdit', { taskId, ...params });
         break;
       case 'form':
-        this.navigationRef?.navigate('CaseForm', { caseId, ...params });
+        this.navigationRef?.navigate('CaseForm', { taskId, ...params });
         break;
       case 'attachments':
-        this.navigationRef?.navigate('CaseAttachments', { caseId, ...params });
+        this.navigationRef?.navigate('CaseAttachments', { taskId, ...params });
         break;
       default:
-        this.navigationRef?.navigate('CaseDetails', { caseId, ...params });
+        this.navigationRef?.navigate('CaseDetails', { taskId, ...params });
     }
   }
 
@@ -191,25 +195,25 @@ class DeepLinkingService {
       return;
     }
 
-    const caseId = params?.caseId;
-    if (!caseId) {
+    const taskId = params?.taskId;
+    if (!taskId) {
       console.warn('⚠️ Case ID not provided for form navigation');
       return;
     }
 
     switch (formType) {
       case 'residence':
-        this.navigationRef?.navigate('ResidenceVerificationForm', { caseId, ...params });
+        this.navigationRef?.navigate('ResidenceVerificationForm', { taskId, ...params });
         break;
       case 'office':
-        this.navigationRef?.navigate('OfficeVerificationForm', { caseId, ...params });
+        this.navigationRef?.navigate('OfficeVerificationForm', { taskId, ...params });
         break;
       case 'business':
-        this.navigationRef?.navigate('BusinessVerificationForm', { caseId, ...params });
+        this.navigationRef?.navigate('BusinessVerificationForm', { taskId, ...params });
         break;
       default:
         console.warn('⚠️ Unknown form type:', formType);
-        this.navigateToCase(caseId);
+        this.navigateToCase(taskId);
     }
   }
 
@@ -267,10 +271,10 @@ class DeepLinkingService {
   /**
    * Generate case deep link
    */
-  public generateCaseLink(caseId: string, action?: string, params?: Record<string, any>): string {
+  public generateCaseLink(taskId: string, action?: string, params?: Record<string, any>): string {
     return this.generateDeepLink({
       type: 'case',
-      id: caseId,
+      id: taskId,
       action,
       params,
     });
@@ -281,13 +285,13 @@ class DeepLinkingService {
    */
   public generateFormLink(
     formType: string,
-    caseId: string,
+    taskId: string,
     params?: Record<string, any>
   ): string {
     return this.generateDeepLink({
       type: 'form',
       id: formType,
-      params: { caseId, ...params },
+      params: { taskId, ...params },
     });
   }
 
@@ -305,9 +309,9 @@ class DeepLinkingService {
   /**
    * Share case via deep link
    */
-  public async shareCase(caseId: string, caseNumber?: string): Promise<void> {
+  public async shareCase(taskId: string, caseNumber?: string): Promise<void> {
     try {
-      const url = this.generateCaseLink(caseId);
+      const url = this.generateCaseLink(taskId);
       const message = caseNumber 
         ? `Check out case ${caseNumber}: ${url}`
         : `Check out this case: ${url}`;
@@ -326,8 +330,8 @@ class DeepLinkingService {
    */
   public handleNotificationTap(notificationData: any): void {
     try {
-      if (notificationData.actionType === 'OPEN_CASE' && notificationData.caseId) {
-        const url = this.generateCaseLink(notificationData.caseId);
+      if (notificationData.actionType === 'OPEN_CASE' && notificationData.taskId) {
+        const url = this.generateCaseLink(notificationData.taskId);
         this.handleDeepLink(url);
       } else if (notificationData.actionUrl) {
         // Handle custom action URLs

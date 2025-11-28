@@ -6,7 +6,7 @@ import AutoSaveIndicator from './AutoSaveIndicator';
 // AutoSaveRecoveryModal removed - auto-restore is now automatic
 
 interface AutoSaveFormWrapperProps {
-  caseId: string;
+  taskId: string;
   formType: string;
   formData: any;
   images?: CapturedImage[];
@@ -23,7 +23,7 @@ interface AutoSaveFormWrapperProps {
 }
 
 const AutoSaveFormWrapper: React.FC<AutoSaveFormWrapperProps> = ({
-  caseId,
+  taskId,
   formType,
   formData,
   images = [],
@@ -50,7 +50,7 @@ const AutoSaveFormWrapper: React.FC<AutoSaveFormWrapperProps> = ({
     restoreFormData,
     clearAutoSaveData,
     markFormCompleted
-  } = useAutoSave(caseId, formType, {
+  } = useAutoSave(taskId, formType, {
     debounceMs,
     enableAutoSave,
     onAutoSaveSuccess: (data) => {
@@ -90,7 +90,7 @@ const AutoSaveFormWrapper: React.FC<AutoSaveFormWrapperProps> = ({
               onDataRestored(savedData);
             }
 
-            console.log('Auto-restored draft data for case:', caseId);
+            console.log('Auto-restored draft data for case:', taskId);
           }
         } catch (error) {
           console.error('Error checking for recovery data:', error);
@@ -102,7 +102,7 @@ const AutoSaveFormWrapper: React.FC<AutoSaveFormWrapperProps> = ({
       // Small delay to ensure component is fully mounted
       setTimeout(checkAndRestoreData, 100);
     }
-  }, [restoreFormData, hasCheckedForRecovery, onFormDataChange, onImagesChange, onDataRestored, caseId]);
+  }, [restoreFormData, hasCheckedForRecovery, onFormDataChange, onImagesChange, onDataRestored, taskId]);
 
   /**
    * Auto-save when form data or images change
@@ -180,8 +180,8 @@ const AutoSaveFormWrapper: React.FC<AutoSaveFormWrapperProps> = ({
 export default AutoSaveFormWrapper;
 
 // Export additional utilities for manual control
-export const useAutoSaveFormWrapper = (caseId: string, formType: string) => {
-  const autoSave = useAutoSave(caseId, formType);
+export const useAutoSaveFormWrapper = (taskId: string, formType: string) => {
+  const autoSave = useAutoSave(taskId, formType);
   
   return {
     ...autoSave,

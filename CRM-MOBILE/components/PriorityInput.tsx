@@ -1,20 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { useCases } from '../context/CaseContext';
+import { useTasks } from "../context/TaskContext"
 
 interface PriorityInputProps {
-  caseId: string;
+  taskId: string;
   className?: string;
 }
 
-const PriorityInput: React.FC<PriorityInputProps> = ({ caseId, className = '' }) => {
-  const { getCasePriority, setCasePriority } = useCases();
+const PriorityInput: React.FC<PriorityInputProps> = ({ taskId, className = '' }) => {
+  const { getTaskPriority, setTaskPriority } = useTasks();
   const [priority, setPriority] = useState<string>('');
   const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
-    const currentPriority = getCasePriority(caseId);
+    const currentPriority = getTaskPriority(taskId);
     setPriority(currentPriority ? currentPriority.toString() : '');
-  }, [caseId, getCasePriority]);
+  }, [taskId, getTaskPriority]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -27,7 +27,7 @@ const PriorityInput: React.FC<PriorityInputProps> = ({ caseId, className = '' })
   const handleInputBlur = () => {
     setIsEditing(false);
     const numValue = priority === '' ? null : parseInt(priority);
-    setCasePriority(caseId, numValue);
+    setTaskPriority(taskId, numValue);
   };
 
   const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -35,7 +35,7 @@ const PriorityInput: React.FC<PriorityInputProps> = ({ caseId, className = '' })
       handleInputBlur();
     } else if (e.key === 'Escape') {
       // Reset to original value
-      const currentPriority = getCasePriority(caseId);
+      const currentPriority = getTaskPriority(taskId);
       setPriority(currentPriority ? currentPriority.toString() : '');
       setIsEditing(false);
     }
@@ -44,10 +44,10 @@ const PriorityInput: React.FC<PriorityInputProps> = ({ caseId, className = '' })
   const handleClearPriority = (e: React.MouseEvent) => {
     e.stopPropagation();
     setPriority('');
-    setCasePriority(caseId, null);
+    setTaskPriority(taskId, null);
   };
 
-  const currentPriorityValue = getCasePriority(caseId);
+  const currentPriorityValue = getTaskPriority(taskId);
 
   return (
     <div className={`flex items-center gap-2 ${className}`}>

@@ -1,6 +1,5 @@
-import { Case, CaseStatus, VerificationType, Attachment } from '../types';
+import { VerificationTask, TaskStatus, VerificationType, Attachment } from '../types';
 import AsyncStorage from '../polyfills/AsyncStorage';
-import { migrateCasesVerificationOutcomes, isDeprecatedOutcome } from '../utils/verificationOutcomeMigration';
 import { apiService } from './apiService';
 
 const LOCAL_STORAGE_KEY = 'caseflow_cases';
@@ -34,8 +33,8 @@ function getApiBaseUrl(): string {
   }
 }
 
-// Backend case interface for API responses
-interface BackendCase {
+// Backend task interface for API responses
+interface BackendTask {
   id: string; // UUID primary key
   caseId: number; // Business identifier
   customerName: string;
@@ -71,8 +70,8 @@ interface BackendCase {
   [key: string]: any;
 }
 
-// Function to map backend case data to mobile Case interface
-const mapBackendCaseToMobile = (backendCase: BackendCase): Case => {
+// Function to map backend task data to mobile Case interface
+const mapBackendTaskToMobile = (backendCase: BackendTask): VerificationTask => {
   // Map backend priority string to mobile priority number
   const priorityMap: { [key: string]: number } = {
     'LOW': 1,
@@ -81,25 +80,25 @@ const mapBackendCaseToMobile = (backendCase: BackendCase): Case => {
     'URGENT': 4
   };
 
-  // Map backend status to mobile CaseStatus
+  // Map backend status to mobile TaskStatus
   // This maps task status from verification_tasks table
-  const statusMap: { [key: string]: CaseStatus } = {
-    'PENDING': CaseStatus.Assigned,
-    'ASSIGNED': CaseStatus.Assigned,
-    'IN_PROGRESS': CaseStatus.InProgress,
-    'COMPLETED': CaseStatus.Completed,
-    'CANCELLED': CaseStatus.Assigned,
-    'ON_HOLD': CaseStatus.InProgress,
+  const statusMap: { [key: string]: TaskStatus } = {
+    'PENDING': TaskStatus.Assigned,
+    'ASSIGNED': TaskStatus.Assigned,
+    'IN_PROGRESS': TaskStatus.InProgress,
+    'COMPLETED': TaskStatus.Completed,
+    'CANCELLED': TaskStatus.Assigned,
+    'ON_HOLD': TaskStatus.InProgress,
   };
 
   // Map backend status to task status (preserves task-level status)
-  const taskStatusMap: { [key: string]: CaseStatus } = {
-    'PENDING': CaseStatus.Assigned,
-    'ASSIGNED': CaseStatus.Assigned,
-    'IN_PROGRESS': CaseStatus.InProgress,
-    'COMPLETED': CaseStatus.Completed,
-    'CANCELLED': CaseStatus.Assigned,
-    'ON_HOLD': CaseStatus.InProgress,
+  const taskStatusMap: { [key: string]: TaskStatus } = {
+    'PENDING': TaskStatus.Assigned,
+    'ASSIGNED': TaskStatus.Assigned,
+    'IN_PROGRESS': TaskStatus.InProgress,
+    'COMPLETED': TaskStatus.Completed,
+    'CANCELLED': TaskStatus.Assigned,
+    'ON_HOLD': TaskStatus.InProgress,
   };
 
   // Map backend verification type to mobile VerificationType
@@ -128,17 +127,17 @@ const mapBackendCaseToMobile = (backendCase: BackendCase): Case => {
 
   return {
     // Core mobile app fields
-    // CRITICAL FIX: Use Verification Task ID as unique identifier to support multiple tasks per case
-    // This allows revisit tasks and multiple verification tasks from the same case to appear separately
-    id: backendCase.verificationTaskId || backendCase.id, // Use task ID first, fallback to case ID
+    // CRITICAL FIX: Use Verification Task ID as unique identifier to support multiple tasks per task
+    // This allows revisit tasks and multiple verification tasks from the same task to appear separately
+    id: backendCase.verificationTaskId || backendCase.id, // Use task ID first, fallback to task ID
     title: `${backendCase.verificationType || 'Verification'} - ${backendCase.customerName}`,
     description: `${backendCase.verificationType || 'Verification'} for ${backendCase.customerName}`,
     customer: {
       name: backendCase.customerName,
       contact: backendCase.customerPhone || backendCase.customerCallingCode || ''
     },
-    status: statusMap[backendCase.status] || CaseStatus.Assigned,
-    taskStatus: taskStatusMap[backendCase.status] || CaseStatus.Assigned, // Preserve task-level status
+    status: statusMap[backendCase.status] || TaskStatus.Assigned,
+    taskStatus: taskStatusMap[backendCase.status] || TaskStatus.Assigned, // Preserve task-level status
     isSaved: false,
     createdAt: backendCase.assignedAt, // Backend sends assignedAt as creation time
     updatedAt: backendCase.updatedAt,
@@ -158,11 +157,11 @@ const mapBackendCaseToMobile = (backendCase: BackendCase): Case => {
     verificationOutcome: null,
     priority: priorityMap[backendCase.priority || 'MEDIUM'] || 2,
 
-    // Enhanced fields for 13 required case fields
+    // Enhanced fields for 13 required task fields
     // Field 1: Customer Name
     customerName: backendCase.customerName,
 
-    // Field 2: Case ID
+    // Field 2: VerificationTask ID
     caseId: backendCase.caseId,
 
     // Verification Task Information
@@ -233,7 +232,7 @@ const mapBackendCaseToMobile = (backendCase: BackendCase): Case => {
 };
 
 // Helper function to generate realistic attachments
-const generateAttachments = (caseId: string, count: number): Attachment[] => {
+const generateAttachments = (taskId: string, count: number): Attachment[] => {
   const baseUrl = 'https://api.caseflow.com/v1';
   const attachmentTemplates = [
     { name: 'Property_Documents.pdf', type: 'pdf' as const, mimeType: 'application/pdf' as const, size: 2048576, uploadedBy: 'System Admin' },
@@ -247,21 +246,21 @@ const generateAttachments = (caseId: string, count: number): Attachment[] => {
   ];
 
   return attachmentTemplates.slice(0, count).map((template, index) => ({
-    id: `att-${caseId}-${index + 1}`,
+    id: `att-${taskId}-${index + 1}`,
     name: template.name,
     type: template.type,
     mimeType: template.mimeType,
     size: template.size,
-    url: `${baseUrl}/files/${template.name.toLowerCase().replace(/[^a-z0-9]/g, '-')}-${caseId}`,
-    thumbnailUrl: template.type === 'image' ? `${baseUrl}/files/${template.name.toLowerCase().replace(/[^a-z0-9]/g, '-')}-${caseId}-thumb` : undefined,
+    url: `${baseUrl}/files/${template.name.toLowerCase().replace(/[^a-z0-9]/g, '-')}-${taskId}`,
+    thumbnailUrl: template.type === 'image' ? `${baseUrl}/files/${template.name.toLowerCase().replace(/[^a-z0-9]/g, '-')}-${taskId}-thumb` : undefined,
     uploadedAt: new Date(Date.now() - (index + 1) * 24 * 60 * 60 * 1000).toISOString(),
     uploadedBy: template.uploadedBy,
-    description: `${template.name} for case ${caseId}`
+    description: `${template.name} for task ${taskId}`
   }));
 };
 
 // Mock data removed - using real API data only
-const getInitialMockData = (): Case[] => [];
+const getInitialMockData = (): VerificationTask[] => [];
 
 class CaseService {
   private useRealAPI: boolean = true; // Always use real API - mock data removed
@@ -275,105 +274,105 @@ class CaseService {
     console.log('Case service initialized');
   }
 
-  private async readFromStorage(): Promise<Case[]> {
+  private async readFromStorage(): Promise<VerificationTask[]> {
     const data = await AsyncStorage.getItem(LOCAL_STORAGE_KEY);
     return data ? JSON.parse(data) : [];
   }
 
-  private async writeToStorage(cases: Case[]): Promise<void> {
-    await AsyncStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(cases));
+  private async writeToStorage(tasks: VerificationTask[]): Promise<void> {
+    await AsyncStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(tasks));
   }
 
 
 
-  // Fetch cases from backend API
-  private async fetchCasesFromAPI(): Promise<Case[]> {
+  // Fetch tasks from backend API
+  private async fetchTasksFromAPI(): Promise<VerificationTask[]> {
     try {
-      const result = await apiService.request('/mobile/cases?limit=200', {
+      const result = await apiService.request('/mobile/tasks?limit=200', {
         method: 'GET',
         requireAuth: true,
       });
 
-      if (!result.success || !result.data || !result.data.cases) {
+      if (!result.success || !result.data || !result.data.tasks) {
         throw new Error('Invalid API response format');
       }
 
-      // Map backend cases to mobile format
-      const mobileCases = result.data.cases.map((backendCase: BackendCase) =>
-        mapBackendCaseToMobile(backendCase)
+      // Map backend tasks to mobile format
+      const mobileCases = result.data.tasks.map((backendCase: BackendTask) =>
+        mapBackendTaskToMobile(backendCase)
       );
 
-      // Cache the cases locally for offline access
+      // Cache the tasks locally for offline access
       await this.writeToStorage(mobileCases);
 
-      console.log(`Fetched ${mobileCases.length} cases from API`);
+      console.log(`Fetched ${mobileCases.length} tasks from API`);
       return mobileCases;
 
     } catch (error) {
-      console.error('Failed to fetch cases from API:', error);
+      console.error('Failed to fetch tasks from API:', error);
       console.log('Falling back to cached/mock data');
       return this.getMockCases();
     }
   }
 
-  // No mock cases - all mock data removed
-  private async getMockCases(): Promise<Case[]> {
+  // No mock tasks - all mock data removed
+  private async getMockCases(): Promise<VerificationTask[]> {
     console.log('No mock data available - returning empty array');
     return [];
   }
 
-  async getCases(forceFresh: boolean = false): Promise<Case[]> {
+  async getTasks(forceFresh: boolean = false): Promise<VerificationTask[]> {
     // If forcing fresh data, skip local storage
     if (forceFresh) {
       console.log("🔄 Forcing fresh data from API");
       if (this.useRealAPI) {
-        return this.fetchCasesFromAPI();
+        return this.fetchTasksFromAPI();
       } else {
         return this.getMockCases();
       }
     }
 
-    // First try to get cases from local storage
+    // First try to get tasks from local storage
     const localCases = await this.readFromStorage();
 
     if (localCases.length > 0) {
-      console.log(`Loaded ${localCases.length} cases from local storage`);
+      console.log(`Loaded ${localCases.length} tasks from local storage`);
       return localCases;
     }
 
-    // If no local cases, fetch from API
+    // If no local tasks, fetch from API
     if (this.useRealAPI) {
-      return this.fetchCasesFromAPI();
+      return this.fetchTasksFromAPI();
     } else {
       return this.getMockCases();
     }
   }
 
-  async getCase(id: string): Promise<Case | undefined> {
-    const cases = await this.readFromStorage();
-    return cases.find(c => c.id === id);
+  async getTask(id: string): Promise<VerificationTask | undefined> {
+    const tasks = await this.readFromStorage();
+    return tasks.find(c => c.id === id);
   }
 
-  async updateCase(id: string, updates: Partial<Case>): Promise<Case> {
-    const cases = await this.readFromStorage();
-    const caseIndex = cases.findIndex(c => c.id === id);
+  async updateTask(id: string, updates: Partial<VerificationTask>): Promise<VerificationTask> {
+    const tasks = await this.readFromStorage();
+    const caseIndex = tasks.findIndex(c => c.id === id);
     if (caseIndex === -1) {
       throw new Error('Case not found');
     }
-    const updatedCase = { ...cases[caseIndex], ...updates, updatedAt: new Date().toISOString() };
-    cases[caseIndex] = updatedCase;
-    await this.writeToStorage(cases);
+    const updatedCase = { ...tasks[caseIndex], ...updates, updatedAt: new Date().toISOString() };
+    tasks[caseIndex] = updatedCase;
+    await this.writeToStorage(tasks);
     return updatedCase;
   }
   
-  async revokeCase(id: string, reason: string): Promise<void> {
-    const cases = await this.readFromStorage();
-    const updatedCases = cases.filter(c => c.id !== id);
+  async revokeTask(id: string, reason: string): Promise<void> {
+    const tasks = await this.readFromStorage();
+    const updatedCases = tasks.filter(c => c.id !== id);
     console.log(`Case ${id} revoked. Reason: ${reason}. Simulating sending to server.`);
     await this.writeToStorage(updatedCases);
   }
 
-  async syncWithServer(): Promise<Case[]> {
+  async syncWithServer(): Promise<VerificationTask[]> {
     console.log("Syncing with server...");
 
     if (this.useRealAPI) {
@@ -382,9 +381,9 @@ class CaseService {
       console.log("🗑️ Cleared local cache");
 
       // Fetch fresh data from API and save to storage
-      const freshCases = await this.fetchCasesFromAPI();
+      const freshCases = await this.fetchTasksFromAPI();
       await this.writeToStorage(freshCases);
-      console.log(`💾 Saved ${freshCases.length} fresh cases to storage`);
+      console.log(`💾 Saved ${freshCases.length} fresh tasks to storage`);
 
       // Automatically download and encrypt attachments for offline access
       try {
@@ -433,7 +432,7 @@ class CaseService {
 
     return {
       success: false,
-      error: 'This method is deprecated. Please use the Submit button in the verification form to complete this case.'
+      error: 'This method is deprecated. Please use the Submit button in the verification form to complete this task.'
     };
   }
 
@@ -456,6 +455,11 @@ class CaseService {
     return this.useRealAPI;
   }
 
+  // Helper to get auth token
+  private async getAuthToken(): Promise<string | null> {
+    return await AsyncStorage.getItem('auth_token');
+  }
+
   // Test API connection and field mapping
   async testAPIConnection(): Promise<{ success: boolean; message: string; sampleCase?: any }> {
     try {
@@ -464,7 +468,7 @@ class CaseService {
         return { success: false, message: 'No authentication token available' };
       }
 
-      const response = await fetch(`${getApiBaseUrl()}/cases?limit=1`, {
+      const response = await fetch(`${getApiBaseUrl()}/tasks?limit=1`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -479,11 +483,11 @@ class CaseService {
       const result = await response.json();
 
       if (!result.success || !result.data || result.data.length === 0) {
-        return { success: false, message: 'No cases available from API' };
+        return { success: false, message: 'No tasks available from API' };
       }
 
       const backendCase = result.data[0];
-      const mobileCase = mapBackendCaseToMobile(backendCase);
+      const mobileCase = mapBackendTaskToMobile(backendCase);
 
       // Verify all 13 required fields are present
       const requiredFields = [
@@ -493,7 +497,7 @@ class CaseService {
       ];
 
       const missingFields = requiredFields.filter(field => {
-        const value = mobileCase[field as keyof Case];
+        const value = mobileCase[field as keyof VerificationTask];
         return value === undefined || value === null || value === '';
       });
 
@@ -520,4 +524,4 @@ class CaseService {
   }
 }
 
-export const caseService = new CaseService();
+export const taskService = new CaseService();

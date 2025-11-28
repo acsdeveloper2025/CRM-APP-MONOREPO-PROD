@@ -1,12 +1,12 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Case, PositivePropertyApfReportData, NspPropertyApfReportData, AddressLocatable, AddressRating,
+  VerificationTask, PositivePropertyApfReportData, NspPropertyApfReportData, AddressLocatable, AddressRating,
   BuildingStatusApf, RelationshipApf, TPCMetPerson, TPCConfirmation,
   LocalityTypeResiCumOffice, SightStatus, PoliticalConnection, DominatedArea,
-  FeedbackFromNeighbour, FinalStatus, CaseStatus, CapturedImage
+  FeedbackFromNeighbour, FinalStatus, TaskStatus, CapturedImage
 } from '../../../types';
-import { useCases } from '../../../context/CaseContext';
+import { useTasks } from "../../../context/TaskContext"
 import { FormField, SelectField, TextAreaField, NumberDropdownField } from '../../FormControls';
 import ConfirmationModal from '../../ConfirmationModal';
 import ImageCapture from '../../ImageCapture';
@@ -26,7 +26,7 @@ import {
 } from '../../../utils/imageAutoSaveHelpers';
 
 interface PositiveNegativePropertyApfFormProps {
-  caseData: Case;
+  taskData: VerificationTask;
 }
 
 // Status enum for the unified form
@@ -52,9 +52,9 @@ const getEnumOptions = (enumObject: object) => Object.values(enumObject).map(val
   <option key={value} value={value}>{value}</option>
 ));
 
-const PositiveNegativePropertyApfForm: React.FC<PositiveNegativePropertyApfFormProps> = ({ caseData }) => {
+const PositiveNegativePropertyApfForm: React.FC<PositiveNegativePropertyApfFormProps> = ({ taskData }) => {
   const navigate = useNavigate();
-  const { updatePositivePropertyApfReport, updateNspPropertyApfReport, updateCaseStatus, toggleSaveCase , fetchCases } = useCases();
+  const { updatePositivePropertyApfReport, updateNspPropertyApfReport, updateTaskStatus, toggleSaveTask , fetchTasks } = useTasks();
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionError, setSubmissionError] = useState<string | null>(null);
@@ -65,19 +65,19 @@ const PositiveNegativePropertyApfForm: React.FC<PositiveNegativePropertyApfFormP
 
   // Determine which report to use based on current verification status
   const report = verificationStatus === VerificationStatus.Positive
-    ? caseData.positivePropertyApfReport
-    : caseData.nspPropertyApfReport;
+    ? taskData.positivePropertyApfReport
+    : taskData.nspPropertyApfReport;
 
-  const isReadOnly = caseData.status === CaseStatus.Completed || caseData.isSaved;
+  const isReadOnly = taskData.status === TaskStatus.Completed || taskData.isSaved;
   const MIN_IMAGES = 5;
 
   // Auto-save handlers
   const handleFormDataChange = (formData: any) => {
     if (!isReadOnly) {
       if (verificationStatus === VerificationStatus.Positive) {
-        updatePositivePropertyApfReport(caseData.id, formData);
+        updatePositivePropertyApfReport(taskData.id, formData);
       } else {
-        updateNspPropertyApfReport(caseData.id, formData);
+        updateNspPropertyApfReport(taskData.id, formData);
       }
     }
   };
@@ -85,9 +85,9 @@ const PositiveNegativePropertyApfForm: React.FC<PositiveNegativePropertyApfFormP
   const handleAutoSaveImagesChange = (images: CapturedImage[]) => {
     if (!isReadOnly && report) {
       if (verificationStatus === VerificationStatus.Positive) {
-        updatePositivePropertyApfReport(caseData.id, { ...report, images } as Partial<PositivePropertyApfReportData>);
+        updatePositivePropertyApfReport(taskData.id, { ...report, images } as Partial<PositivePropertyApfReportData>);
       } else {
-        updateNspPropertyApfReport(caseData.id, { ...report, images } as Partial<NspPropertyApfReportData>);
+        updateNspPropertyApfReport(taskData.id, { ...report, images } as Partial<NspPropertyApfReportData>);
       }
     }
   };
@@ -95,9 +95,9 @@ const PositiveNegativePropertyApfForm: React.FC<PositiveNegativePropertyApfFormP
   const handleDataRestored = (data: any) => {
     if (!isReadOnly && data.formData) {
       if (verificationStatus === VerificationStatus.Positive) {
-        updatePositivePropertyApfReport(caseData.id, data.formData);
+        updatePositivePropertyApfReport(taskData.id, data.formData);
       } else {
-        updateNspPropertyApfReport(caseData.id, data.formData);
+        updateNspPropertyApfReport(taskData.id, data.formData);
       }
     }
   };
@@ -184,9 +184,9 @@ const PositiveNegativePropertyApfForm: React.FC<PositiveNegativePropertyApfFormP
     const updates = { [name]: processedValue };
     
     if (verificationStatus === VerificationStatus.Positive) {
-        updatePositivePropertyApfReport(caseData.id, updates as Partial<PositivePropertyApfReportData>);
+        updatePositivePropertyApfReport(taskData.id, updates as Partial<PositivePropertyApfReportData>);
     } else {
-        updateNspPropertyApfReport(caseData.id, updates as Partial<NspPropertyApfReportData>);
+        updateNspPropertyApfReport(taskData.id, updates as Partial<NspPropertyApfReportData>);
     }
   };
 
@@ -195,18 +195,18 @@ const PositiveNegativePropertyApfForm: React.FC<PositiveNegativePropertyApfFormP
   const handleImagesChange = (images: CapturedImage[]) => {
     const updates = { images };
     if (verificationStatus === VerificationStatus.Positive) {
-        updatePositivePropertyApfReport(caseData.id, updates);
+        updatePositivePropertyApfReport(taskData.id, updates);
     } else {
-        updateNspPropertyApfReport(caseData.id, updates);
+        updateNspPropertyApfReport(taskData.id, updates);
     }
   };
 
   const handleSelfieImagesChange = (selfieImages: CapturedImage[]) => {
     const updates = { selfieImages };
     if (verificationStatus === VerificationStatus.Positive) {
-        updatePositivePropertyApfReport(caseData.id, updates);
+        updatePositivePropertyApfReport(taskData.id, updates);
     } else {
-        updateNspPropertyApfReport(caseData.id, updates);
+        updateNspPropertyApfReport(taskData.id, updates);
     }
   };
   
@@ -229,7 +229,7 @@ const PositiveNegativePropertyApfForm: React.FC<PositiveNegativePropertyApfFormP
 
   return (
     <AutoSaveFormWrapper
-      caseId={caseData.id}
+      taskId={taskData.id}
       formType={verificationStatus === VerificationStatus.Positive ? FORM_TYPES.PROPERTY_APF_POSITIVE : FORM_TYPES.PROPERTY_APF_NSP}
       formData={report}
       images={combineImagesForAutoSave(report)}
@@ -251,35 +251,35 @@ const PositiveNegativePropertyApfForm: React.FC<PositiveNegativePropertyApfFormP
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <span className="text-sm text-medium-text">Customer Name</span>
-            <span className="block text-light-text">{caseData.customer.name}</span>
+            <span className="block text-light-text">{taskData.customer.name}</span>
           </div>
           <div>
             <span className="text-sm text-medium-text">Bank Name</span>
-            <span className="block text-light-text">{caseData.client?.name || caseData.clientName || 'N/A'}</span>
+            <span className="block text-light-text">{typeof taskData.client === 'object' ? taskData.client?.name : taskData.client || taskData.clientName || 'N/A'}</span>
           </div>
           <div>
             <span className="text-sm text-medium-text">Product</span>
-            <span className="block text-light-text">{caseData.product?.name || caseData.productName || 'N/A'}</span>
+            <span className="block text-light-text">{typeof taskData.product === 'object' ? taskData.product?.name : taskData.product || taskData.productName || 'N/A'}</span>
           </div>
           <div>
             <span className="text-sm text-medium-text">Trigger</span>
-            <span className="block text-light-text">{caseData.notes || caseData.trigger || 'N/A'}</span>
+            <span className="block text-light-text">{taskData.notes || taskData.trigger || 'N/A'}</span>
           </div>
           <div className="md:col-span-2">
             <span className="text-sm text-medium-text">Visit Address</span>
-            <span className="block text-light-text">{caseData.addressStreet || caseData.visitAddress || caseData.address || 'N/A'}</span>
+            <span className="block text-light-text">{taskData.addressStreet || taskData.visitAddress || taskData.address || 'N/A'}</span>
           </div>
           <div>
             <span className="text-sm text-medium-text">System Contact Number</span>
-            <span className="block text-light-text">{caseData.systemContactNumber || 'N/A'}</span>
+            <span className="block text-light-text">{taskData.systemContactNumber || 'N/A'}</span>
           </div>
           <div>
             <span className="text-sm text-medium-text">Customer Calling Code</span>
-            <span className="block text-light-text">{caseData.customerCallingCode || 'N/A'}</span>
+            <span className="block text-light-text">{taskData.customerCallingCode || 'N/A'}</span>
           </div>
           <div>
             <span className="text-sm text-medium-text">Applicant Status</span>
-            <span className="block text-light-text">{caseData.applicantStatus || 'N/A'}</span>
+            <span className="block text-light-text">{taskData.applicantStatus || 'N/A'}</span>
           </div>
         </div>
       </div>
@@ -542,7 +542,7 @@ const PositiveNegativePropertyApfForm: React.FC<PositiveNegativePropertyApfFormP
         compact={true}
       />
 
-      {!isReadOnly && caseData.status === CaseStatus.InProgress && (
+      {!isReadOnly && taskData.status === TaskStatus.InProgress && (
           <>
             <div className="mt-6">
                 <button
@@ -569,7 +569,7 @@ const PositiveNegativePropertyApfForm: React.FC<PositiveNegativePropertyApfFormP
                     setSubmissionError(null);
                 }}
                 onSave={() => {
-                    toggleSaveCase(caseData.id, true);
+                    toggleSaveTask(taskData.id, true);
                     setIsConfirmModalOpen(false);
                 }}
                 onConfirm={async () => {
@@ -579,7 +579,7 @@ const PositiveNegativePropertyApfForm: React.FC<PositiveNegativePropertyApfFormP
                     try {
                         // Prepare form data for submission
                         const formData = {
-                            outcome: caseData.verificationOutcome, // Use ONLY case verification outcome, no fallback
+                            outcome: taskData.verificationOutcome, // Use ONLY case verification outcome, no fallback
                             remarks: report.otherObservation || '',
                             ...report // Include all report data
                         };
@@ -599,8 +599,8 @@ const PositiveNegativePropertyApfForm: React.FC<PositiveNegativePropertyApfFormP
 
                         // Submit verification form to backend
                         const result = await VerificationFormService.submitPropertyApfVerification(
-                            caseData.id,
-                            caseData.verificationTaskId!,
+                            taskData.id,
+                            taskData.verificationTaskId!,
                             formData,
                             allImages,
                             geoLocation
@@ -618,9 +618,8 @@ const PositiveNegativePropertyApfForm: React.FC<PositiveNegativePropertyApfFormP
                             
                             // Handle post-submission: update status, refresh list, navigate
                             await handleSuccessfulSubmission(
-                                caseData.id,
-                                updateCaseStatus,
-                                fetchCases,
+                                taskData.id,
+                                fetchTasks,
                                 navigate,
                                 setSubmissionSuccess
                             );

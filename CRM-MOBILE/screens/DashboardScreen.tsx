@@ -1,8 +1,8 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Image } from 'react-native';
-import { useCases } from '../context/CaseContext';
+import { useTasks } from "../context/TaskContext"
 import { useAuth } from '../context/AuthContext';
-import { CaseStatus } from '../types';
+import { TaskStatus } from '../types';
 import { useNavigate } from 'react-router-dom';
 import { RefreshCwIcon, UserIcon } from '../components/Icons';
 
@@ -55,14 +55,14 @@ const StatCard: React.FC<StatCardProps> = ({ title, count, color, path }) => {
 };
 
 const DashboardScreen: React.FC = () => {
-  const { cases, loading, syncing, syncCases } = useCases();
+  const { tasks, loading, syncing, syncTasks } = useTasks();
   const { user } = useAuth();
   const navigate = useNavigate();
   
-  const assignedCount = cases.filter(c => (c.taskStatus || c.status) === CaseStatus.Assigned).length;
-  const inProgressCount = cases.filter(c => (c.taskStatus || c.status) === CaseStatus.InProgress).length;
-  const completedCount = cases.filter(c => (c.taskStatus || c.status) === CaseStatus.Completed).length;
-  const savedCount = cases.filter(c => c.isSaved).length;
+  const assignedCount = tasks.filter(c => (c.taskStatus || c.status) === TaskStatus.Assigned).length;
+  const inProgressCount = tasks.filter(c => (c.taskStatus || c.status) === TaskStatus.InProgress).length;
+  const completedCount = tasks.filter(c => (c.taskStatus || c.status) === TaskStatus.Completed).length;
+  const savedCount = tasks.filter(c => c.isSaved).length;
 
   return (
     <View style={{ flex: 1, backgroundColor: '#111827' }} className="mobile-content">
@@ -115,7 +115,7 @@ const DashboardScreen: React.FC = () => {
         <>
           <View style={{ paddingHorizontal: 16, marginTop: 16 }}>
               <TouchableOpacity
-                  onPress={syncCases}
+                  onPress={syncTasks}
                   disabled={syncing}
                   style={{
                     width: '100%',

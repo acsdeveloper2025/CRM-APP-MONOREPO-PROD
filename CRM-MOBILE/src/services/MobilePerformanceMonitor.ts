@@ -16,7 +16,7 @@ interface SessionInfo {
   id: string;
   startTime: number;
   endTime?: number;
-  deviceInfo: DeviceInfo.DeviceInfoResult;
+  deviceInfo: any;
   appVersion: string;
   buildNumber: string;
   platform: string;
@@ -71,7 +71,13 @@ export class MobilePerformanceMonitor {
       this.currentSession = {
         id: `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         startTime: Date.now(),
-        deviceInfo: await DeviceInfo.getDeviceInfo(),
+        deviceInfo: {
+          deviceId: await DeviceInfo.getDeviceId(),
+          systemName: await DeviceInfo.getSystemName(),
+          systemVersion: await DeviceInfo.getSystemVersion(),
+          brand: await DeviceInfo.getBrand(),
+          model: await DeviceInfo.getModel(),
+        },
         appVersion: DeviceInfo.getVersion(),
         buildNumber: DeviceInfo.getBuildNumber(),
         platform: Platform.OS,
