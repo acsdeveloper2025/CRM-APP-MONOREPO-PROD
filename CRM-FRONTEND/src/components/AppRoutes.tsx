@@ -45,6 +45,8 @@ import { VerificationTypesPage } from '@/pages/VerificationTypesPage';
 import { DocumentTypesPage } from '@/pages/DocumentTypesPage';
 
 import { RateManagementPage } from '@/pages/RateManagementPage';
+import { DedupePage } from '@/pages/DedupePage';
+
 
 
 
@@ -246,6 +248,20 @@ export const AppRoutes: React.FC = () => {
             <PermissionProtectedRoute resource="tasks" action="read">
               <Layout>
                 <TATMonitoringPage />
+              </Layout>
+            </PermissionProtectedRoute>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Dedupe Route */}
+      <Route
+        path="/case-management/dedupe"
+        element={
+          <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND_USER', 'SUPER_ADMIN']}>
+            <PermissionProtectedRoute resource="cases" action="read">
+              <Layout>
+                <DedupePage />
               </Layout>
             </PermissionProtectedRoute>
           </ProtectedRoute>
