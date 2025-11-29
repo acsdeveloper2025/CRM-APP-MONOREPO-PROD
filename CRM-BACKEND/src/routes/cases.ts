@@ -21,6 +21,7 @@ import {
   exportCases,
   getCaseSummaryWithTasks,
 } from '@/controllers/casesController';
+import { searchGlobalDuplicates } from '@/controllers/deduplicationController';
 import { VerificationAttachmentController } from '@/controllers/verificationAttachmentController';
 
 const router = express.Router();
@@ -275,6 +276,28 @@ router.post(
   EnterpriseCache.invalidate(CacheInvalidationPatterns.caseUpdate),
   validateCaseCreationAccess,
   createCase
+);
+
+// ============================================================================
+// GLOBAL DEDUPE SEARCH ENDPOINT
+// Search across all cases without client/product restrictions
+// ============================================================================
+router.post(
+  '/dedupe/global-search',
+  EnterpriseRateLimit.roleBasedLimiter(EnterpriseRateLimits.byRole),
+  [
+    body('mobile').optional().trim(),
+    body('pan').optional().trim(),
+    body('name').optional().trim(),
+    body('address').optional().trim(),
+    query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
+    query('limit')
+      .optional()
+      .isInt({ min: 1, max: 100 })
+      .withMessage('Limit must be between 1 and 100'),
+  ],
+  validate,
+  searchGlobalDuplicates
 );
 
 // Get case summary with tasks

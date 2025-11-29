@@ -266,3 +266,222 @@ export const getDuplicateClusters = async (req: AuthenticatedRequest, res: Respo
     });
   }
 };
+
+/**
+ * POST /api/cases/dedupe/global-search
+ * Global search for cases across all clients and products
+ * No permission restrictions - searches entire database
+ */
+export const searchGlobalDuplicates = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { mobile, pan, name, address } = req.body;
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 20;
+    const offset = (page - 1) * limit;
+
+    // Validate that at least one search criterion is provided
+    const hasValidCriteria = [mobile, pan, name, address].some(
+      value => value && typeof value === 'string' && value.trim().length > 0
+    );
+
+    if (!hasValidCriteria) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          message: 'At least one search criterion must be provided',
+          code: 'INVALID_SEARCH_CRITERIA',
+        },
+      });
+    }
+
+    // Build search conditions
+    const searchConditions: string[] = [];
+    const searchParams: any[] = [];
+    let paramIndex = 1;
+
+    // Clean and validate PAN
+    if (pan?.trim()) {
+      const cleanPan = pan.trim().toUpperCase();
+      if (!/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(cleanPan)) {
+        return res.status(400).json({
+          success: false,
+          error: {
+            message: 'Invalid PAN number format',
+            code: 'INVALID_PAN_FORMAT',
+          },
+        });
+      }
+      searchConditions.push(`c."panNumber" = $${paramIndex}`);
+      searchParams.push(cleanPan);
+      paramIndex++;
+    }
+
+    // Clean and validate mobile
+    if (mobile?.trim()) {
+      const cleanMobile = mobile.trim().replace(/\D/g, '');
+      if (cleanMobile.length >= 10) {
+        searchConditions.push(`c."customerPhone" LIKE '%' || $${paramIndex} || '%'`);
+        searchParams.push(cleanMobile);
+        paramIndex++;
+      }
+    }
+
+    // Fuzzy name search
+    if (name?.trim()) {
+      searchConditions.push(`c."customerName" ILIKE '%' || $${paramIndex} || '%'`);
+      searchParams.push(name.trim());
+      paramIndex++;
+    }
+
+    // Fuzzy address search (in verification_tasks table)
+    if (address?.trim()) {
+      searchConditions.push(`vt.address ILIKE '%' || $${paramIndex} || '%'`);
+      searchParams.push(address.trim());
+      paramIndex++;
+    }
+
+    if (searchConditions.length === 0) {
+      return res.json({
+        success: true,
+        data: {
+          results: [],
+          pagination: {
+            page,
+            limit,
+            total: 0,
+            totalPages: 0,
+          },
+        },
+      });
+    }
+
+    // Count total matches
+    const countQuery = `
+      SELECT COUNT(DISTINCT c.id) as total
+      FROM cases c
+      LEFT JOIN verification_tasks vt ON vt.case_id = c.id
+      WHERE (${searchConditions.join(' OR ')})
+    `;
+
+    const countResult = await pool.query(countQuery, searchParams);
+    const total = parseInt(countResult.rows[0]?.total || '0');
+
+    // Get paginated results
+    const query = `
+      SELECT
+        c.id,
+        c."caseId",
+        c."caseId" as "caseNumber",
+        c."customerName",
+        c."customerPhone",
+        c."panNumber",
+        c.status,
+        c."createdAt",
+        cl.name as "clientName",
+        p.name as "productName",
+        vt.address as "address"
+      FROM cases c
+      LEFT JOIN clients cl ON c."clientId" = cl.id
+      LEFT JOIN products p ON c."productId" = p.id
+      LEFT JOIN verification_tasks vt ON vt.case_id = c.id
+      WHERE (${searchConditions.join(' OR ')})
+      ORDER BY c."createdAt" DESC
+      LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+    `;
+
+    const result = await pool.query(query, [...searchParams, limit, offset]);
+
+    // Deduplicate results in memory (since we removed DISTINCT ON)
+    const uniqueCases = new Map();
+    result.rows.forEach(row => {
+      if (!uniqueCases.has(row.id)) {
+        uniqueCases.set(row.id, row);
+      }
+    });
+    
+    const uniqueRows = Array.from(uniqueCases.values());
+
+    // Calculate match scores and types
+    const results = uniqueRows.map(row => {
+      const matchTypes: string[] = [];
+      let matchScore = 0;
+
+      // Exact PAN match
+      if (pan && row.panNumber === pan.trim().toUpperCase()) {
+        matchTypes.push('PAN');
+        matchScore += 100;
+      }
+
+      // Mobile match
+      if (mobile) {
+        const cleanMobile = mobile.trim().replace(/\D/g, '');
+        if (row.customerPhone?.includes(cleanMobile)) {
+          matchTypes.push('Mobile');
+          matchScore += 80;
+        }
+      }
+
+      // Name match (fuzzy)
+      if (name) {
+        const searchName = name.trim().toLowerCase();
+        const caseName = (row.customerName || '').toLowerCase();
+        if (caseName.includes(searchName) || searchName.includes(caseName)) {
+          matchTypes.push('Name');
+          matchScore += 60;
+        }
+      }
+
+      // Address match (fuzzy)
+      if (address) {
+        const searchAddr = address.trim().toLowerCase();
+        const caseAddr = (row.address || '').toLowerCase();
+        if (caseAddr.includes(searchAddr) || searchAddr.includes(caseAddr)) {
+          matchTypes.push('Address');
+          matchScore += 40;
+        }
+      }
+
+      return {
+        id: row.id,
+        caseId: row.caseId,
+        caseNumber: row.caseNumber,
+        name: row.customerName,
+        mobile: row.customerPhone,
+        pan: row.panNumber,
+        client: row.clientName,
+        product: row.productName,
+        address: row.address || '',
+        status: row.status,
+        createdAt: row.createdAt,
+        matchTypes,
+        matchScore,
+      };
+    });
+
+    // Sort by match score (highest first)
+    results.sort((a, b) => b.matchScore - a.matchScore);
+
+    res.json({
+      success: true,
+      data: {
+        results,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+        },
+      },
+    });
+  } catch (error) {
+    logger.error('Error in searchGlobalDuplicates controller', { error });
+    res.status(500).json({
+      success: false,
+      error: {
+        message: 'Failed to search for cases',
+        code: 'GLOBAL_SEARCH_ERROR',
+      },
+    });
+  }
+};
+
