@@ -54,6 +54,15 @@ router.get(
   MobileCaseController.getMobileCases
 );
 
+// Alias for /cases to support mobile app calling /tasks
+router.get(
+  '/tasks',
+  authenticateToken,
+  validateMobileVersion,
+  EnterpriseCache.create(EnterpriseCacheConfigs.mobileSync),
+  MobileCaseController.getMobileCases
+);
+
 // STRICT MIGRATION: Removed legacy /cases/:caseId routes
 // All individual case/task operations must use /verification-tasks/:taskId
 
