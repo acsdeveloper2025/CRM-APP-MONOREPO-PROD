@@ -398,7 +398,7 @@ export const searchGlobalDuplicates = async (req: AuthenticatedRequest, res: Res
         uniqueCases.set(row.id, row);
       }
     });
-    
+
     const uniqueRows = Array.from(uniqueCases.values());
 
     // Calculate match scores and types
@@ -484,4 +484,3 @@ export const searchGlobalDuplicates = async (req: AuthenticatedRequest, res: Res
     });
   }
 };
-
