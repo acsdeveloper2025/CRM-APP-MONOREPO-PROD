@@ -112,6 +112,13 @@ export const navigationItems: NavigationItem[] = [
         icon: FileText,
         permission: { resource: 'cases', action: 'read' },
       },
+      {
+        id: 'dedupe',
+        label: 'Dedupe',
+        href: '/case-management/dedupe',
+        icon: Copy,
+        permission: { resource: 'cases', action: 'read' },
+      },
     ],
   },
   {

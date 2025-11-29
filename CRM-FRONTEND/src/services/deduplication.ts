@@ -171,6 +171,46 @@ export class DeduplicationService {
 
     return cleaned;
   }
+
+  /**
+   * Global search for cases across all clients and products
+   */
+  async searchGlobalDuplicates(
+    criteria: {
+      mobile?: string;
+      pan?: string;
+      name?: string;
+      address?: string;
+    },
+    page = 1,
+    limit = 20
+  ): Promise<ApiResponse<{
+    results: Array<{
+      id: string;
+      caseId: number;
+      caseNumber: string;
+      name: string;
+      mobile: string;
+      pan: string;
+      client: string;
+      product: string;
+      address: string;
+      status: string;
+      createdAt: string;
+      matchTypes: string[];
+      matchScore: number;
+    }>;
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+    };
+  }>> {
+    return apiService.post('/cases/dedupe/global-search', criteria, { 
+      params: { page, limit } 
+    });
+  }
 }
 
 export const deduplicationService = new DeduplicationService();
