@@ -345,6 +345,7 @@ export class MobileCaseController {
         message: 'Cases retrieved successfully',
         data: {
           cases: mobileCases,
+          tasks: mobileCases, // Alias for cases to support mobile app calling /tasks
           pagination: {
             page: Number(page),
             limit: take,
