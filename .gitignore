@@ -276,3 +276,21 @@ docs/.vuepress/dist/
 # =====================================================
 *.apk
 CaseFlow-Mobile-*.apk
+
+# =====================================================
+# DATABASE MIGRATION FILES
+# =====================================================
+# Production credentials (NEVER commit)
+scripts/db-migration/.env.production
+
+# Migration dumps and backups
+scripts/db-migration/dumps/
+scripts/db-migration/backups/
+
+# Migration logs
+scripts/db-migration/logs/
+
+# Migration state files
+scripts/db-migration/.latest_dump
+scripts/db-migration/.latest_transfer
+scripts/db-migration/.latest_backup
