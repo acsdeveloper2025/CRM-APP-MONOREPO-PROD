@@ -179,11 +179,11 @@ const ImageCapture: React.FC<ImageCaptureProps> = ({
 
       if (image.dataUrl) {
         console.log('🔄 Processing captured image...');
-        // Add timeout to prevent hanging (90 seconds to allow GPS acquisition with retries)
+        // Timeout reduced to 20s since image is saved immediately (GPS runs in background)
         await Promise.race([
           processImage(image.dataUrl),
           new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Image processing timeout after 90 seconds')), 90000)
+            setTimeout(() => reject(new Error('Image save timeout after 20 seconds')), 20000)
           )
         ]);
         console.log('✅ Image processing completed successfully');
@@ -254,130 +254,136 @@ const ImageCapture: React.FC<ImageCaptureProps> = ({
 
   const processImage = async (dataUrl: string) => {
     console.log('🔄 Starting image processing...');
+    
+    // STEP 1: Save image IMMEDIATELY (non-blocking)
+    const timestamp = new Date().toISOString();
+    const newImage: CapturedImage & { accuracy?: number } = {
+      id: `img_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
+      dataUrl,
+      latitude: 0, // Will be updated in background
+      longitude: 0,
+      timestamp,
+      componentType: componentType || 'photo',
+      accuracy: undefined,
+      geoLocation: {
+        latitude: 0,
+        longitude: 0,
+        accuracy: undefined,
+        timestamp
+      }
+    };
+
+    // Add image to array IMMEDIATELY - don't wait for GPS
+    console.log('✅ Adding image to array (GPS will be acquired in background):', newImage.id);
+    onImagesChange([...images, newImage]);
+    
+    // STEP 2: Acquire GPS in BACKGROUND (non-blocking)
+    // This runs asynchronously and updates the image when GPS is ready
+    acquireGPSInBackground(newImage.id).catch(err => {
+      console.warn('Background GPS acquisition failed:', err);
+      // Image is already saved, so this is not critical
+    });
+  };
+
+  // Background GPS acquisition - runs asynchronously after image is saved
+  const acquireGPSInBackground = async (imageId: string) => {
     try {
-      // Get enhanced location data
       let enhancedLocation: EnhancedLocationData | null = null;
       let latitude = 0;
       let longitude = 0;
       let accuracy: number | undefined;
-
       let locationSource: string = 'none';
 
-      // Check if location permission was granted (already requested in handleTakePhoto)
-      try {
-        const locationPermission = await requestLocationPermissions({
-          showRationale: false, // Don't show rationale again
-          fallbackToSettings: false,
-          context: 'tag photos with GPS coordinates for verification'
-        });
+      // Check if location permission was granted
+      const locationPermission = await requestLocationPermissions({
+        showRationale: false,
+        fallbackToSettings: false,
+        context: 'tag photos with GPS coordinates for verification'
+      });
 
-        if (locationPermission.granted) {
-          console.log('📍 Acquiring GPS coordinates...');
-
-          // Initialize Google Maps service (non-blocking)
-          try {
-            await googleMapsService.initialize();
-            console.log('🗺️ Google Maps initialized successfully');
-          } catch (mapsError) {
-            console.warn('Google Maps initialization failed, proceeding with basic geolocation:', mapsError);
-          }
-
-          // Use enhanced geolocation service with comprehensive retry logic
-          try {
-            enhancedLocation = await enhancedGeolocationService.getCurrentLocation({
-              enableHighAccuracy: true,
-              timeout: 20000, // 20 seconds for high-accuracy GPS
-              maximumAge: 30000, // Accept cached position up to 30 seconds old
-              includeAddress: true,
-              validateLocation: true,
-              fallbackToNominatim: true,
-              retryAttempts: 3, // Try 3 times with exponential backoff
-              fallbackToIPGeolocation: true // Use IP geolocation as last resort
-            });
-
-            latitude = enhancedLocation.latitude;
-            longitude = enhancedLocation.longitude;
-            accuracy = enhancedLocation.accuracy;
-            locationSource = enhancedLocation.source;
-
-            // Log success with accuracy info
-            const accuracyText = accuracy
-              ? accuracy < 50 ? 'excellent' : accuracy < 100 ? 'good' : accuracy < 500 ? 'fair' : 'low'
-              : 'unknown';
-            console.log(`✅ Location acquired: ${latitude.toFixed(6)}, ${longitude.toFixed(6)} (${accuracyText} accuracy: ${accuracy?.toFixed(0)}m, source: ${locationSource})`);
-
-            // Show success toast for good accuracy
-            if (accuracy && accuracy < 100) {
-              Toast.show({
-                text: `📍 GPS locked (${accuracy.toFixed(0)}m accuracy)`,
-                duration: 'short',
-                position: 'top'
-              });
-            } else if (accuracy && accuracy >= 500) {
-              // Warn about low accuracy
-              Toast.show({
-                text: `⚠️ Low GPS accuracy (${accuracy.toFixed(0)}m). Try moving to an open area.`,
-                duration: 'long',
-                position: 'top'
-              });
-            }
-
-          } catch (locationError) {
-            console.error('❌ All location acquisition methods failed:', locationError);
-
-            // Get detailed error information
-            const errorInfo = enhancedGeolocationService.getErrorInfo(locationError);
-
-            // Show user-friendly error message
-            Toast.show({
-              text: `⚠️ ${errorInfo.userMessage}`,
-              duration: 'long',
-              position: 'top'
-            });
-
-            // Log actionable advice
-            console.warn('💡 Suggestion:', errorInfo.actionable);
-
-            // Proceed without location (latitude/longitude remain 0)
-            console.warn('⚠️ Proceeding without GPS coordinates');
-          }
-        } else {
-          console.warn('⚠️ Location permission not granted, proceeding without GPS');
-          // Don't show toast again - already shown in handleTakePhoto
-        }
-      } catch (permissionError) {
-        console.error('❌ Location permission check failed:', permissionError);
-        // Proceed without location
+      if (!locationPermission.granted) {
+        console.warn('⚠️ Location permission not granted, skipping GPS for image:', imageId);
+        return;
       }
 
-      const timestamp = new Date().toISOString();
-      const newImage: CapturedImage & { accuracy?: number } = {
-        id: `img_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
-        dataUrl,
-        latitude,
-        longitude,
-        timestamp,
-        componentType: componentType || 'photo', // Add componentType metadata for auto-save
-        accuracy: accuracy || undefined,
-        geoLocation: {
-          latitude,
-          longitude,
-          accuracy: accuracy || undefined,
-          timestamp
+      console.log('📍 Acquiring GPS coordinates in background for image:', imageId);
+
+      // Try to use cached location first (if < 30 seconds old)
+      const cachedLocation = enhancedGeolocationService.getLastKnownLocation();
+      if (cachedLocation && cachedLocation.timestamp) {
+        const cacheAge = Date.now() - cachedLocation.timestamp;
+        if (cacheAge < 30000) { // 30 seconds
+          console.log(`✅ Using cached GPS location (age: ${Math.round(cacheAge / 1000)}s)`);
+          enhancedLocation = cachedLocation;
+          latitude = cachedLocation.latitude;
+          longitude = cachedLocation.longitude;
+          accuracy = cachedLocation.accuracy;
+          locationSource = 'cached';
         }
-      };
+      }
 
-      // Store enhanced location data in metadata and update image geoLocation
+      // If no cached location, acquire fresh GPS
+      if (!enhancedLocation) {
+        // Initialize Google Maps service (non-blocking)
+        try {
+          await googleMapsService.initialize();
+        } catch (mapsError) {
+          console.warn('Google Maps initialization failed:', mapsError);
+        }
+
+        // Acquire GPS with shorter timeout for better UX
+        try {
+          enhancedLocation = await enhancedGeolocationService.getCurrentLocation({
+            enableHighAccuracy: true,
+            timeout: 15000, // Reduced to 15 seconds for faster response
+            maximumAge: 30000,
+            includeAddress: true,
+            validateLocation: false, // Skip validation for speed
+            fallbackToNominatim: true,
+            retryAttempts: 2, // Reduced retries for speed
+            fallbackToIPGeolocation: true
+          });
+
+          latitude = enhancedLocation.latitude;
+          longitude = enhancedLocation.longitude;
+          accuracy = enhancedLocation.accuracy;
+          locationSource = enhancedLocation.source;
+
+          console.log(`✅ GPS acquired in background: ${latitude.toFixed(6)}, ${longitude.toFixed(6)} (${accuracy?.toFixed(0)}m)`);
+        } catch (locationError) {
+          console.warn('❌ Background GPS acquisition failed:', locationError);
+          // Don't show error toast - image is already saved
+          return;
+        }
+      }
+
+      // Update the image with GPS data
+      const updatedImages = images.map(img => {
+        if (img.id === imageId) {
+          return {
+            ...img,
+            latitude,
+            longitude,
+            accuracy,
+            geoLocation: {
+              latitude,
+              longitude,
+              accuracy,
+              timestamp: img.timestamp,
+              address: enhancedLocation?.address?.formattedAddress
+            }
+          };
+        }
+        return img;
+      });
+
+      onImagesChange(updatedImages);
+
+      // Store enhanced location data in metadata
       if (enhancedLocation) {
-        // Update the image's geoLocation to include address
-        newImage.geoLocation = {
-          ...newImage.geoLocation,
-          address: enhancedLocation.address?.formattedAddress
-        };
-
         setImageMetadata(prev => ({
           ...prev,
-          [newImage.id]: {
+          [imageId]: {
             enhancedLocation,
             address: enhancedLocation.address?.formattedAddress,
             validationResult: enhancedLocation.validationResult,
@@ -386,23 +392,16 @@ const ImageCapture: React.FC<ImageCaptureProps> = ({
         }));
       }
 
-      // Directly add to images array - this should always succeed
-      console.log('✅ Adding image to array:', newImage.id);
-      onImagesChange([...images, newImage]);
-      console.log('✅ Image processing completed successfully');
-
-      // Fetch address for the new image if location is available but no enhanced data
-      // Do this asynchronously to not block the image saving
+      // Fetch address in background if not already available
       if (latitude !== 0 && longitude !== 0 && !enhancedLocation?.address) {
-        // Don't await this - let it run in background
-        fetchAddressForImage(newImage.id, latitude, longitude).catch(err => {
+        fetchAddressForImage(imageId, latitude, longitude).catch(err => {
           console.warn('Background address fetch failed:', err);
         });
       }
+
     } catch (err) {
-      console.error('❌ Image processing error:', err);
-      setError('Failed to process captured image. Please try again.');
-      throw err; // Re-throw to ensure calling function knows about the error
+      console.error('❌ Background GPS processing error:', err);
+      // Don't throw - image is already saved
     }
   };
 
