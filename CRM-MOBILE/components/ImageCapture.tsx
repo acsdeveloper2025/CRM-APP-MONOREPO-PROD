@@ -273,9 +273,9 @@ const ImageCapture: React.FC<ImageCaptureProps> = ({
       }
     };
 
-    // Add image to array IMMEDIATELY - don't wait for GPS
+    // Add image to array IMMEDIATELY using functional update
     console.log('✅ Adding image to array (GPS will be acquired in background):', newImage.id);
-    onImagesChange([...images, newImage]);
+    onImagesChange(currentImages => [...currentImages, newImage]);
     
     // STEP 2: Acquire GPS in BACKGROUND (non-blocking)
     // This runs asynchronously and updates the image when GPS is ready
@@ -357,27 +357,28 @@ const ImageCapture: React.FC<ImageCaptureProps> = ({
         }
       }
 
-      // Update the image with GPS data
-      const updatedImages = images.map(img => {
-        if (img.id === imageId) {
-          return {
-            ...img,
-            latitude,
-            longitude,
-            accuracy,
-            geoLocation: {
+      // Update the image with GPS data using functional update to avoid stale closure
+      onImagesChange(currentImages => {
+        return currentImages.map(img => {
+          if (img.id === imageId) {
+            console.log(`📍 Updating image ${imageId} with GPS: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`);
+            return {
+              ...img,
               latitude,
               longitude,
               accuracy,
-              timestamp: img.timestamp,
-              address: enhancedLocation?.address?.formattedAddress
-            }
-          };
-        }
-        return img;
+              geoLocation: {
+                latitude,
+                longitude,
+                accuracy,
+                timestamp: img.timestamp,
+                address: enhancedLocation?.address?.formattedAddress
+              }
+            };
+          }
+          return img;
+        });
       });
-
-      onImagesChange(updatedImages);
 
       // Store enhanced location data in metadata
       if (enhancedLocation) {
@@ -451,20 +452,21 @@ const ImageCapture: React.FC<ImageCaptureProps> = ({
         [imageId]: { ...prev[imageId], address, isLoadingAddress: false }
       }));
 
-      // Update the actual image object with address
-      const updatedImages = images.map(img => {
-        if (img.id === imageId) {
-          return {
-            ...img,
-            geoLocation: {
-              ...img.geoLocation,
-              address
-            }
-          };
-        }
-        return img;
+      // Update the actual image object with address using functional update
+      onImagesChange(currentImages => {
+        return currentImages.map(img => {
+          if (img.id === imageId) {
+            return {
+              ...img,
+              geoLocation: {
+                ...img.geoLocation,
+                address
+              }
+            };
+          }
+          return img;
+        });
       });
-      onImagesChange(updatedImages);
 
     } catch (error) {
       setImageMetadata(prev => ({
