@@ -6,7 +6,7 @@ import Modal from './Modal';
 
 interface CompactImageDisplayProps {
   images: CapturedImage[];
-  onImagesChange: (images: CapturedImage[] | ((prev: CapturedImage[]) => CapturedImage[])) => void;
+  onImagesChange: (images: CapturedImage[]) => void;
   onTakePhoto: () => void;
   isLoading: boolean;
   error: string | null;
