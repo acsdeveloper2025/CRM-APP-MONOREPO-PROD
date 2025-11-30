@@ -179,11 +179,11 @@ const ImageCapture: React.FC<ImageCaptureProps> = ({
 
       if (image.dataUrl) {
         console.log('🔄 Processing captured image...');
-        // Add timeout to prevent hanging
+        // Add timeout to prevent hanging (90 seconds to allow GPS acquisition with retries)
         await Promise.race([
           processImage(image.dataUrl),
           new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Image processing timeout after 15 seconds')), 15000)
+            setTimeout(() => reject(new Error('Image processing timeout after 90 seconds')), 90000)
           )
         ]);
         console.log('✅ Image processing completed successfully');
