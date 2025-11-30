@@ -167,7 +167,7 @@ const mapBackendTaskToMobile = (backendCase: BackendTask): VerificationTask => {
 
     // Verification Task Information
     verificationTaskId: backendCase.verificationTaskId,
-    verificationTaskNumber: backendCase.taskNumber,
+    verificationTaskNumber: backendCase.verificationTaskNumber,
 
     // Field 3: Client
     clientId: backendCase.clientId,
