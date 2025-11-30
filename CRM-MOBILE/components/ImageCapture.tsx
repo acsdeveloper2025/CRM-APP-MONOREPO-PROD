@@ -13,7 +13,7 @@ import { googleMapsService } from '../services/googleMapsService';
 
 interface ImageCaptureProps {
   images: CapturedImage[];
-  onImagesChange: (images: CapturedImage[]) => void;
+  onImagesChange: (images: CapturedImage[] | ((prev: CapturedImage[]) => CapturedImage[])) => void;
   isReadOnly?: boolean;
   minImages?: number;
   cameraDirection?: 'front' | 'rear';
