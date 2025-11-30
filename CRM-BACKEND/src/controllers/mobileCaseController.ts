@@ -276,6 +276,7 @@ export class MobileCaseController {
         // This allows multiple tasks for the same case (e.g. Revisit) to appear as separate items
         id: caseItem.verificationTaskId || caseItem.id,
         caseId: caseItem.caseId, // User-friendly auto-incrementing case ID
+        businessCaseId: caseItem.caseId, // Alias for mobile app display (Case ID: #123)
         // CRITICAL FIX: Show Task Number as title for field agents to distinguish Revisit tasks
         title: caseItem.verificationTaskNumber || caseItem.customerName || 'Verification Case',
         description: `${caseItem.verificationTypeName || 'Verification'} for ${caseItem.customerName}`,
