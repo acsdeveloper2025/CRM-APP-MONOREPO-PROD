@@ -276,7 +276,8 @@ export class MobileLocationController {
   // Get location history for a case
   static async getCaseLocationHistory(req: Request, res: Response) {
     try {
-      const { caseId } = req.params;
+      const { caseId: paramCaseId, taskId: paramTaskId } = req.params;
+      const caseId = paramCaseId || paramTaskId;
       const userId = (req as any).user?.userId;
       const userRole = (req as any).user?.role;
 

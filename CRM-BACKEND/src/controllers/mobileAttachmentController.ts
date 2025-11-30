@@ -102,7 +102,8 @@ export class MobileAttachmentController {
   // Upload files for mobile app
   static async uploadFiles(req: Request, res: Response) {
     try {
-      const { caseId } = req.params;
+      const { caseId: paramCaseId, taskId: paramTaskId } = req.params;
+      const caseId = paramCaseId || paramTaskId;
       const userId = (req as any).user?.id;
       const userRole = (req as any).user?.role;
       const files = req.files as Express.Multer.File[];
@@ -314,7 +315,8 @@ export class MobileAttachmentController {
   // Get attachments for a case
   static async getCaseAttachments(req: Request, res: Response) {
     try {
-      const { caseId } = req.params;
+      const { caseId: paramCaseId, taskId: paramTaskId } = req.params;
+      const caseId = paramCaseId || paramTaskId;
       const userId = (req as any).user?.id;
       const userRole = (req as any).user?.role;
 
