@@ -40,148 +40,157 @@ class EnhancedGeolocationService {
   /**
    * Get current location with enhanced features and retry logic
    */
+  /**
+   * Get current location with progressive degradation strategy
+   * Goal: Get the best possible location within ~20-25 seconds
+   */
   async getCurrentLocation(options: GeolocationOptions = {}): Promise<EnhancedLocationData> {
     const defaultOptions: GeolocationOptions = {
-      enableHighAccuracy: true,
-      timeout: 30000, // Increased to 30 seconds for GPS cold start
-      maximumAge: 60000,
       includeAddress: true,
       validateLocation: true,
       fallbackToNominatim: true,
-      retryAttempts: this.MAX_RETRY_ATTEMPTS,
-      fallbackToIPGeolocation: true, // Enabled for development/fallback
+      fallbackToIPGeolocation: true,
       ...options
     };
 
-    console.log('🌍 Starting location acquisition with options:', defaultOptions);
+    console.log('🌍 Starting progressive location acquisition...');
+    const startTime = Date.now();
 
-    // Strategy 1: Try high-accuracy GPS with retries
+    // Helper to check if we are still within overall time budget
+    const checkTimeBudget = () => {
+      const elapsed = Date.now() - startTime;
+      if (elapsed > 22000) throw new Error('Overall location timeout exceeded');
+    };
+
     try {
-      return await this.getLocationWithRetry(defaultOptions);
-    } catch (highAccuracyError) {
-      console.warn('❌ High-accuracy location failed after retries:', highAccuracyError);
-
-      // Strategy 2: Try low-accuracy GPS (faster, less battery)
+      // STEP 1: High Accuracy - Fast Attempt (5s)
+      // Good for when GPS is already hot or user is outdoors
       try {
-        console.log('🔄 Trying low-accuracy mode...');
-        const lowAccuracyOptions = { ...defaultOptions, enableHighAccuracy: false, timeout: 10000 };
-        return await this.getLocationWithRetry(lowAccuracyOptions);
-      } catch (lowAccuracyError) {
-        console.warn('❌ Low-accuracy location also failed:', lowAccuracyError);
+        console.log('📍 Step 1: High Accuracy (Fast - 5s)');
+        return await this.getSingleLocationAttempt({
+          enableHighAccuracy: true,
+          timeout: 5000,
+          maximumAge: 30000
+        }, 1000); // Max 1000m accuracy
+      } catch (err) {
+        console.warn('Step 1 failed:', err);
+        checkTimeBudget();
+      }
 
-        // Strategy 3: Use cached location if available and recent
-        if (this.lastKnownLocation) {
-          const cacheAge = Date.now() - (this.lastKnownLocation.timestamp || 0);
-          if (cacheAge < this.CACHE_DURATION) {
-            console.warn('⚠️ Using cached location (age: ' + Math.round(cacheAge / 1000) + 's)');
-            return { ...this.lastKnownLocation, source: 'cached' };
-          }
+      // STEP 2: High Accuracy - Retry with longer timeout (7s)
+      // Gives GPS a bit more time to lock if it was cold
+      try {
+        console.log('📍 Step 2: High Accuracy (Retry - 7s)');
+        return await this.getSingleLocationAttempt({
+          enableHighAccuracy: true,
+          timeout: 7000,
+          maximumAge: 0 // Force fresh
+        }, 2000); // Relax accuracy to 2000m
+      } catch (err) {
+        console.warn('Step 2 failed:', err);
+        checkTimeBudget();
+      }
+
+      // STEP 3: Low Accuracy / Cell Tower / Wifi (5s)
+      // Very fast, works indoors, but less accurate
+      try {
+        console.log('📍 Step 3: Low Accuracy / Network (5s)');
+        return await this.getSingleLocationAttempt({
+          enableHighAccuracy: false,
+          timeout: 5000,
+          maximumAge: 0
+        }, 5000); // Relax accuracy to 5000m
+      } catch (err) {
+        console.warn('Step 3 failed:', err);
+        checkTimeBudget();
+      }
+
+      // STEP 4: Cached Location (Immediate)
+      // If we have a recent cache (even if slightly older than ideal), use it
+      if (this.lastKnownLocation) {
+        const cacheAge = Date.now() - (this.lastKnownLocation.timestamp || 0);
+        if (cacheAge < 5 * 60 * 1000) { // 5 minutes
+          console.warn(`⚠️ Step 4: Using cached location (age: ${Math.round(cacheAge / 1000)}s)`);
+          return { ...this.lastKnownLocation, source: 'cached' };
         }
+      }
 
-        // Strategy 4: IP-based geolocation as last resort
-        if (defaultOptions.fallbackToIPGeolocation) {
-          try {
-            console.log('🌐 Trying IP-based geolocation as last resort...');
-            return await this.getIPBasedLocation();
-          } catch (ipError) {
-            console.error('❌ IP-based geolocation failed:', ipError);
-          }
+      // STEP 5: IP Fallback (Last Resort)
+      if (defaultOptions.fallbackToIPGeolocation) {
+        try {
+          console.log('🌐 Step 5: IP-based geolocation fallback');
+          return await this.getIPBasedLocation();
+        } catch (ipError) {
+          console.error('❌ Step 5 failed:', ipError);
         }
+      }
 
-        throw this.createGeolocationError(highAccuracyError);
+      throw new Error('All location strategies failed');
+
+    } catch (finalError) {
+      console.error('❌ Location acquisition failed completely:', finalError);
+      
+      // If we have ANY last known location, return it as a desperate fallback
+      if (this.lastKnownLocation) {
+         console.warn('⚠️ Returning last known location as desperate fallback');
+         return { ...this.lastKnownLocation, source: 'cached' };
+      }
+
+      throw this.createGeolocationError({ code: 2, message: 'Location unavailable' });
+    }
+  }
+
+  /**
+   * Helper for a single location attempt with specific constraints
+   */
+  private async getSingleLocationAttempt(
+    options: PositionOptions, 
+    maxAccuracyMeters: number
+  ): Promise<EnhancedLocationData> {
+    try {
+      // Try Capacitor first
+      const position = await Geolocation.getCurrentPosition(options);
+      return await this.processPosition(position, maxAccuracyMeters, 'capacitor');
+    } catch (err) {
+      // If Capacitor fails (e.g. on Web), try Browser API
+      if (this.isPermissionDenied(err)) throw err; // Don't retry if denied
+      
+      try {
+        const position = await this.getBrowserLocation(options);
+        return await this.processPosition(position, maxAccuracyMeters, 'browser');
+      } catch (browserErr) {
+        throw browserErr;
       }
     }
   }
 
   /**
-   * Get location with retry logic and exponential backoff
+   * Process and validate a raw position
    */
-  private async getLocationWithRetry(options: GeolocationOptions): Promise<EnhancedLocationData> {
-    const maxAttempts = options.retryAttempts || this.MAX_RETRY_ATTEMPTS;
-    let lastError: any;
-
-    for (let attempt = 0; attempt < maxAttempts; attempt++) {
-      try {
-        console.log(`📍 Location attempt ${attempt + 1}/${maxAttempts} (${options.enableHighAccuracy ? 'high' : 'low'} accuracy)`);
-
-        // Try Capacitor Geolocation first (works on mobile)
-        try {
-          const position = await Geolocation.getCurrentPosition({
-            enableHighAccuracy: options.enableHighAccuracy,
-            timeout: options.timeout,
-            maximumAge: options.maximumAge
-          });
-
-          const locationData: EnhancedLocationData = {
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-            accuracy: position.coords.accuracy,
-            timestamp: position.timestamp,
-            source: 'capacitor'
-          };
-
-          // CRITICAL: Validate GPS accuracy for field verification (must be 50m-1km)
-          const accuracy = position.coords.accuracy || 9999;
-          if (accuracy > 1000) {
-            console.warn(`❌ GPS accuracy too low: ${accuracy.toFixed(0)}m (required: ≤1000m)`);
-            throw {
-              code: 2,
-              message: `GPS accuracy insufficient: ${accuracy.toFixed(0)}m (required: ≤1km)`,
-              accuracy
-            };
-          }
-
-          console.log(`✅ Location acquired (accuracy: ${accuracy.toFixed(0)}m) ✓`);
-          return await this.enhanceLocationData(locationData, options);
-
-        } catch (capacitorError) {
-          console.warn('Capacitor Geolocation failed, trying browser API:', capacitorError);
-
-          // Fallback to browser geolocation API
-          const position = await this.getBrowserLocation(options);
-          
-          // CRITICAL: Validate GPS accuracy for field verification (must be 50m-1km)
-          const accuracy = position.coords.accuracy || 9999;
-          if (accuracy > 1000) {
-            console.warn(`❌ Browser GPS accuracy too low: ${accuracy.toFixed(0)}m (required: ≤1000m)`);
-            throw {
-              code: 2,
-              message: `GPS accuracy insufficient: ${accuracy.toFixed(0)}m (required: ≤1km)`,
-              accuracy
-            };
-          }
-
-          const locationData: EnhancedLocationData = {
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-            accuracy: position.coords.accuracy,
-            timestamp: position.timestamp,
-            source: 'browser'
-          };
-
-          console.log(`✅ Location acquired via browser (accuracy: ${accuracy.toFixed(0)}m) ✓`);
-          return await this.enhanceLocationData(locationData, options);
-        }
-
-      } catch (error) {
-        lastError = error;
-        console.warn(`❌ Attempt ${attempt + 1} failed:`, error);
-
-        // Don't retry if it's a permission denial
-        if (this.isPermissionDenied(error)) {
-          throw error;
-        }
-
-        // Wait before retrying (exponential backoff)
-        if (attempt < maxAttempts - 1) {
-          const delay = this.RETRY_DELAYS[attempt] || this.RETRY_DELAYS[this.RETRY_DELAYS.length - 1];
-          console.log(`⏳ Waiting ${delay}ms before retry...`);
-          await this.sleep(delay);
-        }
-      }
+  private async processPosition(
+    position: GeolocationPosition, 
+    maxAccuracyMeters: number,
+    source: 'capacitor' | 'browser'
+  ): Promise<EnhancedLocationData> {
+    const accuracy = position.coords.accuracy || 9999;
+    
+    if (accuracy > maxAccuracyMeters) {
+      throw new Error(`Accuracy ${accuracy.toFixed(0)}m exceeds limit of ${maxAccuracyMeters}m`);
     }
 
-    throw lastError || new Error('Location acquisition failed after all retries');
+    const locationData: EnhancedLocationData = {
+      latitude: position.coords.latitude,
+      longitude: position.coords.longitude,
+      accuracy: position.coords.accuracy,
+      timestamp: position.timestamp,
+      source: source
+    };
+
+    // Enhance with address (this is fast if cached, or async)
+    // We await it here but we could optimize to return early if needed
+    // For now, we want the address attached
+    const enhanced = await this.enhanceLocationData(locationData, { includeAddress: true });
+    return enhanced;
   }
 
   /**
