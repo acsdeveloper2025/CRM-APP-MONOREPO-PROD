@@ -43,13 +43,13 @@ class EnhancedGeolocationService {
   async getCurrentLocation(options: GeolocationOptions = {}): Promise<EnhancedLocationData> {
     const defaultOptions: GeolocationOptions = {
       enableHighAccuracy: true,
-      timeout: 15000, // Increased to 15 seconds
+      timeout: 30000, // Increased to 30 seconds for GPS cold start
       maximumAge: 60000,
       includeAddress: true,
       validateLocation: true,
       fallbackToNominatim: true,
       retryAttempts: this.MAX_RETRY_ATTEMPTS,
-      fallbackToIPGeolocation: true,
+      fallbackToIPGeolocation: true, // Enabled for development/fallback
       ...options
     };
 
@@ -120,7 +120,18 @@ class EnhancedGeolocationService {
             source: 'capacitor'
           };
 
-          console.log(`✅ Location acquired (accuracy: ${position.coords.accuracy?.toFixed(0)}m)`);
+          // CRITICAL: Validate GPS accuracy for field verification (must be 50m-1km)
+          const accuracy = position.coords.accuracy || 9999;
+          if (accuracy > 1000) {
+            console.warn(`❌ GPS accuracy too low: ${accuracy.toFixed(0)}m (required: ≤1000m)`);
+            throw {
+              code: 2,
+              message: `GPS accuracy insufficient: ${accuracy.toFixed(0)}m (required: ≤1km)`,
+              accuracy
+            };
+          }
+
+          console.log(`✅ Location acquired (accuracy: ${accuracy.toFixed(0)}m) ✓`);
           return await this.enhanceLocationData(locationData, options);
 
         } catch (capacitorError) {
@@ -128,6 +139,18 @@ class EnhancedGeolocationService {
 
           // Fallback to browser geolocation API
           const position = await this.getBrowserLocation(options);
+          
+          // CRITICAL: Validate GPS accuracy for field verification (must be 50m-1km)
+          const accuracy = position.coords.accuracy || 9999;
+          if (accuracy > 1000) {
+            console.warn(`❌ Browser GPS accuracy too low: ${accuracy.toFixed(0)}m (required: ≤1000m)`);
+            throw {
+              code: 2,
+              message: `GPS accuracy insufficient: ${accuracy.toFixed(0)}m (required: ≤1km)`,
+              accuracy
+            };
+          }
+
           const locationData: EnhancedLocationData = {
             latitude: position.coords.latitude,
             longitude: position.coords.longitude,
@@ -136,7 +159,7 @@ class EnhancedGeolocationService {
             source: 'browser'
           };
 
-          console.log(`✅ Location acquired via browser (accuracy: ${position.coords.accuracy?.toFixed(0)}m)`);
+          console.log(`✅ Location acquired via browser (accuracy: ${accuracy.toFixed(0)}m) ✓`);
           return await this.enhanceLocationData(locationData, options);
         }
 
@@ -364,9 +387,9 @@ class EnhancedGeolocationService {
         case 2: // POSITION_UNAVAILABLE
           return {
             code: 2,
-            message: 'Position unavailable',
-            userMessage: 'Unable to determine your location',
-            actionable: 'Please ensure GPS is enabled and you are in an area with good signal. Try moving to an open area or near a window.'
+            message: 'Position unavailable or accuracy insufficient',
+            userMessage: 'Unable to get accurate GPS location (required: ≤1km accuracy)',
+            actionable: 'Please ensure GPS is enabled and move to an open area with clear sky view. GPS needs 30-60 seconds to acquire satellites. Avoid indoor locations.'
           };
         case 3: // TIMEOUT
           return {
