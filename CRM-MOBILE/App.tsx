@@ -176,7 +176,8 @@ const AppNavigator: React.FC = () => {
 const App: React.FC = () => {
   // Use build-time flag to determine if this is the native mobile app
   // This is set in vite.config.ts based on IS_MOBILE_APP env var
-  const isMobileAppBuild = (window as any).__IS_MOBILE_APP__ === true;
+  // @ts-ignore - defined in vite.config.ts
+  const isMobileAppBuild = typeof __IS_MOBILE_APP__ !== 'undefined' ? __IS_MOBILE_APP__ : false;
 
   try {
     return (
