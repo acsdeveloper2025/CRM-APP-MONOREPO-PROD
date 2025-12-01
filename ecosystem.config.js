@@ -4,7 +4,7 @@ module.exports = {
       name: 'crm-backend',
       cwd: './CRM-BACKEND',
       script: 'npm',
-      args: 'run start:prod',
+      args: 'start',
       instances: 1,
       exec_mode: 'fork',
       autorestart: true,
