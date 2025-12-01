@@ -4,6 +4,7 @@ import android.os.Bundle;
 import android.view.View;
 import android.view.WindowManager;
 import android.webkit.WebView;
+import androidx.core.splashscreen.SplashScreen;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
@@ -13,6 +14,9 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        // Handle the splash screen transition.
+        SplashScreen.installSplashScreen(this);
+
         super.onCreate(savedInstanceState);
 
         // Enable WebView debugging for all build types
