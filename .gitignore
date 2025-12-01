@@ -280,11 +280,15 @@ CaseFlow-Mobile-*.apk
 # =====================================================
 # DATABASE MIGRATION FILES
 # =====================================================
-# Production credentials (NEVER commit)
-scripts/db-migration/.env.production
-
-# Migration dumps and backups
-scripts/db-migration/dumps/
+# Database dumps and migration files should not be committed
+# Use proper migration tools and version control for schema changes
+*.sql
+*.dump
+*.dump.*
+db/*.sql
+db/*.dump
+db/*.dump.*
+db/backups/
 scripts/db-migration/backups/
 
 # Migration logs
