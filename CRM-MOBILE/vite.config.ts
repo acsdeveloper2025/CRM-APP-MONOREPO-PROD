@@ -5,9 +5,10 @@ import react from '@vitejs/plugin-react';
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
     const isProduction = mode === 'production';
+    const isMobileApp = process.env.IS_MOBILE_APP === 'true';
 
     return {
-      base: isProduction ? '/mobile/' : '/',
+      base: isProduction && !isMobileApp ? '/mobile/' : '/',
       plugins: [
         react({
           jsxRuntime: 'automatic'
@@ -37,6 +38,7 @@ export default defineConfig(({ mode }) => {
         'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
         global: 'globalThis',
         __DEV__: JSON.stringify(mode === 'development'),
+        __IS_MOBILE_APP__: JSON.stringify(isMobileApp),
       },
       resolve: {
         alias: {

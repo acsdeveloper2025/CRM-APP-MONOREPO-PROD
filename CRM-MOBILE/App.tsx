@@ -174,16 +174,15 @@ const AppNavigator: React.FC = () => {
 
 
 const App: React.FC = () => {
-  // Detect if running in Capacitor (native mobile app)
-  const isCapacitor = window.location.protocol === 'capacitor:' || 
-                      window.location.protocol === 'ionic:' ||
-                      (window as any).Capacitor !== undefined;
+  // Use build-time flag to determine if this is the native mobile app
+  // This is set in vite.config.ts based on IS_MOBILE_APP env var
+  const isMobileAppBuild = (window as any).__IS_MOBILE_APP__ === true;
 
   try {
     return (
       <ErrorBoundary>
         <BrowserRouter
-          basename={isCapacitor ? '' : (import.meta.env.PROD ? '/mobile' : '')}
+          basename={isMobileAppBuild ? '' : (import.meta.env.PROD ? '/mobile' : '')}
         >
           <SafeAreaProvider>
             <ResponsiveLayoutProvider>
