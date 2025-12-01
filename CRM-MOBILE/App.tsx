@@ -174,12 +174,16 @@ const AppNavigator: React.FC = () => {
 
 
 const App: React.FC = () => {
+  // Detect if running in Capacitor (native mobile app)
+  const isCapacitor = window.location.protocol === 'capacitor:' || 
+                      window.location.protocol === 'ionic:' ||
+                      (window as any).Capacitor !== undefined;
 
   try {
     return (
       <ErrorBoundary>
         <BrowserRouter
-          basename={import.meta.env.PROD ? '/mobile' : ''}
+          basename={isCapacitor ? '' : (import.meta.env.PROD ? '/mobile' : '')}
         >
           <SafeAreaProvider>
             <ResponsiveLayoutProvider>
