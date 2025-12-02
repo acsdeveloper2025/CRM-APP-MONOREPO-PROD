@@ -534,39 +534,100 @@ start_services() {
     fi
 }
 
-# Create new release from transferred source
-create_release() {
-    print_header "📦 Creating New Release"
+# Update code from git repository
+update_code_from_git() {
+    print_header "📥 Updating Code from Git Repository"
+    
+    local target_commit="$1"
+    
+    # Navigate to project root
+    cd "$PROJECT_ROOT" || {
+        print_error "Failed to navigate to $PROJECT_ROOT"
+        return 1
+    }
+    
+    # Verify git repository
+    if [ ! -d ".git" ]; then
+        print_error "Not a git repository: $PROJECT_ROOT"
+        print_error "Please initialize git repository on production server:"
+        print_error "  cd $PROJECT_ROOT"
+        print_error "  git init"
+        print_error "  git remote add origin https://github.com/acsdeveloper2025/CRM-APP-MONOREPO-PROD.git"
+        print_error "  git fetch origin"
+        print_error "  git checkout main"
+        return 1
+    fi
+    
+    # Test GitHub connectivity
+    print_info "Testing GitHub connectivity..."
+    if ! timeout 10 git ls-remote origin &>/dev/null; then
+        print_error "Cannot connect to GitHub repository"
+        print_error "Please check network connectivity and git credentials"
+        print_error "Test with: git ls-remote origin"
+        return 1
+    fi
+    print_success "GitHub connectivity OK"
+    
+    # Stash any local changes
+    print_info "Stashing local changes..."
+    git stash --include-untracked || true
+    
+    # Fetch latest changes
+    print_info "Fetching latest changes from origin..."
+    if ! timeout 60 git fetch origin; then
+        print_error "Failed to fetch from origin"
+        return 1
+    fi
+    print_success "Fetch completed"
+    
+    # Checkout and reset to target commit
+    print_info "Checking out main branch..."
+    git checkout main || {
+        print_error "Failed to checkout main branch"
+        return 1
+    }
+    
+    print_info "Resetting to origin/main..."
+    git reset --hard origin/main || {
+        print_error "Failed to reset to origin/main"
+        return 1
+    }
+    
+    # Verify commit
+    local current_commit=$(git rev-parse HEAD)
+    print_status "Current commit: $current_commit"
+    
+    if [ -n "$target_commit" ] && [ "$current_commit" != "$target_commit" ]; then
+        print_warning "Commit mismatch!"
+        print_warning "  Expected: $target_commit"
+        print_warning "  Got: $current_commit"
+        print_warning "Continuing with current commit..."
+    fi
+    
+    # Display commit info
+    print_info "Latest commit:"
+    git log -1 --oneline
+    
+    print_success "Code updated successfully from git"
+    return 0
+}
 
+# Create new release (simplified - no tarball extraction)
+create_new_release() {
+    print_header "📦 Creating New Release"
+    
+    # Get commit SHA from deployment info
+    local COMMIT_SHA=$(jq -r '.commit_sha // "unknown"' "$DEPLOYMENT_INFO_FILE")
+    
     # Create timestamped release directory
     RELEASE_NAME="$(date +%Y%m%d_%H%M%S)_${COMMIT_SHA:0:8}"
     NEW_RELEASE_DIR="$RELEASES_DIR/$RELEASE_NAME"
-
+    
     print_info "Creating release: $RELEASE_NAME"
     mkdir -p "$NEW_RELEASE_DIR"
-
-    # Extract source code
-    if [ -f "/tmp/source-code.tar.gz" ]; then
-        print_info "Extracting source code from tarball..."
-        tar -xzf /tmp/source-code.tar.gz -C "$NEW_RELEASE_DIR"
-        print_success "Source code extracted successfully"
-        
-        # Cleanup tarball
-        rm /tmp/source-code.tar.gz
-    else
-        print_error "Source code tarball not found at /tmp/source-code.tar.gz"
-        exit 1
-    fi
-
-    # Sync release to current directory (preserve directory structure, update files only)
-    print_info "Syncing release to current directory..."
-
-    # Ensure current directory exists
-    mkdir -p "$PROJECT_ROOT"
-
-    # Use rsync to sync files without deleting directories
-    # This preserves uploads, logs, and other runtime directories
-    print_info "Using rsync to sync files (preserving existing directories)..."
+    
+    # Copy current code to release directory for backup
+    print_info "Backing up current code to release directory..."
     rsync -av --exclude='node_modules' \
               --exclude='dist' \
               --exclude='build' \
@@ -576,15 +637,22 @@ create_release() {
               --exclude='uploads' \
               --exclude='logs' \
               --exclude='*.log' \
-              "$NEW_RELEASE_DIR/" "$PROJECT_ROOT/"
-
-    print_status "New release created: $NEW_RELEASE_DIR"
-    print_status "Code synced to: $PROJECT_ROOT"
+              "$PROJECT_ROOT/" "$NEW_RELEASE_DIR/"
+    
+    print_status "Release created: $NEW_RELEASE_DIR"
 }
 
-# Update code (Legacy function, now handled by create_release)
+# Update code (now uses git instead of tarball)
 update_code() {
-    print_info "Code update handled by release creation (tarball extraction)"
+    local commit_sha=$(jq -r '.commit_sha // empty' "$DEPLOYMENT_INFO_FILE")
+    
+    if ! update_code_from_git "$commit_sha"; then
+        print_error "Failed to update code from git"
+        return 1
+    fi
+    
+    print_info "Code update completed successfully"
+    return 0
 }
 
 # Cleanup old releases and backups
