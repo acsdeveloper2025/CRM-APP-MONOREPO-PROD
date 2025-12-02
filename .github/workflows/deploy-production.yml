@@ -2,28 +2,28 @@ name: 🚀 Production Deployment Pipeline
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   workflow_dispatch:
     inputs:
       force_rebuild:
-        description: 'Force rebuild all components (backend, frontend, mobile)'
+        description: "Force rebuild all components (backend, frontend, mobile)"
         required: false
         default: false
         type: boolean
       deploy_database:
-        description: 'Deploy database migrations and schema'
+        description: "Deploy database migrations and schema"
         required: false
         default: false
         type: boolean
       skip_tests:
-        description: 'Skip tests (emergency deployment)'
+        description: "Skip tests (emergency deployment)"
         required: false
         default: false
         type: boolean
 
 env:
-  NODE_VERSION: '22'
-  DEPLOYMENT_TIMEOUT: '600'
+  NODE_VERSION: "22"
+  DEPLOYMENT_TIMEOUT: "600"
 
 jobs:
   # Pre-deployment checks and validation
@@ -36,7 +36,7 @@ jobs:
       mobile_changed: ${{ steps.changes.outputs.mobile }}
       migrations_changed: ${{ steps.changes.outputs.migrations }}
       deploy_needed: ${{ steps.changes.outputs.deploy_needed }}
-    
+
     steps:
       - name: 📥 Checkout Code
         uses: actions/checkout@v4
@@ -89,7 +89,7 @@ jobs:
             fi
 
             # Check if any deployment-relevant files changed
-            if git diff --name-only HEAD~1 HEAD | grep -E '\.(js|ts|tsx|json|yml|yaml|sh)$'; then
+            if git diff --name-only HEAD~1 HEAD | grep -E '\.(js|ts|tsx|json|yml|yaml|sh|sql)$'; then
               echo "deploy_needed=true" >> $GITHUB_OUTPUT
               echo "🚀 Deployment needed"
             else
@@ -132,7 +132,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
+          cache: "npm"
           cache-dependency-path: ${{ matrix.path }}/package.json
 
       - name: 📦 Install Dependencies
@@ -152,7 +152,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [pre-deployment, lint]
     if: needs.pre-deployment.outputs.deploy_needed == 'true'
-    
+
     strategy:
       matrix:
         component: [backend, frontend, mobile]
@@ -169,7 +169,7 @@ jobs:
             path: CRM-MOBILE
             build_cmd: npm run build
             test_cmd: echo "Mobile tests would run here"
-    
+
     steps:
       - name: 📥 Checkout Code
         uses: actions/checkout@v4
@@ -178,7 +178,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
+          cache: "npm"
           cache-dependency-path: ${{ matrix.path }}/package.json
 
       - name: 📦 Install Dependencies
@@ -272,7 +272,7 @@ jobs:
     needs: [pre-deployment, lint, build-and-test]
     if: needs.pre-deployment.outputs.deploy_needed == 'true'
     environment: production
-    
+
     steps:
       - name: 📥 Checkout Code
         uses: actions/checkout@v4
@@ -366,5 +366,3 @@ jobs:
           echo "- [Production Site](https://example.com)" >> $GITHUB_STEP_SUMMARY
           echo "- [API Health](https://example.com/health)" >> $GITHUB_STEP_SUMMARY
           echo "- [Mobile App](https://example.com/mobile/)" >> $GITHUB_STEP_SUMMARY
-
-
