@@ -57,13 +57,21 @@ export interface VerificationTask {
   
   // Timing and Completion
   estimatedCompletionDate?: string;
-  startedAt?: string;
+  startedAt?: string; // When task moved to IN_PROGRESS
+  inProgressAt?: string; // Mobile compatibility: alias for startedAt
+  savedAt?: string; // When task was saved (mobile)
   completedAt?: string;
+  
+  // Saved state (mobile compatibility)
+  isSaved?: boolean; // Derived from status or separate field
 
   // Revocation Fields (field agent initiated)
+  isRevoked?: boolean; // Mobile compatibility: derived from status === 'REVOKED'
   revokedAt?: string;
   revokedBy?: string;
+  revokedByName?: string; // Populated from JOIN with users table
   revocationReason?: string;
+  revokeReason?: string; // Alias for mobile compatibility
 
   // Cancellation Fields (backend user initiated)
   cancelledAt?: string;
@@ -386,7 +394,8 @@ export const TASK_STATUS_COLORS: Record<TaskStatus, string> = {
   IN_PROGRESS: 'yellow',
   COMPLETED: 'green',
   CANCELLED: 'red',
-  ON_HOLD: 'orange'
+  ON_HOLD: 'orange',
+  REVOKED: 'red'
 };
 
 export const TASK_PRIORITY_COLORS: Record<TaskPriority, string> = {

@@ -24,6 +24,7 @@ const AssignedTasksScreen = lazy(() => import('./screens/AssignedTasksScreen'));
 const InProgressTasksScreen = lazy(() => import('./screens/InProgressTasksScreen'));
 const CompletedTasksScreen = lazy(() => import('./screens/CompletedTasksScreen'));
 const SavedTasksScreen = lazy(() => import('./screens/SavedTasksScreen'));
+const RevokedTasksScreen = lazy(() => import('./screens/RevokedTasksScreen'));
 const ProfileScreen = lazy(() => import('./screens/ProfileScreen'));
 const DigitalIdCardScreen = lazy(() => import('./screens/DigitalIdCardScreen'));
 
@@ -145,6 +146,7 @@ const AppNavigator: React.FC = () => {
               <Route path="/cases/in-progress" element={<InProgressTasksScreen />} />
               <Route path="/cases/completed" element={<CompletedTasksScreen />} />
               <Route path="/cases/saved" element={<SavedTasksScreen />} />
+              <Route path="/cases/revoked" element={<RevokedTasksScreen />} />
               <Route path="/profile" element={<ProfileScreen />} />
               <Route path="/digital-id-card" element={<DigitalIdCardScreen />} />
               <Route path="*" element={<Navigate to="/" replace />} />
