@@ -9,6 +9,7 @@ import NetworkService from '../services/networkService';
 import CaseCounterService from '../services/caseCounterService';
 import { useAuth } from './AuthContext';
 import { getReportInfo } from '../data/initialReportData';
+import EnterpriseOfflineDatabase from '../src/services/EnterpriseOfflineDatabase';
 
 interface TaskContextType {
   tasks: VerificationTask[];
@@ -87,21 +88,56 @@ export const TaskProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setLoading(true);
     setError(null);
     try {
-      // Force fresh data from API to ensure we get the latest task status
-      // This prevents showing stale cached data after sign in/out
-      const data = await taskService.getTasks(true);
-      const sortedTasks = data.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
-      setTasks(sortedTasks);
+      const isOnline = NetworkService.isOnline();
+      console.log(`📡 fetchTasks: Network status - ${isOnline ? 'Online' : 'Offline'}`);
 
-      // Update task counters
-      await CaseCounterService.updateCounts(sortedTasks);
+      if (isOnline) {
+        // ONLINE: Fetch from API and save to local DB
+        try {
+          const data = await taskService.getTasks(true);
+          const sortedTasks = data.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+          
+          // Save to local DB for offline access
+          try {
+            for (const task of sortedTasks) {
+              await EnterpriseOfflineDatabase.saveCase(task);
+            }
+            console.log(`💾 Saved ${sortedTasks.length} tasks to local database`);
+          } catch (dbError) {
+            console.error('❌ Failed to save tasks to local DB:', dbError);
+          }
+          
+          setTasks(sortedTasks);
+          await CaseCounterService.updateCounts(sortedTasks);
+        } catch (apiError) {
+          console.warn('⚠️ API fetch failed, falling back to local DB:', apiError);
+          // API failed - fall back to local DB
+          const localTasks = await EnterpriseOfflineDatabase.getCases({
+            assignedTo: user?.id
+          });
+          const sortedLocalTasks = localTasks.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+          setTasks(sortedLocalTasks);
+          await CaseCounterService.updateCounts(sortedLocalTasks);
+        }
+      } else {
+        // OFFLINE: Load from local DB
+        console.log('📱 Working offline - loading tasks from local database');
+        const localTasks = await EnterpriseOfflineDatabase.getCases({
+          assignedTo: user?.id
+        });
+        const sortedLocalTasks = localTasks.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+        setTasks(sortedLocalTasks);
+        await CaseCounterService.updateCounts(sortedLocalTasks);
+        console.log(`✅ Loaded ${sortedLocalTasks.length} tasks from local database`);
+      }
     } catch (err) {
-      setError('Failed to fetch tasks.');
-      console.error(err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch tasks';
+      setError(errorMessage);
+      console.error('❌ fetchTasks error:', err);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     if (isAuthenticated) {

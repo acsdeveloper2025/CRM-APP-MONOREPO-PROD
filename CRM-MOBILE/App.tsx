@@ -15,6 +15,7 @@ import { validateEnvironmentConfig, getEnvironmentConfig } from './config/enviro
 import { dataCleanupService } from './services/dataCleanupService';
 import { backgroundTaskManager } from './services/backgroundTaskManager';
 import { initializeAppPermissions } from './utils/permissions';
+import EnterpriseOfflineDatabase from './src/services/EnterpriseOfflineDatabase';
 
 // Lazy load screens for better code splitting
 const NewLoginScreen = lazy(() => import('./screens/NewLoginScreen'));
@@ -43,6 +44,11 @@ const AppNavigator: React.FC = () => {
         console.log('🔐 Initializing permissions...');
         const permissions = await initializeAppPermissions();
         console.log('🔐 Permission initialization complete:', permissions);
+
+        // Initialize offline database for offline sync support
+        console.log('💾 Initializing offline database...');
+        await EnterpriseOfflineDatabase.initialize();
+        console.log('✅ Offline database initialized successfully');
 
         // Validate environment configuration
         const config = getEnvironmentConfig();

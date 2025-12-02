@@ -90,12 +90,13 @@ const SQLite = {
     }
   },
 
-  openDatabase: (config: any) => {
+  openDatabase: async (config: any) => {
     if (isNative && RNSQLite) {
       return RNSQLite.openDatabase(config);
     } else {
       // Return web implementation
       const webDb = new WebSQLiteDatabase(config.name || 'default.db');
+      await webDb.open(); // CRITICAL: Open the database before returning
       return {
         ...webDb,
         transaction: (callback: any) => {

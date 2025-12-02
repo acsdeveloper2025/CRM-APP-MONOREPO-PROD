@@ -91,6 +91,15 @@ export const TasksListFlat: React.FC<TasksListFlatProps> = ({
     }
   };
 
+  const formatTime = (dateString: string | null | undefined) => {
+    if (!dateString) {return '-';}
+    try {
+      return format(new Date(dateString), 'hh:mm a');
+    } catch {
+      return '-';
+    }
+  };
+
   return (
     <div className="space-y-4">
       {/* Data Table */}
@@ -131,6 +140,9 @@ export const TasksListFlat: React.FC<TasksListFlatProps> = ({
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   Date
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  Time
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   Actions
@@ -234,6 +246,11 @@ export const TasksListFlat: React.FC<TasksListFlatProps> = ({
                     {/* Date */}
                     <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
                       {task.assignedAt ? formatDate(task.assignedAt) : formatDate(task.createdAt)}
+                    </td>
+
+                    {/* Time */}
+                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
+                      {task.assignedAt ? formatTime(task.assignedAt) : formatTime(task.createdAt)}
                     </td>
 
                     {/* Actions */}

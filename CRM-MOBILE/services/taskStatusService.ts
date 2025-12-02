@@ -2,6 +2,9 @@ import { VerificationTask, TaskStatus } from '../types';
 import { taskService } from './taskService';
 import AuthStorageService from './authStorageService';
 import { getEnvironmentConfig } from '../config/environment';
+import EnterpriseOfflineDatabase from '../src/services/EnterpriseOfflineDatabase';
+import EnterpriseSyncService from '../src/services/EnterpriseSyncService';
+import NetworkService from './networkService';
 
 /**
  * Simple Case Status Service
@@ -17,10 +20,10 @@ export interface StatusUpdateResult {
 class TaskStatusService {
 
   /**
-   * Update case status with direct backend sync
-   */
-  /**
-   * Update case status with direct backend sync
+   * Update task status with offline-first approach
+   * - Saves to local DB immediately (works offline)
+   * - Syncs to backend if online
+   * - Adds to sync queue if offline or sync fails
    */
   static async updateTaskStatus(
     taskId: string,
@@ -28,12 +31,12 @@ class TaskStatusService {
     options?: { optimistic?: boolean; auditMetadata?: any }
   ): Promise<StatusUpdateResult> {
     try {
-      console.log(`🔄 Updating case ${taskId} status to ${newStatus}...`);
+      console.log(`🔄 Updating task ${taskId} status to ${newStatus}...`);
 
-      // Get current case
+      // Get current task
       const task = await taskService.getTask(taskId);
       if (!task) {
-        return { success: false, error: 'Case not found' };
+        return { success: false, error: 'Task not found' };
       }
 
       // Validate status transition
@@ -44,30 +47,69 @@ class TaskStatusService {
         };
       }
 
-      // Update local state
-      await taskService.updateTask(taskId, { status: newStatus });
-      console.log(`✅ Local update: VerificationTask ${taskId} status updated to ${newStatus}`);
+      // Check network connectivity
+      const isOnline = NetworkService.isOnline();
+      console.log(`📡 Network status: ${isOnline ? 'Online' : 'Offline'}`);
 
-      // Try to sync with backend, but don't fail if it's not available
+      // STEP 1: Always save to local database first (offline-first)
       try {
-        const syncResult = await this.syncStatusWithBackend(taskId, newStatus, {});
-        if (syncResult.success) {
-          console.log(`🌐 Backend sync successful for case ${taskId}`);
-        } else {
-          console.log(`⚠️ Backend sync failed (offline mode): ${syncResult.error}`);
+        await EnterpriseOfflineDatabase.updateTaskStatus(taskId, this.mapMobileStatusToBackend(newStatus));
+        console.log(`💾 Local DB: Task ${taskId} status saved to offline database`);
+      } catch (dbError) {
+        console.error(`❌ Failed to save to local DB:`, dbError);
+        // Continue anyway - we'll try the API
+      }
+
+      // STEP 2: Update in-memory state
+      await taskService.updateTask(taskId, { status: newStatus });
+      console.log(`✅ Memory: Task ${taskId} status updated to ${newStatus}`);
+
+      // STEP 3: Try to sync with backend if online
+      if (isOnline) {
+        try {
+          const syncResult = await this.syncStatusWithBackend(taskId, newStatus, options?.auditMetadata || {});
+          if (syncResult.success) {
+            console.log(`🌐 Backend sync successful for task ${taskId}`);
+            // Sync succeeded - no need to queue
+            const updatedTask = await taskService.getTask(taskId);
+            return { success: true, case: updatedTask };
+          } else {
+            console.warn(`⚠️ Backend sync failed: ${syncResult.error}`);
+            // Fall through to add to sync queue
+          }
+        } catch (syncError) {
+          console.warn(`⚠️ Backend sync error:`, syncError);
+          // Fall through to add to sync queue
         }
-      } catch (error) {
-        console.log(`📱 Working offline - backend sync will retry later`);
+      }
+
+      // STEP 4: Add to sync queue (if offline OR sync failed)
+      try {
+        await EnterpriseSyncService.addToSyncQueue({
+          actionType: 'update_status',
+          entityType: 'task',
+          entityId: taskId,
+          actionData: JSON.stringify({
+            status: newStatus,
+            backendStatus: this.mapMobileStatusToBackend(newStatus),
+            metadata: options?.auditMetadata || {},
+            timestamp: new Date().toISOString()
+          }),
+          priority: 1
+        });
+        console.log(`📋 Added to sync queue: Task ${taskId} status change will sync when online`);
+      } catch (queueError) {
+        console.error(`❌ Failed to add to sync queue:`, queueError);
       }
 
       // Always return success for local update
-      const updatedCase = await taskService.getTask(taskId);
+      const updatedTask = await taskService.getTask(taskId);
       return {
         success: true,
-        case: updatedCase,
+        case: updatedTask,
       };
     } catch (error) {
-      console.error(`❌ Failed to update case ${taskId} status:`, error);
+      console.error(`❌ Failed to update task ${taskId} status:`, error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error occurred',
