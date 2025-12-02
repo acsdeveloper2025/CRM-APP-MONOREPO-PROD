@@ -97,12 +97,26 @@ export class EnterpriseSyncService {
   }
 
   private startAutoSync(): void {
+    // Periodic sync check (every 30 seconds)
     setInterval(async () => {
       const netInfo = await NetInfo.fetch();
       if (netInfo.isConnected && !this.syncInProgress) {
         await this.performSync();
       }
     }, this.config.syncInterval);
+
+    // CRITICAL: Listen for network reconnection events for immediate sync
+    NetInfo.addEventListener(state => {
+      console.log('📡 Network state changed:', state.isConnected ? 'Online' : 'Offline');
+      
+      if (state.isConnected && !this.syncInProgress && this.syncQueue.length > 0) {
+        console.log(`🔄 Network reconnected! Triggering immediate sync for ${this.syncQueue.length} pending actions...`);
+        // Trigger sync after a short delay to ensure connection is stable
+        setTimeout(() => this.performSync(), 1000);
+      }
+    });
+
+    console.log('✅ Auto-sync initialized with network reconnection listener');
   }
 
   async performSync(forceFullSync = false): Promise<SyncResult> {

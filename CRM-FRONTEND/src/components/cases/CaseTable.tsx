@@ -47,7 +47,8 @@ export const CaseTable: React.FC<CaseTableProps> = ({
               <TableHead>Status</TableHead>
               <TableHead>Priority</TableHead>
               <TableHead>Verification Tasks</TableHead>
-              <TableHead>Updated</TableHead>
+              <TableHead>Date</TableHead>
+              <TableHead>Time</TableHead>
               <TableHead className="w-[70px]" />
             </TableRow>
           </TableHeader>
@@ -74,6 +75,9 @@ export const CaseTable: React.FC<CaseTableProps> = ({
                 </TableCell>
                 <TableCell>
                   <div className="h-6 bg-muted rounded animate-pulse w-16" />
+                </TableCell>
+                <TableCell>
+                  <div className="h-4 bg-muted rounded animate-pulse" />
                 </TableCell>
                 <TableCell>
                   <div className="h-4 bg-muted rounded animate-pulse" />
@@ -115,7 +119,8 @@ export const CaseTable: React.FC<CaseTableProps> = ({
               <TableHead>Status</TableHead>
               <TableHead className="hidden lg:table-cell">Priority</TableHead>
               <TableHead className="hidden lg:table-cell">Verification Tasks</TableHead>
-              <TableHead className="hidden xl:table-cell">Updated</TableHead>
+              <TableHead className="hidden xl:table-cell">Date</TableHead>
+              <TableHead className="hidden xl:table-cell">Time</TableHead>
               <TableHead className="w-[70px]" />
             </TableRow>
           </TableHeader>
@@ -173,7 +178,12 @@ export const CaseTable: React.FC<CaseTableProps> = ({
               </TableCell>
               <TableCell className="hidden xl:table-cell">
                 <div className="text-sm text-gray-600">
-                  {format(new Date(caseItem.updatedAt), 'dd MMM yyyy, hh:mm a')}
+                  {format(new Date(caseItem.updatedAt), 'dd MMM yyyy')}
+                </div>
+              </TableCell>
+              <TableCell className="hidden xl:table-cell">
+                <div className="text-sm text-gray-600">
+                  {format(new Date(caseItem.updatedAt), 'hh:mm a')}
                 </div>
               </TableCell>
               <TableCell>
