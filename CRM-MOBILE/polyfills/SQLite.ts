@@ -13,7 +13,7 @@ let RNSQLite: any = null;
 if (isNative) {
   try {
     RNSQLite = require('react-native-sqlite-storage').default;
-    RNSQLite.DEBUG(process.env.NODE_ENV === 'development');
+    RNSQLite.DEBUG(import.meta.env.MODE === 'development');
     RNSQLite.enablePromise(true);
     console.log('📱 Native SQLite loaded for native platform');
   } catch (error) {
