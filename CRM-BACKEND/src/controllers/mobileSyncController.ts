@@ -332,7 +332,7 @@ export class MobileSyncController {
         userId: (req as any).user?.id,
         userRole: (req as any).user?.role,
       });
-      
+
       res.status(500).json({
         success: false,
         message: 'Internal server error',
