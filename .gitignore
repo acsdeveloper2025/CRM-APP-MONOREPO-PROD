@@ -282,7 +282,7 @@ CaseFlow-Mobile-*.apk
 # =====================================================
 # Database dumps and migration files should not be committed
 # Use proper migration tools and version control for schema changes
-*.sql
+# *.sql
 *.dump
 *.dump.*
 db/*.sql
