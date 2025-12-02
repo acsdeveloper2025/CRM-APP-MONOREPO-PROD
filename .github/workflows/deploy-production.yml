@@ -326,11 +326,6 @@ jobs:
             --exclude='dist' \
             --exclude='build' \
             --exclude='coverage' \
-            --exclude='*.log' \
-            --exclude='.next' \
-            --exclude='android/app/build' \
-            --exclude='ios/build' \
-            --warning=no-file-changed \
             .
 
       - name: 📤 Transfer Files to Server
