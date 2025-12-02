@@ -212,10 +212,14 @@ export class MobileCaseController {
           SELECT vt.id, vt.task_number, vt.address, vt.trigger, vt.priority, vt.applicant_type,
                  vt.assigned_to, vt.assigned_at, vt.created_at as task_created_at,
                  vt.status as task_status, vt.completed_at as task_completed_at,
+                 vt.started_at, vt.saved_at, vt.is_saved,
+                 vt.revoked_at, vt.revoked_by, vt.revocation_reason,
                  u.name as assigned_user_name,
+                 revoked_user.name as revoked_by_name,
                  rt.name as rate_type_name, rt.description as rate_type_description
           FROM verification_tasks vt
           LEFT JOIN users u ON u.id = vt.assigned_to
+          LEFT JOIN users revoked_user ON revoked_user.id = vt.revoked_by
           LEFT JOIN "rateTypes" rt ON rt.id = vt.rate_type_id
           WHERE vt.case_id = c.id
           AND (
@@ -313,6 +317,16 @@ export class MobileCaseController {
         assignedToFieldUser: caseItem.assigned_user_name, // Use task-level assigned user
         verificationTaskId: caseItem.verificationTaskId, // Verification Task UUID
         verificationTaskNumber: caseItem.verificationTaskNumber, // Verification Task Number (e.g., VT-000127)
+        // Revoke fields
+        isRevoked: caseItem.task_status === 'REVOKED',
+        revokedAt: caseItem.revoked_at ? new Date(caseItem.revoked_at).toISOString() : undefined,
+        revokedBy: caseItem.revoked_by || undefined,
+        revokedByName: caseItem.revoked_by_name || undefined,
+        revokeReason: caseItem.revocation_reason || undefined,
+        // Status timestamps
+        inProgressAt: caseItem.started_at ? new Date(caseItem.started_at).toISOString() : undefined,
+        savedAt: caseItem.saved_at ? new Date(caseItem.saved_at).toISOString() : undefined,
+        isSaved: caseItem.is_saved || caseItem.task_status === 'SAVED' || false,
         client: {
           id: caseItem.clientId || 0, // Use number instead of string
           name: caseItem.clientName || '', // Client
@@ -413,9 +427,13 @@ export class MobileCaseController {
           SELECT vt.id, vt.task_number, vt.address, vt.trigger, vt.priority, vt.applicant_type,
                  vt.assigned_to, vt.assigned_at, vt.created_at as task_created_at,
                  vt.status as task_status, vt.completed_at as task_completed_at,
-                 u.name as assigned_user_name
+                 vt.started_at, vt.saved_at, vt.is_saved,
+                 vt.revoked_at, vt.revoked_by, vt.revocation_reason,
+                 u.name as assigned_user_name,
+                 revoked_user.name as revoked_by_name
           FROM verification_tasks vt
           LEFT JOIN users u ON u.id = vt.assigned_to
+          LEFT JOIN users revoked_user ON revoked_user.id = vt.revoked_by
           WHERE vt.case_id = c.id
           AND (
             $3::uuid IS NOT NULL AND vt.id = $3::uuid -- If specific task requested, must match

@@ -661,6 +661,30 @@ const TaskCard: React.FC<TaskCardProps> = ({ taskData, isReorderable = false, is
         <TaskTimeline taskData={taskData} compact={true} />
       )}
 
+      {/* Revoke Information - Show when task is revoked */}
+      {taskData.isRevoked && (
+        <div className="mt-3 bg-red-900/20 border border-red-500/30 p-3 rounded-md">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-red-400 font-semibold text-sm">🚫 Task Revoked</span>
+          </div>
+          <div className="space-y-1 text-xs">
+            <div className="text-red-300">
+              <span className="font-medium">Reason:</span> {taskData.revokeReason || 'Not specified'}
+            </div>
+            {taskData.revokedByName && (
+              <div className="text-red-200">
+                <span className="font-medium">Revoked by:</span> {taskData.revokedByName}
+              </div>
+            )}
+            {taskData.revokedAt && (
+              <div className="text-red-200">
+                <span className="font-medium">Date:</span> {new Date(taskData.revokedAt).toLocaleString()}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Submission status and re-submit functionality for completed cases */}
       {(taskData.taskStatus || taskData.status) === TaskStatus.Completed && (
         <div className="mt-3">
