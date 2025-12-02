@@ -7,7 +7,7 @@ type Attachment = any;
 type SyncAction = any;
 
 // Enable debugging in development
-SQLite.DEBUG(process.env.NODE_ENV === 'development');
+SQLite.DEBUG(import.meta.env.MODE === 'development');
 SQLite.enablePromise(true);
 
 interface DatabaseConfig {
