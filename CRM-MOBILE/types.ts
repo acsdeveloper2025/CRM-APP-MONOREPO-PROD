@@ -1770,6 +1770,13 @@ export interface VerificationTask {
   submissionError?: string; // Error message if submission failed
   lastSubmissionAttempt?: string; // Timestamp of last submission attempt
 
+  // Revoke tracking fields
+  isRevoked?: boolean; // Whether the task has been revoked by field user
+  revokedAt?: string; // Timestamp when task was revoked
+  revokedBy?: string; // Field user ID who revoked the task
+  revokedByName?: string; // Field user name from JOIN
+  revokeReason?: RevokeReason | string; // Reason for revoking the task
+
   // Enhanced fields for 13 required case fields from backend
   // Field 1: Customer Name (already available as customer.name)
   customerName?: string; // Direct field from backend
