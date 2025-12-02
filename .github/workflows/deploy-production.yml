@@ -316,11 +316,24 @@ jobs:
               force_rebuild: $force_rebuild
             }' > deployment-info.json
 
+      - name: 📦 Package Source Code
+        run: |
+          echo "📦 Packaging source code..."
+          # Create tarball excluding node_modules and other artifacts
+          tar -czf source-code.tar.gz \
+            --exclude='node_modules' \
+            --exclude='.git' \
+            --exclude='dist' \
+            --exclude='build' \
+            --exclude='coverage' \
+            .
+
       - name: 📤 Transfer Files to Server
         run: |
           echo "📤 Transferring deployment files to production server..."
           scp -r -P ${{ secrets.PRODUCTION_SSH_PORT || '2232' }} -o StrictHostKeyChecking=no \
             deployment-info.json \
+            source-code.tar.gz \
             scripts/deploy-production.sh \
             scripts/health-check.sh \
             ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }}:/tmp/
