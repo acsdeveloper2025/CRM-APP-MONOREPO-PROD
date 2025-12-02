@@ -39,6 +39,7 @@ export default defineConfig(({ mode }) => {
         global: 'globalThis',
         __DEV__: JSON.stringify(mode === 'development'),
         __IS_MOBILE_APP__: JSON.stringify(isMobileApp),
+        'process.env.NODE_ENV': JSON.stringify(mode),
       },
       resolve: {
         alias: {
