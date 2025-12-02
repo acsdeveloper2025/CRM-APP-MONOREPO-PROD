@@ -50,14 +50,15 @@ export const CompletedCaseTable: React.FC<CompletedCaseTableProps> = ({
               <TableHead>Client</TableHead>
               <TableHead>Product</TableHead>
               <TableHead>Assigned By</TableHead>
-              <TableHead>Completed Date</TableHead>
+              <TableHead>Date</TableHead>
+              <TableHead>Time</TableHead>
               <TableHead className="w-[70px]" />
             </TableRow>
           </TableHeader>
           <TableBody>
             {[1, 2, 3, 4, 5].map((item) => (
               <TableRow key={item}>
-                {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((cell) => (
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((cell) => (
                   <TableCell key={cell}>
                     <div className="h-4 bg-muted rounded animate-pulse" />
                   </TableCell>
@@ -156,8 +157,16 @@ export const CompletedCaseTable: React.FC<CompletedCaseTableProps> = ({
               <TableCell>
                 <div className="text-sm text-gray-600">
                   {caseItem.completedAt
-                    ? format(new Date(caseItem.completedAt), 'dd MMM yyyy, hh:mm a')
-                    : format(new Date(caseItem.updatedAt), 'dd MMM yyyy, hh:mm a')
+                    ? format(new Date(caseItem.completedAt), 'dd MMM yyyy')
+                    : format(new Date(caseItem.updatedAt), 'dd MMM yyyy')
+                  }
+                </div>
+              </TableCell>
+              <TableCell>
+                <div className="text-sm text-gray-600">
+                  {caseItem.completedAt
+                    ? format(new Date(caseItem.completedAt), 'hh:mm a')
+                    : format(new Date(caseItem.updatedAt), 'hh:mm a')
                   }
                 </div>
               </TableCell>

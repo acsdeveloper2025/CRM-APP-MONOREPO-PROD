@@ -325,12 +325,20 @@ export class MobileSyncController {
         data: response,
       });
     } catch (error) {
-      console.error('Sync download error:', error);
+      console.error('❌ Sync download error:', error);
+      console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+      console.error('Error details:', {
+        message: error instanceof Error ? error.message : String(error),
+        userId: (req as any).user?.id,
+        userRole: (req as any).user?.role,
+      });
+      
       res.status(500).json({
         success: false,
         message: 'Internal server error',
         error: {
           code: 'SYNC_DOWNLOAD_FAILED',
+          message: error instanceof Error ? error.message : 'Unknown error',
           timestamp: new Date().toISOString(),
         },
       });

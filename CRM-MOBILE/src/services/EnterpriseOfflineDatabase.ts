@@ -1,4 +1,4 @@
-import SQLite from 'react-native-sqlite-storage';
+import SQLite from '../../polyfills/SQLite';
 import { VerificationTask } from '../../types';
 
 // Legacy types for enterprise features (not in main types file)
