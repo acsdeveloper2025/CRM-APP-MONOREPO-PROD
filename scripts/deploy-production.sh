@@ -534,7 +534,7 @@ start_services() {
     fi
 }
 
-# Create new release
+# Create new release from transferred source
 create_release() {
     print_header "📦 Creating New Release"
 
@@ -545,52 +545,17 @@ create_release() {
     print_info "Creating release: $RELEASE_NAME"
     mkdir -p "$NEW_RELEASE_DIR"
 
-    # Clone the repository to new release directory
-    print_info "Cloning repository to new release..."
-    cd "$RELEASES_DIR"
-
-    # Try HTTPS first (more reliable), then SSH, then fallback to copying
-    print_info "Attempting HTTPS clone..."
-
-    if git clone https://github.com/acsdeveloper2025/CRM-APP-MONOREPO-PROD.git "$RELEASE_NAME"; then
-        print_success "Repository cloned successfully via HTTPS"
+    # Extract source code
+    if [ -f "/tmp/source-code.tar.gz" ]; then
+        print_info "Extracting source code from tarball..."
+        tar -xzf /tmp/source-code.tar.gz -C "$NEW_RELEASE_DIR"
+        print_success "Source code extracted successfully"
+        
+        # Cleanup tarball
+        rm /tmp/source-code.tar.gz
     else
-        print_info "HTTPS clone failed, attempting SSH clone..."
-
-        # Set up SSH environment
-        export GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
-
-        if git clone git@github.com:acsdeveloper2025/CRM-APP-MONOREPO-PROD.git "$RELEASE_NAME"; then
-            print_success "Repository cloned successfully via SSH"
-        else
-            print_warning "SSH clone failed, copying from current deployment..."
-            print_info "SSH clone error was logged above"
-            # Copy from current deployment and initialize as git repo
-            if [ -d "$PROJECT_ROOT" ]; then
-                # Copy from current deployment
-                cp -r "$PROJECT_ROOT/." "$RELEASE_NAME/"
-                cd "$RELEASE_NAME"
-                # Ensure it's a git repository
-                if [ ! -d ".git" ]; then
-                    git init
-                    git remote add origin git@github.com:acsdeveloper2025/CRM-APP-MONOREPO-PROD.git
-                fi
-                print_success "Copied from current deployment"
-            elif [ -d "/home/admin1/Downloads/CRM-APP-MONOREPO-PROD" ]; then
-                # Fallback to old Downloads location if it still exists
-                cp -r "/home/admin1/Downloads/CRM-APP-MONOREPO-PROD/." "$RELEASE_NAME/"
-                cd "$RELEASE_NAME"
-                # Ensure it's a git repository
-                if [ ! -d ".git" ]; then
-                    git init
-                    git remote add origin git@github.com:acsdeveloper2025/CRM-APP-MONOREPO-PROD.git
-                fi
-                print_success "Copied from legacy deployment location"
-            else
-                print_error "Failed to clone repository and no existing deployment found"
-                return 1
-            fi
-        fi
+        print_error "Source code tarball not found at /tmp/source-code.tar.gz"
+        exit 1
     fi
 
     # Sync release to current directory (preserve directory structure, update files only)
@@ -615,6 +580,11 @@ create_release() {
 
     print_status "New release created: $NEW_RELEASE_DIR"
     print_status "Code synced to: $PROJECT_ROOT"
+}
+
+# Update code (Legacy function, now handled by create_release)
+update_code() {
+    print_info "Code update handled by release creation (tarball extraction)"
 }
 
 # Cleanup old releases and backups
