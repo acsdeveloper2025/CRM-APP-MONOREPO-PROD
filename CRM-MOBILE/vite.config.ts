@@ -52,7 +52,6 @@ export default defineConfig(({ mode }) => {
           '@react-native-firebase/messaging': path.resolve(__dirname, 'polyfills/FirebaseMessaging.ts'),
           'react-native-device-info': path.resolve(__dirname, 'polyfills/DeviceInfo.ts'),
           'react-native-push-notification': path.resolve(__dirname, 'polyfills/PushNotification.ts'),
-          'react-native-sqlite-storage': path.resolve(__dirname, 'polyfills/SQLite.ts'),
           'expo-clipboard': path.resolve(__dirname, 'polyfills/Clipboard.ts'),
         },
         extensions: ['.web.js', '.web.ts', '.web.tsx', '.js', '.ts', '.tsx', '.json']
