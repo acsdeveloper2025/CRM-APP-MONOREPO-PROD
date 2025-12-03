@@ -3,7 +3,7 @@
  * Combines Capacitor Geolocation with Google Maps API for enhanced functionality
  */
 
-import { Geolocation } from '@capacitor/geolocation';
+import { Geolocation, Position } from '@capacitor/geolocation';
 import { googleMapsService, LocationData, AddressComponents } from './googleMapsService';
 
 export interface EnhancedLocationData extends LocationData {
@@ -168,7 +168,7 @@ class EnhancedGeolocationService {
    * Process and validate a raw position
    */
   private async processPosition(
-    position: GeolocationPosition, 
+    position: GeolocationPosition | Position, 
     maxAccuracyMeters: number,
     source: 'capacitor' | 'browser'
   ): Promise<EnhancedLocationData> {
