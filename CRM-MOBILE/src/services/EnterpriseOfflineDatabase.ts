@@ -1,14 +1,10 @@
-import SQLite from '../../polyfills/SQLite';
+import { SQLiteService } from './SQLiteService';
 import { VerificationTask } from '../../types';
 
 // Legacy types for enterprise features (not in main types file)
 type FormSubmission = any;
 type Attachment = any;
 type SyncAction = any;
-
-// Enable debugging in development
-SQLite.DEBUG(import.meta.env.MODE === 'development');
-SQLite.enablePromise(true);
 
 interface DatabaseConfig {
   name: string;
@@ -17,19 +13,9 @@ interface DatabaseConfig {
   size: number;
 }
 
-interface QueryResult {
-  rows: {
-    length: number;
-    item: (index: number) => any;
-    raw: () => any[];
-  };
-  insertId?: number;
-  rowsAffected: number;
-}
-
 export class EnterpriseOfflineDatabase {
   private static instance: EnterpriseOfflineDatabase;
-  private db: SQLite.SQLiteDatabase | null = null;
+  private sqliteService: SQLiteService;
   private isInitialized = false;
 
   private config: DatabaseConfig = {
@@ -39,7 +25,9 @@ export class EnterpriseOfflineDatabase {
     size: 50 * 1024 * 1024, // 50MB
   };
 
-  private constructor() {}
+  private constructor() {
+    this.sqliteService = SQLiteService.getInstance();
+  }
 
   static getInstance(): EnterpriseOfflineDatabase {
     if (!EnterpriseOfflineDatabase.instance) {
@@ -52,7 +40,8 @@ export class EnterpriseOfflineDatabase {
     if (this.isInitialized) return;
 
     try {
-      this.db = await SQLite.openDatabase(this.config);
+      await this.sqliteService.initialize();
+      await this.sqliteService.openDatabase(this.config.name);
       await this.createTables();
       await this.performMigrations();
       this.isInitialized = true;
@@ -64,8 +53,6 @@ export class EnterpriseOfflineDatabase {
   }
 
   private async createTables(): Promise<void> {
-    if (!this.db) throw new Error('Database not initialized');
-
     const tables = [
       // Verification Tasks table (renamed from cases)
       // Note: We keep table name 'cases' for now to avoid massive data migration complexity,
@@ -148,7 +135,8 @@ export class EnterpriseOfflineDatabase {
         retry_count INTEGER DEFAULT 0,
         max_retries INTEGER DEFAULT 3,
         created_at INTEGER,
-        scheduled_at INTEGER,
+        last_attempt INTEGER,
+        error_log TEXT,
         status TEXT DEFAULT 'pending'
       )`,
 
@@ -208,7 +196,7 @@ export class EnterpriseOfflineDatabase {
     ];
 
     for (const tableSQL of tables) {
-      await this.db.executeSql(tableSQL);
+      await this.sqliteService.execute(tableSQL);
     }
 
     // Create indexes for performance
@@ -224,7 +212,35 @@ export class EnterpriseOfflineDatabase {
     ];
 
     for (const indexSQL of indexes) {
-      await this.db.executeSql(indexSQL);
+      await this.sqliteService.execute(indexSQL);
+    }
+  }
+
+  // Helper method to maintain compatibility with existing code
+  private async query(sql: string, params: any[] = []): Promise<any> {
+    const isSelect = /^\s*(SELECT|PRAGMA)/i.test(sql);
+    
+    if (isSelect) {
+      const rows = await this.sqliteService.query(sql, params);
+      return {
+        rows: {
+          length: rows.length,
+          item: (index: number) => rows[index],
+          raw: () => rows
+        },
+        rowsAffected: 0
+      };
+    } else {
+      const result = await this.sqliteService.run(sql, params);
+      return {
+        rows: {
+          length: 0,
+          item: () => null,
+          raw: () => []
+        },
+        insertId: result.changes?.lastId,
+        rowsAffected: result.changes?.changes || 0
+      };
     }
   }
 
@@ -235,12 +251,12 @@ export class EnterpriseOfflineDatabase {
 
     if (currentVersion < 2) {
       await this.migrateToVersion2();
-      await this.db!.executeSql('PRAGMA user_version = 2');
+      await this.sqliteService.execute('PRAGMA user_version = 2');
     }
 
     if (currentVersion < 3) {
       await this.migrateToVersion3();
-      await this.db!.executeSql('PRAGMA user_version = 3');
+      await this.sqliteService.execute('PRAGMA user_version = 3');
     }
   }
 
@@ -256,7 +272,7 @@ export class EnterpriseOfflineDatabase {
 
     for (const migration of migrations) {
       try {
-        await this.db!.executeSql(migration);
+        await this.sqliteService.execute(migration);
       } catch (error) {
         // Column might already exist, ignore error
         console.log('Migration step skipped:', migration);
@@ -265,127 +281,22 @@ export class EnterpriseOfflineDatabase {
   }
 
   private async migrateToVersion3(): Promise<void> {
-    console.log('Migrating to version 3: Renaming case_id to verification_task_id');
-    
-    // 1. Migrate form_submissions table
-    try {
-      // Check if column exists first to avoid errors if partially migrated
-      const checkTable = await this.query("PRAGMA table_info(form_submissions)");
-      const columns = checkTable.rows.raw().map(c => c.name);
-      
-      if (columns.includes('case_id') && !columns.includes('verification_task_id')) {
-        // SQLite doesn't support renaming columns directly in older versions, 
-        // but newer versions do. We'll try ALTER TABLE RENAME COLUMN first.
-        try {
-          await this.db!.executeSql('ALTER TABLE form_submissions RENAME COLUMN case_id TO verification_task_id');
-        } catch (e) {
-          // Fallback: Create new table, copy data, drop old table
-          console.log('Fallback migration for form_submissions');
-          await this.db!.executeSql(`CREATE TABLE IF NOT EXISTS form_submissions_new (
-            id TEXT PRIMARY KEY,
-            verification_task_id TEXT NOT NULL,
-            form_type TEXT NOT NULL,
-            form_data TEXT NOT NULL,
-            submission_time INTEGER,
-            location_latitude REAL,
-            location_longitude REAL,
-            location_accuracy REAL,
-            location_address TEXT,
-            device_info TEXT,
-            app_version TEXT,
-            sync_status TEXT DEFAULT 'pending',
-            created_at INTEGER,
-            updated_at INTEGER,
-            FOREIGN KEY (verification_task_id) REFERENCES cases (id)
-          )`);
-          
-          await this.db!.executeSql(`INSERT INTO form_submissions_new SELECT 
-            id, case_id, form_type, form_data, submission_time, location_latitude, 
-            location_longitude, location_accuracy, location_address, device_info, 
-            app_version, sync_status, created_at, updated_at FROM form_submissions`);
-            
-          await this.db!.executeSql('DROP TABLE form_submissions');
-          await this.db!.executeSql('ALTER TABLE form_submissions_new RENAME TO form_submissions');
-        }
+    const migrations = [
+      'ALTER TABLE sync_actions ADD COLUMN last_attempt INTEGER',
+      'ALTER TABLE sync_actions ADD COLUMN error_log TEXT',
+    ];
+
+    for (const migration of migrations) {
+      try {
+        await this.sqliteService.execute(migration);
+      } catch (error) {
+        console.log('Migration step skipped:', migration);
       }
-    } catch (error) {
-      console.error('Error migrating form_submissions:', error);
     }
-
-    // 2. Migrate attachments table
-    try {
-      const checkTable = await this.query("PRAGMA table_info(attachments)");
-      const columns = checkTable.rows.raw().map(c => c.name);
-      
-      if (columns.includes('case_id') && !columns.includes('verification_task_id')) {
-        try {
-          await this.db!.executeSql('ALTER TABLE attachments RENAME COLUMN case_id TO verification_task_id');
-        } catch (e) {
-          // Fallback
-          console.log('Fallback migration for attachments');
-          await this.db!.executeSql(`CREATE TABLE IF NOT EXISTS attachments_new (
-            id TEXT PRIMARY KEY,
-            verification_task_id TEXT,
-            form_submission_id TEXT,
-            file_name TEXT NOT NULL,
-            file_type TEXT NOT NULL,
-            file_size INTEGER,
-            file_path TEXT NOT NULL,
-            thumbnail_path TEXT,
-            compressed_path TEXT,
-            upload_status TEXT DEFAULT 'pending',
-            upload_progress REAL DEFAULT 0,
-            metadata TEXT,
-            created_at INTEGER,
-            updated_at INTEGER,
-            FOREIGN KEY (verification_task_id) REFERENCES cases (id),
-            FOREIGN KEY (form_submission_id) REFERENCES form_submissions (id)
-          )`);
-          
-          await this.db!.executeSql(`INSERT INTO attachments_new SELECT 
-            id, case_id, form_submission_id, file_name, file_type, file_size, 
-            file_path, thumbnail_path, compressed_path, upload_status, upload_progress, 
-            metadata, created_at, updated_at FROM attachments`);
-            
-          await this.db!.executeSql('DROP TABLE attachments');
-          await this.db!.executeSql('ALTER TABLE attachments_new RENAME TO attachments');
-        }
-      }
-    } catch (error) {
-      console.error('Error migrating attachments:', error);
-    }
-    
-    // Recreate indexes
-    await this.db!.executeSql('DROP INDEX IF EXISTS idx_form_submissions_case_id');
-    await this.db!.executeSql('DROP INDEX IF EXISTS idx_attachments_case_id');
-    await this.db!.executeSql('CREATE INDEX IF NOT EXISTS idx_form_submissions_task_id ON form_submissions (verification_task_id)');
-    await this.db!.executeSql('CREATE INDEX IF NOT EXISTS idx_attachments_task_id ON attachments (verification_task_id)');
   }
 
-  async query(sql: string, params: any[] = []): Promise<QueryResult> {
-    if (!this.db) throw new Error('Database not initialized');
-    
-    const [result] = await this.db.executeSql(sql, params);
-    return result;
-  }
+  // ... (rest of methods use this.query which is now compatible)
 
-  async transaction(operations: (tx: SQLite.Transaction) => Promise<void>): Promise<void> {
-    if (!this.db) throw new Error('Database not initialized');
-    
-    return new Promise((resolve, reject) => {
-      this.db!.transaction(
-        async (tx) => {
-          try {
-            await operations(tx);
-          } catch (error) {
-            reject(error);
-          }
-        },
-        reject,
-        resolve
-      );
-    });
-  }
 
   // Task operations
   async saveCase(caseData: any): Promise<void> {
@@ -701,11 +612,8 @@ export class EnterpriseOfflineDatabase {
   }
 
   async close(): Promise<void> {
-    if (this.db) {
-      await this.db.close();
-      this.db = null;
-      this.isInitialized = false;
-    }
+    await this.sqliteService.close();
+    this.isInitialized = false;
   }
 
   async getDatabaseSize(): Promise<number> {
