@@ -65,8 +65,8 @@ export default defineConfig(({ mode }) => {
         exclude: []
       },
       build: {
-        // Increase chunk size warning limit to 1000kb
-        chunkSizeWarningLimit: 1000,
+        // Increase chunk size warning limit to 1500kb for mobile app
+        chunkSizeWarningLimit: 1500,
         rollupOptions: {
           output: {
             // Manual chunk splitting for better caching and loading

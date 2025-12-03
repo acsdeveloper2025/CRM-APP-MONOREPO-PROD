@@ -134,7 +134,7 @@ export default defineConfig({
 
     // Optimize build settings
     sourcemap: process.env.NODE_ENV === 'development',
-    chunkSizeWarningLimit: 1000, // Reduced for better performance
+    chunkSizeWarningLimit: 1500, // Increased for vendor bundle
     minify: 'terser',
     terserOptions: {
       compress: {
