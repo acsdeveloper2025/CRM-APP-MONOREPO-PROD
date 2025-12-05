@@ -33,7 +33,6 @@ jobs:
     outputs:
       backend_changed: ${{ steps.changes.outputs.backend }}
       frontend_changed: ${{ steps.changes.outputs.frontend }}
-      mobile_changed: ${{ steps.changes.outputs.mobile }}
       migrations_changed: ${{ steps.changes.outputs.migrations }}
       deploy_needed: ${{ steps.changes.outputs.deploy_needed }}
 
@@ -54,7 +53,6 @@ jobs:
             echo "🔄 Force rebuild requested - deploying all components"
             echo "backend=true" >> $GITHUB_OUTPUT
             echo "frontend=true" >> $GITHUB_OUTPUT
-            echo "mobile=true" >> $GITHUB_OUTPUT
             echo "migrations=$DEPLOY_DATABASE" >> $GITHUB_OUTPUT
             echo "deploy_needed=true" >> $GITHUB_OUTPUT
           else
@@ -71,13 +69,6 @@ jobs:
               echo "🔄 Frontend changes detected"
             else
               echo "frontend=false" >> $GITHUB_OUTPUT
-            fi
-
-            if git diff --name-only HEAD~1 HEAD | grep -E '^CRM-MOBILE/'; then
-              echo "mobile=true" >> $GITHUB_OUTPUT
-              echo "🔄 Mobile changes detected"
-            else
-              echo "mobile=false" >> $GITHUB_OUTPUT
             fi
 
             # Check for database migration changes
@@ -105,7 +96,6 @@ jobs:
           echo "|-----------|--------|" >> $GITHUB_STEP_SUMMARY
           echo "| Backend | ${{ steps.changes.outputs.backend == 'true' && '🔄 Deploy' || '⏭️ Skip' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Frontend | ${{ steps.changes.outputs.frontend == 'true' && '🔄 Deploy' || '⏭️ Skip' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Mobile | ${{ steps.changes.outputs.mobile == 'true' && '🔄 Deploy' || '⏭️ Skip' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Database | ${{ steps.changes.outputs.migrations == 'true' && '🗄️ Migrate' || '⏭️ Skip' }} |" >> $GITHUB_STEP_SUMMARY
 
   # Lint code quality checks
@@ -155,7 +145,7 @@ jobs:
 
     strategy:
       matrix:
-        component: [backend, frontend, mobile]
+        component: [backend, frontend]
         include:
           - component: backend
             path: CRM-BACKEND
@@ -165,10 +155,6 @@ jobs:
             path: CRM-FRONTEND
             build_cmd: npm run build
             test_cmd: echo "Frontend tests would run here"
-          - component: mobile
-            path: CRM-MOBILE
-            build_cmd: npm run build
-            test_cmd: echo "Mobile tests would run here"
 
     steps:
       - name: 📥 Checkout Code
@@ -299,7 +285,6 @@ jobs:
             --arg workflow_run_id "${{ github.run_id }}" \
             --argjson backend "${{ needs.pre-deployment.outputs.backend_changed }}" \
             --argjson frontend "${{ needs.pre-deployment.outputs.frontend_changed }}" \
-            --argjson mobile "${{ needs.pre-deployment.outputs.mobile_changed }}" \
             --argjson force_rebuild "${{ github.event.inputs.force_rebuild || false }}" \
             '{
               timestamp: $timestamp,
@@ -310,8 +295,7 @@ jobs:
               workflow_run_id: $workflow_run_id,
               components: {
                 backend: $backend,
-                frontend: $frontend,
-                mobile: $mobile
+                frontend: $frontend
               },
               force_rebuild: $force_rebuild
             }' > deployment-info.json
@@ -365,4 +349,3 @@ jobs:
           echo "### 🔗 Quick Links" >> $GITHUB_STEP_SUMMARY
           echo "- [Production Site](https://example.com)" >> $GITHUB_STEP_SUMMARY
           echo "- [API Health](https://example.com/health)" >> $GITHUB_STEP_SUMMARY
-          echo "- [Mobile App](https://example.com/mobile/)" >> $GITHUB_STEP_SUMMARY

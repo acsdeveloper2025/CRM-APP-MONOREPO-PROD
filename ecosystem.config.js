@@ -39,26 +39,6 @@ module.exports = {
       log_file: './logs/frontend-combined.log',
       time: true,
       merge_logs: true
-    },
-    {
-      name: 'crm-mobile',
-      cwd: './CRM-MOBILE',
-      script: 'npm',
-      args: 'run preview:network -- --port 5180',
-      instances: 1,
-      exec_mode: 'fork',
-      autorestart: true,
-      watch: false,
-      max_memory_restart: '300M',
-      env: {
-        NODE_ENV: 'production',
-        PORT: 5180
-      },
-      error_file: './logs/mobile-error.log',
-      out_file: './logs/mobile-out.log',
-      log_file: './logs/mobile-combined.log',
-      time: true,
-      merge_logs: true
     }
   ]
 };

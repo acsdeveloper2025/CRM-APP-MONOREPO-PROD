@@ -77,7 +77,7 @@ find_latest_backup() {
 stop_services() {
     print_header "🛑 Stopping Current Services"
     
-    local services=("backend" "frontend" "mobile")
+    local services=("backend" "frontend")
     
     for service in "${services[@]}"; do
         local pid_file="$PROJECT_ROOT/logs/${service}.pid"
@@ -188,7 +188,7 @@ clear_caches() {
 reinstall_dependencies() {
     print_header "📦 Reinstalling Dependencies"
     
-    local components=("CRM-BACKEND" "CRM-FRONTEND" "CRM-MOBILE")
+    local components=("CRM-BACKEND" "CRM-FRONTEND")
     
     for component in "${components[@]}"; do
         if [ -d "$PROJECT_ROOT/$component" ]; then
@@ -227,14 +227,6 @@ rebuild_applications() {
         cd "$PROJECT_ROOT/CRM-FRONTEND"
         npm run build
         print_status "Frontend built successfully"
-    fi
-    
-    # Build mobile
-    if [ -d "$PROJECT_ROOT/CRM-MOBILE" ]; then
-        print_info "Building mobile..."
-        cd "$PROJECT_ROOT/CRM-MOBILE"
-        npm run build
-        print_status "Mobile built successfully"
     fi
 }
 
@@ -306,8 +298,7 @@ create_rollback_report() {
     "rollback_reason": "deployment_failure",
     "services_status": {
         "backend": "$([ -f "$PROJECT_ROOT/logs/backend.pid" ] && echo "running" || echo "stopped")",
-        "frontend": "$([ -f "$PROJECT_ROOT/logs/frontend.pid" ] && echo "running" || echo "stopped")",
-        "mobile": "$([ -f "$PROJECT_ROOT/logs/mobile.pid" ] && echo "running" || echo "stopped")"
+        "frontend": "$([ -f "$PROJECT_ROOT/logs/frontend.pid" ] && echo "running" || echo "stopped")"
     }
 }
 EOF
