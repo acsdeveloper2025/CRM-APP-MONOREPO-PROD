@@ -133,7 +133,6 @@ parse_deployment_info() {
     TIMESTAMP=$(jq -r '.timestamp' "$DEPLOYMENT_INFO_FILE")
     BACKEND_CHANGED=$(jq -r '.components.backend' "$DEPLOYMENT_INFO_FILE")
     FRONTEND_CHANGED=$(jq -r '.components.frontend' "$DEPLOYMENT_INFO_FILE")
-    MOBILE_CHANGED=$(jq -r '.components.mobile' "$DEPLOYMENT_INFO_FILE")
     FORCE_REBUILD=$(jq -r '.force_rebuild' "$DEPLOYMENT_INFO_FILE")
 
     # Force rebuild all components for now
@@ -145,7 +144,6 @@ parse_deployment_info() {
     print_info "  Timestamp: $TIMESTAMP"
     print_info "  Backend Changed: $BACKEND_CHANGED"
     print_info "  Frontend Changed: $FRONTEND_CHANGED"
-    print_info "  Mobile Changed: $MOBILE_CHANGED"
     print_info "  Force Rebuild: $FORCE_REBUILD (FORCED FOR ALL COMPONENTS)"
 }
 
@@ -199,7 +197,7 @@ stop_services() {
     if command -v pm2 >/dev/null 2>&1; then
         print_info "Using PM2 to stop services..."
 
-        local services=("crm-backend" "crm-frontend" "crm-mobile")
+        local services=("crm-backend" "crm-frontend")
 
         for service in "${services[@]}"; do
             # Check if process exists in PM2
@@ -219,7 +217,7 @@ stop_services() {
         # Fallback to PID file method
         print_info "PM2 not available, using PID files..."
 
-        local services=("backend" "frontend" "mobile")
+        local services=("backend" "frontend")
 
         for service in "${services[@]}"; do
             local pid_file="$PROJECT_ROOT/logs/${service}.pid"
@@ -292,13 +290,9 @@ install_dependencies() {
         components+=("CRM-FRONTEND")
     fi
     
-    if [ "$MOBILE_CHANGED" = "true" ] || [ "$FORCE_REBUILD" = "true" ]; then
-        components+=("CRM-MOBILE")
-    fi
-    
     # If no specific components changed, update all
     if [ ${#components[@]} -eq 0 ]; then
-        components=("CRM-BACKEND" "CRM-FRONTEND" "CRM-MOBILE")
+        components=("CRM-BACKEND" "CRM-FRONTEND")
     fi
     
     for component in "${components[@]}"; do
@@ -312,12 +306,8 @@ install_dependencies() {
             # Remove node_modules and package-lock.json for fresh install
             rm -rf node_modules package-lock.json
 
-            # Install dependencies with special handling for mobile
-            if [ "$component" = "CRM-MOBILE" ]; then
-                print_info "Installing mobile dependencies with legacy peer deps support..."
-                npm install --production=false --legacy-peer-deps
-            else
-                npm install --production=false
+            # Install dependencies
+            npm install --production=false
             fi
 
             print_status "$component dependencies installed"
@@ -343,14 +333,6 @@ build_applications() {
         cd "$PROJECT_ROOT/CRM-FRONTEND"
         npm run build
         print_status "Frontend built successfully"
-    fi
-
-    # Build mobile
-    if [ "$MOBILE_CHANGED" = "true" ] || [ "$FORCE_REBUILD" = "true" ]; then
-        print_info "Building mobile..."
-        cd "$PROJECT_ROOT/CRM-MOBILE"
-        npm run build
-        print_status "Mobile built successfully"
     fi
 }
 
@@ -439,20 +421,6 @@ EOF
         print_status "Frontend .env file created"
     else
         print_info "Frontend .env file already exists"
-    fi
-
-    # Mobile environment
-    if [ ! -f "$PROJECT_ROOT/CRM-MOBILE/.env.production" ]; then
-        print_info "Creating mobile .env.production file..."
-        cat > "$PROJECT_ROOT/CRM-MOBILE/.env.production" << 'EOF'
-VITE_API_BASE_URL=https://example.com/api
-VITE_GOOGLE_MAPS_API_KEY=YOUR_GOOGLE_MAPS_KEY
-VITE_APP_ENVIRONMENT=production
-NODE_ENV=production
-EOF
-        print_status "Mobile .env.production file created"
-    else
-        print_info "Mobile .env.production file already exists"
     fi
 
     print_status "Environment files setup completed"
