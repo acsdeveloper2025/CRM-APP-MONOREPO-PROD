@@ -1,8 +1,0 @@
-{
-  "name": "CaseFlow Mobile",
-  "description": "A mobile-first case management application with offline capabilities and AI-powered summaries, designed for businesses to manage assigned, in-progress, and completed cases efficiently.",
-  "requestFramePermissions": [
-    "camera"
-  ],
-  "prompt": ""
-}

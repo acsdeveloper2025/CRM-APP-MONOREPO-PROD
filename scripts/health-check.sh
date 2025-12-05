@@ -178,7 +178,7 @@ check_system_services() {
 check_application_processes() {
     print_header "🔍 Checking Application Processes"
     
-    local services=("backend" "frontend" "mobile")
+    local services=("backend" "frontend")
     local all_processes_ok=true
     
     for service in "${services[@]}"; do
@@ -208,15 +208,11 @@ check_http_endpoints() {
     if ! check_endpoint "https://crm.allcheckservices.com/health" 200 "Health Check Endpoint"; then
         endpoints_ok=false
     fi
-    
-    if ! check_endpoint "https://crm.allcheckservices.com/" 200 "Frontend Application"; then
-        endpoints_ok=false
+    # Check frontend endpoint
+    if ! check_endpoint "https://crm.allcheckservices.com" 200 "Frontend Application"; then
+        print_error "Frontend health check failed"
+        return 1
     fi
-    
-    if ! check_endpoint "https://crm.allcheckservices.com/mobile/" 200 "Mobile Application"; then
-        endpoints_ok=false
-    fi
-    
     if ! check_endpoint "https://crm.allcheckservices.com/api/health" 200 "Backend API Health"; then
         endpoints_ok=false
     fi
@@ -311,7 +307,7 @@ generate_health_report() {
     "overall_status": "$overall_status",
     "checks": {
         "system_services": "$(systemctl is-active nginx postgresql redis-server | tr '\n' ',' | sed 's/,$//')",
-        "application_processes": "$([ -f "$PROJECT_ROOT/logs/backend.pid" ] && echo "backend:running" || echo "backend:stopped"),$([ -f "$PROJECT_ROOT/logs/frontend.pid" ] && echo "frontend:running" || echo "frontend:stopped"),$([ -f "$PROJECT_ROOT/logs/mobile.pid" ] && echo "mobile:running" || echo "mobile:stopped")",
+        "application_processes": "$([ -f "$PROJECT_ROOT/logs/backend.pid" ] && echo "backend:running" || echo "backend:stopped"),$([ -f "$PROJECT_ROOT/logs/frontend.pid" ] && echo "frontend:running" || echo "frontend:stopped")",
         "database": "$(PGPASSWORD=acs_password psql -h localhost -U acs_user -d acs_db -c "SELECT 1;" >/dev/null 2>&1 && echo "connected" || echo "failed")",
         "redis": "$(redis-cli ping >/dev/null 2>&1 && echo "connected" || echo "failed")",
         "disk_usage": "$(df -h / | awk 'NR==2 {print $5}')",
@@ -319,7 +315,6 @@ generate_health_report() {
     },
     "urls": {
         "frontend": "https://crm.allcheckservices.com/",
-        "mobile": "https://crm.allcheckservices.com/mobile/",
         "api": "https://crm.allcheckservices.com/api/health",
         "health": "https://crm.allcheckservices.com/health"
     }

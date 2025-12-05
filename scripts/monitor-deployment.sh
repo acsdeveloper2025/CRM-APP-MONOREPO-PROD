@@ -23,7 +23,6 @@ ALERT_THRESHOLD=3  # consecutive failures before alert
 # Counters for consecutive failures
 BACKEND_FAILURES=0
 FRONTEND_FAILURES=0
-MOBILE_FAILURES=0
 DATABASE_FAILURES=0
 REDIS_FAILURES=0
 
@@ -165,33 +164,7 @@ monitor_frontend() {
     fi
 }
 
-# Monitor mobile service
-monitor_mobile() {
-    local status="✅ OK"
-    local details=""
-    
-    # Check process
-    if ! check_service_process "mobile"; then
-        status="❌ PROCESS DOWN"
-        details="Mobile process is not running"
-        MOBILE_FAILURES=$((MOBILE_FAILURES + 1))
-    # Check HTTP endpoint
-    elif ! check_endpoint "https://crm.allcheckservices.com/mobile/"; then
-        status="❌ ENDPOINT DOWN"
-        details="Mobile endpoint not responding"
-        MOBILE_FAILURES=$((MOBILE_FAILURES + 1))
-    else
-        MOBILE_FAILURES=0
-        local memory_usage=$(ps -o pid,ppid,cmd,%mem,%cpu --sort=-%mem -C node | grep "CRM-MOBILE" | awk '{print $4}' | head -1)
-        details="Memory: ${memory_usage:-N/A}%"
-    fi
-    
-    echo "$(get_timestamp) | Mobile | $status | $details"
-    
-    if [ $MOBILE_FAILURES -ge $ALERT_THRESHOLD ]; then
-        print_alert "Mobile service has failed $MOBILE_FAILURES consecutive times"
-    fi
-}
+
 
 # Monitor database
 monitor_database() {
@@ -301,11 +274,6 @@ generate_report() {
             "endpoint_responding": $(check_endpoint "https://crm.allcheckservices.com/" && echo "true" || echo "false"),
             "consecutive_failures": $FRONTEND_FAILURES
         },
-        "mobile": {
-            "process_running": $(check_service_process "mobile" && echo "true" || echo "false"),
-            "endpoint_responding": $(check_endpoint "https://crm.allcheckservices.com/mobile/" && echo "true" || echo "false"),
-            "consecutive_failures": $MOBILE_FAILURES
-        },
         "database": {
             "connected": $(check_database && echo "true" || echo "false"),
             "consecutive_failures": $DATABASE_FAILURES
@@ -343,7 +311,6 @@ monitor_loop() {
         # Monitor all services
         monitor_backend
         monitor_frontend
-        monitor_mobile
         monitor_database
         monitor_redis
         monitor_system

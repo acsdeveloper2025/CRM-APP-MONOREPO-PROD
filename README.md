@@ -8,17 +8,16 @@
 
 ## 📋 Overview
 
-This repository contains a comprehensive CRM (Customer Relationship Management) system built as a monorepo with three main applications:
+This repository contains a comprehensive CRM (Customer Relationship Management) system built as a monorepo with two main applications:
 
 - **🔧 Backend API**: `CRM-BACKEND` - Node.js/Express + PostgreSQL + Redis
 - **💻 Web Frontend**: `CRM-FRONTEND` - React 19 + Vite + TypeScript
-- **📱 Mobile App**: `CRM-MOBILE` - React Native/Capacitor hybrid app
 
 ## ✨ Features
 
 - **Complete CRM System** with case management, client tracking, and verification workflows
 - **Real-time Updates** via WebSocket connections
-- **Mobile-First Design** with responsive web and native mobile apps
+- **Responsive Web Design** with modern UI/UX
 - **Advanced Security** with JWT authentication, role-based access control
 - **Comprehensive Database** with 34+ tables and complete data relationships
 - **Network Access** configured for both localhost and network IP access
@@ -27,6 +26,7 @@ This repository contains a comprehensive CRM (Customer Relationship Management) 
 ## 🛠️ Technology Stack
 
 ### Backend
+
 - **Node.js 22.19.0** (Latest LTS)
 - **Express.js** with TypeScript
 - **PostgreSQL 17.6** (Latest)
@@ -35,18 +35,13 @@ This repository contains a comprehensive CRM (Customer Relationship Management) 
 - **WebSocket** for real-time updates
 
 ### Frontend
+
 - **React 19.1.1** (Latest)
 - **Vite** for fast development and building
 - **TypeScript** for type safety
 - **Tailwind CSS** for styling
 - **React Query** for data fetching
 - **React Router** for navigation
-
-### Mobile
-- **React 18.2.0** (React Native compatible)
-- **Capacitor** for native functionality
-- **Ionic Components** for mobile UI
-- **Cross-platform** (iOS/Android/Web)
 
 ## 📋 Prerequisites
 
@@ -75,6 +70,7 @@ chmod +x crm-network-launcher.sh
 ```
 
 This script will:
+
 - ✅ Check and install all dependencies
 - ✅ Configure network access (localhost + IP)
 - ✅ Set up database connections
@@ -123,32 +119,19 @@ cp .env.example .env
 npm run dev
 ```
 
-#### 4. Mobile App Setup
-
-```bash
-cd CRM-MOBILE
-npm install --legacy-peer-deps
-cp .env.example .env
-
-# Configure your .env file:
-# VITE_API_URL="http://localhost:3000/api"
-
-npm run dev
-```
-
 ## 🌐 Access URLs
 
 After successful setup, access the applications at:
 
 ### Localhost Access
+
 - **Frontend Web App**: http://localhost:5173
-- **Mobile Web App**: http://localhost:5180
 - **Backend API**: http://localhost:3000
 - **API Health Check**: http://localhost:3000/api/health
 
 ### Network Access (when using launcher script)
+
 - **Frontend Web App**: http://YOUR_IP:5173
-- **Mobile Web App**: http://YOUR_IP:5180
 - **Backend API**: http://YOUR_IP:3000
 
 ## 🔐 Default Admin Credentials
@@ -171,6 +154,7 @@ After successful setup, access the applications at:
 This monorepo contains three interconnected applications:
 
 ### 🔧 Backend (`CRM-BACKEND/`)
+
 - **REST API** with comprehensive endpoints
 - **WebSocket Server** for real-time updates
 - **Authentication** with JWT and refresh tokens
@@ -179,6 +163,7 @@ This monorepo contains three interconnected applications:
 - **Audit Logging** for security compliance
 
 ### 💻 Frontend (`CRM-FRONTEND/`)
+
 - **React 19** with modern hooks and features
 - **Vite** for fast development and building
 - **TypeScript** for type safety
@@ -186,16 +171,10 @@ This monorepo contains three interconnected applications:
 - **React Query** for efficient data fetching
 - **Real-time Updates** via WebSocket
 
-### 📱 Mobile (`CRM-MOBILE/`)
-- **Capacitor** for native functionality
-- **React** for consistent development experience
-- **Cross-platform** deployment (iOS/Android/Web)
-- **Offline Capabilities** for field work
-- **Native Device Features** (camera, GPS, etc.)
-
 ## 🛠️ Development Scripts
 
 ### Backend Scripts
+
 - `npm run dev` — Start in development (ts-node + nodemon)
 - `npm run build && npm start` — Compile TypeScript and run Node.js
 - `npm run db:generate` — Generate Prisma client
@@ -205,18 +184,12 @@ This monorepo contains three interconnected applications:
 - `npm run test` — Run backend tests
 
 ### Frontend Scripts
+
 - `npm run dev` — Start development server
 - `npm run build` — Build for production
 - `npm run preview` — Preview production build
 - `npm run lint` — Run ESLint
 - `npm run type-check` — Run TypeScript checks
-
-### Mobile Scripts
-- `npm run dev` — Start development server
-- `npm run build` — Build for production
-- `npm run android` — Build and run on Android
-- `npm run ios` — Build and run on iOS
-- `npm run capacitor:sync` — Sync Capacitor plugins
 
 ## 📚 Documentation
 
@@ -246,10 +219,12 @@ Comprehensive project documentation is organized in the `project-documentation/`
 ## 📚 Documentation
 
 ### Quick Start
+
 - [Local Setup Guide](docs/LOCAL_SETUP.md) - Development environment setup
 - [Project Documentation](project-documentation/README.md) - Complete documentation index
 
 ### Organized Documentation Structure
+
 All project documentation has been organized into categories:
 
 - **📊 [Comprehensive Reports](project-documentation/comprehensive-reports/)** - Major project overviews and audit reports
@@ -262,9 +237,12 @@ All project documentation has been organized into categories:
 - **🚀 [Setup Guides](project-documentation/setup-guides/)** - Installation and configuration guides
 
 ### Quick Access
+
 - **[Complete Documentation Index](project-documentation/DOCUMENTATION_INDEX.md)** - Full file listing with descriptions
 - **[Cleanup Summary](project-documentation/scripts/cleanup/cleanup-summary.md)** - Recent data cleanup documentation
 
-# Git-based deployment test - Tue Dec  2 23:50:20 IST 2025
-# Git deployment test 2 - Tue Dec  2 23:52:42 IST 2025
-# Final git deployment test - Wed Dec  3 00:46:31 IST 2025
+# Git-based deployment test - Tue Dec 2 23:50:20 IST 2025
+
+# Git deployment test 2 - Tue Dec 2 23:52:42 IST 2025
+
+# Final git deployment test - Wed Dec 3 00:46:31 IST 2025
