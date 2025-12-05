@@ -1,8 +1,8 @@
 {
-  "name": "CRM Mobile - Agent Dashboard",
-  "short_name": "CRM Mobile",
-  "description": "Mobile app for CRM field agents with offline capabilities",
-  "start_url": "/mobile",
+  "name": "CRM Web - Agent Dashboard",
+  "short_name": "CRM Web",
+  "description": "Web application for CRM field agents",
+  "start_url": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
   "theme_color": "#2563eb",

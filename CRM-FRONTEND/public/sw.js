@@ -1,7 +1,7 @@
 // CRM Mobile App Service Worker
 // Provides offline functionality and caching
 
-const CACHE_NAME = 'crm-mobile-v1';
+const CACHE_NAME = 'crm-web-v1';
 const STATIC_CACHE_NAME = 'crm-static-v1';
 const DYNAMIC_CACHE_NAME = 'crm-dynamic-v1';
 
