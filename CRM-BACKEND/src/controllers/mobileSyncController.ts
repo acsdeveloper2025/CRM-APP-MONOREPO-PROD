@@ -222,13 +222,11 @@ export class MobileSyncController {
         `SELECT c.*,
                 cl.id as "clientId", cl.name as "clientName", cl.code as "clientCode",
                 p.id as "productId", p.name as "productName", p.code as "productCode",
-                vt.id as "verificationTypeId", vt.name as "verificationTypeName", vt.code as "verificationTypeCode",
-                cu.name as "createdByUserName"
+                vt.id as "verificationTypeId", vt.name as "verificationTypeName", vt.code as "verificationTypeCode", c."verificationData"
          FROM cases c
          LEFT JOIN clients cl ON cl.id = c."clientId"
          LEFT JOIN products p ON p.id = c."productId"
          LEFT JOIN "verificationTypes" vt ON vt.id = c."verificationTypeId"
-         LEFT JOIN users cu ON cu.id = c."createdBy"
          ${whereSql}
          ORDER BY c."updatedAt" ASC
          LIMIT $${vals.length}`,

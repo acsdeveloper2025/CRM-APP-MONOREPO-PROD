@@ -742,7 +742,6 @@ export class NotificationController {
       });
     } catch (error) {
       logger.error('Send test notification error:', error);
-      console.error("❌ SEND TEST NOTIFICATION FULL ERROR:", JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
       res.status(500).json({
         success: false,
         message: 'Internal server error',
