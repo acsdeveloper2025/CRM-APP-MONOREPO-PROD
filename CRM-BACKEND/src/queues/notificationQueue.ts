@@ -234,9 +234,9 @@ notificationQueue.process('case-completion', 5, async job => {
 
   try {
     const notificationTemplate: Omit<NotificationData, 'userId'> = {
-      title: 'Case Completed',
-      message: `Case ${data.caseNumber} has been completed by ${data.fieldUserName}`,
-      type: 'CASE_COMPLETED',
+      title: 'Task Completed',
+      message: `Task for case ${data.caseNumber} has been completed by ${data.fieldUserName}`,
+      type: 'TASK_COMPLETED',
       caseId: data.caseId,
       caseNumber: data.caseNumber,
       data: {
