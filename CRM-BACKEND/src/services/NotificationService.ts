@@ -26,6 +26,7 @@ export type NotificationType =
   | 'CASE_COMPLETED'
   | 'CASE_REVOKED'
   | 'TASK_REVOKED'
+  | 'TASK_COMPLETED'
   | 'CASE_APPROVED'
   | 'CASE_REJECTED'
   | 'SYSTEM_MAINTENANCE'
@@ -454,6 +455,7 @@ export class NotificationService {
       case 'CASE_REMOVED':
         return preferences.caseReassignmentEnabled;
       case 'CASE_COMPLETED':
+      case 'TASK_COMPLETED':
         return preferences.caseCompletionEnabled;
       case 'CASE_REVOKED':
         return preferences.caseRevocationEnabled;
@@ -480,6 +482,7 @@ export class NotificationService {
       case 'CASE_REMOVED':
         return preferences.caseReassignmentWebsocket;
       case 'CASE_COMPLETED':
+      case 'TASK_COMPLETED':
         return preferences.caseCompletionWebsocket;
       case 'CASE_REVOKED':
         return preferences.caseRevocationWebsocket;
@@ -506,6 +509,7 @@ export class NotificationService {
       case 'CASE_REMOVED':
         return preferences.caseReassignmentPush;
       case 'CASE_COMPLETED':
+      case 'TASK_COMPLETED':
         return preferences.caseCompletionPush;
       case 'CASE_REVOKED':
         return preferences.caseRevocationPush;
