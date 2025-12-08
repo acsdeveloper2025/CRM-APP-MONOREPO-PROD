@@ -6301,19 +6301,138 @@ export function getFieldsForSection(
 
 /**
  * Create comprehensive form sections from form data
+ * NOW WITH TYPE-AWARE AND VALUE-AWARE FILTERING
  */
 export function createComprehensiveFormSections(
   formData: any,
   verificationType: string,
   formType: string
 ): FormSection[] {
-  console.log(`Creating comprehensive sections for ${verificationType} - ${formType}`);
+  console.log(`Creating type-aware sections for ${verificationType} - ${formType}`);
   console.log('Form data keys:', Object.keys(formData));
-  console.log('Form data sample:', JSON.stringify(formData, null, 2).substring(0, 500));
 
+  // Import type-aware schemas
+  const {
+    getRelevantFieldsForFormType,
+    shouldShowField,
+    CONDITIONAL_FIELD_RULES
+  } = require('./typeAwareFormFieldSchemas');
+
+  try {
+    // Get only relevant fields for this verification type + form type combination
+    const relevantFields = getRelevantFieldsForFormType(verificationType, formType);
+    
+    if (relevantFields.length === 0) {
+      console.warn(`No field schema found for ${verificationType} - ${formType}, falling back to legacy method`);
+      // Fallback to old method if no schema found
+      return createLegacyFormSections(formData, verificationType, formType);
+    }
+
+    console.log(`Found ${relevantFields.length} relevant fields for ${verificationType} - ${formType}`);
+
+    // Filter fields based on:
+    // 1. Has value (not null/empty)
+    // 2. Passes conditional visibility rules
+    const visibleFields = relevantFields.filter(fieldDef => {
+      const value = formData[fieldDef.name];
+      const hasValue = value !== null && value !== undefined && value !== '';
+      
+      if (!hasValue) {
+        return false; // Hide fields with no value
+      }
+      
+      // Check conditional visibility
+      const shouldShow = shouldShowField(fieldDef.name, formData, CONDITIONAL_FIELD_RULES);
+      
+      if (!shouldShow) {
+        console.log(`Hiding conditional field: ${fieldDef.name} (condition not met)`);
+      }
+      
+      return shouldShow;
+    });
+
+    console.log(`Filtered to ${visibleFields.length} visible fields with values`);
+
+    // Group fields into sections
+    const sections = groupFieldsIntoSections(visibleFields, formData);
+    
+    console.log(`Created ${sections.length} sections`);
+    return sections;
+    
+  } catch (error) {
+    console.error('Error in type-aware form sections:', error);
+    // Fallback to legacy method on error
+    return createLegacyFormSections(formData, verificationType, formType);
+  }
+}
+
+/**
+ * Group fields into sections based on their section property
+ */
+function groupFieldsIntoSections(
+  fields: any[],
+  formData: any
+): FormSection[] {
+  // Group fields by section
+  const sectionMap = new Map<string, FormField[]>();
+  
+  fields.forEach(fieldDef => {
+    const sectionName = fieldDef.section || 'General Information';
+    if (!sectionMap.has(sectionName)) {
+      sectionMap.set(sectionName, []);
+    }
+    
+    const value = formData[fieldDef.name] || formData[fieldDef.id];
+    
+    sectionMap.get(sectionName)!.push({
+      id: fieldDef.id,
+      name: fieldDef.name,
+      label: fieldDef.label,
+      type: fieldDef.type,
+      value: value,
+      displayValue: value,
+      isRequired: fieldDef.isRequired,
+      validation: {
+        isValid: true,
+        errors: [],
+      },
+    });
+  });
+  
+  // Convert map to sections array
+  const sections: FormSection[] = [];
+  let order = 1;
+  
+  for (const [title, fields] of sectionMap.entries()) {
+    if (fields.length > 0) {
+      sections.push({
+        id: title.toLowerCase().replace(/\s+/g, '_'),
+        title,
+        description: `${title} fields`,
+        fields,
+        order: order++,
+        isRequired: title === 'Basic Information',
+        defaultExpanded: order <= 2, // Expand first 2 sections by default
+      });
+    }
+  }
+  
+  return sections;
+}
+
+/**
+ * Legacy form sections creation (fallback)
+ * Uses the old method of showing all fields
+ */
+function createLegacyFormSections(
+  formData: any,
+  verificationType: string,
+  formType: string
+): FormSection[] {
+  console.log(`Using legacy form sections for ${verificationType} - ${formType}`);
+  
   const sections: FormSection[] = [];
   const sectionNames = getFormSections(verificationType, formType);
-  console.log(`Found ${sectionNames.length} sections:`, sectionNames);
 
   sectionNames.forEach((sectionName, index) => {
     const sectionFields = getFieldsForSection(verificationType, sectionName, formType);
@@ -6346,7 +6465,7 @@ export function createComprehensiveFormSections(
         fields: populatedFields,
         order: index + 1,
         isRequired: sectionName === 'Basic Information',
-        defaultExpanded: index < 2, // Expand first 2 sections by default
+        defaultExpanded: index < 2,
       });
     }
   });
