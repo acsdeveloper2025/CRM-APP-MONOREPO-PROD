@@ -272,6 +272,14 @@ docs/.vuepress/dist/
 # test-mobile-login.js (Deleted)
 
 # =====================================================
+# MOBILE APP (Separate Repository)
+# =====================================================
+# CRM-MOBILE is maintained in a separate repository
+# and should not be pushed to this monorepo
+CRM-MOBILE/
+
+
+# =====================================================
 # MOBILE APK FILES
 # =====================================================
 *.apk
