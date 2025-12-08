@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
 import { FormSubmission } from '@/types/form';
 import VerificationImages from '@/components/VerificationImages';
 import { TemplateReportCard } from '@/components/forms/TemplateReportCard';
@@ -56,9 +55,18 @@ export const OptimizedFormSubmissionViewer: React.FC<OptimizedFormSubmissionView
   const agentName = submission.submittedByName || submission.submittedBy || 'Unknown Agent';
   const formSections = submission.sections || [];
   const totalFields = formSections.reduce((total, section) => total + (section.fields?.length || 0), 0);
-  const verificationOutcome = submission.sections?.[0]?.fields?.find(
-    field => field.id === 'verification_outcome' || field.label?.toLowerCase().includes('outcome')
-  )?.value || 'Not specified';
+  
+  // Try to get outcome from multiple sources
+  const verificationOutcome = 
+    submission.outcome || // First try direct outcome field
+    submission.formType || // Then try formType (POSITIVE, SHIFTED, etc.)
+    formSections.flatMap(s => s.fields || []).find(
+      field => field.id === 'finalStatus' || 
+               field.id === 'verification_outcome' || 
+               field.label?.toLowerCase().includes('outcome') ||
+               field.label?.toLowerCase().includes('final status')
+    )?.value || 
+    'Not specified';
 
   return (
     <div className="space-y-6">
@@ -165,56 +173,46 @@ export const OptimizedFormSubmissionViewer: React.FC<OptimizedFormSubmissionView
       {/* Expanded Content - All Data in Single Page */}
       {isExpanded && (
         <div className="space-y-6">
-          {/* Form Data Sections */}
+          {/* Form Data Sections - All in Single Card */}
           {formSections.length > 0 ? (
             <div className="space-y-4">
-              <div className="flex items-center space-x-2 mb-4">
+              <div className="flex items-center space-x-2">
                 <FileText className="h-5 w-5 text-green-600" />
                 <h3 className="text-lg font-semibold">Form Data</h3>
                 <Badge className={baseBadgeStyle}>{formSections.length} SECTIONS, {totalFields} FIELDS</Badge>
               </div>
 
-              {formSections.map((section, sectionIndex) => (
-                <Card key={sectionIndex} className="border-l-4 border-l-green-500">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-lg flex items-center space-x-2">
-                      <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center text-sm font-medium text-green-600">
-                        {sectionIndex + 1}
-                      </div>
-                      <span>{section.title}</span>
-                      <Badge className={baseBadgeStyle}>{section.fields?.length || 0} FIELDS</Badge>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-6">
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                      {section.fields?.map((field, fieldIndex) => (
-                        <div key={fieldIndex} className="space-y-3">
-                          {/* Field Label with Enhanced Styling */}
-                          <div className="flex items-center justify-between">
-                            <Label className="text-sm font-medium text-gray-600 flex items-center space-x-2">
-                              <span className="bg-muted text-gray-600 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
-                                {fieldIndex + 1}
-                              </span>
-                              <span>{field.label}</span>
-                              {field.isRequired && <span className="text-red-500 text-lg">*</span>}
-                            </Label>
-                            <Badge className={baseBadgeStyle}>
-                              {field.type.toUpperCase()}
-                            </Badge>
-                          </div>
-
-                          {/* Field Value Display with Enhanced Styling */}
-                          <div className="min-h-[50px] p-4 bg-gray-50 border border-gray-200 rounded-lg">
-                            <div className="text-sm font-medium text-gray-900">
-                              {field.value || <span className="text-gray-500 italic font-normal">Not provided</span>}
-                            </div>
-                          </div>
+              <Card className="border-l-4 border-l-green-500">
+                <CardContent className="p-6 space-y-6">
+                  {formSections.map((section, sectionIndex) => (
+                    <div key={sectionIndex} className={sectionIndex > 0 ? "pt-6 border-t border-gray-200" : ""}>
+                      {/* Section Header - Compact */}
+                      <div className="flex items-center space-x-2 mb-3">
+                        <div className="w-6 h-6 bg-green-600 text-white rounded-full flex items-center justify-center text-xs font-bold">
+                          {sectionIndex + 1}
                         </div>
-                      ))}
+                        <h4 className="text-base font-semibold text-gray-900">{section.title}</h4>
+                        <Badge className={baseBadgeStyle}>{section.fields?.length || 0} FIELDS</Badge>
+                      </div>
+
+                      {/* Fields - Inline Single Column */}
+                      <div className="grid grid-cols-1 gap-y-2">
+                        {section.fields?.map((field, fieldIndex) => (
+                          <div key={fieldIndex} className="flex items-baseline py-1">
+                            {/* Label and Value Inline */}
+                            <span className="text-sm font-medium text-gray-600 min-w-[140px] shrink-0">
+                              {field.label}:
+                            </span>
+                            <span className="text-sm text-gray-900 ml-2 flex-1">
+                              {field.value || <span className="text-gray-400 italic">Not provided</span>}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
+                  ))}
+                </CardContent>
+              </Card>
             </div>
           ) : (
             <Card>
@@ -252,7 +250,7 @@ export const OptimizedFormSubmissionViewer: React.FC<OptimizedFormSubmissionView
             caseId={caseId}
             submissionId={submission.id}
             verificationType={submission.verificationType || 'RESIDENCE'}
-            outcome={submission.verificationOutcome || 'Positive & Door Locked'}
+            outcome={submission.outcome || 'Positive &amp; Door Locked'}
           />
 
         </div>
