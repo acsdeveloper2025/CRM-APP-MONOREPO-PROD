@@ -621,8 +621,14 @@ export class NotificationController {
       });
     } catch (error) {
       logger.error('Register notification token error:', error);
-      console.error("❌ REGISTER TOKEN FULL ERROR:", JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
-      console.error('❌ FULL ERROR DETAILS:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
+      console.error(
+        '❌ REGISTER TOKEN FULL ERROR:',
+        JSON.stringify(error, Object.getOwnPropertyNames(error), 2)
+      );
+      console.error(
+        '❌ FULL ERROR DETAILS:',
+        JSON.stringify(error, Object.getOwnPropertyNames(error), 2)
+      );
       res.status(500).json({
         success: false,
         message: 'Internal server error',
@@ -742,7 +748,10 @@ export class NotificationController {
       });
     } catch (error) {
       logger.error('Send test notification error:', error);
-      console.error("❌ SEND TEST NOTIFICATION FULL ERROR:", JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
+      console.error(
+        '❌ SEND TEST NOTIFICATION FULL ERROR:',
+        JSON.stringify(error, Object.getOwnPropertyNames(error), 2)
+      );
       res.status(500).json({
         success: false,
         message: 'Internal server error',
