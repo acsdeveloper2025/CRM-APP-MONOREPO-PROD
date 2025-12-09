@@ -1,11 +1,11 @@
 /**
  * Type-Aware and Value-Aware Form Field Schemas
- * 
+ *
  * This module provides field schemas organized by:
  * 1. Verification Type (BUSINESS, RESIDENCE, OFFICE, etc.)
  * 2. Form Type / Outcome (POSITIVE, SHIFTED, NSP, ENTRY_RESTRICTED, UNTRACEABLE)
  * 3. Conditional Field Rules (fields shown based on parent field values)
- * 
+ *
  * This ensures only relevant fields with actual values are displayed in the frontend.
  */
 
@@ -16,10 +16,10 @@ import type { FormFieldDefinition } from './comprehensiveFormFieldMapping';
 // ============================================================================
 
 export interface ConditionalRule {
-  parentField: string;           // Field that controls visibility
+  parentField: string; // Field that controls visibility
   operator: 'equals' | 'notEquals' | 'contains' | 'in' | 'notIn';
-  value: any | any[];            // Value(s) that trigger visibility
-  showFields: string[];          // Fields to show when condition is met
+  value: unknown; // Value(s) that trigger visibility
+  showFields: string[]; // Fields to show when condition is met
 }
 
 export const CONDITIONAL_FIELD_RULES: Record<string, ConditionalRule[]> = {
@@ -29,169 +29,208 @@ export const CONDITIONAL_FIELD_RULES: Record<string, ConditionalRule[]> = {
       parentField: 'door_status',
       operator: 'equals',
       value: 'Open',
-      showFields: ['metPersonName', 'metPersonRelation', 'metPersonStatus', 'documentShown', 'documentType']
+      showFields: [
+        'metPersonName',
+        'metPersonRelation',
+        'metPersonStatus',
+        'documentShown',
+        'documentType',
+      ],
     },
     {
       parentField: 'door_status',
       operator: 'equals',
       value: 'Locked',
-      showFields: ['tpcMetPerson1', 'tpcName1', 'tpcConfirmation1', 'tpcMetPerson2', 'tpcName2', 'tpcConfirmation2']
-    }
+      showFields: [
+        'tpcMetPerson1',
+        'tpcName1',
+        'tpcConfirmation1',
+        'tpcMetPerson2',
+        'tpcName2',
+        'tpcConfirmation2',
+      ],
+    },
   ],
-  
+
   // Nameplate Visibility Conditionals
   doorNamePlateStatus: [
     {
       parentField: 'doorNamePlateStatus',
       operator: 'equals',
       value: 'Visible',
-      showFields: ['nameOnDoorPlate']
-    }
+      showFields: ['nameOnDoorPlate'],
+    },
   ],
-  
+
   societyNamePlateStatus: [
     {
       parentField: 'societyNamePlateStatus',
       operator: 'equals',
       value: 'Visible',
-      showFields: ['nameOnSocietyBoard']
-    }
+      showFields: ['nameOnSocietyBoard'],
+    },
   ],
-  
+
   companyNamePlateStatus: [
     {
       parentField: 'companyNamePlateStatus',
       operator: 'in',
       value: ['Present', 'Visible', 'Yes'],
-      showFields: ['nameOnCompanyBoard']
-    }
+      showFields: ['nameOnCompanyBoard'],
+    },
   ],
-  
+
   // Document Verification Conditionals
   documentShown: [
     {
       parentField: 'documentShown',
       operator: 'in',
       value: ['Yes', 'Shown'],
-      showFields: ['documentType']
-    }
+      showFields: ['documentType'],
+    },
   ],
-  
+
   documentShownStatus: [
     {
       parentField: 'documentShownStatus',
       operator: 'in',
       value: ['Shown', 'Yes'],
-      showFields: ['documentType']
-    }
+      showFields: ['documentType'],
+    },
   ],
-  
+
   // TPC Confirmation Conditionals
   tpcConfirmation1: [
     {
       parentField: 'tpcConfirmation1',
       operator: 'in',
       value: ['Positive', 'Confirmed', 'Yes'],
-      showFields: ['tpcName1', 'tpcMetPerson1']
-    }
+      showFields: ['tpcName1', 'tpcMetPerson1'],
+    },
   ],
-  
+
   tpcConfirmation2: [
     {
       parentField: 'tpcConfirmation2',
       operator: 'in',
       value: ['Positive', 'Confirmed', 'Yes'],
-      showFields: ['tpcName2', 'tpcMetPerson2']
-    }
+      showFields: ['tpcName2', 'tpcMetPerson2'],
+    },
   ],
-  
+
   // Business/Office Existence Conditionals
   businessExistence: [
     {
       parentField: 'businessExistence',
       operator: 'in',
       value: ['Exists', 'Active', 'Running'],
-      showFields: ['businessStatus', 'businessType', 'ownershipType', 'ownerName', 'staffStrength', 'staffSeen', 'businessActivity']
+      showFields: [
+        'businessStatus',
+        'businessType',
+        'ownershipType',
+        'ownerName',
+        'staffStrength',
+        'staffSeen',
+        'businessActivity',
+      ],
     },
     {
       parentField: 'businessExistence',
       operator: 'equals',
       value: 'Shifted',
-      showFields: ['shiftedPeriod', 'currentCompanyName', 'currentCompanyPeriod', 'oldBusinessShiftedPeriod']
+      showFields: [
+        'shiftedPeriod',
+        'currentCompanyName',
+        'currentCompanyPeriod',
+        'oldBusinessShiftedPeriod',
+      ],
     },
     {
       parentField: 'businessExistence',
       operator: 'in',
       value: ['Not Found', 'Closed', 'Untraceable'],
-      showFields: ['premisesStatus', 'contactPerson']
-    }
+      showFields: ['premisesStatus', 'contactPerson'],
+    },
   ],
-  
+
   officeExistence: [
     {
       parentField: 'officeExistence',
       operator: 'in',
       value: ['Exists', 'Active', 'Running'],
-      showFields: ['officeStatus', 'officeType', 'designation', 'workingStatus', 'staffStrength', 'staffSeen']
+      showFields: [
+        'officeStatus',
+        'officeType',
+        'designation',
+        'workingStatus',
+        'staffStrength',
+        'staffSeen',
+      ],
     },
     {
       parentField: 'officeExistence',
       operator: 'equals',
       value: 'Shifted',
-      showFields: ['shiftedPeriod', 'currentCompanyName', 'oldOfficeShiftedPeriod']
-    }
+      showFields: ['shiftedPeriod', 'currentCompanyName', 'oldOfficeShiftedPeriod'],
+    },
   ],
-  
+
   // Applicant Working Status Conditionals
   applicantWorkingPremises: [
     {
       parentField: 'applicantWorkingPremises',
       operator: 'in',
       value: ['Yes', 'Working'],
-      showFields: ['designation', 'applicantDesignation', 'workingPeriod', 'workingStatus', 'applicantWorkingStatus']
-    }
+      showFields: [
+        'designation',
+        'applicantDesignation',
+        'workingPeriod',
+        'workingStatus',
+        'applicantWorkingStatus',
+      ],
+    },
   ],
-  
+
   // Staying Status Conditionals
   applicantStayingStatus: [
     {
       parentField: 'applicantStayingStatus',
       operator: 'in',
       value: ['Staying', 'Residing'],
-      showFields: ['stayingPeriod', 'houseStatus', 'totalFamilyMembers', 'totalEarning']
+      showFields: ['stayingPeriod', 'houseStatus', 'totalFamilyMembers', 'totalEarning'],
     },
     {
       parentField: 'applicantStayingStatus',
       operator: 'equals',
       value: 'Shifted',
-      showFields: ['shiftedPeriod', 'currentLocation', 'stayingPersonName']
-    }
+      showFields: ['shiftedPeriod', 'currentLocation', 'stayingPersonName'],
+    },
   ],
-  
+
   // Entry Restriction Conditionals
   accessDenied: [
     {
       parentField: 'accessDenied',
       operator: 'in',
       value: ['Yes', 'Denied'],
-      showFields: ['entryRestrictionReason', 'securityPersonName']
-    }
+      showFields: ['entryRestrictionReason', 'securityPersonName'],
+    },
   ],
-  
+
   // Premises Status Conditionals
   premisesStatus: [
     {
       parentField: 'premisesStatus',
       operator: 'in',
       value: ['Locked', 'Closed'],
-      showFields: ['tpcMetPerson1', 'tpcConfirmation1', 'tpcMetPerson2', 'tpcConfirmation2']
+      showFields: ['tpcMetPerson1', 'tpcConfirmation1', 'tpcMetPerson2', 'tpcConfirmation2'],
     },
     {
       parentField: 'premisesStatus',
       operator: 'equals',
       value: 'Vacant',
-      showFields: ['shiftedPeriod', 'contactPerson', 'alternateContact']
-    }
+      showFields: ['shiftedPeriod', 'contactPerson', 'alternateContact'],
+    },
   ],
 };
 
@@ -199,33 +238,30 @@ export const CONDITIONAL_FIELD_RULES: Record<string, ConditionalRule[]> = {
 // CONDITIONAL FIELD EVALUATION LOGIC
 // ============================================================================
 
-export function evaluateConditionalRule(
-  rule: ConditionalRule,
-  formData: any
-): boolean {
+export function evaluateConditionalRule(rule: ConditionalRule, formData: any): boolean {
   const parentValue = formData[rule.parentField];
-  
+
   // If parent field has no value, condition is not met
   if (parentValue === null || parentValue === undefined || parentValue === '') {
     return false;
   }
-  
+
   switch (rule.operator) {
     case 'equals':
       return parentValue === rule.value;
-    
+
     case 'notEquals':
       return parentValue !== rule.value;
-    
+
     case 'contains':
       return String(parentValue).toLowerCase().includes(String(rule.value).toLowerCase());
-    
+
     case 'in':
       return Array.isArray(rule.value) && rule.value.includes(parentValue);
-    
+
     case 'notIn':
       return Array.isArray(rule.value) && !rule.value.includes(parentValue);
-    
+
     default:
       return false;
   }
@@ -248,7 +284,7 @@ export function shouldShowField(
       }
     }
   }
-  
+
   // Field is not conditional OR all conditions are met
   return true;
 }
@@ -492,7 +528,7 @@ const BUSINESS_POSITIVE_FIELDS: FormFieldDefinition[] = [
     section: 'Business Details',
     order: 9,
   },
-  
+
   // Working Details
   {
     id: 'workingStatus',
@@ -539,7 +575,7 @@ const BUSINESS_POSITIVE_FIELDS: FormFieldDefinition[] = [
     section: 'Working Details',
     order: 5,
   },
-  
+
   // Document Verification
   {
     id: 'documentShown',
@@ -559,7 +595,7 @@ const BUSINESS_POSITIVE_FIELDS: FormFieldDefinition[] = [
     section: 'Document Verification',
     order: 2,
   },
-  
+
   // Premises Details
   {
     id: 'premisesStatus',
@@ -597,7 +633,7 @@ const BUSINESS_POSITIVE_FIELDS: FormFieldDefinition[] = [
     section: 'Premises Details',
     order: 4,
   },
-  
+
   // TPC (Third Party Confirmation)
   {
     id: 'tpcMetPerson1',
@@ -970,7 +1006,7 @@ const RESIDENCE_POSITIVE_FIELDS: FormFieldDefinition[] = [
     section: 'Residence Information',
     order: 7,
   },
-  
+
   // Working Details
   {
     id: 'workingStatus',
@@ -990,7 +1026,7 @@ const RESIDENCE_POSITIVE_FIELDS: FormFieldDefinition[] = [
     section: 'Working Details',
     order: 2,
   },
-  
+
   // Document Verification
   {
     id: 'documentShownStatus',
@@ -1010,7 +1046,7 @@ const RESIDENCE_POSITIVE_FIELDS: FormFieldDefinition[] = [
     section: 'Document Verification',
     order: 2,
   },
-  
+
   // Premises Details
   {
     id: 'doorColor',
@@ -1066,7 +1102,7 @@ const RESIDENCE_POSITIVE_FIELDS: FormFieldDefinition[] = [
     section: 'Premises Details',
     order: 6,
   },
-  
+
   // TPC (Third Party Confirmation)
   {
     id: 'tpcMetPerson1',
@@ -1313,7 +1349,7 @@ const OFFICE_POSITIVE_FIELDS: FormFieldDefinition[] = [
     section: 'Office Information',
     order: 7,
   },
-  
+
   // Working Details
   {
     id: 'workingPeriod',
@@ -1360,7 +1396,7 @@ const OFFICE_POSITIVE_FIELDS: FormFieldDefinition[] = [
     section: 'Working Details',
     order: 5,
   },
-  
+
   // Document Verification
   {
     id: 'documentShown',
@@ -1380,7 +1416,7 @@ const OFFICE_POSITIVE_FIELDS: FormFieldDefinition[] = [
     section: 'Document Verification',
     order: 2,
   },
-  
+
   // Premises Details
   {
     id: 'officeApproxArea',
@@ -1418,7 +1454,7 @@ const OFFICE_POSITIVE_FIELDS: FormFieldDefinition[] = [
     section: 'Premises Details',
     order: 4,
   },
-  
+
   // TPC (Third Party Confirmation)
   {
     id: 'tpcMetPerson1',
@@ -1564,7 +1600,10 @@ const OFFICE_UNTRACEABLE_FIELDS: FormFieldDefinition[] = [
 // VERIFICATION TYPE FIELD MAPPING
 // ============================================================================
 
-export const VERIFICATION_FORM_TYPE_FIELDS: Record<string, Record<string, FormFieldDefinition[]>> = {
+export const VERIFICATION_FORM_TYPE_FIELDS: Record<
+  string,
+  Record<string, FormFieldDefinition[]>
+> = {
   BUSINESS: {
     COMMON: COMMON_FIELDS,
     POSITIVE: BUSINESS_POSITIVE_FIELDS,
@@ -1658,18 +1697,18 @@ export function getRelevantFieldsForFormType(
     console.warn(`No field schema found for verification type: ${verificationType}`);
     return [];
   }
-  
+
   // Get common fields (always shown)
   const commonFields = typeFields.COMMON || [];
-  
+
   // Get form-type-specific fields
   const specificFields = typeFields[formType.toUpperCase()] || [];
-  
+
   // Merge and deduplicate by field name
   const allFields = [...commonFields, ...specificFields];
-  const uniqueFields = allFields.filter((field, index, self) =>
-    index === self.findIndex((f) => f.name === field.name)
+  const uniqueFields = allFields.filter(
+    (field, index, self) => index === self.findIndex(f => f.name === field.name)
   );
-  
+
   return uniqueFields;
 }

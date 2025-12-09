@@ -62,7 +62,9 @@ export class TaskCompletionValidator {
       // 1. Validate form submission exists
       const hasForm = await this.validateFormSubmissionExists(taskId);
       if (!hasForm) {
-        errors.push('Form submission not found. Please submit the verification form before completing the task.');
+        errors.push(
+          'Form submission not found. Please submit the verification form before completing the task.'
+        );
       }
 
       // 2. Validate minimum photos
@@ -180,7 +182,7 @@ export class TaskCompletionValidator {
       }
 
       // Check required photo types (soft validation - warning only)
-      const missingTypes = requirement.required.filter((type) => !photoTypes.includes(type));
+      const missingTypes = requirement.required.filter(type => !photoTypes.includes(type));
       if (missingTypes.length > 0) {
         warnings.push(`Recommended photo types missing: ${missingTypes.join(', ')}`);
       }
@@ -266,10 +268,7 @@ export class TaskCompletionValidator {
   /**
    * Validate verification outcome is valid for the verification type
    */
-  private static validateOutcome(
-    verificationType: string,
-    outcome: string
-  ): ValidationResult {
+  private static validateOutcome(verificationType: string, outcome: string): ValidationResult {
     const errors: string[] = [];
 
     const validOutcomes = VALID_OUTCOMES[verificationType];
@@ -324,9 +323,7 @@ export class TaskCompletionValidator {
     }
 
     if (task.status !== 'IN_PROGRESS') {
-      errors.push(
-        `Task must be IN_PROGRESS to complete. Current status: ${task.status}`
-      );
+      errors.push(`Task must be IN_PROGRESS to complete. Current status: ${task.status}`);
     }
 
     return {
@@ -368,10 +365,7 @@ export class TaskCompletionValidator {
   /**
    * Validate task can be updated to a new status
    */
-  static async validateStatusUpdate(
-    taskId: string,
-    newStatus: string
-  ): Promise<ValidationResult> {
+  static async validateStatusUpdate(taskId: string, newStatus: string): Promise<ValidationResult> {
     const errors: string[] = [];
     const warnings: string[] = [];
 
