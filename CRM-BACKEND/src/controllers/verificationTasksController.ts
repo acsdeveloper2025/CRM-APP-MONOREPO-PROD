@@ -1674,7 +1674,7 @@ export class VerificationTasksController {
   /**
    * Validate a verification task
    * GET /api/verification-tasks/:taskId/validate
-   * 
+   *
    * Checks if a task (especially COMPLETED ones) has all required data
    * and meets validation requirements
    */
@@ -1706,7 +1706,7 @@ export class VerificationTasksController {
 
       // Run validation using TaskCompletionValidator
       const { TaskCompletionValidator } = await import('../services/taskCompletionValidator');
-      
+
       let validation;
       if (task.status === 'COMPLETED') {
         // For COMPLETED tasks, run full validation
@@ -1720,9 +1720,7 @@ export class VerificationTasksController {
         validation = {
           isValid: task.status !== 'COMPLETED',
           errors: [],
-          warnings: task.status === 'IN_PROGRESS' 
-            ? ['Task is still in progress'] 
-            : [],
+          warnings: task.status === 'IN_PROGRESS' ? ['Task is still in progress'] : [],
         };
       }
 
@@ -1748,9 +1746,7 @@ export class VerificationTasksController {
           warnings: validation.warnings,
           validationTimestamp: new Date().toISOString(),
         },
-        message: validation.isValid 
-          ? 'Task validation passed' 
-          : 'Task validation failed',
+        message: validation.isValid ? 'Task validation passed' : 'Task validation failed',
       });
     } catch (error) {
       logger.error('Error validating task:', error);

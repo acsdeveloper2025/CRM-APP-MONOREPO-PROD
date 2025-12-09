@@ -6315,20 +6315,24 @@ export function createComprehensiveFormSections(
   const {
     getRelevantFieldsForFormType,
     shouldShowField,
-    CONDITIONAL_FIELD_RULES
+    CONDITIONAL_FIELD_RULES,
   } = require('./typeAwareFormFieldSchemas');
 
   try {
     // Get only relevant fields for this verification type + form type combination
     const relevantFields = getRelevantFieldsForFormType(verificationType, formType);
-    
+
     if (relevantFields.length === 0) {
-      console.warn(`No field schema found for ${verificationType} - ${formType}, falling back to legacy method`);
+      console.warn(
+        `No field schema found for ${verificationType} - ${formType}, falling back to legacy method`
+      );
       // Fallback to old method if no schema found
       return createLegacyFormSections(formData, verificationType, formType);
     }
 
-    console.log(`Found ${relevantFields.length} relevant fields for ${verificationType} - ${formType}`);
+    console.log(
+      `Found ${relevantFields.length} relevant fields for ${verificationType} - ${formType}`
+    );
 
     // Filter fields based on:
     // 1. Has value (not null/empty)
@@ -6336,18 +6340,18 @@ export function createComprehensiveFormSections(
     const visibleFields = relevantFields.filter(fieldDef => {
       const value = formData[fieldDef.name];
       const hasValue = value !== null && value !== undefined && value !== '';
-      
+
       if (!hasValue) {
         return false; // Hide fields with no value
       }
-      
+
       // Check conditional visibility
       const shouldShow = shouldShowField(fieldDef.name, formData, CONDITIONAL_FIELD_RULES);
-      
+
       if (!shouldShow) {
         console.log(`Hiding conditional field: ${fieldDef.name} (condition not met)`);
       }
-      
+
       return shouldShow;
     });
 
@@ -6355,10 +6359,9 @@ export function createComprehensiveFormSections(
 
     // Group fields into sections
     const sections = groupFieldsIntoSections(visibleFields, formData);
-    
+
     console.log(`Created ${sections.length} sections`);
     return sections;
-    
   } catch (error) {
     console.error('Error in type-aware form sections:', error);
     // Fallback to legacy method on error
@@ -6369,27 +6372,24 @@ export function createComprehensiveFormSections(
 /**
  * Group fields into sections based on their section property
  */
-function groupFieldsIntoSections(
-  fields: any[],
-  formData: any
-): FormSection[] {
+function groupFieldsIntoSections(fields: any[], formData: any): FormSection[] {
   // Group fields by section
   const sectionMap = new Map<string, FormField[]>();
-  
+
   fields.forEach(fieldDef => {
     const sectionName = fieldDef.section || 'General Information';
     if (!sectionMap.has(sectionName)) {
       sectionMap.set(sectionName, []);
     }
-    
+
     const value = formData[fieldDef.name] || formData[fieldDef.id];
-    
+
     sectionMap.get(sectionName)!.push({
       id: fieldDef.id,
       name: fieldDef.name,
       label: fieldDef.label,
       type: fieldDef.type,
-      value: value,
+      value,
       displayValue: value,
       isRequired: fieldDef.isRequired,
       validation: {
@@ -6398,11 +6398,11 @@ function groupFieldsIntoSections(
       },
     });
   });
-  
+
   // Convert map to sections array
   const sections: FormSection[] = [];
   let order = 1;
-  
+
   for (const [title, fields] of sectionMap.entries()) {
     if (fields.length > 0) {
       sections.push({
@@ -6416,7 +6416,7 @@ function groupFieldsIntoSections(
       });
     }
   }
-  
+
   return sections;
 }
 
@@ -6430,7 +6430,7 @@ function createLegacyFormSections(
   formType: string
 ): FormSection[] {
   console.log(`Using legacy form sections for ${verificationType} - ${formType}`);
-  
+
   const sections: FormSection[] = [];
   const sectionNames = getFormSections(verificationType, formType);
 
