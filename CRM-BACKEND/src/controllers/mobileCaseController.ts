@@ -1271,6 +1271,21 @@ export class MobileCaseController {
         });
       }
 
+      // ✅ VALIDATE STATUS UPDATE
+      const { TaskCompletionValidator } = await import('../services/taskCompletionValidator');
+      const validation = await TaskCompletionValidator.validateStatusUpdate(taskId, status);
+
+      if (!validation.isValid) {
+        console.log(`❌ Task status update validation failed:`, validation.errors);
+        return res.status(400).json({
+          success: false,
+          message: 'Status update not allowed',
+          errors: validation.errors,
+          warnings: validation.warnings,
+          error: { code: 'VALIDATION_FAILED' },
+        });
+      }
+
       // Update task status
       const updateFields: string[] = ['status = $1', 'updated_at = NOW()'];
       const queryParams: any[] = [status];
@@ -1416,6 +1431,63 @@ export class MobileCaseController {
         });
       }
 
+      // Get task details first
+      const taskQuery = await query(
+        `
+        SELECT vt.*, vtype.name as verification_type_name
+        FROM verification_tasks vt
+        LEFT JOIN "verificationTypes" vtype ON vt.verification_type_id = vtype.id
+        WHERE vt.id = $1
+      `,
+        [taskId]
+      );
+
+      if (taskQuery.rows.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: 'Verification task not found',
+          error: { code: 'TASK_NOT_FOUND' },
+        });
+      }
+
+      const task = taskQuery.rows[0];
+
+      // Check if task is already completed
+      if (task.status === 'COMPLETED') {
+        return res.status(400).json({
+          success: false,
+          message: 'Task is already completed',
+          error: { code: 'TASK_ALREADY_COMPLETED' },
+        });
+      }
+
+      // ✅ VALIDATE TASK COMPLETION REQUIREMENTS
+      const { TaskCompletionValidator } = await import('../services/taskCompletionValidator');
+      const validation = await TaskCompletionValidator.validateTaskCompletion(
+        taskId,
+        task.verification_type_name,
+        verificationOutcome
+      );
+
+      if (!validation.isValid) {
+        console.log(`❌ Task ${task.task_number} completion validation failed:`, validation.errors);
+        return res.status(400).json({
+          success: false,
+          message: 'Task cannot be completed due to validation errors',
+          errors: validation.errors,
+          warnings: validation.warnings,
+          error: {
+            code: 'VALIDATION_FAILED',
+            timestamp: new Date().toISOString(),
+          },
+        });
+      }
+
+      // Log warnings if any
+      if (validation.warnings.length > 0) {
+        console.log(`⚠️  Task ${task.task_number} completion warnings:`, validation.warnings);
+      }
+
       // Update task to completed
       const result = await query(
         `
@@ -1432,14 +1504,6 @@ export class MobileCaseController {
         [verificationOutcome, actualAmount, taskId]
       );
 
-      if (result.rows.length === 0) {
-        return res.status(404).json({
-          success: false,
-          message: 'Verification task not found',
-          error: { code: 'TASK_NOT_FOUND' },
-        });
-      }
-
       const completedTask = result.rows[0];
 
       // Create audit log
@@ -1452,15 +1516,17 @@ export class MobileCaseController {
           taskNumber: completedTask.task_number,
           verificationOutcome,
           actualAmount,
+          validationWarnings: validation.warnings,
         },
       });
 
-      console.log(`✅ Task ${completedTask.task_number} completed by user ${userId}`);
+      console.log(`✅ Task ${completedTask.task_number} completed successfully by user ${userId}`);
 
       res.json({
         success: true,
         message: 'Task completed successfully',
         data: completedTask,
+        warnings: validation.warnings,
       });
     } catch (error) {
       console.error('Complete task error:', error);

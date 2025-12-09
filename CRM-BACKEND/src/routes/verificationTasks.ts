@@ -90,6 +90,17 @@ router.post(
 );
 
 /**
+ * Validate a verification task
+ * GET /api/verification-tasks/:taskId/validate
+ * Checks if a COMPLETED task has all required data
+ */
+router.get(
+  '/verification-tasks/:taskId/validate',
+  authenticateToken,
+  VerificationTasksController.validateTask
+);
+
+/**
  * Start working on a verification task (for mobile)
  * POST /api/verification-tasks/:taskId/start
  */
