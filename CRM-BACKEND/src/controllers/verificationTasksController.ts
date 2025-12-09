@@ -1430,9 +1430,10 @@ export class VerificationTasksController {
       // Get current task details
       const taskResult = await client.query(
         `
-        SELECT vt.*, c."clientId", c."productId"
+        SELECT vt.*, c."clientId", c."productId", vtype.name as verification_type_name
         FROM verification_tasks vt
         JOIN cases c ON vt.case_id = c.id
+        LEFT JOIN "verificationTypes" vtype ON vt.verification_type_id = vtype.id
         WHERE vt.id = $1
       `,
         [taskId]
@@ -1458,6 +1459,36 @@ export class VerificationTasksController {
           error: { code: 'TASK_ALREADY_COMPLETED' },
         });
         return;
+      }
+
+      // ✅ VALIDATE TASK COMPLETION REQUIREMENTS
+      const { TaskCompletionValidator } = await import('../services/taskCompletionValidator');
+      const validation = await TaskCompletionValidator.validateTaskCompletion(
+        taskId,
+        task.verification_type_name,
+        verificationOutcome
+      );
+
+      if (!validation.isValid) {
+        await client.query('ROLLBACK');
+        logger.warn(`Task ${task.task_number} completion validation failed`, {
+          errors: validation.errors,
+        });
+        res.status(400).json({
+          success: false,
+          message: 'Task cannot be completed due to validation errors',
+          errors: validation.errors,
+          warnings: validation.warnings,
+          error: { code: 'VALIDATION_FAILED' },
+        });
+        return;
+      }
+
+      // Log warnings if any
+      if (validation.warnings.length > 0) {
+        logger.warn(`Task ${task.task_number} completion warnings`, {
+          warnings: validation.warnings,
+        });
       }
 
       // Update task to completed
@@ -1512,15 +1543,22 @@ export class VerificationTasksController {
           actualAmount,
           completionNotes,
           formSubmissionId,
+          validationWarnings: validation.warnings,
         },
       });
 
       await client.query('COMMIT');
 
+      logger.info(`Task ${completedTask.task_number} completed successfully`, {
+        taskId,
+        verificationOutcome,
+      });
+
       res.json({
         success: true,
         data: completedTask,
         message: 'Verification task completed successfully',
+        warnings: validation.warnings,
       });
     } catch (error) {
       await client.query('ROLLBACK');
@@ -1628,6 +1666,97 @@ export class VerificationTasksController {
       res.status(500).json({
         success: false,
         message: 'Failed to get tasks',
+        error: { code: 'INTERNAL_ERROR' },
+      });
+    }
+  }
+
+  /**
+   * Validate a verification task
+   * GET /api/verification-tasks/:taskId/validate
+   * 
+   * Checks if a task (especially COMPLETED ones) has all required data
+   * and meets validation requirements
+   */
+  static async validateTask(req: AuthenticatedRequest, res: Response): Promise<void> {
+    const { taskId } = req.params;
+
+    try {
+      // Get task details
+      const taskResult = await pool.query(
+        `
+        SELECT vt.*, vtype.name as verification_type_name
+        FROM verification_tasks vt
+        LEFT JOIN "verificationTypes" vtype ON vt.verification_type_id = vtype.id
+        WHERE vt.id = $1
+      `,
+        [taskId]
+      );
+
+      if (taskResult.rows.length === 0) {
+        res.status(404).json({
+          success: false,
+          message: 'Verification task not found',
+          error: { code: 'TASK_NOT_FOUND' },
+        });
+        return;
+      }
+
+      const task = taskResult.rows[0];
+
+      // Run validation using TaskCompletionValidator
+      const { TaskCompletionValidator } = await import('../services/taskCompletionValidator');
+      
+      let validation;
+      if (task.status === 'COMPLETED') {
+        // For COMPLETED tasks, run full validation
+        validation = await TaskCompletionValidator.validateTaskCompletion(
+          taskId,
+          task.verification_type_name,
+          task.verification_outcome || 'POSITIVE'
+        );
+      } else {
+        // For non-completed tasks, just check current state
+        validation = {
+          isValid: task.status !== 'COMPLETED',
+          errors: [],
+          warnings: task.status === 'IN_PROGRESS' 
+            ? ['Task is still in progress'] 
+            : [],
+        };
+      }
+
+      logger.info('Task validation check', {
+        taskId,
+        taskNumber: task.task_number,
+        status: task.status,
+        isValid: validation.isValid,
+        errorCount: validation.errors.length,
+      });
+
+      res.json({
+        success: true,
+        data: {
+          taskId,
+          taskNumber: task.task_number,
+          status: task.status,
+          verificationOutcome: task.verification_outcome,
+          verificationType: task.verification_type_name,
+          completedAt: task.completed_at,
+          isValid: validation.isValid,
+          errors: validation.errors,
+          warnings: validation.warnings,
+          validationTimestamp: new Date().toISOString(),
+        },
+        message: validation.isValid 
+          ? 'Task validation passed' 
+          : 'Task validation failed',
+      });
+    } catch (error) {
+      logger.error('Error validating task:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to validate task',
         error: { code: 'INTERNAL_ERROR' },
       });
     }
