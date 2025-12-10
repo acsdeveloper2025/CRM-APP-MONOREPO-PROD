@@ -20,10 +20,22 @@ export interface ClientStats {
 
 export interface MonthlyTrend {
   month: string;
-  year: number;
+  monthName: string;
   totalCases: number;
   completedCases: number;
-  revenue: number;
+  pendingCases: number;
+  inProgressCases: number;
+  rejectedCases: number;
+  revenue: number; // Keep this as it's in component, though backend might not populate it yet
+  completionRate: number;
+  avgTurnaroundDays: number;
+}
+
+export interface TATStats {
+  criticalOverdue: number;
+  totalOverdue: number;
+  totalActiveTasks: number;
+  overduePercentage: number;
 }
 
 export interface TopPerformer {

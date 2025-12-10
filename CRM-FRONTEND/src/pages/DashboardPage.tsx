@@ -37,12 +37,15 @@ export const DashboardPage: React.FC = () => {
     inProgressCases: 0,
     completedCases: 0,
     revokedTasks: 0,
+    rejectedCases: 0,
     activeUsers: 0,
     totalClients: 0,
     pendingReviewCases: 0,
     monthlyRevenue: 0,
     totalInvoices: 0,
-    pendingCommissions: 0
+    pendingCommissions: 0,
+    completionRate: 0,
+    avgTurnaroundDays: 0
   };
 
     const tatStats = tatStatsData?.data || {
@@ -64,12 +67,12 @@ export const DashboardPage: React.FC = () => {
   ];
 
   const mockTrends = [
-    { month: 'Jan', cases: 0, revenue: 0, completionRate: 0 },
-    { month: 'Feb', cases: 0, revenue: 0, completionRate: 0 },
-    { month: 'Mar', cases: 0, revenue: 0, completionRate: 0 },
-    { month: 'Apr', cases: 0, revenue: 0, completionRate: 0 },
-    { month: 'May', cases: 0, revenue: 0, completionRate: 0 },
-    { month: 'Jun', cases: 0, revenue: 0, completionRate: 0 }
+    { month: 'Jan', totalCases: 0, revenue: 0, completionRate: 0 },
+    { month: 'Feb', totalCases: 0, revenue: 0, completionRate: 0 },
+    { month: 'Mar', totalCases: 0, revenue: 0, completionRate: 0 },
+    { month: 'Apr', totalCases: 0, revenue: 0, completionRate: 0 },
+    { month: 'May', totalCases: 0, revenue: 0, completionRate: 0 },
+    { month: 'Jun', totalCases: 0, revenue: 0, completionRate: 0 }
   ];
 
   const mockActivities = [
@@ -203,8 +206,8 @@ export const DashboardPage: React.FC = () => {
         />
         <StatsCard
           title="Total Clients"
-          value={stats.activeClients || 0}
-          description="from last month"
+          value={stats.totalClients || 0}
+          description="from last month" // This description might need update if not actually diffing from last month
           icon={Users}
           trend={{ value: 5.2, isPositive: true }}
           color="text-green-600"
