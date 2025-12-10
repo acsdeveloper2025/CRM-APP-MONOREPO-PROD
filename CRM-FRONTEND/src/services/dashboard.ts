@@ -1,6 +1,14 @@
 import { apiService } from './api';
 import type { DashboardData, DashboardStats, RecentActivity } from '@/types/dashboard';
 import type { ApiResponse } from '@/types/api';
+import type {
+  CaseStatusDistribution,
+  ClientStats,
+  MonthlyTrend,
+  TopPerformer,
+  UpcomingDeadline,
+  Alert
+} from '@/types/dto/dashboard.dto';
 
 // Smart API URL selection
 const getApiBaseUrl = () => {
@@ -51,15 +59,15 @@ export class DashboardService {
     return apiService.get('/dashboard/stats', query);
   }
 
-  async getCaseStatusDistribution(query: DashboardQuery = {}): Promise<ApiResponse<Record<string, unknown>[]>> {
+  async getCaseStatusDistribution(query: DashboardQuery = {}): Promise<ApiResponse<CaseStatusDistribution[]>> {
     return apiService.get('/dashboard/case-status-distribution', query);
   }
 
-  async getClientStats(query: DashboardQuery = {}): Promise<ApiResponse<Record<string, unknown>[]>> {
+  async getClientStats(query: DashboardQuery = {}): Promise<ApiResponse<ClientStats[]>> {
     return apiService.get('/dashboard/client-stats', query);
   }
 
-  async getMonthlyTrends(query: DashboardQuery = {}): Promise<ApiResponse<Record<string, unknown>[]>> {
+  async getMonthlyTrends(query: DashboardQuery = {}): Promise<ApiResponse<MonthlyTrend[]>> {
     return apiService.get('/dashboard/monthly-trends', query);
   }
 
@@ -75,15 +83,15 @@ export class DashboardService {
     return apiService.get('/dashboard/turnaround-times', query);
   }
 
-  async getTopPerformers(query: DashboardQuery = {}): Promise<ApiResponse<Record<string, unknown>[]>> {
+  async getTopPerformers(query: DashboardQuery = {}): Promise<ApiResponse<TopPerformer[]>> {
     return apiService.get('/dashboard/top-performers', query);
   }
 
-  async getUpcomingDeadlines(): Promise<ApiResponse<Record<string, unknown>[]>> {
+  async getUpcomingDeadlines(): Promise<ApiResponse<UpcomingDeadline[]>> {
     return apiService.get('/dashboard/upcoming-deadlines');
   }
 
-  async getAlerts(): Promise<ApiResponse<Record<string, unknown>[]>> {
+  async getAlerts(): Promise<ApiResponse<Alert[]>> {
     return apiService.get('/dashboard/alerts');
   }
 
