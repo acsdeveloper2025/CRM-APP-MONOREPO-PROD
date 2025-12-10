@@ -45,7 +45,7 @@ export const DashboardPage: React.FC = () => {
     pendingCommissions: 0
   };
 
-    const tatStats = (tatStatsData?.data as unknown) || {
+    const tatStats = tatStatsData?.data || {
     criticalOverdue: 0,
     totalOverdue: 0,
     totalActiveTasks: 0,
@@ -216,11 +216,11 @@ export const DashboardPage: React.FC = () => {
       {/* Charts Section */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <CaseStatusChart
-                    data={(caseDistributionData?.data as unknown) || mockCaseDistribution}
+          data={caseDistributionData?.data || mockCaseDistribution}
           isLoading={distributionLoading}
         />
         <MonthlyTrendsChart
-                    data={(trendsData?.data as unknown) || mockTrends}
+          data={trendsData?.data || mockTrends}
           isLoading={trendsLoading}
         />
       </div>
