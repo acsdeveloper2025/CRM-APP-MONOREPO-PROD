@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Table,
@@ -61,8 +61,9 @@ export function RolesTable({ onEditRole }: RolesTableProps) {
       toast.success('Role deleted successfully');
       setDeleteRole(null);
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to delete role');
+    onError: (error: unknown) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      toast.error((error as any).response?.data?.message || 'Failed to delete role');
       setDeleteRole(null);
     },
   });
@@ -79,10 +80,10 @@ export function RolesTable({ onEditRole }: RolesTableProps) {
     }
   };
 
-  const getPermissionCount = (permissions: any) => {
+  const getPermissionCount = (permissions: unknown) => {
     if (!permissions) {return 0;}
     let count = 0;
-    Object.values(permissions).forEach((resource: any) => {
+    Object.values(permissions).forEach((resource: unknown) => {
       if (resource && typeof resource === 'object') {
         Object.values(resource).forEach((permission) => {
           if (permission === true) {count++;}
@@ -246,7 +247,7 @@ export function RolesTable({ onEditRole }: RolesTableProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Role</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete the role "{deleteRole?.name}"? This action cannot be undone.
+              Are you sure you want to delete the role &quot;{deleteRole?.name}&quot;? This action cannot be undone.
               {deleteRole?.userCount && deleteRole.userCount > 0 && (
                 <div className="mt-2 p-2 bg-destructive/10 border border-destructive/20 rounded text-destructive text-sm">
                   This role is assigned to {deleteRole.userCount} user(s) and cannot be deleted.

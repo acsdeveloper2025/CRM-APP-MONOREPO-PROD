@@ -43,7 +43,7 @@ export const useFieldUsers = () => {
 export const useFieldUsersByPincode = (pincodeCode?: string) => {
   return useQuery({
     queryKey: [...userKeys.fieldUsers(), 'by-pincode', pincodeCode],
-    queryFn: () => usersService.getFieldUsersByPincode(pincodeCode!),
+    queryFn: () => usersService.getFieldUsersByPincode(pincodeCode as string),
     select: (data) => data.data || [],
     enabled: !!pincodeCode,
   });

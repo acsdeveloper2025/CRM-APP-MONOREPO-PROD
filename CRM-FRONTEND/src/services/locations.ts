@@ -80,7 +80,7 @@ export class LocationsService {
     return apiService.delete(`/countries/${id}`);
   }
 
-  async getCountriesStats(): Promise<ApiResponse<any>> {
+  async getCountriesStats(): Promise<ApiResponse<unknown>> {
     return apiService.get('/countries/stats');
   }
 
@@ -168,7 +168,7 @@ export class LocationsService {
   }
 
   // Bulk operations
-  async bulkImportCities(file: File): Promise<ApiResponse<any>> {
+  async bulkImportCities(file: File): Promise<ApiResponse<unknown>> {
     const formData = new FormData();
     formData.append('file', file);
     
@@ -184,7 +184,7 @@ export class LocationsService {
     return response.json();
   }
 
-  async bulkImportPincodes(file: File): Promise<ApiResponse<any>> {
+  async bulkImportPincodes(file: File): Promise<ApiResponse<unknown>> {
     const formData = new FormData();
     formData.append('file', file);
 
@@ -201,7 +201,7 @@ export class LocationsService {
   }
 
   // Bulk operations for countries
-  async bulkImportCountries(file: File): Promise<ApiResponse<any>> {
+  async bulkImportCountries(file: File): Promise<ApiResponse<unknown>> {
     const formData = new FormData();
     formData.append('file', file);
 
@@ -218,7 +218,7 @@ export class LocationsService {
   }
 
   // Bulk operations for states
-  async bulkImportStates(file: File): Promise<ApiResponse<any>> {
+  async bulkImportStates(file: File): Promise<ApiResponse<unknown>> {
     const formData = new FormData();
     formData.append('file', file);
 

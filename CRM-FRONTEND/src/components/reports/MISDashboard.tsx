@@ -33,6 +33,7 @@ interface MISFilterValues {
   priority?: string;
   fieldAgentId?: string;
   backendUserId?: string;
+  [key: string]: string | undefined;
 }
 
 export function MISDashboard() {
@@ -84,7 +85,7 @@ export function MISDashboard() {
   const backendUsers = users.filter(u => u.role === 'BACKEND' || u.role === 'ADMIN' || u.role === 'SUPER_ADMIN');
 
   // Build query with search and filters
-  const buildFilters = (): MISFilters => {
+  const buildFilters = React.useCallback((): MISFilters => {
     return {
       search: debouncedSearchValue || undefined,
       dateFrom: activeFilters.dateFrom,
@@ -92,20 +93,18 @@ export function MISDashboard() {
       clientId: activeFilters.clientId ? parseInt(activeFilters.clientId) : undefined,
       productId: activeFilters.productId ? parseInt(activeFilters.productId) : undefined,
       verificationTypeId: activeFilters.verificationTypeId ? parseInt(activeFilters.verificationTypeId) : undefined,
-      caseStatus: activeFilters.caseStatus,
-      priority: activeFilters.priority,
+      caseStatus: activeFilters.caseStatus as MISFilters['caseStatus'],
+      priority: activeFilters.priority as MISFilters['priority'],
       fieldAgentId: activeFilters.fieldAgentId,
       backendUserId: activeFilters.backendUserId,
       page: pagination.page,
       limit: pagination.limit,
     };
-  };
-
-  useEffect(() => {
-    loadData();
   }, [debouncedSearchValue, activeFilters, pagination]);
 
-  const loadData = async () => {
+
+
+  const loadData = React.useCallback(async () => {
     setIsLoading(true);
     try {
       const response = await reportsService.getMISDashboardData(buildFilters());
@@ -116,7 +115,11 @@ export function MISDashboard() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [buildFilters]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const handlePageChange = (page: number) => {
     setPagination({ ...pagination, page });

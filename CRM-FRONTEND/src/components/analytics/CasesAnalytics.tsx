@@ -79,7 +79,7 @@ export const CasesAnalytics: React.FC = () => {
     color: STATUS_COLORS[status] || '#6b7280'
   }));
 
-  const clientDistribution = cases.reduce((acc: Record<string, number>, c: any) => {
+  const clientDistribution = cases.reduce((acc: Record<string, number>, c: unknown) => {
     const client = c.client_name || 'Unknown';
     acc[client] = (acc[client] || 0) + 1;
     return acc;
@@ -90,7 +90,7 @@ export const CasesAnalytics: React.FC = () => {
     value: count
   })).sort((a, b) => b.value - a.value).slice(0, 10);
 
-  const priorityDistribution = cases.reduce((acc: Record<string, number>, c: any) => {
+  const priorityDistribution = cases.reduce((acc: Record<string, number>, c: unknown) => {
     const priority = c.priority || 'MEDIUM';
     acc[priority] = (acc[priority] || 0) + 1;
     return acc;
@@ -228,7 +228,7 @@ export const CasesAnalytics: React.FC = () => {
               <CardTitle>Case Distribution</CardTitle>
               <CardDescription>Breakdown by different dimensions</CardDescription>
             </div>
-            <Select value={viewType} onValueChange={(v: any) => setViewType(v)}>
+            <Select value={viewType} onValueChange={(v: unknown) => setViewType(v)}>
               <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue />
               </SelectTrigger>

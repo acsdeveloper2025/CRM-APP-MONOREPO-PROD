@@ -66,7 +66,7 @@ export const userApi = {
   },
 
   // Get user statistics
-  async getUserStats(): Promise<any> {
+  async getUserStats(): Promise<unknown> {
     const response = await apiService.get('/users/stats');
     return response.data;
   },

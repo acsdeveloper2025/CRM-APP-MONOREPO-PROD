@@ -1,4 +1,3 @@
-/* eslint-disable no-return-await, @typescript-eslint/require-await */
 // Disabled no-return-await rule for PDF export service as it uses return await pattern
 // Disabled require-await rule for PDF export service as some methods are async for consistency
 import puppeteer, { type Browser, type PDFOptions } from 'puppeteer';
@@ -7,11 +6,23 @@ import { logger } from '../utils/logger';
 import path from 'path';
 import fs from 'fs/promises';
 
+import type {
+  ReportData,
+  FormSubmissionsReportData,
+  AgentPerformanceReportData,
+  CaseAnalyticsReportData,
+  ValidationStatusReportData,
+  FormSubmissionRow,
+  AgentPerformanceRow,
+  CaseAnalyticsRow,
+  ValidationStatusRow,
+} from '../types/reports';
+
 export interface PDFExportOptions {
   reportType: 'form-submissions' | 'agent-performance' | 'case-analytics' | 'validation-status';
   dateFrom?: string;
   dateTo?: string;
-  filters?: Record<string, any>;
+  filters?: Record<string, unknown>;
   template?: 'standard' | 'detailed' | 'summary';
   includeCharts?: boolean;
   orientation?: 'portrait' | 'landscape';
@@ -62,7 +73,7 @@ export class PDFExportService {
       const data = await this.fetchReportData(options);
 
       // Generate HTML content
-      const htmlContent = await this.generateHTMLContent(data, options);
+      const htmlContent = this.generateHTMLContent(data, options);
 
       // Create PDF from HTML
       const pdfBuffer = await this.createPDFFromHTML(htmlContent, options);
@@ -96,18 +107,18 @@ export class PDFExportService {
     }
   }
 
-  private async fetchReportData(options: PDFExportOptions): Promise<any> {
+  private async fetchReportData(options: PDFExportOptions): Promise<ReportData> {
     const { reportType, dateFrom, dateTo, filters } = options;
 
     switch (reportType) {
       case 'form-submissions':
-        return await this.fetchFormSubmissionsData(dateFrom, dateTo, filters);
+        return this.fetchFormSubmissionsData(dateFrom, dateTo, filters);
       case 'agent-performance':
-        return await this.fetchAgentPerformanceData(dateFrom, dateTo, filters);
+        return this.fetchAgentPerformanceData(dateFrom, dateTo, filters);
       case 'case-analytics':
-        return await this.fetchCaseAnalyticsData(dateFrom, dateTo, filters);
+        return this.fetchCaseAnalyticsData(dateFrom, dateTo, filters);
       case 'validation-status':
-        return await this.fetchValidationStatusData(dateFrom, dateTo, filters);
+        return this.fetchValidationStatusData(dateFrom, dateTo, filters);
       default:
         throw new Error(`Unsupported report type: ${String(reportType)}`);
     }
@@ -116,8 +127,8 @@ export class PDFExportService {
   private async fetchFormSubmissionsData(
     dateFrom?: string,
     dateTo?: string,
-    filters?: any
-  ): Promise<any> {
+    filters?: Record<string, unknown>
+  ): Promise<FormSubmissionsReportData> {
     const whereConditions = [];
     const queryParams = [];
     let paramIndex = 1;
@@ -136,7 +147,7 @@ export class PDFExportService {
 
     if (filters?.formType) {
       whereConditions.push(`fs.form_type = $${paramIndex}`);
-      queryParams.push(filters.formType);
+      queryParams.push(filters.formType as string);
       paramIndex++;
     }
 
@@ -183,8 +194,8 @@ export class PDFExportService {
   private async fetchAgentPerformanceData(
     dateFrom?: string,
     dateTo?: string,
-    _filters?: any
-  ): Promise<any> {
+    _filters?: Record<string, unknown>
+  ): Promise<AgentPerformanceReportData> {
     const whereConditions = [];
     const queryParams = [];
     let paramIndex = 1;
@@ -238,8 +249,8 @@ export class PDFExportService {
   private async fetchCaseAnalyticsData(
     dateFrom?: string,
     dateTo?: string,
-    _filters?: any
-  ): Promise<any> {
+    _filters?: Record<string, unknown>
+  ): Promise<CaseAnalyticsReportData> {
     const whereConditions = [];
     const queryParams = [];
     let paramIndex = 1;
@@ -292,8 +303,8 @@ export class PDFExportService {
   private async fetchValidationStatusData(
     dateFrom?: string,
     dateTo?: string,
-    _filters?: any
-  ): Promise<any> {
+    _filters?: Record<string, unknown>
+  ): Promise<ValidationStatusReportData> {
     const whereConditions = [];
     const queryParams = [];
     let paramIndex = 1;
@@ -336,7 +347,7 @@ export class PDFExportService {
     };
   }
 
-  private async generateHTMLContent(data: any, options: PDFExportOptions): Promise<string> {
+  public generateHTMLContent(data: ReportData, options: PDFExportOptions): string {
     const { template: _template = 'standard', includeCharts: _includeCharts = false } = options;
 
     const baseHTML = `
@@ -448,7 +459,7 @@ export class PDFExportService {
     `;
   }
 
-  private generateReportHeader(data: any): string {
+  private generateReportHeader(data: ReportData): string {
     return `
       <div class="header">
         <h1>${data.reportType}</h1>
@@ -460,22 +471,22 @@ export class PDFExportService {
     `;
   }
 
-  private generateReportContent(data: any, options: PDFExportOptions): string {
+  private generateReportContent(data: ReportData, options: PDFExportOptions): string {
     switch (options.reportType) {
       case 'form-submissions':
-        return this.generateFormSubmissionsContent(data);
+        return this.generateFormSubmissionsContent(data as FormSubmissionsReportData);
       case 'agent-performance':
-        return this.generateAgentPerformanceContent(data);
+        return this.generateAgentPerformanceContent(data as AgentPerformanceReportData);
       case 'case-analytics':
-        return this.generateCaseAnalyticsContent(data);
+        return this.generateCaseAnalyticsContent(data as CaseAnalyticsReportData);
       case 'validation-status':
-        return this.generateValidationStatusContent(data);
+        return this.generateValidationStatusContent(data as ValidationStatusReportData);
       default:
         return '<p>Unsupported report type</p>';
     }
   }
 
-  private generateFormSubmissionsContent(data: any): string {
+  private generateFormSubmissionsContent(data: FormSubmissionsReportData): string {
     const summary = data.summary;
     const submissions = data.submissions;
 
@@ -495,7 +506,7 @@ export class PDFExportService {
         </div>
         <div class="card">
           <h3>Avg Quality Score</h3>
-          <div class="value">${summary.avg_submission_score ? parseFloat(summary.avg_submission_score).toFixed(1) : 'N/A'}</div>
+          <div class="value">${summary.avg_submission_score ? parseFloat(String(summary.avg_submission_score)).toFixed(1) : 'N/A'}</div>
         </div>
       </div>
 
@@ -514,7 +525,7 @@ export class PDFExportService {
         <tbody>
           ${submissions
             .map(
-              (sub: any) => `
+              (sub: FormSubmissionRow) => `
             <tr>
               <td>${sub.form_type}</td>
               <td>${sub.agent_name || 'N/A'}</td>
@@ -532,7 +543,7 @@ export class PDFExportService {
     `;
   }
 
-  private generateAgentPerformanceContent(data: any): string {
+  private generateAgentPerformanceContent(data: AgentPerformanceReportData): string {
     const agents = data.agents;
 
     return `
@@ -552,7 +563,7 @@ export class PDFExportService {
         <tbody>
           ${agents
             .map(
-              (agent: any) => `
+              (agent: AgentPerformanceRow) => `
             <tr>
               <td>${agent.name}</td>
               <td>${agent.employeeId || 'N/A'}</td>
@@ -560,8 +571,8 @@ export class PDFExportService {
               <td>${agent.total_cases_assigned}</td>
               <td>${agent.cases_completed}</td>
               <td>${agent.total_forms_submitted}</td>
-              <td>${agent.avg_quality_score ? parseFloat(agent.avg_quality_score).toFixed(1) : 'N/A'}</td>
-              <td>${agent.avg_validation_success_rate ? `${parseFloat(agent.avg_validation_success_rate).toFixed(1)}%` : 'N/A'}</td>
+              <td>${agent.avg_quality_score ? parseFloat(String(agent.avg_quality_score)).toFixed(1) : 'N/A'}</td>
+              <td>${agent.avg_validation_success_rate ? `${parseFloat(String(agent.avg_validation_success_rate)).toFixed(1)}%` : 'N/A'}</td>
             </tr>
           `
             )
@@ -571,7 +582,7 @@ export class PDFExportService {
     `;
   }
 
-  private generateCaseAnalyticsContent(data: any): string {
+  private generateCaseAnalyticsContent(data: CaseAnalyticsReportData): string {
     const summary = data.summary;
     const cases = data.cases;
 
@@ -587,11 +598,11 @@ export class PDFExportService {
         </div>
         <div class="card">
           <h3>Avg Completion Days</h3>
-          <div class="value">${summary.avg_completion_days ? parseFloat(summary.avg_completion_days).toFixed(1) : 'N/A'}</div>
+          <div class="value">${summary.avg_completion_days ? parseFloat(String(summary.avg_completion_days)).toFixed(1) : 'N/A'}</div>
         </div>
         <div class="card">
           <h3>Avg Quality Score</h3>
-          <div class="value">${summary.avg_quality_score ? parseFloat(summary.avg_quality_score).toFixed(1) : 'N/A'}</div>
+          <div class="value">${summary.avg_quality_score ? parseFloat(String(summary.avg_quality_score)).toFixed(1) : 'N/A'}</div>
         </div>
       </div>
 
@@ -611,13 +622,13 @@ export class PDFExportService {
           ${cases
             .slice(0, 50)
             .map(
-              (caseItem: any) => `
+              (caseItem: CaseAnalyticsRow) => `
             <tr>
               <td>#${caseItem.caseId}</td>
               <td>${caseItem.customerName}</td>
               <td>${caseItem.agent_name || 'Unassigned'}</td>
               <td>${caseItem.status}</td>
-              <td>${caseItem.completion_days ? parseFloat(caseItem.completion_days).toFixed(1) : 'N/A'}</td>
+              <td>${caseItem.completion_days ? parseFloat(String(caseItem.completion_days)).toFixed(1) : 'N/A'}</td>
               <td>${caseItem.quality_score || 'N/A'}</td>
               <td>${caseItem.actual_forms_submitted || 0}</td>
             </tr>
@@ -629,7 +640,7 @@ export class PDFExportService {
     `;
   }
 
-  private generateValidationStatusContent(data: any): string {
+  private generateValidationStatusContent(data: ValidationStatusReportData): string {
     const validationData = data.validationData;
 
     return `
@@ -646,13 +657,13 @@ export class PDFExportService {
         <tbody>
           ${validationData
             .map(
-              (item: any) => `
+              (item: ValidationStatusRow) => `
             <tr>
               <td>${item.form_type}</td>
               <td><span class="status-badge status-${item.validation_status.toLowerCase()}">${item.validation_status}</span></td>
               <td>${item.form_count}</td>
-              <td>${item.avg_submission_score ? parseFloat(item.avg_submission_score).toFixed(1) : 'N/A'}</td>
-              <td>${item.avg_quality_score ? parseFloat(item.avg_quality_score).toFixed(1) : 'N/A'}</td>
+              <td>${item.avg_submission_score ? parseFloat(String(item.avg_submission_score)).toFixed(1) : 'N/A'}</td>
+              <td>${item.avg_quality_score ? parseFloat(String(item.avg_quality_score)).toFixed(1) : 'N/A'}</td>
             </tr>
           `
             )
@@ -662,7 +673,7 @@ export class PDFExportService {
     `;
   }
 
-  private generateReportFooter(_data: any): string {
+  private generateReportFooter(_data: ReportData): string {
     return `
       <div class="footer">
         <p>This report was automatically generated by the CRM Analytics System</p>

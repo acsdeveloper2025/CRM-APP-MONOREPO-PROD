@@ -1,5 +1,11 @@
 import { Request, Response, NextFunction } from 'express';
 import { query } from '@/config/database';
+import { logger } from '@/utils/logger';
+
+interface RequestWithResolvedIds extends Request {
+  resolvedCaseId?: string;
+  verificationTaskId?: string;
+}
 
 /**
  * Middleware to resolve taskId to caseId
@@ -36,21 +42,21 @@ export async function resolveTaskIdToCaseId(
 
       if (result.rows.length > 0) {
         // Store both the case ID and task ID for controllers to use
-        (req as any).resolvedCaseId = result.rows[0].case_id;
-        (req as any).verificationTaskId = result.rows[0].task_id;
+        (req as RequestWithResolvedIds).resolvedCaseId = result.rows[0].case_id;
+        (req as RequestWithResolvedIds).verificationTaskId = result.rows[0].task_id;
 
         // IMPORTANT: Override req.params.caseId so existing controllers work without changes
         req.params.caseId = result.rows[0].case_id;
 
-        console.log(`✅ Resolved taskId ${taskId} to caseId ${result.rows[0].case_id}`);
+        logger.info(`✅ Resolved taskId ${taskId} to caseId ${result.rows[0].case_id}`);
       } else {
         // Not a verification task ID, might be a case ID
-        (req as any).resolvedCaseId = taskId;
+        (req as RequestWithResolvedIds).resolvedCaseId = taskId;
         req.params.caseId = taskId;
       }
     } else {
       // Not a UUID, treat as case ID
-      (req as any).resolvedCaseId = taskId;
+      (req as RequestWithResolvedIds).resolvedCaseId = taskId;
       if (!req.params.caseId) {
         req.params.caseId = taskId;
       }
@@ -68,12 +74,12 @@ export async function resolveTaskIdToCaseId(
  * Checks resolvedCaseId first, then falls back to params
  */
 export function getCaseIdFromRequest(req: Request): string {
-  return (req as any).resolvedCaseId || req.params.caseId || req.params.taskId;
+  return (req as RequestWithResolvedIds).resolvedCaseId || req.params.caseId || req.params.taskId;
 }
 
 /**
  * Helper function to get verification task ID from request
  */
 export function getTaskIdFromRequest(req: Request): string | undefined {
-  return (req as any).verificationTaskId || req.params.taskId;
+  return (req as RequestWithResolvedIds).verificationTaskId || req.params.taskId;
 }

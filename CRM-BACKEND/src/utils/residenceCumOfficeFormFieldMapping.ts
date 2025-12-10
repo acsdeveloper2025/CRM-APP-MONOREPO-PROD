@@ -192,10 +192,10 @@ export const RESIDENCE_CUM_OFFICE_FIELD_MAPPING: DatabaseFieldMapping = {
  * @returns Object with database column names as keys
  */
 export function mapResidenceCumOfficeFormDataToDatabase(
-  formData: any,
+  formData: Record<string, unknown>,
   formType?: string
-): Record<string, any> {
-  const mappedData: Record<string, any> = {};
+): Record<string, unknown> {
+  const mappedData: Record<string, unknown> = {};
 
   // Process each field in the form data
   for (const [mobileField, value] of Object.entries(formData)) {
@@ -216,8 +216,7 @@ export function mapResidenceCumOfficeFormDataToDatabase(
     } else {
       // Log unmapped fields for debugging but don't include them in database insertion
       console.warn(
-        // eslint-disable-next-line @typescript-eslint/no-base-to-string
-        `⚠️ Unmapped residence-cum-office field: ${mobileField} (value: ${String(value)}) - skipping to prevent database errors`
+        `⚠️ Unmapped residence-cum-office field: ${mobileField} (value: ${typeof value === 'object' && value !== null ? JSON.stringify(value) : String(value as string | number | boolean | null | undefined)}) - skipping to prevent database errors`
       );
     }
   }
@@ -238,7 +237,7 @@ export function mapResidenceCumOfficeFormDataToDatabase(
  * @param value - The field value
  * @returns Processed value suitable for database storage
  */
-function processResidenceCumOfficeFieldValue(fieldName: string, value: any): any {
+function processResidenceCumOfficeFieldValue(fieldName: string, value: unknown): unknown {
   // Handle null/undefined values
   if (value === null || value === undefined || value === '') {
     return null;
@@ -252,7 +251,7 @@ function processResidenceCumOfficeFieldValue(fieldName: string, value: any): any
   // Handle enum values - convert to string
   if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
     // If it's an enum object, return its string representation
-    return String(value);
+    return JSON.stringify(value);
   }
 
   // Handle numeric fields
@@ -281,7 +280,12 @@ function processResidenceCumOfficeFieldValue(fieldName: string, value: any): any
   }
 
   // Default: convert to string and trim
-  return String(value).trim() || null;
+  return (
+    (typeof value === 'object' && value !== null
+      ? JSON.stringify(value)
+      : String(value as string | number | boolean | null | undefined)
+    ).trim() || null
+  );
 }
 
 /**
@@ -293,9 +297,9 @@ function processResidenceCumOfficeFieldValue(fieldName: string, value: any): any
  * @returns Complete data object with all fields populated
  */
 export function ensureAllResidenceCumOfficeFieldsPopulated(
-  mappedData: Record<string, any>,
+  mappedData: Record<string, unknown>,
   formType: string
-): Record<string, any> {
+): Record<string, unknown> {
   const completeData = { ...mappedData };
 
   // Define all possible database fields for residence-cum-office verification
@@ -560,7 +564,7 @@ function getRelevantResidenceCumOfficeFieldsForFormType(formType: string): strin
  * @param _fieldName - Database field name
  * @returns Default value for the field
  */
-function getDefaultResidenceCumOfficeValueForField(_fieldName: string): any {
+function getDefaultResidenceCumOfficeValueForField(_fieldName: string): unknown {
   // All fields default to null for missing/irrelevant data
   return null;
 }
@@ -601,7 +605,7 @@ export function getResidenceCumOfficeMappedMobileFields(): string[] {
  * @returns Object with validation result and missing fields
  */
 export function validateResidenceCumOfficeRequiredFields(
-  formData: any,
+  formData: Record<string, unknown>,
   formType: string
 ): {
   isValid: boolean;

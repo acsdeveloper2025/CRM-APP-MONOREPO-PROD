@@ -15,7 +15,7 @@ export const dashboardKeys = {
   topPerformers: (query: DashboardQuery) => [...dashboardKeys.all, 'top-performers', query] as const,
   upcomingDeadlines: () => [...dashboardKeys.all, 'upcoming-deadlines'] as const,
   alerts: () => [...dashboardKeys.all, 'alerts'] as const,
-  overdueTasks: (params: any) => [...dashboardKeys.all, 'overdue-tasks', params] as const,
+  overdueTasks: (params: unknown) => [...dashboardKeys.all, 'overdue-tasks', params] as const,
   tatStats: () => [...dashboardKeys.all, 'tat-stats'] as const,
 };
 

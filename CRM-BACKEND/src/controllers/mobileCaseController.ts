@@ -5,11 +5,15 @@ import type {
   MobileAutoSaveRequest,
   MobileAutoSaveResponse,
 } from '../types/mobile';
+import { AuthenticatedRequest } from '../middleware/auth';
+import { Role } from '../types/auth';
+import { QueryParams, VerificationAttachmentRow, WhereClause, CaseRow } from '../types/database';
 import { createAuditLog } from '../utils/auditLogger';
 import { config } from '../config';
 import { query } from '@/config/database';
 import { queueCaseRevocationNotification } from '../queues/notificationQueue';
 import { TaskLookupService } from '../services/taskLookupService';
+import { logger } from '../utils/logger';
 
 /**
  * Get the appropriate API base URL based on request headers
@@ -38,10 +42,10 @@ function getApiBaseUrl(req: Request): string {
 
 export class MobileCaseController {
   // Get cases for mobile app with optimized response
-  static async getMobileCases(req: Request, res: Response) {
+  static async getMobileCases(this: void, req: AuthenticatedRequest, res: Response) {
     try {
-      const userId = (req as any).user?.id;
-      const userRole = (req as any).user?.role;
+      const userId = req.user?.id;
+      const userRole = req.user?.role;
 
       const {
         page = 1,
@@ -53,18 +57,18 @@ export class MobileCaseController {
         dateFrom,
         dateTo,
         lastSyncTimestamp,
-      }: MobileCaseListRequest = req.query as any;
+      }: MobileCaseListRequest = req.query as MobileCaseListRequest;
 
       const skip = (Number(page) - 1) * Number(limit);
       const take = Math.min(Number(limit), config.mobile.syncBatchSize);
 
       // Build where clause
-      const where: any = {};
+      const where: WhereClause = {};
 
       // Role-based filtering
       // For FIELD_AGENT: Filter by task-level assignment (verification_tasks.assigned_to)
       // For other roles: Filter by task-level assignment if specified
-      if (userRole === 'FIELD_AGENT') {
+      if (userRole === Role.FIELD_AGENT) {
         where.hasAssignedTask = userId; // Task-level assignment
       } else if (assignedTo) {
         where.hasAssignedTask = assignedTo; // Task-level assignment
@@ -105,7 +109,7 @@ export class MobileCaseController {
       }
 
       // Build dynamic SQL for where
-      const vals: any[] = [];
+      const vals: QueryParams = [];
       const wh: string[] = [];
 
       // Filter by task-level assignment (for both FIELD_AGENT and other roles)
@@ -146,7 +150,7 @@ export class MobileCaseController {
       }
       const whereSql = wh.length ? `WHERE ${wh.join(' AND ')}` : '';
 
-      console.log('🔍 Mobile API Debug:', {
+      logger.info('🔍 Mobile API Debug:', {
         userId,
         userRole,
         where,
@@ -155,7 +159,7 @@ export class MobileCaseController {
       });
 
       // For FIELD_AGENT: Add userId to vals for LATERAL JOIN to filter their assigned task
-      const userIdForTaskFilter = userRole === 'FIELD_AGENT' ? userId : null;
+      const userIdForTaskFilter = userRole === Role.FIELD_AGENT ? userId : null;
       const taskFilterParamIndex = vals.length + 1;
 
       const listSql = `
@@ -239,7 +243,7 @@ export class MobileCaseController {
         ${whereSql}
         ORDER BY c.priority DESC, c."createdAt" DESC
         LIMIT $${vals.length + 2} OFFSET $${vals.length + 3}`;
-      console.log('📊 Mobile Cases Query:', { whereSql, vals, userIdForTaskFilter, take, skip });
+      logger.info('📊 Mobile Cases Query:', { whereSql, vals, userIdForTaskFilter, take, skip });
       const casesRes = await query(listSql, [...vals, userIdForTaskFilter, take, skip]);
 
       // Count query - use same filtering logic as main query
@@ -250,7 +254,7 @@ export class MobileCaseController {
       const totalCount = Number(countRes.rows[0]?.count || 0);
       const cases = casesRes.rows;
 
-      console.log('📋 Mobile Cases Results:', {
+      logger.info('📋 Mobile Cases Results:', {
         totalCount,
         casesFound: cases.length,
         userRole,
@@ -261,7 +265,7 @@ export class MobileCaseController {
 
       // Debug: Log first case data to see what fields are actually returned
       if (cases.length > 0) {
-        console.log('🔍 First Case Raw Data:', {
+        logger.info('🔍 First Case Raw Data:', {
           caseId: cases[0].caseId,
           customerName: cases[0].customerName,
           address: cases[0].address,
@@ -385,24 +389,23 @@ export class MobileCaseController {
   }
 
   // Get single case for mobile
-  static async getMobileCase(req: Request, res: Response) {
+  static async getMobileCase(this: void, req: AuthenticatedRequest, res: Response) {
     try {
       const { taskId } = req.params;
-      const userId = (req as any).user?.userId;
-      const userRole = (req as any).user?.role;
+      const userId = req.user?.id;
+      const userRole = req.user?.role;
 
       // Resolve taskId to caseId
       const caseId = await TaskLookupService.resolveCaseId(taskId);
-      const specificTaskId = taskId;
-
-      const _where: any = { id: caseId };
+      const specificTaskId = taskId; // Check local DB first
+      const _where: WhereClause = { id: caseId };
 
       // Role-based access control
       // For FIELD_AGENT: Check if they have an assigned task for this case
       // For other roles: No additional filtering
 
-      const vals2: any[] = [caseId];
-      const _userIdForTaskFilter = userRole === 'FIELD_AGENT' ? userId : null;
+      const vals2: QueryParams = [caseId];
+      const _userIdForTaskFilter = userRole === Role.FIELD_AGENT ? userId : null;
 
       let caseSql = `
         SELECT c.*,
@@ -453,7 +456,7 @@ export class MobileCaseController {
         WHERE c.id = $1`;
 
       // For FIELD_AGENT: Add task-level access control
-      if (userRole === 'FIELD_AGENT') {
+      if (userRole === Role.FIELD_AGENT) {
         caseSql += ` AND EXISTS (
           SELECT 1 FROM verification_tasks vt
           WHERE vt.case_id = c.id
@@ -569,24 +572,21 @@ export class MobileCaseController {
               code: caseItem.verificationTypeCode || '',
             }
           : undefined,
-        attachments: attRes2.rows.map((att: any) => {
+        attachments: attRes2.rows.map((att: VerificationAttachmentRow) => {
           const apiBaseUrl = getApiBaseUrl(req);
           return {
             id: att.id,
             filename: att.filename,
             originalName: att.originalName,
             mimeType: att.mimeType,
-            size: att.size,
-            url: `${apiBaseUrl}/attachments/${att.id}/serve`,
-            downloadUrl: `${apiBaseUrl}/attachments/${att.id}/download`,
-            uploadedAt: new Date(att.uploadedAt).toISOString(),
-            uploadedBy: att.uploadedBy,
-            type: att.mimeType.startsWith('image/') ? 'image' : 'document',
-            isImage: att.mimeType.startsWith('image/'),
-            caseId: att.caseId,
+            size: att.fileSize,
+            url: `${apiBaseUrl}/api/mobile/attachments/${att.id}`,
+            uploadedAt: att.createdAt
+              ? new Date(att.createdAt).toISOString()
+              : new Date().toISOString(),
           };
         }),
-        formData: caseItem.verificationData || null,
+        formData: (caseItem.verificationData as Record<string, unknown>) || null,
         syncStatus: 'SYNCED',
       };
 
@@ -609,17 +609,17 @@ export class MobileCaseController {
   }
 
   // Update case status from mobile
-  static async updateCaseStatus(req: Request, res: Response) {
+  static async updateCaseStatus(this: void, req: AuthenticatedRequest, res: Response) {
     try {
       const { taskId } = req.params; // Changed from caseId to taskId
       const { status, notes = null } = req.body;
-      const userId = (req as any).user?.id;
-      const userRole = (req as any).user?.role;
+      const userId = req.user?.id;
+      const userRole = req.user?.role;
 
       // Resolve taskId to caseId
       const caseId = await TaskLookupService.resolveCaseId(taskId);
 
-      console.log(`📱 Mobile case status update request:`, {
+      logger.info(`📱 Mobile case status update request:`, {
         taskId,
         caseId,
         status,
@@ -628,10 +628,10 @@ export class MobileCaseController {
         userRole,
       });
 
-      const vals3: any[] = [caseId];
+      const vals3: QueryParams = [caseId];
       let exSql = `SELECT id, "caseId", status, trigger, "completedAt" FROM cases WHERE id = $1`;
 
-      if (userRole === 'FIELD_AGENT') {
+      if (userRole === Role.FIELD_AGENT) {
         exSql += ` AND EXISTS (
           SELECT 1 FROM verification_tasks vt
           WHERE vt.case_id = cases.id
@@ -640,12 +640,12 @@ export class MobileCaseController {
         vals3.push(userId);
       }
 
-      console.log(`🔍 Executing query: ${exSql} with values:`, vals3);
+      logger.info(`🔍 Executing query: ${exSql} with values:`, vals3);
       const exRes = await query(exSql, vals3);
       const existingCase = exRes.rows[0];
 
       if (!existingCase) {
-        console.log(`❌ Case not found for task: ${taskId}`);
+        logger.info(`❌ Case not found for task: ${taskId}`);
         return res.status(404).json({
           success: false,
           message: 'Case not found or access denied',
@@ -657,7 +657,7 @@ export class MobileCaseController {
         });
       }
 
-      console.log(`✅ Case found:`, existingCase);
+      logger.info(`✅ Case found:`, existingCase);
       const compAt = status === 'COMPLETED' ? new Date() : existingCase.completedat;
       const actualCaseId = existingCase.id; // Use the actual UUID from the database
 
@@ -671,7 +671,7 @@ export class MobileCaseController {
       );
       const updatedCase = updRes.rows[0];
 
-      console.log(`✅ Case status updated successfully:`, updatedCase);
+      logger.info(`✅ Case status updated successfully:`, updatedCase);
 
       await createAuditLog({
         action: 'CASE_STATUS_UPDATED',
@@ -707,7 +707,7 @@ export class MobileCaseController {
         const { emitCaseStatusChanged, emitCaseUpdate, getSocketIO } = await import(
           '../websocket/server'
         );
-        const username = (req as any).user?.username || 'Mobile User';
+        const username = req.user?.username || 'Mobile User';
 
         // Emit case status change notification
         emitCaseStatusChanged(actualCaseId, existingCase.status, status, username);
@@ -721,7 +721,7 @@ export class MobileCaseController {
           caseNumber: existingCase.caseId,
         });
 
-        console.log(
+        logger.info(
           `🔔 WebSocket notifications sent for case ${actualCaseId} status change: ${existingCase.status} -> ${status}`
         );
       } catch (error) {
@@ -754,7 +754,7 @@ export class MobileCaseController {
   }
 
   // Update case priority from mobile
-  static async updateCasePriority(req: Request, res: Response) {
+  static async updateCasePriority(this: void, req: AuthenticatedRequest, res: Response) {
     try {
       const { taskId } = req.params; // Changed from caseId to taskId
       const { priority } = req.body;
@@ -762,10 +762,10 @@ export class MobileCaseController {
       // Resolve taskId to caseId
       const caseId = await TaskLookupService.resolveCaseId(taskId);
 
-      const userId = (req as any).user?.userId;
-      const userRole = (req as any).user?.role;
+      const userId = req.user?.id;
+      const userRole = req.user?.role;
 
-      if (userRole === 'FIELD_AGENT') {
+      if (userRole === Role.FIELD_AGENT) {
         return res.status(403).json({
           success: false,
           message: 'Insufficient permissions to update priority',
@@ -776,16 +776,9 @@ export class MobileCaseController {
         });
       }
 
-      const vals6: any[] = [caseId];
-      let exSql4 = `SELECT id FROM cases WHERE id = $1`;
-      if (userRole === 'FIELD_AGENT') {
-        exSql4 += ` AND EXISTS (
-          SELECT 1 FROM verification_tasks vt
-          WHERE vt.case_id = cases.id
-          AND vt.assigned_to = $2
-        )`;
-        vals6.push(userId);
-      }
+      const vals6: QueryParams = [caseId];
+      const exSql4 = `SELECT id FROM cases WHERE id = $1`;
+
       const exRes4 = await query(exSql4, vals6);
       const existingCase = exRes4.rows[0];
       if (!existingCase) {
@@ -845,24 +838,24 @@ export class MobileCaseController {
   }
 
   // Auto-save form data
-  static async autoSaveForm(req: Request, res: Response) {
+  static async autoSaveForm(this: void, req: AuthenticatedRequest, res: Response) {
     try {
       const { taskId } = req.params; // Changed from caseId to taskId
       const { formType, formData, timestamp }: MobileAutoSaveRequest = req.body;
-      const userId = (req as any).user?.userId;
-      const userRole = (req as any).user?.role;
+      const userId = req.user?.id;
+      const userRole = req.user?.role;
 
       // Resolve taskId to caseId
       const caseId = await TaskLookupService.resolveCaseId(taskId);
 
-      console.log(
+      logger.info(
         `📱 Auto-save request for task ${taskId} (case ${caseId}), formType: ${formType}`
       );
 
-      const vals5: any[] = [caseId];
+      const vals5: QueryParams = [caseId];
       let exSql3 = `SELECT id FROM cases WHERE id = $1`;
 
-      if (userRole === 'FIELD_AGENT') {
+      if (userRole === Role.FIELD_AGENT) {
         exSql3 += ` AND EXISTS (
           SELECT 1 FROM verification_tasks vt
           WHERE vt.case_id = cases.id
@@ -874,7 +867,7 @@ export class MobileCaseController {
       const exRes3 = await query(exSql3, vals5);
       const existingCase = exRes3.rows[0];
       if (!existingCase) {
-        console.log(`❌ Auto-save: Case not found for task ${taskId}`);
+        logger.info(`❌ Auto-save: Case not found for task ${taskId}`);
         return res.status(404).json({
           success: false,
           message: 'Case not found or access denied',
@@ -893,7 +886,7 @@ export class MobileCaseController {
         `SELECT id FROM "autoSaves" WHERE "caseId" = $1 AND "formType" = $2`,
         [actualCaseId, formType]
       );
-      let autoSaveData: any;
+      let autoSaveData: { timestamp?: Date; formData?: unknown } | null = null;
       if (exAuto.rowCount && exAuto.rowCount > 0) {
         const upd = await query(
           `UPDATE "autoSaves" SET "formData" = $1, timestamp = $2 WHERE id = $3 RETURNING *`,
@@ -932,23 +925,23 @@ export class MobileCaseController {
   }
 
   // Get auto-saved form data
-  static async getAutoSavedForm(req: Request, res: Response) {
+  static async getAutoSavedForm(this: void, req: AuthenticatedRequest, res: Response) {
     try {
       const { taskId, formType } = req.params; // Changed from caseId to taskId
-      const userId = (req as any).user?.userId;
-      const userRole = (req as any).user?.role;
+      const userId = req.user?.id;
+      const userRole = req.user?.role;
 
       // Resolve taskId to caseId
       const caseId = await TaskLookupService.resolveCaseId(taskId);
 
-      console.log(
+      logger.info(
         `📱 Get auto-saved form for task ${taskId} (case ${caseId}), formType: ${formType}`
       );
 
-      const vals7: any[] = [caseId];
+      const vals7: QueryParams = [caseId];
       let exSql5 = `SELECT id FROM cases WHERE id = $1`;
 
-      if (userRole === 'FIELD_AGENT') {
+      if (userRole === Role.FIELD_AGENT) {
         exSql5 += ` AND EXISTS (
           SELECT 1 FROM verification_tasks vt
           WHERE vt.case_id = cases.id
@@ -961,7 +954,7 @@ export class MobileCaseController {
       const existingCase = exRes5.rows[0];
 
       if (!existingCase) {
-        console.log(`❌ Get auto-saved: Case not found for task ${taskId}`);
+        logger.info(`❌ Get auto-saved: Case not found for task ${taskId}`);
         return res.status(404).json({
           success: false,
           message: 'Case not found or access denied',
@@ -1009,15 +1002,124 @@ export class MobileCaseController {
     }
   }
 
+  // Add case note from mobile app
+  static async addCaseNote(this: void, req: AuthenticatedRequest, res: Response) {
+    try {
+      const { caseId } = req.params;
+      const { note } = req.body;
+      const userId = req.user?.id;
+      const userRole = req.user?.role;
+
+      logger.info(`📱 Mobile case note request:`, {
+        caseId,
+        note,
+        userId,
+        userRole,
+      });
+
+      if (!note || note.trim() === '') {
+        return res.status(400).json({
+          success: false,
+          message: 'Note content is required',
+          error: {
+            code: 'NOTE_CONTENT_REQUIRED',
+            timestamp: new Date().toISOString(),
+          },
+        });
+      }
+
+      // Validate case exists and user has access
+      const val = userRole === Role.FIELD_AGENT && req.user?.id ? [caseId, req.user.id] : [caseId];
+      const caseQuery = await query<CaseRow>(
+        `
+        SELECT
+          c.*,
+          vt.assigned_to,
+          u.name as assigned_user_name,
+          vt.id as "verificationTaskId",
+          vt.task_number as "verificationTaskNumber"
+        FROM cases c
+        LEFT JOIN verification_tasks vt ON c.id = vt.case_id
+        LEFT JOIN users u ON vt.assigned_to = u.id
+        WHERE c.id = $1
+        ${userRole === Role.FIELD_AGENT ? 'AND vt.assigned_to = $2' : ''}
+      `,
+        val
+      );
+
+      if (caseQuery.rows.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: 'Case not found or access denied',
+          error: {
+            code: 'CASE_NOT_FOUND',
+            timestamp: new Date().toISOString(),
+          },
+        });
+      }
+
+      const caseData = caseQuery.rows[0];
+
+      // Insert the new case note
+      const insertNoteResult = await query(
+        `
+        INSERT INTO case_notes (id, case_id, user_id, note_content, created_at, updated_at)
+        VALUES (gen_random_uuid(), $1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        RETURNING id, note_content, created_at
+      `,
+        [caseId, userId, note]
+      );
+
+      const newNote = insertNoteResult.rows[0];
+
+      // Create audit log
+      await createAuditLog({
+        userId,
+        action: 'CASE_NOTE_ADDED',
+        entityType: 'CASE',
+        entityId: caseId,
+        details: {
+          caseId: caseData.caseId,
+          customerName: caseData.customerName,
+          noteId: newNote.id,
+          noteContent: newNote.note_content,
+        },
+      });
+
+      logger.info(`✅ Case note added successfully for case ${caseData.caseId} by ${userId}`);
+
+      res.status(201).json({
+        success: true,
+        message: 'Case note added successfully',
+        data: {
+          id: newNote.id,
+          caseId: caseData.id,
+          noteContent: newNote.note_content,
+          createdAt: newNote.created_at.toISOString(),
+        },
+      });
+    } catch (error) {
+      console.error('Add case note error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+        error: {
+          code: 'ADD_CASE_NOTE_FAILED',
+          timestamp: new Date().toISOString(),
+        },
+      });
+    }
+  }
+
   // Revoke case from mobile app
-  static async revokeCase(req: Request, res: Response) {
+  static async revokeCase(this: void, req: AuthenticatedRequest, res: Response) {
     try {
       const { caseId } = req.params;
       const { reason } = req.body;
-      const userId = (req as any).user?.id;
-      const userRole = (req as any).user?.role;
+      const userId = req.user?.id;
+      const userRole = req.user?.role;
 
-      console.log(`📱 Mobile case revocation request:`, {
+      logger.info(`📱 Mobile case revocation request:`, {
         caseId,
         reason,
         userId,
@@ -1036,16 +1138,23 @@ export class MobileCaseController {
       }
 
       // Validate case exists and user has access
-      const caseQuery = await query(
+      // Validate case exists and user has access
+      const val = userRole === Role.FIELD_AGENT && req.user?.id ? [caseId, req.user.id] : [caseId];
+      const caseQuery = await query<CaseRow>(
         `
-        SELECT c.id, c."caseId", c."customerName", c.status, c."createdByBackendUser",
-               vt.assigned_to
+        SELECT
+          c.*,
+          vt.assigned_to,
+          u.name as assigned_user_name,
+          vt.id as "verificationTaskId",
+          vt.task_number as "verificationTaskNumber"
         FROM cases c
-        LEFT JOIN verification_tasks vt ON vt.case_id = c.id
+        LEFT JOIN verification_tasks vt ON c.id = vt.case_id
+        LEFT JOIN users u ON vt.assigned_to = u.id
         WHERE c.id = $1
-        ${userRole === 'FIELD_AGENT' ? 'AND vt.assigned_to = $2' : ''}
+        ${userRole === Role.FIELD_AGENT ? 'AND vt.assigned_to = $2' : ''}
       `,
-        userRole === 'FIELD_AGENT' ? [caseId, userId] : [caseId]
+        val
       );
 
       if (caseQuery.rows.length === 0) {
@@ -1106,7 +1215,7 @@ export class MobileCaseController {
       if (backendUserIds.length > 0) {
         await queueCaseRevocationNotification({
           caseId: caseData.id,
-          caseNumber: caseData.caseId,
+          caseNumber: String(caseData.caseId),
           customerName: caseData.customerName || 'Unknown Customer',
           fieldUserId: userId,
           fieldUserName,
@@ -1130,7 +1239,7 @@ export class MobileCaseController {
         },
       });
 
-      console.log(`✅ Case ${caseData.caseId} revoked successfully by ${fieldUserName}`);
+      logger.info(`✅ Case ${caseData.caseId} revoked successfully by ${fieldUserName}`);
 
       res.json({
         success: true,
@@ -1160,13 +1269,13 @@ export class MobileCaseController {
    * Get verification task status (for mobile app)
    * GET /api/mobile/verification-tasks/:taskId/status
    */
-  static async getTaskStatus(req: Request, res: Response) {
+  static async getTaskStatus(this: void, req: AuthenticatedRequest, res: Response) {
     try {
       const { taskId } = req.params;
-      const userId = (req as any).user?.id;
-      const userRole = (req as any).user?.role;
+      const userId = req.user?.id;
+      const userRole = req.user?.role;
 
-      console.log(`📊 Getting task status for task: ${taskId}, user: ${userId}`);
+      logger.info(`📊 Getting task status for task: ${taskId}, user: ${userId}`);
 
       // Query task status
       const result = await query(
@@ -1198,7 +1307,7 @@ export class MobileCaseController {
       const task = result.rows[0];
 
       // For field agents, verify they are assigned to this task
-      if (userRole === 'FIELD_AGENT' && task.assigned_to !== userId) {
+      if (userRole === Role.FIELD_AGENT && task.assigned_to !== userId) {
         return res.status(403).json({
           success: false,
           message: 'Access denied. You are not assigned to this task.',
@@ -1206,7 +1315,7 @@ export class MobileCaseController {
         });
       }
 
-      console.log(`✅ Task status retrieved: ${task.status}`);
+      logger.info(`✅ Task status retrieved: ${task.status}`);
 
       return res.status(200).json({
         success: true,
@@ -1240,11 +1349,11 @@ export class MobileCaseController {
    * Update verification task status (for mobile app)
    * PUT /api/mobile/verification-tasks/:taskId/status
    */
-  static async updateTaskStatus(req: Request, res: Response) {
+  static async updateTaskStatus(this: void, req: AuthenticatedRequest, res: Response) {
     try {
       const { taskId } = req.params;
       const { status } = req.body;
-      const userId = (req as any).user?.id;
+      const userId = req.user?.id;
 
       if (!status) {
         return res.status(400).json({
@@ -1276,7 +1385,7 @@ export class MobileCaseController {
       const validation = await TaskCompletionValidator.validateStatusUpdate(taskId, status);
 
       if (!validation.isValid) {
-        console.log(`❌ Task status update validation failed:`, validation.errors);
+        logger.info(`❌ Task status update validation failed:`, validation.errors);
         return res.status(400).json({
           success: false,
           message: 'Status update not allowed',
@@ -1288,7 +1397,7 @@ export class MobileCaseController {
 
       // Update task status
       const updateFields: string[] = ['status = $1', 'updated_at = NOW()'];
-      const queryParams: any[] = [status];
+      const queryParams: QueryParams = [status];
       const paramIndex = 2;
 
       // Set started_at when status changes to IN_PROGRESS
@@ -1324,14 +1433,14 @@ export class MobileCaseController {
 
       // Create audit log
       await createAuditLog({
-        userId: userId!,
+        userId,
         action: 'UPDATE_TASK_STATUS',
         entityType: 'VERIFICATION_TASK',
         entityId: taskId,
         details: { status, previousStatus: updatedTask.status },
       });
 
-      console.log(`✅ Task ${updatedTask.task_number} status updated to ${status}`);
+      logger.info(`✅ Task ${updatedTask.task_number} status updated to ${status}`);
 
       res.json({
         success: true,
@@ -1355,10 +1464,10 @@ export class MobileCaseController {
    * Start working on a verification task (for mobile app)
    * POST /api/mobile/verification-tasks/:taskId/start
    */
-  static async startTask(req: Request, res: Response) {
+  static async startTask(this: void, req: AuthenticatedRequest, res: Response) {
     try {
       const { taskId } = req.params;
-      const userId = (req as any).user?.id;
+      const userId = req.user?.id;
 
       // Update task status to IN_PROGRESS and set started_at
       const result = await query(
@@ -1386,14 +1495,14 @@ export class MobileCaseController {
 
       // Create audit log
       await createAuditLog({
-        userId: userId!,
+        userId,
         action: 'START_TASK',
         entityType: 'VERIFICATION_TASK',
         entityId: taskId,
         details: { taskNumber: updatedTask.task_number },
       });
 
-      console.log(`✅ Task ${updatedTask.task_number} started by user ${userId}`);
+      logger.info(`✅ Task ${updatedTask.task_number} started by user ${userId}`);
 
       res.json({
         success: true,
@@ -1417,11 +1526,11 @@ export class MobileCaseController {
    * Complete a verification task (for mobile app)
    * POST /api/mobile/verification-tasks/:taskId/complete
    */
-  static async completeTask(req: Request, res: Response) {
+  static async completeTask(this: void, req: AuthenticatedRequest, res: Response) {
     try {
       const { taskId } = req.params;
       const { verificationOutcome, actualAmount } = req.body;
-      const userId = (req as any).user?.id;
+      const userId = req.user?.id;
 
       if (!verificationOutcome) {
         return res.status(400).json({
@@ -1470,7 +1579,7 @@ export class MobileCaseController {
       );
 
       if (!validation.isValid) {
-        console.log(`❌ Task ${task.task_number} completion validation failed:`, validation.errors);
+        logger.info(`❌ Task ${task.task_number} completion validation failed:`, validation.errors);
         return res.status(400).json({
           success: false,
           message: 'Task cannot be completed due to validation errors',
@@ -1485,7 +1594,7 @@ export class MobileCaseController {
 
       // Log warnings if any
       if (validation.warnings.length > 0) {
-        console.log(`⚠️  Task ${task.task_number} completion warnings:`, validation.warnings);
+        logger.info(`⚠️  Task ${task.task_number} completion warnings:`, validation.warnings);
       }
 
       // Update task to completed
@@ -1508,7 +1617,7 @@ export class MobileCaseController {
 
       // Create audit log
       await createAuditLog({
-        userId: userId!,
+        userId,
         action: 'COMPLETE_TASK',
         entityType: 'VERIFICATION_TASK',
         entityId: taskId,
@@ -1520,7 +1629,7 @@ export class MobileCaseController {
         },
       });
 
-      console.log(`✅ Task ${completedTask.task_number} completed successfully by user ${userId}`);
+      logger.info(`✅ Task ${completedTask.task_number} completed successfully by user ${userId}`);
 
       res.json({
         success: true,
@@ -1545,14 +1654,14 @@ export class MobileCaseController {
    * Revoke a verification task (for mobile app)
    * POST /api/mobile/verification-tasks/:taskId/revoke
    */
-  static async revokeTask(req: Request, res: Response) {
+  static async revokeTask(this: void, req: AuthenticatedRequest, res: Response) {
     try {
       const { taskId } = req.params;
       const { reason } = req.body;
-      const userId = (req as any).user?.id;
-      const userRole = (req as any).user?.role;
+      const userId = req.user?.id;
+      const userRole = req.user?.role;
 
-      console.log(`📱 Mobile task revocation request:`, {
+      logger.info(`📱 Mobile task revocation request:`, {
         taskId,
         reason,
         userId,
@@ -1683,7 +1792,7 @@ export class MobileCaseController {
         },
       });
 
-      console.log(`✅ Task ${taskData.task_number} revoked successfully by ${fieldUserName}`);
+      logger.info(`✅ Task ${taskData.task_number} revoked successfully by ${fieldUserName}`);
 
       res.json({
         success: true,

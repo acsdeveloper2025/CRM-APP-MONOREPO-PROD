@@ -37,7 +37,7 @@ export interface VerificationTask {
   // Document Information (for document verification tasks)
   documentType?: string;
   documentNumber?: string;
-  documentDetails?: Record<string, any>;
+  documentDetails?: Record<string, unknown>;
 
   // Timing and Completion
   estimatedCompletionDate?: string;
@@ -81,7 +81,7 @@ export interface CreateVerificationTaskData {
   pincode?: string;
   documentType?: string;
   documentNumber?: string;
-  documentDetails?: Record<string, any>;
+  documentDetails?: Record<string, unknown>;
   estimatedCompletionDate?: string;
 }
 
@@ -97,7 +97,7 @@ export interface UpdateVerificationTaskData {
   pincode?: string;
   documentType?: string;
   documentNumber?: string;
-  documentDetails?: Record<string, any>;
+  documentDetails?: Record<string, unknown>;
   estimatedCompletionDate?: string;
   startedAt?: string;
   completedAt?: string;
@@ -413,7 +413,7 @@ export interface TaskActivity {
   taskTitle: string;
   userName?: string;
   timestamp: string;
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
 }
 
 // =====================================================
@@ -435,7 +435,7 @@ export interface MobileVerificationTaskResponse {
   assignedAt: string;
   estimatedCompletionDate?: string;
   documentType?: string;
-  documentDetails?: Record<string, any>;
+  documentDetails?: Record<string, unknown>;
 }
 
 export interface MobileTaskSummary {

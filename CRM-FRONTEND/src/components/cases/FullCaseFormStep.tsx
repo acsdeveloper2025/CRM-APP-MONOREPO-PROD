@@ -79,36 +79,38 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
   const { data: verificationTypesResponse } = useVerificationTypes();
 
   // Helper function to get user display name
-  const getUserDisplayName = (user: any) => {
-    if (!user) {return '';}
+  const getUserDisplayName = (user: unknown) => {
+    if (!user) { return ''; }
+    
+    const u = user as { name?: string; firstName?: string; lastName?: string; username?: string };
 
     // Try different possible name formats
-    if (user.name && typeof user.name === 'string' && user.name.trim()) {
-      return user.name;
+    if (u.name && typeof u.name === 'string' && u.name.trim()) {
+      return u.name;
     }
 
     // If name is just a number/ID, try firstName + lastName
-    if (user.firstName && user.lastName) {
-      return `${user.firstName} ${user.lastName}`.trim();
+    if (u.firstName && u.lastName) {
+      return `${u.firstName} ${u.lastName}`.trim();
     }
 
     // If only firstName available
-    if (user.firstName) {
-      return user.firstName;
+    if (u.firstName) {
+      return u.firstName;
     }
 
     // Fallback to username if available
-    if (user.username) {
-      return user.username;
+    if (u.username) {
+      return u.username;
     }
 
     // Last resort - return the name even if it looks like an ID
-    return user.name || 'Unknown User';
+    return u.name || 'Unknown User';
   };
 
   // Extract the actual arrays from the API responses (fieldUsers is already extracted by the hook)
-  const allClients = clientsResponse?.data || [];
-  const verificationTypes = verificationTypesResponse?.data || [];
+  const allClients = useMemo(() => clientsResponse?.data || [], [clientsResponse?.data]);
+  const verificationTypes = useMemo(() => verificationTypesResponse?.data || [], [verificationTypesResponse?.data]);
 
   // Filter clients based on user role and assignments
   const clients = useMemo(() => {
@@ -147,7 +149,7 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
   // Watch for client selection to fetch products
   const selectedClientId = form.watch('clientId');
   const { data: productsResponse } = useProductsByClient(selectedClientId);
-  const allProducts = productsResponse?.data || [];
+  const allProducts = useMemo(() => productsResponse?.data || [], [productsResponse?.data]);
 
   // Filter products based on user role and assignments
   const products = useMemo(() => {
@@ -168,21 +170,24 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
   const selectedPincodeId = form.watch('pincodeId');
   const selectedAreaId = form.watch('areaId');
   // Fetch all pincodes for dropdown (high limit to get all)
-  const { data: pincodesResponse } = usePincodes({ limit: 10000 });
-  const pincodes = pincodesResponse?.data || [];
+
+  // Fetch all pincodes for dropdown (high limit to get all)
+  const { data: pincodesResponseAll } = usePincodes({ limit: 10000 });
+  const pincodes = useMemo(() => pincodesResponseAll?.data || [], [pincodesResponseAll?.data]);
   const { data: areasResponse } = useAreasByPincode(selectedPincodeId ? parseInt(selectedPincodeId) : undefined);
-  const areas = areasResponse?.data || [];
+  const areas = useMemo(() => areasResponse?.data || [], [areasResponse?.data]);
 
   // Filter field users based on pincode and area access
   const filteredFieldUsers = useMemo(() => {
     if (!selectedPincodeId || !selectedAreaId) {
-      return fieldUsers; // Show all if no pincode/area selected
+      return fieldUsers || []; // Show all if no pincode/area selected, default to empty array
     }
 
     const pincodeId = parseInt(selectedPincodeId, 10);
     const areaId = parseInt(selectedAreaId, 10);
 
-    return fieldUsers.filter((user: any) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return (fieldUsers || []).filter((user: any) => {
       const hasPincodeAccess = user.assignedPincodes?.includes(pincodeId) ?? false;
       const hasAreaAccess = user.assignedAreas?.includes(areaId) ?? false;
       return hasPincodeAccess && hasAreaAccess;
@@ -193,9 +198,9 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
   const { data: availableRateTypesResponse, isLoading: loadingRateTypes } = useQuery({
     queryKey: ['available-rate-types-for-case', selectedClientId, selectedProductId, selectedVerificationTypeId],
     queryFn: () => rateTypesService.getAvailableRateTypesForCase(
-      parseInt(selectedClientId!),
-      parseInt(selectedProductId!),
-      parseInt(selectedVerificationTypeId!)
+      parseInt(selectedClientId || '0'),
+      parseInt(selectedProductId || '0'),
+      parseInt(selectedVerificationTypeId || '0')
     ),
     enabled: !!(selectedClientId && selectedProductId && selectedVerificationTypeId),
   });
@@ -700,7 +705,7 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
                         <div className="ml-3">
                           <h4 className="text-sm font-medium text-amber-900">Rate Not Configured</h4>
                           <p className="text-sm text-amber-700">
-                            The selected rate type "{selectedRateType.name}" does not have a rate amount configured. Please contact your administrator to set up the rate.
+                            The selected rate type &quot;{selectedRateType.name}&quot; does not have a rate amount configured. Please contact your administrator to set up the rate.
                           </p>
                         </div>
                       </div>

@@ -5,6 +5,16 @@ import { logger } from '../config/logger';
 // Enterprise Redis configuration for high-performance caching
 const redisUrl = new URL(config.redisUrl);
 
+export interface CacheStats {
+  memory?: Record<string, unknown>;
+  keyspace?: Record<string, unknown>;
+  cpuUsage?: number;
+  resourceUsage?: Record<string, number>;
+  cluster?: boolean;
+  connected?: boolean;
+  error?: string;
+}
+
 export class EnterpriseCacheService {
   private static redis: RedisClientType;
   private static clusterRedis: RedisClusterType | null = null;
@@ -41,7 +51,7 @@ export class EnterpriseCacheService {
         });
 
         await this.clusterRedis.connect();
-        this.redis = this.clusterRedis as any;
+        this.redis = this.clusterRedis as unknown as RedisClientType;
         logger.info('Redis Cluster initialized for enterprise scale');
       } else {
         // Single Redis instance with enterprise optimizations
@@ -89,7 +99,7 @@ export class EnterpriseCacheService {
   /**
    * Set cached data with TTL and enterprise optimizations
    */
-  static async set(key: string, value: any, ttlSeconds = 3600): Promise<boolean> {
+  static async set(key: string, value: unknown, ttlSeconds = 3600): Promise<boolean> {
     try {
       const serialized = JSON.stringify(value);
       await this.redis.setEx(key, ttlSeconds, serialized);
@@ -144,7 +154,7 @@ export class EnterpriseCacheService {
    * Batch set multiple key-value pairs
    */
   static async mset(
-    keyValuePairs: Array<{ key: string; value: any; ttl?: number }>
+    keyValuePairs: Array<{ key: string; value: unknown; ttl?: number }>
   ): Promise<boolean> {
     try {
       const multi = this.redis.multi();
@@ -249,7 +259,7 @@ export class EnterpriseCacheService {
   /**
    * Get cache statistics for monitoring
    */
-  static async getStats(): Promise<any> {
+  static async getStats(): Promise<CacheStats> {
     try {
       const info = await this.redis.info('memory');
       const keyspace = await this.redis.info('keyspace');
@@ -257,7 +267,8 @@ export class EnterpriseCacheService {
       return {
         memory: this.parseRedisInfo(info),
         keyspace: this.parseRedisInfo(keyspace),
-        connected: this.redis.isReady,
+        cpuUsage: (process.cpuUsage() as unknown as Record<string, number>).user / 1000000,
+        resourceUsage: process.resourceUsage() as unknown as Record<string, number>,
         cluster: !!this.clusterRedis,
       };
     } catch (error) {
@@ -269,8 +280,8 @@ export class EnterpriseCacheService {
   /**
    * Parse Redis INFO command output
    */
-  private static parseRedisInfo(info: string): Record<string, any> {
-    const result: Record<string, any> = {};
+  private static parseRedisInfo(info: string): Record<string, unknown> {
+    const result: Record<string, unknown> = {};
 
     info.split('\r\n').forEach(line => {
       if (line.includes(':')) {

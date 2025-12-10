@@ -131,9 +131,8 @@ export const MobileNavigation: React.FC<MobileNavigationProps> = ({
         {!isOnline && (
           <div className="bg-red-50 border-b border-red-200 px-4 py-2">
             <div className="flex items-center space-x-2">
-              <WifiOff className="h-4 w-4 text-red-600" />
               <span className="text-sm text-red-800">
-                You're offline. Some features may be limited.
+                You&apos;re offline. Some features may be limited.
               </span>
             </div>
           </div>
@@ -254,7 +253,7 @@ export const MobileNavigation: React.FC<MobileNavigationProps> = ({
                 </div>
                 <span className="text-xs">{item.label}</span>
                 {isActive && (
-                  <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-8 h-1 bg-blue-600 rounded-b" />
+                  <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-8 h-1 bg-blue-600 rounded-b-lg" />
                 )}
               </Button>
             );

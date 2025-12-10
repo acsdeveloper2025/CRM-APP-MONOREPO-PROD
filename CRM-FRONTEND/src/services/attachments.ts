@@ -156,7 +156,7 @@ class AttachmentsService extends BaseApiService {
   /**
    * Get supported file types
    */
-  async getSupportedFileTypes(): Promise<ApiResponse<any>> {
+  async getSupportedFileTypes(): Promise<ApiResponse<unknown>> {
     return this.get('/types');
   }
 }

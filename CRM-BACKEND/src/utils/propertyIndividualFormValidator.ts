@@ -31,9 +31,9 @@ export interface FormValidationResult {
  * @returns Validation result with detailed field coverage information
  */
 export function validateAndPreparePropertyIndividualForm(
-  formData: any,
+  formData: Record<string, unknown>,
   formType: string
-): { validationResult: FormValidationResult; preparedData: Record<string, any> } {
+): { validationResult: FormValidationResult; preparedData: Record<string, unknown> } {
   const warnings: string[] = [];
   const missingFields: string[] = [];
 
@@ -57,7 +57,7 @@ export function validateAndPreparePropertyIndividualForm(
   warnings.push(...conditionalWarnings);
 
   // Map form data to database fields
-  const mappedData: Record<string, any> = {};
+  const mappedData: Record<string, unknown> = {};
   for (const [mobileField, value] of Object.entries(formData)) {
     const dbColumn = PROPERTY_INDIVIDUAL_FIELD_MAPPING[mobileField];
 
@@ -187,19 +187,26 @@ function getRequiredFieldsByFormType(formType: string): string[] {
 /**
  * Validates conditional fields based on form type and field values
  */
-function validateConditionalFields(formData: any, formType: string): string[] {
+function validateConditionalFields(formData: Record<string, unknown>, formType: string): string[] {
   const warnings: string[] = [];
 
   if (formType === 'POSITIVE') {
     // Age validation
-    if (formData.individualAge && (formData.individualAge < 18 || formData.individualAge > 100)) {
+    if (
+      formData.individualAge !== undefined &&
+      formData.individualAge !== null &&
+      typeof formData.individualAge === 'number' &&
+      (formData.individualAge < 18 || formData.individualAge > 100)
+    ) {
       warnings.push('individualAge should be between 18 and 100 years');
     }
 
     // Income validation
     if (
-      formData.monthlyIncome &&
-      formData.annualIncome &&
+      formData.monthlyIncome !== undefined &&
+      formData.annualIncome !== undefined &&
+      typeof formData.monthlyIncome === 'number' &&
+      typeof formData.annualIncome === 'number' &&
       formData.monthlyIncome * 12 !== formData.annualIncome
     ) {
       warnings.push('annualIncome should be 12 times monthlyIncome');
@@ -207,8 +214,10 @@ function validateConditionalFields(formData: any, formType: string): string[] {
 
     // Family members validation
     if (
-      formData.familyMembers &&
-      formData.earningMembers &&
+      formData.familyMembers !== undefined &&
+      formData.earningMembers !== undefined &&
+      typeof formData.familyMembers === 'number' &&
+      typeof formData.earningMembers === 'number' &&
       formData.earningMembers > formData.familyMembers
     ) {
       warnings.push('earningMembers should not exceed familyMembers');
@@ -225,8 +234,10 @@ function validateConditionalFields(formData: any, formType: string): string[] {
 
     // Property value validation
     if (
-      formData.propertyValue &&
-      formData.marketValue &&
+      formData.propertyValue !== undefined &&
+      formData.marketValue !== undefined &&
+      typeof formData.propertyValue === 'number' &&
+      typeof formData.marketValue === 'number' &&
       formData.propertyValue > formData.marketValue * 1.5
     ) {
       warnings.push('propertyValue seems significantly higher than marketValue');
@@ -238,7 +249,7 @@ function validateConditionalFields(formData: any, formType: string): string[] {
     }
 
     // Contact validation
-    if (formData.contactNumber && formData.contactNumber.length !== 10) {
+    if (typeof formData.contactNumber === 'string' && formData.contactNumber.length !== 10) {
       warnings.push('contactNumber should be 10 digits');
     }
 
@@ -253,7 +264,12 @@ function validateConditionalFields(formData: any, formType: string): string[] {
     }
 
     // Property area validation
-    if (formData.propertyArea && (formData.propertyArea < 1 || formData.propertyArea > 100000)) {
+    if (
+      formData.propertyArea !== undefined &&
+      formData.propertyArea !== null &&
+      typeof formData.propertyArea === 'number' &&
+      (formData.propertyArea < 1 || formData.propertyArea > 100000)
+    ) {
       warnings.push('propertyArea should be between 1 and 100000 sq ft');
     }
   }
@@ -276,7 +292,7 @@ function validateConditionalFields(formData: any, formType: string): string[] {
 /**
  * Processes field values based on field type and validation rules
  */
-function processFieldValue(fieldName: string, value: any): any {
+function processFieldValue(fieldName: string, value: unknown): unknown {
   // Handle null/undefined values
   if (value === null || value === undefined) {
     return null;
@@ -320,7 +336,11 @@ function processFieldValue(fieldName: string, value: any): any {
   }
 
   // Default: convert to string and trim, return null if empty
-  const trimmedValue = String(value).trim();
+  const trimmedValue = (
+    typeof value === 'object' && value !== null
+      ? JSON.stringify(value)
+      : String(value as string | number | boolean | null | undefined)
+  ).trim();
   return trimmedValue === '' ? null : trimmedValue;
 }
 
@@ -328,8 +348,8 @@ function processFieldValue(fieldName: string, value: any): any {
  * Generates a comprehensive field coverage report for debugging
  */
 export function generatePropertyIndividualFieldCoverageReport(
-  formData: any,
-  preparedData: Record<string, any>,
+  formData: Record<string, unknown>,
+  preparedData: Record<string, unknown>,
   formType: string
 ): string {
   const originalFields = Object.keys(formData).length;

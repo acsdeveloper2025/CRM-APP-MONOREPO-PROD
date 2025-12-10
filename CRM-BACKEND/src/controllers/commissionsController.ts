@@ -1,72 +1,21 @@
-/* eslint-disable @typescript-eslint/require-await */
-// Disabled require-await rule for commissions controller as some async functions don't directly await
 import type { Response } from 'express';
+import { query } from '@/config/database';
 import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
+import type { QueryParams } from '@/types/database';
+import type { CommissionCalculation } from '@/types/commission';
 
-// Mock data for demonstration (replace with actual database operations)
-const commissions: any[] = [
-  {
-    id: 'commission_1',
-    userId: 'user_1',
-    userName: 'John Doe',
-    caseId: 'case_1',
-    caseTitle: 'Residence Verification - John Doe',
-    clientId: 'client_1',
-    clientName: 'Acme Corporation',
-    baseAmount: 500,
-    commissionRate: 15, // 15%
-    commissionAmount: 75,
-    status: 'APPROVED',
-    approvedBy: 'user_3',
-    approvedAt: '2024-01-05T00:00:00.000Z',
-    paidDate: '2024-01-10T00:00:00.000Z',
-    paymentMethod: 'BANK_TRANSFER',
-    notes: 'Commission for completed verification',
-    createdAt: '2024-01-05T00:00:00.000Z',
-    updatedAt: '2024-01-10T00:00:00.000Z',
-  },
-  {
-    id: 'commission_2',
-    userId: 'user_2',
-    userName: 'Jane Smith',
-    caseId: 'case_2',
-    caseTitle: 'Office Verification - Tech Solutions Inc',
-    clientId: 'client_2',
-    clientName: 'Tech Solutions Inc',
-    baseAmount: 800,
-    commissionRate: 12, // 12%
-    commissionAmount: 96,
-    status: 'PENDING',
-    approvedBy: null,
-    approvedAt: null,
-    paidDate: null,
-    paymentMethod: null,
-    notes: 'Pending approval',
-    createdAt: '2024-01-06T00:00:00.000Z',
-    updatedAt: '2024-01-06T00:00:00.000Z',
-  },
-  {
-    id: 'commission_3',
-    userId: 'user_1',
-    userName: 'John Doe',
-    caseId: 'case_3',
-    caseTitle: 'Residence Verification - Alice Johnson',
-    clientId: 'client_1',
-    clientName: 'Acme Corporation',
-    baseAmount: 500,
-    commissionRate: 15, // 15%
-    commissionAmount: 75,
-    status: 'APPROVED',
-    approvedBy: 'user_3',
-    approvedAt: '2024-01-07T00:00:00.000Z',
-    paidDate: null,
-    paymentMethod: null,
-    notes: 'Approved but not yet paid',
-    createdAt: '2024-01-07T00:00:00.000Z',
-    updatedAt: '2024-01-07T00:00:00.000Z',
-  },
-];
+// Extended interface for query results including joined fields
+interface CommissionCalculationRow extends CommissionCalculation {
+  userName?: string;
+  userEmail?: string;
+  approvedByName?: string;
+  paidByName?: string;
+}
+
+interface CountResult {
+  total: string;
+}
 
 // GET /api/commissions - List commissions with pagination and filters
 export const getCommissions = async (req: AuthenticatedRequest, res: Response) => {
@@ -84,54 +33,96 @@ export const getCommissions = async (req: AuthenticatedRequest, res: Response) =
       sortOrder = 'desc',
     } = req.query;
 
-    let filteredCommissions = [...commissions];
+    const conditions: string[] = [];
+    const params: QueryParams = [];
+    let paramIndex = 1;
 
-    // Apply filters
     if (userId) {
-      filteredCommissions = filteredCommissions.filter(comm => comm.userId === userId);
+      conditions.push(`cc."userId" = $${paramIndex++}`);
+      params.push(userId as string);
     }
+
     if (status) {
-      filteredCommissions = filteredCommissions.filter(comm => comm.status === status);
+      conditions.push(`cc.status = $${paramIndex++}`);
+      params.push(status as string);
     }
+
     if (clientId) {
-      filteredCommissions = filteredCommissions.filter(comm => comm.clientId === clientId);
+      conditions.push(`cc."clientId" = $${paramIndex++}`);
+      params.push(parseInt(clientId as string, 10));
     }
-    if (search) {
-      const searchTerm = (search as string).toLowerCase();
-      filteredCommissions = filteredCommissions.filter(
-        comm =>
-          comm.userName.toLowerCase().includes(searchTerm) ||
-          comm.caseTitle.toLowerCase().includes(searchTerm) ||
-          comm.clientName.toLowerCase().includes(searchTerm)
-      );
-    }
+
     if (dateFrom) {
-      filteredCommissions = filteredCommissions.filter(
-        comm => new Date(comm.createdAt) >= new Date(dateFrom as string)
-      );
+      conditions.push(`cc."createdAt" >= $${paramIndex++}`);
+      params.push(dateFrom as string);
     }
+
     if (dateTo) {
-      filteredCommissions = filteredCommissions.filter(
-        comm => new Date(comm.createdAt) <= new Date(dateTo as string)
-      );
+      conditions.push(`cc."createdAt" <= $${paramIndex++}`);
+      params.push(dateTo as string);
     }
 
-    // Apply sorting
-    filteredCommissions.sort((a, b) => {
-      const aValue = a[sortBy as string];
-      const bValue = b[sortBy as string];
-      if (sortOrder === 'desc') {
-        return bValue > aValue ? 1 : -1;
-      }
-      return aValue > bValue ? 1 : -1;
-    });
+    if (search && typeof search === 'string') {
+      conditions.push(`(
+        u.name ILIKE $${paramIndex} OR
+        u.username ILIKE $${paramIndex} OR
+        cc."caseNumber"::text ILIKE $${paramIndex} OR
+        cc."notes" ILIKE $${paramIndex}
+      )`);
+      params.push(`%${search}%`);
+      paramIndex++;
+    }
 
-    // Apply pagination
-    const startIndex = ((page as number) - 1) * (limit as number);
-    const endIndex = startIndex + (limit as number);
-    const paginatedCommissions = filteredCommissions.slice(startIndex, endIndex);
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
-    logger.info(`Retrieved ${paginatedCommissions.length} commissions`, {
+    const validSortColumns = [
+      'createdAt',
+      'commissionAmount',
+      'status',
+      'caseCompletedAt',
+      'approvedAt',
+      'paidAt',
+    ];
+    const safeSortBy: string = validSortColumns.includes(sortBy as string)
+      ? `"${sortBy as string}"`
+      : '"createdAt"';
+    const safeSortOrder: 'ASC' | 'DESC' = sortOrder === 'asc' ? 'ASC' : 'DESC';
+
+    const limitNum = Math.max(1, Number(limit) || 20);
+    const pageNum = Math.max(1, Number(page) || 1);
+    const offset = (pageNum - 1) * limitNum;
+
+    // Count query
+    const countQuery = `
+      SELECT COUNT(*) as total
+      FROM commission_calculations cc
+      LEFT JOIN users u ON cc."userId" = u.id
+      ${whereClause}
+    `;
+    const countResult = await query<CountResult>(countQuery, params);
+    const total = parseInt(countResult.rows[0].total, 10);
+
+    // Data query
+    const dataQuery = `
+      SELECT
+        cc.*,
+        u.name as "userName",
+        u.email as "userEmail",
+        u2.name as "approvedByName",
+        u3.name as "paidByName"
+      FROM commission_calculations cc
+      LEFT JOIN users u ON cc."userId" = u.id
+      LEFT JOIN users u2 ON cc."approvedBy" = u2.id
+      LEFT JOIN users u3 ON cc."paidBy" = u3.id
+      ${whereClause}
+      ORDER BY cc.${safeSortBy} ${safeSortOrder}
+      LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+    `;
+
+    params.push(limitNum, offset);
+    const result = await query<CommissionCalculationRow>(dataQuery, params);
+
+    logger.info(`Retrieved ${result.rows.length} commissions`, {
       userId: req.user?.id,
       filters: { userId, status, clientId, search },
       pagination: { page, limit },
@@ -139,12 +130,12 @@ export const getCommissions = async (req: AuthenticatedRequest, res: Response) =
 
     res.json({
       success: true,
-      data: paginatedCommissions,
+      data: result.rows,
       pagination: {
-        page: Number(page),
-        limit: Number(limit),
-        total: filteredCommissions.length,
-        totalPages: Math.ceil(filteredCommissions.length / (limit as number)),
+        page: pageNum,
+        limit: limitNum,
+        total,
+        totalPages: Math.ceil(total / limitNum),
       },
     });
   } catch (error) {
@@ -161,9 +152,24 @@ export const getCommissions = async (req: AuthenticatedRequest, res: Response) =
 export const getCommissionById = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const commission = commissions.find(comm => comm.id === id);
 
-    if (!commission) {
+    const sql = `
+      SELECT
+        cc.*,
+        u.name as "userName",
+        u.email as "userEmail",
+        u2.name as "approvedByName",
+        u3.name as "paidByName"
+      FROM commission_calculations cc
+      LEFT JOIN users u ON cc."userId" = u.id
+      LEFT JOIN users u2 ON cc."approvedBy" = u2.id
+      LEFT JOIN users u3 ON cc."paidBy" = u3.id
+      WHERE cc.id = $1
+    `;
+
+    const result = await query<CommissionCalculationRow>(sql, [id]);
+
+    if (result.rows.length === 0) {
       return res.status(404).json({
         success: false,
         message: 'Commission not found',
@@ -175,7 +181,7 @@ export const getCommissionById = async (req: AuthenticatedRequest, res: Response
 
     res.json({
       success: true,
-      data: commission,
+      data: result.rows[0],
     });
   } catch (error) {
     logger.error('Error retrieving commission:', error);
@@ -192,9 +198,13 @@ export const approveCommission = async (req: AuthenticatedRequest, res: Response
   try {
     const { id } = req.params;
     const { notes } = req.body;
+    const approverId = req.user?.id;
 
-    const commissionIndex = commissions.findIndex(comm => comm.id === id);
-    if (commissionIndex === -1) {
+    // Check current status
+    const checkSql = `SELECT status FROM commission_calculations WHERE id = $1`;
+    const checkResult = await query<{ status: string }>(checkSql, [id]);
+
+    if (checkResult.rows.length === 0) {
       return res.status(404).json({
         success: false,
         message: 'Commission not found',
@@ -202,7 +212,7 @@ export const approveCommission = async (req: AuthenticatedRequest, res: Response
       });
     }
 
-    if (commissions[commissionIndex].status === 'APPROVED') {
+    if (checkResult.rows[0].status === 'APPROVED') {
       return res.status(400).json({
         success: false,
         message: 'Commission is already approved',
@@ -210,23 +220,32 @@ export const approveCommission = async (req: AuthenticatedRequest, res: Response
       });
     }
 
-    // Update commission
-    commissions[commissionIndex].status = 'APPROVED';
-    commissions[commissionIndex].approvedBy = req.user?.id;
-    commissions[commissionIndex].approvedAt = new Date().toISOString();
-    if (notes) {
-      commissions[commissionIndex].notes = notes;
-    }
-    commissions[commissionIndex].updatedAt = new Date().toISOString();
+    const updateSql = `
+      UPDATE commission_calculations
+      SET
+        status = 'APPROVED',
+        "approvedBy" = $1,
+        "approvedAt" = CURRENT_TIMESTAMP,
+        notes = CASE WHEN $2::text IS NOT NULL THEN $2 ELSE notes END,
+        "updatedAt" = CURRENT_TIMESTAMP
+      WHERE id = $3
+      RETURNING *
+    `;
+
+    const updateResult = await query<CommissionCalculation>(updateSql, [
+      approverId,
+      notes || null,
+      id,
+    ]);
 
     logger.info(`Commission approved: ${id}`, {
-      userId: req.user?.id,
-      commissionAmount: commissions[commissionIndex].commissionAmount,
+      userId: approverId,
+      commissionAmount: updateResult.rows[0].commissionAmount,
     });
 
     res.json({
       success: true,
-      data: commissions[commissionIndex],
+      data: updateResult.rows[0],
       message: 'Commission approved successfully',
     });
   } catch (error) {
@@ -244,9 +263,12 @@ export const markCommissionPaid = async (req: AuthenticatedRequest, res: Respons
   try {
     const { id } = req.params;
     const { paidDate, paymentMethod, transactionId, notes } = req.body;
+    const payerId = req.user?.id;
 
-    const commissionIndex = commissions.findIndex(comm => comm.id === id);
-    if (commissionIndex === -1) {
+    const checkSql = `SELECT status, "paidAt" FROM commission_calculations WHERE id = $1`;
+    const checkResult = await query<{ status: string; paidAt: string | null }>(checkSql, [id]);
+
+    if (checkResult.rows.length === 0) {
       return res.status(404).json({
         success: false,
         message: 'Commission not found',
@@ -254,7 +276,7 @@ export const markCommissionPaid = async (req: AuthenticatedRequest, res: Respons
       });
     }
 
-    if (commissions[commissionIndex].status !== 'APPROVED') {
+    if (checkResult.rows[0].status !== 'APPROVED') {
       return res.status(400).json({
         success: false,
         message: 'Commission must be approved before marking as paid',
@@ -262,7 +284,7 @@ export const markCommissionPaid = async (req: AuthenticatedRequest, res: Respons
       });
     }
 
-    if (commissions[commissionIndex].paidDate) {
+    if (checkResult.rows[0].paidAt) {
       return res.status(400).json({
         success: false,
         message: 'Commission is already marked as paid',
@@ -270,24 +292,40 @@ export const markCommissionPaid = async (req: AuthenticatedRequest, res: Respons
       });
     }
 
-    // Update commission
-    commissions[commissionIndex].paidDate = paidDate || new Date().toISOString();
-    commissions[commissionIndex].paymentMethod = paymentMethod;
-    commissions[commissionIndex].transactionId = transactionId;
-    if (notes) {
-      commissions[commissionIndex].notes =
-        `${commissions[commissionIndex].notes}\nPayment: ${notes}`;
-    }
-    commissions[commissionIndex].updatedAt = new Date().toISOString();
+    const updateSql = `
+      UPDATE commission_calculations
+      SET
+        status = 'PAID',
+        "paidBy" = $1,
+        "paidAt" = $2,
+        "paymentMethod" = $3,
+        "transactionId" = $4,
+        notes = CASE 
+          WHEN notes IS NULL OR notes = '' THEN $5::text
+          ELSE notes || E'\nPayment: ' || $5::text
+        END,
+        "updatedAt" = CURRENT_TIMESTAMP
+      WHERE id = $6
+      RETURNING *
+    `;
+
+    const updateResult = await query<CommissionCalculation>(updateSql, [
+      payerId,
+      paidDate || new Date().toISOString(),
+      paymentMethod,
+      transactionId,
+      notes || 'Paid via system',
+      id,
+    ]);
 
     logger.info(`Commission marked as paid: ${id}`, {
-      userId: req.user?.id,
-      commissionAmount: commissions[commissionIndex].commissionAmount,
+      userId: payerId,
+      commissionAmount: updateResult.rows[0].commissionAmount,
     });
 
     res.json({
       success: true,
-      data: commissions[commissionIndex],
+      data: updateResult.rows[0],
       message: 'Commission marked as paid successfully',
     });
   } catch (error) {
@@ -301,74 +339,92 @@ export const markCommissionPaid = async (req: AuthenticatedRequest, res: Respons
 };
 
 // GET /api/commissions/summary - Get commission summary
+interface SummaryStats {
+  totalCommissions: string | number;
+  totalAmount: string | number;
+  pendingCommissions: string | number;
+  pendingAmount: string | number;
+  approvedCommissions: string | number;
+  approvedAmount: string | number;
+  paidCommissions: string | number;
+  paidAmount: string | number;
+}
+
+interface UserSummaryStats extends SummaryStats {
+  userId: string;
+  userName: string;
+}
+
 export const getCommissionSummary = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { userId, period = 'month' } = req.query;
 
-    let filteredCommissions = [...commissions];
+    const conditions: string[] = [];
+    const params: QueryParams = [];
+    let paramIndex = 1;
+
     if (userId) {
-      filteredCommissions = filteredCommissions.filter(comm => comm.userId === userId);
+      conditions.push(`"userId" = $${paramIndex++}`);
+      params.push(userId as string);
     }
 
-    const totalCommissions = filteredCommissions.length;
-    const approvedCommissions = filteredCommissions.filter(
-      comm => comm.status === 'APPROVED'
-    ).length;
-    const pendingCommissions = filteredCommissions.filter(comm => comm.status === 'PENDING').length;
-    const paidCommissions = filteredCommissions.filter(comm => comm.paidDate).length;
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
-    const totalAmount = filteredCommissions.reduce((sum, comm) => sum + comm.commissionAmount, 0);
-    const approvedAmount = filteredCommissions
-      .filter(comm => comm.status === 'APPROVED')
-      .reduce((sum, comm) => sum + comm.commissionAmount, 0);
-    const paidAmount = filteredCommissions
-      .filter(comm => comm.paidDate)
-      .reduce((sum, comm) => sum + comm.commissionAmount, 0);
-    const pendingAmount = filteredCommissions
-      .filter(comm => comm.status === 'PENDING')
-      .reduce((sum, comm) => sum + comm.commissionAmount, 0);
+    const summarySql = `
+      SELECT
+        COUNT(*) as "totalCommissions",
+        COALESCE(SUM("commissionAmount"), 0) as "totalAmount",
+        SUM(CASE WHEN status = 'PENDING' THEN 1 ELSE 0 END) as "pendingCommissions",
+        COALESCE(SUM(CASE WHEN status = 'PENDING' THEN "commissionAmount" ELSE 0 END), 0) as "pendingAmount",
+        SUM(CASE WHEN status = 'APPROVED' THEN 1 ELSE 0 END) as "approvedCommissions",
+        COALESCE(SUM(CASE WHEN status = 'APPROVED' THEN "commissionAmount" ELSE 0 END), 0) as "approvedAmount",
+        SUM(CASE WHEN status = 'PAID' THEN 1 ELSE 0 END) as "paidCommissions",
+        COALESCE(SUM(CASE WHEN status = 'PAID' THEN "commissionAmount" ELSE 0 END), 0) as "paidAmount"
+      FROM commission_calculations
+      ${whereClause}
+    `;
 
-    const userSummary = filteredCommissions.reduce(
-      (acc, comm) => {
-        if (!acc[comm.userId]) {
-          acc[comm.userId] = {
-            userId: comm.userId,
-            userName: comm.userName,
-            totalCommissions: 0,
-            totalAmount: 0,
-            paidAmount: 0,
-            pendingAmount: 0,
-          };
-        }
-        acc[comm.userId].totalCommissions++;
-        acc[comm.userId].totalAmount += comm.commissionAmount;
-        if (comm.paidDate) {
-          acc[comm.userId].paidAmount += comm.commissionAmount;
-        } else if (comm.status === 'PENDING') {
-          acc[comm.userId].pendingAmount += comm.commissionAmount;
-        }
-        return acc;
-      },
-      {} as Record<string, any>
-    );
+    const summaryResult = await query<SummaryStats>(summarySql, params);
+    const stats = summaryResult.rows[0];
 
-    const summary = {
-      totalCommissions,
-      approvedCommissions,
-      pendingCommissions,
-      paidCommissions,
-      totalAmount,
-      approvedAmount,
-      paidAmount,
-      pendingAmount,
-      userSummary: Object.values(userSummary),
-      period,
-      generatedAt: new Date().toISOString(),
-    };
+    const userSummarySql = `
+      SELECT
+        cc."userId",
+        u.name as "userName",
+        COUNT(*) as "totalCommissions",
+        COALESCE(SUM("commissionAmount"), 0) as "totalAmount",
+        COALESCE(SUM(CASE WHEN status = 'PAID' THEN "commissionAmount" ELSE 0 END), 0) as "paidAmount",
+        COALESCE(SUM(CASE WHEN status = 'PENDING' THEN "commissionAmount" ELSE 0 END), 0) as "pendingAmount"
+      FROM commission_calculations cc
+      LEFT JOIN users u ON cc."userId" = u.id
+      ${whereClause}
+      GROUP BY cc."userId", u.name
+    `;
+
+    const userSummaryResult = await query<UserSummaryStats>(userSummarySql, params);
 
     res.json({
       success: true,
-      data: summary,
+      data: {
+        totalCommissions: Number(stats.totalCommissions || 0),
+        totalAmount: Number(stats.totalAmount || 0),
+        pendingCommissions: Number(stats.pendingCommissions || 0),
+        pendingAmount: Number(stats.pendingAmount || 0),
+        approvedCommissions: Number(stats.approvedCommissions || 0),
+        approvedAmount: Number(stats.approvedAmount || 0),
+        paidCommissions: Number(stats.paidCommissions || 0),
+        paidAmount: Number(stats.paidAmount || 0),
+        userSummary: userSummaryResult.rows.map(row => ({
+          userId: row.userId,
+          userName: row.userName,
+          totalCommissions: Number(row.totalCommissions),
+          totalAmount: Number(row.totalAmount),
+          paidAmount: Number(row.paidAmount),
+          pendingAmount: Number(row.pendingAmount),
+        })),
+        period,
+        generatedAt: new Date().toISOString(),
+      },
     });
   } catch (error) {
     logger.error('Error getting commission summary:', error);
@@ -381,67 +437,59 @@ export const getCommissionSummary = async (req: AuthenticatedRequest, res: Respo
 };
 
 // POST /api/commissions/bulk-approve - Bulk approve commissions
+interface BulkApproveResult {
+  id: number;
+}
+
 export const bulkApproveCommissions = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { commissionIds, notes } = req.body;
+    const approverId = req.user?.id;
 
-    if (!commissionIds || !Array.isArray(commissionIds) || commissionIds.length === 0) {
+    if (!Array.isArray(commissionIds) || commissionIds.length === 0) {
       return res.status(400).json({
         success: false,
         message: 'Commission IDs array is required',
-        error: { code: 'MISSING_COMMISSION_IDS' },
+        error: { code: 'MISSING_DATA' },
       });
     }
 
-    const approvedCommissions = [];
-    const errors = [];
+    const sql = `
+      UPDATE commission_calculations
+      SET
+        status = 'APPROVED',
+        "approvedBy" = $1,
+        "approvedAt" = CURRENT_TIMESTAMP,
+        notes = CASE WHEN $2::text IS NOT NULL THEN $2 ELSE notes END,
+        "updatedAt" = CURRENT_TIMESTAMP
+      WHERE id = ANY($3::int[])
+        AND status != 'APPROVED'
+      RETURNING id
+    `;
 
-    for (const id of commissionIds) {
-      try {
-        const commissionIndex = commissions.findIndex(comm => comm.id === id);
-        if (commissionIndex === -1) {
-          errors.push(`Commission ${id}: Not found`);
-          continue;
-        }
+    const numericIds = (commissionIds as string[]).map(id => Number(id)).filter(n => !isNaN(n));
 
-        if (commissions[commissionIndex].status === 'APPROVED') {
-          errors.push(`Commission ${id}: Already approved`);
-          continue;
-        }
-
-        // Update commission
-        commissions[commissionIndex].status = 'APPROVED';
-        commissions[commissionIndex].approvedBy = req.user?.id;
-        commissions[commissionIndex].approvedAt = new Date().toISOString();
-        if (notes) {
-          commissions[commissionIndex].notes = notes;
-        }
-        commissions[commissionIndex].updatedAt = new Date().toISOString();
-
-        approvedCommissions.push(id);
-      } catch (error) {
-        errors.push(`Commission ${id}: ${error}`);
-      }
+    if (numericIds.length === 0) {
+      return res.status(400).json({ message: 'Invalid IDs provided' });
     }
 
-    logger.info(`Bulk approved ${approvedCommissions.length} commissions`, {
-      userId: req.user?.id,
-      successCount: approvedCommissions.length,
-      errorCount: errors.length,
+    const result = await query<BulkApproveResult>(sql, [approverId, notes || null, numericIds]);
+    const approvedIds = result.rows.map(r => r.id);
+    const failedCount = commissionIds.length - approvedIds.length;
+
+    logger.info(`Bulk approved ${approvedIds.length} commissions`, {
+      userId: approverId,
+      requested: commissionIds.length,
+      approved: approvedIds.length,
     });
 
     res.json({
       success: true,
       data: {
-        approved: approvedCommissions,
-        errors,
-        summary: {
-          total: commissionIds.length,
-          successful: approvedCommissions.length,
-          failed: errors.length,
-        },
+        approved: approvedIds,
+        failedCount,
+        message: `Successfully approved ${approvedIds.length} commissions`,
       },
-      message: `Bulk approval completed: ${approvedCommissions.length} successful, ${errors.length} failed`,
     });
   } catch (error) {
     logger.error('Error in bulk approve:', error);
@@ -457,70 +505,65 @@ export const bulkApproveCommissions = async (req: AuthenticatedRequest, res: Res
 export const bulkMarkCommissionsPaid = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { commissionIds, paymentMethod, transactionId, notes } = req.body;
+    const payerId = req.user?.id;
 
-    if (!commissionIds || !Array.isArray(commissionIds) || commissionIds.length === 0) {
+    if (!Array.isArray(commissionIds) || commissionIds.length === 0) {
       return res.status(400).json({
         success: false,
         message: 'Commission IDs array is required',
-        error: { code: 'MISSING_COMMISSION_IDS' },
+        error: { code: 'MISSING_DATA' },
       });
     }
 
-    const paidCommissions = [];
-    const errors = [];
+    const sql = `
+      UPDATE commission_calculations
+      SET
+        status = 'PAID',
+        "paidBy" = $1,
+        "paidAt" = CURRENT_TIMESTAMP,
+        "paymentMethod" = $2,
+        "transactionId" = $3,
+        notes = CASE 
+          WHEN notes IS NULL OR notes = '' THEN $4::text
+          ELSE notes || E'\nPayment: ' || $4::text
+        END,
+        "updatedAt" = CURRENT_TIMESTAMP
+      WHERE id = ANY($5::int[])
+        AND status = 'APPROVED'
+        AND "paidAt" IS NULL
+      RETURNING id
+    `;
 
-    for (const id of commissionIds) {
-      try {
-        const commissionIndex = commissions.findIndex(comm => comm.id === id);
-        if (commissionIndex === -1) {
-          errors.push(`Commission ${id}: Not found`);
-          continue;
-        }
+    const numericIds = (commissionIds as string[]).map(id => Number(id)).filter(n => !isNaN(n));
 
-        if (commissions[commissionIndex].status !== 'APPROVED') {
-          errors.push(`Commission ${id}: Must be approved first`);
-          continue;
-        }
-
-        if (commissions[commissionIndex].paidDate) {
-          errors.push(`Commission ${id}: Already paid`);
-          continue;
-        }
-
-        // Update commission
-        commissions[commissionIndex].paidDate = new Date().toISOString();
-        commissions[commissionIndex].paymentMethod = paymentMethod;
-        commissions[commissionIndex].transactionId = transactionId;
-        if (notes) {
-          commissions[commissionIndex].notes =
-            `${commissions[commissionIndex].notes}\nPayment: ${notes}`;
-        }
-        commissions[commissionIndex].updatedAt = new Date().toISOString();
-
-        paidCommissions.push(id);
-      } catch (error) {
-        errors.push(`Commission ${id}: ${error}`);
-      }
+    if (numericIds.length === 0) {
+      return res.status(400).json({ message: 'Invalid IDs provided' });
     }
 
-    logger.info(`Bulk marked ${paidCommissions.length} commissions as paid`, {
-      userId: req.user?.id,
-      successCount: paidCommissions.length,
-      errorCount: errors.length,
+    const result = await query<{ id: number }>(sql, [
+      payerId,
+      paymentMethod,
+      transactionId,
+      notes || 'Bulk paid',
+      numericIds,
+    ]);
+
+    const paidIds = result.rows.map(r => r.id);
+    const failedCount = commissionIds.length - paidIds.length;
+
+    logger.info(`Bulk marked ${paidIds.length} commissions as paid`, {
+      userId: payerId,
+      requested: commissionIds.length,
+      paid: paidIds.length,
     });
 
     res.json({
       success: true,
       data: {
-        paid: paidCommissions,
-        errors,
-        summary: {
-          total: commissionIds.length,
-          successful: paidCommissions.length,
-          failed: errors.length,
-        },
+        paid: paidIds,
+        failedCount,
+        message: `Successfully marked ${paidIds.length} commissions as paid`,
       },
-      message: `Bulk payment completed: ${paidCommissions.length} successful, ${errors.length} failed`,
     });
   } catch (error) {
     logger.error('Error in bulk mark paid:', error);

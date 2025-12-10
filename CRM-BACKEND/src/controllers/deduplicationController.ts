@@ -296,7 +296,7 @@ export const searchGlobalDuplicates = async (req: AuthenticatedRequest, res: Res
 
     // Build search conditions
     const searchConditions: string[] = [];
-    const searchParams: any[] = [];
+    const searchParams: (string | number | boolean | null | undefined)[] = [];
     let paramIndex = 1;
 
     // Clean and validate PAN

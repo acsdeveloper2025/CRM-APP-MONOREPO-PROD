@@ -97,7 +97,7 @@ export interface MobileCaseResponse {
     code?: string;
   };
   attachments?: MobileAttachmentResponse[];
-  formData?: any;
+  formData?: Record<string, unknown>;
   syncStatus?: 'SYNCED' | 'PENDING' | 'CONFLICT';
 }
 
@@ -125,7 +125,7 @@ export interface MobileAttachmentResponse {
 
 export interface MobileFileUploadRequest {
   caseId: string;
-  files: any[]; // Multer file type
+  files: unknown[]; // Multer file type
   geoLocation?: {
     latitude: number;
     longitude: number;
@@ -148,7 +148,7 @@ export interface MobileFormSubmissionRequest {
     | 'PROPERTY_APF'
     | 'NOC';
   formData: {
-    [key: string]: any;
+    [key: string]: unknown;
     outcome?: string;
     finalStatus?: string;
     verificationType?: string;
@@ -261,8 +261,8 @@ export interface FormField {
   name: string;
   label: string;
   type: 'text' | 'number' | 'select' | 'multiselect' | 'date' | 'boolean' | 'textarea';
-  value: any;
-  displayValue?: string;
+  value: unknown;
+  displayValue?: unknown;
   options?: { value: string; label: string }[];
   isRequired: boolean;
   validation?: {
@@ -366,13 +366,13 @@ export interface MobileSyncUploadRequest {
     cases: {
       id: string;
       action: 'CREATE' | 'UPDATE' | 'DELETE';
-      data: any;
+      data: Record<string, unknown>;
       timestamp: string;
     }[];
     attachments: {
       id: string;
       action: 'CREATE' | 'DELETE';
-      data: any;
+      data: Record<string, unknown>;
       timestamp: string;
     }[];
     locations: {
@@ -390,8 +390,8 @@ export interface MobileSyncDownloadResponse {
   deletedCaseIds: string[];
   conflicts: {
     caseId: string;
-    localVersion: any;
-    serverVersion: any;
+    localVersion: Record<string, unknown>;
+    serverVersion: Record<string, unknown>;
     conflictType: 'DATA_CONFLICT' | 'VERSION_CONFLICT';
   }[];
   syncTimestamp: string;
@@ -439,7 +439,7 @@ export interface MobileErrorResponse {
   message: string;
   error: {
     code: string;
-    details?: any;
+    details?: Record<string, unknown>;
     timestamp: string;
     requestId?: string;
   };
@@ -450,7 +450,7 @@ export interface MobileErrorResponse {
 export interface MobileAutoSaveRequest {
   caseId: string;
   formType: 'RESIDENCE' | 'OFFICE';
-  formData: any;
+  formData: Record<string, unknown>;
   timestamp: string;
 }
 

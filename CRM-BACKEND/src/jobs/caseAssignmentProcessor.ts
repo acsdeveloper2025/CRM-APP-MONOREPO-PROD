@@ -626,7 +626,7 @@ export const caseAssignmentWorker = new Worker(
           break;
 
         default:
-          throw new Error(`Unknown assignment type: ${(data as any).type}`);
+          throw new Error(`Unknown assignment type: ${(data as { type: string }).type}`);
       }
 
       const processingTime = Date.now() - startTime;

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -34,11 +34,7 @@ export const CommissionCalculationsTab: React.FC = () => {
     syncWithUrl: true,
   });
 
-  useEffect(() => {
-    loadCalculations();
-  }, [currentPage, debouncedSearchValue]);
-
-  const loadCalculations = async () => {
+  const loadCalculations = useCallback(async () => {
     try {
       setLoading(true);
       const response = await commissionManagementApi.getCommissionCalculations({
@@ -54,7 +50,11 @@ export const CommissionCalculationsTab: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage, debouncedSearchValue]);
+
+  useEffect(() => {
+    loadCalculations();
+  }, [loadCalculations]);
 
   // Format date to "MMM YYYY" format
   const formatMonth = (dateString: string): string => {

@@ -53,7 +53,7 @@ export interface VerificationTask {
   // Document Information (for document verification tasks)
   documentType?: string;
   documentNumber?: string;
-  documentDetails?: Record<string, any>;
+  documentDetails?: Record<string, unknown>;
   
   // Timing and Completion
   estimatedCompletionDate?: string;
@@ -107,7 +107,7 @@ export interface CreateVerificationTaskRequest {
   trigger?: string;
   document_type?: string;
   document_number?: string;
-  document_details?: Record<string, any>;
+  document_details?: Record<string, unknown>;
   estimated_completion_date?: string;
 }
 
@@ -122,7 +122,7 @@ export interface UpdateVerificationTaskRequest {
   pincode?: string;
   document_type?: string;
   document_number?: string;
-  document_details?: Record<string, any>;
+  document_details?: Record<string, unknown>;
   estimated_completion_date?: string;
 }
 
@@ -301,7 +301,7 @@ export interface TaskActivity {
   taskTitle: string;
   userName?: string;
   timestamp: string;
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
 }
 
 // =====================================================
@@ -317,6 +317,21 @@ export interface VerificationTaskResponse {
     limit: number;
     total: number;
     totalPages: number;
+  };
+}
+
+export interface VerificationTaskListResponse {
+  tasks: VerificationTask[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+  statistics: {
+    pending: number;
+    assigned: number;
+    completed: number;
   };
 }
 

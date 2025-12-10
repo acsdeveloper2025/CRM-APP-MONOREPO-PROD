@@ -58,6 +58,7 @@ export const CommissionRateTypesTab: React.FC = () => {
   };
 
   const handleDelete = async (rateType: CommissionRateType) => {
+    // eslint-disable-next-line no-alert
     if (window.confirm(`Are you sure you want to delete the commission rate type for "${rateType.rateTypeName}"?`)) {
       deleteMutation.mutate(rateType.id);
     }

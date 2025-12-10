@@ -102,7 +102,7 @@ export function EditDepartmentDialog({ open, onOpenChange, department }: EditDep
       toast.success('Department updated successfully');
       onOpenChange(false);
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error(error.response?.data?.message || 'Failed to update department');
     },
   });

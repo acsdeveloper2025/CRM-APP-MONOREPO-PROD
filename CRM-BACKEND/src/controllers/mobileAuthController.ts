@@ -9,12 +9,39 @@ import type {
   MobileVersionCheckRequest,
   MobileVersionCheckResponse,
   MobileAppConfigResponse,
+  MobileNotificationRegistrationRequest,
 } from '../types/mobile';
 import { createAuditLog } from '../utils/auditLogger';
+import { logger } from '../utils/logger';
+import { AuthenticatedRequest, JwtPayload, Role } from '../types/auth';
+
+interface UserQueryResult {
+  id: string;
+  name: string;
+  username: string;
+  email: string;
+  passwordHash: string;
+  role: Role;
+  roleId: number | null;
+  employeeId: string;
+  designation: string;
+  department: string;
+  profilePhotoUrl: string | null;
+  roleName: string | null;
+  permissions: Record<string, unknown>; // Permissions structure can be complex
+}
+
+interface UserPincodeRow {
+  pincodeId: number;
+}
+
+interface UserAreaRow {
+  areaId: number;
+}
 
 export class MobileAuthController {
   // Mobile login with device registration
-  static async mobileLogin(req: Request, res: Response) {
+  static async mobileLogin(this: void, req: Request, res: Response) {
     try {
       const { username, password }: MobileLoginRequest = req.body;
 
@@ -30,7 +57,7 @@ export class MobileAuthController {
       }
 
       // Find user with role information
-      const userRes = await query(
+      const userRes = await query<UserQueryResult>(
         `SELECT u.id, u.name, u.username, u.email, u."passwordHash", u.role, u."roleId", u."employeeId", u.designation, u.department, u."profilePhotoUrl",
                 r.name as "roleName", r.permissions
          FROM users u
@@ -85,23 +112,24 @@ export class MobileAuthController {
       // Simplified authentication - no device validation required
 
       // Generate tokens (simplified - no device ID)
+      // Generate tokens (simplified - no device ID)
       const accessToken = jwt.sign(
         {
           userId: user.id,
           username: user.username,
           role: user.role,
-        } as any,
-        config.jwtSecret as any,
-        { expiresIn: '24h' } as any
+        } as JwtPayload,
+        config.jwtSecret as jwt.Secret,
+        { expiresIn: '24h' }
       );
 
       const refreshToken = jwt.sign(
         {
           userId: user.id,
           type: 'refresh',
-        } as any,
-        config.jwtSecret as any,
-        { expiresIn: '7d' } as any
+        },
+        config.jwtSecret as jwt.Secret,
+        { expiresIn: '7d' }
       );
 
       // Store refresh token (simplified - no device ID)
@@ -114,16 +142,16 @@ export class MobileAuthController {
       let assignedPincodes: number[] = [];
       let assignedAreas: number[] = [];
 
-      if (user.role === 'FIELD_AGENT') {
+      if (user.role === Role.FIELD_AGENT) {
         // Fetch assigned pincodes
-        const pincodesRes = await query(
+        const pincodesRes = await query<UserPincodeRow>(
           'SELECT "pincodeId" FROM "userPincodeAssignments" WHERE "userId" = $1 AND "isActive" = true',
           [user.id]
         );
         assignedPincodes = pincodesRes.rows.map(row => row.pincodeId);
 
         // Fetch assigned areas
-        const areasRes = await query(
+        const areasRes = await query<UserAreaRow>(
           'SELECT "areaId" FROM "userAreaAssignments" WHERE "userId" = $1 AND "isActive" = true',
           [user.id]
         );
@@ -157,7 +185,7 @@ export class MobileAuthController {
             department: user.department,
             profilePhotoUrl: user.profilePhotoUrl,
             // Include field agent assignments for mobile app
-            ...(user.role === 'FIELD_AGENT' && {
+            ...(user.role === Role.FIELD_AGENT && {
               assignedPincodes,
               assignedAreas,
             }),
@@ -184,7 +212,7 @@ export class MobileAuthController {
   }
 
   // Refresh token endpoint
-  static async refreshToken(req: Request, res: Response) {
+  static async refreshToken(this: void, req: Request, res: Response) {
     try {
       const { refreshToken } = req.body;
 
@@ -200,7 +228,9 @@ export class MobileAuthController {
       }
 
       // Verify refresh token
-      const decoded = jwt.verify(refreshToken, config.jwtSecret) as any;
+      const decoded = jwt.verify(refreshToken, config.jwtSecret as jwt.Secret) as JwtPayload & {
+        type?: string;
+      };
 
       // Check if refresh token exists in database
       const storedRes = await query(
@@ -224,14 +254,15 @@ export class MobileAuthController {
       }
 
       // Generate new access token
+      // Generate new access token
       const newAccessToken = jwt.sign(
         {
           userId: storedToken.userId,
           username: storedToken.username,
           role: storedToken.role,
-        } as any,
-        config.jwtSecret as any,
-        { expiresIn: '24h' } as any
+        } as JwtPayload,
+        config.jwtSecret as jwt.Secret,
+        { expiresIn: '24h' }
       );
 
       return res.json({
@@ -255,9 +286,9 @@ export class MobileAuthController {
   }
 
   // Mobile logout
-  static async mobileLogout(req: Request, res: Response) {
+  static async mobileLogout(this: void, req: Request, res: Response) {
     try {
-      const userId = (req as any).user?.userId;
+      const userId = (req as AuthenticatedRequest).user?.id;
 
       // Invalidate all refresh tokens for this user
       await query(`DELETE FROM "refreshTokens" WHERE "userId" = $1`, [userId]);
@@ -289,9 +320,9 @@ export class MobileAuthController {
   }
 
   // Check app version compatibility
-  static checkVersion(req: Request, res: Response) {
+  static checkVersion(this: void, req: Request, res: Response) {
     try {
-      const { currentVersion, platform, buildNumber }: MobileVersionCheckRequest = req.body;
+      const { currentVersion, platform, buildNumber } = req.body as MobileVersionCheckRequest;
 
       const forceUpdate = MobileAuthController.shouldForceUpdate(currentVersion);
       const isVersionSupported = MobileAuthController.isVersionSupported(currentVersion);
@@ -351,7 +382,7 @@ export class MobileAuthController {
       };
 
       // Log version check for analytics
-      console.log(
+      logger.info(
         `📱 Version check: ${currentVersion} -> ${config.mobile.apiVersion} (${platform})`,
         {
           currentVersion,
@@ -380,7 +411,7 @@ export class MobileAuthController {
   }
 
   // Get mobile app configuration
-  static getAppConfig(req: Request, res: Response) {
+  static getAppConfig(this: void, req: Request, res: Response) {
     try {
       const response: MobileAppConfigResponse = {
         apiVersion: config.mobile.apiVersion,
@@ -420,15 +451,15 @@ export class MobileAuthController {
   }
 
   // Register device for push notifications (simplified)
-  static registerNotifications(req: Request, res: Response) {
+  static registerNotifications(this: void, req: Request, res: Response) {
     try {
       const {
         pushToken: _pushToken,
         platform: _platform,
         enabled: _enabled,
         preferences: _preferences,
-      } = req.body;
-      const _userId = (req as any).user?.userId;
+      } = req.body as MobileNotificationRegistrationRequest;
+      const _userId = (req as AuthenticatedRequest).user?.id;
 
       // Store notification preferences in user profile or separate table
       // For now, just return success since we removed device table
@@ -488,7 +519,7 @@ export class MobileAuthController {
   /**
    * Get all devices for a user
    */
-  static async getUserDevices(req: Request, res: Response) {
+  static async getUserDevices(this: void, req: Request, res: Response) {
     try {
       const { userId } = req.params;
 

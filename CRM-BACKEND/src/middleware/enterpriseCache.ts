@@ -1,6 +1,6 @@
-/* eslint-disable @typescript-eslint/unbound-method */
 // Disabled unbound-method rule for this file as it uses method references in middleware
 import type { Request, Response, NextFunction } from 'express';
+import type { AuthenticatedRequest } from './auth';
 import { EnterpriseCacheService, CacheKeys } from '../services/enterpriseCacheService';
 import { logger } from '../config/logger';
 import crypto from 'crypto';
@@ -36,7 +36,7 @@ export class EnterpriseCache {
 
         // Try to get cached response
         const cached = await EnterpriseCacheService.get<{
-          data: any;
+          data: unknown;
           headers: Record<string, string>;
           statusCode: number;
           timestamp: number;
@@ -71,10 +71,10 @@ export class EnterpriseCache {
         }
 
         // Cache miss - intercept response
-        const originalSend = res.json;
-        const originalStatus = res.status;
+        const originalSend = res.json.bind(res);
+        const originalStatus = res.status.bind(res);
         let statusCode = 200;
-        let _responseData: any;
+        let _responseData: unknown;
 
         // Override status method
         res.status = function (code: number) {
@@ -83,7 +83,7 @@ export class EnterpriseCache {
         };
 
         // Override json method to cache response
-        res.json = function (data: any) {
+        res.json = function (data: unknown) {
           _responseData = data;
 
           // Check if we should cache this response
@@ -126,7 +126,7 @@ export class EnterpriseCache {
    * Default cache key generator
    */
   private static defaultKeyGenerator(req: Request, varyBy?: string[]): string {
-    const userId = (req as any).user?.id || 'anonymous';
+    const userId = (req as AuthenticatedRequest).user?.id || 'anonymous';
     const method = req.method;
     const path = req.path;
     const query = JSON.stringify(req.query);
@@ -151,24 +151,26 @@ export class EnterpriseCache {
   static invalidate(patterns: string[]) {
     return (req: Request, res: Response, next: NextFunction) => {
       // Store original end method
-      const originalEnd = res.end;
+      const originalEnd = res.end.bind(res);
 
-      res.end = function (chunk?: any, encoding?: any) {
+      res.end = function (...args: unknown[]): Response {
         // Call original end method
-        const result = originalEnd.call(this, chunk, encoding);
+        const result = originalEnd.apply(res, args);
 
         // Invalidate cache patterns after response is sent
         if (res.statusCode >= 200 && res.statusCode < 300) {
-          setImmediate(async () => {
-            try {
-              for (const pattern of patterns) {
-                const resolvedPattern = EnterpriseCache.resolvePattern(pattern, req);
-                await EnterpriseCacheService.clearByPattern(resolvedPattern);
-                logger.debug('Cache invalidated', { pattern: resolvedPattern });
+          setImmediate(() => {
+            void (async () => {
+              try {
+                for (const pattern of patterns) {
+                  const resolvedPattern = EnterpriseCache.resolvePattern(pattern, req);
+                  await EnterpriseCacheService.clearByPattern(resolvedPattern);
+                  logger.debug('Cache invalidated', { pattern: resolvedPattern });
+                }
+              } catch (error) {
+                logger.error('Cache invalidation error:', error);
               }
-            } catch (error) {
-              logger.error('Cache invalidation error:', error);
-            }
+            })();
           });
         }
 
@@ -184,7 +186,7 @@ export class EnterpriseCache {
    */
   private static resolvePattern(pattern: string, req: Request): string {
     return pattern
-      .replace('{userId}', (req as any).user?.id || '*')
+      .replace('{userId}', (req as AuthenticatedRequest).user?.id || '*')
       .replace('{caseId}', req.params.id || req.params.caseId || '*')
       .replace('{method}', req.method);
   }
@@ -212,7 +214,7 @@ export class EnterpriseCache {
   static async warmCache(
     warmingTasks: Array<{
       key: string;
-      fetcher: () => Promise<any>;
+      fetcher: () => Promise<unknown>;
       ttl: number;
     }>
   ): Promise<void> {
@@ -245,8 +247,9 @@ export class EnterpriseCache {
       const stats = await EnterpriseCacheService.getStats();
 
       // Extract cache statistics (simplified)
-      const keyspaceHits = stats.keyspace?.keyspace_hits || 0;
-      const keyspaceMisses = stats.keyspace?.keyspace_misses || 0;
+      const keyspace = stats.keyspace as Record<string, number> | undefined;
+      const keyspaceHits = keyspace?.keyspace_hits || 0;
+      const keyspaceMisses = keyspace?.keyspace_misses || 0;
       const totalRequests = keyspaceHits + keyspaceMisses;
       const hitRate = totalRequests > 0 ? keyspaceHits / totalRequests : 0;
 
@@ -273,7 +276,7 @@ export const EnterpriseCacheConfigs = {
   // User data caching - INCREASED TTL
   userData: {
     ttl: 1800, // 30 minutes (users don't change frequently)
-    keyGenerator: (req: Request) => CacheKeys.user((req as any).user?.id),
+    keyGenerator: (req: Request) => CacheKeys.user((req as AuthenticatedRequest).user?.id),
     condition: (req: Request) => req.method === 'GET',
   },
 
@@ -281,7 +284,7 @@ export const EnterpriseCacheConfigs = {
   caseList: {
     ttl: 300, // 5 minutes (was 1 minute - too aggressive)
     keyGenerator: (req: Request) => {
-      const userId = (req as any).user?.id;
+      const userId = (req as AuthenticatedRequest).user?.id;
       const page = req.query.page || 1;
       const filters = JSON.stringify(req.query);
       return `${CacheKeys.userCases(userId, Number(page))}:${crypto.createHash('md5').update(filters).digest('hex')}`;
@@ -315,7 +318,7 @@ export const EnterpriseCacheConfigs = {
   // Mobile sync data caching - INCREASED TTL
   mobileSync: {
     ttl: 120, // 2 minutes (was 30 seconds - too aggressive)
-    keyGenerator: (req: Request) => CacheKeys.mobileSync((req as any).user?.id),
+    keyGenerator: (req: Request) => CacheKeys.mobileSync((req as AuthenticatedRequest).user?.id),
     condition: (req: Request) => req.method === 'GET',
   },
 

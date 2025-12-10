@@ -43,7 +43,7 @@ export function BulkImportDialog({ open, onOpenChange, type }: BulkImportDialogP
       setUploadProgress(0);
       onOpenChange(false);
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error(error.response?.data?.message || `Failed to import ${type}`);
       setUploadProgress(0);
     },

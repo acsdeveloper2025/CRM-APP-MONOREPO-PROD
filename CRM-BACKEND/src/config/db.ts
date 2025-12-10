@@ -1,4 +1,5 @@
 import { Pool, type PoolClient, type QueryResult } from 'pg';
+import type { QueryParams } from '@/types/database';
 import { logger } from './logger';
 
 const connectionString = process.env.DATABASE_URL;
@@ -44,7 +45,11 @@ logger.info('Database pool configured for enterprise scale', {
   maxCapacity: '500 connections',
 });
 
-export const query = async <T = any>(text: string, params: any[] = []): Promise<QueryResult<T>> => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const query = async <T = any>(
+  text: string,
+  params: QueryParams = []
+): Promise<QueryResult<T>> => {
   return pool.query<T>(text, params);
 };
 

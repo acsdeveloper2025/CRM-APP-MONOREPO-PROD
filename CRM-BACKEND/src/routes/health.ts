@@ -30,7 +30,7 @@ interface ServiceHealth {
   status: 'OK' | 'DEGRADED' | 'ERROR';
   responseTime?: string;
   message?: string;
-  details?: any;
+  details?: Record<string, unknown>;
 }
 
 /**
@@ -60,7 +60,7 @@ router.get('/health/detailed', async (req, res) => {
     const [database, redis, memory, disk, performanceMetrics] = await Promise.allSettled([
       checkDatabase(),
       checkRedis(),
-      checkMemory(),
+      Promise.resolve(checkMemory()),
       checkDisk(),
       getPerformanceMetrics(),
     ]);
@@ -84,8 +84,7 @@ router.get('/health/detailed', async (req, res) => {
           : { status: 'ERROR' as const, message: disk.reason?.message },
     };
 
-    // eslint-disable-next-line camelcase
-    const performance_data =
+    const performanceData =
       performanceMetrics.status === 'fulfilled' ? performanceMetrics.value : null;
 
     // Determine overall status
@@ -106,8 +105,7 @@ router.get('/health/detailed', async (req, res) => {
       version: process.env.npm_package_version || '1.0.0',
       environment: process.env.NODE_ENV || 'development',
       services,
-      // eslint-disable-next-line camelcase
-      performance: performance_data,
+      performance: performanceData,
     };
 
     const statusCode = overallStatus === 'ERROR' ? 503 : overallStatus === 'DEGRADED' ? 200 : 200;
@@ -298,7 +296,11 @@ async function checkDisk(): Promise<ServiceHealth> {
 /**
  * Get performance metrics
  */
-async function getPerformanceMetrics(): Promise<any> {
+async function getPerformanceMetrics(): Promise<{
+  avgResponseTime: number;
+  errorRate: number;
+  requestCount: number;
+} | null> {
   try {
     const result = await query(`
       SELECT 

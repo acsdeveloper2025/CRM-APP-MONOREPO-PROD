@@ -28,7 +28,7 @@ export function ProductDetailsDialog({ product, open, onOpenChange }: ProductDet
   });
 
   // Note: Product details are independent of a specific client; verification types vary per client-product mapping.
-  const verificationTypes = { data: product.verificationTypes || [] } as any;
+  const verificationTypes = { data: product.verificationTypes || [] } as unknown;
 
   const productData = productDetails?.data || product;
   const types = verificationTypes?.data || [];

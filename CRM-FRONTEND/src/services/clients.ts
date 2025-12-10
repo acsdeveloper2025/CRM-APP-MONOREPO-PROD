@@ -130,7 +130,7 @@ export class ClientsService {
   }
 
   // Bulk operations
-  async bulkImportClients(file: File): Promise<ApiResponse<any>> {
+  async bulkImportClients(file: File): Promise<ApiResponse<unknown>> {
     const formData = new FormData();
     formData.append('file', file);
     
@@ -146,7 +146,7 @@ export class ClientsService {
     return response.json();
   }
 
-  async bulkImportProducts(file: File): Promise<ApiResponse<any>> {
+  async bulkImportProducts(file: File): Promise<ApiResponse<unknown>> {
     const formData = new FormData();
     formData.append('file', file);
     

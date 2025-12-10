@@ -258,7 +258,7 @@ export interface ActiveFiltersDisplayProps {
   /**
    * Active filters as key-value pairs
    */
-  filters: Record<string, any>;
+  filters: Record<string, unknown>;
   
   /**
    * Callback to remove a specific filter
@@ -273,7 +273,7 @@ export interface ActiveFiltersDisplayProps {
   /**
    * Optional value formatter for filter values
    */
-  formatValue?: (key: string, value: any) => string;
+  formatValue?: (key: string, value: unknown) => string;
   
   /**
    * Additional CSS classes

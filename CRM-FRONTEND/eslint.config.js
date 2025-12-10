@@ -38,8 +38,8 @@ export default tseslint.config(
       },
     },
     rules: {
-      // TypeScript specific rules
-      '@typescript-eslint/no-explicit-any': 'warn',
+      // TypeScript specific rules - STRICT MODE ENABLED
+      '@typescript-eslint/no-explicit-any': 'error', // Changed from 'warn' to 'error'
       '@typescript-eslint/no-unused-vars': ['error', {
         argsIgnorePattern: '^_',
         varsIgnorePattern: '^_',
@@ -47,7 +47,7 @@ export default tseslint.config(
       }],
       '@typescript-eslint/explicit-function-return-type': 'off',
       '@typescript-eslint/explicit-module-boundary-types': 'off',
-      '@typescript-eslint/no-non-null-assertion': 'warn',
+      '@typescript-eslint/no-non-null-assertion': 'error', // Changed from 'warn' to 'error'
 
       // React specific rules
       'react/react-in-jsx-scope': 'off', // Not needed in React 17+
@@ -65,9 +65,9 @@ export default tseslint.config(
       'react/no-unknown-property': 'error',
       'react/self-closing-comp': 'warn',
 
-      // React Hooks rules
+      // React Hooks rules - STRICT MODE ENABLED
       'react-hooks/rules-of-hooks': 'error',
-      'react-hooks/exhaustive-deps': 'warn',
+      'react-hooks/exhaustive-deps': 'error', // Changed from 'warn' to 'error'
 
       // React Refresh rules
       'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],

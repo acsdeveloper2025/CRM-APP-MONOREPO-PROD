@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Send, Activity, BarChart3, Wifi, WifiOff, TestTube } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -65,9 +65,9 @@ export function NotificationTestingDashboard() {
 
   const loadConnectivityStatus = async () => {
     try {
-      const response = await apiService.get('/notifications/test/connectivity');
+      const response = await apiService.get<ConnectivityStatus>('/notifications/test/connectivity');
       if (response.success) {
-        setConnectivity(response.data);
+        setConnectivity(response.data || null);
       }
     } catch (error) {
       console.error('Failed to load connectivity status:', error);
@@ -76,9 +76,9 @@ export function NotificationTestingDashboard() {
 
   const loadAnalytics = async () => {
     try {
-      const response = await apiService.get('/notifications/analytics');
+      const response = await apiService.get<NotificationAnalytics>('/notifications/analytics');
       if (response.success) {
-        setAnalytics(response.data);
+        setAnalytics(response.data || null);
       }
     } catch (error) {
       console.error('Failed to load analytics:', error);

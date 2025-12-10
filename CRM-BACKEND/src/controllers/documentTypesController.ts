@@ -1,6 +1,3 @@
-/* eslint-disable @typescript-eslint/restrict-template-expressions */
-/* eslint-disable @typescript-eslint/no-base-to-string */
-// Disabled template expression rules for document types controller as it handles query params in template literals
 import type { Response } from 'express';
 import type { AuthenticatedRequest } from '../middleware/auth';
 import { logger } from '../utils/logger';
@@ -24,11 +21,11 @@ export const getDocumentTypes = async (req: AuthenticatedRequest, res: Response)
 
     const offset = (Number(page) - 1) * Number(limit);
     const conditions: string[] = [];
-    const params: any[] = [];
+    const params: (string | number | boolean)[] = [];
     let paramIndex = 1;
 
     // Build WHERE conditions
-    if (search) {
+    if (search && typeof search === 'string') {
       conditions.push(
         `(COALESCE(dt.name, '') ILIKE $${paramIndex} OR COALESCE(dt.code, '') ILIKE $${paramIndex} OR COALESCE(dt.description, '') ILIKE $${paramIndex})`
       );
@@ -38,25 +35,33 @@ export const getDocumentTypes = async (req: AuthenticatedRequest, res: Response)
 
     if (category) {
       conditions.push(`dt.category = $${paramIndex}`);
-      params.push(category);
+      params.push(category as string);
       paramIndex++;
     }
 
     if (isActive !== undefined) {
       conditions.push(`dt.is_active = $${paramIndex}`);
-      params.push(String(isActive) === 'true');
+      params.push(typeof isActive === 'string' ? isActive === 'true' : Boolean(isActive));
       paramIndex++;
     }
 
     if (isGovernmentIssued !== undefined) {
       conditions.push(`dt.is_government_issued = $${paramIndex}`);
-      params.push(String(isGovernmentIssued) === 'true');
+      params.push(
+        typeof isGovernmentIssued === 'string'
+          ? isGovernmentIssued === 'true'
+          : Boolean(isGovernmentIssued)
+      );
       paramIndex++;
     }
 
     if (requiresVerification !== undefined) {
       conditions.push(`dt.requires_verification = $${paramIndex}`);
-      params.push(String(requiresVerification) === 'true');
+      params.push(
+        typeof requiresVerification === 'string'
+          ? requiresVerification === 'true'
+          : Boolean(requiresVerification)
+      );
       paramIndex++;
     }
 
@@ -71,8 +76,10 @@ export const getDocumentTypes = async (req: AuthenticatedRequest, res: Response)
       'created_at',
       'updated_at',
     ];
-    const sortField = allowedSortFields.includes(String(sortBy)) ? String(sortBy) : 'sort_order';
-    const sortDirection = String(sortOrder).toLowerCase() === 'desc' ? 'DESC' : 'ASC';
+    const sortByStr = typeof sortBy === 'string' ? sortBy : 'sort_order';
+    const sortOrderStr = typeof sortOrder === 'string' ? sortOrder : 'asc';
+    const sortField: string = allowedSortFields.includes(sortByStr) ? sortByStr : 'sort_order';
+    const sortDirection: 'ASC' | 'DESC' = sortOrderStr.toLowerCase() === 'desc' ? 'DESC' : 'ASC';
 
     // Get total count
     const countQuery = `
@@ -358,7 +365,7 @@ export const updateDocumentType = async (req: AuthenticatedRequest, res: Respons
 
     // Build update query dynamically
     const updateFields: string[] = [];
-    const updateValues: any[] = [];
+    const updateValues: (string | number | boolean | null)[] = [];
     let paramIndex = 1;
 
     const fieldMappings: Record<string, string> = {

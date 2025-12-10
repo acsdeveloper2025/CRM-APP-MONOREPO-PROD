@@ -1,7 +1,6 @@
-/* eslint-disable @typescript-eslint/no-unsafe-enum-comparison */
-// Disabled unsafe enum comparison rule for cases controller as it compares enum values from database
 import type { Response } from 'express';
 import type { AuthenticatedRequest } from '../middleware/auth';
+import { Role } from '../types/auth';
 import { logger } from '../utils/logger';
 import { pool } from '../config/database';
 import { EnterpriseCacheService, CacheKeys } from '../services/enterpriseCacheService';
@@ -9,6 +8,17 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import ExcelJS from 'exceljs';
+import { QueryParams, CaseRow } from '../types/database';
+import { CreateCaseRequest } from '../types/cases';
+
+interface DatabaseError extends Error {
+  code?: string;
+  constraint?: string;
+  detail?: string;
+  hint?: string;
+  column?: string;
+  stack?: string;
+}
 
 // Mock data removed - using database operations only
 
@@ -43,7 +53,11 @@ const storage = multer.diskStorage({
   },
 });
 
-const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+const fileFilter = (
+  req: AuthenticatedRequest,
+  file: Express.Multer.File,
+  cb: multer.FileFilterCallback
+) => {
   const extension = path.extname(file.originalname).toLowerCase();
   const mimeType = file.mimetype.toLowerCase();
 
@@ -111,14 +125,14 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
 
     // Build WHERE conditions
     const conditions: string[] = [];
-    const params: any[] = [];
+    const params: QueryParams = [];
     let paramIndex = 1;
 
     // Role-based filtering - FIELD_AGENT users can only see cases with their assigned tasks
     const userRole = req.user?.role;
     const userId = req.user?.id;
 
-    if (userRole === 'FIELD_AGENT') {
+    if (userRole === Role.FIELD_AGENT) {
       // Filter by task-level assignment AND pincode/area assignments
       // FIELD_AGENT can see cases if:
       // 1. They are assigned to a verification task in the case, OR
@@ -126,8 +140,8 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
       const { getAssignedPincodeIds } = await import('@/middleware/pincodeAccess');
       const { getAssignedAreaIds } = await import('@/middleware/areaAccess');
 
-      const assignedPincodeIds = await getAssignedPincodeIds(userId!, userRole);
-      const assignedAreaIds = await getAssignedAreaIds(userId!, userRole);
+      const assignedPincodeIds = await getAssignedPincodeIds(userId, userRole);
+      const assignedAreaIds = await getAssignedAreaIds(userId, userRole);
 
       // Build complex filter: (assigned to task) OR (task in assigned pincode/area)
       const fieldAgentConditions: string[] = [];
@@ -170,13 +184,13 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
         // No assignments, show nothing
         conditions.push('FALSE');
       }
-    } else if (userRole === 'BACKEND_USER') {
+    } else if (userRole === Role.BACKEND_USER) {
       // Filter by client and product assignments for BACKEND_USER
       const { getAssignedClientIds } = await import('@/middleware/clientAccess');
       const { getAssignedProductIds } = await import('@/middleware/productAccess');
 
-      const assignedClientIds = await getAssignedClientIds(userId!, userRole);
-      const assignedProductIds = await getAssignedProductIds(userId!, userRole);
+      const assignedClientIds = await getAssignedClientIds(userId, userRole);
+      const assignedProductIds = await getAssignedProductIds(userId, userRole);
 
       // If user has client assignments, filter by them
       if (assignedClientIds && assignedClientIds.length > 0) {
@@ -204,14 +218,14 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
         WHERE vt.case_id = c.id
         AND vt.assigned_to = $${paramIndex}
       )`);
-      params.push(assignedTo);
+      params.push(assignedTo as string);
       paramIndex++;
     }
 
     // Status filter
     if (status) {
       conditions.push(`c.status = $${paramIndex}`);
-      params.push(status);
+      params.push(status as string);
       paramIndex++;
     }
 
@@ -241,20 +255,20 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
     // Priority filter
     if (priority) {
       conditions.push(`c.priority = $${paramIndex}`);
-      params.push(priority);
+      params.push(priority as string);
       paramIndex++;
     }
 
     // Date range filter
     if (dateFrom) {
       conditions.push(`c."createdAt" >= $${paramIndex}`);
-      params.push(dateFrom);
+      params.push(dateFrom as string);
       paramIndex++;
     }
 
     if (dateTo) {
       conditions.push(`c."createdAt" <= $${paramIndex}`);
-      params.push(dateTo);
+      params.push(dateTo as string);
       paramIndex++;
     }
 
@@ -399,7 +413,7 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
     const totalPages = Math.ceil(total / parseInt(limit as string));
 
     // Transform data to match frontend expectations
-    const transformedData = casesResult.rows.map((row: any) => ({
+    const transformedData = casesResult.rows.map((row: CaseRow & Record<string, unknown>) => ({
       ...row,
       // Provide flat fields for frontend compatibility
       clientName: row.clientName,
@@ -505,7 +519,7 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
 export const getCaseById = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { id } = req.params;
-    console.log('DEBUG: getCaseById called with id:', id);
+    logger.info(`getCaseById called with id: ${id}`);
 
     // Check if id is numeric (caseId) or UUID (id)
     const isNumeric = /^\d+$/.test(id);
@@ -565,15 +579,15 @@ export const getCaseById = async (req: AuthenticatedRequest, res: Response) => {
       WHERE ${isNumeric ? 'c."caseId" = $1' : 'c.id = $1'}
     `;
 
-    const queryParams = [isNumeric ? parseInt(id) : id];
+    const queryParams: QueryParams = [isNumeric ? parseInt(id) : id];
 
     // Add role-based filtering for FIELD_AGENT - filter by task-level assignment AND pincode/area
-    if (userRole === 'FIELD_AGENT') {
+    if (userRole === Role.FIELD_AGENT) {
       const { getAssignedPincodeIds } = await import('@/middleware/pincodeAccess');
       const { getAssignedAreaIds } = await import('@/middleware/areaAccess');
 
-      const assignedPincodeIds = await getAssignedPincodeIds(userId!, userRole);
-      const assignedAreaIds = await getAssignedAreaIds(userId!, userRole);
+      const assignedPincodeIds = await getAssignedPincodeIds(userId, userRole);
+      const assignedAreaIds = await getAssignedAreaIds(userId, userRole);
 
       // Build complex filter: (assigned to task) OR (task in assigned pincode/area)
       const fieldAgentConditions: string[] = [];
@@ -595,7 +609,7 @@ export const getCaseById = async (req: AuthenticatedRequest, res: Response) => {
           WHERE vt.case_id = c.id
           AND vt.pincode_id = ANY($${paramIndex}::int[])
         )`);
-        queryParams.push(assignedPincodeIds as any);
+        queryParams.push(assignedPincodeIds);
         paramIndex++;
       }
 
@@ -606,7 +620,7 @@ export const getCaseById = async (req: AuthenticatedRequest, res: Response) => {
           WHERE vt.case_id = c.id
           AND vt.area_id = ANY($${paramIndex}::int[])
         )`);
-        queryParams.push(assignedAreaIds as any);
+        queryParams.push(assignedAreaIds);
         paramIndex++;
       }
 
@@ -621,18 +635,18 @@ export const getCaseById = async (req: AuthenticatedRequest, res: Response) => {
           error: { code: 'NO_TERRITORY_ACCESS' },
         });
       }
-    } else if (userRole === 'BACKEND_USER') {
+    } else if (userRole === Role.BACKEND_USER) {
       // Filter by client and product assignments for BACKEND_USER
       const { getAssignedClientIds } = await import('@/middleware/clientAccess');
       const { getAssignedProductIds } = await import('@/middleware/productAccess');
 
-      const assignedClientIds = await getAssignedClientIds(userId!, userRole);
-      const assignedProductIds = await getAssignedProductIds(userId!, userRole);
+      const assignedClientIds = await getAssignedClientIds(userId, userRole);
+      const assignedProductIds = await getAssignedProductIds(userId, userRole);
 
       // Check if user has access to this case's client and product
       if (assignedClientIds && assignedClientIds.length > 0) {
         caseQuery += ` AND c."clientId" = ANY($${queryParams.length + 1}::int[])`;
-        queryParams.push(assignedClientIds as any);
+        queryParams.push(assignedClientIds);
       } else if (assignedClientIds && assignedClientIds.length === 0) {
         // User has no client assignments, deny access
         return res.status(403).json({
@@ -644,7 +658,7 @@ export const getCaseById = async (req: AuthenticatedRequest, res: Response) => {
 
       if (assignedProductIds && assignedProductIds.length > 0) {
         caseQuery += ` AND c."productId" = ANY($${queryParams.length + 1}::int[])`;
-        queryParams.push(assignedProductIds as any);
+        queryParams.push(assignedProductIds);
       } else if (assignedProductIds && assignedProductIds.length === 0) {
         // User has no product assignments, deny access
         return res.status(403).json({
@@ -659,7 +673,7 @@ export const getCaseById = async (req: AuthenticatedRequest, res: Response) => {
 
     if (result.rows.length === 0) {
       const message =
-        userRole === 'FIELD_AGENT'
+        userRole === Role.FIELD_AGENT
           ? 'Case not found or access denied. You can only view cases assigned to you.'
           : 'Case not found';
 
@@ -782,7 +796,7 @@ export const updateCase = async (req: AuthenticatedRequest, res: Response) => {
 
     // Build dynamic update query for cases table
     const updateFields: string[] = [];
-    const values: any[] = [];
+    const values: QueryParams = [];
     let paramIndex = 1;
 
     if (customerName !== undefined) {
@@ -866,7 +880,7 @@ export const updateCase = async (req: AuthenticatedRequest, res: Response) => {
 
       logger.info('📝 Executing cases table update', {
         query: updateQuery,
-        values: values.map((v, i) => `$${i + 1} = ${v}`),
+        values: values.map((v, i) => `$${i + 1} = ${String(v)}`),
       });
 
       const result = await pool.query(updateQuery, values);
@@ -891,7 +905,7 @@ export const updateCase = async (req: AuthenticatedRequest, res: Response) => {
       });
 
       const taskUpdateFields: string[] = [];
-      const taskValues: any[] = [];
+      const taskValues: QueryParams = [];
       let taskParamIndex = 1;
 
       if (assignedToId !== undefined) {
@@ -942,7 +956,7 @@ export const updateCase = async (req: AuthenticatedRequest, res: Response) => {
 
         logger.info('📝 Executing verification_tasks table update', {
           query: taskUpdateQuery,
-          values: taskValues.map((v, i) => `$${i + 1} = ${v}`),
+          values: taskValues.map((v, i) => `$${i + 1} = ${String(v)}`),
           whereClause,
           taskId,
         });
@@ -1226,6 +1240,11 @@ export const exportCases = async (req: AuthenticatedRequest, res: Response) => {
       search,
       assignedTo,
       clientId,
+      productId,
+      verificationTypeId,
+      stateId,
+      cityId,
+      pincodeId,
       priority,
       dateFrom,
       dateTo,
@@ -1234,7 +1253,7 @@ export const exportCases = async (req: AuthenticatedRequest, res: Response) => {
 
     // Build the query based on filters
     const whereConditions: string[] = [];
-    const queryParams: any[] = [];
+    const queryParams: QueryParams = [];
     let paramIndex = 1;
 
     // Filter by export type (status)
@@ -1251,7 +1270,7 @@ export const exportCases = async (req: AuthenticatedRequest, res: Response) => {
     // Additional filters
     if (status && status !== 'all') {
       whereConditions.push(`c.status = $${paramIndex}`);
-      queryParams.push(status);
+      queryParams.push(status as string);
       paramIndex++;
     }
 
@@ -1269,36 +1288,55 @@ export const exportCases = async (req: AuthenticatedRequest, res: Response) => {
 
     if (assignedTo) {
       whereConditions.push(`c."assignedToId" = $${paramIndex}`);
-      queryParams.push(assignedTo);
+      queryParams.push(assignedTo as string);
       paramIndex++;
     }
 
     if (clientId) {
-      // Convert clientId to client name by looking up in clients table
-      const client = await pool.connect();
-      try {
-        const clientRes = await client.query('SELECT name FROM clients WHERE id = $1', [
-          parseInt(clientId as string),
-        ]);
-        if (clientRes.rows.length > 0) {
-          whereConditions.push(`c."client" = $${paramIndex}`);
-          queryParams.push(clientRes.rows[0].name);
-          paramIndex++;
-        }
-      } finally {
-        client.release();
-      }
+      whereConditions.push(`c."clientId" = $${paramIndex}`);
+      queryParams.push(clientId as string);
+      paramIndex++;
+    }
+
+    if (productId) {
+      whereConditions.push(`c."productId" = $${paramIndex}`);
+      queryParams.push(productId as string);
+      paramIndex++;
+    }
+
+    if (verificationTypeId) {
+      whereConditions.push(`c."verificationTypeId" = $${paramIndex}`);
+      queryParams.push(verificationTypeId as string);
+      paramIndex++;
+    }
+
+    if (stateId) {
+      whereConditions.push(`c."stateId" = $${paramIndex}`);
+      queryParams.push(stateId as string);
+      paramIndex++;
+    }
+
+    if (cityId) {
+      whereConditions.push(`c."cityId" = $${paramIndex}`);
+      queryParams.push(cityId as string);
+      paramIndex++;
+    }
+
+    if (pincodeId) {
+      whereConditions.push(`c."pincodeId" = $${paramIndex}`);
+      queryParams.push(pincodeId as string);
+      paramIndex++;
     }
 
     if (priority) {
       whereConditions.push(`c.priority = $${paramIndex}`);
-      queryParams.push(priority);
+      queryParams.push(priority as string);
       paramIndex++;
     }
 
     if (dateFrom) {
       whereConditions.push(`c."createdAt" >= $${paramIndex}`);
-      queryParams.push(dateFrom);
+      queryParams.push(dateFrom as string);
       paramIndex++;
     }
 
@@ -1417,8 +1455,9 @@ export const exportCases = async (req: AuthenticatedRequest, res: Response) => {
     };
 
     // Add data rows
-    cases.forEach((caseItem: any) => {
-      const rowData: any = {
+    // Add data rows
+    cases.forEach((caseItem: Record<string, unknown>) => {
+      const rowData: Record<string, unknown> = {
         case_id: caseItem.case_id,
         customer_name: caseItem.customer_name,
         customer_phone: caseItem.customer_phone,
@@ -1430,13 +1469,19 @@ export const exportCases = async (req: AuthenticatedRequest, res: Response) => {
         assigned_to_name: caseItem.assigned_to_name || 'Unassigned',
         address: caseItem.address,
         pincode: caseItem.pincode,
-        created_at: caseItem.created_at ? new Date(caseItem.created_at).toLocaleString() : '',
-        updated_at: caseItem.updated_at ? new Date(caseItem.updated_at).toLocaleString() : '',
-        completed_at: caseItem.completed_at ? new Date(caseItem.completed_at).toLocaleString() : '',
+        created_at: caseItem.created_at
+          ? new Date(caseItem.created_at as string).toLocaleString()
+          : '',
+        updated_at: caseItem.updated_at
+          ? new Date(caseItem.updated_at as string).toLocaleString()
+          : '',
+        completed_at: caseItem.completed_at
+          ? new Date(caseItem.completed_at as string).toLocaleString()
+          : '',
         verification_outcome: caseItem.verification_outcome || '',
         created_by_backend_user_name: caseItem.created_by_backend_user_name || 'Unknown',
         pending_duration_hours: caseItem.pending_duration_seconds
-          ? Math.round((caseItem.pending_duration_seconds / 3600) * 100) / 100
+          ? Math.round(((caseItem.pending_duration_seconds as number) / 3600) * 100) / 100
           : '',
       };
 
@@ -1742,11 +1787,12 @@ export const createCase = [
       try {
         client = await pool.connect();
         clearTimeout(connectionTimeout);
-      } catch (connError: any) {
+      } catch (connError: unknown) {
         clearTimeout(connectionTimeout);
+        const err = connError as DatabaseError;
         logger.error('Failed to acquire database connection:', {
-          error: connError.message,
-          code: connError.code,
+          error: err.message,
+          code: err.code,
           userId: req.user?.id,
         });
         await cleanupFiles();
@@ -1776,14 +1822,14 @@ export const createCase = [
       }
 
       // ========== PARSE AND VALIDATE REQUEST DATA ==========
-      let requestData: any;
+      let requestData: CreateCaseRequest;
       try {
         if (req.body.data) {
           // FormData format (with file uploads)
           requestData = JSON.parse(req.body.data);
         } else {
           // JSON format (no file uploads)
-          requestData = req.body;
+          requestData = req.body as CreateCaseRequest;
         }
 
         // Log the parsed request data for debugging
@@ -1796,11 +1842,12 @@ export const createCase = [
             ? Object.keys(requestData.verification_tasks[0])
             : [],
         });
-      } catch (parseError: any) {
+      } catch (parseError: unknown) {
         await client.query('ROLLBACK');
         await cleanupFiles();
+        const err = parseError as DatabaseError;
         logger.error('Failed to parse request data:', {
-          error: parseError.message,
+          error: err.message,
           userId,
           bodyKeys: Object.keys(req.body),
         });
@@ -1811,14 +1858,12 @@ export const createCase = [
         });
       }
 
-      // eslint-disable-next-line camelcase
-      const { case_details, verification_tasks } = requestData;
+      const { case_details: caseDetails, verification_tasks: verificationTasks } = requestData;
 
       // ========== COMPREHENSIVE VALIDATION ==========
 
       // Validate case_details
-      // eslint-disable-next-line camelcase
-      if (!case_details || typeof case_details !== 'object') {
+      if (!caseDetails || typeof caseDetails !== 'object') {
         await client.query('ROLLBACK');
         await cleanupFiles();
         return res.status(400).json({
@@ -1829,14 +1874,10 @@ export const createCase = [
       }
 
       // Validate verification_tasks
-      // eslint-disable-next-line camelcase
       if (
-        // eslint-disable-next-line camelcase
-        !verification_tasks ||
-        // eslint-disable-next-line camelcase
-        !Array.isArray(verification_tasks) ||
-        // eslint-disable-next-line camelcase
-        verification_tasks.length === 0
+        !verificationTasks ||
+        !Array.isArray(verificationTasks) ||
+        verificationTasks.length === 0
       ) {
         await client.query('ROLLBACK');
         await cleanupFiles();
@@ -1848,8 +1889,7 @@ export const createCase = [
       }
 
       // Limit maximum tasks per case to prevent abuse
-      // eslint-disable-next-line camelcase
-      if (verification_tasks.length > 50) {
+      if (verificationTasks.length > 50) {
         await client.query('ROLLBACK');
         await cleanupFiles();
         return res.status(400).json({
@@ -1859,7 +1899,6 @@ export const createCase = [
         });
       }
 
-      // eslint-disable-next-line camelcase
       const {
         customerName,
         customerPhone,
@@ -1872,8 +1911,7 @@ export const createCase = [
         deduplicationDecision: _deduplicationDecision,
         deduplicationRationale: _deduplicationRationale,
         panNumber: _panNumber,
-        // eslint-disable-next-line camelcase
-      } = case_details;
+      } = caseDetails;
 
       // Validate required fields with specific error messages
       const validationErrors: string[] = [];
@@ -1935,10 +1973,8 @@ export const createCase = [
       }
 
       // Validate each task
-      // eslint-disable-next-line camelcase
-      for (let i = 0; i < verification_tasks.length; i++) {
-        // eslint-disable-next-line camelcase
-        const task = verification_tasks[i];
+      for (let i = 0; i < verificationTasks.length; i++) {
+        const task = verificationTasks[i];
         if (!task.verification_type_id) {
           await client.query('ROLLBACK');
           await cleanupFiles();
@@ -1958,7 +1994,7 @@ export const createCase = [
       // ========== CLIENT ACCESS & ENTITY VALIDATION ==========
       try {
         // Validate client access
-        if (userRole !== 'ADMIN' && userRole !== 'SUPER_ADMIN') {
+        if (userRole !== Role.ADMIN && userRole !== Role.SUPER_ADMIN) {
           const clientAccessQuery = `
             SELECT 1 FROM user_client_access
             WHERE "userId" = $1 AND "clientId" = $2
@@ -2028,12 +2064,13 @@ export const createCase = [
             error: { code: 'INACTIVE_PRODUCT', productId },
           });
         }
-      } catch (validationError: any) {
+      } catch (validationError: unknown) {
         await client.query('ROLLBACK');
         await cleanupFiles();
+        const err = validationError as DatabaseError;
         logger.error('Entity validation error:', {
-          error: validationError.message,
-          code: validationError.code,
+          error: err.message,
+          code: err.code,
           userId,
           clientId,
           productId,
@@ -2047,8 +2084,7 @@ export const createCase = [
 
       // ========== CREATE CASE ==========
 
-      // eslint-disable-next-line camelcase
-      const firstTask = verification_tasks[0];
+      const firstTask = verificationTasks[0];
       const firstTaskVerificationTypeId = firstTask.verification_type_id;
       const firstTaskPincode = firstTask.pincode;
       const firstTaskTrigger =
@@ -2083,10 +2119,8 @@ export const createCase = [
         backendContactNumber || customerPhone,
         'PENDING',
         userId,
-        // eslint-disable-next-line camelcase
-        verification_tasks.length > 1,
-        // eslint-disable-next-line camelcase
-        verification_tasks.length,
+        verificationTasks.length > 1,
+        verificationTasks.length,
         0,
         0.0,
       ];
@@ -2098,8 +2132,7 @@ export const createCase = [
         caseId: newCase.id,
         caseNumber: newCase.caseId,
         customerName,
-        // eslint-disable-next-line camelcase
-        tasksCount: verification_tasks.length,
+        tasksCount: verificationTasks.length,
         userId,
       });
 
@@ -2108,39 +2141,33 @@ export const createCase = [
       const createdTasks = [];
       let totalEstimatedAmount = 0;
 
-      // eslint-disable-next-line camelcase
-      for (let i = 0; i < verification_tasks.length; i++) {
-        // eslint-disable-next-line camelcase
-        const taskData = verification_tasks[i];
+      for (let i = 0; i < verificationTasks.length; i++) {
+        const taskData = verificationTasks[i];
         const {
-          verification_type_id,
-          task_title,
-          task_description,
+          verification_type_id: verificationTypeId,
+          task_title: taskTitle,
+          task_description: taskDescription,
           priority: taskPriority = 'MEDIUM',
-          assigned_to,
+          assigned_to: assignedToId,
           assignedTo,
-          rate_type_id,
-          estimated_amount,
+          rate_type_id: rateTypeId,
+          estimated_amount: estimatedAmount,
           address: taskAddress,
           pincode: taskPincode,
           trigger: taskTrigger,
-          document_type,
-          document_number,
-          document_details,
-          estimated_completion_date,
-          applicant_type,
+          document_type: documentType,
+          document_number: documentNumber,
+          document_details: documentDetails,
+          estimated_completion_date: estimatedCompletionDate,
+          applicant_type: applicantTypeSnake,
           applicantType,
-          attachment_keys,
+          attachment_keys: attachmentKeys,
         } = taskData;
 
-        // eslint-disable-next-line camelcase
-        const taskAssignedTo = assignedTo || assigned_to;
-        // eslint-disable-next-line camelcase
-        const taskApplicantType = applicantType || applicant_type;
-        // eslint-disable-next-line camelcase
-        const finalTaskTitle = task_title || `Verification Task ${i + 1}`;
-        // eslint-disable-next-line camelcase
-        const finalTaskDescription = task_description || taskTrigger || 'Verification required';
+        const taskAssignedTo = assignedTo || assignedToId;
+        const taskApplicantType = applicantType || applicantTypeSnake;
+        const finalTaskTitle = taskTitle || `Verification Task ${i + 1}`;
+        const finalTaskDescription = taskDescription || taskTrigger || 'Verification required';
 
         // Insert verification task
         const taskResult = await client.query(
@@ -2159,29 +2186,23 @@ export const createCase = [
             $18
           ) RETURNING *
         `,
+
           [
             newCase.id,
-            // eslint-disable-next-line camelcase
-            verification_type_id,
+            verificationTypeId,
             finalTaskTitle,
             finalTaskDescription,
             taskPriority,
             taskAssignedTo || null,
             userId,
-            // eslint-disable-next-line camelcase
-            rate_type_id || null,
-            // eslint-disable-next-line camelcase
-            estimated_amount || null,
+            rateTypeId || null,
+            estimatedAmount || null,
             taskAddress || null,
             taskPincode || pincode || null,
-            // eslint-disable-next-line camelcase
-            document_type || null,
-            // eslint-disable-next-line camelcase
-            document_number || null,
-            // eslint-disable-next-line camelcase
-            document_details ? JSON.stringify(document_details) : null,
-            // eslint-disable-next-line camelcase
-            estimated_completion_date || null,
+            documentType || null,
+            documentNumber || null,
+            documentDetails ? JSON.stringify(documentDetails) : null,
+            estimatedCompletionDate || null,
             taskTrigger || finalTaskDescription,
             taskApplicantType || null,
             userId,
@@ -2191,11 +2212,9 @@ export const createCase = [
         const task = taskResult.rows[0];
         createdTasks.push({
           ...task,
-          // eslint-disable-next-line camelcase
-          attachment_keys: attachment_keys || [],
+          attachment_keys: attachmentKeys || [],
         });
-        // eslint-disable-next-line camelcase
-        totalEstimatedAmount += estimated_amount || 0;
+        totalEstimatedAmount += estimatedAmount || 0;
 
         logger.info('Task created:', {
           taskId: task.id,
@@ -2228,7 +2247,14 @@ export const createCase = [
       // ========== PROCESS FILE ATTACHMENTS ==========
 
       const files = req.files as Express.Multer.File[];
-      const uploadedAttachments: any[] = [];
+      const uploadedAttachments: {
+        id: string;
+        filename: string;
+        originalName: string;
+        verification_task_id?: string;
+        fileSize: number;
+        [key: string]: unknown;
+      }[] = [];
 
       if (files && files.length > 0) {
         // Create permanent directory for this case
@@ -2322,8 +2348,7 @@ export const createCase = [
 
       res.status(201).json({
         success: true,
-        // eslint-disable-next-line camelcase
-        message: `Case created successfully with ${verification_tasks.length} verification task${verification_tasks.length > 1 ? 's' : ''}`,
+        message: `Case created successfully with ${verificationTasks.length} verification task${verificationTasks.length > 1 ? 's' : ''}`,
         data: {
           case: {
             id: newCase.id,
@@ -2357,8 +2382,7 @@ export const createCase = [
             fileSize: att.fileSize,
           })),
           summary: {
-            // eslint-disable-next-line camelcase
-            total_tasks: verification_tasks.length,
+            total_tasks: verificationTasks.length,
             assigned_tasks: createdTasks.filter(t => t.assigned_to).length,
             pending_tasks: createdTasks.filter(t => !t.assigned_to).length,
             total_attachments: uploadedAttachments.length,
@@ -2366,7 +2390,7 @@ export const createCase = [
           },
         },
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Rollback transaction
       try {
         if (client) {
@@ -2382,18 +2406,19 @@ export const createCase = [
       const executionTime = Date.now() - startTime;
 
       // Categorize errors for better handling
-      const errorCode = error.code;
-      const errorMessage = error.message || 'Unknown error';
+      const err = error as DatabaseError;
+      const errorCode = err.code;
+      const errorMessage = err.message || 'Unknown error';
 
       // Log detailed error information
       logger.error('Case creation failed:', {
         error: errorMessage,
         code: errorCode,
-        constraint: error.constraint,
-        detail: error.detail,
+        constraint: err.constraint,
+        detail: err.detail,
         userId: req.user?.id,
         executionTime,
-        stack: process.env.NODE_ENV !== 'production' ? error.stack : undefined,
+        stack: process.env.NODE_ENV !== 'production' ? err.stack : undefined,
       });
 
       // Handle specific database errors
@@ -2404,8 +2429,8 @@ export const createCase = [
           message: 'Duplicate entry detected',
           error: {
             code: 'DUPLICATE_ENTRY',
-            constraint: error.constraint,
-            detail: error.detail,
+            constraint: err.constraint,
+            detail: err.detail,
           },
         });
       }
@@ -2417,8 +2442,8 @@ export const createCase = [
           message: 'Invalid reference to related entity',
           error: {
             code: 'FOREIGN_KEY_VIOLATION',
-            constraint: error.constraint,
-            detail: error.detail,
+            constraint: err.constraint,
+            detail: err.detail,
           },
         });
       }
@@ -2430,8 +2455,8 @@ export const createCase = [
           message: 'Required field missing',
           error: {
             code: 'NULL_VIOLATION',
-            column: error.column,
-            detail: error.detail,
+            column: err.column,
+            detail: err.detail,
           },
         });
       }
@@ -2480,8 +2505,9 @@ export const createCase = [
         error: {
           code: 'INTERNAL_ERROR',
           ...(process.env.NODE_ENV !== 'production' && {
-            detail: error.detail,
-            hint: error.hint,
+            detail: err.detail,
+            hint: err.hint,
+            stack: err.stack,
           }),
         },
       });

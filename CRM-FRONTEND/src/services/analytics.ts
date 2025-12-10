@@ -10,7 +10,7 @@ export interface FormSubmission {
   submitted_by: string;
   submitted_at: string;
   validation_status: 'VALID' | 'PENDING' | 'INVALID';
-  submission_data: Record<string, any>;
+  submission_data: Record<string, unknown>;
   photos_count: number;
   customerName?: string;
   caseNumber?: string;
@@ -183,7 +183,7 @@ export interface CaseTimelineEvent {
   event_date: string;
   performed_by: string;
   description: string;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }
 
 export interface CaseTimelineResponse {

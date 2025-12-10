@@ -9,7 +9,7 @@ export const getVerificationTypesByClient = async (req: AuthenticatedRequest, re
     const { id: clientId } = req.params;
     const { isActive } = req.query as { isActive?: string };
 
-    const mappingWhere: any = { clientId };
+    const mappingWhere: Record<string, unknown> = { clientId };
     if (typeof isActive !== 'undefined') {
       mappingWhere.isActive = String(isActive) === 'true';
     }
@@ -19,7 +19,7 @@ export const getVerificationTypesByClient = async (req: AuthenticatedRequest, re
       [clientId]
     );
     const mappings = mappingsRes.rows;
-    const verificationTypes = mappings.map((m: any) => ({
+    const verificationTypes = mappings.map((m: Record<string, unknown>) => ({
       id: m.verificationTypeId,
       name: '',
       code: '',

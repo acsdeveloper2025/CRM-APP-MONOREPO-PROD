@@ -128,7 +128,7 @@ export const VirtualizedCaseList: React.FC<VirtualizedCaseListProps> = ({
   return (
     <div className="flex flex-col h-full bg-white">
       {/* Header with search and controls */}
-      <div className="flex-shrink-0 p-4 border-b border-border bg-muted">
+      <div className="shrink-0 p-4 border-b border-border bg-muted">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-semibold text-gray-900">
             Cases ({totalCount.toLocaleString()})

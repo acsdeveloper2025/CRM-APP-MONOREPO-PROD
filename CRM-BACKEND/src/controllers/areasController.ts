@@ -1,10 +1,8 @@
-/* eslint-disable @typescript-eslint/restrict-template-expressions */
-/* eslint-disable @typescript-eslint/no-base-to-string */
-// Disabled template expression rules for areas controller as it handles query params in template literals
 import type { Response } from 'express';
 import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
 import { query } from '@/config/database';
+import type { QueryParams } from '@/types/database';
 
 // GET /api/areas - List areas with pagination and filters
 export const getAreas = async (req: AuthenticatedRequest, res: Response) => {
@@ -32,12 +30,12 @@ export const getAreas = async (req: AuthenticatedRequest, res: Response) => {
       LEFT JOIN "pincodeAreas" pa ON pa."areaId" = a.id
     `;
 
-    const params: any[] = [];
+    const params: QueryParams = [];
     let paramCount = 0;
     const whereConditions: string[] = [];
 
     // Apply search filter
-    if (search) {
+    if (search && typeof search === 'string') {
       paramCount++;
       whereConditions.push(`COALESCE(a.name, '') ILIKE $${paramCount}`);
       params.push(`%${search}%`);
@@ -52,8 +50,8 @@ export const getAreas = async (req: AuthenticatedRequest, res: Response) => {
     sql += ` GROUP BY a.id, a.name, a."createdAt", a."updatedAt"`;
 
     // Apply sorting
-    const sortDirection = sortOrder === 'desc' ? 'DESC' : 'ASC';
-    const sortField = sortBy as string;
+    const sortDirection: 'ASC' | 'DESC' = sortOrder === 'desc' ? 'DESC' : 'ASC';
+    const sortField: string = sortBy as string;
 
     if (sortField === 'usageCount') {
       sql += ` ORDER BY "usageCount" ${sortDirection}`;
@@ -87,12 +85,12 @@ export const getAreas = async (req: AuthenticatedRequest, res: Response) => {
       FROM areas a
     `;
 
-    const countParams: any[] = [];
+    const countParams: QueryParams = [];
     let countParamCount = 0;
     const countWhereConditions: string[] = [];
 
     // Apply same search filter for count
-    if (search) {
+    if (search && typeof search === 'string') {
       countParamCount++;
       countWhereConditions.push(`a.name ILIKE $${countParamCount}`);
       countParams.push(`%${search}%`);
@@ -261,8 +259,8 @@ export const createArea = async (req: AuthenticatedRequest, res: Response) => {
         id: newArea.id.toString(), // Convert integer ID to string for frontend compatibility
       },
     });
-  } catch (error: any) {
-    if (error.code === '23505') {
+  } catch (error: unknown) {
+    if (error && typeof error === 'object' && 'code' in error && error.code === '23505') {
       // Unique constraint violation
       return res.status(400).json({
         success: false,

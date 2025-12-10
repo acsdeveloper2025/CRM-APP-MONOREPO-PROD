@@ -78,8 +78,9 @@ export function CreateDesignationDialog({ open, onOpenChange }: CreateDesignatio
       form.reset();
       onOpenChange(false);
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to create designation');
+    onError: (error: unknown) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      toast.error((error as any).response?.data?.message || 'Failed to create designation');
     },
   });
 
@@ -167,7 +168,7 @@ export function CreateDesignationDialog({ open, onOpenChange }: CreateDesignatio
                     />
                   </FormControl>
                   <FormDescription>
-                    Provide a clear description of the designation's role and responsibilities
+                    Provide a clear description of the designation&apos;s role and responsibilities
                   </FormDescription>
                   <FormMessage />
                 </FormItem>

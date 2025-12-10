@@ -42,7 +42,7 @@ export function InvoicesTable({ data, isLoading }: InvoicesTableProps) {
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
       toast.success('Invoice sent successfully');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error(error.response?.data?.message || 'Failed to send invoice');
     },
   });
@@ -53,7 +53,7 @@ export function InvoicesTable({ data, isLoading }: InvoicesTableProps) {
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
       toast.success('Invoice marked as paid');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error(error.response?.data?.message || 'Failed to mark invoice as paid');
     },
   });

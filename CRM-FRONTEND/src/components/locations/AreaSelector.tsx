@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Check, ChevronsUpDown, Plus, X } from 'lucide-react';
+import { Check, ChevronsUpDown, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
@@ -47,8 +47,7 @@ export function AreaSelector({
   // Fetch areas for selection
   const { data: areasData, isLoading } = useQuery({
     queryKey: ['areas-for-selection', cityId, searchValue],
-    queryFn: () => locationsService.getAreasForSelection({
-      cityId,
+    queryFn: () => locationsService.getAreas({
       search: searchValue || undefined,
     }),
     enabled: open, // Only fetch when dropdown is open
@@ -77,7 +76,7 @@ export function AreaSelector({
     onAreasChange(selectedAreas.filter(area => area !== areaName));
   };
 
-  // Removed addCustomArea and canAddCustomArea functions - only allow selection from existing areas
+
 
   return (
     <FormItem className={className}>
@@ -152,7 +151,7 @@ export function AreaSelector({
                   {uniqueAreaNames.length > 0 && (
                     <CommandGroup heading="Existing Areas">
                       {uniqueAreaNames.map((areaName) => {
-                        console.log('AreaSelector - Rendering area:', areaName);
+                        console.warn('AreaSelector - Rendering area:', areaName);
                         const isSelected = selectedAreas.includes(areaName);
                         const areaUsageCount = availableAreas.filter(
                           area => area.name === areaName
@@ -161,7 +160,7 @@ export function AreaSelector({
                         return (
                           <CommandItem
                             key={areaName}
-                            value={areaName}
+                            value={areaName || ''}
                             onSelect={() => {
                               if (!isSelected) {
                                 addArea(areaName);
@@ -192,19 +191,7 @@ export function AreaSelector({
                     </CommandGroup>
                   )}
 
-                  {/* Add custom area option */}
-                  {canAddCustomArea() && (
-                    <CommandGroup heading="Add New Area">
-                      <CommandItem
-                        value={`add-${searchValue}`}
-                        onSelect={addCustomArea}
-                        className="text-green-600"
-                      >
-                        <Plus className="mr-2 h-4 w-4" />
-                        Add "{searchValue.trim()}"
-                      </CommandItem>
-                    </CommandGroup>
-                  )}
+
                 </CommandList>
               </Command>
             </PopoverContent>

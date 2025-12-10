@@ -22,7 +22,7 @@ interface BulkImportUsersDialogProps {
 
 export function BulkImportUsersDialog({ open, onOpenChange }: BulkImportUsersDialogProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [importResult, setImportResult] = useState<any>(null);
+  const [importResult, setImportResult] = useState<unknown>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const importMutation = useMutationWithInvalidation({
@@ -31,7 +31,7 @@ export function BulkImportUsersDialog({ open, onOpenChange }: BulkImportUsersDia
     successMessage: 'Users imported successfully',
     errorContext: 'Bulk Import Users',
     errorFallbackMessage: 'Failed to import users',
-    onSuccess: (result: any) => {
+    onSuccess: (result: unknown) => {
       setImportResult(result.data);
     },
   });

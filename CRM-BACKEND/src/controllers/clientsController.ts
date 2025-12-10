@@ -2,6 +2,12 @@ import type { Response } from 'express';
 import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
 import { query, withTransaction } from '@/config/database';
+import type { QueryParams } from '@/types/database';
+
+interface DatabaseError extends Error {
+  code?: string;
+  details?: unknown;
+}
 
 // GET /api/clients - List clients with pagination and filters
 export const getClients = async (req: AuthenticatedRequest, res: Response) => {
@@ -9,7 +15,7 @@ export const getClients = async (req: AuthenticatedRequest, res: Response) => {
     const { page = 1, limit = 20, search, sortBy = 'name', sortOrder = 'asc' } = req.query;
 
     // Get client filter from middleware
-    const clientFilter = (req as any).clientFilter;
+    const clientFilter = (req as AuthenticatedRequest & { clientFilter?: unknown }).clientFilter;
 
     logger.info('getClients controller called', {
       userId: req.user?.id,
@@ -21,7 +27,7 @@ export const getClients = async (req: AuthenticatedRequest, res: Response) => {
 
     // Build where clause and parameters
     const whereConditions: string[] = [];
-    const queryParams: any[] = [];
+    const queryParams: QueryParams = [];
     let paramIndex = 1;
 
     // Apply client filtering for BACKEND_USER users
@@ -96,10 +102,10 @@ export const getClients = async (req: AuthenticatedRequest, res: Response) => {
 
     // Load mappings and cases
     const dbClientIds = dbClients.map(c => c.id);
-    const productsByClient = new Map<string, any[]>();
-    const vtsByClient = new Map<string, any[]>();
-    const dtsByClient = new Map<string, any[]>();
-    const casesByClient = new Map<string, any[]>();
+    const productsByClient = new Map<string, Record<string, unknown>[]>();
+    const vtsByClient = new Map<string, Record<string, unknown>[]>();
+    const dtsByClient = new Map<string, Record<string, unknown>[]>();
+    const casesByClient = new Map<string, Record<string, unknown>[]>();
     if (dbClientIds.length > 0) {
       const prodMapRes = await query(
         `SELECT cp."clientId", p.id, p.name, p.code
@@ -452,8 +458,9 @@ export const createClient = async (req: AuthenticatedRequest, res: Response) => 
       data: responseData,
       message: 'Client created successfully',
     });
-  } catch (error: any) {
-    if (error?.code === 'PRODUCTS_NOT_FOUND') {
+  } catch (error: unknown) {
+    const err = error as DatabaseError;
+    if (err?.code === 'PRODUCTS_NOT_FOUND') {
       return res.status(400).json({
         success: false,
         message: 'One or more products not found',
@@ -461,11 +468,19 @@ export const createClient = async (req: AuthenticatedRequest, res: Response) => 
       });
     }
 
-    if (error?.code === 'VERIFICATION_TYPES_NOT_FOUND') {
+    if (err?.code === 'VERIFICATION_TYPES_NOT_FOUND') {
       return res.status(400).json({
         success: false,
         message: 'One or more verification types not found',
         error: { code: 'VERIFICATION_TYPES_NOT_FOUND' },
+      });
+    }
+
+    if (err?.code === 'DOCUMENT_TYPES_NOT_FOUND') {
+      return res.status(400).json({
+        success: false,
+        message: 'One or more document types not found',
+        error: { code: 'DOCUMENT_TYPES_NOT_FOUND' },
       });
     }
 
@@ -514,7 +529,7 @@ export const updateClient = async (req: AuthenticatedRequest, res: Response) => 
     const result = await withTransaction(async cx => {
       // Update base fields
       const updates: string[] = [];
-      const vals: any[] = [];
+      const vals: QueryParams = [];
       let i = 1;
       if (updateData.name) {
         updates.push(`name = $${i++}`);
@@ -675,7 +690,7 @@ export const updateClient = async (req: AuthenticatedRequest, res: Response) => 
         clientProducts: prodRes3.rows,
         clientVerificationTypes: vtRes3.rows,
         clientDocumentTypes: dtRes3.rows,
-      } as any;
+      } as Record<string, unknown>;
     });
 
     const responseData = {
@@ -692,8 +707,9 @@ export const updateClient = async (req: AuthenticatedRequest, res: Response) => 
     });
 
     res.json({ success: true, data: responseData, message: 'Client updated successfully' });
-  } catch (error: any) {
-    if (error?.code === 'PRODUCTS_NOT_FOUND') {
+  } catch (error: unknown) {
+    const err = error as DatabaseError;
+    if (err?.code === 'PRODUCTS_NOT_FOUND') {
       return res.status(400).json({
         success: false,
         message: 'One or more products not found',
@@ -701,7 +717,7 @@ export const updateClient = async (req: AuthenticatedRequest, res: Response) => 
       });
     }
 
-    if (error?.code === 'VERIFICATION_TYPES_NOT_FOUND') {
+    if (err?.code === 'VERIFICATION_TYPES_NOT_FOUND') {
       return res.status(400).json({
         success: false,
         message: 'One or more verification types not found',
@@ -709,7 +725,7 @@ export const updateClient = async (req: AuthenticatedRequest, res: Response) => 
       });
     }
 
-    if (error?.code === 'DOCUMENT_TYPES_NOT_FOUND') {
+    if (err?.code === 'DOCUMENT_TYPES_NOT_FOUND') {
       return res.status(400).json({
         success: false,
         message: 'One or more document types not found',

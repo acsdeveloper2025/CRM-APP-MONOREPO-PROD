@@ -2,8 +2,24 @@ import type { Response } from 'express';
 import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
 
+interface AuditLog {
+  id: string;
+  userId: string;
+  userName: string;
+  action: string;
+  resource: string;
+  resourceId?: string;
+  details: Record<string, unknown>;
+  ipAddress: string;
+  userAgent: string;
+  timestamp: string;
+  severity: string;
+  category: string;
+  [key: string]: unknown;
+}
+
 // Mock data for demonstration (replace with actual database operations)
-let auditLogs: any[] = [
+let auditLogs: AuditLog[] = [
   {
     id: 'audit_1',
     userId: 'user_1',
@@ -500,7 +516,10 @@ export const getAuditStats = (req: AuthenticatedRequest, res: Response) => {
         }
         return acc;
       },
-      {} as Record<string, any>
+      {} as Record<
+        string,
+        { userId: string; userName: string; totalActions: number; lastActivity: string }
+      >
     );
 
     // Daily activity for the period
@@ -521,7 +540,10 @@ export const getAuditStats = (req: AuthenticatedRequest, res: Response) => {
       categoryDistribution,
       severityDistribution,
       topUsers: Object.values(userActivity)
-        .sort((a: any, b: any) => b.totalActions - a.totalActions)
+        .sort(
+          (a: Record<string, unknown>, b: Record<string, unknown>) =>
+            (b.totalActions as number) - (a.totalActions as number)
+        )
         .slice(0, 10),
       dailyActivity,
       generatedAt: new Date().toISOString(),

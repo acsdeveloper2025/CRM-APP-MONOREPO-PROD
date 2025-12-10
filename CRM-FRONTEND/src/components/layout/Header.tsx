@@ -34,6 +34,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
   };
 
   const handleClearCache = async () => {
+    // eslint-disable-next-line no-alert
     if (confirm('Are you sure you want to clear all cache? This will reload the page.')) {
       await clearCache(queryClient, 'all');
     }

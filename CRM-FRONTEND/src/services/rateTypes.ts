@@ -9,6 +9,15 @@ import type {
   AvailableRateTypeForCase
 } from '@/types/rateManagement';
 
+export type {
+  RateType,
+  CreateRateTypeData,
+  UpdateRateTypeData,
+  RateTypeListQuery,
+  RateTypeStats,
+  AvailableRateTypeForCase
+};
+
 export class RateTypesService {
   async getRateTypes(query: RateTypeListQuery = {}): Promise<PaginatedResponse<RateType>> {
     return apiService.get('/rate-types', query);

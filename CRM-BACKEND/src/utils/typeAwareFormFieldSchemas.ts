@@ -238,7 +238,10 @@ export const CONDITIONAL_FIELD_RULES: Record<string, ConditionalRule[]> = {
 // CONDITIONAL FIELD EVALUATION LOGIC
 // ============================================================================
 
-export function evaluateConditionalRule(rule: ConditionalRule, formData: any): boolean {
+export function evaluateConditionalRule(
+  rule: ConditionalRule,
+  formData: Record<string, unknown>
+): boolean {
   const parentValue = formData[rule.parentField];
 
   // If parent field has no value, condition is not met
@@ -253,8 +256,48 @@ export function evaluateConditionalRule(rule: ConditionalRule, formData: any): b
     case 'notEquals':
       return parentValue !== rule.value;
 
-    case 'contains':
-      return String(parentValue).toLowerCase().includes(String(rule.value).toLowerCase());
+    case 'contains': {
+      // Handle rule.value properly - it could be an array, object, or primitive
+      let searchValue: string;
+      if (Array.isArray(rule.value)) {
+        searchValue = rule.value.join(',');
+      } else if (typeof rule.value === 'object' && rule.value !== null) {
+        searchValue = JSON.stringify(rule.value);
+      } else if (typeof rule.value === 'string') {
+        searchValue = rule.value;
+      } else if (typeof rule.value === 'number') {
+        searchValue = String(rule.value);
+      } else if (typeof rule.value === 'boolean') {
+        searchValue = String(rule.value);
+      } else {
+        // null, undefined, or other types
+        searchValue = '';
+      }
+
+      let parentString: string;
+      if (typeof parentValue === 'string') {
+        parentString = parentValue;
+      } else if (typeof parentValue === 'number') {
+        parentString = String(parentValue);
+      } else if (typeof parentValue === 'boolean') {
+        parentString = String(parentValue);
+      } else if (typeof parentValue === 'bigint') {
+        parentString = String(parentValue);
+      } else if (typeof parentValue === 'symbol') {
+        parentString = String(parentValue);
+      } else if (parentValue === null || parentValue === undefined) {
+        // Treat null/undefined as empty for contains check
+        parentString = '';
+      } else {
+        // Objects, Arrays, Functions
+        try {
+          parentString = JSON.stringify(parentValue);
+        } catch {
+          parentString = '';
+        }
+      }
+      return parentString.toLowerCase().includes(searchValue.toLowerCase());
+    }
 
     case 'in':
       return Array.isArray(rule.value) && rule.value.includes(parentValue);
@@ -269,11 +312,11 @@ export function evaluateConditionalRule(rule: ConditionalRule, formData: any): b
 
 export function shouldShowField(
   fieldName: string,
-  formData: any,
+  formData: Record<string, unknown>,
   allRules: Record<string, ConditionalRule[]> = CONDITIONAL_FIELD_RULES
 ): boolean {
   // Check if this field is controlled by any conditional rules
-  for (const [_parentField, rules] of Object.entries(allRules)) {
+  for (const [, rules] of Object.entries(allRules)) {
     for (const rule of rules) {
       if (rule.showFields.includes(fieldName)) {
         // This field is conditional - check if condition is met
@@ -785,20 +828,11 @@ const BUSINESS_SHIFTED_FIELDS: FormFieldDefinition[] = [
   {
     id: 'shiftedPeriod',
     name: 'shiftedPeriod',
-    label: 'Shifted Period',
+    label: 'Shifted Since',
     type: 'text',
     isRequired: false,
-    section: 'Shifting Details',
+    section: 'Shifted Details',
     order: 1,
-  },
-  {
-    id: 'oldBusinessShiftedPeriod',
-    name: 'oldBusinessShiftedPeriod',
-    label: 'Old Business Shifted Period',
-    type: 'text',
-    isRequired: false,
-    section: 'Shifting Details',
-    order: 2,
   },
   {
     id: 'currentCompanyName',
@@ -806,8 +840,8 @@ const BUSINESS_SHIFTED_FIELDS: FormFieldDefinition[] = [
     label: 'Current Company Name',
     type: 'text',
     isRequired: false,
-    section: 'Shifting Details',
-    order: 3,
+    section: 'Shifted Details',
+    order: 2,
   },
   {
     id: 'currentCompanyPeriod',
@@ -815,125 +849,32 @@ const BUSINESS_SHIFTED_FIELDS: FormFieldDefinition[] = [
     label: 'Current Company Period',
     type: 'text',
     isRequired: false,
-    section: 'Shifting Details',
-    order: 4,
+    section: 'Shifted Details',
+    order: 3,
   },
   {
-    id: 'premisesStatus',
-    name: 'premisesStatus',
-    label: 'Premises Status',
-    type: 'select',
-    isRequired: false,
-    section: 'Premises Details',
-    order: 1,
-  },
-  {
-    id: 'contactPerson',
-    name: 'contactPerson',
-    label: 'Contact Person',
+    id: 'oldBusinessShiftedPeriod',
+    name: 'oldBusinessShiftedPeriod',
+    label: 'Old Business Shifted Period',
     type: 'text',
     isRequired: false,
-    section: 'Contact Details',
-    order: 1,
+    section: 'Shifted Details',
+    order: 4,
   },
 ];
 
 const BUSINESS_NSP_FIELDS: FormFieldDefinition[] = [
-  {
-    id: 'premisesStatus',
-    name: 'premisesStatus',
-    label: 'Premises Status',
-    type: 'select',
-    isRequired: false,
-    section: 'Premises Details',
-    order: 1,
-  },
-  {
-    id: 'businessActivity',
-    name: 'businessActivity',
-    label: 'Business Activity',
-    type: 'select',
-    isRequired: false,
-    section: 'Business Details',
-    order: 1,
-  },
-  {
-    id: 'roomStatus',
-    name: 'roomStatus',
-    label: 'Room Status',
-    type: 'select',
-    isRequired: false,
-    section: 'Premises Details',
-    order: 2,
-  },
-];
-
-const BUSINESS_ENTRY_RESTRICTED_FIELDS: FormFieldDefinition[] = [
-  {
-    id: 'entryRestrictionReason',
-    name: 'entryRestrictionReason',
-    label: 'Entry Restriction Reason',
-    type: 'textarea',
-    isRequired: false,
-    section: 'Access Details',
-    order: 1,
-  },
-  {
-    id: 'securityPersonName',
-    name: 'securityPersonName',
-    label: 'Security Person Name',
-    type: 'text',
-    isRequired: false,
-    section: 'Access Details',
-    order: 2,
-  },
-  {
-    id: 'accessDenied',
-    name: 'accessDenied',
-    label: 'Access Denied',
-    type: 'select',
-    isRequired: false,
-    section: 'Access Details',
-    order: 3,
-  },
-  {
-    id: 'premisesStatus',
-    name: 'premisesStatus',
-    label: 'Premises Status',
-    type: 'select',
-    isRequired: false,
-    section: 'Premises Details',
-    order: 1,
-  },
-];
-
-const BUSINESS_UNTRACEABLE_FIELDS: FormFieldDefinition[] = [
-  {
-    id: 'premisesStatus',
-    name: 'premisesStatus',
-    label: 'Premises Status',
-    type: 'select',
-    isRequired: false,
-    section: 'Premises Details',
-    order: 1,
-  },
+  ...BUSINESS_POSITIVE_FIELDS.filter(f =>
+    ['tpcMetPerson1', 'tpcName1', 'tpcConfirmation1'].includes(f.name)
+  ),
   {
     id: 'contactPerson',
     name: 'contactPerson',
     label: 'Contact Person',
     type: 'text',
     isRequired: false,
-    section: 'Contact Details',
+    section: 'Tracking Details',
     order: 1,
-  },
-  {
-    id: 'alternateContact',
-    name: 'alternateContact',
-    label: 'Alternate Contact',
-    type: 'text',
-    isRequired: false,
-    section: 'Contact Details',
-    order: 2,
   },
 ];
 
@@ -942,32 +883,32 @@ const BUSINESS_UNTRACEABLE_FIELDS: FormFieldDefinition[] = [
 // ============================================================================
 
 const RESIDENCE_POSITIVE_FIELDS: FormFieldDefinition[] = [
-  // Residence Information
+  // Residence Specifics
   {
     id: 'houseStatus',
     name: 'houseStatus',
     label: 'House Status',
     type: 'select',
     isRequired: false,
-    section: 'Residence Information',
+    section: 'Residence Details',
     order: 1,
   },
   {
-    id: 'metPersonRelation',
-    name: 'metPersonRelation',
-    label: 'Met Person Relation',
+    id: 'ownershipType',
+    name: 'ownershipType',
+    label: 'Ownership Type',
     type: 'select',
     isRequired: false,
-    section: 'Residence Information',
+    section: 'Residence Details',
     order: 2,
   },
   {
-    id: 'metPersonStatus',
-    name: 'metPersonStatus',
-    label: 'Met Person Status',
-    type: 'select',
+    id: 'stayingPeriod',
+    name: 'stayingPeriod',
+    label: 'Staying Period',
+    type: 'text',
     isRequired: false,
-    section: 'Residence Information',
+    section: 'Residence Details',
     order: 3,
   },
   {
@@ -976,8 +917,8 @@ const RESIDENCE_POSITIVE_FIELDS: FormFieldDefinition[] = [
     label: 'Total Family Members',
     type: 'number',
     isRequired: false,
-    section: 'Residence Information',
-    order: 4,
+    section: 'Family Details',
+    order: 1,
   },
   {
     id: 'totalEarning',
@@ -985,74 +926,25 @@ const RESIDENCE_POSITIVE_FIELDS: FormFieldDefinition[] = [
     label: 'Total Earning Members',
     type: 'number',
     isRequired: false,
-    section: 'Residence Information',
-    order: 5,
-  },
-  {
-    id: 'stayingPeriod',
-    name: 'stayingPeriod',
-    label: 'Staying Period',
-    type: 'text',
-    isRequired: false,
-    section: 'Residence Information',
-    order: 6,
-  },
-  {
-    id: 'stayingStatus',
-    name: 'stayingStatus',
-    label: 'Staying Status',
-    type: 'select',
-    isRequired: false,
-    section: 'Residence Information',
-    order: 7,
-  },
-
-  // Working Details
-  {
-    id: 'workingStatus',
-    name: 'workingStatus',
-    label: 'Working Status',
-    type: 'select',
-    isRequired: false,
-    section: 'Working Details',
-    order: 1,
-  },
-  {
-    id: 'companyName',
-    name: 'companyName',
-    label: 'Company Name',
-    type: 'text',
-    isRequired: false,
-    section: 'Working Details',
+    section: 'Family Details',
     order: 2,
   },
-
-  // Document Verification
   {
-    id: 'documentShownStatus',
-    name: 'documentShownStatus',
-    label: 'Document Shown',
+    id: 'metPersonRelation',
+    name: 'metPersonRelation',
+    label: 'Relation with Applicant',
+    type: 'text',
+    isRequired: false,
+    section: 'Basic Information',
+    order: 4,
+  },
+
+  // Common conditional fields...
+  {
+    id: 'door_status',
+    name: 'door_status',
+    label: 'Door Status',
     type: 'select',
-    isRequired: false,
-    section: 'Document Verification',
-    order: 1,
-  },
-  {
-    id: 'documentType',
-    name: 'documentType',
-    label: 'Document Type',
-    type: 'text',
-    isRequired: false,
-    section: 'Document Verification',
-    order: 2,
-  },
-
-  // Premises Details
-  {
-    id: 'doorColor',
-    name: 'doorColor',
-    label: 'Door Color',
-    type: 'text',
     isRequired: false,
     section: 'Premises Details',
     order: 1,
@@ -1060,26 +952,26 @@ const RESIDENCE_POSITIVE_FIELDS: FormFieldDefinition[] = [
   {
     id: 'doorNamePlateStatus',
     name: 'doorNamePlateStatus',
-    label: 'Door Name Plate Status',
+    label: 'Door Name Plate',
     type: 'select',
     isRequired: false,
     section: 'Premises Details',
     order: 2,
   },
   {
-    id: 'nameOnDoorPlate',
-    name: 'nameOnDoorPlate',
-    label: 'Name on Door Plate',
-    type: 'text',
+    id: 'societyNamePlateStatus',
+    name: 'societyNamePlateStatus',
+    label: 'Society Name Plate',
+    type: 'select',
     isRequired: false,
     section: 'Premises Details',
     order: 3,
   },
   {
-    id: 'societyNamePlateStatus',
-    name: 'societyNamePlateStatus',
-    label: 'Society Name Plate Status',
-    type: 'select',
+    id: 'nameOnDoorPlate',
+    name: 'nameOnDoorPlate',
+    label: 'Name on Door Plate',
+    type: 'text',
     isRequired: false,
     section: 'Premises Details',
     order: 4,
@@ -1093,81 +985,16 @@ const RESIDENCE_POSITIVE_FIELDS: FormFieldDefinition[] = [
     section: 'Premises Details',
     order: 5,
   },
-  {
-    id: 'addressFloor',
-    name: 'addressFloor',
-    label: 'Floor Number',
-    type: 'text',
-    isRequired: false,
-    section: 'Premises Details',
-    order: 6,
-  },
-
-  // TPC (Third Party Confirmation)
-  {
-    id: 'tpcMetPerson1',
-    name: 'tpcMetPerson1',
-    label: 'TPC 1 - Person Met',
-    type: 'text',
-    isRequired: false,
-    section: 'Third Party Confirmation',
-    order: 1,
-  },
-  {
-    id: 'tpcName1',
-    name: 'tpcName1',
-    label: 'TPC 1 - Name',
-    type: 'text',
-    isRequired: false,
-    section: 'Third Party Confirmation',
-    order: 2,
-  },
-  {
-    id: 'tpcConfirmation1',
-    name: 'tpcConfirmation1',
-    label: 'TPC 1 - Confirmation',
-    type: 'select',
-    isRequired: false,
-    section: 'Third Party Confirmation',
-    order: 3,
-  },
-  {
-    id: 'tpcMetPerson2',
-    name: 'tpcMetPerson2',
-    label: 'TPC 2 - Person Met',
-    type: 'text',
-    isRequired: false,
-    section: 'Third Party Confirmation',
-    order: 4,
-  },
-  {
-    id: 'tpcName2',
-    name: 'tpcName2',
-    label: 'TPC 2 - Name',
-    type: 'text',
-    isRequired: false,
-    section: 'Third Party Confirmation',
-    order: 5,
-  },
-  {
-    id: 'tpcConfirmation2',
-    name: 'tpcConfirmation2',
-    label: 'TPC 2 - Confirmation',
-    type: 'select',
-    isRequired: false,
-    section: 'Third Party Confirmation',
-    order: 6,
-  },
 ];
 
 const RESIDENCE_SHIFTED_FIELDS: FormFieldDefinition[] = [
   {
     id: 'shiftedPeriod',
     name: 'shiftedPeriod',
-    label: 'Shifted Period',
+    label: 'Shifted Since',
     type: 'text',
     isRequired: false,
-    section: 'Shifting Details',
+    section: 'Shifted Details',
     order: 1,
   },
   {
@@ -1176,68 +1003,38 @@ const RESIDENCE_SHIFTED_FIELDS: FormFieldDefinition[] = [
     label: 'Current Location',
     type: 'text',
     isRequired: false,
-    section: 'Shifting Details',
+    section: 'Shifted Details',
     order: 2,
-  },
-  {
-    id: 'premisesStatus',
-    name: 'premisesStatus',
-    label: 'Premises Status',
-    type: 'select',
-    isRequired: false,
-    section: 'Premises Details',
-    order: 1,
   },
   {
     id: 'stayingPersonName',
     name: 'stayingPersonName',
-    label: 'Current Staying Person Name',
+    label: 'Default/Staying Person Name',
     type: 'text',
     isRequired: false,
-    section: 'Shifting Details',
+    section: 'Shifted Details',
     order: 3,
-  },
-  {
-    id: 'contactPerson',
-    name: 'contactPerson',
-    label: 'Contact Person',
-    type: 'text',
-    isRequired: false,
-    section: 'Contact Details',
-    order: 1,
-  },
-];
-
-const RESIDENCE_NSP_FIELDS: FormFieldDefinition[] = [
-  {
-    id: 'premisesStatus',
-    name: 'premisesStatus',
-    label: 'Premises Status',
-    type: 'select',
-    isRequired: false,
-    section: 'Premises Details',
-    order: 1,
-  },
-  {
-    id: 'roomStatus',
-    name: 'roomStatus',
-    label: 'Room Status',
-    type: 'select',
-    isRequired: false,
-    section: 'Premises Details',
-    order: 2,
   },
 ];
 
 const RESIDENCE_ENTRY_RESTRICTED_FIELDS: FormFieldDefinition[] = [
   {
+    id: 'accessDenied',
+    name: 'accessDenied',
+    label: 'Access Denied',
+    type: 'select',
+    isRequired: true,
+    section: 'Restricted Entry Details',
+    order: 1,
+  },
+  {
     id: 'entryRestrictionReason',
     name: 'entryRestrictionReason',
-    label: 'Entry Restriction Reason',
+    label: 'Restriction Reason',
     type: 'textarea',
-    isRequired: false,
-    section: 'Access Details',
-    order: 1,
+    isRequired: true,
+    section: 'Restricted Entry Details',
+    order: 2,
   },
   {
     id: 'securityPersonName',
@@ -1245,38 +1042,8 @@ const RESIDENCE_ENTRY_RESTRICTED_FIELDS: FormFieldDefinition[] = [
     label: 'Security Person Name',
     type: 'text',
     isRequired: false,
-    section: 'Access Details',
-    order: 2,
-  },
-  {
-    id: 'accessDenied',
-    name: 'accessDenied',
-    label: 'Access Denied',
-    type: 'select',
-    isRequired: false,
-    section: 'Access Details',
+    section: 'Restricted Entry Details',
     order: 3,
-  },
-];
-
-const RESIDENCE_UNTRACEABLE_FIELDS: FormFieldDefinition[] = [
-  {
-    id: 'contactPerson',
-    name: 'contactPerson',
-    label: 'Contact Person',
-    type: 'text',
-    isRequired: false,
-    section: 'Contact Details',
-    order: 1,
-  },
-  {
-    id: 'alternateContact',
-    name: 'alternateContact',
-    label: 'Alternate Contact',
-    type: 'text',
-    isRequired: false,
-    section: 'Contact Details',
-    order: 2,
   },
 ];
 
@@ -1285,33 +1052,15 @@ const RESIDENCE_UNTRACEABLE_FIELDS: FormFieldDefinition[] = [
 // ============================================================================
 
 const OFFICE_POSITIVE_FIELDS: FormFieldDefinition[] = [
-  // Office Information
-  {
-    id: 'designation',
-    name: 'designation',
-    label: 'Designation',
-    type: 'text',
-    isRequired: false,
-    section: 'Office Information',
-    order: 1,
-  },
-  {
-    id: 'applicantDesignation',
-    name: 'applicantDesignation',
-    label: 'Applicant Designation',
-    type: 'text',
-    isRequired: false,
-    section: 'Office Information',
-    order: 2,
-  },
+  // Office Specifics
   {
     id: 'officeStatus',
     name: 'officeStatus',
     label: 'Office Status',
     type: 'select',
     isRequired: false,
-    section: 'Office Information',
-    order: 3,
+    section: 'Office Details',
+    order: 1,
   },
   {
     id: 'officeType',
@@ -1319,196 +1068,53 @@ const OFFICE_POSITIVE_FIELDS: FormFieldDefinition[] = [
     label: 'Office Type',
     type: 'select',
     isRequired: false,
-    section: 'Office Information',
-    order: 4,
-  },
-  {
-    id: 'companyNatureOfBusiness',
-    name: 'companyNatureOfBusiness',
-    label: 'Nature of Business',
-    type: 'text',
-    isRequired: false,
-    section: 'Office Information',
-    order: 5,
-  },
-  {
-    id: 'businessPeriod',
-    name: 'businessPeriod',
-    label: 'Business Period',
-    type: 'text',
-    isRequired: false,
-    section: 'Office Information',
-    order: 6,
-  },
-  {
-    id: 'establishmentPeriod',
-    name: 'establishmentPeriod',
-    label: 'Establishment Period',
-    type: 'text',
-    isRequired: false,
-    section: 'Office Information',
-    order: 7,
-  },
-
-  // Working Details
-  {
-    id: 'workingPeriod',
-    name: 'workingPeriod',
-    label: 'Working Period',
-    type: 'text',
-    isRequired: false,
-    section: 'Working Details',
-    order: 1,
-  },
-  {
-    id: 'workingStatus',
-    name: 'workingStatus',
-    label: 'Working Status',
-    type: 'select',
-    isRequired: false,
-    section: 'Working Details',
+    section: 'Office Details',
     order: 2,
   },
   {
-    id: 'applicantWorkingPremises',
-    name: 'applicantWorkingPremises',
-    label: 'Applicant Working at Premises',
-    type: 'select',
+    id: 'designation',
+    name: 'designation',
+    label: 'Designation',
+    type: 'text',
     isRequired: false,
-    section: 'Working Details',
+    section: 'Employment Details',
+    order: 1,
+  },
+  {
+    id: 'department',
+    name: 'department',
+    label: 'Department',
+    type: 'text',
+    isRequired: false,
+    section: 'Employment Details',
+    order: 2,
+  },
+  {
+    id: 'jobTenure',
+    name: 'jobTenure',
+    label: 'Job Tenure',
+    type: 'text',
+    isRequired: false,
+    section: 'Employment Details',
     order: 3,
   },
   {
-    id: 'staffStrength',
-    name: 'staffStrength',
-    label: 'Staff Strength',
-    type: 'number',
+    id: 'applicantDesignation',
+    name: 'applicantDesignation',
+    label: 'Applicant Designation',
+    type: 'text',
     isRequired: false,
-    section: 'Working Details',
+    section: 'Employment Details',
     order: 4,
   },
   {
-    id: 'staffSeen',
-    name: 'staffSeen',
-    label: 'Staff Seen',
-    type: 'number',
-    isRequired: false,
-    section: 'Working Details',
-    order: 5,
-  },
-
-  // Document Verification
-  {
-    id: 'documentShown',
-    name: 'documentShown',
-    label: 'Document Shown',
+    id: 'officeExistence',
+    name: 'officeExistence',
+    label: 'Office Existence',
     type: 'select',
     isRequired: false,
-    section: 'Document Verification',
-    order: 1,
-  },
-  {
-    id: 'documentType',
-    name: 'documentType',
-    label: 'Document Type',
-    type: 'text',
-    isRequired: false,
-    section: 'Document Verification',
-    order: 2,
-  },
-
-  // Premises Details
-  {
-    id: 'officeApproxArea',
-    name: 'officeApproxArea',
-    label: 'Office Approximate Area',
-    type: 'number',
-    isRequired: false,
-    section: 'Premises Details',
-    order: 1,
-  },
-  {
-    id: 'addressFloor',
-    name: 'addressFloor',
-    label: 'Floor Number',
-    type: 'text',
-    isRequired: false,
-    section: 'Premises Details',
-    order: 2,
-  },
-  {
-    id: 'companyNamePlateStatus',
-    name: 'companyNamePlateStatus',
-    label: 'Company Name Plate Status',
-    type: 'select',
-    isRequired: false,
-    section: 'Premises Details',
+    section: 'Office Details',
     order: 3,
-  },
-  {
-    id: 'nameOnCompanyBoard',
-    name: 'nameOnCompanyBoard',
-    label: 'Name on Company Board',
-    type: 'text',
-    isRequired: false,
-    section: 'Premises Details',
-    order: 4,
-  },
-
-  // TPC (Third Party Confirmation)
-  {
-    id: 'tpcMetPerson1',
-    name: 'tpcMetPerson1',
-    label: 'TPC 1 - Person Met',
-    type: 'text',
-    isRequired: false,
-    section: 'Third Party Confirmation',
-    order: 1,
-  },
-  {
-    id: 'tpcName1',
-    name: 'tpcName1',
-    label: 'TPC 1 - Name',
-    type: 'text',
-    isRequired: false,
-    section: 'Third Party Confirmation',
-    order: 2,
-  },
-  {
-    id: 'tpcConfirmation1',
-    name: 'tpcConfirmation1',
-    label: 'TPC 1 - Confirmation',
-    type: 'select',
-    isRequired: false,
-    section: 'Third Party Confirmation',
-    order: 3,
-  },
-  {
-    id: 'tpcMetPerson2',
-    name: 'tpcMetPerson2',
-    label: 'TPC 2 - Person Met',
-    type: 'text',
-    isRequired: false,
-    section: 'Third Party Confirmation',
-    order: 4,
-  },
-  {
-    id: 'tpcName2',
-    name: 'tpcName2',
-    label: 'TPC 2 - Name',
-    type: 'text',
-    isRequired: false,
-    section: 'Third Party Confirmation',
-    order: 5,
-  },
-  {
-    id: 'tpcConfirmation2',
-    name: 'tpcConfirmation2',
-    label: 'TPC 2 - Confirmation',
-    type: 'select',
-    isRequired: false,
-    section: 'Third Party Confirmation',
-    order: 6,
   },
 ];
 
@@ -1516,20 +1122,11 @@ const OFFICE_SHIFTED_FIELDS: FormFieldDefinition[] = [
   {
     id: 'shiftedPeriod',
     name: 'shiftedPeriod',
-    label: 'Shifted Period',
+    label: 'Shifted Since',
     type: 'text',
     isRequired: false,
-    section: 'Shifting Details',
+    section: 'Shifted Details',
     order: 1,
-  },
-  {
-    id: 'oldOfficeShiftedPeriod',
-    name: 'oldOfficeShiftedPeriod',
-    label: 'Old Office Shifted Period',
-    type: 'text',
-    isRequired: false,
-    section: 'Shifting Details',
-    order: 2,
   },
   {
     id: 'currentCompanyName',
@@ -1537,178 +1134,101 @@ const OFFICE_SHIFTED_FIELDS: FormFieldDefinition[] = [
     label: 'Current Company Name',
     type: 'text',
     isRequired: false,
-    section: 'Shifting Details',
-    order: 3,
-  },
-  {
-    id: 'contactPerson',
-    name: 'contactPerson',
-    label: 'Contact Person',
-    type: 'text',
-    isRequired: false,
-    section: 'Contact Details',
-    order: 1,
-  },
-];
-
-const OFFICE_NSP_FIELDS: FormFieldDefinition[] = [
-  {
-    id: 'premisesStatus',
-    name: 'premisesStatus',
-    label: 'Premises Status',
-    type: 'select',
-    isRequired: false,
-    section: 'Premises Details',
-    order: 1,
-  },
-];
-
-const OFFICE_ENTRY_RESTRICTED_FIELDS: FormFieldDefinition[] = [
-  {
-    id: 'entryRestrictionReason',
-    name: 'entryRestrictionReason',
-    label: 'Entry Restriction Reason',
-    type: 'textarea',
-    isRequired: false,
-    section: 'Access Details',
-    order: 1,
-  },
-  {
-    id: 'securityPersonName',
-    name: 'securityPersonName',
-    label: 'Security Person Name',
-    type: 'text',
-    isRequired: false,
-    section: 'Access Details',
+    section: 'Shifted Details',
     order: 2,
   },
-];
-
-const OFFICE_UNTRACEABLE_FIELDS: FormFieldDefinition[] = [
   {
-    id: 'contactPerson',
-    name: 'contactPerson',
-    label: 'Contact Person',
+    id: 'oldOfficeShiftedPeriod',
+    name: 'oldOfficeShiftedPeriod',
+    label: 'Old Office Shifted Period',
     type: 'text',
     isRequired: false,
-    section: 'Contact Details',
-    order: 1,
+    section: 'Shifted Details',
+    order: 3,
   },
 ];
 
 // ============================================================================
-// VERIFICATION TYPE FIELD MAPPING
+// AGGREGATED SCHEMA EXPORT
 // ============================================================================
 
-export const VERIFICATION_FORM_TYPE_FIELDS: Record<
-  string,
-  Record<string, FormFieldDefinition[]>
-> = {
+export const TYPE_AWARE_SCHEMAS = {
   BUSINESS: {
-    COMMON: COMMON_FIELDS,
-    POSITIVE: BUSINESS_POSITIVE_FIELDS,
-    SHIFTED: BUSINESS_SHIFTED_FIELDS,
-    NSP: BUSINESS_NSP_FIELDS,
-    ENTRY_RESTRICTED: BUSINESS_ENTRY_RESTRICTED_FIELDS,
-    UNTRACEABLE: BUSINESS_UNTRACEABLE_FIELDS,
+    POSITIVE: [...COMMON_FIELDS, ...BUSINESS_POSITIVE_FIELDS],
+    NEGATIVE: [...COMMON_FIELDS, ...BUSINESS_POSITIVE_FIELDS], // Often similar structure, just strictly validated
+    SHIFTED: [...COMMON_FIELDS, ...BUSINESS_SHIFTED_FIELDS],
+    NSP: [...COMMON_FIELDS, ...BUSINESS_NSP_FIELDS],
+    ENTRY_RESTRICTED: [...COMMON_FIELDS, ...RESIDENCE_ENTRY_RESTRICTED_FIELDS], // Reuse logic
+    UNTRACEABLE: [...COMMON_FIELDS], // Minimal fields
   },
   RESIDENCE: {
-    COMMON: COMMON_FIELDS,
-    POSITIVE: RESIDENCE_POSITIVE_FIELDS,
-    SHIFTED: RESIDENCE_SHIFTED_FIELDS,
-    NSP: RESIDENCE_NSP_FIELDS,
-    ENTRY_RESTRICTED: RESIDENCE_ENTRY_RESTRICTED_FIELDS,
-    UNTRACEABLE: RESIDENCE_UNTRACEABLE_FIELDS,
+    POSITIVE: [...COMMON_FIELDS, ...RESIDENCE_POSITIVE_FIELDS],
+    NEGATIVE: [...COMMON_FIELDS, ...RESIDENCE_POSITIVE_FIELDS],
+    SHIFTED: [...COMMON_FIELDS, ...RESIDENCE_SHIFTED_FIELDS],
+    NSP: [...COMMON_FIELDS], // Residence NSP often just TPC
+    ENTRY_RESTRICTED: [...COMMON_FIELDS, ...RESIDENCE_ENTRY_RESTRICTED_FIELDS],
+    UNTRACEABLE: [...COMMON_FIELDS],
   },
   OFFICE: {
-    COMMON: COMMON_FIELDS,
-    POSITIVE: OFFICE_POSITIVE_FIELDS,
-    SHIFTED: OFFICE_SHIFTED_FIELDS,
-    NSP: OFFICE_NSP_FIELDS,
-    ENTRY_RESTRICTED: OFFICE_ENTRY_RESTRICTED_FIELDS,
-    UNTRACEABLE: OFFICE_UNTRACEABLE_FIELDS,
+    POSITIVE: [...COMMON_FIELDS, ...OFFICE_POSITIVE_FIELDS],
+    NEGATIVE: [...COMMON_FIELDS, ...OFFICE_POSITIVE_FIELDS],
+    SHIFTED: [...COMMON_FIELDS, ...OFFICE_SHIFTED_FIELDS],
+    NSP: [...COMMON_FIELDS], // Office NSP
+    ENTRY_RESTRICTED: [...COMMON_FIELDS, ...RESIDENCE_ENTRY_RESTRICTED_FIELDS],
+    UNTRACEABLE: [...COMMON_FIELDS],
   },
-  // Residence-cum-Office uses combination of residence and office fields
-  RESIDENCE_CUM_OFFICE: {
-    COMMON: COMMON_FIELDS,
-    POSITIVE: [...RESIDENCE_POSITIVE_FIELDS, ...OFFICE_POSITIVE_FIELDS],
-    SHIFTED: [...RESIDENCE_SHIFTED_FIELDS, ...OFFICE_SHIFTED_FIELDS],
-    NSP: [...RESIDENCE_NSP_FIELDS, ...OFFICE_NSP_FIELDS],
-    ENTRY_RESTRICTED: [...RESIDENCE_ENTRY_RESTRICTED_FIELDS, ...OFFICE_ENTRY_RESTRICTED_FIELDS],
-    UNTRACEABLE: [...RESIDENCE_UNTRACEABLE_FIELDS, ...OFFICE_UNTRACEABLE_FIELDS],
-  },
-  // Builder verification uses office-like fields
-  BUILDER: {
-    COMMON: COMMON_FIELDS,
-    POSITIVE: OFFICE_POSITIVE_FIELDS,
-    SHIFTED: OFFICE_SHIFTED_FIELDS,
-    NSP: OFFICE_NSP_FIELDS,
-    ENTRY_RESTRICTED: OFFICE_ENTRY_RESTRICTED_FIELDS,
-    UNTRACEABLE: OFFICE_UNTRACEABLE_FIELDS,
-  },
-  // NOC verification uses office-like fields
-  NOC: {
-    COMMON: COMMON_FIELDS,
-    POSITIVE: OFFICE_POSITIVE_FIELDS,
-    SHIFTED: OFFICE_SHIFTED_FIELDS,
-    NSP: OFFICE_NSP_FIELDS,
-    ENTRY_RESTRICTED: OFFICE_ENTRY_RESTRICTED_FIELDS,
-    UNTRACEABLE: OFFICE_UNTRACEABLE_FIELDS,
-  },
-  // DSA/Connector verification uses business-like fields
-  DSA_CONNECTOR: {
-    COMMON: COMMON_FIELDS,
-    POSITIVE: BUSINESS_POSITIVE_FIELDS,
-    SHIFTED: BUSINESS_SHIFTED_FIELDS,
-    NSP: BUSINESS_NSP_FIELDS,
-    ENTRY_RESTRICTED: BUSINESS_ENTRY_RESTRICTED_FIELDS,
-    UNTRACEABLE: BUSINESS_UNTRACEABLE_FIELDS,
-  },
-  // Property APF verification uses business-like fields
-  PROPERTY_APF: {
-    COMMON: COMMON_FIELDS,
-    POSITIVE: BUSINESS_POSITIVE_FIELDS,
-    SHIFTED: BUSINESS_SHIFTED_FIELDS,
-    NSP: BUSINESS_NSP_FIELDS,
-    ENTRY_RESTRICTED: BUSINESS_ENTRY_RESTRICTED_FIELDS,
-    UNTRACEABLE: BUSINESS_UNTRACEABLE_FIELDS,
-  },
-  // Property Individual verification uses residence-like fields
-  PROPERTY_INDIVIDUAL: {
-    COMMON: COMMON_FIELDS,
-    POSITIVE: RESIDENCE_POSITIVE_FIELDS,
-    SHIFTED: RESIDENCE_SHIFTED_FIELDS,
-    NSP: RESIDENCE_NSP_FIELDS,
-    ENTRY_RESTRICTED: RESIDENCE_ENTRY_RESTRICTED_FIELDS,
-    UNTRACEABLE: RESIDENCE_UNTRACEABLE_FIELDS,
-  },
+  // Default fallback
+  DEFAULT: [...COMMON_FIELDS],
 };
 
-// ============================================================================
-// HELPER FUNCTIONS
-// ============================================================================
-
-export function getRelevantFieldsForFormType(
+// Helper to get schema based on type and outcome
+export function getFieldSchema(
   verificationType: string,
-  formType: string
+  outcome: string = 'POSITIVE'
 ): FormFieldDefinition[] {
-  const typeFields = VERIFICATION_FORM_TYPE_FIELDS[verificationType.toUpperCase()];
-  if (!typeFields) {
-    console.warn(`No field schema found for verification type: ${verificationType}`);
-    return [];
+  const upperType = verificationType.toUpperCase();
+  const upperOutcome = outcome.toUpperCase();
+
+  // Handle mapped types (e.g., 'Business Verification' -> 'BUSINESS')
+  const typeKey = upperType.includes('BUSINESS')
+    ? 'BUSINESS'
+    : upperType.includes('RESIDENCE')
+      ? 'RESIDENCE'
+      : upperType.includes('OFFICE')
+        ? 'OFFICE'
+        : 'DEFAULT';
+
+  // Handle mapped outcomes
+  let outcomeKey = 'POSITIVE';
+  if (upperOutcome.includes('SHIFTED')) {
+    outcomeKey = 'SHIFTED';
+  }
+  if (upperOutcome.includes('NSP') || upperOutcome.includes('PERSON NOT MET')) {
+    outcomeKey = 'NSP';
+  }
+  if (upperOutcome.includes('RESTRICTED') || upperOutcome.includes('DENIED')) {
+    outcomeKey = 'ENTRY_RESTRICTED';
+  }
+  if (upperOutcome.includes('UNTRACEABLE') || upperOutcome.includes('NOT FOUND')) {
+    outcomeKey = 'UNTRACEABLE';
+  }
+  if (upperOutcome.includes('NEGATIVE')) {
+    outcomeKey = 'NEGATIVE';
   }
 
-  // Get common fields (always shown)
-  const commonFields = typeFields.COMMON || [];
+  const schemas = TYPE_AWARE_SCHEMAS as unknown as Record<
+    string,
+    Record<string, FormFieldDefinition[]>
+  >;
+  const schema = schemas[typeKey]?.[outcomeKey] || TYPE_AWARE_SCHEMAS.DEFAULT;
 
-  // Get form-type-specific fields
-  const specificFields = typeFields[formType.toUpperCase()] || [];
+  return schema;
+}
 
-  // Merge and deduplicate by field name
-  const allFields = [...commonFields, ...specificFields];
-  const uniqueFields = allFields.filter(
-    (field, index, self) => index === self.findIndex(f => f.name === field.name)
-  );
-
-  return uniqueFields;
+// Alias for compatibility with comprehensiveFormFieldMapping
+export function getRelevantFieldsForFormType(
+  verificationType: string,
+  formType: string = 'POSITIVE'
+): FormFieldDefinition[] {
+  return getFieldSchema(verificationType, formType);
 }

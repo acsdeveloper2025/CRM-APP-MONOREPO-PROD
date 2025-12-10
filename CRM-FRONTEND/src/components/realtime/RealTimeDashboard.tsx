@@ -22,16 +22,16 @@ export function RealTimeDashboard({ refreshInterval = 30000 }: RealTimeDashboard
   const { isConnected, webSocketService } = useWebSocket();
 
   // Request real-time stats
-  const requestStats = () => {
+  const requestStats = React.useCallback(() => {
     if (isConnected) {
       webSocketService.emit('stats:request');
     }
-  };
+  }, [isConnected, webSocketService]);
 
   // Listen for stats updates
   useEffect(() => {
-    const handleStatsUpdate = (newStats: RealTimeStats) => {
-      setStats(newStats);
+    const handleStatsUpdate = (newStats: unknown) => {
+      setStats(newStats as RealTimeStats);
     };
 
     webSocketService.on('stats:update', handleStatsUpdate);
@@ -49,7 +49,7 @@ export function RealTimeDashboard({ refreshInterval = 30000 }: RealTimeDashboard
       const interval = setInterval(requestStats, refreshInterval);
       return () => clearInterval(interval);
     }
-  }, [isConnected, refreshInterval]);
+  }, [isConnected, refreshInterval, requestStats]);
 
   const getSystemLoadColor = (load: number) => {
     if (load < 50) {return 'text-green-600';}

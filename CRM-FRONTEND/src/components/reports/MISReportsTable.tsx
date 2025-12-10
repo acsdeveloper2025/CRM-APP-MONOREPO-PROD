@@ -54,7 +54,7 @@ export function MISReportsTable({ data, isLoading }: MISReportsTableProps) {
       setShowDeleteDialog(false);
       setReportToDelete(null);
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error(error.response?.data?.message || 'Failed to delete report');
     },
   });
@@ -203,7 +203,7 @@ export function MISReportsTable({ data, isLoading }: MISReportsTableProps) {
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
               This action cannot be undone. This will permanently delete the report
-              "{reportToDelete?.title}".
+              &quot;{reportToDelete?.title}&quot;.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

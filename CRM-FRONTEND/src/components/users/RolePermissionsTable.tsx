@@ -42,13 +42,15 @@ export function RolePermissionsTable({ data, isLoading }: RolePermissionsTablePr
   };
 
   // Group permissions by module
-  const groupPermissionsByModule = (permissions: any[]): Record<string, any[]> => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const groupPermissionsByModule = (permissions: unknown[]): Record<string, any[]> => {
     return permissions.reduce((acc, permission) => {
       if (!acc[permission.module]) {
         acc[permission.module] = [];
       }
       acc[permission.module].push(permission);
       return acc;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     }, {} as Record<string, any[]>);
   };
 

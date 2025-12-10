@@ -180,7 +180,7 @@ const MobileTableField = React.forwardRef<
     className={cn("flex justify-between items-start gap-2", className)}
     {...props}
   >
-    <span className="text-sm font-medium text-gray-600 min-w-0 flex-shrink-0">
+    <span className="text-sm font-medium text-gray-600 min-w-0 shrink-0">
       {label}:
     </span>
     <span className="text-sm text-right min-w-0 flex-1">

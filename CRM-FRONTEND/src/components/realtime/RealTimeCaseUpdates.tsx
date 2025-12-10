@@ -22,7 +22,7 @@ interface RealTimeUpdate {
   username: string;
   message: string;
   timestamp: string;
-  data?: any;
+  data?: unknown;
   progress?: number;
   compressionStats?: {
     originalSize: number;
@@ -76,6 +76,10 @@ export function RealTimeCaseUpdates({ caseId, maxUpdates = 20 }: RealTimeCaseUpd
     },
   });
 
+  const addUpdate = React.useCallback((update: RealTimeUpdate) => {
+    setUpdates(prev => [update, ...prev.slice(0, maxUpdates - 1)]);
+  }, [maxUpdates]);
+
   // Subscribe to case updates when caseId is provided
   useEffect(() => {
     if (caseId) {
@@ -86,7 +90,8 @@ export function RealTimeCaseUpdates({ caseId, maxUpdates = 20 }: RealTimeCaseUpd
 
   // Listen for mobile-specific events
   useEffect(() => {
-    const handleMobileLocationUpdate = (update: MobileLocationUpdate) => {
+    const handleMobileLocationUpdate = (rawUpdate: unknown) => {
+      const update = rawUpdate as MobileLocationUpdate;
       if (!caseId || update.caseId === caseId) {
         addUpdate({
           id: `location-${Date.now()}`,
@@ -101,7 +106,8 @@ export function RealTimeCaseUpdates({ caseId, maxUpdates = 20 }: RealTimeCaseUpd
       }
     };
 
-    const handleMobileFormProgress = (update: MobileFormProgress) => {
+    const handleMobileFormProgress = (rawUpdate: unknown) => {
+      const update = rawUpdate as MobileFormProgress;
       if (!caseId || update.caseId === caseId) {
         addUpdate({
           id: `form-${Date.now()}`,
@@ -116,7 +122,8 @@ export function RealTimeCaseUpdates({ caseId, maxUpdates = 20 }: RealTimeCaseUpd
       }
     };
 
-    const handleMobilePhotoUpdate = (update: MobilePhotoUpdate) => {
+    const handleMobilePhotoUpdate = (rawUpdate: unknown) => {
+      const update = rawUpdate as MobilePhotoUpdate;
       if (!caseId || update.caseId === caseId) {
         addUpdate({
           id: `photo-${Date.now()}`,
@@ -131,7 +138,8 @@ export function RealTimeCaseUpdates({ caseId, maxUpdates = 20 }: RealTimeCaseUpd
       }
     };
 
-    const handleTypingUpdate = (update: CaseTypingUpdate) => {
+    const handleTypingUpdate = (rawUpdate: unknown) => {
+      const update = rawUpdate as CaseTypingUpdate;
       if (!caseId || update.caseId === caseId) {
         setTypingUsers(prev => {
           const newSet = new Set(prev);
@@ -159,11 +167,9 @@ export function RealTimeCaseUpdates({ caseId, maxUpdates = 20 }: RealTimeCaseUpd
       webSocketService.off('mobile:photo:update', handleMobilePhotoUpdate);
       webSocketService.off('case:typing:update', handleTypingUpdate);
     };
-  }, [caseId]);
+  }, [caseId, addUpdate]);
 
-  const addUpdate = (update: RealTimeUpdate) => {
-    setUpdates(prev => [update, ...prev.slice(0, maxUpdates - 1)]);
-  };
+
 
   const getUpdateIcon = (type: RealTimeUpdate['type']) => {
     switch (type) {
@@ -211,6 +217,9 @@ export function RealTimeCaseUpdates({ caseId, maxUpdates = 20 }: RealTimeCaseUpd
       photo: { variant: 'outline' as const, label: 'Photo' },
       typing: { variant: 'secondary' as const, label: 'Typing' },
       general: { variant: 'outline' as const, label: 'Update' },
+      submission_progress: { variant: 'outline' as const, label: 'Upload' },
+      retry_status: { variant: 'destructive' as const, label: 'Retry' },
+      compression: { variant: 'secondary' as const, label: 'Compression' },
     };
     
     const { variant, label } = config[type] || config.general;
@@ -256,7 +265,7 @@ export function RealTimeCaseUpdates({ caseId, maxUpdates = 20 }: RealTimeCaseUpd
             <div className="space-y-3">
               {updates.map((update) => (
                 <div key={update.id} className="flex items-start space-x-3 p-3 rounded-lg bg-muted/50">
-                  <div className="flex-shrink-0 mt-0.5">
+                  <div className="shrink-0 mt-0.5">
                     {getUpdateIcon(update.type)}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -323,19 +332,19 @@ export function RealTimeCaseUpdates({ caseId, maxUpdates = 20 }: RealTimeCaseUpd
                     )}
 
                     {/* Existing data display */}
-                    {update.data && (
+                    {!!update.data && (
                       <div className="mt-2 text-xs text-gray-600">
-                        {update.type === 'location' && (
+                        {update.type === 'location' && update.data && (
                           <span>
-                            Lat: {update.data.latitude.toFixed(6)},
-                            Lng: {update.data.longitude.toFixed(6)}
+                            Lat: {(update.data as { latitude: number }).latitude.toFixed(6)},
+                            Lng: {(update.data as { longitude: number }).longitude.toFixed(6)}
                           </span>
                         )}
-                        {update.type === 'form' && (
+                        {update.type === 'form' && update.data && (
                           <div className="w-full bg-muted rounded-full h-1.5 mt-1">
                             <div
                               className="bg-blue-600 h-1.5 rounded-full"
-                              style={{ width: `${update.data.progress}%` }}
+                              style={{ width: `${(update.data as { progress: number }).progress}%` }}
                             />
                           </div>
                         )}

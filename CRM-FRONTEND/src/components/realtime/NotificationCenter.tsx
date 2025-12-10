@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Bell, X, Check, AlertCircle, Info, CheckCircle, AlertTriangle, UserCheck, UserX, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -57,7 +57,7 @@ export function NotificationCenter() {
     }
   };
 
-  const getNotificationPriority = (notification: any) => {
+  const getNotificationPriority = (notification: NotificationEvent) => {
     const priority = notification.priority || 'MEDIUM';
     switch (priority) {
       case 'URGENT':
@@ -73,7 +73,7 @@ export function NotificationCenter() {
     }
   };
 
-  const handleNotificationClick = (notification: NotificationEvent | any) => {
+  const handleNotificationClick = (notification: NotificationEvent) => {
     // Mark as read
     if (!notification.read) {
       markNotificationAsRead(notification.id);
@@ -172,7 +172,7 @@ export function NotificationCenter() {
                   onClick={() => handleNotificationClick(notification)}
                 >
                   <div className="flex items-start space-x-3">
-                    <div className="flex-shrink-0 mt-0.5">
+                    <div className="shrink-0 mt-0.5">
                       {getNotificationIcon(notification.type)}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -188,7 +188,7 @@ export function NotificationCenter() {
                             <Badge variant="secondary" className="text-xs bg-yellow-100 text-orange-800">High</Badge>
                           )}
                           {!notification.read && (
-                            <div className="h-2 w-2 bg-blue-600 rounded-full flex-shrink-0" />
+                            <div className="h-2 w-2 bg-blue-600 rounded-full shrink-0" />
                           )}
                         </div>
                       </div>

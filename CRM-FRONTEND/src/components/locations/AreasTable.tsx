@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { MoreHorizontal, Edit, Trash2, MapPin, Hash } from 'lucide-react';
-import { useStandardizedMutation } from '@/hooks/useStandardizedMutation';
+import { useMutationWithInvalidation } from '@/hooks/useStandardizedMutation';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -49,7 +49,7 @@ export function AreasTable({ data, isLoading }: AreasTableProps) {
   const [areaToEdit, setAreaToEdit] = useState<AreaWithDetails | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
 
-  const deleteMutation = useStandardizedMutation({
+  const deleteMutation = useMutationWithInvalidation({
     mutationFn: (id: string) => locationsService.deleteArea(id),
     invalidateKeys: [['areas'], ['pincodes']],
     successMessage: 'Area deleted successfully',
@@ -71,7 +71,7 @@ export function AreasTable({ data, isLoading }: AreasTableProps) {
 
   const confirmDelete = () => {
     if (areaToDelete) {
-      deleteMutation.mutate(areaToDelete.id);
+      deleteMutation.mutate(String(areaToDelete.id));
     }
   };
 
@@ -197,7 +197,7 @@ export function AreasTable({ data, isLoading }: AreasTableProps) {
             <AlertDialogDescription>
               {areaToDelete?.usageCount && areaToDelete.usageCount > 0 ? (
                 <>
-                  Cannot delete area "{areaToDelete?.name}" because it is currently assigned to{' '}
+                  Cannot delete area &quot;{areaToDelete?.name}&quot; because it is currently assigned to{' '}
                   <strong>{areaToDelete.usageCount}</strong> pincode(s).
                   <span className="block mt-2 text-amber-600 font-medium">
                     Please remove this area from all pincodes before deleting it.
@@ -206,7 +206,7 @@ export function AreasTable({ data, isLoading }: AreasTableProps) {
               ) : (
                 <>
                   This action cannot be undone. This will permanently delete the area
-                  "{areaToDelete?.name}".
+                  &quot;{areaToDelete?.name}&quot;.
                 </>
               )}
             </AlertDialogDescription>

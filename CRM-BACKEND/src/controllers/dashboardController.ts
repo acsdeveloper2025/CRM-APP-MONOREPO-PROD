@@ -3,6 +3,7 @@ import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
 import { pool } from '@/config/database';
 import { Role } from '@/types/auth';
+import type { QueryParams } from '@/types/database';
 
 // Mock data removed - using database operations only
 
@@ -32,7 +33,7 @@ export const getDashboardData = async (req: AuthenticatedRequest, res: Response)
 
     // Get cases from database with filters
     let casesQuery = 'SELECT DISTINCT c.* FROM cases c';
-    const queryParams: any[] = [startDate];
+    const queryParams: QueryParams = [startDate];
     let paramIndex = 2;
 
     // Join with verification_tasks if filtering by userId
@@ -127,7 +128,7 @@ export const getChartData = async (req: AuthenticatedRequest, res: Response) => 
       GROUP BY status
     `;
     const statusResult = await pool.query(statusQuery);
-    const statusDistribution = statusResult.rows.reduce((acc: any, row) => {
+    const statusDistribution = statusResult.rows.reduce((acc: Record<string, number>, row) => {
       acc[row.status] = parseInt(row.count);
       return acc;
     }, {});
@@ -139,7 +140,7 @@ export const getChartData = async (req: AuthenticatedRequest, res: Response) => 
       GROUP BY priority
     `;
     const priorityResult = await pool.query(priorityQuery);
-    const priorityDistribution = priorityResult.rows.reduce((acc: any, row) => {
+    const priorityDistribution = priorityResult.rows.reduce((acc: Record<string, number>, row) => {
       acc[row.priority] = parseInt(row.count);
       return acc;
     }, {});
@@ -159,22 +160,28 @@ export const getChartData = async (req: AuthenticatedRequest, res: Response) => 
       ORDER BY "totalCases" DESC
       LIMIT 10
     `;
-    const userPerformanceResult = await pool.query(userPerformanceQuery);
-    const userPerformance = userPerformanceResult.rows.map(user => ({
-      id: user.id,
-      name: user.name,
-      totalCases: parseInt(user.totalCases) || 0,
-      completedCases: parseInt(user.completedCases) || 0,
-      approvedCases: parseInt(user.approvedCases) || 0,
-      completionRate:
-        user.totalCases > 0
-          ? Math.round(
-              ((parseInt(user.completedCases) + parseInt(user.approvedCases)) /
-                parseInt(user.totalCases)) *
-                100
-            )
-          : 0,
-    }));
+    const userPerformanceResult = await pool.query<{
+      id: string;
+      name: string;
+      totalCases: string;
+      completedCases: string;
+      approvedCases: string;
+    }>(userPerformanceQuery);
+    const userPerformance = userPerformanceResult.rows.map(user => {
+      const totalCases = parseInt(user.totalCases) || 0;
+      const completedCases = parseInt(user.completedCases) || 0;
+      const approvedCases = parseInt(user.approvedCases) || 0;
+
+      return {
+        id: user.id,
+        name: user.name,
+        totalCases,
+        completedCases,
+        approvedCases,
+        completionRate:
+          totalCases > 0 ? Math.round(((completedCases + approvedCases) / totalCases) * 100) : 0,
+      };
+    });
 
     // Get client distribution from database
     const clientQuery = `
@@ -285,7 +292,11 @@ export const getPerformanceMetrics = async (req: AuthenticatedRequest, res: Resp
       FROM cases
     `;
 
-    const result = await pool.query(metricsQuery);
+    const result = await pool.query<{
+      totalCases: string;
+      completedCases: string;
+      avgTurnaroundDays: string;
+    }>(metricsQuery);
     const metrics = result.rows[0];
 
     const totalCases = parseInt(metrics.totalCases) || 0;
@@ -492,7 +503,7 @@ export const getCaseStatusDistribution = async (req: AuthenticatedRequest, res: 
         ROUND((COUNT(DISTINCT c.id) * 100.0 / SUM(COUNT(DISTINCT c.id)) OVER()), 2) as percentage
       FROM cases c
     `;
-    const queryParams: any[] = [startDate];
+    const queryParams: QueryParams = [startDate];
     let paramIndex = 2;
 
     // Join with verification_tasks if filtering by userId
@@ -510,7 +521,7 @@ export const getCaseStatusDistribution = async (req: AuthenticatedRequest, res: 
 
     if (effectiveUserId) {
       statusQuery += ` AND vt.assigned_to = $${paramIndex}`;
-      queryParams.push(effectiveUserId);
+      queryParams.push(effectiveUserId as string);
       paramIndex++;
     }
 
@@ -587,7 +598,7 @@ export const getMonthlyTrends = async (req: AuthenticatedRequest, res: Response)
         END) as "avgTurnaroundDays"
       FROM cases c
     `;
-    const queryParams: any[] = [startDate];
+    const queryParams: QueryParams = [startDate];
     let paramIndex = 2;
 
     // Join with verification_tasks if filtering by userId
@@ -605,7 +616,7 @@ export const getMonthlyTrends = async (req: AuthenticatedRequest, res: Response)
 
     if (effectiveUserId) {
       trendsQuery += ` AND vt.assigned_to = $${paramIndex}`;
-      queryParams.push(effectiveUserId);
+      queryParams.push(effectiveUserId as string);
       paramIndex++;
     }
 
@@ -745,7 +756,7 @@ export const getOverdueTasks = async (req: AuthenticatedRequest, res: Response) 
       WHERE vt.status IN ('PENDING', 'ASSIGNED', 'IN_PROGRESS')
     `;
 
-    const queryParams: any[] = [];
+    const queryParams: QueryParams = [];
     let paramIndex = 1;
 
     // Add user filter for field agents
@@ -797,7 +808,7 @@ export const getOverdueTasks = async (req: AuthenticatedRequest, res: Response) 
       WHERE vt.status IN ('PENDING', 'ASSIGNED', 'IN_PROGRESS')
     `;
 
-    const countParams: any[] = [];
+    const countParams: QueryParams = [];
     let countParamIndex = 1;
 
     if (effectiveUserId) {
@@ -911,7 +922,7 @@ export const getTATStats = async (req: AuthenticatedRequest, res: Response) => {
       FROM verification_tasks vt
     `;
 
-    const queryParams: any[] = [];
+    const queryParams: QueryParams = [];
     if (effectiveUserId) {
       statsQuery += ` WHERE vt.assigned_to = $1`;
       queryParams.push(effectiveUserId);

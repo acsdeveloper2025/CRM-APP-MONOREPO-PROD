@@ -191,7 +191,7 @@ export function CreateRoleDialog({ open, onOpenChange }: CreateRoleDialogProps) 
       form.reset();
       onOpenChange(false);
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error(error.response?.data?.message || 'Failed to create role');
     },
   });
@@ -289,7 +289,7 @@ export function CreateRoleDialog({ open, onOpenChange }: CreateRoleDialogProps) 
                           <FormField
                             key={`${resource.key}.${action.key}`}
                             control={form.control}
-                            name={`permissions.${resource.key}.${action.key}` as any}
+                            name={`permissions.${resource.key}.${action.key}` as unknown}
                             render={({ field }) => (
                               <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                                 <FormControl>

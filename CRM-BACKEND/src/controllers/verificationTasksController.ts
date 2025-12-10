@@ -1,7 +1,6 @@
-/* eslint-disable camelcase */
-// Disabled camelcase rule for this file as it uses snake_case database column names
 import type { Request, Response } from 'express';
 import type { AuthenticatedRequest } from '../middleware/auth';
+import { PoolClient } from 'pg';
 import type {
   VerificationTask,
   UpdateVerificationTaskData,
@@ -91,29 +90,24 @@ export class VerificationTasksController {
       // Create each verification task
       for (const taskData of tasks) {
         const {
-          verification_type_id,
-          task_title,
-          task_description,
+          verification_type_id: verificationTypeId,
+          task_title: taskTitle,
+          task_description: taskDescription,
           priority = 'MEDIUM',
-          assigned_to,
-          rate_type_id,
-          estimated_amount,
+          assigned_to: assignedTo,
+          rate_type_id: rateTypeId,
+          estimated_amount: estimatedAmount,
           address,
           pincode,
-          document_type,
-          document_number,
-          document_details,
-          estimated_completion_date,
+          document_type: documentType,
+          document_number: documentNumber,
+          document_details: documentDetails,
+          estimated_completion_date: estimatedCompletionDate,
         } = taskData;
 
         // Look up rate amount if rate_type_id is provided
-        let actualAmount = estimated_amount;
-        if (
-          rate_type_id &&
-          caseInfo.clientId &&
-          caseInfo.productId &&
-          caseInfo.verificationTypeId
-        ) {
+        let actualAmount = estimatedAmount;
+        if (rateTypeId && caseInfo.clientId && caseInfo.productId && caseInfo.verificationTypeId) {
           const rateQuery = `
             SELECT amount, currency
             FROM rates
@@ -127,7 +121,7 @@ export class VerificationTasksController {
             caseInfo.clientId,
             caseInfo.productId,
             caseInfo.verificationTypeId,
-            parseInt(rate_type_id.toString()),
+            parseInt(rateTypeId.toString()),
           ]);
 
           if (rateResult.rows.length > 0) {
@@ -136,7 +130,7 @@ export class VerificationTasksController {
         }
 
         // Validate required fields
-        if (!verification_type_id || !task_title) {
+        if (!verificationTypeId || !taskTitle) {
           await client.query('ROLLBACK');
           res.status(400).json({
             success: false,
@@ -146,13 +140,13 @@ export class VerificationTasksController {
           return;
         }
 
-        // Insert verification task
-        const assignedToValue = assigned_to || null;
-        const isAssigned = assignedToValue !== null;
+        // Determine status based on assignment
+        const isAssigned = !!assignedTo;
+        const assignedToValue = isAssigned ? assignedTo : null;
         const taskStatus = isAssigned ? 'ASSIGNED' : 'PENDING';
 
         let insertQuery: string;
-        let insertParams: any[];
+        let insertParams: (string | number | boolean | null | Date | undefined)[];
 
         if (isAssigned) {
           insertQuery = `
@@ -170,20 +164,20 @@ export class VerificationTasksController {
           `;
           insertParams = [
             actualCaseId,
-            verification_type_id,
-            task_title,
-            task_description,
+            verificationTypeId,
+            taskTitle,
+            taskDescription,
             priority,
             assignedToValue,
             userId,
-            rate_type_id,
+            rateTypeId,
             actualAmount,
             address,
             pincode,
-            document_type,
-            document_number,
-            JSON.stringify(document_details),
-            estimated_completion_date,
+            documentType,
+            documentNumber,
+            JSON.stringify(documentDetails),
+            estimatedCompletionDate,
             taskStatus,
             userId,
           ];
@@ -203,18 +197,18 @@ export class VerificationTasksController {
           `;
           insertParams = [
             actualCaseId,
-            verification_type_id,
-            task_title,
-            task_description,
+            verificationTypeId,
+            taskTitle,
+            taskDescription,
             priority,
-            rate_type_id,
+            rateTypeId,
             actualAmount,
             address,
             pincode,
-            document_type,
-            document_number,
-            JSON.stringify(document_details),
-            estimated_completion_date,
+            documentType,
+            documentNumber,
+            JSON.stringify(documentDetails),
+            estimatedCompletionDate,
             taskStatus,
             userId,
           ];
@@ -227,7 +221,7 @@ export class VerificationTasksController {
         totalEstimatedAmount += actualAmount || 0;
 
         // Create assignment history if assigned
-        if (assigned_to) {
+        if (assignedTo) {
           await client.query(
             `
             INSERT INTO task_assignment_history (
@@ -238,7 +232,7 @@ export class VerificationTasksController {
             [
               task.id,
               actualCaseId,
-              assigned_to,
+              assignedTo,
               userId,
               'Initial assignment during task creation',
               'PENDING',
@@ -255,9 +249,9 @@ export class VerificationTasksController {
           entityId: task.id,
           details: {
             caseId: actualCaseId,
-            taskTitle: task_title,
-            verificationType: verification_type_id,
-            assignedTo: assigned_to,
+            taskTitle,
+            verificationType: verificationTypeId,
+            assignedTo,
           },
         });
       }
@@ -355,7 +349,7 @@ export class VerificationTasksController {
    */
   static async revisitTask(req: AuthenticatedRequest, res: Response): Promise<void> {
     const { taskId } = req.params;
-    const { assigned_to } = req.body;
+    const { assigned_to: assignedTo } = req.body;
     const userId = req.user?.id;
 
     const client = await pool.connect();
@@ -388,7 +382,7 @@ export class VerificationTasksController {
       // which implies we might need to copy them or just link them.
       // For now, we'll create the task first.
 
-      const assignedToValue = assigned_to || null;
+      const assignedToValue = assignedTo || null;
       const isAssigned = assignedToValue !== null;
       const taskStatus = isAssigned ? 'ASSIGNED' : 'PENDING';
 
@@ -447,7 +441,7 @@ export class VerificationTasksController {
       // Actually, I should check attachment schema.
 
       // 4. Create assignment history if assigned
-      if (assigned_to) {
+      if (assignedTo) {
         await client.query(
           `
           INSERT INTO task_assignment_history (
@@ -458,7 +452,7 @@ export class VerificationTasksController {
           [
             newTask.id,
             newTask.case_id,
-            assigned_to,
+            assignedTo,
             userId,
             'Initial assignment for revisit task',
             'PENDING',
@@ -490,7 +484,7 @@ export class VerificationTasksController {
       await client.query('COMMIT');
 
       // 6. Send notification (if assigned)
-      if (assigned_to) {
+      if (assignedTo) {
         try {
           // Get case details for notifications
           const caseQuery = `
@@ -509,7 +503,7 @@ export class VerificationTasksController {
           const verificationType = vtResult.rows[0]?.name || 'Unknown';
 
           await queueCaseAssignmentNotification({
-            userId: assigned_to,
+            userId: assignedTo,
             caseId: newTask.case_id,
             caseNumber: caseData.case_number,
             taskId: newTask.id,
@@ -562,7 +556,7 @@ export class VerificationTasksController {
       search,
       dateFrom,
       dateTo,
-      task_type,
+      task_type: taskType,
     } = req.query;
 
     try {
@@ -570,7 +564,7 @@ export class VerificationTasksController {
 
       // Build WHERE conditions
       const conditions: string[] = [];
-      const params: any[] = [];
+      const params: (string | number | boolean | null | string[] | number[])[] = [];
       let paramIndex = 1;
 
       // Role-based filtering - FIELD_AGENT users can see tasks assigned to them OR in their territory
@@ -584,8 +578,8 @@ export class VerificationTasksController {
         const { getAssignedPincodeIds } = await import('@/middleware/pincodeAccess');
         const { getAssignedAreaIds } = await import('@/middleware/areaAccess');
 
-        const assignedPincodeIds = await getAssignedPincodeIds(userId!, userRole);
-        const assignedAreaIds = await getAssignedAreaIds(userId!, userRole);
+        const assignedPincodeIds = await getAssignedPincodeIds(userId, userRole);
+        const assignedAreaIds = await getAssignedAreaIds(userId, userRole);
 
         const fieldAgentConditions: string[] = [];
 
@@ -617,7 +611,7 @@ export class VerificationTasksController {
         }
       } else if (assignedTo) {
         conditions.push(`vt.assigned_to = $${paramIndex}`);
-        params.push(assignedTo);
+        params.push(assignedTo as string);
         paramIndex++;
       }
 
@@ -633,21 +627,21 @@ export class VerificationTasksController {
       // Priority filter
       if (priority) {
         conditions.push(`vt.priority = $${paramIndex}`);
-        params.push(priority);
+        params.push(priority as string);
         paramIndex++;
       }
 
       // Verification type filter
       if (verificationTypeId) {
         conditions.push(`vt.verification_type_id = $${paramIndex}`);
-        params.push(verificationTypeId);
+        params.push(verificationTypeId as string);
         paramIndex++;
       }
 
       // Task type filter
-      if (task_type) {
+      if (taskType) {
         conditions.push(`vt.task_type = $${paramIndex}`);
-        params.push(task_type);
+        params.push(taskType as string);
         paramIndex++;
       }
 
@@ -685,13 +679,13 @@ export class VerificationTasksController {
       // Date range filter
       if (dateFrom) {
         conditions.push(`vt.created_at >= $${paramIndex}`);
-        params.push(dateFrom);
+        params.push(dateFrom as string);
         paramIndex++;
       }
 
       if (dateTo) {
         conditions.push(`vt.created_at <= $${paramIndex}`);
-        params.push(dateTo);
+        params.push(dateTo as string);
         paramIndex++;
       }
 
@@ -878,7 +872,7 @@ export class VerificationTasksController {
    */
   static async getTasksForCase(req: Request, res: Response): Promise<void> {
     const { caseId } = req.params;
-    const { status, assigned_to, verification_type_id } = req.query;
+    const { status, assigned_to: assignedTo, verification_type_id: verificationTypeId } = req.query;
 
     try {
       // First, resolve the case ID - it could be a case number or UUID
@@ -901,25 +895,25 @@ export class VerificationTasksController {
       }
 
       const whereConditions = ['vt.case_id = $1'];
-      const queryParams: any[] = [actualCaseId];
+      const queryParams: (string | number | boolean | null | undefined)[] = [actualCaseId];
       let paramIndex = 2;
 
       // Add filters
       if (status) {
         whereConditions.push(`vt.status = $${paramIndex}`);
-        queryParams.push(status);
+        queryParams.push(status as string);
         paramIndex++;
       }
 
-      if (assigned_to) {
+      if (assignedTo) {
         whereConditions.push(`vt.assigned_to = $${paramIndex}`);
-        queryParams.push(assigned_to);
+        queryParams.push(assignedTo as string);
         paramIndex++;
       }
 
-      if (verification_type_id) {
+      if (verificationTypeId) {
         whereConditions.push(`vt.verification_type_id = $${paramIndex}`);
-        queryParams.push(verification_type_id);
+        queryParams.push(verificationTypeId as string);
         paramIndex++;
       }
 
@@ -1078,7 +1072,7 @@ export class VerificationTasksController {
 
       // Build dynamic update query
       const updateFields: string[] = [];
-      const queryParams: any[] = [];
+      const queryParams: (string | number | boolean | Date | null | undefined)[] = [];
       let paramIndex = 1;
 
       Object.entries(updateData).forEach(([key, value]) => {
@@ -1184,7 +1178,7 @@ export class VerificationTasksController {
         action: 'UPDATE_VERIFICATION_TASK',
         entityType: 'VERIFICATION_TASK',
         entityId: taskId,
-        details: updateData,
+        details: updateData as unknown as Record<string, unknown>,
       });
 
       logger.info('=== TASK UPDATE COMPLETE ===', {
@@ -1583,18 +1577,18 @@ export class VerificationTasksController {
 
     try {
       const whereConditions = ['vt.assigned_to = $1'];
-      const queryParams: any[] = [userId];
+      const queryParams: (string | undefined)[] = [userId];
       let paramIndex = 2;
 
       if (status) {
         whereConditions.push(`vt.status = $${paramIndex}`);
-        queryParams.push(status);
+        queryParams.push(status as string);
         paramIndex++;
       }
 
       if (priority) {
         whereConditions.push(`vt.priority = $${paramIndex}`);
-        queryParams.push(priority);
+        queryParams.push(priority as string);
         paramIndex++;
       }
 
@@ -1762,9 +1756,9 @@ export class VerificationTasksController {
    * Helper method to calculate commission for completed task
    */
   private static async calculateTaskCommission(
-    client: any,
+    client: PoolClient,
     taskId: string,
-    task: any,
+    task: VerificationTask,
     actualAmount: number
   ): Promise<void> {
     try {
@@ -1776,8 +1770,9 @@ export class VerificationTasksController {
 
       logger.info('Commission calculated for completed task', {
         taskId,
-        taskNumber: task.task_number,
-        assignedTo: task.assigned_to,
+        taskNumber: task.taskNumber,
+        assignedTo: task.assignedTo,
+        status: 'COMPLETED',
         actualAmount,
       });
     } catch (error) {

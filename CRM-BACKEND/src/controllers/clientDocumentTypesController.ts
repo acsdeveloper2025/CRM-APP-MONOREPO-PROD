@@ -3,6 +3,7 @@ import type { AuthenticatedRequest } from '../middleware/auth';
 import { logger } from '../utils/logger';
 import { query, withTransaction } from '../config/database';
 import { createAuditLog } from '../utils/auditLogger';
+import type { QueryParams } from '../types/database';
 
 // GET /api/clients/:id/document-types - Get document types mapped to a client
 export const getDocumentTypesByClient = async (req: AuthenticatedRequest, res: Response) => {
@@ -122,7 +123,7 @@ export const assignDocumentTypesToClient = async (req: AuthenticatedRequest, res
           );
 
           insertedMappings.push(insertResult.rows[0]);
-        } catch (error: any) {
+        } catch (error: unknown) {
           logger.error(`Error inserting client-document type mapping:`, error);
           throw error;
         }
@@ -244,7 +245,7 @@ export const updateClientDocumentTypeMapping = async (req: AuthenticatedRequest,
 
     // Build update query
     const updateFields: string[] = [];
-    const updateValues: any[] = [];
+    const updateValues: QueryParams = [];
     let paramIndex = 1;
 
     if (isRequired !== undefined) {

@@ -240,7 +240,7 @@ export function EditRoleDialog({ open, onOpenChange, role }: EditRoleDialogProps
       toast.success('Role updated successfully');
       onOpenChange(false);
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error(error.response?.data?.message || 'Failed to update role');
     },
   });
@@ -368,7 +368,7 @@ export function EditRoleDialog({ open, onOpenChange, role }: EditRoleDialogProps
                           <FormField
                             key={`${resource.key}.${action.key}`}
                             control={form.control}
-                            name={`permissions.${resource.key}.${action.key}` as any}
+                            name={`permissions.${resource.key}.${action.key}` as unknown}
                             render={({ field }) => (
                               <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                                 <FormControl>

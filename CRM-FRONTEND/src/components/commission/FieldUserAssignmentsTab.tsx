@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Edit, Trash2, Download } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
@@ -19,7 +19,7 @@ import { useUnifiedSearch, useUnifiedFilters } from '@/hooks/useUnifiedSearch';
 import { commissionManagementApi } from '../../services/commissionManagementApi';
 import { FieldUserCommissionAssignment, CreateFieldUserCommissionAssignmentData } from '../../types/commission';
 import { User } from '../../types/user';
-import { RateType } from '../../types/rateType';
+import { RateType } from '../../types/rateManagement';
 import { userApi } from '../../services/userApi';
 import { rateTypeApi } from '../../services/rateTypeApi';
 
@@ -58,7 +58,7 @@ export const FieldUserAssignmentsTab: React.FC = () => {
   const {
     filters,
     setFilter,
-    clearFilters,
+    clearFilters: _clearFilters,
     hasActiveFilters,
   } = useUnifiedFilters({
     syncWithUrl: true,
@@ -79,11 +79,7 @@ export const FieldUserAssignmentsTab: React.FC = () => {
     currency: 'INR'
   });
 
-  useEffect(() => {
-    loadData();
-  }, [currentPage, debouncedSearchValue, filterUserId, filterRateTypeId]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -92,12 +88,12 @@ export const FieldUserAssignmentsTab: React.FC = () => {
         page: currentPage,
         limit: 20,
         search: debouncedSearchValue || undefined,
-        userId: filterUserId || undefined,
+        userId: (filterUserId as string) || undefined,
         rateTypeId: filterRateTypeId ? Number(filterRateTypeId) : undefined
       });
 
-      setAssignments(assignmentsResponse.data);
-      setTotalPages(assignmentsResponse.pagination.totalPages);
+      setAssignments(assignmentsResponse.data || []);
+      setTotalPages(assignmentsResponse.pagination?.totalPages || 1);
 
       // Load users and rate types for dropdowns
       const [usersResponse, rateTypesResponse] = await Promise.all([
@@ -112,7 +108,11 @@ export const FieldUserAssignmentsTab: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage, debouncedSearchValue, filterUserId, filterRateTypeId]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -169,6 +169,7 @@ export const FieldUserAssignmentsTab: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
+    // eslint-disable-next-line no-alert
     if (window.confirm('Are you sure you want to delete this assignment?')) {
       try {
         await commissionManagementApi.deleteFieldUserCommissionAssignment(id);
@@ -238,21 +239,20 @@ export const FieldUserAssignmentsTab: React.FC = () => {
           <UnifiedFilterPanel
             hasActiveFilters={hasActiveFilters}
             activeFilterCount={activeFilterCount}
-            onClearAll={clearFilters}
           >
-            <FilterGrid columns={2}>
+            <FilterGrid columns={{ sm: 1, md: 2 }}>
               <div className="space-y-2">
                 <Label>Field User</Label>
                 <SearchableSelect
                   options={[
                     { value: '', label: 'All Users' },
                     ...(users || []).map(user => ({
-                      value: user.id,
+                      value: String(user.id),
                       label: user.name,
                       description: user.email
                     }))
                   ]}
-                  value={filterUserId}
+                  value={String(filterUserId || '')}
                   onValueChange={(value) => setFilter('userId', value)}
                   placeholder="Filter by user..."
                   searchPlaceholder="Search users..."
@@ -267,10 +267,11 @@ export const FieldUserAssignmentsTab: React.FC = () => {
                     ...(rateTypes || []).map(rateType => ({
                       value: rateType.id.toString(),
                       label: rateType.name,
-                      description: `Rate: ${rateType.rate_amount || 'Not set'}`
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      description: `Rate: ${(rateType as any).rate_amount || 'Not set'}`
                     }))
                   ]}
-                  value={filterRateTypeId}
+                  value={String(filterRateTypeId || '')}
                   onValueChange={(value) => setFilter('rateTypeId', value)}
                   placeholder="Filter by rate type..."
                   searchPlaceholder="Search rate types..."
@@ -488,7 +489,8 @@ export const FieldUserAssignmentsTab: React.FC = () => {
                   options={(rateTypes || []).map(rateType => ({
                     value: rateType.id.toString(),
                     label: rateType.name,
-                    description: `Rate: ${rateType.rate_amount || 'Not set'}`
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    description: `Rate: ${(rateType as any).rate_amount || 'Not set'}`
                   }))}
                   value={formData.rateTypeId ? formData.rateTypeId.toString() : ''}
                   onValueChange={(value) => setFormData({ ...formData, rateTypeId: value ? Number(value) : 0 })}

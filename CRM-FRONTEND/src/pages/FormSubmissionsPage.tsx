@@ -23,7 +23,7 @@ export const FormSubmissionsPage: React.FC = () => {
   const [selectedSubmission, setSelectedSubmission] = useState<FormSubmission | null>(null);
   const [isViewerOpen, setIsViewerOpen] = useState(false);
 
-  const { data: formSubmissionsData, isLoading, error } = useCaseFormSubmissions(caseId!);
+  const { data: formSubmissionsData, isLoading, error } = useCaseFormSubmissions(caseId || '');
   const submissions = formSubmissionsData?.data?.submissions || [];
 
   const handleSubmissionSelect = (submission: FormSubmission) => {

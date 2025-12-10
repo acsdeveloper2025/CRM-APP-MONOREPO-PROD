@@ -69,27 +69,27 @@ const commissionRateTypeIdValidation = [
 ];
 
 // Commission Rate Types Routes
-router.get('/rate-types', getCommissionRateTypes as any);
+router.get('/rate-types', getCommissionRateTypes as express.RequestHandler);
 
 router.post(
   '/rate-types',
   createCommissionRateTypeValidation,
   validate,
-  createCommissionRateType as any
+  createCommissionRateType as express.RequestHandler
 );
 
 router.put(
   '/rate-types/:id',
   updateCommissionRateTypeValidation,
   validate,
-  updateCommissionRateType as any
+  updateCommissionRateType as express.RequestHandler
 );
 
 router.delete(
   '/rate-types/:id',
   commissionRateTypeIdValidation,
   validate,
-  deleteCommissionRateType as any
+  deleteCommissionRateType as express.RequestHandler
 );
 
 // =====================================================
@@ -117,13 +117,13 @@ const createFieldUserCommissionAssignmentValidation = [
 ];
 
 // Field User Commission Assignments Routes
-router.get('/field-user-assignments', getFieldUserCommissionAssignments as any);
+router.get('/field-user-assignments', getFieldUserCommissionAssignments as express.RequestHandler);
 
 router.post(
   '/field-user-assignments',
   createFieldUserCommissionAssignmentValidation,
   validate,
-  createFieldUserCommissionAssignment as any
+  createFieldUserCommissionAssignment as express.RequestHandler
 );
 
 router.put(
@@ -133,14 +133,14 @@ router.put(
     ...createFieldUserCommissionAssignmentValidation,
   ],
   validate,
-  updateFieldUserCommissionAssignment as any
+  updateFieldUserCommissionAssignment as express.RequestHandler
 );
 
 router.delete(
   '/field-user-assignments/:id',
   param('id').isInt({ min: 1 }).withMessage('Assignment ID must be a positive integer'),
   validate,
-  deleteFieldUserCommissionAssignment as any
+  deleteFieldUserCommissionAssignment as express.RequestHandler
 );
 
 // =====================================================
@@ -182,7 +182,7 @@ router.get(
   '/calculations',
   commissionCalculationsQueryValidation,
   validate,
-  getCommissionCalculations as any
+  getCommissionCalculations as express.RequestHandler
 );
 
 // =====================================================
@@ -194,7 +194,7 @@ router.post(
   '/test-calculation',
   body('caseId').isUUID().withMessage('Case ID must be a valid UUID'),
   validate,
-  calculateCommissionForCompletedCase as any
+  calculateCommissionForCompletedCase as express.RequestHandler
 );
 
 // =====================================================
@@ -202,6 +202,6 @@ router.post(
 // =====================================================
 
 // Commission Statistics Route
-router.get('/stats', getCommissionStats as any);
+router.get('/stats', getCommissionStats as express.RequestHandler);
 
 export default router;

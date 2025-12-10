@@ -239,7 +239,7 @@ export class CaseAssignmentService {
   /**
    * Get assignment history for a case
    */
-  static async getCaseAssignmentHistory(caseId: string): Promise<any[]> {
+  static async getCaseAssignmentHistory(caseId: string): Promise<unknown[]> {
     try {
       const historyQuery = `
         SELECT 
@@ -275,7 +275,7 @@ export class CaseAssignmentService {
   /**
    * Get field agent workload statistics
    */
-  static async getFieldAgentWorkload(): Promise<any[]> {
+  static async getFieldAgentWorkload(): Promise<unknown[]> {
     try {
       const workloadQuery = `
         SELECT * FROM field_agent_workload
@@ -469,7 +469,7 @@ export class CaseAssignmentService {
     }>
   ): Promise<void> {
     const updateFields: string[] = [];
-    const values: any[] = [];
+    const values: (string | number | boolean | null | Date | string[])[] = [];
     let paramIndex = 1;
 
     Object.entries(updates).forEach(([key, value]) => {

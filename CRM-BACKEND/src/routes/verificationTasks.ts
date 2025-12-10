@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/unbound-method */
 // Disabled unbound-method rule for this file as it uses method references in routes
 import express from 'express';
 import { VerificationTasksController } from '../controllers/verificationTasksController';
@@ -22,7 +21,11 @@ const router = express.Router();
  * Query params: page, limit, sortBy, sortOrder, status, priority, assignedTo,
  *               verificationTypeId, clientId, productId, search, dateFrom, dateTo
  */
-router.get('/verification-tasks', authenticateToken, VerificationTasksController.getAllTasks);
+router.get(
+  '/verification-tasks',
+  authenticateToken,
+  VerificationTasksController.getAllTasks.bind(VerificationTasksController)
+);
 
 /**
  * Create multiple verification tasks for a case
@@ -32,7 +35,7 @@ router.post(
   '/cases/:caseId/verification-tasks',
   authenticateToken,
   validateTaskCreation,
-  VerificationTasksController.createMultipleTasksForCase
+  VerificationTasksController.createMultipleTasksForCase.bind(VerificationTasksController)
 );
 
 /**
@@ -43,7 +46,7 @@ router.post(
 router.get(
   '/cases/:caseId/verification-tasks',
   authenticateToken,
-  VerificationTasksController.getTasksForCase
+  VerificationTasksController.getTasksForCase.bind(VerificationTasksController)
 );
 
 /**
@@ -54,7 +57,7 @@ router.get(
 router.post(
   '/verification-tasks/revisit/:taskId',
   authenticateToken,
-  VerificationTasksController.revisitTask
+  VerificationTasksController.revisitTask.bind(VerificationTasksController)
 );
 
 /**
@@ -65,7 +68,7 @@ router.put(
   '/verification-tasks/:taskId',
   authenticateToken,
   validateTaskUpdate,
-  VerificationTasksController.updateTask
+  VerificationTasksController.updateTask.bind(VerificationTasksController)
 );
 
 /**
@@ -76,7 +79,7 @@ router.post(
   '/verification-tasks/:taskId/assign',
   authenticateToken,
   validateTaskAssignment,
-  VerificationTasksController.assignTask
+  VerificationTasksController.assignTask.bind(VerificationTasksController)
 );
 
 /**
@@ -86,7 +89,7 @@ router.post(
 router.post(
   '/verification-tasks/:taskId/complete',
   authenticateToken,
-  VerificationTasksController.completeTask
+  VerificationTasksController.completeTask.bind(VerificationTasksController)
 );
 
 /**
@@ -97,7 +100,7 @@ router.post(
 router.get(
   '/verification-tasks/:taskId/validate',
   authenticateToken,
-  VerificationTasksController.validateTask
+  VerificationTasksController.validateTask.bind(VerificationTasksController)
 );
 
 /**
@@ -114,7 +117,10 @@ router.post(
 
       // Update task status to IN_PROGRESS and set started_at
       await VerificationTasksController.updateTask(
-        { ...req, body: { status: 'IN_PROGRESS', startedAt: new Date().toISOString() } } as any,
+        {
+          ...req,
+          body: { status: 'IN_PROGRESS', startedAt: new Date().toISOString() },
+        } as AuthenticatedRequest,
         res
       );
     } catch (_error) {
@@ -253,7 +259,7 @@ router.post(
             cancelledAt: new Date().toISOString(),
             cancelledBy: userId,
           },
-        } as any,
+        } as AuthenticatedRequest,
         res
       );
     } catch (_error) {
@@ -393,7 +399,7 @@ router.post(
 router.get(
   '/mobile/my-verification-tasks',
   authenticateToken,
-  VerificationTasksController.getMyTasks
+  VerificationTasksController.getMyTasks.bind(VerificationTasksController)
 );
 
 /**
@@ -424,7 +430,7 @@ router.post(
             completion_notes: JSON.stringify(form_data),
             actual_amount: req.body.actual_amount,
           },
-        } as any,
+        } as AuthenticatedRequest,
         res
       );
     } catch (_error) {

@@ -2,9 +2,10 @@ import { apiService } from './api';
 import type { ApiResponse, PaginationQuery, PaginatedResponse } from '@/types/api';
 import type {
   Rate,
-  RateStats,
   AvailableRateType
 } from '@/types/rateManagement';
+
+export type { Rate, AvailableRateType };
 
 export interface CreateOrUpdateRateData {
   clientId: number; // Changed from string to number

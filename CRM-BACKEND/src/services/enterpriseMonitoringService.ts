@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/require-await */
 // Disabled require-await rule for enterprise monitoring service as some async functions don't directly await
 import { EventEmitter } from 'events';
 import { pool } from '../config/database';
@@ -113,39 +112,43 @@ export class EnterpriseMonitoringService extends EventEmitter {
     return EnterpriseMonitoringService.instance;
   }
 
-  async startMonitoring(): Promise<void> {
+  startMonitoring(): Promise<void> {
     if (this.isMonitoring) {
-      return;
+      return Promise.resolve();
     }
 
     this.isMonitoring = true;
     logger.info('Enterprise monitoring service started');
 
     // Collect metrics every minute
-    this.metricsInterval = setInterval(async () => {
-      try {
-        const metrics = await this.collectSystemMetrics();
-        this.metrics.push(metrics);
+    this.metricsInterval = setInterval(() => {
+      void (async () => {
+        try {
+          const metrics = await this.collectSystemMetrics();
+          this.metrics.push(metrics);
 
-        // Keep only recent metrics
-        if (this.metrics.length > this.maxMetricsHistory) {
-          this.metrics = this.metrics.slice(-this.maxMetricsHistory);
+          // Keep only recent metrics
+          if (this.metrics.length > this.maxMetricsHistory) {
+            this.metrics = this.metrics.slice(-this.maxMetricsHistory);
+          }
+
+          // Check alert rules
+          await this.checkAlertRules(metrics);
+
+          // Emit metrics event
+          this.emit('metrics', metrics);
+        } catch (error) {
+          logger.error('Error collecting metrics:', error);
         }
-
-        // Check alert rules
-        await this.checkAlertRules(metrics);
-
-        // Emit metrics event
-        this.emit('metrics', metrics);
-      } catch (error) {
-        logger.error('Error collecting metrics:', error);
-      }
+      })();
     }, 60000); // Every minute
+
+    return Promise.resolve();
   }
 
-  async stopMonitoring(): Promise<void> {
+  stopMonitoring(): Promise<void> {
     if (!this.isMonitoring) {
-      return;
+      return Promise.resolve();
     }
 
     this.isMonitoring = false;
@@ -155,6 +158,7 @@ export class EnterpriseMonitoringService extends EventEmitter {
     }
 
     logger.info('Enterprise monitoring service stopped');
+    return Promise.resolve();
   }
 
   private async collectSystemMetrics(): Promise<SystemMetrics> {
@@ -222,8 +226,11 @@ export class EnterpriseMonitoringService extends EventEmitter {
   private async getDatabaseMetrics(): Promise<SystemMetrics['database']> {
     try {
       // Get connection pool stats
-      const poolStats = (pool as any).totalCount || 0;
-      const activeConnections = (pool as any).idleCount || 0;
+      // Get connection pool stats
+
+      const poolStats = (pool as unknown as { totalCount: number }).totalCount || 0;
+
+      const activeConnections = (pool as unknown as { idleCount: number }).idleCount || 0;
 
       // Get query performance (simplified - would need proper query logging)
       const queryStats = await this.getQueryStats();
@@ -248,11 +255,13 @@ export class EnterpriseMonitoringService extends EventEmitter {
   private async getCacheMetrics(): Promise<SystemMetrics['cache']> {
     try {
       const cacheStats = await EnterpriseCacheService.getStats();
+      const memory = cacheStats.memory as Record<string, number> | undefined;
+      const keyspace = cacheStats.keyspace as Record<string, { keys: number }> | undefined;
 
       return {
-        hitRate: cacheStats.memory?.keyspace_hits || 0,
-        memoryUsage: cacheStats.memory?.used_memory || 0,
-        keyCount: cacheStats.keyspace?.db0?.keys || 0,
+        hitRate: memory?.keyspace_hits || 0,
+        memoryUsage: memory?.used_memory || 0,
+        keyCount: keyspace?.db0?.keys || 0,
       };
     } catch (error) {
       logger.error('Error getting cache metrics:', error);
@@ -264,34 +273,34 @@ export class EnterpriseMonitoringService extends EventEmitter {
     }
   }
 
-  private async getApiMetrics(): Promise<SystemMetrics['api']> {
+  private getApiMetrics(): Promise<SystemMetrics['api']> {
     // This would be populated by API middleware
     // For now, return mock data
-    return {
+    return Promise.resolve({
       requestCount: 0,
       averageResponseTime: 0,
       errorRate: 0,
-    };
+    });
   }
 
-  private async getQueueMetrics(): Promise<SystemMetrics['queue']> {
+  private getQueueMetrics(): Promise<SystemMetrics['queue']> {
     // This would be populated by queue service
     // For now, return mock data
-    return {
+    return Promise.resolve({
       pendingJobs: 0,
       completedJobs: 0,
       failedJobs: 0,
       averageProcessingTime: 0,
-    };
+    });
   }
 
-  private async getQueryStats(): Promise<{ count: number; averageTime: number }> {
+  private getQueryStats(): Promise<{ count: number; averageTime: number }> {
     // This would require query logging implementation
     // For now, return mock data
-    return {
+    return Promise.resolve({
       count: 0,
       averageTime: 0,
-    };
+    });
   }
 
   private initializeDefaultAlertRules(): void {
@@ -373,10 +382,10 @@ export class EnterpriseMonitoringService extends EventEmitter {
 
   private getMetricValue(metrics: SystemMetrics, metricPath: string): number {
     const parts = metricPath.split('.');
-    let value: any = metrics;
+    let value: unknown = metrics;
 
     for (const part of parts) {
-      value = value?.[part];
+      value = (value as Record<string, unknown>)?.[part];
     }
 
     return typeof value === 'number' ? value : 0;
@@ -427,10 +436,10 @@ export class EnterpriseMonitoringService extends EventEmitter {
     await this.sendNotifications(alert, rule.notificationChannels);
   }
 
-  private async resolveAlert(ruleId: string): Promise<void> {
+  private resolveAlert(ruleId: string): Promise<void> {
     const alert = this.alerts.find(a => a.ruleId === ruleId && !a.resolved);
     if (!alert) {
-      return;
+      return Promise.resolve();
     }
 
     alert.resolved = true;
@@ -438,12 +447,14 @@ export class EnterpriseMonitoringService extends EventEmitter {
 
     this.emit('alertResolved', alert);
     logger.info('Alert resolved:', alert);
+    return Promise.resolve();
   }
 
-  private async sendNotifications(alert: Alert, channels: string[]): Promise<void> {
+  private sendNotifications(alert: Alert, channels: string[]): Promise<void> {
     // Implementation would depend on notification services
     // For now, just log
     logger.info('Sending alert notifications:', { alert, channels });
+    return Promise.resolve();
   }
 
   // Public API methods
@@ -464,9 +475,7 @@ export class EnterpriseMonitoringService extends EventEmitter {
     return this.alerts.slice(-limit);
   }
 
-  async generatePerformanceReport(
-    period: 'hour' | 'day' | 'week' | 'month'
-  ): Promise<PerformanceReport> {
+  generatePerformanceReport(period: 'hour' | 'day' | 'week' | 'month'): Promise<PerformanceReport> {
     const now = Date.now();
     const periodMs = {
       hour: 60 * 60 * 1000,
@@ -526,7 +535,7 @@ export class EnterpriseMonitoringService extends EventEmitter {
       recommendations: this.generateRecommendations(relevantMetrics),
     };
 
-    return report;
+    return Promise.resolve(report);
   }
 
   private generateRecommendations(metrics: SystemMetrics[]): string[] {

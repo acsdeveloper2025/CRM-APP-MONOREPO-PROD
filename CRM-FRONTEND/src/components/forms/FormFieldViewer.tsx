@@ -10,7 +10,7 @@ import { FormField } from '@/types/form';
 interface FormFieldViewerProps {
   field: FormField;
   readonly?: boolean;
-  onChange?: (value: any) => void;
+  onChange?: (value: unknown) => void;
 }
 
 export function FormFieldViewer({ field, readonly = true, onChange }: FormFieldViewerProps) {
@@ -78,7 +78,7 @@ export function FormFieldViewer({ field, readonly = true, onChange }: FormFieldV
         if (Array.isArray(field.value)) {
           return (
             <div className="space-y-2">
-              {field.value.map((file: any, index: number) => (
+              {field.value.map((file: unknown, index: number) => (
                 <div key={index} className="flex items-center space-x-2 text-sm">
                   <FileText className="h-4 w-4" />
                   <span>{file.name || `File ${index + 1}`}</span>

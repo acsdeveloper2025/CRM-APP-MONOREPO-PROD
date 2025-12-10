@@ -188,7 +188,7 @@ export function CountriesTable({ data, isLoading }: CountriesTableProps) {
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
               This action cannot be undone. This will permanently delete the country
-              "{countryToDelete?.name}" and all associated states.
+              &quot;{countryToDelete?.name}&quot; and all associated states.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

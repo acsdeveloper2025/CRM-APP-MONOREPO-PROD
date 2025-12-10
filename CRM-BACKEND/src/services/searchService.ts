@@ -58,7 +58,7 @@ export interface SearchOptions {
 }
 
 export interface SearchResult {
-  cases: any[];
+  cases: Record<string, unknown>[];
   total: number;
   totalCount: number;
   page: number;
@@ -82,7 +82,7 @@ class SearchService {
 
     const offset = (page - 1) * limit;
     const conditions: string[] = [];
-    const params: any[] = [];
+    const params: (string | number | boolean | Date)[] = [];
     let paramIndex = 1;
 
     // Add search query condition
@@ -193,7 +193,7 @@ class SearchService {
     `;
 
     const result = await this.pool.query(searchQuery, [`%${query.trim()}%`, limit]);
-    return result.rows.map((row: any) => row.suggestion);
+    return result.rows.map((row: { suggestion: string }) => row.suggestion);
   }
 
   async searchFormSubmissions(
@@ -204,7 +204,11 @@ class SearchService {
     return this.searchCases('', filters, options);
   }
 
-  async findSimilarCases(caseId: string, similarityType = 'customer', limit = 10): Promise<any[]> {
+  async findSimilarCases(
+    caseId: string,
+    similarityType = 'customer',
+    limit = 10
+  ): Promise<Record<string, unknown>[]> {
     const query = `
       SELECT c.*,
         similarity(c."customerName", ref."customerName") as name_similarity,

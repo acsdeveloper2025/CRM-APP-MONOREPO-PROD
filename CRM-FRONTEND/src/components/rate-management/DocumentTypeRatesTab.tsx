@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
 import { useMutationWithInvalidation } from '@/hooks/useStandardizedMutation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -52,7 +53,7 @@ export function DocumentTypeRatesTab() {
   // Fetch products for selected client
   const { data: productsData } = useQuery({
     queryKey: ['client-products', selectedClientId],
-    queryFn: () => productsService.getProductsByClient(selectedClientId!),
+    queryFn: () => productsService.getProductsByClient(String(selectedClientId || 0)),
     enabled: !!selectedClientId,
   });
 
@@ -149,6 +150,7 @@ export function DocumentTypeRatesTab() {
     });
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleEditRate = (rate: any) => {
     setSelectedClientId(rate.clientId);
     setSelectedProductId(rate.productId);
@@ -159,6 +161,7 @@ export function DocumentTypeRatesTab() {
   };
 
   const handleDeleteRate = async (rateId: number) => {
+    // eslint-disable-next-line no-alert
     if (confirm('Are you sure you want to delete this rate?')) {
       await deleteRateMutation.mutateAsync(rateId);
     }

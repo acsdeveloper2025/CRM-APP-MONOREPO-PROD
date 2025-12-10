@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 export interface AppError {
   code: string;
   message: string;
-  details?: any;
+  details?: unknown;
   statusCode?: number;
   timestamp: string;
   context?: string;
@@ -23,7 +23,7 @@ export function useErrorHandling() {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleError = useCallback((
-    error: any,
+    error: unknown,
     options: ErrorHandlingOptions = {}
   ) => {
     const {
@@ -129,7 +129,7 @@ export function useErrorHandling() {
     delay: number = 1000,
     options: ErrorHandlingOptions = {}
   ): Promise<T | null> => {
-    let _lastError: any;
+    let _lastError: unknown;
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
@@ -185,7 +185,7 @@ function getUserFriendlyMessage(error: AppError): string {
 }
 
 // Error logging service
-function logErrorToService(appError: AppError, originalError: any) {
+function logErrorToService(appError: AppError, originalError: unknown) {
   // In a real application, you would send this to your error monitoring service
   // Examples: Sentry, LogRocket, Bugsnag, etc.
 
@@ -205,7 +205,7 @@ function logErrorToService(appError: AppError, originalError: any) {
   };
 
   // Example: Send to monitoring service
-  // console.log('Error logged to service:', _errorData); // silenced in production
+  // console.warn('Error logged to service:', _errorData); // silenced in production
 
   // Uncomment and configure for your monitoring service:
   // Sentry.captureException(originalError, { extra: _errorData });

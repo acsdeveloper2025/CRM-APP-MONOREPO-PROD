@@ -20,6 +20,7 @@ import { casesService, type CaseListQuery } from '@/services/cases';
 interface InProgressCaseFilters {
   priority?: string;
   clientId?: string;
+  [key: string]: unknown;
 }
 
 export const InProgressCasesPage: React.FC = () => {
@@ -56,7 +57,7 @@ export const InProgressCasesPage: React.FC = () => {
     ...pagination,
     status: 'IN_PROGRESS',
     search: debouncedSearchValue || undefined,
-    priority: activeFilters.priority ? parseInt(activeFilters.priority) : undefined,
+    priority: activeFilters.priority || undefined,
     clientId: activeFilters.clientId || undefined,
   };
 
@@ -118,7 +119,7 @@ export const InProgressCasesPage: React.FC = () => {
         activeFilterCount={activeFilterCount}
         onClearFilters={clearFilters}
         filterContent={
-          <FilterGrid columns={{ sm: 1, md: 2 }}>
+          <FilterGrid columns={2}>
             {/* Priority Filter */}
             <div className="space-y-2">
               <Label htmlFor="priority">Priority</Label>
@@ -184,7 +185,7 @@ export const InProgressCasesPage: React.FC = () => {
               <PlayCircle className="h-8 w-8 text-green-600" />
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Total In Progress</p>
-                <p className="text-2xl font-bold text-foreground">{pagination.total}</p>
+                <p className="text-2xl font-bold text-foreground">{paginationData.total}</p>
               </div>
             </div>
           </CardContent>
@@ -199,7 +200,7 @@ export const InProgressCasesPage: React.FC = () => {
                 <p className="text-sm font-medium text-gray-600">Long Running</p>
                 <p className="text-2xl font-bold text-foreground">
                   {cases.filter(c => {
-                    const duration = (c as any).pendingDurationSeconds || 0;
+                    const duration = c.pendingDurationSeconds || 0;
                     return duration > 172800; // More than 2 days
                   }).length}
                 </p>
@@ -248,7 +249,7 @@ export const InProgressCasesPage: React.FC = () => {
                 <p className="text-2xl font-bold text-foreground">
                   {cases.length > 0
                     ? Math.round(cases.reduce((acc, c) => {
-                        const duration = (c as any).pendingDurationSeconds || 0;
+                        const duration = c.pendingDurationSeconds || 0;
                         return acc + (duration / 86400); // Convert to days
                       }, 0) / cases.length)
                     : 0} days

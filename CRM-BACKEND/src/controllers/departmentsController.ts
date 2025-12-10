@@ -1,6 +1,3 @@
-/* eslint-disable @typescript-eslint/restrict-template-expressions */
-/* eslint-disable @typescript-eslint/no-base-to-string */
-// Disabled template expression rules for departments controller as it handles query params in template literals
 import type { Response } from 'express';
 import { query } from '../config/database';
 import { logger } from '../utils/logger';
@@ -13,11 +10,11 @@ export const getDepartments = async (req: AuthenticatedRequest, res: Response) =
 
     const offset = (Number(page) - 1) * Number(limit);
     const whereConditions: string[] = [];
-    const params: any[] = [];
+    const params: (string | number | boolean)[] = [];
     let paramCount = 0;
 
     // Search filter
-    if (search) {
+    if (search && typeof search === 'string') {
       paramCount++;
       whereConditions.push(`(d.name ILIKE $${paramCount} OR d.description ILIKE $${paramCount})`);
       params.push(`%${search}%`);

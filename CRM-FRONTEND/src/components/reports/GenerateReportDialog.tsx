@@ -98,7 +98,7 @@ export function GenerateReportDialog({ open, onOpenChange }: GenerateReportDialo
       form.reset();
       onOpenChange(false);
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error(error.response?.data?.message || 'Failed to generate report');
     },
   });

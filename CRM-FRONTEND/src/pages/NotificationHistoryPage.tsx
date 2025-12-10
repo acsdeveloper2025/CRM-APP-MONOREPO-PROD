@@ -39,7 +39,7 @@ interface Notification {
   deliveryStatus: 'PENDING' | 'SENT' | 'DELIVERED' | 'FAILED';
   createdAt: string;
   readAt?: string;
-  data?: Record<string, any>;
+  data?: Record<string, unknown>;
 }
 
 export function NotificationHistoryPage() {
@@ -54,11 +54,10 @@ export function NotificationHistoryPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
 
-  useEffect(() => {
-    loadNotifications();
-  }, [currentPage, filterType, filterStatus, searchTerm]);
 
-  const loadNotifications = async () => {
+
+
+  const loadNotifications = React.useCallback(async () => {
     try {
       setLoading(true);
       const params = new URLSearchParams({
@@ -69,7 +68,7 @@ export function NotificationHistoryPage() {
         ...(filterStatus !== 'all' && { status: filterStatus }),
       });
 
-      const response = await apiService.get(`/notifications/history?${params}`);
+      const response = await apiService.get<{ notifications: Notification[]; totalPages: number; totalCount: number }>(`/notifications/history?${params}`);
       if (response.success) {
         setNotifications(response.data.notifications);
         setTotalPages(response.data.totalPages);
@@ -83,7 +82,11 @@ export function NotificationHistoryPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage, filterType, filterStatus, searchTerm]);
+
+  useEffect(() => {
+    loadNotifications();
+  }, [loadNotifications]);
 
   const handleNotificationClick = async (notification: Notification) => {
     // Mark as read if not already read

@@ -30,11 +30,15 @@ module.exports = {
     'coverage/',
   ],
   rules: {
-    // TypeScript specific rules
+    // ========== STRICT TYPE SAFETY RULES ==========
+    // TypeScript specific rules - STRICT MODE
     '@typescript-eslint/interface-name-prefix': 'off',
     '@typescript-eslint/explicit-function-return-type': 'off',
     '@typescript-eslint/explicit-module-boundary-types': 'off',
-    '@typescript-eslint/no-explicit-any': 'warn',
+    
+    // ✅ STRICT: 'any' type is now an ERROR (was warn)
+    '@typescript-eslint/no-explicit-any': 'error',
+    
     '@typescript-eslint/no-unused-vars': [
       'error',
       {
@@ -45,15 +49,20 @@ module.exports = {
     ],
     '@typescript-eslint/no-var-requires': 'error',
     '@typescript-eslint/no-require-imports': 'error',
-    '@typescript-eslint/no-floating-promises': 'off', // Too strict for existing codebase
-    '@typescript-eslint/no-misused-promises': 'warn',
-    '@typescript-eslint/await-thenable': 'warn',
-    '@typescript-eslint/no-unnecessary-type-assertion': 'off',
+    
+    // ✅ STRICT: Detect unhandled promises (was off)
+    '@typescript-eslint/no-floating-promises': 'error',
+    '@typescript-eslint/no-misused-promises': 'error',
+    '@typescript-eslint/await-thenable': 'error',
+    
+    '@typescript-eslint/no-unnecessary-type-assertion': 'warn',
     '@typescript-eslint/prefer-nullish-coalescing': 'off', // Requires strictNullChecks
     '@typescript-eslint/prefer-optional-chain': 'off',
     '@typescript-eslint/no-inferrable-types': 'off',
     '@typescript-eslint/consistent-type-imports': 'off',
-    '@typescript-eslint/no-unsafe-assignment': 'off', // Too strict for existing codebase
+    
+    // ✅ STRICT: Unsafe operations now WARN (was off)
+    '@typescript-eslint/no-unsafe-assignment': 'off', // Keeping off for now to focus on Promises first (Phase 1)
     '@typescript-eslint/no-unsafe-call': 'off',
     '@typescript-eslint/no-unsafe-member-access': 'off',
     '@typescript-eslint/no-unsafe-argument': 'off',
@@ -84,7 +93,8 @@ module.exports = {
     'no-unused-expressions': 'error',
     'no-useless-return': 'warn',
     'no-return-await': 'error',
-    'require-await': 'warn',
+    'require-await': 'off', // Using TS version
+    '@typescript-eslint/require-await': 'error',
     'eqeqeq': ['error', 'always', { null: 'ignore' }],
     'curly': ['error', 'all'],
     'brace-style': ['error', '1tbs', { allowSingleLine: true }],

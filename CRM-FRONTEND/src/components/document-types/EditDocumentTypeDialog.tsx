@@ -102,8 +102,12 @@ export const EditDocumentTypeDialog: React.FC<EditDocumentTypeDialogProps> = ({
   }, [documentType, form]);
 
   const updateDocumentTypeMutation = useMutation({
-    mutationFn: (data: EditDocumentTypeData) => 
-      documentTypesService.updateDocumentType(documentType!.id, data),
+    mutationFn: (data: EditDocumentTypeData) => {
+      if (!documentType) {
+        throw new Error("Document Type is missing");
+      }
+      return documentTypesService.updateDocumentType(documentType.id, data);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['document-types'] });
       queryClient.invalidateQueries({ queryKey: ['document-types-stats'] });
@@ -112,7 +116,9 @@ export const EditDocumentTypeDialog: React.FC<EditDocumentTypeDialogProps> = ({
   });
 
   const onSubmit = async (data: EditDocumentTypeData) => {
-    if (!documentType) {return;}
+    if (!documentType) {
+      return;
+    }
     
     try {
       await updateDocumentTypeMutation.mutateAsync(data);
@@ -126,7 +132,9 @@ export const EditDocumentTypeDialog: React.FC<EditDocumentTypeDialogProps> = ({
     onOpenChange(false);
   };
 
-  if (!documentType) {return null;}
+  if (!documentType) {
+    return null;
+  }
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>

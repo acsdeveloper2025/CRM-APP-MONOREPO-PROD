@@ -24,7 +24,7 @@ interface BulkImportLocationDialogProps {
 export function BulkImportLocationDialog({ open, onOpenChange, type }: BulkImportLocationDialogProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [importResult, setImportResult] = useState<any>(null);
+  const [importResult, setImportResult] = useState<unknown>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
 
@@ -48,7 +48,7 @@ export function BulkImportLocationDialog({ open, onOpenChange, type }: BulkImpor
       }
       toast.success(`${type} imported successfully`);
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error(error.response?.data?.message || `Failed to import ${type}`);
     },
   });

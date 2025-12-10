@@ -1,5 +1,6 @@
 import { query } from '@/config/database';
-import { logger } from '@/utils/logger';
+import type { QueryParams } from '@/types/database';
+import { logger } from '@/config/logger';
 import { getSocketIO } from '@/websocket/server';
 import { PushNotificationService } from './PushNotificationService';
 
@@ -12,7 +13,7 @@ export interface NotificationData {
   caseNumber?: string;
   taskId?: string;
   taskNumber?: string;
-  data?: Record<string, any>;
+  data?: Record<string, unknown>;
   actionUrl?: string;
   actionType?: string;
   priority?: NotificationPriority;
@@ -413,7 +414,7 @@ export class NotificationService {
     notificationId: string,
     deliveryMethod: DeliveryMethod,
     deliveryStatus: string,
-    additionalData?: Record<string, any>
+    additionalData?: Record<string, unknown>
   ): Promise<void> {
     try {
       const insertQuery = `
@@ -435,7 +436,7 @@ export class NotificationService {
         JSON.stringify(additionalData || {}),
       ];
 
-      await query(insertQuery, values);
+      await query(insertQuery, values as QueryParams);
     } catch (error) {
       logger.error('Failed to log delivery attempt:', error);
     }

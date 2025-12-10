@@ -72,8 +72,8 @@ export const FormSubmissionsList: React.FC<FormSubmissionsListProps> = ({
 
     // Apply sorting
     filtered.sort((a, b) => {
-      let aValue: any = a[sortField];
-      let bValue: any = b[sortField];
+      let aValue: unknown = a[sortField];
+      let bValue: unknown = b[sortField];
 
       if (sortField === 'submittedAt') {
         aValue = new Date(aValue).getTime();

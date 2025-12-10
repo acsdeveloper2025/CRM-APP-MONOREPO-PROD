@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/require-await */
 // Disabled require-await rule for address standardization service as some async functions don't directly await
 export interface Address {
   street?: string;
@@ -156,7 +155,7 @@ class AddressStandardizationService {
     };
   }
 
-  private async standardizeComponents(address: Address): Promise<StandardizedAddress> {
+  private standardizeComponents(address: Address): Promise<StandardizedAddress> {
     // Standardize state name
     const standardizedState = address.state
       ? this.INDIAN_STATES.find(state => state.toLowerCase() === address.state?.toLowerCase()) ||
@@ -174,7 +173,7 @@ class AddressStandardizationService {
 
     const formatted = addressParts.join(', ');
 
-    return {
+    return Promise.resolve({
       ...address,
       state: standardizedState,
       country: address.country || 'India',
@@ -187,7 +186,7 @@ class AddressStandardizationService {
         pincode: address.pincode || '',
         country: address.country || 'India',
       },
-    };
+    });
   }
 
   private calculateConfidence(address: Address): number {
@@ -227,12 +226,12 @@ class AddressStandardizationService {
     return Math.round((score / maxScore) * 100);
   }
 
-  async validatePincode(
+  validatePincode(
     pincode: string
   ): Promise<{ isValid: boolean; area?: string; district?: string; state?: string }> {
     // Simple pincode validation - in production, this would use a pincode database
     if (!/^\d{6}$/.test(pincode)) {
-      return { isValid: false };
+      return Promise.resolve({ isValid: false });
     }
 
     // Mock validation based on pincode ranges
@@ -248,23 +247,23 @@ class AddressStandardizationService {
       8: 'Odisha',
     };
 
-    return {
+    return Promise.resolve({
       isValid: true,
       state: stateMapping[firstDigit] || 'Unknown',
       district: 'Unknown',
       area: 'Unknown',
-    };
+    });
   }
 
-  async geocodeAddress(
+  geocodeAddress(
     _address: string | Address
   ): Promise<{ latitude?: number; longitude?: number; accuracy?: string }> {
     // Mock geocoding - in production, this would use a geocoding service
-    return {
+    return Promise.resolve({
       latitude: 28.6139, // Delhi coordinates as default
       longitude: 77.209,
       accuracy: 'approximate',
-    };
+    });
   }
 
   formatAddressForDisplay(address: StandardizedAddress): string {
@@ -301,14 +300,14 @@ class AddressStandardizationService {
     return lines.join('\n');
   }
 
-  async searchAddresses(_filters: any): Promise<StandardizedAddress[]> {
+  searchAddresses(_filters: Record<string, unknown>): Promise<StandardizedAddress[]> {
     // Mock implementation - in production, this would search a database
-    return [];
+    return Promise.resolve([]);
   }
 
-  async getStandardizedAddress(_caseId: string): Promise<StandardizedAddress | null> {
+  getStandardizedAddress(_caseId: string): Promise<StandardizedAddress | null> {
     // Mock implementation - in production, this would fetch from database
-    return null;
+    return Promise.resolve(null);
   }
 }
 

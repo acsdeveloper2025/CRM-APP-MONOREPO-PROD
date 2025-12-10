@@ -22,8 +22,7 @@ export type {
   LoginRequest,
   UuidLoginRequest,
   LoginResponse,
-  AuthState,
-  TokenPair
+  AuthState
 } from './auth';
 
 // User Management Types
@@ -31,7 +30,6 @@ export type {
   UserProfile,
   UserActivity,
   UserStats,
-  UserFilters,
   UserClientAssignment,
   UserProductAssignment,
   UserExportData,
@@ -141,54 +139,33 @@ export type {
 
 // Rate Management Types
 export type {
-  RateType,
   Rate,
-  RateAssignment,
-  RateFilters,
   CreateRateData,
-  UpdateRateData,
-  BulkRateOperation
+  UpdateRateData
 } from './rateManagement';
 
 // Territory Assignment Types
 export type {
-  TerritoryAssignment,
-  UserPincodeAssignment,
-  UserAreaAssignment,
-  TerritoryFilters,
-  CreateTerritoryAssignmentData,
-  BulkTerritoryOperation
+  TerritoryAssignment
 } from './territoryAssignment';
 
 // Billing Types
 export type {
-  Invoice,
   InvoiceItem,
-  InvoiceFilters,
   CreateInvoiceData,
-  UpdateInvoiceData,
-  InvoiceExportData
+  UpdateInvoiceData
 } from './billing';
 
 // Reports Types
 export type {
-  ReportType,
   ReportFilters,
-  ReportData,
-  PerformanceReport,
   FinancialReport,
   ReportSummary,
-  ExportFormat,
-  ReportQuery
 } from './reports';
 
 // WebSocket Types
 export type {
-  WebSocketMessage,
-  WebSocketEvent,
-  NotificationMessage,
-  CaseUpdateMessage,
-  UserStatusMessage
+  WebSocketMessage
 } from './websocket';
 
 // Common Base Types
@@ -275,7 +252,7 @@ export interface Notification {
   read: boolean;
   createdAt: string;
   actionUrl?: string;
-  data?: Record<string, any>;
+  data?: Record<string, unknown>;
 }
 
 // Theme Types
@@ -295,7 +272,7 @@ export interface RolePermissions {
 }
 
 // Bulk Operation Types
-export interface BulkOperation<T = any> {
+export interface BulkOperation<T = unknown> {
   ids: string[];
   operation: string;
   data?: T;
@@ -315,14 +292,14 @@ export interface BulkOperationResult {
 export interface ExportOptions {
   format: 'excel' | 'csv' | 'pdf';
   fields?: string[];
-  filters?: Record<string, any>;
+  filters?: Record<string, unknown>;
   dateRange?: {
     from: string;
     to: string;
   };
 }
 
-export interface ImportResult<T = any> {
+export interface ImportResult<T = unknown> {
   success: number;
   failed: number;
   data: T[];
@@ -347,7 +324,7 @@ export type FormTouched = Record<string, boolean>;
 // API Utility Types
 export type ApiMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 export type ApiHeaders = Record<string, string>;
-export type ApiParams = Record<string, any>;
+export type ApiParams = Record<string, unknown>;
 
 // Component Prop Types
 export interface ComponentProps {
@@ -366,18 +343,18 @@ export interface ErrorProps {
 }
 
 // Table/List Types
-export interface TableColumn<T = any> {
+export interface TableColumn<T = unknown> {
   key: string;
   title: string;
   dataIndex?: keyof T;
-  render?: (value: any, record: T, index: number) => React.ReactNode;
+  render?: (value: unknown, record: T, index: number) => React.ReactNode;
   sortable?: boolean;
   filterable?: boolean;
   width?: number | string;
   align?: 'left' | 'center' | 'right';
 }
 
-export interface TableProps<T = any> {
+export interface TableProps<T = unknown> {
   data: T[];
   columns: TableColumn<T>[];
   loading?: boolean;

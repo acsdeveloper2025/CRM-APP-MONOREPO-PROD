@@ -36,7 +36,7 @@ export function RateViewReportTab() {
   const [selectedVerificationTypeId, setSelectedVerificationTypeId] = useState<string>('all');
   const [selectedRateTypeId, setSelectedRateTypeId] = useState<string>('all');
   const [isActiveFilter, setIsActiveFilter] = useState<string>('all');
-  const [deletingRate, setDeletingRate] = useState<any>(null);
+  const [deletingRate, setDeletingRate] = useState<unknown>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 20;
 

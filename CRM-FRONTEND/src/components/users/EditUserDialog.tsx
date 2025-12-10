@@ -122,6 +122,7 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
         departmentId: data.departmentId ? parseInt(data.departmentId, 10) : undefined,
         designationId: data.designationId ? parseInt(data.designationId, 10) : undefined,
       };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return usersService.updateUser(user.id, cleanData as any);
     },
     queryKey: ['users'],
@@ -151,7 +152,7 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
         <DialogHeader>
           <DialogTitle>Edit User</DialogTitle>
           <DialogDescription>
-            Update user information. Use "Manage Permissions" to assign clients, products, pincodes, or areas.
+            Update user information. Use &quot;Manage Permissions&quot; to assign clients, products, pincodes, or areas.
           </DialogDescription>
         </DialogHeader>
 

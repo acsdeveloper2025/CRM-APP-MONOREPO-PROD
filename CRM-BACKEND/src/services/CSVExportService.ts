@@ -1,4 +1,3 @@
-/* eslint-disable no-return-await, @typescript-eslint/require-await */
 // Disabled no-return-await rule for CSV export service as it uses return await pattern
 // Disabled require-await rule for CSV export service as some methods are async for consistency
 import { pool } from '../config/database';
@@ -10,7 +9,7 @@ export interface CSVExportOptions {
   reportType: 'form-submissions' | 'agent-performance' | 'case-analytics' | 'validation-status';
   dateFrom?: string;
   dateTo?: string;
-  filters?: Record<string, any>;
+  filters?: Record<string, unknown>;
   delimiter?: string;
   includeHeaders?: boolean;
   encoding?: 'utf8' | 'utf16le';
@@ -43,7 +42,7 @@ export class CSVExportService {
       const data = await this.fetchReportData(options);
 
       // Convert data to CSV format
-      const csvContent = await this.convertToCSV(data, options);
+      const csvContent = this.convertToCSV(data, options);
 
       // Save CSV file
       const fileName = this.generateFileName(options);
@@ -64,7 +63,7 @@ export class CSVExportService {
         filePath,
         fileName,
         fileSize: stats.size,
-        recordCount: data.recordCount || 0,
+        recordCount: (data.recordCount as number) || 0,
       };
     } catch (error) {
       logger.error('Error generating CSV report:', error);
@@ -75,18 +74,18 @@ export class CSVExportService {
     }
   }
 
-  private async fetchReportData(options: CSVExportOptions): Promise<any> {
+  private async fetchReportData(options: CSVExportOptions): Promise<Record<string, unknown>> {
     const { reportType, dateFrom, dateTo, filters } = options;
 
     switch (reportType) {
       case 'form-submissions':
-        return await this.fetchFormSubmissionsData(dateFrom, dateTo, filters);
+        return this.fetchFormSubmissionsData(dateFrom, dateTo, filters);
       case 'agent-performance':
-        return await this.fetchAgentPerformanceData(dateFrom, dateTo, filters);
+        return this.fetchAgentPerformanceData(dateFrom, dateTo, filters);
       case 'case-analytics':
-        return await this.fetchCaseAnalyticsData(dateFrom, dateTo, filters);
+        return this.fetchCaseAnalyticsData(dateFrom, dateTo, filters);
       case 'validation-status':
-        return await this.fetchValidationStatusData(dateFrom, dateTo, filters);
+        return this.fetchValidationStatusData(dateFrom, dateTo, filters);
       default:
         throw new Error(`Unsupported report type: ${String(reportType)}`);
     }
@@ -95,8 +94,8 @@ export class CSVExportService {
   private async fetchFormSubmissionsData(
     dateFrom?: string,
     dateTo?: string,
-    filters?: any
-  ): Promise<any> {
+    filters?: Record<string, unknown>
+  ): Promise<Record<string, unknown>> {
     const whereConditions = [];
     const queryParams = [];
     let paramIndex = 1;
@@ -197,8 +196,13 @@ export class CSVExportService {
   private async fetchAgentPerformanceData(
     dateFrom?: string,
     dateTo?: string,
-    filters?: any
-  ): Promise<any> {
+    filters?: Record<string, unknown>
+  ): Promise<{
+    headers: string[];
+    data: unknown[];
+    recordCount: number;
+    reportType: string;
+  }> {
     const whereConditions = [];
     const queryParams = [];
     let paramIndex = 1;
@@ -303,8 +307,13 @@ export class CSVExportService {
   private async fetchCaseAnalyticsData(
     dateFrom?: string,
     dateTo?: string,
-    filters?: any
-  ): Promise<any> {
+    filters?: Record<string, unknown>
+  ): Promise<{
+    headers: string[];
+    data: unknown[];
+    recordCount: number;
+    reportType: string;
+  }> {
     const whereConditions = [];
     const queryParams = [];
     let paramIndex = 1;
@@ -400,8 +409,13 @@ export class CSVExportService {
   private async fetchValidationStatusData(
     dateFrom?: string,
     dateTo?: string,
-    filters?: any
-  ): Promise<any> {
+    filters?: Record<string, unknown>
+  ): Promise<{
+    headers: string[];
+    data: unknown[];
+    recordCount: number;
+    reportType: string;
+  }> {
     const whereConditions = [];
     const queryParams = [];
     let paramIndex = 1;
@@ -470,7 +484,7 @@ export class CSVExportService {
     };
   }
 
-  private async convertToCSV(data: any, options: CSVExportOptions): Promise<string> {
+  private convertToCSV(data: Record<string, unknown>, options: CSVExportOptions): string {
     const { delimiter = ',', includeHeaders = true } = options;
     const { headers, data: rows } = data;
 
@@ -478,14 +492,14 @@ export class CSVExportService {
 
     // Add headers if requested
     if (includeHeaders && headers) {
-      csvContent += `${headers
+      csvContent += `${(headers as string[])
         .map((header: string) => this.escapeCSVField(header, delimiter))
         .join(delimiter)}\n`;
     }
 
     // Add data rows
-    rows.forEach((row: any) => {
-      const csvRow = headers
+    (rows as Record<string, unknown>[]).forEach((row: Record<string, unknown>) => {
+      const csvRow = (headers as string[])
         .map((header: string, index: number) => {
           const value = Object.values(row)[index];
           return this.escapeCSVField(this.formatValue(value), delimiter);
@@ -518,7 +532,7 @@ export class CSVExportService {
     return fieldStr;
   }
 
-  private formatValue(value: any): string {
+  private formatValue(value: unknown): string {
     if (value === null || value === undefined) {
       return '';
     }
@@ -544,7 +558,7 @@ export class CSVExportService {
       return JSON.stringify(value);
     }
 
-    return String(value);
+    return String(value as string | number | boolean | undefined);
   }
 
   private generateFileName(options: CSVExportOptions): string {

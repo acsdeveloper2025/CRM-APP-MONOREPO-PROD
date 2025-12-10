@@ -1,6 +1,3 @@
-/* eslint-disable @typescript-eslint/restrict-template-expressions */
-/* eslint-disable @typescript-eslint/no-base-to-string */
-// Disabled template expression rules for states controller as it handles query params in template literals
 import type { Response } from 'express';
 import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
@@ -33,25 +30,25 @@ export const getStates = async (req: AuthenticatedRequest, res: Response) => {
       WHERE 1=1
     `;
 
-    const params: any[] = [];
+    const params: (string | number)[] = [];
     let paramCount = 0;
 
     // Apply filters
-    if (country) {
+    if (country && typeof country === 'string') {
       paramCount++;
       sql += ` AND co.name = $${paramCount}`;
       params.push(country);
     }
 
-    if (search) {
+    if (search && typeof search === 'string') {
       paramCount++;
       sql += ` AND (COALESCE(s.name, '') ILIKE $${paramCount} OR COALESCE(s.code, '') ILIKE $${paramCount})`;
       params.push(`%${search}%`);
     }
 
     // Apply sorting
-    const sortDirection = sortOrder === 'desc' ? 'DESC' : 'ASC';
-    const sortField = sortBy as string;
+    const sortDirection: 'ASC' | 'DESC' = sortOrder === 'desc' ? 'DESC' : 'ASC';
+    const sortField: string = sortBy as string;
 
     if (sortField === 'country') {
       sql += ` ORDER BY co.name ${sortDirection}`;
@@ -82,16 +79,16 @@ export const getStates = async (req: AuthenticatedRequest, res: Response) => {
       JOIN countries co ON s."countryId" = co.id
       WHERE 1=1
     `;
-    const countParams: any[] = [];
+    const countParams: (string | number)[] = [];
     let countParamCount = 0;
 
-    if (country) {
+    if (country && typeof country === 'string') {
       countParamCount++;
       countSql += ` AND co.name = $${countParamCount}`;
       countParams.push(country);
     }
 
-    if (search) {
+    if (search && typeof search === 'string') {
       countParamCount++;
       countSql += ` AND (s.name ILIKE $${countParamCount} OR s.code ILIKE $${countParamCount})`;
       countParams.push(`%${search}%`);
@@ -307,7 +304,7 @@ export const updateState = async (req: AuthenticatedRequest, res: Response) => {
 
     // Build update query
     const updateFields: string[] = [];
-    const updateValues: any[] = [];
+    const updateValues: (string | number | Date)[] = [];
     let paramCount = 0;
 
     if (updateData.name) {
@@ -523,7 +520,7 @@ export const bulkImportStates = async (
       created: 0,
       updated: 0,
       failed: 0,
-      errors: [] as Array<{ row: number; data: any; error: string }>,
+      errors: [] as Array<{ row: number; data: Record<string, unknown>; error: string }>,
     };
 
     // Process each row
@@ -587,12 +584,12 @@ export const bulkImportStates = async (
           );
           results.created++;
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         results.failed++;
         results.errors.push({
           row: i + 1,
           data: row,
-          error: error.message || 'Unknown error',
+          error: error instanceof Error ? error.message : 'Unknown error',
         });
         logger.error(`Error importing state at row ${i + 1}:`, error);
       }

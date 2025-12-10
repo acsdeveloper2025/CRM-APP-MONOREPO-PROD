@@ -1,4 +1,5 @@
 import type { Request, Response } from 'express';
+import type { AuthenticatedRequest } from '../middleware/auth';
 import SearchService, { type SearchFilters, type SearchOptions } from '../services/searchService';
 import BusinessRulesService from '../services/businessRulesService';
 import AddressStandardizationService from '../services/addressStandardizationService';
@@ -16,8 +17,8 @@ export class SearchController {
    */
   static async searchFormSubmissions(req: Request, res: Response) {
     try {
-      const userId = (req as any).user?.id;
-      const _userRole = (req as any).user?.role;
+      const userId = (req as AuthenticatedRequest).user?.id;
+      const _userRole = (req as AuthenticatedRequest).user?.role;
 
       // Extract search filters from query parameters
       const filters: SearchFilters = {
@@ -170,7 +171,7 @@ export class SearchController {
       }
 
       const suggestions = await searchService.getSearchSuggestions(
-        field as any,
+        field as 'customer_name' | 'city' | 'state' | 'business_name' | 'verifier_name',
         term as string,
         limit
       );
@@ -254,7 +255,7 @@ export class SearchController {
     try {
       const { ruleId } = req.params;
       const updates = req.body;
-      const userId = (req as any).user?.id;
+      const userId = (req as AuthenticatedRequest).user?.id;
 
       await businessRulesService.updateRule(ruleId, updates);
 

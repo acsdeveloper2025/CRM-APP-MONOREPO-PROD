@@ -1,4 +1,3 @@
-import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Building2, Package, CheckCircle, Calendar, Code, Shield, FileText } from 'lucide-react';
 import {
@@ -13,7 +12,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Separator } from '@/components/ui/separator';
 import { LoadingSpinner } from '@/components/ui/loading';
 import { clientsService } from '@/services/clients';
-import { Client } from '@/types/client';
+import { Client, VerificationType } from '@/types/client';
+
 
 interface ClientDetailsDialogProps {
   client: Client;
@@ -161,7 +161,7 @@ export function ClientDetailsDialog({ client, open, onOpenChange }: ClientDetail
                 <Badge variant="secondary">{verificationTypes.length}</Badge>
               </CardTitle>
               <CardDescription>
-                Verification types available through this client's products
+                Verification types available through this client&apos;s products
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -172,7 +172,7 @@ export function ClientDetailsDialog({ client, open, onOpenChange }: ClientDetail
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {verificationTypes.map((vt: any) => (
+                  {verificationTypes.map((vt: VerificationType) => (
                     <div key={vt.id} className="flex items-center justify-between p-3 rounded-lg border">
                       <div className="space-y-1">
                         <p className="font-medium">{vt.name}</p>
@@ -207,7 +207,7 @@ export function ClientDetailsDialog({ client, open, onOpenChange }: ClientDetail
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {documentTypes.map((dt: any) => (
+                  {documentTypes.map((dt) => (
                     <div key={dt.id} className="flex items-center justify-between p-3 rounded-lg border">
                       <div className="space-y-1">
                         <p className="font-medium">{dt.name}</p>

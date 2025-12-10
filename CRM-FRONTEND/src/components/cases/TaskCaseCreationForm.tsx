@@ -34,6 +34,9 @@ import { rateTypesService } from '@/services/rateTypes';
 import { useQuery } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import type { CaseFormAttachment } from '@/components/attachments/CaseFormAttachmentsSection';
+import { VerificationType } from '@/types/client';
+import { Pincode } from '@/types/location';
+import { User } from '@/types/user';
 
 // Case-level schema (fields filled once)
 const caseLevelSchema = z.object({
@@ -117,7 +120,7 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
   // Populate form with initial data
   useEffect(() => {
     if (initialData) {
-      console.log('📝 TaskCaseCreationForm - Populating form with initialData', initialData);
+      console.warn('📝 TaskCaseCreationForm - Populating form with initialData', initialData);
       
       if (initialData.caseLevelData) {
         form.reset({
@@ -128,12 +131,12 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
         });
       }
       if (initialData.tasks && initialData.tasks.length > 0) {
-        console.log('📝 TaskCaseCreationForm - Setting tasks', initialData.tasks);
+        console.warn('📝 TaskCaseCreationForm - Setting tasks', initialData.tasks);
         setTasks(initialData.tasks);
         
         // Verify state was set correctly
         setTimeout(() => {
-          console.log('📝 TaskCaseCreationForm - Tasks state after setTasks', {
+          console.warn('📝 TaskCaseCreationForm - Tasks state after setTasks', {
             tasksLength: initialData.tasks?.length,
             firstTask: initialData.tasks?.[0],
             rateTypeId: initialData.tasks?.[0]?.rateTypeId,
@@ -151,14 +154,14 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
   // Fetch all pincodes for dropdown (high limit to get all)
   const { data: pincodesResponse } = usePincodes({ limit: 10000 });
 
-  const allClients = clientsResponse?.data || [];
-  const verificationTypes = verificationTypesResponse?.data || [];
-  const pincodes = pincodesResponse?.data || [];
+  const allClients = useMemo(() => clientsResponse?.data || [], [clientsResponse?.data]);
+  const verificationTypes = useMemo(() => verificationTypesResponse?.data || [], [verificationTypesResponse?.data]);
+  const pincodes = useMemo(() => pincodesResponse?.data || [], [pincodesResponse?.data]);
 
   // Watch for client selection to fetch products
   const selectedClientId = form.watch('clientId');
   const { data: productsResponse } = useProductsByClient(selectedClientId);
-  const allProducts = productsResponse?.data || [];
+  const allProducts = useMemo(() => productsResponse?.data || [], [productsResponse?.data]);
 
   // Filter clients and products based on user role and assignments
   const clients = useMemo(() => {
@@ -216,7 +219,7 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
   };
 
   // Update task field
-  const updateTask = (taskId: string, field: keyof TaskFormData, value: any) => {
+  const updateTask = (taskId: string, field: keyof TaskFormData, value: unknown) => {
     setTasks(prevTasks =>
       prevTasks.map(t =>
         t.id === taskId ? { ...t, [field]: value } : t
@@ -462,14 +465,14 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
 interface TaskCardProps {
   task: TaskFormData;
   index: number;
-  updateTask: (taskId: string, field: keyof TaskFormData, value: any) => void;
+  updateTask: (taskId: string, field: keyof TaskFormData, value: unknown) => void;
   removeTask: (taskId: string) => void;
   canRemove: boolean;
   clientId: string;
   productId: string;
-  verificationTypes: any[];
-  pincodes: any[];
-  fieldUsers: any[];
+  verificationTypes: VerificationType[];
+  pincodes: Pincode[];
+  fieldUsers: User[];
 }
 
 const TaskCard: React.FC<TaskCardProps> = ({
@@ -493,9 +496,9 @@ const TaskCard: React.FC<TaskCardProps> = ({
     const selectedPincodeId = parseInt(task.pincodeId, 10);
     const selectedAreaId = parseInt(task.areaId, 10);
 
-    const filtered = fieldUsers.filter((user: any) => {
-      const hasPincodeAccess = user.assignedPincodes?.includes(selectedPincodeId) ?? false;
-      const hasAreaAccess = user.assignedAreas?.includes(selectedAreaId) ?? false;
+    const filtered = fieldUsers.filter((user: User) => {
+      const hasPincodeAccess = (user.assignedPincodes || []).includes(selectedPincodeId);
+      const hasAreaAccess = (user.assignedAreas || []).includes(selectedAreaId);
       return hasPincodeAccess && hasAreaAccess;
     });
 
@@ -509,9 +512,9 @@ const TaskCard: React.FC<TaskCardProps> = ({
   const { data: rateTypesResponse } = useQuery({
     queryKey: ['availableRateTypes', clientId, productId, task.verificationTypeId],
     queryFn: () => rateTypesService.getAvailableRateTypesForCase(
-      parseInt(clientId),
-      parseInt(productId),
-      task.verificationTypeId!
+      parseInt(clientId || '0'),
+      parseInt(productId || '0'),
+      task.verificationTypeId || 0
     ),
     enabled: !!(clientId && productId && task.verificationTypeId),
   });
@@ -522,7 +525,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
   // Users can manually change these values if needed.
 
   // Debug logging to verify task prop values
-  console.log(`🎯 TaskCard ${index + 1} - Rendering with task:`, {
+  console.warn(`🎯 TaskCard ${index + 1} - Rendering with task:`, {
     taskId: task.id,
     rateTypeId: task.rateTypeId,
     assignedTo: task.assignedTo,
@@ -650,10 +653,10 @@ const TaskCard: React.FC<TaskCardProps> = ({
           <div>
             <label className="text-sm font-medium">Pincode *</label>
             <SearchableSelect
-              options={pincodes.map((pincode) => ({
+                options={pincodes.map((pincode) => ({
                 value: pincode.id.toString(),
                 label: pincode.code,
-                description: pincode.city?.name || undefined
+                description: pincode.cityName || pincode.city?.name
               }))}
               value={task.pincodeId}
               onValueChange={(value) => updateTask(task.id, 'pincodeId', value)}
@@ -736,7 +739,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
             <label className="text-sm font-medium">Priority *</label>
             <Select
               value={task.priority}
-              onValueChange={(value: any) => updateTask(task.id, 'priority', value)}
+              onValueChange={(value: unknown) => updateTask(task.id, 'priority', value)}
             >
               <SelectTrigger>
                 <SelectValue />
@@ -773,7 +776,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
                       : "No field users have access to this pincode and area"}
                   </SelectItem>
                 ) : (
-                  filteredFieldUsers.map((user: any) => (
+                  filteredFieldUsers.map((user) => (
                     <SelectItem key={user.id} value={user.id}>
                       {user.name} ({user.email})
                     </SelectItem>

@@ -22,7 +22,7 @@ export interface FilterOptions {
   status?: string;
   clientId?: number;
   assignedTo?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export class QueryOptimizationService {
@@ -36,9 +36,9 @@ export class QueryOptimizationService {
   /**
    * Execute optimized query with performance monitoring
    */
-  async executeQuery<T = any>(
+  async executeQuery<T = unknown>(
     text: string,
-    params: any[] = [],
+    params: unknown[] = [],
     options: QueryOptions = {}
   ): Promise<QueryResult<T>> {
     const startTime = performance.now();
@@ -192,7 +192,7 @@ export class QueryOptimizationService {
   /**
    * Get dashboard statistics with optimized queries
    */
-  async getDashboardStats(userId?: string, role?: string): Promise<any> {
+  async getDashboardStats(userId?: string, role?: string): Promise<Record<string, unknown>> {
     const baseCondition = role === 'FIELD_AGENT' ? 'AND c."assignedTo" = $1' : '';
     const params = role === 'FIELD_AGENT' ? [userId] : [];
 
@@ -226,7 +226,7 @@ export class QueryOptimizationService {
     `;
 
     const result = await this.executeQuery(query, params, { name: 'get_dashboard_stats' });
-    return result.rows[0];
+    return result.rows[0] as Record<string, unknown>;
   }
 
   /**
@@ -327,7 +327,15 @@ export class QueryOptimizationService {
   /**
    * Analyze query performance
    */
-  async analyzeQueryPerformance(queryText: string): Promise<any> {
+  /**
+   * Analyze query performance
+   */
+  async analyzeQueryPerformance(queryText: string): Promise<{
+    executionTime: number;
+    planningTime: number;
+    totalTime: number;
+    plan: Record<string, unknown>;
+  }> {
     const explainQuery = `EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) ${queryText}`;
 
     try {
@@ -375,7 +383,11 @@ export class QueryOptimizationService {
   /**
    * Get database statistics
    */
-  async getDatabaseStats(): Promise<any> {
+  async getDatabaseStats(): Promise<{
+    tableStats: unknown[];
+    unusedIndexes: unknown[];
+    connectionStats: unknown[];
+  }> {
     const queries = {
       tableStats: `
         SELECT 

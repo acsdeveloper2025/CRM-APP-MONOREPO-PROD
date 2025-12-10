@@ -51,15 +51,15 @@ export class DashboardService {
     return apiService.get('/dashboard/stats', query);
   }
 
-  async getCaseStatusDistribution(query: DashboardQuery = {}): Promise<ApiResponse<any[]>> {
+  async getCaseStatusDistribution(query: DashboardQuery = {}): Promise<ApiResponse<Record<string, unknown>[]>> {
     return apiService.get('/dashboard/case-status-distribution', query);
   }
 
-  async getClientStats(query: DashboardQuery = {}): Promise<ApiResponse<any[]>> {
+  async getClientStats(query: DashboardQuery = {}): Promise<ApiResponse<Record<string, unknown>[]>> {
     return apiService.get('/dashboard/client-stats', query);
   }
 
-  async getMonthlyTrends(query: DashboardQuery = {}): Promise<ApiResponse<any[]>> {
+  async getMonthlyTrends(query: DashboardQuery = {}): Promise<ApiResponse<Record<string, unknown>[]>> {
     return apiService.get('/dashboard/monthly-trends', query);
   }
 
@@ -67,23 +67,23 @@ export class DashboardService {
     return apiService.get('/dashboard/recent-activities', { limit });
   }
 
-  async getPerformanceMetrics(query: DashboardQuery = {}): Promise<ApiResponse<any>> {
+  async getPerformanceMetrics(query: DashboardQuery = {}): Promise<ApiResponse<unknown>> {
     return apiService.get('/dashboard/performance-metrics', query);
   }
 
-  async getTurnaroundTimes(query: DashboardQuery = {}): Promise<ApiResponse<any>> {
+  async getTurnaroundTimes(query: DashboardQuery = {}): Promise<ApiResponse<unknown>> {
     return apiService.get('/dashboard/turnaround-times', query);
   }
 
-  async getTopPerformers(query: DashboardQuery = {}): Promise<ApiResponse<any[]>> {
+  async getTopPerformers(query: DashboardQuery = {}): Promise<ApiResponse<Record<string, unknown>[]>> {
     return apiService.get('/dashboard/top-performers', query);
   }
 
-  async getUpcomingDeadlines(): Promise<ApiResponse<any[]>> {
+  async getUpcomingDeadlines(): Promise<ApiResponse<Record<string, unknown>[]>> {
     return apiService.get('/dashboard/upcoming-deadlines');
   }
 
-  async getAlerts(): Promise<ApiResponse<any[]>> {
+  async getAlerts(): Promise<ApiResponse<Record<string, unknown>[]>> {
     return apiService.get('/dashboard/alerts');
   }
 
@@ -94,11 +94,11 @@ export class DashboardService {
     limit?: number;
     sortBy?: string;
     sortOrder?: 'asc' | 'desc';
-  } = {}): Promise<ApiResponse<any>> {
+  } = {}): Promise<ApiResponse<unknown>> {
     return apiService.get('/dashboard/overdue-tasks', params);
   }
 
-  async getTATStats(): Promise<ApiResponse<any>> {
+  async getTATStats(): Promise<ApiResponse<unknown>> {
     return apiService.get('/dashboard/tat-stats');
   }
 

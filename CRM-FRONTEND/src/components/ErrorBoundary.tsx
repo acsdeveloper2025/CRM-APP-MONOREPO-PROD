@@ -211,7 +211,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
 // Hook version for functional components
 export const useErrorHandler = () => {
-  const handleError = React.useCallback((error: Error, errorInfo?: any) => {
+  const handleError = React.useCallback((error: Error, errorInfo?: unknown) => {
     console.error('Error caught by useErrorHandler:', error, errorInfo);
     
     // Log to monitoring service

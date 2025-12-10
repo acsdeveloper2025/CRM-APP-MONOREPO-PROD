@@ -10,7 +10,7 @@ interface OfflineReport {
   expiresAt: string;
   isExpired: boolean;
   syncStatus: 'synced' | 'pending' | 'failed';
-  data: any;
+  data: unknown;
 }
 
 interface OfflineStorageHook {
@@ -193,7 +193,7 @@ export const useOfflineStorage = (): OfflineStorageHook => {
   };
 
   // Helper functions
-  const fetchReportData = async (reportType: string): Promise<any> => {
+  const fetchReportData = async (reportType: string): Promise<unknown> => {
     // Mock data generation based on report type
     switch (reportType) {
       case 'performance':

@@ -80,7 +80,29 @@ export class VerificationTasksService {
     if (filters?.task_type) {params.append('task_type', filters.task_type);}
 
     const response = await apiService.get(`/verification-tasks?${params.toString()}`);
-    return response as any;
+    return response as unknown as {
+      success: boolean;
+      data: {
+        tasks: VerificationTask[];
+        pagination: {
+          page: number;
+          limit: number;
+          total: number;
+          totalPages: number;
+        };
+        statistics: {
+          pending: number;
+          assigned: number;
+          inProgress: number;
+          completed: number;
+          cancelled: number;
+          onHold: number;
+          urgent: number;
+          highPriority: number;
+        };
+      };
+      message: string;
+    };
   }
 
   /**
@@ -93,7 +115,7 @@ export class VerificationTasksService {
     const response = await apiService.post(`/cases/${caseId}/verification-tasks`, {
       tasks
     });
-    return response.data;
+    return response.data as unknown as CreateMultipleTasksResponse;
   }
 
   /**
@@ -106,7 +128,7 @@ export class VerificationTasksService {
     const response = await apiService.post(`/verification-tasks/revisit/${taskId}`, {
       assigned_to: assignedTo
     });
-    return response.data;
+    return response.data as unknown as VerificationTaskResponse;
   }
 
   /**
@@ -134,7 +156,7 @@ export class VerificationTasksService {
    */
   static async getTaskById(taskId: string): Promise<VerificationTaskResponse> {
     const response = await apiService.get(`/verification-tasks/${taskId}`);
-    return response.data;
+    return response.data as unknown as VerificationTaskResponse;
   }
 
   /**
@@ -145,7 +167,7 @@ export class VerificationTasksService {
     updateData: UpdateVerificationTaskRequest
   ): Promise<VerificationTaskResponse> {
     const response = await apiService.put(`/verification-tasks/${taskId}`, updateData);
-    return response.data;
+    return response.data as unknown as VerificationTaskResponse;
   }
 
   /**
@@ -162,7 +184,7 @@ export class VerificationTasksService {
       priority: assignmentData.priority
     };
     const response = await apiService.post(`/verification-tasks/${taskId}/assign`, backendData);
-    return response.data;
+    return response.data as unknown as VerificationTaskResponse;
   }
 
   /**
@@ -180,7 +202,7 @@ export class VerificationTasksService {
       form_submission_id: completionData.formSubmissionId
     };
     const response = await apiService.post(`/verification-tasks/${taskId}/complete`, backendData);
-    return response.data;
+    return response.data as unknown as VerificationTaskResponse;
   }
 
   /**
@@ -188,7 +210,7 @@ export class VerificationTasksService {
    */
   static async startTask(taskId: string): Promise<VerificationTaskResponse> {
     const response = await apiService.post(`/verification-tasks/${taskId}/start`);
-    return response.data;
+    return response.data as unknown as VerificationTaskResponse;
   }
 
   /**
@@ -201,7 +223,7 @@ export class VerificationTasksService {
     const response = await apiService.post(`/verification-tasks/${taskId}/cancel`, {
       cancellation_reason: cancellationReason
     });
-    return response.data;
+    return response.data as unknown as VerificationTaskResponse;
   }
 
   /**
@@ -217,7 +239,7 @@ export class VerificationTasksService {
       assigned_to: assignedTo,
       assignment_reason: assignmentReason
     });
-    return response.data;
+    return response.data as unknown as { success: boolean; data: { updated_tasks: number; tasks: VerificationTask[] }; message: string };
   }
 
   /**
@@ -239,7 +261,21 @@ export class VerificationTasksService {
     message: string;
   }> {
     const response = await apiService.get(`/verification-tasks/${taskId}/assignment-history`);
-    return response.data;
+    return response.data as unknown as {
+      success: boolean;
+      data: Array<{
+        id: string;
+        assignedFrom?: string;
+        assignedTo: string;
+        assignedBy: string;
+        assignmentReason?: string;
+        assignedAt: string;
+        assignedToName?: string;
+        assignedByName?: string;
+        assignedFromName?: string;
+      }>;
+      message: string;
+    };
   }
 
   /**
@@ -283,7 +319,36 @@ export class VerificationTasksService {
     if (filters?.priority) {params.append('priority', filters.priority);}
 
     const response = await apiService.get(`/mobile/my-verification-tasks?${params.toString()}`);
-    return response.data;
+    return response.data as unknown as {
+      success: boolean;
+      data: {
+        tasks: Array<{
+          id: string;
+          taskNumber: string;
+          caseId: string;
+          caseNumber: string;
+          customerName: string;
+          taskTitle: string;
+          verificationType: string;
+          status: string;
+          priority: string;
+          address?: string;
+          estimatedAmount?: number;
+          assignedAt: string;
+          estimatedCompletionDate?: string;
+        }>;
+        summary: {
+          totalAssigned: number;
+          pending: number;
+          inProgress: number;
+          completedToday: number;
+          completedThisWeek: number;
+          totalEarnings: number;
+          pendingCommission: number;
+        };
+      };
+      message: string;
+    };
   }
 
   /**
@@ -293,7 +358,7 @@ export class VerificationTasksService {
     taskId: string,
     submissionData: {
       verification_outcome: string;
-      form_data?: Record<string, any>;
+      form_data?: Record<string, unknown>;
       attachments?: string[];
       geo_location?: {
         latitude: number;
@@ -304,7 +369,7 @@ export class VerificationTasksService {
     }
   ): Promise<VerificationTaskResponse> {
     const response = await apiService.post(`/mobile/verification-tasks/${taskId}/submit`, submissionData);
-    return response.data;
+    return response.data as unknown as VerificationTaskResponse;
   }
 }
 
@@ -322,7 +387,7 @@ export class EnhancedCasesService {
     caseData: CreateCaseWithMultipleTasksRequest
   ): Promise<CreateCaseWithMultipleTasksResponse> {
     const response = await apiService.post('/cases/create', caseData);
-    return response.data;
+    return response.data as unknown as CreateCaseWithMultipleTasksResponse;
   }
 
   /**
@@ -330,7 +395,7 @@ export class EnhancedCasesService {
    */
   static async getCaseSummaryWithTasks(caseId: string): Promise<CaseSummaryResponse> {
     const response = await apiService.get(`/cases/${caseId}/summary`);
-    return response.data;
+    return response.data as unknown as CaseSummaryResponse;
   }
 
   /**
@@ -343,7 +408,7 @@ export class EnhancedCasesService {
       `/cases/${templateData.caseId}/verification-tasks/from-template`,
       templateData
     );
-    return response.data;
+    return response.data as unknown as CreateMultipleTasksResponse;
   }
 }
 
@@ -378,7 +443,27 @@ export class TaskTemplatesService {
     message: string;
   }> {
     const response = await apiService.get('/verification-task-templates');
-    return response.data;
+    return response.data as unknown as {
+      success: boolean;
+      data: Array<{
+        id: number;
+        name: string;
+        description?: string;
+        category: string;
+        estimatedTotalCost?: number;
+        estimatedDurationDays?: number;
+        tasks: Array<{
+          taskType: string;
+          priority: string;
+          title: string;
+          description?: string;
+          estimatedAmount?: number;
+          requiresLocation?: boolean;
+          requiresDocuments?: boolean;
+        }>;
+      }>;
+      message: string;
+    };
   }
 
   /**
@@ -399,7 +484,7 @@ export class TaskTemplatesService {
       template_id: templateId,
       customizations
     });
-    return response.data;
+    return response.data as unknown as CreateMultipleTasksResponse;
   }
 }
 
@@ -431,7 +516,24 @@ export class TaskCommissionService {
     message: string;
   }> {
     const response = await apiService.post(`/verification-tasks/${taskId}/calculate-commission`);
-    return response.data;
+    return response.data as unknown as {
+      success: boolean;
+      data: {
+        taskId: string;
+        taskNumber: string;
+        commissionCalculation: {
+          id: string;
+          baseAmount: number;
+          commissionAmount: number;
+          calculatedCommission: number;
+          calculationMethod: string;
+          status: string;
+          userId: string;
+          userName: string;
+        };
+      };
+      message: string;
+    };
   }
 
   /**
@@ -450,7 +552,18 @@ export class TaskCommissionService {
     message: string;
   }> {
     const response = await apiService.get(`/verification-tasks/${taskId}/commission-history`);
-    return response.data;
+    return response.data as unknown as {
+      success: boolean;
+      data: Array<{
+        id: string;
+        calculatedCommission: number;
+        status: string;
+        calculationDate: string;
+        approvedAt?: string;
+        paidAt?: string;
+      }>;
+      message: string;
+    };
   }
 
   /**
@@ -466,6 +579,14 @@ export class TaskCommissionService {
     message: string;
   }> {
     const response = await apiService.post(`/cases/${caseId}/calculate-all-commissions`);
-    return response.data;
+    return response.data as unknown as {
+      success: boolean;
+      data: {
+        caseId: string;
+        calculatedTasks: number;
+        totalCommission: number;
+      };
+      message: string;
+    };
   }
 }

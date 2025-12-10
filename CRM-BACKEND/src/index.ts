@@ -53,19 +53,21 @@ const startServer = async (): Promise<void> => {
 
       // Schedule periodic cache refresh (every 10 minutes)
       setInterval(
-        async () => {
-          try {
-            await CacheWarmingService.refreshCaches();
-          } catch (error) {
-            logger.error('Periodic cache refresh failed:', error);
-          }
+        () => {
+          void (async () => {
+            try {
+              await CacheWarmingService.refreshCaches();
+            } catch (error) {
+              logger.error('Periodic cache refresh failed:', error);
+            }
+          })();
         },
         10 * 60 * 1000
       ); // 10 minutes
     });
 
     // Handle port already in use error
-    server.on('error', (error: any) => {
+    server.on('error', (error: NodeJS.ErrnoException) => {
       if (error.code === 'EADDRINUSE') {
         logger.error(
           `Port ${config.port} is already in use. Please free the port or stop the conflicting service.`
@@ -92,7 +94,7 @@ const gracefulShutdown = async (signal: string): Promise<void> => {
     });
 
     // Close WebSocket connections
-    io.close(() => {
+    void io.close(() => {
       logger.info('WebSocket server closed');
     });
 
@@ -117,8 +119,8 @@ const gracefulShutdown = async (signal: string): Promise<void> => {
 };
 
 // Handle graceful shutdown
-process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on('SIGTERM', () => void gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => void gracefulShutdown('SIGINT'));
 
 // Handle uncaught exceptions
 process.on('uncaughtException', error => {
@@ -132,4 +134,5 @@ process.on('unhandledRejection', (reason, promise) => {
 });
 
 // Start the server
+// eslint-disable-next-line @typescript-eslint/no-floating-promises
 startServer();

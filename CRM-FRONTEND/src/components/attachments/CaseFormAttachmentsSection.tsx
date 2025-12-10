@@ -230,7 +230,7 @@ export const CaseFormAttachmentsSection: React.FC<CaseFormAttachmentsSectionProp
                 <span>Files selected</span>
                 <ArrowRight className="h-4 w-4" />
                 <span className="font-medium">Step 2:</span>
-                <span>Click "Add Files" to attach them</span>
+                <span>Click &quot;Add Files&quot; to attach them</span>
               </div>
               <div className="mt-2 text-sm">
                 ⚠️ Files must be added before submitting the form

@@ -23,7 +23,7 @@ import { useUnifiedSearch } from '@/hooks/useUnifiedSearch';
 import { UnifiedSearchInput } from '@/components/ui/unified-search-input';
 
 export function LocationsPage() {
-  console.log('LocationsPage component loaded');
+  console.warn('LocationsPage component loaded');
   const [searchParams, setSearchParams] = useSearchParams();
   const [showCreateCountry, setShowCreateCountry] = useState(false);
   const [showCreateState, setShowCreateState] = useState(false);

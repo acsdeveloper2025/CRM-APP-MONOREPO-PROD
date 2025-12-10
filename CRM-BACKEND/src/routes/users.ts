@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import { body, query, param } from 'express-validator';
 import { authenticateToken } from '@/middleware/auth';
 import { validate } from '@/middleware/validation';
@@ -273,7 +273,7 @@ const productIdValidation = [
 ];
 
 // Middleware to disable browser caching and prevent 304 responses
-const noBrowserCache = (req: any, res: any, next: any) => {
+const noBrowserCache = (req: Request, res: Response, next: NextFunction) => {
   res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private, max-age=0');
   res.set('Pragma', 'no-cache');
   res.set('Expires', '0');

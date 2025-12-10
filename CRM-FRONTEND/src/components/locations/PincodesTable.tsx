@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { MoreHorizontal, Edit, Trash2, MapPin, Building } from 'lucide-react';
-import { useStandardizedMutation } from '@/hooks/useStandardizedMutation';
+import { useMutationWithInvalidation } from '@/hooks/useStandardizedMutation';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -47,7 +47,7 @@ export function PincodesTable({ data, isLoading }: PincodesTableProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [pincodeToDelete, setPincodeToDelete] = useState<Pincode | null>(null);
 
-  const deleteMutation = useStandardizedMutation({
+  const deleteMutation = useMutationWithInvalidation({
     mutationFn: (id: string) => locationsService.deletePincode(id),
     invalidateKeys: [['pincodes']],
     successMessage: 'Pincode deleted successfully',
@@ -188,7 +188,7 @@ export function PincodesTable({ data, isLoading }: PincodesTableProps) {
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
               This action cannot be undone. This will permanently delete the pincode
-              "{pincodeToDelete?.code}" for areas "{pincodeToDelete?.areas?.[0]?.name || pincodeToDelete?.area || 'Unknown'}"
+              &quot;{pincodeToDelete?.code}&quot; for areas &quot;{pincodeToDelete?.areas?.[0]?.name || pincodeToDelete?.area || 'Unknown'}&quot;
               {pincodeToDelete?.areas && pincodeToDelete.areas.length > 1 && ` and ${pincodeToDelete.areas.length - 1} other area(s)`}.
             </AlertDialogDescription>
           </AlertDialogHeader>

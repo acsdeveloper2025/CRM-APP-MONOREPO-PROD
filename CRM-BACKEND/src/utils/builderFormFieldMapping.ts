@@ -119,10 +119,10 @@ export const BUILDER_FIELD_MAPPING: DatabaseFieldMapping = {
  * @returns Object with database column names as keys
  */
 export function mapBuilderFormDataToDatabase(
-  formData: any,
+  formData: Record<string, unknown>,
   formType?: string
-): Record<string, any> {
-  const mappedData: Record<string, any> = {};
+): Record<string, unknown> {
+  const mappedData: Record<string, unknown> = {};
 
   // Process each field in the form data
   for (const [mobileField, value] of Object.entries(formData)) {
@@ -153,7 +153,7 @@ export function mapBuilderFormDataToDatabase(
  * @param value - The field value
  * @returns Processed value suitable for database storage
  */
-function processBuilderFieldValue(fieldName: string, value: any): any {
+function processBuilderFieldValue(fieldName: string, value: unknown): unknown {
   // Handle null/undefined values
   if (value === null || value === undefined || value === '') {
     return null;
@@ -167,7 +167,7 @@ function processBuilderFieldValue(fieldName: string, value: any): any {
   // Handle enum values - convert to string
   if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
     // If it's an enum object, return its string representation
-    return String(value);
+    return JSON.stringify(value);
   }
 
   // Handle numeric fields
@@ -179,7 +179,12 @@ function processBuilderFieldValue(fieldName: string, value: any): any {
   }
 
   // Default: convert to string and trim
-  return String(value).trim() || null;
+  return (
+    (typeof value === 'object' && value !== null
+      ? JSON.stringify(value)
+      : String(value as string | number | boolean | null | undefined)
+    ).trim() || null
+  );
 }
 
 /**
@@ -218,7 +223,7 @@ export function getBuilderMappedMobileFields(): string[] {
  * @returns Object with validation result and missing fields
  */
 export function validateBuilderRequiredFields(
-  formData: any,
+  formData: Record<string, unknown>,
   formType: string
 ): {
   isValid: boolean;
@@ -344,9 +349,9 @@ export function validateBuilderRequiredFields(
  * @returns Complete data object with all fields populated
  */
 export function ensureAllBuilderFieldsPopulated(
-  mappedData: Record<string, any>,
+  mappedData: Record<string, unknown>,
   formType: string
-): Record<string, any> {
+): Record<string, unknown> {
   const completeData = { ...mappedData };
 
   // Define all possible database fields for builder verification
@@ -605,7 +610,7 @@ function getRelevantBuilderFieldsForFormType(formType: string): string[] {
  * @param _fieldName - Database field name
  * @returns Default value for the field
  */
-function getDefaultBuilderValueForField(_fieldName: string): any {
+function getDefaultBuilderValueForField(_fieldName: string): unknown {
   // All fields default to null for missing/irrelevant data
   return null;
 }

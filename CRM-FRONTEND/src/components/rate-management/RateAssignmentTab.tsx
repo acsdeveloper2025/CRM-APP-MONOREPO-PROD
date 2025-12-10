@@ -47,14 +47,14 @@ export function RateAssignmentTab() {
   // Fetch products for selected client
   const { data: productsData } = useQuery({
     queryKey: ['client-products', selectedClientId],
-    queryFn: () => productsService.getProductsByClient(selectedClientId!),
+    queryFn: () => productsService.getProductsByClient(String(selectedClientId || '')),
     enabled: !!selectedClientId,
   });
 
   // Fetch verification types for selected product
   const { data: verificationTypesData } = useQuery({
     queryKey: ['product-verification-types', selectedProductId],
-    queryFn: () => verificationTypesService.getVerificationTypesByProduct(selectedProductId!),
+    queryFn: () => verificationTypesService.getVerificationTypesByProduct(String(selectedProductId || '')),
     enabled: !!selectedProductId,
   });
 
@@ -62,9 +62,9 @@ export function RateAssignmentTab() {
   const { data: availableRateTypesData, isLoading: rateTypesLoading } = useQuery({
     queryKey: ['available-rate-types', selectedClientId, selectedProductId, selectedVerificationTypeId],
     queryFn: () => ratesService.getAvailableRateTypesForAssignment({
-      clientId: selectedClientId!,
-      productId: selectedProductId!,
-      verificationTypeId: selectedVerificationTypeId!,
+      clientId: Number(selectedClientId),
+      productId: Number(selectedProductId),
+      verificationTypeId: Number(selectedVerificationTypeId),
     }),
     enabled: !!(selectedClientId && selectedProductId && selectedVerificationTypeId),
   });
@@ -88,9 +88,9 @@ export function RateAssignmentTab() {
   const saveRateMutation = useMutationWithInvalidation({
     mutationFn: async (rateData: { rateTypeId: number; amount: number; currency: string }) => {
       return ratesService.createOrUpdateRate({
-        clientId: selectedClientId!,
-        productId: selectedProductId!,
-        verificationTypeId: selectedVerificationTypeId!,
+        clientId: Number(selectedClientId),
+        productId: Number(selectedProductId),
+        verificationTypeId: Number(selectedVerificationTypeId),
         rateTypeId: rateData.rateTypeId,
         amount: rateData.amount,
         currency: rateData.currency,
@@ -266,7 +266,7 @@ export function RateAssignmentTab() {
                   No rate types are assigned to this combination.
                 </p>
                 <p className="text-sm text-gray-600 mt-2">
-                  Please assign rate types in the "Rate Type Assignment" tab first.
+                  Please assign rate types in the &quot;Rate Type Assignment&quot; tab first.
                 </p>
               </div>
             ) : (
@@ -283,7 +283,8 @@ export function RateAssignmentTab() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {availableRateTypes.map((rateType) => {
+                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                    {availableRateTypes.map((rateType: any) => {
                       const rateInput = rateInputs[rateType.rateTypeId] || {
                         rateTypeId: rateType.rateTypeId,
                         amount: '',
@@ -368,7 +369,7 @@ export function RateAssignmentTab() {
             <li>Only rate types that have been assigned in the previous tab will appear here</li>
             <li>Enter the rate amount for each rate type</li>
             <li>Select the currency (default is INR)</li>
-            <li>Click "Save" to set the rate for that specific rate type</li>
+            <li>Click &quot;Save&quot; to set the rate for that specific rate type</li>
             <li>Current rates will be displayed if they have been set previously</li>
             <li>You can update existing rates by entering a new amount and saving</li>
           </ol>

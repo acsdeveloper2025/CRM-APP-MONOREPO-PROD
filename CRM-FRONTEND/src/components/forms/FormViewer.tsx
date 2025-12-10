@@ -635,14 +635,14 @@ export function FormViewer({
                   <div>
                     <span className="font-medium">Network:</span> {submission.metadata.networkInfo?.type || 'Unknown'}
                   </div>
-                  {(submission.metadata as any).totalImages && (
+                  {(submission.metadata as unknown).totalImages && (
                     <div>
-                      <span className="font-medium">Images Captured:</span> {(submission.metadata as any).totalImages}
+                      <span className="font-medium">Images Captured:</span> {(submission.metadata as unknown).totalImages}
                     </div>
                   )}
-                  {(submission.metadata as any).formType && (
+                  {(submission.metadata as unknown).formType && (
                     <div>
-                      <span className="font-medium">Form Type:</span> {(submission.metadata as any).formType}
+                      <span className="font-medium">Form Type:</span> {(submission.metadata as unknown).formType}
                     </div>
                   )}
                   <div>

@@ -38,7 +38,7 @@ const createRateLimiter = (
               return true; // Skip rate limiting for dev token
             }
 
-            const decoded = jwt.verify(token, config.jwtSecret) as any;
+            const decoded = jwt.verify(token, config.jwtSecret) as jwt.JwtPayload;
 
             // Skip rate limiting for ALL authenticated users (SUPER_ADMIN, ADMIN, BACKEND_USER, FIELD_AGENT)
             // This prevents rate limiting issues for field agents processing 100+ cases per day

@@ -1,6 +1,3 @@
-/* eslint-disable @typescript-eslint/restrict-template-expressions */
-/* eslint-disable @typescript-eslint/no-base-to-string */
-// Disabled template expression rules for commission management controller as it handles query params in template literals
 import type { Response } from 'express';
 import type { AuthenticatedRequest } from '../types/auth';
 import { query } from '../config/database';
@@ -11,6 +8,7 @@ import type {
   UpdateCommissionRateTypeData,
   CreateFieldUserCommissionAssignmentData,
 } from '../types/commission';
+import type { QueryParams } from '../types/database';
 
 // =====================================================
 // COMMISSION RATE TYPES MANAGEMENT
@@ -21,7 +19,7 @@ export const getCommissionRateTypes = async (req: AuthenticatedRequest, res: Res
     const { isActive, search } = req.query;
 
     let whereClause = '';
-    const queryParams: any[] = [];
+    const queryParams: QueryParams = [];
     let paramIndex = 1;
 
     const conditions: string[] = [];
@@ -32,7 +30,7 @@ export const getCommissionRateTypes = async (req: AuthenticatedRequest, res: Res
       paramIndex++;
     }
 
-    if (search) {
+    if (search && typeof search === 'string') {
       conditions.push(`(rt.name ILIKE $${paramIndex} OR rt.description ILIKE $${paramIndex})`);
       queryParams.push(`%${search}%`);
       paramIndex++;
@@ -176,7 +174,7 @@ export const updateCommissionRateType = async (req: AuthenticatedRequest, res: R
 
     // Build dynamic update query
     const updateFields: string[] = [];
-    const updateValues: any[] = [];
+    const updateValues: QueryParams = [];
     let paramIndex = 1;
 
     if (commissionAmount !== undefined) {
@@ -311,13 +309,13 @@ export const getFieldUserCommissionAssignments = async (
     const { userId, rateTypeId, clientId, isActive, page = 1, limit = 20 } = req.query;
 
     let whereClause = '';
-    const queryParams: any[] = [];
+    const queryParams: QueryParams = [];
     let paramCount = 0;
 
     if (userId) {
       paramCount++;
       whereClause += `${whereClause ? ' AND' : ''} fuca.user_id = $${paramCount}`;
-      queryParams.push(userId);
+      queryParams.push(userId as string);
     }
 
     if (rateTypeId) {
@@ -660,13 +658,13 @@ export const getCommissionCalculations = async (req: AuthenticatedRequest, res: 
     } = req.query;
 
     let whereClause = '';
-    const queryParams: any[] = [];
+    const queryParams: QueryParams = [];
     let paramCount = 0;
 
     if (userId) {
       paramCount++;
       whereClause += `${whereClause ? ' AND' : ''} cc.user_id = $${paramCount}`;
-      queryParams.push(userId);
+      queryParams.push(userId as string);
     }
 
     if (clientId) {
@@ -684,19 +682,19 @@ export const getCommissionCalculations = async (req: AuthenticatedRequest, res: 
     if (status) {
       paramCount++;
       whereClause += `${whereClause ? ' AND' : ''} cc.status = $${paramCount}`;
-      queryParams.push(status);
+      queryParams.push(status as string);
     }
 
     if (startDate) {
       paramCount++;
       whereClause += `${whereClause ? ' AND' : ''} cc.created_at >= $${paramCount}`;
-      queryParams.push(startDate);
+      queryParams.push(startDate as string);
     }
 
     if (endDate) {
       paramCount++;
       whereClause += `${whereClause ? ' AND' : ''} cc.created_at <= $${paramCount}`;
-      queryParams.push(endDate);
+      queryParams.push(endDate as string);
     }
 
     const offset = (Number(page) - 1) * Number(limit);
@@ -930,7 +928,7 @@ export const calculateCommissionForCompletedCase = async (
 // Auto-calculate commission when case is completed (called internally)
 export const autoCalculateCommissionForCase = async (caseId: string): Promise<boolean> => {
   try {
-    console.log(`🧮 Auto-calculating commission for completed case: ${caseId}`);
+    logger.info(`🧮 Auto-calculating commission for completed case: ${caseId}`);
 
     // Get case details
     const caseQuery = `
@@ -957,19 +955,19 @@ export const autoCalculateCommissionForCase = async (caseId: string): Promise<bo
     const caseResult = await query(caseQuery, [caseId]);
 
     if (caseResult.rows.length === 0) {
-      console.log(`⚠️ Case not found or not completed: ${caseId}`);
+      logger.info(`⚠️ Case not found or not completed: ${caseId}`);
       return false;
     }
 
     const caseData = caseResult.rows[0];
 
     if (!caseData.rate_type_id) {
-      console.log(`⚠️ No rate type assigned for case: ${caseId}`);
+      logger.info(`⚠️ No rate type assigned for case: ${caseId}`);
       return false;
     }
 
     if (!caseData.user_id) {
-      console.log(`⚠️ No user assigned to case: ${caseId}`);
+      logger.info(`⚠️ No user assigned to case: ${caseId}`);
       return false;
     }
 
@@ -997,7 +995,7 @@ export const autoCalculateCommissionForCase = async (caseId: string): Promise<bo
     ]);
 
     if (assignmentResult.rows.length === 0) {
-      console.log(
+      logger.info(
         `⚠️ No commission assignment found for user ${caseData.user_id} and rate type ${caseData.rate_type_id}`
       );
       return false;
@@ -1014,7 +1012,7 @@ export const autoCalculateCommissionForCase = async (caseId: string): Promise<bo
     const existingResult = await query(existingQuery, [caseId, caseData.user_id]);
 
     if (existingResult.rows.length > 0) {
-      console.log(`ℹ️ Commission already calculated for case: ${caseId}`);
+      logger.info(`ℹ️ Commission already calculated for case: ${caseId}`);
       return true;
     }
 
@@ -1061,7 +1059,7 @@ export const autoCalculateCommissionForCase = async (caseId: string): Promise<bo
     ]);
 
     const calculation = insertResult.rows[0];
-    console.log(
+    logger.info(
       `✅ Commission calculated successfully for case ${caseId}: ${calculation.currency} ${calculation.commission_amount}`
     );
 
@@ -1075,7 +1073,7 @@ export const autoCalculateCommissionForCase = async (caseId: string): Promise<bo
 // Auto-calculate commission when verification task is completed (called internally)
 export const autoCalculateCommissionForTask = async (taskId: string): Promise<boolean> => {
   try {
-    console.log(`🧮 Auto-calculating commission for completed verification task: ${taskId}`);
+    logger.info(`🧮 Auto-calculating commission for completed verification task: ${taskId}`);
 
     // Get task details
     const taskQuery = `
@@ -1101,19 +1099,19 @@ export const autoCalculateCommissionForTask = async (taskId: string): Promise<bo
     const taskResult = await query(taskQuery, [taskId]);
 
     if (taskResult.rows.length === 0) {
-      console.log(`⚠️ Task not found or not completed: ${taskId}`);
+      logger.info(`⚠️ Task not found or not completed: ${taskId}`);
       return false;
     }
 
     const taskData = taskResult.rows[0];
 
     if (!taskData.rate_type_id) {
-      console.log(`⚠️ No rate type assigned for task: ${taskId}`);
+      logger.info(`⚠️ No rate type assigned for task: ${taskId}`);
       return false;
     }
 
     if (!taskData.user_id) {
-      console.log(`⚠️ No user assigned to task: ${taskId}`);
+      logger.info(`⚠️ No user assigned to task: ${taskId}`);
       return false;
     }
 
@@ -1141,7 +1139,7 @@ export const autoCalculateCommissionForTask = async (taskId: string): Promise<bo
     ]);
 
     if (assignmentResult.rows.length === 0) {
-      console.log(
+      logger.info(
         `⚠️ No commission assignment found for user ${taskData.user_id} and rate type ${taskData.rate_type_id}`
       );
       return false;
@@ -1158,7 +1156,7 @@ export const autoCalculateCommissionForTask = async (taskId: string): Promise<bo
     const existingResult = await query(existingQuery, [taskId, taskData.user_id]);
 
     if (existingResult.rows.length > 0) {
-      console.log(`ℹ️ Commission already calculated for task: ${taskId}`);
+      logger.info(`ℹ️ Commission already calculated for task: ${taskId}`);
       return true;
     }
 
@@ -1208,7 +1206,7 @@ export const autoCalculateCommissionForTask = async (taskId: string): Promise<bo
     ]);
 
     const calculation = insertResult.rows[0];
-    console.log(
+    logger.info(
       `✅ Commission calculated successfully for task ${taskId}: ${calculation.currency} ${calculation.commission_amount}`
     );
 

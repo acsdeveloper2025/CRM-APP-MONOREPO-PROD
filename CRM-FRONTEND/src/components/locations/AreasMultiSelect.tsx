@@ -46,7 +46,7 @@ export function AreasMultiSelect({
     queryFn: () => locationsService.getStandaloneAreas(),
   });
 
-  const allAreas = areasData?.data || [];
+  const allAreas = React.useMemo(() => areasData?.data || [], [areasData?.data]);
 
   // Filter areas based on search
   const areas = React.useMemo(() => {

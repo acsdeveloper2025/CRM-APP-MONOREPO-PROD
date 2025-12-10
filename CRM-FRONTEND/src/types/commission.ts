@@ -5,6 +5,7 @@ export interface CommissionRateType {
   id: number;
   rateTypeId: number;
   commissionAmount: number;
+  commissionPercentage?: number;
   currency: string;
   isActive: boolean;
   createdBy?: string;

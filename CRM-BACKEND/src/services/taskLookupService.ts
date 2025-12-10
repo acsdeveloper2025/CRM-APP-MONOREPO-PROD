@@ -30,7 +30,7 @@ export class TaskLookupService {
    */
   static async verifyTaskAccess(taskId: string, userId?: string): Promise<boolean> {
     let sql = 'SELECT 1 FROM verification_tasks WHERE id = $1';
-    const params: any[] = [taskId];
+    const params: (string | number)[] = [taskId];
 
     if (userId) {
       sql += ' AND assigned_to = $2';

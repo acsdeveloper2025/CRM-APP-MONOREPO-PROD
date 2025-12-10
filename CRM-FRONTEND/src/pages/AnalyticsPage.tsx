@@ -40,16 +40,21 @@ export const AnalyticsPage: React.FC = () => {
   });
 
   const caseSummary = caseAnalytics?.data?.summary;
-  const tasks = tasksData?.data?.data || [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const tasks = (tasksData?.data as any)?.data || [];
 
   // Calculate task metrics
   const totalTasks = tasks.length;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const completedTasks = tasks.filter((t: any) => t.status === 'COMPLETED').length;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const inProgressTasks = tasks.filter((t: any) => t.status === 'IN_PROGRESS').length;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const pendingTasks = tasks.filter((t: any) => t.status === 'PENDING' || t.status === 'ASSIGNED').length;
   const taskCompletionRate = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
 
   // Calculate active agents
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const activeAgents = new Set(tasks.filter((t: any) => t.assigned_to).map((t: any) => t.assigned_to)).size;
 
   return (

@@ -1,15 +1,14 @@
-/* eslint-disable @typescript-eslint/no-unsafe-enum-comparison */
-/* eslint-disable @typescript-eslint/require-await */
-// Disabled unsafe enum comparison and require-await rules for attachments controller
-import type { Response } from 'express';
+import type { Request, Response } from 'express';
 import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
+import type { QueryParams } from '@/types/database';
+import { Role } from '@/types/auth'; // Import Role enum
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 
 // Mock data for demonstration (replace with actual database operations)
-const attachments: any[] = [
+const attachments: Record<string, unknown>[] = [
   {
     id: 'attachment_1',
     filename: 'residence_photo_1.jpg',
@@ -69,7 +68,7 @@ const storage = multer.diskStorage({
   },
 });
 
-const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+const fileFilter = (req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
   const extension = path.extname(file.originalname).toLowerCase();
 
   // Handle files without extensions
@@ -105,97 +104,99 @@ const upload = multer({
 export const uploadAttachment = (req: AuthenticatedRequest, res: Response) => {
   try {
     // Use multer middleware
-    upload.array('files', 10)(req, res, async err => {
-      if (err) {
-        logger.error('File upload error:', err);
-        return res.status(400).json({
-          success: false,
-          message: err.message || 'File upload failed',
-          error: { code: 'UPLOAD_ERROR' },
-        });
-      }
-
-      const files = req.files as Express.Multer.File[];
-      const {
-        caseId,
-        // description,
-        // category = 'DOCUMENT',
-        // isPublic = false,
-        verification_task_id,
-      } = req.body;
-
-      if (!files || files.length === 0) {
-        return res.status(400).json({
-          success: false,
-          message: 'No files uploaded',
-          error: { code: 'NO_FILES' },
-        });
-      }
-
-      if (!caseId) {
-        return res.status(400).json({
-          success: false,
-          message: 'Case ID is required',
-          error: { code: 'MISSING_CASE_ID' },
-        });
-      }
-
-      // Import query function
-      const { query } = await import('@/config/database');
-
-      // Get case UUID and verify access for mobile compatibility
-      let caseQuery: string;
-      let caseParams: any[];
-
-      if (req.user?.role === 'FIELD_AGENT') {
-        // Field agents can only upload to cases assigned to them
-        caseQuery = 'SELECT id FROM cases WHERE "caseId" = $1 AND "assignedTo" = $2';
-        caseParams = [caseId, req.user.id];
-      } else {
-        // Admin/Manager can upload to any case
-        caseQuery = 'SELECT id FROM cases WHERE "caseId" = $1';
-        caseParams = [caseId];
-      }
-
-      const caseResult = await query(caseQuery, caseParams);
-
-      if (caseResult.rows.length === 0) {
-        return res.status(404).json({
-          success: false,
-          message:
-            req.user?.role === 'FIELD_AGENT'
-              ? 'Case not found or not assigned to you'
-              : 'Case not found',
-          error: { code: 'CASE_NOT_FOUND' },
-        });
-      }
-
-      const caseUUID = caseResult.rows[0].id;
-      const uploadedAttachments = [];
-
-      // Create case-specific directory
-      const caseUploadDir = path.join(process.cwd(), 'uploads', 'attachments', `case_${caseId}`);
-      if (!fs.existsSync(caseUploadDir)) {
-        fs.mkdirSync(caseUploadDir, { recursive: true });
-      }
-
-      for (const file of files) {
-        // Move file from temp directory to case-specific directory
-        const tempPath = file.path;
-        const finalPath = path.join(caseUploadDir, file.filename);
-
-        try {
-          fs.renameSync(tempPath, finalPath);
-        } catch (error) {
-          logger.error('Error moving file to case directory:', error);
-          // If rename fails, try copy and delete
-          fs.copyFileSync(tempPath, finalPath);
-          fs.unlinkSync(tempPath);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-misused-promises
+    (upload as any).array('files', 10)(req, res, (err: any) => {
+      void (async () => {
+        if (err) {
+          logger.error('File upload error:', err);
+          return res.status(400).json({
+            success: false,
+            message: err.message || 'File upload failed',
+            error: { code: 'UPLOAD_ERROR' },
+          });
         }
 
-        // Insert attachment into database
-        const insertResult = await query(
-          `INSERT INTO attachments (
+        const files = req.files as Express.Multer.File[];
+        const {
+          caseId,
+          // description,
+          // category = 'DOCUMENT',
+          // isPublic = false,
+          verification_task_id: verificationTaskId,
+        } = req.body;
+
+        if (!files || files.length === 0) {
+          return res.status(400).json({
+            success: false,
+            message: 'No files uploaded',
+            error: { code: 'NO_FILES' },
+          });
+        }
+
+        if (!caseId) {
+          return res.status(400).json({
+            success: false,
+            message: 'Case ID is required',
+            error: { code: 'MISSING_CASE_ID' },
+          });
+        }
+
+        // Import query function
+        const { query } = await import('@/config/database');
+
+        // Get case UUID and verify access for mobile compatibility
+        let caseQuery: string;
+        let caseParams: QueryParams;
+
+        if (req.user?.role === Role.FIELD_AGENT) {
+          // Field agents can only upload to cases assigned to them
+          caseQuery = 'SELECT id FROM cases WHERE "caseId" = $1 AND "assignedTo" = $2';
+          caseParams = [caseId, req.user.id];
+        } else {
+          // Admin/Manager can upload to any case
+          caseQuery = 'SELECT id FROM cases WHERE "caseId" = $1';
+          caseParams = [caseId];
+        }
+
+        const caseResult = await query(caseQuery, caseParams);
+
+        if (caseResult.rows.length === 0) {
+          return res.status(404).json({
+            success: false,
+            message:
+              req.user?.role === Role.FIELD_AGENT
+                ? 'Case not found or not assigned to you'
+                : 'Case not found',
+            error: { code: 'CASE_NOT_FOUND' },
+          });
+        }
+
+        const caseUUID = caseResult.rows[0].id;
+        const uploadedAttachments = [];
+
+        // Create case-specific directory
+        const caseUploadDir = path.join(process.cwd(), 'uploads', 'attachments', `case_${caseId}`);
+        if (!fs.existsSync(caseUploadDir)) {
+          fs.mkdirSync(caseUploadDir, { recursive: true });
+        }
+
+        for (const file of files) {
+          // Move file from temp directory to case-specific directory
+          const tempPath = file.path;
+          const finalPath = path.join(caseUploadDir, file.filename);
+
+          try {
+            fs.renameSync(tempPath, finalPath);
+          } catch (error) {
+            logger.error('Error moving file to case directory:', error);
+            // If rename fails, try copy and delete
+            fs.copyFileSync(tempPath, finalPath);
+            fs.unlinkSync(tempPath);
+          }
+
+          // Insert attachment into database
+          const insertResult = await query(
+            `INSERT INTO attachments (
             filename,
             "originalName",
             "mimeType",
@@ -207,36 +208,41 @@ export const uploadAttachment = (req: AuthenticatedRequest, res: Response) => {
             verification_task_id
           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
           RETURNING id, filename, "originalName", "mimeType", "fileSize" as size, "filePath", "uploadedBy", "createdAt" as "uploadedAt", "caseId"`,
-          [
-            file.filename,
-            file.originalname,
-            file.mimetype,
-            file.size,
-            `/uploads/attachments/case_${caseId}/${file.filename}`,
-            req.user?.id,
-            caseId,
-            caseUUID, // Add the case UUID for mobile compatibility
-            // eslint-disable-next-line camelcase
-            verification_task_id || null, // Add verification_task_id if provided
-          ]
-        );
+            [
+              file.filename,
+              file.originalname,
+              file.mimetype,
+              file.size,
+              `/uploads/attachments/case_${caseId}/${file.filename}`,
+              req.user?.id,
+              caseId,
+              caseUUID, // Add the case UUID for mobile compatibility
 
-        const newAttachment = insertResult.rows[0];
-        uploadedAttachments.push(newAttachment);
-      }
+              verificationTaskId || null, // Add verification_task_id if provided
+            ]
+          );
 
-      logger.info(`Uploaded ${uploadedAttachments.length} attachments`, {
-        userId: req.user?.id,
-        caseId,
-        fileCount: uploadedAttachments.length,
-        totalSize: uploadedAttachments.reduce((sum, att) => sum + att.size, 0),
-      });
+          const newAttachment = insertResult.rows[0];
+          uploadedAttachments.push(newAttachment);
+        }
 
-      res.status(201).json({
-        success: true,
-        data: uploadedAttachments,
-        message: `${uploadedAttachments.length} file(s) uploaded successfully`,
-      });
+        logger.info(`Uploaded ${uploadedAttachments.length} attachments`, {
+          userId: req.user?.id,
+          caseId,
+          fileCount: uploadedAttachments.length,
+          totalSize: uploadedAttachments.reduce((sum, att) => sum + att.size, 0),
+        });
+
+        // Send success response
+        res.status(201).json({
+          success: true,
+          message: 'Files uploaded successfully',
+          data: {
+            uploaded: uploadedAttachments,
+            count: uploadedAttachments.length,
+          },
+        });
+      })();
     });
   } catch (error) {
     logger.error('Error uploading attachment:', error);
@@ -261,9 +267,9 @@ export const getAttachmentsByCase = async (req: AuthenticatedRequest, res: Respo
 
     // Build query with proper access control and optional category filter
     let queryText: string;
-    let queryParams: any[];
+    let queryParams: QueryParams;
 
-    if (userRole === 'FIELD_AGENT') {
+    if (userRole === Role.FIELD_AGENT) {
       // Field agents can only see attachments for cases assigned to them
       queryText = `
         SELECT
@@ -338,9 +344,9 @@ export const getAttachmentById = async (req: AuthenticatedRequest, res: Response
 
     // Get attachment with case assignment check for field agents
     let attachmentQuery: string;
-    let queryParams: any[];
+    let queryParams: QueryParams;
 
-    if (userRole === 'FIELD_AGENT') {
+    if (userRole === Role.FIELD_AGENT) {
       // Field agents can only access attachments for cases assigned to them
       attachmentQuery = `
         SELECT a.id, a.filename, a."originalName", a."mimeType", a."fileSize",
@@ -367,7 +373,7 @@ export const getAttachmentById = async (req: AuthenticatedRequest, res: Response
       return res.status(404).json({
         success: false,
         message:
-          userRole === 'FIELD_AGENT'
+          userRole === Role.FIELD_AGENT
             ? 'Attachment not found or access denied'
             : 'Attachment not found',
         error: { code: 'NOT_FOUND' },
@@ -414,9 +420,9 @@ export const deleteAttachment = async (req: AuthenticatedRequest, res: Response)
 
     // Get attachment details with case assignment check
     let attachmentQuery: string;
-    let queryParams: any[];
+    let queryParams: QueryParams;
 
-    if (userRole === 'FIELD_AGENT') {
+    if (userRole === Role.FIELD_AGENT) {
       // Field agents can only delete attachments for cases assigned to them
       attachmentQuery = `
         SELECT a.filename, a."filePath", a."uploadedBy", a."caseId"
@@ -438,7 +444,7 @@ export const deleteAttachment = async (req: AuthenticatedRequest, res: Response)
       return res.status(404).json({
         success: false,
         message:
-          userRole === 'FIELD_AGENT'
+          userRole === Role.FIELD_AGENT
             ? 'Attachment not found or access denied'
             : 'Attachment not found',
         error: { code: 'NOT_FOUND' },
@@ -448,7 +454,7 @@ export const deleteAttachment = async (req: AuthenticatedRequest, res: Response)
     const attachment = attachmentResult.rows[0];
 
     // Additional permission check: owner or admin can delete
-    if (userRole !== 'ADMIN' && attachment.uploadedBy !== userId) {
+    if ((userRole as string) !== 'ADMIN' && attachment.uploadedBy !== userId) {
       return res.status(403).json({
         success: false,
         message: 'You do not have permission to delete this attachment',
@@ -509,7 +515,7 @@ export const updateAttachment = (req: AuthenticatedRequest, res: Response) => {
     const attachment = attachments[attachmentIndex];
 
     // Check if user has permission to update (owner or admin)
-    if (attachment.uploadedBy !== req.user?.id && req.user?.role !== 'ADMIN') {
+    if (attachment.uploadedBy !== req.user?.id && (req.user?.role as string) !== 'ADMIN') {
       return res.status(403).json({
         success: false,
         message: 'You do not have permission to update this attachment',
@@ -560,9 +566,9 @@ export const downloadAttachment = async (req: AuthenticatedRequest, res: Respons
 
     // Get attachment details with case assignment check
     let attachmentQuery: string;
-    let queryParams: any[];
+    let queryParams: QueryParams;
 
-    if (userRole === 'FIELD_AGENT') {
+    if (userRole === Role.FIELD_AGENT) {
       // Field agents can only download attachments for cases assigned to them
       attachmentQuery = `
         SELECT a.filename, a."originalName", a."mimeType", a."fileSize", a."caseId"
@@ -584,7 +590,7 @@ export const downloadAttachment = async (req: AuthenticatedRequest, res: Respons
       return res.status(404).json({
         success: false,
         message:
-          userRole === 'FIELD_AGENT'
+          userRole === Role.FIELD_AGENT
             ? 'Attachment not found or access denied'
             : 'Attachment not found',
         error: { code: 'NOT_FOUND' },
@@ -646,9 +652,9 @@ export const serveAttachment = async (req: AuthenticatedRequest, res: Response) 
 
     // Get attachment details with case assignment check
     let attachmentQuery: string;
-    let queryParams: any[];
+    let queryParams: QueryParams;
 
-    if (userRole === 'FIELD_AGENT') {
+    if (userRole === Role.FIELD_AGENT) {
       // Field agents can only serve attachments for cases assigned to them
       attachmentQuery = `
         SELECT a.filename, a."originalName", a."mimeType", a."fileSize", a."caseId"
@@ -670,7 +676,7 @@ export const serveAttachment = async (req: AuthenticatedRequest, res: Response) 
       return res.status(404).json({
         success: false,
         message:
-          userRole === 'FIELD_AGENT'
+          userRole === Role.FIELD_AGENT
             ? 'Attachment not found or access denied'
             : 'Attachment not found',
         error: { code: 'NOT_FOUND' },
@@ -761,7 +767,10 @@ export const getSupportedFileTypes = (req: AuthenticatedRequest, res: Response) 
 export const bulkUploadAttachments = (req: AuthenticatedRequest, res: Response) => {
   try {
     // Use multer middleware for multiple files
-    upload.array('files', 50)(req, res, async err => {
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    upload.array('files', 50)(req, res, (err: any) => {
+      // Removed async wrapper as no await is used here
       if (err) {
         logger.error('Bulk upload error:', err);
         return res.status(400).json({
@@ -883,13 +892,18 @@ export const bulkDeleteAttachments = (req: AuthenticatedRequest, res: Response) 
         const attachment = attachments[attachmentIndex];
 
         // Check permissions
-        if (attachment.uploadedBy !== req.user?.id && req.user?.role !== 'ADMIN') {
+        if (attachment.uploadedBy !== req.user?.id && req.user?.role !== Role.ADMIN) {
           errors.push(`Attachment ${id}: Permission denied`);
           continue;
         }
 
         // Delete file from filesystem
-        const filePath = path.join(process.cwd(), 'uploads', 'attachments', attachment.filename);
+        const filePath = path.join(
+          process.cwd(),
+          'uploads',
+          'attachments',
+          attachment.filename as string
+        );
         if (fs.existsSync(filePath)) {
           fs.unlinkSync(filePath);
         }

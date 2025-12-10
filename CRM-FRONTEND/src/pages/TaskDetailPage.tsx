@@ -68,6 +68,7 @@ export const TaskDetailPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+
   useEffect(() => {
     if (taskId) {
       fetchTaskDetails();
@@ -317,7 +318,7 @@ export const TaskDetailPage: React.FC = () => {
                 <div className="space-y-4">
                   {assignmentHistory.map((item) => (
                     <div key={item.id} className="flex items-start space-x-4">
-                      <div className="flex-shrink-0 w-2 h-2 mt-2 rounded-full bg-primary" />
+                      <div className="shrink-0 w-2 h-2 mt-2 rounded-full bg-primary" />
                       <div className="flex-1">
                         <p className="text-sm font-medium">
                           Assigned to {item.assignedToName}

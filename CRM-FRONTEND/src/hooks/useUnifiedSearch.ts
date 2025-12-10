@@ -88,7 +88,7 @@ export interface UseUnifiedSearchReturn {
  * ```tsx
  * const { searchValue, debouncedSearchValue, setSearchValue, clearSearch } = useUnifiedSearch({
  *   syncWithUrl: true,
- *   onSearchChange: (value) => console.log('Search:', value)
+ *   onSearchChange: (value) => console.warn('Search:', value)
  * });
  * 
  * // Use in query
@@ -160,8 +160,9 @@ export function useUnifiedSearch(options: UseUnifiedSearchOptions = {}): UseUnif
       if (urlValue !== searchValue) {
         setSearchValueState(urlValue);
       }
+
     }
-  }, [searchParams, syncWithUrl]); // Intentionally not including searchValue to avoid loops
+  }, [searchParams, syncWithUrl]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const setSearchValue = useCallback((value: string) => {
     setSearchValueState(value);
@@ -190,7 +191,7 @@ export function useUnifiedSearch(options: UseUnifiedSearchOptions = {}): UseUnif
 /**
  * Hook for managing filter state with URL synchronization
  */
-export interface UseUnifiedFiltersOptions<T extends Record<string, any>> {
+export interface UseUnifiedFiltersOptions<T extends Record<string, unknown>> {
   /**
    * Initial filter values
    */
@@ -208,7 +209,7 @@ export interface UseUnifiedFiltersOptions<T extends Record<string, any>> {
   onFiltersChange?: (filters: Partial<T>) => void;
 }
 
-export interface UseUnifiedFiltersReturn<T extends Record<string, any>> {
+export interface UseUnifiedFiltersReturn<T extends Record<string, unknown>> {
   /**
    * Current filter values
    */
@@ -246,7 +247,7 @@ export interface UseUnifiedFiltersReturn<T extends Record<string, any>> {
  * });
  * ```
  */
-export function useUnifiedFilters<T extends Record<string, any>>(
+export function useUnifiedFilters<T extends Record<string, unknown>>(
   options: UseUnifiedFiltersOptions<T> = {}
 ): UseUnifiedFiltersReturn<T> {
   const {
@@ -264,7 +265,7 @@ export function useUnifiedFilters<T extends Record<string, any>>(
     const urlFilters: Partial<T> = {};
     searchParams.forEach((value, key) => {
       if (key !== SEARCH_PARAMS.SEARCH && key !== SEARCH_PARAMS.PAGE && key !== SEARCH_PARAMS.LIMIT) {
-        urlFilters[key as keyof T] = value as any;
+        urlFilters[key as keyof T] = value as unknown;
       }
     });
     

@@ -42,7 +42,7 @@ export function ClientAssignmentSection({ user }: ClientAssignmentSectionProps) 
   // eslint-disable-next-line react-hooks/rules-of-hooks
   useEffect(() => {
     if (assignmentsData?.data) {
-      const assignedClientIds = assignmentsData.data.map((assignment: any) => assignment.clientId);
+      const assignedClientIds = assignmentsData.data.map((assignment: unknown) => assignment.clientId);
       setSelectedClientIds(assignedClientIds);
     }
   }, [assignmentsData]);
@@ -65,7 +65,7 @@ export function ClientAssignmentSection({ user }: ClientAssignmentSectionProps) 
         }
       });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error(error.response?.data?.message || 'Failed to update client assignments');
     },
   });

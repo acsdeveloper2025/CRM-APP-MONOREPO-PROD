@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { MoreHorizontal, Edit, Trash2, Eye, MapPin } from 'lucide-react';
-import { useStandardizedMutation } from '@/hooks/useStandardizedMutation';
+import { useMutationWithInvalidation } from '@/hooks/useStandardizedMutation';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -48,7 +48,7 @@ export function StatesTable({ data, isLoading }: StatesTableProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [stateToDelete, setStateToDelete] = useState<State | null>(null);
 
-  const deleteStateMutation = useStandardizedMutation({
+  const deleteStateMutation = useMutationWithInvalidation({
     mutationFn: (id: string) => locationsService.deleteState(id),
     invalidateKeys: [['states']],
     successMessage: 'State deleted successfully',
@@ -77,7 +77,7 @@ export function StatesTable({ data, isLoading }: StatesTableProps) {
 
   const confirmDelete = () => {
     if (stateToDelete) {
-      deleteStateMutation.mutate(stateToDelete.id);
+      deleteStateMutation.mutate(String(stateToDelete.id));
     }
   };
 
@@ -185,7 +185,7 @@ export function StatesTable({ data, isLoading }: StatesTableProps) {
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
               This action cannot be undone. This will permanently delete the state
-              "{stateToDelete?.name}" and all associated cities.
+              &quot;{stateToDelete?.name}&quot; and all associated cities.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

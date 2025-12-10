@@ -118,7 +118,7 @@ export const useCreateClient = () => {
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       toast.success('Client created successfully');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error(error.response?.data?.message || 'Failed to create client');
     },
   });
@@ -140,7 +140,7 @@ export const useUpdateClient = () => {
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       toast.success('Client updated successfully');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error(error.response?.data?.message || 'Failed to update client');
     },
   });
@@ -161,7 +161,7 @@ export const useDeleteClient = () => {
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       toast.success('Client deleted successfully');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error(error.response?.data?.message || 'Failed to delete client');
     },
   });
@@ -178,7 +178,7 @@ export const useCreateProduct = () => {
       queryClient.invalidateQueries({ queryKey: clientKeys.all });
       toast.success('Product created successfully');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error(error.response?.data?.message || 'Failed to create product');
     },
   });
@@ -194,7 +194,7 @@ export const useUpdateProduct = () => {
       queryClient.invalidateQueries({ queryKey: productKeys.all });
       toast.success('Product updated successfully');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error(error.response?.data?.message || 'Failed to update product');
     },
   });
@@ -209,7 +209,7 @@ export const useDeleteProduct = () => {
       queryClient.invalidateQueries({ queryKey: productKeys.all });
       toast.success('Product deleted successfully');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error(error.response?.data?.message || 'Failed to delete product');
     },
   });
@@ -225,7 +225,7 @@ export const useCreateVerificationType = () => {
       queryClient.invalidateQueries({ queryKey: verificationTypeKeys.all });
       toast.success('Verification type created successfully');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error(error.response?.data?.message || 'Failed to create verification type');
     },
   });
@@ -241,7 +241,7 @@ export const useUpdateVerificationType = () => {
       queryClient.invalidateQueries({ queryKey: verificationTypeKeys.all });
       toast.success('Verification type updated successfully');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error(error.response?.data?.message || 'Failed to update verification type');
     },
   });
@@ -256,7 +256,7 @@ export const useDeleteVerificationType = () => {
       queryClient.invalidateQueries({ queryKey: verificationTypeKeys.all });
       toast.success('Verification type deleted successfully');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error(error.response?.data?.message || 'Failed to delete verification type');
     },
   });

@@ -1,10 +1,7 @@
-/* eslint-disable @typescript-eslint/no-unsafe-enum-comparison */
-/* eslint-disable @typescript-eslint/require-await */
-// Disabled unsafe enum comparison rule for scheduled reports controller as it compares enum values from database
-// Disabled require-await rule as some async functions don't directly await
 import type { Response } from 'express';
 import { ScheduledReportsService, type ScheduledReport } from '../services/ScheduledReportsService';
 import { logger } from '../utils/logger';
+import { Role } from '../types/auth';
 import type { AuthenticatedRequest } from '../middleware/auth';
 
 /**
@@ -103,7 +100,7 @@ export const getScheduledReports = async (req: AuthenticatedRequest, res: Respon
     const scheduledReportsService = ScheduledReportsService.getInstance();
 
     // For non-admin users, only show their own reports
-    const userId = req.user.role === 'ADMIN' ? undefined : req.user.id;
+    const userId = req.user.role === Role.ADMIN ? undefined : req.user.id;
 
     const reports = await scheduledReportsService.getScheduledReports(userId);
 
@@ -141,7 +138,7 @@ export const getScheduledReport = async (req: AuthenticatedRequest, res: Respons
     }
 
     // Check if user has permission to view this report
-    if (req.user.role !== 'ADMIN' && report.createdBy !== req.user.id) {
+    if (req.user.role !== Role.ADMIN && report.createdBy !== req.user.id) {
       return res.status(403).json({
         success: false,
         message: 'Access denied',
@@ -181,7 +178,7 @@ export const updateScheduledReport = async (req: AuthenticatedRequest, res: Resp
       });
     }
 
-    if (req.user.role !== 'ADMIN' && existingReport.createdBy !== req.user.id) {
+    if (req.user.role !== Role.ADMIN && existingReport.createdBy !== req.user.id) {
       return res.status(403).json({
         success: false,
         message: 'Access denied',
@@ -251,7 +248,7 @@ export const deleteScheduledReport = async (req: AuthenticatedRequest, res: Resp
       });
     }
 
-    if (req.user.role !== 'ADMIN' && existingReport.createdBy !== req.user.id) {
+    if (req.user.role !== Role.ADMIN && existingReport.createdBy !== req.user.id) {
       return res.status(403).json({
         success: false,
         message: 'Access denied',
@@ -302,7 +299,7 @@ export const toggleScheduledReport = async (req: AuthenticatedRequest, res: Resp
       });
     }
 
-    if (req.user.role !== 'ADMIN' && existingReport.createdBy !== req.user.id) {
+    if (req.user.role !== Role.ADMIN && existingReport.createdBy !== req.user.id) {
       return res.status(403).json({
         success: false,
         message: 'Access denied',
@@ -331,7 +328,7 @@ export const toggleScheduledReport = async (req: AuthenticatedRequest, res: Resp
 };
 
 // Get scheduled report execution history
-export const getScheduledReportHistory = async (req: AuthenticatedRequest, res: Response) => {
+export const getScheduledReportHistory = (req: AuthenticatedRequest, res: Response) => {
   try {
     const { id } = req.params;
     const { limit = 50, offset = 0 } = req.query;
@@ -409,7 +406,7 @@ export const testScheduledReport = async (req: AuthenticatedRequest, res: Respon
       });
     }
 
-    if (req.user.role !== 'ADMIN' && report.createdBy !== req.user.id) {
+    if (req.user.role !== Role.ADMIN && report.createdBy !== req.user.id) {
       return res.status(403).json({
         success: false,
         message: 'Access denied',
