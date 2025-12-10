@@ -84,18 +84,18 @@ export const VerificationTasksManager: React.FC<VerificationTasksManagerProps> =
   };
 
   // Handle task actions
-  const handleCreateTasks = async (_taskData: any[]) => {
+  const handleCreateTasks = async (_taskData: unknown[]) => {
     // TODO: Implement create tasks
     setShowCreateModal(false);
   };
 
-  const handleAssignTask = async (_assignmentData: any) => {
+  const handleAssignTask = async (_assignmentData: unknown) => {
     // TODO: Implement assign task
     setShowAssignModal(false);
     setSelectedTaskId(null);
   };
 
-  const handleCompleteTask = async (_completionData: any) => {
+  const handleCompleteTask = async (_completionData: unknown) => {
     // TODO: Implement complete task
     setShowCompleteModal(false);
     setSelectedTaskId(null);

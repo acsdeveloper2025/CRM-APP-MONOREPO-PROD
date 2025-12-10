@@ -23,12 +23,12 @@ import attachmentRoutes from '@/routes/attachments';
 import userRoutes from '@/routes/user';
 import usersRoutes from '@/routes/users';
 import userTerritoryRoutes from './routes/userTerritory';
+import territoryAssignmentsRoutes from '@/routes/territoryAssignments'; // Legacy but used by frontend
 import dashboardRoutes from '@/routes/dashboard';
 import productsRoutes from '@/routes/products';
 import verificationTypesRoutes from '@/routes/verification-types';
 import documentTypesRoutes from './routes/document-types';
-// Client document types routes available for future use
-// import clientDocumentTypesRoutes from './routes/client-document-types';
+import clientDocumentTypesRoutes from './routes/client-document-types';
 import documentTypeRatesRoutes from './routes/document-type-rates';
 import invoicesRoutes from '@/routes/invoices';
 import commissionsRoutes from '@/routes/commissions';
@@ -155,11 +155,12 @@ app.use('/api', healthRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/cases', caseRoutes);
 app.use('/api/clients', clientRoutes);
-// app.use('/api/clients', clientDocumentTypesRoutes);
+app.use('/api/clients', clientDocumentTypesRoutes);
 app.use('/api/attachments', attachmentRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/users', userTerritoryRoutes);
+app.use('/api/territory-assignments', territoryAssignmentsRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/products', productsRoutes);
 app.use('/api/verification-types', verificationTypesRoutes);
@@ -206,7 +207,7 @@ app.get('/api/ai-test', async (req, res) => {
       'Generate a brief test response to verify the AI integration is working in the CRM system.';
 
     const result = await model.generateContent(prompt);
-    const response = await result.response;
+    const response = result.response;
     const text = response.text();
 
     res.json({
@@ -248,7 +249,7 @@ const initializeScheduledReports = async () => {
 
 // Initialize scheduled reports when the app starts
 if (process.env.NODE_ENV !== 'test') {
-  initializeScheduledReports();
+  void initializeScheduledReports();
 }
 
 export default app;

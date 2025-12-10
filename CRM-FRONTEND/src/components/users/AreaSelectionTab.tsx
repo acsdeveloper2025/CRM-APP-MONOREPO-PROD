@@ -82,7 +82,7 @@ export const AreaSelectionTab: React.FC<AreaSelectionTabProps> = ({
         <AlertCircle className="h-12 w-12 text-gray-400 mb-4" />
         <h3 className="text-lg font-medium text-gray-900 mb-2">No Pincodes Selected</h3>
         <p className="text-gray-600 max-w-md">
-          Please select pincodes from the "Select Pincodes" tab first. Then you can select areas for
+          Please select pincodes from the &quot;Select Pincodes&quot; tab first. Then you can select areas for
           each pincode here.
         </p>
       </div>
@@ -118,7 +118,7 @@ export const AreaSelectionTab: React.FC<AreaSelectionTabProps> = ({
             // Convert pincode.id to number for lookup (API returns string IDs)
             const pincodeIdNum = typeof pincode.id === 'string' ? parseInt(pincode.id, 10) : pincode.id;
             const areas = searchTerm
-              ? (pincode as any).filteredAreas
+              ? (pincode as unknown).filteredAreas
               : areasByPincode[pincodeIdNum] || [];
             const selectedAreas = selectedAreasByPincode.get(pincodeIdNum) || new Set();
             const allSelected = areas.length > 0 && areas.every((area: Area) => {

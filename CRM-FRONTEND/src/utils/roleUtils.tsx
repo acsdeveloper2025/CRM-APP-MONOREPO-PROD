@@ -8,7 +8,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 
 export interface RoleConfig {
-  icon: React.ComponentType<any>;
+  icon: React.ComponentType<{ className?: string }>;
   variant: 'default' | 'secondary' | 'outline' | 'destructive';
   label: string;
   color: string;

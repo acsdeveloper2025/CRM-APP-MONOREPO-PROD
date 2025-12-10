@@ -6,7 +6,7 @@ import type { ApiResponse } from '@/types/api';
 export interface AppError extends Error {
   statusCode?: number;
   code?: string;
-  details?: any;
+  details?: unknown;
 }
 
 export const errorHandler = (
@@ -98,7 +98,7 @@ export const createError = (
   message: string,
   statusCode = 500,
   code = 'ERROR',
-  details?: any
+  details?: unknown
 ): AppError => {
   const error = new Error(message) as AppError;
   error.statusCode = statusCode;

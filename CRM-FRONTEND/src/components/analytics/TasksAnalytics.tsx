@@ -74,17 +74,17 @@ export const TasksAnalytics: React.FC = () => {
 
   // Calculate metrics
   const totalTasks = tasks.length;
-  const completedTasks = tasks.filter((t: any) => t.status === 'COMPLETED').length;
-  const inProgressTasks = tasks.filter((t: any) => t.status === 'IN_PROGRESS').length;
-  const pendingTasks = tasks.filter((t: any) => t.status === 'PENDING' || t.status === 'ASSIGNED').length;
+  const completedTasks = tasks.filter((t: unknown) => t.status === 'COMPLETED').length;
+  const inProgressTasks = tasks.filter((t: unknown) => t.status === 'IN_PROGRESS').length;
+  const pendingTasks = tasks.filter((t: unknown) => t.status === 'PENDING' || t.status === 'ASSIGNED').length;
   const completionRate = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
 
   // Calculate total amounts
-  const totalEstimatedAmount = tasks.reduce((sum: number, t: any) => sum + (parseFloat(t.estimated_amount) || 0), 0);
-  const totalActualAmount = tasks.reduce((sum: number, t: any) => sum + (parseFloat(t.actual_amount) || 0), 0);
+  const totalEstimatedAmount = tasks.reduce((sum: number, t: unknown) => sum + (parseFloat(t.estimated_amount) || 0), 0);
+  const totalActualAmount = tasks.reduce((sum: number, t: unknown) => sum + (parseFloat(t.actual_amount) || 0), 0);
 
   // Status distribution
-  const statusDistribution = tasks.reduce((acc: Record<string, number>, t: any) => {
+  const statusDistribution = tasks.reduce((acc: Record<string, number>, t: unknown) => {
     const status = t.status || 'PENDING';
     acc[status] = (acc[status] || 0) + 1;
     return acc;
@@ -97,7 +97,7 @@ export const TasksAnalytics: React.FC = () => {
   }));
 
   // Verification type distribution
-  const typeDistribution = tasks.reduce((acc: Record<string, number>, t: any) => {
+  const typeDistribution = tasks.reduce((acc: Record<string, number>, t: unknown) => {
     const type = t.verification_type_name || 'Unknown';
     acc[type] = (acc[type] || 0) + 1;
     return acc;
@@ -109,7 +109,7 @@ export const TasksAnalytics: React.FC = () => {
   })).sort((a, b) => b.value - a.value).slice(0, 10);
 
   // Agent distribution
-  const agentDistribution = tasks.reduce((acc: Record<string, number>, t: any) => {
+  const agentDistribution = tasks.reduce((acc: Record<string, number>, t: unknown) => {
     const agent = t.assigned_to_name || 'Unassigned';
     acc[agent] = (acc[agent] || 0) + 1;
     return acc;
@@ -242,7 +242,7 @@ export const TasksAnalytics: React.FC = () => {
               <CardTitle>Task Distribution</CardTitle>
               <CardDescription>Breakdown by different dimensions</CardDescription>
             </div>
-            <Select value={viewType} onValueChange={(v: any) => setViewType(v)}>
+            <Select value={viewType} onValueChange={(v: unknown) => setViewType(v)}>
               <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue />
               </SelectTrigger>

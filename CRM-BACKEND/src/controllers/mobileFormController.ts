@@ -1,5 +1,24 @@
 import type { Request, Response } from 'express';
 import type { MobileFormSubmissionRequest, FormSubmissionData, FormSection } from '../types/mobile';
+import type {
+  QueryParams,
+  WhereClause,
+  DynamicFormData,
+  VerificationTaskRow,
+  ResidenceVerificationRow,
+  OfficeVerificationRow,
+  BusinessVerificationRow,
+} from '../types/database';
+import { Role } from '../types/auth';
+
+interface AuthenticatedRequest extends Request {
+  user?: {
+    id: string;
+    role: string;
+    email?: string;
+    name?: string;
+  };
+}
 
 import { createAuditLog } from '../utils/auditLogger';
 import {
@@ -109,7 +128,7 @@ export class MobileFormController {
   ): Promise<{
     success: boolean;
     caseId?: string;
-    task?: any;
+    task?: VerificationTaskRow;
     error?: { status: number; message: string; code: string };
   }> {
     try {
@@ -143,7 +162,7 @@ export class MobileFormController {
       const task = taskQuery.rows[0];
 
       // Step 2: Verify user has access to this task (for field agents)
-      if (userRole === 'FIELD_AGENT' && task.assignedTo !== userId) {
+      if ((userRole as Role) === Role.FIELD_AGENT && task.assignedTo !== userId) {
         return {
           success: false,
           error: {
@@ -290,14 +309,51 @@ export class MobileFormController {
    * Process and store verification images separately from case attachments
    */
   private static async processVerificationImages(
-    images: any[],
+    images: Array<{
+      dataUrl: string;
+      type: string;
+      geoLocation?: {
+        latitude: number;
+        longitude: number;
+        accuracy?: number;
+        timestamp?: string;
+      };
+    }>,
     caseId: string,
     verificationType: string,
     submissionId: string,
     userId: string,
     verificationTaskId?: string // ✅ Optional for backward compatibility
-  ): Promise<any[]> {
-    const uploadedImages: any[] = [];
+  ): Promise<
+    {
+      id: string;
+      filename: string;
+      url: string;
+      thumbnailUrl: string;
+      uploadedAt: string;
+      photoType: string;
+      geoLocation?: {
+        latitude: number;
+        longitude: number;
+        accuracy?: number;
+        timestamp?: string;
+      };
+    }[]
+  > {
+    const uploadedImages: Array<{
+      id: string;
+      filename: string;
+      url: string;
+      thumbnailUrl: string;
+      uploadedAt: string;
+      photoType: string;
+      geoLocation?: {
+        latitude: number;
+        longitude: number;
+        accuracy?: number;
+        timestamp?: string;
+      };
+    }> = [];
 
     if (!images || images.length === 0) {
       return uploadedImages;
@@ -394,7 +450,7 @@ export class MobileFormController {
 
   // Helper method to organize form data into sections for display
   private static organizeFormDataIntoSections(
-    formData: any,
+    formData: DynamicFormData,
     verificationType: string,
     formType?: string
   ): FormSection[] {
@@ -413,11 +469,14 @@ export class MobileFormController {
     }
 
     // Fallback to basic form sections
-    return this.createBasicFormSections(formData, normalizedType);
+    return MobileFormController.createBasicFormSections(formData, normalizedType);
   }
 
   // Fallback method for basic form sections
-  private static createBasicFormSections(formData: any, verificationType: string): FormSection[] {
+  private static createBasicFormSections(
+    formData: DynamicFormData,
+    verificationType: string
+  ): FormSection[] {
     const sections: FormSection[] = [];
 
     // Normalize verification type for consistent comparison
@@ -540,7 +599,11 @@ export class MobileFormController {
             type: 'number' as const,
             value: formData.totalFamilyMembers,
             isRequired: true,
-            displayValue: formData.totalFamilyMembers?.toString(),
+            displayValue:
+              typeof formData.totalFamilyMembers === 'number' ||
+              typeof formData.totalFamilyMembers === 'string'
+                ? String(formData.totalFamilyMembers)
+                : undefined,
           },
           {
             id: 'totalEarning',
@@ -549,7 +612,10 @@ export class MobileFormController {
             type: 'number' as const,
             value: formData.totalEarning,
             isRequired: false,
-            displayValue: formData.totalEarning ? `₹${formData.totalEarning}` : undefined,
+            displayValue:
+              typeof formData.totalEarning === 'number' || typeof formData.totalEarning === 'string'
+                ? `₹${String(formData.totalEarning)}`
+                : undefined,
           },
           {
             id: 'workingStatus',
@@ -676,11 +742,11 @@ export class MobileFormController {
 
   // Create comprehensive form sections from database report data
   private static createComprehensiveFormSectionsFromReport(
-    report: any,
+    report: ResidenceVerificationRow | OfficeVerificationRow | BusinessVerificationRow,
     verificationType: string,
     formType: string
   ): FormSection[] {
-    console.log(
+    logger.info(
       `Creating comprehensive sections from report for ${verificationType} - ${formType}`
     );
 
@@ -688,14 +754,14 @@ export class MobileFormController {
       // CRITICAL FIX: Normalize verification type to match VERIFICATION_TYPE_FIELDS keys
       // Database stores "Business Verification", but VERIFICATION_TYPE_FIELDS uses "BUSINESS"
       const normalizedType = MobileFormController.normalizeVerificationType(verificationType);
-      console.log(`Normalized verification type: ${verificationType} -> ${normalizedType}`);
+      logger.info(`Normalized verification type: ${verificationType} -> ${normalizedType}`);
 
       // Convert database report to form data format
       const formData = MobileFormController.convertReportToFormData(report, verificationType);
 
       // Use comprehensive form field mapping with NORMALIZED type
       const sections = createComprehensiveFormSections(formData, normalizedType, formType);
-      console.log(`Generated ${sections.length} comprehensive sections from report`);
+      logger.info(`Generated ${sections.length} comprehensive sections from report`);
       return sections;
     } catch (error) {
       console.error('Error creating comprehensive sections from report:', error);
@@ -745,9 +811,12 @@ export class MobileFormController {
   }
 
   // Convert database report to form data format
-  private static convertReportToFormData(report: any, verificationType: string): any {
-    console.log(`Converting report to form data for ${verificationType}:`, Object.keys(report));
-    const formData: any = {};
+  private static convertReportToFormData(
+    report: ResidenceVerificationRow | OfficeVerificationRow | BusinessVerificationRow,
+    verificationType: string
+  ): DynamicFormData {
+    logger.info(`Converting report to form data for ${verificationType}:`, Object.keys(report));
+    const formData: DynamicFormData = {};
 
     // Normalize verification type for consistent comparison
     const normalizedType = MobileFormController.normalizeVerificationType(verificationType);
@@ -1595,7 +1664,7 @@ export class MobileFormController {
 
   // Fallback method for basic form sections from report
   private static createBasicFormSectionsFromReport(
-    report: any,
+    report: ResidenceVerificationRow | OfficeVerificationRow | BusinessVerificationRow,
     _verificationType: string
   ): FormSection[] {
     return [
@@ -1754,7 +1823,7 @@ export class MobileFormController {
 
   // REMOVED: Generic verification function - using specific implementations instead
   private static async submitGenericVerification_DISABLED(
-    req: Request,
+    req: AuthenticatedRequest,
     res: Response,
     verificationType: string,
     _reportTableName?: string
@@ -1768,18 +1837,18 @@ export class MobileFormController {
         photos,
         metadata,
       }: MobileFormSubmissionRequest = req.body;
-      const userId = (req as any).user?.id;
-      const userRole = (req as any).user?.role;
+      const userId = req.user?.id;
+      const userRole = req.user?.role;
 
       // Verify case access
-      const where: any = { id: caseId };
-      if (userRole === 'FIELD_AGENT') {
+      const where: WhereClause = { id: caseId };
+      if ((userRole as Role) === Role.FIELD_AGENT) {
         where.assignedTo = userId;
       }
 
-      const vals: any[] = [caseId];
+      const vals: QueryParams = [caseId];
       let caseSql = `SELECT id FROM cases WHERE id = $1`;
-      if (userRole === 'FIELD_AGENT') {
+      if ((userRole as Role) === Role.FIELD_AGENT) {
         caseSql += ` AND "assignedTo" = $2`;
         vals.push(userId);
       }
@@ -1840,7 +1909,7 @@ export class MobileFormController {
 
       // ENHANCED DATA PROCESSING PIPELINE (Temporarily disabled for app startup)
       // TODO: Re-enable after fixing TypeScript issues
-      console.log(
+      logger.info(
         `🔄 Using basic data processing for case ${caseId}, verification type: ${verificationType}`
       );
 
@@ -1857,7 +1926,7 @@ export class MobileFormController {
         submittedByName: user?.name || 'Unknown',
 
         // Organize form data into sections (this will be enhanced based on form type)
-        sections: this.organizeFormDataIntoSections(formData, verificationType),
+        sections: MobileFormController.organizeFormDataIntoSections(formData, verificationType),
 
         // Enhanced attachments and photos
         attachments: attachmentIds.map(id => ({
@@ -1984,13 +2053,13 @@ export class MobileFormController {
   }
 
   // Get form submissions for a case
-  static async getCaseFormSubmissions(req: Request, res: Response) {
+  static async getCaseFormSubmissions(this: void, req: AuthenticatedRequest, res: Response) {
     try {
       const { caseId } = req.params;
-      const userId = (req as any).user?.id;
-      const userRole = (req as any).user?.role;
+      const userId = req.user?.id;
+      const userRole = req.user?.role;
 
-      console.log('Getting form submissions for case:', caseId, 'User:', userId, 'Role:', userRole);
+      logger.info('Getting form submissions for case:', caseId, 'User:', userId, 'Role:', userRole);
 
       // Validate caseId parameter
       if (!caseId || caseId.trim() === '') {
@@ -2005,7 +2074,7 @@ export class MobileFormController {
       }
 
       // Verify case access - handle both UUID and business caseId
-      const vals: any[] = [];
+      const vals: QueryParams = [];
       let caseSql = `SELECT id, "customerName", "verificationData", "verificationType", "verificationOutcome", status FROM cases WHERE `;
 
       // Check if caseId is a number (business caseId) or UUID
@@ -2020,7 +2089,7 @@ export class MobileFormController {
 
       // FIXED: For FIELD_AGENT, check if they have ANY tasks assigned for this case
       // (removed invalid cases.assignedTo reference)
-      if (userRole === 'FIELD_AGENT') {
+      if ((userRole as Role) === Role.FIELD_AGENT) {
         caseSql += ` AND EXISTS (
           SELECT 1 FROM verification_tasks vt
           WHERE vt.case_id = cases.id AND vt.assigned_to = $2
@@ -2028,13 +2097,13 @@ export class MobileFormController {
         vals.push(userId);
       }
 
-      console.log('Executing query:', caseSql, 'with values:', vals);
+      logger.info('Executing query:', caseSql, 'with values:', vals);
       const caseRes = await query(caseSql, vals);
       const caseData = caseRes.rows[0];
-      console.log('Case data found:', caseData);
+      logger.info('Case data found:', caseData);
 
       if (!caseData) {
-        console.log('Case not found for ID:', caseId, 'User role:', userRole);
+        logger.info('Case not found for ID:', caseId, 'User role:', userRole);
         return res.status(404).json({
           success: false,
           message: 'Case not found or access denied',
@@ -2069,12 +2138,12 @@ export class MobileFormController {
       const tasksRes = await query(tasksSql, [caseData.id]);
       const tasks = tasksRes.rows;
 
-      console.log(`Found ${tasks.length} verification tasks for case ${caseId}`);
+      logger.info(`Found ${tasks.length} verification tasks for case ${caseId}`);
 
       // For each task, fetch its form submission (if exists)
       for (const task of tasks) {
         const verificationType = task.verification_type_name || 'RESIDENCE';
-        console.log(`Processing task ${task.task_number} - Type: ${verificationType}`);
+        logger.info(`Processing task ${task.task_number} - Type: ${verificationType}`);
 
         // Determine which report table to query based on verification type
         let reportTableName = '';
@@ -2115,7 +2184,7 @@ export class MobileFormController {
         reportSql = `SELECT * FROM "${reportTableName}" WHERE verification_task_id = $1`;
         const reportRes = await query(reportSql, [task.task_id]);
 
-        console.log(
+        logger.info(
           `Found ${reportRes.rows.length} reports in ${reportTableName} for task ${task.task_number}`
         );
 
@@ -2158,8 +2227,8 @@ export class MobileFormController {
 
             // NEW: Add task information to submission
             verificationTaskId: task.task_id,
-            verificationTaskNumber: task.task_number,
-            verificationTypeName: task.verification_type_name,
+            verificationTaskNumber: task.task_number || '',
+            verificationTypeName: task.verification_type_name || '',
             assignedTo: task.assigned_to,
             assignedToName: task.assigned_to_name,
             taskStatus: task.task_status,
@@ -2249,7 +2318,7 @@ export class MobileFormController {
         message: error.message,
         stack: error.stack,
         taskId: req.params.taskId,
-        userId: (req as any).user?.id,
+        userId: req.user?.id,
       });
       res.status(500).json({
         success: false,
@@ -2264,7 +2333,7 @@ export class MobileFormController {
   }
 
   // Helper method to determine form type and verification outcome from form data
-  private static determineResidenceFormTypeAndOutcome(formData: any): {
+  private static determineResidenceFormTypeAndOutcome(formData: DynamicFormData): {
     formType: string;
     verificationOutcome: string;
   } {
@@ -2272,7 +2341,7 @@ export class MobileFormController {
   }
 
   // Submit residence verification form
-  static async submitResidenceVerification(req: Request, res: Response) {
+  static async submitResidenceVerification(this: void, req: AuthenticatedRequest, res: Response) {
     try {
       // UPDATED: Accept taskId from URL params (this is verificationTaskId)
       const { taskId } = req.params;
@@ -2284,14 +2353,14 @@ export class MobileFormController {
         photos,
         images,
       }: MobileFormSubmissionRequest = req.body;
-      const userId = (req as any).user?.id;
-      const userRole = (req as any).user?.role;
+      const userId = req.user?.id;
+      const userRole = req.user?.role;
 
-      console.log(`📱 Residence verification submission for task: ${taskId}`);
-      console.log(`   - User: ${userId} (${userRole})`);
-      console.log(`   - Verification Task ID from body: ${verificationTaskId}`);
-      console.log(`   - Images: ${images?.length || 0}`);
-      console.log(`   - Form data keys: ${Object.keys(formData || {}).join(', ')}`);
+      logger.info(`📱 Residence verification submission for task: ${taskId}`);
+      logger.info(`   - User: ${userId} (${userRole})`);
+      logger.info(`   - Verification Task ID from body: ${verificationTaskId}`);
+      logger.info(`   - Images: ${images?.length || 0}`);
+      logger.info(`   - Form data keys: ${Object.keys(formData || {}).join(', ')}`);
 
       // Validate verificationTaskId is provided
       if (!verificationTaskId) {
@@ -2313,24 +2382,24 @@ export class MobileFormController {
       );
 
       if (!resolution.success) {
-        console.log(`❌ Failed to resolve case from task: ${taskId}`);
-        return res.status(resolution.error!.status).json({
+        logger.info(`❌ Failed to resolve case from task: ${taskId}`);
+        return res.status(resolution.error.status).json({
           success: false,
-          message: resolution.error!.message,
+          message: resolution.error.message,
           error: {
-            code: resolution.error!.code,
+            code: resolution.error.code,
             timestamp: new Date().toISOString(),
             taskId,
           },
         });
       }
 
-      const caseId = resolution.caseId!;
-      const task = resolution.task!;
+      const caseId = resolution.caseId;
+      const task = resolution.task;
 
-      console.log(`✅ Resolved caseId: ${caseId} from taskId: ${taskId}`);
-      console.log(
-        `✅ Verification task validated: ${task.taskNumber} (Type: ${task.verificationTypeName})`
+      logger.info(`✅ Resolved caseId: ${caseId} from taskId: ${taskId}`);
+      logger.info(
+        `✅ Verification task validated: ${task.task_number} (Type: ${task.verification_type_name})`
       );
 
       // Verify case exists (additional validation)
@@ -2338,7 +2407,7 @@ export class MobileFormController {
       const existingCase = caseRes.rows[0];
 
       if (!existingCase) {
-        console.log(`❌ Case not found: ${caseId}`);
+        logger.info(`❌ Case not found: ${caseId}`);
         return res.status(404).json({
           success: false,
           message: 'Case not found',
@@ -2350,13 +2419,13 @@ export class MobileFormController {
         });
       }
 
-      console.log(`✅ Case found: ${caseId} (Case #${existingCase.caseId})`);
+      logger.info(`✅ Case found: ${caseId} (Case #${existingCase.caseId})`);
 
       // Determine form type and verification outcome based on form data
       const { formType, verificationOutcome } =
         MobileFormController.determineResidenceFormTypeAndOutcome(formData);
 
-      console.log(
+      logger.info(
         `🔍 Detected form type: ${formType}, verification outcome: ${verificationOutcome}`
       );
 
@@ -2367,7 +2436,7 @@ export class MobileFormController {
       );
 
       // Log comprehensive validation results
-      console.log(`📊 Comprehensive validation for ${formType} residence verification:`, {
+      logger.info(`📊 Comprehensive validation for ${formType} residence verification:`, {
         isValid: validationResult.isValid,
         missingFields: validationResult.missingFields,
         warnings: validationResult.warnings,
@@ -2376,7 +2445,7 @@ export class MobileFormController {
 
       // Generate and log field coverage report
       const coverageReport = generateFieldCoverageReport(formData, preparedData, formType);
-      console.log(coverageReport);
+      logger.info(coverageReport);
 
       // Use the prepared data (which includes all fields with proper defaults)
       const mappedFormData = preparedData;
@@ -2395,7 +2464,7 @@ export class MobileFormController {
         );
       }
 
-      console.log(
+      logger.info(
         `📊 Mapped ${Object.keys(mappedFormData).length} form fields to database columns`
       );
 
@@ -2451,7 +2520,7 @@ export class MobileFormController {
         verificationTaskId // ✅ Link images to verification task
       );
 
-      console.log(
+      logger.info(
         `✅ Processed ${uploadedImages.length} verification images for residence verification (Task: ${task.task_number})`
       );
 
@@ -2535,7 +2604,7 @@ export class MobileFormController {
         ([_, value]) => value !== null && value !== undefined && value !== ''
       );
 
-      console.log(`📝 Final database insert data for ${formType} residence verification:`, {
+      logger.info(`📝 Final database insert data for ${formType} residence verification:`, {
         totalFields: Object.keys(dbInsertData).length,
         populatedFields: populatedFields.length,
         fieldsWithNullValues: nullFields.length,
@@ -2557,7 +2626,7 @@ export class MobileFormController {
         VALUES (${placeholders})
       `;
 
-      console.log(`📝 Inserting residence verification with ${columns.length} fields:`, columns);
+      logger.info(`📝 Inserting residence verification with ${columns.length} fields:`, columns);
 
       await query(insertQuery, values);
 
@@ -2582,7 +2651,7 @@ export class MobileFormController {
         userAgent: req.get('User-Agent'),
       });
 
-      console.log(`✅ Residence verification completed successfully:`, {
+      logger.info(`✅ Residence verification completed successfully:`, {
         caseId,
         formType,
         verificationOutcome,
@@ -2628,7 +2697,7 @@ export class MobileFormController {
   }
 
   // Submit office verification form
-  static async submitOfficeVerification(req: Request, res: Response) {
+  static async submitOfficeVerification(this: void, req: AuthenticatedRequest, res: Response) {
     try {
       // UPDATED: Accept taskId from URL params (this is verificationTaskId)
       const { taskId } = req.params;
@@ -2639,15 +2708,15 @@ export class MobileFormController {
         photos,
         images,
       }: MobileFormSubmissionRequest = req.body;
-      const userId = (req as any).user?.id;
-      const userRole = (req as any).user?.role;
+      const userId = req.user?.id;
+      const userRole = req.user?.role;
 
-      console.log(`📱 Office verification submission for task: ${taskId}`);
-      console.log(`   - User: ${userId} (${userRole})`);
-      console.log(`   - Verification Task ID from body: ${verificationTaskId}`);
-      console.log(`   - Images: ${images?.length || 0}`);
-      console.log(`   - Form data keys: ${Object.keys(formData || {}).join(', ')}`);
-      console.log(
+      logger.info(`📱 Office verification submission for task: ${taskId}`);
+      logger.info(`   - User: ${userId} (${userRole})`);
+      logger.info(`   - Verification Task ID from body: ${verificationTaskId}`);
+      logger.info(`   - Images: ${images?.length || 0}`);
+      logger.info(`   - Form data keys: ${Object.keys(formData || {}).join(', ')}`);
+      logger.info(
         `   - Form data outcome: ${formData?.outcome || formData?.finalStatus || 'Not specified'}`
       );
 
@@ -2681,24 +2750,24 @@ export class MobileFormController {
       );
 
       if (!resolution.success) {
-        console.log(`❌ Failed to resolve case from task: ${taskId}`);
-        return res.status(resolution.error!.status).json({
+        logger.info(`❌ Failed to resolve case from task: ${taskId}`);
+        return res.status(resolution.error.status).json({
           success: false,
-          message: resolution.error!.message,
+          message: resolution.error.message,
           error: {
-            code: resolution.error!.code,
+            code: resolution.error.code,
             timestamp: new Date().toISOString(),
             taskId,
           },
         });
       }
 
-      const caseId = resolution.caseId!;
-      const task = resolution.task!;
+      const caseId = resolution.caseId;
+      const task = resolution.task;
 
-      console.log(`✅ Resolved caseId: ${caseId} from taskId: ${taskId}`);
-      console.log(
-        `✅ Verification task validated: ${task.taskNumber} (Type: ${task.verificationTypeName})`
+      logger.info(`✅ Resolved caseId: ${caseId} from taskId: ${taskId}`);
+      logger.info(
+        `✅ Verification task validated: ${task.task_number} (Type: ${task.verification_type_name})`
       );
 
       // Verify case exists (additional validation)
@@ -2719,12 +2788,12 @@ export class MobileFormController {
 
       const existingCase = caseQuery.rows[0];
 
-      console.log(`✅ Case found: ${caseId} (Case #${existingCase.caseId})`);
+      logger.info(`✅ Case found: ${caseId} (Case #${existingCase.caseId})`);
 
       // Determine form type and verification outcome based on form data
       const { formType, verificationOutcome } = detectOfficeFormType(formData);
 
-      console.log(
+      logger.info(
         `🔍 Detected form type: ${formType}, verification outcome: ${verificationOutcome}`
       );
 
@@ -2732,7 +2801,7 @@ export class MobileFormController {
       const { validationResult, preparedData } = validateAndPrepareOfficeForm(formData, formType);
 
       // Log comprehensive validation results
-      console.log(`📊 Comprehensive validation for ${formType} office verification:`, {
+      logger.info(`📊 Comprehensive validation for ${formType} office verification:`, {
         isValid: validationResult.isValid,
         missingFields: validationResult.missingFields,
         warnings: validationResult.warnings,
@@ -2741,7 +2810,7 @@ export class MobileFormController {
 
       // Generate and log field coverage report
       const coverageReport = generateOfficeFieldCoverageReport(formData, preparedData, formType);
-      console.log(coverageReport);
+      logger.info(coverageReport);
 
       // Use the prepared data (which includes all fields with proper defaults)
       const mappedFormData = preparedData;
@@ -2772,7 +2841,7 @@ export class MobileFormController {
         console.warn(`⚠️ Office form validation warnings:`, validation.warnings);
       }
 
-      console.log(
+      logger.info(
         `📊 Mapped ${Object.keys(mappedFormData).length} office form fields to database columns`
       );
 
@@ -2828,7 +2897,7 @@ export class MobileFormController {
         verificationTaskId
       );
 
-      console.log(
+      logger.info(
         `✅ Processed ${uploadedImages.length} verification images for office verification (Task: ${task.task_number})`
       );
 
@@ -2934,7 +3003,7 @@ export class MobileFormController {
         ([_, value]) => value !== null && value !== undefined && value !== ''
       );
 
-      console.log(`📝 Final database insert data for ${formType} office verification:`, {
+      logger.info(`📝 Final database insert data for ${formType} office verification:`, {
         totalFields: Object.keys(dbInsertData).length,
         populatedFields: populatedFields.length,
         fieldsWithNullValues: nullFields.length,
@@ -2945,7 +3014,7 @@ export class MobileFormController {
         samplePopulatedData: Object.fromEntries(populatedFields.slice(0, 10)), // Show first 10 populated fields
       });
 
-      console.log(`📝 Inserting office verification with ${columns.length} fields:`, columns);
+      logger.info(`📝 Inserting office verification with ${columns.length} fields:`, columns);
 
       await query(insertQuery, values);
 
@@ -2968,7 +3037,7 @@ export class MobileFormController {
         userAgent: req.get('User-Agent'),
       });
 
-      console.log(`✅ Office verification completed successfully:`, {
+      logger.info(`✅ Office verification completed successfully:`, {
         caseId,
         formType,
         verificationOutcome,
@@ -3014,7 +3083,7 @@ export class MobileFormController {
   }
 
   // Submit business verification form
-  static async submitBusinessVerification(req: Request, res: Response) {
+  static async submitBusinessVerification(this: void, req: AuthenticatedRequest, res: Response) {
     try {
       // UPDATED: Accept taskId from URL params (this is verificationTaskId)
       const { taskId } = req.params;
@@ -3025,15 +3094,15 @@ export class MobileFormController {
         photos,
         images,
       }: MobileFormSubmissionRequest = req.body;
-      const userId = (req as any).user?.id;
-      const userRole = (req as any).user?.role;
+      const userId = req.user?.id;
+      const userRole = req.user?.role;
 
-      console.log(`📱 Business verification submission for task: ${taskId}`);
-      console.log(`   - User: ${userId} (${userRole})`);
-      console.log(`   - Verification Task ID from body: ${verificationTaskId}`);
-      console.log(`   - Images: ${images?.length || 0}`);
-      console.log(`   - Form data keys: ${Object.keys(formData || {}).join(', ')}`);
-      console.log(
+      logger.info(`📱 Business verification submission for task: ${taskId}`);
+      logger.info(`   - User: ${userId} (${userRole})`);
+      logger.info(`   - Verification Task ID from body: ${verificationTaskId}`);
+      logger.info(`   - Images: ${images?.length || 0}`);
+      logger.info(`   - Form data keys: ${Object.keys(formData || {}).join(', ')}`);
+      logger.info(
         `   - Form data outcome: ${formData?.outcome || formData?.finalStatus || 'Not specified'}`
       );
 
@@ -3067,24 +3136,24 @@ export class MobileFormController {
       );
 
       if (!resolution.success) {
-        console.log(`❌ Failed to resolve case from task: ${taskId}`);
-        return res.status(resolution.error!.status).json({
+        logger.info(`❌ Failed to resolve case from task: ${taskId}`);
+        return res.status(resolution.error.status).json({
           success: false,
-          message: resolution.error!.message,
+          message: resolution.error.message,
           error: {
-            code: resolution.error!.code,
+            code: resolution.error.code,
             timestamp: new Date().toISOString(),
             taskId,
           },
         });
       }
 
-      const caseId = resolution.caseId!;
-      const task = resolution.task!;
+      const caseId = resolution.caseId;
+      const task = resolution.task;
 
-      console.log(`✅ Resolved caseId: ${caseId} from taskId: ${taskId}`);
-      console.log(
-        `✅ Verification task validated: ${task.taskNumber} (Type: ${task.verificationTypeName})`
+      logger.info(`✅ Resolved caseId: ${caseId} from taskId: ${taskId}`);
+      logger.info(
+        `✅ Verification task validated: ${task.task_number} (Type: ${task.verification_type_name})`
       );
 
       if (!formData) {
@@ -3116,12 +3185,12 @@ export class MobileFormController {
 
       const existingCase = caseQuery.rows[0];
 
-      console.log(`✅ Case found: ${caseId} (Case #${existingCase.caseId})`);
+      logger.info(`✅ Case found: ${caseId} (Case #${existingCase.caseId})`);
 
       // Determine form type and verification outcome based on form data
       const { formType, verificationOutcome } = detectBusinessFormType(formData);
 
-      console.log(
+      logger.info(
         `🔍 Detected form type: ${formType}, verification outcome: ${verificationOutcome}`
       );
 
@@ -3129,7 +3198,7 @@ export class MobileFormController {
       const { validationResult, preparedData } = validateAndPrepareBusinessForm(formData, formType);
 
       // Log comprehensive validation results
-      console.log(`📊 Comprehensive validation for ${formType} business verification:`, {
+      logger.info(`📊 Comprehensive validation for ${formType} business verification:`, {
         isValid: validationResult.isValid,
         missingFields: validationResult.missingFields,
         warnings: validationResult.warnings,
@@ -3138,7 +3207,7 @@ export class MobileFormController {
 
       // Generate and log field coverage report
       const coverageReport = generateBusinessFieldCoverageReport(formData, preparedData, formType);
-      console.log(coverageReport);
+      logger.info(coverageReport);
 
       // Use the prepared data (which includes all fields with proper defaults)
       const mappedFormData = preparedData;
@@ -3169,7 +3238,7 @@ export class MobileFormController {
         console.warn(`⚠️ Business form validation warnings:`, validation.warnings);
       }
 
-      console.log(
+      logger.info(
         `📊 Mapped ${Object.keys(mappedFormData).length} business form fields to database columns`
       );
 
@@ -3225,7 +3294,7 @@ export class MobileFormController {
         verificationTaskId
       );
 
-      console.log(
+      logger.info(
         `✅ Processed ${uploadedImages.length} verification images for business verification (Task: ${task.task_number})`
       );
 
@@ -3326,7 +3395,7 @@ export class MobileFormController {
 
         const outcome = formData.outcome || 'VERIFIED';
         dbInsertData['final_status'] = outcomeToFinalStatusMap[outcome] || 'Positive';
-        console.log(
+        logger.info(
           `🔧 Auto-mapped outcome '${outcome}' to final_status '${dbInsertData['final_status']}'`
         );
       }
@@ -3345,7 +3414,7 @@ export class MobileFormController {
       const placeholders = columns.map((_, index) => `$${index + 1}`).join(', ');
       const columnNames = columns.map(col => `"${col}"`).join(', ');
 
-      console.log(`🔍 Filtered columns for SQL insert:`, columns);
+      logger.info(`🔍 Filtered columns for SQL insert:`, columns);
 
       const insertQuery = `
         INSERT INTO "businessVerificationReports" (${columnNames})
@@ -3358,7 +3427,7 @@ export class MobileFormController {
         ([_, value]) => value !== null && value !== undefined && value !== ''
       );
 
-      console.log(`📝 Final database insert data for ${formType} business verification:`, {
+      logger.info(`📝 Final database insert data for ${formType} business verification:`, {
         totalFields: Object.keys(dbInsertData).length,
         populatedFields: populatedFields.length,
         fieldsWithNullValues: nullFields.length,
@@ -3369,7 +3438,7 @@ export class MobileFormController {
         samplePopulatedData: Object.fromEntries(populatedFields.slice(0, 10)), // Show first 10 populated fields
       });
 
-      console.log(`📝 Inserting business verification with ${columns.length} fields:`, columns);
+      logger.info(`📝 Inserting business verification with ${columns.length} fields:`, columns);
 
       await query(insertQuery, values);
 
@@ -3392,7 +3461,7 @@ export class MobileFormController {
         userAgent: req.get('User-Agent'),
       });
 
-      console.log(`✅ Business verification completed successfully:`, {
+      logger.info(`✅ Business verification completed successfully:`, {
         caseId,
         formType,
         verificationOutcome,
@@ -3438,7 +3507,7 @@ export class MobileFormController {
   }
 
   // Submit builder verification form
-  static async submitBuilderVerification(req: Request, res: Response) {
+  static async submitBuilderVerification(this: void, req: AuthenticatedRequest, res: Response) {
     try {
       // UPDATED: Accept taskId from URL params (this is verificationTaskId)
       const { taskId } = req.params;
@@ -3449,15 +3518,15 @@ export class MobileFormController {
         photos,
         images,
       }: MobileFormSubmissionRequest = req.body;
-      const userId = (req as any).user?.id;
-      const userRole = (req as any).user?.role;
+      const userId = req.user?.id;
+      const userRole = req.user?.role;
 
-      console.log(`📱 Builder verification submission for task: ${taskId}`);
-      console.log(`   - User: ${userId} (${userRole})`);
-      console.log(`   - Verification Task ID from body: ${verificationTaskId}`);
-      console.log(`   - Images: ${images?.length || 0}`);
-      console.log(`   - Form data keys: ${Object.keys(formData || {}).join(', ')}`);
-      console.log(
+      logger.info(`📱 Builder verification submission for task: ${taskId}`);
+      logger.info(`   - User: ${userId} (${userRole})`);
+      logger.info(`   - Verification Task ID from body: ${verificationTaskId}`);
+      logger.info(`   - Images: ${images?.length || 0}`);
+      logger.info(`   - Form data keys: ${Object.keys(formData || {}).join(', ')}`);
+      logger.info(
         `   - Form data outcome: ${formData?.outcome || formData?.finalStatus || 'Not specified'}`
       );
 
@@ -3491,30 +3560,30 @@ export class MobileFormController {
       );
 
       if (!resolution.success) {
-        console.log(`❌ Failed to resolve case from task: ${taskId}`);
-        return res.status(resolution.error!.status).json({
+        logger.info(`❌ Failed to resolve case from task: ${taskId}`);
+        return res.status(resolution.error.status).json({
           success: false,
-          message: resolution.error!.message,
+          message: resolution.error.message,
           error: {
-            code: resolution.error!.code,
+            code: resolution.error.code,
             timestamp: new Date().toISOString(),
             taskId,
           },
         });
       }
 
-      const caseId = resolution.caseId!;
-      const task = resolution.task!;
+      const caseId = resolution.caseId;
+      const task = resolution.task;
 
-      console.log(`✅ Resolved caseId: ${caseId} from taskId: ${taskId}`);
-      console.log(
-        `✅ Verification task validated: ${task.taskNumber} (Type: ${task.verificationTypeName})`
+      logger.info(`✅ Resolved caseId: ${caseId} from taskId: ${taskId}`);
+      logger.info(
+        `✅ Verification task validated: ${task.task_number} (Type: ${task.verification_type_name})`
       );
 
       // Determine form type and verification outcome based on form data
       const { formType, verificationOutcome } = detectBusinessFormType(formData); // Use business detection for builder (similar structure)
 
-      console.log(
+      logger.info(
         `🔍 Detected form type: ${formType}, verification outcome: ${verificationOutcome}`
       );
 
@@ -3522,7 +3591,7 @@ export class MobileFormController {
       const { validationResult, preparedData } = validateAndPrepareBuilderForm(formData, formType);
 
       // Log comprehensive validation results
-      console.log(`📊 Comprehensive validation for ${formType} builder verification:`, {
+      logger.info(`📊 Comprehensive validation for ${formType} builder verification:`, {
         isValid: validationResult.isValid,
         missingFields: validationResult.missingFields,
         warnings: validationResult.warnings,
@@ -3531,7 +3600,7 @@ export class MobileFormController {
 
       // Generate and log field coverage report
       const coverageReport = generateBuilderFieldCoverageReport(formData, preparedData, formType);
-      console.log(coverageReport);
+      logger.info(coverageReport);
 
       // Use the prepared data (which includes all fields with proper defaults)
       const mappedFormData = preparedData;
@@ -3602,7 +3671,7 @@ export class MobileFormController {
         verificationTaskId
       );
 
-      console.log(
+      logger.info(
         `✅ Processed ${uploadedImages.length} verification images for builder verification (Task: ${task.task_number})`
       );
 
@@ -3716,7 +3785,7 @@ export class MobileFormController {
         .filter(key => dbInsertData[key] !== undefined)
         .filter(key => allValidColumns.includes(key));
 
-      console.log('🔍 Filtered columns for SQL insert:', filteredColumns);
+      logger.info('🔍 Filtered columns for SQL insert:', filteredColumns);
 
       // Build dynamic INSERT query based on filtered columns
       const columns = filteredColumns;
@@ -3735,7 +3804,7 @@ export class MobileFormController {
         ([_, value]) => value !== null && value !== undefined && value !== ''
       );
 
-      console.log(`📝 Final database insert data for ${formType} builder verification:`, {
+      logger.info(`📝 Final database insert data for ${formType} builder verification:`, {
         totalFields: Object.keys(dbInsertData).length,
         populatedFields: populatedFields.length,
         fieldsWithNullValues: nullFields.length,
@@ -3746,7 +3815,7 @@ export class MobileFormController {
         samplePopulatedData: Object.fromEntries(populatedFields.slice(0, 10)), // Show first 10 populated fields
       });
 
-      console.log(`📝 Inserting builder verification with ${columns.length} fields:`, columns);
+      logger.info(`📝 Inserting builder verification with ${columns.length} fields:`, columns);
 
       await query(insertQuery, values);
 
@@ -3769,7 +3838,7 @@ export class MobileFormController {
         userAgent: req.get('User-Agent'),
       });
 
-      console.log(`✅ Builder verification completed successfully:`, {
+      logger.info(`✅ Builder verification completed successfully:`, {
         caseId,
         formType,
         verificationOutcome,
@@ -3815,12 +3884,16 @@ export class MobileFormController {
   }
 
   // Submit residence-cum-office verification form
-  static async submitResidenceCumOfficeVerification(req: Request, res: Response) {
+  static async submitResidenceCumOfficeVerification(
+    this: void,
+    req: AuthenticatedRequest,
+    res: Response
+  ) {
     try {
       const { taskId } = req.params;
       const submissionData: MobileFormSubmissionRequest = req.body;
-      const userId = (req as any).user?.id;
-      const userRole = (req as any).user?.role;
+      const userId = req.user?.id;
+      const userRole = req.user?.role;
 
       // UPDATED: Auto-resolve caseId from verificationTaskId
       const resolution = await MobileFormController.resolveCaseIdFromTaskId(
@@ -3830,21 +3903,21 @@ export class MobileFormController {
       );
 
       if (!resolution.success) {
-        console.log(`❌ Failed to resolve case from task: ${taskId}`);
-        return res.status(resolution.error!.status).json({
+        logger.info(`❌ Failed to resolve case from task: ${taskId}`);
+        return res.status(resolution.error.status).json({
           success: false,
-          message: resolution.error!.message,
+          message: resolution.error.message,
           error: {
-            code: resolution.error!.code,
+            code: resolution.error.code,
             timestamp: new Date().toISOString(),
             taskId,
           },
         });
       }
 
-      const caseId = resolution.caseId!;
+      const caseId = resolution.caseId;
 
-      console.log(
+      logger.info(
         `📱 Residence-cum-office verification submission for task ${taskId} (case ${caseId})`
       );
 
@@ -3953,7 +4026,11 @@ export class MobileFormController {
   }
 
   // Submit DSA/DST connector verification form
-  static async submitDsaConnectorVerification(req: Request, res: Response) {
+  static async submitDsaConnectorVerification(
+    this: void,
+    req: AuthenticatedRequest,
+    res: Response
+  ) {
     try {
       // UPDATED: Accept taskId from URL params (this is verificationTaskId)
       const { taskId } = req.params;
@@ -3964,15 +4041,15 @@ export class MobileFormController {
         photos,
         images,
       }: MobileFormSubmissionRequest = req.body;
-      const userId = (req as any).user?.id;
-      const userRole = (req as any).user?.role;
+      const userId = req.user?.id;
+      const userRole = req.user?.role;
 
-      console.log(`📱 DSA/DST Connector verification submission for task: ${taskId}`);
-      console.log(`   - User: ${userId} (${userRole})`);
-      console.log(`   - Verification Task ID from body: ${verificationTaskId}`);
-      console.log(`   - Images: ${images?.length || 0}`);
-      console.log(`   - Form data keys: ${Object.keys(formData || {}).join(', ')}`);
-      console.log(
+      logger.info(`📱 DSA/DST Connector verification submission for task: ${taskId}`);
+      logger.info(`   - User: ${userId} (${userRole})`);
+      logger.info(`   - Verification Task ID from body: ${verificationTaskId}`);
+      logger.info(`   - Images: ${images?.length || 0}`);
+      logger.info(`   - Form data keys: ${Object.keys(formData || {}).join(', ')}`);
+      logger.info(
         `   - Form data outcome: ${formData?.outcome || formData?.finalStatus || 'Not specified'}`
       );
 
@@ -4006,24 +4083,24 @@ export class MobileFormController {
       );
 
       if (!resolution.success) {
-        console.log(`❌ Failed to resolve case from task: ${taskId}`);
-        return res.status(resolution.error!.status).json({
+        logger.info(`❌ Failed to resolve case from task: ${taskId}`);
+        return res.status(resolution.error.status).json({
           success: false,
-          message: resolution.error!.message,
+          message: resolution.error.message,
           error: {
-            code: resolution.error!.code,
+            code: resolution.error.code,
             timestamp: new Date().toISOString(),
             taskId,
           },
         });
       }
 
-      const caseId = resolution.caseId!;
-      const task = resolution.task!;
+      const caseId = resolution.caseId;
+      const task = resolution.task;
 
-      console.log(`✅ Resolved caseId: ${caseId} from taskId: ${taskId}`);
-      console.log(
-        `✅ Verification task validated: ${task.taskNumber} (Type: ${task.verificationTypeName})`
+      logger.info(`✅ Resolved caseId: ${caseId} from taskId: ${taskId}`);
+      logger.info(
+        `✅ Verification task validated: ${task.task_number} (Type: ${task.verification_type_name})`
       );
 
       if (!formData) {
@@ -4040,7 +4117,7 @@ export class MobileFormController {
       // Determine form type and verification outcome based on form data
       const { formType, verificationOutcome } = detectBusinessFormType(formData); // Use business detection for DSA/DST Connector (similar structure)
 
-      console.log(
+      logger.info(
         `🔍 Detected form type: ${formType}, verification outcome: ${verificationOutcome}`
       );
 
@@ -4051,7 +4128,7 @@ export class MobileFormController {
       );
 
       // Log comprehensive validation results
-      console.log(`📊 Comprehensive validation for ${formType} DSA Connector verification:`, {
+      logger.info(`📊 Comprehensive validation for ${formType} DSA Connector verification:`, {
         isValid: validationResult.isValid,
         missingFields: validationResult.missingFields,
         warnings: validationResult.warnings,
@@ -4064,7 +4141,7 @@ export class MobileFormController {
         preparedData,
         formType
       );
-      console.log(coverageReport);
+      logger.info(coverageReport);
 
       // Use the prepared data (which includes all fields with proper defaults)
       const mappedFormData = preparedData;
@@ -4135,7 +4212,7 @@ export class MobileFormController {
         verificationTaskId
       );
 
-      console.log(
+      logger.info(
         `✅ Processed ${uploadedImages.length} verification images for DSA/DST Connector verification (Task: ${task.task_number})`
       );
 
@@ -4249,7 +4326,7 @@ export class MobileFormController {
         .filter(key => dbInsertData[key] !== undefined)
         .filter(key => allValidColumns.includes(key));
 
-      console.log('🔍 Filtered columns for SQL insert:', filteredColumns);
+      logger.info('🔍 Filtered columns for SQL insert:', filteredColumns);
 
       // Build dynamic INSERT query based on filtered columns
       const columns = filteredColumns;
@@ -4268,7 +4345,7 @@ export class MobileFormController {
         ([_, value]) => value !== null && value !== undefined && value !== ''
       );
 
-      console.log(`📝 Final database insert data for ${formType} DSA Connector verification:`, {
+      logger.info(`📝 Final database insert data for ${formType} DSA Connector verification:`, {
         totalFields: Object.keys(dbInsertData).length,
         populatedFields: populatedFields.length,
         fieldsWithNullValues: nullFields.length,
@@ -4279,7 +4356,7 @@ export class MobileFormController {
         samplePopulatedData: Object.fromEntries(populatedFields.slice(0, 10)), // Show first 10 populated fields
       });
 
-      console.log(
+      logger.info(
         `📝 Inserting DSA/DST Connector verification with ${columns.length} fields:`,
         columns
       );
@@ -4305,7 +4382,7 @@ export class MobileFormController {
         userAgent: req.get('User-Agent'),
       });
 
-      console.log(`✅ DSA/DST Connector verification completed successfully:`, {
+      logger.info(`✅ DSA/DST Connector verification completed successfully:`, {
         caseId,
         formType,
         verificationOutcome,
@@ -4351,12 +4428,16 @@ export class MobileFormController {
   }
 
   // Submit property individual verification form
-  static async submitPropertyIndividualVerification(req: Request, res: Response) {
+  static async submitPropertyIndividualVerification(
+    this: void,
+    req: AuthenticatedRequest,
+    res: Response
+  ) {
     try {
       const { taskId } = req.params;
       const submissionData: MobileFormSubmissionRequest = req.body;
-      const userId = (req as any).user?.id;
-      const userRole = (req as any).user?.role;
+      const userId = req.user?.id;
+      const userRole = req.user?.role;
 
       // UPDATED: Auto-resolve caseId from verificationTaskId
       const resolution = await MobileFormController.resolveCaseIdFromTaskId(
@@ -4366,21 +4447,21 @@ export class MobileFormController {
       );
 
       if (!resolution.success) {
-        console.log(`❌ Failed to resolve case from task: ${taskId}`);
-        return res.status(resolution.error!.status).json({
+        logger.info(`❌ Failed to resolve case from task: ${taskId}`);
+        return res.status(resolution.error.status).json({
           success: false,
-          message: resolution.error!.message,
+          message: resolution.error.message,
           error: {
-            code: resolution.error!.code,
+            code: resolution.error.code,
             timestamp: new Date().toISOString(),
             taskId,
           },
         });
       }
 
-      const caseId = resolution.caseId!;
+      const caseId = resolution.caseId;
 
-      console.log(
+      logger.info(
         `📱 Property Individual verification submission for task ${taskId} (case ${caseId})`
       );
 
@@ -4489,7 +4570,7 @@ export class MobileFormController {
   }
 
   // Submit property APF verification form
-  static async submitPropertyApfVerification(req: Request, res: Response) {
+  static async submitPropertyApfVerification(this: void, req: AuthenticatedRequest, res: Response) {
     try {
       // UPDATED: Accept taskId from URL params (this is verificationTaskId)
       const { taskId } = req.params;
@@ -4500,15 +4581,15 @@ export class MobileFormController {
         photos,
         images,
       }: MobileFormSubmissionRequest = req.body;
-      const userId = (req as any).user?.id;
-      const userRole = (req as any).user?.role;
+      const userId = req.user?.id;
+      const userRole = req.user?.role;
 
-      console.log(`📱 Property APF verification submission for task: ${taskId}`);
-      console.log(`   - User: ${userId} (${userRole})`);
-      console.log(`   - Verification Task ID from body: ${verificationTaskId}`);
-      console.log(`   - Images: ${images?.length || 0}`);
-      console.log(`   - Form data keys: ${Object.keys(formData || {}).join(', ')}`);
-      console.log(
+      logger.info(`📱 Property APF verification submission for task: ${taskId}`);
+      logger.info(`   - User: ${userId} (${userRole})`);
+      logger.info(`   - Verification Task ID from body: ${verificationTaskId}`);
+      logger.info(`   - Images: ${images?.length || 0}`);
+      logger.info(`   - Form data keys: ${Object.keys(formData || {}).join(', ')}`);
+      logger.info(
         `   - Form data outcome: ${formData?.outcome || formData?.finalStatus || 'Not specified'}`
       );
 
@@ -4542,24 +4623,24 @@ export class MobileFormController {
       );
 
       if (!resolution.success) {
-        console.log(`❌ Failed to resolve case from task: ${taskId}`);
-        return res.status(resolution.error!.status).json({
+        logger.info(`❌ Failed to resolve case from task: ${taskId}`);
+        return res.status(resolution.error.status).json({
           success: false,
-          message: resolution.error!.message,
+          message: resolution.error.message,
           error: {
-            code: resolution.error!.code,
+            code: resolution.error.code,
             timestamp: new Date().toISOString(),
             taskId,
           },
         });
       }
 
-      const caseId = resolution.caseId!;
-      const task = resolution.task!;
+      const caseId = resolution.caseId;
+      const task = resolution.task;
 
-      console.log(`✅ Resolved caseId: ${caseId} from taskId: ${taskId}`);
-      console.log(
-        `✅ Verification task validated: ${task.taskNumber} (Type: ${task.verificationTypeName})`
+      logger.info(`✅ Resolved caseId: ${caseId} from taskId: ${taskId}`);
+      logger.info(
+        `✅ Verification task validated: ${task.task_number} (Type: ${task.verification_type_name})`
       );
 
       if (!formData) {
@@ -4576,7 +4657,7 @@ export class MobileFormController {
       // Determine form type and verification outcome based on form data
       const { formType, verificationOutcome } = detectBusinessFormType(formData); // Use business detection for Property APF (similar structure)
 
-      console.log(
+      logger.info(
         `🔍 Detected form type: ${formType}, verification outcome: ${verificationOutcome}`
       );
 
@@ -4587,7 +4668,7 @@ export class MobileFormController {
       );
 
       // Log comprehensive validation results
-      console.log(`📊 Comprehensive validation for ${formType} Property APF verification:`, {
+      logger.info(`📊 Comprehensive validation for ${formType} Property APF verification:`, {
         isValid: validationResult.isValid,
         missingFields: validationResult.missingFields,
         warnings: validationResult.warnings,
@@ -4600,7 +4681,7 @@ export class MobileFormController {
         preparedData,
         formType
       );
-      console.log(coverageReport);
+      logger.info(coverageReport);
 
       // Use the prepared data (which includes all fields with proper defaults)
       const mappedFormData = preparedData;
@@ -4671,7 +4752,7 @@ export class MobileFormController {
         verificationTaskId
       );
 
-      console.log(
+      logger.info(
         `✅ Processed ${uploadedImages.length} verification images for Property APF verification (Task: ${task.task_number})`
       );
 
@@ -4774,7 +4855,7 @@ export class MobileFormController {
         .filter(key => dbInsertData[key] !== undefined)
         .filter(key => allValidColumns.includes(key));
 
-      console.log('🔍 Filtered columns for SQL insert:', filteredColumns);
+      logger.info('🔍 Filtered columns for SQL insert:', filteredColumns);
 
       // Build dynamic INSERT query based on filtered columns
       const columns = filteredColumns;
@@ -4793,7 +4874,7 @@ export class MobileFormController {
         ([_, value]) => value !== null && value !== undefined && value !== ''
       );
 
-      console.log(`📝 Final database insert data for ${formType} Property APF verification:`, {
+      logger.info(`📝 Final database insert data for ${formType} Property APF verification:`, {
         totalFields: Object.keys(dbInsertData).length,
         populatedFields: populatedFields.length,
         fieldsWithNullValues: nullFields.length,
@@ -4804,7 +4885,7 @@ export class MobileFormController {
         samplePopulatedData: Object.fromEntries(populatedFields.slice(0, 10)), // Show first 10 populated fields
       });
 
-      console.log(`📝 Inserting Property APF verification with ${columns.length} fields:`, columns);
+      logger.info(`📝 Inserting Property APF verification with ${columns.length} fields:`, columns);
 
       await query(insertQuery, values);
 
@@ -4827,7 +4908,7 @@ export class MobileFormController {
         userAgent: req.get('User-Agent'),
       });
 
-      console.log(`✅ Property APF verification completed successfully:`, {
+      logger.info(`✅ Property APF verification completed successfully:`, {
         caseId,
         formType,
         verificationOutcome,
@@ -4873,7 +4954,7 @@ export class MobileFormController {
   }
 
   // Submit NOC verification form
-  static async submitNocVerification(req: Request, res: Response) {
+  static async submitNocVerification(this: void, req: AuthenticatedRequest, res: Response) {
     try {
       // UPDATED: Accept taskId from URL params (this is verificationTaskId)
       const { taskId } = req.params;
@@ -4884,15 +4965,15 @@ export class MobileFormController {
         photos,
         images,
       }: MobileFormSubmissionRequest = req.body;
-      const userId = (req as any).user?.id;
-      const userRole = (req as any).user?.role;
+      const userId = req.user?.id;
+      const userRole = req.user?.role;
 
-      console.log(`📱 NOC verification submission for task: ${taskId}`);
-      console.log(`   - User: ${userId} (${userRole})`);
-      console.log(`   - Verification Task ID from body: ${verificationTaskId}`);
-      console.log(`   - Images: ${images?.length || 0}`);
-      console.log(`   - Form data keys: ${Object.keys(formData || {}).join(', ')}`);
-      console.log(
+      logger.info(`📱 NOC verification submission for task: ${taskId}`);
+      logger.info(`   - User: ${userId} (${userRole})`);
+      logger.info(`   - Verification Task ID from body: ${verificationTaskId}`);
+      logger.info(`   - Images: ${images?.length || 0}`);
+      logger.info(`   - Form data keys: ${Object.keys(formData || {}).join(', ')}`);
+      logger.info(
         `   - Form data outcome: ${formData?.outcome || formData?.finalStatus || 'Not specified'}`
       );
 
@@ -4926,24 +5007,24 @@ export class MobileFormController {
       );
 
       if (!resolution.success) {
-        console.log(`❌ Failed to resolve case from task: ${taskId}`);
-        return res.status(resolution.error!.status).json({
+        logger.info(`❌ Failed to resolve case from task: ${taskId}`);
+        return res.status(resolution.error.status).json({
           success: false,
-          message: resolution.error!.message,
+          message: resolution.error.message,
           error: {
-            code: resolution.error!.code,
+            code: resolution.error.code,
             timestamp: new Date().toISOString(),
             taskId,
           },
         });
       }
 
-      const caseId = resolution.caseId!;
-      const task = resolution.task!;
+      const caseId = resolution.caseId;
+      const task = resolution.task;
 
-      console.log(`✅ Resolved caseId: ${caseId} from taskId: ${taskId}`);
-      console.log(
-        `✅ Verification task validated: ${task.taskNumber} (Type: ${task.verificationTypeName})`
+      logger.info(`✅ Resolved caseId: ${caseId} from taskId: ${taskId}`);
+      logger.info(
+        `✅ Verification task validated: ${task.task_number} (Type: ${task.verification_type_name})`
       );
 
       if (!formData) {
@@ -4960,7 +5041,7 @@ export class MobileFormController {
       // Determine form type and verification outcome based on form data
       const { formType, verificationOutcome } = detectBusinessFormType(formData); // Use business detection for NOC (similar structure)
 
-      console.log(
+      logger.info(
         `🔍 Detected form type: ${formType}, verification outcome: ${verificationOutcome}`
       );
 
@@ -4968,7 +5049,7 @@ export class MobileFormController {
       const { validationResult, preparedData } = validateAndPrepareNocForm(formData, formType);
 
       // Log comprehensive validation results
-      console.log(`📊 Comprehensive validation for ${formType} NOC verification:`, {
+      logger.info(`📊 Comprehensive validation for ${formType} NOC verification:`, {
         isValid: validationResult.isValid,
         missingFields: validationResult.missingFields,
         warnings: validationResult.warnings,
@@ -4977,7 +5058,7 @@ export class MobileFormController {
 
       // Generate and log field coverage report
       const coverageReport = generateNocFieldCoverageReport(formData, preparedData, formType);
-      console.log(coverageReport);
+      logger.info(coverageReport);
 
       // Use the prepared data (which includes all fields with proper defaults)
       const mappedFormData = preparedData;
@@ -5045,7 +5126,7 @@ export class MobileFormController {
         verificationTaskId
       );
 
-      console.log(
+      logger.info(
         `✅ Processed ${uploadedImages.length} verification images for NOC verification (Task: ${task.task_number})`
       );
 
@@ -5148,7 +5229,7 @@ export class MobileFormController {
         .filter(key => dbInsertData[key] !== undefined)
         .filter(key => allValidColumns.includes(key));
 
-      console.log('🔍 Filtered columns for SQL insert:', filteredColumns);
+      logger.info('🔍 Filtered columns for SQL insert:', filteredColumns);
 
       // Build dynamic INSERT query based on filtered columns
       const columns = filteredColumns;
@@ -5167,7 +5248,7 @@ export class MobileFormController {
         ([_, value]) => value !== null && value !== undefined && value !== ''
       );
 
-      console.log(`📝 Final database insert data for ${formType} NOC verification:`, {
+      logger.info(`📝 Final database insert data for ${formType} NOC verification:`, {
         totalFields: Object.keys(dbInsertData).length,
         populatedFields: populatedFields.length,
         fieldsWithNullValues: nullFields.length,
@@ -5178,7 +5259,7 @@ export class MobileFormController {
         samplePopulatedData: Object.fromEntries(populatedFields.slice(0, 10)), // Show first 10 populated fields
       });
 
-      console.log(`📝 Inserting NOC verification with ${columns.length} fields:`, columns);
+      logger.info(`📝 Inserting NOC verification with ${columns.length} fields:`, columns);
 
       await query(insertQuery, values);
 
@@ -5201,7 +5282,7 @@ export class MobileFormController {
         userAgent: req.get('User-Agent'),
       });
 
-      console.log(`✅ NOC verification completed successfully:`, {
+      logger.info(`✅ NOC verification completed successfully:`, {
         caseId,
         formType,
         verificationOutcome,
@@ -5247,7 +5328,7 @@ export class MobileFormController {
   }
 
   // Get verification form template
-  static getFormTemplate(req: Request, res: Response) {
+  static getFormTemplate(this: void, req: Request, res: Response) {
     try {
       const { formType } = req.params;
 

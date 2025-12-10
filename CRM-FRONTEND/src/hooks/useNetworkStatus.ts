@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 export type ConnectionQuality = 'excellent' | 'good' | 'poor' | 'offline';
 
@@ -56,7 +56,7 @@ export const useNetworkStatus = (): NetworkStatus => {
     }
   };
 
-  const updateNetworkStatus = () => {
+  const updateNetworkStatus = useCallback(() => {
     const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
     
     setNetworkStatus({
@@ -67,7 +67,7 @@ export const useNetworkStatus = (): NetworkStatus => {
       rtt: connection?.rtt,
       saveData: connection?.saveData
     });
-  };
+  }, []);
 
   useEffect(() => {
     // Initial status
@@ -96,7 +96,7 @@ export const useNetworkStatus = (): NetworkStatus => {
         connection.removeEventListener('change', handleConnectionChange);
       }
     };
-  }, []);
+  }, [updateNetworkStatus]);
 
   // Periodic quality check
   useEffect(() => {
@@ -107,7 +107,7 @@ export const useNetworkStatus = (): NetworkStatus => {
     }, 30000); // Check every 30 seconds
 
     return () => clearInterval(interval);
-  }, []);
+  }, [updateNetworkStatus]);
 
   return networkStatus;
 };

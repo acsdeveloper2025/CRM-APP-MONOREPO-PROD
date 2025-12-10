@@ -44,6 +44,12 @@ export interface ValidationResult {
   warnings: string[];
 }
 
+import { VerificationTaskRow } from '../types/database';
+
+interface TaskDetails extends VerificationTaskRow {
+  verification_type_name: string;
+}
+
 export class TaskCompletionValidator {
   /**
    * Main validation method - checks all requirements for task completion
@@ -293,7 +299,7 @@ export class TaskCompletionValidator {
   /**
    * Get task details
    */
-  private static async getTaskDetails(taskId: string): Promise<any> {
+  private static async getTaskDetails(taskId: string): Promise<TaskDetails | null> {
     try {
       const result = await query(
         `
@@ -305,7 +311,7 @@ export class TaskCompletionValidator {
         [taskId]
       );
 
-      return result.rows[0] || null;
+      return (result.rows[0] as unknown as TaskDetails) || null;
     } catch (error) {
       logger.error('Error getting task details', { taskId, error });
       return null;
@@ -315,7 +321,7 @@ export class TaskCompletionValidator {
   /**
    * Validate task is started before completion
    */
-  private static validateTaskStarted(task: any): ValidationResult {
+  private static validateTaskStarted(task: TaskDetails): ValidationResult {
     const errors: string[] = [];
 
     if (!task.started_at) {

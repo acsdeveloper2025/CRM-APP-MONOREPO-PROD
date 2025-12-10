@@ -12,6 +12,7 @@ import { casesService } from '@/services/cases';
 interface PendingCaseFilters {
   priority?: string;
   client?: string;
+  [key: string]: unknown;
 }
 
 export const PendingCasesPage: React.FC = () => {
@@ -42,6 +43,7 @@ export const PendingCasesPage: React.FC = () => {
   });
 
   // Reset to page 1 when search or filters change
+  
   React.useEffect(() => {
     setCurrentPage(1);
   }, [debouncedSearchValue, activeFilters]);
@@ -62,15 +64,12 @@ export const PendingCasesPage: React.FC = () => {
   const assignCaseMutation = useAssignCase();
   const { refreshCases } = useRefreshCases();
 
-  const rawCases = casesData?.data || [];
+  const rawCases = React.useMemo(() => casesData?.data || [], [casesData]);
 
   // Helper function to check if a case is overdue
-  const isOverdue = React.useCallback((assignedAt?: string) => {
-    if (!assignedAt) {return false;}
-    const assigned = new Date(assignedAt);
-    const now = new Date();
-    const diffInHours = Math.floor((now.getTime() - assigned.getTime()) / (1000 * 60 * 60));
-    return diffInHours > 48; // More than 2 days
+  const isOverdue = React.useCallback((pendingDurationSeconds?: number) => {
+    if (!pendingDurationSeconds) { return false; }
+    return pendingDurationSeconds > 172800; // More than 2 days (48 hours * 3600 seconds)
   }, []);
 
   // Sort cases based on auto-highlight options
@@ -80,8 +79,8 @@ export const PendingCasesPage: React.FC = () => {
     if (reviewUrgentFirst || flagOverdueCases) {
       sortedCases.sort((a, b) => {
         // Check if cases are overdue
-        const aOverdue = flagOverdueCases && isOverdue(a.assignedAt);
-        const bOverdue = flagOverdueCases && isOverdue(b.assignedAt);
+        const aOverdue = flagOverdueCases && isOverdue(a.pendingDurationSeconds);
+        const bOverdue = flagOverdueCases && isOverdue(b.pendingDurationSeconds);
 
         // Check if cases are urgent (priority >= 3)
         const aUrgent = reviewUrgentFirst && Number(a.priority) >= 3;
@@ -100,9 +99,9 @@ export const PendingCasesPage: React.FC = () => {
           return Number(b.priority) - Number(a.priority);
         }
 
-        // If same priority, sort by assigned date (older first)
-        if (a.assignedAt && b.assignedAt) {
-          return new Date(a.assignedAt).getTime() - new Date(b.assignedAt).getTime();
+        // If same priority, sort by pending duration (longer first)
+        if (a.pendingDurationSeconds && b.pendingDurationSeconds) {
+          return (b.pendingDurationSeconds || 0) - (a.pendingDurationSeconds || 0);
         }
 
         return 0;
@@ -118,11 +117,7 @@ export const PendingCasesPage: React.FC = () => {
   const inProgressCases = rawCases.filter(c => c.status === 'IN_PROGRESS').length;
   const urgentCases = rawCases.filter(c => Number(c.priority) >= 3).length;
   const oldCases = rawCases.filter(c => {
-    if (!c.assignedAt) {return false;}
-    const assigned = new Date(c.assignedAt);
-    const now = new Date();
-    const diffInHours = Math.floor((now.getTime() - assigned.getTime()) / (1000 * 60 * 60));
-    return diffInHours > 48; // More than 2 days
+    return (c.pendingDurationSeconds || 0) > 172800; // More than 2 days
   }).length;
 
   const handleUpdateStatus = async (caseId: string, status: string) => {

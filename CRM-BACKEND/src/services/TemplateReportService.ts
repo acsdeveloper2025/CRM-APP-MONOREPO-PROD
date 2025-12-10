@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/require-await */
 // Disabled require-await rule for template report service as some async functions don't directly await
 import { logger } from '../utils/logger';
 
@@ -19,15 +18,19 @@ export interface TemplateReportResult {
   };
 }
 
+export interface VerificationCaseDetails {
+  caseId: string;
+  customerName: string;
+  address: string;
+  applicantType?: string;
+  [key: string]: unknown;
+}
+
 export interface VerificationReportData {
   verificationType: string;
   outcome: string;
-  formData: any;
-  caseDetails: {
-    caseId: string;
-    customerName: string;
-    address: string;
-  };
+  formData: Record<string, unknown>;
+  caseDetails: VerificationCaseDetails;
 }
 
 export class TemplateReportService {
@@ -1322,7 +1325,7 @@ Hence the profile is marked as {Final_Status}.`,
   /**
    * Generate template-based report for verification form submission
    */
-  async generateTemplateReport(data: VerificationReportData): Promise<TemplateReportResult> {
+  generateTemplateReport(data: VerificationReportData): TemplateReportResult {
     try {
       logger.info('Generating template-based report', {
         verificationType: data.verificationType,
@@ -1376,7 +1379,11 @@ Hence the profile is marked as {Final_Status}.`,
   /**
    * Get template for specific verification type and outcome
    */
-  private getTemplate(verificationType: string, outcome: string, formData?: any): string | null {
+  private getTemplate(
+    verificationType: string,
+    outcome: string,
+    formData?: Record<string, unknown>
+  ): string | null {
     const templateKey = this.getTemplateKey(verificationType, outcome, formData);
 
     if (verificationType.toUpperCase() === 'RESIDENCE') {
@@ -1422,7 +1429,11 @@ Hence the profile is marked as {Final_Status}.`,
   /**
    * Get template key based on verification type and outcome
    */
-  private getTemplateKey(verificationType: string, outcome: string, formData?: any): string {
+  private getTemplateKey(
+    verificationType: string,
+    outcome: string,
+    formData?: Record<string, unknown>
+  ): string {
     const outcomeNormalized = outcome.toLowerCase();
 
     if (verificationType.toUpperCase() === 'RESIDENCE') {
@@ -1464,7 +1475,7 @@ Hence the profile is marked as {Final_Status}.`,
 
       // Handle Positive scenarios - use house status to determine template
       if (outcomeNormalized.includes('positive')) {
-        const houseStatus = formData?.houseStatus || formData?.house_status;
+        const houseStatus = (formData?.houseStatus || formData?.house_status) as string | undefined;
         if (houseStatus && houseStatus.toLowerCase() === 'opened') {
           return 'POSITIVE'; // Door was open, person was met
         } else {
@@ -1476,7 +1487,9 @@ Hence the profile is marked as {Final_Status}.`,
     if (verificationType.toUpperCase() === 'OFFICE') {
       // Handle Shifted scenarios - use office status to determine template
       if (outcomeNormalized.includes('shifted')) {
-        const officeStatus = formData?.officeStatus || formData?.office_status;
+        const officeStatus = (formData?.officeStatus || formData?.office_status) as
+          | string
+          | undefined;
         if (officeStatus && officeStatus.toLowerCase() === 'opened') {
           return 'SHIFTED'; // Office was open, person was met
         } else {
@@ -1496,7 +1509,9 @@ Hence the profile is marked as {Final_Status}.`,
 
       // Handle NSP scenarios - use office status to determine template
       if (outcomeNormalized.includes('nsp')) {
-        const officeStatus = formData?.officeStatus || formData?.office_status;
+        const officeStatus = (formData?.officeStatus || formData?.office_status) as
+          | string
+          | undefined;
         if (officeStatus && officeStatus.toLowerCase() === 'opened') {
           return 'NSP'; // Office was open, person was met
         } else {
@@ -1507,7 +1522,9 @@ Hence the profile is marked as {Final_Status}.`,
       // Handle Positive scenarios - use office status to determine template
       if (outcomeNormalized.includes('positive')) {
         // Check office status to determine if person was met or only TPC was done
-        const officeStatus = formData?.officeStatus || formData?.office_status;
+        const officeStatus = (formData?.officeStatus || formData?.office_status) as
+          | string
+          | undefined;
         if (officeStatus && officeStatus.toLowerCase() === 'opened') {
           return 'POSITIVE'; // Office was open, person was met
         } else {
@@ -1519,7 +1536,9 @@ Hence the profile is marked as {Final_Status}.`,
     if (verificationType.toUpperCase() === 'BUSINESS') {
       // Handle Shifted scenarios - use business status to determine template
       if (outcomeNormalized.includes('shifted')) {
-        const businessStatus = formData?.businessStatus || formData?.business_status;
+        const businessStatus = (formData?.businessStatus || formData?.business_status) as
+          | string
+          | undefined;
         if (businessStatus && businessStatus.toLowerCase() === 'opened') {
           return 'SHIFTED'; // Business was open, person was met
         } else {
@@ -1539,7 +1558,9 @@ Hence the profile is marked as {Final_Status}.`,
 
       // Handle NSP scenarios - use business status to determine template
       if (outcomeNormalized.includes('nsp')) {
-        const businessStatus = formData?.businessStatus || formData?.business_status;
+        const businessStatus = (formData?.businessStatus || formData?.business_status) as
+          | string
+          | undefined;
         if (businessStatus && businessStatus.toLowerCase() === 'opened') {
           return 'NSP'; // Business was open, person was met
         } else {
@@ -1549,7 +1570,9 @@ Hence the profile is marked as {Final_Status}.`,
 
       // Handle Positive scenarios - use business status to determine template
       if (outcomeNormalized.includes('positive')) {
-        const businessStatus = formData?.businessStatus || formData?.business_status;
+        const businessStatus = (formData?.businessStatus || formData?.business_status) as
+          | string
+          | undefined;
         if (businessStatus && businessStatus.toLowerCase() === 'opened') {
           return 'POSITIVE'; // Business was open, person was met
         } else {
@@ -1561,8 +1584,10 @@ Hence the profile is marked as {Final_Status}.`,
     if (verificationType.toUpperCase() === 'RESIDENCE_CUM_OFFICE') {
       // Handle Shifted scenarios - use house/office status to determine template
       if (outcomeNormalized.includes('shifted')) {
-        const houseStatus = formData?.houseStatus || formData?.house_status;
-        const officeStatus = formData?.officeStatus || formData?.office_status;
+        const houseStatus = (formData?.houseStatus || formData?.house_status) as string | undefined;
+        const officeStatus = (formData?.officeStatus || formData?.office_status) as
+          | string
+          | undefined;
         if (
           (houseStatus && houseStatus.toLowerCase() === 'opened') ||
           (officeStatus && officeStatus.toLowerCase() === 'opened')
@@ -1585,8 +1610,10 @@ Hence the profile is marked as {Final_Status}.`,
 
       // Handle NSP scenarios - use house/office status to determine template
       if (outcomeNormalized.includes('nsp')) {
-        const houseStatus = formData?.houseStatus || formData?.house_status;
-        const officeStatus = formData?.officeStatus || formData?.office_status;
+        const houseStatus = (formData?.houseStatus || formData?.house_status) as string | undefined;
+        const officeStatus = (formData?.officeStatus || formData?.office_status) as
+          | string
+          | undefined;
         if (
           (houseStatus && houseStatus.toLowerCase() === 'opened') ||
           (officeStatus && officeStatus.toLowerCase() === 'opened')
@@ -1599,8 +1626,10 @@ Hence the profile is marked as {Final_Status}.`,
 
       // Handle Positive scenarios - use house/office status to determine template
       if (outcomeNormalized.includes('positive')) {
-        const houseStatus = formData?.houseStatus || formData?.house_status;
-        const officeStatus = formData?.officeStatus || formData?.office_status;
+        const houseStatus = (formData?.houseStatus || formData?.house_status) as string | undefined;
+        const officeStatus = (formData?.officeStatus || formData?.office_status) as
+          | string
+          | undefined;
         if (
           (houseStatus && houseStatus.toLowerCase() === 'opened') ||
           (officeStatus && officeStatus.toLowerCase() === 'opened')
@@ -1615,7 +1644,9 @@ Hence the profile is marked as {Final_Status}.`,
     if (verificationType.toUpperCase() === 'BUILDER') {
       // Handle Shifted scenarios - use office status to determine template
       if (outcomeNormalized.includes('shifted')) {
-        const officeStatus = formData?.officeStatus || formData?.office_status;
+        const officeStatus = (formData?.officeStatus || formData?.office_status) as
+          | string
+          | undefined;
         if (officeStatus && officeStatus.toLowerCase() === 'opened') {
           return 'SHIFTED'; // Builder office was open, person was met
         } else {
@@ -1635,7 +1666,9 @@ Hence the profile is marked as {Final_Status}.`,
 
       // Handle NSP scenarios - use office status to determine template
       if (outcomeNormalized.includes('nsp')) {
-        const officeStatus = formData?.officeStatus || formData?.office_status;
+        const officeStatus = (formData?.officeStatus || formData?.office_status) as
+          | string
+          | undefined;
         if (officeStatus && officeStatus.toLowerCase() === 'opened') {
           return 'NSP'; // Builder office was open, person was met
         } else {
@@ -1645,7 +1678,9 @@ Hence the profile is marked as {Final_Status}.`,
 
       // Handle Positive scenarios - use office status to determine template
       if (outcomeNormalized.includes('positive')) {
-        const officeStatus = formData?.officeStatus || formData?.office_status;
+        const officeStatus = (formData?.officeStatus || formData?.office_status) as
+          | string
+          | undefined;
         if (officeStatus && officeStatus.toLowerCase() === 'opened') {
           return 'POSITIVE'; // Builder office was open, person was met
         } else {
@@ -1666,7 +1701,9 @@ Hence the profile is marked as {Final_Status}.`,
 
       // Handle Positive scenarios - use office status to determine template
       if (outcomeNormalized.includes('positive')) {
-        const officeStatus = formData?.officeStatus || formData?.office_status;
+        const officeStatus = (formData?.officeStatus || formData?.office_status) as
+          | string
+          | undefined;
         if (officeStatus && officeStatus.toLowerCase() === 'opened') {
           return 'POSITIVE'; // NOC office was open, person was met
         } else {
@@ -1678,7 +1715,9 @@ Hence the profile is marked as {Final_Status}.`,
     if (verificationType.toUpperCase() === 'DSA_CONNECTOR') {
       // Handle Shifted scenarios - use office status to determine template
       if (outcomeNormalized.includes('shifted')) {
-        const officeStatus = formData?.officeStatus || formData?.office_status;
+        const officeStatus = (formData?.officeStatus || formData?.office_status) as
+          | string
+          | undefined;
         if (officeStatus && officeStatus.toLowerCase() === 'opened') {
           return 'SHIFTED'; // DSA/Connector office was open, person was met
         } else {
@@ -1698,7 +1737,9 @@ Hence the profile is marked as {Final_Status}.`,
 
       // Handle NSP scenarios - use office status to determine template
       if (outcomeNormalized.includes('nsp')) {
-        const officeStatus = formData?.officeStatus || formData?.office_status;
+        const officeStatus = (formData?.officeStatus || formData?.office_status) as
+          | string
+          | undefined;
         if (officeStatus && officeStatus.toLowerCase() === 'opened') {
           return 'NSP'; // DSA/Connector office was open, person was met
         } else {
@@ -1708,7 +1749,9 @@ Hence the profile is marked as {Final_Status}.`,
 
       // Handle Positive scenarios - use office status to determine template
       if (outcomeNormalized.includes('positive')) {
-        const officeStatus = formData?.officeStatus || formData?.office_status;
+        const officeStatus = (formData?.officeStatus || formData?.office_status) as
+          | string
+          | undefined;
         if (officeStatus && officeStatus.toLowerCase() === 'opened') {
           return 'POSITIVE'; // DSA/Connector office was open, person was met
         } else {
@@ -1736,8 +1779,9 @@ Hence the profile is marked as {Final_Status}.`,
     if (verificationType.toUpperCase() === 'PROPERTY_INDIVIDUAL') {
       // Handle Shifted scenarios - use property status to determine template
       if (outcomeNormalized.includes('shifted')) {
-        const propertyStatus =
-          formData?.businessStatus || formData?.business_status || formData?.propertyStatus;
+        const propertyStatus = (formData?.businessStatus ||
+          formData?.business_status ||
+          formData?.propertyStatus) as string | undefined;
         if (propertyStatus && propertyStatus.toLowerCase() === 'opened') {
           return 'SHIFTED'; // Property was accessible, person was met
         } else {
@@ -1757,8 +1801,9 @@ Hence the profile is marked as {Final_Status}.`,
 
       // Handle NSP scenarios - use property status to determine template
       if (outcomeNormalized.includes('nsp')) {
-        const propertyStatus =
-          formData?.businessStatus || formData?.business_status || formData?.propertyStatus;
+        const propertyStatus = (formData?.businessStatus ||
+          formData?.business_status ||
+          formData?.propertyStatus) as string | undefined;
         if (propertyStatus && propertyStatus.toLowerCase() === 'opened') {
           return 'NSP'; // Property was accessible, person was met
         } else {
@@ -1768,8 +1813,9 @@ Hence the profile is marked as {Final_Status}.`,
 
       // Handle Positive scenarios - use property status to determine template
       if (outcomeNormalized.includes('positive')) {
-        const propertyStatus =
-          formData?.businessStatus || formData?.business_status || formData?.propertyStatus;
+        const propertyStatus = (formData?.businessStatus ||
+          formData?.business_status ||
+          formData?.propertyStatus) as string | undefined;
         if (propertyStatus && propertyStatus.toLowerCase() === 'opened') {
           return 'POSITIVE'; // Property was accessible, person was met
         } else {
@@ -1784,9 +1830,14 @@ Hence the profile is marked as {Final_Status}.`,
   /**
    * Get proper customer name, fallback to met person name if customer name is invalid
    */
-  private getCustomerName(formData: any, caseDetails: any): string {
+  private getCustomerName(
+    formData: Record<string, unknown>,
+    caseDetails: VerificationCaseDetails
+  ): string {
     const customerName = caseDetails.customerName;
-    const metPersonName = formData?.metPersonName || formData?.met_person_name;
+    const metPersonName = (formData?.metPersonName || formData?.met_person_name) as
+      | string
+      | undefined;
 
     // Check if customer name looks like test data or is invalid
     if (
@@ -1806,8 +1857,8 @@ Hence the profile is marked as {Final_Status}.`,
   /**
    * Format area in square feet with proper units
    */
-  private formatAreaSqFeet(formData: any, type = 'residence'): string {
-    let area: any;
+  private formatAreaSqFeet(formData: Record<string, unknown>, type = 'residence'): string {
+    let area: unknown;
 
     if (type === 'office') {
       area = formData?.officeApproxArea || formData?.office_approx_area || formData?.officeArea;
@@ -1822,8 +1873,9 @@ Hence the profile is marked as {Final_Status}.`,
         formData?.approxAreaSqFeet;
     }
 
-    if (area && !isNaN(area) && area > 0) {
-      return `${area} sq. feet`;
+    const value = Number(area);
+    if (!isNaN(value) && value > 0) {
+      return `${value} sq. feet`;
     }
 
     return 'Not provided';
@@ -1832,12 +1884,19 @@ Hence the profile is marked as {Final_Status}.`,
   /**
    * Map form data to template variables for verification reports
    */
-  private mapFormDataToTemplateVariables(formData: any, caseDetails: any): Record<string, string> {
-    const safeGet = (obj: any, key: string, defaultValue = 'Not provided') => {
+  private mapFormDataToTemplateVariables(
+    formData: Record<string, unknown>,
+    caseDetails: VerificationCaseDetails
+  ): Record<string, string> {
+    const safeGet = (
+      obj: Record<string, unknown>,
+      key: string,
+      defaultValue = 'Not provided'
+    ): string => {
       return (
-        obj?.[key] ||
-        obj?.[key.toLowerCase()] ||
-        obj?.[key.replace(/([A-Z])/g, '_$1').toLowerCase()] ||
+        (obj?.[key] as string) ||
+        (obj?.[key.toLowerCase()] as string) ||
+        (obj?.[key.replace(/([A-Z])/g, '_$1').toLowerCase()] as string) ||
         defaultValue
       );
     };

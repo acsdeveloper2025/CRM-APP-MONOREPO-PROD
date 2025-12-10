@@ -121,7 +121,7 @@ export const AgentPerformanceCharts: React.FC = () => {
     return data;
   }
 
-  function generateRadarData(agent: any) {
+  function generateRadarData(agent: unknown) {
     if (!agent) {return [];}
     
     const completionRate = agent.totalCasesAssigned > 0 ? (agent.casesCompleted / agent.totalCasesAssigned) * 100 : 0;
@@ -198,7 +198,7 @@ export const AgentPerformanceCharts: React.FC = () => {
           </p>
         </div>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4">
-          <Select value={viewType} onValueChange={(value: any) => setViewType(value)}>
+          <Select value={viewType} onValueChange={(value: unknown) => setViewType(value)}>
             <SelectTrigger className="w-full sm:w-40">
               <SelectValue />
             </SelectTrigger>

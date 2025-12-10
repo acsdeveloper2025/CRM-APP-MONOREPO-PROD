@@ -31,7 +31,7 @@ export const CommissionsPage: React.FC = () => {
 
   const exportAllData = () => {
     // This would trigger export from both tabs
-    console.log('Exporting all commission data...');
+    console.warn('Exporting all commission data...');
   };
 
   return (

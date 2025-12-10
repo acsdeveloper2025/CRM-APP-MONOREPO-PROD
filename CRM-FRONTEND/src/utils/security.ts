@@ -120,7 +120,7 @@ export class SecurityUtils {
         requests.set(identifier, []);
       }
 
-      const userRequests = requests.get(identifier)!;
+      const userRequests = requests.get(identifier) || [];
       
       // Remove old requests outside the window
       const validRequests = userRequests.filter(time => time > windowStart);
@@ -168,6 +168,7 @@ export class SecurityUtils {
   }
 
   // Data masking for logging
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   static maskSensitiveData(data: any): any {
     const sensitiveFields = ['password', 'token', 'secret', 'key', 'ssn', 'creditCard'];
     
@@ -247,6 +248,7 @@ export class SecurityUtils {
   }
 
   // Secure storage helpers
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   static secureStore(key: string, value: any, encrypt: boolean = false): void {
     try {
       let dataToStore = JSON.stringify(value);
@@ -262,6 +264,7 @@ export class SecurityUtils {
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   static secureRetrieve(key: string, decrypt: boolean = false): any {
     try {
       let data = localStorage.getItem(key);

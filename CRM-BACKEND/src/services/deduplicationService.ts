@@ -49,7 +49,7 @@ export class DeduplicationService {
       logger.info('Starting deduplication search', { criteria });
 
       const searchConditions: string[] = [];
-      const searchParams: any[] = [];
+      const searchParams: (string | number)[] = [];
       let paramIndex = 1;
 
       // Exact matches for structured data
@@ -236,7 +236,7 @@ export class DeduplicationService {
   /**
    * Get deduplication audit history for a case
    */
-  async getDeduplicationHistory(caseId: string): Promise<any[]> {
+  async getDeduplicationHistory(caseId: string): Promise<unknown[]> {
     try {
       const query = `
         SELECT 
@@ -249,7 +249,12 @@ export class DeduplicationService {
       `;
 
       const result = await this.db.query(query, [caseId]);
-      return result.rows;
+      return result.rows as unknown as {
+        caseId: string;
+        matchType: string;
+        matchDetails: Record<string, unknown>;
+        timestamp: Date;
+      }[];
     } catch (error) {
       logger.error('Error fetching deduplication history', { error, caseId });
       throw new Error('Failed to fetch deduplication history');

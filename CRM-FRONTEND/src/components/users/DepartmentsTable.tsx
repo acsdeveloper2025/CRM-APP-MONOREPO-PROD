@@ -67,7 +67,7 @@ export function DepartmentsTable({ onEditDepartment }: DepartmentsTableProps) {
       toast.success('Department deleted successfully');
       setDeleteDepartment(null);
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error(error.response?.data?.message || 'Failed to delete department');
       setDeleteDepartment(null);
     },
@@ -246,7 +246,7 @@ export function DepartmentsTable({ onEditDepartment }: DepartmentsTableProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Department</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete the department "{deleteDepartment?.name}"? This action cannot be undone.
+              Are you sure you want to delete the department &quot;{deleteDepartment?.name}&quot;? This action cannot be undone.
               {deleteDepartment && deleteDepartment.userCount > 0 && (
                 <div className="mt-2 p-2 bg-destructive/10 border border-destructive/20 rounded text-destructive text-sm">
                   This department cannot be deleted because it has:

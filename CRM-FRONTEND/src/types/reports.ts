@@ -43,7 +43,7 @@ export interface MISReport {
   period: string;
   generatedAt: string;
   generatedBy: string;
-  data: any;
+  data: unknown;
   filters: ReportFilters;
 }
 

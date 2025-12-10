@@ -1,6 +1,3 @@
-/* eslint-disable @typescript-eslint/restrict-template-expressions */
-/* eslint-disable @typescript-eslint/no-base-to-string */
-// Disabled template expression rules for designations controller as it handles query params in template literals
 import type { Request, Response } from 'express';
 import { query } from '@/config/database';
 import { logger } from '@/config/logger';
@@ -14,11 +11,11 @@ export const getDesignations = async (req: Request, res: Response) => {
     const offset = (Number(page) - 1) * Number(limit);
 
     const whereConditions = [];
-    const queryParams: any[] = [];
+    const queryParams: (string | number | boolean)[] = [];
     let paramIndex = 1;
 
     // Search filter
-    if (search) {
+    if (search && typeof search === 'string') {
       whereConditions.push(`(d.name ILIKE $${paramIndex} OR d.description ILIKE $${paramIndex})`);
       queryParams.push(`%${search}%`);
       paramIndex++;
@@ -34,7 +31,7 @@ export const getDesignations = async (req: Request, res: Response) => {
     // Department filter
     if (departmentId) {
       whereConditions.push(`d."departmentId" = $${paramIndex}`);
-      queryParams.push(departmentId);
+      queryParams.push(departmentId as string);
       paramIndex++;
     }
 
@@ -335,11 +332,11 @@ export const getActiveDesignations = async (req: Request, res: Response) => {
     const { departmentId } = req.query;
 
     let whereClause = 'WHERE d."isActive" = true';
-    const queryParams: any[] = [];
+    const queryParams: (string | number)[] = [];
 
     if (departmentId) {
       whereClause += ' AND (d."departmentId" = $1 OR d."departmentId" IS NULL)';
-      queryParams.push(departmentId);
+      queryParams.push(departmentId as string);
     }
 
     const designationsQuery = `

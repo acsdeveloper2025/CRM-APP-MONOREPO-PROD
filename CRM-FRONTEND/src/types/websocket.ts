@@ -7,7 +7,7 @@ export interface WebSocketConfig {
 
 export interface WebSocketMessage {
   type: string;
-  data: any;
+  data: unknown;
   timestamp: string;
 }
 
@@ -29,7 +29,7 @@ export interface CaseStatusUpdate {
 
 export interface CaseUpdate {
   caseId: string;
-  data: any;
+  data: unknown;
   timestamp: string;
 }
 
@@ -63,7 +63,7 @@ export interface NotificationEvent {
   actionUrl?: string;
   actionType?: string;
   priority?: string;
-  data?: any;
+  data?: unknown;
   timestamp: string;
   read?: boolean;
 }

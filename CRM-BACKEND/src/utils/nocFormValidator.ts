@@ -28,9 +28,9 @@ export interface FormValidationResult {
  * @returns Validation result with detailed field coverage information
  */
 export function validateAndPrepareNocForm(
-  formData: any,
+  formData: Record<string, unknown>,
   formType: string
-): { validationResult: FormValidationResult; preparedData: Record<string, any> } {
+): { validationResult: FormValidationResult; preparedData: Record<string, unknown> } {
   const warnings: string[] = [];
   const missingFields: string[] = [];
 
@@ -54,7 +54,7 @@ export function validateAndPrepareNocForm(
   warnings.push(...conditionalWarnings);
 
   // Map form data to database fields
-  const mappedData: Record<string, any> = {};
+  const mappedData: Record<string, unknown> = {};
   for (const [mobileField, value] of Object.entries(formData)) {
     const dbColumn = NOC_FIELD_MAPPING[mobileField];
 
@@ -182,7 +182,7 @@ function getRequiredFieldsByFormType(formType: string): string[] {
 /**
  * Validates conditional fields based on form type and field values
  */
-function validateConditionalFields(formData: any, formType: string): string[] {
+function validateConditionalFields(formData: Record<string, unknown>, formType: string): string[] {
   const warnings: string[] = [];
 
   if (formType === 'POSITIVE') {
@@ -220,8 +220,10 @@ function validateConditionalFields(formData: any, formType: string): string[] {
 
     // Units validation
     if (
-      formData.totalUnits &&
-      formData.completedUnits &&
+      formData.totalUnits !== undefined &&
+      formData.completedUnits !== undefined &&
+      typeof formData.totalUnits === 'number' &&
+      typeof formData.completedUnits === 'number' &&
       formData.completedUnits > formData.totalUnits
     ) {
       warnings.push('completedUnits should not exceed totalUnits');
@@ -229,9 +231,17 @@ function validateConditionalFields(formData: any, formType: string): string[] {
 
     // Date validation
     if (formData.nocIssueDate && formData.nocExpiryDate) {
-      const issueDate = new Date(formData.nocIssueDate);
-      const expiryDate = new Date(formData.nocExpiryDate);
-      if (expiryDate <= issueDate) {
+      const issueDate = new Date(
+        typeof formData.nocIssueDate === 'object' && formData.nocIssueDate !== null
+          ? JSON.stringify(formData.nocIssueDate)
+          : String(formData.nocIssueDate as string | number | boolean | null | undefined)
+      );
+      const expiryDate = new Date(
+        typeof formData.nocExpiryDate === 'object' && formData.nocExpiryDate !== null
+          ? JSON.stringify(formData.nocExpiryDate)
+          : String(formData.nocExpiryDate as string | number | boolean | null | undefined)
+      );
+      if (!isNaN(issueDate.getTime()) && !isNaN(expiryDate.getTime()) && expiryDate <= issueDate) {
         warnings.push('nocExpiryDate should be after nocIssueDate');
       }
     }
@@ -255,7 +265,7 @@ function validateConditionalFields(formData: any, formType: string): string[] {
 /**
  * Processes field values based on field type and validation rules
  */
-function processFieldValue(fieldName: string, value: any): any {
+function processFieldValue(fieldName: string, value: unknown): unknown {
   // Handle null/undefined values
   if (value === null || value === undefined) {
     return null;
@@ -291,7 +301,11 @@ function processFieldValue(fieldName: string, value: any): any {
   }
 
   // Default: convert to string and trim, return null if empty
-  const trimmedValue = String(value).trim();
+  const trimmedValue = (
+    typeof value === 'object' && value !== null
+      ? JSON.stringify(value)
+      : String(value as string | number | boolean | null | undefined)
+  ).trim();
   return trimmedValue === '' ? null : trimmedValue;
 }
 
@@ -299,8 +313,8 @@ function processFieldValue(fieldName: string, value: any): any {
  * Generates a comprehensive field coverage report for debugging
  */
 export function generateNocFieldCoverageReport(
-  formData: any,
-  preparedData: Record<string, any>,
+  formData: Record<string, unknown>,
+  preparedData: Record<string, unknown>,
   formType: string
 ): string {
   const originalFields = Object.keys(formData).length;

@@ -17,7 +17,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   const { isAuthenticated, isLoading, hasAnyRole } = useAuth();
   const location = useLocation();
 
-  console.log('ProtectedRoute:', {
+  console.warn('ProtectedRoute:', {
     path: location.pathname,
     isAuthenticated,
     isLoading,

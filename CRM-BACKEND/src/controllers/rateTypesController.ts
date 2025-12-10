@@ -1,10 +1,8 @@
-/* eslint-disable @typescript-eslint/restrict-template-expressions */
-/* eslint-disable @typescript-eslint/no-base-to-string */
-// Disabled template expression rules for rate types controller as it handles query params in template literals
 import type { Response } from 'express';
 import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
 import { query } from '@/config/database';
+import type { QueryParams } from '@/types/database';
 
 // GET /api/rate-types - List rate types with pagination and filters
 export const getRateTypes = async (req: AuthenticatedRequest, res: Response) => {
@@ -19,17 +17,17 @@ export const getRateTypes = async (req: AuthenticatedRequest, res: Response) => 
     } = req.query;
 
     // Build where clause
-    const values: any[] = [];
+    const values: QueryParams = [];
     const whereSql: string[] = [];
 
-    if (search) {
+    if (search && typeof search === 'string') {
       values.push(`%${String(search)}%`);
       values.push(`%${String(search)}%`);
       whereSql.push('(name ILIKE $1 OR description ILIKE $2)');
     }
 
     if (typeof isActive !== 'undefined') {
-      values.push(String(isActive) === 'true');
+      values.push(typeof isActive === 'string' ? isActive === 'true' : Boolean(isActive));
       whereSql.push(`"isActive" = $${values.length}`);
     }
 
@@ -45,11 +43,14 @@ export const getRateTypes = async (req: AuthenticatedRequest, res: Response) => 
     // Get rate types with pagination
     const offset = (Number(page) - 1) * Number(limit);
     const sortCol = ['name', 'description', 'isActive', 'createdAt', 'updatedAt'].includes(
-      String(sortBy)
+      typeof sortBy === 'string' ? sortBy : ''
     )
-      ? String(sortBy)
+      ? typeof sortBy === 'string'
+        ? sortBy
+        : ''
       : 'name';
-    const sortDir = String(sortOrder).toLowerCase() === 'desc' ? 'DESC' : 'ASC';
+    const sortDir =
+      typeof sortOrder === 'string' ? sortOrder : 'asc'.toLowerCase() === 'desc' ? 'DESC' : 'ASC';
 
     const listRes = await query(
       `SELECT id, name, description, "isActive", "createdAt", "updatedAt"
@@ -281,7 +282,7 @@ export const updateRateType = async (req: AuthenticatedRequest, res: Response) =
     }
 
     // Prepare update data
-    const updatePayload: any = {};
+    const updatePayload: Record<string, unknown> = {};
     if (updateData.name) {
       updatePayload.name = updateData.name;
     }
@@ -294,11 +295,11 @@ export const updateRateType = async (req: AuthenticatedRequest, res: Response) =
 
     // Build dynamic update
     const sets: string[] = [];
-    const vals: any[] = [];
+    const vals: QueryParams = [];
     let idx = 1;
     for (const key of Object.keys(updatePayload)) {
       sets.push(`"${key}" = $${idx++}`);
-      vals.push(updatePayload[key]);
+      vals.push(updatePayload[key] as string | number | boolean | Date | number[] | string[]);
     }
     sets.push(`"updatedAt" = CURRENT_TIMESTAMP`);
     vals.push(Number(id));

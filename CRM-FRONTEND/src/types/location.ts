@@ -29,15 +29,7 @@ export interface City extends Omit<BaseEntity, 'id'> {
   pincodeCount?: number;
 }
 
-export interface Pincode extends Omit<BaseEntity, 'id'> {
-  id: number; // Numeric ID for pincodes
-  code: string;
-  cityId: number;
-  city?: string;
-  state?: string;
-  country?: string;
-  areas?: PincodeArea[];
-}
+
 
 export interface PincodeArea extends Omit<BaseEntity, 'id'> {
   id: number; // Numeric ID for areas

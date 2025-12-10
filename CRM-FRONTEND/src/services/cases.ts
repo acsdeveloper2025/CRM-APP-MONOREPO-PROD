@@ -18,6 +18,11 @@ export interface CaseUpdateData {
   priority?: string;
   notes?: string;
   assignedToId?: string;
+  customerName?: string;
+  customerPhone?: string;
+  clientId?: number;
+  productId?: number;
+  backendContactNumber?: string;
 }
 
 export interface CreateCaseData {
@@ -150,7 +155,7 @@ export class CasesService extends BaseApiService {
     return response.json();
   }
 
-  async createCaseWithMultipleTasks(payload: any): Promise<ApiResponse<any>> {
+  async createCaseWithMultipleTasks(payload: unknown): Promise<ApiResponse<unknown>> {
     // Payload is already in unified format from CaseWithTasksCreationForm
     return this.post('/create', payload);
   }
@@ -179,17 +184,17 @@ export class CasesService extends BaseApiService {
     return this.post(`/${id}/notes`, { note });
   }
 
-  async completeCase(id: string, data: any): Promise<ApiResponse<Case>> {
+  async completeCase(id: string, data: unknown): Promise<ApiResponse<Case>> {
     return this.post(`/${id}/complete`, data);
   }
 
-  async getCaseAttachments(id: string): Promise<ApiResponse<any[]>> {
+  async getCaseAttachments(id: string): Promise<ApiResponse<unknown[]>> {
     // Delegate to attachments service which uses the correct /api/attachments base path
     return attachmentsService.getAttachmentsByCase(id);
   }
 
   // eslint-disable-next-line camelcase
-  async uploadCaseAttachments(caseId: string, files: File[], verification_task_id?: string): Promise<ApiResponse<any>> {
+  async uploadCaseAttachments(caseId: string, files: File[], verification_task_id?: string): Promise<ApiResponse<unknown>> {
     // Delegate to attachments service which uses the correct /api/attachments base path
     return attachmentsService.uploadAttachments({ caseId, files, verification_task_id });
   }
@@ -199,7 +204,7 @@ export class CasesService extends BaseApiService {
     return attachmentsService.downloadAttachment(id);
   }
 
-  async getCaseHistory(id: string): Promise<ApiResponse<any[]>> {
+  async getCaseHistory(id: string): Promise<ApiResponse<unknown[]>> {
     return this.get(`/${id}/history`);
   }
 
@@ -233,8 +238,8 @@ export class CasesService extends BaseApiService {
 
     // Sort combined cases by pending duration (longest pending first)
     allCases.sort((a, b) => {
-      const aPendingDuration = (a as any).pendingDurationSeconds || 0;
-      const bPendingDuration = (b as any).pendingDurationSeconds || 0;
+      const aPendingDuration = a.pendingDurationSeconds || 0;
+      const bPendingDuration = b.pendingDurationSeconds || 0;
       return bPendingDuration - aPendingDuration;
     });
 

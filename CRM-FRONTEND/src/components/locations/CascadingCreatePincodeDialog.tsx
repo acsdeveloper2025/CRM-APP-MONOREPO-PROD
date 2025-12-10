@@ -69,7 +69,7 @@ export function CascadingCreatePincodeDialog({ open, onOpenChange }: CascadingCr
       form.reset();
       onOpenChange(false);
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       console.error('Create pincode error:', error);
       const errorMessage = error?.response?.data?.message || 'Failed to create pincode';
       toast.error(errorMessage);

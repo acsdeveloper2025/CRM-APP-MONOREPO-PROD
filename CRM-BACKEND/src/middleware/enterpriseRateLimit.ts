@@ -1,6 +1,11 @@
 import type { Request, Response, NextFunction } from 'express';
 import { EnterpriseCacheService, CacheKeys } from '../services/enterpriseCacheService';
 import { logger } from '../config/logger';
+import type { AuthenticatedRequest } from './auth';
+
+interface RequestWithRateLimit extends Request {
+  rateLimit?: RateLimitInfo;
+}
 
 export interface RateLimitConfig {
   windowMs: number;
@@ -77,12 +82,12 @@ export class EnterpriseRateLimit {
         }
 
         // Add rate limit info to request for monitoring
-        (req as any).rateLimit = {
+        (req as RequestWithRateLimit).rateLimit = {
           limit: maxRequests,
           current,
           remaining,
           resetTime,
-        } as RateLimitInfo;
+        };
 
         next();
       } catch (error) {
@@ -97,7 +102,7 @@ export class EnterpriseRateLimit {
    * Default key generator based on IP and user ID
    */
   private static defaultKeyGenerator(req: Request): string {
-    const userId = (req as any).user?.id;
+    const userId = (req as AuthenticatedRequest).user?.id;
     const ip = req.ip || req.connection.remoteAddress || 'unknown';
     const endpoint = `${req.method}:${req.route?.path || req.path}`;
 
@@ -109,7 +114,7 @@ export class EnterpriseRateLimit {
    */
   static roleBasedLimiter(limits: Record<string, RateLimitConfig>) {
     return async (req: Request, res: Response, next: NextFunction) => {
-      const userRole = (req as any).user?.role || 'GUEST';
+      const userRole = (req as AuthenticatedRequest).user?.role || 'GUEST';
       const config = limits[userRole] || limits['DEFAULT'];
 
       if (!config) {
@@ -171,8 +176,9 @@ export class EnterpriseRateLimit {
       // In production, integrate with monitoring systems
       // For now, return a mock value based on cache stats
       const stats = await EnterpriseCacheService.getStats();
-      const memoryUsage = stats.memory?.used_memory_rss || 0;
-      const maxMemory = stats.memory?.maxmemory || 1000000000; // 1GB default
+      const memory = stats.memory as Record<string, number> | undefined;
+      const memoryUsage = memory?.used_memory_rss || 0;
+      const maxMemory = memory?.maxmemory || 1000000000; // 1GB default
 
       return memoryUsage / maxMemory;
     } catch {

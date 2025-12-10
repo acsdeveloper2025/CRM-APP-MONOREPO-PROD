@@ -135,7 +135,7 @@ export function CityDetailsDialog({ city, open, onOpenChange }: CityDetailsDialo
                   <MapPin className="mx-auto h-12 w-12 text-gray-600" />
                   <h3 className="mt-4 text-lg font-semibold">No pincodes found</h3>
                   <p className="text-gray-600">
-                    This city doesn't have any pincodes assigned yet.
+                    This city doesn&apos;t have any pincodes assigned yet.
                   </p>
                 </div>
               )}

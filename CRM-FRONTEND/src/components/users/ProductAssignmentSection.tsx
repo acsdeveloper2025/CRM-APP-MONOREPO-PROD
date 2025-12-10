@@ -42,7 +42,7 @@ export function ProductAssignmentSection({ user }: ProductAssignmentSectionProps
   // eslint-disable-next-line react-hooks/rules-of-hooks
   useEffect(() => {
     if (assignmentsData?.data) {
-      const assignedProductIds = assignmentsData.data.map((assignment: any) => assignment.productId);
+      const assignedProductIds = assignmentsData.data.map((assignment: unknown) => assignment.productId);
       setSelectedProductIds(assignedProductIds);
     }
   }, [assignmentsData]);
@@ -65,7 +65,7 @@ export function ProductAssignmentSection({ user }: ProductAssignmentSectionProps
         }
       });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error(error.response?.data?.message || 'Failed to update product assignments');
     },
   });

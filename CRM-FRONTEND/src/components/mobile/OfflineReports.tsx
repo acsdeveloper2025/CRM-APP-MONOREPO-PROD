@@ -62,40 +62,7 @@ export const OfflineReports: React.FC = () => {
   });
   const [selectedReports, setSelectedReports] = useState<string[]>([]);
 
-  useEffect(() => {
-    // Auto-sync when coming online
-    if (isOnline && connectionQuality !== 'poor') {
-      handleAutoSync();
-    }
-  }, [isOnline, connectionQuality]);
-
-  const handleAutoSync = async () => {
-    const pendingReports = offlineReports.filter(report => report.syncStatus === 'pending');
-    if (pendingReports.length > 0) {
-      await handleSyncData();
-    }
-  };
-
-  const handleDownloadReport = async (reportType: string) => {
-    try {
-      setSyncStatus(prev => ({ ...prev, isActive: true, progress: 0 }));
-      
-      // Simulate download progress
-      for (let i = 0; i <= 100; i += 10) {
-        setSyncStatus(prev => ({ ...prev, progress: i }));
-        await new Promise(resolve => setTimeout(resolve, 200));
-      }
-
-      await downloadReport(reportType);
-      
-      setSyncStatus(prev => ({ ...prev, isActive: false, progress: 100 }));
-    } catch (error) {
-      console.error('Error downloading report:', error);
-      setSyncStatus(prev => ({ ...prev, isActive: false }));
-    }
-  };
-
-  const handleSyncData = async () => {
+  const handleSyncData = React.useCallback(async () => {
     try {
       setSyncStatus({
         isActive: true,
@@ -118,7 +85,31 @@ export const OfflineReports: React.FC = () => {
       console.error('Error syncing data:', error);
       setSyncStatus(prev => ({ ...prev, isActive: false }));
     }
-  };
+  }, [offlineReports, syncPendingData]);
+
+  const handleAutoSync = React.useCallback(async () => {
+    const pendingReports = offlineReports.filter(report => report.syncStatus === 'pending');
+    if (pendingReports.length > 0) {
+      await handleSyncData();
+    }
+  }, [offlineReports, handleSyncData]);
+
+  const handleDownloadReport = React.useCallback(async (type: 'performance' | 'submissions' | 'analytics') => {
+    try {
+      await downloadReport(type);
+    } catch (error) {
+      console.error('Error downloading report:', error);
+    }
+  }, [downloadReport]);
+
+  useEffect(() => {
+    // Auto-sync when coming online
+    if (isOnline && connectionQuality !== 'poor') {
+      handleAutoSync();
+    }
+  }, [isOnline, connectionQuality, handleAutoSync]);
+
+
 
   const handleDeleteSelected = async () => {
     for (const reportId of selectedReports) {

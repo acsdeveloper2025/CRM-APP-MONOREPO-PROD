@@ -1,4 +1,4 @@
-import type { Request, Response } from 'express';
+import type { Response } from 'express';
 import { query } from '@/config/database';
 import type {
   MobileLocationCaptureRequest,
@@ -7,10 +7,14 @@ import type {
 } from '../types/mobile';
 import { createAuditLog } from '../utils/auditLogger';
 import { config } from '../config';
+import type { AuthenticatedRequest } from '../middleware/auth';
+import type { QueryParams } from '../types/database';
+
+import { Role } from '../types/auth';
 
 export class MobileLocationController {
   // Capture GPS location
-  static async captureLocation(req: Request, res: Response) {
+  static async captureLocation(this: void, req: AuthenticatedRequest, res: Response) {
     try {
       const {
         latitude,
@@ -21,7 +25,7 @@ export class MobileLocationController {
         caseId,
         activityType,
       }: MobileLocationCaptureRequest = req.body;
-      const userId = (req as any).user?.userId;
+      const userId = req.user?.id;
 
       if (!latitude || !longitude || !accuracy || !timestamp || !source) {
         return res.status(400).json({
@@ -52,18 +56,23 @@ export class MobileLocationController {
 
       // Validate case access if caseId provided
       if (caseId) {
-        const userRole = (req as any).user?.role;
-        const where: any = { id: caseId };
+        const userRole = req.user?.role;
+        const where: Record<string, unknown> = { id: caseId };
 
-        if (userRole === 'FIELD_AGENT') {
+        if (userRole === Role.FIELD_AGENT) {
           where.assignedTo = userId;
         }
 
-        const caseSqlVals: any[] = [where.id];
+        const caseSqlVals: QueryParams = [where.id as string];
         let caseSql = `SELECT id FROM cases WHERE id = $1`;
         if (where.assignedTo) {
           caseSql += ` AND "assignedTo" = $2`;
-          caseSqlVals.push(where.assignedTo);
+          const assignedToValue = where.assignedTo;
+          if (typeof assignedToValue === 'string' || typeof assignedToValue === 'number') {
+            caseSqlVals.push(String(assignedToValue));
+          } else {
+            caseSqlVals.push(String(userId)); // Fallback to userId
+          }
         }
         const caseRes = await query(caseSql, caseSqlVals);
         const existingCase = caseRes.rows[0];
@@ -129,7 +138,7 @@ export class MobileLocationController {
   }
 
   // Validate location against expected address
-  static async validateLocation(req: Request, res: Response) {
+  static async validateLocation(this: void, req: AuthenticatedRequest, res: Response) {
     try {
       const {
         latitude,
@@ -169,11 +178,17 @@ export class MobileLocationController {
       if (expectedAddress) {
         try {
           // Use reverse geocoding to get actual address
-          const actualAddress = await this.reverseGeocodeHelper(latitude, longitude);
+          const actualAddress = await MobileLocationController.reverseGeocodeHelper(
+            latitude,
+            longitude
+          );
 
           if (actualAddress) {
             // Simple address matching (in production, use more sophisticated matching)
-            const similarity = this.calculateAddressSimilarity(expectedAddress, actualAddress);
+            const similarity = MobileLocationController.calculateAddressSimilarity(
+              expectedAddress,
+              actualAddress
+            );
             validationResult = {
               isValid: similarity > 0.7,
               distance: 0, // Would calculate actual distance in production
@@ -207,7 +222,7 @@ export class MobileLocationController {
   }
 
   // Reverse geocode coordinates to address
-  static async reverseGeocode(req: Request, res: Response) {
+  static async reverseGeocode(this: void, req: AuthenticatedRequest, res: Response) {
     try {
       const { latitude, longitude } = req.query;
 
@@ -233,7 +248,7 @@ export class MobileLocationController {
         });
       }
 
-      const address = await this.reverseGeocodeHelper(
+      const address = await MobileLocationController.reverseGeocodeHelper(
         parseFloat(latitude as string),
         parseFloat(longitude as string)
       );
@@ -274,24 +289,24 @@ export class MobileLocationController {
   }
 
   // Get location history for a case
-  static async getCaseLocationHistory(req: Request, res: Response) {
+  static async getCaseLocationHistory(this: void, req: AuthenticatedRequest, res: Response) {
     try {
       const { caseId: paramCaseId, taskId: paramTaskId } = req.params;
       const caseId = paramCaseId || paramTaskId;
-      const userId = (req as any).user?.userId;
-      const userRole = (req as any).user?.role;
+      const userId = req.user?.id;
+      const userRole = req.user?.role;
 
       // Verify case access
-      const where: any = { id: caseId };
-      if (userRole === 'FIELD') {
+      const where: Record<string, unknown> = { id: caseId };
+      if (userRole === Role.FIELD_AGENT) {
         where.assignedToId = userId;
       }
 
-      const vals8: any[] = [caseId];
+      const vals8: QueryParams = [caseId];
       let exSql6 = `SELECT id FROM cases WHERE id = $1`;
-      if (userRole === 'FIELD') {
+      if (userRole === Role.FIELD_AGENT) {
         exSql6 += ` AND "assignedToId" = $2`;
-        vals8.push(userId);
+        vals8.push(String(userId));
       }
       const exRes6 = await query(exSql6, vals8);
       const existingCase = exRes6.rows[0];
@@ -314,12 +329,12 @@ export class MobileLocationController {
         [caseId]
       );
 
-      const formattedHistory = locRes.rows.map((location: any) => ({
+      const formattedHistory = locRes.rows.map((location: Record<string, unknown>) => ({
         id: location.id,
         latitude: location.latitude,
         longitude: location.longitude,
         accuracy: location.accuracy,
-        timestamp: new Date(location.timestamp).toISOString(),
+        timestamp: new Date(location.timestamp as string).toISOString(),
         source: location.source,
         case: { id: location.caseId, title: location.title, customerName: location.customerName },
       }));
@@ -377,12 +392,16 @@ export class MobileLocationController {
   }
 
   // Get user's current location trail
-  static async getUserLocationTrail(req: Request, res: Response) {
+  static async getUserLocationTrail(this: void, req: AuthenticatedRequest, res: Response) {
     try {
-      const userId = (req as any).user?.userId;
+      const userId = req.user?.id;
       const { startDate, endDate, limit = 100 } = req.query;
 
-      const where: any = { userId };
+      const where: {
+        userId?: string;
+        caseId?: string;
+        timestamp?: { gte?: Date; lte?: Date };
+      } = { userId };
 
       if (startDate || endDate) {
         where.timestamp = {};
@@ -394,7 +413,7 @@ export class MobileLocationController {
         }
       }
 
-      const vals: any[] = [];
+      const vals: QueryParams = [];
       let sql = `SELECT l.id, l.latitude, l.longitude, l.accuracy, l.timestamp, l.source, c.id as "caseId", c.title, c."customerName" FROM locations l JOIN cases c ON c.id = l."caseId"`;
       const wh: string[] = [];
       if (where.caseId) {

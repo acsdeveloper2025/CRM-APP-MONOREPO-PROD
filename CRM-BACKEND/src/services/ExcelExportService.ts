@@ -1,4 +1,3 @@
-/* eslint-disable no-return-await, @typescript-eslint/require-await */
 // Disabled no-return-await rule for Excel export service as it uses return await pattern
 // Disabled require-await rule for Excel export service as some methods are async for consistency
 import ExcelJS from 'exceljs';
@@ -6,12 +5,25 @@ import { pool } from '../config/database';
 import { logger } from '../utils/logger';
 import path from 'path';
 import fs from 'fs/promises';
+import type {
+  ReportData,
+  FormSubmissionsReportData,
+  AgentPerformanceReportData,
+  CaseAnalyticsReportData,
+  ValidationStatusReportData,
+  FormSubmissionRow,
+  AgentPerformanceRow,
+  DailyPerformanceRow,
+  CaseAnalyticsRow,
+  ValidationStatusRow,
+  FormTypeBreakdownRow,
+} from '../types/reports';
 
 export interface ExcelExportOptions {
   reportType: 'form-submissions' | 'agent-performance' | 'case-analytics' | 'validation-status';
   dateFrom?: string;
   dateTo?: string;
-  filters?: Record<string, any>;
+  filters?: Record<string, unknown>;
   includeCharts?: boolean;
   includeSummary?: boolean;
   sheetNames?: string[];
@@ -50,7 +62,7 @@ export class ExcelExportService {
       const data = await this.fetchReportData(options);
 
       // Create worksheets based on report type
-      await this.createWorksheets(workbook, data, options);
+      this.createWorksheets(workbook, data, options);
 
       // Save Excel file
       const fileName = this.generateFileName(options);
@@ -81,18 +93,18 @@ export class ExcelExportService {
     }
   }
 
-  private async fetchReportData(options: ExcelExportOptions): Promise<any> {
+  private async fetchReportData(options: ExcelExportOptions): Promise<ReportData> {
     const { reportType, dateFrom, dateTo, filters } = options;
 
     switch (reportType) {
       case 'form-submissions':
-        return await this.fetchFormSubmissionsData(dateFrom, dateTo, filters);
+        return this.fetchFormSubmissionsData(dateFrom, dateTo, filters);
       case 'agent-performance':
-        return await this.fetchAgentPerformanceData(dateFrom, dateTo, filters);
+        return this.fetchAgentPerformanceData(dateFrom, dateTo, filters);
       case 'case-analytics':
-        return await this.fetchCaseAnalyticsData(dateFrom, dateTo, filters);
+        return this.fetchCaseAnalyticsData(dateFrom, dateTo, filters);
       case 'validation-status':
-        return await this.fetchValidationStatusData(dateFrom, dateTo, filters);
+        return this.fetchValidationStatusData(dateFrom, dateTo, filters);
       default:
         throw new Error(`Unsupported report type: ${String(reportType)}`);
     }
@@ -101,8 +113,8 @@ export class ExcelExportService {
   private async fetchFormSubmissionsData(
     dateFrom?: string,
     dateTo?: string,
-    filters?: any
-  ): Promise<any> {
+    filters?: Record<string, unknown>
+  ): Promise<FormSubmissionsReportData> {
     const whereConditions = [];
     const queryParams = [];
     let paramIndex = 1;
@@ -121,7 +133,7 @@ export class ExcelExportService {
 
     if (filters?.formType) {
       whereConditions.push(`fs.form_type = $${paramIndex}`);
-      queryParams.push(filters.formType);
+      queryParams.push(filters.formType as string);
       paramIndex++;
     }
 
@@ -204,8 +216,8 @@ export class ExcelExportService {
   private async fetchAgentPerformanceData(
     dateFrom?: string,
     dateTo?: string,
-    _filters?: any
-  ): Promise<any> {
+    _filters?: Record<string, unknown>
+  ): Promise<AgentPerformanceReportData> {
     const whereConditions = [];
     const queryParams = [];
     let paramIndex = 1;
@@ -289,8 +301,8 @@ export class ExcelExportService {
   private async fetchCaseAnalyticsData(
     dateFrom?: string,
     dateTo?: string,
-    _filters?: any
-  ): Promise<any> {
+    _filters?: Record<string, unknown>
+  ): Promise<CaseAnalyticsReportData> {
     const whereConditions = [];
     const queryParams = [];
     let paramIndex = 1;
@@ -345,8 +357,8 @@ export class ExcelExportService {
   private async fetchValidationStatusData(
     dateFrom?: string,
     dateTo?: string,
-    _filters?: any
-  ): Promise<any> {
+    _filters?: Record<string, unknown>
+  ): Promise<ValidationStatusReportData> {
     const whereConditions = [];
     const queryParams = [];
     let paramIndex = 1;
@@ -391,32 +403,40 @@ export class ExcelExportService {
     };
   }
 
-  private async createWorksheets(
+  private createWorksheets(
     workbook: ExcelJS.Workbook,
-    data: any,
+    data: ReportData,
     options: ExcelExportOptions
-  ): Promise<void> {
+  ): void {
     switch (options.reportType) {
       case 'form-submissions':
-        await this.createFormSubmissionsWorksheets(workbook, data, options);
+        this.createFormSubmissionsWorksheets(workbook, data as FormSubmissionsReportData, options);
         break;
       case 'agent-performance':
-        await this.createAgentPerformanceWorksheets(workbook, data, options);
+        this.createAgentPerformanceWorksheets(
+          workbook,
+          data as AgentPerformanceReportData,
+          options
+        );
         break;
       case 'case-analytics':
-        await this.createCaseAnalyticsWorksheets(workbook, data, options);
+        this.createCaseAnalyticsWorksheets(workbook, data as CaseAnalyticsReportData, options);
         break;
       case 'validation-status':
-        await this.createValidationStatusWorksheets(workbook, data, options);
+        this.createValidationStatusWorksheets(
+          workbook,
+          data as ValidationStatusReportData,
+          options
+        );
         break;
     }
   }
 
-  private async createFormSubmissionsWorksheets(
+  private createFormSubmissionsWorksheets(
     workbook: ExcelJS.Workbook,
-    data: any,
+    data: FormSubmissionsReportData,
     options: ExcelExportOptions
-  ): Promise<void> {
+  ): void {
     // Summary worksheet
     if (options.includeSummary !== false) {
       const summarySheet = workbook.addWorksheet('Summary');
@@ -446,7 +466,7 @@ export class ExcelExportService {
     this.styleHeaderRow(dataSheet, 1);
 
     // Data rows
-    data.submissions.forEach((submission: any) => {
+    data.submissions.forEach((submission: FormSubmissionRow) => {
       dataSheet.addRow([
         submission.form_type,
         submission.validation_status,
@@ -473,12 +493,12 @@ export class ExcelExportService {
       breakdownSheet.addRow(breakdownHeaders);
       this.styleHeaderRow(breakdownSheet, 1);
 
-      data.formTypeBreakdown.forEach((item: any) => {
+      data.formTypeBreakdown.forEach((item: FormTypeBreakdownRow) => {
         breakdownSheet.addRow([
           item.form_type,
           item.validation_status,
           item.count,
-          item.avg_score ? parseFloat(item.avg_score).toFixed(2) : 'N/A',
+          item.avg_score ? parseFloat(String(item.avg_score)).toFixed(2) : 'N/A',
         ]);
       });
 
@@ -486,11 +506,11 @@ export class ExcelExportService {
     }
   }
 
-  private async createAgentPerformanceWorksheets(
+  private createAgentPerformanceWorksheets(
     workbook: ExcelJS.Workbook,
-    data: any,
+    data: AgentPerformanceReportData,
     _options: ExcelExportOptions
-  ): Promise<void> {
+  ): void {
     // Agent summary worksheet
     const summarySheet = workbook.addWorksheet('Agent Performance Summary');
 
@@ -512,7 +532,7 @@ export class ExcelExportService {
     summarySheet.addRow(headers);
     this.styleHeaderRow(summarySheet, 1);
 
-    data.agents.forEach((agent: any) => {
+    data.agents.forEach((agent: AgentPerformanceRow) => {
       const completionRate =
         agent.total_cases_assigned > 0
           ? `${((agent.cases_completed / agent.total_cases_assigned) * 100).toFixed(1)}%`
@@ -528,9 +548,11 @@ export class ExcelExportService {
         agent.cases_completed,
         completionRate,
         agent.total_forms_submitted,
-        agent.avg_quality_score ? parseFloat(agent.avg_quality_score).toFixed(1) : 'N/A',
-        agent.avg_validation_rate ? `${parseFloat(agent.avg_validation_rate).toFixed(1)}%` : 'N/A',
-        agent.total_distance ? parseFloat(agent.total_distance).toFixed(1) : 'N/A',
+        agent.avg_quality_score ? parseFloat(String(agent.avg_quality_score)).toFixed(1) : 'N/A',
+        agent.avg_validation_rate
+          ? `${parseFloat(String(agent.avg_validation_rate)).toFixed(1)}%`
+          : 'N/A',
+        agent.total_distance ? parseFloat(String(agent.total_distance)).toFixed(1) : 'N/A',
       ]);
     });
 
@@ -556,7 +578,7 @@ export class ExcelExportService {
       dailySheet.addRow(dailyHeaders);
       this.styleHeaderRow(dailySheet, 1);
 
-      data.dailyPerformance.forEach((daily: any) => {
+      data.dailyPerformance.forEach((daily: DailyPerformanceRow) => {
         dailySheet.addRow([
           new Date(daily.date).toLocaleDateString(),
           daily.agent_name,
@@ -564,12 +586,12 @@ export class ExcelExportService {
           daily.cases_assigned || 0,
           daily.cases_completed || 0,
           daily.forms_submitted || 0,
-          daily.quality_score ? parseFloat(daily.quality_score).toFixed(1) : 'N/A',
+          daily.quality_score ? parseFloat(String(daily.quality_score)).toFixed(1) : 'N/A',
           daily.validation_success_rate
-            ? `${parseFloat(daily.validation_success_rate).toFixed(1)}%`
+            ? `${parseFloat(String(daily.validation_success_rate)).toFixed(1)}%`
             : 'N/A',
-          daily.active_hours ? parseFloat(daily.active_hours).toFixed(1) : 'N/A',
-          daily.total_distance_km ? parseFloat(daily.total_distance_km).toFixed(1) : 'N/A',
+          daily.active_hours ? parseFloat(String(daily.active_hours)).toFixed(1) : 'N/A',
+          daily.total_distance_km ? parseFloat(String(daily.total_distance_km)).toFixed(1) : 'N/A',
         ]);
       });
 
@@ -577,11 +599,11 @@ export class ExcelExportService {
     }
   }
 
-  private async createCaseAnalyticsWorksheets(
+  private createCaseAnalyticsWorksheets(
     workbook: ExcelJS.Workbook,
-    data: any,
+    data: CaseAnalyticsReportData,
     options: ExcelExportOptions
-  ): Promise<void> {
+  ): void {
     // Summary worksheet
     if (options.includeSummary !== false) {
       const summarySheet = workbook.addWorksheet('Summary');
@@ -611,7 +633,7 @@ export class ExcelExportService {
     casesSheet.addRow(headers);
     this.styleHeaderRow(casesSheet, 1);
 
-    data.cases.forEach((caseItem: any) => {
+    data.cases.forEach((caseItem: CaseAnalyticsRow) => {
       casesSheet.addRow([
         caseItem.caseId,
         caseItem.customerName,
@@ -619,7 +641,7 @@ export class ExcelExportService {
         caseItem.client_name || 'N/A',
         caseItem.status,
         caseItem.priority || 'N/A',
-        caseItem.completion_days ? parseFloat(caseItem.completion_days).toFixed(1) : 'N/A',
+        caseItem.completion_days ? parseFloat(String(caseItem.completion_days)).toFixed(1) : 'N/A',
         caseItem.quality_score || 'N/A',
         caseItem.form_completion_percentage || 'N/A',
         caseItem.actual_forms_submitted || 0,
@@ -633,11 +655,11 @@ export class ExcelExportService {
     this.autoFitColumns(casesSheet);
   }
 
-  private async createValidationStatusWorksheets(
+  private createValidationStatusWorksheets(
     workbook: ExcelJS.Workbook,
-    data: any,
+    data: ValidationStatusReportData,
     _options: ExcelExportOptions
-  ): Promise<void> {
+  ): void {
     const validationSheet = workbook.addWorksheet('Validation Status');
 
     const headers = [
@@ -653,22 +675,28 @@ export class ExcelExportService {
     validationSheet.addRow(headers);
     this.styleHeaderRow(validationSheet, 1);
 
-    data.validationData.forEach((item: any) => {
+    data.validationData.forEach((item: ValidationStatusRow) => {
       validationSheet.addRow([
         item.form_type,
         item.validation_status,
         item.form_count,
-        item.avg_submission_score ? parseFloat(item.avg_submission_score).toFixed(2) : 'N/A',
-        item.avg_quality_score ? parseFloat(item.avg_quality_score).toFixed(2) : 'N/A',
-        item.avg_completeness ? parseFloat(item.avg_completeness).toFixed(2) : 'N/A',
-        item.avg_accuracy ? parseFloat(item.avg_accuracy).toFixed(2) : 'N/A',
+        item.avg_submission_score
+          ? parseFloat(String(item.avg_submission_score)).toFixed(2)
+          : 'N/A',
+        item.avg_quality_score ? parseFloat(String(item.avg_quality_score)).toFixed(2) : 'N/A',
+        item.avg_completeness ? parseFloat(String(item.avg_completeness)).toFixed(2) : 'N/A',
+        item.avg_accuracy ? parseFloat(String(item.avg_accuracy)).toFixed(2) : 'N/A',
       ]);
     });
 
     this.autoFitColumns(validationSheet);
   }
 
-  private createSummarySheet(worksheet: ExcelJS.Worksheet, summary: any, title: string): void {
+  private createSummarySheet(
+    worksheet: ExcelJS.Worksheet,
+    summary: Record<string, unknown>,
+    title: string
+  ): void {
     // Title
     worksheet.addRow([title]);
     worksheet.getRow(1).font = { bold: true, size: 16 };

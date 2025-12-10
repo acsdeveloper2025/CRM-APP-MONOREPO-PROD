@@ -34,8 +34,10 @@ export const CaseDetailPage: React.FC = () => {
 
 
 
-  const { data: caseData, isLoading, refetch } = useCase(id!);
-  const { data: formSubmissionsData, isLoading: formSubmissionsLoading } = useCaseFormSubmissions(id!);
+  // Ensure id is available or use empty string (hooks will handle empty/undefined)
+  const safeId = id || '';
+  const { data: caseData, isLoading, refetch } = useCase(safeId);
+  const { data: formSubmissionsData, isLoading: formSubmissionsLoading } = useCaseFormSubmissions(safeId);
   const assignCaseMutation = useAssignCase();
   // const { data: historyData } = useCaseHistory(id!);
 
@@ -45,13 +47,13 @@ export const CaseDetailPage: React.FC = () => {
 
   // Handler functions
   const handleEditCase = () => {
-    navigate(`/cases/${id}/edit`);
+    navigate(`/cases/${safeId}/edit`);
   };
 
   const handleReassignCase = async (assignedToId: string, reason: string) => {
     try {
       await assignCaseMutation.mutateAsync({
-        id: id!,
+        id: safeId,
         assignedToId,
         reason
       });
@@ -70,7 +72,7 @@ export const CaseDetailPage: React.FC = () => {
     return (
       <div className="text-center py-12">
         <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Case not found</h2>
-        <p className="mt-2 text-gray-600">The case you're looking for doesn't exist.</p>
+        <p className="mt-2 text-gray-600">The case you&apos;re looking for doesn&apos;t exist.</p>
         <Link to="/cases">
           <Button className="mt-4">
             <ArrowLeft className="h-4 w-4 mr-2" />
@@ -318,16 +320,16 @@ export const CaseDetailPage: React.FC = () => {
 
             <TabsContent value="status">
               <EnhancedCaseStatus
-                caseId={caseItem.caseId?.toString() || id!}
+                caseId={caseItem.caseId?.toString() || safeId}
                 currentStatus={caseItem.status}
                 submissionProgress={undefined} // TODO: Connect to real submission progress
                 retryQueueStatus={undefined} // TODO: Connect to real retry queue status
                 onRetrySubmission={() => {
-                  console.log('Retry submission for case:', id);
+                  console.warn('Retry submission for case:', id);
                   // TODO: Implement retry logic
                 }}
                 onClearRetryQueue={() => {
-                  console.log('Clear retry queue for case:', id);
+                  console.warn('Clear retry queue for case:', id);
                   // TODO: Implement clear retry queue logic
                 }}
               />
@@ -349,7 +351,7 @@ export const CaseDetailPage: React.FC = () => {
                     <OptimizedFormSubmissionViewer
                       key={submission.id}
                       submission={submission}
-                      caseId={id!}
+                      caseId={safeId}
                     />
                   ))
                 ) : (
@@ -368,7 +370,7 @@ export const CaseDetailPage: React.FC = () => {
 
             <TabsContent value="verification-tasks">
               <VerificationTasksManager
-                caseId={id!}
+                caseId={safeId}
                 caseNumber={caseItem?.caseId?.toString()}
                 customerName={caseItem?.customerName}
                 readonly={caseItem?.status === 'COMPLETED'}
@@ -381,7 +383,7 @@ export const CaseDetailPage: React.FC = () => {
                   <CardTitle>Case Attachments</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <CaseAttachmentsSection caseId={id!} />
+                  <CaseAttachmentsSection caseId={safeId} />
                 </CardContent>
               </Card>
             </TabsContent>
@@ -402,7 +404,8 @@ export const CaseDetailPage: React.FC = () => {
                   <span className="font-medium">Assigned To</span>
                 </div>
                 <p className="mt-1 text-sm text-gray-600">
-                  {caseItem.assignedTo?.name || 'Not assigned'}
+                  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                  {(caseItem as any).assignedTo?.name || 'Not assigned'}
                 </p>
               </div>
 

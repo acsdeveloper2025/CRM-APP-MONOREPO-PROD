@@ -1,10 +1,8 @@
-/* eslint-disable @typescript-eslint/restrict-template-expressions */
-/* eslint-disable @typescript-eslint/no-base-to-string */
-// Disabled template expression rules for countries controller as it handles query params in template literals
 import type { Response } from 'express';
 import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
 import { query } from '@/config/db';
+import type { QueryParams } from '@/types/database';
 
 interface Country {
   id: string;
@@ -39,17 +37,17 @@ export const getCountries = async (req: AuthenticatedRequest, res: Response) => 
       FROM countries
       WHERE 1=1
     `;
-    const params: any[] = [];
+    const params: QueryParams = [];
     let paramCount = 0;
 
     // Apply filters
     if (continent) {
       paramCount++;
       sql += ` AND continent = $${paramCount}`;
-      params.push(continent);
+      params.push(continent as string);
     }
 
-    if (search) {
+    if (search && typeof search === 'string') {
       paramCount++;
       sql += ` AND (COALESCE(name, '') ILIKE $${paramCount} OR COALESCE(code, '') ILIKE $${paramCount})`;
       params.push(`%${search}%`);
@@ -57,9 +55,11 @@ export const getCountries = async (req: AuthenticatedRequest, res: Response) => 
 
     // Apply sorting
     const validSortFields = ['name', 'code', 'continent', 'createdAt', 'updatedAt'];
-    const sortField = validSortFields.includes(sortBy as string) ? (sortBy as string) : 'name';
-    const sortDirection = sortOrder === 'desc' ? 'DESC' : 'ASC';
-    const sortFieldExpr =
+    const sortField: string = validSortFields.includes(sortBy as string)
+      ? (sortBy as string)
+      : 'name';
+    const sortDirection: 'ASC' | 'DESC' = sortOrder === 'desc' ? 'DESC' : 'ASC';
+    const sortFieldExpr: string =
       sortField === 'createdAt' || sortField === 'updatedAt' ? `"${sortField}"` : sortField;
     sql += ` ORDER BY ${sortFieldExpr} ${sortDirection}`;
 
@@ -81,16 +81,16 @@ export const getCountries = async (req: AuthenticatedRequest, res: Response) => 
 
     // Get total count for pagination
     let countSql = 'SELECT COUNT(*) FROM countries WHERE 1=1';
-    const countParams: any[] = [];
+    const countParams: QueryParams = [];
     let countParamCount = 0;
 
     if (continent) {
       countParamCount++;
       countSql += ` AND continent = $${countParamCount}`;
-      countParams.push(continent);
+      countParams.push(continent as string);
     }
 
-    if (search) {
+    if (search && typeof search === 'string') {
       countParamCount++;
       countSql += ` AND (COALESCE(name, '') ILIKE $${countParamCount} OR COALESCE(code, '') ILIKE $${countParamCount})`;
       countParams.push(`%${search}%`);
@@ -266,7 +266,7 @@ export const updateCountry = async (req: AuthenticatedRequest, res: Response) =>
 
     // Build update query
     const updateFields: string[] = [];
-    const updateValues: any[] = [];
+    const updateValues: QueryParams = [];
     let paramCount = 0;
 
     if (updateData.name) {
@@ -448,7 +448,7 @@ export const bulkImportCountries = async (
       created: 0,
       updated: 0,
       failed: 0,
-      errors: [] as Array<{ row: number; data: any; error: string }>,
+      errors: [] as Array<{ row: number; data: Record<string, unknown>; error: string }>,
     };
 
     // Process each row
@@ -514,12 +514,12 @@ export const bulkImportCountries = async (
           );
           results.created++;
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         results.failed++;
         results.errors.push({
           row: i + 1,
           data: row,
-          error: error.message || 'Unknown error',
+          error: error instanceof Error ? error.message : 'Unknown error',
         });
         logger.error(`Error importing country at row ${i + 1}:`, error);
       }

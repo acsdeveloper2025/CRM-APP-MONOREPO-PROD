@@ -98,7 +98,7 @@ export function useResponsive(customBreakpoints?: Partial<BreakpointValues>) {
     for (let i = currentIndex; i < breakpointOrder.length; i++) {
       const bp = breakpointOrder[i];
       if (values[bp] !== undefined) {
-        return values[bp]!;
+        return values[bp] as T;
       }
     }
     
@@ -149,7 +149,7 @@ export function useResponsiveClasses() {
 
     // Add specific breakpoint class
     if (classes[currentBreakpoint]) {
-      classArray.push(classes[currentBreakpoint]!);
+      classArray.push(classes[currentBreakpoint] as string);
     }
 
     return classArray.join(' ');

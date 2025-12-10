@@ -33,7 +33,7 @@ export function EnhancedAreasMultiSelect({
     queryFn: () => locationsService.getStandaloneAreas(),
   });
 
-  const allAreas = areasData?.data || [];
+  const allAreas = useMemo(() => areasData?.data || [], [areasData?.data]);
 
   // Convert areas to dropdown options with search filtering
   const areaOptions: MultiSelectOption[] = useMemo(() => {
@@ -71,8 +71,8 @@ export function EnhancedAreasMultiSelect({
       console.error('EnhancedAreasMultiSelect Error:', queryError);
     }
     if (allAreas.length > 0) {
-      console.log('🔍 Areas data:', allAreas);
-      console.log('🔍 Processed options:', areaOptions);
+      console.warn('🔍 Areas data:', allAreas);
+      console.warn('🔍 Processed options:', areaOptions);
     }
   }, [queryError, allAreas, areaOptions]);
 

@@ -1,6 +1,17 @@
 import type { Server } from 'socket.io';
 import { logger } from '../utils/logger';
 import { query } from '../config/database';
+import type {
+  NotificationCaseData,
+  FieldUserData,
+  UpdateInfo,
+  MaintenanceInfo,
+  ValidationResult,
+  SubmissionResult,
+  AttachmentProgress,
+  AttachmentData,
+  AlertData,
+} from './eventTypes';
 
 export class MobileWebSocketEvents {
   private io: Server;
@@ -10,7 +21,7 @@ export class MobileWebSocketEvents {
   }
 
   // Notify mobile app about case assignment
-  async notifyCaseAssigned(userId: string, caseData: any) {
+  async notifyCaseAssigned(userId: string, caseData: NotificationCaseData) {
     const notificationId = `case_assigned_${caseData.id || caseData.caseId}_${Date.now()}`;
     const timestamp = new Date().toISOString();
 
@@ -19,7 +30,7 @@ export class MobileWebSocketEvents {
       case: caseData,
       timestamp,
       priority: caseData.priority,
-      requiresImmediate: caseData.priority >= 3,
+      requiresImmediate: typeof caseData.priority === 'number' && caseData.priority >= 3,
       notificationId,
     };
 
@@ -34,7 +45,7 @@ export class MobileWebSocketEvents {
         userId,
         caseId: caseData.id || caseData.caseId,
         casePriority: caseData.priority,
-        requiresImmediate: caseData.priority >= 3,
+        requiresImmediate: typeof caseData.priority === 'number' && caseData.priority >= 3,
         timestamp,
         notificationType: 'CASE_ASSIGNED',
       }
@@ -154,7 +165,7 @@ export class MobileWebSocketEvents {
   // Notify about case assignment to field user
   notifyCaseAssignment(
     userId: string,
-    caseData: any,
+    caseData: NotificationCaseData,
     assignmentType: 'assignment' | 'reassignment'
   ) {
     const notificationId = `case_${assignmentType}_${caseData.id || caseData.caseId}_${Date.now()}`;
@@ -198,7 +209,7 @@ export class MobileWebSocketEvents {
   }
 
   // Notify about case removal/reassignment to previous field user
-  notifyCaseRemoval(userId: string, caseData: any, reason: string) {
+  notifyCaseRemoval(userId: string, caseData: NotificationCaseData, reason: string) {
     const notificationId = `case_removed_${caseData.id || caseData.caseId}_${Date.now()}`;
     const timestamp = new Date().toISOString();
 
@@ -234,7 +245,11 @@ export class MobileWebSocketEvents {
   }
 
   // Notify backend users about case completion
-  notifyCaseCompletion(userIds: string[], caseData: any, fieldUserData: any) {
+  notifyCaseCompletion(
+    userIds: string[],
+    caseData: NotificationCaseData,
+    fieldUserData: FieldUserData
+  ) {
     const notificationId = `case_completed_${caseData.id || caseData.caseId}_${Date.now()}`;
     const timestamp = new Date().toISOString();
 
@@ -279,7 +294,11 @@ export class MobileWebSocketEvents {
   }
 
   // Notify backend users about case revocation
-  notifyCaseRevocation(userIds: string[], caseData: any, fieldUserData: any) {
+  notifyCaseRevocation(
+    userIds: string[],
+    caseData: NotificationCaseData,
+    fieldUserData: FieldUserData
+  ) {
     const notificationId = `case_revoked_${caseData.id || caseData.caseId}_${Date.now()}`;
     const timestamp = new Date().toISOString();
 
@@ -320,7 +339,7 @@ export class MobileWebSocketEvents {
   }
 
   // Notify mobile app about new messages/comments
-  notifyNewMessage(caseId: string, message: any, senderId: string) {
+  notifyNewMessage(caseId: string, message: Record<string, unknown>, senderId: string) {
     this.io.to(`case:${caseId}`).emit('mobile:case:message:new', {
       type: 'NEW_MESSAGE',
       caseId,
@@ -333,7 +352,7 @@ export class MobileWebSocketEvents {
   }
 
   // Notify mobile app about sync completion
-  notifySyncCompleted(userId: string, deviceId: string, syncResults: any) {
+  notifySyncCompleted(userId: string, deviceId: string, syncResults: unknown) {
     this.io.to(`device:${deviceId}`).emit('mobile:sync:completed', {
       type: 'SYNC_COMPLETED',
       results: syncResults,
@@ -344,7 +363,7 @@ export class MobileWebSocketEvents {
   }
 
   // Notify mobile app about sync conflicts
-  notifySyncConflicts(userId: string, deviceId: string, conflicts: any[]) {
+  notifySyncConflicts(userId: string, deviceId: string, conflicts: unknown[]) {
     this.io.to(`device:${deviceId}`).emit('mobile:sync:conflicts', {
       type: 'SYNC_CONFLICTS',
       conflicts,
@@ -358,7 +377,7 @@ export class MobileWebSocketEvents {
   }
 
   // Notify mobile app about app updates
-  notifyAppUpdate(platform: 'IOS' | 'ANDROID', updateInfo: any) {
+  notifyAppUpdate(platform: 'IOS' | 'ANDROID', updateInfo: UpdateInfo) {
     this.io.to(`platform:${platform}`).emit('mobile:app:update', {
       type: 'APP_UPDATE_AVAILABLE',
       platform,
@@ -371,7 +390,7 @@ export class MobileWebSocketEvents {
   }
 
   // Notify mobile app about system maintenance
-  notifySystemMaintenance(maintenanceInfo: any) {
+  notifySystemMaintenance(maintenanceInfo: MaintenanceInfo) {
     this.io.emit('mobile:system:maintenance', {
       type: 'SYSTEM_MAINTENANCE',
       maintenanceInfo,
@@ -383,7 +402,7 @@ export class MobileWebSocketEvents {
   }
 
   // Notify mobile app about location validation results
-  notifyLocationValidation(userId: string, caseId: string, validationResult: any) {
+  notifyLocationValidation(userId: string, caseId: string, validationResult: ValidationResult) {
     this.io.to(`user:${userId}`).emit('mobile:location:validation', {
       type: 'LOCATION_VALIDATION',
       caseId,
@@ -396,7 +415,12 @@ export class MobileWebSocketEvents {
   }
 
   // Notify mobile app about form submission success
-  notifyFormSubmitted(userId: string, caseId: string, formType: string, submissionResult: any) {
+  notifyFormSubmitted(
+    userId: string,
+    caseId: string,
+    formType: string,
+    submissionResult: SubmissionResult
+  ) {
     this.io.to(`user:${userId}`).emit('mobile:form:submitted', {
       type: 'FORM_SUBMITTED',
       caseId,
@@ -412,7 +436,7 @@ export class MobileWebSocketEvents {
   }
 
   // Notify mobile app about attachment upload progress
-  notifyAttachmentProgress(userId: string, caseId: string, progress: any) {
+  notifyAttachmentProgress(userId: string, caseId: string, progress: AttachmentProgress) {
     this.io.to(`user:${userId}`).emit('mobile:attachment:progress', {
       type: 'ATTACHMENT_PROGRESS',
       caseId,
@@ -422,7 +446,7 @@ export class MobileWebSocketEvents {
   }
 
   // Notify mobile app about attachment upload completion
-  notifyAttachmentUploaded(userId: string, caseId: string, attachment: any) {
+  notifyAttachmentUploaded(userId: string, caseId: string, attachment: AttachmentData) {
     this.io.to(`user:${userId}`).emit('mobile:attachment:uploaded', {
       type: 'ATTACHMENT_UPLOADED',
       caseId,
@@ -467,7 +491,7 @@ export class MobileWebSocketEvents {
   }
 
   // Notify mobile app about emergency alerts
-  notifyEmergencyAlert(alertData: any) {
+  notifyEmergencyAlert(alertData: AlertData) {
     this.io.emit('mobile:alert:emergency', {
       type: 'EMERGENCY_ALERT',
       alert: alertData,
@@ -502,7 +526,7 @@ export class MobileWebSocketEvents {
   }
 
   // Broadcast to all mobile users of a specific role
-  broadcastToRole(role: string, event: string, data: any) {
+  broadcastToRole(role: string, event: string, data: Record<string, unknown>) {
     this.io.to(`role:${role}`).emit(event, {
       ...data,
       timestamp: new Date().toISOString(),
@@ -512,7 +536,7 @@ export class MobileWebSocketEvents {
   }
 
   // Broadcast to all mobile users
-  broadcastToAllMobile(event: string, data: any) {
+  broadcastToAllMobile(event: string, data: Record<string, unknown>) {
     this.io.emit(event, {
       ...data,
       timestamp: new Date().toISOString(),

@@ -107,8 +107,9 @@ export class BaseApiService {
   }
 
   // Generic GET request
-  protected async get<T = any>(
+  protected async get<T = unknown>(
     endpoint: string = '',
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     params?: Record<string, any>,
     config?: AxiosRequestConfig
   ): Promise<ApiResponse<T>> {
@@ -124,9 +125,9 @@ export class BaseApiService {
   }
 
   // Generic POST request
-  protected async post<T = any>(
+  protected async post<T = unknown>(
     endpoint: string = '',
-    data?: any,
+    data?: unknown,
     config?: AxiosRequestConfig
   ): Promise<ApiResponse<T>> {
     try {
@@ -142,9 +143,9 @@ export class BaseApiService {
   }
 
   // Generic PUT request
-  protected async put<T = any>(
+  protected async put<T = unknown>(
     endpoint: string = '',
-    data?: any,
+    data?: unknown,
     config?: AxiosRequestConfig
   ): Promise<ApiResponse<T>> {
     try {
@@ -160,9 +161,9 @@ export class BaseApiService {
   }
 
   // Generic PATCH request
-  protected async patch<T = any>(
+  protected async patch<T = unknown>(
     endpoint: string = '',
-    data?: any,
+    data?: unknown,
     config?: AxiosRequestConfig
   ): Promise<ApiResponse<T>> {
     try {
@@ -178,7 +179,7 @@ export class BaseApiService {
   }
 
   // Generic DELETE request
-  protected async delete<T = any>(
+  protected async delete<T = unknown>(
     endpoint: string = '',
     config?: AxiosRequestConfig
   ): Promise<ApiResponse<T>> {
@@ -194,8 +195,9 @@ export class BaseApiService {
   }
 
   // Paginated GET request
-  protected async getPaginated<T = any>(
+  protected async getPaginated<T = unknown>(
     endpoint: string = '',
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     params?: Record<string, any>,
     config?: AxiosRequestConfig
   ): Promise<PaginatedResponse<T>> {
@@ -211,11 +213,12 @@ export class BaseApiService {
   }
 
   // File upload request
-  protected async uploadFile<T = any>(
+  protected async uploadFile<T = unknown>(
     endpoint: string = '',
     file: File,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     additionalData?: Record<string, any>,
-    onUploadProgress?: (progressEvent: any) => void
+    onUploadProgress?: (progressEvent: unknown) => void
   ): Promise<ApiResponse<T>> {
     try {
       const formData = new FormData();
@@ -244,10 +247,11 @@ export class BaseApiService {
   }
 
   // Bulk operations
-  protected async bulkOperation<T = any>(
+  protected async bulkOperation<T = unknown>(
     endpoint: string = '',
     operation: string,
     ids: string[],
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     data?: any
   ): Promise<ApiResponse<T>> {
     return this.post(endpoint, {
@@ -261,6 +265,7 @@ export class BaseApiService {
   protected async exportData(
     endpoint: string = '',
     format: 'excel' | 'csv' | 'pdf' = 'excel',
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     filters?: Record<string, any>
   ): Promise<Blob> {
     try {
@@ -275,42 +280,44 @@ export class BaseApiService {
   }
 
   // Error handling
-  private handleError(error: any): ErrorResponse {
+  private handleError(error: unknown): ErrorResponse {
     console.error('API Error:', error);
 
-    if (error.response) {
-      // Server responded with error status
-      const { status, data } = error.response;
-      
-      return {
-        success: false,
-        message: data?.message || `HTTP Error ${status}`,
-        error: {
-          code: data?.error?.code || this.getErrorCodeFromStatus(status),
-          details: data?.error?.details || error.response.data,
-        },
-      };
-    } else if (error.request) {
-      // Network error
-      return {
-        success: false,
-        message: 'Network error. Please check your connection.',
-        error: {
-          code: ERROR_CODES.NETWORK_ERROR,
-          details: error.message,
-        },
-      };
-    } else {
-      // Other error
-      return {
-        success: false,
-        message: error.message || 'An unexpected error occurred',
-        error: {
-          code: ERROR_CODES.SERVER_ERROR,
-          details: error.message,
-        },
-      };
+    if (axios.isAxiosError(error)) {
+      if (error.response) {
+        // Server responded with error status
+        const { status, data } = error.response;
+        
+        return {
+          success: false,
+          message: data?.message || `HTTP Error ${status}`,
+          error: {
+            code: data?.error?.code || this.getErrorCodeFromStatus(status),
+            details: data?.error?.details || error.response.data,
+          },
+        };
+      } else if (error.request) {
+        // Network error
+        return {
+          success: false,
+          message: 'Network error. Please check your connection.',
+          error: {
+            code: ERROR_CODES.NETWORK_ERROR,
+            details: error.message,
+          },
+        };
+      }
     }
+
+    // Other error
+    return {
+      success: false,
+      message: (error as Error).message || 'An unexpected error occurred',
+      error: {
+        code: ERROR_CODES.SERVER_ERROR,
+        details: (error as Error).message,
+      },
+    };
   }
 
   // Map HTTP status codes to error codes

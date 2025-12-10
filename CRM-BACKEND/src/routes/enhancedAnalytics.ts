@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/require-await */
 // Disabled require-await rule for enhanced analytics routes as some async middleware don't directly await
 import express from 'express';
 import { authenticateToken, requireRole, type AuthenticatedRequest } from '../middleware/auth';
@@ -57,7 +56,7 @@ router.get(
 router.get(
   '/my-performance',
   requireRole([Role.FIELD_AGENT, Role.ADMIN, Role.BACKEND_USER, Role.MANAGER]),
-  async (req: AuthenticatedRequest, res, next) => {
+  (req: AuthenticatedRequest, res, next) => {
     // For field agents, restrict to their own data
     if (req.user?.role === Role.FIELD_AGENT) {
       req.query.agentId = req.user.id;

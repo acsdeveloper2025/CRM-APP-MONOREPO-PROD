@@ -21,10 +21,15 @@ interface MISFiltersProps {
 }
 
 export function MISFiltersComponent({ filters, onFiltersChange, onReset }: MISFiltersProps) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [clients, setClients] = useState<any[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [products, setProducts] = useState<any[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [verificationTypes, setVerificationTypes] = useState<any[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [fieldAgents, setFieldAgents] = useState<any[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [backendUsers, setBackendUsers] = useState<any[]>([]);
   const [showFilters, setShowFilters] = useState(false);
 
@@ -46,14 +51,14 @@ export function MISFiltersComponent({ filters, onFiltersChange, onReset }: MISFi
       setVerificationTypes(verificationTypesRes.data || []);
       
       const users = usersRes.data || [];
-      setFieldAgents(users.filter((u: any) => u.role === 'FIELD_AGENT'));
-      setBackendUsers(users.filter((u: any) => ['ADMIN', 'BACKEND', 'MANAGER'].includes(u.role)));
+      setFieldAgents(users.filter((u: unknown) => u.role === 'FIELD_AGENT'));
+      setBackendUsers(users.filter((u: unknown) => ['ADMIN', 'BACKEND', 'MANAGER'].includes(u.role)));
     } catch (error) {
       console.error('Failed to load filter options:', error);
     }
   };
 
-  const handleFilterChange = (key: keyof MISFilters, value: any) => {
+  const handleFilterChange = (key: keyof MISFilters, value: unknown) => {
     onFiltersChange({ ...filters, [key]: value || undefined });
   };
 

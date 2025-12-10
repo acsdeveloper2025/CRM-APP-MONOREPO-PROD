@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useQuery, UseQueryOptions, QueryKey } from '@tanstack/react-query';
 import { useErrorHandling, ErrorHandlingOptions } from './useErrorHandling';
 
@@ -58,6 +59,7 @@ export function useStandardizedQuery<
 ) {
   const { handleError } = useErrorHandling();
   
+  // Extract options to avoid dependency cycle if possible or just use them
   const {
     errorContext,
     errorFallbackMessage,
@@ -72,19 +74,21 @@ export function useStandardizedQuery<
   });
   
   // Handle errors when they occur
-  if (query.error && showErrorToast) {
-    handleError(query.error, {
-      context: errorContext,
-      fallbackMessage: errorFallbackMessage,
-      showToast: showErrorToast,
-      ...errorOptions,
-    });
-    
-    // Call custom error callback if provided
-    if (onErrorCallback) {
-      onErrorCallback(query.error);
+  useEffect(() => {
+    if (query.error && showErrorToast) {
+      handleError(query.error, {
+        context: errorContext,
+        fallbackMessage: errorFallbackMessage,
+        showToast: showErrorToast,
+        ...errorOptions,
+      });
+      
+      // Call custom error callback if provided
+      if (onErrorCallback) {
+        onErrorCallback(query.error);
+      }
     }
-  }
+  }, [query.error, showErrorToast, handleError, errorContext, errorFallbackMessage, errorOptions, onErrorCallback]);
   
   return query;
 }

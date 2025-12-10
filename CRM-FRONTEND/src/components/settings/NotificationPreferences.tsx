@@ -64,10 +64,10 @@ export function NotificationPreferences() {
   const updatePreference = (key: keyof NotificationPreferences, value: boolean | string) => {
     if (!preferences) {return;}
     
-    setPreferences(prev => ({
-      ...prev!,
+    setPreferences(prev => prev ? ({
+      ...prev,
       [key]: value,
-    }));
+    }) : null);
     setHasChanges(true);
   };
 
@@ -94,8 +94,8 @@ export function NotificationPreferences() {
   const resetToDefaults = () => {
     if (!preferences) {return;}
     
-    setPreferences(prev => ({
-      ...prev!,
+    setPreferences(prev => (prev ? {
+      ...prev,
       caseAssignmentEnabled: true,
       caseAssignmentPush: true,
       caseAssignmentWebsocket: true,
@@ -114,7 +114,7 @@ export function NotificationPreferences() {
       quietHoursEnabled: false,
       quietHoursStart: '22:00',
       quietHoursEnd: '08:00',
-    }));
+    } : null));
     setHasChanges(true);
   };
 
@@ -460,7 +460,7 @@ export function NotificationPreferences() {
                 </div>
               </div>
               <p className="text-xs text-gray-600">
-                During quiet hours, you'll only receive urgent notifications
+                During quiet hours, you&apos;ll only receive urgent notifications
               </p>
             </div>
           )}

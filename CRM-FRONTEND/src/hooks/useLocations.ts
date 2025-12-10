@@ -36,7 +36,7 @@ export const usePincodes = (query: LocationQuery = {}) => {
 export const usePincodesByCity = (cityId?: string) => {
   return useQuery({
     queryKey: ['pincodes', 'by-city', cityId],
-    queryFn: () => locationsService.getPincodesByCity(cityId!),
+    queryFn: () => locationsService.getPincodesByCity(cityId as string),
     enabled: !!cityId,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
@@ -45,7 +45,7 @@ export const usePincodesByCity = (cityId?: string) => {
 export const useCountryById = (id?: string) => {
   return useQuery({
     queryKey: ['countries', id],
-    queryFn: () => locationsService.getCountryById(id!),
+    queryFn: () => locationsService.getCountryById(id as string),
     enabled: !!id,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
@@ -54,7 +54,7 @@ export const useCountryById = (id?: string) => {
 export const useStateById = (id?: string) => {
   return useQuery({
     queryKey: ['states', id],
-    queryFn: () => locationsService.getStateById(id!),
+    queryFn: () => locationsService.getStateById(id as string),
     enabled: !!id,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
@@ -63,7 +63,7 @@ export const useStateById = (id?: string) => {
 export const useCityById = (id?: string) => {
   return useQuery({
     queryKey: ['cities', id],
-    queryFn: () => locationsService.getCityById(id!),
+    queryFn: () => locationsService.getCityById(id as string),
     enabled: !!id,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
@@ -72,7 +72,7 @@ export const useCityById = (id?: string) => {
 export const usePincodeById = (id?: string) => {
   return useQuery({
     queryKey: ['pincodes', id],
-    queryFn: () => locationsService.getPincodeById(id!),
+    queryFn: () => locationsService.getPincodeById(id as string),
     enabled: !!id,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });

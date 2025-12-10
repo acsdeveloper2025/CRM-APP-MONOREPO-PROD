@@ -37,6 +37,43 @@ interface MobileReportViewerProps {
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
 
+interface PerformanceData {
+  qualityScore: number;
+  completionRate: number;
+  avgResponseTime: number;
+  submissions: number;
+  trends: Array<{ date: string; score: number; submissions: number }>;
+  breakdown: Array<{ metric: string; value: number }>;
+}
+
+interface SubmissionItem {
+  id: string;
+  customer: string;
+  type: string;
+  status: string;
+  date: string;
+}
+
+interface SubmissionsData {
+  total: number;
+  recent: SubmissionItem[];
+  byType: Array<{ type: string; count: number; percentage: number }>;
+  byStatus: Array<{ status: string; count: number; percentage: number }>;
+}
+
+interface AnalyticsData {
+  overview: {
+    totalForms: number;
+    validationRate: number;
+    avgQuality: number;
+    totalTime: number;
+  };
+  daily: Array<{ date: string; submissions: number; quality: number }>;
+  hourly: Array<{ hour: string; count: number }>;
+}
+
+type ReportData = PerformanceData | SubmissionsData | AnalyticsData | null;
+
 export const MobileReportViewer: React.FC<MobileReportViewerProps> = ({
   reportId,
   reportType,
@@ -44,7 +81,7 @@ export const MobileReportViewer: React.FC<MobileReportViewerProps> = ({
 }) => {
   const { isOnline } = useNetworkStatus();
   const { getReport, updateLastAccessed } = useOfflineStorage();
-  const [reportData, setReportData] = useState<any>(null);
+  const [reportData, setReportData] = useState<ReportData>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [_activeTab, _setActiveTab] = useState('overview');
 
@@ -53,17 +90,20 @@ export const MobileReportViewer: React.FC<MobileReportViewerProps> = ({
     if (reportId) {
       updateLastAccessed(reportId);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reportId, reportType]);
 
   const loadReportData = async () => {
     try {
       setIsLoading(true);
       
-      let data;
+      setIsLoading(true);
+      
+      let data: ReportData = null;
       if (reportId) {
         // Load from offline storage
         const offlineReport = getReport(reportId);
-        data = offlineReport?.data;
+        data = offlineReport?.data as ReportData;
       } else {
         // Load fresh data (if online)
         if (isOnline) {
@@ -82,7 +122,7 @@ export const MobileReportViewer: React.FC<MobileReportViewerProps> = ({
     }
   };
 
-  const fetchFreshReportData = async (type: string): Promise<any> => {
+  const fetchFreshReportData = async (type: string): Promise<ReportData> => {
     // Mock API call - replace with actual API
     await new Promise(resolve => setTimeout(resolve, 1000));
     
@@ -170,7 +210,7 @@ export const MobileReportViewer: React.FC<MobileReportViewerProps> = ({
           url: window.location.href
         });
       } catch (error) {
-        console.log('Error sharing:', error);
+        console.warn('Error sharing:', error);
       }
     } else {
       // Fallback: copy to clipboard
@@ -266,13 +306,13 @@ export const MobileReportViewer: React.FC<MobileReportViewerProps> = ({
       {/* Report Content */}
       <div className="p-4">
         {reportType === 'performance' && (
-          <PerformanceReportContent data={reportData} />
+          <PerformanceReportContent data={reportData as PerformanceData} />
         )}
         {reportType === 'submissions' && (
-          <SubmissionsReportContent data={reportData} />
+          <SubmissionsReportContent data={reportData as SubmissionsData} />
         )}
         {reportType === 'analytics' && (
-          <AnalyticsReportContent data={reportData} />
+          <AnalyticsReportContent data={reportData as AnalyticsData} />
         )}
       </div>
     </div>
@@ -280,11 +320,11 @@ export const MobileReportViewer: React.FC<MobileReportViewerProps> = ({
 };
 
 // Performance Report Component
-const PerformanceReportContent: React.FC<{ data: any }> = ({ data }) => (
+const PerformanceReportContent: React.FC<{ data: PerformanceData }> = ({ data }) => (
   <div className="space-y-4">
     {/* Key Metrics */}
     <div className="grid grid-cols-2 gap-3">
-      <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
+      <Card className="bg-linear-to-r from-blue-500 to-blue-600 text-white">
         <CardContent className="p-4">
           <div className="flex items-center justify-between">
             <div>
@@ -296,7 +336,9 @@ const PerformanceReportContent: React.FC<{ data: any }> = ({ data }) => (
         </CardContent>
       </Card>
 
-      <Card className="bg-gradient-to-r from-green-500 to-green-600 text-white">
+
+
+      <Card className="bg-linear-to-r from-green-500 to-green-600 text-white">
         <CardContent className="p-4">
           <div className="flex items-center justify-between">
             <div>
@@ -336,7 +378,7 @@ const PerformanceReportContent: React.FC<{ data: any }> = ({ data }) => (
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
-          {data.breakdown.map((item: any) => (
+          {data.breakdown.map((item) => (
             <div key={item.metric} className="flex items-center justify-between p-3 bg-muted rounded-lg">
               <span className="font-medium">{item.metric}</span>
               <Badge className={
@@ -355,7 +397,7 @@ const PerformanceReportContent: React.FC<{ data: any }> = ({ data }) => (
 );
 
 // Submissions Report Component
-const SubmissionsReportContent: React.FC<{ data: any }> = ({ data }) => (
+const SubmissionsReportContent: React.FC<{ data: SubmissionsData }> = ({ data }) => (
   <div className="space-y-4">
     {/* Summary */}
     <Card>
@@ -387,7 +429,7 @@ const SubmissionsReportContent: React.FC<{ data: any }> = ({ data }) => (
                 dataKey="count"
                 label={({ type, percentage }) => `${type} (${percentage}%)`}
               >
-                {data.byType.map((entry: any, index: number) => (
+                {data.byType.map((_entry, index) => (
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
@@ -405,7 +447,7 @@ const SubmissionsReportContent: React.FC<{ data: any }> = ({ data }) => (
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
-          {data.recent.map((submission: any) => (
+          {data.recent.map((submission) => (
             <div key={submission.id} className="p-3 border rounded-lg">
               <div className="flex items-center justify-between mb-2">
                 <h4 className="font-medium">{submission.customer}</h4>
@@ -430,7 +472,7 @@ const SubmissionsReportContent: React.FC<{ data: any }> = ({ data }) => (
 );
 
 // Analytics Report Component
-const AnalyticsReportContent: React.FC<{ data: any }> = ({ data }) => (
+const AnalyticsReportContent: React.FC<{ data: AnalyticsData }> = ({ data }) => (
   <div className="space-y-4">
     {/* Overview Cards */}
     <div className="grid grid-cols-2 gap-3">

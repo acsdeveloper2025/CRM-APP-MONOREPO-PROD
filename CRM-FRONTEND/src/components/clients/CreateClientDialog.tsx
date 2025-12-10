@@ -95,7 +95,7 @@ export function CreateClientDialog({ open, onOpenChange }: CreateClientDialogPro
         ...data,
         productIds: data.productIds?.map(id => parseInt(id, 10)),
       };
-      return clientsService.createClient(cleanData as any);
+      return clientsService.createClient(cleanData as unknown);
     },
     queryKey: ['clients'],
     resourceName: 'Client',

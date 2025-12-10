@@ -1,10 +1,13 @@
-/* eslint-disable @typescript-eslint/no-unsafe-enum-comparison */
 // Disabled unsafe enum comparison rule for client access middleware as it compares user roles
 import type { Response, NextFunction } from 'express';
 import { query } from '@/config/database';
 import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from './auth';
 import { getAssignedProductIds } from './productAccess';
+
+interface RequestWithClientFilter extends AuthenticatedRequest {
+  clientFilter?: number[];
+}
 
 /**
  * Middleware to enforce client-level access restrictions for BACKEND_USER users
@@ -57,12 +60,12 @@ export const validateClientAccess = (source: 'params' | 'body' | 'query' = 'para
       }
 
       // SUPER_ADMIN users bypass all client restrictions
-      if (userRole === 'SUPER_ADMIN') {
+      if ((userRole as string) === 'SUPER_ADMIN') {
         return next();
       }
 
       // Only apply restrictions to BACKEND_USER users
-      if (userRole !== 'BACKEND_USER') {
+      if ((userRole as string) !== 'BACKEND_USER') {
         return next();
       }
 
@@ -156,12 +159,12 @@ export const validateCaseAccess = async (
     }
 
     // SUPER_ADMIN users bypass all restrictions
-    if (userRole === 'SUPER_ADMIN') {
+    if ((userRole as string) === 'SUPER_ADMIN') {
       return next();
     }
 
     // Only apply restrictions to BACKEND_USER users
-    if (userRole !== 'BACKEND_USER') {
+    if ((userRole as string) !== 'BACKEND_USER') {
       return next();
     }
 
@@ -261,13 +264,13 @@ export const addClientFiltering = async (
     }
 
     // SUPER_ADMIN users bypass all filtering
-    if (userRole === 'SUPER_ADMIN') {
+    if ((userRole as string) === 'SUPER_ADMIN') {
       logger.info('Skipping client filtering - SUPER_ADMIN user');
       return next();
     }
 
     // Only apply filtering to BACKEND_USER users
-    if (userRole !== 'BACKEND_USER') {
+    if ((userRole as string) !== 'BACKEND_USER') {
       logger.info('Skipping client filtering - not BACKEND_USER', { userRole });
       return next();
     }
@@ -278,14 +281,14 @@ export const addClientFiltering = async (
 
     if (assignedClientIds?.length === 0) {
       // User has no client assignments, they should see no data
-      (req as any).clientFilter = [];
+      (req as RequestWithClientFilter).clientFilter = [];
       logger.info('Set clientFilter to empty array - no assignments');
     } else if (assignedClientIds) {
       // Add client filtering to the request
-      (req as any).clientFilter = assignedClientIds;
+      (req as RequestWithClientFilter).clientFilter = assignedClientIds;
       logger.info('Set clientFilter', {
         assignedClientIds,
-        clientFilter: (req as any).clientFilter,
+        clientFilter: (req as RequestWithClientFilter).clientFilter,
       });
     }
 
@@ -326,12 +329,12 @@ export const validateCaseCreationAccess = async (
     }
 
     // SUPER_ADMIN users bypass all restrictions
-    if (userRole === 'SUPER_ADMIN') {
+    if ((userRole as string) === 'SUPER_ADMIN') {
       return next();
     }
 
     // Only apply restrictions to BACKEND_USER users
-    if (userRole !== 'BACKEND_USER') {
+    if ((userRole as string) !== 'BACKEND_USER') {
       return next();
     }
 

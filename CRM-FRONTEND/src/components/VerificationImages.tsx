@@ -188,7 +188,7 @@ const VerificationImages: React.FC<VerificationImagesProps> = ({
     }
   };
 
-  const handleDownloadWithMetadata = async (image: any, imageIndex: number) => {
+  const handleDownloadWithMetadata = async (image: unknown, imageIndex: number) => {
     try {
       // Download the original image
       const blob = await verificationImagesService.downloadVerificationImage(image.id);

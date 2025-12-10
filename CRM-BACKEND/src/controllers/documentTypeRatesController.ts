@@ -1,10 +1,8 @@
-/* eslint-disable @typescript-eslint/restrict-template-expressions */
-/* eslint-disable @typescript-eslint/no-base-to-string */
-// Disabled template expression rules for document type rates controller as it handles query params in template literals
 import type { Response } from 'express';
 import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
 import { query, withTransaction } from '@/config/database';
+import type { QueryParams } from '@/types/database';
 
 // GET /api/document-type-rates - List document type rates with filtering and pagination
 export const getDocumentTypeRates = async (req: AuthenticatedRequest, res: Response) => {
@@ -22,7 +20,7 @@ export const getDocumentTypeRates = async (req: AuthenticatedRequest, res: Respo
     } = req.query;
 
     // Build where clause
-    const values: any[] = [];
+    const values: QueryParams = [];
     const whereSql: string[] = [];
 
     if (clientId) {
@@ -41,14 +39,14 @@ export const getDocumentTypeRates = async (req: AuthenticatedRequest, res: Respo
     }
 
     if (typeof isActive !== 'undefined') {
-      values.push(String(isActive) === 'true');
+      values.push(typeof isActive === 'string' ? isActive === 'true' : Boolean(isActive));
       whereSql.push(`"isActive" = $${values.length}`);
     }
 
-    if (search) {
-      values.push(`%${String(search)}%`);
-      values.push(`%${String(search)}%`);
-      values.push(`%${String(search)}%`);
+    if (search && typeof search === 'string') {
+      values.push(`%${search}%`);
+      values.push(`%${search}%`);
+      values.push(`%${search}%`);
       whereSql.push(
         `("clientName" ILIKE $${values.length - 2} OR "productName" ILIKE $${values.length - 1} OR "documentTypeName" ILIKE $${values.length})`
       );
@@ -73,10 +71,15 @@ export const getDocumentTypeRates = async (req: AuthenticatedRequest, res: Respo
       'createdAt',
       'updatedAt',
     ];
-    const sortCol = allowedSortColumns.includes(String(sortBy)) ? String(sortBy) : 'clientName';
-    const sortDir = String(sortOrder).toLowerCase() === 'desc' ? 'DESC' : 'ASC';
+    const sortCol = allowedSortColumns.includes(typeof sortBy === 'string' ? sortBy : '')
+      ? typeof sortBy === 'string'
+        ? sortBy
+        : ''
+      : 'clientName';
+    const sortDir =
+      typeof sortOrder === 'string' ? sortOrder : 'asc'.toLowerCase() === 'desc' ? 'DESC' : 'ASC';
 
-    const listRes = await query(
+    const listRes = await query<Record<string, unknown>>(
       `SELECT * FROM "documentTypeRatesView"
        ${whereClause}
        ORDER BY "${sortCol}" ${sortDir}
@@ -191,9 +194,9 @@ export const createOrUpdateDocumentTypeRate = async (req: AuthenticatedRequest, 
 
         logger.info(`Updated document type rate: ${existingRate.id}`, {
           userId: req.user?.id,
-          clientId,
-          productId,
-          documentTypeId,
+          clientId: Number(clientId),
+          productId: Number(productId),
+          documentTypeId: Number(documentTypeId),
           oldAmount: existingRate.amount,
           newAmount: amount,
         });
@@ -209,9 +212,9 @@ export const createOrUpdateDocumentTypeRate = async (req: AuthenticatedRequest, 
 
         logger.info(`Created document type rate: ${insertRes.rows[0].id}`, {
           userId: req.user?.id,
-          clientId,
-          productId,
-          documentTypeId,
+          clientId: Number(clientId),
+          productId: Number(productId),
+          documentTypeId: Number(documentTypeId),
           amount,
         });
       }

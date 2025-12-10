@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/require-await */
-// Disabled require-await rule for exports routes as some async middleware don't directly await
 import express from 'express';
 import { authenticateToken, requireRole, type AuthenticatedRequest } from '../middleware/auth';
 import { Role } from '../types/auth';
@@ -101,7 +99,7 @@ router.post('/test-email', requireRole([Role.ADMIN, Role.BACKEND_USER]), testEma
 router.post(
   '/quick/form-submissions',
   requireRole([Role.ADMIN, Role.BACKEND_USER, Role.MANAGER]),
-  async (req: AuthenticatedRequest, res, next) => {
+  (req: AuthenticatedRequest, res, next) => {
     req.body = {
       format: 'csv',
       reportType: 'form-submissions',
@@ -122,7 +120,7 @@ router.post(
 router.post(
   '/quick/agent-performance',
   requireRole([Role.ADMIN, Role.BACKEND_USER, Role.MANAGER]),
-  async (req: AuthenticatedRequest, res, next) => {
+  (req: AuthenticatedRequest, res, next) => {
     req.body = {
       format: 'excel',
       reportType: 'agent-performance',
@@ -144,7 +142,7 @@ router.post(
 router.post(
   '/quick/case-analytics',
   requireRole([Role.ADMIN, Role.BACKEND_USER, Role.MANAGER]),
-  async (req: AuthenticatedRequest, res, next) => {
+  (req: AuthenticatedRequest, res, next) => {
     req.body = {
       format: 'pdf',
       reportType: 'case-analytics',
@@ -166,7 +164,7 @@ router.post(
 router.post(
   '/email/weekly-summary',
   requireRole([Role.ADMIN, Role.BACKEND_USER, Role.MANAGER]),
-  async (req: AuthenticatedRequest, res, next) => {
+  (req: AuthenticatedRequest, res, next) => {
     const weekAgo = new Date();
     weekAgo.setDate(weekAgo.getDate() - 7);
 
@@ -194,7 +192,7 @@ router.post(
 router.post(
   '/email/monthly-performance',
   requireRole([Role.ADMIN, Role.BACKEND_USER, Role.MANAGER]),
-  async (req: AuthenticatedRequest, res, next) => {
+  (req: AuthenticatedRequest, res, next) => {
     const monthAgo = new Date();
     monthAgo.setMonth(monthAgo.getMonth() - 1);
 
@@ -222,7 +220,7 @@ router.post(
 router.get(
   '/templates',
   requireRole([Role.ADMIN, Role.BACKEND_USER, Role.MANAGER]),
-  async (req: AuthenticatedRequest, res) => {
+  (req: AuthenticatedRequest, res) => {
     try {
       const templates = {
         pdf: [
@@ -296,7 +294,7 @@ router.get(
 router.get(
   '/formats',
   requireRole([Role.ADMIN, Role.BACKEND_USER, Role.MANAGER, Role.FIELD_AGENT]),
-  async (req: AuthenticatedRequest, res) => {
+  (req: AuthenticatedRequest, res) => {
     try {
       const formats = {
         pdf: {

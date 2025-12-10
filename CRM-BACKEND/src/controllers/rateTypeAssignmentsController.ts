@@ -1,10 +1,8 @@
-/* eslint-disable @typescript-eslint/restrict-template-expressions */
-/* eslint-disable @typescript-eslint/no-base-to-string */
-// Disabled template expression rules for rate type assignments controller as it handles query params in template literals
 import type { Response } from 'express';
 import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
 import { query, withTransaction } from '@/config/database';
+import type { QueryParams } from '@/types/database';
 
 // GET /api/rate-type-assignments - List rate type assignments with filters
 export const getRateTypeAssignments = async (req: AuthenticatedRequest, res: Response) => {
@@ -20,31 +18,31 @@ export const getRateTypeAssignments = async (req: AuthenticatedRequest, res: Res
     } = req.query;
 
     // Build where clause
-    const values: any[] = [];
+    const values: QueryParams = [];
     const whereSql: string[] = [];
 
     if (clientId) {
-      values.push(clientId);
+      values.push(clientId as string);
       whereSql.push(`"clientId" = $${values.length}`);
     }
 
     if (productId) {
-      values.push(productId);
+      values.push(productId as string);
       whereSql.push(`"productId" = $${values.length}`);
     }
 
     if (verificationTypeId) {
-      values.push(verificationTypeId);
+      values.push(verificationTypeId as string);
       whereSql.push(`"verificationTypeId" = $${values.length}`);
     }
 
     if (rateTypeId) {
-      values.push(rateTypeId);
+      values.push(rateTypeId as string);
       whereSql.push(`"rateTypeId" = $${values.length}`);
     }
 
     if (typeof isActive !== 'undefined') {
-      values.push(String(isActive) === 'true');
+      values.push(typeof isActive === 'string' ? isActive === 'true' : Boolean(isActive));
       whereSql.push(`rta."isActive" = $${values.length}`);
     }
 
@@ -125,7 +123,7 @@ export const getAssignmentsByCombination = async (req: AuthenticatedRequest, res
          AND rta."verificationTypeId" = $3
        WHERE rt."isActive" = true
        ORDER BY rt.name`,
-      [clientId, productId, verificationTypeId]
+      [Number(clientId), Number(productId), Number(verificationTypeId)]
     );
     const assignments = assignmentsRes.rows;
 
@@ -176,7 +174,7 @@ export const bulkAssignRateTypes = async (req: AuthenticatedRequest, res: Respon
       // Then, add new assignments
       if (rateTypeIds.length > 0) {
         const values: string[] = [];
-        const params: any[] = [];
+        const params: QueryParams = [];
         let paramIndex = 1;
 
         for (const rateTypeId of rateTypeIds) {

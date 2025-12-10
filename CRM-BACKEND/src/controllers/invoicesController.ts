@@ -1,11 +1,39 @@
-/* eslint-disable @typescript-eslint/require-await */
-// Disabled require-await rule for invoices controller as some async functions don't directly await
 import type { Response } from 'express';
 import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
 
+interface InvoiceItem {
+  id: string;
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  amount: number;
+  caseIds: string[];
+}
+
+interface Invoice {
+  id: string;
+  invoiceNumber: string;
+  clientId: string;
+  clientName: string;
+  amount: number;
+  currency: string;
+  status: string;
+  dueDate: string;
+  issueDate: string;
+  paidDate: string | null;
+  items: InvoiceItem[];
+  taxAmount: number;
+  totalAmount: number;
+  notes: string;
+  createdAt: string;
+  updatedAt: string;
+  paymentMethod?: string;
+  transactionId?: string;
+}
+
 // Mock data for demonstration (replace with actual database operations)
-const invoices: any[] = [
+const invoices: Invoice[] = [
   {
     id: 'invoice_1',
     invoiceNumber: 'INV-2024-001',
@@ -87,7 +115,7 @@ const invoices: any[] = [
 ];
 
 // GET /api/invoices - List invoices with pagination and filters
-export const getInvoices = async (req: AuthenticatedRequest, res: Response) => {
+export const getInvoices = (req: AuthenticatedRequest, res: Response) => {
   try {
     const {
       page = 1,
@@ -172,7 +200,7 @@ export const getInvoices = async (req: AuthenticatedRequest, res: Response) => {
 };
 
 // GET /api/invoices/:id - Get invoice by ID
-export const getInvoiceById = async (req: AuthenticatedRequest, res: Response) => {
+export const getInvoiceById = (req: AuthenticatedRequest, res: Response) => {
   try {
     const { id } = req.params;
     const invoice = invoices.find(inv => inv.id === id);
@@ -202,13 +230,14 @@ export const getInvoiceById = async (req: AuthenticatedRequest, res: Response) =
 };
 
 // POST /api/invoices - Create new invoice
-export const createInvoice = async (req: AuthenticatedRequest, res: Response) => {
+export const createInvoice = (req: AuthenticatedRequest, res: Response) => {
   try {
     const { clientId, clientName, items, dueDate, notes, currency = 'INR' } = req.body;
 
     // Calculate amounts
     const amount = items.reduce(
-      (sum: number, item: any) => sum + item.quantity * item.unitPrice,
+      (sum: number, item: Record<string, unknown>) =>
+        sum + (item.quantity as number) * (item.unitPrice as number),
       0
     );
     const taxRate = 0.18; // 18% GST
@@ -229,13 +258,13 @@ export const createInvoice = async (req: AuthenticatedRequest, res: Response) =>
       dueDate,
       issueDate: new Date().toISOString(),
       paidDate: null,
-      items: items.map((item: any, index: number) => ({
+      items: items.map((item: Record<string, unknown>, index: number) => ({
         id: `item_${Date.now()}_${index}`,
-        description: item.description,
-        quantity: item.quantity,
-        unitPrice: item.unitPrice,
-        amount: item.quantity * item.unitPrice,
-        caseIds: item.caseIds || [],
+        description: item.description as string,
+        quantity: item.quantity as number,
+        unitPrice: item.unitPrice as number,
+        amount: (item.quantity as number) * (item.unitPrice as number),
+        caseIds: (item.caseIds as string[]) || [],
       })),
       taxAmount,
       totalAmount,
@@ -269,7 +298,7 @@ export const createInvoice = async (req: AuthenticatedRequest, res: Response) =>
 };
 
 // PUT /api/invoices/:id - Update invoice
-export const updateInvoice = async (req: AuthenticatedRequest, res: Response) => {
+export const updateInvoice = (req: AuthenticatedRequest, res: Response) => {
   try {
     const { id } = req.params;
     const updateData = req.body;
@@ -295,7 +324,8 @@ export const updateInvoice = async (req: AuthenticatedRequest, res: Response) =>
     // Recalculate amounts if items are updated
     if (updateData.items) {
       const amount = updateData.items.reduce(
-        (sum: number, item: any) => sum + item.quantity * item.unitPrice,
+        (sum: number, item: Record<string, unknown>) =>
+          sum + (item.quantity as number) * (item.unitPrice as number),
         0
       );
       const taxRate = 0.18;
@@ -337,7 +367,7 @@ export const updateInvoice = async (req: AuthenticatedRequest, res: Response) =>
 };
 
 // DELETE /api/invoices/:id - Delete invoice
-export const deleteInvoice = async (req: AuthenticatedRequest, res: Response) => {
+export const deleteInvoice = (req: AuthenticatedRequest, res: Response) => {
   try {
     const { id } = req.params;
 
@@ -382,7 +412,7 @@ export const deleteInvoice = async (req: AuthenticatedRequest, res: Response) =>
 };
 
 // POST /api/invoices/:id/send - Send invoice
-export const sendInvoice = async (req: AuthenticatedRequest, res: Response) => {
+export const sendInvoice = (req: AuthenticatedRequest, res: Response) => {
   try {
     const { id } = req.params;
     const { email, message: _message } = req.body;
@@ -425,7 +455,7 @@ export const sendInvoice = async (req: AuthenticatedRequest, res: Response) => {
 };
 
 // POST /api/invoices/:id/mark-paid - Mark invoice as paid
-export const markInvoicePaid = async (req: AuthenticatedRequest, res: Response) => {
+export const markInvoicePaid = (req: AuthenticatedRequest, res: Response) => {
   try {
     const { id } = req.params;
     const { paidDate, paymentMethod, transactionId, notes } = req.body;
@@ -479,7 +509,7 @@ export const markInvoicePaid = async (req: AuthenticatedRequest, res: Response) 
 };
 
 // GET /api/invoices/:id/download - Download invoice PDF
-export const downloadInvoice = async (req: AuthenticatedRequest, res: Response) => {
+export const downloadInvoice = (req: AuthenticatedRequest, res: Response) => {
   try {
     const { id } = req.params;
     const invoice = invoices.find(inv => inv.id === id);
@@ -521,7 +551,7 @@ export const downloadInvoice = async (req: AuthenticatedRequest, res: Response) 
 };
 
 // GET /api/invoices/stats - Get invoice statistics
-export const getInvoiceStats = async (req: AuthenticatedRequest, res: Response) => {
+export const getInvoiceStats = (req: AuthenticatedRequest, res: Response) => {
   try {
     const { period = 'month' } = req.query;
 

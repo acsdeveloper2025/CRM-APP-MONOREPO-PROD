@@ -214,7 +214,7 @@ export function ClientsTable({ data, isLoading }: ClientsTableProps) {
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
               This action cannot be undone. This will permanently delete the client
-              "{clientToDelete?.name}" and all associated data.
+              &quot;{clientToDelete?.name}&quot; and all associated data.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -179,11 +179,11 @@ export class ReportsService {
   }
 
   // Dashboard Data for Reports
-  async getReportsDashboardData(filters: ReportFilters = {}): Promise<ApiResponse<any>> {
+  async getReportsDashboardData(filters: ReportFilters = {}): Promise<ApiResponse<unknown>> {
     return apiService.get('/reports/dashboard', filters);
   }
 
-  async getBankBillsSummary(filters: ReportFilters = {}): Promise<ApiResponse<any>> {
+  async getBankBillsSummary(filters: ReportFilters = {}): Promise<ApiResponse<unknown>> {
     return apiService.get('/bank-bills/summary', filters);
   }
 
@@ -215,15 +215,15 @@ export class ReportsService {
   }
 
   // Scheduled Reports
-  async getScheduledReports(): Promise<ApiResponse<any[]>> {
+  async getScheduledReports(): Promise<ApiResponse<unknown[]>> {
     return apiService.get('/reports/scheduled');
   }
 
-  async createScheduledReport(data: any): Promise<ApiResponse<any>> {
+  async createScheduledReport(data: unknown): Promise<ApiResponse<unknown>> {
     return apiService.post('/reports/scheduled', data);
   }
 
-  async updateScheduledReport(id: string, data: any): Promise<ApiResponse<any>> {
+  async updateScheduledReport(id: string, data: unknown): Promise<ApiResponse<unknown>> {
     return apiService.put(`/reports/scheduled/${id}`, data);
   }
 
@@ -256,7 +256,7 @@ export class ReportsService {
     );
 
     // apiService.get already returns response.data, so we return it directly
-    return response as any as MISDataResponse;
+    return response as unknown as MISDataResponse;
   }
 
   /**

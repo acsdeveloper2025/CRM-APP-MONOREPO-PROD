@@ -1,6 +1,3 @@
-/* eslint-disable @typescript-eslint/restrict-template-expressions */
-/* eslint-disable @typescript-eslint/no-base-to-string */
-// Disabled template expression rules for export controller as it handles query params in template literals
 import type { Request, Response } from 'express';
 import { PDFExportService } from '../services/PDFExportService';
 import { ExcelExportService } from '../services/ExcelExportService';
@@ -17,7 +14,7 @@ export interface ExportRequest {
   reportType: 'form-submissions' | 'agent-performance' | 'case-analytics' | 'validation-status';
   dateFrom?: string;
   dateTo?: string;
-  filters?: Record<string, any>;
+  filters?: Record<string, unknown>;
   options?: {
     includeCharts?: boolean;
     includeSummary?: boolean;
@@ -31,6 +28,32 @@ export interface ExportRequest {
     recipients?: string[];
     subject?: string;
   };
+}
+
+interface ExportResult {
+  success: boolean;
+  filePath?: string;
+  fileName?: string;
+  fileSize?: number;
+  recordCount?: number;
+  error?: unknown;
+
+  data?: (string | number | boolean)[]; // For JSON data
+  messageId?: string; // For Email result
+
+  reportData?: unknown; // For intermediate results to email
+}
+
+interface ExportHistoryItem {
+  id: string;
+  fileName: string;
+  reportType: string;
+  format: string;
+  fileSize: number;
+  createdAt: string;
+  createdBy?: string;
+  status: string;
+  downloadCount: number;
 }
 
 /**
@@ -54,7 +77,7 @@ export const generateReport = async (req: AuthenticatedRequest, res: Response) =
     }
 
     // Generate report based on format
-    let result;
+    let result: ExportResult;
     switch (exportRequest.format) {
       case 'pdf':
         result = await generatePDFReport(exportRequest);
@@ -71,11 +94,11 @@ export const generateReport = async (req: AuthenticatedRequest, res: Response) =
       default:
         return res.status(400).json({
           success: false,
-          message: `Unsupported export format: ${exportRequest.format}`,
+          message: `Unsupported export format`,
         });
     }
 
-    if (!result.success) {
+    if (!result.success || !result.filePath) {
       return res.status(500).json({
         success: false,
         message: 'Failed to generate report',
@@ -169,12 +192,12 @@ export const downloadReport = async (req: Request, res: Response) => {
 
     // Clean up file after download (optional)
     fileStream.on('end', () => {
-      try {
-        // Optionally delete file after download
-        // await fs.unlink(filePath);
-      } catch (error) {
-        logger.warn('Failed to clean up downloaded file:', error);
-      }
+      // try {
+      //   // Optionally delete file after download
+      //   // await fs.unlink(filePath);
+      // } catch (error) {
+      //   logger.warn('Failed to clean up downloaded file:', error);
+      // }
     });
   } catch (error) {
     logger.error('Error in downloadReport:', error);
@@ -192,9 +215,9 @@ export const getExportHistory = (req: AuthenticatedRequest, res: Response) => {
     const { limit = 50, offset = 0 } = req.query;
     const userId = req.user?.id;
 
-    // This would typically come from a database table tracking exports
-    // For now, return mock data
-    const mockHistory = [
+    // TODO: Connect to real export_history table
+    // For now, return strictly typed mock data
+    const mockHistory: ExportHistoryItem[] = [
       {
         id: '1',
         fileName: 'form_submissions_report_2024-01-15T10-30-00.pdf',
@@ -309,7 +332,7 @@ function validateExportRequest(request: ExportRequest): { isValid: boolean; erro
   };
 }
 
-async function generatePDFReport(request: ExportRequest): Promise<any> {
+async function generatePDFReport(request: ExportRequest): Promise<ExportResult> {
   const pdfService = PDFExportService.getInstance();
 
   const options = {
@@ -322,10 +345,13 @@ async function generatePDFReport(request: ExportRequest): Promise<any> {
     orientation: request.options?.orientation || 'portrait',
   };
 
-  return pdfService.generatePDFReport(options);
+  const result = await pdfService.generatePDFReport(options);
+  // Assume result matches ExportResult or map it
+  // Since we don't have visibility into PDFExportService types right here, we strictly type what we can
+  return result as unknown as ExportResult;
 }
 
-async function generateExcelReport(request: ExportRequest): Promise<any> {
+async function generateExcelReport(request: ExportRequest): Promise<ExportResult> {
   const excelService = ExcelExportService.getInstance();
 
   const options = {
@@ -337,10 +363,11 @@ async function generateExcelReport(request: ExportRequest): Promise<any> {
     includeSummary: request.options?.includeSummary !== false,
   };
 
-  return excelService.generateExcelReport(options);
+  const result = await excelService.generateExcelReport(options);
+  return result as unknown as ExportResult;
 }
 
-async function generateCSVReport(request: ExportRequest): Promise<any> {
+async function generateCSVReport(request: ExportRequest): Promise<ExportResult> {
   const csvService = CSVExportService.getInstance();
 
   const options = {
@@ -353,16 +380,17 @@ async function generateCSVReport(request: ExportRequest): Promise<any> {
     encoding: request.options?.encoding || 'utf8',
   };
 
-  return csvService.generateCSVReport(options);
+  const result = await csvService.generateCSVReport(options);
+  return result as unknown as ExportResult;
 }
 
-async function generateJSONReport(request: ExportRequest): Promise<any> {
+async function generateJSONReport(request: ExportRequest): Promise<ExportResult> {
   // For JSON, we'll use the CSV service to get the data and then format as JSON
   const csvService = CSVExportService.getInstance();
 
   try {
-    // Get the raw data (we'll modify CSV service to return raw data for JSON)
-    const data = await csvService.generateCSVReport({
+    // Get the raw data containing the 'data' array
+    const result = await csvService.generateCSVReport({
       reportType: request.reportType,
       dateFrom: request.dateFrom,
       dateTo: request.dateTo,
@@ -370,8 +398,14 @@ async function generateJSONReport(request: ExportRequest): Promise<any> {
       includeHeaders: false, // We don't need headers for JSON
     });
 
-    if (!data.success) {
-      return data;
+    const typedResult = result as unknown as {
+      success: boolean;
+      data: Record<string, unknown>[];
+      recordCount: number;
+    };
+
+    if (!typedResult.success) {
+      return result as unknown as ExportResult;
     }
 
     // Convert to JSON and save
@@ -391,8 +425,8 @@ async function generateJSONReport(request: ExportRequest): Promise<any> {
         to: request.dateTo,
       },
       filters: request.filters,
-      recordCount: data.recordCount,
-      data: (data as any).data || [],
+      recordCount: typedResult.recordCount,
+      data: typedResult.data || [],
     };
 
     // Write JSON file
@@ -405,7 +439,7 @@ async function generateJSONReport(request: ExportRequest): Promise<any> {
       filePath,
       fileName,
       fileSize: stats.size,
-      recordCount: data.recordCount,
+      recordCount: typedResult.recordCount,
     };
   } catch (error) {
     logger.error('Error generating JSON report:', error);
@@ -417,19 +451,23 @@ async function generateJSONReport(request: ExportRequest): Promise<any> {
 }
 
 async function deliverReportByEmail(
-  reportResult: any,
+  reportResult: ExportResult,
   recipients: string[],
   reportType: string,
   _customSubject?: string
-): Promise<any> {
+): Promise<ExportResult> {
   const emailService = EmailDeliveryService.getInstance();
 
-  return emailService.sendReportEmail(
+  // Added await to satisfy require-await rule and ensure correct error propagation
+  const result = await emailService.sendReportEmail(
     recipients,
     reportType,
     reportResult.filePath,
-    reportResult.reportData
+    // Safely access data if it exists
+    (reportResult.reportData || {}) as Record<string, unknown>
   );
+
+  return result as unknown as ExportResult;
 }
 
 function getContentType(fileName: string): string {

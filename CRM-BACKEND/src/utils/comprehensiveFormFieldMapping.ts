@@ -6,6 +6,12 @@
  */
 
 import type { FormSection, FormField } from '../types/mobile';
+import {
+  getRelevantFieldsForFormType,
+  shouldShowField,
+  CONDITIONAL_FIELD_RULES,
+} from './typeAwareFormFieldSchemas';
+import { logger } from './logger';
 
 // Form field definitions organized by verification type and form type
 export interface FormFieldDefinition {
@@ -6304,20 +6310,14 @@ export function getFieldsForSection(
  * NOW WITH TYPE-AWARE AND VALUE-AWARE FILTERING
  */
 export function createComprehensiveFormSections(
-  formData: any,
+  formData: Record<string, unknown>,
   verificationType: string,
   formType: string
 ): FormSection[] {
-  console.log(`Creating type-aware sections for ${verificationType} - ${formType}`);
-  console.log('Form data keys:', Object.keys(formData));
+  logger.info(`Creating type-aware sections for ${verificationType} - ${formType}`);
+  logger.info('Form data keys:', Object.keys(formData));
 
-  // Import type-aware schemas
-  const {
-    getRelevantFieldsForFormType,
-    shouldShowField,
-    CONDITIONAL_FIELD_RULES,
-  } = require('./typeAwareFormFieldSchemas');
-
+  // Use type-aware schemas (imported at top of file)
   try {
     // Get only relevant fields for this verification type + form type combination
     const relevantFields = getRelevantFieldsForFormType(verificationType, formType);
@@ -6330,7 +6330,7 @@ export function createComprehensiveFormSections(
       return createLegacyFormSections(formData, verificationType, formType);
     }
 
-    console.log(
+    logger.info(
       `Found ${relevantFields.length} relevant fields for ${verificationType} - ${formType}`
     );
 
@@ -6349,18 +6349,18 @@ export function createComprehensiveFormSections(
       const shouldShow = shouldShowField(fieldDef.name, formData, CONDITIONAL_FIELD_RULES);
 
       if (!shouldShow) {
-        console.log(`Hiding conditional field: ${fieldDef.name} (condition not met)`);
+        logger.info(`Hiding conditional field: ${fieldDef.name} (condition not met)`);
       }
 
       return shouldShow;
     });
 
-    console.log(`Filtered to ${visibleFields.length} visible fields with values`);
+    logger.info(`Filtered to ${visibleFields.length} visible fields with values`);
 
     // Group fields into sections
     const sections = groupFieldsIntoSections(visibleFields, formData);
 
-    console.log(`Created ${sections.length} sections`);
+    logger.info(`Created ${sections.length} sections`);
     return sections;
   } catch (error) {
     console.error('Error in type-aware form sections:', error);
@@ -6372,7 +6372,10 @@ export function createComprehensiveFormSections(
 /**
  * Group fields into sections based on their section property
  */
-function groupFieldsIntoSections(fields: any[], formData: any): FormSection[] {
+function groupFieldsIntoSections(
+  fields: FormFieldDefinition[],
+  formData: Record<string, unknown>
+): FormSection[] {
   // Group fields by section
   const sectionMap = new Map<string, FormField[]>();
 
@@ -6384,7 +6387,7 @@ function groupFieldsIntoSections(fields: any[], formData: any): FormSection[] {
 
     const value = formData[fieldDef.name] || formData[fieldDef.id];
 
-    sectionMap.get(sectionName)!.push({
+    sectionMap.get(sectionName).push({
       id: fieldDef.id,
       name: fieldDef.name,
       label: fieldDef.label,
@@ -6403,13 +6406,13 @@ function groupFieldsIntoSections(fields: any[], formData: any): FormSection[] {
   const sections: FormSection[] = [];
   let order = 1;
 
-  for (const [title, fields] of sectionMap.entries()) {
-    if (fields.length > 0) {
+  for (const [title, sectionFields] of sectionMap.entries()) {
+    if (sectionFields.length > 0) {
       sections.push({
         id: title.toLowerCase().replace(/\s+/g, '_'),
         title,
         description: `${title} fields`,
-        fields,
+        fields: sectionFields,
         order: order++,
         isRequired: title === 'Basic Information',
         defaultExpanded: order <= 2, // Expand first 2 sections by default
@@ -6425,11 +6428,11 @@ function groupFieldsIntoSections(fields: any[], formData: any): FormSection[] {
  * Uses the old method of showing all fields
  */
 function createLegacyFormSections(
-  formData: any,
+  formData: Record<string, unknown>,
   verificationType: string,
   formType: string
 ): FormSection[] {
-  console.log(`Using legacy form sections for ${verificationType} - ${formType}`);
+  logger.info(`Using legacy form sections for ${verificationType} - ${formType}`);
 
   const sections: FormSection[] = [];
   const sectionNames = getFormSections(verificationType, formType);

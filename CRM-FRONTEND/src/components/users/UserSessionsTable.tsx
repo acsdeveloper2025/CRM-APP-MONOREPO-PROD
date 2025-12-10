@@ -31,7 +31,7 @@ export function UserSessionsTable({ data, isLoading }: UserSessionsTableProps) {
       queryClient.invalidateQueries({ queryKey: ['user-sessions'] });
       toast.success('Session terminated successfully');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error(error.response?.data?.message || 'Failed to terminate session');
     },
   });

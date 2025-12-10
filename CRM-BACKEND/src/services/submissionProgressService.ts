@@ -15,7 +15,7 @@ export interface SubmissionProgress {
     startTime?: string;
     endTime?: string;
     error?: string;
-    metadata?: Record<string, any>;
+    metadata?: Record<string, unknown>;
   }>;
   startTime: string;
   endTime?: string;
@@ -36,6 +36,26 @@ export interface SubmissionProgress {
   };
   createdAt: string;
   updatedAt: string;
+}
+
+interface SubmissionProgressRow {
+  id: string;
+  case_id: string;
+  verification_type: string;
+  status: 'PREPARING' | 'UPLOADING' | 'SUBMITTING' | 'COMPLETED' | 'FAILED';
+  overall_progress: number;
+  current_step: string;
+  steps: string;
+  start_time: string;
+  end_time?: string;
+  estimated_time_remaining?: number;
+  bytes_uploaded?: number;
+  total_bytes?: number;
+  upload_speed?: number;
+  compression_stats?: string;
+  retry_info?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface RetryQueueItem {
@@ -77,7 +97,7 @@ class SubmissionProgressService {
       startTime?: string;
       endTime?: string;
       error?: string;
-      metadata?: Record<string, any>;
+      metadata?: Record<string, unknown>;
     }> = [
       { id: 'validation', name: 'Validating Form Data', status: 'PENDING', progress: 0 },
       { id: 'compression', name: 'Optimizing Data', status: 'PENDING', progress: 0 },
@@ -141,7 +161,7 @@ class SubmissionProgressService {
 
     // Build dynamic update query
     const updateFields: string[] = [];
-    const values: any[] = [];
+    const values: (string | number | boolean | null)[] = [];
     let paramIndex = 1;
 
     if (updates.status !== undefined) {
@@ -242,7 +262,9 @@ class SubmissionProgressService {
       [caseId]
     );
 
-    return result.rows.map((row: any) => this.mapRowToSubmissionProgress(row));
+    return result.rows.map((row: unknown) =>
+      this.mapRowToSubmissionProgress(row as SubmissionProgressRow)
+    );
   }
 
   /**
@@ -253,7 +275,9 @@ class SubmissionProgressService {
       "SELECT * FROM submission_progress WHERE status NOT IN ('COMPLETED', 'FAILED') ORDER BY created_at DESC"
     );
 
-    return result.rows.map((row: any) => this.mapRowToSubmissionProgress(row));
+    return result.rows.map((row: unknown) =>
+      this.mapRowToSubmissionProgress(row as SubmissionProgressRow)
+    );
   }
 
   /**
@@ -319,7 +343,7 @@ class SubmissionProgressService {
     `);
 
     const statusCounts = result.rows.reduce(
-      (acc: Record<string, number>, row: any) => {
+      (acc: Record<string, number>, row: { status: string; count: string }) => {
         acc[row.status.toLowerCase()] = parseInt(row.count);
         return acc;
       },
@@ -358,7 +382,8 @@ class SubmissionProgressService {
   /**
    * Map database row to SubmissionProgress object
    */
-  private mapRowToSubmissionProgress(row: any): SubmissionProgress {
+
+  private mapRowToSubmissionProgress(row: SubmissionProgressRow): SubmissionProgress {
     return {
       id: row.id,
       caseId: row.case_id,

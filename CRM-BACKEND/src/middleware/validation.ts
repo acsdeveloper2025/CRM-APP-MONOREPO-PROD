@@ -1,6 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import { validationResult, type ValidationChain } from 'express-validator';
 import type { ApiResponse, ValidationError } from '@/types/api';
+import { logger } from '@/utils/logger';
 
 export const handleValidationErrors = (req: Request, res: Response, next: NextFunction): void => {
   const errors = validationResult(req);
@@ -13,7 +14,7 @@ export const handleValidationErrors = (req: Request, res: Response, next: NextFu
     }));
 
     // Log validation errors for debugging
-    console.log('Validation errors:', {
+    logger.info('Validation errors:', {
       url: req.url,
       method: req.method,
       body: req.body,

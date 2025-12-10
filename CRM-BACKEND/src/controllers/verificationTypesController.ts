@@ -1,10 +1,8 @@
-/* eslint-disable @typescript-eslint/restrict-template-expressions */
-/* eslint-disable @typescript-eslint/no-base-to-string */
-// Disabled template expression rules for verification types controller as it handles query params in template literals
 import type { Response } from 'express';
 import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
 import { query } from '@/config/database';
+import type { QueryParams } from '@/types/database';
 
 // GET /api/verification-types - List verification types with pagination and filters
 export const getVerificationTypes = async (req: AuthenticatedRequest, res: Response) => {
@@ -13,11 +11,11 @@ export const getVerificationTypes = async (req: AuthenticatedRequest, res: Respo
 
     // Build where clause for search
     let whereClause = '';
-    const queryParams: any[] = [];
+    const queryParams: QueryParams = [];
     let paramIndex = 1;
 
-    if (search && String(search).trim()) {
-      const searchTerm = `%${String(search).trim()}%`;
+    if (search && typeof search === 'string' && search.trim()) {
+      const searchTerm = `%${search.trim()}%`;
       whereClause = `WHERE COALESCE(name, '') ILIKE $${paramIndex} OR COALESCE(code, '') ILIKE $${paramIndex} OR COALESCE(description, '') ILIKE $${paramIndex}`;
       queryParams.push(searchTerm);
       paramIndex++;
@@ -37,10 +35,13 @@ export const getVerificationTypes = async (req: AuthenticatedRequest, res: Respo
       'estimatedTime',
       'createdAt',
       'updatedAt',
-    ].includes(String(sortBy))
-      ? String(sortBy)
+    ].includes(typeof sortBy === 'string' ? sortBy : '')
+      ? typeof sortBy === 'string'
+        ? sortBy
+        : ''
       : 'name';
-    const sortDir = String(sortOrder).toLowerCase() === 'desc' ? 'DESC' : 'ASC';
+    const sortDir =
+      typeof sortOrder === 'string' ? sortOrder : 'asc'.toLowerCase() === 'desc' ? 'DESC' : 'ASC';
 
     const dataQuery = `SELECT * FROM "verificationTypes" ${whereClause} ORDER BY "${sortCol}" ${sortDir} LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
     const dataParams = [...queryParams, Number(limit), (Number(page) - 1) * Number(limit)];
@@ -186,7 +187,7 @@ export const updateVerificationType = async (req: AuthenticatedRequest, res: Res
     }
 
     // Prepare update data
-    const updatePayload: any = {};
+    const updatePayload: Record<string, unknown> = {};
 
     if (updateData.name) {
       updatePayload.name = updateData.name;
@@ -197,11 +198,11 @@ export const updateVerificationType = async (req: AuthenticatedRequest, res: Res
 
     // Update verification type
     const sets: string[] = [];
-    const vals: any[] = [];
+    const vals: QueryParams = [];
     let idx = 1;
     for (const [key, value] of Object.entries(updatePayload)) {
       sets.push(`"${key}" = $${idx++}`);
-      vals.push(value);
+      vals.push(value as string | number | boolean | Date | number[] | string[]);
     }
     sets.push(`"updatedAt" = CURRENT_TIMESTAMP`);
     vals.push(id);

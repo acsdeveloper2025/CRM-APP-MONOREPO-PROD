@@ -98,7 +98,7 @@ export class AuthService {
     const isStaticIP = hostname === staticIP;
     const isDomain = hostname === 'example.com' || hostname === 'www.example.com';
 
-    console.log('🔐 Auth Service - API URL Detection:', {
+    console.warn('🔐 Auth Service - API URL Detection:', {
       hostname,
       isLocalhost,
       isLocalNetwork,
@@ -110,34 +110,34 @@ export class AuthService {
     // 1. Check if we're on localhost (development)
     if (isLocalhost) {
       const url = 'http://localhost:3000/api';
-      console.log('🏠 Auth Service - Using localhost API URL:', url);
+      console.warn('🏠 Auth Service - Using localhost API URL:', url);
       return url;
     }
 
     // 2. Check if we're on the local network IP (hairpin NAT workaround)
     if (isLocalNetwork) {
       const url = `http://${staticIP}:3000/api`;
-      console.log('🏠 Auth Service - Using local network API URL (hairpin NAT workaround):', url);
+      console.warn('🏠 Auth Service - Using local network API URL (hairpin NAT workaround):', url);
       return url;
     }
 
     // 3. Check if we're on the domain name (production access)
     if (isDomain) {
       const url = 'https://example.com/api';
-      console.log('🌐 Auth Service - Using domain API URL:', url);
+      console.warn('🌐 Auth Service - Using domain API URL:', url);
       return url;
     }
 
     // 4. Check if we're on the static IP (external access)
     if (isStaticIP) {
       const url = `http://${staticIP}:3000/api`;
-      console.log('🌍 Auth Service - Using static IP API URL:', url);
+      console.warn('🌍 Auth Service - Using static IP API URL:', url);
       return url;
     }
 
     // 5. Fallback to environment variable or localhost
     const fallbackUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
-    console.log('⚠️ Auth Service - Using fallback API URL:', fallbackUrl);
+    console.warn('⚠️ Auth Service - Using fallback API URL:', fallbackUrl);
     return fallbackUrl;
   }
 
@@ -147,7 +147,7 @@ export class AuthService {
       if (!token) {return null;}
 
       const apiBaseUrl = this.getApiBaseUrl();
-      console.log('🔄 Auth Service - Refreshing user data with URL:', apiBaseUrl);
+      console.warn('🔄 Auth Service - Refreshing user data with URL:', apiBaseUrl);
 
       const response = await fetch(`${apiBaseUrl}/auth/me`, {
         headers: {
@@ -173,7 +173,7 @@ export class AuthService {
   async resetRateLimit(): Promise<{ success: boolean; message: string }> {
     try {
       const apiBaseUrl = this.getApiBaseUrl();
-      console.log('🔄 Auth Service - Resetting rate limit with URL:', apiBaseUrl);
+      console.warn('🔄 Auth Service - Resetting rate limit with URL:', apiBaseUrl);
 
       const response = await fetch(`${apiBaseUrl}/auth/reset-rate-limit`, {
         method: 'POST',
@@ -200,7 +200,7 @@ export class AuthService {
     try {
       const token = this.getToken();
       const apiBaseUrl = this.getApiBaseUrl();
-      console.log('🔄 Auth Service - Resetting user rate limit with URL:', apiBaseUrl);
+      console.warn('🔄 Auth Service - Resetting user rate limit with URL:', apiBaseUrl);
 
       const response = await fetch(`${apiBaseUrl}/auth/reset-user-rate-limit/${userId}`, {
         method: 'POST',

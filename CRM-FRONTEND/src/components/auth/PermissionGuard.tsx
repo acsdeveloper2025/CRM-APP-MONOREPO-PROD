@@ -39,7 +39,7 @@ export function PermissionGuard({
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
-            You don't have permission to access this feature. Required permission: {resource}.{action}
+            You don&apos;t have permission to access this feature. Required permission: {resource}.{action}
           </AlertDescription>
         </Alert>
       );
@@ -79,7 +79,7 @@ export function MultiplePermissionGuard({
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
-            You don't have permission to access this feature. Required permissions: {permissionList}
+            You don&apos;t have permission to access this feature. Required permissions: {permissionList}
             {requireAll ? ' (all required)' : ' (any required)'}
           </AlertDescription>
         </Alert>
@@ -150,7 +150,7 @@ export function RoleGuard({
         <Alert variant="destructive">
           <Shield className="h-4 w-4" />
           <AlertDescription>
-            You don't have the required role to access this feature. Required roles: {allowedRoles.join(', ')}
+            You don&apos;t have the required role to access this feature. Required roles: {allowedRoles.join(', ')}
           </AlertDescription>
         </Alert>
       );

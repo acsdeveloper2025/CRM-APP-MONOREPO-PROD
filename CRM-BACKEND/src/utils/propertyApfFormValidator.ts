@@ -31,9 +31,9 @@ export interface FormValidationResult {
  * @returns Validation result with detailed field coverage information
  */
 export function validateAndPreparePropertyApfForm(
-  formData: any,
+  formData: Record<string, unknown>,
   formType: string
-): { validationResult: FormValidationResult; preparedData: Record<string, any> } {
+): { validationResult: FormValidationResult; preparedData: Record<string, unknown> } {
   const warnings: string[] = [];
   const missingFields: string[] = [];
 
@@ -57,7 +57,7 @@ export function validateAndPreparePropertyApfForm(
   warnings.push(...conditionalWarnings);
 
   // Map form data to database fields
-  const mappedData: Record<string, any> = {};
+  const mappedData: Record<string, unknown> = {};
   for (const [mobileField, value] of Object.entries(formData)) {
     const dbColumn = PROPERTY_APF_FIELD_MAPPING[mobileField];
 
@@ -187,7 +187,7 @@ function getRequiredFieldsByFormType(formType: string): string[] {
 /**
  * Validates conditional fields based on form type and field values
  */
-function validateConditionalFields(formData: any, formType: string): string[] {
+function validateConditionalFields(formData: Record<string, unknown>, formType: string): string[] {
   const warnings: string[] = [];
 
   if (formType === 'POSITIVE') {
@@ -198,8 +198,10 @@ function validateConditionalFields(formData: any, formType: string): string[] {
 
     // Property value validation
     if (
-      formData.propertyValue &&
-      formData.marketValue &&
+      formData.propertyValue !== undefined &&
+      formData.marketValue !== undefined &&
+      typeof formData.propertyValue === 'number' &&
+      typeof formData.marketValue === 'number' &&
       formData.propertyValue > formData.marketValue * 1.5
     ) {
       warnings.push('propertyValue seems significantly higher than marketValue');
@@ -211,14 +213,22 @@ function validateConditionalFields(formData: any, formType: string): string[] {
     }
 
     // Property age validation
-    if (formData.propertyAge && (formData.propertyAge < 0 || formData.propertyAge > 200)) {
+    // Property age validation
+    if (
+      formData.propertyAge !== undefined &&
+      formData.propertyAge !== null &&
+      typeof formData.propertyAge === 'number' &&
+      (formData.propertyAge < 0 || formData.propertyAge > 200)
+    ) {
       warnings.push('propertyAge should be between 0 and 200 years');
     }
 
     // APF amount validation
     if (
-      formData.apfAmount &&
-      formData.propertyValue &&
+      formData.apfAmount !== undefined &&
+      formData.propertyValue !== undefined &&
+      typeof formData.apfAmount === 'number' &&
+      typeof formData.propertyValue === 'number' &&
       formData.apfAmount > formData.propertyValue
     ) {
       warnings.push('apfAmount should not exceed propertyValue');
@@ -230,15 +240,24 @@ function validateConditionalFields(formData: any, formType: string): string[] {
     }
 
     // Property area validation
-    if (formData.propertyArea && (formData.propertyArea < 1 || formData.propertyArea > 100000)) {
+    if (
+      formData.propertyArea !== undefined &&
+      formData.propertyArea !== null &&
+      typeof formData.propertyArea === 'number' &&
+      (formData.propertyArea < 1 || formData.propertyArea > 100000)
+    ) {
       warnings.push('propertyArea should be between 1 and 100000 sq ft');
     }
 
     // Date validation
     if (formData.apfIssueDate && formData.apfExpiryDate) {
-      const issueDate = new Date(formData.apfIssueDate);
-      const expiryDate = new Date(formData.apfExpiryDate);
-      if (expiryDate <= issueDate) {
+      const fromDate = new Date(
+        String(formData.apfIssueDate as string | number | boolean | null | undefined)
+      );
+      const toDate = new Date(
+        String(formData.apfExpiryDate as string | number | boolean | null | undefined)
+      );
+      if (!isNaN(fromDate.getTime()) && !isNaN(toDate.getTime()) && toDate <= fromDate) {
         warnings.push('apfExpiryDate should be after apfIssueDate');
       }
     }
@@ -267,7 +286,7 @@ function validateConditionalFields(formData: any, formType: string): string[] {
 /**
  * Processes field values based on field type and validation rules
  */
-function processFieldValue(fieldName: string, value: any): any {
+function processFieldValue(fieldName: string, value: unknown): unknown {
   // Handle null/undefined values
   if (value === null || value === undefined) {
     return null;
@@ -308,7 +327,12 @@ function processFieldValue(fieldName: string, value: any): any {
   }
 
   // Default: convert to string and trim, return null if empty
-  const trimmedValue = String(value).trim();
+
+  const trimmedValue = (
+    typeof value === 'object' && value !== null
+      ? JSON.stringify(value)
+      : String(value as string | number | boolean | null | undefined)
+  ).trim();
   return trimmedValue === '' ? null : trimmedValue;
 }
 
@@ -316,8 +340,8 @@ function processFieldValue(fieldName: string, value: any): any {
  * Generates a comprehensive field coverage report for debugging
  */
 export function generatePropertyApfFieldCoverageReport(
-  formData: any,
-  preparedData: Record<string, any>,
+  formData: Record<string, unknown>,
+  preparedData: Record<string, unknown>,
   formType: string
 ): string {
   const originalFields = Object.keys(formData).length;

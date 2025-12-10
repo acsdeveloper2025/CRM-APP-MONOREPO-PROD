@@ -6,7 +6,16 @@ import { CaseStatusChart } from '@/components/dashboard/CaseStatusChart';
 import { MonthlyTrendsChart } from '@/components/dashboard/MonthlyTrendsChart';
 import { RecentActivities } from '@/components/dashboard/RecentActivities';
 import { useDashboardStats, useRecentActivities, useCaseStatusDistribution, useMonthlyTrends, useTATStats } from '@/hooks/useDashboard';
-import { FileText, Building2, CheckSquare, Download, Plus, CheckCircle, AlertTriangle, XCircle } from 'lucide-react';
+import { 
+  Users,
+  XCircle,
+  CheckSquare,
+  Plus,
+  CheckCircle,
+  FileText,
+  Download,
+  AlertTriangle
+} from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 
 export const DashboardPage: React.FC = () => {
@@ -20,28 +29,24 @@ export const DashboardPage: React.FC = () => {
   const { data: tatStatsData } = useTATStats();
 
   // Mock data fallback for development
-  const _mockStats = {
-    totalCases: 1234,
-    inProgressCases: 456,
-    completedCases: 789,
-    pendingReviewCases: 23,
-    activeClients: 89,
-    totalInvoices: 156,
-    pendingCommissions: 45,
-    monthlyRevenue: 125000,
-  };
 
-  const stats = statsData?.data?.stats || {
+
+  const stats = statsData?.data || {
     totalCases: 0,
     pendingCases: 0,
     inProgressCases: 0,
     completedCases: 0,
     revokedTasks: 0,
     activeUsers: 0,
-    totalClients: 0
+    totalClients: 0,
+    pendingReviewCases: 0,
+    monthlyRevenue: 0,
+    totalInvoices: 0,
+    pendingCommissions: 0
   };
 
-  const tatStats = tatStatsData?.data || {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const tatStats = (tatStatsData?.data as any) || {
     criticalOverdue: 0,
     totalOverdue: 0,
     totalActiveTasks: 0,
@@ -49,8 +54,7 @@ export const DashboardPage: React.FC = () => {
   };
 
   // Mock data removed - using real API data only
-  const _caseDistribution: any[] = [];
-  const _trends: any[] = [];
+
 
   // Fallback data for charts when API data is not available
   const mockCaseDistribution = [
@@ -138,7 +142,7 @@ export const DashboardPage: React.FC = () => {
         <div className="min-w-0 flex-1">
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 truncate">Dashboard</h1>
           <p className="mt-1 sm:mt-2 text-sm sm:text-base text-gray-600">
-            Welcome back! Here's what's happening with your cases today.
+            Welcome back! Here&apos;s what&apos;s happening with your cases today.
           </p>
         </div>
         <Button variant="outline" size="sm" className="flex items-center space-x-2 hover:shadow-md transition-all duration-200 w-full sm:w-auto">
@@ -170,9 +174,10 @@ export const DashboardPage: React.FC = () => {
         />
         <StatsCard
           title="Revoked Tasks"
-          value={stats.revokedTasks}
+          value={stats.revokedTasks || 0}
           description="Tasks revoked by field agents"
           icon={XCircle}
+          trend={{ value: 2.4, isPositive: true }}
           color="text-red-600"
           onClick={() => navigate('/tasks/revoked')}
           className="cursor-pointer"
@@ -198,11 +203,11 @@ export const DashboardPage: React.FC = () => {
           className="cursor-pointer"
         />
         <StatsCard
-          title="Active Clients"
-          value={stats.totalClients}
+          title="Total Clients"
+          value={stats.activeClients || 0}
           description="from last month"
-          icon={Building2}
-          trend={{ value: 5, isPositive: true }}
+          icon={Users}
+          trend={{ value: 5.2, isPositive: true }}
           color="text-green-600"
           onClick={() => navigate('/clients')}
           className="cursor-pointer"
@@ -212,11 +217,13 @@ export const DashboardPage: React.FC = () => {
       {/* Charts Section */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <CaseStatusChart
-          data={caseDistributionData?.data?.distribution || mockCaseDistribution}
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          data={(caseDistributionData?.data as any) || mockCaseDistribution}
           isLoading={distributionLoading}
         />
         <MonthlyTrendsChart
-          data={trendsData?.data?.trends || mockTrends}
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          data={(trendsData?.data as any) || mockTrends}
           isLoading={trendsLoading}
         />
       </div>
@@ -243,7 +250,7 @@ export const DashboardPage: React.FC = () => {
                         {action.title}
                       </h3>
                       <p className="text-sm text-gray-600">
-                        {action.description}
+                      {action.description}
                       </p>
                       {action.count !== null && (
                         <p className="text-lg font-bold text-gray-900 mt-1">

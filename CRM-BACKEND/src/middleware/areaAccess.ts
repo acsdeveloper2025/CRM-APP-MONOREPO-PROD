@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-enum-comparison */
 // Disabled unsafe enum comparison rule for area access middleware as it compares user roles
 import type { Response, NextFunction } from 'express';
 import { query } from '@/config/database';
@@ -56,12 +55,12 @@ export const validateAreaAccess = (source: 'params' | 'body' | 'query' = 'params
       }
 
       // SUPER_ADMIN users bypass all area restrictions
-      if (userRole === 'SUPER_ADMIN') {
+      if ((userRole as string) === 'SUPER_ADMIN') {
         return next();
       }
 
       // Only apply restrictions to FIELD_AGENT users
-      if (userRole !== 'FIELD_AGENT') {
+      if ((userRole as string) !== 'FIELD_AGENT') {
         return next();
       }
 
@@ -152,12 +151,12 @@ export const addAreaFiltering = async (
     }
 
     // SUPER_ADMIN users bypass all filtering
-    if (userRole === 'SUPER_ADMIN') {
+    if ((userRole as string) === 'SUPER_ADMIN') {
       return next();
     }
 
     // Only apply filtering to FIELD_AGENT users
-    if (userRole !== 'FIELD_AGENT') {
+    if ((userRole as string) !== 'FIELD_AGENT') {
       return next();
     }
 

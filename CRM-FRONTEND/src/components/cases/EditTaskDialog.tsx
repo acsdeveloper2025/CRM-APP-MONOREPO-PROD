@@ -100,16 +100,16 @@ export const EditTaskDialog: React.FC<EditTaskDialogProps> = ({
 
   const handleSubmit = async (data: EditTaskFormData) => {
     try {
-      console.log('🔍 EditTaskDialog - handleSubmit START', {
+      console.warn('🔍 EditTaskDialog - handleSubmit START', {
         taskId: task.id,
         taskStatus: task.status,
-        taskType: (task as any).taskType,
+        taskType: (task as unknown).taskType,
         currentAssignedTo: task.assignedTo,
         formData: data,
       });
 
       // Build submission data, only including assignedTo if actually assigned
-      const submissionData: any = {
+      const submissionData: unknown = {
         taskTitle: data.taskTitle,
         taskDescription: data.taskDescription,
         priority: data.priority,
@@ -126,7 +126,7 @@ export const EditTaskDialog: React.FC<EditTaskDialogProps> = ({
         ? task.assignedTo.id 
         : (typeof task.assignedTo === 'string' ? task.assignedTo : undefined);
 
-      console.log('🔍 Assignment Logic Check', {
+      console.warn('🔍 Assignment Logic Check', {
         'data.assignedTo': data.assignedTo,
         currentAssignedToId,
         'task.assignedTo (raw)': task.assignedTo,
@@ -137,22 +137,22 @@ export const EditTaskDialog: React.FC<EditTaskDialogProps> = ({
       if (data.assignedTo && data.assignedTo !== 'unassigned') {
         if (data.assignedTo !== currentAssignedToId) {
           submissionData.assignedTo = data.assignedTo;
-          console.log('✅ Including assignedTo in submission:', data.assignedTo);
+          console.warn('✅ Including assignedTo in submission:', data.assignedTo);
         } else {
-          console.log('⏭️ Skipping assignedTo (no change)');
+          console.warn('⏭️ Skipping assignedTo (no change)');
         }
       } else if (data.assignedTo === 'unassigned' && currentAssignedToId) {
         // Explicitly unassign if it was previously assigned
         submissionData.assignedTo = null;
-        console.log('🗑️ Unassigning task');
+        console.warn('🗑️ Unassigning task');
       } else {
-        console.log('⚠️ No assignment action taken', {
+        console.warn('⚠️ No assignment action taken', {
           'data.assignedTo': data.assignedTo,
           currentAssignedToId,
         });
       }
 
-      console.log('📤 Final submission data:', submissionData);
+      console.warn('📤 Final submission data:', submissionData);
 
       // Debug: Show what we're submitting
       toast.success(`Submitting: Assigned To = ${submissionData.assignedTo || 'NOT SET'}, Rate Type = ${submissionData.rateTypeId || 'NOT SET'}`);
@@ -262,7 +262,7 @@ export const EditTaskDialog: React.FC<EditTaskDialogProps> = ({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {rateTypes.map((rateType: any) => (
+                        {rateTypes.map((rateType: unknown) => (
                           <SelectItem key={rateType.id} value={rateType.id.toString()}>
                             {rateType.name}
                           </SelectItem>

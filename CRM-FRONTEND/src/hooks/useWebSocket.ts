@@ -52,10 +52,12 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
 
     try {
       setIsLoadingNotifications(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const response = await apiService.get<any[]>('/notifications?limit=50');
 
       if (response.success && response.data && Array.isArray(response.data)) {
         // Convert API notifications to NotificationEvent format
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const apiNotifications: NotificationEvent[] = response.data.map((notification: any) => ({
           id: notification.id,
           type: notification.type === 'CASE_ASSIGNED' ? 'info' :
@@ -93,7 +95,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
 
   // Handle case updates
   const handleCaseUpdate = useCallback((update: CaseUpdate) => {
-    console.log('🔄 WebSocket case update received:', update);
+    console.warn('🔄 WebSocket case update received:', update);
 
     // Invalidate case queries to refresh the UI
     queryClient.invalidateQueries({ queryKey: caseKeys.all });
@@ -103,7 +105,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
 
   // Handle case status updates
   const handleCaseStatusUpdate = useCallback((update: CaseStatusUpdate) => {
-    console.log('🔄 WebSocket case status update received:', update);
+    console.warn('🔄 WebSocket case status update received:', update);
 
     // Invalidate case queries to refresh the UI
     queryClient.invalidateQueries({ queryKey: caseKeys.all });

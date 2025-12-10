@@ -28,9 +28,9 @@ export interface FormValidationResult {
  * @returns Validation result with detailed field coverage information
  */
 export function validateAndPrepareBuilderForm(
-  formData: any,
+  formData: Record<string, unknown>,
   formType: string
-): { validationResult: FormValidationResult; preparedData: Record<string, any> } {
+): { validationResult: FormValidationResult; preparedData: Record<string, unknown> } {
   const warnings: string[] = [];
   const missingFields: string[] = [];
 
@@ -54,7 +54,7 @@ export function validateAndPrepareBuilderForm(
   warnings.push(...conditionalWarnings);
 
   // Map form data to database fields
-  const mappedData: Record<string, any> = {};
+  const mappedData: Record<string, unknown> = {};
   for (const [mobileField, value] of Object.entries(formData)) {
     const dbColumn = BUILDER_FIELD_MAPPING[mobileField];
 
@@ -186,7 +186,7 @@ function getRequiredFieldsByFormType(formType: string): string[] {
 /**
  * Validates conditional fields based on form type and field values
  */
-function validateConditionalFields(formData: any, formType: string): string[] {
+function validateConditionalFields(formData: Record<string, unknown>, formType: string): string[] {
   const warnings: string[] = [];
 
   if (formType === 'POSITIVE') {
@@ -219,13 +219,20 @@ function validateConditionalFields(formData: any, formType: string): string[] {
     if (
       formData.staffStrength !== undefined &&
       formData.staffStrength !== null &&
+      typeof formData.staffStrength === 'number' &&
       (formData.staffStrength < 1 || formData.staffStrength > 10000)
     ) {
       warnings.push('staffStrength should be between 1 and 10000');
     }
 
     // Project units validation
-    if (formData.totalUnits && formData.soldUnits && formData.soldUnits > formData.totalUnits) {
+    if (
+      formData.totalUnits !== undefined &&
+      formData.soldUnits !== undefined &&
+      typeof formData.totalUnits === 'number' &&
+      typeof formData.soldUnits === 'number' &&
+      formData.soldUnits > formData.totalUnits
+    ) {
       warnings.push('soldUnits should not exceed totalUnits');
     }
   }
@@ -253,7 +260,7 @@ function validateConditionalFields(formData: any, formType: string): string[] {
 /**
  * Processes field values based on field type and validation rules
  */
-function processFieldValue(fieldName: string, value: any): any {
+function processFieldValue(fieldName: string, value: unknown): unknown {
   // Handle null/undefined values
   if (value === null || value === undefined) {
     return null;
@@ -292,7 +299,11 @@ function processFieldValue(fieldName: string, value: any): any {
   }
 
   // Default: convert to string and trim, return null if empty
-  const trimmedValue = String(value).trim();
+  const trimmedValue = (
+    typeof value === 'object' && value !== null
+      ? JSON.stringify(value)
+      : String(value as string | number | boolean | null | undefined)
+  ).trim();
   return trimmedValue === '' ? null : trimmedValue;
 }
 
@@ -300,8 +311,8 @@ function processFieldValue(fieldName: string, value: any): any {
  * Generates a comprehensive field coverage report for debugging
  */
 export function generateBuilderFieldCoverageReport(
-  formData: any,
-  preparedData: Record<string, any>,
+  formData: Record<string, unknown>,
+  preparedData: Record<string, unknown>,
   formType: string
 ): string {
   const originalFields = Object.keys(formData).length;

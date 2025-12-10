@@ -43,7 +43,7 @@ export const AssignmentSummary: React.FC<AssignmentSummaryProps> = ({
     <div className="space-y-4">
       {/* Info banner */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3">
-        <Info className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+        <Info className="h-5 w-5 text-blue-600 mt-0.5 shrink-0" />
         <div className="text-sm text-blue-900">
           <p className="font-medium mb-1">Read-Only View</p>
           <p className="text-blue-700">

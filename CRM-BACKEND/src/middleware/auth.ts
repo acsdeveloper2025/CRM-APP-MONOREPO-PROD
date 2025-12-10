@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/require-await */
 // Disabled require-await rule for this file as some middleware functions are async for consistency
 import type { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
@@ -14,7 +13,7 @@ export interface AuthenticatedRequest extends Request {
     username: string;
     role: Role;
     roleId?: string;
-    permissions?: any;
+    permissions?: Record<string, unknown>;
     deviceId?: string;
   };
 }
@@ -167,21 +166,18 @@ export const requireFieldOrHigher = requireRole([
 ]);
 
 // Enhanced auth middleware that loads user permissions
-export const auth = async (
-  req: AuthenticatedRequest,
-  res: Response,
-  next: NextFunction
-): Promise<void> => {
+export const auth = (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
   try {
     // First run the basic token authentication
-    authenticateToken(req, res, async () => {
-      if (!req.user) {
-        return; // authenticateToken already handled the response
-      }
+    authenticateToken(req, res, () => {
+      void (async () => {
+        if (!req.user) {
+          return; // authenticateToken already handled the response
+        }
 
-      try {
-        // Load user's role and permissions from database
-        const userQuery = `
+        try {
+          // Load user's role and permissions from database
+          const userQuery = `
           SELECT
             u.id,
             u.username,
@@ -194,30 +190,38 @@ export const auth = async (
           WHERE u.id = $1
         `;
 
-        const result = await query(userQuery, [req.user.id]);
+          const result = await query(userQuery, [req.user.id]);
 
-        if (result.rows.length > 0) {
-          const userData = result.rows[0];
-          req.user.roleId = userData.roleId;
-          req.user.permissions = userData.permissions || {};
+          if (result.rows.length > 0) {
+            const userData = result.rows[0];
+            req.user.roleId = userData.roleId;
+            req.user.permissions = userData.permissions || {};
 
-          // If user has a roleId, use the database role permissions
-          // Otherwise fall back to the legacy role system
-          if (userData.roleId && userData.permissions) {
-            req.user.permissions = userData.permissions;
+            // If user has a roleId, use the database role permissions
+            // Otherwise fall back to the legacy role system
+            if (userData.roleId && userData.permissions) {
+              req.user.permissions = userData.permissions;
+            }
           }
-        }
 
-        next();
-      } catch (error) {
-        logger.error('Error loading user permissions:', error);
-        const response: ApiResponse = {
+          next();
+        } catch (error) {
+          logger.error('Error loading user permissions:', error);
+          const response: ApiResponse = {
+            success: false,
+            message: 'Failed to load user permissions',
+            error: { code: 'PERMISSION_LOAD_ERROR' },
+          };
+          res.status(500).json(response);
+        }
+      })().catch(error => {
+        logger.error('Auth middleware inner error:', error);
+        res.status(500).json({
           success: false,
-          message: 'Failed to load user permissions',
-          error: { code: 'PERMISSION_LOAD_ERROR' },
-        };
-        res.status(500).json(response);
-      }
+          message: 'Internal server error',
+          error: { code: 'INTERNAL_ERROR' },
+        });
+      });
     });
   } catch (error) {
     logger.error('Auth middleware error:', error);

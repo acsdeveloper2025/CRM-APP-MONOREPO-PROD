@@ -1,4 +1,5 @@
 import type { Request, Response } from 'express';
+import type { AuthenticatedRequest } from '@/middleware/auth';
 import { query } from '@/config/database';
 import { createAuditLog } from '@/utils/auditLogger';
 import multer from 'multer';
@@ -7,10 +8,12 @@ import fs from 'fs/promises';
 import * as fsSync from 'fs';
 import sharp from 'sharp';
 import { config } from '@/config';
+import { logger } from '@/config/logger';
+import type { QueryParams } from '@/types/database';
 
 // Configure storage for verification attachments
 const storage = multer.diskStorage({
-  destination: async (req, file, cb) => {
+  destination: (req, file, cb) => {
     const { caseId } = req.params;
     const verificationType = req.body.verificationType || 'verification';
 
@@ -23,7 +26,7 @@ const storage = multer.diskStorage({
     );
 
     try {
-      await fs.mkdir(uploadDir, { recursive: true });
+      fsSync.mkdirSync(uploadDir, { recursive: true });
       cb(null, uploadDir);
     } catch (error) {
       cb(error as Error, '');
@@ -62,12 +65,12 @@ export class VerificationAttachmentController {
   /**
    * Upload verification images during form submission
    */
-  static async uploadVerificationImages(req: Request, res: Response) {
+  static async uploadVerificationImages(this: void, req: Request, res: Response) {
     try {
       const { caseId } = req.params;
       const { verificationType, submissionId, geoLocation, photoType = 'verification' } = req.body;
 
-      const userId = (req as any).user?.id;
+      const userId = (req as AuthenticatedRequest).user?.id;
       const files = req.files as Express.Multer.File[];
 
       if (!files || files.length === 0) {
@@ -92,7 +95,7 @@ export class VerificationAttachmentController {
       }
 
       const existingCase = caseResult.rows[0];
-      const uploadedAttachments: any[] = [];
+      const uploadedAttachments: Record<string, unknown>[] = [];
 
       // Process each uploaded file
       for (const file of files) {
@@ -209,13 +212,13 @@ export class VerificationAttachmentController {
   /**
    * Get verification images for a case
    */
-  static async getVerificationImages(req: Request, res: Response) {
+  static async getVerificationImages(this: void, req: Request, res: Response) {
     try {
       // Handle both route patterns: /:id/verification-images and /cases/:caseId/verification-images
       const caseId = req.params.caseId || req.params.id;
       const { verificationType, submissionId } = req.query;
 
-      console.log(
+      logger.info(
         '🔍 Getting verification images for case:',
         caseId,
         'submissionId:',
@@ -234,21 +237,21 @@ export class VerificationAttachmentController {
       }
 
       const caseUuid = caseResult.rows[0].id;
-      console.log('📋 Case UUID:', caseUuid);
+      logger.info('📋 Case UUID:', caseUuid);
 
       // First try to get images from verification_attachments table
       let whereClause = 'WHERE case_id = $1';
-      const queryParams: any[] = [caseUuid];
+      const queryParams: QueryParams = [caseUuid];
 
       if (verificationType) {
         whereClause += ' AND verification_type = $2';
-        queryParams.push(verificationType);
+        queryParams.push(verificationType as string);
       }
 
       if (submissionId) {
         const paramIndex = queryParams.length + 1;
         whereClause += ` AND "submissionId" = $${paramIndex}`;
-        queryParams.push(submissionId);
+        queryParams.push(submissionId as string);
       }
 
       const result = await query(
@@ -277,11 +280,11 @@ export class VerificationAttachmentController {
         geoLocation: row.geoLocation,
       }));
 
-      console.log('📊 Found', attachments.length, 'images in verification_attachments table');
+      logger.info('📊 Found', attachments.length, 'images in verification_attachments table');
 
       // If no images found in verification_attachments table, try to get from case verificationData
       if (attachments.length === 0) {
-        console.log('🔄 No images in verification_attachments, checking case verificationData...');
+        logger.info('🔄 No images in verification_attachments, checking case verificationData...');
 
         const caseDataResult = await query(
           `SELECT "verificationData" FROM cases WHERE "caseId" = $1`,
@@ -292,7 +295,7 @@ export class VerificationAttachmentController {
           const verificationData = caseDataResult.rows[0].verificationData;
           const verificationImages = verificationData?.verificationImages || [];
 
-          console.log('📋 Case verificationData found:', {
+          logger.info('📋 Case verificationData found:', {
             submissionId: verificationData?.submissionId,
             imageCount: verificationImages.length,
             requestedSubmissionId: submissionId,
@@ -301,13 +304,13 @@ export class VerificationAttachmentController {
           // Filter by submissionId if provided
           const filteredImages = submissionId
             ? verificationImages.filter(
-                (_img: any) => verificationData?.submissionId === submissionId
+                (_img: Record<string, unknown>) => verificationData?.submissionId === submissionId
               )
             : verificationImages;
 
-          console.log('🎯 Filtered images count:', filteredImages.length);
+          logger.info('🎯 Filtered images count:', filteredImages.length);
 
-          attachments = filteredImages.map((img: any, index: number) => ({
+          attachments = filteredImages.map((img: Record<string, unknown>, index: number) => ({
             id: `case_${caseId}_img_${index}`,
             filename: img.filename || `image_${index}.jpg`,
             originalName: img.originalName || img.filename || `image_${index}.jpg`,
@@ -344,7 +347,7 @@ export class VerificationAttachmentController {
   /**
    * Serve verification image file
    */
-  static async serveVerificationImage(req: Request, res: Response) {
+  static async serveVerificationImage(this: void, req: Request, res: Response) {
     try {
       const { imageId } = req.params;
 
@@ -406,7 +409,7 @@ export class VerificationAttachmentController {
   /**
    * Serve verification image thumbnail
    */
-  static async serveVerificationThumbnail(req: Request, res: Response) {
+  static async serveVerificationThumbnail(this: void, req: Request, res: Response) {
     try {
       const { imageId } = req.params;
 

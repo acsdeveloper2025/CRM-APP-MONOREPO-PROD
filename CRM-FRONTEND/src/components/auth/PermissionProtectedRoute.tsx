@@ -42,7 +42,7 @@ export function PermissionProtectedRoute({
           <Alert variant="destructive">
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>
-              You don't have permission to access this page. Required permission: {resource}.{action}
+              You don&apos;t have permission to access this page. Required permission: {resource}.{action}
             </AlertDescription>
           </Alert>
         </div>
@@ -84,7 +84,7 @@ export function MultiplePermissionProtectedRoute({
           <Alert variant="destructive">
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>
-              You don't have permission to access this page. Required permissions: {permissionList}
+              You don&apos;t have permission to access this page. Required permissions: {permissionList}
               {requireAll ? ' (all required)' : ' (any required)'}
             </AlertDescription>
           </Alert>
@@ -159,7 +159,7 @@ export function RoleProtectedRoute({
           <Alert variant="destructive">
             <Shield className="h-4 w-4" />
             <AlertDescription>
-              You don't have the required role to access this page. Required roles: {allowedRoles.join(', ')}
+              You don&apos;t have the required role to access this page. Required roles: {allowedRoles.join(', ')}
             </AlertDescription>
           </Alert>
         </div>

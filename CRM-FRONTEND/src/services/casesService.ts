@@ -125,7 +125,7 @@ export interface CaseTimelineEvent {
   createdAt: string;
   createdBy: string;
   createdByName: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface CaseAttachment {
@@ -372,7 +372,7 @@ export class CasesService extends BaseApiService {
     id: string, 
     eventType: string, 
     description: string, 
-    metadata?: Record<string, any>
+    metadata?: Record<string, unknown>
   ): Promise<ApiResponse<CaseTimelineEvent>> {
     return this.post(`/${id}/timeline`, {
       eventType,

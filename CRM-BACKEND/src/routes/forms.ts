@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/unbound-method */
 // Disabled unbound-method rule for this file as it uses method references in routes
 import { Router } from 'express';
 import { authenticateToken, requireFieldOrHigher } from '@/middleware/auth';
@@ -41,6 +40,9 @@ router.get('/auto-save/:caseId', (req, res) => {
 });
 
 // Get form submissions for a case (for web frontend)
-router.get('/cases/:caseId/submissions', MobileFormController.getCaseFormSubmissions);
+router.get(
+  '/cases/:caseId/submissions',
+  MobileFormController.getCaseFormSubmissions.bind(MobileFormController)
+);
 
 export default router;

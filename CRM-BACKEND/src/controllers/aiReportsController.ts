@@ -5,6 +5,7 @@ import { createAuditLog } from '../utils/auditLogger';
 import type { AuthenticatedRequest } from '../middleware/auth';
 import { geminiAIService, type VerificationReportData } from '../services/GeminiAIService';
 import { getReportTemplate, getRiskAssessment } from '../utils/reportTemplates';
+import type { QueryParams } from '../types/database';
 
 /**
  * Generate AI-powered verification report for a form submission
@@ -278,24 +279,24 @@ export const getReportStatistics = async (req: AuthenticatedRequest, res: Respon
     const { dateFrom, dateTo, verificationType } = req.query;
 
     let whereClause = '';
-    const params: any[] = [];
+    const params: QueryParams = [];
 
     if (dateFrom || dateTo || verificationType) {
       const conditions: string[] = [];
 
       if (dateFrom) {
         conditions.push(`created_at >= $${params.length + 1}`);
-        params.push(dateFrom);
+        params.push(dateFrom as string);
       }
 
       if (dateTo) {
         conditions.push(`created_at <= $${params.length + 1}`);
-        params.push(dateTo);
+        params.push(dateTo as string);
       }
 
       if (verificationType) {
         conditions.push(`(report_data->'metadata'->>'verificationType') = $${params.length + 1}`);
-        params.push(verificationType);
+        params.push(verificationType as string);
       }
 
       whereClause = `WHERE ${conditions.join(' AND ')}`;
@@ -398,7 +399,12 @@ async function getSubmissionPhotos(caseId: string, _submissionId: string) {
 /**
  * Save AI report to database
  */
-async function saveAIReport(caseId: string, submissionId: string, reportData: any, userId: string) {
+async function saveAIReport(
+  caseId: string,
+  submissionId: string,
+  reportData: Record<string, unknown>,
+  userId: string
+) {
   const query = `
     INSERT INTO ai_reports (case_id, submission_id, report_data, generated_by, created_at)
     VALUES ($1, $2, $3, $4, NOW())

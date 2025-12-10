@@ -1,4 +1,14 @@
 import type { Request, Response } from 'express';
+import type { QueryParams, VerificationAttachmentRow } from '../types/database';
+
+interface AuthenticatedRequest extends Request {
+  user?: {
+    id: string;
+    role: string;
+    email?: string;
+    name?: string;
+  };
+}
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs/promises';
@@ -8,6 +18,7 @@ import { v4 as uuidv4 } from 'uuid';
 import crypto from 'crypto';
 import type { MobileAttachmentResponse } from '../types/mobile';
 import { createAuditLog } from '../utils/auditLogger';
+import { logger } from '../utils/logger';
 import { config } from '../config';
 import { query } from '@/config/database';
 
@@ -64,14 +75,16 @@ async function generateBase64WithChecksum(
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
-  destination: async (req, file, cb) => {
-    const uploadDir = path.join(process.cwd(), 'uploads', 'mobile');
-    try {
-      await fs.mkdir(uploadDir, { recursive: true });
-      cb(null, uploadDir);
-    } catch (error) {
-      cb(error, uploadDir);
-    }
+  destination: (req, file, cb) => {
+    void (async () => {
+      const uploadDir = path.join(process.cwd(), 'uploads', 'mobile');
+      try {
+        await fs.mkdir(uploadDir, { recursive: true });
+        cb(null, uploadDir);
+      } catch (error) {
+        cb(error as Error, uploadDir);
+      }
+    })();
   },
   filename: (req, file, cb) => {
     const uniqueName = `${uuidv4()}-${Date.now()}${path.extname(file.originalname)}`;
@@ -100,12 +113,12 @@ export const mobileUpload = multer({
 
 export class MobileAttachmentController {
   // Upload files for mobile app
-  static async uploadFiles(req: Request, res: Response) {
+  static async uploadFiles(this: void, req: AuthenticatedRequest, res: Response) {
     try {
       const { caseId: paramCaseId, taskId: paramTaskId } = req.params;
       const caseId = paramCaseId || paramTaskId;
-      const userId = (req as any).user?.id;
-      const userRole = (req as any).user?.role;
+      const userId = req.user?.id;
+      const userRole = req.user?.role;
       const files = req.files as Express.Multer.File[];
       const geoLocation = req.body.geoLocation ? JSON.parse(req.body.geoLocation) : null;
 
@@ -135,7 +148,7 @@ export class MobileAttachmentController {
       }
 
       // Verify case access and get case details
-      const where: any[] = [lookupCaseId];
+      const where: QueryParams = [lookupCaseId];
       let caseSql: string;
 
       if (isUUID) {
@@ -173,7 +186,7 @@ export class MobileAttachmentController {
         // Clean up uploaded files
         await Promise.all(files.map(file => fs.unlink(file.path).catch(() => {})));
 
-        console.log(`❌ Attachment upload: Case not found: ${caseId} (isUUID: ${isUUID})`);
+        logger.info(`❌ Attachment upload: Case not found: ${caseId} (isUUID: ${isUUID})`);
         return res.status(404).json({
           success: false,
           message: 'Case not found or access denied',
@@ -313,12 +326,12 @@ export class MobileAttachmentController {
   }
 
   // Get attachments for a case
-  static async getCaseAttachments(req: Request, res: Response) {
+  static async getCaseAttachments(this: void, req: AuthenticatedRequest, res: Response) {
     try {
       const { caseId: paramCaseId, taskId: paramTaskId } = req.params;
       const caseId = paramCaseId || paramTaskId;
-      const userId = (req as any).user?.id;
-      const userRole = (req as any).user?.role;
+      const userId = req.user?.id;
+      const userRole = req.user?.role;
 
       // Check if caseId is a UUID (mobile sends UUID) or case number (web sends case number)
       const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(caseId);
@@ -335,7 +348,7 @@ export class MobileAttachmentController {
       }
 
       // Verify case access and get case details
-      const caseVals: any[] = [lookupCaseId];
+      const caseVals: QueryParams = [lookupCaseId];
       let caseSql: string;
 
       if (isUUID) {
@@ -360,7 +373,7 @@ export class MobileAttachmentController {
       const existingCase = caseCheck.rows[0];
 
       if (!existingCase) {
-        console.log(`❌ Get attachments: Case not found: ${caseId} (isUUID: ${isUUID})`);
+        logger.info(`❌ Get attachments: Case not found: ${caseId} (isUUID: ${isUUID})`);
         return res.status(404).json({
           success: false,
           message: 'Case not found or access denied',
@@ -388,7 +401,7 @@ export class MobileAttachmentController {
       // For field agents, ensure they can only see attachments for their assigned task
       // For other roles (admin, manager), show all attachments for the case
       let attachmentQuery: string;
-      let attachmentParams: any[];
+      let attachmentParams: QueryParams;
 
       if (userRole === 'FIELD_AGENT' && userTaskId) {
         // Filter attachments by specific verification task OR show attachments with NULL task_id (admin-uploaded/legacy)
@@ -413,12 +426,12 @@ export class MobileAttachmentController {
 
       const attRes = await query(attachmentQuery, attachmentParams);
 
-      console.log(
+      logger.info(
         `📎 Mobile Get Attachments - Case: ${caseId}, User: ${userId}, Role: ${userRole}, TaskId: ${userTaskId}, Found: ${attRes.rows.length} attachments`
       );
-      console.log(`📋 Query used:`, attachmentQuery);
-      console.log(`📋 Query params:`, attachmentParams);
-      console.log(`📋 Results:`, attRes.rows);
+      logger.info(`📋 Query used:`, attachmentQuery);
+      logger.info(`📋 Query params:`, attachmentParams);
+      logger.info(`📋 Results:`, attRes.rows);
 
       // Check if client wants base64 data for offline sync
       const includeAttachmentData = req.query.includeAttachmentData === 'true';
@@ -454,7 +467,7 @@ export class MobileAttachmentController {
             attachmentResponse.base64Data = base64Data;
             attachmentResponse.checksum = checksum;
 
-            console.log(
+            logger.info(
               `📦 Included base64 data for attachment ${att.id} (${att.originalName}), size: ${base64Data.length} chars`
             );
           } catch (error) {
@@ -466,7 +479,7 @@ export class MobileAttachmentController {
         mobileAttachments.push(attachmentResponse);
       }
 
-      console.log(
+      logger.info(
         `✅ Returning ${mobileAttachments.length} attachments to mobile app${includeAttachmentData ? ' (with base64 data)' : ''}`
       );
 
@@ -489,15 +502,15 @@ export class MobileAttachmentController {
   }
 
   // Get attachment content
-  static async getAttachmentContent(req: Request, res: Response) {
+  static async getAttachmentContent(this: void, req: AuthenticatedRequest, res: Response) {
     try {
       const { attachmentId } = req.params;
-      const userId = (req as any).user?.id;
-      const userRole = (req as any).user?.role;
+      const userId = req.user?.id;
+      const userRole = req.user?.role;
 
       // Get attachment with case assignment check
       let attachmentQuery: string;
-      let queryParams: any[];
+      let queryParams: QueryParams;
 
       if (userRole === 'FIELD_AGENT') {
         // Field agents can only access attachments for their assigned task OR attachments with NULL task_id
@@ -529,9 +542,9 @@ export class MobileAttachmentController {
       }
 
       const attRes = await query(attachmentQuery, queryParams);
-      const attachment: any = attRes.rows[0];
+      const attachment = attRes.rows[0] as unknown as VerificationAttachmentRow;
 
-      console.log('📎 Attachment object:', JSON.stringify(attachment, null, 2));
+      logger.info('📎 Attachment object:', JSON.stringify(attachment, null, 2));
 
       if (!attachment) {
         return res.status(404).json({
@@ -570,7 +583,7 @@ export class MobileAttachmentController {
       // Set appropriate headers
       res.setHeader('Content-Type', attachment.mimeType);
       res.setHeader('Content-Disposition', `inline; filename="${attachment.originalName}"`);
-      res.setHeader('Content-Length', (attachment.fileSize || attachment.size || 0).toString());
+      res.setHeader('Content-Length', (attachment.fileSize || 0).toString());
 
       // Stream the file
       const fileStream = createReadStream(filePath);
@@ -602,15 +615,19 @@ export class MobileAttachmentController {
   }
 
   // Delete attachment
-  static async deleteAttachment(req: Request, res: Response) {
+  static async deleteAttachment(this: void, req: AuthenticatedRequest, res: Response) {
+    type AttachmentWithStatus = VerificationAttachmentRow & {
+      status?: string;
+      assignedTo?: string;
+    };
     try {
       const { attachmentId } = req.params;
-      const userId = (req as any).user?.id;
-      const userRole = (req as any).user?.role;
+      const userId = req.user?.id;
+      const userRole = req.user?.role;
 
       // Get attachment with case assignment check
       let attachmentQuery: string;
-      let queryParams: any[];
+      let queryParams: QueryParams;
 
       if (userRole === 'FIELD_AGENT') {
         // Field agents can only delete attachments for their assigned task OR attachments with NULL task_id
@@ -642,7 +659,7 @@ export class MobileAttachmentController {
       }
 
       const attRes = await query(attachmentQuery, queryParams);
-      const attachment: any = attRes.rows[0];
+      const attachment = attRes.rows[0] as unknown as AttachmentWithStatus;
 
       if (!attachment) {
         return res.status(404).json({
@@ -677,16 +694,15 @@ export class MobileAttachmentController {
       const filePath = path.join(process.cwd(), 'uploads', 'mobile', attachment.filename);
       await fs.unlink(filePath).catch(() => {});
 
-      if (attachment.thumbnailUrl) {
-        const thumbnailPath = path.join(
-          process.cwd(),
-          'uploads',
-          'mobile',
-          'thumbnails',
-          `thumb_${attachment.filename}`
-        );
-        await fs.unlink(thumbnailPath).catch(() => {});
-      }
+      // Always try to delete thumbnail based on naming convention
+      const thumbnailPath = path.join(
+        process.cwd(),
+        'uploads',
+        'mobile',
+        'thumbnails',
+        `thumb_${attachment.filename}`
+      );
+      await fs.unlink(thumbnailPath).catch(() => {});
 
       await createAuditLog({
         action: 'MOBILE_ATTACHMENT_DELETED',
@@ -722,11 +738,15 @@ export class MobileAttachmentController {
    * Get attachments for multiple cases in batch
    * Reduces the number of API calls from frontend
    */
-  static async getBatchAttachments(req: Request, res: Response): Promise<void> {
+  static async getBatchAttachments(
+    this: void,
+    req: AuthenticatedRequest,
+    res: Response
+  ): Promise<void> {
     try {
       const { caseIds } = req.body;
-      const userId = (req as any).user?.id;
-      const userRole = (req as any).user?.role;
+      const userId = req.user?.id;
+      const userRole = req.user?.role;
 
       if (!Array.isArray(caseIds) || caseIds.length === 0) {
         res.status(400).json({
@@ -753,14 +773,14 @@ export class MobileAttachmentController {
         return;
       }
 
-      console.log('📦 Batch attachments request for cases:', caseIds.length);
+      logger.info('📦 Batch attachments request for cases:', caseIds.length);
 
       // Create placeholders for the IN clause
       const placeholders = caseIds.map((_, index) => `$${index + 1}`).join(', ');
 
       // Build query with proper access control
       let attachmentsSql: string;
-      let queryParams: any[];
+      let queryParams: QueryParams;
 
       if (userRole === 'FIELD_AGENT') {
         // Field agents can only see attachments for cases with assigned tasks
@@ -821,7 +841,7 @@ export class MobileAttachmentController {
       const attachmentsResult = await query(attachmentsSql, queryParams);
 
       // Group attachments by case ID
-      const attachmentsByCase: Record<string, any[]> = {};
+      const attachmentsByCase: Record<string, { id: string; [key: string]: unknown }[]> = {};
 
       // Initialize all case IDs with empty arrays
       caseIds.forEach(caseId => {
@@ -853,7 +873,7 @@ export class MobileAttachmentController {
         });
       });
 
-      console.log('📦 Batch attachments results:', {
+      logger.info('📦 Batch attachments results:', {
         requestedCases: caseIds.length,
         totalAttachments: attachmentsResult.rows.length,
         casesWithAttachments: Object.keys(attachmentsByCase).filter(

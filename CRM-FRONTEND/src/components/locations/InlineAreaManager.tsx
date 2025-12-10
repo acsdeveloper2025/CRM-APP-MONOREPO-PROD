@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, X, AlertCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -39,7 +39,7 @@ export function InlineAreaManager({ pincode, className }: InlineAreaManagerProps
   // Add areas mutation
   const addAreasMutation = useMutation({
     mutationFn: (areaIds: number[]) =>
-      locationsService.addPincodeAreas(pincode.id, { areaIds }),
+      locationsService.addPincodeAreas(String(pincode.id), { areaIds }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pincodes'] });
       queryClient.invalidateQueries({ queryKey: ['areas'] });
@@ -47,15 +47,16 @@ export function InlineAreaManager({ pincode, className }: InlineAreaManagerProps
       setSelectedAreaIds([]);
       setShowAddPopover(false);
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to add areas');
+    onError: (error: unknown) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      toast.error((error as any).response?.data?.message || 'Failed to add areas');
     },
   });
 
   // Remove area mutation
   const removeAreaMutation = useMutation({
     mutationFn: (areaId: string) => 
-      locationsService.removePincodeArea(pincode.id, areaId),
+      locationsService.removePincodeArea(String(pincode.id), areaId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pincodes'] });
       queryClient.invalidateQueries({ queryKey: ['areas'] });
@@ -63,8 +64,9 @@ export function InlineAreaManager({ pincode, className }: InlineAreaManagerProps
       setShowRemoveDialog(false);
       setAreaToRemove(null);
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to remove area');
+    onError: (error: unknown) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      toast.error((error as any).response?.data?.message || 'Failed to remove area');
       setShowRemoveDialog(false);
       setAreaToRemove(null);
     },
@@ -85,12 +87,11 @@ export function InlineAreaManager({ pincode, className }: InlineAreaManagerProps
 
   const confirmRemoveArea = () => {
     if (areaToRemove) {
-      removeAreaMutation.mutate(areaToRemove.id);
+      removeAreaMutation.mutate(String(areaToRemove.id));
     }
   };
 
   // Get current area IDs to filter out from selection
-  const _currentAreaIds = pincode.areas?.map(area => area.id) || [];
 
   return (
     <div className={`flex flex-wrap gap-1 items-center ${className}`}>
@@ -181,7 +182,7 @@ export function InlineAreaManager({ pincode, className }: InlineAreaManagerProps
               Remove Area
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to remove "{areaToRemove?.name}" from pincode {pincode.code}?
+              Are you sure you want to remove &quot;{areaToRemove?.name}&quot; from pincode {pincode.code}?
               {pincode.areas && pincode.areas.length <= 1 && (
                 <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded text-amber-800 text-sm">
                   <strong>Warning:</strong> This is the last area for this pincode. 

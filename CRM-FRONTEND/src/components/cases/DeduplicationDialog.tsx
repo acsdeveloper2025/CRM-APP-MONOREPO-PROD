@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { toast } from 'react-hot-toast';
 import {
   Dialog,
   DialogContent,
@@ -43,7 +44,7 @@ export const DeduplicationDialog: React.FC<DeduplicationDialogProps> = ({
 
   const handleCreateNew = () => {
     if (!rationale.trim()) {
-      alert('Please provide a rationale for creating a new case despite duplicates.');
+      toast.error('Please provide a rationale for creating a new case despite duplicates.');
       return;
     }
     onCreateNew(rationale);
@@ -51,11 +52,11 @@ export const DeduplicationDialog: React.FC<DeduplicationDialogProps> = ({
 
   const handleUseExisting = () => {
     if (!selectedCaseId) {
-      alert('Please select an existing case to use.');
+      toast.error('Please select an existing case to use.');
       return;
     }
     if (!rationale.trim()) {
-      alert('Please provide a rationale for using the existing case.');
+      toast.error('Please provide a rationale for using the existing case.');
       return;
     }
     onUseExisting(selectedCaseId, rationale);
@@ -120,8 +121,8 @@ export const DeduplicationDialog: React.FC<DeduplicationDialogProps> = ({
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-2">
-                {deduplicationResult?.searchCriteria.applicantName && (
-                  <Badge variant="outline">Name: {deduplicationResult.searchCriteria.applicantName}</Badge>
+                {deduplicationResult?.searchCriteria.customerName && (
+                  <Badge variant="outline">Name: {deduplicationResult.searchCriteria.customerName}</Badge>
                 )}
                 {deduplicationResult?.searchCriteria.panNumber && (
                   <Badge variant="outline">PAN: {deduplicationResult.searchCriteria.panNumber}</Badge>
@@ -129,8 +130,8 @@ export const DeduplicationDialog: React.FC<DeduplicationDialogProps> = ({
                 {deduplicationResult?.searchCriteria.aadhaarNumber && (
                   <Badge variant="outline">Aadhaar: {deduplicationResult.searchCriteria.aadhaarNumber}</Badge>
                 )}
-                {deduplicationResult?.searchCriteria.applicantPhone && (
-                  <Badge variant="outline">Phone: {deduplicationResult.searchCriteria.applicantPhone}</Badge>
+                {deduplicationResult?.searchCriteria.customerPhone && (
+                  <Badge variant="outline">Phone: {deduplicationResult.searchCriteria.customerPhone}</Badge>
                 )}
                 {deduplicationResult?.searchCriteria.applicantEmail && (
                   <Badge variant="outline">Email: {deduplicationResult.searchCriteria.applicantEmail}</Badge>

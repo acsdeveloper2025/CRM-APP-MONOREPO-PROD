@@ -31,9 +31,9 @@ export interface FormValidationResult {
  * @returns Validation result with detailed field coverage information
  */
 export function validateAndPrepareDsaConnectorForm(
-  formData: any,
+  formData: Record<string, unknown>,
   formType: string
-): { validationResult: FormValidationResult; preparedData: Record<string, any> } {
+): { validationResult: FormValidationResult; preparedData: Record<string, unknown> } {
   const warnings: string[] = [];
   const missingFields: string[] = [];
 
@@ -57,7 +57,7 @@ export function validateAndPrepareDsaConnectorForm(
   warnings.push(...conditionalWarnings);
 
   // Map form data to database fields
-  const mappedData: Record<string, any> = {};
+  const mappedData: Record<string, unknown> = {};
   for (const [mobileField, value] of Object.entries(formData)) {
     const dbColumn = DSA_CONNECTOR_FIELD_MAPPING[mobileField];
 
@@ -185,13 +185,15 @@ function getRequiredFieldsByFormType(formType: string): string[] {
 /**
  * Validates conditional fields based on form type and field values
  */
-function validateConditionalFields(formData: any, formType: string): string[] {
+function validateConditionalFields(formData: Record<string, unknown>, formType: string): string[] {
   const warnings: string[] = [];
 
   if (formType === 'POSITIVE') {
     // Connector experience validation
     if (
-      formData.connectorExperience &&
+      formData.connectorExperience !== undefined &&
+      formData.connectorExperience !== null &&
+      typeof formData.connectorExperience === 'number' &&
       (formData.connectorExperience < 0 || formData.connectorExperience > 50)
     ) {
       warnings.push('connectorExperience should be between 0 and 50 years');
@@ -199,8 +201,10 @@ function validateConditionalFields(formData: any, formType: string): string[] {
 
     // Business volume validation
     if (
-      formData.monthlyBusinessVolume &&
-      formData.annualTurnover &&
+      formData.monthlyBusinessVolume !== undefined &&
+      formData.annualTurnover !== undefined &&
+      typeof formData.monthlyBusinessVolume === 'number' &&
+      typeof formData.annualTurnover === 'number' &&
       formData.monthlyBusinessVolume * 12 > formData.annualTurnover * 1.2
     ) {
       warnings.push('monthlyBusinessVolume seems inconsistent with annualTurnover');
@@ -208,15 +212,17 @@ function validateConditionalFields(formData: any, formType: string): string[] {
 
     // Team size validation
     if (
-      formData.teamSize &&
-      formData.subAgentsCount &&
+      formData.teamSize !== undefined &&
+      formData.subAgentsCount !== undefined &&
+      typeof formData.teamSize === 'number' &&
+      typeof formData.subAgentsCount === 'number' &&
       formData.subAgentsCount > formData.teamSize
     ) {
       warnings.push('subAgentsCount should not exceed teamSize');
     }
 
     // Contact validation
-    if (formData.contactNumber && formData.contactNumber.length !== 10) {
+    if (typeof formData.contactNumber === 'string' && formData.contactNumber.length !== 10) {
       warnings.push('contactNumber should be 10 digits');
     }
 
@@ -226,7 +232,12 @@ function validateConditionalFields(formData: any, formType: string): string[] {
     }
 
     // Office area validation
-    if (formData.officeArea && (formData.officeArea < 1 || formData.officeArea > 50000)) {
+    if (
+      formData.officeArea !== undefined &&
+      formData.officeArea !== null &&
+      typeof formData.officeArea === 'number' &&
+      (formData.officeArea < 1 || formData.officeArea > 50000)
+    ) {
       warnings.push('officeArea should be between 1 and 50000 sq ft');
     }
 
@@ -242,8 +253,10 @@ function validateConditionalFields(formData: any, formType: string): string[] {
 
     // Financial validation
     if (
-      formData.outstandingDues &&
-      formData.creditLimit &&
+      formData.outstandingDues !== undefined &&
+      formData.creditLimit !== undefined &&
+      typeof formData.outstandingDues === 'number' &&
+      typeof formData.creditLimit === 'number' &&
       formData.outstandingDues > formData.creditLimit
     ) {
       warnings.push('outstandingDues should not exceed creditLimit');
@@ -268,7 +281,7 @@ function validateConditionalFields(formData: any, formType: string): string[] {
 /**
  * Processes field values based on field type and validation rules
  */
-function processFieldValue(fieldName: string, value: any): any {
+function processFieldValue(fieldName: string, value: unknown): unknown {
   // Handle null/undefined values
   if (value === null || value === undefined) {
     return null;
@@ -309,7 +322,12 @@ function processFieldValue(fieldName: string, value: any): any {
   }
 
   // Default: convert to string and trim, return null if empty
-  const trimmedValue = String(value).trim();
+
+  const trimmedValue = (
+    typeof value === 'object' && value !== null
+      ? JSON.stringify(value)
+      : String(value as string | number | boolean | null | undefined)
+  ).trim();
   return trimmedValue === '' ? null : trimmedValue;
 }
 
@@ -317,8 +335,8 @@ function processFieldValue(fieldName: string, value: any): any {
  * Generates a comprehensive field coverage report for debugging
  */
 export function generateDsaConnectorFieldCoverageReport(
-  formData: any,
-  preparedData: Record<string, any>,
+  formData: Record<string, unknown>,
+  preparedData: Record<string, unknown>,
   formType: string
 ): string {
   const originalFields = Object.keys(formData).length;

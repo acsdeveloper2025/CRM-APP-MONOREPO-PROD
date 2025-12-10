@@ -93,8 +93,9 @@ export function EditDesignationDialog({ open, onOpenChange, designation }: EditD
       toast.success('Designation updated successfully');
       onOpenChange(false);
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to update designation');
+    onError: (error: unknown) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      toast.error((error as any).response?.data?.message || 'Failed to update designation');
     },
   });
 
@@ -184,7 +185,7 @@ export function EditDesignationDialog({ open, onOpenChange, designation }: EditD
                     />
                   </FormControl>
                   <FormDescription>
-                    Provide a clear description of the designation's role and responsibilities
+                    Provide a clear description of the designation&apos;s role and responsibilities
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
