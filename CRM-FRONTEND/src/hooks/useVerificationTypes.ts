@@ -46,7 +46,7 @@ export function useCreateVerificationType() {
       queryClient.invalidateQueries({ queryKey: VERIFICATION_TYPES_KEYS.lists() });
       toast.success(response.message || 'Verification type created successfully');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       const message = error.response?.data?.message || 'Failed to create verification type';
       toast.error(message);
     },
@@ -65,7 +65,7 @@ export function useUpdateVerificationType() {
       queryClient.invalidateQueries({ queryKey: VERIFICATION_TYPES_KEYS.detail(id) });
       toast.success(response.message || 'Verification type updated successfully');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       const message = error.response?.data?.message || 'Failed to update verification type';
       toast.error(message);
     },
@@ -82,7 +82,7 @@ export function useDeleteVerificationType() {
       queryClient.invalidateQueries({ queryKey: VERIFICATION_TYPES_KEYS.lists() });
       toast.success(response.message || 'Verification type deleted successfully');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       const message = error.response?.data?.message || 'Failed to delete verification type';
       toast.error(message);
     },

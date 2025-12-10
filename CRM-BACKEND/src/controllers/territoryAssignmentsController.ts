@@ -1,12 +1,11 @@
-/* eslint-disable @typescript-eslint/restrict-template-expressions */
-/* eslint-disable @typescript-eslint/no-base-to-string */
-// Disabled template expression rules for territory assignments controller as it handles query params in template literals
-import type { Request, Response } from 'express';
+import type { Response } from 'express';
 import { query } from '@/config/database';
 import { logger } from '@/config/logger';
+import type { AuthenticatedRequest } from '@/middleware/auth';
+import type { QueryParams } from '@/types/database';
 
 // GET /api/territory-assignments/field-agents - List all field agents with their territory assignments
-export const getFieldAgentTerritories = async (req: Request, res: Response) => {
+export const getFieldAgentTerritories = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const {
       page = 1,
@@ -21,10 +20,10 @@ export const getFieldAgentTerritories = async (req: Request, res: Response) => {
 
     // Build the WHERE clause
     const conditions: string[] = ['u.role = $1'];
-    const params: any[] = ['FIELD'];
+    const params: QueryParams = ['FIELD'];
     let paramIndex = 2;
 
-    if (search) {
+    if (search && typeof search === 'string') {
       conditions.push(
         `(u.name ILIKE $${paramIndex} OR u.username ILIKE $${paramIndex} OR u."employeeId" ILIKE $${paramIndex})`
       );
@@ -34,13 +33,13 @@ export const getFieldAgentTerritories = async (req: Request, res: Response) => {
 
     if (pincodeId) {
       conditions.push(`upa."pincodeId" = $${paramIndex}`);
-      params.push(pincodeId);
+      params.push(pincodeId as string);
       paramIndex++;
     }
 
     if (cityId) {
       conditions.push(`c.id = $${paramIndex}`);
-      params.push(cityId);
+      params.push(cityId as string);
       paramIndex++;
     }
 
@@ -119,7 +118,7 @@ export const getFieldAgentTerritories = async (req: Request, res: Response) => {
       ) area_agg ON upa."userId" = area_agg."userId" AND upa."pincodeId" = area_agg."pincodeId"
       ${whereClause}
       GROUP BY u.id, u.name, u.username, u."employeeId", u."isActive"
-      ORDER BY ${sortBy === 'userName' ? 'u.name' : `u."${sortBy}"`} ${String(sortOrder).toUpperCase()}
+      ORDER BY ${typeof sortBy === 'string' && sortBy === 'userName' ? 'u.name' : typeof sortBy === 'string' ? `u."${sortBy}"` : 'u.name'} ${typeof sortOrder === 'string' ? sortOrder.toUpperCase() : 'ASC'}
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `;
 
@@ -127,7 +126,7 @@ export const getFieldAgentTerritories = async (req: Request, res: Response) => {
     const result = await query(sql, params);
 
     logger.info(`Retrieved ${result.rows.length} field agents with territories`, {
-      userId: (req as any).user?.id,
+      userId: req.user?.id,
       page: pageNum,
       limit: limitNum,
       total,
@@ -155,7 +154,7 @@ export const getFieldAgentTerritories = async (req: Request, res: Response) => {
 };
 
 // GET /api/territory-assignments/field-agents/:userId - Get specific field agent's territory assignments
-export const getFieldAgentTerritoryById = async (req: Request, res: Response) => {
+export const getFieldAgentTerritoryById = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { userId } = req.params;
 
@@ -207,7 +206,7 @@ export const getFieldAgentTerritoryById = async (req: Request, res: Response) =>
     const result = await query(sql, [userId]);
 
     logger.info(`Retrieved territory assignments for field agent ${userId}`, {
-      userId: (req as any).user?.id,
+      userId: req.user?.id,
       targetUserId: userId,
       assignmentCount: result.rows.length,
     });
@@ -236,13 +235,13 @@ export const getFieldAgentTerritoryById = async (req: Request, res: Response) =>
 };
 
 // POST /api/territory-assignments/field-agents/:userId/pincodes - Assign pincodes to field agent
-export const assignPincodesToFieldAgent = async (req: Request, res: Response) => {
+export const assignPincodesToFieldAgent = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { userId } = req.params;
     const { pincodeIds } = req.body;
 
     // Validate authentication - assignedBy field is required and must reference a valid user
-    const authenticatedUserId = (req as any).user?.id;
+    const authenticatedUserId = req.user?.id;
     if (!authenticatedUserId) {
       logger.error('Pincode assignment attempted without authentication', {
         userId,
@@ -354,7 +353,7 @@ export const assignPincodesToFieldAgent = async (req: Request, res: Response) =>
       await query('COMMIT');
 
       logger.info(`Replaced pincode assignments for field agent ${userId}`, {
-        userId: (req as any).user?.id,
+        userId: req.user?.id,
         targetUserId: userId,
         pincodeIds,
         deletedPincodesCount,
@@ -385,7 +384,7 @@ export const assignPincodesToFieldAgent = async (req: Request, res: Response) =>
       errorStack: error instanceof Error ? error.stack : undefined,
       userId: req.params.userId,
       pincodeIdsCount: req.body.pincodeIds?.length,
-      authenticatedUserId: (req as any).user?.id,
+      authenticatedUserId: req.user?.id,
     });
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     res.status(500).json({
@@ -400,13 +399,13 @@ export const assignPincodesToFieldAgent = async (req: Request, res: Response) =>
 };
 
 // POST /api/territory-assignments/field-agents/:userId/areas - Assign areas within pincodes to field agent
-export const assignAreasToFieldAgent = async (req: Request, res: Response) => {
+export const assignAreasToFieldAgent = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { userId } = req.params;
     const { assignments } = req.body; // Array of { pincodeId, areaIds }
 
     // Validate authentication - assignedBy field is required and must reference a valid user
-    const authenticatedUserId = (req as any).user?.id;
+    const authenticatedUserId = req.user?.id;
     if (!authenticatedUserId) {
       logger.error('Area assignment attempted without authentication', {
         userId,
@@ -570,7 +569,7 @@ export const assignAreasToFieldAgent = async (req: Request, res: Response) => {
     }
 
     logger.info(`Updated area assignments for field agent ${userId}`, {
-      userId: (req as any).user?.id,
+      userId: req.user?.id,
       targetUserId: userId,
       removedCount,
       totalAssigned,
@@ -600,7 +599,7 @@ export const assignAreasToFieldAgent = async (req: Request, res: Response) => {
 };
 
 // DELETE /api/territory-assignments/field-agents/:userId/pincodes/:pincodeId - Remove pincode assignment
-export const removePincodeAssignment = async (req: Request, res: Response) => {
+export const removePincodeAssignment = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { userId, pincodeId } = req.params;
 
@@ -640,7 +639,7 @@ export const removePincodeAssignment = async (req: Request, res: Response) => {
       await query('COMMIT');
 
       logger.info(`Removed pincode assignment ${pincodeId} from field agent ${userId}`, {
-        userId: (req as any).user?.id,
+        userId: req.user?.id,
         targetUserId: userId,
         pincodeId,
       });
@@ -664,7 +663,7 @@ export const removePincodeAssignment = async (req: Request, res: Response) => {
 };
 
 // DELETE /api/territory-assignments/field-agents/:userId/areas/:areaId - Remove area assignment
-export const removeAreaAssignment = async (req: Request, res: Response) => {
+export const removeAreaAssignment = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { userId, areaId } = req.params;
     const { pincodeId } = req.query;
@@ -681,7 +680,7 @@ export const removeAreaAssignment = async (req: Request, res: Response) => {
     const assignmentCheck = await query(
       `SELECT id FROM "userAreaAssignments"
        WHERE "userId" = $1 AND "areaId" = $2 AND "pincodeId" = $3 AND "isActive" = true`,
-      [userId, areaId, pincodeId]
+      [userId, areaId, Number(pincodeId)]
     );
 
     if (assignmentCheck.rows.length === 0) {
@@ -696,11 +695,11 @@ export const removeAreaAssignment = async (req: Request, res: Response) => {
     await query(
       `DELETE FROM "userAreaAssignments"
        WHERE "userId" = $1 AND "areaId" = $2 AND "pincodeId" = $3 AND "isActive" = true`,
-      [userId, areaId, pincodeId]
+      [userId, areaId, Number(pincodeId)]
     );
 
     logger.info(`Removed area assignment ${areaId} from field agent ${userId}`, {
-      userId: (req as any).user?.id,
+      userId: req.user?.id,
       targetUserId: userId,
       areaId,
       pincodeId,
@@ -721,7 +720,7 @@ export const removeAreaAssignment = async (req: Request, res: Response) => {
 };
 
 // POST /api/territory-assignments/field-agents/:userId/add-pincode - Add single pincode with areas (incremental)
-export const addSinglePincodeAssignment = async (req: Request, res: Response) => {
+export const addSinglePincodeAssignment = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { userId } = req.params;
     const { pincodeId, areaIds = [] } = req.body;
@@ -814,7 +813,7 @@ export const addSinglePincodeAssignment = async (req: Request, res: Response) =>
         `INSERT INTO "userPincodeAssignments" ("userId", "pincodeId", "assignedBy", "isActive")
          VALUES ($1, $2, $3, true)
          RETURNING id`,
-        [userId, pincodeId, (req as any).user?.id]
+        [userId, pincodeId, req.user?.id]
       );
 
       // Add area assignments if provided
@@ -826,7 +825,7 @@ export const addSinglePincodeAssignment = async (req: Request, res: Response) =>
           await query(
             `INSERT INTO "userAreaAssignments" ("userId", "pincodeId", "areaId", "userPincodeAssignmentId", "assignedBy", "isActive")
              VALUES ($1, $2, $3, $4, $5, true)`,
-            [userId, pincodeId, areaId, userPincodeAssignmentId, (req as any).user?.id]
+            [userId, pincodeId, areaId, userPincodeAssignmentId, req.user?.id]
           );
           assignedAreasCount++;
         }
@@ -836,7 +835,7 @@ export const addSinglePincodeAssignment = async (req: Request, res: Response) =>
       await query('COMMIT');
 
       logger.info(`Added single pincode assignment for field agent ${userId}`, {
-        userId: (req as any).user?.id,
+        userId: req.user?.id,
         targetUserId: userId,
         targetUserName: user.name,
         pincodeId,
@@ -872,7 +871,7 @@ export const addSinglePincodeAssignment = async (req: Request, res: Response) =>
 };
 
 // DELETE /api/territory-assignments/field-agents/:userId/all - Remove all territory assignments
-export const removeAllTerritoryAssignments = async (req: Request, res: Response) => {
+export const removeAllTerritoryAssignments = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { userId } = req.params;
 
@@ -938,7 +937,7 @@ export const removeAllTerritoryAssignments = async (req: Request, res: Response)
       const removedAreas = deleteAreasResult.rows.length;
 
       logger.info(`Removed all territory assignments for field agent ${userId}`, {
-        userId: (req as any).user?.id,
+        userId: req.user?.id,
         targetUserId: userId,
         targetUserName: user.name,
         removedPincodes,

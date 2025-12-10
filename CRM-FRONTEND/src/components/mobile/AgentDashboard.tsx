@@ -88,13 +88,6 @@ export const AgentDashboard: React.FC = () => {
     }
   };
 
-  const _getQualityScoreColor = (score: number) => {
-    if (score >= 90) {return 'text-green-600';}
-    if (score >= 80) {return 'text-green-600';}
-    if (score >= 70) {return 'text-yellow-600';}
-    return 'text-red-600';
-  };
-
   const getQualityScoreBadge = (score: number) => {
     if (score >= 90) {return 'bg-green-100 text-green-800';}
     if (score >= 80) {return 'bg-green-100 text-green-800';}
@@ -120,9 +113,9 @@ export const AgentDashboard: React.FC = () => {
         <div className="px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
-                <User className="h-6 w-6 text-white" />
-              </div>
+                <div className="h-12 w-12 rounded-lg bg-linear-to-r from-purple-500 to-purple-600 flex items-center justify-center text-white mb-4 shadow-lg shadow-purple-500/20">
+                  <User className="h-6 w-6 text-white" />
+                </div>
               <div>
                 <h1 className="text-lg font-semibold text-gray-900">{user?.name}</h1>
                 <p className="text-sm text-gray-600">Field Agent</p>
@@ -159,7 +152,7 @@ export const AgentDashboard: React.FC = () => {
       {/* Quick Stats Cards */}
       <div className="p-4">
         <div className="grid grid-cols-2 gap-3 mb-6">
-          <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
+          <Card className="bg-linear-to-r from-blue-500 to-blue-600 text-white">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -172,7 +165,7 @@ export const AgentDashboard: React.FC = () => {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-r from-green-500 to-green-600 text-white">
+          <Card className="bg-linear-to-r from-green-500 to-green-600 text-white">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -185,7 +178,7 @@ export const AgentDashboard: React.FC = () => {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-r from-purple-500 to-purple-600 text-white">
+          <Card className="bg-linear-to-r from-purple-500 to-purple-600 text-white">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -198,7 +191,7 @@ export const AgentDashboard: React.FC = () => {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-r from-orange-500 to-orange-600 text-white">
+          <Card className="bg-linear-to-r from-orange-500 to-orange-600 text-white">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -215,7 +208,7 @@ export const AgentDashboard: React.FC = () => {
         {/* Task Summary */}
         <Card className="mb-6">
           <CardHeader className="pb-3">
-            <CardTitle className="text-lg">Today's Tasks</CardTitle>
+            <CardTitle className="text-lg">Today&apos;s Tasks</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-between mb-4">

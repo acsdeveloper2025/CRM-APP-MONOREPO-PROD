@@ -22,7 +22,7 @@ import { EnhancedAreasMultiSelect } from './EnhancedAreasMultiSelect';
 
 interface CascadingLocationSelectorProps {
   // Form control
-  form: any;
+  form: unknown;
   
   // Field names
   countryField?: string;

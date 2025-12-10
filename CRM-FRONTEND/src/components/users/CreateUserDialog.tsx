@@ -106,7 +106,7 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
         departmentId: data.departmentId ? parseInt(data.departmentId, 10) : undefined,
         designationId: data.designationId ? parseInt(data.designationId, 10) : undefined,
       };
-      return usersService.createUser(cleanData as any);
+      return usersService.createUser(cleanData as unknown);
     },
     queryKey: ['users'],
     resourceName: 'User',
@@ -229,7 +229,7 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
 
                     <Select
                       onValueChange={(value) => {
-                        console.log('Role selected:', value);
+                        console.warn('Role selected:', value);
                         field.onChange(value);
                       }}
                       value={field.value}
@@ -284,7 +284,7 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
 
                     <Select
                       onValueChange={(value) => {
-                        console.log('Designation selected:', value);
+                        console.warn('Designation selected:', value);
                         field.onChange(value);
                       }}
                       value={field.value}
@@ -322,7 +322,7 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
                     <FormLabel>Department</FormLabel>
                     <Select
                       onValueChange={(value) => {
-                        console.log('Department selected:', value);
+                        console.warn('Department selected:', value);
                         field.onChange(value);
                       }}
                       value={field.value}

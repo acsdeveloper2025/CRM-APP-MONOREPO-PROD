@@ -48,7 +48,7 @@ export function ProductsTable({ data, isLoading }: ProductsTableProps) {
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
 
   const deleteMutation = useStandardizedMutation({
-    mutationFn: (id: string) => clientsService.deleteProduct(id),
+    mutationFn: (id: number) => clientsService.deleteProduct(id),
     successMessage: 'Product deleted successfully',
     errorContext: 'Product Deletion',
     errorFallbackMessage: 'Failed to delete product',
@@ -188,7 +188,7 @@ export function ProductsTable({ data, isLoading }: ProductsTableProps) {
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
               This action cannot be undone. This will permanently delete the product
-              "{productToDelete?.name}" and all associated verification types.
+              &quot;{productToDelete?.name}&quot; and all associated verification types.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

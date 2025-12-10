@@ -2,6 +2,7 @@ import type { Response } from 'express';
 import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
 import { query } from '@/config/database';
+import type { QueryParams, DatabaseError } from '@/types/database';
 
 // Database-driven pincodes controller - no more mock data
 
@@ -54,14 +55,14 @@ export const getPincodes = async (req: AuthenticatedRequest, res: Response) => {
       WHERE 1=1
     `;
 
-    const params: any[] = [];
+    const params: QueryParams = [];
     let paramCount = 0;
 
     // Apply filters
     if (cityId) {
       paramCount++;
       sql += ` AND p."cityId" = $${paramCount}`;
-      params.push(cityId);
+      params.push(cityId as string);
     }
 
     if (state) {
@@ -129,13 +130,13 @@ export const getPincodes = async (req: AuthenticatedRequest, res: Response) => {
       LEFT JOIN areas a ON pa."areaId" = a.id
       WHERE 1=1
     `;
-    const countParams: any[] = [];
+    const countParams: QueryParams = [];
     let countParamCount = 0;
 
     if (cityId) {
       countParamCount++;
       countSql += ` AND p."cityId" = $${countParamCount}`;
-      countParams.push(cityId);
+      countParams.push(cityId as string);
     }
 
     if (state) {
@@ -154,8 +155,9 @@ export const getPincodes = async (req: AuthenticatedRequest, res: Response) => {
         s.name ILIKE $${countParamCount} OR
         a.name ILIKE $${countParamCount}
       )`;
-      // eslint-disable-next-line @typescript-eslint/no-base-to-string
-      countParams.push(`%${String(search)}%`);
+      countParams.push(
+        `%${typeof search === 'string' || typeof search === 'number' ? String(search) : ''}%`
+      );
     }
 
     const countResult = await query<{ count: string }>(countSql, countParams);
@@ -175,9 +177,12 @@ export const getPincodes = async (req: AuthenticatedRequest, res: Response) => {
         id: pincode.id.toString(),
         cityId: pincode.cityId ? pincode.cityId.toString() : null,
         areas: Array.isArray(pincode.areas)
-          ? pincode.areas.map((area: any) => ({
+          ? pincode.areas.map((area: Record<string, unknown>) => ({
               ...area,
-              id: area.id ? area.id.toString() : null,
+              id:
+                typeof area.id === 'string' || typeof area.id === 'number'
+                  ? area.id.toString()
+                  : null,
             }))
           : [],
       })),
@@ -479,7 +484,7 @@ export const updatePincode = async (req: AuthenticatedRequest, res: Response) =>
 
     // Build update query
     const updateFields: string[] = [];
-    const updateValues: any[] = [];
+    const updateValues: QueryParams = [];
     let paramCount = 0;
 
     if (updateData.code) {
@@ -835,12 +840,12 @@ export const bulkImportPincodes = async (
 
           results.created++;
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         results.failed++;
         results.errors.push({
           row: i + 1,
           code: pincodeData.code || 'N/A',
-          error: error.message || 'Unknown error',
+          error: (error as Error).message || 'Unknown error',
         });
         logger.error(`Error importing pincode at row ${i + 1}:`, error);
       }
@@ -921,9 +926,12 @@ export const getPincodesByCity = async (req: AuthenticatedRequest, res: Response
         id: pincode.id.toString(), // Convert integer ID to string
         cityId: pincode.cityId ? pincode.cityId.toString() : null, // Convert integer cityId to string if exists
         areas: Array.isArray(pincode.areas)
-          ? pincode.areas.map((area: any) => ({
+          ? pincode.areas.map((area: Record<string, unknown>) => ({
               ...area,
-              id: area.id ? area.id.toString() : null,
+              id:
+                typeof area.id === 'string' || typeof area.id === 'number'
+                  ? area.id.toString()
+                  : null,
             }))
           : [],
       })),
@@ -1056,8 +1064,8 @@ export const addPincodeAreas = async (req: AuthenticatedRequest, res: Response) 
           id: areaCheck.rows[0].id,
           name: areaCheck.rows[0].name,
         });
-      } catch (error: any) {
-        if (error.code === '23505') {
+      } catch (error: unknown) {
+        if ((error as DatabaseError).code === '23505') {
           // Unique constraint violation
           return res.status(400).json({
             success: false,

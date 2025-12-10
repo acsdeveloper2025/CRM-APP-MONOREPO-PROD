@@ -131,8 +131,11 @@ export const OFFICE_FIELD_MAPPING: DatabaseFieldMapping = {
  * @param formType - The type of office form (POSITIVE, SHIFTED, NSP, ENTRY_RESTRICTED, UNTRACEABLE)
  * @returns Object with database column names as keys
  */
-export function mapOfficeFormDataToDatabase(formData: any, formType?: string): Record<string, any> {
-  const mappedData: Record<string, any> = {};
+export function mapOfficeFormDataToDatabase(
+  formData: Record<string, unknown>,
+  formType?: string
+): Record<string, unknown> {
+  const mappedData: Record<string, unknown> = {};
 
   // Process each field in the form data
   for (const [mobileField, value] of Object.entries(formData)) {
@@ -163,7 +166,7 @@ export function mapOfficeFormDataToDatabase(formData: any, formType?: string): R
  * @param value - The field value
  * @returns Processed value suitable for database storage
  */
-function processOfficeFieldValue(fieldName: string, value: any): any {
+function processOfficeFieldValue(fieldName: string, value: unknown): unknown {
   // Handle null/undefined values
   if (value === null || value === undefined || value === '') {
     return null;
@@ -177,12 +180,18 @@ function processOfficeFieldValue(fieldName: string, value: any): any {
   // Handle enum values - convert to string
   if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
     // If it's an enum object, return its string representation
-    return String(value);
+    return JSON.stringify(value);
   }
 
   // Handle final_status field - convert case to match database constraint
   if (fieldName === 'recommendationStatus') {
-    const statusValue = String(value).trim().toUpperCase();
+    const statusValue = (
+      typeof value === 'object' && value !== null
+        ? JSON.stringify(value)
+        : String(value as string | number | boolean | null | undefined)
+    )
+      .trim()
+      .toUpperCase();
     // Convert to proper case format expected by database constraint
     switch (statusValue) {
       case 'POSITIVE':
@@ -196,7 +205,9 @@ function processOfficeFieldValue(fieldName: string, value: any): any {
       case 'HOLD':
         return 'Hold';
       default:
-        console.warn(`⚠️ Unknown recommendationStatus value: ${value}, defaulting to 'Refer'`);
+        console.warn(
+          `⚠️ Unknown recommendationStatus value: ${typeof value === 'object' && value !== null ? JSON.stringify(value) : String(value as string | number | boolean | null | undefined)}, defaulting to 'Refer'`
+        );
         return 'Refer'; // Safe default
     }
   }
@@ -210,7 +221,12 @@ function processOfficeFieldValue(fieldName: string, value: any): any {
   }
 
   // Default: convert to string and trim
-  return String(value).trim() || null;
+  return (
+    (typeof value === 'object' && value !== null
+      ? JSON.stringify(value)
+      : String(value as string | number | boolean | null | undefined)
+    ).trim() || null
+  );
 }
 
 /**
@@ -249,7 +265,7 @@ export function getOfficeMappedMobileFields(): string[] {
  * @returns Object with validation result and missing fields
  */
 export function validateOfficeRequiredFields(
-  formData: any,
+  formData: Record<string, unknown>,
   formType: string
 ): {
   isValid: boolean;
@@ -374,9 +390,9 @@ export function validateOfficeRequiredFields(
  * @returns Complete data object with all fields populated
  */
 export function ensureAllOfficeFieldsPopulated(
-  mappedData: Record<string, any>,
+  mappedData: Record<string, unknown>,
   formType: string
-): Record<string, any> {
+): Record<string, unknown> {
   const completeData = { ...mappedData };
 
   // Define all possible database fields for office verification
@@ -605,7 +621,7 @@ function getRelevantOfficeFieldsForFormType(formType: string): string[] {
  * @param _fieldName - Database field name
  * @returns Default value for the field
  */
-function getDefaultOfficeValueForField(_fieldName: string): any {
+function getDefaultOfficeValueForField(_fieldName: string): unknown {
   // All fields default to null for missing/irrelevant data
   return null;
 }

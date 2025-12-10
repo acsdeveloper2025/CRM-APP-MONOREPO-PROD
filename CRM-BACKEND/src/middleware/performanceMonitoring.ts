@@ -1,7 +1,7 @@
-/* eslint-disable camelcase, @typescript-eslint/unbound-method */
 // Disabled camelcase rule for this file as it uses snake_case database column names
 // Disabled unbound-method rule for this file as it uses method references in middleware
 import type { Request, Response, NextFunction } from 'express';
+import type { AuthenticatedRequest } from './auth';
 import { logger } from '@/config/logger';
 import { query } from '@/config/database';
 import { performance } from 'perf_hooks';
@@ -46,8 +46,11 @@ export const performanceMonitoring = (
   res.setHeader('X-Request-ID', requestId);
 
   // Override res.end to capture metrics
-  const originalEnd = res.end;
-  res.end = function (chunk?: any, encoding?: any, cb?: () => void): any {
+  // Override res.end to capture metrics
+  const originalEnd = res.end.bind(res);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  res.end = function (...args: any[]): Response {
     const endTime = performance.now();
     const responseTime = endTime - startTime;
 
@@ -58,7 +61,7 @@ export const performanceMonitoring = (
       statusCode: res.statusCode,
       responseTime,
       memoryUsage: process.memoryUsage(),
-      userId: (req as any).user?.id,
+      userId: (req as AuthenticatedRequest).user?.id,
       userAgent: req.get('User-Agent'),
       ipAddress: getClientIP(req),
       timestamp: new Date(),
@@ -68,7 +71,7 @@ export const performanceMonitoring = (
     processPerformanceMetrics(metrics);
 
     // Call original end method and return its result
-    return originalEnd.call(this, chunk, encoding, cb);
+    return originalEnd.apply(res, args);
   };
 
   next();
@@ -118,7 +121,9 @@ function processPerformanceMetrics(metrics: PerformanceMetrics): void {
   }
 
   // Store metrics in database (async, don't block response)
-  setImmediate(() => storePerformanceMetrics(metrics));
+  setImmediate(() => {
+    void storePerformanceMetrics(metrics);
+  });
 }
 
 /**
@@ -263,7 +268,7 @@ export const databaseMonitoring = async (req: Request, res: Response, next: Next
     }
 
     // Add database response time to request
-    (req as any).dbResponseTime = dbResponseTime;
+    (req as RequestWithMetrics & { dbResponseTime?: number }).dbResponseTime = dbResponseTime;
 
     next();
   } catch (error) {
@@ -289,7 +294,7 @@ export const endpointPerformanceTracking = (endpointName: string) => {
 
     // Override res.json to track response time
     const originalJson = res.json;
-    res.json = function (data: any) {
+    res.json = function (data: unknown) {
       const endTime = performance.now();
       const responseTime = endTime - startTime;
 
@@ -303,7 +308,7 @@ export const endpointPerformanceTracking = (endpointName: string) => {
       });
 
       // Store endpoint-specific metrics
-      storeEndpointMetrics(endpointName, req.method, responseTime, res.statusCode);
+      void storeEndpointMetrics(endpointName, req.method, responseTime, res.statusCode);
 
       return originalJson.call(this, data);
     };
@@ -345,52 +350,54 @@ async function storeEndpointMetrics(
  */
 export const systemHealthMonitoring = () => {
   // Monitor system health every 30 seconds
-  setInterval(async () => {
-    try {
-      const memoryUsage = process.memoryUsage();
-      const cpuUsage = process.cpuUsage();
+  setInterval(() => {
+    void (async () => {
+      try {
+        const memoryUsage = process.memoryUsage();
+        const cpuUsage = process.cpuUsage();
 
-      // Store system metrics
-      await Promise.all([
-        query(
-          `
+        // Store system metrics
+        await Promise.all([
+          query(
+            `
           INSERT INTO system_health_metrics 
           (metric_name, metric_value, metric_unit, timestamp)
           VALUES ($1, $2, $3, CURRENT_TIMESTAMP)
         `,
-          ['memory_heap_used', memoryUsage.heapUsed / 1024 / 1024, 'MB']
-        ),
+            ['memory_heap_used', memoryUsage.heapUsed / 1024 / 1024, 'MB']
+          ),
 
-        query(
-          `
+          query(
+            `
           INSERT INTO system_health_metrics 
           (metric_name, metric_value, metric_unit, timestamp)
           VALUES ($1, $2, $3, CURRENT_TIMESTAMP)
         `,
-          ['memory_rss', memoryUsage.rss / 1024 / 1024, 'MB']
-        ),
+            ['memory_rss', memoryUsage.rss / 1024 / 1024, 'MB']
+          ),
 
-        query(
-          `
+          query(
+            `
           INSERT INTO system_health_metrics 
           (metric_name, metric_value, metric_unit, timestamp)
           VALUES ($1, $2, $3, CURRENT_TIMESTAMP)
         `,
-          ['cpu_user', cpuUsage.user / 1000, 'milliseconds']
-        ),
+            ['cpu_user', cpuUsage.user / 1000, 'milliseconds']
+          ),
 
-        query(
-          `
+          query(
+            `
           INSERT INTO system_health_metrics 
           (metric_name, metric_value, metric_unit, timestamp)
           VALUES ($1, $2, $3, CURRENT_TIMESTAMP)
         `,
-          ['cpu_system', cpuUsage.system / 1000, 'milliseconds']
-        ),
-      ]);
-    } catch (error) {
-      logger.error('Failed to store system health metrics:', error);
-    }
+            ['cpu_system', cpuUsage.system / 1000, 'milliseconds']
+          ),
+        ]);
+      } catch (error) {
+        logger.error('Failed to store system health metrics:', error);
+      }
+    })();
   }, 30000); // 30 seconds
 };
 
@@ -398,7 +405,7 @@ export const systemHealthMonitoring = () => {
  * Performance metrics aggregation
  */
 export const getPerformanceMetrics = async (timeRange = '1h') => {
-  const query_text = `
+  const queryText = `
     SELECT 
       DATE_TRUNC('minute', timestamp) as minute,
       AVG(response_time) as avg_response_time,
@@ -414,7 +421,7 @@ export const getPerformanceMetrics = async (timeRange = '1h') => {
     LIMIT 60
   `;
 
-  const result = await query(query_text);
+  const result = await query(queryText);
   return result.rows;
 };
 

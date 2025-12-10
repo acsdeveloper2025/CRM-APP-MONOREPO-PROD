@@ -71,7 +71,7 @@ export const VerificationOutcomeDisplayNames = {
   UNTRACEABLE: 'Untraceable',
 } as const;
 
-export type VerificationOutcome = typeof VerificationOutcome[keyof typeof VerificationOutcome];
+
 
 // Common Form Field Types
 export interface FormField {
@@ -79,7 +79,7 @@ export interface FormField {
   name: string;
   label: string;
   type: 'text' | 'number' | 'select' | 'multiselect' | 'date' | 'boolean' | 'textarea' | 'checkbox' | 'radio' | 'file';
-  value: any;
+  value: unknown;
   displayValue?: string;
   options?: { value: string; label: string }[];
   isRequired: boolean;
@@ -342,7 +342,7 @@ export interface FormValidation {
 export interface FormCondition {
   field: string;
   operator: 'equals' | 'notEquals' | 'contains' | 'notContains' | 'greaterThan' | 'lessThan';
-  value: any;
+  value: unknown;
 }
 
 // Form Viewer Props
@@ -353,6 +353,6 @@ export interface FormViewerProps {
   showAttachments?: boolean;
   showLocation?: boolean;
   showMetadata?: boolean;
-  onFieldChange?: (fieldId: string, value: any) => void;
+  onFieldChange?: (fieldId: string, value: unknown) => void;
   onSectionToggle?: (sectionId: string, expanded: boolean) => void;
 }

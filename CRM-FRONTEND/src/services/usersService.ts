@@ -260,7 +260,7 @@ export class UsersService extends BaseApiService {
   /**
    * Get user statistics
    */
-  async getUserStats(filters?: Record<string, any>): Promise<ApiResponse<UserStatsResponse>> {
+  async getUserStats(filters?: Record<string, unknown>): Promise<ApiResponse<UserStatsResponse>> {
     return this.get('/stats', filters);
   }
 

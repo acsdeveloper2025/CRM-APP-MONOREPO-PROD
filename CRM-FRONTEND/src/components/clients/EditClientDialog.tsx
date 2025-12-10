@@ -31,7 +31,8 @@ import { clientsService } from '@/services/clients';
 import { productsService } from '@/services/products';
 import { verificationTypesService } from '@/services/verificationTypes';
 import { documentTypesService } from '@/services/documentTypes';
-import type { Client } from '@/types/client';
+import type { Client, Product, VerificationType } from '@/types/client';
+import type { DocumentType } from '@/types/documentType';
 
 const editClientSchema = z.object({
   name: z.string().min(1, 'Client name is required').max(100, 'Name too long'),
@@ -94,7 +95,12 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
   // Fetch client details with current associations
   const { data: clientData } = useStandardizedQuery({
     queryKey: ['client', client?.id],
-    queryFn: () => clientsService.getClientById(client!.id),
+    queryFn: () => {
+      if (!client) {
+        throw new Error("Client ID missing");
+      }
+      return clientsService.getClientById(client.id);
+    },
     enabled: open && !!client?.id,
     errorContext: 'Loading Client Details',
     errorFallbackMessage: 'Failed to load client details',
@@ -107,9 +113,9 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
       form.reset({
         name: clientDetails.name,
         code: clientDetails.code,
-        productIds: clientDetails.products?.map((p: any) => String(p.id)) || [],
-        verificationTypeIds: clientDetails.verificationTypes?.map((v: any) => v.id) || [],
-        documentTypeIds: clientDetails.documentTypes?.map((d: any) => d.id) || [],
+        productIds: clientDetails.products?.map((p: Product) => String(p.id)) || [],
+        verificationTypeIds: clientDetails.verificationTypes?.map((v: VerificationType) => v.id) || [],
+        documentTypeIds: clientDetails.documentTypes?.map((d: DocumentType) => d.id) || [],
       });
     }
   }, [clientData, form]);
@@ -124,7 +130,10 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
         verificationTypeIds: data.verificationTypeIds,
         documentTypeIds: data.documentTypeIds,
       };
-      return clientsService.updateClient(client!.id, cleanData as any);
+      if (!client) {
+        throw new Error("Client ID missing");
+      }
+      return clientsService.updateClient(client.id, cleanData);
     },
     queryKey: ['clients'],
     resourceName: 'Client',
@@ -139,7 +148,9 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
     updateMutation.mutate(data);
   };
 
-  if (!client) {return null;}
+  if (!client) {
+    return null;
+  }
 
   const products = productsData?.data || [];
   const verificationTypes = verificationTypesData?.data || [];
@@ -203,7 +214,7 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
                 <div>
                   <h4 className="text-sm font-medium text-gray-900 mb-2">Current Products</h4>
                   <div className="flex flex-wrap gap-2 mb-4">
-                    {currentProducts.map((product: any) => (
+                    {currentProducts.map((product: Product) => (
                       <Badge key={product.id} variant="secondary">
                         {product.name} ({product.code})
                       </Badge>
@@ -322,7 +333,7 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
                 <div>
                   <h4 className="text-sm font-medium text-gray-900 mb-2">Current Document Types</h4>
                   <div className="flex flex-wrap gap-2 mb-4">
-                    {currentDocumentTypes.map((documentType: any) => (
+                    {currentDocumentTypes.map((documentType: DocumentType) => (
                       <Badge key={documentType.id} variant="secondary">
                         {documentType.name}
                         <span className="ml-1 text-xs">({documentType.category})</span>

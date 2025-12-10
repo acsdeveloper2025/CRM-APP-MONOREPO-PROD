@@ -102,7 +102,7 @@ export function CreateDepartmentDialog({ open, onOpenChange }: CreateDepartmentD
       form.reset();
       onOpenChange(false);
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       const errorMessage = error.response?.data?.message || 'Failed to create department';
       const errorCode = error.response?.data?.error?.code;
 

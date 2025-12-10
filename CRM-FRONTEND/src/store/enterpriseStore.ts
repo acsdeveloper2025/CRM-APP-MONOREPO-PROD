@@ -47,7 +47,7 @@ interface UIState {
 interface CacheState {
   apiCache: {
     [endpoint: string]: {
-      data: any;
+      data: unknown;
       timestamp: number;
       ttl: number;
     };
@@ -74,6 +74,7 @@ interface BulkOperationStatus {
   failed: number;
   status: 'pending' | 'processing' | 'completed' | 'failed';
   errors: string[];
+  metrics: Record<string, unknown>;
 }
 
 interface FieldAgentWorkload {
@@ -389,7 +390,7 @@ const cacheSlice = createSlice({
   reducers: {
     setCacheData: (state, action: PayloadAction<{
       endpoint: string;
-      data: any;
+      data: unknown;
       ttl: number;
     }>) => {
       const { endpoint, data, ttl } = action.payload;

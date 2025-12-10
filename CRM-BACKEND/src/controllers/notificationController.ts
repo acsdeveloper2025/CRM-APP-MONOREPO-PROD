@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import { query } from '@/config/database';
 import { logger } from '@/utils/logger';
 import { createAuditLog } from '@/utils/auditLogger';
+import type { QueryParams } from '@/types/database';
 
 interface AuthenticatedRequest extends Request {
   user?: {
@@ -29,7 +30,7 @@ export class NotificationController {
       }
 
       let whereClause = 'WHERE user_id = $1';
-      const queryParams: any[] = [userId];
+      const queryParams: QueryParams = [userId];
 
       if (unreadOnly === 'true') {
         whereClause += ' AND is_read = false';
@@ -58,7 +59,7 @@ export class NotificationController {
         LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}
       `;
 
-      queryParams.push(limit, offset);
+      queryParams.push(Number(limit), Number(offset));
 
       const result = await query(notificationsQuery, queryParams);
 
@@ -777,21 +778,21 @@ export class NotificationController {
       }
 
       const whereConditions = ['1=1'];
-      const queryParams: any[] = [];
+      const queryParams: QueryParams = [];
 
       if (startDate) {
         whereConditions.push(`created_at >= $${queryParams.length + 1}`);
-        queryParams.push(startDate);
+        queryParams.push(startDate as string);
       }
 
       if (endDate) {
         whereConditions.push(`created_at <= $${queryParams.length + 1}`);
-        queryParams.push(endDate);
+        queryParams.push(endDate as string);
       }
 
       if (type) {
         whereConditions.push(`type = $${queryParams.length + 1}`);
-        queryParams.push(type);
+        queryParams.push(type as string);
       }
 
       const analyticsQuery = `

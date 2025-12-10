@@ -27,7 +27,7 @@ export const NewCasePage: React.FC = () => {
       backendContactNumber: string;
       createdByBackendUser: string;
     };
-    tasks?: any[]; // Using any[] to avoid importing TaskFormData here, but structure matches
+    tasks?: Record<string, unknown>[];
   } | undefined>();
 
   // Only fetch case data if we're in edit mode
@@ -79,18 +79,18 @@ export const NewCasePage: React.FC = () => {
         // Get address from verification task (address is stored at task level)
         const tasks = verificationTasksResponse?.data?.tasks || [];
         // If editTaskId is provided, find that specific task; otherwise use first task
-        const firstTask = editTaskId 
-          ? tasks.find((t: any) => t.id === editTaskId) as any
-          : tasks[0] as any; // Use 'any' to access snake_case fields from API
+        const firstTask = (editTaskId
+          ? tasks.find((t: VerificationTask) => t.id === editTaskId)
+          : tasks[0]) as unknown as Record<string, unknown>;
         
         if (!firstTask) {
-          console.error('❌ Task not found', { editTaskId, availableTasks: tasks.map((t: any) => t.id) });
+          console.error('❌ Task not found', { editTaskId, availableTasks: tasks.map((t: VerificationTask) => t.id) });
           return;
         }
         
         const taskAddress = firstTask?.address || '';
 
-        console.log('🔍 NewCasePage - Mapping case data for edit mode', {
+        console.warn('🔍 NewCasePage - Mapping case data for edit mode', {
           caseId: editCaseId,
           taskId: editTaskId || firstTask?.id,
           firstTask,
@@ -161,12 +161,13 @@ export const NewCasePage: React.FC = () => {
           }]
         };
 
-        console.log('✅ NewCasePage - Mapped data ready', {
+        console.warn('✅ NewCasePage - Mapped data ready', {
           rateTypeId: mappedData.tasks[0].rateTypeId,
           assignedTo: mappedData.tasks[0].assignedTo,
         });
 
-        setInitialData(mappedData);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        setInitialData(mappedData as any);
       }
     } catch (error) {
       // Only log errors in development mode
@@ -175,7 +176,8 @@ export const NewCasePage: React.FC = () => {
       }
       // Don't redirect on error, just log it
     }
-  }, [isEditMode, caseData, pincodesResponse, areasResponse, verificationTasksResponse, editCaseId]);
+
+  }, [isEditMode, caseData, pincodesResponse, areasResponse, verificationTasksResponse, editCaseId, editTaskId]);
 
   const handleSuccess = (caseId: string) => {
     navigate(`/cases/${caseId}`);

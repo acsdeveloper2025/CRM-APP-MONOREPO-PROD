@@ -47,7 +47,7 @@ export function BankBillsTable({ data, isLoading }: BankBillsTableProps) {
       setShowMarkPaidDialog(false);
       setSelectedBill(null);
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error(error.response?.data?.message || 'Failed to mark bill as paid');
     },
   });

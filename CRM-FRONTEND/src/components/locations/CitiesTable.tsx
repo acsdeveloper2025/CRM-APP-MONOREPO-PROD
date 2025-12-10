@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { MoreHorizontal, Edit, Trash2, Eye, Building, MapPin } from 'lucide-react';
-import { useStandardizedMutation } from '@/hooks/useStandardizedMutation';
+import { useMutationWithInvalidation } from '@/hooks/useStandardizedMutation';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -48,7 +48,7 @@ export function CitiesTable({ data, isLoading }: CitiesTableProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [cityToDelete, setCityToDelete] = useState<City | null>(null);
 
-  const deleteMutation = useStandardizedMutation({
+  const deleteMutation = useMutationWithInvalidation({
     mutationFn: (id: string) => locationsService.deleteCity(id),
     invalidateKeys: [['cities']],
     successMessage: 'City deleted successfully',
@@ -77,7 +77,7 @@ export function CitiesTable({ data, isLoading }: CitiesTableProps) {
 
   const confirmDelete = () => {
     if (cityToDelete) {
-      deleteMutation.mutate(cityToDelete.id);
+      deleteMutation.mutate(String(cityToDelete.id));
     }
   };
 
@@ -199,7 +199,7 @@ export function CitiesTable({ data, isLoading }: CitiesTableProps) {
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
               This action cannot be undone. This will permanently delete the city
-              "{cityToDelete?.name}" and all associated pincodes.
+              &quot;{cityToDelete?.name}&quot; and all associated pincodes.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

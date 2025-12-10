@@ -61,7 +61,7 @@ class DocumentTypesService {
   async updateClientDocumentTypeMapping(
     clientId: number, 
     documentTypeId: number, 
-    data: { isRequired?: boolean; priority?: number; clientSpecificRules?: Record<string, any> }
+    data: { isRequired?: boolean; priority?: number; clientSpecificRules?: Record<string, unknown> }
   ): Promise<ApiResponse<ClientDocumentType>> {
     return apiService.put(`/clients/${clientId}/document-types/${documentTypeId}`, data);
   }
@@ -106,7 +106,8 @@ class DocumentTypesService {
 
   // Helper Methods
   async getDocumentTypesByCategory(category: string): Promise<ApiResponse<DocumentType[]>> {
-    return this.getDocumentTypes({ category });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return this.getDocumentTypes({ category: category as any });
   }
 
   async getActiveDocumentTypes(): Promise<ApiResponse<DocumentType[]>> {
@@ -161,7 +162,7 @@ class DocumentTypesService {
     formatPattern?: string;
     minLength?: number;
     maxLength?: number;
-    customRules?: Record<string, any>;
+    customRules?: Record<string, unknown>;
   }>> {
     return apiService.get(`/document-types/${documentTypeId}/validation-rules`);
   }
@@ -172,7 +173,7 @@ class DocumentTypesService {
       formatPattern?: string;
       minLength?: number;
       maxLength?: number;
-      customRules?: Record<string, any>;
+      customRules?: Record<string, unknown>;
     }
   ): Promise<ApiResponse<DocumentType>> {
     return apiService.put(`/document-types/${documentTypeId}/validation-rules`, rules);
@@ -208,7 +209,7 @@ class DocumentTypesService {
     userId: string;
     userName: string;
     timestamp: string;
-    details: Record<string, any>;
+    details: Record<string, unknown>;
   }>>> {
     return apiService.get(`/document-types/${documentTypeId}/audit-trail`);
   }

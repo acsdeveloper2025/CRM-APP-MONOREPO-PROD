@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useDebouncedSearch } from '@/hooks/useDebounce';
 import {
@@ -87,8 +87,9 @@ export function DesignationList({ onEdit }: DesignationListProps) {
       toast.success('Designation deleted successfully');
       setDeleteConfirm(null);
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to delete designation');
+    onError: (error: unknown) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      toast.error((error as any).response?.data?.message || 'Failed to delete designation');
     },
   });
 
@@ -152,7 +153,7 @@ export function DesignationList({ onEdit }: DesignationListProps) {
                 <SelectItem value="__all__">All departments</SelectItem>
                 <SelectItem value="__none__">No department</SelectItem>
                 {departments.map((dept) => (
-                  <SelectItem key={dept.id} value={dept.id}>
+                  <SelectItem key={dept.id} value={String(dept.id)}>
                     {dept.name}
                   </SelectItem>
                 ))}
@@ -306,7 +307,7 @@ export function DesignationList({ onEdit }: DesignationListProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Designation</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete "{deleteConfirm?.name}"? This action cannot be undone.
+              Are you sure you want to delete &quot;{deleteConfirm?.name}&quot;? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

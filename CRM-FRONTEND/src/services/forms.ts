@@ -25,13 +25,13 @@ export const formsService = {
   },
 
   // Submit form data (for future use)
-  async submitForm(caseId: string, formData: any) {
+  async submitForm(caseId: string, formData: unknown) {
     const response = await apiService.post(`/forms/cases/${caseId}/submit`, formData);
     return response;
   },
 
   // Auto-save form data (for future use)
-  async autoSaveForm(caseId: string, formData: any) {
+  async autoSaveForm(caseId: string, formData: unknown) {
     const response = await apiService.post(`/forms/auto-save`, { caseId, formData });
     return response;
   },

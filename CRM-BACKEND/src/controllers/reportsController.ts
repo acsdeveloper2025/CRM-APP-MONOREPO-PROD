@@ -2,7 +2,57 @@ import type { Response } from 'express';
 import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
 import { pool } from '@/config/database';
+import { QueryParams } from '@/types/database';
+import { CaseAnalyticsRow } from '../types/reports';
 import ExcelJS from 'exceljs';
+
+interface MISReportRow {
+  task_id: number;
+  task_number: string;
+  task_title: string;
+  task_verification_type: string;
+  task_status: string;
+  task_priority: string;
+  assigned_field_user: string;
+  field_user_employee_id: string;
+  address: string;
+  pincode: string;
+  rate_type: string;
+  estimated_amount: number;
+  actual_amount: number;
+  task_created_date: string;
+  task_started_date: string;
+  task_completion_date: string;
+  task_tat_days: number;
+  trigger: string;
+  applicant_type: string;
+  form_submission_id: string;
+  form_type: string;
+  form_submitted_date: string;
+  form_validation_status: string;
+  case_number: string;
+  customerName: string;
+  customerPhone: string;
+  customerCallingCode: string;
+  client_name: string;
+  client_code: string;
+  product_name: string;
+  case_status: string;
+  case_priority: string;
+  case_created_date: string;
+  backend_user_name: string;
+  backend_user_employee_id: string;
+  verification_type_name: string;
+}
+
+interface DashboardSummaryRow {
+  totalCases: string;
+  pendingCases: string;
+  inProgressCases: string;
+  completedCases: string;
+  activeUsers: string;
+  activeClients: string;
+}
 
 // ===== PHASE 1: NEW DATA VISUALIZATION & REPORTING APIs =====
 
@@ -24,37 +74,37 @@ export const getFormSubmissions = async (req: AuthenticatedRequest, res: Respons
 
     // Build WHERE conditions using CORRECT snake_case column names
     const conditions: string[] = [];
-    const params: any[] = [];
+    const params: QueryParams = [];
     let paramIndex = 1;
 
     if (dateFrom) {
       conditions.push(`tfs.submitted_at >= $${paramIndex}`);
-      params.push(dateFrom);
+      params.push(dateFrom as string);
       paramIndex++;
     }
     if (dateTo) {
       conditions.push(`tfs.submitted_at <= $${paramIndex}`);
-      params.push(dateTo);
+      params.push(dateTo as string);
       paramIndex++;
     }
     if (agentId) {
       conditions.push(`tfs.submitted_by = $${paramIndex}`);
-      params.push(agentId);
+      params.push(agentId as string);
       paramIndex++;
     }
     if (validationStatus) {
       conditions.push(`tfs.validation_status = $${paramIndex}`);
-      params.push(validationStatus);
+      params.push(validationStatus as string);
       paramIndex++;
     }
     if (caseId) {
       conditions.push(`tfs.case_id = $${paramIndex}`);
-      params.push(caseId);
+      params.push(caseId as string);
       paramIndex++;
     }
     if (formType) {
       conditions.push(`tfs.form_type = $${paramIndex}`);
-      params.push(formType);
+      params.push(formType as string);
       paramIndex++;
     }
 
@@ -168,22 +218,22 @@ export const getFormSubmissionsByType = async (req: AuthenticatedRequest, res: R
     }
 
     const conditions: string[] = [];
-    const params: any[] = [];
+    const params: QueryParams = [];
     let paramIndex = 1;
 
     if (dateFrom) {
       conditions.push(`"createdAt" >= $${paramIndex}`);
-      params.push(dateFrom);
+      params.push(dateFrom as string);
       paramIndex++;
     }
     if (dateTo) {
       conditions.push(`"createdAt" <= $${paramIndex}`);
-      params.push(dateTo);
+      params.push(dateTo as string);
       paramIndex++;
     }
     if (agentId) {
       conditions.push(`"createdBy" = $${paramIndex}`);
-      params.push(agentId);
+      params.push(agentId as string);
       paramIndex++;
     }
 
@@ -260,17 +310,17 @@ export const getFormValidationStatus = async (req: AuthenticatedRequest, res: Re
     const { dateFrom, dateTo } = req.query;
 
     const conditions: string[] = [];
-    const params: any[] = [];
+    const params: QueryParams = [];
     let paramIndex = 1;
 
     if (dateFrom) {
       conditions.push(`"createdAt" >= $${paramIndex}`);
-      params.push(dateFrom);
+      params.push(dateFrom as string);
       paramIndex++;
     }
     if (dateTo) {
       conditions.push(`"createdAt" <= $${paramIndex}`);
-      params.push(dateTo);
+      params.push(dateTo as string);
       paramIndex++;
     }
 
@@ -296,7 +346,15 @@ export const getFormValidationStatus = async (req: AuthenticatedRequest, res: Re
     const validationResult = await pool.query(validationQuery, params);
 
     const summary = validationResult.rows.reduce(
-      (acc, row) => {
+      (
+        acc: {
+          totalForms: number;
+          validatedForms: number;
+          pendingForms: number;
+          invalidForms: number;
+        },
+        row
+      ) => {
         acc.totalForms += parseInt(row.total_forms);
         acc.validatedForms += parseInt(row.validated_forms);
         acc.pendingForms += parseInt(row.pending_forms);
@@ -338,17 +396,17 @@ export const getCaseAnalytics = async (req: AuthenticatedRequest, res: Response)
     const { dateFrom, dateTo, clientId, agentId, status } = req.query;
 
     const conditions: string[] = [];
-    const params: any[] = [];
+    const params: QueryParams = [];
     let paramIndex = 1;
 
     if (dateFrom) {
       conditions.push(`c."createdAt" >= $${paramIndex}`);
-      params.push(dateFrom);
+      params.push(dateFrom as string);
       paramIndex++;
     }
     if (dateTo) {
       conditions.push(`c."createdAt" <= $${paramIndex}`);
-      params.push(dateTo);
+      params.push(dateTo as string);
       paramIndex++;
     }
     if (clientId) {
@@ -357,13 +415,13 @@ export const getCaseAnalytics = async (req: AuthenticatedRequest, res: Response)
       paramIndex++;
     }
     if (agentId) {
-      conditions.push(`vt.assigned_to = $${paramIndex}`);
-      params.push(agentId);
+      conditions.push(`c."assignedTo" = $${paramIndex}`);
+      params.push(agentId as string);
       paramIndex++;
     }
     if (status) {
       conditions.push(`c.status = $${paramIndex}`);
-      params.push(status);
+      params.push(status as string);
       paramIndex++;
     }
 
@@ -417,7 +475,7 @@ export const getCaseAnalytics = async (req: AuthenticatedRequest, res: Response)
 
     // Status distribution
     const statusDistribution = cases.reduce(
-      (acc, c) => {
+      (acc: Record<string, number>, c: CaseAnalyticsRow) => {
         acc[c.status] = (acc[c.status] || 0) + 1;
         return acc;
       },
@@ -576,22 +634,22 @@ export const getAgentPerformance = async (req: AuthenticatedRequest, res: Respon
 
     // Build WHERE conditions for verification tasks
     const conditions: string[] = [];
-    const params: any[] = [];
+    const params: QueryParams = [];
     let paramIndex = 1;
 
     if (dateFrom) {
       conditions.push(`vt.created_at >= $${paramIndex}`);
-      params.push(dateFrom);
+      params.push(dateFrom as string);
       paramIndex++;
     }
     if (dateTo) {
       conditions.push(`vt.created_at <= $${paramIndex}`);
-      params.push(dateTo);
+      params.push(dateTo as string);
       paramIndex++;
     }
     if (agentId) {
       conditions.push(`vt.assigned_to = $${paramIndex}`);
-      params.push(agentId);
+      params.push(agentId as string);
       paramIndex++;
     }
     if (departmentId) {
@@ -638,8 +696,24 @@ export const getAgentPerformance = async (req: AuthenticatedRequest, res: Respon
     const result = await pool.query(performanceQuery, params);
     const tasks = result.rows;
 
+    interface AgentPerformanceAccumulator {
+      id: string;
+      name: string;
+      employee_id: string;
+      total_tasks: number;
+      completed_tasks: number;
+      in_tat: number;
+      out_tat: number;
+      local_tasks: number;
+      ogl_tasks: number;
+      total_amount: number;
+      clients: Set<string>;
+      products: Set<string>;
+      tasks: Record<string, unknown>[];
+    }
+
     // Group by agent and calculate metrics
-    const agentMap = new Map();
+    const agentMap = new Map<string, AgentPerformanceAccumulator>();
 
     tasks.forEach(task => {
       const taskAgentId = task.agent_id;
@@ -776,17 +850,17 @@ export const getAgentProductivity = async (req: AuthenticatedRequest, res: Respo
     const agent = agentResult.rows[0];
 
     const conditions: string[] = ['c."assignedTo" = $1'];
-    const params: any[] = [agentId];
+    const params: QueryParams = [agentId];
     let paramIndex = 2;
 
     if (dateFrom) {
       conditions.push(`c."createdAt" >= $${paramIndex}`);
-      params.push(dateFrom);
+      params.push(dateFrom as string);
       paramIndex++;
     }
     if (dateTo) {
       conditions.push(`c."createdAt" <= $${paramIndex}`);
-      params.push(dateTo);
+      params.push(dateTo as string);
       paramIndex++;
     }
 
@@ -856,22 +930,22 @@ export const getCasesReport = async (req: AuthenticatedRequest, res: Response) =
 
     // Build WHERE conditions for database query
     const conditions: string[] = [];
-    const params: any[] = [];
+    const params: QueryParams = [];
     let paramIndex = 1;
 
     if (dateFrom) {
       conditions.push(`c."createdAt" >= $${paramIndex}`);
-      params.push(dateFrom);
+      params.push(dateFrom as string);
       paramIndex++;
     }
     if (dateTo) {
       conditions.push(`c."createdAt" <= $${paramIndex}`);
-      params.push(dateTo);
+      params.push(dateTo as string);
       paramIndex++;
     }
     if (status) {
       conditions.push(`c.status = $${paramIndex}`);
-      params.push(status);
+      params.push(status as string);
       paramIndex++;
     }
     if (clientId) {
@@ -881,12 +955,12 @@ export const getCasesReport = async (req: AuthenticatedRequest, res: Response) =
     }
     if (assignedToId) {
       conditions.push(`c."assignedTo" = $${paramIndex}`);
-      params.push(assignedToId);
+      params.push(assignedToId as string);
       paramIndex++;
     }
     if (priority) {
       conditions.push(`c.priority = $${paramIndex}`);
-      params.push(priority);
+      params.push(priority as string);
       paramIndex++;
     }
 
@@ -983,17 +1057,17 @@ export const getUserPerformanceReport = async (req: AuthenticatedRequest, res: R
 
     // Build WHERE conditions for users query
     const userConditions: string[] = [];
-    const userParams: any[] = [];
+    const userParams: QueryParams = [];
     let userParamIndex = 1;
 
     if (department) {
       userConditions.push(`u.department = $${userParamIndex}`);
-      userParams.push(department);
+      userParams.push(department as string);
       userParamIndex++;
     }
     if (role) {
       userConditions.push(`u.role = $${userParamIndex}`);
-      userParams.push(role);
+      userParams.push(role as string);
       userParamIndex++;
     }
     if (isActive !== undefined) {
@@ -1056,7 +1130,7 @@ export const getClientReport = async (req: AuthenticatedRequest, res: Response) 
 
     // Build WHERE conditions for clients query
     const conditions: string[] = [];
-    const params: any[] = [];
+    const params: QueryParams = [];
     let paramIndex = 1;
 
     if (isActive !== undefined) {
@@ -1121,7 +1195,7 @@ export const getDashboardReport = async (req: AuthenticatedRequest, res: Respons
         (SELECT COUNT(*) FROM clients WHERE "isActive" = true) as "activeClients"
     `;
 
-    const summaryResult = await pool.query(summaryQuery);
+    const summaryResult = await pool.query<DashboardSummaryRow>(summaryQuery);
     const summary = summaryResult.rows[0];
 
     res.json({
@@ -1165,7 +1239,7 @@ export const getMISData = async (req: AuthenticatedRequest, res: Response) => {
 
     // Build WHERE conditions - TASK-CENTRIC
     const conditions: string[] = [];
-    const params: any[] = [];
+    const params: QueryParams = [];
     let paramIndex = 1;
 
     // Search across case number, customer name, customer phone, task number
@@ -1183,12 +1257,12 @@ export const getMISData = async (req: AuthenticatedRequest, res: Response) => {
     // Date filters - use task created date
     if (dateFrom) {
       conditions.push(`vt.created_at >= $${paramIndex}`);
-      params.push(dateFrom);
+      params.push(dateFrom as string);
       paramIndex++;
     }
     if (dateTo) {
       conditions.push(`vt.created_at <= $${paramIndex}`);
-      params.push(dateTo);
+      params.push(dateTo as string);
       paramIndex++;
     }
 
@@ -1214,28 +1288,28 @@ export const getMISData = async (req: AuthenticatedRequest, res: Response) => {
     // Status filter - use TASK status (not case status)
     if (caseStatus) {
       conditions.push(`vt.status = $${paramIndex}`);
-      params.push(caseStatus);
+      params.push(caseStatus as string);
       paramIndex++;
     }
 
     // Backend User filter
     if (backendUserId) {
       conditions.push(`c."createdByBackendUser" = $${paramIndex}`);
-      params.push(backendUserId);
+      params.push(backendUserId as string);
       paramIndex++;
     }
 
     // Priority filter - use task priority
     if (priority) {
       conditions.push(`vt.priority = $${paramIndex}`);
-      params.push(priority);
+      params.push(priority as string);
       paramIndex++;
     }
 
     // Field Agent filter - direct task assignment
     if (fieldAgentId) {
       conditions.push(`vt.assigned_to = $${paramIndex}`);
-      params.push(fieldAgentId);
+      params.push(fieldAgentId as string);
       paramIndex++;
     }
 
@@ -1430,7 +1504,7 @@ export const exportMISData = async (req: AuthenticatedRequest, res: Response) =>
 
     // Build WHERE conditions - TASK-CENTRIC (same as getMISData)
     const conditions: string[] = [];
-    const params: any[] = [];
+    const params: QueryParams = [];
     let paramIndex = 1;
 
     // Search across case number, customer name, customer phone, task number
@@ -1448,12 +1522,12 @@ export const exportMISData = async (req: AuthenticatedRequest, res: Response) =>
     // Date filters - use task created date
     if (dateFrom) {
       conditions.push(`vt.created_at >= $${paramIndex}`);
-      params.push(dateFrom);
+      params.push(dateFrom as string);
       paramIndex++;
     }
     if (dateTo) {
       conditions.push(`vt.created_at <= $${paramIndex}`);
-      params.push(dateTo);
+      params.push(dateTo as string);
       paramIndex++;
     }
 
@@ -1479,28 +1553,28 @@ export const exportMISData = async (req: AuthenticatedRequest, res: Response) =>
     // Status filter - use TASK status (not case status)
     if (caseStatus) {
       conditions.push(`vt.status = $${paramIndex}`);
-      params.push(caseStatus);
+      params.push(caseStatus as string);
       paramIndex++;
     }
 
     // Backend User filter
     if (backendUserId) {
       conditions.push(`c."createdByBackendUser" = $${paramIndex}`);
-      params.push(backendUserId);
+      params.push(backendUserId as string);
       paramIndex++;
     }
 
     // Priority filter - use task priority
     if (priority) {
       conditions.push(`vt.priority = $${paramIndex}`);
-      params.push(priority);
+      params.push(priority as string);
       paramIndex++;
     }
 
     // Field Agent filter - direct task assignment
     if (fieldAgentId) {
       conditions.push(`vt.assigned_to = $${paramIndex}`);
-      params.push(fieldAgentId);
+      params.push(fieldAgentId as string);
       paramIndex++;
     }
 
@@ -1576,7 +1650,7 @@ export const exportMISData = async (req: AuthenticatedRequest, res: Response) =>
       ORDER BY vt.created_at DESC
     `;
 
-    const result = await pool.query(query, params);
+    const result = await pool.query<MISReportRow>(query, params);
 
     if (format === 'EXCEL') {
       // Create Excel workbook
@@ -1637,7 +1711,7 @@ export const exportMISData = async (req: AuthenticatedRequest, res: Response) =>
       worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
 
       // Add data rows
-      result.rows.forEach((row: any) => {
+      result.rows.forEach(row => {
         worksheet.addRow(row);
       });
 
@@ -1705,7 +1779,7 @@ export const exportMISData = async (req: AuthenticatedRequest, res: Response) =>
 
       const csvRows = [headers.join(',')];
 
-      result.rows.forEach((row: any) => {
+      result.rows.forEach(row => {
         const values = [
           // Task-Level Data (PRIMARY)
           row.task_id || '',

@@ -1,6 +1,3 @@
-/* eslint-disable @typescript-eslint/restrict-template-expressions */
-/* eslint-disable @typescript-eslint/no-base-to-string */
-// Disabled template expression rules for products controller as it handles query params in template literals
 import type { Response } from 'express';
 import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
@@ -19,7 +16,7 @@ export const getProducts = async (req: AuthenticatedRequest, res: Response) => {
     } = req.query;
 
     // Build where clause and parameters
-    const values: any[] = [];
+    const values: (string | number | number[])[] = [];
     const whereSql: string[] = [];
     let paramIndex = 1;
 
@@ -52,11 +49,11 @@ export const getProducts = async (req: AuthenticatedRequest, res: Response) => {
     }
 
     // Add search filter if provided
-    if (search) {
+    if (search && typeof search === 'string') {
       whereSql.push(
         `(COALESCE(name, '') ILIKE $${paramIndex} OR COALESCE(code, '') ILIKE $${paramIndex + 1})`
       );
-      values.push(`%${String(search)}%`, `%${String(search)}%`);
+      values.push(`%${search}%`, `%${search}%`);
       paramIndex += 2;
     }
 
@@ -71,10 +68,12 @@ export const getProducts = async (req: AuthenticatedRequest, res: Response) => {
 
     // Get products with pagination
     const offset = (Number(page) - 1) * Number(limit);
-    const sortCol = ['name', 'code', 'createdAt', 'updatedAt'].includes(String(sortBy))
-      ? String(sortBy)
+    const sortByStr = typeof sortBy === 'string' ? sortBy : 'name';
+    const sortOrderStr = typeof sortOrder === 'string' ? sortOrder : 'asc';
+    const sortCol: string = ['name', 'code', 'createdAt', 'updatedAt'].includes(sortByStr)
+      ? sortByStr
       : 'name';
-    const sortDir = String(sortOrder).toLowerCase() === 'desc' ? 'DESC' : 'ASC';
+    const sortDir: 'ASC' | 'DESC' = sortOrderStr.toLowerCase() === 'desc' ? 'DESC' : 'ASC';
     const listRes = await query(
       `SELECT id, name, code, "createdAt", "updatedAt"
        FROM products
@@ -223,7 +222,7 @@ export const updateProduct = async (req: AuthenticatedRequest, res: Response) =>
     }
 
     // Prepare update data
-    const updatePayload: any = {};
+    const updatePayload: Record<string, string | number | boolean> = {};
 
     if (updateData.name) {
       updatePayload.name = updateData.name;
@@ -234,7 +233,7 @@ export const updateProduct = async (req: AuthenticatedRequest, res: Response) =>
 
     // Build dynamic update
     const sets: string[] = [];
-    const vals: any[] = [];
+    const vals: (string | number | boolean | null)[] = [];
     let idx = 1;
     for (const key of Object.keys(updatePayload)) {
       sets.push(`${key} = $${idx++}`);
@@ -317,10 +316,10 @@ export const getProductsByClient = async (req: AuthenticatedRequest, res: Respon
     const { isActive } = req.query as { isActive?: string };
 
     // Build where clause for mapping table
-    const values: any[] = [Number(clientId)];
+    const values: (number | boolean)[] = [Number(clientId)];
     const activeClause = typeof isActive !== 'undefined' ? 'AND cp."isActive" = $2' : '';
     if (typeof isActive !== 'undefined') {
-      values.push(String(isActive) === 'true');
+      values.push(typeof isActive === 'string' ? isActive === 'true' : Boolean(isActive));
     }
     const mapRes = await query(
       `SELECT p.id, p.name, p.code, p."createdAt", p."updatedAt"
@@ -400,7 +399,10 @@ export const getProductVerificationTypes = async (req: AuthenticatedRequest, res
 
     // Build where clause for active filter
     const whereClause = isActive !== undefined ? 'AND vt."isActive" = $2' : '';
-    const params = isActive !== undefined ? [id, String(isActive) === 'true'] : [id];
+    const params =
+      isActive !== undefined
+        ? [id, typeof isActive === 'string' ? isActive === 'true' : Boolean(isActive)]
+        : [id];
 
     const vtRes = await query(
       `SELECT vt.id, vt.name, vt.code, vt.description, vt."isActive", pvt."createdAt" as "assignedAt"

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-enum-comparison */
 // Disabled unsafe enum comparison rule for product access middleware as it compares user roles
 import type { Response, NextFunction } from 'express';
 import { query } from '@/config/database';
@@ -58,12 +57,12 @@ export const validateProductAccess = (source: 'params' | 'body' | 'query' = 'par
       }
 
       // SUPER_ADMIN users bypass all restrictions
-      if (userRole === 'SUPER_ADMIN') {
+      if ((userRole as string) === 'SUPER_ADMIN') {
         return next();
       }
 
       // Only apply restrictions to BACKEND_USER users
-      if (userRole !== 'BACKEND_USER') {
+      if ((userRole as string) !== 'BACKEND_USER') {
         return next();
       }
 
@@ -147,12 +146,12 @@ export const validateCaseProductAccess = async (
     }
 
     // SUPER_ADMIN users bypass all restrictions
-    if (userRole === 'SUPER_ADMIN') {
+    if ((userRole as string) === 'SUPER_ADMIN') {
       return next();
     }
 
     // Only apply restrictions to BACKEND_USER users
-    if (userRole !== 'BACKEND_USER') {
+    if ((userRole as string) !== 'BACKEND_USER') {
       return next();
     }
 
@@ -225,12 +224,12 @@ export const addProductFiltering = async (
     }
 
     // SUPER_ADMIN users bypass all filtering
-    if (userRole === 'SUPER_ADMIN') {
+    if ((userRole as string) === 'SUPER_ADMIN') {
       return next();
     }
 
     // Only apply filtering to BACKEND_USER users
-    if (userRole !== 'BACKEND_USER') {
+    if ((userRole as string) !== 'BACKEND_USER') {
       return next();
     }
 

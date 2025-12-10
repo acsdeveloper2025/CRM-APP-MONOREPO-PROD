@@ -290,7 +290,7 @@ export class UsersService {
 
       // Extract unique users from the territory assignments response
       if (response.data && Array.isArray(response.data)) {
-        const users = response.data.map((assignment: any) => ({
+        const users = response.data.map((assignment: unknown) => ({
           id: assignment.userId,
           name: assignment.userName,
           username: assignment.username,
@@ -362,7 +362,7 @@ export class UsersService {
   }
 
   // Pincode assignment management for FIELD_AGENT users
-  async getUserPincodeAssignments(userId: string): Promise<ApiResponse<any>> {
+  async getUserPincodeAssignments(userId: string): Promise<ApiResponse<unknown>> {
     return apiService.get(`/territory-assignments/field-agents/${userId}`);
   }
 

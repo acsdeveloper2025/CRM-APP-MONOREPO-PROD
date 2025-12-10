@@ -155,7 +155,7 @@ export interface RadioProps extends BaseFieldProps {
 /**
  * Table component props
  */
-export interface TableProps<T = any> extends BaseComponentProps {
+export interface TableProps<T = unknown> extends BaseComponentProps {
   data: T[];
   columns: TableColumn<T>[];
   loading?: boolean;
@@ -178,11 +178,11 @@ export interface TableProps<T = any> extends BaseComponentProps {
 /**
  * Table column definition
  */
-export interface TableColumn<T = any> {
+export interface TableColumn<T = unknown> {
   key: string;
   title: string;
   dataIndex?: keyof T;
-  render?: (value: any, record: T, index: number) => ReactNode;
+  render?: (value: unknown, record: T, index: number) => ReactNode;
   sortable?: boolean;
   filterable?: boolean;
   width?: number | string;

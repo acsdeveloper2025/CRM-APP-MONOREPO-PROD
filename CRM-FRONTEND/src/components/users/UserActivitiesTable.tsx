@@ -36,7 +36,7 @@ export function UserActivitiesTable({ data, isLoading }: UserActivitiesTableProp
   }
 
   const getActionBadge = (action: string) => {
-    const actionConfig: Record<string, { variant: any; label: string }> = {
+    const actionConfig: Record<string, { variant: unknown; label: string }> = {
       LOGIN: { variant: 'default', label: 'Login' },
       LOGOUT: { variant: 'secondary', label: 'Logout' },
       CREATE: { variant: 'default', label: 'Create' },

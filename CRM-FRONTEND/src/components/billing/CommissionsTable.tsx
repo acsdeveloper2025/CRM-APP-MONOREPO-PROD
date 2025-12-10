@@ -44,7 +44,7 @@ export function CommissionsTable({ data, isLoading }: CommissionsTableProps) {
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       toast.success('Commission approved successfully');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error(error.response?.data?.message || 'Failed to approve commission');
     },
   });
@@ -58,7 +58,7 @@ export function CommissionsTable({ data, isLoading }: CommissionsTableProps) {
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       toast.success('Commission marked as paid');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error(error.response?.data?.message || 'Failed to mark commission as paid');
     },
   });
@@ -73,7 +73,7 @@ export function CommissionsTable({ data, isLoading }: CommissionsTableProps) {
       toast.success('Commissions approved successfully');
       setSelectedCommissions([]);
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error(error.response?.data?.message || 'Failed to approve commissions');
     },
   });
@@ -88,7 +88,7 @@ export function CommissionsTable({ data, isLoading }: CommissionsTableProps) {
       toast.success('Commissions marked as paid');
       setSelectedCommissions([]);
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error(error.response?.data?.message || 'Failed to mark commissions as paid');
     },
   });

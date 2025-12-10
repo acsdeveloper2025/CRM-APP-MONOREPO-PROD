@@ -44,7 +44,7 @@ export const TATMonitoringPage: React.FC = () => {
 
   const criticalTasks = criticalData?.data?.tasks || [];
   const criticalPagination = criticalData?.data?.pagination || { page: 1, totalPages: 1, totalCount: 0 };
-
+  
   const allTasks = allData?.data?.tasks || [];
   const allPagination = allData?.data?.pagination || { page: 1, totalPages: 1, totalCount: 0 };
 
@@ -90,7 +90,8 @@ export const TATMonitoringPage: React.FC = () => {
     if (days > 1) {return 'text-yellow-600 font-semibold';}
     return 'text-yellow-600';
   };
-
+  
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const renderTaskTable = (tasks: any[], isLoading: boolean, pagination: any, onPageChange: (page: number) => void) => {
     if (isLoading) {
       return (

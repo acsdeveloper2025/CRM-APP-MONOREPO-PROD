@@ -124,7 +124,7 @@ export const EnterpriseDashboard: React.FC = () => {
     setDashboardMetrics(calculatedMetrics);
   }, [calculatedMetrics]);
 
-  const handleCaseSelect = (_caseItem: any) => {
+  const handleCaseSelect = (_caseItem: unknown) => {
     // Navigate to case details
     // TODO: Implement navigation to case details
   };
@@ -147,7 +147,7 @@ export const EnterpriseDashboard: React.FC = () => {
     dispatch(fetchCases({ page: 1, limit: 50, search: query }));
   };
 
-  const handleFilter = (newFilters: any) => {
+  const handleFilter = (newFilters: unknown) => {
     dispatch(fetchCases({ page: 1, limit: 50, filters: newFilters }));
   };
 

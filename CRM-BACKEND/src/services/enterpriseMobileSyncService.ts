@@ -1,5 +1,6 @@
 import { query, pool } from '../config/database';
 import { logger } from '../config/logger';
+import { PoolClient } from 'pg';
 
 export interface MobileSyncRequest {
   userId: string;
@@ -23,8 +24,8 @@ export interface CaseAssignmentNotification {
 export interface MobileSyncResponse {
   success: boolean;
   data: {
-    newAssignments: any[];
-    updatedCases: any[];
+    newAssignments: Record<string, unknown>[];
+    updatedCases: Record<string, unknown>[];
     notifications: CaseAssignmentNotification[];
     syncTimestamp: string;
     hasMoreData: boolean;
@@ -137,10 +138,10 @@ export class EnterpriseMobileSyncService {
    * Get new case assignments for field agent since last sync
    */
   private static async getNewCaseAssignments(
-    client: any,
+    client: PoolClient,
     userId: string,
     lastSyncTimestamp?: string
-  ): Promise<any[]> {
+  ): Promise<Record<string, unknown>[]> {
     const syncCondition = lastSyncTimestamp ? `AND cah."assignedAt" > $2` : '';
 
     const params = lastSyncTimestamp ? [userId, lastSyncTimestamp] : [userId];
@@ -187,10 +188,10 @@ export class EnterpriseMobileSyncService {
    * Get updated cases for field agent since last sync
    */
   private static async getUpdatedCases(
-    client: any,
+    client: PoolClient,
     userId: string,
     lastSyncTimestamp?: string
-  ): Promise<any[]> {
+  ): Promise<Record<string, unknown>[]> {
     if (!lastSyncTimestamp) {
       return []; // No updates on first sync
     }
@@ -225,7 +226,7 @@ export class EnterpriseMobileSyncService {
    * Get pending notifications for field agent
    */
   private static async getPendingNotifications(
-    client: any,
+    client: PoolClient,
     userId: string
   ): Promise<CaseAssignmentNotification[]> {
     const notificationsQuery = `
@@ -260,7 +261,7 @@ export class EnterpriseMobileSyncService {
    * Update device sync record for tracking
    */
   private static async updateDeviceSyncRecord(
-    client: any,
+    client: PoolClient,
     request: MobileSyncRequest,
     syncTimestamp: string
   ): Promise<void> {
@@ -291,7 +292,7 @@ export class EnterpriseMobileSyncService {
    * Mark notifications as delivered
    */
   private static async markNotificationsDelivered(
-    client: any,
+    client: PoolClient,
     userId: string,
     notifications: CaseAssignmentNotification[]
   ): Promise<void> {
@@ -316,7 +317,7 @@ export class EnterpriseMobileSyncService {
     type: string,
     title: string,
     message: string,
-    data: any = {}
+    data: Record<string, unknown> = {}
   ): Promise<void> {
     try {
       const insertQuery = `
@@ -345,7 +346,7 @@ export class EnterpriseMobileSyncService {
   /**
    * Get sync statistics for monitoring
    */
-  static async getSyncStatistics(): Promise<any> {
+  static async getSyncStatistics(): Promise<Record<string, unknown> | null> {
     try {
       const statsQuery = `
         SELECT 

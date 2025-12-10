@@ -140,7 +140,7 @@ export const CaseStatusDistribution: React.FC = () => {
     return STATUS_ICONS[status.replace(' ', '_') as keyof typeof STATUS_ICONS] || Clock;
   };
 
-  const renderCustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
+  const renderCustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: unknown) => {
     const RADIAN = Math.PI / 180;
     const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
     const x = cx + radius * Math.cos(-midAngle * RADIAN);
@@ -172,7 +172,7 @@ export const CaseStatusDistribution: React.FC = () => {
           </p>
         </div>
         <div className="flex items-center space-x-4">
-          <Select value={viewType} onValueChange={(value: any) => setViewType(value)}>
+          <Select value={viewType} onValueChange={(value: unknown) => setViewType(value)}>
             <SelectTrigger className="w-40">
               <SelectValue />
             </SelectTrigger>

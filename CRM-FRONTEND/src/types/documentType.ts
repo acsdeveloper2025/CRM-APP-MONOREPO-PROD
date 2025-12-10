@@ -33,6 +33,7 @@ export interface DocumentType extends Omit<BaseEntity, 'id'> {
   // Status and metadata
   isActive?: boolean;
   sortOrder?: number;
+  clientCount?: number;
 }
 
 // Client-Document Type Mapping
@@ -47,7 +48,7 @@ export interface ClientDocumentType {
   priority?: number;
   
   // Client-specific rules
-  clientSpecificRules?: Record<string, any>;
+  clientSpecificRules?: Record<string, unknown>;
   
   // Populated relations
   documentType?: DocumentType;
@@ -71,7 +72,7 @@ export interface ProductDocumentType {
   priority?: number;
   
   // Product-specific rules
-  productSpecificRules?: Record<string, any>;
+  productSpecificRules?: Record<string, unknown>;
   
   // Populated relations
   documentType?: DocumentType;
@@ -202,7 +203,7 @@ export interface DocumentValidationResult {
 export interface ValidateDocumentRequest {
   documentTypeId: number;
   documentNumber: string;
-  additionalData?: Record<string, any>;
+  additionalData?: Record<string, unknown>;
 }
 
 // Export Data

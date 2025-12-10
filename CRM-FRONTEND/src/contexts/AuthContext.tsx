@@ -119,8 +119,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setState(prev => ({ ...prev, isLoading: false }));
         return false;
       }
-    } catch (error: any) {
-      const message = error.response?.data?.message || 'Login failed';
+    } catch (error) {
+      const err = error as { response?: { data?: { message?: string } } };
+      const message = err.response?.data?.message || 'Login failed';
       toast.error(message);
       setState(prev => ({ ...prev, isLoading: false }));
       return false;

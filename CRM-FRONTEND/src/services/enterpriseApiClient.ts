@@ -1,4 +1,8 @@
-import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
+import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
+
+interface AugmentedAxiosRequestConfig extends InternalAxiosRequestConfig {
+  metadata?: { startTime: number };
+}
 
 // Smart API URL selection function
 function getApiBaseUrl(): string {
@@ -9,7 +13,7 @@ function getApiBaseUrl(): string {
   const isStaticIP = hostname === staticIP;
   const isDomain = hostname === 'crm.allcheckservices.com' || hostname === 'www.crm.allcheckservices.com';
 
-  console.log('🌐 Enterprise API Client - URL Detection:', {
+  console.warn('🌐 Enterprise API Client - URL Detection:', {
     hostname,
     isLocalhost,
     isLocalNetwork,
@@ -21,42 +25,42 @@ function getApiBaseUrl(): string {
   // 1. Check if we're on localhost (development)
   if (isLocalhost) {
     const url = 'http://localhost:3000';
-    console.log('🏠 Enterprise API Client - Using localhost URL:', url);
+    console.warn('🏠 Enterprise API Client - Using localhost URL:', url);
     return url;
   }
 
   // 2. Check if we're on the local network IP (hairpin NAT workaround)
   if (isLocalNetwork) {
     const url = `http://${staticIP}:3000`;
-    console.log('🏠 Enterprise API Client - Using local network URL (hairpin NAT workaround):', url);
+    console.warn('🏠 Enterprise API Client - Using local network URL (hairpin NAT workaround):', url);
     return url;
   }
 
   // 3. Check if we're on the domain name (production access)
   if (isDomain) {
     const url = 'https://crm.allcheckservices.com';
-    console.log('🌐 Enterprise API Client - Using domain URL:', url);
+    console.warn('🌐 Enterprise API Client - Using domain URL:', url);
     return url;
   }
 
   // 4. Check if we're on the static IP (external access)
   if (isStaticIP) {
     const url = `http://${staticIP}:3000`;
-    console.log('🌍 Enterprise API Client - Using static IP URL:', url);
+    console.warn('🌍 Enterprise API Client - Using static IP URL:', url);
     return url;
   }
 
   // 5. Fallback to environment variable or localhost
   const fallbackUrl = import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || 'http://localhost:3000';
-  console.log('🔄 Enterprise API Client - Using fallback URL:', fallbackUrl);
+  console.warn('🔄 Enterprise API Client - Using fallback URL:', fallbackUrl);
   return fallbackUrl;
 }
 
 const API_BASE_URL = getApiBaseUrl();
-console.log('🏢 Enterprise API Client - Using base URL:', API_BASE_URL);
+console.warn('🏢 Enterprise API Client - Using base URL:', API_BASE_URL);
 
 interface CacheEntry {
-  data: any;
+  data: unknown;
   timestamp: number;
   ttl: number;
   etag?: string;
@@ -74,7 +78,7 @@ interface RequestMetrics {
 interface RetryConfig {
   retries: number;
   retryDelay: number;
-  retryCondition: (error: any) => boolean;
+  retryCondition: (error: unknown) => boolean;
 }
 
 class EnterpriseApiClient {
@@ -103,7 +107,7 @@ class EnterpriseApiClient {
   private setupInterceptors(): void {
     // Request interceptor
     this.client.interceptors.request.use(
-      (config) => {
+      (config: InternalAxiosRequestConfig<unknown>) => {
         // Add auth token
         const token = localStorage.getItem('crm_auth_token');
         if (token) {
@@ -111,7 +115,7 @@ class EnterpriseApiClient {
         }
 
         // Add request timestamp for metrics
-        config.metadata = { startTime: Date.now() };
+        (config as AugmentedAxiosRequestConfig).metadata = { startTime: Date.now() };
 
         // Add cache headers for GET requests
         if (config.method === 'get') {
@@ -160,9 +164,9 @@ class EnterpriseApiClient {
   }
 
   private recordMetrics(response: AxiosResponse | undefined, _isError = false): void {
-    if (!response?.config?.metadata) {return;}
+    if (!response || !(response.config as AugmentedAxiosRequestConfig)?.metadata) {return;}
 
-    const duration = Date.now() - response.config.metadata.startTime;
+    const duration = Date.now() - ((response.config as AugmentedAxiosRequestConfig).metadata?.startTime || 0);
     const metric: RequestMetrics = {
       url: response.config.url || '',
       method: response.config.method?.toUpperCase() || '',
@@ -228,7 +232,7 @@ class EnterpriseApiClient {
   }
 
   // Enhanced GET with caching
-  async get<T = any>(
+  async get<T = unknown>(
     url: string, 
     config?: AxiosRequestConfig & { 
       cacheTTL?: number; 
@@ -274,9 +278,9 @@ class EnterpriseApiClient {
   }
 
   // Enhanced POST with retry logic
-  async post<T = any>(
+  async post<T = unknown>(
     url: string, 
-    data?: any, 
+    data?: unknown, 
     config?: AxiosRequestConfig & { retryConfig?: RetryConfig }
   ): Promise<AxiosResponse<T>> {
     const { retryConfig, ...axiosConfig } = config || {};
@@ -288,9 +292,9 @@ class EnterpriseApiClient {
   }
 
   // Enhanced PUT with retry logic
-  async put<T = any>(
+  async put<T = unknown>(
     url: string, 
-    data?: any, 
+    data?: unknown, 
     config?: AxiosRequestConfig & { retryConfig?: RetryConfig }
   ): Promise<AxiosResponse<T>> {
     const { retryConfig, ...axiosConfig } = config || {};
@@ -302,7 +306,7 @@ class EnterpriseApiClient {
   }
 
   // Enhanced DELETE with retry logic
-  async delete<T = any>(
+  async delete<T = unknown>(
     url: string, 
     config?: AxiosRequestConfig & { retryConfig?: RetryConfig }
   ): Promise<AxiosResponse<T>> {
@@ -321,14 +325,15 @@ class EnterpriseApiClient {
     const config = {
       retries: 3,
       retryDelay: 1000,
-      retryCondition: (error: any) => {
+      retryCondition: (error: unknown) => {
         // Retry on network errors and 5xx server errors
-        return !error.response || (error.response.status >= 500 && error.response.status < 600);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return !(error as any).response || ((error as any).response.status >= 500 && (error as any).response.status < 600);
       },
       ...retryConfig,
     };
 
-    let lastError: any;
+    let lastError: unknown;
     
     for (let attempt = 0; attempt <= config.retries; attempt++) {
       try {
@@ -350,22 +355,22 @@ class EnterpriseApiClient {
   }
 
   // Batch requests for efficiency
-  async batch<T = any>(requests: Array<{
+  async batch<T = unknown>(requests: Array<{
     method: 'get' | 'post' | 'put' | 'delete';
     url: string;
-    data?: any;
+    data?: unknown;
     config?: AxiosRequestConfig;
   }>): Promise<AxiosResponse<T>[]> {
     const promises = requests.map(req => {
       switch (req.method) {
         case 'get':
-          return this.get(req.url, req.config);
+          return this.get<T>(req.url, req.config);
         case 'post':
-          return this.post(req.url, req.data, req.config);
+          return this.post<T>(req.url, req.data, req.config);
         case 'put':
-          return this.put(req.url, req.data, req.config);
+          return this.put<T>(req.url, req.data, req.config);
         case 'delete':
-          return this.delete(req.url, req.config);
+          return this.delete<T>(req.url, req.config);
         default:
           throw new Error(`Unsupported method: ${req.method}`);
       }

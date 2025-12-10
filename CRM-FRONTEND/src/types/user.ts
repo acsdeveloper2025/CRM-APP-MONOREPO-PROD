@@ -92,7 +92,7 @@ export interface UserActivity {
   description: string;
   ipAddress?: string;
   userAgent?: string;
-  metadata?: any;
+  metadata?: Record<string, unknown>;
   timestamp: string;
   user: {
     id: string;

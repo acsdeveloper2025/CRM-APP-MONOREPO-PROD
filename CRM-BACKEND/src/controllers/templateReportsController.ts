@@ -100,7 +100,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
     const verificationType = taskData.verification_type_name || caseData.verificationType;
 
     let outcome = caseData.verificationOutcome;
-    let formData: any = {};
+    let formData: Record<string, unknown> = {};
 
     // Extract address from verificationData
     const address =
@@ -602,7 +602,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
     };
 
     // Generate template-based report
-    const result = await templateReportService.generateTemplateReport(reportData);
+    const result = templateReportService.generateTemplateReport(reportData);
 
     if (!result.success) {
       return res.status(500).json({ error: result.error });

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus, X, AlertCircle, Building2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -44,7 +44,7 @@ export function EnhancedAreaManager({ pincode, className }: EnhancedAreaManagerP
     enabled: showAddPopover, // Only fetch when popover is open
   });
 
-  const allAreas = areasData?.data || [];
+  const allAreas = useMemo(() => areasData?.data || [], [areasData?.data]);
 
   // Convert areas to dropdown options with search filtering
   const areaOptions: MultiSelectOption[] = useMemo(() => {
@@ -56,7 +56,7 @@ export function EnhancedAreaManager({ pincode, className }: EnhancedAreaManagerP
     return allAreas
       .filter(area => {
         // Filter out already assigned areas
-        if (currentAreaIds.includes(area.id)) {return false;}
+        if (currentAreaIds.includes(Number(area.id))) {return false;}
 
         // Apply search filter
         if (!areaSearchQuery) {return true;}
@@ -81,8 +81,9 @@ export function EnhancedAreaManager({ pincode, className }: EnhancedAreaManagerP
       setSelectedAreaIds([]);
       setShowAddPopover(false);
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to add areas');
+    onError: (error: unknown) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      toast.error((error as any).response?.data?.message || 'Failed to add areas');
     },
   });
 
@@ -97,8 +98,9 @@ export function EnhancedAreaManager({ pincode, className }: EnhancedAreaManagerP
       setShowRemoveDialog(false);
       setAreaToRemove(null);
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to remove area');
+    onError: (error: unknown) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      toast.error((error as any).response?.data?.message || 'Failed to remove area');
       setShowRemoveDialog(false);
       setAreaToRemove(null);
     },
@@ -119,7 +121,7 @@ export function EnhancedAreaManager({ pincode, className }: EnhancedAreaManagerP
 
   const confirmRemoveArea = () => {
     if (areaToRemove) {
-      removeAreaMutation.mutate(areaToRemove.id);
+      removeAreaMutation.mutate(String(areaToRemove.id));
     }
   };
 
@@ -239,7 +241,7 @@ export function EnhancedAreaManager({ pincode, className }: EnhancedAreaManagerP
               Remove Area
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to remove "{areaToRemove?.name}" from pincode {pincode.code}?
+              Are you sure you want to remove &quot;{areaToRemove?.name}&quot; from pincode {pincode.code}?
               {pincode.areas && pincode.areas.length <= 1 && (
                 <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded text-amber-800 text-sm">
                   <strong>Warning:</strong> This is the last area for this pincode. 

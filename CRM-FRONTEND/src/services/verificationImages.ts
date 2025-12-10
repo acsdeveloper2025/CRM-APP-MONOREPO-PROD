@@ -155,12 +155,12 @@ class VerificationImagesService {
 
       // Check if we already have a blob URL for this image
       if (blobUrlCache.has(cacheKey)) {
-        return blobUrlCache.get(cacheKey)!;
+        return blobUrlCache.get(cacheKey) || '';
       }
 
       try {
         const apiBaseUrl = getApiBaseUrl();
-        console.log('🖼️ Verification Images - Using API URL:', apiBaseUrl);
+        console.warn('🖼️ Verification Images - Using API URL:', apiBaseUrl);
 
         // Fetch the image as blob with authentication
         const response = await fetch(`${apiBaseUrl}/cases/verification-images/${imageId}/serve`, {
@@ -192,7 +192,7 @@ class VerificationImagesService {
 
     // Fallback to direct URL (for backward compatibility)
     const baseUrl = getApiBaseUrl().replace('/api', '');
-    console.log('🖼️ Verification Images - Fallback using base URL:', baseUrl);
+    console.warn('🖼️ Verification Images - Fallback using base URL:', baseUrl);
     return `${baseUrl}${imageUrl}`;
   }
 
@@ -206,7 +206,7 @@ class VerificationImagesService {
 
       // Check if we already have a blob URL for this thumbnail
       if (blobUrlCache.has(cacheKey)) {
-        return blobUrlCache.get(cacheKey)!;
+        return blobUrlCache.get(cacheKey) || '';
       }
 
       try {

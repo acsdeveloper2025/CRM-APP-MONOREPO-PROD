@@ -124,7 +124,7 @@ export function CascadingEditPincodeDialog({ pincode, open, onOpenChange }: Casc
       queryClient.invalidateQueries({ queryKey: ['cities'] });
       onOpenChange(false);
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       console.error('Update pincode error:', error);
       const errorMessage = error?.response?.data?.message || 'Failed to update pincode';
       toast.error(errorMessage);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   FileText, 
   Download, 
@@ -39,12 +39,7 @@ export const TemplateReportCard: React.FC<TemplateReportCardProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
 
-  // Load existing report on component mount
-  useEffect(() => {
-    loadExistingReport();
-  }, [caseId, submissionId]);
-
-  const loadExistingReport = async () => {
+  const loadExistingReport = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -82,7 +77,12 @@ export const TemplateReportCard: React.FC<TemplateReportCardProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [caseId, submissionId]);
+
+  // Load existing report on component mount
+  useEffect(() => {
+    loadExistingReport();
+  }, [loadExistingReport]);
 
   const generateReport = async () => {
     try {

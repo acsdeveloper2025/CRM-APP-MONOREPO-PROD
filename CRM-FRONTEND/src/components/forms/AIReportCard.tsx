@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -60,12 +60,7 @@ export const AIReportCard: React.FC<AIReportCardProps> = ({
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Load existing report on component mount
-  useEffect(() => {
-    loadExistingReport();
-  }, [caseId, submissionId]);
-
-  const loadExistingReport = async () => {
+  const loadExistingReport = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
@@ -74,16 +69,22 @@ export const AIReportCard: React.FC<AIReportCardProps> = ({
       if (response.success && response.data) {
         setReport(response.data.report);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       // Don't show error for 404 (no report exists yet)
-      if (err.response?.status !== 404) {
+      const errorResponse = (err as { response?: { status?: number } });
+      if (errorResponse.response?.status !== 404) {
         setError('Failed to load AI report');
         console.error('Error loading AI report:', err);
       }
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [caseId, submissionId]);
+
+  // Load existing report on component mount
+  useEffect(() => {
+    loadExistingReport();
+  }, [loadExistingReport]);
 
   const generateReport = async () => {
     try {
@@ -102,8 +103,10 @@ export const AIReportCard: React.FC<AIReportCardProps> = ({
       } else {
         throw new Error(response.message || 'Failed to generate report');
       }
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.message || err.message || 'Failed to generate AI report';
+    } catch (err: unknown) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const errorObj = err as any;
+      const errorMessage = errorObj.response?.data?.message || errorObj.message || 'Failed to generate AI report';
       setError(errorMessage);
       toast.error('Failed to generate AI report', {
         description: errorMessage

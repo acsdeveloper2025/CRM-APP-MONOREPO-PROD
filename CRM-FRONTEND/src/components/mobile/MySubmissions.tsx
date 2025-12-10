@@ -57,9 +57,7 @@ export const MySubmissions: React.FC = () => {
     fetchMySubmissions();
   }, []);
 
-  useEffect(() => {
-    filterSubmissions();
-  }, [submissions, searchTerm, statusFilter, formTypeFilter, dateFilter]);
+
 
   const fetchMySubmissions = async () => {
     try {
@@ -147,7 +145,7 @@ export const MySubmissions: React.FC = () => {
     }
   };
 
-  const filterSubmissions = () => {
+  const filterSubmissions = React.useCallback(() => {
     let filtered = submissions;
 
     // Search filter
@@ -194,7 +192,11 @@ export const MySubmissions: React.FC = () => {
     }
 
     setFilteredSubmissions(filtered);
-  };
+  }, [submissions, searchTerm, statusFilter, formTypeFilter, dateFilter]);
+
+  useEffect(() => {
+    filterSubmissions();
+  }, [filterSubmissions]);
 
   const getStatusIcon = (status: string) => {
     switch (status) {

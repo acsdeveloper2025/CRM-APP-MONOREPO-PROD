@@ -121,9 +121,9 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
   const { data: availableRateTypesData } = useQuery({
     queryKey: ['available-rate-types-for-case', caseDetails?.clientId, caseDetails?.productId, caseDetails?.verificationTypeId],
     queryFn: () => rateTypesService.getAvailableRateTypesForCase(
-      caseDetails!.clientId,
-      caseDetails!.productId,
-      caseDetails!.verificationTypeId
+      parseInt(String(caseDetails?.clientId || 0)),
+      parseInt(String(caseDetails?.productId || 0)),
+      parseInt(String(caseDetails?.verificationTypeId || 0))
     ),
     enabled: !!(caseDetails?.clientId && caseDetails?.productId && caseDetails?.verificationTypeId),
   });
@@ -161,12 +161,12 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
     }
   };
 
-  const updateTask = (taskId: string, field: keyof TaskFormData, value: any) => {
-    console.log('updateTask called:', { taskId, field, value });
+  const updateTask = (taskId: string, field: keyof TaskFormData, value: unknown) => {
+    console.warn('updateTask called:', { taskId, field, value });
     setTasks(tasks.map(task => {
       if (task.id === taskId) {
         const updatedTask = { ...task, [field]: value };
-        console.log('Updated task:', updatedTask);
+        console.warn('Updated task:', updatedTask);
         return updatedTask;
       }
       return task;
@@ -225,7 +225,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
     setLoading(true);
     
     const taskRequests: CreateVerificationTaskRequest[] = tasks.map(task => ({
-      verification_type_id: task.verificationTypeId!,
+      verification_type_id: task.verificationTypeId as number,
       task_title: task.taskTitle,
       task_description: task.taskDescription || undefined,
       priority: task.priority,
@@ -463,8 +463,8 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                       <Select
                         value={task.pincode || ''}
                         onValueChange={(value) => {
-                          console.log('Pincode selection changed:', value, 'for task:', task.id);
-                          console.log('Current task pincode before update:', task.pincode);
+                          console.warn('Pincode selection changed:', value, 'for task:', task.id);
+                          console.warn('Current task pincode before update:', task.pincode);
                           // Update both pincode and reset area in a single state update
                           setTasks(tasks.map(t =>
                             t.id === task.id

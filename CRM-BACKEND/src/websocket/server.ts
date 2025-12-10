@@ -4,6 +4,7 @@ import { config } from '@/config';
 import { logger } from '@/config/logger';
 import type { JwtPayload } from '@/types/auth';
 import { MobileWebSocketEvents } from './mobileEvents';
+import type { NotificationCaseData } from './eventTypes';
 
 // Global WebSocket instance for use in controllers
 let globalSocketIO: SocketIOServer | null = null;
@@ -59,30 +60,30 @@ export const initializeWebSocket = (io: SocketIOServer): void => {
     logger.info(`User ${socket.user.username} connected to WebSocket`);
 
     // Join user to their personal room
-    socket.join(`user:${socket.user.id}`);
+    void socket.join(`user:${socket.user.id}`);
 
     // Join user to role-based rooms
-    socket.join(`role:${socket.user.role}`);
+    void socket.join(`role:${socket.user.role}`);
 
     // Join device-specific room for mobile apps
     if (socket.user.deviceId) {
-      socket.join(`device:${socket.user.deviceId}`);
+      void socket.join(`device:${socket.user.deviceId}`);
     }
 
     // Join platform-specific room
     if (socket.user.platform) {
-      socket.join(`platform:${socket.user.platform}`);
+      void socket.join(`platform:${socket.user.platform}`);
     }
 
     // Handle case updates subscription
     socket.on('subscribe:case', (caseId: string) => {
-      socket.join(`case:${caseId}`);
+      void socket.join(`case:${caseId}`);
       logger.info(`User ${socket.user?.username} subscribed to case ${caseId}`);
     });
 
     // Handle case updates unsubscription
     socket.on('unsubscribe:case', (caseId: string) => {
-      socket.leave(`case:${caseId}`);
+      void socket.leave(`case:${caseId}`);
       logger.info(`User ${socket.user?.username} unsubscribed from case ${caseId}`);
     });
 
@@ -217,19 +218,21 @@ export const initializeWebSocket = (io: SocketIOServer): void => {
     );
 
     // Handle mobile push notification acknowledgment
-    socket.on('mobile:notification:ack', async (data: { notificationId: string }) => {
-      logger.info(
-        `Push notification acknowledged by user ${socket.user?.username}: ${data.notificationId}`
-      );
+    socket.on('mobile:notification:ack', (data: { notificationId: string }) => {
+      void (async () => {
+        logger.info(
+          `Push notification acknowledged by user ${socket.user?.username}: ${data.notificationId}`
+        );
 
-      // Update notification status in audit log
-      if (mobileEvents) {
-        try {
-          await mobileEvents.updateNotificationStatus(data.notificationId, 'ACKNOWLEDGED');
-        } catch (error) {
-          logger.error('Failed to update notification acknowledgment:', error);
+        // Update notification status in audit log
+        if (mobileEvents) {
+          try {
+            await mobileEvents.updateNotificationStatus(data.notificationId, 'ACKNOWLEDGED');
+          } catch (error) {
+            logger.error('Failed to update notification acknowledgment:', error);
+          }
         }
-      }
+      })();
     });
 
     // Handle disconnect
@@ -249,7 +252,11 @@ export const initializeWebSocket = (io: SocketIOServer): void => {
 };
 
 // Helper functions to emit events from other parts of the application
-export const emitCaseUpdate = (io: SocketIOServer, caseId: string, data: any): void => {
+export const emitCaseUpdate = (
+  io: SocketIOServer,
+  caseId: string,
+  data: Record<string, unknown>
+): void => {
   io.to(`case:${caseId}`).emit('case:updated', {
     caseId,
     ...data,
@@ -257,14 +264,22 @@ export const emitCaseUpdate = (io: SocketIOServer, caseId: string, data: any): v
   });
 };
 
-export const emitNotification = (io: SocketIOServer, userId: string, notification: any): void => {
+export const emitNotification = (
+  io: SocketIOServer,
+  userId: string,
+  notification: Record<string, unknown>
+): void => {
   io.to(`user:${userId}`).emit('notification', {
     ...notification,
     timestamp: new Date().toISOString(),
   });
 };
 
-export const emitBroadcast = (io: SocketIOServer, role: string, data: any): void => {
+export const emitBroadcast = (
+  io: SocketIOServer,
+  role: string,
+  data: Record<string, unknown>
+): void => {
   io.to(`role:${role}`).emit('broadcast', {
     ...data,
     timestamp: new Date().toISOString(),
@@ -277,9 +292,9 @@ export const getSocketIO = (): SocketIOServer | null => globalSocketIO;
 export const getMobileEvents = (): MobileWebSocketEvents | null => mobileEvents;
 
 // Helper function to emit case assignment notification
-export const emitCaseAssigned = (userId: string, caseData: any): void => {
+export const emitCaseAssigned = (userId: string, caseData: NotificationCaseData): void => {
   if (mobileEvents) {
-    mobileEvents.notifyCaseAssigned(userId, caseData);
+    void mobileEvents.notifyCaseAssigned(userId, caseData);
   } else {
     logger.warn('Mobile events not initialized, cannot send case assignment notification');
   }
@@ -293,7 +308,7 @@ export const emitCaseStatusChanged = (
   updatedBy: string
 ): void => {
   if (mobileEvents) {
-    mobileEvents.notifyCaseStatusChanged(caseId, oldStatus, newStatus, updatedBy);
+    void mobileEvents.notifyCaseStatusChanged(caseId, oldStatus, newStatus, updatedBy);
   } else {
     logger.warn('Mobile events not initialized, cannot send case status change notification');
   }

@@ -1,6 +1,3 @@
-/* eslint-disable @typescript-eslint/restrict-template-expressions */
-/* eslint-disable @typescript-eslint/no-base-to-string */
-// Disabled template expression rules for logger as it handles various types in template literals
 import winston from 'winston';
 
 const logLevel = process.env.LOG_LEVEL || 'info';
@@ -20,7 +17,15 @@ const consoleFormat = winston.format.combine(
     format: 'YYYY-MM-DD HH:mm:ss',
   }),
   winston.format.printf(({ timestamp, level, message, ...meta }) => {
-    let msg = `${timestamp} [${level}]: ${message}`;
+    const ts = typeof timestamp === 'string' ? timestamp : JSON.stringify(timestamp);
+    const lvl = typeof level === 'string' ? level : JSON.stringify(level);
+    const msgText =
+      typeof message === 'string'
+        ? message
+        : typeof message === 'object'
+          ? JSON.stringify(message)
+          : String(message as number | boolean | undefined | null);
+    let msg = `${ts} [${lvl}]: ${msgText}`;
     if (Object.keys(meta).length > 0) {
       msg += ` ${JSON.stringify(meta)}`;
     }

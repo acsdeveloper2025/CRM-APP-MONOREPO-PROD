@@ -1,28 +1,64 @@
-/* eslint-disable @typescript-eslint/require-await */
 // Disabled require-await rule for this file as some methods are async for consistency
 import type { Pool } from 'pg';
+
+export type RuleCondition = Record<string, unknown>;
+
+export interface UpdatePriorityAction {
+  type: 'UPDATE_PRIORITY';
+  value: string;
+}
+
+export interface AssignUserAction {
+  type: 'ASSIGN_TO_USER';
+  userId: string;
+}
+
+export interface AddNoteAction {
+  type: 'ADD_NOTE';
+  note: string;
+}
+
+export interface SendNotificationAction {
+  type: 'SEND_NOTIFICATION';
+  recipient: string;
+  message: string;
+}
+
+export type RuleAction =
+  | UpdatePriorityAction
+  | AssignUserAction
+  | AddNoteAction
+  | SendNotificationAction;
 
 export interface BusinessRule {
   id: string;
   name: string;
   description: string;
-  conditions: any;
-  actions: any;
+  conditions: RuleCondition;
+  actions: RuleAction[];
   isActive: boolean;
   priority: number;
 }
 
 export interface RuleContext {
-  caseData: any;
-  userData: any;
-  clientData: any;
+  caseData: Record<string, unknown>;
+  userData: Record<string, unknown>;
+  clientData: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
+export interface ActionResult {
+  type: string;
+  success: boolean;
+  error?: string;
+  [key: string]: unknown;
 }
 
 export interface RuleResult {
   ruleId: string;
   ruleName: string;
   executed: boolean;
-  actions: any[];
+  actions: ActionResult[];
   errors?: string[];
 }
 
@@ -77,7 +113,7 @@ class BusinessRulesService {
     };
   }
 
-  private evaluateConditions(conditions: any, context: RuleContext): boolean {
+  private evaluateConditions(conditions: RuleCondition, context: RuleContext): boolean {
     if (!conditions || typeof conditions !== 'object') {
       return true;
     }
@@ -93,8 +129,11 @@ class BusinessRulesService {
     return true;
   }
 
-  private async executeActions(actions: any[], context: RuleContext): Promise<any[]> {
-    const executedActions: any[] = [];
+  private async executeActions(
+    actions: RuleAction[],
+    context: RuleContext
+  ): Promise<ActionResult[]> {
+    const executedActions: ActionResult[] = [];
 
     for (const action of actions || []) {
       try {
@@ -108,38 +147,42 @@ class BusinessRulesService {
     return executedActions;
   }
 
-  private async executeAction(action: any, context: RuleContext): Promise<any> {
+  private async executeAction(action: RuleAction, context: RuleContext): Promise<ActionResult> {
     switch (action.type) {
       case 'UPDATE_PRIORITY':
-        return this.updateCasePriority(context.caseData.id, action.value);
+        return this.updateCasePriority(context.caseData.id as string, action.value);
       case 'ASSIGN_TO_USER':
-        return this.assignCaseToUser(context.caseData.id, action.userId);
+        return this.assignCaseToUser(context.caseData.id as string, action.userId);
       case 'ADD_NOTE':
-        return this.addCaseNote(context.caseData.id, action.note);
+        return this.addCaseNote(context.caseData.id as string, action.note);
       case 'SEND_NOTIFICATION':
         return this.sendNotification(action.recipient, action.message);
       default:
-        throw new Error(`Unknown action type: ${action.type}`);
+        throw new Error(`Unknown action type: ${(action as { type: string }).type}`);
     }
   }
 
-  private getFieldValue(field: string, context: RuleContext): any {
+  private getFieldValue(field: string, context: RuleContext): unknown {
     const parts = field.split('.');
-    let value: any = context;
+    let value: unknown = context;
 
     for (const part of parts) {
-      value = value?.[part];
+      if (value && typeof value === 'object') {
+        value = (value as Record<string, unknown>)[part];
+      } else {
+        return undefined;
+      }
     }
 
     return value;
   }
 
-  private async getActiveRules(): Promise<BusinessRule[]> {
+  private getActiveRules(): Promise<BusinessRule[]> {
     // For now, return empty array - can be implemented with database storage
-    return [];
+    return Promise.resolve([]);
   }
 
-  private async updateCasePriority(caseId: string, priority: string): Promise<any> {
+  private async updateCasePriority(caseId: string, priority: string): Promise<ActionResult> {
     const query = `
       UPDATE cases 
       SET priority = $1, "updatedAt" = CURRENT_TIMESTAMP 
@@ -147,35 +190,35 @@ class BusinessRulesService {
       RETURNING *
     `;
 
-    const _result = await this.pool.query(query, [priority, caseId]);
+    await this.pool.query(query, [priority, caseId]);
     return { type: 'UPDATE_PRIORITY', caseId, priority, success: true };
   }
 
   // DEPRECATED: Case-level assignment removed
   // All assignments are now handled at the verification task level
-  private async assignCaseToUser(caseId: string, userId: string): Promise<any> {
+  private assignCaseToUser(caseId: string, userId: string): Promise<ActionResult> {
     // This method is deprecated and should not be used
     // Use verification task assignment instead
-    return {
+    return Promise.resolve({
       type: 'ASSIGN_TO_USER',
       caseId,
       userId,
       success: false,
       error: 'Case-level assignment is deprecated. Use task-level assignment instead.',
-    };
+    });
   }
 
-  private async addCaseNote(caseId: string, note: string): Promise<any> {
+  private addCaseNote(caseId: string, note: string): Promise<ActionResult> {
     // This would typically add to a notes table
-    return { type: 'ADD_NOTE', caseId, note, success: true };
+    return Promise.resolve({ type: 'ADD_NOTE', caseId, note, success: true });
   }
 
-  private async sendNotification(recipient: string, message: string): Promise<any> {
+  private sendNotification(recipient: string, message: string): Promise<ActionResult> {
     // This would typically integrate with notification service
-    return { type: 'SEND_NOTIFICATION', recipient, message, success: true };
+    return Promise.resolve({ type: 'SEND_NOTIFICATION', recipient, message, success: true });
   }
 
-  async validateRule(rule: Partial<BusinessRule>): Promise<{ valid: boolean; errors: string[] }> {
+  validateRule(rule: Partial<BusinessRule>): Promise<{ valid: boolean; errors: string[] }> {
     const errors: string[] = [];
 
     if (!rule.name || rule.name.trim().length === 0) {
@@ -190,20 +233,20 @@ class BusinessRulesService {
       errors.push('Rule must have at least one action');
     }
 
-    return {
+    return Promise.resolve({
       valid: errors.length === 0,
       errors,
-    };
+    });
   }
 
-  async getAllRules(): Promise<BusinessRule[]> {
+  getAllRules(): Promise<BusinessRule[]> {
     // For now, return empty array - can be implemented with database storage
-    return [];
+    return Promise.resolve([]);
   }
 
-  async updateRule(_ruleId: string, _updates: Partial<BusinessRule>): Promise<BusinessRule | null> {
+  updateRule(_ruleId: string, _updates: Partial<BusinessRule>): Promise<BusinessRule | null> {
     // For now, return null - can be implemented with database storage
-    return null;
+    return Promise.resolve(null);
   }
 }
 

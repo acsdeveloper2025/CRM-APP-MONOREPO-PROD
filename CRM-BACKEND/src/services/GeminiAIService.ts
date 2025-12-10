@@ -1,10 +1,10 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAI, GenerativeModel } from '@google/generative-ai';
 import { logger } from '../utils/logger';
 
 export interface VerificationReportData {
   verificationType: string;
   outcome: string;
-  formData: any;
+  formData: Record<string, unknown>;
   caseDetails: {
     caseId: string;
     customerName: string;
@@ -19,9 +19,9 @@ export interface VerificationReportData {
   };
   photos?: Array<{
     type: string;
-    metadata?: any;
+    metadata?: Record<string, unknown>;
   }>;
-  metadata?: any;
+  metadata?: Record<string, unknown>;
 }
 
 export interface AIReportResult {
@@ -41,7 +41,7 @@ export interface AIReportResult {
 
 export class GeminiAIService {
   private genAI: GoogleGenerativeAI;
-  private model: any;
+  private model: GenerativeModel;
 
   // Residence verification templates
   private readonly RESIDENCE_TEMPLATES = {
@@ -96,7 +96,7 @@ Hence the profile is marked as {Final_Status}.`,
       const prompt = this.buildReportPrompt(data);
 
       const result = await this.model.generateContent(prompt);
-      const response = await result.response;
+      const response = result.response;
       const text = response.text();
 
       // Parse the structured response
@@ -115,7 +115,7 @@ Hence the profile is marked as {Final_Status}.`,
 
       return {
         success: true,
-        report: parsedReport,
+        report: parsedReport as unknown as AIReportResult['report'],
       };
     } catch (error) {
       logger.error('Error generating AI verification report:', error);
@@ -137,7 +137,8 @@ Hence the profile is marked as {Final_Status}.`,
 
     if (outcome.toLowerCase().includes('positive')) {
       // Check if door was accessible (not locked)
-      const houseStatus = formData?.houseStatus || formData?.house_status || '';
+      const houseStatusKey = formData?.houseStatus || formData?.house_status || '';
+      const houseStatus = String(houseStatusKey as string | number | boolean | undefined);
       if (!houseStatus.toLowerCase().includes('locked')) {
         templateKey = 'POSITIVE_DOOR_ACCESSIBLE';
       }
@@ -161,19 +162,30 @@ Hence the profile is marked as {Final_Status}.`,
   /**
    * Map form data to template variables for residence verification
    */
-  private mapFormDataToTemplateVariables(formData: any, caseDetails: any): Record<string, string> {
-    const safeGet = (obj: any, key: string, defaultValue = 'Not provided') => {
-      return (
+  private mapFormDataToTemplateVariables(
+    formData: Record<string, unknown>,
+    caseDetails: Record<string, unknown>
+  ): Record<string, string> {
+    const safeGet = (
+      obj: Record<string, unknown> | null | undefined,
+      key: string,
+      defaultValue = 'Not provided'
+    ): string => {
+      const val =
         obj?.[key] ||
         obj?.[key.toLowerCase()] ||
-        obj?.[key.replace(/([A-Z])/g, '_$1').toLowerCase()] ||
-        defaultValue
-      );
+        obj?.[key.replace(/([A-Z])/g, '_$1').toLowerCase()];
+      if (val === undefined || val === null || val === '') {
+        return defaultValue;
+      }
+      return String(val as string | number | boolean | undefined);
     };
 
     return {
       // Address and basic info
-      ADDRESS: caseDetails.address || 'Address not provided',
+      ADDRESS: String(
+        (caseDetails.address || 'Address not provided') as string | number | boolean | undefined
+      ),
       Address_Locatable: safeGet(formData, 'addressLocatable'),
       Address_Rating: safeGet(formData, 'addressRating'),
 
@@ -329,34 +341,47 @@ Generate the report now:`;
   /**
    * Format form data for AI prompt based on verification type
    */
-  private formatFormDataForPrompt(formData: any, verificationType: string): string {
+  private formatFormDataForPrompt(
+    formData: Record<string, unknown>,
+    verificationType: string
+  ): string {
     if (!formData) {
       return 'No form data available';
     }
+
+    const formatValue = (val: unknown): string => {
+      if (val === undefined || val === null) {
+        return '';
+      }
+      if (typeof val === 'object') {
+        return JSON.stringify(val);
+      }
+      return String(val as string | number | boolean | null | undefined);
+    };
 
     let formatted = '';
 
     // Common fields across all verification types
     if (formData.addressLocatable) {
-      formatted += `- Address Locatable: ${formData.addressLocatable}\n`;
+      formatted += `- Address Locatable: ${formatValue(formData.addressLocatable)}\n`;
     }
     if (formData.addressRating) {
-      formatted += `- Address Rating: ${formData.addressRating}\n`;
+      formatted += `- Address Rating: ${formatValue(formData.addressRating)}\n`;
     }
     if (formData.personMet) {
-      formatted += `- Person Met: ${formData.personMet}\n`;
+      formatted += `- Person Met: ${formatValue(formData.personMet)}\n`;
     }
     if (formData.documentShown) {
-      formatted += `- Document Shown: ${formData.documentShown}\n`;
+      formatted += `- Document Shown: ${formatValue(formData.documentShown)}\n`;
     }
     if (formData.documentType) {
-      formatted += `- Document Type: ${formData.documentType}\n`;
+      formatted += `- Document Type: ${formatValue(formData.documentType)}\n`;
     }
     if (formData.remarks) {
-      formatted += `- Remarks: ${formData.remarks}\n`;
+      formatted += `- Remarks: ${formatValue(formData.remarks)}\n`;
     }
     if (formData.verifierComments) {
-      formatted += `- Verifier Comments: ${formData.verifierComments}\n`;
+      formatted += `- Verifier Comments: ${formatValue(formData.verifierComments)}\n`;
     }
 
     // Verification type specific fields
@@ -364,73 +389,73 @@ Generate the report now:`;
       case 'RESIDENCE':
       case 'RESIDENCE_CUM_OFFICE':
         if (formData.applicantName) {
-          formatted += `- Applicant Name: ${formData.applicantName}\n`;
+          formatted += `- Applicant Name: ${formatValue(formData.applicantName)}\n`;
         }
         if (formData.applicantAge) {
-          formatted += `- Applicant Age: ${formData.applicantAge}\n`;
+          formatted += `- Applicant Age: ${formatValue(formData.applicantAge)}\n`;
         }
         if (formData.applicantRelation) {
-          formatted += `- Applicant Relation: ${formData.applicantRelation}\n`;
+          formatted += `- Applicant Relation: ${formatValue(formData.applicantRelation)}\n`;
         }
         if (formData.stayingStatus) {
-          formatted += `- Staying Status: ${formData.stayingStatus}\n`;
+          formatted += `- Staying Status: ${formatValue(formData.stayingStatus)}\n`;
         }
         if (formData.houseStatus) {
-          formatted += `- House Status: ${formData.houseStatus}\n`;
+          formatted += `- House Status: ${formatValue(formData.houseStatus)}\n`;
         }
         if (formData.localityType) {
-          formatted += `- Locality Type: ${formData.localityType}\n`;
+          formatted += `- Locality Type: ${formatValue(formData.localityType)}\n`;
         }
         break;
 
       case 'OFFICE':
         if (formData.companyName) {
-          formatted += `- Company Name: ${formData.companyName}\n`;
+          formatted += `- Company Name: ${formatValue(formData.companyName)}\n`;
         }
         if (formData.designation) {
-          formatted += `- Designation: ${formData.designation}\n`;
+          formatted += `- Designation: ${formatValue(formData.designation)}\n`;
         }
         if (formData.officeType) {
-          formatted += `- Office Type: ${formData.officeType}\n`;
+          formatted += `- Office Type: ${formatValue(formData.officeType)}\n`;
         }
         if (formData.workingStatus) {
-          formatted += `- Working Status: ${formData.workingStatus}\n`;
+          formatted += `- Working Status: ${formatValue(formData.workingStatus)}\n`;
         }
         break;
 
       case 'BUSINESS':
         if (formData.businessName) {
-          formatted += `- Business Name: ${formData.businessName}\n`;
+          formatted += `- Business Name: ${formatValue(formData.businessName)}\n`;
         }
         if (formData.businessType) {
-          formatted += `- Business Type: ${formData.businessType}\n`;
+          formatted += `- Business Type: ${formatValue(formData.businessType)}\n`;
         }
         if (formData.ownershipType) {
-          formatted += `- Ownership Type: ${formData.ownershipType}\n`;
+          formatted += `- Ownership Type: ${formatValue(formData.ownershipType)}\n`;
         }
         if (formData.businessExistence) {
-          formatted += `- Business Existence: ${formData.businessExistence}\n`;
+          formatted += `- Business Existence: ${formatValue(formData.businessExistence)}\n`;
         }
         break;
     }
 
     // Third party confirmation
     if (formData.tpcMetPerson) {
-      formatted += `- TPC Met Person: ${formData.tpcMetPerson}\n`;
+      formatted += `- TPC Met Person: ${formatValue(formData.tpcMetPerson)}\n`;
     }
     if (formData.tpcConfirmation) {
-      formatted += `- TPC Confirmation: ${formData.tpcConfirmation}\n`;
+      formatted += `- TPC Confirmation: ${formatValue(formData.tpcConfirmation)}\n`;
     }
 
     // Area information
     if (formData.politicalConnection) {
-      formatted += `- Political Connection: ${formData.politicalConnection}\n`;
+      formatted += `- Political Connection: ${formatValue(formData.politicalConnection)}\n`;
     }
     if (formData.dominatedArea) {
-      formatted += `- Dominated Area: ${formData.dominatedArea}\n`;
+      formatted += `- Dominated Area: ${formatValue(formData.dominatedArea)}\n`;
     }
     if (formData.feedbackFromNeighbour) {
-      formatted += `- Neighbor Feedback: ${formData.feedbackFromNeighbour}\n`;
+      formatted += `- Neighbor Feedback: ${formatValue(formData.feedbackFromNeighbour)}\n`;
     }
 
     return formatted || 'No specific form data available';
@@ -439,7 +464,7 @@ Generate the report now:`;
   /**
    * Parse AI response and extract structured report
    */
-  private parseAIResponse(text: string): any {
+  private parseAIResponse(text: string): Record<string, unknown> {
     try {
       // Try to extract JSON from the response
       const jsonMatch = text.match(/\{[\s\S]*\}/);
@@ -495,7 +520,7 @@ Generate the report now:`;
       const result = await this.model.generateContent(
         'Test connection. Respond with "Connection successful"'
       );
-      const response = await result.response;
+      const response = result.response;
       const text = response.text();
 
       return {

@@ -1,4 +1,4 @@
-import axios, { type AxiosInstance, type AxiosResponse } from 'axios';
+import axios, { type AxiosInstance, type AxiosResponse, type AxiosRequestConfig } from 'axios';
 import type { ApiResponse } from '@/types/api';
 
 class ApiService {
@@ -7,7 +7,7 @@ class ApiService {
   constructor() {
     // Smart URL selection based on environment
     const baseURL = this.getOptimalApiUrl();
-    console.log('🔗 API Service initialized with URL:', baseURL);
+    console.warn('🔗 API Service initialized with URL:', baseURL);
 
     this.api = axios.create({
       baseURL,
@@ -30,7 +30,7 @@ class ApiService {
 
     // Log only in development mode
     if (import.meta.env.DEV) {
-      console.log('🌐 Frontend API Service - URL Detection:', {
+      console.warn('🌐 Frontend API Service - URL Detection:', {
         hostname,
         isLocalhost,
         isLocalNetwork,
@@ -43,34 +43,34 @@ class ApiService {
     // 1. Check if we're on localhost (development)
     if (isLocalhost) {
       const url = 'http://localhost:3000/api';
-      if (import.meta.env.DEV) {console.log('🏠 Frontend API Service - Using localhost API URL:', url);}
+      if (import.meta.env.DEV) {console.warn('🏠 Frontend API Service - Using localhost API URL:', url);}
       return url;
     }
 
     // 2. Check if we're on the local network IP (hairpin NAT workaround)
     if (isLocalNetwork) {
       const url = `http://${staticIP}:3000/api`;
-      if (import.meta.env.DEV) {console.log('🏠 Frontend API Service - Using local network API URL (hairpin NAT workaround):', url);}
+      if (import.meta.env.DEV) {console.warn('🏠 Frontend API Service - Using local network API URL (hairpin NAT workaround):', url);}
       return url;
     }
 
     // 3. Check if we're on the domain name (production access)
     if (isDomain) {
       const url = 'https://crm.allcheckservices.com/api';
-      if (import.meta.env.DEV) {console.log('🌐 Frontend API Service - Using domain API URL:', url);}
+      if (import.meta.env.DEV) {console.warn('🌐 Frontend API Service - Using domain API URL:', url);}
       return url;
     }
 
     // 4. Check if we're on the static IP (external access)
     if (isStaticIP) {
       const url = `http://${staticIP}:3000/api`;
-      if (import.meta.env.DEV) {console.log('🌐 Frontend API Service - Using static IP API URL:', url);}
+      if (import.meta.env.DEV) {console.warn('🌐 Frontend API Service - Using static IP API URL:', url);}
       return url;
     }
 
     // 5. Fallback to environment variable or localhost
     const fallbackUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
-    if (import.meta.env.DEV) {console.log('🔄 Frontend API Service - Using fallback API URL:', fallbackUrl);}
+    if (import.meta.env.DEV) {console.warn('🔄 Frontend API Service - Using fallback API URL:', fallbackUrl);}
     return fallbackUrl;
   }
 
@@ -107,29 +107,33 @@ class ApiService {
     );
   }
 
-  async get<T>(url: string, params?: any): Promise<ApiResponse<T>> {
+  async get<T>(url: string, params?: unknown): Promise<ApiResponse<T>> {
     const response = await this.api.get<ApiResponse<T>>(url, { params });
     return response.data;
   }
 
-  async post<T>(url: string, data?: any, config?: any): Promise<ApiResponse<T>> {
-    const response = await this.api.post<ApiResponse<T>>(url, data, config);
+  async post<T>(url: string, data?: unknown, config?: unknown): Promise<ApiResponse<T>> {
+    const response = await this.api.post<ApiResponse<T>>(url, data, config as AxiosRequestConfig);
     return response.data;
   }
 
-  async put<T>(url: string, data?: any): Promise<ApiResponse<T>> {
+  async put<T>(url: string, data?: unknown): Promise<ApiResponse<T>> {
     const response = await this.api.put<ApiResponse<T>>(url, data);
     return response.data;
   }
 
-  async delete<T>(url: string): Promise<ApiResponse<T>> {
-    const response = await this.api.delete<ApiResponse<T>>(url);
+  async delete<T>(url: string, config?: unknown): Promise<ApiResponse<T>> {
+    const response = await this.api.delete<ApiResponse<T>>(url, config as AxiosRequestConfig);
     return response.data;
   }
 
-  async patch<T>(url: string, data?: any): Promise<ApiResponse<T>> {
+  async patch<T>(url: string, data?: unknown): Promise<ApiResponse<T>> {
     const response = await this.api.patch<ApiResponse<T>>(url, data);
     return response.data;
+  }
+
+  getBaseUrl(): string {
+    return this.api.defaults.baseURL || '';
   }
 }
 

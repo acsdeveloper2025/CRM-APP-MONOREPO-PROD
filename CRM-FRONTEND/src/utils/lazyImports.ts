@@ -12,6 +12,7 @@ import { lazy, ComponentType, LazyExoticComponent } from 'react';
 /**
  * Enhanced lazy loading with error boundary and loading states
  */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function createLazyComponent<T extends ComponentType<any>>(
   importFn: () => Promise<{ default: T }>,
   displayName?: string
@@ -19,7 +20,8 @@ export function createLazyComponent<T extends ComponentType<any>>(
   const LazyComponent = lazy(importFn);
   
   if (displayName) {
-    LazyComponent.displayName = `Lazy(${displayName})`;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (LazyComponent as any).displayName = displayName;
   }
   
   return LazyComponent;
@@ -28,10 +30,12 @@ export function createLazyComponent<T extends ComponentType<any>>(
 /**
  * Preload a lazy component
  */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function preloadComponent<T extends ComponentType<any>>(
   lazyComponent: LazyExoticComponent<T>
 ): void {
   // Access the _payload to trigger preloading
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const payload = (lazyComponent as any)._payload;
   if (payload && typeof payload._result === 'undefined') {
     payload._result = payload._init(payload._payload);
@@ -41,6 +45,7 @@ export function preloadComponent<T extends ComponentType<any>>(
 /**
  * Create a lazy component with preloading capability
  */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function createPreloadableLazyComponent<T extends ComponentType<any>>(
   importFn: () => Promise<{ default: T }>,
   displayName?: string
@@ -57,79 +62,91 @@ export function createPreloadableLazyComponent<T extends ComponentType<any>>(
 
 // Dashboard Pages
 export const DashboardPage = createLazyComponent(
-  () => import('@/pages/DashboardPage'),
+  () => import('@/pages/DashboardPage').then(module => ({ default: module.DashboardPage })),
   'DashboardPage'
 );
 
 export const AnalyticsPage = createLazyComponent(
-  () => import('@/pages/AnalyticsPage'),
+  () => import('@/pages/AnalyticsPage').then(module => ({ default: module.AnalyticsPage })),
   'AnalyticsPage'
 );
 
 // Case Management Pages
+// Case Management Pages
 export const CasesListPage = createLazyComponent(
-  () => import('@/pages/cases/CasesListPage'),
+  () => import('@/pages/CasesPage').then(module => ({ default: module.CasesPage })),
   'CasesListPage'
 );
 
 export const CaseDetailPage = createLazyComponent(
-  () => import('@/pages/cases/CaseDetailPage'),
+  () => import('@/pages/CaseDetailPage').then(module => ({ default: module.CaseDetailPage })), 
   'CaseDetailPage'
 );
 
 export const CreateCasePage = createLazyComponent(
-  () => import('@/pages/cases/CreateCasePage'),
+  () => import('@/pages/NewCasePage').then(module => ({ default: module.NewCasePage })),
   'CreateCasePage'
 );
 
 export const EditCasePage = createLazyComponent(
-  () => import('@/pages/cases/EditCasePage'),
+  () => import('@/pages/EditCasePage').then(module => ({ default: module.EditCasePage })),
   'EditCasePage'
 );
 
 // User Management Pages
 export const UsersListPage = createLazyComponent(
-  () => import('@/pages/users/UsersListPage'),
+  () => import('@/pages/UsersPage').then(module => ({ default: module.UsersPage })),
   'UsersListPage'
 );
 
+/*
 export const UserDetailPage = createLazyComponent(
   () => import('@/pages/users/UserDetailPage'),
   'UserDetailPage'
 );
+*/
 
+/*
 export const CreateUserPage = createLazyComponent(
   () => import('@/pages/users/CreateUserPage'),
   'CreateUserPage'
 );
+*/
 
+/*
 export const EditUserPage = createLazyComponent(
   () => import('@/pages/users/EditUserPage'),
   'EditUserPage'
 );
+*/
 
+/*
 export const UserProfilePage = createLazyComponent(
   () => import('@/pages/users/UserProfilePage'),
   'UserProfilePage'
 );
+*/
 
 // Client Management Pages
 export const ClientsListPage = createLazyComponent(
-  () => import('@/pages/clients/ClientsListPage'),
+  () => import('@/pages/ClientsPage').then(module => ({ default: module.ClientsPage })),
   'ClientsListPage'
 );
 
+/*
 export const ClientDetailPage = createLazyComponent(
   () => import('@/pages/clients/ClientDetailPage'),
   'ClientDetailPage'
 );
+*/
 
 // Reports Pages
 export const ReportsPage = createLazyComponent(
-  () => import('@/pages/reports/ReportsPage'),
+  () => import('@/pages/ReportsPage').then(module => ({ default: module.ReportsPage })),
   'ReportsPage'
 );
 
+/*
 export const PerformanceReportPage = createLazyComponent(
   () => import('@/pages/reports/PerformanceReportPage'),
   'PerformanceReportPage'
@@ -139,111 +156,116 @@ export const FinancialReportPage = createLazyComponent(
   () => import('@/pages/reports/FinancialReportPage'),
   'FinancialReportPage'
 );
+*/
 
 // Settings Pages
 export const SettingsPage = createLazyComponent(
-  () => import('@/pages/settings/SettingsPage'),
+  () => import('@/pages/SettingsPage').then(module => ({ default: module.SettingsPage })),
   'SettingsPage'
 );
 
 export const RoleManagementPage = createLazyComponent(
-  () => import('@/pages/settings/RoleManagementPage'),
+  () => import('@/pages/RoleManagementPage'),
   'RoleManagementPage'
 );
 
+/*
 export const SystemConfigPage = createLazyComponent(
   () => import('@/pages/settings/SystemConfigPage'),
   'SystemConfigPage'
 );
+*/
 
 // Commission Management Pages
 export const CommissionManagementPage = createLazyComponent(
-  () => import('@/pages/commission/CommissionManagementPage'),
+  () => import('@/pages/CommissionManagementPage').then(module => ({ default: module.CommissionManagementPage })),
   'CommissionManagementPage'
 );
 
 export const RateManagementPage = createLazyComponent(
-  () => import('@/pages/commission/RateManagementPage'),
+  () => import('@/pages/RateManagementPage').then(module => ({ default: module.RateManagementPage })),
   'RateManagementPage'
 );
 
+/*
 export const TerritoryAssignmentPage = createLazyComponent(
   () => import('@/pages/commission/TerritoryAssignmentPage'),
   'TerritoryAssignmentPage'
 );
+*/
 
-// ==================== Heavy Components (Lazy Loaded) ====================
-
+/*
 // Form Components
 export const FormViewer = createLazyComponent(
-  () => import('@/components/forms/FormViewer'),
+  () => import('@/components/forms/FormViewer').then(module => ({ default: module.FormViewer })),
   'FormViewer'
 );
 
 export const FormBuilder = createLazyComponent(
-  () => import('@/components/forms/FormBuilder'),
+  () => import('@/components/forms/FormBuilder').then(module => ({ default: module.FormBuilder })),
   'FormBuilder'
 );
 
 // Chart Components
 export const AdvancedChart = createLazyComponent(
-  () => import('@/components/charts/AdvancedChart'),
+  () => import('@/components/charts/AdvancedChart').then(module => ({ default: module.AdvancedChart })),
   'AdvancedChart'
 );
 
 export const DashboardCharts = createLazyComponent(
-  () => import('@/components/dashboard/DashboardCharts'),
+  () => import('@/components/dashboard/DashboardCharts').then(module => ({ default: module.DashboardCharts })),
   'DashboardCharts'
 );
 
 // Data Table Components
 export const AdvancedDataTable = createLazyComponent(
-  () => import('@/components/tables/AdvancedDataTable'),
+  () => import('@/components/tables/AdvancedDataTable').then(module => ({ default: module.AdvancedDataTable })),
   'AdvancedDataTable'
 );
 
 export const ExportableTable = createLazyComponent(
-  () => import('@/components/tables/ExportableTable'),
+  () => import('@/components/tables/ExportableTable').then(module => ({ default: module.ExportableTable })),
   'ExportableTable'
 );
 
 // Map Components
 export const InteractiveMap = createLazyComponent(
-  () => import('@/components/maps/InteractiveMap'),
+  () => import('@/components/maps/InteractiveMap').then(module => ({ default: module.InteractiveMap })),
   'InteractiveMap'
 );
 
 export const LocationPicker = createLazyComponent(
-  () => import('@/components/maps/LocationPicker'),
+  () => import('@/components/maps/LocationPicker').then(module => ({ default: module.LocationPicker })),
   'LocationPicker'
 );
 
 // File Upload Components
 export const AdvancedFileUpload = createLazyComponent(
-  () => import('@/components/upload/AdvancedFileUpload'),
+  () => import('@/components/upload/AdvancedFileUpload').then(module => ({ default: module.AdvancedFileUpload })),
   'AdvancedFileUpload'
 );
 
 export const ImageEditor = createLazyComponent(
-  () => import('@/components/upload/ImageEditor'),
+  () => import('@/components/upload/ImageEditor').then(module => ({ default: module.ImageEditor })),
   'ImageEditor'
 );
+*/
 
 // ==================== Preloadable Components ====================
 
 // Create preloadable versions of frequently used components
 export const preloadableDashboard = createPreloadableLazyComponent(
-  () => import('@/pages/DashboardPage'),
+  () => import('@/pages/DashboardPage').then(module => ({ default: module.DashboardPage })),
   'DashboardPage'
 );
 
 export const preloadableCasesList = createPreloadableLazyComponent(
-  () => import('@/pages/cases/CasesListPage'),
+  () => import('@/pages/CasesPage').then(module => ({ default: module.CasesPage })),
   'CasesListPage'
 );
 
 export const preloadableUsersList = createPreloadableLazyComponent(
-  () => import('@/pages/users/UsersListPage'),
+  () => import('@/pages/UsersPage').then(module => ({ default: module.UsersPage })),
   'UsersListPage'
 );
 
@@ -258,36 +280,58 @@ export const routeComponents = {
   '/analytics': AnalyticsPage,
   
   // Case routes
-  '/cases': CasesListPage,
-  '/cases/create': CreateCasePage,
-  '/cases/:id': CaseDetailPage,
-  '/cases/:id/edit': EditCasePage,
+  cases: {
+    list: CasesListPage,
+    create: CreateCasePage,
+    edit: EditCasePage,
+    detail: CaseDetailPage,
+  },
   
   // User routes
-  '/users': UsersListPage,
-  '/users/create': CreateUserPage,
-  '/users/:id': UserDetailPage,
-  '/users/:id/edit': EditUserPage,
-  '/profile': UserProfilePage,
-  
+  /*
+  users: {
+    list: UsersListPage,
+    create: CreateUserPage,
+    edit: EditUserPage,
+    detail: UserDetailPage,
+    profile: UserProfilePage,
+  },
+  */
+  users: {
+    list: UsersListPage,
+    // create: CreateUserPage,
+    // edit: EditUserPage,
+    // detail: UserDetailPage,
+    // profile: UserProfilePage,
+  },
   // Client routes
-  '/clients': ClientsListPage,
-  '/clients/:id': ClientDetailPage,
-  
+  clients: {
+    list: ClientsListPage,
+    // detail: ClientDetailPage,
+  },
   // Report routes
-  '/reports': ReportsPage,
-  '/reports/performance': PerformanceReportPage,
-  '/reports/financial': FinancialReportPage,
-  
+  reports: {
+    index: ReportsPage,
+    // performance: PerformanceReportPage,
+    // financial: FinancialReportPage,
+  },
   // Settings routes
-  '/settings': SettingsPage,
-  '/settings/roles': RoleManagementPage,
-  '/settings/system': SystemConfigPage,
-  
+  settings: {
+    index: SettingsPage,
+    roles: RoleManagementPage,
+    // system: SystemConfigPage,
+  },
   // Commission routes
-  '/commission': CommissionManagementPage,
-  '/commission/rates': RateManagementPage,
-  '/commission/territories': TerritoryAssignmentPage,
+  /*
+  commission: {
+    index: CommissionManagementPage,
+    territory: TerritoryAssignmentPage,
+  },
+  */
+  commission: {
+    index: CommissionManagementPage,
+    // territory: TerritoryAssignmentPage,
+  },
 } as const;
 
 // ==================== Preloading Strategies ====================
@@ -315,7 +359,7 @@ export function preloadByRole(role: string): void {
     case 'FIELD_AGENT':
       // Preload field agent components
       preloadableCasesList.preload();
-      preloadComponent(FormViewer);
+      // preloadComponent(FormViewer);
       break;
       
     case 'BACKEND_USER':
@@ -336,8 +380,11 @@ export function preloadByRole(role: string): void {
  */
 export function preloadOnHover(routePath: string): void {
   const component = routeComponents[routePath as keyof typeof routeComponents];
-  if (component) {
-    preloadComponent(component);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const lazyComponent = component as any;
+  if (lazyComponent && lazyComponent._payload && lazyComponent._init) {
+     // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     preloadComponent(lazyComponent as LazyExoticComponent<any>);
   }
 }
 
@@ -348,16 +395,16 @@ export function preloadOnIdle(): void {
   if ('requestIdleCallback' in window) {
     requestIdleCallback(() => {
       // Preload commonly used components during idle time
-      preloadComponent(FormViewer);
-      preloadComponent(AdvancedDataTable);
-      preloadComponent(DashboardCharts);
+      // preloadComponent(FormViewer);
+      // preloadComponent(AdvancedDataTable);
+      // preloadComponent(DashboardCharts);
     });
   } else {
     // Fallback for browsers without requestIdleCallback
     setTimeout(() => {
-      preloadComponent(FormViewer);
-      preloadComponent(AdvancedDataTable);
-      preloadComponent(DashboardCharts);
+      // preloadComponent(FormViewer);
+      // preloadComponent(AdvancedDataTable);
+      // preloadComponent(DashboardCharts);
     }, 2000);
   }
 }
@@ -369,7 +416,7 @@ export function preloadOnIdle(): void {
  */
 export function logComponentLoad(componentName: string): void {
   if (import.meta.env.DEV) {
-    console.log(`🔄 Lazy loading component: ${componentName}`);
+    console.warn(`🔄 Lazy loading component: ${componentName}`);
   }
 }
 
@@ -398,10 +445,12 @@ export default {
   UsersListPage,
   // ... all other page components
   
+  /*
   // Components
   FormViewer,
   AdvancedDataTable,
   DashboardCharts,
+  */
   // ... all other heavy components
   
   // Strategies

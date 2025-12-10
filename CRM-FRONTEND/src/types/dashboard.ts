@@ -7,6 +7,7 @@ export interface DashboardStats {
   totalInvoices: number;
   pendingCommissions: number;
   monthlyRevenue: number;
+  revokedTasks?: number;
 }
 
 export interface CaseStatusDistribution {

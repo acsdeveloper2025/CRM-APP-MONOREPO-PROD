@@ -4,6 +4,8 @@ import type {
   RateTypeAssignment
 } from '@/types/rateManagement';
 
+export type { RateTypeAssignment };
+
 export interface RateTypeAssignmentStatus {
   rateTypeId: number; // Changed from string to number
   rateTypeName: string;

@@ -26,6 +26,7 @@ import { verificationTypesService } from '@/services/verificationTypes';
 const createVerificationTypeSchema = z.object({
   name: z.string().min(1, 'Verification type name is required').max(100, 'Name too long'),
   code: z.string().min(2, 'Code is required').max(50, 'Code too long'),
+  category: z.string().min(1, 'Category is required'), // Explicit string validation
 });
 
 type CreateVerificationTypeFormData = z.infer<typeof createVerificationTypeSchema>;
@@ -41,6 +42,7 @@ export function CreateVerificationTypeDialog({ open, onOpenChange }: CreateVerif
     defaultValues: {
       name: '',
       code: '',
+      category: 'General',
     },
   });
 
@@ -48,6 +50,7 @@ export function CreateVerificationTypeDialog({ open, onOpenChange }: CreateVerif
     mutationFn: (data: CreateVerificationTypeFormData) => verificationTypesService.createVerificationType({
       name: data.name,
       code: data.code,
+      category: data.category,
     }),
     queryKey: ['verification-types'],
     resourceName: 'Verification Type',
@@ -105,7 +108,7 @@ export function CreateVerificationTypeDialog({ open, onOpenChange }: CreateVerif
                     />
                   </FormControl>
                   <FormDescription>
-                    The name of the verification type (e.g., "Residence Verification", "Office Verification")
+                    The name of the verification type (e.g., &quot;Residence Verification&quot;, &quot;Office Verification&quot;)
                   </FormDescription>
                   <FormMessage />
                 </FormItem>

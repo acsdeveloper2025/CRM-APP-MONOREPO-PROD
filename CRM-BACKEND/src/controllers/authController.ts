@@ -68,21 +68,13 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       authMethod: 'PASSWORD', // Mark as password authentication
     };
 
-    const accessToken = jwt.sign(
-      accessTokenPayload,
-      config.jwtSecret as any,
-      {
-        expiresIn: '24h',
-      } as any
-    );
+    const accessToken = jwt.sign(accessTokenPayload, config.jwtSecret, {
+      expiresIn: '24h',
+    });
 
-    const refreshToken = jwt.sign(
-      refreshTokenPayload,
-      config.jwtRefreshSecret as any,
-      {
-        expiresIn: '7d',
-      } as any
-    );
+    const refreshToken = jwt.sign(refreshTokenPayload, config.jwtRefreshSecret, {
+      expiresIn: '7d',
+    });
 
     // Update user's lastLogin timestamp
     await query(`UPDATE users SET "lastLogin" = CURRENT_TIMESTAMP WHERE id = $1`, [user.id]);
@@ -157,7 +149,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
             assignedPincodes,
             assignedAreas,
           }),
-        } as any,
+        },
         tokens: {
           accessToken,
           refreshToken,
@@ -338,7 +330,7 @@ export const getCurrentUser = async (req: AuthenticatedRequest, res: Response): 
       assignedAreas = areasRes.rows.map(row => row.areaId);
     }
 
-    const response: ApiResponse<any> = {
+    const response: ApiResponse = {
       success: true,
       message: 'User information retrieved successfully',
       data: {

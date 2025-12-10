@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/require-await */
 // Disabled require-await rule for this file as some methods are async for consistency
 import * as cron from 'node-cron';
 import { pool } from '../config/database';
@@ -16,8 +15,8 @@ export interface ScheduledReport {
   format: 'pdf' | 'excel' | 'csv' | 'json';
   frequency: 'daily' | 'weekly' | 'monthly';
   recipients: string[];
-  filters?: Record<string, any>;
-  options?: Record<string, any>;
+  filters?: Record<string, unknown>;
+  options?: Record<string, unknown>;
   isActive: boolean;
   createdBy: string;
   createdAt: Date;
@@ -25,9 +24,26 @@ export interface ScheduledReport {
   nextRun?: Date;
 }
 
+// Database row interface
+interface ScheduledReportRow {
+  id: string;
+  name: string;
+  report_type: 'form-submissions' | 'agent-performance' | 'case-analytics' | 'validation-status';
+  format: 'pdf' | 'excel' | 'csv' | 'json';
+  frequency: 'daily' | 'weekly' | 'monthly';
+  recipients: string | string[];
+  filters: string | Record<string, unknown>;
+  options: string | Record<string, unknown>;
+  is_active: boolean;
+  created_by: string;
+  created_at: Date | string;
+  last_run?: Date | string;
+  next_run?: Date | string;
+}
+
 export class ScheduledReportsService {
   private static instance: ScheduledReportsService;
-  private scheduledJobs: Map<string, any> = new Map();
+  private scheduledJobs: Map<string, { stop: () => void }> = new Map();
   private isInitialized = false;
 
   private constructor() {}
@@ -279,7 +295,7 @@ export class ScheduledReportsService {
     }
   }
 
-  private async scheduleReport(report: ScheduledReport): Promise<void> {
+  private scheduleReport(report: ScheduledReport): Promise<void> {
     try {
       const cronExpression = this.getCronExpression(report.frequency);
 
@@ -298,8 +314,10 @@ export class ScheduledReportsService {
       logger.info(
         `Scheduled report: ${report.name} (${report.id}) with frequency: ${report.frequency}`
       );
+      return Promise.resolve();
     } catch (error) {
       logger.error(`Error scheduling report ${report.id}:`, error);
+      return Promise.resolve();
     }
   }
 
@@ -509,7 +527,7 @@ export class ScheduledReportsService {
     };
   }
 
-  private mapDbRowToScheduledReport(row: any): ScheduledReport {
+  private mapDbRowToScheduledReport(row: ScheduledReportRow): ScheduledReport {
     return {
       id: row.id,
       name: row.name,
@@ -529,7 +547,7 @@ export class ScheduledReportsService {
     };
   }
 
-  public async shutdown(): Promise<void> {
+  public shutdown(): Promise<void> {
     // Stop all scheduled jobs
     for (const [reportId, task] of this.scheduledJobs) {
       task.stop();
@@ -540,5 +558,6 @@ export class ScheduledReportsService {
     this.isInitialized = false;
 
     logger.info('Scheduled Reports Service shut down');
+    return Promise.resolve();
   }
 }

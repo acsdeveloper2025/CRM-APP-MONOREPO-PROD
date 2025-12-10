@@ -39,7 +39,7 @@ import { toast } from 'sonner';
 // Task Area Select Component
 const TaskAreaSelect: React.FC<{
   task: TaskFormData;
-  updateTask: (taskId: string, field: keyof TaskFormData, value: any) => void;
+  updateTask: (taskId: string, field: keyof TaskFormData, value: unknown) => void;
 }> = ({ task, updateTask }) => {
   const { data: areasResponse } = useAreasByPincode(task.pincode ? parseInt(task.pincode) : undefined);
   const areas = areasResponse?.data || [];
@@ -75,7 +75,7 @@ const TaskAreaSelect: React.FC<{
 // Task Rate Type Select Component
 const TaskRateTypeSelect: React.FC<{
   task: TaskFormData;
-  updateTask: (taskId: string, field: keyof TaskFormData, value: any) => void;
+  updateTask: (taskId: string, field: keyof TaskFormData, value: unknown) => void;
   clientId: string;
   productId: string;
 }> = ({ task, updateTask, clientId, productId }) => {
@@ -83,8 +83,9 @@ const TaskRateTypeSelect: React.FC<{
     queryKey: ['availableRateTypes', clientId, productId, task.verificationTypeId],
     queryFn: () => rateTypesService.getAvailableRateTypesForCase(
       parseInt(clientId),
+      parseInt(clientId),
       parseInt(productId),
-      task.verificationTypeId!
+      task.verificationTypeId || 0
     ),
     enabled: !!(clientId && productId && task.verificationTypeId),
     errorContext: 'Loading Rate Types',
@@ -260,7 +261,7 @@ export const CaseWithTasksCreationForm: React.FC<CaseWithTasksCreationFormProps>
   const users = fieldUsers || []; // fieldUsers is already the array from the select function
 
   // Helper function to get user display name
-  const getUserDisplayName = (user: any) => {
+  const getUserDisplayName = (user: unknown) => {
     if (!user) {return '';}
     if (user.name && typeof user.name === 'string' && user.name.trim()) {
       return user.name;
@@ -275,8 +276,8 @@ export const CaseWithTasksCreationForm: React.FC<CaseWithTasksCreationFormProps>
   };
 
   // Task management functions
-  const updateTask = (taskId: string, field: keyof TaskFormData, value: any) => {
-    console.log('📝 updateTask called:', {
+  const updateTask = (taskId: string, field: keyof TaskFormData, value: unknown) => {
+    console.warn('📝 updateTask called:', {
       taskId,
       field,
       value,
@@ -286,7 +287,7 @@ export const CaseWithTasksCreationForm: React.FC<CaseWithTasksCreationFormProps>
     setTasks(tasks.map(task => {
       if (task.id === taskId) {
         const updated = { ...task, [field]: value };
-        console.log('✅ Task updated:', {
+        console.warn('✅ Task updated:', {
           taskId,
           field,
           oldValue: task[field],
@@ -359,16 +360,16 @@ export const CaseWithTasksCreationForm: React.FC<CaseWithTasksCreationFormProps>
         const taskTitle = `${verificationType?.name || 'Verification'} - Task ${index + 1}`;
 
         return {
-          verification_type_id: task.verificationTypeId!,
+          verification_type_id: task.verificationTypeId as number,
           task_title: taskTitle,
           priority: task.priority,
           assigned_to: task.assignedTo && task.assignedTo !== 'unassigned' ? task.assignedTo : undefined,
-          rate_type_id: parseInt(task.rateTypeId!),
+          rate_type_id: parseInt(task.rateTypeId as string),
           address: task.address || undefined,
-          pincode: task.pincode!,
-          area_id: parseInt(task.areaId!),
-          applicant_type: task.applicantType!,
-          trigger: task.trigger!,
+          pincode: task.pincode as string,
+          area_id: parseInt(task.areaId as string),
+          applicant_type: task.applicantType as string,
+          trigger: task.trigger as string,
           document_type: task.documentType || undefined,
           document_number: task.documentNumber || undefined,
         };
@@ -376,7 +377,7 @@ export const CaseWithTasksCreationForm: React.FC<CaseWithTasksCreationFormProps>
     };
 
     // Debug logging
-    console.log('📤 Case creation request payload:', JSON.stringify(caseData, null, 2));
+    console.warn('📤 Case creation request payload:', JSON.stringify(caseData, null, 2));
 
     // Create case with tasks using mutation
     createCaseMutation.mutate(caseData, {
@@ -603,7 +604,7 @@ export const CaseWithTasksCreationForm: React.FC<CaseWithTasksCreationFormProps>
                         <Select
                           value={task.pincode || ''}
                           onValueChange={(value) => {
-                            console.log('🔍 Pincode onValueChange called:', { taskId: task.id, value, valueType: typeof value, currentPincode: task.pincode });
+                            console.warn('🔍 Pincode onValueChange called:', { taskId: task.id, value, valueType: typeof value, currentPincode: task.pincode });
                             // Force state update by creating new tasks array
                             setTasks(prevTasks => prevTasks.map(t =>
                               t.id === task.id

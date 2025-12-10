@@ -5,6 +5,9 @@ export interface DeduplicationCriteria {
   customerName?: string;
   panNumber?: string;
   customerPhone?: string;
+  aadhaarNumber?: string;
+  applicantEmail?: string;
+  bankAccountNumber?: string;
 }
 
 export interface DuplicateCase {
@@ -82,7 +85,7 @@ export class DeduplicationService {
   /**
    * Get deduplication history for a case
    */
-  async getDeduplicationHistory(caseId: string): Promise<ApiResponse<any[]>> {
+  async getDeduplicationHistory(caseId: string): Promise<ApiResponse<unknown[]>> {
     return apiService.get(`/cases/${caseId}/deduplication/history`);
   }
 

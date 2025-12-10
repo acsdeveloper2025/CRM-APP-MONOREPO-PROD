@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, User, Shield, Building2, Package } from 'lucide-react';
@@ -10,7 +10,7 @@ import { usersService } from '@/services/users';
 import { ClientAssignmentSection } from '@/components/users/ClientAssignmentSection';
 import { ProductAssignmentSection } from '@/components/users/ProductAssignmentSection';
 import { TerritoryAssignmentSection } from '@/components/users/TerritoryAssignmentSection';
-import type { User as UserType } from '@/types/user';
+import type { User as UserType, UserClientAssignment, UserProductAssignment } from '@/types/user';
 
 export function UserPermissionsPage() {
   const { userId } = useParams<{ userId: string }>();
@@ -19,21 +19,21 @@ export function UserPermissionsPage() {
   // Fetch user details
   const { data: userData, isLoading: userLoading, error: userError } = useQuery({
     queryKey: ['user', userId],
-    queryFn: () => usersService.getUserById(userId!),
+    queryFn: () => usersService.getUserById(userId || ''),
     enabled: !!userId,
   });
 
   // Fetch client assignments
   const { data: clientAssignments, isLoading: clientAssignmentsLoading } = useQuery({
     queryKey: ['user-client-assignments', userId],
-    queryFn: () => usersService.getUserClientAssignments(userId!),
+    queryFn: () => usersService.getUserClientAssignments(userId || ''),
     enabled: !!userId,
   });
 
   // Fetch product assignments
   const { data: productAssignments, isLoading: productAssignmentsLoading } = useQuery({
     queryKey: ['user-product-assignments', userId],
-    queryFn: () => usersService.getUserProductAssignments(userId!),
+    queryFn: () => usersService.getUserProductAssignments(userId || ''),
     enabled: !!userId,
   });
 
@@ -149,7 +149,7 @@ export function UserPermissionsPage() {
         <Alert>
           <AlertDescription>
             <strong>Role-based Access:</strong> Client and product access control only applies to BACKEND_USER users.
-            This user's role ({user.role}) has different permission structures.
+            This user&apos;s role ({user.role}) has different permission structures.
           </AlertDescription>
         </Alert>
       )}
@@ -173,7 +173,7 @@ export function UserPermissionsPage() {
             <span>Permission Summary</span>
           </CardTitle>
           <CardDescription>
-            Overview of this user's access levels and restrictions
+            Overview of this user&apos;s access levels and restrictions
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -197,7 +197,7 @@ export function UserPermissionsPage() {
                           Assigned to {clientAssignments.data.length} client(s):
                         </p>
                         <div className="flex flex-wrap gap-1">
-                          {clientAssignments.data.map((assignment: any) => (
+                          {(clientAssignments.data as UserClientAssignment[]).map((assignment) => (
                             <Badge key={assignment.id} variant="outline" className="text-xs">
                               {assignment.clientName}
                             </Badge>
@@ -233,7 +233,7 @@ export function UserPermissionsPage() {
                         Assigned to {productAssignments.data.length} product(s):
                       </p>
                       <div className="flex flex-wrap gap-1">
-                        {productAssignments.data.map((assignment: any) => (
+                        {(productAssignments.data as UserProductAssignment[]).map((assignment) => (
                           <Badge key={assignment.id} variant="outline" className="text-xs">
                             {assignment.productName}
                           </Badge>

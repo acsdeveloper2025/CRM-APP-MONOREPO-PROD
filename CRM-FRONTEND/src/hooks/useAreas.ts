@@ -4,7 +4,7 @@ import { locationsService } from '@/services/locations';
 export const useAreasByPincode = (pincodeId?: number) => {
   return useQuery({
     queryKey: ['areas', 'by-pincode', pincodeId],
-    queryFn: () => locationsService.getAreasByPincode(pincodeId!),
+    queryFn: () => locationsService.getAreasByPincode(pincodeId as number),
     enabled: !!pincodeId,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });

@@ -36,7 +36,7 @@ export function ResetPasswordDialog({ user, open, onOpenChange }: ResetPasswordD
       : 'Temporary password generated successfully',
     errorContext: 'Generate Temporary Password',
     errorFallbackMessage: 'Failed to generate temporary password',
-    onSuccess: (data: any) => {
+    onSuccess: (data: unknown) => {
       setGeneratedPassword(data.data?.temporaryPassword || '');
       setShowPassword(true); // Show password by default when generated
     },

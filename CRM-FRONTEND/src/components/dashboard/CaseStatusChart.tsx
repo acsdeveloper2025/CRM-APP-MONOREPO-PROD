@@ -43,7 +43,7 @@ export const CaseStatusChart: React.FC<CaseStatusChartProps> = ({ data, isLoadin
     percentage: item.percentage,
   }));
 
-  const CustomTooltip = ({ active, payload }: any) => {
+  const CustomTooltip = ({ active, payload }: unknown) => {
     if (active && payload && payload.length) {
       const data = payload[0];
       return (

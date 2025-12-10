@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/unbound-method */
 // Disabled unbound-method rule for this file as it uses method references in routes
 import { Router } from 'express';
 import { body, param } from 'express-validator';
@@ -125,7 +124,11 @@ const _getNotificationsValidation = [
  * @desc Get user's notifications
  * @access Private
  */
-router.get('/', authenticateToken, NotificationController.getNotifications);
+router.get(
+  '/',
+  authenticateToken,
+  NotificationController.getNotifications.bind(NotificationController)
+);
 
 /**
  * @route PUT /api/notifications/:notificationId/read
@@ -137,7 +140,7 @@ router.put(
   authenticateToken,
   notificationIdValidation,
   validate,
-  NotificationController.markNotificationAsRead
+  NotificationController.markNotificationAsRead.bind(NotificationController)
 );
 
 /**
@@ -145,7 +148,11 @@ router.put(
  * @desc Mark all notifications as read
  * @access Private
  */
-router.put('/mark-all-read', authenticateToken, NotificationController.markAllNotificationsAsRead);
+router.put(
+  '/mark-all-read',
+  authenticateToken,
+  NotificationController.markAllNotificationsAsRead.bind(NotificationController)
+);
 
 /**
  * @route DELETE /api/notifications/:notificationId
@@ -157,7 +164,7 @@ router.delete(
   authenticateToken,
   notificationIdValidation,
   validate,
-  NotificationController.deleteNotification
+  NotificationController.deleteNotification.bind(NotificationController)
 );
 
 /**
@@ -165,14 +172,22 @@ router.delete(
  * @desc Clear all notifications
  * @access Private
  */
-router.delete('/', authenticateToken, NotificationController.clearAllNotifications);
+router.delete(
+  '/',
+  authenticateToken,
+  NotificationController.clearAllNotifications.bind(NotificationController)
+);
 
 /**
  * @route GET /api/notifications/preferences
  * @desc Get user's notification preferences
  * @access Private
  */
-router.get('/preferences', authenticateToken, NotificationController.getNotificationPreferences);
+router.get(
+  '/preferences',
+  authenticateToken,
+  NotificationController.getNotificationPreferences.bind(NotificationController)
+);
 
 /**
  * @route PUT /api/notifications/preferences
@@ -184,7 +199,7 @@ router.put(
   authenticateToken,
   updatePreferencesValidation,
   validate,
-  NotificationController.updateNotificationPreferences
+  NotificationController.updateNotificationPreferences.bind(NotificationController)
 );
 
 /**
@@ -192,7 +207,11 @@ router.put(
  * @desc Get user's notification tokens
  * @access Private
  */
-router.get('/tokens', authenticateToken, NotificationController.getNotificationTokens);
+router.get(
+  '/tokens',
+  authenticateToken,
+  NotificationController.getNotificationTokens.bind(NotificationController)
+);
 
 /**
  * @route POST /api/notifications/tokens
@@ -204,7 +223,7 @@ router.post(
   authenticateToken,
   registerTokenValidation,
   validate,
-  NotificationController.registerNotificationToken
+  NotificationController.registerNotificationToken.bind(NotificationController)
 );
 
 /**
@@ -217,7 +236,7 @@ router.delete(
   authenticateToken,
   tokenIdValidation,
   validate,
-  NotificationController.deactivateNotificationToken
+  NotificationController.deactivateNotificationToken.bind(NotificationController)
 );
 
 /**
@@ -230,7 +249,7 @@ router.post(
   authenticateToken,
   testNotificationValidation,
   validate,
-  NotificationController.sendTestNotification
+  NotificationController.sendTestNotification.bind(NotificationController)
 );
 
 /**
@@ -238,7 +257,11 @@ router.post(
  * @desc Get notification analytics
  * @access Private
  */
-router.get('/analytics', authenticateToken, NotificationController.getNotificationAnalytics);
+router.get(
+  '/analytics',
+  authenticateToken,
+  NotificationController.getNotificationAnalytics.bind(NotificationController)
+);
 
 /**
  * @route GET /api/notifications/:notificationId/delivery
@@ -250,7 +273,7 @@ router.get(
   authenticateToken,
   notificationIdValidation,
   validate,
-  NotificationController.getDeliveryStatus
+  NotificationController.getDeliveryStatus.bind(NotificationController)
 );
 
 /**
@@ -258,6 +281,10 @@ router.get(
  * @desc Test push notification connectivity
  * @access Private
  */
-router.get('/test/connectivity', authenticateToken, NotificationController.testPushConnectivity);
+router.get(
+  '/test/connectivity',
+  authenticateToken,
+  NotificationController.testPushConnectivity.bind(NotificationController)
+);
 
 export default router;

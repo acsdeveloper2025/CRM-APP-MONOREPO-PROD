@@ -131,7 +131,7 @@ export class BillingService {
   }
 
   async getCommissionSummary(userId?: string, period?: string): Promise<ApiResponse<CommissionSummary>> {
-    const params: any = {};
+    const params: unknown = {};
     if (userId) {params.userId = userId;}
     if (period) {params.period = period;}
     return apiService.get('/commissions/summary', params);
@@ -147,11 +147,11 @@ export class BillingService {
   }
 
   // Reports
-  async getInvoiceReport(query: InvoiceQuery = {}): Promise<ApiResponse<any>> {
+  async getInvoiceReport(query: InvoiceQuery = {}): Promise<ApiResponse<unknown>> {
     return apiService.get('/reports/invoices', query);
   }
 
-  async getCommissionReport(query: CommissionQuery = {}): Promise<ApiResponse<any>> {
+  async getCommissionReport(query: CommissionQuery = {}): Promise<ApiResponse<unknown>> {
     return apiService.get('/reports/commissions', query);
   }
 

@@ -5,6 +5,8 @@
  * based on form data submitted from mobile applications across all 9 verification types.
  */
 
+import { logger } from './logger';
+
 export interface FormTypeResult {
   formType: string;
   verificationOutcome: string;
@@ -18,6 +20,29 @@ export interface FormTypeIndicators {
   nspIndicators: string[];
   entryRestrictedIndicators: string[];
   untraceableIndicators: string[];
+}
+
+export interface DetectedFormData {
+  [key: string]: unknown;
+  outcome?: string;
+  finalStatus?: string;
+  verificationOutcome?: string;
+  callRemark?: string;
+  contactPerson?: string;
+  metPersonName?: string;
+  phoneStatus?: string;
+  currentLocation?: string;
+  shiftedPeriod?: string;
+  premisesStatus?: string;
+  addressStatus?: string;
+  entryRestrictionReason?: string;
+  securityPersonName?: string;
+  accessStatus?: string;
+  temporaryStay?: boolean;
+  temporaryBusiness?: boolean;
+  temporaryOffice?: boolean;
+  stayingStatus?: string;
+  businessStatus?: string;
 }
 
 /**
@@ -377,13 +402,13 @@ export const FORM_TYPE_INDICATORS: Record<string, FormTypeIndicators> = {
  * @returns Object containing formType, verificationOutcome, confidence, and detectionMethod
  */
 export function detectFormTypeEnhanced(
-  formData: any,
+  formData: DetectedFormData,
   verificationType = 'RESIDENCE'
 ): FormTypeResult {
   const outcome = formData.outcome || formData.finalStatus || formData.verificationOutcome;
   const normalizedType = verificationType.toUpperCase();
 
-  console.log(`🔍 Enhanced form type detection for ${normalizedType}:`, {
+  logger.info(`🔍 Enhanced form type detection for ${normalizedType}:`, {
     outcome,
     hasOutcome: !!outcome,
     formDataKeys: Object.keys(formData || {}).length,
@@ -393,7 +418,7 @@ export function detectFormTypeEnhanced(
   // Method 1: Direct outcome mapping (highest confidence)
   if (outcome && UNIVERSAL_OUTCOME_MAPPING[outcome]) {
     const result = UNIVERSAL_OUTCOME_MAPPING[outcome];
-    console.log(
+    logger.info(
       `✅ Direct outcome mapping: ${outcome} -> ${result.formType} (confidence: ${result.confidence}%)`
     );
     return result;
@@ -404,7 +429,7 @@ export function detectFormTypeEnhanced(
   if (indicators) {
     const detectionResult = detectByFieldIndicators(formData, indicators, normalizedType);
     if (detectionResult.confidence > 70) {
-      console.log(
+      logger.info(
         `✅ Field-based detection: ${detectionResult.formType} (confidence: ${detectionResult.confidence}%)`
       );
       return detectionResult;
@@ -414,14 +439,14 @@ export function detectFormTypeEnhanced(
   // Method 3: Pattern-based detection for specific outcomes
   const patternResult = detectByPatterns(formData, normalizedType);
   if (patternResult.confidence > 60) {
-    console.log(
+    logger.info(
       `✅ Pattern-based detection: ${patternResult.formType} (confidence: ${patternResult.confidence}%)`
     );
     return patternResult;
   }
 
   // Method 4: Default fallback with low confidence
-  console.log(`⚠️ No specific indicators found, defaulting to POSITIVE form (confidence: 50%)`);
+  logger.info(`⚠️ No specific indicators found, defaulting to POSITIVE form (confidence: 50%)`);
   return {
     formType: 'POSITIVE',
     verificationOutcome: 'Positive & Door Locked',
@@ -439,7 +464,7 @@ export function detectFormTypeEnhanced(
  * @returns FormTypeResult with confidence score
  */
 function detectByFieldIndicators(
-  formData: any,
+  formData: DetectedFormData,
   indicators: FormTypeIndicators,
   _verificationType: string
 ): FormTypeResult {
@@ -506,7 +531,7 @@ function detectByFieldIndicators(
  * @param _verificationType - The verification type
  * @returns FormTypeResult with confidence score
  */
-function detectByPatterns(formData: any, _verificationType: string): FormTypeResult {
+function detectByPatterns(formData: DetectedFormData, _verificationType: string): FormTypeResult {
   let confidence = 40;
   let formType = 'POSITIVE';
   const detectionMethod = 'pattern_analysis';
@@ -580,63 +605,63 @@ function getVerificationOutcome(formType: string): string {
 /**
  * Detects residence form type (legacy function - use detectFormTypeEnhanced instead)
  */
-export function detectResidenceFormType(formData: any): FormTypeResult {
+export function detectResidenceFormType(formData: DetectedFormData): FormTypeResult {
   return detectFormTypeEnhanced(formData, 'RESIDENCE');
 }
 
 /**
  * Detects office form type (legacy function - use detectFormTypeEnhanced instead)
  */
-export function detectOfficeFormType(formData: any): FormTypeResult {
+export function detectOfficeFormType(formData: DetectedFormData): FormTypeResult {
   return detectFormTypeEnhanced(formData, 'OFFICE');
 }
 
 /**
  * Detects business form type (legacy function - use detectFormTypeEnhanced instead)
  */
-export function detectBusinessFormType(formData: any): FormTypeResult {
+export function detectBusinessFormType(formData: DetectedFormData): FormTypeResult {
   return detectFormTypeEnhanced(formData, 'BUSINESS');
 }
 
 /**
  * Detects builder form type
  */
-export function detectBuilderFormType(formData: any): FormTypeResult {
+export function detectBuilderFormType(formData: DetectedFormData): FormTypeResult {
   return detectFormTypeEnhanced(formData, 'BUILDER');
 }
 
 /**
  * Detects residence-cum-office form type
  */
-export function detectResidenceCumOfficeFormType(formData: any): FormTypeResult {
+export function detectResidenceCumOfficeFormType(formData: DetectedFormData): FormTypeResult {
   return detectFormTypeEnhanced(formData, 'RESIDENCE_CUM_OFFICE');
 }
 
 /**
  * Detects NOC form type
  */
-export function detectNocFormType(formData: any): FormTypeResult {
+export function detectNocFormType(formData: DetectedFormData): FormTypeResult {
   return detectFormTypeEnhanced(formData, 'NOC');
 }
 
 /**
  * Detects Property APF form type
  */
-export function detectPropertyApfFormType(formData: any): FormTypeResult {
+export function detectPropertyApfFormType(formData: DetectedFormData): FormTypeResult {
   return detectFormTypeEnhanced(formData, 'PROPERTY_APF');
 }
 
 /**
  * Detects Property Individual form type
  */
-export function detectPropertyIndividualFormType(formData: any): FormTypeResult {
+export function detectPropertyIndividualFormType(formData: DetectedFormData): FormTypeResult {
   return detectFormTypeEnhanced(formData, 'PROPERTY_INDIVIDUAL');
 }
 
 /**
  * Detects DSA/DST Connector form type
  */
-export function detectDsaConnectorFormType(formData: any): FormTypeResult {
+export function detectDsaConnectorFormType(formData: DetectedFormData): FormTypeResult {
   return detectFormTypeEnhanced(formData, 'DSA_CONNECTOR');
 }
 
@@ -647,7 +672,10 @@ export function detectDsaConnectorFormType(formData: any): FormTypeResult {
  * @param formData - The form data submitted from mobile app
  * @returns Object containing formType, verificationOutcome, confidence, and detectionMethod
  */
-export function detectFormType(verificationType: string, formData: any): FormTypeResult {
+export function detectFormType(
+  verificationType: string,
+  formData: DetectedFormData
+): FormTypeResult {
   return detectFormTypeEnhanced(formData, verificationType);
 }
 
@@ -699,7 +727,7 @@ export function getFormTypeIndicators(verificationType: string): FormTypeIndicat
  * @returns Detailed analysis of form type detection
  */
 export function analyzeFormTypeDetection(
-  formData: any,
+  formData: DetectedFormData,
   verificationType = 'RESIDENCE'
 ): {
   result: FormTypeResult;

@@ -87,7 +87,7 @@ export function EditRateTypeDialog({ rateType, open, onOpenChange }: EditRateTyp
         <DialogHeader>
           <DialogTitle>Edit Rate Type</DialogTitle>
           <DialogDescription>
-            Update the details for the rate type "{rateType.name}".
+            Update the details for the rate type &quot;{rateType.name}&quot;.
           </DialogDescription>
         </DialogHeader>
 

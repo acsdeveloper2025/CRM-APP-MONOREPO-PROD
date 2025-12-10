@@ -1,6 +1,3 @@
-/* eslint-disable @typescript-eslint/restrict-template-expressions */
-/* eslint-disable @typescript-eslint/no-base-to-string */
-// Disabled template expression rules for roles controller as it handles query params in template literals
 import type { Response } from 'express';
 import { query } from '../config/database';
 import type { AuthenticatedRequest } from '../middleware/auth';
@@ -12,9 +9,9 @@ export const getRoles = async (req: AuthenticatedRequest, res: Response) => {
 
     let rolesQuery: string;
     let countQuery: string;
-    let params: any[] = [];
+    let params: (string | number)[] = [];
 
-    if (search && search.toString().trim()) {
+    if (search && typeof search === 'string' && search.trim()) {
       // Search query
       rolesQuery = `
         SELECT r.*, (SELECT COUNT(*) FROM users u WHERE u."roleId" = r.id) as "userCount"
@@ -47,7 +44,8 @@ export const getRoles = async (req: AuthenticatedRequest, res: Response) => {
     }
 
     const rolesResult = await query(rolesQuery, params);
-    const countParams = search && search.toString().trim() ? [`%${search}%`] : [];
+    const countParams =
+      search && typeof search === 'string' && search.trim() ? [`%${search}%`] : [];
     const countResult = await query(countQuery, countParams);
     const total = parseInt(countResult.rows[0].total);
 

@@ -40,6 +40,7 @@ export interface Case {
   // DEPRECATED: Case-level assignment fields removed
   // All assignments are now handled at the verification task level
   // assignedToId?: string;
+  assignedToId?: string; // Legacy field for compatibility
   // assignedTo?: {
   //   id: string;
   //   name: string;

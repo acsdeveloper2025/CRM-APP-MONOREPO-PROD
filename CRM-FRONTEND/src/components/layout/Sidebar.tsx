@@ -87,12 +87,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
               onClick={() => toggleExpanded(item.id)}
               className="flex items-center w-full text-left"
             >
-              <item.icon className="mr-2 sm:mr-3 h-5 w-5 flex-shrink-0" />
+              <item.icon className="mr-2 sm:mr-3 h-5 w-5 shrink-0" />
               <span className="flex-1 truncate">{item.label}</span>
               {isExpanded ? (
-                <ChevronDown className="h-4 w-4 flex-shrink-0" />
+                <ChevronDown className="h-4 w-4 shrink-0" />
               ) : (
-                <ChevronRight className="h-4 w-4 flex-shrink-0" />
+                <ChevronRight className="h-4 w-4 shrink-0" />
               )}
             </button>
           ) : (
@@ -101,7 +101,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
               className="flex items-center w-full"
               onClick={onClose}
             >
-              <item.icon className="mr-2 sm:mr-3 h-5 w-5 flex-shrink-0" />
+              <item.icon className="mr-2 sm:mr-3 h-5 w-5 shrink-0" />
               <span className="truncate">{item.label}</span>
             </Link>
           )}

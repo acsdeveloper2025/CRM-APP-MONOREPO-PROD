@@ -1,10 +1,10 @@
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success: boolean;
   message: string;
   data?: T;
   error?: {
     code: string;
-    details?: any;
+    details?: unknown;
   };
   pagination?: {
     page: number;
@@ -36,14 +36,14 @@ export interface ErrorResponse {
   message: string;
   error: {
     code: string;
-    details?: any;
+    details?: unknown;
   };
 }
 
 export interface ValidationError {
   field: string;
   message: string;
-  value?: any;
+  value?: unknown;
 }
 
 export interface FileUploadResponse {

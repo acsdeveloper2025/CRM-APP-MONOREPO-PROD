@@ -21,7 +21,7 @@ class WebSocketService {
   constructor() {
     // Smart WebSocket URL selection
     const wsUrl = this.getWebSocketUrl();
-    console.log('🔌 WebSocket URL configured:', wsUrl);
+    console.warn('🔌 WebSocket URL configured:', wsUrl);
 
     this.config = {
       url: wsUrl,
@@ -47,7 +47,7 @@ class WebSocketService {
     const isStaticIP = hostname === staticIP;
     const isDomain = hostname === 'crm.allcheckservices.com' || hostname === 'www.crm.allcheckservices.com';
 
-    console.log('🔌 Frontend WebSocket - URL Detection:', {
+    console.warn('🔌 Frontend WebSocket - URL Detection:', {
       hostname,
       isLocalhost,
       isLocalNetwork,
@@ -60,34 +60,34 @@ class WebSocketService {
     // 1. Check if we're on localhost (development)
     if (isLocalhost) {
       const url = 'ws://localhost:3000';
-      console.log('🏠 Frontend WebSocket - Using localhost URL:', url);
+      console.warn('🏠 Frontend WebSocket - Using localhost URL:', url);
       return url;
     }
 
     // 2. Check if we're on the local network IP (hairpin NAT workaround)
     if (isLocalNetwork) {
       const url = `ws://${staticIP}:3000`;
-      console.log('🏠 Frontend WebSocket - Using local network URL (hairpin NAT workaround):', url);
+      console.warn('🏠 Frontend WebSocket - Using local network URL (hairpin NAT workaround):', url);
       return url;
     }
 
     // 3. Check if we're on the domain name (production access)
     if (isDomain) {
       const url = 'wss://crm.allcheckservices.com';
-      console.log('🌐 Frontend WebSocket - Using domain URL:', url);
+      console.warn('🌐 Frontend WebSocket - Using domain URL:', url);
       return url;
     }
 
     // 4. Check if we're on the static IP (external access)
     if (isStaticIP) {
       const url = `ws://${staticIP}:3000`;
-      console.log('🌐 Frontend WebSocket - Using static IP URL:', url);
+      console.warn('🌐 Frontend WebSocket - Using static IP URL:', url);
       return url;
     }
 
     // 5. Fallback to environment variable or localhost
     const fallbackUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:3000';
-    console.log('🔄 Frontend WebSocket - Using fallback URL:', fallbackUrl);
+    console.warn('🔄 Frontend WebSocket - Using fallback URL:', fallbackUrl);
     return fallbackUrl;
   }
 
@@ -133,10 +133,10 @@ class WebSocketService {
         resolve();
       });
 
-      this.socket.on('connect_error' as any, (error: any) => {
+      this.socket.on('connect_error', (error: unknown) => {
         this.state.isConnecting = false;
-        this.state.error = error.message;
-        this.eventHandlers.onError?.(error.message);
+        this.state.error = (error as Error).message;
+        this.eventHandlers.onError?.((error as Error).message);
         
         if (this.state.reconnectAttempts < this.config.reconnectAttempts) {
           this.scheduleReconnect();
@@ -169,12 +169,12 @@ class WebSocketService {
   }
 
   // Event handling
-  on<T = any>(event: WebSocketEventType, handler: (data: T) => void): void {
+  on<T = unknown>(event: WebSocketEventType, handler: (data: T) => void): void {
     if (!this.socket) {return;}
     this.socket.on(event, handler);
   }
 
-  off(event: WebSocketEventType, handler?: (...args: any[]) => void): void {
+  off(event: WebSocketEventType, handler?: (...args: unknown[]) => void): void {
     if (!this.socket) {return;}
     if (handler) {
       this.socket.off(event, handler);
@@ -183,7 +183,7 @@ class WebSocketService {
     }
   }
 
-  emit(event: string, data?: any): void {
+  emit(event: string, data?: unknown): void {
     if (!this.socket?.connected) {
       console.warn('WebSocket not connected, cannot emit event:', event);
       return;

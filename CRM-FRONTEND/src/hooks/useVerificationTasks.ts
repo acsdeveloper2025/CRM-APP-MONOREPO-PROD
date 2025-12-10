@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiService as api } from '@/services/api';
+import type { UpdateVerificationTaskRequest, CreateVerificationTaskRequest, VerificationTaskListResponse } from '@/types/verificationTask';
 
 export const useVerificationTasks = (caseId: string) => {
   return useQuery({
@@ -15,7 +16,7 @@ export const useVerificationTasks = (caseId: string) => {
 export const useUpdateVerificationTask = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+    mutationFn: async ({ id, data }: { id: string; data: UpdateVerificationTaskRequest }) => {
       const response = await api.put(`/verification-tasks/${id}`, data);
       return response.data;
     },
@@ -29,7 +30,7 @@ export const useUpdateVerificationTask = () => {
 export const useCreateVerificationTasks = (caseId: string) => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ tasks }: { tasks: any[] }) => {
+    mutationFn: async ({ tasks }: { tasks: CreateVerificationTaskRequest[] }) => {
       const response = await api.post(`/cases/${caseId}/verification-tasks`, { tasks });
       return response.data;
     },
@@ -40,14 +41,15 @@ export const useCreateVerificationTasks = (caseId: string) => {
   });
 };
 
-export const useAllVerificationTasks = (filters: any = {}) => {
+export const useAllVerificationTasks = (filters: Record<string, unknown> = {}) => {
   const queryKey = ['all-verification-tasks', filters];
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey,
     queryFn: async () => {
+      // Cast response to expected type as structure might vary from standard ApiResponse
       const response = await api.get('/verification-tasks', filters);
-      return response.data;
+      return response as unknown as VerificationTaskListResponse;
     },
   });
 

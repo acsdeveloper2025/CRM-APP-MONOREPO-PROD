@@ -1,10 +1,8 @@
-/* eslint-disable @typescript-eslint/restrict-template-expressions */
-/* eslint-disable @typescript-eslint/no-base-to-string */
-// Disabled template expression rules for rates controller as it handles query params in template literals
 import type { Response } from 'express';
 import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
 import { query, withTransaction } from '@/config/database';
+import type { QueryParams } from '@/types/database';
 
 // GET /api/rates - List rates with comprehensive filtering and pagination
 export const getRates = async (req: AuthenticatedRequest, res: Response) => {
@@ -23,7 +21,7 @@ export const getRates = async (req: AuthenticatedRequest, res: Response) => {
     } = req.query;
 
     // Build where clause
-    const values: any[] = [];
+    const values: QueryParams = [];
     const whereSql: string[] = [];
 
     if (clientId) {
@@ -47,11 +45,11 @@ export const getRates = async (req: AuthenticatedRequest, res: Response) => {
     }
 
     if (typeof isActive !== 'undefined') {
-      values.push(String(isActive) === 'true');
+      values.push(typeof isActive === 'string' ? isActive === 'true' : Boolean(isActive));
       whereSql.push(`"isActive" = $${values.length}`);
     }
 
-    if (search) {
+    if (search && typeof search === 'string') {
       values.push(`%${String(search)}%`);
       values.push(`%${String(search)}%`);
       values.push(`%${String(search)}%`);
@@ -81,8 +79,13 @@ export const getRates = async (req: AuthenticatedRequest, res: Response) => {
       'createdAt',
       'updatedAt',
     ];
-    const sortCol = allowedSortColumns.includes(String(sortBy)) ? String(sortBy) : 'clientName';
-    const sortDir = String(sortOrder).toLowerCase() === 'desc' ? 'DESC' : 'ASC';
+    const sortCol: string = allowedSortColumns.includes(typeof sortBy === 'string' ? sortBy : '')
+      ? typeof sortBy === 'string'
+        ? sortBy
+        : ''
+      : 'clientName';
+    const sortOrderStr = typeof sortOrder === 'string' ? sortOrder : 'asc';
+    const sortDir: 'ASC' | 'DESC' = sortOrderStr.toLowerCase() === 'desc' ? 'DESC' : 'ASC';
 
     const listRes = await query(
       `SELECT * FROM "rateManagementView"

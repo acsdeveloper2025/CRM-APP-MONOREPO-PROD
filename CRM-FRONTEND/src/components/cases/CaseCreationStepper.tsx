@@ -181,18 +181,18 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
         return;
       }
 
-      console.log('🔍 Performing deduplication search with criteria:', criteria);
+      console.warn('🔍 Performing deduplication search with criteria:', criteria);
       const result = await deduplicationService.searchDuplicates(criteria);
-      console.log('🔍 Deduplication search result:', result);
+      console.warn('🔍 Deduplication search result:', result);
 
       if (result.success && result.data.duplicatesFound.length > 0) {
         // CRITICAL FIX: Show ALL duplicates, not just 100% matches
         // Let the user review and decide what to do
-        console.log(`⚠️ Found ${result.data.duplicatesFound.length} potential duplicate(s)`);
+        console.warn(`⚠️ Found ${result.data.duplicatesFound.length} potential duplicate(s)`);
 
         // Show detailed match information in console for debugging
         result.data.duplicatesFound.forEach((dup, index) => {
-          console.log(`  Duplicate ${index + 1}:`, {
+          console.warn(`  Duplicate ${index + 1}:`, {
             caseId: dup.caseId,
             customerName: dup.customerName,
             matchScore: dup.matchScore,
@@ -217,7 +217,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
         });
       } else {
         // No duplicates at all - auto-proceed as "No Duplicates Found"
-        console.log('✅ No duplicate cases found');
+        console.warn('✅ No duplicate cases found');
         toast.success('No duplicate cases found. Proceeding to create new case.');
         setDeduplicationRationale('No duplicate cases found during automated check');
         setDeduplicationCompleted(true);
@@ -293,7 +293,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
         const selectedVerificationType = verificationTypes.find(vt => vt.id === task.verificationTypeId);
         const verificationTypeName = selectedVerificationType?.name || '';
 
-        const caseData: any = {
+        const caseData: unknown = {
           // Core case fields
           customerName: customerInfo.customerName,
           customerCallingCode: customerInfo.customerCallingCode,
@@ -305,7 +305,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
           assignedToId: task.assignedTo,
           clientId: caseLevelData.clientId,
           productId: caseLevelData.productId,
-          verificationTypeId: task.verificationTypeId!.toString(),
+          verificationTypeId: (task.verificationTypeId || '').toString(),
           applicantType: task.applicantType,
           backendContactNumber: caseLevelData.backendContactNumber,
           priority: task.priority,
@@ -352,7 +352,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
                 console.error('Attachment upload failed');
                 toast.error('Case updated but attachments failed to upload');
               }
-            } catch (error: any) {
+            } catch (error: unknown) {
               console.error('Error uploading attachments:', error);
               toast.error(`Case updated but attachments failed: ${error.message || 'Unknown error'}`);
             }
@@ -387,7 +387,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
           assignedToId: task.assignedTo,
           clientId: caseLevelData.clientId,
           productId: caseLevelData.productId,
-          verificationTypeId: task.verificationTypeId!.toString(),
+          verificationTypeId: (task.verificationTypeId || '').toString(),
           applicantType: task.applicantType,
           backendContactNumber: caseLevelData.backendContactNumber,
           priority: task.priority,
@@ -412,7 +412,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
               const createdTasks = response.data?.tasks || [];
               const taskId = createdTasks.length > 0 ? createdTasks[0].id : null;
 
-              console.log('📎 Uploading attachments:', {
+              console.warn('📎 Uploading attachments:', {
                 caseId,
                 taskId,
                 caseIdType: typeof response.data?.case?.caseId,
@@ -427,7 +427,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
                 console.error('❌ No caseId or taskId found in response:', response.data);
                 toast.error('Case created but caseId/taskId not found for attachment upload');
               }
-            } catch (error: any) {
+            } catch (error: unknown) {
               console.error('❌ Error uploading attachments:', {
                 error: error.message || error,
                 stack: error.stack,
@@ -461,20 +461,25 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
             deduplicationDecision: deduplicationRationale.includes('No duplicate cases found') ? 'NO_DUPLICATES_FOUND' : 'CREATE_NEW',
             deduplicationRationale,
           },
-          verification_tasks: tasks.map((task, index) => ({
-            verification_type_id: task.verificationTypeId!,
-            task_title: `${getVerificationTypeName(task.verificationTypeId!)} - Task ${index + 1}`,
-            task_description: task.trigger,
-            priority: task.priority,
-            assignedTo: task.assignedTo, // Use camelCase for consistency
-            rate_type_id: task.rateTypeId ? parseInt(task.rateTypeId) : undefined,
-            address: task.address,
-            pincode: getPincodeCode(task.pincodeId),
-            applicantType: task.applicantType, // Use camelCase for consistency with single task endpoint
-            trigger: task.trigger,
-            document_type: task.documentType || undefined,
-            document_number: task.documentNumber || undefined,
-          }))
+          verification_tasks: tasks.map((task, index) => {
+            if (!task.verificationTypeId) {
+              throw new Error(`Verification type missing for task ${index + 1}`);
+            }
+            return {
+              verification_type_id: task.verificationTypeId,
+              task_title: `${getVerificationTypeName(task.verificationTypeId)} - Task ${index + 1}`,
+              task_description: task.trigger,
+              priority: task.priority,
+              assignedTo: task.assignedTo, // Use camelCase for consistency
+              rate_type_id: task.rateTypeId ? parseInt(task.rateTypeId) : undefined,
+              address: task.address,
+              pincode: getPincodeCode(task.pincodeId),
+              applicantType: task.applicantType, // Use camelCase for consistency with single task endpoint
+              trigger: task.trigger,
+              document_type: task.documentType || undefined,
+              document_number: task.documentNumber || undefined,
+            };
+          })
         };
 
         const response = await casesService.createCaseWithMultipleTasks(payload);
@@ -486,7 +491,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
           const createdTasks = response.data?.tasks || [];
           let totalAttachments = 0;
 
-          console.log('📎 Multi-task case created, preparing to upload attachments:', {
+          console.warn('📎 Multi-task case created, preparing to upload attachments:', {
             caseId,
             caseIdType: typeof response.data?.case?.caseId,
             tasksWithAttachments: tasks.filter(t => t.attachments && t.attachments.length > 0).length,
@@ -505,12 +510,12 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
                   const files = frontendTask.attachments.map(att => att.file);
                   const taskId = backendTask.id; // UUID of the created verification task
 
-                  console.log(`📎 Uploading ${files.length} files for task ${i + 1} (ID: ${taskId})`);
+                  console.warn(`📎 Uploading ${files.length} files for task ${i + 1} (ID: ${taskId})`);
 
                   // Upload attachments with verification_task_id
                   await casesService.uploadCaseAttachments(caseId, files, taskId);
                   totalAttachments += files.length;
-                } catch (error: any) {
+                } catch (error: unknown) {
                   console.error('❌ Error uploading task attachments:', {
                     taskIndex: i,
                     taskId: backendTask?.id,
@@ -541,7 +546,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
           toast.error(response.message || 'Failed to create case');
         }
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error creating case:', error);
       toast.error(error.response?.data?.message || 'Failed to create case');
     } finally {
@@ -549,7 +554,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
     }
   };
 
-  const handleCaseFormSubmit = async (data: FullCaseFormData, attachments: any[] = []) => {
+  const handleCaseFormSubmit = async (data: FullCaseFormData, attachments: unknown[] = []) => {
     if (!customerInfo) {
       toast.error('Customer information is missing');
       return;
@@ -652,7 +657,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
         const action = editMode ? 'update' : 'create';
         toast.error(`Failed to ${action} case`);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       const errorMessage = error.response?.data?.error?.message || error.response?.data?.message || 'Failed to create case';
       toast.error(errorMessage);
     } finally {
@@ -661,7 +666,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
   };
 
   const handleCreateNewFromDialog = async (rationale: string) => {
-    console.log('🚀 Create New Case Anyway button clicked with rationale:', rationale);
+    console.warn('🚀 Create New Case Anyway button clicked with rationale:', rationale);
 
     if (!customerInfo) {
       console.error('❌ No customer info available');
@@ -672,7 +677,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
     try {
       // Record the deduplication decision for creating new case (but don't block UI on this)
       if (deduplicationResult) {
-        console.log('📝 Recording deduplication decision...');
+        console.warn('📝 Recording deduplication decision...');
         const decision = {
           caseId: 'NEW_CASE_PLACEHOLDER', // This will be updated by the backend
           decision: 'CREATE_NEW' as const,
@@ -691,7 +696,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
       }
 
       // Immediately proceed to next step
-      console.log('✅ Proceeding to case details step...');
+      console.warn('✅ Proceeding to case details step...');
       setDeduplicationRationale(rationale);
       setShowDeduplicationDialog(false);
       setDeduplicationResult(null);

@@ -83,6 +83,7 @@ export const ReviewDialog: React.FC<ReviewDialogProps> = ({
           break;
         case 'reject':
           if (!data.reason?.trim()) {
+            // eslint-disable-next-line no-alert
             alert('Reason is required for rejection');
             return;
           }
@@ -90,6 +91,7 @@ export const ReviewDialog: React.FC<ReviewDialogProps> = ({
           break;
         case 'rework':
           if (!data.feedback?.trim()) {
+            // eslint-disable-next-line no-alert
             alert('Feedback is required for rework requests');
             return;
           }

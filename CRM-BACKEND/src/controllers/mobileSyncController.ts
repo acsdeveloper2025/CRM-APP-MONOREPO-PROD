@@ -4,6 +4,38 @@ import type {
   MobileSyncDownloadResponse,
   MobileCaseResponse,
 } from '../types/mobile';
+import type { QueryParams, WhereClause } from '../types/database';
+
+interface SyncConflict {
+  caseId: string;
+  localVersion: unknown;
+  serverVersion: unknown;
+  conflictType: string;
+}
+
+interface SyncError {
+  type: string;
+  id: string;
+  error: string;
+}
+
+interface SyncResults {
+  processedCases: number;
+  processedAttachments: number;
+  processedLocations: number;
+  conflicts: SyncConflict[];
+  errors: SyncError[];
+}
+
+interface AuthenticatedRequest extends Request {
+  user?: {
+    id: string;
+    role: string;
+    email?: string;
+    name?: string;
+  };
+}
+
 import { createAuditLog } from '../utils/auditLogger';
 import { config } from '../config';
 import { query } from '@/config/database';
@@ -14,11 +46,11 @@ export class MobileSyncController {
    * Enterprise-scale mobile synchronization for 500+ field agents
    * Optimized for high-concurrency case assignment operations
    */
-  static async enterpriseSync(req: Request, res: Response) {
+  static async enterpriseSync(this: void, req: AuthenticatedRequest, res: Response) {
     try {
       const { lastSyncTimestamp, deviceId, appVersion, platform } = req.body;
-      const userId = (req as any).user?.id;
-      const userRole = (req as any).user?.role;
+      const userId = req.user?.id;
+      const userRole = req.user?.role;
 
       if (userRole !== 'FIELD_AGENT') {
         return res.status(403).json({
@@ -66,11 +98,11 @@ export class MobileSyncController {
   }
 
   // Upload offline changes from mobile app
-  static async uploadSync(req: Request, res: Response) {
+  static async uploadSync(this: void, req: AuthenticatedRequest, res: Response) {
     try {
       const { localChanges, deviceInfo, lastSyncTimestamp }: MobileSyncUploadRequest = req.body;
-      const userId = (req as any).user?.id;
-      const userRole = (req as any).user?.role;
+      const userId = req.user?.id;
+      const userRole = req.user?.role;
 
       if (!localChanges) {
         return res.status(400).json({
@@ -87,15 +119,15 @@ export class MobileSyncController {
         processedCases: 0,
         processedAttachments: 0,
         processedLocations: 0,
-        conflicts: [] as any[],
-        errors: [] as any[],
+        conflicts: [] as SyncConflict[],
+        errors: [] as SyncError[],
       };
 
       // Process case changes
       if (localChanges.cases && localChanges.cases.length > 0) {
         for (const caseChange of localChanges.cases) {
           try {
-            await this.processCaseChange(caseChange, userId, userRole, syncResults);
+            await MobileSyncController.processCaseChange(caseChange, userId, userRole, syncResults);
           } catch (error) {
             console.error(`Error processing case change ${caseChange.id}:`, error);
             syncResults.errors.push({
@@ -111,7 +143,11 @@ export class MobileSyncController {
       if (localChanges.attachments && localChanges.attachments.length > 0) {
         for (const attachmentChange of localChanges.attachments) {
           try {
-            await this.processAttachmentChange(attachmentChange, userId, syncResults);
+            await MobileSyncController.processAttachmentChange(
+              attachmentChange,
+              userId,
+              syncResults
+            );
           } catch (error) {
             console.error(`Error processing attachment change ${attachmentChange.id}:`, error);
             syncResults.errors.push({
@@ -127,7 +163,7 @@ export class MobileSyncController {
       if (localChanges.locations && localChanges.locations.length > 0) {
         for (const locationChange of localChanges.locations) {
           try {
-            await this.processLocationChange(locationChange, userId, syncResults);
+            await MobileSyncController.processLocationChange(locationChange, userId, syncResults);
           } catch (error) {
             console.error(`Error processing location change ${locationChange.id}:`, error);
             syncResults.errors.push({
@@ -181,10 +217,10 @@ export class MobileSyncController {
   }
 
   // Download changes from server for mobile app
-  static async downloadSync(req: Request, res: Response) {
+  static async downloadSync(this: void, req: AuthenticatedRequest, res: Response) {
     try {
-      const userId = (req as any).user?.id;
-      const userRole = (req as any).user?.role;
+      const userId = req.user?.id;
+      const userRole = req.user?.role;
       const { lastSyncTimestamp, limit = config.mobile.syncBatchSize } = req.query;
 
       const syncTimestamp = lastSyncTimestamp
@@ -192,7 +228,7 @@ export class MobileSyncController {
         : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000); // 30 days ago
 
       // Get updated cases
-      const where: any = {
+      const where: WhereClause = {
         updatedAt: { gt: syncTimestamp },
       };
 
@@ -201,7 +237,7 @@ export class MobileSyncController {
         where.hasAssignedTask = userId;
       }
 
-      const vals: any[] = [];
+      const vals: QueryParams = [];
       const wh: string[] = [];
       if (where.hasAssignedTask) {
         vals.push(where.hasAssignedTask);
@@ -233,7 +269,7 @@ export class MobileSyncController {
         vals
       );
       const updatedCases = casesRes.rows;
-      const deletedCases: any[] = [];
+      const deletedCases: string[] = [];
 
       // Transform cases for mobile response with all required assignment fields
       const mobileCases: MobileCaseResponse[] = updatedCases.map(caseItem => ({
@@ -290,7 +326,7 @@ export class MobileSyncController {
         syncStatus: 'SYNCED',
       }));
 
-      const deletedCaseIds = deletedCases.map(dc => dc.caseId);
+      const deletedCaseIds = deletedCases;
       const hasMore = updatedCases.length === Number(limit);
       const newSyncTimestamp = new Date().toISOString();
 
@@ -327,8 +363,8 @@ export class MobileSyncController {
       console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
       console.error('Error details:', {
         message: error instanceof Error ? error.message : String(error),
-        userId: (req as any).user?.id,
-        userRole: (req as any).user?.role,
+        userId: req.user?.id,
+        userRole: req.user?.role,
       });
 
       res.status(500).json({
@@ -344,9 +380,9 @@ export class MobileSyncController {
   }
 
   // Get sync status for device
-  static async getSyncStatus(req: Request, res: Response) {
+  static async getSyncStatus(this: void, req: AuthenticatedRequest, res: Response) {
     try {
-      const userId = (req as any).user?.id;
+      const userId = req.user?.id;
       const deviceId = req.headers['x-device-id'] as string;
 
       const devRes = await query(
@@ -393,17 +429,22 @@ export class MobileSyncController {
 
   // Helper method to process case changes
   private static async processCaseChange(
-    caseChange: any,
+    caseChange: {
+      id: string;
+      action: 'CREATE' | 'UPDATE' | 'DELETE';
+      data: unknown;
+      timestamp: string;
+    },
     userId: string,
     userRole: string,
-    syncResults: any
+    syncResults: SyncResults
   ) {
     const { id, action, data, timestamp } = caseChange;
 
     switch (action) {
       case 'UPDATE': {
         // Check if case exists and user has access
-        const vals9: any[] = [id];
+        const vals9: QueryParams = [id];
         let exSql7 = `SELECT id, "updatedAt" FROM cases WHERE id = $1`;
         if (userRole === 'FIELD_AGENT') {
           exSql7 += ` AND EXISTS (
@@ -432,7 +473,7 @@ export class MobileSyncController {
 
         // Update case
         const sets: string[] = [];
-        const vals10: any[] = [];
+        const vals10: QueryParams = [];
         let idx = 1;
         for (const [key, value] of Object.entries(data)) {
           sets.push(`"${key}" = $${idx++}`);
@@ -453,7 +494,7 @@ export class MobileSyncController {
         }
 
         const cols: string[] = ['id', 'createdAt', 'updatedAt'];
-        const vals11: any[] = [id, new Date(timestamp), new Date()];
+        const vals11: QueryParams = [id, new Date(timestamp), new Date()];
         let _idx2 = 4;
         for (const [key, value] of Object.entries(data)) {
           cols.push(`"${key}"`);
@@ -474,9 +515,14 @@ export class MobileSyncController {
 
   // Helper method to process attachment changes
   private static async processAttachmentChange(
-    attachmentChange: any,
+    attachmentChange: {
+      id: string;
+      action: 'CREATE' | 'DELETE';
+      data: unknown;
+      timestamp: string;
+    },
     userId: string,
-    syncResults: any
+    syncResults: SyncResults
   ) {
     const { id, action, data, timestamp } = attachmentChange;
 
@@ -484,7 +530,7 @@ export class MobileSyncController {
       case 'CREATE': {
         // Create attachment record (file should already be uploaded)
         const attCols: string[] = ['id', 'uploadedById', 'uploadedAt'];
-        const attVals: any[] = [id, userId, new Date(timestamp)];
+        const attVals: QueryParams = [id, userId, new Date(timestamp)];
         let _attIdx = 4;
         for (const [key, value] of Object.entries(data)) {
           attCols.push(`"${key}"`);
@@ -509,15 +555,27 @@ export class MobileSyncController {
         break;
 
       default:
-        throw new Error(`Unsupported attachment action: ${action}`);
+        throw new Error(`Unsupported attachment action: ${String(action)}`);
     }
   }
 
   // Helper method to process location changes
   private static async processLocationChange(
-    locationChange: any,
+    locationChange: {
+      id: string;
+      data: {
+        latitude: number;
+        longitude: number;
+        accuracy?: number;
+        timestamp: string;
+        source?: string;
+        caseId?: string;
+        activityType?: string;
+      };
+      timestamp: string;
+    },
     userId: string,
-    syncResults: any
+    syncResults: SyncResults
   ) {
     const { id, data, timestamp } = locationChange;
 

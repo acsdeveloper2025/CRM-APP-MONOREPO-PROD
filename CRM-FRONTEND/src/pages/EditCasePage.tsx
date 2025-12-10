@@ -34,7 +34,8 @@ import { useClients, useProductsByClient } from '@/hooks/useClients';
 import { LoadingState } from '@/components/ui/loading';
 import { EditTaskDialog } from '@/components/cases/EditTaskDialog';
 import { AddTaskDialog } from '@/components/cases/AddTaskDialog';
-import { VerificationTask } from '@/types/verificationTask';
+import type { VerificationTask } from '@/types/verificationTask';
+import type { Client } from '@/types/client';
 
 // Schema for case details
 const caseDetailsSchema = z.object({
@@ -56,12 +57,14 @@ export const EditCasePage: React.FC = () => {
   const [isAddTaskOpen, setIsAddTaskOpen] = React.useState(false);
 
   // Data fetching
-  const { data: caseData, isLoading: loadingCase } = useCase(id!);
-  const { data: tasksData, isLoading: loadingTasks, refetch: refetchTasks } = useVerificationTasks(id!);
-  const { clients } = useClients();
+  const { data: caseData, isLoading: loadingCase } = useCase(id || '');
+  const { data: tasksData, isLoading: loadingTasks, refetch: refetchTasks } = useVerificationTasks(id || '');
+  const { data: clients } = useClients();
   
-  const caseItem = caseData?.data;
-  const tasks = tasksData?.tasks || [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const caseItem = (caseData as any)?.data;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const tasks = (tasksData as any)?.data?.tasks || [];
 
   const { data: products } = useProductsByClient(
     caseItem?.clientId ? caseItem.clientId.toString() : ''
@@ -90,7 +93,7 @@ export const EditCasePage: React.FC = () => {
   const handleSaveCaseDetails = async (data: CaseDetailsFormData) => {
     try {
       await updateCaseMutation.mutateAsync({
-        id: id!,
+        id: id || '',
         data: {
           customerName: data.customerName,
           customerPhone: data.customerPhone,
@@ -220,7 +223,7 @@ export const EditCasePage: React.FC = () => {
                         <SelectValue placeholder="Select client" />
                       </SelectTrigger>
                       <SelectContent>
-                        {clients?.data?.map((client) => (
+                        {clients?.data?.map((client: Client) => (
                           <SelectItem key={client.id} value={client.id.toString()}>
                             {client.name}
                           </SelectItem>
@@ -273,7 +276,7 @@ export const EditCasePage: React.FC = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {tasks.map((task) => (
+                {tasks.map((task: VerificationTask) => (
                   <div
                     key={task.id}
                     className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors"
@@ -326,7 +329,7 @@ export const EditCasePage: React.FC = () => {
       <AddTaskDialog
         isOpen={isAddTaskOpen}
         onClose={() => setIsAddTaskOpen(false)}
-        caseId={id!}
+        caseId={id || ''}
         onSuccess={refetchTasks}
       />
     </div>

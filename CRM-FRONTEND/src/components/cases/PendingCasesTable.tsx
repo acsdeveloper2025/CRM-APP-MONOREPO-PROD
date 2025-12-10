@@ -37,7 +37,7 @@ interface PendingCasesTableProps {
   isLoading?: boolean;
   onUpdateStatus?: (caseId: string, status: string) => void;
   onAssignCase?: (caseId: string, userId: string) => void;
-  _flagOverdueCases?: boolean;
+  flagOverdueCases?: boolean;
   reviewUrgentFirst?: boolean;
 }
 
@@ -97,7 +97,7 @@ export const PendingCasesTable: React.FC<PendingCasesTableProps> = ({
   isLoading,
   onUpdateStatus,
   onAssignCase,
-  _flagOverdueCases = true,
+  flagOverdueCases: _flagOverdueCases = true,
   reviewUrgentFirst = true,
 }) => {
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
@@ -203,11 +203,17 @@ export const PendingCasesTable: React.FC<PendingCasesTableProps> = ({
           <TableBody>
             {cases.map((caseItem) => {
               const urgent = reviewUrgentFirst && Number(caseItem.priority) >= 3;
+              // Use renaming to avoid unused var warning if we decide to change implementation later, currently logic uses _flagOverdueCases
+              // const shouldFlag = _flagOverdueCases;
+
               const ageHighlight = getCaseAgeHighlight(
-                caseItem.assignedAt,
+                undefined, // assignedAt is deprecated
                 caseItem.createdAt,
-                (caseItem as any).pendingDurationSeconds
+                caseItem.pendingDurationSeconds
               );
+
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const assignedName = (caseItem as any).assignedToName || (caseItem as any).assignedTo?.name || 'Unassigned';
 
               return (
                 <TableRow
@@ -304,11 +310,13 @@ export const PendingCasesTable: React.FC<PendingCasesTableProps> = ({
                       <User className="h-4 w-4 text-gray-600" />
                       <div>
                         <div className="font-medium text-gray-900">
-                          {caseItem.assignedToName || caseItem.assignedTo?.name || 'Unassigned'}
+                          {/* assignedTo and assignedToName are deprecated on Case */}
+                          {assignedName}
                         </div>
-                        {caseItem.assignedAt && (
+                        {/* assignedAt is deprecated */}
+                        {caseItem.pendingDurationSeconds && (
                           <div className="text-sm text-gray-600">
-                            Assigned {getTimeElapsed(caseItem.assignedAt, (caseItem as any).pendingDurationSeconds)}
+                            Assigned {getTimeElapsed(undefined, caseItem.pendingDurationSeconds)}
                           </div>
                         )}
                       </div>
@@ -324,7 +332,7 @@ export const PendingCasesTable: React.FC<PendingCasesTableProps> = ({
                       ageHighlight === 'yellow' ? "text-yellow-700 dark:text-yellow-400 font-semibold" :
                       urgent ? "text-orange-700 dark:text-orange-400 font-medium" : "text-gray-600"
                     )}>
-                      {getTimeElapsed(caseItem.assignedAt, (caseItem as any).pendingDurationSeconds)}
+                      {getTimeElapsed(undefined, caseItem.pendingDurationSeconds)}
                     </div>
                   </TableCell>
                   

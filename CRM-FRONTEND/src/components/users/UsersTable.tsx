@@ -321,14 +321,14 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
                 <TableCell className="hidden xl:table-cell">
                   {(user.lastLogin || user.lastLoginAt) ? (
                     <div className="text-sm">
-                      {new Date(user.lastLogin || user.lastLoginAt!).toLocaleString()}
+                      {new Date(user.lastLogin || user.lastLoginAt || '').toLocaleString()}
                     </div>
                   ) : (
                     <span className="text-sm text-gray-600">Never</span>
                   )}
                 </TableCell>
                 <TableCell className="hidden xl:table-cell">
-                  {new Date(user.createdAt!).toLocaleDateString()}
+                  {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
                 </TableCell>
                 <TableCell className="text-right">
                   <DropdownMenu>
@@ -406,7 +406,7 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
                     handleSelectUser(user.id, checked as boolean)
                   }
                 />
-                <Avatar className="h-10 w-10 flex-shrink-0">
+                <Avatar className="h-10 w-10 shrink-0">
                   <AvatarImage src={user.profilePhotoUrl} alt={user.name} />
                   <AvatarFallback>
                     {user.name.split(' ').map(n => n[0]).join('').toUpperCase()}
@@ -422,7 +422,7 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
               </div>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="h-8 w-8 p-0 flex-shrink-0">
+                  <Button variant="ghost" className="h-8 w-8 p-0 shrink-0">
                     <span className="sr-only">Open menu</span>
                     <MoreHorizontal className="h-4 w-4" />
                   </Button>
@@ -537,7 +537,7 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
                 value={
                   (user.lastLogin || user.lastLoginAt) ? (
                     <div className="text-sm">
-                      {new Date(user.lastLogin || user.lastLoginAt!).toLocaleDateString()}
+                      {new Date(user.lastLogin || user.lastLoginAt || '').toLocaleDateString()}
                     </div>
                   ) : (
                     <span className="text-sm text-gray-600">Never</span>
@@ -549,7 +549,7 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
             <MobileTableField
               label="Created"
               className="mt-3"
-              value={new Date(user.createdAt!).toLocaleDateString()}
+              value={user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
             />
           </MobileTableCard>
         ))}
@@ -591,7 +591,7 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
               This action cannot be undone. This will permanently delete the user
-              "{userToDelete?.name}" and all associated data.
+              &quot;{userToDelete?.name}&quot; and all associated data.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

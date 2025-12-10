@@ -92,7 +92,7 @@ export function CreateBankBillDialog({ open, onOpenChange }: CreateBankBillDialo
       setSelectedClient('');
       onOpenChange(false);
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error(error.response?.data?.message || 'Failed to create bank bill');
     },
   });

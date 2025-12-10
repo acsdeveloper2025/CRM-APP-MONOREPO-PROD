@@ -119,11 +119,19 @@ export class RateManagementService {
       ]);
 
       if (!assignmentResponse.success) {
-        return assignmentResponse as any;
+        return {
+          success: false,
+          message: assignmentResponse.message,
+          error: assignmentResponse.error
+        };
       }
 
       if (!availableResponse.success) {
-        return availableResponse as any;
+        return {
+          success: false,
+          message: availableResponse.message,
+          error: availableResponse.error
+        };
       }
 
       return {
@@ -248,8 +256,8 @@ export class RateManagementService {
         success: true,
         message: 'Statistics retrieved successfully',
         data: {
-          rateTypes: rateTypeStats.data!,
-          rates: rateStats.data!,
+          rateTypes: rateTypeStats.data || { total: 0, active: 0, inactive: 0 },
+          rates: rateStats.data || { total: 0, active: 0, inactive: 0, averageAmount: 0 },
           documentTypeRates: documentTypeRateStats.data
         }
       };
@@ -278,7 +286,6 @@ export type {
   Rate,
   AvailableRateType,
   CreateOrUpdateRateData,
-  CombinationSelection,
   DocumentTypeRate,
   CreateDocumentTypeRateData,
   DocumentTypeRateStats

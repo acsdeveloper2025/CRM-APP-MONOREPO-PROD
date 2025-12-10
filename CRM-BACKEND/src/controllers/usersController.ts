@@ -1,6 +1,3 @@
-/* eslint-disable @typescript-eslint/restrict-template-expressions */
-/* eslint-disable @typescript-eslint/no-base-to-string */
-// Disabled template expression rules for users controller as it handles query params in template literals
 import type { Response } from 'express';
 import bcrypt from 'bcryptjs';
 import { query } from '@/config/database';
@@ -24,15 +21,15 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
 
     // Build the WHERE clause
     const conditions: string[] = [];
-    const params: any[] = [];
+    const params: (string | number | boolean)[] = [];
     let paramIndex = 1;
 
-    if (role) {
+    if (role && typeof role === 'string') {
       conditions.push(`u.role = $${paramIndex++}`);
       params.push(role);
     }
 
-    if (department) {
+    if (department && typeof department === 'string') {
       conditions.push(`d.name ILIKE $${paramIndex++}`);
       params.push(`%${department}%`);
     }
@@ -42,7 +39,7 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
       params.push(isActive === 'true');
     }
 
-    if (search) {
+    if (search && typeof search === 'string') {
       conditions.push(`(
         COALESCE(u.name, '') ILIKE $${paramIndex} OR
         COALESCE(u.email, '') ILIKE $${paramIndex} OR
@@ -57,8 +54,10 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
 
     // Validate sortBy to prevent SQL injection
     const validSortColumns = ['name', 'username', 'email', 'role', 'createdAt', 'updatedAt'];
-    const safeSortBy = validSortColumns.includes(sortBy as string) ? sortBy : 'name';
-    const safeSortOrder = sortOrder === 'desc' ? 'DESC' : 'ASC';
+    const safeSortBy: string = validSortColumns.includes(sortBy as string)
+      ? (sortBy as string)
+      : 'name';
+    const safeSortOrder: 'ASC' | 'DESC' = sortOrder === 'desc' ? 'DESC' : 'ASC';
 
     // Get total count
     const countQuery = `
@@ -522,7 +521,7 @@ export const updateUser = async (req: AuthenticatedRequest, res: Response) => {
 
     // Build update query dynamically
     const updateFields: string[] = [];
-    const updateParams: any[] = [];
+    const updateParams: (string | number | boolean | null)[] = [];
     let paramIndex = 1;
 
     const allowedFields = [
@@ -789,13 +788,14 @@ export const deleteUser = async (req: AuthenticatedRequest, res: Response) => {
       success: true,
       message: 'User deleted successfully',
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('Error deleting user:', error);
 
     // Check if it's a foreign key constraint error
-    if (error.code === '23503') {
+    if (error && typeof error === 'object' && 'code' in error && error.code === '23503') {
       // Extract table name from error detail if available
-      const tableMatch = error.detail?.match(/table "([^"]+)"/);
+      const errorDetail = 'detail' in error && typeof error.detail === 'string' ? error.detail : '';
+      const tableMatch = errorDetail.match(/table "([^"]+)"/);
       const tableName = tableMatch ? tableMatch[1] : 'unknown table';
 
       return res.status(400).json({
@@ -804,7 +804,10 @@ export const deleteUser = async (req: AuthenticatedRequest, res: Response) => {
         error: {
           code: 'FOREIGN_KEY_CONSTRAINT',
           details: `User is referenced by records in ${tableName}. Please remove or reassign these records before deleting the user.`,
-          technicalDetail: error.detail || 'User is referenced by other records',
+          technicalDetail:
+            'detail' in error && typeof error.detail === 'string'
+              ? error.detail
+              : 'User is referenced by other records',
         },
       });
     }
@@ -814,7 +817,7 @@ export const deleteUser = async (req: AuthenticatedRequest, res: Response) => {
       message: 'Failed to delete user',
       error: {
         code: 'INTERNAL_ERROR',
-        details: error.message || 'An unexpected error occurred',
+        details: error instanceof Error ? error.message : 'An unexpected error occurred',
       },
     });
   }
@@ -933,7 +936,7 @@ export const searchUsers = async (req: AuthenticatedRequest, res: Response) => {
       LIMIT 50
     `;
 
-    const result = await query(searchQuery, [`%${q}%`]);
+    const result = await query(searchQuery, typeof q === 'string' ? [`%${q}%`] : ['%%']);
 
     res.json({
       success: true,
@@ -1826,7 +1829,7 @@ export const getAvailableFieldAgents = async (req: AuthenticatedRequest, res: Re
     }
 
     let sql: string;
-    let params: any[];
+    let params: (string | number)[];
 
     if (areaId) {
       // Filter by both pincode AND area
@@ -1850,7 +1853,7 @@ export const getAvailableFieldAgents = async (req: AuthenticatedRequest, res: Re
           AND u."isActive" = true
         ORDER BY u.name
       `;
-      params = [pincodeId, areaId];
+      params = [Number(pincodeId), Number(areaId)];
     } else {
       // Filter by pincode only
       sql = `
@@ -1868,7 +1871,7 @@ export const getAvailableFieldAgents = async (req: AuthenticatedRequest, res: Re
           AND u."isActive" = true
         ORDER BY u.name
       `;
-      params = [pincodeId];
+      params = [Number(pincodeId)];
     }
 
     const result = await query(sql, params);

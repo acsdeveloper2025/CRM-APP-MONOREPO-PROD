@@ -1,15 +1,16 @@
-/* eslint-disable @typescript-eslint/require-await */
 // Disabled require-await rule for push notification service as some async functions don't directly await
+
+import * as fs from 'fs';
 import admin from 'firebase-admin';
 import apn from 'node-apn';
 import { logger } from '../utils/logger';
 import { config } from '../config';
-import { query } from '@/config/database';
+import { query } from '../config/database';
 
 interface PushNotificationPayload {
   title: string;
   body: string;
-  data?: Record<string, any>;
+  data?: Record<string, unknown>;
   badge?: number;
   sound?: string;
   priority?: 'high' | 'normal';
@@ -25,6 +26,10 @@ interface NotificationToken {
   pushToken: string;
   isActive: boolean;
 }
+
+export type PushServiceError =
+  | Error
+  | { userId: string; deviceId: string; error: string; status?: string };
 
 export class PushNotificationService {
   private static instance: PushNotificationService;
@@ -44,10 +49,11 @@ export class PushNotificationService {
   /**
    * Initialize push notification services
    */
-  public async initialize(): Promise<void> {
+
+  public initialize(): void {
     try {
-      await this.initializeFCM();
-      await this.initializeAPNS();
+      this.initializeFCM();
+      this.initializeAPNS();
       this.initialized = true;
       logger.info('Push notification services initialized successfully');
     } catch (error) {
@@ -59,11 +65,12 @@ export class PushNotificationService {
   /**
    * Initialize Firebase Cloud Messaging
    */
-  private async initializeFCM(): Promise<void> {
+  private initializeFCM(): void {
     try {
       if (config.firebase?.serviceAccountPath) {
-        // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-require-imports
-        const serviceAccount = require(config.firebase.serviceAccountPath);
+        const serviceAccount = JSON.parse(
+          fs.readFileSync(config.firebase.serviceAccountPath, 'utf8')
+        );
 
         this.fcmApp = admin.initializeApp(
           {
@@ -90,7 +97,7 @@ export class PushNotificationService {
   /**
    * Initialize Apple Push Notification Service
    */
-  private async initializeAPNS(): Promise<void> {
+  private initializeAPNS(): void {
     try {
       if (config.apns?.keyPath && config.apns?.keyId && config.apns?.teamId) {
         const options: apn.ProviderOptions = {
@@ -123,15 +130,15 @@ export class PushNotificationService {
   public async sendPushNotification(
     userIds: string[],
     payload: PushNotificationPayload
-  ): Promise<{ success: number; failed: number; errors: any[] }> {
+  ): Promise<{ success: number; failed: number; errors: PushServiceError[] }> {
     if (!this.initialized) {
-      await this.initialize();
+      this.initialize();
     }
 
     const results = {
       success: 0,
       failed: 0,
-      errors: [] as any[],
+      errors: [] as PushServiceError[],
     };
 
     try {
@@ -184,7 +191,7 @@ export class PushNotificationService {
     } catch (error) {
       logger.error('Failed to send push notifications:', error);
       results.failed = userIds.length;
-      results.errors.push(error);
+      results.errors.push(error as Error);
       return results;
     }
   }
@@ -195,8 +202,8 @@ export class PushNotificationService {
   private async sendFCMNotification(
     tokens: NotificationToken[],
     payload: PushNotificationPayload
-  ): Promise<{ success: number; failed: number; errors: any[] }> {
-    const results = { success: 0, failed: 0, errors: [] as any[] };
+  ): Promise<{ success: number; failed: number; errors: PushServiceError[] }> {
+    const results = { success: 0, failed: 0, errors: [] as PushServiceError[] };
 
     if (!this.fcmApp) {
       logger.warn('FCM not initialized, skipping FCM notifications');
@@ -233,7 +240,7 @@ export class PushNotificationService {
             requireInteraction: payload.priority === 'high',
           },
           fcmOptions: {
-            link: payload.data?.actionUrl || '/',
+            link: (payload.data?.actionUrl as string) || '/',
           },
         },
       };
@@ -261,7 +268,7 @@ export class PushNotificationService {
 
             // Deactivate invalid tokens
             if (resp.error?.code === 'messaging/registration-token-not-registered') {
-              this.deactivateToken(token.id);
+              void this.deactivateToken(token.id);
             }
           }
         });
@@ -277,7 +284,7 @@ export class PushNotificationService {
     } catch (error) {
       logger.error('FCM notification error:', error);
       results.failed = tokens.length;
-      results.errors.push(error);
+      results.errors.push(error as Error);
       return results;
     }
   }
@@ -288,8 +295,8 @@ export class PushNotificationService {
   private async sendAPNSNotification(
     tokens: NotificationToken[],
     payload: PushNotificationPayload
-  ): Promise<{ success: number; failed: number; errors: any[] }> {
-    const results = { success: 0, failed: 0, errors: [] as any[] };
+  ): Promise<{ success: number; failed: number; errors: PushServiceError[] }> {
+    const results = { success: 0, failed: 0, errors: [] as PushServiceError[] };
 
     if (!this.apnProvider) {
       logger.warn('APNS not initialized, skipping iOS notifications');
@@ -345,7 +352,7 @@ export class PushNotificationService {
             results.errors.push({
               userId,
               deviceId,
-              error: failure.error,
+              error: failure.error?.message || String(failure.error),
               status: failure.status,
             });
 
@@ -354,7 +361,7 @@ export class PushNotificationService {
               failure.status === '410' ||
               (failure.error && failure.error.toString().includes('BadDeviceToken'))
             ) {
-              this.deactivateToken(tokenId);
+              await this.deactivateToken(tokenId);
             }
           }
         } catch (error) {
@@ -374,7 +381,7 @@ export class PushNotificationService {
     } catch (error) {
       logger.error('APNS notification error:', error);
       results.failed = tokens.length;
-      results.errors.push(error);
+      results.errors.push(error as Error);
       return results;
     }
   }
@@ -423,7 +430,7 @@ export class PushNotificationService {
   /**
    * Convert data object to string values for FCM
    */
-  private stringifyData(data: Record<string, any>): Record<string, string> {
+  private stringifyData(data: Record<string, unknown>): Record<string, string> {
     const stringData: Record<string, string> = {};
     for (const [key, value] of Object.entries(data)) {
       stringData[key] = typeof value === 'string' ? value : JSON.stringify(value);
@@ -434,7 +441,7 @@ export class PushNotificationService {
   /**
    * Test push notification connectivity
    */
-  public async testConnectivity(): Promise<{ fcm: boolean; apns: boolean }> {
+  public testConnectivity(): Promise<{ fcm: boolean; apns: boolean }> {
     const results = { fcm: false, apns: false };
 
     try {
@@ -455,6 +462,6 @@ export class PushNotificationService {
       logger.error('APNS connectivity test failed:', error);
     }
 
-    return results;
+    return Promise.resolve(results);
   }
 }

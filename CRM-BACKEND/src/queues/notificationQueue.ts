@@ -89,295 +89,319 @@ export const notificationQueue = new Bull<NotificationJobData>('notification-pro
 });
 
 // Process notification jobs
-notificationQueue.process('single-notification', 5, async job => {
-  const data = job.data as SingleNotificationJobData;
+notificationQueue
+  .process('single-notification', 5, async job => {
+    const data = job.data as SingleNotificationJobData;
 
-  logger.info('Processing single notification job', {
-    jobId: job.id,
-    userId: data.notification.userId,
-    type: data.notification.type,
-  });
-
-  try {
-    const notificationId = await NotificationService.sendNotification(data.notification);
-
-    logger.info('Single notification job completed', {
-      jobId: job.id,
-      notificationId,
-      userId: data.notification.userId,
-    });
-
-    return { notificationId, success: true };
-  } catch (error) {
-    logger.error('Single notification job failed', {
+    logger.info('Processing single notification job', {
       jobId: job.id,
       userId: data.notification.userId,
-      error: error instanceof Error ? error.message : 'Unknown error',
+      type: data.notification.type,
     });
-    throw error;
-  }
-});
 
-notificationQueue.process('bulk-notification', 3, async job => {
-  const data = job.data as BulkNotificationJobData;
+    try {
+      const notificationId = await NotificationService.sendNotification(data.notification);
 
-  logger.info('Processing bulk notification job', {
-    jobId: job.id,
-    userCount: data.userIds.length,
-    type: data.notificationTemplate.type,
-    batchId: data.batchId,
+      logger.info('Single notification job completed', {
+        jobId: job.id,
+        notificationId,
+        userId: data.notification.userId,
+      });
+
+      return { notificationId, success: true };
+    } catch (error) {
+      logger.error('Single notification job failed', {
+        jobId: job.id,
+        userId: data.notification.userId,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      throw error;
+    }
+  })
+  .catch(err => {
+    logger.error('Error setting up single notification processor:', err);
   });
 
-  try {
-    const notificationIds = await NotificationService.sendBulkNotification(
-      data.userIds,
-      data.notificationTemplate
-    );
+notificationQueue
+  .process('bulk-notification', 3, async job => {
+    const data = job.data as BulkNotificationJobData;
 
-    logger.info('Bulk notification job completed', {
-      jobId: job.id,
-      totalUsers: data.userIds.length,
-      successfulNotifications: notificationIds.length,
-      batchId: data.batchId,
-    });
-
-    return {
-      notificationIds,
-      totalUsers: data.userIds.length,
-      successfulNotifications: notificationIds.length,
-      success: true,
-    };
-  } catch (error) {
-    logger.error('Bulk notification job failed', {
+    logger.info('Processing bulk notification job', {
       jobId: job.id,
       userCount: data.userIds.length,
+      type: data.notificationTemplate.type,
       batchId: data.batchId,
-      error: error instanceof Error ? error.message : 'Unknown error',
     });
-    throw error;
-  }
-});
 
-notificationQueue.process('case-assignment', 10, async job => {
-  const data = job.data as CaseAssignmentNotificationJobData;
+    try {
+      const notificationIds = await NotificationService.sendBulkNotification(
+        data.userIds,
+        data.notificationTemplate
+      );
 
-  logger.info('Processing case assignment notification job', {
-    jobId: job.id,
-    userId: data.userId,
-    caseId: data.caseId,
-    assignmentType: data.assignmentType,
+      logger.info('Bulk notification job completed', {
+        jobId: job.id,
+        totalUsers: data.userIds.length,
+        successfulNotifications: notificationIds.length,
+        batchId: data.batchId,
+      });
+
+      return {
+        notificationIds,
+        totalUsers: data.userIds.length,
+        successfulNotifications: notificationIds.length,
+        success: true,
+      };
+    } catch (error) {
+      logger.error('Bulk notification job failed', {
+        jobId: job.id,
+        userCount: data.userIds.length,
+        batchId: data.batchId,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      throw error;
+    }
+  })
+  .catch(err => {
+    logger.error('Error setting up bulk notification processor:', err);
   });
 
-  try {
-    // Use task number if available, otherwise fall back to case number
-    const displayNumber = data.taskNumber || data.caseNumber;
-    const displayType = data.taskNumber ? 'task' : 'case';
+notificationQueue
+  .process('case-assignment', 10, async job => {
+    const data = job.data as CaseAssignmentNotificationJobData;
 
-    const notification: NotificationData = {
-      userId: data.userId,
-      title:
-        data.assignmentType === 'assignment'
-          ? `New ${displayType === 'task' ? 'Task' : 'Case'} Assigned`
-          : `${displayType === 'task' ? 'Task' : 'Case'} Reassigned`,
-      message:
-        data.assignmentType === 'assignment'
-          ? `You have been assigned ${displayType} ${displayNumber} for ${data.customerName}`
-          : `${displayType === 'task' ? 'Task' : 'Case'} ${displayNumber} has been reassigned to you`,
-      type: data.assignmentType === 'assignment' ? 'CASE_ASSIGNED' : 'CASE_REASSIGNED',
-      caseId: data.caseId,
-      caseNumber: data.caseNumber,
-      taskId: data.taskId,
-      taskNumber: data.taskNumber,
-      data: {
-        customerName: data.customerName,
-        verificationType: data.verificationType,
-        assignedBy: data.assignedBy,
-        reason: data.reason,
-        assignmentType: data.assignmentType,
-      },
-      // Navigate to task if taskId is available, otherwise to case
-      actionUrl: data.taskId ? `/mobile/tasks/${data.taskId}` : `/mobile/cases/${data.caseId}`,
-      actionType: data.taskId ? 'OPEN_TASK' : 'OPEN_CASE',
-      priority: 'HIGH',
-    };
-
-    const notificationId = await NotificationService.sendNotification(notification);
-
-    logger.info('Case assignment notification job completed', {
-      jobId: job.id,
-      notificationId,
-      userId: data.userId,
-      caseId: data.caseId,
-    });
-
-    return { notificationId, success: true };
-  } catch (error) {
-    logger.error('Case assignment notification job failed', {
+    logger.info('Processing case assignment notification job', {
       jobId: job.id,
       userId: data.userId,
       caseId: data.caseId,
-      error: error instanceof Error ? error.message : 'Unknown error',
-    });
-    throw error;
-  }
-});
-
-notificationQueue.process('case-completion', 5, async job => {
-  const data = job.data as CaseCompletionNotificationJobData;
-
-  logger.info('Processing case completion notification job', {
-    jobId: job.id,
-    caseId: data.caseId,
-    fieldUserId: data.fieldUserId,
-    backendUserCount: data.backendUserIds.length,
-  });
-
-  try {
-    const notificationTemplate: Omit<NotificationData, 'userId'> = {
-      title: 'Task Completed',
-      message: `Task for case ${data.caseNumber} has been completed by ${data.fieldUserName}`,
-      type: 'TASK_COMPLETED',
-      caseId: data.caseId,
-      caseNumber: data.caseNumber,
-      data: {
-        customerName: data.customerName,
-        fieldUserId: data.fieldUserId,
-        fieldUserName: data.fieldUserName,
-        completionStatus: data.completionStatus,
-        outcome: data.outcome,
-      },
-      actionUrl: `/cases/${data.caseId}`,
-      actionType: 'OPEN_CASE',
-      priority: 'MEDIUM',
-    };
-
-    const notificationIds = await NotificationService.sendBulkNotification(
-      data.backendUserIds,
-      notificationTemplate
-    );
-
-    logger.info('Case completion notification job completed', {
-      jobId: job.id,
-      caseId: data.caseId,
-      notificationsSent: notificationIds.length,
+      assignmentType: data.assignmentType,
     });
 
-    return { notificationIds, success: true };
-  } catch (error) {
-    logger.error('Case completion notification job failed', {
-      jobId: job.id,
-      caseId: data.caseId,
-      error: error instanceof Error ? error.message : 'Unknown error',
-    });
-    throw error;
-  }
-});
+    try {
+      // Use task number if available, otherwise fall back to case number
+      const displayNumber = data.taskNumber || data.caseNumber;
+      const displayType = data.taskNumber ? 'task' : 'case';
 
-notificationQueue.process('case-revocation', 5, async job => {
-  const data = job.data as CaseRevocationNotificationJobData;
-
-  logger.info('Processing case revocation notification job', {
-    jobId: job.id,
-    caseId: data.caseId,
-    fieldUserId: data.fieldUserId,
-    backendUserCount: data.backendUserIds.length,
-  });
-
-  try {
-    const notificationTemplate: Omit<NotificationData, 'userId'> = {
-      title: 'Case Revoked',
-      message: `Case ${data.caseNumber} has been revoked by ${data.fieldUserName}`,
-      type: 'CASE_REVOKED',
-      caseId: data.caseId,
-      caseNumber: data.caseNumber,
-      data: {
-        customerName: data.customerName,
-        fieldUserId: data.fieldUserId,
-        fieldUserName: data.fieldUserName,
-        revocationReason: data.revocationReason,
-      },
-      actionUrl: `/cases/${data.caseId}`,
-      actionType: 'OPEN_CASE',
-      priority: 'HIGH',
-    };
-
-    const notificationIds = await NotificationService.sendBulkNotification(
-      data.backendUserIds,
-      notificationTemplate
-    );
-
-    logger.info('Case revocation notification job completed', {
-      jobId: job.id,
-      caseId: data.caseId,
-      notificationsSent: notificationIds.length,
-    });
-
-    return { notificationIds, success: true };
-  } catch (error) {
-    logger.error('Case revocation notification job failed', {
-      jobId: job.id,
-      caseId: data.caseId,
-      error: error instanceof Error ? error.message : 'Unknown error',
-    });
-    throw error;
-  }
-});
-
-// Task Revocation Notification Processor
-notificationQueue.process('task-revocation', 5, async job => {
-  const data = job.data as TaskRevocationNotificationJobData;
-
-  logger.info('Processing task revocation notification job', {
-    jobId: job.id,
-    taskId: data.taskId,
-    caseId: data.caseId,
-    fieldUserId: data.fieldUserId,
-    backendUserCount: data.backendUserIds.length,
-  });
-
-  try {
-    const notificationTemplate: Omit<NotificationData, 'userId'> = {
-      title: 'Task Revoked',
-      message: `Task ${data.taskNumber} (Case ${data.caseNumber}) has been revoked by ${data.fieldUserName}`,
-      type: 'TASK_REVOKED',
-      caseId: data.caseId,
-      caseNumber: data.caseNumber,
-      data: {
+      const notification: NotificationData = {
+        userId: data.userId,
+        title:
+          data.assignmentType === 'assignment'
+            ? `New ${displayType === 'task' ? 'Task' : 'Case'} Assigned`
+            : `${displayType === 'task' ? 'Task' : 'Case'} Reassigned`,
+        message:
+          data.assignmentType === 'assignment'
+            ? `You have been assigned ${displayType} ${displayNumber} for ${data.customerName}`
+            : `${displayType === 'task' ? 'Task' : 'Case'} ${displayNumber} has been reassigned to you`,
+        type: data.assignmentType === 'assignment' ? 'CASE_ASSIGNED' : 'CASE_REASSIGNED',
+        caseId: data.caseId,
+        caseNumber: data.caseNumber,
         taskId: data.taskId,
         taskNumber: data.taskNumber,
-        customerName: data.customerName,
-        fieldUserId: data.fieldUserId,
-        fieldUserName: data.fieldUserName,
-        revocationReason: data.revocationReason,
-      },
-      actionUrl: `/cases/${data.caseId}`,
-      actionType: 'OPEN_CASE',
-      priority: 'HIGH',
-    };
+        data: {
+          customerName: data.customerName,
+          verificationType: data.verificationType,
+          assignedBy: data.assignedBy,
+          reason: data.reason,
+          assignmentType: data.assignmentType,
+        },
+        // Navigate to task if taskId is available, otherwise to case
+        actionUrl: data.taskId ? `/mobile/tasks/${data.taskId}` : `/mobile/cases/${data.caseId}`,
+        actionType: data.taskId ? 'OPEN_TASK' : 'OPEN_CASE',
+        priority: 'HIGH',
+      };
 
-    const notificationIds = await NotificationService.sendBulkNotification(
-      data.backendUserIds,
-      notificationTemplate
-    );
+      const notificationId = await NotificationService.sendNotification(notification);
 
-    logger.info('Task revocation notification job completed', {
+      logger.info('Case assignment notification job completed', {
+        jobId: job.id,
+        notificationId,
+        userId: data.userId,
+        caseId: data.caseId,
+      });
+
+      return { notificationId, success: true };
+    } catch (error) {
+      logger.error('Case assignment notification job failed', {
+        jobId: job.id,
+        userId: data.userId,
+        caseId: data.caseId,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      throw error;
+    }
+  })
+  .catch(err => {
+    logger.error('Error setting up case assignment processor:', err);
+  });
+
+notificationQueue
+  .process('case-completion', 5, async job => {
+    const data = job.data as CaseCompletionNotificationJobData;
+
+    logger.info('Processing case completion notification job', {
+      jobId: job.id,
+      caseId: data.caseId,
+      fieldUserId: data.fieldUserId,
+      backendUserCount: data.backendUserIds.length,
+    });
+
+    try {
+      const notificationTemplate: Omit<NotificationData, 'userId'> = {
+        title: 'Task Completed',
+        message: `Task for case ${data.caseNumber} has been completed by ${data.fieldUserName}`,
+        type: 'TASK_COMPLETED',
+        caseId: data.caseId,
+        caseNumber: data.caseNumber,
+        data: {
+          customerName: data.customerName,
+          fieldUserId: data.fieldUserId,
+          fieldUserName: data.fieldUserName,
+          completionStatus: data.completionStatus,
+          outcome: data.outcome,
+        },
+        actionUrl: `/cases/${data.caseId}`,
+        actionType: 'OPEN_CASE',
+        priority: 'MEDIUM',
+      };
+
+      const notificationIds = await NotificationService.sendBulkNotification(
+        data.backendUserIds,
+        notificationTemplate
+      );
+
+      logger.info('Case completion notification job completed', {
+        jobId: job.id,
+        caseId: data.caseId,
+        notificationsSent: notificationIds.length,
+      });
+
+      return { notificationIds, success: true };
+    } catch (error) {
+      logger.error('Case completion notification job failed', {
+        jobId: job.id,
+        caseId: data.caseId,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      throw error;
+    }
+  })
+  .catch(err => {
+    logger.error('Error setting up case completion processor:', err);
+  });
+
+notificationQueue
+  .process('case-revocation', 5, async job => {
+    const data = job.data as CaseRevocationNotificationJobData;
+
+    logger.info('Processing case revocation notification job', {
+      jobId: job.id,
+      caseId: data.caseId,
+      fieldUserId: data.fieldUserId,
+      backendUserCount: data.backendUserIds.length,
+    });
+
+    try {
+      const notificationTemplate: Omit<NotificationData, 'userId'> = {
+        title: 'Case Revoked',
+        message: `Case ${data.caseNumber} has been revoked by ${data.fieldUserName}`,
+        type: 'CASE_REVOKED',
+        caseId: data.caseId,
+        caseNumber: data.caseNumber,
+        data: {
+          customerName: data.customerName,
+          fieldUserId: data.fieldUserId,
+          fieldUserName: data.fieldUserName,
+          revocationReason: data.revocationReason,
+        },
+        actionUrl: `/cases/${data.caseId}`,
+        actionType: 'OPEN_CASE',
+        priority: 'HIGH',
+      };
+
+      const notificationIds = await NotificationService.sendBulkNotification(
+        data.backendUserIds,
+        notificationTemplate
+      );
+
+      logger.info('Case revocation notification job completed', {
+        jobId: job.id,
+        caseId: data.caseId,
+        notificationsSent: notificationIds.length,
+      });
+
+      return { notificationIds, success: true };
+    } catch (error) {
+      logger.error('Case revocation notification job failed', {
+        jobId: job.id,
+        caseId: data.caseId,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      throw error;
+    }
+  })
+  .catch(err => {
+    logger.error('Error setting up case revocation processor:', err);
+  });
+
+// Task Revocation Notification Processor
+notificationQueue
+  .process('task-revocation', 5, async job => {
+    const data = job.data as TaskRevocationNotificationJobData;
+
+    logger.info('Processing task revocation notification job', {
       jobId: job.id,
       taskId: data.taskId,
       caseId: data.caseId,
-      notificationsSent: notificationIds.length,
+      fieldUserId: data.fieldUserId,
+      backendUserCount: data.backendUserIds.length,
     });
 
-    return { notificationIds, success: true };
-  } catch (error) {
-    logger.error('Task revocation notification job failed', {
-      jobId: job.id,
-      taskId: data.taskId,
-      caseId: data.caseId,
-      error: error instanceof Error ? error.message : 'Unknown error',
-    });
-    throw error;
-  }
-});
+    try {
+      const notificationTemplate: Omit<NotificationData, 'userId'> = {
+        title: 'Task Revoked',
+        message: `Task ${data.taskNumber} (Case ${data.caseNumber}) has been revoked by ${data.fieldUserName}`,
+        type: 'TASK_REVOKED',
+        caseId: data.caseId,
+        caseNumber: data.caseNumber,
+        data: {
+          taskId: data.taskId,
+          taskNumber: data.taskNumber,
+          customerName: data.customerName,
+          fieldUserId: data.fieldUserId,
+          fieldUserName: data.fieldUserName,
+          revocationReason: data.revocationReason,
+        },
+        actionUrl: `/cases/${data.caseId}`,
+        actionType: 'OPEN_CASE',
+        priority: 'HIGH',
+      };
+
+      const notificationIds = await NotificationService.sendBulkNotification(
+        data.backendUserIds,
+        notificationTemplate
+      );
+
+      logger.info('Task revocation notification job completed', {
+        jobId: job.id,
+        taskId: data.taskId,
+        caseId: data.caseId,
+        notificationsSent: notificationIds.length,
+      });
+
+      return { notificationIds, success: true };
+    } catch (error) {
+      logger.error('Task revocation notification job failed', {
+        jobId: job.id,
+        taskId: data.taskId,
+        caseId: data.caseId,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      throw error;
+    }
+  })
+  .catch(err => {
+    logger.error('Error setting up task revocation processor:', err);
+  });
 
 // Queue event handlers
 notificationQueue.on('completed', (job, result) => {
