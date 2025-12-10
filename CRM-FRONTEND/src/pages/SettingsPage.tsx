@@ -113,8 +113,7 @@ export const SettingsPage: React.FC = () => {
     }));
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const updatePreferences = (field: string, value: any) => {
+  const updatePreferences = (field: string, value: unknown) => {
     setSettings(prev => ({
       ...prev,
       preferences: { ...prev.preferences, [field]: value }

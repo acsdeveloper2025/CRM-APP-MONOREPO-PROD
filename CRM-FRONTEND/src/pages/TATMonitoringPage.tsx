@@ -91,8 +91,7 @@ export const TATMonitoringPage: React.FC = () => {
     return 'text-yellow-600';
   };
   
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const renderTaskTable = (tasks: any[], isLoading: boolean, pagination: any, onPageChange: (page: number) => void) => {
+  const renderTaskTable = (tasks: unknown[], isLoading: boolean, pagination: unknown, onPageChange: (page: number) => void) => {
     if (isLoading) {
       return (
         <div className="flex items-center justify-center h-64">

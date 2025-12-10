@@ -109,8 +109,7 @@ export class BaseApiService {
   // Generic GET request
   protected async get<T = unknown>(
     endpoint: string = '',
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    params?: Record<string, any>,
+    params?: Record<string, unknown>,
     config?: AxiosRequestConfig
   ): Promise<ApiResponse<T>> {
     try {
@@ -197,8 +196,7 @@ export class BaseApiService {
   // Paginated GET request
   protected async getPaginated<T = unknown>(
     endpoint: string = '',
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    params?: Record<string, any>,
+    params?: Record<string, unknown>,
     config?: AxiosRequestConfig
   ): Promise<PaginatedResponse<T>> {
     try {
@@ -208,7 +206,7 @@ export class BaseApiService {
       );
       return response.data;
     } catch (error) {
-      return this.handleError(error);
+      return this.handleError(error) as PaginatedResponse<T>;
     }
   }
 
@@ -216,8 +214,7 @@ export class BaseApiService {
   protected async uploadFile<T = unknown>(
     endpoint: string = '',
     file: File,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    additionalData?: Record<string, any>,
+    additionalData?: Record<string, unknown>,
     onUploadProgress?: (progressEvent: unknown) => void
   ): Promise<ApiResponse<T>> {
     try {
@@ -251,8 +248,7 @@ export class BaseApiService {
     endpoint: string = '',
     operation: string,
     ids: string[],
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    data?: any
+    data?: unknown
   ): Promise<ApiResponse<T>> {
     return this.post(endpoint, {
       operation,
@@ -265,8 +261,7 @@ export class BaseApiService {
   protected async exportData(
     endpoint: string = '',
     format: 'excel' | 'csv' | 'pdf' = 'excel',
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    filters?: Record<string, any>
+    filters?: Record<string, unknown>
   ): Promise<Blob> {
     try {
       const response = await this.api.get(`${this.baseEndpoint}${endpoint}`, {

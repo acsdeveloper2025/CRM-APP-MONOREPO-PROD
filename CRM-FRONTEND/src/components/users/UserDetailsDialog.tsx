@@ -110,8 +110,7 @@ export function UserDetailsDialog({ user, open, onOpenChange }: UserDetailsDialo
           </Card>
 
           {/* Statistics */}
-          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-          {(profile as any)?.stats && (
+          {profile?.stats && (
             <div className="grid gap-4 md:grid-cols-4">
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -119,8 +118,7 @@ export function UserDetailsDialog({ user, open, onOpenChange }: UserDetailsDialo
                   <Activity className="h-4 w-4 text-gray-600" />
                 </CardHeader>
                 <CardContent>
-                  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                  <div className="text-2xl font-bold">{(profile as any).stats.totalCases}</div>
+                  <div className="text-2xl font-bold">{profile.stats.totalCases}</div>
                 </CardContent>
               </Card>
 
@@ -130,8 +128,7 @@ export function UserDetailsDialog({ user, open, onOpenChange }: UserDetailsDialo
                   <Shield className="h-4 w-4 text-green-600" />
                 </CardHeader>
                 <CardContent>
-                  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                  <div className="text-2xl font-bold text-green-600">{(profile as any).stats.completedCases}</div>
+                  <div className="text-2xl font-bold text-green-600">{profile.stats.completedCases}</div>
                 </CardContent>
               </Card>
 
@@ -142,8 +139,7 @@ export function UserDetailsDialog({ user, open, onOpenChange }: UserDetailsDialo
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-yellow-600">
-                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                    {(profile as any).stats.averageRating.toFixed(1)}
+                    {profile.stats.averageRating.toFixed(1)}
                   </div>
                 </CardContent>
               </Card>
@@ -154,8 +150,7 @@ export function UserDetailsDialog({ user, open, onOpenChange }: UserDetailsDialo
                   <Calendar className="h-4 w-4 text-gray-600" />
                 </CardHeader>
                 <CardContent>
-                  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                  <div className="text-2xl font-bold">₹{(profile as any).stats.totalCommissions.toLocaleString()}</div>
+                  <div className="text-2xl font-bold">₹{profile.stats.totalCommissions.toLocaleString()}</div>
                 </CardContent>
               </Card>
             </div>
@@ -183,8 +178,7 @@ export function UserDetailsDialog({ user, open, onOpenChange }: UserDetailsDialo
           </Card>
 
           {/* Recent Activity */}
-          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-          {(profile as any)?.recentActivity && (profile as any).recentActivity.length > 0 && (
+          {profile?.recentActivity && profile.recentActivity.length > 0 && (
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Recent Activity</CardTitle>
@@ -194,8 +188,7 @@ export function UserDetailsDialog({ user, open, onOpenChange }: UserDetailsDialo
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                  {(profile as any).recentActivity.slice(0, 5).map((activity: any) => (
+                  {profile.recentActivity.slice(0, 5).map((activity) => (
                     <div key={activity.id} className="flex items-center space-x-3 p-2 rounded-lg bg-muted/50">
                       <div className="h-2 w-2 rounded-full bg-primary" />
                       <div className="flex-1">

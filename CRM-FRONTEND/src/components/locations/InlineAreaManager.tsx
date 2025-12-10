@@ -48,8 +48,8 @@ export function InlineAreaManager({ pincode, className }: InlineAreaManagerProps
       setShowAddPopover(false);
     },
     onError: (error: unknown) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      toast.error((error as any).response?.data?.message || 'Failed to add areas');
+      const err = error as import('@/types/api').ApiErrorResponse;
+      toast.error(err.response?.data?.message || 'Failed to add areas');
     },
   });
 
@@ -65,8 +65,8 @@ export function InlineAreaManager({ pincode, className }: InlineAreaManagerProps
       setAreaToRemove(null);
     },
     onError: (error: unknown) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      toast.error((error as any).response?.data?.message || 'Failed to remove area');
+      const err = error as import('@/types/api').ApiErrorResponse;
+      toast.error(err.response?.data?.message || 'Failed to remove area');
       setShowRemoveDialog(false);
       setAreaToRemove(null);
     },

@@ -40,22 +40,17 @@ export const AnalyticsPage: React.FC = () => {
   });
 
   const caseSummary = caseAnalytics?.data?.summary;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const tasks = (tasksData?.data as any)?.data || [];
+  const tasks = (tasksData?.data as { data?: unknown[] })?.data || [];
 
   // Calculate task metrics
   const totalTasks = tasks.length;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const completedTasks = tasks.filter((t: any) => t.status === 'COMPLETED').length;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const inProgressTasks = tasks.filter((t: any) => t.status === 'IN_PROGRESS').length;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const pendingTasks = tasks.filter((t: any) => t.status === 'PENDING' || t.status === 'ASSIGNED').length;
+  const completedTasks = tasks.filter((t: unknown) => (t as { status?: string }).status === 'COMPLETED').length;
+  const inProgressTasks = tasks.filter((t: unknown) => (t as { status?: string }).status === 'IN_PROGRESS').length;
+  const pendingTasks = tasks.filter((t: unknown) => { const task = t as { status?: string }; return task.status === 'PENDING' || task.status === 'ASSIGNED'; }).length;
   const taskCompletionRate = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
 
   // Calculate active agents
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const activeAgents = new Set(tasks.filter((t: any) => t.assigned_to).map((t: any) => t.assigned_to)).size;
+  const activeAgents = new Set(tasks.filter((t: unknown) => (t as { assigned_to?: string }).assigned_to).map((t: unknown) => (t as { assigned_to: string }).assigned_to)).size;
 
   return (
     <div className="space-y-6">

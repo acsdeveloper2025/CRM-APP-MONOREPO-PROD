@@ -40,6 +40,20 @@ export interface User {
   // Assignment arrays for FIELD_AGENT role (for filtering)
   assignedPincodes?: number[];
   assignedAreas?: number[];
+  // User profile statistics (from detailed user queries)
+  stats?: {
+    totalCases: number;
+    completedCases: number;
+    averageRating: number;
+    totalCommissions: number;
+  };
+  // Recent activity log
+  recentActivity?: Array<{
+    id: string;
+    action: string;
+    description: string;
+    timestamp: string;
+  }>;
 }
 
 export interface CreateUserData {

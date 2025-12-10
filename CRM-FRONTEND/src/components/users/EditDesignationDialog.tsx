@@ -94,8 +94,8 @@ export function EditDesignationDialog({ open, onOpenChange, designation }: EditD
       onOpenChange(false);
     },
     onError: (error: unknown) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      toast.error((error as any).response?.data?.message || 'Failed to update designation');
+      const err = error as import('@/types/api').ApiErrorResponse;
+      toast.error(err.response?.data?.message || 'Failed to update designation');
     },
   });
 

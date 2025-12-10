@@ -12,16 +12,14 @@ import { lazy, ComponentType, LazyExoticComponent } from 'react';
 /**
  * Enhanced lazy loading with error boundary and loading states
  */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function createLazyComponent<T extends ComponentType<any>>(
+export function createLazyComponent<T extends ComponentType<Record<string, unknown>>>(
   importFn: () => Promise<{ default: T }>,
   displayName?: string
 ): LazyExoticComponent<T> {
   const LazyComponent = lazy(importFn);
   
   if (displayName) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (LazyComponent as any).displayName = displayName;
+        (LazyComponent as unknown).displayName = displayName;
   }
   
   return LazyComponent;
@@ -30,13 +28,11 @@ export function createLazyComponent<T extends ComponentType<any>>(
 /**
  * Preload a lazy component
  */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function preloadComponent<T extends ComponentType<any>>(
+export function preloadComponent<T extends ComponentType<Record<string, unknown>>>(
   lazyComponent: LazyExoticComponent<T>
 ): void {
   // Access the _payload to trigger preloading
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const payload = (lazyComponent as any)._payload;
+    const payload = (lazyComponent as unknown)._payload;
   if (payload && typeof payload._result === 'undefined') {
     payload._result = payload._init(payload._payload);
   }
@@ -45,8 +41,7 @@ export function preloadComponent<T extends ComponentType<any>>(
 /**
  * Create a lazy component with preloading capability
  */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function createPreloadableLazyComponent<T extends ComponentType<any>>(
+export function createPreloadableLazyComponent<T extends ComponentType<Record<string, unknown>>>(
   importFn: () => Promise<{ default: T }>,
   displayName?: string
 ) {
@@ -380,11 +375,9 @@ export function preloadByRole(role: string): void {
  */
 export function preloadOnHover(routePath: string): void {
   const component = routeComponents[routePath as keyof typeof routeComponents];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const lazyComponent = component as any;
+    const lazyComponent = component as unknown;
   if (lazyComponent && lazyComponent._payload && lazyComponent._init) {
-     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-     preloadComponent(lazyComponent as LazyExoticComponent<any>);
+     preloadComponent(lazyComponent as LazyExoticComponent<Record<string, unknown>>);
   }
 }
 

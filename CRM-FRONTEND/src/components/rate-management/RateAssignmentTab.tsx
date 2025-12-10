@@ -283,8 +283,7 @@ export function RateAssignmentTab() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                    {availableRateTypes.map((rateType: any) => {
+                    {availableRateTypes.map((rateType: unknown) => {
                       const rateInput = rateInputs[rateType.rateTypeId] || {
                         rateTypeId: rateType.rateTypeId,
                         amount: '',

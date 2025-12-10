@@ -1,13 +1,11 @@
 import { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 // Replaced lodash throttle with local implementation to avoid dependency
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function throttle<T extends (...args: any[]) => any>(func: T, limit: number): T & { cancel: () => void } {
+function throttle<T extends (...args: unknown[]) => unknown>(func: T, limit: number): T & { cancel: () => void } {
   let inThrottle: boolean;
   let lastFunc: ReturnType<typeof setTimeout>;
   let lastRan: number;
   
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const wrapper = function(this: any, ...args: any[]) {
+  const wrapper = function(this: unknown, ...args: unknown[]) {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const context = this;
     if (!inThrottle) {
@@ -25,14 +23,13 @@ function throttle<T extends (...args: any[]) => any>(func: T, limit: number): T 
     }
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (wrapper as any).cancel = () => {
+  const throttled = wrapper as T & { cancel: () => void };
+  throttled.cancel = () => {
     clearTimeout(lastFunc);
     inThrottle = false;
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return wrapper as any;
+  return throttled;
 }
 
 // Custom hook for debouncing values
@@ -53,8 +50,7 @@ export const useDebounce = <T>(value: T, delay: number): T => {
 };
 
 // Custom hook for throttling function calls
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const useThrottle = <T extends (...args: unknown[]) => any>(
+export const useThrottle = <T extends (...args: unknown[]) => unknown>(
   callback: T,
   delay: number
 ): T => {
@@ -276,8 +272,7 @@ export const useMemoryMonitor = () => {
   useEffect(() => {
     const updateMemoryInfo = () => {
       if ('memory' in performance) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const memory = (performance as any).memory;
+        const memory = (performance as { memory: { usedJSHeapSize: number; totalJSHeapSize: number; jsHeapSizeLimit: number } }).memory;
         setMemoryInfo({
           usedJSHeapSize: memory.usedJSHeapSize,
           totalJSHeapSize: memory.totalJSHeapSize,

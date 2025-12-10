@@ -150,8 +150,7 @@ export function DocumentTypeRatesTab() {
     });
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handleEditRate = (rate: any) => {
+  const handleEditRate = (rate: unknown) => {
     setSelectedClientId(rate.clientId);
     setSelectedProductId(rate.productId);
     setSelectedDocumentTypeId(rate.documentTypeId);

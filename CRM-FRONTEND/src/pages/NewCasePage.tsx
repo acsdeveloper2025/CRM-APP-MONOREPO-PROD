@@ -166,8 +166,7 @@ export const NewCasePage: React.FC = () => {
           assignedTo: mappedData.tasks[0].assignedTo,
         });
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        setInitialData(mappedData as any);
+                setInitialData(mappedData as unknown);
       }
     } catch (error) {
       // Only log errors in development mode

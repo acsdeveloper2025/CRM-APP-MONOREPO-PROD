@@ -404,8 +404,7 @@ export const CaseDetailPage: React.FC = () => {
                   <span className="font-medium">Assigned To</span>
                 </div>
                 <p className="mt-1 text-sm text-gray-600">
-                  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                  {(caseItem as any).assignedTo?.name || 'Not assigned'}
+                  {(caseItem as unknown).assignedTo?.name || 'Not assigned'}
                 </p>
               </div>
 
