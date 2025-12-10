@@ -46,11 +46,9 @@ export const performanceMonitoring = (
   res.setHeader('X-Request-ID', requestId);
 
   // Override res.end to capture metrics
-  // Override res.end to capture metrics
   const originalEnd = res.end.bind(res);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  res.end = function (...args: any[]): Response {
+  res.end = function (chunk?: unknown, encodingOrCallback?: BufferEncoding | (() => void), callback?: () => void): Response {
     const endTime = performance.now();
     const responseTime = endTime - startTime;
 
@@ -71,7 +69,10 @@ export const performanceMonitoring = (
     processPerformanceMetrics(metrics);
 
     // Call original end method and return its result
-    return originalEnd.apply(res, args);
+    if (typeof encodingOrCallback === 'function') {
+      return originalEnd(chunk, encodingOrCallback);
+    }
+    return originalEnd(chunk, encodingOrCallback, callback);
   };
 
   next();
