@@ -45,8 +45,7 @@ export const DashboardPage: React.FC = () => {
     pendingCommissions: 0
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const tatStats = (tatStatsData?.data as any) || {
+    const tatStats = (tatStatsData?.data as unknown) || {
     criticalOverdue: 0,
     totalOverdue: 0,
     totalActiveTasks: 0,
@@ -217,13 +216,11 @@ export const DashboardPage: React.FC = () => {
       {/* Charts Section */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <CaseStatusChart
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          data={(caseDistributionData?.data as any) || mockCaseDistribution}
+                    data={(caseDistributionData?.data as unknown) || mockCaseDistribution}
           isLoading={distributionLoading}
         />
         <MonthlyTrendsChart
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          data={(trendsData?.data as any) || mockTrends}
+                    data={(trendsData?.data as unknown) || mockTrends}
           isLoading={trendsLoading}
         />
       </div>

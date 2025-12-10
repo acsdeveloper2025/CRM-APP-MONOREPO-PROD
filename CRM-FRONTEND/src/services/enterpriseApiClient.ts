@@ -327,8 +327,8 @@ class EnterpriseApiClient {
       retryDelay: 1000,
       retryCondition: (error: unknown) => {
         // Retry on network errors and 5xx server errors
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return !(error as any).response || ((error as any).response.status >= 500 && (error as any).response.status < 600);
+        const err = error as import('@/types/api').ApiErrorResponse;
+        return !err.response || (err.response.status !== undefined && err.response.status >= 500 && err.response.status < 600);
       },
       ...retryConfig,
     };

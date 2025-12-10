@@ -212,8 +212,7 @@ export const PendingCasesTable: React.FC<PendingCasesTableProps> = ({
                 caseItem.pendingDurationSeconds
               );
 
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              const assignedName = (caseItem as any).assignedToName || (caseItem as any).assignedTo?.name || 'Unassigned';
+                            const assignedName = (caseItem as unknown).assignedToName || (caseItem as unknown).assignedTo?.name || 'Unassigned';
 
               return (
                 <TableRow

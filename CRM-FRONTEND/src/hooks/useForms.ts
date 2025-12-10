@@ -29,8 +29,7 @@ export const useSubmitForm = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    mutationFn: ({ caseId, formData }: { caseId: string; formData: any }) =>
+    mutationFn: ({ caseId, formData }: { caseId: string; formData: import('@/types/api').FormSubmissionData }) =>
       formsService.submitForm(caseId, formData),
     onSuccess: (_data, variables) => {
       // Invalidate and refetch case form submissions
@@ -48,8 +47,7 @@ export const useSubmitForm = () => {
 // Hook to auto-save form
 export const useAutoSaveForm = () => {
   return useMutation({
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    mutationFn: ({ caseId, formData }: { caseId: string; formData: any }) =>
+    mutationFn: ({ caseId, formData }: { caseId: string; formData: import('@/types/api').FormSubmissionData }) =>
       formsService.autoSaveForm(caseId, formData),
   });
 };

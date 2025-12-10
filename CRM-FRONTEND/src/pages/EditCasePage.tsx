@@ -61,10 +61,8 @@ export const EditCasePage: React.FC = () => {
   const { data: tasksData, isLoading: loadingTasks, refetch: refetchTasks } = useVerificationTasks(id || '');
   const { data: clients } = useClients();
   
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const caseItem = (caseData as any)?.data;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const tasks = (tasksData as any)?.data?.tasks || [];
+    const caseItem = (caseData as unknown)?.data;
+    const tasks = (tasksData as unknown)?.data?.tasks || [];
 
   const { data: products } = useProductsByClient(
     caseItem?.clientId ? caseItem.clientId.toString() : ''

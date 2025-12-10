@@ -46,13 +46,13 @@ export function MISFiltersComponent({ filters, onFiltersChange, onReset }: MISFi
         apiService.get('/users'),
       ]);
 
-      setClients(clientsRes.data || []);
-      setProducts(productsRes.data || []);
-      setVerificationTypes(verificationTypesRes.data || []);
+      setClients((clientsRes.data as unknown[]) || []);
+      setProducts((productsRes.data as unknown[]) || []);
+      setVerificationTypes((verificationTypesRes.data as unknown[]) || []);
       
-      const users = usersRes.data || [];
-      setFieldAgents(users.filter((u: unknown) => u.role === 'FIELD_AGENT'));
-      setBackendUsers(users.filter((u: unknown) => ['ADMIN', 'BACKEND', 'MANAGER'].includes(u.role)));
+      const users = (usersRes.data as unknown[]) || [];
+      setFieldAgents(users.filter((u: unknown) => (u as { role: string }).role === 'FIELD_AGENT'));
+      setBackendUsers(users.filter((u: unknown) => ['ADMIN', 'BACKEND', 'MANAGER'].includes((u as { role: string }).role)));
     } catch (error) {
       console.error('Failed to load filter options:', error);
     }

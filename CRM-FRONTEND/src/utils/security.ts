@@ -168,8 +168,7 @@ export class SecurityUtils {
   }
 
   // Data masking for logging
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  static maskSensitiveData(data: any): any {
+  static maskSensitiveData(data: unknown): unknown {
     const sensitiveFields = ['password', 'token', 'secret', 'key', 'ssn', 'creditCard'];
     
     if (typeof data !== 'object' || data === null) {
@@ -180,7 +179,7 @@ export class SecurityUtils {
       return data.map(item => this.maskSensitiveData(item));
     }
 
-    const masked = { ...data };
+    const masked = { ...data } as Record<string, unknown>;
     
     for (const [key, value] of Object.entries(masked)) {
       const lowerKey = key.toLowerCase();
@@ -248,8 +247,7 @@ export class SecurityUtils {
   }
 
   // Secure storage helpers
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  static secureStore(key: string, value: any, encrypt: boolean = false): void {
+  static secureStore(key: string, value: unknown, encrypt: boolean = false): void {
     try {
       let dataToStore = JSON.stringify(value);
       
@@ -264,8 +262,7 @@ export class SecurityUtils {
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  static secureRetrieve(key: string, decrypt: boolean = false): any {
+  static secureRetrieve(key: string, decrypt: boolean = false): unknown {
     try {
       let data = localStorage.getItem(key);
       

@@ -52,21 +52,19 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
 
     try {
       setIsLoadingNotifications(true);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const response = await apiService.get<any[]>('/notifications?limit=50');
+      const response = await apiService.get<import('@/types/api').NotificationPayload[]>('/notifications?limit=50');
 
       if (response.success && response.data && Array.isArray(response.data)) {
         // Convert API notifications to NotificationEvent format
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const apiNotifications: NotificationEvent[] = response.data.map((notification: any) => ({
+        const apiNotifications: NotificationEvent[] = response.data.map((notification: import('@/types/api').NotificationPayload) => ({
           id: notification.id,
           type: notification.type === 'CASE_ASSIGNED' ? 'info' :
                 notification.type === 'CASE_COMPLETED' ? 'success' :
                 notification.type === 'SYSTEM_MAINTENANCE' ? 'warning' :
                 notification.priority === 'HIGH' || notification.priority === 'URGENT' ? 'error' : 'info',
-          title: notification.title,
+          title: notification.title || notification.message,
           message: notification.message,
-          timestamp: notification.createdAt,
+          timestamp: notification.createdAt || notification.created_at,
           read: notification.read,
           data: {
             ...notification.data,

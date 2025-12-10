@@ -62,8 +62,8 @@ export function RolesTable({ onEditRole }: RolesTableProps) {
       setDeleteRole(null);
     },
     onError: (error: unknown) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      toast.error((error as any).response?.data?.message || 'Failed to delete role');
+      const err = error as import('@/types/api').ApiErrorResponse;
+      toast.error(err.response?.data?.message || 'Failed to delete role');
       setDeleteRole(null);
     },
   });
