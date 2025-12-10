@@ -315,11 +315,10 @@ export type QueryParams = (
 
 /**
  * Type for WHERE clause objects in dynamic queries
- * Uses 'any' for flexibility in dynamic query building
+ * Uses 'unknown' for maximum flexibility with various query builder patterns
  */
 export interface WhereClause {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 /**

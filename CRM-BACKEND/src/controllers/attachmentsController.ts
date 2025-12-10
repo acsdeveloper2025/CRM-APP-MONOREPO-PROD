@@ -104,14 +104,14 @@ const upload = multer({
 export const uploadAttachment = (req: AuthenticatedRequest, res: Response) => {
   try {
     // Use multer middleware
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-misused-promises
-    (upload as any).array('files', 10)(req, res, (err: any) => {
+    // eslint-disable-next-line @typescript-eslint/no-misused-promises
+    upload.array('files', 10)(req, res, (err: unknown) => {
       void (async () => {
         if (err) {
           logger.error('File upload error:', err);
           return res.status(400).json({
             success: false,
-            message: err.message || 'File upload failed',
+            message: err instanceof Error ? err.message : 'File upload failed',
             error: { code: 'UPLOAD_ERROR' },
           });
         }
@@ -767,15 +767,13 @@ export const getSupportedFileTypes = (req: AuthenticatedRequest, res: Response) 
 export const bulkUploadAttachments = (req: AuthenticatedRequest, res: Response) => {
   try {
     // Use multer middleware for multiple files
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    upload.array('files', 50)(req, res, (err: any) => {
+    upload.array('files', 50)(req, res, (err: unknown) => {
       // Removed async wrapper as no await is used here
       if (err) {
         logger.error('Bulk upload error:', err);
         return res.status(400).json({
           success: false,
-          message: err.message || 'Bulk upload failed',
+          message: err instanceof Error ? err.message : 'Bulk upload failed',
           error: { code: 'UPLOAD_ERROR' },
         });
       }

@@ -15,6 +15,7 @@ import type {
 } from '@/types/reports';
 import type { ApiResponse, PaginationQuery } from '@/types/api';
 import type { MISFilters, MISDataResponse, ExportFormat } from '@/types/mis';
+import type { ScheduledReport, ScheduledReportData } from '@/types/dto/report.dto';
 
 // Smart API URL selection
 const getApiBaseUrl = () => {
@@ -215,15 +216,15 @@ export class ReportsService {
   }
 
   // Scheduled Reports
-  async getScheduledReports(): Promise<ApiResponse<unknown[]>> {
+  async getScheduledReports(): Promise<ApiResponse<ScheduledReport[]>> {
     return apiService.get('/reports/scheduled');
   }
 
-  async createScheduledReport(data: unknown): Promise<ApiResponse<unknown>> {
+  async createScheduledReport(data: ScheduledReportData): Promise<ApiResponse<ScheduledReport>> {
     return apiService.post('/reports/scheduled', data);
   }
 
-  async updateScheduledReport(id: string, data: unknown): Promise<ApiResponse<unknown>> {
+  async updateScheduledReport(id: string, data: ScheduledReportData): Promise<ApiResponse<ScheduledReport>> {
     return apiService.put(`/reports/scheduled/${id}`, data);
   }
 

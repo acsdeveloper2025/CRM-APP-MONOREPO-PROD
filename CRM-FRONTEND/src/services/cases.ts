@@ -2,6 +2,11 @@ import { BaseApiService, getApiBaseUrl } from './base';
 import { attachmentsService } from './attachments';
 import type { Case } from '@/types/case';
 import type { ApiResponse, PaginationQuery } from '@/types/api';
+import type {
+  CompleteCaseData,
+  CreateCaseWithMultipleTasksPayload,
+  CreateCaseWithMultipleTasksResponse
+} from '@/types/dto/case.dto';
 
 export interface CaseListQuery extends PaginationQuery {
   status?: string;
@@ -155,7 +160,7 @@ export class CasesService extends BaseApiService {
     return response.json();
   }
 
-  async createCaseWithMultipleTasks(payload: unknown): Promise<ApiResponse<unknown>> {
+  async createCaseWithMultipleTasks(payload: CreateCaseWithMultipleTasksPayload): Promise<ApiResponse<CreateCaseWithMultipleTasksResponse>> {
     // Payload is already in unified format from CaseWithTasksCreationForm
     return this.post('/create', payload);
   }
@@ -184,7 +189,7 @@ export class CasesService extends BaseApiService {
     return this.post(`/${id}/notes`, { note });
   }
 
-  async completeCase(id: string, data: unknown): Promise<ApiResponse<Case>> {
+  async completeCase(id: string, data: CompleteCaseData): Promise<ApiResponse<Case>> {
     return this.post(`/${id}/complete`, data);
   }
 
