@@ -15,6 +15,14 @@ import { queueCaseRevocationNotification } from '../queues/notificationQueue';
 import { TaskLookupService } from '../services/taskLookupService';
 import { logger } from '../utils/logger';
 
+// Type guards and interfaces for WhereClause usage
+interface DateRangeFilter {
+  gte?: Date;
+  lte?: Date;
+  gt?: Date;
+  lt?: Date;
+}
+
 /**
  * Get the appropriate API base URL based on request headers
  */
@@ -92,20 +100,22 @@ export class MobileCaseController {
       }
 
       if (dateFrom || dateTo) {
-        where.createdAt = {};
+        const dateFilter: DateRangeFilter = {};
         if (dateFrom) {
-          where.createdAt.gte = new Date(dateFrom);
+          dateFilter.gte = new Date(dateFrom);
         }
         if (dateTo) {
-          where.createdAt.lte = new Date(dateTo);
+          dateFilter.lte = new Date(dateTo);
         }
+        where.createdAt = dateFilter;
       }
 
       // Sync-specific filtering
       if (lastSyncTimestamp) {
-        where.updatedAt = {
+        const syncFilter: DateRangeFilter = {
           gt: new Date(lastSyncTimestamp),
         };
+        where.updatedAt = syncFilter;
       }
 
       // Build dynamic SQL for where
@@ -114,7 +124,7 @@ export class MobileCaseController {
 
       // Filter by task-level assignment (for both FIELD_AGENT and other roles)
       if (where.hasAssignedTask) {
-        vals.push(where.hasAssignedTask);
+        vals.push(where.hasAssignedTask as string);
         wh.push(`EXISTS (
           SELECT 1 FROM verification_tasks vt
           WHERE vt.case_id = c.id
@@ -123,16 +133,19 @@ export class MobileCaseController {
       }
 
       if (where.status) {
-        vals.push(where.status);
+        vals.push(where.status as string);
         wh.push(`c.status = $${vals.length}`);
       }
       if (where.priority) {
-        vals.push(where.priority);
+        vals.push(where.priority as string | number);
         wh.push(`c.priority = $${vals.length}`);
       }
-      if (where.updatedAt?.gt) {
-        vals.push(where.updatedAt.gt);
-        wh.push(`c."updatedAt" > $${vals.length}`);
+      if (where.updatedAt && typeof where.updatedAt === 'object') {
+        const updatedAtFilter = where.updatedAt as DateRangeFilter;
+        if (updatedAtFilter.gt) {
+          vals.push(updatedAtFilter.gt);
+          wh.push(`c."updatedAt" > $${vals.length}`);
+        }
       }
       if (search) {
         vals.push(`%${search}%`);
