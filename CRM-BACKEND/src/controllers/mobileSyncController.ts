@@ -27,18 +27,19 @@ interface SyncResults {
   errors: SyncError[];
 }
 
-interface AuthenticatedRequest extends Request {
-  user?: {
-    id: string;
-    role: string;
-    email?: string;
-    name?: string;
-  };
+// Type guards and interfaces for WhereClause usage
+interface DateRangeFilter {
+  gte?: Date;
+  lte?: Date;
+  gt?: Date;
+  lt?: Date;
 }
 
+import { AuthenticatedRequest } from '../middleware/auth';
 import { createAuditLog } from '../utils/auditLogger';
 import { config } from '../config';
 import { query } from '@/config/database';
+import { logger } from '../utils/logger';
 import { EnterpriseMobileSyncService } from '../services/enterpriseMobileSyncService';
 
 export class MobileSyncController {
@@ -240,16 +241,19 @@ export class MobileSyncController {
       const vals: QueryParams = [];
       const wh: string[] = [];
       if (where.hasAssignedTask) {
-        vals.push(where.hasAssignedTask);
+        vals.push(where.hasAssignedTask as string);
         wh.push(`EXISTS (
           SELECT 1 FROM verification_tasks vt
           WHERE vt.case_id = c.id
           AND vt.assigned_to = $${vals.length}
         )`);
       }
-      if (where.updatedAt?.gt) {
-        vals.push(where.updatedAt.gt);
-        wh.push(`c."updatedAt" > $${vals.length}`);
+      if (where.updatedAt && typeof where.updatedAt === 'object') {
+        const updatedAtFilter = where.updatedAt as DateRangeFilter;
+        if (updatedAtFilter.gt) {
+          vals.push(updatedAtFilter.gt);
+          wh.push(`c."updatedAt" > $${vals.length}`);
+        }
       }
       const whereSql = wh.length ? `WHERE ${wh.join(' AND ')}` : '';
       vals.push(Number(limit));
