@@ -4,8 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 
 interface MonthlyTrendData {
   month: string;
-  cases: number;
-  revenue: number;
+  totalCases: number;
+  revenue?: number;
   completionRate: number;
 }
 
@@ -31,14 +31,28 @@ export const MonthlyTrendsChart: React.FC<MonthlyTrendsChartProps> = ({ data, is
     );
   }
 
-  const CustomTooltip = ({ active, payload, label }: unknown) => {
+  // Custom Tooltip Types
+  interface TooltipPayload {
+    name: string;
+    value: number;
+    color: string;
+    payload: MonthlyTrendData;
+  }
+
+  interface CustomTooltipProps {
+    active?: boolean;
+    payload?: TooltipPayload[];
+    label?: string;
+  }
+
+  const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
     if (active && payload && payload.length) {
       return (
         <div className="bg-white p-3 border rounded-lg shadow-lg">
           <p className="font-medium">{label}</p>
-          {payload.map((entry: unknown, index: number) => (
+          {payload.map((entry, index) => (
             <p key={index} className="text-sm" style={{ color: entry.color }}>
-              {entry.name}: {entry.name === 'Revenue' ? `$${entry.value.toLocaleString()}` : entry.value}
+              {entry.name}: {entry.name === 'Revenue' && entry.value ? `$${entry.value.toLocaleString()}` : entry.value}
               {entry.name === 'Completion Rate' ? '%' : ''}
             </p>
           ))}
@@ -70,7 +84,7 @@ export const MonthlyTrendsChart: React.FC<MonthlyTrendsChartProps> = ({ data, is
               <Line
                 yAxisId="left"
                 type="monotone"
-                dataKey="cases"
+                dataKey="totalCases"
                 stroke="#3b82f6"
                 strokeWidth={2}
                 name="Cases"

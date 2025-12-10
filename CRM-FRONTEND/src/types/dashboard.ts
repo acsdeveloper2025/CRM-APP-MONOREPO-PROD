@@ -2,12 +2,20 @@ export interface DashboardStats {
   totalCases: number;
   inProgressCases: number;
   completedCases: number;
-  pendingReviewCases: number;
-  activeClients: number;
-  totalInvoices: number;
-  pendingCommissions: number;
-  monthlyRevenue: number;
+  pendingCases: number;
+  pendingReviewCases?: number; // Backend doesn't return this yet
   revokedTasks?: number;
+  rejectedCases?: number;
+  
+  totalClients: number; // Renamed from activeClients to match backend
+  activeUsers: number;
+  
+  totalInvoices?: number; // Backend doesn't return this
+  pendingCommissions?: number; // Backend doesn't return this
+  monthlyRevenue?: number; // Backend doesn't return this
+  
+  completionRate?: number;
+  avgTurnaroundDays?: number;
 }
 
 export interface CaseStatusDistribution {
