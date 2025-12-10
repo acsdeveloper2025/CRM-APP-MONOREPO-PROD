@@ -37,7 +37,10 @@ export const CaseStatusChart: React.FC<CaseStatusChartProps> = ({ data, isLoadin
     );
   }
 
-  const chartData = data.map(item => ({
+  // Ensure data is an array
+  const safeData = Array.isArray(data) ? data : [];
+  
+  const chartData = safeData.map(item => ({
     name: item.status.replace('_', ' '),
     value: item.count,
     percentage: item.percentage,

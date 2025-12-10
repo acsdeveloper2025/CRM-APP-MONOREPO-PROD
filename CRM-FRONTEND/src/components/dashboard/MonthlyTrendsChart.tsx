@@ -48,6 +48,9 @@ export const MonthlyTrendsChart: React.FC<MonthlyTrendsChartProps> = ({ data, is
     return null;
   };
 
+  // Ensure data is an array
+  const safeData = Array.isArray(data) ? data : [];
+
   return (
     <Card>
       <CardHeader>
@@ -57,7 +60,7 @@ export const MonthlyTrendsChart: React.FC<MonthlyTrendsChartProps> = ({ data, is
       <CardContent>
         <div className="h-[300px]">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={data}>
+            <LineChart data={safeData}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="month" />
               <YAxis yAxisId="left" />
