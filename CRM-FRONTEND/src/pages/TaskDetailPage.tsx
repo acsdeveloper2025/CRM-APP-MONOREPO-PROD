@@ -84,8 +84,7 @@ export const TaskDetailPage: React.FC = () => {
 
       if (response.success) {
         // Transform snake_case to camelCase
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const taskData = response.data as any;
+                const taskData = response.data as unknown;
         setTask({
           id: taskData.id,
           taskNumber: taskData.task_number,
@@ -131,8 +130,7 @@ export const TaskDetailPage: React.FC = () => {
       const response = await apiService.get(`/verification-tasks/${taskId}/assignment-history`);
 
       if (response.success) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const history = (response.data as any[]).map((item: any) => ({
+                const history = (response.data as unknown[]).map((item: unknown) => ({
           id: item.id,
           assignedToName: item.assigned_to_name,
           assignedByName: item.assigned_by_name,

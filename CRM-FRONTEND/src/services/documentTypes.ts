@@ -106,8 +106,7 @@ class DocumentTypesService {
 
   // Helper Methods
   async getDocumentTypesByCategory(category: string): Promise<ApiResponse<DocumentType[]>> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return this.getDocumentTypes({ category: category as any });
+    return this.getDocumentTypes({ category: category as import('@/types/documentType').DocumentCategory });
   }
 
   async getActiveDocumentTypes(): Promise<ApiResponse<DocumentType[]>> {

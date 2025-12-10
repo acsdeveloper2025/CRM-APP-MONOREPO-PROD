@@ -104,8 +104,7 @@ export const AIReportCard: React.FC<AIReportCardProps> = ({
         throw new Error(response.message || 'Failed to generate report');
       }
     } catch (err: unknown) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const errorObj = err as any;
+            const errorObj = err as unknown;
       const errorMessage = errorObj.response?.data?.message || errorObj.message || 'Failed to generate AI report';
       setError(errorMessage);
       toast.error('Failed to generate AI report', {

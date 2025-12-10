@@ -186,8 +186,7 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
     const pincodeId = parseInt(selectedPincodeId, 10);
     const areaId = parseInt(selectedAreaId, 10);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return (fieldUsers || []).filter((user: any) => {
+    return (fieldUsers || []).filter((user: unknown) => {
       const hasPincodeAccess = user.assignedPincodes?.includes(pincodeId) ?? false;
       const hasAreaAccess = user.assignedAreas?.includes(areaId) ?? false;
       return hasPincodeAccess && hasAreaAccess;

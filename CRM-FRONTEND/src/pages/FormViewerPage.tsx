@@ -14,8 +14,7 @@ export function FormViewerPage() {
   // Mock data removed - using real API data only
   const sampleSubmission: FormSubmission | null = null;
   // Mock data removed - using real API data only
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const formTypes: any[] = [];
+  const formTypes: unknown[] = [];
 
   return (
     <div className="space-y-6">
@@ -69,8 +68,7 @@ export function FormViewerPage() {
             </div>
             <div className="flex-1">
               <label className="text-sm font-medium mb-2 block">View Mode</label>
-              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-              <Select value={viewMode} onValueChange={(value: any) => setViewMode(value)}>
+              <Select value={viewMode} onValueChange={(value: unknown) => setViewMode(value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select view mode" />
                 </SelectTrigger>

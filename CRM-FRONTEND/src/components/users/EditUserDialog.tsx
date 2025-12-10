@@ -122,8 +122,7 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
         departmentId: data.departmentId ? parseInt(data.departmentId, 10) : undefined,
         designationId: data.designationId ? parseInt(data.designationId, 10) : undefined,
       };
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return usersService.updateUser(user.id, cleanData as any);
+      return usersService.updateUser(user.id, cleanData as import('@/types/user').UpdateUserData);
     },
     queryKey: ['users'],
     resourceName: 'User',

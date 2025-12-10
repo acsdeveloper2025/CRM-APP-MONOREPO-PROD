@@ -46,8 +46,7 @@ export function VerificationTypesTable({ data, isLoading }: VerificationTypesTab
   const [typeToDelete, setTypeToDelete] = useState<VerificationType | null>(null);
 
   const deleteMutation = useStandardizedMutation({
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    mutationFn: (id: any) => clientsService.deleteVerificationType(String(id)),
+    mutationFn: (id: unknown) => clientsService.deleteVerificationType(String(id)),
     successMessage: 'Verification type deleted successfully',
     errorContext: 'Verification Type Deletion',
     errorFallbackMessage: 'Failed to delete verification type',

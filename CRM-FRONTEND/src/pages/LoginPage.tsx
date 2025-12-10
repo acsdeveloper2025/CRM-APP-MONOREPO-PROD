@@ -47,8 +47,7 @@ export const LoginPage: React.FC = () => {
       if (success) {
         navigate('/dashboard');
       }
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Login error:', error);
     } finally {
       setIsSubmitting(false);

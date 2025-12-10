@@ -267,8 +267,7 @@ export const FieldUserAssignmentsTab: React.FC = () => {
                     ...(rateTypes || []).map(rateType => ({
                       value: rateType.id.toString(),
                       label: rateType.name,
-                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                      description: `Rate: ${(rateType as any).rate_amount || 'Not set'}`
+                                            description: `Rate: ${(rateType as unknown).rate_amount || 'Not set'}`
                     }))
                   ]}
                   value={String(filterRateTypeId || '')}
@@ -489,8 +488,7 @@ export const FieldUserAssignmentsTab: React.FC = () => {
                   options={(rateTypes || []).map(rateType => ({
                     value: rateType.id.toString(),
                     label: rateType.name,
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    description: `Rate: ${(rateType as any).rate_amount || 'Not set'}`
+                                        description: `Rate: ${(rateType as unknown).rate_amount || 'Not set'}`
                   }))}
                   value={formData.rateTypeId ? formData.rateTypeId.toString() : ''}
                   onValueChange={(value) => setFormData({ ...formData, rateTypeId: value ? Number(value) : 0 })}

@@ -25,8 +25,7 @@ export interface NavigationItem {
   id: string;
   label: string;
   href: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  icon: any;
+  icon: unknown;
   roles?: Role[]; // Made optional for backward compatibility
   permission?: {
     resource: string;

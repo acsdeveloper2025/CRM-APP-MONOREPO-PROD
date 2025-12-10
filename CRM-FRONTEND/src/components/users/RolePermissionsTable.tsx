@@ -1,4 +1,3 @@
-import React from 'react';
 import { Shield, Check, X } from 'lucide-react';
 import {
   Table,
@@ -42,16 +41,17 @@ export function RolePermissionsTable({ data, isLoading }: RolePermissionsTablePr
   };
 
   // Group permissions by module
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const groupPermissionsByModule = (permissions: unknown[]): Record<string, any[]> => {
+  interface PermissionWithModule { module: string; [key: string]: unknown }
+  const groupPermissionsByModule = (permissions: unknown[]): Record<string, unknown[]> => {
     return permissions.reduce((acc, permission) => {
-      if (!acc[permission.module]) {
-        acc[permission.module] = [];
+      const accObj = acc as Record<string, unknown[]>;
+      const perm = permission as PermissionWithModule;
+      if (!accObj[perm.module]) {
+        accObj[perm.module] = [];
       }
-      acc[permission.module].push(permission);
-      return acc;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    }, {} as Record<string, any[]>);
+      accObj[perm.module].push(permission);
+      return accObj;
+    }, {} as Record<string, unknown[]>);
   };
 
   return (
@@ -87,26 +87,29 @@ export function RolePermissionsTable({ data, isLoading }: RolePermissionsTablePr
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {permissions.map((permission) => (
-                            <TableRow key={permission.id}>
+                          {permissions.map((permission) => {
+                            const perm = permission as { id: string; name: string; description: string; action: string };
+                            return (
+                            <TableRow key={perm.id}>
                               <TableCell className="font-medium">
-                                {permission.name}
+                                {perm.name}
                               </TableCell>
                               <TableCell>
                                 <span className="text-sm text-gray-600">
-                                  {permission.description}
+                                  {perm.description}
                                 </span>
                               </TableCell>
                               <TableCell>
                                 <Badge variant="outline" className="text-xs">
-                                  {permission.action}
+                                  {perm.action}
                                 </Badge>
                               </TableCell>
                               <TableCell className="text-center">
                                 <Check className="h-4 w-4 text-green-600 mx-auto" />
                               </TableCell>
                             </TableRow>
-                          ))}
+                            );
+                          })}
                         </TableBody>
                       </Table>
                     </div>
