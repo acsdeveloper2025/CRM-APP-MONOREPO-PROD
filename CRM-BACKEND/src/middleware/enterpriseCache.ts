@@ -350,14 +350,16 @@ export const EnterpriseCacheConfigs = {
     condition: (req: Request) => req.method === 'GET',
   },
 
-  // Users list caching - NEW
+  // Users list caching - FIXED (now includes all query params)
   usersList: {
-    ttl: 600, // 10 minutes
+    ttl: 300, // 5 minutes
     keyGenerator: (req: Request) => {
-      const role = req.query.role || 'all';
-      return `users:list:${typeof role === 'string' || typeof role === 'number' ? String(role) : 'all'}`;
+      const query = JSON.stringify(req.query);
+      const userId = (req as AuthenticatedRequest).user?.id || 'anon';
+      return `users:list:${userId}:${crypto.createHash('md5').update(query).digest('hex')}`;
     },
     condition: (req: Request) => req.method === 'GET',
+    varyBy: ['X-User-Role'],
   },
 };
 
@@ -372,6 +374,7 @@ export const CacheInvalidationPatterns = {
     'analytics:*',
     CacheKeys.fieldAgentWorkload(),
     CacheKeys.mobileSync('{userId}'),
+    'users:*', // Invalidate user lists to update assignment counts
   ],
 
   clientUpdate: ['clients:*', 'api_cache:*:*clients*'],

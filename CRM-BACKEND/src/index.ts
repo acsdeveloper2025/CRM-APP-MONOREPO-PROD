@@ -13,6 +13,8 @@ import { CacheWarmingService } from './services/cacheWarmingService';
 
 const server = createServer(app);
 
+console.log('🚀 [LOADED] src/index.ts IS RUNNING!');
+
 // Initialize Socket.IO
 const io = new SocketIOServer(server, {
   cors: {
