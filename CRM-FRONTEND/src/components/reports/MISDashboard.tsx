@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Download, RefreshCw } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -80,12 +80,12 @@ export function MISDashboard() {
   const clients = clientsData?.data || [];
   const products = productsData?.data || [];
   const verificationTypes = verificationTypesData?.data || [];
-  const users = usersData?.data || [];
+  const users = usersData || [];
   const fieldAgents = users.filter(u => u.role === 'FIELD_AGENT');
   const backendUsers = users.filter(u => u.role === 'BACKEND' || u.role === 'ADMIN' || u.role === 'SUPER_ADMIN');
 
   // Build query with search and filters
-  const buildFilters = React.useCallback((): MISFilters => {
+  const buildFilters = useCallback((): MISFilters => {
     return {
       search: debouncedSearchValue || undefined,
       dateFrom: activeFilters.dateFrom,
@@ -104,7 +104,7 @@ export function MISDashboard() {
 
 
 
-  const loadData = React.useCallback(async () => {
+  const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
       const response = await reportsService.getMISDashboardData(buildFilters());
