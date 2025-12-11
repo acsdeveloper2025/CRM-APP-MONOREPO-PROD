@@ -18,6 +18,8 @@ import { useUnifiedSearch, useUnifiedFilters } from '@/hooks/useUnifiedSearch';
 import { UnifiedSearchFilterLayout, FilterGrid } from '@/components/ui/unified-search-filter-layout';
 import type { MISFilters, MISDataResponse } from '@/types/mis';
 import { toast } from 'react-hot-toast';
+import type { VerificationType } from '@/types/client';
+import { USER_ROLES } from '@/types/constants';
 import { useClients, useProducts } from '@/hooks/useClients';
 import { useVerificationTypes } from '@/hooks/useVerificationTypes';
 import { useUsers } from '@/hooks/useUsers';
@@ -81,8 +83,8 @@ export function MISDashboard() {
   const products = productsData?.data || [];
   const verificationTypes = verificationTypesData?.data || [];
   const users = usersData || [];
-  const fieldAgents = users.filter(u => u.role === 'FIELD_AGENT');
-  const backendUsers = users.filter(u => u.role === 'BACKEND' || u.role === 'ADMIN' || u.role === 'SUPER_ADMIN');
+  const fieldAgents = users.filter(u => u.role === USER_ROLES.FIELD_AGENT);
+  const backendUsers = users.filter(u => u.role === USER_ROLES.BACKEND_USER || u.role === USER_ROLES.ADMIN || u.role === USER_ROLES.SUPER_ADMIN);
 
   // Build query with search and filters
   const buildFilters = useCallback((): MISFilters => {
@@ -256,7 +258,7 @@ export function MISDashboard() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Types</SelectItem>
-                  {verificationTypes.map((type) => (
+                  {verificationTypes.map((type: VerificationType) => (
                     <SelectItem key={type.id} value={type.id.toString()}>
                       {type.name}
                     </SelectItem>
