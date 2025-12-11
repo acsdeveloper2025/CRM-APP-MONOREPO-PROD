@@ -210,6 +210,8 @@ export const TerritoryAssignmentSection: React.FC<TerritoryAssignmentSectionProp
               selectedPincodeIds={selectedPincodeIds}
               onPincodeToggle={handlePincodeToggle}
               areaCountByPincode={areaCountByPincode}
+              onSave={handleSave}
+              isSaving={saveMutation.isPending}
             />
           </TabsContent>
 
