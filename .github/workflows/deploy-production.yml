@@ -307,6 +307,8 @@ jobs:
             deployment-info.json \
             scripts/deploy-production.sh \
             scripts/health-check.sh \
+            start-production.sh \
+            ecosystem.config.js \
             ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }}:/tmp/
 
       - name: 🚀 Execute Deployment
@@ -318,9 +320,14 @@ jobs:
             # Move to deployment directory
             cd /opt/crm-app/current
             
+            # Copy startup files to project root
+            cp /tmp/start-production.sh ./start-production.sh
+            cp /tmp/ecosystem.config.js ./ecosystem.config.js
+            
             # Make scripts executable
             chmod +x /tmp/deploy-production.sh
             chmod +x /tmp/health-check.sh
+            chmod +x ./start-production.sh
 
             # Execute deployment
             /tmp/deploy-production.sh /tmp/deployment-info.json
