@@ -1,4 +1,5 @@
-import type { Request, Response } from 'express';
+import type { Response } from 'express';
+import { Role } from '../types/auth'; // Import Role enum
 import type {
   MobileSyncUploadRequest,
   MobileSyncDownloadResponse,
@@ -53,7 +54,7 @@ export class MobileSyncController {
       const userId = req.user?.id;
       const userRole = req.user?.role;
 
-      if (userRole !== 'FIELD_AGENT') {
+      if (userRole !== Role.FIELD_AGENT) {
         return res.status(403).json({
           success: false,
           message: 'Enterprise sync is only available for field agents',
@@ -86,7 +87,7 @@ export class MobileSyncController {
 
       res.json(syncResponse);
     } catch (error) {
-      console.error('Enterprise sync error:', error);
+      logger.error('Enterprise sync error:', error);
       res.status(500).json({
         success: false,
         message: 'Enterprise sync failed',
@@ -130,7 +131,7 @@ export class MobileSyncController {
           try {
             await MobileSyncController.processCaseChange(caseChange, userId, userRole, syncResults);
           } catch (error) {
-            console.error(`Error processing case change ${caseChange.id}:`, error);
+            logger.error(`Error processing case change ${caseChange.id}:`, error);
             syncResults.errors.push({
               type: 'CASE',
               id: caseChange.id,
@@ -150,7 +151,7 @@ export class MobileSyncController {
               syncResults
             );
           } catch (error) {
-            console.error(`Error processing attachment change ${attachmentChange.id}:`, error);
+            logger.error(`Error processing attachment change ${attachmentChange.id}:`, error);
             syncResults.errors.push({
               type: 'ATTACHMENT',
               id: attachmentChange.id,
@@ -166,7 +167,7 @@ export class MobileSyncController {
           try {
             await MobileSyncController.processLocationChange(locationChange, userId, syncResults);
           } catch (error) {
-            console.error(`Error processing location change ${locationChange.id}:`, error);
+            logger.error(`Error processing location change ${locationChange.id}:`, error);
             syncResults.errors.push({
               type: 'LOCATION',
               id: locationChange.id,
@@ -205,7 +206,7 @@ export class MobileSyncController {
         },
       });
     } catch (error) {
-      console.error('Sync upload error:', error);
+      logger.error('Sync upload error:', error);
       res.status(500).json({
         success: false,
         message: 'Internal server error',
@@ -234,7 +235,7 @@ export class MobileSyncController {
       };
 
       // Role-based filtering
-      if (userRole === 'FIELD_AGENT') {
+      if (userRole === Role.FIELD_AGENT) {
         where.hasAssignedTask = userId;
       }
 
@@ -363,9 +364,9 @@ export class MobileSyncController {
         data: response,
       });
     } catch (error) {
-      console.error('❌ Sync download error:', error);
-      console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
-      console.error('Error details:', {
+      logger.error('❌ Sync download error:', error);
+      logger.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+      logger.error('Error details:', {
         message: error instanceof Error ? error.message : String(error),
         userId: req.user?.id,
         userRole: req.user?.role,
@@ -419,7 +420,7 @@ export class MobileSyncController {
         data: syncStatus,
       });
     } catch (error) {
-      console.error('Get sync status error:', error);
+      logger.error('Get sync status error:', error);
       res.status(500).json({
         success: false,
         message: 'Internal server error',
