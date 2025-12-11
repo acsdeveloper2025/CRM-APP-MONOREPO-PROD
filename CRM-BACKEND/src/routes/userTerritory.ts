@@ -6,6 +6,7 @@ import {
   getUserTerritoryAssignments,
   bulkSaveTerritoryAssignments,
 } from '../controllers/userTerritoryController';
+import { EnterpriseCache, CacheInvalidationPatterns } from '../middleware/enterpriseCache';
 
 const router = express.Router();
 
@@ -39,6 +40,7 @@ router.post(
       .withMessage('Each areaId must be a valid integer'),
   ],
   validate,
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.assignmentUpdate),
   bulkSaveTerritoryAssignments
 );
 
