@@ -193,6 +193,14 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
     );
   }
 
+  // Debug: Log keys and full object to identify case mismatches
+  if (data.length > 0) {
+    console.log('🔍 [FRONTEND] Received User Keys:', Object.keys(data[0]));
+    console.log('🔍 [FRONTEND] Full User Object:', data[0]);
+  }
+
+
+
   return (
     <>
       {/* Bulk Actions */}
@@ -285,11 +293,11 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
                 <TableCell className="hidden lg:table-cell">
                   <div>
                     <div className="font-medium">{user.departmentName || 'No Department'}</div>
-                    <div className="text-sm text-gray-600">{user.designation}</div>
+                    <div className="text-sm text-gray-600">{user.designationName || user.designation}</div>
                   </div>
                 </TableCell>
                 <TableCell className="hidden lg:table-cell">
-                  {(user.role === 'BACKEND_USER' || user.roleName === 'Backend User') ? (
+                  {(user.role === 'BACKEND_USER' || user.roleName === 'BACKEND_USER') ? (
                     <div className="text-sm">
                       <div className="flex items-center gap-1">
                         <span className="font-medium text-green-700">{user.assignedClientsCount || 0}</span>
@@ -300,7 +308,7 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
                         <span className="text-gray-600">products</span>
                       </div>
                     </div>
-                  ) : (user.role === 'FIELD_AGENT' || user.roleName === 'Field Agent') ? (
+                  ) : (user.role === 'FIELD_AGENT' || user.roleName === 'FIELD_AGENT') ? (
                     <div className="text-sm">
                       <div className="flex items-center gap-1">
                         <span className="font-medium text-green-700">{user.assignedPincodesCount || 0}</span>
@@ -493,12 +501,12 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
                   <div>
                     <div className="font-medium">{user.departmentName || 'No Department'}</div>
                     {user.designation && (
-                      <div className="text-sm text-gray-600">{user.designation}</div>
+                      <div className="text-sm text-gray-600">{user.designationName || user.designation}</div>
                     )}
                   </div>
                 }
               />
-              {(user.role === 'BACKEND_USER' || user.roleName === 'Backend User') && (
+              {(user.role === 'BACKEND_USER' || user.roleName === 'BACKEND_USER') && (
                 <MobileTableField
                   label="Assignments"
                   value={
@@ -515,7 +523,7 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
                   }
                 />
               )}
-              {(user.role === 'FIELD_AGENT' || user.roleName === 'Field Agent') && (
+              {(user.role === 'FIELD_AGENT' || user.roleName === 'FIELD_AGENT') && (
                 <MobileTableField
                   label="Territory Assignments"
                   value={

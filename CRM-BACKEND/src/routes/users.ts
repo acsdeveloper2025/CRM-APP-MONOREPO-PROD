@@ -377,6 +377,7 @@ router.get(
 router.post(
   '/:userId/client-assignments',
   authenticateToken,
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.assignmentUpdate),
   userIdValidation,
   clientAssignmentValidation,
   validate,
@@ -386,6 +387,7 @@ router.post(
 router.delete(
   '/:userId/client-assignments/:clientId',
   authenticateToken,
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.assignmentUpdate),
   userIdValidation,
   clientIdValidation,
   validate,
@@ -404,6 +406,7 @@ router.get(
 router.post(
   '/:userId/product-assignments',
   authenticateToken,
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.assignmentUpdate),
   userIdValidation,
   productAssignmentValidation,
   validate,
@@ -413,6 +416,7 @@ router.post(
 router.delete(
   '/:userId/product-assignments/:productId',
   authenticateToken,
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.assignmentUpdate),
   userIdValidation,
   productIdValidation,
   validate,
@@ -430,6 +434,7 @@ router.get(
 router.put(
   '/:id',
   authenticateToken,
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.userUpdate),
   [param('id').trim().notEmpty().withMessage('User ID is required')],
   updateUserValidation,
   validate,
@@ -439,6 +444,7 @@ router.put(
 router.delete(
   '/:id',
   authenticateToken,
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.userUpdate),
   [param('id').trim().notEmpty().withMessage('User ID is required')],
   validate,
   deleteUser
@@ -447,6 +453,7 @@ router.delete(
 router.post(
   '/:id/activate',
   authenticateToken,
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.userUpdate),
   [param('id').trim().notEmpty().withMessage('User ID is required')],
   validate,
   activateUser
@@ -455,6 +462,7 @@ router.post(
 router.post(
   '/:id/deactivate',
   authenticateToken,
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.userUpdate),
   [
     param('id').trim().notEmpty().withMessage('User ID is required'),
     body('reason')

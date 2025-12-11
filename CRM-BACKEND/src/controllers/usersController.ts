@@ -6,6 +6,7 @@ import type { AuthenticatedRequest } from '@/middleware/auth';
 import { EmailDeliveryService } from '@/services/EmailDeliveryService';
 
 // GET /api/users - List users with pagination and filters
+console.log('🚀 [LOADED] src/controllers/usersController.ts is being loaded!');
 export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const {
@@ -23,6 +24,9 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
     const conditions: string[] = [];
     const params: (string | number | boolean)[] = [];
     let paramIndex = 1;
+
+    // Always exclude soft-deleted users
+    conditions.push(`u."deletedAt" IS NULL`);
 
     if (role && typeof role === 'string') {
       conditions.push(`u.role = $${paramIndex++}`);
@@ -88,7 +92,6 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
         u."lastLogin",
         u."createdAt",
         u."updatedAt",
-
         r.name as "roleName",
         d.name as "departmentName",
         des.name as "designationName",
@@ -180,6 +183,11 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
         totalPages: Math.ceil(total / Number(limit)),
       },
     };
+
+    if (usersResult.rows.length > 0) {
+      console.log('🔍 [BACKEND] Sample User Row Keys:', Object.keys(usersResult.rows[0]));
+      console.log('🔍 [BACKEND] Sample User Row Data:', usersResult.rows[0]);
+    }
 
     res.json(responseData);
   } catch (error) {
@@ -437,8 +445,8 @@ export const createUser = async (req: AuthenticatedRequest, res: Response) => {
     const createUserQuery = `
       INSERT INTO users (
         name, username, email, password, "passwordHash", role, "roleId", "departmentId", "designationId",
-        "employeeId", designation, phone, "isActive"
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+        "employeeId", designation, phone, "isActive", "createdAt", "updatedAt"
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
       RETURNING id, name, username, email, role, "roleId", "departmentId", "designationId",
                 "employeeId", designation, phone, "isActive", "createdAt", "updatedAt"
     `;
@@ -457,6 +465,8 @@ export const createUser = async (req: AuthenticatedRequest, res: Response) => {
       designation || null,
       phone || null,
       isActive,
+      new Date(), // createdAt
+      new Date(), // updatedAt
     ]);
 
     const newUser = result.rows[0];
@@ -623,170 +633,37 @@ export const deleteUser = async (req: AuthenticatedRequest, res: Response) => {
       });
     }
 
-    // SYSTEMATIC APPROACH: Check ALL tables with RESTRICT/NO ACTION constraints
-    // This query dynamically checks all foreign key constraints that would prevent deletion
-    const relatedRecordsCheck = await query(
-      `SELECT
-        -- RESTRICT constraints (will block deletion)
-        (SELECT COUNT(*) FROM attachments WHERE "uploadedBy" = $1) as attachments_count,
-        (SELECT COUNT(*) FROM locations WHERE "recordedBy" = $1) as locations_count,
-        (SELECT COUNT(*) FROM "caseDeduplicationAudit" WHERE "performedBy" = $1) as dedup_audit_count,
-        (SELECT COUNT(*) FROM "territoryAssignmentAudit" WHERE "performedBy" = $1) as territory_audit_restrict_count,
-        (SELECT COUNT(*) FROM "userAreaAssignments" WHERE "assignedBy" = $1) as area_assignments_restrict_count,
-        (SELECT COUNT(*) FROM "userPincodeAssignments" WHERE "assignedBy" = $1) as pincode_assignments_restrict_count,
+    // SAFE DELETE IMPLEMENTATION (Soft Delete)
+    // We do NOT hard delete because that would delete related data (Cascade) or fail (Restrict).
+    // Instead, we mark as deleted and scramble credentials to allow reuse of email/username.
 
-        -- NO ACTION constraints (will block deletion)
-        (SELECT COUNT(*) FROM case_assignment_history WHERE "assignedBy" = $1 OR "newAssignee" = $1 OR "previousAssignee" = $1) as case_assignment_history_count,
-        (SELECT COUNT(*) FROM case_timeline_events WHERE performed_by = $1) as case_timeline_count,
-        (SELECT COUNT(*) FROM "clientDocumentTypes" WHERE created_by = $1) as client_doc_types_count,
-        (SELECT COUNT(*) FROM commission_calculations WHERE approved_by = $1 OR paid_by = $1) as commission_approvals_count,
-        (SELECT COUNT(*) FROM commission_payment_batches WHERE created_by = $1 OR processed_by = $1) as commission_batches_count,
-        (SELECT COUNT(*) FROM commission_rate_types WHERE created_by = $1) as commission_rate_types_count,
-        (SELECT COUNT(*) FROM "documentTypeRates" WHERE "createdBy" = $1) as doc_type_rates_count,
-        (SELECT COUNT(*) FROM "documentTypes" WHERE created_by = $1) as doc_types_count,
-        (SELECT COUNT(*) FROM error_logs WHERE user_id = $1) as error_logs_count,
-        (SELECT COUNT(*) FROM field_user_commission_assignments WHERE created_by = $1) as commission_assignments_count,
-        (SELECT COUNT(*) FROM form_submissions WHERE submitted_by = $1 OR validated_by = $1) as form_submissions_count,
-        (SELECT COUNT(*) FROM performance_metrics WHERE user_id = $1) as performance_metrics_count,
-        (SELECT COUNT(*) FROM "productDocumentTypes" WHERE created_by = $1) as product_doc_types_count,
-        (SELECT COUNT(*) FROM scheduled_reports WHERE created_by = $1) as scheduled_reports_count,
-        (SELECT COUNT(*) FROM task_assignment_history WHERE assigned_by = $1 OR assigned_to = $1) as task_assignment_history_count,
-        (SELECT COUNT(*) FROM task_commission_calculations WHERE user_id = $1) as task_commissions_count,
-        (SELECT COUNT(*) FROM task_form_submissions WHERE submitted_by = $1) as task_form_submissions_count,
-        (SELECT COUNT(*) FROM template_reports WHERE created_by = $1) as template_reports_count,
-        (SELECT COUNT(*) FROM verification_tasks WHERE assigned_by = $1 OR assigned_to = $1) as verification_tasks_count,
+    // 1. Get current user data for logging
+    const targetUser = userExists.rows[0];
 
-        -- CASCADE constraints (will auto-delete - warn user about data loss)
-        (SELECT COUNT(*) FROM "userAreaAssignments" WHERE "userId" = $1) as area_assignments_cascade_count,
-        (SELECT COUNT(*) FROM "userPincodeAssignments" WHERE "userId" = $1) as pincode_assignments_cascade_count,
-        (SELECT COUNT(*) FROM "userClientAssignments" WHERE "userId" = $1) as client_assignments_count,
-        (SELECT COUNT(*) FROM "userProductAssignments" WHERE "userId" = $1) as product_assignments_count,
-        (SELECT COUNT(*) FROM commission_calculations WHERE user_id = $1) as commission_records_count,
-        (SELECT COUNT(*) FROM field_user_commission_assignments WHERE user_id = $1) as field_commission_assignments_count,
-        (SELECT COUNT(*) FROM notifications WHERE user_id = $1) as notifications_count,
-        (SELECT COUNT(*) FROM notification_preferences WHERE user_id = $1) as notification_prefs_count
-      `,
-      [id]
-    );
+    // 2. Perform Soft Delete
+    // Rename username/email to free them up for future use
+    const timestamp = Math.floor(Date.now() / 1000);
+    const softDeleteQuery = `
+      UPDATE users 
+      SET 
+        "deletedAt" = NOW(), 
+        "isActive" = false,
+        "username" = $2 || '_deleted_' || $3,
+        "email" = $4 || '_deleted_' || $3
+      WHERE id = $1
+    `;
 
-    const counts = relatedRecordsCheck.rows[0];
+    await query(softDeleteQuery, [id, targetUser.username, timestamp, targetUser.email]);
 
-    // Separate blocking constraints from cascade warnings
-    const blockingRecords: string[] = [];
-    const cascadeWarnings: string[] = [];
-
-    // RESTRICT/NO ACTION constraints - these BLOCK deletion
-    const blockingChecks = [
-      { key: 'attachments_count', label: 'attachment(s)' },
-      { key: 'locations_count', label: 'location(s)' },
-      { key: 'dedup_audit_count', label: 'deduplication audit record(s)' },
-      { key: 'territory_audit_restrict_count', label: 'territory audit record(s)' },
-      { key: 'area_assignments_restrict_count', label: 'area assignment(s) created by this user' },
-      {
-        key: 'pincode_assignments_restrict_count',
-        label: 'pincode assignment(s) created by this user',
-      },
-      { key: 'case_assignment_history_count', label: 'case assignment history record(s)' },
-      { key: 'case_timeline_count', label: 'case timeline event(s)' },
-      { key: 'client_doc_types_count', label: 'client document type(s)' },
-      { key: 'commission_approvals_count', label: 'commission approval(s)' },
-      { key: 'commission_batches_count', label: 'commission payment batch(es)' },
-      { key: 'commission_rate_types_count', label: 'commission rate type(s)' },
-      { key: 'doc_type_rates_count', label: 'document type rate(s)' },
-      { key: 'doc_types_count', label: 'document type(s)' },
-      { key: 'error_logs_count', label: 'error log(s)' },
-      { key: 'commission_assignments_count', label: 'commission assignment(s)' },
-      { key: 'form_submissions_count', label: 'form submission(s)' },
-      { key: 'performance_metrics_count', label: 'performance metric(s)' },
-      { key: 'product_doc_types_count', label: 'product document type(s)' },
-      { key: 'scheduled_reports_count', label: 'scheduled report(s)' },
-      { key: 'task_assignment_history_count', label: 'task assignment history record(s)' },
-      { key: 'task_commissions_count', label: 'task commission(s)' },
-      { key: 'task_form_submissions_count', label: 'task form submission(s)' },
-      { key: 'template_reports_count', label: 'template report(s)' },
-      { key: 'verification_tasks_count', label: 'verification task(s)' },
-    ];
-
-    // CASCADE constraints - these will AUTO-DELETE (warn user)
-    const cascadeChecks = [
-      { key: 'area_assignments_cascade_count', label: 'area assignment(s)' },
-      { key: 'pincode_assignments_cascade_count', label: 'pincode assignment(s)' },
-      { key: 'client_assignments_count', label: 'client assignment(s)' },
-      { key: 'product_assignments_count', label: 'product assignment(s)' },
-      { key: 'commission_records_count', label: 'commission record(s)' },
-      { key: 'field_commission_assignments_count', label: 'field commission assignment(s)' },
-      { key: 'notifications_count', label: 'notification(s)' },
-      { key: 'notification_prefs_count', label: 'notification preference(s)' },
-    ];
-
-    // Check blocking constraints
-    for (const check of blockingChecks) {
-      const count = parseInt(counts[check.key] || '0');
-      if (count > 0) {
-        blockingRecords.push(`${count} ${check.label}`);
-      }
-    }
-
-    // Check cascade constraints
-    for (const check of cascadeChecks) {
-      const count = parseInt(counts[check.key] || '0');
-      if (count > 0) {
-        cascadeWarnings.push(`${count} ${check.label}`);
-      }
-    }
-
-    const hasBlockingRecords = blockingRecords.length > 0;
-    const hasCascadeRecords = cascadeWarnings.length > 0;
-
-    if (hasBlockingRecords || hasCascadeRecords) {
-      let detailMessage = '';
-
-      if (hasBlockingRecords) {
-        detailMessage = `This user has ${blockingRecords.join(', ')} that must be reassigned or removed before deletion.`;
-      }
-
-      if (hasCascadeRecords) {
-        const cascadeMessage = `Deleting this user will also permanently delete ${cascadeWarnings.join(', ')}.`;
-        detailMessage = hasBlockingRecords
-          ? `${detailMessage}\n\nAdditionally, ${cascadeMessage.toLowerCase()}`
-          : cascadeMessage;
-      }
-
-      logger.warn(`Attempted to delete user with related records: ${id}`, {
-        userId: req.user?.id,
-        targetUsername: userExists.rows[0].username,
-        blockingRecords: blockingRecords.length,
-        cascadeRecords: cascadeWarnings.length,
-        relatedRecords: counts,
-      });
-
-      return res.status(400).json({
-        success: false,
-        message: hasBlockingRecords
-          ? 'Cannot delete user: user has related records that must be removed first'
-          : 'Cannot delete user: deletion will cascade to related records',
-        error: {
-          code: hasBlockingRecords ? 'USER_HAS_DEPENDENCIES' : 'CASCADE_DELETE_WARNING',
-          details: detailMessage,
-          blockingRecords,
-          cascadeWarnings,
-          relatedRecordCounts: counts,
-        },
-      });
-    }
-
-    // No related records - safe to hard delete
-    const deleteQuery = `DELETE FROM users WHERE id = $1`;
-    await query(deleteQuery, [id]);
-
-    logger.info(`Hard deleted user: ${id}`, {
+    logger.info(`Soft deleted user: ${id}`, {
       userId: req.user?.id,
-      deletedUsername: userExists.rows[0].username,
+      deletedUsername: targetUser.username,
+      originalEmail: targetUser.email,
     });
 
     res.json({
       success: true,
-      message: 'User deleted successfully',
+      message: 'User deleted safely (Data preserved, User deactivated)',
     });
   } catch (error: unknown) {
     logger.error('Error deleting user:', error);
