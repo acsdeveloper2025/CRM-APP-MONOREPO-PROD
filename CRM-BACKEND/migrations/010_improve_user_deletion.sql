@@ -53,4 +53,15 @@ BEGIN
 END
 $$;
 
+
+-- Part 3: Backfill Missing Timestamps
+-- Ensures all users have createdAt/updatedAt
+UPDATE users
+SET
+    "createdAt" = COALESCE("createdAt", CURRENT_TIMESTAMP),
+    "updatedAt" = COALESCE("updatedAt", CURRENT_TIMESTAMP)
+WHERE
+    "createdAt" IS NULL
+    OR "updatedAt" IS NULL;
+
 COMMIT;
