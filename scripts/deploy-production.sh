@@ -308,7 +308,6 @@ install_dependencies() {
 
             # Install dependencies
             npm install --production=false
-            fi
 
             print_status "$component dependencies installed"
         fi
