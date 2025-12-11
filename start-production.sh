@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Production Service Startup Script
-# Starts backend and frontend services using PM2
+# Starts backend and frontend services using PM2 with ecosystem config
 
 set -e
 
@@ -16,17 +16,15 @@ echo -e "${BLUE}🚀 Starting CRM Production Services${NC}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
-# Start Backend
-echo -e "${GREEN}Starting Backend...${NC}"
-cd CRM-BACKEND
-pm2 start dist/index.js --name crm-backend --time
-cd ..
+# Check if ecosystem.config.js exists
+if [ ! -f "ecosystem.config.js" ]; then
+    echo -e "${RED}❌ ecosystem.config.js not found!${NC}"
+    exit 1
+fi
 
-# Start Frontend (using serve to serve the built files)
-echo -e "${GREEN}Starting Frontend...${NC}"
-cd CRM-FRONTEND
-pm2 serve dist 5173 --name crm-frontend --spa
-cd ..
+# Start services using PM2 ecosystem config
+echo -e "${GREEN}Starting services from ecosystem.config.js...${NC}"
+pm2 start ecosystem.config.js
 
 # Save PM2 process list
 pm2 save
