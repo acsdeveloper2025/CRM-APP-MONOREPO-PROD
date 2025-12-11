@@ -1,4 +1,4 @@
-import nodemailer, { Transporter } from 'nodemailer';
+import nodemailer from 'nodemailer';
 import { logger } from '../utils/logger';
 import path from 'path';
 import fs from 'fs/promises';
@@ -45,7 +45,9 @@ export interface ReportData {
 export class EmailDeliveryService {
   private static instance: EmailDeliveryService;
 
-  private transporter: Transporter | null = null;
+  // Using any due to CI type resolution issues with nodemailer
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private transporter: any = null;
   private config: EmailConfig;
 
   private constructor() {
