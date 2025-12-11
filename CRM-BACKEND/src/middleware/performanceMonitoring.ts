@@ -48,7 +48,11 @@ export const performanceMonitoring = (
   // Override res.end to capture metrics
   const originalEnd = res.end.bind(res);
 
-  res.end = function (chunk?: unknown, encodingOrCallback?: BufferEncoding | (() => void), callback?: () => void): Response {
+  res.end = function (
+    chunk?: unknown,
+    encodingOrCallback?: BufferEncoding | (() => void),
+    callback?: () => void
+  ): Response {
     const endTime = performance.now();
     const responseTime = endTime - startTime;
 
