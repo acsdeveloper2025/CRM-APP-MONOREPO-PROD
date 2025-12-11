@@ -289,7 +289,7 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
                   </div>
                 </TableCell>
                 <TableCell className="hidden lg:table-cell">
-                  {user.role === 'BACKEND_USER' ? (
+                  {(user.role === 'BACKEND_USER' || user.roleName === 'Backend User') ? (
                     <div className="text-sm">
                       <div className="flex items-center gap-1">
                         <span className="font-medium text-green-700">{user.assignedClientsCount || 0}</span>
@@ -300,7 +300,7 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
                         <span className="text-gray-600">products</span>
                       </div>
                     </div>
-                  ) : user.role === 'FIELD_AGENT' ? (
+                  ) : (user.role === 'FIELD_AGENT' || user.roleName === 'Field Agent') ? (
                     <div className="text-sm">
                       <div className="flex items-center gap-1">
                         <span className="font-medium text-green-700">{user.assignedPincodesCount || 0}</span>
@@ -498,7 +498,7 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
                   </div>
                 }
               />
-              {user.role === 'BACKEND_USER' && (
+              {(user.role === 'BACKEND_USER' || user.roleName === 'Backend User') && (
                 <MobileTableField
                   label="Assignments"
                   value={
@@ -515,7 +515,7 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
                   }
                 />
               )}
-              {user.role === 'FIELD_AGENT' && (
+              {(user.role === 'FIELD_AGENT' || user.roleName === 'Field Agent') && (
                 <MobileTableField
                   label="Territory Assignments"
                   value={
