@@ -193,14 +193,6 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
     );
   }
 
-  // Debug: Log keys and full object to identify case mismatches
-  if (data.length > 0) {
-    console.log('🔍 [FRONTEND] Received User Keys:', Object.keys(data[0]));
-    console.log('🔍 [FRONTEND] Full User Object:', data[0]);
-  }
-
-
-
   return (
     <>
       {/* Bulk Actions */}
