@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Search, CheckSquare, Square, Save } from 'lucide-react';
+import { Search, CheckSquare, Square } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -11,8 +11,6 @@ interface PincodeSelectionTabProps {
   selectedPincodeIds: Set<number>;
   onPincodeToggle: (pincodeId: number) => void;
   areaCountByPincode: Record<number, number>;
-  onSave: () => void;
-  isSaving: boolean;
 }
 
 export const PincodeSelectionTab: React.FC<PincodeSelectionTabProps> = ({
@@ -20,8 +18,6 @@ export const PincodeSelectionTab: React.FC<PincodeSelectionTabProps> = ({
   selectedPincodeIds,
   onPincodeToggle,
   areaCountByPincode,
-  onSave,
-  isSaving,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -153,17 +149,11 @@ export const PincodeSelectionTab: React.FC<PincodeSelectionTabProps> = ({
         </div>
       )}
 
-      {/* Save button */}
-      {selectedPincodeIds.size > 0 && (
-        <div className="flex justify-end pt-4 border-t gap-3">
-           <Button
-            onClick={onSave}
-            disabled={isSaving}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white"
-          >
-            <Save className="h-4 w-4 mr-2" />
-            {isSaving ? 'Saving...' : 'Save All Assignments'}
-          </Button>
+      {/* Total count display */}
+      {filteredPincodes.length > 0 && (
+        <div className="text-sm text-gray-600 text-center">
+          Showing {filteredPincodes.length} {filteredPincodes.length === 1 ? 'pincode' : 'pincodes'}
+          {searchTerm && ' (filtered)'}
         </div>
       )}
     </div>

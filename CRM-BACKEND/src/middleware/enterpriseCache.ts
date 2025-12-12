@@ -147,34 +147,48 @@ export class EnterpriseCache {
 
   /**
    * Cache invalidation middleware
+   * @param patterns - Array of cache key patterns to invalidate
+   * @param options - Configuration options
+   * @param options.synchronous - If true, wait for cache invalidation before sending response (prevents race conditions)
    */
-  static invalidate(patterns: string[]) {
+  static invalidate(patterns: string[], options: { synchronous?: boolean } = {}) {
     return (req: Request, res: Response, next: NextFunction) => {
       // Store original end method
       const originalEnd = res.end.bind(res);
 
       res.end = function (...args: unknown[]): Response {
-        // Call original end method
-        const result = originalEnd.apply(res, args);
-
-        // Invalidate cache patterns after response is sent
+        // Only invalidate on successful responses
         if (res.statusCode >= 200 && res.statusCode < 300) {
-          setImmediate(() => {
-            void (async () => {
-              try {
-                for (const pattern of patterns) {
-                  const resolvedPattern = EnterpriseCache.resolvePattern(pattern, req);
-                  await EnterpriseCacheService.clearByPattern(resolvedPattern);
-                  logger.debug('Cache invalidated', { pattern: resolvedPattern });
-                }
-              } catch (error) {
-                logger.error('Cache invalidation error:', error);
+          const invalidateCache = async () => {
+            try {
+              for (const pattern of patterns) {
+                const resolvedPattern = EnterpriseCache.resolvePattern(pattern, req);
+                await EnterpriseCacheService.clearByPattern(resolvedPattern);
+                logger.debug('Cache invalidated', { pattern: resolvedPattern });
               }
-            })();
-          });
+            } catch (error) {
+              logger.error('Cache invalidation error:', error);
+            }
+          };
+
+          if (options.synchronous) {
+            // Synchronous invalidation: wait for cache to clear before sending response
+            // This prevents race conditions but adds ~10-50ms latency
+            void invalidateCache().then(() => {
+              originalEnd.apply(res, args);
+            });
+            return res;
+          } else {
+            // Asynchronous invalidation: clear cache after response is sent (default)
+            // Better performance but may cause stale data on immediate refetch
+            setImmediate(() => {
+              void invalidateCache();
+            });
+          }
         }
 
-        return result;
+        // Call original end method for async invalidation or non-success responses
+        return originalEnd.apply(res, args);
       };
 
       next();

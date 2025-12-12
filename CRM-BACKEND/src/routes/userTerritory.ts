@@ -26,6 +26,7 @@ router.get(
 // Bulk save territory assignments
 router.post(
   '/:userId/territory-assignments/bulk',
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.assignmentUpdate, { synchronous: true }),
   [
     param('userId').isUUID().withMessage('Valid user ID is required'),
     body('assignments').isArray({ min: 1 }).withMessage('assignments array is required'),

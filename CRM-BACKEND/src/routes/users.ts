@@ -377,7 +377,7 @@ router.get(
 router.post(
   '/:userId/client-assignments',
   authenticateToken,
-  EnterpriseCache.invalidate(CacheInvalidationPatterns.assignmentUpdate),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.assignmentUpdate, { synchronous: true }),
   userIdValidation,
   clientAssignmentValidation,
   validate,
@@ -387,7 +387,7 @@ router.post(
 router.delete(
   '/:userId/client-assignments/:clientId',
   authenticateToken,
-  EnterpriseCache.invalidate(CacheInvalidationPatterns.assignmentUpdate),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.assignmentUpdate, { synchronous: true }),
   userIdValidation,
   clientIdValidation,
   validate,
@@ -406,7 +406,7 @@ router.get(
 router.post(
   '/:userId/product-assignments',
   authenticateToken,
-  EnterpriseCache.invalidate(CacheInvalidationPatterns.assignmentUpdate),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.assignmentUpdate, { synchronous: true }),
   userIdValidation,
   productAssignmentValidation,
   validate,
@@ -416,7 +416,7 @@ router.post(
 router.delete(
   '/:userId/product-assignments/:productId',
   authenticateToken,
-  EnterpriseCache.invalidate(CacheInvalidationPatterns.assignmentUpdate),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.assignmentUpdate, { synchronous: true }),
   userIdValidation,
   productIdValidation,
   validate,
