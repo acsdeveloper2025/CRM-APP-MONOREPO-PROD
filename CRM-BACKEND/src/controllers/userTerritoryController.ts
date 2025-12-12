@@ -2,7 +2,7 @@ import type { Response } from 'express';
 import { logger } from '../config/logger';
 import type { AuthenticatedRequest } from '../middleware/auth';
 import { query, pool } from '../config/database';
-import { EnterpriseCacheService } from '../services/enterpriseCacheService';
+import { EnterpriseCacheService, CacheKeys } from '../services/enterpriseCacheService';
 
 /**
  * GET /api/users/:userId/territory-assignments
@@ -177,10 +177,12 @@ export const bulkSaveTerritoryAssignments = async (req: AuthenticatedRequest, re
       areaCount,
     });
 
-    // Manually invalidate cache synchronously to prevent race conditions
-    // This ensures that when the client receives the response and refetches,
-    // the cache is already cleared.
-    await EnterpriseCacheService.clearByPattern('users:*');
+    // Manually invalidate cache synchronously
+    const deletedCount = await EnterpriseCacheService.clearByPattern('users:list:*');
+    logger.info(`Invalidated ${deletedCount} user list cache keys`);
+
+    // Also invalidate specific user cache just in case
+    await EnterpriseCacheService.delete(CacheKeys.user(userId));
 
     res.json({
       success: true,
