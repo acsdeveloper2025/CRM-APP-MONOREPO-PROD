@@ -2,6 +2,7 @@ import type { Response } from 'express';
 import { logger } from '../config/logger';
 import type { AuthenticatedRequest } from '../middleware/auth';
 import { query, pool } from '../config/database';
+import { EnterpriseCacheService } from '../services/enterpriseCacheService';
 
 /**
  * GET /api/users/:userId/territory-assignments
@@ -175,6 +176,11 @@ export const bulkSaveTerritoryAssignments = async (req: AuthenticatedRequest, re
       pincodeCount,
       areaCount,
     });
+
+    // Manually invalidate cache synchronously to prevent race conditions
+    // This ensures that when the client receives the response and refetches,
+    // the cache is already cleared.
+    await EnterpriseCacheService.clearByPattern('users:*');
 
     res.json({
       success: true,

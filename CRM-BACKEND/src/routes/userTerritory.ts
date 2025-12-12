@@ -40,7 +40,6 @@ router.post(
       .withMessage('Each areaId must be a valid integer'),
   ],
   validate,
-  EnterpriseCache.invalidate(CacheInvalidationPatterns.assignmentUpdate),
   bulkSaveTerritoryAssignments
 );
 
