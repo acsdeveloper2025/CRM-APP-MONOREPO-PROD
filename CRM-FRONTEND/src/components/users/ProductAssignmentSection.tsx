@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Package, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -19,36 +19,27 @@ export function ProductAssignmentSection({ user }: ProductAssignmentSectionProps
   const [selectedProductIds, setSelectedProductIds] = useState<number[]>([]);
   const queryClient = useQueryClient();
 
-  // Only show for BACKEND_USER users
-  if (user.role !== 'BACKEND_USER') {
-    return null;
-  }
-
   // Fetch all products
-  // eslint-disable-next-line react-hooks/rules-of-hooks
   const { data: productsData, isLoading: productsLoading } = useQuery({
     queryKey: ['products', 'all'],
     queryFn: () => productsService.getProducts({ limit: 100 }),
   });
 
   // Fetch current user product assignments
-  // eslint-disable-next-line react-hooks/rules-of-hooks
   const { data: assignmentsData, isLoading: assignmentsLoading } = useQuery({
     queryKey: ['user-product-assignments', user.id],
     queryFn: () => usersService.getUserProductAssignments(user.id),
   });
 
   // Update selected products when assignments data loads
-  // eslint-disable-next-line react-hooks/rules-of-hooks
   useEffect(() => {
     if (assignmentsData?.data) {
-      const assignedProductIds = assignmentsData.data.map((assignment: unknown) => assignment.productId);
+      const assignedProductIds = assignmentsData.data.map((assignment: { productId: number }) => assignment.productId);
       setSelectedProductIds(assignedProductIds);
     }
   }, [assignmentsData]);
 
   // Save assignments mutation
-  // eslint-disable-next-line react-hooks/rules-of-hooks
   const saveAssignmentsMutation = useMutation({
     mutationFn: (productIds: number[]) => usersService.assignProductsToUser(user.id, productIds),
     onSuccess: () => {
@@ -58,10 +49,15 @@ export function ProductAssignmentSection({ user }: ProductAssignmentSectionProps
       queryClient.invalidateQueries({ queryKey: ['user-product-assignments', user.id] });
       queryClient.invalidateQueries({ queryKey: ['user-stats'] });
     },
-    onError: (error: unknown) => {
+    onError: (error: { response?: { data?: { message?: string } } }) => {
       toast.error(error.response?.data?.message || 'Failed to update product assignments');
     },
   });
+
+  // Only show for BACKEND_USER users (moved after all hooks)
+  if (user.role !== 'BACKEND_USER') {
+    return null;
+  }
 
   const products = productsData?.data || [];
 

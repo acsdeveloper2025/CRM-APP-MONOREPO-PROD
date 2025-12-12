@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Building2, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -19,36 +19,27 @@ export function ClientAssignmentSection({ user }: ClientAssignmentSectionProps) 
   const [selectedClientIds, setSelectedClientIds] = useState<number[]>([]);
   const queryClient = useQueryClient();
 
-  // Only show for BACKEND_USER users
-  if (user.role !== 'BACKEND_USER') {
-    return null;
-  }
-
   // Fetch all clients
-  // eslint-disable-next-line react-hooks/rules-of-hooks
   const { data: clientsData, isLoading: clientsLoading } = useQuery({
     queryKey: ['clients', 'all'],
     queryFn: () => clientsService.getClients({ limit: 100 }),
   });
 
   // Fetch current user client assignments
-  // eslint-disable-next-line react-hooks/rules-of-hooks
   const { data: assignmentsData, isLoading: assignmentsLoading } = useQuery({
     queryKey: ['user-client-assignments', user.id],
     queryFn: () => usersService.getUserClientAssignments(user.id),
   });
 
   // Update selected clients when assignments data loads
-  // eslint-disable-next-line react-hooks/rules-of-hooks
   useEffect(() => {
     if (assignmentsData?.data) {
-      const assignedClientIds = assignmentsData.data.map((assignment: unknown) => assignment.clientId);
+      const assignedClientIds = assignmentsData.data.map((assignment: { clientId: number }) => assignment.clientId);
       setSelectedClientIds(assignedClientIds);
     }
   }, [assignmentsData]);
 
   // Save assignments mutation
-  // eslint-disable-next-line react-hooks/rules-of-hooks
   const saveAssignmentsMutation = useMutation({
     mutationFn: (clientIds: number[]) => usersService.assignClientsToUser(user.id, clientIds),
     onSuccess: () => {
@@ -58,10 +49,15 @@ export function ClientAssignmentSection({ user }: ClientAssignmentSectionProps) 
       queryClient.invalidateQueries({ queryKey: ['user-client-assignments', user.id] });
       queryClient.invalidateQueries({ queryKey: ['user-stats'] });
     },
-    onError: (error: unknown) => {
+    onError: (error: { response?: { data?: { message?: string } } }) => {
       toast.error(error.response?.data?.message || 'Failed to update client assignments');
     },
   });
+
+  // Only show for BACKEND_USER users (moved after all hooks)
+  if (user.role !== 'BACKEND_USER') {
+    return null;
+  }
 
   const clients = clientsData?.data || [];
 
