@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import { query } from '@/config/database';
 import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
-import type { EmailDeliveryService } from '@/services/EmailDeliveryService';
+import { EmailDeliveryService } from '@/services/EmailDeliveryService';
 
 // GET /api/users - List users with pagination and filters
 export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
