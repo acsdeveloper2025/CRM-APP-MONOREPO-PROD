@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { territoryAssignmentsService } from '@/services/territoryAssignments';
 import type {
   UserTerritoryAssignments,
@@ -6,7 +7,7 @@ import type {
   AreasByPincode,
   AvailableFieldAgent,
 } from '@/types/territoryAssignment';
-import toast from 'react-hot-toast';
+
 
 /**
  * Hook to fetch user's territory assignments
@@ -54,8 +55,8 @@ export const useBulkSaveTerritoryAssignments = (userId: string) => {
       // Invalidate and refetch territory assignments
       queryClient.invalidateQueries({ queryKey: ['userTerritoryAssignments', userId] });
 
-      // Invalidate field users cache so case creation forms get updated assignments
-      queryClient.invalidateQueries({ queryKey: ['users', 'field'] });
+      // Invalidate ALL user lists to ensure counts are updated in the main table
+      queryClient.invalidateQueries({ queryKey: ['users'] });
 
       // Invalidate specific user cache
       queryClient.invalidateQueries({ queryKey: ['user', userId] });

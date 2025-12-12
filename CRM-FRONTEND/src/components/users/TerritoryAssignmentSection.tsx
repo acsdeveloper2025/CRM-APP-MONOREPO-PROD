@@ -26,8 +26,8 @@ export const TerritoryAssignmentSection: React.FC<TerritoryAssignmentSectionProp
     new Map()
   );
 
-  // Fetch all pincodes
-  const { data: pincodesData, isLoading: pincodesLoading } = usePincodes();
+  // Fetch all pincodes (limit 10000 to ensure we get all/most for client-side search)
+  const { data: pincodesData, isLoading: pincodesLoading } = usePincodes({ limit: 10000 });
 
   // Fetch user's existing territory assignments
   const { data: existingAssignments, isLoading: assignmentsLoading } =
@@ -210,8 +210,6 @@ export const TerritoryAssignmentSection: React.FC<TerritoryAssignmentSectionProp
               selectedPincodeIds={selectedPincodeIds}
               onPincodeToggle={handlePincodeToggle}
               areaCountByPincode={areaCountByPincode}
-              onSave={handleSave}
-              isSaving={saveMutation.isPending}
             />
           </TabsContent>
 
