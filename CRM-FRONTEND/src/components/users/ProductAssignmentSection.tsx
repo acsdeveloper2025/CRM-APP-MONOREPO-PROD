@@ -53,17 +53,10 @@ export function ProductAssignmentSection({ user }: ProductAssignmentSectionProps
     mutationFn: (productIds: number[]) => usersService.assignProductsToUser(user.id, productIds),
     onSuccess: () => {
       toast.success('Product assignments updated successfully');
-      // Invalidate all queries related to this user to ensure Permission Summary updates
-      queryClient.invalidateQueries({
-        predicate: (query) => {
-          const queryKey = query.queryKey;
-          return (
-            (Array.isArray(queryKey) && queryKey.includes(user.id)) ||
-            (Array.isArray(queryKey) && queryKey[0] === 'user-product-assignments') ||
-            (Array.isArray(queryKey) && queryKey[0] === 'user' && queryKey[1] === user.id)
-          );
-        }
-      });
+      // Invalidate all user-related queries to ensure UI updates immediately
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      queryClient.invalidateQueries({ queryKey: ['user-product-assignments', user.id] });
+      queryClient.invalidateQueries({ queryKey: ['user-stats'] });
     },
     onError: (error: unknown) => {
       toast.error(error.response?.data?.message || 'Failed to update product assignments');

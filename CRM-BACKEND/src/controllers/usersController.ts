@@ -3,10 +3,9 @@ import bcrypt from 'bcryptjs';
 import { query } from '@/config/database';
 import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
-import { EmailDeliveryService } from '@/services/EmailDeliveryService';
+import type { EmailDeliveryService } from '@/services/EmailDeliveryService';
 
 // GET /api/users - List users with pagination and filters
-console.log('🚀 [LOADED] src/controllers/usersController.ts is being loaded!');
 export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const {
@@ -132,10 +131,12 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
         GROUP BY "userId"
       ) pincode_counts ON u.id = pincode_counts."userId"
       LEFT JOIN (
-        SELECT "userId", COUNT(*) as count
-        FROM "userAreaAssignments"
-        WHERE "isActive" = true
-        GROUP BY "userId"
+        SELECT uaa."userId", COUNT(*) as count
+        FROM "userAreaAssignments" uaa
+        INNER JOIN "userPincodeAssignments" upa 
+          ON uaa."userPincodeAssignmentId" = upa.id
+        WHERE uaa."isActive" = true AND upa."isActive" = true
+        GROUP BY uaa."userId"
       ) area_counts ON u.id = area_counts."userId"
       LEFT JOIN (
         SELECT "userId", ARRAY_AGG("clientId") as ids
@@ -154,10 +155,12 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
         GROUP BY "userId"
       ) pincode_arrays ON u.id = pincode_arrays."userId"
       LEFT JOIN (
-        SELECT "userId", ARRAY_AGG("areaId") as ids
-        FROM "userAreaAssignments"
-        WHERE "isActive" = true
-        GROUP BY "userId"
+        SELECT uaa."userId", ARRAY_AGG(uaa."areaId") as ids
+        FROM "userAreaAssignments" uaa
+        INNER JOIN "userPincodeAssignments" upa 
+          ON uaa."userPincodeAssignmentId" = upa.id
+        WHERE uaa."isActive" = true AND upa."isActive" = true
+        GROUP BY uaa."userId"
       ) area_arrays ON u.id = area_arrays."userId"
       ${whereClause}
       ORDER BY u.${safeSortBy} ${safeSortOrder}
@@ -183,11 +186,6 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
         totalPages: Math.ceil(total / Number(limit)),
       },
     };
-
-    if (usersResult.rows.length > 0) {
-      console.log('🔍 [BACKEND] Sample User Row Keys:', Object.keys(usersResult.rows[0]));
-      console.log('🔍 [BACKEND] Sample User Row Data:', usersResult.rows[0]);
-    }
 
     res.json(responseData);
   } catch (error) {
@@ -268,10 +266,12 @@ export const getUserById = async (req: AuthenticatedRequest, res: Response) => {
         GROUP BY "userId"
       ) pincode_counts ON u.id = pincode_counts."userId"
       LEFT JOIN (
-        SELECT "userId", COUNT(*) as count
-        FROM "userAreaAssignments"
-        WHERE "userId" = $1 AND "isActive" = true
-        GROUP BY "userId"
+        SELECT uaa."userId", COUNT(*) as count
+        FROM "userAreaAssignments" uaa
+        INNER JOIN "userPincodeAssignments" upa 
+          ON uaa."userPincodeAssignmentId" = upa.id
+        WHERE uaa."userId" = $1 AND uaa."isActive" = true AND upa."isActive" = true
+        GROUP BY uaa."userId"
       ) area_counts ON u.id = area_counts."userId"
       LEFT JOIN (
         SELECT "userId", ARRAY_AGG("clientId") as ids
@@ -292,10 +292,12 @@ export const getUserById = async (req: AuthenticatedRequest, res: Response) => {
         GROUP BY "userId"
       ) pincode_arrays ON u.id = pincode_arrays."userId"
       LEFT JOIN (
-        SELECT "userId", ARRAY_AGG("areaId") as ids
-        FROM "userAreaAssignments"
-        WHERE "userId" = $1 AND "isActive" = true
-        GROUP BY "userId"
+        SELECT uaa."userId", ARRAY_AGG(uaa."areaId") as ids
+        FROM "userAreaAssignments" uaa
+        INNER JOIN "userPincodeAssignments" upa 
+          ON uaa."userPincodeAssignmentId" = upa.id
+        WHERE uaa."userId" = $1 AND uaa."isActive" = true AND upa."isActive" = true
+        GROUP BY uaa."userId"
       ) area_arrays ON u.id = area_arrays."userId"
       WHERE u.id = $1
     `;
