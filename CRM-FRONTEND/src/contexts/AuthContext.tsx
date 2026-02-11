@@ -1,24 +1,9 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import type { AuthState, LoginRequest } from '@/types/auth';
 import { authService } from '@/services/auth';
-import toast from 'react-hot-toast';
-
-interface AuthContextType extends AuthState {
-  login: (credentials: LoginRequest) => Promise<boolean>;
-  logout: () => Promise<void>;
-  hasRole: (role: string) => boolean;
-  hasAnyRole: (roles: string[]) => boolean;
-}
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-};
+import { toast } from 'sonner';
+import { AuthContext, AuthContextType } from './AuthContextObject';
+import { AUTH_LOGOUT_EVENT } from '@/utils/events';
 
 interface AuthProviderProps {
   children: React.ReactNode;
@@ -93,6 +78,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     };
 
     initializeAuth();
+
+    // Listen for logout events (e.g. from 401 responses)
+    const handleLogoutEvent = () => {
+      logout();
+    };
+
+    window.addEventListener(AUTH_LOGOUT_EVENT, handleLogoutEvent);
+
+    return () => {
+      window.removeEventListener(AUTH_LOGOUT_EVENT, handleLogoutEvent);
+    };
   }, []);
 
   const login = async (credentials: LoginRequest): Promise<boolean> => {

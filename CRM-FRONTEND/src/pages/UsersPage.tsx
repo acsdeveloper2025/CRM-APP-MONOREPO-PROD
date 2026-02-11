@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import type { Role } from '@/types/auth';
 import { Plus, Upload, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -42,13 +43,19 @@ export function UsersPage() {
     syncWithUrl: true,
   });
 
+
+  interface UserFilters extends Record<string, unknown> {
+    role: Role;
+    status: string;
+  }
+
   // Unified filters
   const {
     filters,
     setFilter,
     clearFilters,
     hasActiveFilters,
-  } = useUnifiedFilters({
+  } = useUnifiedFilters<UserFilters>({
     syncWithUrl: true,
   });
 
@@ -294,14 +301,14 @@ export function UsersPage() {
               <UnifiedFilterPanel
                 hasActiveFilters={hasActiveFilters}
                 activeFilterCount={activeFilterCount}
-                onClearAll={clearFilters}
+                onClearFilters={clearFilters}
               >
-                <FilterGrid columns={2}>
+                <FilterGrid columns={{ sm: 1, md: 2 }}>
                   <div className="space-y-2">
                     <Label>Role</Label>
                     <Select
                       value={filterRole || 'all'}
-                      onValueChange={(value) => setFilter('role', value === 'all' ? undefined : value)}
+                      onValueChange={(value) => setFilter('role', value === 'all' ? undefined : (value as Role))}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="All Roles" />
@@ -345,7 +352,7 @@ export function UsersPage() {
               {usersData?.pagination && (
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
                   <div className="text-sm text-gray-600">
-                    Showing {usersData.data.length} of {usersData.pagination.total} users
+                    Showing {usersData.data?.length || 0} of {usersData.pagination.total} users
                   </div>
                   <div className="flex items-center gap-2">
                     <Button

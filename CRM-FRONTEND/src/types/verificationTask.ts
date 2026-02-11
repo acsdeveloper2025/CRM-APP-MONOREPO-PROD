@@ -332,6 +332,8 @@ export interface VerificationTaskListResponse {
     pending: number;
     assigned: number;
     completed: number;
+    inProgress: number;
+    urgent: number;
   };
 }
 

@@ -8,8 +8,8 @@ import type {
   CreateVerificationTypeData,
   UpdateVerificationTypeData
 } from '@/types/client';
-import type { PaginationQuery } from '@/types/api';
-import toast from 'react-hot-toast';
+import type { PaginationQuery, ApiErrorResponse } from '@/types/api';
+import { toast } from 'sonner';
 
 // Query keys
 export const clientKeys = {
@@ -70,9 +70,9 @@ export const useProduct = (id: string) => {
   });
 };
 
-export const useProductsByClient = (clientId: string) => {
+export const useProductsByClient = (clientId?: string) => {
   return useQuery({
-    queryKey: productKeys.byClient(clientId),
+    queryKey: productKeys.byClient(clientId || ''),
     queryFn: () => clientsService.getProductsByClient(Number(clientId)),
     enabled: !!clientId,
   });
@@ -118,7 +118,7 @@ export const useCreateClient = () => {
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       toast.success('Client created successfully');
     },
-    onError: (error: unknown) => {
+    onError: (error: ApiErrorResponse) => {
       toast.error(error.response?.data?.message || 'Failed to create client');
     },
   });
@@ -129,7 +129,7 @@ export const useUpdateClient = () => {
 
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: UpdateClientData }) =>
-      clientsService.updateClient(id, data),
+      clientsService.updateClient(Number(id), data),
     onSuccess: () => {
       // Invalidate all client-related queries to ensure lists update
       queryClient.invalidateQueries({
@@ -140,7 +140,7 @@ export const useUpdateClient = () => {
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       toast.success('Client updated successfully');
     },
-    onError: (error: unknown) => {
+    onError: (error: ApiErrorResponse) => {
       toast.error(error.response?.data?.message || 'Failed to update client');
     },
   });
@@ -150,7 +150,7 @@ export const useDeleteClient = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: string) => clientsService.deleteClient(id),
+    mutationFn: (id: string) => clientsService.deleteClient(Number(id)),
     onSuccess: () => {
       // Invalidate all client-related queries to ensure lists update
       queryClient.invalidateQueries({
@@ -161,7 +161,7 @@ export const useDeleteClient = () => {
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       toast.success('Client deleted successfully');
     },
-    onError: (error: unknown) => {
+    onError: (error: ApiErrorResponse) => {
       toast.error(error.response?.data?.message || 'Failed to delete client');
     },
   });
@@ -178,7 +178,7 @@ export const useCreateProduct = () => {
       queryClient.invalidateQueries({ queryKey: clientKeys.all });
       toast.success('Product created successfully');
     },
-    onError: (error: unknown) => {
+    onError: (error: ApiErrorResponse) => {
       toast.error(error.response?.data?.message || 'Failed to create product');
     },
   });
@@ -189,12 +189,12 @@ export const useUpdateProduct = () => {
 
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: UpdateProductData }) =>
-      clientsService.updateProduct(id, data),
+      clientsService.updateProduct(Number(id), data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: productKeys.all });
       toast.success('Product updated successfully');
     },
-    onError: (error: unknown) => {
+    onError: (error: ApiErrorResponse) => {
       toast.error(error.response?.data?.message || 'Failed to update product');
     },
   });
@@ -204,12 +204,12 @@ export const useDeleteProduct = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: string) => clientsService.deleteProduct(id),
+    mutationFn: (id: string) => clientsService.deleteProduct(Number(id)),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: productKeys.all });
       toast.success('Product deleted successfully');
     },
-    onError: (error: unknown) => {
+    onError: (error: ApiErrorResponse) => {
       toast.error(error.response?.data?.message || 'Failed to delete product');
     },
   });
@@ -225,7 +225,7 @@ export const useCreateVerificationType = () => {
       queryClient.invalidateQueries({ queryKey: verificationTypeKeys.all });
       toast.success('Verification type created successfully');
     },
-    onError: (error: unknown) => {
+    onError: (error: ApiErrorResponse) => {
       toast.error(error.response?.data?.message || 'Failed to create verification type');
     },
   });
@@ -236,12 +236,12 @@ export const useUpdateVerificationType = () => {
 
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: UpdateVerificationTypeData }) =>
-      clientsService.updateVerificationType(id, data),
+      clientsService.updateVerificationType(Number(id), data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: verificationTypeKeys.all });
       toast.success('Verification type updated successfully');
     },
-    onError: (error: unknown) => {
+    onError: (error: ApiErrorResponse) => {
       toast.error(error.response?.data?.message || 'Failed to update verification type');
     },
   });
@@ -251,12 +251,12 @@ export const useDeleteVerificationType = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: string) => clientsService.deleteVerificationType(id),
+    mutationFn: (id: string) => clientsService.deleteVerificationType(Number(id)),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: verificationTypeKeys.all });
       toast.success('Verification type deleted successfully');
     },
-    onError: (error: unknown) => {
+    onError: (error: ApiErrorResponse) => {
       toast.error(error.response?.data?.message || 'Failed to delete verification type');
     },
   });

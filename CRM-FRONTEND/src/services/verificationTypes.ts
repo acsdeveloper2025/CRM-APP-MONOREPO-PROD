@@ -44,7 +44,8 @@ export interface VerificationTypeListQuery extends PaginationQuery {
 
 export class VerificationTypesService {
   async getVerificationTypes(query: VerificationTypeListQuery = {}): Promise<PaginatedResponse<VerificationType>> {
-    return apiService.get('/verification-types', query);
+    const response = await apiService.get<VerificationType[]>('/verification-types', query);
+    return response as PaginatedResponse<VerificationType>;
   }
 
   async getVerificationTypeById(id: string): Promise<ApiResponse<VerificationType>> {

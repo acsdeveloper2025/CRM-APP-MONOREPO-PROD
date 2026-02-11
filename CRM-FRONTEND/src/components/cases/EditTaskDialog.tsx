@@ -28,7 +28,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { VerificationTask } from '@/types/verificationTask';
+import { VerificationTask, TaskPriority } from '@/types/verificationTask';
 import { User } from '@/types/user';
 import { useUpdateVerificationTask } from '@/hooks/useVerificationTasks';
 import { useFieldUsers } from '@/hooks/useUsers';
@@ -103,13 +103,23 @@ export const EditTaskDialog: React.FC<EditTaskDialogProps> = ({
       console.warn('🔍 EditTaskDialog - handleSubmit START', {
         taskId: task.id,
         taskStatus: task.status,
-        taskType: (task as unknown).taskType,
         currentAssignedTo: task.assignedTo,
         formData: data,
       });
 
       // Build submission data, only including assignedTo if actually assigned
-      const submissionData: unknown = {
+      const submissionData: {
+        taskTitle: string;
+        taskDescription?: string;
+        priority: TaskPriority;
+        address: string;
+        pincode: string;
+        trigger?: string;
+        applicantType?: string;
+        rateTypeId?: number;
+        caseId: string;
+        assignedTo?: string | null;
+      } = {
         taskTitle: data.taskTitle,
         taskDescription: data.taskDescription,
         priority: data.priority,
@@ -262,7 +272,7 @@ export const EditTaskDialog: React.FC<EditTaskDialogProps> = ({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {rateTypes.map((rateType: unknown) => (
+                        {rateTypes.map((rateType: { id: number; name: string; description?: string; isActive: boolean }) => (
                           <SelectItem key={rateType.id} value={rateType.id.toString()}>
                             {rateType.name}
                           </SelectItem>

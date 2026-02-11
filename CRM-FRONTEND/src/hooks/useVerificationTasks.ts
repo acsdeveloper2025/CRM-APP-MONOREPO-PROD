@@ -1,15 +1,27 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiService as api } from '@/services/api';
-import type { UpdateVerificationTaskRequest, CreateVerificationTaskRequest, VerificationTaskListResponse } from '@/types/verificationTask';
+import { VerificationTasksService } from '@/services/verificationTasks';
+import type { UpdateVerificationTaskRequest, CreateVerificationTaskRequest, AssignVerificationTaskRequest, VerificationTaskListResponse, TasksForCaseResponse } from '@/types/verificationTask';
 
 export const useVerificationTasks = (caseId: string) => {
   return useQuery({
     queryKey: ['verification-tasks', caseId],
     queryFn: async () => {
-      const response = await api.get(`/cases/${caseId}/verification-tasks`);
+      const response = await api.get<TasksForCaseResponse['data']>(`/cases/${caseId}/verification-tasks`);
       return response.data;
     },
     enabled: !!caseId,
+  });
+};
+
+export const useVerificationTask = (taskId: string) => {
+  return useQuery({
+    queryKey: ['verification-task', taskId],
+    queryFn: async () => {
+      const response = await VerificationTasksService.getTaskById(taskId);
+      return response.data;
+    },
+    enabled: !!taskId,
   });
 };
 
@@ -41,6 +53,21 @@ export const useCreateVerificationTasks = (caseId: string) => {
   });
 };
 
+export const useAssignVerificationTask = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ taskId, data }: { taskId: string; data: AssignVerificationTaskRequest }) => {
+      const response = await VerificationTasksService.assignTask(taskId, data);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['verification-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['all-verification-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['cases'] });
+    },
+  });
+};
+
 export const useAllVerificationTasks = (filters: Record<string, unknown> = {}) => {
   const queryKey = ['all-verification-tasks', filters];
 
@@ -58,7 +85,7 @@ export const useAllVerificationTasks = (filters: Record<string, unknown> = {}) =
     loading: isLoading,
     error: error ? (error as Error).message : null,
     pagination: data?.pagination || { page: 1, limit: 20, total: 0, totalPages: 0 },
-    statistics: data?.statistics || { pending: 0, assigned: 0, completed: 0 },
+    statistics: data?.statistics || { pending: 0, assigned: 0, completed: 0, inProgress: 0, urgent: 0 },
     refreshTasks: refetch,
   };
 };

@@ -46,23 +46,23 @@ class DesignationsService {
     const queryString = searchParams.toString();
     const url = queryString ? `${this.baseUrl}?${queryString}` : this.baseUrl;
 
-    const response = await apiService.get<DesignationsResponse>(url);
-    return response;
+    const response = await apiService.get<Designation[]>(url);
+    return response as DesignationsResponse;
   }
 
   async getDesignationById(id: number): Promise<DesignationResponse> {
-    const response = await apiService.get<DesignationResponse>(`${this.baseUrl}/${id}`);
-    return response;
+    const response = await apiService.get<Designation>(`${this.baseUrl}/${id}`);
+    return response as DesignationResponse;
   }
 
   async createDesignation(data: CreateDesignationRequest): Promise<DesignationResponse> {
-    const response = await apiService.post<DesignationResponse>(this.baseUrl, data);
-    return response;
+    const response = await apiService.post<Designation>(this.baseUrl, data);
+    return response as DesignationResponse;
   }
 
   async updateDesignation(id: number, data: UpdateDesignationRequest): Promise<DesignationResponse> {
-    const response = await apiService.put<DesignationResponse>(`${this.baseUrl}/${id}`, data);
-    return response;
+    const response = await apiService.put<Designation>(`${this.baseUrl}/${id}`, data);
+    return response as DesignationResponse;
   }
 
   async deleteDesignation(id: number): Promise<{ success: boolean; message: string }> {
@@ -77,8 +77,8 @@ class DesignationsService {
     const queryString = searchParams.toString();
     const url = queryString ? `${this.baseUrl}/active?${queryString}` : `${this.baseUrl}/active`;
 
-    const response = await apiService.get<DesignationsResponse>(url);
-    return response;
+    const response = await apiService.get<Designation[]>(url);
+    return response as DesignationsResponse;
   }
 
   // Helper method to get designations for a specific department

@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { useQuery } from '@tanstack/react-query';
 import { Building, MapPin, Calendar, Globe } from 'lucide-react';
 import {
@@ -24,7 +24,7 @@ interface CityDetailsDialogProps {
 export function CityDetailsDialog({ city, open, onOpenChange }: CityDetailsDialogProps) {
   const { data: pincodesData, isLoading } = useQuery({
     queryKey: ['city-pincodes', city.id],
-    queryFn: () => locationsService.getPincodesByCity(city.id),
+    queryFn: () => locationsService.getPincodesByCity(city.id.toString()),
     enabled: open,
   });
 

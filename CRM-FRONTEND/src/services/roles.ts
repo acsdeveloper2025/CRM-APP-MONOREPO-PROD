@@ -21,31 +21,31 @@ class RolesService {
     if (params.includeInactive) {queryParams.append('includeInactive', params.includeInactive.toString());}
     if (params.systemRolesOnly) {queryParams.append('systemRolesOnly', params.systemRolesOnly.toString());}
 
-    const response = await apiService.get<PaginatedResponse<RoleData>>(`/roles?${queryParams.toString()}`);
-    return response;
+    const response = await apiService.get<RoleData[]>(`/roles?${queryParams.toString()}`);
+    return response as PaginatedResponse<RoleData>;
   }
 
   // Get role by ID
   async getRoleById(id: string): Promise<ApiResponse<RoleData>> {
-    const response = await apiService.get<ApiResponse<RoleData>>(`/roles/${id}`);
+    const response = await apiService.get<RoleData>(`/roles/${id}`);
     return response;
   }
 
   // Create new role
   async createRole(data: CreateRoleRequest): Promise<ApiResponse<RoleData>> {
-    const response = await apiService.post<ApiResponse<RoleData>>('/roles', data);
+    const response = await apiService.post<RoleData>('/roles', data);
     return response;
   }
 
   // Update role
   async updateRole(id: string, data: UpdateRoleRequest): Promise<ApiResponse<RoleData>> {
-    const response = await apiService.put<ApiResponse<RoleData>>(`/roles/${id}`, data);
+    const response = await apiService.put<RoleData>(`/roles/${id}`, data);
     return response;
   }
 
   // Delete role
   async deleteRole(id: string): Promise<ApiResponse<void>> {
-    const response = await apiService.delete<ApiResponse<void>>(`/roles/${id}`);
+    const response = await apiService.delete<void>(`/roles/${id}`);
     return response;
   }
 

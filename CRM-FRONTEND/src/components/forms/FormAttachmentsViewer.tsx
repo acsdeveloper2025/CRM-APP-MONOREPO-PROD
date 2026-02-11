@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Camera, FileText, PenTool, Download, Eye, MapPin, Clock } from 'lucide-react';
+import { Camera, FileText, PenTool, Download, Eye, Clock } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -15,27 +15,27 @@ export function FormAttachmentsViewer({ attachments, readonly: _readonly = true 
   const [selectedAttachment, setSelectedAttachment] = useState<FormAttachment | null>(null);
   const [showPreview, setShowPreview] = useState(false);
 
-  const getAttachmentIcon = (type: FormAttachment['type']) => {
-    switch (type) {
-      case 'photo':
+  const getAttachmentIcon = (category: FormAttachment['category']) => {
+    switch (category) {
+      case 'PHOTO':
         return <Camera className="h-4 w-4" />;
-      case 'document':
+      case 'DOCUMENT':
         return <FileText className="h-4 w-4" />;
-      case 'signature':
+      case 'OTHER':
         return <PenTool className="h-4 w-4" />;
       default:
         return <FileText className="h-4 w-4" />;
     }
   };
 
-  const getAttachmentTypeBadge = (type: FormAttachment['type']) => {
+  const getAttachmentTypeBadge = (category: FormAttachment['category']) => {
     const typeConfig = {
-      photo: { variant: 'default' as const, label: 'Photo' },
-      document: { variant: 'secondary' as const, label: 'Document' },
-      signature: { variant: 'outline' as const, label: 'Signature' },
+      PHOTO: { variant: 'default' as const, label: 'Photo' },
+      DOCUMENT: { variant: 'secondary' as const, label: 'Document' },
+      OTHER: { variant: 'outline' as const, label: 'Other' },
     };
     
-    const config = typeConfig[type] || typeConfig.document;
+    const config = typeConfig[category] || typeConfig.DOCUMENT;
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
@@ -60,7 +60,7 @@ export function FormAttachmentsViewer({ attachments, readonly: _readonly = true 
     // Create a temporary link to download the file
     const link = document.createElement('a');
     link.href = attachment.url;
-    link.download = attachment.name;
+    link.download = attachment.originalName;
     link.target = '_blank';
     document.body.appendChild(link);
     link.click();
@@ -68,10 +68,10 @@ export function FormAttachmentsViewer({ attachments, readonly: _readonly = true 
   };
 
   const groupedAttachments = attachments.reduce((acc, attachment) => {
-    if (!acc[attachment.type]) {
-      acc[attachment.type] = [];
+    if (!acc[attachment.category]) {
+      acc[attachment.category] = [];
     }
-    acc[attachment.type].push(attachment);
+    acc[attachment.category].push(attachment);
     return acc;
   }, {} as Record<string, FormAttachment[]>);
 
@@ -96,30 +96,30 @@ export function FormAttachmentsViewer({ attachments, readonly: _readonly = true 
             </div>
           ) : (
             <div className="space-y-6">
-              {Object.entries(groupedAttachments).map(([type, typeAttachments]) => (
-                <div key={type}>
+              {Object.entries(groupedAttachments).map(([category, categoryAttachments]) => (
+                <div key={category}>
                   <div className="flex items-center space-x-2 mb-3">
-                    {getAttachmentIcon(type as FormAttachment['type'])}
-                    <h4 className="font-medium capitalize">{type}s</h4>
+                    {getAttachmentIcon(category as FormAttachment['category'])}
+                    <h4 className="font-medium capitalize">{category.toLowerCase()}s</h4>
                     <Badge variant="outline" className="text-xs">
-                      {typeAttachments.length}
+                      {categoryAttachments.length}
                     </Badge>
                   </div>
                   
                   <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {typeAttachments.map((attachment) => (
+                    {categoryAttachments.map((attachment) => (
                       <div
                         key={attachment.id}
                         className="border rounded-lg p-4 hover:bg-muted/50 transition-colors"
                       >
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex items-center space-x-2">
-                            {getAttachmentIcon(attachment.type)}
+                            {getAttachmentIcon(attachment.category)}
                             <span className="text-sm font-medium truncate">
-                              {attachment.name}
+                              {attachment.originalName}
                             </span>
                           </div>
-                          {getAttachmentTypeBadge(attachment.type)}
+                          {getAttachmentTypeBadge(attachment.category)}
                         </div>
 
                         {/* Image Preview */}
@@ -127,7 +127,7 @@ export function FormAttachmentsViewer({ attachments, readonly: _readonly = true 
                           <div className="mb-3">
                             <img
                               src={attachment.url}
-                              alt={attachment.name}
+                              alt={attachment.originalName}
                               className="w-full h-32 object-cover rounded-md cursor-pointer hover:opacity-80 transition-opacity"
                               onClick={() => handlePreview(attachment)}
                             />
@@ -143,23 +143,12 @@ export function FormAttachmentsViewer({ attachments, readonly: _readonly = true 
                           
                           <div className="flex items-center space-x-1">
                             <Clock className="h-3 w-3" />
-                            <span>{new Date(attachment.capturedAt).toLocaleString()}</span>
+                            <span>{new Date(attachment.uploadedAt).toLocaleString()}</span>
                           </div>
 
-                          {attachment.location && (
-                            <div className="flex items-center space-x-1">
-                              <MapPin className="h-3 w-3" />
-                              <span>
-                                {attachment.location.latitude.toFixed(6)}, {attachment.location.longitude.toFixed(6)}
-                              </span>
-                            </div>
-                          )}
-
-                          {attachment.description && (
-                            <div className="text-xs">
-                              <span className="font-medium">Note:</span> {attachment.description}
-                            </div>
-                          )}
+                          <div className="text-xs">
+                            <span className="font-medium">Filename:</span> {attachment.filename}
+                          </div>
                         </div>
 
                         {/* Actions */}
@@ -201,8 +190,8 @@ export function FormAttachmentsViewer({ attachments, readonly: _readonly = true 
           <DialogHeader>
             <DialogTitle className="flex items-center space-x-2">
               <Camera className="h-5 w-5" />
-              <span>{selectedAttachment?.name}</span>
-              {selectedAttachment && getAttachmentTypeBadge(selectedAttachment.type)}
+              <span>{selectedAttachment?.originalName}</span>
+              {selectedAttachment && getAttachmentTypeBadge(selectedAttachment.category)}
             </DialogTitle>
           </DialogHeader>
           
@@ -213,7 +202,7 @@ export function FormAttachmentsViewer({ attachments, readonly: _readonly = true 
                 <div className="flex justify-center">
                   <img
                     src={selectedAttachment.url}
-                    alt={selectedAttachment.name}
+                    alt={selectedAttachment.originalName}
                     className="max-w-full max-h-[60vh] object-contain rounded-lg"
                   />
                 </div>
@@ -226,33 +215,13 @@ export function FormAttachmentsViewer({ attachments, readonly: _readonly = true 
                   <div className="space-y-1 text-gray-600">
                     <div>Size: {formatFileSize(selectedAttachment.size)}</div>
                     <div>Type: {selectedAttachment.mimeType}</div>
-                    <div>Captured: {new Date(selectedAttachment.capturedAt).toLocaleString()}</div>
+                    <div>Uploaded: {new Date(selectedAttachment.uploadedAt).toLocaleString()}</div>
+                    <div>Filename: {selectedAttachment.filename}</div>
+                    <div>Original Name: {selectedAttachment.originalName}</div>
                   </div>
                 </div>
-
-                {selectedAttachment.location && (
-                  <div>
-                    <h4 className="font-medium mb-2">Location Information</h4>
-                    <div className="space-y-1 text-gray-600">
-                      <div>Latitude: {selectedAttachment.location.latitude.toFixed(6)}</div>
-                      <div>Longitude: {selectedAttachment.location.longitude.toFixed(6)}</div>
-                      <div>Accuracy: {selectedAttachment.location.accuracy}m</div>
-                      {selectedAttachment.location.address && (
-                        <div>Address: {selectedAttachment.location.address}</div>
-                      )}
-                    </div>
-                  </div>
-                )}
               </div>
 
-              {selectedAttachment.description && (
-                <div>
-                  <h4 className="font-medium mb-2">Description</h4>
-                  <p className="text-sm text-gray-600">
-                    {selectedAttachment.description}
-                  </p>
-                </div>
-              )}
 
               {/* Actions */}
               <div className="flex justify-end space-x-2">

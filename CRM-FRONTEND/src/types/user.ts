@@ -16,6 +16,7 @@ export interface User {
   employeeId: string;
   designation: string;
   designationId?: number;
+  designationName?: string;
   department?: string; // Legacy display field
   departmentId?: number;
   departmentName?: string;

@@ -18,6 +18,23 @@ export interface ErrorHandlingOptions {
   context?: string;
 }
 
+interface ApiError {
+  code?: string;
+  message?: string;
+  details?: unknown;
+  statusCode?: number;
+  response?: {
+    data?: {
+      message?: string;
+      error?: {
+        code?: string;
+        details?: unknown;
+      };
+    };
+    status?: number;
+  };
+}
+
 export function useErrorHandling() {
   const [errors, setErrors] = useState<AppError[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -34,12 +51,14 @@ export function useErrorHandling() {
       context,
     } = options;
 
+    const err = error as ApiError;
+
     // Parse error into standardized format
     const appError: AppError = {
-      code: error.code || error.response?.data?.error?.code || 'UNKNOWN_ERROR',
-      message: error.message || error.response?.data?.message || fallbackMessage,
-      details: error.response?.data?.error?.details || error.details,
-      statusCode: error.response?.status || error.statusCode,
+      code: err.code || err.response?.data?.error?.code || 'UNKNOWN_ERROR',
+      message: err.message || err.response?.data?.message || fallbackMessage,
+      details: err.response?.data?.error?.details || err.details,
+      statusCode: err.response?.status || err.statusCode,
       timestamp: new Date().toISOString(),
       context,
     };
@@ -64,7 +83,7 @@ export function useErrorHandling() {
 
       if (appError.statusCode && appError.statusCode >= 500) {
         toast.error(toastMessage, {
-          description: hasDetailedError ? appError.details : 'Please try again later or contact support if the problem persists.',
+          description: hasDetailedError ? (appError.details as string) : 'Please try again later or contact support if the problem persists.',
           duration: toastDuration,
         });
       } else if (appError.statusCode === 401) {
@@ -82,7 +101,7 @@ export function useErrorHandling() {
       } else if (hasDetailedError) {
         // Show detailed error with description for 400-level errors
         toast.error(toastMessage, {
-          description: appError.details,
+          description: appError.details as string,
           duration: toastDuration,
         });
       } else {
@@ -129,13 +148,10 @@ export function useErrorHandling() {
     delay: number = 1000,
     options: ErrorHandlingOptions = {}
   ): Promise<T | null> => {
-    let _lastError: unknown;
-
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         return await operation();
       } catch (error) {
-        _lastError = error;
         
         if (attempt === maxRetries) {
           handleError(error, {
@@ -189,6 +205,10 @@ function logErrorToService(appError: AppError, originalError: unknown) {
   // In a real application, you would send this to your error monitoring service
   // Examples: Sentry, LogRocket, Bugsnag, etc.
 
+  const errorDetails = originalError instanceof Error
+    ? { name: originalError.name, message: originalError.message, stack: originalError.stack }
+    : { name: 'Unknown', message: String(originalError), stack: undefined };
+
   const _errorData = {
     ...appError,
     userAgent: navigator.userAgent,
@@ -197,15 +217,12 @@ function logErrorToService(appError: AppError, originalError: unknown) {
     sessionId: getSessionId(),
     buildVersion: import.meta.env.VITE_APP_VERSION || 'unknown',
     environment: import.meta.env.MODE,
-    originalError: {
-      name: originalError.name,
-      message: originalError.message,
-      stack: originalError.stack,
-    },
+    originalError: errorDetails,
   };
 
   // Example: Send to monitoring service
-  // console.warn('Error logged to service:', _errorData); // silenced in production
+  // Example: Send to monitoring service
+  console.warn('Error logged to service:', _errorData);
 
   // Uncomment and configure for your monitoring service:
   // Sentry.captureException(originalError, { extra: _errorData });

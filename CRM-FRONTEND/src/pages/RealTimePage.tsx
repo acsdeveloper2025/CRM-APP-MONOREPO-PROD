@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Activity, Wifi, Bell, Users, MapPin, MessageSquare } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -9,7 +9,7 @@ import { RealTimeDashboard } from '@/components/realtime/RealTimeDashboard';
 import { RealTimeCaseUpdates } from '@/components/realtime/RealTimeCaseUpdates';
 import { ConnectionStatus } from '@/components/realtime/ConnectionStatus';
 import { useWebSocket } from '@/hooks/useWebSocket';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 
 export function RealTimePage() {
   const [activeTab, setActiveTab] = useState('dashboard');

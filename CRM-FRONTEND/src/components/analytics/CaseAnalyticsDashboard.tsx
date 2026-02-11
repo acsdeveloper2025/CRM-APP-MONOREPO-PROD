@@ -44,7 +44,7 @@ export const CaseAnalyticsDashboard: React.FC = () => {
   const cases = analyticsData?.data?.cases || [];
   const summary = analyticsData?.data?.summary;
   const clients = clientsData?.data || [];
-  const agents = agentsData?.data || [];
+  const agents = agentsData || [];
 
   const handleFilterChange = (key: keyof CaseAnalyticsQuery, value: string) => {
     setFilters(prev => ({

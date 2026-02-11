@@ -27,7 +27,7 @@ import { productsService } from '@/services/products';
 import { documentTypeRatesService } from '@/services/documentTypeRates';
 import { apiService } from '@/services/api';
 import { Trash2, Edit, Plus, IndianRupee } from 'lucide-react';
-import type { DocumentType } from '@/types/documentTypeRates';
+import type { DocumentType, DocumentTypeRate } from '@/types/documentTypeRates';
 
 export function DocumentTypeRatesTab() {
   const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
@@ -150,7 +150,7 @@ export function DocumentTypeRatesTab() {
     });
   };
 
-  const handleEditRate = (rate: unknown) => {
+  const handleEditRate = (rate: DocumentTypeRate) => {
     setSelectedClientId(rate.clientId);
     setSelectedProductId(rate.productId);
     setSelectedDocumentTypeId(rate.documentTypeId);

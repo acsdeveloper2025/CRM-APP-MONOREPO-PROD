@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useCaseAttachments } from '@/hooks/useCases';
+import type { Attachment } from '@/services/attachments';
 import {
   Upload,
   FileText,
@@ -13,22 +14,10 @@ import {
   Paperclip
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 
 interface CaseAttachmentsSectionProps {
   caseId: string;
-}
-
-interface Attachment {
-  id: string;
-  filename: string;
-  originalName: string;
-  mimeType: string;
-  size: number;
-  uploadedAt: string;
-  uploadedBy?: string;
-  description?: string;
-  category?: string;
 }
 
 const ALLOWED_FILE_TYPES = {
@@ -51,7 +40,7 @@ export const CaseAttachmentsSection: React.FC<CaseAttachmentsSectionProps> = ({ 
   const [showPreview, setShowPreview] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const attachments = attachmentsResponse?.data || [];
+  const attachments = (attachmentsResponse?.data || []) as Attachment[];
 
   const validateFile = (file: File): string | null => {
     if (!Object.keys(ALLOWED_FILE_TYPES).includes(file.type)) {
@@ -336,7 +325,7 @@ export const CaseAttachmentsSection: React.FC<CaseAttachmentsSectionProps> = ({ 
                 <div>
                   <p className="text-sm font-medium">{attachment.originalName}</p>
                   <p className="text-xs text-gray-600">
-                    {formatFileSize(attachment.size)} • {new Date(attachment.uploadedAt).toLocaleDateString()}
+                    {formatFileSize(attachment.fileSize)} • {new Date(attachment.createdAt).toLocaleDateString()}
                   </p>
                 </div>
               </div>

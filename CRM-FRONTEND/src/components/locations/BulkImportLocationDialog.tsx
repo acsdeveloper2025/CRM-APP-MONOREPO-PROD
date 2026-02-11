@@ -12,8 +12,17 @@ import {
 } from '@/components/ui/dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 import { locationsService } from '@/services/locations';
+import { ApiErrorResponse } from '@/types/api';
+
+interface ImportResult {
+  success: boolean;
+  message?: string;
+  imported?: number;
+  failed?: number;
+  errors?: string[];
+}
 
 interface BulkImportLocationDialogProps {
   open: boolean;
@@ -24,7 +33,7 @@ interface BulkImportLocationDialogProps {
 export function BulkImportLocationDialog({ open, onOpenChange, type }: BulkImportLocationDialogProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [importResult, setImportResult] = useState<unknown>(null);
+  const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
 
@@ -41,14 +50,16 @@ export function BulkImportLocationDialog({ open, onOpenChange, type }: BulkImpor
       }
     },
     onSuccess: (result) => {
-      setImportResult(result);
+      // Cast the result to unknown first, then to ImportResult to satisfy TypeScript
+      // This assumes the API returns the result structure matching ImportResult
+      setImportResult(result as unknown as ImportResult);
       queryClient.invalidateQueries({ queryKey: [type] });
       if (type === 'pincodes') {
         queryClient.invalidateQueries({ queryKey: ['cities'] });
       }
       toast.success(`${type} imported successfully`);
     },
-    onError: (error: unknown) => {
+    onError: (error: ApiErrorResponse) => {
       toast.error(error.response?.data?.message || `Failed to import ${type}`);
     },
   });

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 import { usePermissions } from '@/hooks/usePermissions';
 import { navigationItems, type NavigationItem } from '@/constants/navigation';
 import { cn } from '@/lib/utils';
@@ -25,7 +25,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     );
   };
 
-  const isItemVisible = (item: NavigationItem) => {
+  const isItemVisible = (item: NavigationItem): boolean => {
     // Check permission-based access first
     if (item.permission) {
       const hasAccess = hasPermission(item.permission.resource, item.permission.action);

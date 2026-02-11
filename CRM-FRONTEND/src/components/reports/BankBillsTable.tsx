@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { MoreHorizontal, Download, DollarSign, Eye, FileText, Building } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -48,7 +48,8 @@ export function BankBillsTable({ data, isLoading }: BankBillsTableProps) {
       setSelectedBill(null);
     },
     onError: (error: unknown) => {
-      toast.error(error.response?.data?.message || 'Failed to mark bill as paid');
+      const message = error instanceof Error ? error.message : 'Failed to mark bill as paid';
+      toast.error(message);
     },
   });
 

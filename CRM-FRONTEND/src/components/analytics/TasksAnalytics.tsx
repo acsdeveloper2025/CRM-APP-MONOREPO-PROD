@@ -22,6 +22,7 @@ import {
 } from 'recharts';
 import { useQuery } from '@tanstack/react-query';
 import { apiService } from '@/services/api';
+import type { ApiResponse } from '@/types/api';
 import {
   CheckSquare,
   Clock,
@@ -29,6 +30,19 @@ import {
   FileCheck,
   XCircle
 } from 'lucide-react';
+
+interface VerificationTask {
+  id: string;
+  status: string;
+  verification_type_name: string;
+  assigned_to_name: string | null;
+  estimated_amount: string;
+  actual_amount: string;
+}
+
+interface VerificationTasksResponse {
+  data: VerificationTask[];
+}
 
 const STATUS_COLORS: Record<string, string> = {
   PENDING: '#f59e0b',
@@ -58,7 +72,7 @@ export const TasksAnalytics: React.FC = () => {
   const [viewType, setViewType] = useState<'status' | 'type' | 'agent'>('status');
 
   // Fetch verification tasks (backend max limit is 100)
-  const { data: tasksData, isLoading, error } = useQuery({
+  const { data: tasksData, isLoading, error } = useQuery<ApiResponse<VerificationTasksResponse>>({
     queryKey: ['verification-tasks', timeRange],
     queryFn: async () => {
       const params = new URLSearchParams({
@@ -66,25 +80,25 @@ export const TasksAnalytics: React.FC = () => {
         dateFrom: getDateFromRange(timeRange),
         dateTo: new Date().toISOString().split('T')[0]
       });
-      return apiService.get(`/verification-tasks?${params.toString()}`);
+      return apiService.get<VerificationTasksResponse>(`/verification-tasks?${params.toString()}`);
     }
   });
 
-  const tasks = tasksData?.data?.data || [];
+  const tasks: VerificationTask[] = tasksData?.data?.data || [];
 
   // Calculate metrics
   const totalTasks = tasks.length;
-  const completedTasks = tasks.filter((t: unknown) => t.status === 'COMPLETED').length;
-  const inProgressTasks = tasks.filter((t: unknown) => t.status === 'IN_PROGRESS').length;
-  const pendingTasks = tasks.filter((t: unknown) => t.status === 'PENDING' || t.status === 'ASSIGNED').length;
+  const completedTasks = tasks.filter((t: VerificationTask) => t.status === 'COMPLETED').length;
+  const inProgressTasks = tasks.filter((t: VerificationTask) => t.status === 'IN_PROGRESS').length;
+  const pendingTasks = tasks.filter((t: VerificationTask) => t.status === 'PENDING' || t.status === 'ASSIGNED').length;
   const completionRate = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
 
   // Calculate total amounts
-  const totalEstimatedAmount = tasks.reduce((sum: number, t: unknown) => sum + (parseFloat(t.estimated_amount) || 0), 0);
-  const totalActualAmount = tasks.reduce((sum: number, t: unknown) => sum + (parseFloat(t.actual_amount) || 0), 0);
+  const totalEstimatedAmount = tasks.reduce((sum: number, t: VerificationTask) => sum + (parseFloat(t.estimated_amount) || 0), 0);
+  const totalActualAmount = tasks.reduce((sum: number, t: VerificationTask) => sum + (parseFloat(t.actual_amount) || 0), 0);
 
   // Status distribution
-  const statusDistribution = tasks.reduce((acc: Record<string, number>, t: unknown) => {
+  const statusDistribution = tasks.reduce((acc: Record<string, number>, t: VerificationTask) => {
     const status = t.status || 'PENDING';
     acc[status] = (acc[status] || 0) + 1;
     return acc;
@@ -92,32 +106,34 @@ export const TasksAnalytics: React.FC = () => {
 
   const statusData = Object.entries(statusDistribution).map(([name, count]) => ({
     name: name.replace(/_/g, ' '),
-    value: count,
+    value: count as number,
     color: STATUS_COLORS[name] || '#6b7280'
   }));
 
   // Verification type distribution
-  const typeDistribution = tasks.reduce((acc: Record<string, number>, t: unknown) => {
+  const typeDistribution = tasks.reduce((acc: Record<string, number>, t: VerificationTask) => {
     const type = t.verification_type_name || 'Unknown';
     acc[type] = (acc[type] || 0) + 1;
     return acc;
   }, {});
 
-  const typeData = Object.entries(typeDistribution).map(([name, count]) => ({
+  const typeData = Object.entries(typeDistribution).map(([name, count], index) => ({
     name,
-    value: count
+    value: count as number,
+    color: `hsl(${index * 45}, 70%, 50%)`
   })).sort((a, b) => b.value - a.value).slice(0, 10);
 
   // Agent distribution
-  const agentDistribution = tasks.reduce((acc: Record<string, number>, t: unknown) => {
+  const agentDistribution = tasks.reduce((acc: Record<string, number>, t: VerificationTask) => {
     const agent = t.assigned_to_name || 'Unassigned';
     acc[agent] = (acc[agent] || 0) + 1;
     return acc;
   }, {});
 
-  const agentData = Object.entries(agentDistribution).map(([name, count]) => ({
+  const agentData = Object.entries(agentDistribution).map(([name, count], index) => ({
     name,
-    value: count
+    value: count as number,
+    color: `hsl(${index * 45}, 70%, 50%)`
   })).sort((a, b) => b.value - a.value).slice(0, 10);
 
   // Loading state
@@ -242,7 +258,7 @@ export const TasksAnalytics: React.FC = () => {
               <CardTitle>Task Distribution</CardTitle>
               <CardDescription>Breakdown by different dimensions</CardDescription>
             </div>
-            <Select value={viewType} onValueChange={(v: unknown) => setViewType(v)}>
+            <Select value={viewType} onValueChange={(v) => setViewType(v as 'status' | 'type' | 'agent')}>
               <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue />
               </SelectTrigger>
@@ -265,13 +281,13 @@ export const TasksAnalytics: React.FC = () => {
                     cx="50%"
                     cy="50%"
                     labelLine={false}
-                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                    label={(props: { name?: string; percent?: number }) => `${props.name || ''}: ${((props.percent || 0) * 100).toFixed(0)}%`}
                     outerRadius={80}
                     fill="#8884d8"
                     dataKey="value"
                   >
                     {(viewType === 'status' ? statusData : viewType === 'type' ? typeData : agentData).map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color || `hsl(${index * 45}, 70%, 50%)`} />
+                      <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
                   <Tooltip />
@@ -290,7 +306,7 @@ export const TasksAnalytics: React.FC = () => {
                   <Tooltip />
                   <Bar dataKey="value" fill="#3b82f6">
                     {(viewType === 'status' ? statusData : viewType === 'type' ? typeData : agentData).map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color || `hsl(${index * 45}, 70%, 50%)`} />
+                      <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Bar>
                 </BarChart>

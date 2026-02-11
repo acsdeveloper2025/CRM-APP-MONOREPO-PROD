@@ -1,4 +1,3 @@
-import React from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -84,7 +83,8 @@ export function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoiceDialogP
       onOpenChange(false);
     },
     onError: (error: unknown) => {
-      toast.error(error.response?.data?.message || 'Failed to create invoice');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      toast.error((error as any).response?.data?.message || 'Failed to create invoice');
     },
   });
 
@@ -135,7 +135,7 @@ export function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoiceDialogP
                     </FormControl>
                     <SelectContent>
                       {clients.map((client) => (
-                        <SelectItem key={client.id} value={client.id}>
+                        <SelectItem key={client.id} value={client.id.toString()}>
                           <div className="flex flex-col">
                             <span>{client.name}</span>
                             <span className="text-xs text-gray-600">

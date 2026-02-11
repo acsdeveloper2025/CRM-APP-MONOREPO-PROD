@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { formsService, FormSubmissionsResponse } from '@/services/forms';
 import { FormSubmission } from '@/types/form';
+import { VerificationFormData } from '@/types/dto/form.dto';
 
 // Hook to get form submissions for a case
 export const useCaseFormSubmissions = (caseId: string) => {
@@ -29,7 +30,7 @@ export const useSubmitForm = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: ({ caseId, formData }: { caseId: string; formData: import('@/types/api').FormSubmissionData }) =>
+    mutationFn: ({ caseId, formData }: { caseId: string; formData: VerificationFormData }) =>
       formsService.submitForm(caseId, formData),
     onSuccess: (_data, variables) => {
       // Invalidate and refetch case form submissions
@@ -47,7 +48,7 @@ export const useSubmitForm = () => {
 // Hook to auto-save form
 export const useAutoSaveForm = () => {
   return useMutation({
-    mutationFn: ({ caseId, formData }: { caseId: string; formData: import('@/types/api').FormSubmissionData }) =>
+    mutationFn: ({ caseId, formData }: { caseId: string; formData: VerificationFormData }) =>
       formsService.autoSaveForm(caseId, formData),
   });
 };

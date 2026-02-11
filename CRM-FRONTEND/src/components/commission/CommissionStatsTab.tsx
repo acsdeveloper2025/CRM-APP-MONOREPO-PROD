@@ -17,7 +17,7 @@ export const CommissionStatsTab: React.FC = () => {
     try {
       setLoading(true);
       const response = await commissionManagementApi.getCommissionStats();
-      setStats(response.data);
+      setStats(response.data ?? null);
     } catch (error) {
       console.error('Error loading commission stats:', error);
     } finally {

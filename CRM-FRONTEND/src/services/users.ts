@@ -14,6 +14,7 @@ import type {
   UserClientAssignment,
   UserProductAssignment
 } from '@/types/user';
+import type { FieldAgentAssignment } from '@/types/territoryAssignment';
 import type { ApiResponse, PaginationQuery } from '@/types/api';
 import type { Role } from '@/types/auth';
 
@@ -75,48 +76,48 @@ export interface SessionQuery extends PaginationQuery {
 export class UsersService {
   // User CRUD operations
   async getUsers(query: UserQuery = {}): Promise<ApiResponse<User[]>> {
-    return apiService.get('/users', query);
+    return apiService.get<User[]>('/users', query);
   }
 
   async getUserById(id: string): Promise<ApiResponse<User>> {
-    return apiService.get(`/users/${id}`);
+    return apiService.get<User>(`/users/${id}`);
   }
 
   async getUserProfile(id: string): Promise<ApiResponse<UserProfile>> {
-    return apiService.get(`/users/${id}/profile`);
+    return apiService.get<UserProfile>(`/users/${id}/profile`);
   }
 
   async createUser(data: CreateUserData): Promise<ApiResponse<User>> {
-    return apiService.post('/users', data);
+    return apiService.post<User>('/users', data);
   }
 
   async updateUser(id: string, data: UpdateUserData): Promise<ApiResponse<User>> {
-    return apiService.put(`/users/${id}`, data);
+    return apiService.put<User>(`/users/${id}`, data);
   }
 
   async deleteUser(id: string): Promise<ApiResponse<void>> {
-    return apiService.delete(`/users/${id}`);
+    return apiService.delete<void>(`/users/${id}`);
   }
 
   async activateUser(id: string): Promise<ApiResponse<User>> {
-    return apiService.post(`/users/${id}/activate`);
+    return apiService.post<User>(`/users/${id}/activate`);
   }
 
   async deactivateUser(id: string, reason?: string): Promise<ApiResponse<User>> {
-    return apiService.post(`/users/${id}/deactivate`, { reason });
+    return apiService.post<User>(`/users/${id}/deactivate`, { reason });
   }
 
   // Password management
   async changePassword(id: string, data: ChangePasswordData): Promise<ApiResponse<void>> {
-    return apiService.post(`/users/${id}/change-password`, data);
+    return apiService.post<void>(`/users/${id}/change-password`, data);
   }
 
   async resetPassword(data: ResetPasswordData): Promise<ApiResponse<void>> {
-    return apiService.post('/users/reset-password', data);
+    return apiService.post<void>('/users/reset-password', data);
   }
 
   async generateTemporaryPassword(userId: string): Promise<ApiResponse<{ temporaryPassword: string }>> {
-    return apiService.post(`/users/${userId}/generate-temp-password`);
+    return apiService.post<{ temporaryPassword: string }>(`/users/${userId}/generate-temp-password`);
   }
 
   // Profile photo management
@@ -124,7 +125,7 @@ export class UsersService {
     const formData = new FormData();
     formData.append('photo', file);
     
-    return apiService.post(`/users/${userId}/profile-photo`, formData, {
+    return apiService.post<{ profilePhotoUrl: string }>(`/users/${userId}/profile-photo`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -132,55 +133,55 @@ export class UsersService {
   }
 
   async deleteProfilePhoto(userId: string): Promise<ApiResponse<void>> {
-    return apiService.delete(`/users/${userId}/profile-photo`);
+    return apiService.delete<void>(`/users/${userId}/profile-photo`);
   }
 
   // User activity and audit logs
   async getUserActivities(query: ActivityQuery = {}): Promise<ApiResponse<UserActivity[]>> {
-    return apiService.get('/users/activities', query);
+    return apiService.get<UserActivity[]>('/users/activities', query);
   }
 
   async getUserActivityById(userId: string, query: ActivityQuery = {}): Promise<ApiResponse<UserActivity[]>> {
-    return apiService.get(`/users/${userId}/activities`, query);
+    return apiService.get<UserActivity[]>(`/users/${userId}/activities`, query);
   }
 
   // User sessions
   async getUserSessions(query: SessionQuery = {}): Promise<ApiResponse<UserSession[]>> {
-    return apiService.get('/users/sessions', query);
+    return apiService.get<UserSession[]>('/users/sessions', query);
   }
 
   async getUserSessionsByUser(userId: string): Promise<ApiResponse<UserSession[]>> {
-    return apiService.get(`/users/${userId}/sessions`);
+    return apiService.get<UserSession[]>(`/users/${userId}/sessions`);
   }
 
   async terminateSession(sessionId: string): Promise<ApiResponse<void>> {
-    return apiService.delete(`/users/sessions/${sessionId}`);
+    return apiService.delete<void>(`/users/sessions/${sessionId}`);
   }
 
   async terminateAllUserSessions(userId: string): Promise<ApiResponse<void>> {
-    return apiService.delete(`/users/${userId}/sessions`);
+    return apiService.delete<void>(`/users/${userId}/sessions`);
   }
 
   // User statistics
   async getUserStats(): Promise<ApiResponse<UserStats>> {
-    return apiService.get('/users/stats');
+    return apiService.get<UserStats>('/users/stats');
   }
 
   async getUserStatsByDepartment(department: string): Promise<ApiResponse<UserStats>> {
-    return apiService.get(`/users/stats/department/${department}`);
+    return apiService.get<UserStats>(`/users/stats/department/${department}`);
   }
 
   async getUserStatsByRole(role: Role): Promise<ApiResponse<UserStats>> {
-    return apiService.get(`/users/stats/role/${role}`);
+    return apiService.get<UserStats>(`/users/stats/role/${role}`);
   }
 
   // Role and permissions
   async getRolePermissions(): Promise<ApiResponse<RolePermission[]>> {
-    return apiService.get('/users/roles/permissions');
+    return apiService.get<RolePermission[]>('/users/roles/permissions');
   }
 
   async getRolePermissionsByRole(role: Role): Promise<ApiResponse<RolePermission>> {
-    return apiService.get(`/users/roles/${role}/permissions`);
+    return apiService.get<RolePermission>(`/users/roles/${role}/permissions`);
   }
 
   // Bulk operations
@@ -282,7 +283,7 @@ export class UsersService {
   async getFieldUsersByPincode(pincodeCode: string): Promise<ApiResponse<User[]>> {
     try {
       // Use territory assignments API to get field agents assigned to this pincode
-      const response = await apiService.get('/territory-assignments/field-agents', {
+      const response = await apiService.get<FieldAgentAssignment[]>('/territory-assignments/field-agents', {
         pincodeId: pincodeCode,
         isActive: true,
         limit: 100
@@ -290,14 +291,15 @@ export class UsersService {
 
       // Extract unique users from the territory assignments response
       if (response.data && Array.isArray(response.data)) {
-        const users = response.data.map((assignment: unknown) => ({
+        const users = response.data.map((assignment) => ({
           id: assignment.userId,
           name: assignment.userName,
           username: assignment.username,
           employeeId: assignment.employeeId,
           role: 'FIELD_AGENT' as Role,
-          isActive: assignment.isActive
-        }));
+          isActive: assignment.isActive,
+          email: assignment.email || `${assignment.username}@example.com` // Fallback email if missing
+        } as User));
 
         // Remove duplicates based on user ID
         const uniqueUsers = Array.from(

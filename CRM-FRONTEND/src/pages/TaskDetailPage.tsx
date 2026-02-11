@@ -15,7 +15,7 @@ import {
   XCircle
 } from 'lucide-react';
 import { format } from 'date-fns';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 import { apiService } from '@/services/api';
 import { LoadingState } from '@/components/ui/loading';
 
@@ -60,6 +60,22 @@ interface AssignmentHistory {
   taskStatusAfter: string;
 }
 
+
+interface TaskHistoryItem {
+  id: string;
+  details: {
+    to?: string;
+    from?: string;
+    comment?: string;
+    status?: string;
+  };
+  performedBy: {
+    name: string;
+  };
+  timestamp: string;
+}
+
+
 export const TaskDetailPage: React.FC = () => {
   const { taskId } = useParams<{ taskId: string }>();
   const navigate = useNavigate();
@@ -84,7 +100,8 @@ export const TaskDetailPage: React.FC = () => {
 
       if (response.success) {
         // Transform snake_case to camelCase
-                const taskData = response.data as unknown;
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const taskData = response.data as any;
         setTask({
           id: taskData.id,
           taskNumber: taskData.task_number,
@@ -130,14 +147,14 @@ export const TaskDetailPage: React.FC = () => {
       const response = await apiService.get(`/verification-tasks/${taskId}/assignment-history`);
 
       if (response.success) {
-                const history = (response.data as unknown[]).map((item: unknown) => ({
+        const history = (response.data as TaskHistoryItem[]).map((item: TaskHistoryItem) => ({
           id: item.id,
-          assignedToName: item.assigned_to_name,
-          assignedByName: item.assigned_by_name,
-          assignedFromName: item.assigned_from_name,
-          assignedAt: item.assigned_at,
-          assignmentReason: item.assignment_reason,
-          taskStatusAfter: item.task_status_after,
+          assignedToName: item.details.to || 'N/A', // Assuming 'to' in details is the assignedToName
+          assignedByName: item.performedBy.name,
+          assignedFromName: item.details.from, // Assuming 'from' in details is the assignedFromName
+          assignedAt: item.timestamp,
+          assignmentReason: item.details.comment,
+          taskStatusAfter: item.details.status || 'N/A', // Assuming status is in details
         }));
         setAssignmentHistory(history);
       }

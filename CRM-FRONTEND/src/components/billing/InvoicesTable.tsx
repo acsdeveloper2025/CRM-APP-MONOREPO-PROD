@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { MoreHorizontal, Download, Send, CheckCircle, Eye, Receipt } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { LoadingState } from '@/components/ui/loading';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 import { billingService } from '@/services/billing';
 import { Invoice } from '@/types/billing';
 import { InvoiceDetailsDialog } from './InvoiceDetailsDialog';
@@ -43,7 +43,8 @@ export function InvoicesTable({ data, isLoading }: InvoicesTableProps) {
       toast.success('Invoice sent successfully');
     },
     onError: (error: unknown) => {
-      toast.error(error.response?.data?.message || 'Failed to send invoice');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      toast.error((error as any).response?.data?.message || 'Failed to send invoice');
     },
   });
 
@@ -54,7 +55,8 @@ export function InvoicesTable({ data, isLoading }: InvoicesTableProps) {
       toast.success('Invoice marked as paid');
     },
     onError: (error: unknown) => {
-      toast.error(error.response?.data?.message || 'Failed to mark invoice as paid');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      toast.error((error as any).response?.data?.message || 'Failed to mark invoice as paid');
     },
   });
 

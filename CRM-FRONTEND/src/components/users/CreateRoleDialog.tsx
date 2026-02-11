@@ -1,4 +1,3 @@
-import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -192,7 +191,12 @@ export function CreateRoleDialog({ open, onOpenChange }: CreateRoleDialogProps) 
       onOpenChange(false);
     },
     onError: (error: unknown) => {
-      toast.error(error.response?.data?.message || 'Failed to create role');
+      let message = 'Failed to create role';
+      if (error instanceof Error && 'response' in error) {
+        const axiosError = error as { response?: { data?: { message?: string } } };
+        message = axiosError.response?.data?.message || message;
+      }
+      toast.error(message);
     },
   });
 
@@ -200,7 +204,7 @@ export function CreateRoleDialog({ open, onOpenChange }: CreateRoleDialogProps) 
     createMutation.mutate(data);
   };
 
-  const resources = [
+  const resources: { key: keyof CreateRoleFormData['permissions']; label: string; description: string }[] = [
     { key: 'users', label: 'Users', description: 'Manage user accounts and profiles' },
     { key: 'roles', label: 'Roles', description: 'Manage roles and permissions' },
     { key: 'departments', label: 'Departments', description: 'Manage organizational departments' },
@@ -221,7 +225,7 @@ export function CreateRoleDialog({ open, onOpenChange }: CreateRoleDialogProps) 
     { key: 'settings', label: 'Settings', description: 'Manage system settings and configuration' },
   ];
 
-  const actions = [
+  const actions: { key: 'create' | 'read' | 'update' | 'delete'; label: string; description: string }[] = [
     { key: 'create', label: 'Create', description: 'Add new records' },
     { key: 'read', label: 'Read', description: 'View and access records' },
     { key: 'update', label: 'Update', description: 'Modify existing records' },
@@ -289,7 +293,7 @@ export function CreateRoleDialog({ open, onOpenChange }: CreateRoleDialogProps) 
                           <FormField
                             key={`${resource.key}.${action.key}`}
                             control={form.control}
-                            name={`permissions.${resource.key}.${action.key}` as unknown}
+                            name={`permissions.${resource.key}.${action.key}`}
                             render={({ field }) => (
                               <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                                 <FormControl>

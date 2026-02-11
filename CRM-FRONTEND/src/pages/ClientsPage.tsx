@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { clientsService } from '@/services/clients';
 import { documentTypesService } from '@/services/documentTypes';
+import { dashboardService } from '@/services/dashboard';
 import { ClientsTable } from '@/components/clients/ClientsTable';
 import { ProductsTable } from '@/components/clients/ProductsTable';
 import { VerificationTypesTable } from '@/components/clients/VerificationTypesTable';
@@ -78,17 +79,24 @@ export function ClientsPage() {
     }),
   });
 
+  const { data: dashboardStatsData } = useQuery({
+    queryKey: ['dashboard-stats'],
+    queryFn: () => dashboardService.getDashboardStats(),
+  });
+
   const handleBulkImport = (type: 'clients' | 'products') => {
     setBulkImportType(type);
     setShowBulkImport(true);
   };
 
   const getTabStats = () => {
+    const statsData = dashboardStatsData?.data;
     return {
       clients: clientsData?.pagination?.total || clientsData?.data?.length || 0,
       products: productsData?.pagination?.total || productsData?.data?.length || 0,
       verificationTypes: verificationTypesData?.pagination?.total || verificationTypesData?.data?.length || 0,
       documentTypes: documentTypesData?.pagination?.total || documentTypesData?.data?.length || 0,
+      activeCases: (statsData?.inProgressCases || 0) + (statsData?.pendingCases || 0),
     };
   };
 

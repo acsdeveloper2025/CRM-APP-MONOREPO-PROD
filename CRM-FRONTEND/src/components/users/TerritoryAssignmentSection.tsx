@@ -13,7 +13,7 @@ import { PincodeSelectionTab } from './PincodeSelectionTab';
 import { AreaSelectionTab } from './AreaSelectionTab';
 import { AssignmentSummary } from './AssignmentSummary';
 import type { User } from '@/types/user';
-import type { PincodeWithCity, AssignmentSummaryItem, TerritoryAssignment } from '@/types/territoryAssignment';
+import type { PincodeWithCity, TerritoryAssignment } from '@/types/territoryAssignment';
 
 interface TerritoryAssignmentSectionProps {
   user: User;
@@ -110,45 +110,30 @@ export const TerritoryAssignmentSection: React.FC<TerritoryAssignmentSectionProp
     saveMutation.mutate(assignments);
   };
 
-  // Get selected pincodes with city info
-  const selectedPincodes = useMemo<PincodeWithCity[]>(() => {
+  // Format all pincodes with city info
+  const allPincodes = useMemo<PincodeWithCity[]>(() => {
     if (!pincodesData?.data) {
       return [];
     }
 
-    // Convert pincode.id to number for comparison (API returns string IDs)
-    return pincodesData.data.filter((p) => {
-      const pincodeIdNum = typeof p.id === 'string' ? parseInt(p.id, 10) : p.id;
-      return selectedPincodeIds.has(pincodeIdNum);
-    });
-  }, [pincodesData, selectedPincodeIds]);
+    return pincodesData.data.map((p): PincodeWithCity => ({
+      id: typeof p.id === 'string' ? parseInt(p.id, 10) : p.id,
+      code: p.code,
+      cityId: typeof p.cityId === 'string' ? parseInt(p.cityId, 10) : p.cityId,
+      cityName: p.cityName,
+      stateId: p.city?.stateId || 0,
+      stateName: p.state,
+      countryId: p.city?.countryId || 0,
+      countryName: p.country,
+    }));
+  }, [pincodesData]);
 
-  // Generate summary items
-  const _summaryItems = useMemo<AssignmentSummaryItem[]>(() => {
-    return selectedPincodes.map((pincode) => {
-      // Convert pincode.id to number for lookup (API returns string IDs)
-      const pincodeIdNum = typeof pincode.id === 'string' ? parseInt(pincode.id, 10) : pincode.id;
-      const areaIds = Array.from(selectedAreasByPincode.get(pincodeIdNum) || []);
-      const areas = areasByPincode[pincodeIdNum] || [];
-      const areaNames = areaIds
-        .map((areaId) => {
-          const areaIdNum = typeof areaId === 'string' ? parseInt(areaId, 10) : areaId;
-          return areas.find((a) => {
-            const aNum = typeof a.id === 'string' ? parseInt(a.id, 10) : a.id;
-            return aNum === areaIdNum;
-          })?.name;
-        })
-        .filter((name): name is string => !!name);
+  // Get selected pincodes with city info
+  const selectedPincodes = useMemo<PincodeWithCity[]>(() => {
+    return allPincodes.filter((p) => selectedPincodeIds.has(p.id));
+  }, [allPincodes, selectedPincodeIds]);
 
-      return {
-        pincodeId: pincode.id,
-        pincodeCode: pincode.code,
-        cityName: pincode.cityName,
-        areaIds,
-        areaNames,
-      };
-    });
-  }, [selectedPincodes, selectedAreasByPincode, areasByPincode]);
+
 
   // Calculate area count by pincode
   const areaCountByPincode = useMemo(() => {
@@ -177,7 +162,7 @@ export const TerritoryAssignmentSection: React.FC<TerritoryAssignmentSectionProp
     );
   }
 
-  const pincodes = pincodesData?.data || [];
+
 
   return (
     <Card>
@@ -206,7 +191,7 @@ export const TerritoryAssignmentSection: React.FC<TerritoryAssignmentSectionProp
 
           <TabsContent value="pincodes" className="mt-6">
             <PincodeSelectionTab
-              pincodes={pincodes}
+              pincodes={allPincodes}
               selectedPincodeIds={selectedPincodeIds}
               onPincodeToggle={handlePincodeToggle}
               areaCountByPincode={areaCountByPincode}

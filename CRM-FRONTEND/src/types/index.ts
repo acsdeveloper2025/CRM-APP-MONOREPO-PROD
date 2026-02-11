@@ -48,9 +48,15 @@ export type {
 // Client & Product Types
 export type {
   Client,
-  Product,
   VerificationType
 } from './client';
+
+export type {
+  Product,
+  CreateProductData,
+  UpdateProductData,
+  ProductListQuery
+} from './product';
 
 // Document Type Management Types
 export type {

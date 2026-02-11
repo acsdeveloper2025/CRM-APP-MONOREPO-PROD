@@ -20,7 +20,7 @@ export type {
 
 export class RateTypesService {
   async getRateTypes(query: RateTypeListQuery = {}): Promise<PaginatedResponse<RateType>> {
-    return apiService.get('/rate-types', query);
+    return apiService.get<RateType[]>('/rate-types', query) as Promise<PaginatedResponse<RateType>>;
   }
 
   async getRateTypeById(id: number): Promise<ApiResponse<RateType>> {

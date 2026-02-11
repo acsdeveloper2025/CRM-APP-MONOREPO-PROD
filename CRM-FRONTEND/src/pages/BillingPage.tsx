@@ -93,6 +93,7 @@ export function BillingPage() {
         total: invoices.length,
         totalAmount: invoices.reduce((sum, inv) => sum + inv.totalAmount, 0),
         paid: invoices.filter(inv => inv.status === 'PAID').length,
+        paidAmount: invoices.filter(inv => inv.status === 'PAID').reduce((sum, inv) => sum + inv.totalAmount, 0),
         overdue: invoices.filter(inv => inv.status === 'OVERDUE').length,
       },
       commissions: {

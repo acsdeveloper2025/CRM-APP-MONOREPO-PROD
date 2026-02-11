@@ -21,6 +21,7 @@ import {
   ResponsiveContainer 
 } from 'recharts';
 import { useCaseAnalytics } from '@/hooks/useAnalytics';
+import type { CaseAnalytics } from '@/services/analytics';
 import {
   FileText,
   TrendingUp,
@@ -79,18 +80,19 @@ export const CasesAnalytics: React.FC = () => {
     color: STATUS_COLORS[status] || '#6b7280'
   }));
 
-  const clientDistribution = cases.reduce((acc: Record<string, number>, c: unknown) => {
-    const client = c.client_name || 'Unknown';
+  const clientDistribution = cases.reduce((acc: Record<string, number>, c: CaseAnalytics) => {
+    const client = c.clientName || 'Unknown';
     acc[client] = (acc[client] || 0) + 1;
     return acc;
   }, {});
 
-  const clientData = Object.entries(clientDistribution).map(([name, count]) => ({
+  const clientData = Object.entries(clientDistribution).map(([name, count], index) => ({
     name,
-    value: count
+    value: count,
+    color: `hsl(${index * 45}, 70%, 50%)`
   })).sort((a, b) => b.value - a.value).slice(0, 10);
 
-  const priorityDistribution = cases.reduce((acc: Record<string, number>, c: unknown) => {
+  const priorityDistribution = cases.reduce((acc: Record<string, number>, c: CaseAnalytics) => {
     const priority = c.priority || 'MEDIUM';
     acc[priority] = (acc[priority] || 0) + 1;
     return acc;
@@ -228,7 +230,7 @@ export const CasesAnalytics: React.FC = () => {
               <CardTitle>Case Distribution</CardTitle>
               <CardDescription>Breakdown by different dimensions</CardDescription>
             </div>
-            <Select value={viewType} onValueChange={(v: unknown) => setViewType(v)}>
+            <Select value={viewType} onValueChange={(v) => setViewType(v as 'status' | 'client' | 'priority')}>
               <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue />
               </SelectTrigger>
@@ -251,13 +253,13 @@ export const CasesAnalytics: React.FC = () => {
                     cx="50%"
                     cy="50%"
                     labelLine={false}
-                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                    label={(props: { name?: string; percent?: number }) => `${props.name || ''}: ${((props.percent || 0) * 100).toFixed(0)}%`}
                     outerRadius={80}
                     fill="#8884d8"
                     dataKey="value"
                   >
                     {(viewType === 'status' ? statusDistribution : viewType === 'priority' ? priorityData : clientData).map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color || `hsl(${index * 45}, 70%, 50%)`} />
+                      <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
                   <Tooltip />
@@ -276,7 +278,7 @@ export const CasesAnalytics: React.FC = () => {
                   <Tooltip />
                   <Bar dataKey="value" fill="#3b82f6">
                     {(viewType === 'status' ? statusDistribution : viewType === 'priority' ? priorityData : clientData).map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color || `hsl(${index * 45}, 70%, 50%)`} />
+                      <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Bar>
                 </BarChart>

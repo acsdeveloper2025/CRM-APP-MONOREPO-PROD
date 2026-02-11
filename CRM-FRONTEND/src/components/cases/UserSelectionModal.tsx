@@ -6,14 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Search, UserCheck, Loader2 } from 'lucide-react';
 import { useFieldUsers } from '@/hooks/useUsers';
-
-interface User {
-  id: string;
-  name: string;
-  email?: string;
-  role: string;
-  isActive: boolean;
-}
+import { User } from '@/types/user';
 
 interface UserSelectionModalProps {
   isOpen: boolean;

@@ -108,6 +108,7 @@ export const colors = {
     500: '#737373',
     600: '#525252',
     700: '#404040',
+    750: '#333333',
     800: '#262626',
     900: '#171717',
     950: '#0a0a0a',
@@ -134,7 +135,7 @@ export const colors = {
     valid: '#22c55e', // success-500
     invalid: '#ef4444', // error-500
     warning: '#f59e0b', // warning-500
-    pending: '#6b7280', // gray-500
+    formPending: '#6b7280', // gray-500
 
     // User role colors
     superAdmin: '#7c3aed', // violet-600

@@ -9,6 +9,8 @@ import { Button } from '@/components/ui/button';
 import type { CustomerInfoData } from '@/components/cases/CustomerInfoStep';
 import type { FullCaseFormData } from '@/components/cases/FullCaseFormStep';
 import { LoadingState } from '@/components/ui/loading';
+import type { VerificationTask } from '@/types/verificationTask';
+import type { TaskFormData, CaseLevelFormData } from '@/components/cases/TaskCaseCreationForm';
 
 export const NewCasePage: React.FC = () => {
   const navigate = useNavigate();
@@ -21,13 +23,8 @@ export const NewCasePage: React.FC = () => {
   const [initialData, setInitialData] = useState<{
     customerInfo?: CustomerInfoData;
     caseFormData?: FullCaseFormData; // Keeping for backward compatibility if needed, but mainly using new structure
-    caseLevelData?: {
-      clientId: string;
-      productId: string;
-      backendContactNumber: string;
-      createdByBackendUser: string;
-    };
-    tasks?: Record<string, unknown>[];
+    caseLevelData?: CaseLevelFormData;
+    tasks?: TaskFormData[];
   } | undefined>();
 
   // Only fetch case data if we're in edit mode
@@ -60,7 +57,7 @@ export const NewCasePage: React.FC = () => {
       // Find pincode ID based on pincode code
       const foundPincode = pincodes.find(p => p.code === caseItem.pincode);
       if (foundPincode) {
-        setPincodeIdForAreas(foundPincode.id);
+        setPincodeIdForAreas(parseInt(foundPincode.id));
       } else {
         // If pincode doesn't exist, still proceed with mapping (without areas)
         setPincodeIdForAreas(undefined);
@@ -127,13 +124,17 @@ export const NewCasePage: React.FC = () => {
           assignedToId: '', // Case-level assignment is deprecated, leave empty
           priority: String(caseItem.priority || 'MEDIUM'), // Convert to string
           trigger: String(caseItem.trigger || caseItem.notes || ''), // Use trigger not notes
-          address: addressValue,
+          address: String(addressValue),
           pincodeId, // Map pincode code to pincode ID
           areaId, // Use the found area ID
         };
 
-        // Extract assignedTo from API response (snake_case)
-        const assignedToId = firstTask?.assigned_to || '';
+        // Match assignedTo ID from various possible formats
+        const assignedToId = (typeof firstTask?.assigned_to === 'object' && firstTask?.assigned_to)
+          ? (firstTask.assigned_to as { id: string }).id
+          : (typeof firstTask?.assignedTo === 'object' && firstTask?.assignedTo)
+            ? (firstTask.assignedTo as { id: string }).id
+            : (firstTask?.assigned_to || firstTask?.assignedTo || '');
 
         const mappedData = {
           customerInfo,
@@ -145,16 +146,16 @@ export const NewCasePage: React.FC = () => {
             createdByBackendUser: caseFormData.createdByBackendUser,
           },
           tasks: [{
-            id: editTaskId || firstTask?.id || '1', // Use the actual task ID
+            id: String(editTaskId || firstTask?.id || '1'), // Use the actual task ID
             applicantType: caseFormData.applicantType,
             verificationTypeId: caseFormData.verificationTypeId ? parseInt(caseFormData.verificationTypeId) : null,
-            rateTypeId: firstTask?.rate_type_id?.toString() || '', // ✅ Use snake_case from API
+            rateTypeId: String(firstTask?.rate_type_id || firstTask?.rateTypeId || ''), // Handle both snake_case and camelCase
             pincodeId: caseFormData.pincodeId,
             areaId: caseFormData.areaId,
             address: caseFormData.address,
             trigger: caseFormData.trigger,
             priority: (caseFormData.priority as 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT') || 'MEDIUM',
-            assignedTo: assignedToId, // ✅ Use snake_case from API
+            assignedTo: String(assignedToId), // Ensure it's a string
             documentType: '',
             documentNumber: '',
             attachments: [],
@@ -166,7 +167,7 @@ export const NewCasePage: React.FC = () => {
           assignedTo: mappedData.tasks[0].assignedTo,
         });
 
-                setInitialData(mappedData as unknown);
+        setInitialData(mappedData);
       }
     } catch (error) {
       // Only log errors in development mode

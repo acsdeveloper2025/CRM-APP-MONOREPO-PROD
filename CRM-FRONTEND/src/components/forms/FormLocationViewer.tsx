@@ -1,12 +1,12 @@
-import React from 'react';
+
 import { MapPin, Navigation, Clock, ExternalLink } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { FormLocation } from '@/types/form';
+import { FormGeoLocation } from '@/types/form';
 
 interface FormLocationViewerProps {
-  location: FormLocation;
+  location: FormGeoLocation;
   readonly?: boolean;
 }
 

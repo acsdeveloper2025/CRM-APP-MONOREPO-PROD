@@ -1,7 +1,7 @@
 import { configureStore, createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { Case } from '../types/case';
 import { User } from '../types/user';
-import { apiClient } from '../services/apiClient';
+import { apiClient } from '../services/enterpriseApiClient';
 
 // Enterprise-scale state interfaces
 interface CaseState {
@@ -55,7 +55,7 @@ interface CacheState {
   invalidationPatterns: string[];
 }
 
-interface CaseFilters {
+export interface CaseFilters {
   status?: string;
   priority?: string;
   assignedTo?: string;
@@ -262,6 +262,7 @@ const casesSlice = createSlice({
           failed: 0,
           status: 'pending',
           errors: [],
+          metrics: {},
         };
       })
       .addCase(bulkAssignCases.fulfilled, (state, action) => {
@@ -274,6 +275,7 @@ const casesSlice = createSlice({
           failed: 0,
           status: 'processing',
           errors: [],
+          metrics: {},
         };
         // Clear selection after successful submission
         state.selectedCases = [];

@@ -1,5 +1,5 @@
 import React, { useMemo, useCallback, useState, useEffect } from 'react';
-import { FixedSizeList as List } from 'react-window';
+import { List } from 'react-window';
 import { Case } from '../types/case';
 import { CaseCard } from './CaseCard';
 import { Search, Filter, RefreshCw } from 'lucide-react';
@@ -30,30 +30,42 @@ interface CaseFilters {
 }
 
 interface CaseItemProps {
-  index: number;
-  style: React.CSSProperties;
-  data: {
-    cases: Case[];
-    onCaseSelect: (caseItem: Case) => void;
-    onLoadMore: () => void;
-    hasMore: boolean;
-    loading: boolean;
+  index?: number;
+  style?: React.CSSProperties;
+  cases: Case[];
+  onCaseSelect: (caseItem: Case) => void;
+  onLoadMore: () => void;
+  hasMore: boolean;
+  loading: boolean;
+  ariaAttributes?: {
+    "aria-posinset"?: number;
+    "aria-setsize"?: number;
+    role?: string;
   };
 }
 
 // Memoized case item component for performance
-const CaseItem: React.FC<CaseItemProps> = React.memo(({ index, style, data }) => {
-  const { cases, onCaseSelect, onLoadMore, hasMore, loading } = data;
-  
+const CaseItem: React.FC<CaseItemProps> = React.memo(({ 
+  index, 
+  style, 
+  cases, 
+  onCaseSelect, 
+  onLoadMore, 
+  hasMore, 
+  loading, 
+  ariaAttributes 
+}) => {
   // Load more when approaching end
   useEffect(() => {
-    if (index >= cases.length - 5 && hasMore && !loading) {
+    if (index !== undefined && index >= cases.length - 5 && hasMore && !loading) {
       onLoadMore();
     }
   }, [index, cases.length, hasMore, loading, onLoadMore]);
 
+  if (!cases) {return <React.Fragment />;}
+
   // Show loading placeholder at the end
-  if (index >= cases.length) {
+  if (index !== undefined && index >= cases.length) {
     return (
       <div style={style} className="flex items-center justify-center p-4">
         <LoadingSpinner size="sm" />
@@ -62,11 +74,11 @@ const CaseItem: React.FC<CaseItemProps> = React.memo(({ index, style, data }) =>
     );
   }
 
-  const caseItem = cases[index];
+  const caseItem = index !== undefined ? cases[index] : null;
   if (!caseItem) {return null;}
 
   return (
-    <div style={style} className="px-4 py-2">
+    <div style={style} className="px-4 py-2" {...ariaAttributes}>
       <CaseCard
         case={caseItem}
         onClick={() => onCaseSelect(caseItem)}
@@ -319,15 +331,15 @@ export const VirtualizedCaseList: React.FC<VirtualizedCaseListProps> = ({
           </div>
         ) : (
           <List
-            height={600} // Will be dynamically calculated in real implementation
-            itemCount={itemCount}
-            itemSize={120} // Height of each case card
-            itemData={listData}
-            overscanCount={5} // Render 5 extra items for smooth scrolling
+            defaultHeight={600}
+            rowCount={itemCount}
+            rowHeight={120}
+            rowProps={listData}
+            // @ts-expect-error - internal library type mismatch in react-window v2
+            rowComponent={CaseItem}
+            overscanCount={5}
             className="scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100"
-          >
-            {CaseItem}
-          </List>
+          />
         )}
       </div>
 

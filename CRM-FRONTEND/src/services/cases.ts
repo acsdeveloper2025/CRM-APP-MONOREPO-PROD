@@ -68,7 +68,7 @@ export class CasesService extends BaseApiService {
     return this.get(`/${id}`);
   }
 
-  async createCase(data: CreateCaseData): Promise<ApiResponse<Case>> {
+  async createCase(data: CreateCaseData): Promise<ApiResponse<CreateCaseWithMultipleTasksResponse>> {
     // Transform old format to new unified format
     const unifiedPayload = {
       case_details: {
@@ -101,7 +101,7 @@ export class CasesService extends BaseApiService {
     return this.post('/create', unifiedPayload);
   }
 
-  async createCaseWithAttachments(data: CreateCaseData, attachments: File[]): Promise<ApiResponse<Case>> {
+  async createCaseWithAttachments(data: CreateCaseData, attachments: File[]): Promise<ApiResponse<CreateCaseWithMultipleTasksResponse>> {
     const formData = new FormData();
 
     // Transform to unified format

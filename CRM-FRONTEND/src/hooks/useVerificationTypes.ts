@@ -1,5 +1,5 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'react-hot-toast';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useCRUDMutation } from './useStandardizedMutation';
 import { 
   verificationTypesService, 
   VerificationType, 
@@ -21,7 +21,7 @@ const VERIFICATION_TYPES_KEYS = {
 export function useVerificationTypes(params?: PaginationQuery) {
   return useQuery({
     queryKey: VERIFICATION_TYPES_KEYS.list(params),
-    queryFn: () => verificationTypesService.getAll(params),
+    queryFn: () => verificationTypesService.getVerificationTypes(params),
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 }
@@ -30,26 +30,19 @@ export function useVerificationTypes(params?: PaginationQuery) {
 export function useVerificationType(id: number) {
   return useQuery({
     queryKey: VERIFICATION_TYPES_KEYS.detail(id),
-    queryFn: () => verificationTypesService.getById(id),
+    queryFn: () => verificationTypesService.getVerificationTypeById(id.toString()),
     enabled: !!id,
   });
 }
 
 // Create verification type
 export function useCreateVerificationType() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
+  return useCRUDMutation({
     mutationFn: (data: CreateVerificationTypeData) => 
-      verificationTypesService.create(data),
-    onSuccess: (response) => {
-      queryClient.invalidateQueries({ queryKey: VERIFICATION_TYPES_KEYS.lists() });
-      toast.success(response.message || 'Verification type created successfully');
-    },
-    onError: (error: unknown) => {
-      const message = error.response?.data?.message || 'Failed to create verification type';
-      toast.error(message);
-    },
+      verificationTypesService.createVerificationType(data),
+    queryKey: VERIFICATION_TYPES_KEYS.lists(),
+    resourceName: 'Verification Type',
+    operation: 'create',
   });
 }
 
@@ -57,35 +50,25 @@ export function useCreateVerificationType() {
 export function useUpdateVerificationType() {
   const queryClient = useQueryClient();
 
-  return useMutation({
+  return useCRUDMutation({
     mutationFn: ({ id, data }: { id: number; data: UpdateVerificationTypeData }) =>
-      verificationTypesService.update(id, data),
-    onSuccess: (response, { id }) => {
-      queryClient.invalidateQueries({ queryKey: VERIFICATION_TYPES_KEYS.lists() });
+      verificationTypesService.updateVerificationType(id.toString(), data),
+    queryKey: VERIFICATION_TYPES_KEYS.lists(),
+    resourceName: 'Verification Type',
+    operation: 'update',
+    onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: VERIFICATION_TYPES_KEYS.detail(id) });
-      toast.success(response.message || 'Verification type updated successfully');
-    },
-    onError: (error: unknown) => {
-      const message = error.response?.data?.message || 'Failed to update verification type';
-      toast.error(message);
     },
   });
 }
 
 // Delete verification type
 export function useDeleteVerificationType() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (id: number) => verificationTypesService.delete(id),
-    onSuccess: (response) => {
-      queryClient.invalidateQueries({ queryKey: VERIFICATION_TYPES_KEYS.lists() });
-      toast.success(response.message || 'Verification type deleted successfully');
-    },
-    onError: (error: unknown) => {
-      const message = error.response?.data?.message || 'Failed to delete verification type';
-      toast.error(message);
-    },
+  return useCRUDMutation({
+    mutationFn: (id: number) => verificationTypesService.deleteVerificationType(id.toString()),
+    queryKey: VERIFICATION_TYPES_KEYS.lists(),
+    resourceName: 'Verification Type',
+    operation: 'delete',
   });
 }
 

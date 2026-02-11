@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { FileText, Eye, Download, Share2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,7 +14,7 @@ export function FormViewerPage() {
   // Mock data removed - using real API data only
   const sampleSubmission: FormSubmission | null = null;
   // Mock data removed - using real API data only
-  const formTypes: unknown[] = [];
+  const formTypes: { value: string; label: string }[] = [];
 
   return (
     <div className="space-y-6">
@@ -68,7 +68,7 @@ export function FormViewerPage() {
             </div>
             <div className="flex-1">
               <label className="text-sm font-medium mb-2 block">View Mode</label>
-              <Select value={viewMode} onValueChange={(value: unknown) => setViewMode(value)}>
+              <Select value={viewMode} onValueChange={(value: 'readonly' | 'editable') => setViewMode(value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select view mode" />
                 </SelectTrigger>

@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   FormControl,
@@ -19,10 +19,14 @@ import { Input } from '@/components/ui/input';
 import { Loader2 } from 'lucide-react';
 import { locationsService } from '@/services/locations';
 import { EnhancedAreasMultiSelect } from './EnhancedAreasMultiSelect';
+import { ApiResponse } from '@/types/api';
+import { Country, State, City, Pincode } from '@/types/location';
+import { UseFormReturn } from 'react-hook-form';
 
 interface CascadingLocationSelectorProps {
   // Form control
-  form: unknown;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  form: UseFormReturn<any>;
   
   // Field names
   countryField?: string;
@@ -78,9 +82,9 @@ export function CascadingLocationSelector({
   const { data: statesData, isLoading: statesLoading } = useQuery({
     queryKey: ['states', selectedCountryId],
     queryFn: () => {
-      if (!selectedCountryId) {return Promise.resolve({ data: [] });}
-      const selectedCountry = countries.find(c => c.id === selectedCountryId);
-      if (!selectedCountry) {return Promise.resolve({ data: [] });}
+      if (!selectedCountryId) {return Promise.resolve({ success: true, message: '', data: [] } as ApiResponse<State[]>);}
+      const selectedCountry = countries.find((c: Country) => c.id === selectedCountryId);
+      if (!selectedCountry) {return Promise.resolve({ success: true, message: '', data: [] } as ApiResponse<State[]>);}
       return locationsService.getStates({ country: selectedCountry.name, limit: 100 });
     },
     enabled: !!selectedCountryId,
@@ -90,9 +94,9 @@ export function CascadingLocationSelector({
   const { data: citiesData, isLoading: citiesLoading } = useQuery({
     queryKey: ['cities', selectedStateId],
     queryFn: () => {
-      if (!selectedStateId) {return Promise.resolve({ data: [] });}
-      const selectedState = states.find(s => s.id === selectedStateId);
-      if (!selectedState) {return Promise.resolve({ data: [] });}
+      if (!selectedStateId) {return Promise.resolve({ success: true, message: '', data: [] } as ApiResponse<City[]>);}
+      const selectedState = states.find((s: State) => s.id === selectedStateId);
+      if (!selectedState) {return Promise.resolve({ success: true, message: '', data: [] } as ApiResponse<City[]>);}
       return locationsService.getCities({ state: selectedState.name, limit: 100 });
     },
     enabled: !!selectedStateId,
@@ -102,7 +106,7 @@ export function CascadingLocationSelector({
   const { data: pincodesData, isLoading: pincodesLoading } = useQuery({
     queryKey: ['pincodes', selectedCityId],
     queryFn: () => {
-      if (!selectedCityId || mode === 'create') {return Promise.resolve({ data: [] });}
+      if (!selectedCityId || mode === 'create') {return Promise.resolve({ success: true, message: '', data: [] } as ApiResponse<Pincode[]>);}
       return locationsService.getPincodesByCity(selectedCityId);
     },
     enabled: !!selectedCityId && mode === 'edit',
@@ -183,8 +187,8 @@ export function CascadingLocationSelector({
                 </SelectTrigger>
               </FormControl>
               <SelectContent>
-                {countries.map((country) => (
-                  <SelectItem key={country.id} value={country.id}>
+                {countries.map((country: Country) => (
+                  <SelectItem key={country.id} value={String(country.id)}>
                     {country.name} ({country.code} • {country.continent})
                   </SelectItem>
                 ))}
@@ -217,8 +221,8 @@ export function CascadingLocationSelector({
                 </SelectTrigger>
               </FormControl>
               <SelectContent>
-                {states.map((state) => (
-                  <SelectItem key={state.id} value={state.id}>
+                {states.map((state: State) => (
+                  <SelectItem key={state.id} value={String(state.id)}>
                     {state.name} ({state.code} • {state.cityCount || 0} cities)
                   </SelectItem>
                 ))}
@@ -251,8 +255,8 @@ export function CascadingLocationSelector({
                 </SelectTrigger>
               </FormControl>
               <SelectContent>
-                {cities.map((city) => (
-                  <SelectItem key={city.id} value={city.id}>
+                {cities.map((city: City) => (
+                  <SelectItem key={city.id} value={String(city.id)}>
                     {city.name} ({city.state}, {city.country})
                   </SelectItem>
                 ))}
@@ -300,7 +304,7 @@ export function CascadingLocationSelector({
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {pincodes.map((pincode) => (
+                    {pincodes.map((pincode: Pincode) => (
                       <SelectItem key={pincode.id} value={pincode.code}>
                         <div className="flex flex-col">
                           <span className="font-mono">{pincode.code}</span>

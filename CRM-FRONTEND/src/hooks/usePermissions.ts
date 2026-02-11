@@ -1,4 +1,4 @@
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 import { RESOURCES, ACTIONS } from '@/constants/permissions';
 
 export interface UserPermissions {

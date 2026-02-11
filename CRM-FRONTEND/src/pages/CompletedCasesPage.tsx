@@ -9,6 +9,7 @@ import { Download, RefreshCw, CheckCircle } from 'lucide-react';
 import { casesService, type CaseListQuery } from '@/services/cases';
 
 interface CompletedCaseFilters {
+  [key: string]: unknown;
   priority?: string;
   clientId?: string;
 }
@@ -16,11 +17,7 @@ interface CompletedCaseFilters {
 export const CompletedCasesPage: React.FC = () => {
   // Unified search with 800ms debounce
   const {
-    searchValue: _searchValue,
     debouncedSearchValue,
-    setSearchValue: _setSearchValue,
-    clearSearch: _clearSearch,
-    isDebouncing: _isDebouncing,
   } = useUnifiedSearch({
     syncWithUrl: true,
   });
@@ -28,9 +25,6 @@ export const CompletedCasesPage: React.FC = () => {
   // Unified filters with URL sync
   const {
     filters: activeFilters,
-    setFilter: _setFilter,
-    clearFilters: _clearFilters,
-    hasActiveFilters: _hasActiveFilters,
   } = useUnifiedFilters<CompletedCaseFilters>({
     syncWithUrl: true,
   });
@@ -47,15 +41,15 @@ export const CompletedCasesPage: React.FC = () => {
     ...pagination,
     status: 'COMPLETED',
     search: debouncedSearchValue || undefined,
-    priority: activeFilters.priority ? parseInt(activeFilters.priority) : undefined,
-    clientId: activeFilters.clientId || undefined,
+    priority: activeFilters.priority || undefined,
+    clientId: (activeFilters.clientId as string) || undefined,
   };
 
-  const { data: casesData, isLoading, refetch: _refetch } = useCases(query);
+  const { data: casesData, isLoading } = useCases(query);
   const { refreshCases } = useRefreshCases();
 
   const cases = casesData?.data || [];
-  const _paginationData = casesData?.pagination || { page: 1, limit: 20, total: 0, totalPages: 0 };
+  const paginationData = casesData?.pagination || { page: 1, limit: 20, total: 0, totalPages: 0 };
 
   const handlePageChange = (page: number) => {
     setPagination(prev => ({ ...prev, page }));
@@ -65,9 +59,6 @@ export const CompletedCasesPage: React.FC = () => {
     setPagination(prev => ({ ...prev, limit, page: 1 }));
   };
 
-  const _activeFilterCount = Object.keys(activeFilters).filter(
-    key => activeFilters[key as keyof CompletedCaseFilters] !== undefined
-  ).length;
 
   const handleExport = async () => {
     try {
@@ -122,7 +113,7 @@ export const CompletedCasesPage: React.FC = () => {
               <CheckCircle className="h-8 w-8 text-green-600" />
               <div className="ml-4">
                 <p className="text-sm font-medium text-muted-foreground">Total Completed</p>
-                <p className="text-2xl font-bold text-foreground">{pagination.total}</p>
+                <p className="text-2xl font-bold text-foreground">{paginationData.total}</p>
               </div>
             </div>
           </CardContent>
@@ -211,8 +202,8 @@ export const CompletedCasesPage: React.FC = () => {
             <div>
               <CardTitle>Completed Cases</CardTitle>
               <CardDescription>
-                {pagination.total > 0 
-                  ? `Showing ${pagination.total} completed case${pagination.total === 1 ? '' : 's'}`
+                {paginationData.total > 0 
+                  ? `Showing ${paginationData.total} completed case${paginationData.total === 1 ? '' : 's'}`
                   : 'No completed cases found'
                 }
               </CardDescription>
@@ -228,11 +219,11 @@ export const CompletedCasesPage: React.FC = () => {
       </Card>
 
       {/* Pagination */}
-      {pagination.total > 0 && (
+      {paginationData.total > 0 && (
         <CasePagination
           currentPage={pagination.page}
-          totalPages={pagination.totalPages}
-          totalItems={pagination.total}
+          totalPages={paginationData.totalPages}
+          totalItems={paginationData.total}
           itemsPerPage={pagination.limit}
           onPageChange={handlePageChange}
           onItemsPerPageChange={handleItemsPerPageChange}

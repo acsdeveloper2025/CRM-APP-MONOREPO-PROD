@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Table,
@@ -30,6 +30,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { MoreHorizontal, Edit, Trash2, Users, Building, Crown, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
+import axios from 'axios';
 import { departmentsService } from '@/services/departments';
 import { Department } from '@/types/user';
 import { formatDistanceToNow } from 'date-fns';
@@ -61,14 +62,17 @@ export function DepartmentsTable({ onEditDepartment }: DepartmentsTableProps) {
   };
 
   const deleteMutation = useMutation({
-    mutationFn: (departmentId: string) => departmentsService.deleteDepartment(departmentId),
+    mutationFn: (departmentId: string | number) => departmentsService.deleteDepartment(departmentId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['departments'] });
       toast.success('Department deleted successfully');
       setDeleteDepartment(null);
     },
     onError: (error: unknown) => {
-      toast.error(error.response?.data?.message || 'Failed to delete department');
+      const message = axios.isAxiosError(error)
+        ? error.response?.data?.message || 'Failed to delete department'
+        : 'Failed to delete department';
+      toast.error(message);
       setDeleteDepartment(null);
     },
   });
@@ -227,13 +231,13 @@ export function DepartmentsTable({ onEditDepartment }: DepartmentsTableProps) {
               Previous
             </Button>
             <div className="text-sm">
-              Page {currentPage} of {departmentsData.pagination.totalPages || departmentsData.pagination.pages || 1}
+              Page {currentPage} of {departmentsData.pagination.totalPages || 1}
             </div>
             <Button
               variant="outline"
               size="sm"
               onClick={() => setCurrentPage(prev => prev + 1)}
-              disabled={currentPage >= (departmentsData.pagination.totalPages || departmentsData.pagination.pages || 1)}
+              disabled={currentPage >= (departmentsData.pagination.totalPages || 1)}
             >
               Next
             </Button>

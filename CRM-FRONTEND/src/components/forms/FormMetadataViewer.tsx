@@ -1,4 +1,3 @@
-import React from 'react';
 import { User, Clock, FileText, CheckCircle, AlertCircle, Eye } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';

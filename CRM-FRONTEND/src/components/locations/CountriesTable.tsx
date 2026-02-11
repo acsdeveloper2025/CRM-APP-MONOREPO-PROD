@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { MoreHorizontal, Edit, Trash2, Eye, Globe } from 'lucide-react';
-import { useStandardizedMutation } from '@/hooks/useStandardizedMutation';
+import { useMutationWithInvalidation } from '@/hooks/useStandardizedMutation';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -48,8 +48,8 @@ export function CountriesTable({ data, isLoading }: CountriesTableProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [countryToDelete, setCountryToDelete] = useState<Country | null>(null);
 
-  const deleteCountryMutation = useStandardizedMutation({
-    mutationFn: (id: string) => locationsService.deleteCountry(id),
+  const deleteCountryMutation = useMutationWithInvalidation({
+    mutationFn: (id: number) => locationsService.deleteCountry(id.toString()),
     invalidateKeys: [['countries']],
     successMessage: 'Country deleted successfully',
     errorContext: 'Country Deletion',

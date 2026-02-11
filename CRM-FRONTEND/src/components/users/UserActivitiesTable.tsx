@@ -1,4 +1,3 @@
-import React from 'react';
 import { Activity, Clock } from 'lucide-react';
 import {
   Table,
@@ -8,7 +7,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
+import { Badge, BadgeProps } from '@/components/ui/badge';
 import { LoadingState } from '@/components/ui/loading';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { UserActivity } from '@/types/user';
@@ -36,7 +35,7 @@ export function UserActivitiesTable({ data, isLoading }: UserActivitiesTableProp
   }
 
   const getActionBadge = (action: string) => {
-    const actionConfig: Record<string, { variant: unknown; label: string }> = {
+    const actionConfig: Record<string, { variant: BadgeProps['variant']; label: string }> = {
       LOGIN: { variant: 'default', label: 'Login' },
       LOGOUT: { variant: 'secondary', label: 'Logout' },
       CREATE: { variant: 'default', label: 'Create' },

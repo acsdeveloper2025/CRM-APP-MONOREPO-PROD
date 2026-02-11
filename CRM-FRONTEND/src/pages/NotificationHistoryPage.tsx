@@ -69,7 +69,7 @@ export function NotificationHistoryPage() {
       });
 
       const response = await apiService.get<{ notifications: Notification[]; totalPages: number; totalCount: number }>(`/notifications/history?${params}`);
-      if (response.success) {
+      if (response.success && response.data) {
         setNotifications(response.data.notifications);
         setTotalPages(response.data.totalPages);
         setTotalCount(response.data.totalCount);

@@ -221,7 +221,9 @@ export const useErrorHandler = () => {
       timestamp: new Date().toISOString(),
       url: window.location.href,
       userAgent: navigator.userAgent,
-      ...errorInfo,
+      ...(typeof errorInfo === 'object' && errorInfo !== null 
+        ? (errorInfo as Record<string, unknown>) 
+        : errorInfo !== undefined ? { info: errorInfo } : {}),
     };
 
     console.error('Error data:', errorData);

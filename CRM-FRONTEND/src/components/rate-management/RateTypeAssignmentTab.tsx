@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useStandardizedQuery } from '@/hooks/useStandardizedQuery';
 import { useMutationWithInvalidation } from '@/hooks/useStandardizedMutation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -35,7 +35,7 @@ export function RateTypeAssignmentTab() {
   // Fetch products for selected client
   const { data: productsData } = useStandardizedQuery({
     queryKey: ['client-products', selectedClientId],
-    queryFn: () => productsService.getProductsByClient(Number(selectedClientId)),
+    queryFn: () => productsService.getProductsByClient(selectedClientId),
     enabled: !!selectedClientId,
     errorContext: 'Loading Products',
     errorFallbackMessage: 'Failed to load products',
@@ -44,7 +44,7 @@ export function RateTypeAssignmentTab() {
   // Fetch verification types for selected product
   const { data: verificationTypesData } = useStandardizedQuery({
     queryKey: ['product-verification-types', selectedProductId],
-    queryFn: () => verificationTypesService.getVerificationTypesByProduct(Number(selectedProductId)),
+    queryFn: () => verificationTypesService.getVerificationTypesByProduct(selectedProductId),
     enabled: !!selectedProductId,
     errorContext: 'Loading Verification Types',
     errorFallbackMessage: 'Failed to load verification types',
@@ -148,7 +148,7 @@ export function RateTypeAssignmentTab() {
                 </SelectTrigger>
                 <SelectContent>
                   {clients.map((client) => (
-                    <SelectItem key={client.id} value={client.id}>
+                    <SelectItem key={client.id} value={String(client.id)}>
                       {client.name} ({client.code})
                     </SelectItem>
                   ))}
@@ -169,7 +169,7 @@ export function RateTypeAssignmentTab() {
                 </SelectTrigger>
                 <SelectContent>
                   {products.map((product) => (
-                    <SelectItem key={product.id} value={product.id}>
+                    <SelectItem key={product.id} value={String(product.id)}>
                       {product.name} ({product.code})
                     </SelectItem>
                   ))}
@@ -190,7 +190,7 @@ export function RateTypeAssignmentTab() {
                 </SelectTrigger>
                 <SelectContent>
                   {verificationTypes.map((vt) => (
-                    <SelectItem key={vt.id} value={vt.id}>
+                    <SelectItem key={vt.id} value={String(vt.id)}>
                       {vt.name} ({vt.code})
                     </SelectItem>
                   ))}
@@ -205,13 +205,13 @@ export function RateTypeAssignmentTab() {
               <h4 className="font-medium mb-2">Selected Combination:</h4>
               <div className="flex flex-wrap gap-2">
                 <Badge variant="outline">
-                  Client: {clients.find(c => c.id === selectedClientId)?.name}
+                  Client: {clients.find(c => String(c.id) === selectedClientId)?.name}
                 </Badge>
                 <Badge variant="outline">
-                  Product: {products.find(p => p.id === selectedProductId)?.name}
+                  Product: {products.find(p => String(p.id) === selectedProductId)?.name}
                 </Badge>
                 <Badge variant="outline">
-                  Verification: {verificationTypes.find(vt => vt.id === selectedVerificationTypeId)?.name}
+                  Verification: {verificationTypes.find(vt => String(vt.id) === selectedVerificationTypeId)?.name}
                 </Badge>
               </div>
             </div>

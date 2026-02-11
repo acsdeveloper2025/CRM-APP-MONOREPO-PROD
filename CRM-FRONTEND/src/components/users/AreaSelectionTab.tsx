@@ -118,7 +118,7 @@ export const AreaSelectionTab: React.FC<AreaSelectionTabProps> = ({
             // Convert pincode.id to number for lookup (API returns string IDs)
             const pincodeIdNum = typeof pincode.id === 'string' ? parseInt(pincode.id, 10) : pincode.id;
             const areas = searchTerm
-              ? (pincode as unknown).filteredAreas
+              ? (pincode as PincodeWithCity & { filteredAreas: Area[] }).filteredAreas
               : areasByPincode[pincodeIdNum] || [];
             const selectedAreas = selectedAreasByPincode.get(pincodeIdNum) || new Set();
             const allSelected = areas.length > 0 && areas.every((area: Area) => {

@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -241,7 +241,8 @@ export function EditRoleDialog({ open, onOpenChange, role }: EditRoleDialogProps
       onOpenChange(false);
     },
     onError: (error: unknown) => {
-      toast.error(error.response?.data?.message || 'Failed to update role');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      toast.error((error as any).response?.data?.message || 'Failed to update role');
     },
   });
 
@@ -368,12 +369,13 @@ export function EditRoleDialog({ open, onOpenChange, role }: EditRoleDialogProps
                           <FormField
                             key={`${resource.key}.${action.key}`}
                             control={form.control}
-                            name={`permissions.${resource.key}.${action.key}` as unknown}
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                            name={`permissions.${resource.key}.${action.key}` as any}
                             render={({ field }) => (
                               <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                                 <FormControl>
                                   <Checkbox
-                                    checked={field.value}
+                                    checked={field.value as boolean}
                                     onCheckedChange={field.onChange}
                                   />
                                 </FormControl>

@@ -46,7 +46,7 @@ export interface AssignmentsByCombinationQuery {
 
 export class RateTypeAssignmentsService {
   async getRateTypeAssignments(query: RateTypeAssignmentListQuery = {}): Promise<PaginatedResponse<RateTypeAssignment>> {
-    return apiService.get('/rate-type-assignments', query);
+    return apiService.get<RateTypeAssignment[]>('/rate-type-assignments', query) as Promise<PaginatedResponse<RateTypeAssignment>>;
   }
 
   async getAssignmentsByCombination(query: AssignmentsByCombinationQuery): Promise<ApiResponse<RateTypeAssignmentStatus[]>> {

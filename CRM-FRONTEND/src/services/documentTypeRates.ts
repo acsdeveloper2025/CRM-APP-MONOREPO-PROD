@@ -13,7 +13,7 @@ export class DocumentTypeRatesService {
    * Get document type rates with filtering and pagination
    */
   async getDocumentTypeRates(query: DocumentTypeRateQuery = {}): Promise<PaginatedResponse<DocumentTypeRate>> {
-    return apiService.get('/document-type-rates', query);
+    return apiService.get<DocumentTypeRate[]>('/document-type-rates', query) as Promise<PaginatedResponse<DocumentTypeRate>>;
   }
 
   /**

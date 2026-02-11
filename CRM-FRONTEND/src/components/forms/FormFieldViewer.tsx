@@ -62,7 +62,7 @@ export function FormFieldViewer({ field, readonly = true, onChange }: FormFieldV
         const selectedOption = field.options?.find(opt => opt.value === field.value);
         return (
           <div className="text-sm">
-            {selectedOption ? selectedOption.label : field.value || 'Not selected'}
+            {selectedOption ? selectedOption.label : (field.value as string) || 'Not selected'}
           </div>
         );
       }
@@ -70,7 +70,7 @@ export function FormFieldViewer({ field, readonly = true, onChange }: FormFieldV
       case 'textarea':
         return (
           <div className="text-sm whitespace-pre-wrap bg-muted/50 rounded-md p-3 min-h-20">
-            {field.value || 'No value provided'}
+            {(field.value as string) || 'No value provided'}
           </div>
         );
 
@@ -78,17 +78,20 @@ export function FormFieldViewer({ field, readonly = true, onChange }: FormFieldV
         if (Array.isArray(field.value)) {
           return (
             <div className="space-y-2">
-              {field.value.map((file: unknown, index: number) => (
-                <div key={index} className="flex items-center space-x-2 text-sm">
-                  <FileText className="h-4 w-4" />
-                  <span>{file.name || `File ${index + 1}`}</span>
-                  {file.size && (
-                    <Badge variant="outline" className="text-xs">
-                      {(file.size / 1024).toFixed(1)} KB
-                    </Badge>
-                  )}
-                </div>
-              ))}
+              {field.value.map((file: unknown, index: number) => {
+                const fileObj = file as { name?: string; size?: number };
+                return (
+                  <div key={index} className="flex items-center space-x-2 text-sm">
+                    <FileText className="h-4 w-4" />
+                    <span>{fileObj.name || `File ${index + 1}`}</span>
+                    {fileObj.size && (
+                      <Badge variant="outline" className="text-xs">
+                        {(fileObj.size / 1024).toFixed(1)} KB
+                      </Badge>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           );
         }
@@ -97,14 +100,14 @@ export function FormFieldViewer({ field, readonly = true, onChange }: FormFieldV
       case 'date':
         return (
           <div className="text-sm">
-            {field.value ? new Date(field.value).toLocaleDateString() : 'No date selected'}
+            {field.value ? new Date(field.value as string).toLocaleDateString() : 'No date selected'}
           </div>
         );
 
       default:
         return (
           <div className="text-sm">
-            {field.value || 'No value provided'}
+            {(field.value as string) || 'No value provided'}
           </div>
         );
     }
@@ -117,20 +120,16 @@ export function FormFieldViewer({ field, readonly = true, onChange }: FormFieldV
         return (
           <Input
             type={field.type}
-            value={field.value || ''}
+            value={field.value as string || ''}
             onChange={(e) => onChange?.(e.target.value)}
-            placeholder={field.placeholder}
-            disabled={field.disabled}
           />
         );
 
       case 'textarea':
         return (
           <Textarea
-            value={field.value || ''}
+            value={field.value as string || ''}
             onChange={(e) => onChange?.(e.target.value)}
-            placeholder={field.placeholder}
-            disabled={field.disabled}
             rows={3}
           />
         );
@@ -138,12 +137,11 @@ export function FormFieldViewer({ field, readonly = true, onChange }: FormFieldV
       case 'select':
         return (
           <Select
-            value={field.value || ''}
+            value={field.value as string || ''}
             onValueChange={onChange}
-            disabled={field.disabled}
           >
             <SelectTrigger>
-              <SelectValue placeholder={field.placeholder || 'Select an option'} />
+              <SelectValue placeholder="Select an option" />
             </SelectTrigger>
             <SelectContent>
               {field.options?.map((option) => (
@@ -159,12 +157,11 @@ export function FormFieldViewer({ field, readonly = true, onChange }: FormFieldV
         return (
           <div className="flex items-center space-x-2">
             <Checkbox
-              checked={field.value || false}
+              checked={field.value as boolean || false}
               onCheckedChange={onChange}
-              disabled={field.disabled}
             />
             <Label className="text-sm">
-              {field.placeholder || 'Check if applicable'}
+              {field.label}
             </Label>
           </div>
         );
@@ -173,9 +170,8 @@ export function FormFieldViewer({ field, readonly = true, onChange }: FormFieldV
         return (
           <Input
             type="date"
-            value={field.value || ''}
+            value={field.value as string || ''}
             onChange={(e) => onChange?.(e.target.value)}
-            disabled={field.disabled}
           />
         );
 
@@ -191,7 +187,6 @@ export function FormFieldViewer({ field, readonly = true, onChange }: FormFieldV
                   value={option.value}
                   checked={field.value === option.value}
                   onChange={(e) => onChange?.(e.target.value)}
-                  disabled={field.disabled}
                   className="h-4 w-4"
                 />
                 <Label htmlFor={`${field.id}-${option.value}`} className="text-sm">
@@ -215,14 +210,10 @@ export function FormFieldViewer({ field, readonly = true, onChange }: FormFieldV
         </div>
         <Label className="text-sm font-medium">
           {field.label}
-          {field.required && <span className="text-red-500 ml-1">*</span>}
+          {field.isRequired && <span className="text-red-500 ml-1">*</span>}
           {readonly && <span className="text-xs text-gray-600 ml-2">(Read Only)</span>}
         </Label>
       </div>
-
-      {field.description && (
-        <p className="text-xs text-gray-600">{field.description}</p>
-      )}
 
       <div className={`${readonly ? 'bg-muted/30 rounded-md p-3' : ''}`}>
         {renderFieldValue()}

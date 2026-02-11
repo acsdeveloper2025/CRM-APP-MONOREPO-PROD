@@ -64,3 +64,28 @@ export interface Alert {
   relatedEntityType?: string;
   relatedEntityId?: string;
 }
+
+export interface OverdueTask {
+  id: string;
+  taskNumber: string;
+  caseId: string;
+  caseNumber: string;
+  customerName: string;
+  verificationTypeName: string;
+  assignedToName: string;
+  daysOverdue: number;
+  status: string;
+  priority: string;
+  completed_at?: string;
+}
+
+export interface OverdueTasksResponse {
+  tasks: OverdueTask[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    totalCount: number;
+  };
+}

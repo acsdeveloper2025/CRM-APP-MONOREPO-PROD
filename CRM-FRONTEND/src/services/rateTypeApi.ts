@@ -14,7 +14,7 @@ export interface GetRateTypesResponse {
 export const rateTypeApi = {
   // Get all rate types with optional filtering
   async getRateTypes(params: RateTypeListQuery = {}): Promise<GetRateTypesResponse> {
-    const response = await apiService.get('/rate-types', params);
+    const response = await apiService.get<RateType[]>('/rate-types', params);
     return {
       data: response.data || [],
       pagination: response.pagination
@@ -23,25 +23,34 @@ export const rateTypeApi = {
 
   // Get rate type by ID
   async getRateTypeById(id: number): Promise<RateType> {
-    const response = await apiService.get(`/rate-types/${id}`);
+    const response = await apiService.get<RateType>(`/rate-types/${id}`);
+    if (!response.data) {
+      throw new Error('Rate type not found');
+    }
     return response.data;
   },
 
   // Create new rate type
   async createRateType(rateTypeData: CreateRateTypeData): Promise<RateType> {
-    const response = await apiService.post('/rate-types', rateTypeData);
+    const response = await apiService.post<RateType>('/rate-types', rateTypeData);
+    if (!response.data) {
+      throw new Error('Failed to create rate type');
+    }
     return response.data;
   },
 
   // Update rate type
   async updateRateType(id: number, rateTypeData: UpdateRateTypeData): Promise<RateType> {
-    const response = await apiService.put(`/rate-types/${id}`, rateTypeData);
+    const response = await apiService.put<RateType>(`/rate-types/${id}`, rateTypeData);
+    if (!response.data) {
+      throw new Error('Failed to update rate type');
+    }
     return response.data;
   },
 
   // Delete rate type
   async deleteRateType(id: number): Promise<void> {
-    await apiService.delete(`/rate-types/${id}`);
+    await apiService.delete<void>(`/rate-types/${id}`);
   },
 
   // Get active rate types only
@@ -58,7 +67,6 @@ export const rateTypeApi = {
 
   // Export rate types
   async exportRateTypes(params: RateTypeListQuery = {}): Promise<Blob> {
-    const response = await apiService.get('/rate-types/export', params, { responseType: 'blob' });
-    return response.data;
+    return apiService.getBlob('/rate-types/export', params);
   }
 };
