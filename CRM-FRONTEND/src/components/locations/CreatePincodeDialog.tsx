@@ -84,7 +84,7 @@ export function CreatePincodeDialog({ open, onOpenChange }: CreatePincodeDialogP
 
   const onSubmit = (data: CreatePincodeFormData) => {
     // Find the selected city to get additional required fields
-    const selectedCity = cities.find(city => city.id === data.cityId);
+    const selectedCity = cities.find(city => String(city.id) === data.cityId);
 
     if (!selectedCity) {
       toast.error('Please select a valid city');

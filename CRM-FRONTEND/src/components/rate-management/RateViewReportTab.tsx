@@ -36,7 +36,7 @@ export function RateViewReportTab() {
   const [selectedVerificationTypeId, setSelectedVerificationTypeId] = useState<string>('all');
   const [selectedRateTypeId, setSelectedRateTypeId] = useState<string>('all');
   const [isActiveFilter, setIsActiveFilter] = useState<string>('all');
-  const [deletingRate, setDeletingRate] = useState<unknown>(null);
+  const [deletingRate, setDeletingRate] = useState<Rate | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 20;
 
@@ -118,7 +118,7 @@ export function RateViewReportTab() {
 
   const confirmDeleteRate = () => {
     if (deletingRate) {
-      deleteRateMutation.mutate(deletingRate.rateId);
+      deleteRateMutation.mutate(deletingRate.id);
     }
   };
 
@@ -214,7 +214,7 @@ export function RateViewReportTab() {
                 <SelectContent>
                   <SelectItem value="all">All clients</SelectItem>
                   {clients.map((client) => (
-                    <SelectItem key={client.id} value={client.id}>
+                    <SelectItem key={client.id} value={String(client.id)}>
                       {client.name}
                     </SelectItem>
                   ))}
@@ -248,7 +248,7 @@ export function RateViewReportTab() {
                 <SelectContent>
                   <SelectItem value="all">All types</SelectItem>
                   {verificationTypes.map((vt) => (
-                    <SelectItem key={vt.id} value={vt.id}>
+                    <SelectItem key={vt.id} value={String(vt.id)}>
                       {vt.name}
                     </SelectItem>
                   ))}
@@ -265,7 +265,7 @@ export function RateViewReportTab() {
                 <SelectContent>
                   <SelectItem value="all">All rate types</SelectItem>
                   {rateTypes.map((rt) => (
-                    <SelectItem key={rt.id} value={rt.id}>
+                    <SelectItem key={rt.id} value={String(rt.id)}>
                       {rt.name}
                     </SelectItem>
                   ))}
@@ -333,7 +333,7 @@ export function RateViewReportTab() {
                 </TableHeader>
                 <TableBody>
                   {rates.map((rate, index) => (
-                    <TableRow key={rate.rateId || `${rate.clientId}-${rate.productId}-${rate.verificationTypeId}-${rate.rateTypeId}-${index}`}>
+                    <TableRow key={rate.id || `${rate.clientId}-${rate.productId}-${rate.verificationTypeId}-${rate.rateTypeId}-${index}`}>
                       <TableCell>
                         <div>
                           <div className="font-medium">{rate.clientName}</div>

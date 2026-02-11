@@ -104,7 +104,7 @@ export const AIReportCard: React.FC<AIReportCardProps> = ({
         throw new Error(response.message || 'Failed to generate report');
       }
     } catch (err: unknown) {
-            const errorObj = err as unknown;
+      const errorObj = err as { response?: { data?: { message?: string } }; message?: string };
       const errorMessage = errorObj.response?.data?.message || errorObj.message || 'Failed to generate AI report';
       setError(errorMessage);
       toast.error('Failed to generate AI report', {

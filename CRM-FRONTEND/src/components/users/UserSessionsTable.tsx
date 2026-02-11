@@ -1,4 +1,4 @@
-import React from 'react';
+import { ApiErrorResponse } from '@/types/api';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Monitor, Smartphone, Tablet, X, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -32,7 +32,8 @@ export function UserSessionsTable({ data, isLoading }: UserSessionsTableProps) {
       toast.success('Session terminated successfully');
     },
     onError: (error: unknown) => {
-      toast.error(error.response?.data?.message || 'Failed to terminate session');
+      const apiError = error as ApiErrorResponse;
+      toast.error(apiError.response?.data?.message || 'Failed to terminate session');
     },
   });
 

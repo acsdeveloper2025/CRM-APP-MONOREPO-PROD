@@ -1,15 +1,6 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-
-type Theme = 'light' | 'dark' | 'system';
-
-interface ThemeContextType {
-  theme: Theme;
-  actualTheme: 'light' | 'dark';
-  setTheme: (theme: Theme) => void;
-  toggleTheme: () => void;
-}
-
-const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
+import React, { useEffect, useState } from 'react';
+import { ThemeContext, Theme, ThemeContextType } from './ThemeContextObject';
+import { useTheme } from '@/hooks/useTheme';
 
 interface ThemeProviderProps {
   children: React.ReactNode;
@@ -98,14 +89,6 @@ export function ThemeProvider({
   );
 }
 
-export const useTheme = () => {
-  const context = useContext(ThemeContext);
-  if (context === undefined) {
-    throw new Error('useTheme must be used within a ThemeProvider');
-  }
-  return context;
-};
-
 // Theme-aware component wrapper
 interface ThemeAwareProps {
   children: React.ReactNode;
@@ -125,16 +108,4 @@ export function ThemeAware({ children, lightContent, darkContent }: ThemeAwarePr
   }
   
   return <>{children}</>;
-}
-
-// Hook for theme-dependent values
-export function useThemeValue<T>(lightValue: T, darkValue: T): T {
-  const { actualTheme } = useTheme();
-  return actualTheme === 'dark' ? darkValue : lightValue;
-}
-
-// Hook for theme-dependent classes
-export function useThemeClasses(lightClasses: string, darkClasses: string): string {
-  const { actualTheme } = useTheme();
-  return actualTheme === 'dark' ? darkClasses : lightClasses;
 }

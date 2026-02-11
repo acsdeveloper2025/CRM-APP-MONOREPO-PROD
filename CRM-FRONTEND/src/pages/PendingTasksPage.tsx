@@ -16,6 +16,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 
 interface PendingTaskFilters {
+  [key: string]: unknown;
   priority?: string;
 }
 
@@ -60,9 +61,7 @@ export const PendingTasksPage: React.FC = () => {
 
   const { tasks, loading, error, pagination, statistics, refreshTasks } = useAllVerificationTasks(queryFilters);
 
-  const _activeFilterCount = Object.keys(activeFilters).filter(
-    key => activeFilters[key as keyof PendingTaskFilters] !== undefined
-  ).length;
+
 
   const handleAssignTask = (taskId: string) => {
     setSelectedTaskId(taskId);

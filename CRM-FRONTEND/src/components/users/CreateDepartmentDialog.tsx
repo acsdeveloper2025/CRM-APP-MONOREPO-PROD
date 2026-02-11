@@ -1,5 +1,5 @@
-import React from 'react';
 import { useForm } from 'react-hook-form';
+import axios from 'axios';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -103,8 +103,15 @@ export function CreateDepartmentDialog({ open, onOpenChange }: CreateDepartmentD
       onOpenChange(false);
     },
     onError: (error: unknown) => {
-      const errorMessage = error.response?.data?.message || 'Failed to create department';
-      const errorCode = error.response?.data?.error?.code;
+      let errorMessage = 'Failed to create department';
+      let errorCode: string | undefined;
+
+      if (axios.isAxiosError(error)) {
+        errorMessage = error.response?.data?.message || errorMessage;
+        errorCode = error.response?.data?.error?.code;
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      }
 
       // Show specific error messages for different error types
       if (errorCode === 'DUPLICATE_DEPARTMENT_NAME') {
@@ -115,7 +122,7 @@ export function CreateDepartmentDialog({ open, onOpenChange }: CreateDepartmentD
         toast.error(errorMessage);
       }
 
-      console.error('Department creation error:', error.response?.data || error);
+      console.error('Department creation error:', axios.isAxiosError(error) ? error.response?.data : error);
     },
   });
 

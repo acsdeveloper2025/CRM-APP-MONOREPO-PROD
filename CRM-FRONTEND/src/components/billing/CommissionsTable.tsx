@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { MoreHorizontal, CheckCircle, DollarSign, TrendingUp, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -45,7 +45,8 @@ export function CommissionsTable({ data, isLoading }: CommissionsTableProps) {
       toast.success('Commission approved successfully');
     },
     onError: (error: unknown) => {
-      toast.error(error.response?.data?.message || 'Failed to approve commission');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      toast.error((error as any).response?.data?.message || 'Failed to approve commission');
     },
   });
 
@@ -59,7 +60,8 @@ export function CommissionsTable({ data, isLoading }: CommissionsTableProps) {
       toast.success('Commission marked as paid');
     },
     onError: (error: unknown) => {
-      toast.error(error.response?.data?.message || 'Failed to mark commission as paid');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      toast.error((error as any).response?.data?.message || 'Failed to mark commission as paid');
     },
   });
 
@@ -74,7 +76,8 @@ export function CommissionsTable({ data, isLoading }: CommissionsTableProps) {
       setSelectedCommissions([]);
     },
     onError: (error: unknown) => {
-      toast.error(error.response?.data?.message || 'Failed to approve commissions');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      toast.error((error as any).response?.data?.message || 'Failed to approve commissions');
     },
   });
 
@@ -89,7 +92,8 @@ export function CommissionsTable({ data, isLoading }: CommissionsTableProps) {
       setSelectedCommissions([]);
     },
     onError: (error: unknown) => {
-      toast.error(error.response?.data?.message || 'Failed to mark commissions as paid');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      toast.error((error as any).response?.data?.message || 'Failed to mark commissions as paid');
     },
   });
 

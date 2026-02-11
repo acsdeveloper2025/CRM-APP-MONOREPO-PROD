@@ -9,46 +9,46 @@ import { Badge } from '@/components/ui/badge';
 import { UserCheck, AlertCircle, User, Loader2 } from 'lucide-react';
 import { AssignVerificationTaskRequest, TaskPriority, VerificationTask } from '@/types/verificationTask';
 import { useFieldUsersByPincode } from '@/hooks/useUsers';
-import { useVerificationTasks } from '@/hooks/useVerificationTasks';
+import { useVerificationTask, useAssignVerificationTask } from '@/hooks/useVerificationTasks';
 
 interface TaskAssignmentModalProps {
   taskId: string;
+  isOpen?: boolean;
   onClose: () => void;
-  onSubmit: (assignmentData: AssignVerificationTaskRequest) => void;
+  onSuccess?: () => void;
 }
 
 export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
   taskId,
+  isOpen = true,
   onClose,
-  onSubmit
+  onSuccess
 }) => {
   const [assignedTo, setAssignedTo] = useState<string>('');
   const [assignmentReason, setAssignmentReason] = useState<string>('');
   const [priority, setPriority] = useState<TaskPriority>('MEDIUM');
-  const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [task, setTask] = useState<VerificationTask | null>(null);
-
-  const { fetchTaskById } = useVerificationTasks();
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  
+  // Fetch task details using useVerificationTask
+  const { data: rawTaskData, isLoading: _loadingTask } = useVerificationTask(taskId);
+  const task = (Array.isArray(rawTaskData) ? rawTaskData[0] : rawTaskData) as VerificationTask | undefined;
 
   // Fetch field users filtered by the task's pincode
   const { data: fieldUsers = [], isLoading: loadingUsers } = useFieldUsersByPincode(task?.pincode);
 
-  // Fetch task details
-  useEffect(() => {
-    const loadTaskDetails = async () => {
-      const taskData = await fetchTaskById(taskId);
-      if (taskData) {
-        setTask(taskData);
-        setPriority(taskData.priority);
-        if (taskData.assignedTo) {
-          setAssignedTo(taskData.assignedTo);
-        }
-      }
-    };
+  // Mutation for assigning task
+  const { mutateAsync: assignTask, isPending: isAssigning } = useAssignVerificationTask();
 
-    loadTaskDetails();
-  }, [taskId, fetchTaskById]);
+  // Synchronize local priority with task priority when task data is loaded
+  useEffect(() => {
+    if (task) {
+      setPriority(task.priority);
+      if (task.assignedTo) {
+        setAssignedTo(task.assignedTo.id);
+      }
+    }
+  }, [task]);
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -70,7 +70,7 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
       return;
     }
 
-    setLoading(true);
+    setSubmitError(null);
 
     const assignmentData: AssignVerificationTaskRequest = {
       assignedTo,
@@ -79,9 +79,15 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
     };
 
     try {
-      await onSubmit(assignmentData);
-    } finally {
-      setLoading(false);
+      await assignTask({ taskId, data: assignmentData });
+      if (onSuccess) {
+        onSuccess();
+      } else {
+        onClose();
+      }
+    } catch (error) {
+      console.error('Failed to assign task:', error);
+      setSubmitError('Failed to assign task. Please try again.');
     }
   };
 
@@ -93,6 +99,7 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
         return newErrors;
       });
     }
+    setSubmitError(null);
   };
 
   const getPriorityColor = (priority: TaskPriority) => {
@@ -106,7 +113,7 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
   };
 
   return (
-    <Dialog open onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2">
@@ -135,6 +142,13 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
             </CardContent>
           </Card>
 
+          {/* Global Error */}
+          {submitError && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative text-sm">
+              <span className="block sm:inline">{submitError}</span>
+            </div>
+          )}
+
           {/* Assignment Form */}
           <div className="space-y-4">
             {/* Field User Selection */}
@@ -153,7 +167,7 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
                   setAssignedTo(value);
                   clearError('assignedTo');
                 }}
-                disabled={loadingUsers || !task}
+                disabled={loadingUsers || !task || isAssigning}
               >
                 <SelectTrigger className={errors.assignedTo ? 'border-red-500' : ''}>
                   <SelectValue placeholder={loadingUsers ? "Loading field users..." : "Select a field user"}>
@@ -161,7 +175,9 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
                       <div className="flex items-center space-x-2">
                         <User className="h-4 w-4" />
                         <span>
-                          {fieldUsers.find(user => user.id === assignedTo)?.name}
+                          {fieldUsers.find(user => 
+                            (typeof user.id === 'string' ? user.id : String(user.id)) === assignedTo
+                          )?.name}
                         </span>
                       </div>
                     )}
@@ -214,6 +230,7 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
               <Select
                 value={priority}
                 onValueChange={(value: TaskPriority) => setPriority(value)}
+                disabled={isAssigning}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -250,6 +267,7 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
                 placeholder="Explain why this task is being assigned to this user..."
                 rows={3}
                 className={errors.assignmentReason ? 'border-red-500' : ''}
+                disabled={isAssigning}
               />
               {errors.assignmentReason && (
                 <p className="text-sm text-red-600 flex items-center space-x-1">
@@ -274,11 +292,13 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
                   <div className="text-sm text-green-800">
                     <p>
                       <span className="font-medium">Assignee:</span>{' '}
-                      {fieldUsers.find(user => user.id === assignedTo)?.name}
+                      {fieldUsers.find(user => 
+                        (typeof user.id === 'string' ? user.id : String(user.id)) === assignedTo
+                      )?.name}
                     </p>
                     <p>
                       <span className="font-medium">Priority:</span>{' '}
-                      <Badge className={getPriorityColor(priority)} size="sm">
+                      <Badge className={getPriorityColor(priority)}>
                         {priority}
                       </Badge>
                     </p>
@@ -290,14 +310,19 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
 
           {/* Actions */}
           <div className="flex justify-end space-x-3">
-            <Button onClick={onClose} variant="outline">
+            <Button onClick={onClose} variant="outline" disabled={isAssigning}>
               Cancel
             </Button>
             <Button 
               onClick={handleSubmit} 
-              disabled={loading || !assignedTo}
+              disabled={isAssigning || !assignedTo}
             >
-              {loading ? 'Assigning...' : 'Assign Task'}
+              {isAssigning ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Assigning...
+                </>
+              ) : 'Assign Task'}
             </Button>
           </div>
         </div>

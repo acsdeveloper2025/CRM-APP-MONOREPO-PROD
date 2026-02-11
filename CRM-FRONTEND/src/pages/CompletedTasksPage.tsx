@@ -14,10 +14,11 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { VerificationTasksService } from '@/services/verificationTasks';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 
 interface CompletedTaskFilters {
   priority?: string;
+  [key: string]: unknown;
 }
 
 export const CompletedTasksPage: React.FC = () => {
@@ -59,10 +60,6 @@ export const CompletedTasksPage: React.FC = () => {
   };
 
   const { tasks, loading, error, pagination, statistics, refreshTasks } = useAllVerificationTasks(queryFilters);
-
-  const _activeFilterCount = Object.keys(activeFilters).filter(
-    key => activeFilters[key as keyof CompletedTaskFilters] !== undefined
-  ).length;
 
   const handleViewTask = (taskId: string) => {
     navigate(`/tasks/${taskId}`);

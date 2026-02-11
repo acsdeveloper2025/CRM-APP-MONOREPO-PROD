@@ -1,4 +1,3 @@
-import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Package, Building2, CheckCircle, Calendar } from 'lucide-react';
 import {
@@ -28,10 +27,10 @@ export function ProductDetailsDialog({ product, open, onOpenChange }: ProductDet
   });
 
   // Note: Product details are independent of a specific client; verification types vary per client-product mapping.
-  const verificationTypes = { data: product.verificationTypes || [] } as unknown;
+  const verificationTypes = { data: product.verificationTypes || [] };
 
   const productData = productDetails?.data || product;
-  const types = verificationTypes?.data || [];
+  const types = verificationTypes.data || [];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

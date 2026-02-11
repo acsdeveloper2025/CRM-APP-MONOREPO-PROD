@@ -1,4 +1,3 @@
-import React from 'react';
 import { Download, CheckCircle, Receipt, Building, Calendar } from 'lucide-react';
 import {
   Dialog,

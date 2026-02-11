@@ -1,4 +1,3 @@
-import React from 'react';
 import { Building, Calendar, FileText, DollarSign } from 'lucide-react';
 import {
   Dialog,

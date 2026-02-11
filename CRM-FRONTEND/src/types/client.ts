@@ -1,5 +1,7 @@
 import { BaseEntity } from './index';
 import { DocumentType } from './documentType';
+import type { Product } from './product';
+
 export type { DocumentType };
 
 export interface Client extends Omit<BaseEntity, 'id'> {
@@ -15,14 +17,7 @@ export interface Client extends Omit<BaseEntity, 'id'> {
   documentTypes?: DocumentType[];
 }
 
-export interface Product extends Omit<BaseEntity, 'id'> {
-  id: number; // Numeric ID for products (SERIAL)
-  name: string;
-  code: string;
-  description?: string;
-  isActive?: boolean;
-  verificationTypes?: VerificationType[];
-}
+
 
 export interface VerificationType extends Omit<BaseEntity, 'id'> {
   id: number; // Numeric ID for verification types (SERIAL)
@@ -30,6 +25,7 @@ export interface VerificationType extends Omit<BaseEntity, 'id'> {
   code: string;
   description?: string;
   isActive?: boolean;
+  hasRates?: boolean;
 }
 
 export interface CreateClientData {

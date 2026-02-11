@@ -1,4 +1,3 @@
-import React from 'react';
 import { TrendingUp, TrendingDown, Minus, Clock, CheckCircle, BarChart3, DollarSign } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ReportSummary } from '@/types/reports';

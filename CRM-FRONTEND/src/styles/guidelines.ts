@@ -10,7 +10,8 @@
 /**
  * Re-export cn utility from lib/utils for consistency
  */
-export { cn } from '@/lib/utils';
+import { cn } from '@/lib/utils';
+export { cn };
 
 /**
  * Creates responsive class names
@@ -19,7 +20,7 @@ export function responsive<T extends string>(
   base: T,
   breakpoints?: Partial<Record<'sm' | 'md' | 'lg' | 'xl' | '2xl', T>>
 ): string {
-  const classes = [base];
+  const classes: string[] = [base];
   
   if (breakpoints) {
     Object.entries(breakpoints).forEach(([breakpoint, value]) => {
@@ -165,11 +166,11 @@ export const caseStatusStyles = {
  * Priority styling
  */
 export const priorityStyles = {
-  1: 'bg-priority-low text-white', // Low
-  2: 'bg-priority-medium text-white', // Medium
-  3: 'bg-priority-high text-white', // High
-  4: 'bg-priority-urgent text-white', // Urgent
-  5: 'bg-priority-critical text-white', // Critical
+  '1': 'bg-priority-low text-white', // Low
+  '2': 'bg-priority-medium text-white', // Medium
+  '3': 'bg-priority-high text-white', // High
+  '4': 'bg-priority-urgent text-white', // Urgent
+  '5': 'bg-priority-critical text-white', // Critical
 } as const;
 
 /**
@@ -333,7 +334,7 @@ export const styleHelpers = {
    */
   getPriorityStyle: (priority: number | string): string => {
     const priorityKey = String(priority) as keyof typeof priorityStyles;
-    return priorityStyles[priorityKey] || priorityStyles[1];
+    return priorityStyles[priorityKey] || priorityStyles['1'];
   },
   
   /**
@@ -365,27 +366,5 @@ export const styleHelpers = {
 
 // ==================== Export Everything ====================
 
-export {
-  // Main utility
-  cn as default,
-  
-  // Style objects
-  buttonStyles,
-  inputStyles,
-  cardStyles,
-  badgeStyles,
-  layoutStyles,
-  animationStyles,
-  a11yStyles,
-  responsiveStyles,
-  themeStyles,
-  
-  // Status styles
-  caseStatusStyles,
-  priorityStyles,
-  roleStyles,
-  
-  // Helpers
-  styleHelpers,
-  responsive,
-};
+
+export default cn;

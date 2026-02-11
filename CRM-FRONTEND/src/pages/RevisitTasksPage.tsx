@@ -15,6 +15,7 @@ import { useNavigate } from 'react-router-dom';
 interface RevisitTaskFilters {
   priority?: string;
   status?: string;
+  [key: string]: unknown;
 }
 
 export const RevisitTasksPage: React.FC = () => {

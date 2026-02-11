@@ -27,13 +27,14 @@ import { useFieldUsers } from '@/hooks/useUsers';
 import { useClients, useVerificationTypes, useProductsByClient } from '@/hooks/useClients';
 import { usePincodes } from '@/hooks/useLocations';
 import { useAreasByPincode } from '@/hooks/useAreas';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 import { useStandardizedQuery } from '@/hooks/useStandardizedQuery';
 import { useMutationWithInvalidation } from '@/hooks/useStandardizedMutation';
 import { rateTypesService } from '@/services/rateTypes';
 import { EnhancedCasesService } from '@/services/verificationTasks';
 import type { CustomerInfoData } from './CustomerInfoStep';
 import type { CreateCaseWithMultipleTasksRequest } from '@/types/verificationTask';
+import type { User as UserType } from '@/types/user';
 import { toast } from 'sonner';
 
 // Task Area Select Component
@@ -82,7 +83,6 @@ const TaskRateTypeSelect: React.FC<{
   const { data: rateTypesResponse } = useStandardizedQuery({
     queryKey: ['availableRateTypes', clientId, productId, task.verificationTypeId],
     queryFn: () => rateTypesService.getAvailableRateTypesForCase(
-      parseInt(clientId),
       parseInt(clientId),
       parseInt(productId),
       task.verificationTypeId || 0
@@ -221,10 +221,6 @@ export const CaseWithTasksCreationForm: React.FC<CaseWithTasksCreationFormProps>
     mutationFn: (data: CreateCaseWithMultipleTasksRequest) =>
       EnhancedCasesService.createCaseWithMultipleTasks(data),
     invalidateKeys: [['cases'], ['verification-tasks'], ['dashboard']],
-    successMessage: (data) => {
-      const taskCount = data?.data?.verification_tasks?.length || 0;
-      return `Case created successfully with ${taskCount} verification task${taskCount > 1 ? 's' : ''}`;
-    },
     errorContext: 'Case Creation',
     errorFallbackMessage: 'Failed to create case with tasks',
   });
@@ -247,7 +243,7 @@ export const CaseWithTasksCreationForm: React.FC<CaseWithTasksCreationFormProps>
   // Watch for client selection to fetch products
   const selectedClientId = form.watch('caseDetails.clientId');
   const selectedProductId = form.watch('caseDetails.productId');
-  const { data: productsResponse } = useProductsByClient(selectedClientId ? parseInt(selectedClientId) : undefined);
+  const { data: productsResponse } = useProductsByClient(selectedClientId);
 
   // Areas will be loaded dynamically based on task pincode selection
 
@@ -261,9 +257,11 @@ export const CaseWithTasksCreationForm: React.FC<CaseWithTasksCreationFormProps>
   const users = fieldUsers || []; // fieldUsers is already the array from the select function
 
   // Helper function to get user display name
-  const getUserDisplayName = (user: unknown) => {
-    if (!user) {return '';}
-    if (user.name && typeof user.name === 'string' && user.name.trim()) {
+  const getUserDisplayName = (user: UserType) => {
+    if (!user) {
+      return '';
+    }
+    if (user.name && user.name.trim()) {
       return user.name;
     }
     if (user.firstName && user.lastName) {
@@ -383,6 +381,8 @@ export const CaseWithTasksCreationForm: React.FC<CaseWithTasksCreationFormProps>
     createCaseMutation.mutate(caseData, {
       onSuccess: (result) => {
         if (result.success) {
+          const taskCount = result.data?.verification_tasks?.length || 0;
+          toast.success(`Case created successfully with ${taskCount} verification task${taskCount > 1 ? 's' : ''}`);
           onSubmit(result.data.case.id);
         }
       },

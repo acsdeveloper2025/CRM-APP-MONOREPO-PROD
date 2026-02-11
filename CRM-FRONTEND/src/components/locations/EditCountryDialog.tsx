@@ -81,7 +81,7 @@ export function EditCountryDialog({ country, open, onOpenChange }: EditCountryDi
 
   const updateCountryMutation = useCRUDMutation({
     mutationFn: (data: EditCountryFormData) =>
-      locationsService.updateCountry(country.id, {
+      locationsService.updateCountry(country.id.toString(), {
         ...data,
         code: data.code.toUpperCase(),
       }),

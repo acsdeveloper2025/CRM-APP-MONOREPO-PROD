@@ -21,6 +21,7 @@ interface EnhancedFormViewerProps {
   showLocation?: boolean;
   showMetadata?: boolean;
   onFieldChange?: (fieldId: string, value: unknown) => void;
+  onSectionToggle?: (sectionId: string, expanded: boolean) => void;
 }
 
 export function FormViewer({
@@ -31,6 +32,7 @@ export function FormViewer({
   showLocation = true,
   showMetadata = true,
   onFieldChange,
+  onSectionToggle: _onSectionToggle,
 }: EnhancedFormViewerProps) {
 
 
@@ -107,16 +109,7 @@ export function FormViewer({
     return <Badge variant={config.variant} className={config.color}>{config.label}</Badge>;
   };
 
-  const _getDeviceIcon = (platform: string) => {
-    switch (platform) {
-      case 'IOS':
-        return <Smartphone className="h-4 w-4" />;
-      case 'ANDROID':
-        return <Smartphone className="h-4 w-4" />;
-      default:
-        return <Smartphone className="h-4 w-4" />;
-    }
-  };
+  /* Removed unused _getDeviceIcon function */
 
   const getNetworkIcon = (type: string) => {
     switch (type) {
@@ -134,7 +127,7 @@ export function FormViewer({
   return (
     <div className="space-y-6">
       {/* Executive Summary Header */}
-      <Card className="border-l-4 border-l-primary bg-gradient-to-r from-primary/5 to-transparent">
+      <Card className="border-l-4 border-l-primary bg-linear-to-r from-primary/5 to-transparent">
         <CardHeader className="pb-6">
           <div className="flex items-start justify-between">
             <div className="flex items-start space-x-4">
@@ -461,7 +454,7 @@ export function FormViewer({
         </CardHeader>
         <CardContent className="p-6">
           {/* Form Header with Key Information */}
-          <div className="mb-8 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border-2 border-green-200">
+          <div className="mb-8 p-6 bg-linear-to-r from-blue-50 to-indigo-50 rounded-lg border-2 border-green-200">
             <h2 className="text-2xl font-bold text-center text-gray-900 mb-4">
               {getFormTypeLabel(submission.formType)} Verification Form
             </h2>
@@ -519,7 +512,7 @@ export function FormViewer({
             {submission.sections.map((section, sectionIndex) => (
               <div key={section.id} className="border rounded-lg overflow-hidden">
                 {/* Section Header */}
-                <div className="bg-gradient-to-r from-gray-100 to-gray-50 px-6 py-4 border-b">
+                <div className="bg-linear-to-r from-gray-100 to-gray-50 px-6 py-4 border-b">
                   <div className="flex items-center justify-between">
                     <div>
                       <h3 className="text-lg font-bold text-gray-900 flex items-center space-x-2">
@@ -589,7 +582,7 @@ export function FormViewer({
           </div>
 
           {/* Form Summary Footer */}
-          <div className="mt-8 p-6 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl border-2 border-border">
+          <div className="mt-8 p-6 bg-linear-to-r from-gray-50 to-gray-100 rounded-xl border-2 border-border">
             <h4 className="text-lg font-bold text-gray-900 mb-4 flex items-center space-x-2">
               <FileText className="h-5 w-5" />
               <span>Form Submission Summary</span>
@@ -635,14 +628,15 @@ export function FormViewer({
                   <div>
                     <span className="font-medium">Network:</span> {submission.metadata.networkInfo?.type || 'Unknown'}
                   </div>
-                  {(submission.metadata as unknown).totalImages && (
+                  {/* Use intersection type to access extended properties */}
+                  {((submission.metadata as unknown) as { totalImages?: number }).totalImages && (
                     <div>
-                      <span className="font-medium">Images Captured:</span> {(submission.metadata as unknown).totalImages}
+                      <span className="font-medium">Images Captured:</span> {((submission.metadata as unknown) as { totalImages?: number }).totalImages}
                     </div>
                   )}
-                  {(submission.metadata as unknown).formType && (
+                  {((submission.metadata as unknown) as { formType?: string }).formType && (
                     <div>
-                      <span className="font-medium">Form Type:</span> {(submission.metadata as unknown).formType}
+                      <span className="font-medium">Form Type:</span> {((submission.metadata as unknown) as { formType?: string }).formType}
                     </div>
                   )}
                   <div>

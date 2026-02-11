@@ -63,13 +63,14 @@ export const VerificationTasksList: React.FC<VerificationTasksListProps> = ({
 }) => {
   // Status icon helper
   const getStatusIcon = (status: TaskStatus) => {
-    const icons = {
+    const icons: Record<TaskStatus, React.ElementType> = {
       PENDING: Clock,
       ASSIGNED: UserCheck,
       IN_PROGRESS: Play,
       COMPLETED: CheckCircle,
       CANCELLED: X,
-      ON_HOLD: AlertTriangle
+      ON_HOLD: AlertTriangle,
+      REVOKED: X
     };
     return icons[status] || Clock;
   };

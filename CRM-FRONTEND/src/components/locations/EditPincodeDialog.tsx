@@ -56,7 +56,7 @@ export function EditPincodeDialog({ pincode, open, onOpenChange }: EditPincodeDi
     resolver: zodResolver(editPincodeSchema),
     defaultValues: {
       code: pincode.code,
-      areas: pincode.areas?.map(area => area.id) || (pincode.area ? [] : []), // Convert areas to IDs or empty array
+      areas: pincode.areas?.map(area => String(area.id)) || [], // Convert areas to IDs or empty array
       cityId: pincode.cityId,
     },
   });
@@ -65,7 +65,7 @@ export function EditPincodeDialog({ pincode, open, onOpenChange }: EditPincodeDi
     if (pincode) {
       form.reset({
         code: pincode.code,
-        areas: pincode.areas?.map(area => area.id) || (pincode.area ? [] : []), // Convert areas to IDs or empty array
+        areas: pincode.areas?.map(area => String(area.id)) || [], // Convert areas to IDs or empty array
         cityId: pincode.cityId,
       });
     }
@@ -167,7 +167,7 @@ export function EditPincodeDialog({ pincode, open, onOpenChange }: EditPincodeDi
                     </FormControl>
                     <SelectContent>
                       {cities.map((city) => (
-                        <SelectItem key={city.id} value={city.id}>
+                        <SelectItem key={city.id} value={String(city.id)}>
                           {city.name} ({city.state}, {city.country})
                         </SelectItem>
                       ))}

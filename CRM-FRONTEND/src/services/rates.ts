@@ -44,7 +44,7 @@ export interface RateStats {
 
 export class RatesService {
   async getRates(query: RateListQuery = {}): Promise<PaginatedResponse<Rate>> {
-    return apiService.get('/rates', query);
+    return apiService.get<Rate[]>('/rates', query) as Promise<PaginatedResponse<Rate>>;
   }
 
   async getAvailableRateTypesForAssignment(query: AvailableRateTypesQuery): Promise<ApiResponse<AvailableRateType[]>> {

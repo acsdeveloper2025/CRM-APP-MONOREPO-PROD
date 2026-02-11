@@ -6,6 +6,7 @@ import { OfflineReports } from './OfflineReports';
 import { MobileReportViewer } from './MobileReportViewer';
 import { MobileNavigation } from './MobileNavigation';
 import { useOfflineStorage } from '@/hooks/useOfflineStorage';
+import { useAuth } from '@/hooks/useAuth';
 
 interface MobileAppState {
   activeView: string;

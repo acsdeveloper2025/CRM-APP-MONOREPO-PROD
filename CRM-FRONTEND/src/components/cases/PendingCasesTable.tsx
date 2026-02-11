@@ -212,7 +212,8 @@ export const PendingCasesTable: React.FC<PendingCasesTableProps> = ({
                 caseItem.pendingDurationSeconds
               );
 
-                            const assignedName = (caseItem as unknown).assignedToName || (caseItem as unknown).assignedTo?.name || 'Unassigned';
+              // Assignment fields are deprecated - assignments now handled at verification task level
+              const assignedName = 'Unassigned';
 
               return (
                 <TableRow

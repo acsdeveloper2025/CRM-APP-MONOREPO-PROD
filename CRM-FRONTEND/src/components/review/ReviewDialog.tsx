@@ -161,7 +161,7 @@ export const ReviewDialog: React.FC<ReviewDialogProps> = ({
               </div>
               <div>
                 <span className="text-gray-600">Assigned To:</span>
-                <span className="ml-2 font-medium">{caseItem.assignedTo?.name}</span>
+                <span className="ml-2 font-medium">{caseItem.assignedToId ?? 'N/A'}</span>
               </div>
             </div>
             <div className="mt-2">

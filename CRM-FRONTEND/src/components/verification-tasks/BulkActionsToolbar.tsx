@@ -14,13 +14,13 @@ import {
   User
 } from 'lucide-react';
 import { useUsers } from '@/hooks/useUsers';
+import { USER_ROLES } from '@/types/constants';
 
 interface BulkActionsToolbarProps {
   selectedCount: number;
   onBulkAssign: (assignedTo: string, reason?: string) => Promise<void>;
   onClearSelection: () => void;
 }
-
 export const BulkActionsToolbar: React.FC<BulkActionsToolbarProps> = ({
   selectedCount,
   onBulkAssign,
@@ -32,7 +32,7 @@ export const BulkActionsToolbar: React.FC<BulkActionsToolbarProps> = ({
   const [loading, setLoading] = useState(false);
 
   const { data: usersData } = useUsers();
-  const fieldUsers = usersData?.data?.filter(user => user.role === 'FIELD_USER') || [];
+  const fieldUsers = usersData?.filter(user => user.role === USER_ROLES.FIELD_AGENT) || [];
 
   const handleBulkAssign = async () => {
     if (!assignedTo) {return;}

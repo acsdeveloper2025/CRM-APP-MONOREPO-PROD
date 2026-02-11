@@ -80,7 +80,7 @@ export function EditStateDialog({ state, open, onOpenChange }: EditStateDialogPr
   });
 
   const updateStateMutation = useCRUDMutation({
-    mutationFn: (data: UpdateStateData) => locationsService.updateState(state.id, data),
+    mutationFn: (data: UpdateStateData) => locationsService.updateState(String(state.id), data),
     queryKey: ['states'],
     resourceName: 'State',
     operation: 'update',

@@ -10,7 +10,13 @@ import { deduplicationService, type DeduplicationResult } from '@/services/dedup
 import { casesService, type CreateCaseData } from '@/services/cases';
 import { usePincodes } from '@/hooks/useLocations';
 import { useVerificationTypes } from '@/hooks/useClients';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
+import type { CaseFormAttachment } from '@/components/attachments/CaseFormAttachmentsSection';
+
+// Extended type for case updates that might include task ID
+interface UpdateCasePayload extends CreateCaseData {
+  taskId?: string;
+}
 
 interface CaseCreationStepperProps {
   onSuccess?: (caseId: string) => void;
@@ -185,7 +191,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
       const result = await deduplicationService.searchDuplicates(criteria);
       console.warn('🔍 Deduplication search result:', result);
 
-      if (result.success && result.data.duplicatesFound.length > 0) {
+      if (result.success && result.data && result.data.duplicatesFound.length > 0) {
         // CRITICAL FIX: Show ALL duplicates, not just 100% matches
         // Let the user review and decide what to do
         console.warn(`⚠️ Found ${result.data.duplicatesFound.length} potential duplicate(s)`);
@@ -293,7 +299,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
         const selectedVerificationType = verificationTypes.find(vt => vt.id === task.verificationTypeId);
         const verificationTypeName = selectedVerificationType?.name || '';
 
-        const caseData: unknown = {
+        const caseData: UpdateCasePayload = {
           // Core case fields
           customerName: customerInfo.customerName,
           customerCallingCode: customerInfo.customerCallingCode,
@@ -352,7 +358,8 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
                 console.error('Attachment upload failed');
                 toast.error('Case updated but attachments failed to upload');
               }
-            } catch (error: unknown) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            } catch (error: any) {
               console.error('Error uploading attachments:', error);
               toast.error(`Case updated but attachments failed: ${error.message || 'Unknown error'}`);
             }
@@ -408,6 +415,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
             try {
               const files = task.attachments.map(att => att.file);
               // Extract caseId (integer) and taskId (UUID) from response
+              // Note: createCase uses unified /create endpoint which returns CreateCaseWithMultipleTasksResponse
               const caseId = response.data?.case?.caseId ? String(response.data.case.caseId) : null;
               const createdTasks = response.data?.tasks || [];
               const taskId = createdTasks.length > 0 ? createdTasks[0].id : null;
@@ -427,7 +435,8 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
                 console.error('❌ No caseId or taskId found in response:', response.data);
                 toast.error('Case created but caseId/taskId not found for attachment upload');
               }
-            } catch (error: unknown) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            } catch (error: any) {
               console.error('❌ Error uploading attachments:', {
                 error: error.message || error,
                 stack: error.stack,
@@ -457,6 +466,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
             productId: parseInt(caseLevelData.productId),
             backendContactNumber: caseLevelData.backendContactNumber,
             priority: 'MEDIUM',
+            pincode: tasks.length > 0 ? getPincodeCode(tasks[0].pincodeId) : '', // Use first task's pincode for case-level pincode
             panNumber: customerInfo.panNumber,
             deduplicationDecision: deduplicationRationale.includes('No duplicate cases found') ? 'NO_DUPLICATES_FOUND' : 'CREATE_NEW',
             deduplicationRationale,
@@ -484,11 +494,11 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
 
         const response = await casesService.createCaseWithMultipleTasks(payload);
 
-        if (response.success) {
+        if (response.success && response.data) {
           // Upload attachments for each task if any
           // Extract caseId (integer) from response - must use integer for backend
-          const caseId = response.data?.case?.caseId ? String(response.data.case.caseId) : null;
-          const createdTasks = response.data?.tasks || [];
+          const caseId = response.data.case?.caseId ? String(response.data.case.caseId) : null;
+          const createdTasks = response.data.tasks || [];
           let totalAttachments = 0;
 
           console.warn('📎 Multi-task case created, preparing to upload attachments:', {
@@ -515,7 +525,8 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
                   // Upload attachments with verification_task_id
                   await casesService.uploadCaseAttachments(caseId, files, taskId);
                   totalAttachments += files.length;
-                } catch (error: unknown) {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                } catch (error: any) {
                   console.error('❌ Error uploading task attachments:', {
                     taskIndex: i,
                     taskId: backendTask?.id,
@@ -546,7 +557,8 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
           toast.error(response.message || 'Failed to create case');
         }
       }
-    } catch (error: unknown) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
       console.error('Error creating case:', error);
       toast.error(error.response?.data?.message || 'Failed to create case');
     } finally {
@@ -554,7 +566,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
     }
   };
 
-  const handleCaseFormSubmit = async (data: FullCaseFormData, attachments: unknown[] = []) => {
+  const handleCaseFormSubmit = async (data: FullCaseFormData, attachments: CaseFormAttachment[] = []) => {
     if (!customerInfo) {
       toast.error('Customer information is missing');
       return;
@@ -639,7 +651,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
           result = await casesService.createCaseWithAttachments(caseData, attachmentFiles);
 
           if (result.success) {
-            toast.success(`Case created successfully with ${result.data.attachmentCount || attachments.length} attachment(s)`);
+            toast.success(`Case created successfully with ${attachments.length} attachment(s)!`);
           }
         } else {
           // No attachments, use regular create endpoint
@@ -647,8 +659,9 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
         }
       }
 
-      if (result.success) {
-        const caseId = result.data.caseId || result.data.id;
+      if (result.success && result.data) {
+        // Handle different response structures: Case (from update) vs CreateCaseWithMultipleTasksResponse (from create)
+        const caseId = 'case' in result.data ? result.data.case.caseId : (result.data.caseId || result.data.id);
 
         const action = editMode ? 'updated' : 'created';
         toast.success(`Case ${action} successfully! Case ID: ${caseId}`);
@@ -657,7 +670,8 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
         const action = editMode ? 'update' : 'create';
         toast.error(`Failed to ${action} case`);
       }
-    } catch (error: unknown) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
       const errorMessage = error.response?.data?.error?.message || error.response?.data?.message || 'Failed to create case';
       toast.error(errorMessage);
     } finally {
@@ -690,7 +704,8 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
           decision,
           deduplicationResult.duplicatesFound,
           deduplicationResult.searchCriteria
-        ).catch(error => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ).catch((error: any) => {
           console.error('Error recording deduplication decision (background):', error);
         });
       }
@@ -703,7 +718,8 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
       proceedToCaseDetails(customerInfo);
       toast.success('Proceeding to create new case despite duplicates');
 
-    } catch (error) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
       console.error('Error in handleCreateNewFromDialog:', error);
       toast.error('An error occurred, but proceeding to create case anyway');
 
@@ -739,7 +755,8 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
 
       // Navigate to the existing case instead of canceling
       onSuccess?.(caseId);
-    } catch (error) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
       console.error('Error recording deduplication decision:', error);
       toast.error('Failed to record decision, but redirecting to case anyway');
 
@@ -820,11 +837,11 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
           />
         )}
 
-        {/* FullCaseFormStep removed for edit mode as we now use TaskCaseCreationForm */
-        /* Keeping logic for reference if needed, but it won't be rendered based on steps config */
-        currentStep === 'case-details' && !editMode && (editMode || customerInfo) && (
+        {/* FullCaseFormStep removed for edit mode as we now use TaskCaseCreationForm */}
+        {/* Keeping logic for reference if needed, but it won't be rendered based on steps config */}
+        {currentStep === 'case-details' && !editMode && (editMode || customerInfo) && (
           <FullCaseFormStep
-            customerInfo={customerInfo || initialData?.customerInfo || {}}
+            customerInfo={(customerInfo || initialData?.customerInfo || {}) as CustomerInfoData}
             onSubmit={handleCaseFormSubmit}
             onBack={editMode ? undefined : handleBackToCustomerInfo}
             isSubmitting={isSubmitting}
@@ -835,7 +852,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
 
         {currentStep === 'multi-task-details' && (editMode || customerInfo) && (
           <TaskCaseCreationForm
-            customerInfo={customerInfo || initialData?.customerInfo || {}}
+            customerInfo={(customerInfo || initialData?.customerInfo || {}) as CustomerInfoData}
             onSubmit={handleMultiTaskCaseCreation}
             onBack={editMode ? undefined : handleBackToCustomerInfo}
             isSubmitting={isSubmitting}

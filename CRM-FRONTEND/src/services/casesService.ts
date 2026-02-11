@@ -19,6 +19,7 @@ import type {
   BulkOperationResult,
   ExportOptions
 } from '@/types';
+import type { CreateCaseWithMultipleTasksResponse } from '@/types/verificationTask';
 
 // Request/Response interfaces
 export interface CaseListQuery extends PaginationQuery {
@@ -170,8 +171,9 @@ export class CasesService extends BaseApiService {
 
   /**
    * Create new case (uses unified /create endpoint)
+   * Returns CreateCaseWithMultipleTasksResponse structure
    */
-  async createCase(data: CreateCaseData): Promise<ApiResponse<Case>> {
+  async createCase(data: CreateCaseData): Promise<ApiResponse<CreateCaseWithMultipleTasksResponse>> {
     // Transform old format to new unified format
     const unifiedPayload = {
       case_details: {
@@ -206,11 +208,12 @@ export class CasesService extends BaseApiService {
 
   /**
    * Create case with file attachments (uses unified /create endpoint)
+   * Returns CreateCaseWithMultipleTasksResponse structure
    */
   async createCaseWithAttachments(
     data: CreateCaseData,
     attachments: File[]
-  ): Promise<ApiResponse<Case>> {
+  ): Promise<ApiResponse<CreateCaseWithMultipleTasksResponse>> {
     const formData = new FormData();
 
     // Transform to unified format

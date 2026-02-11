@@ -68,7 +68,7 @@ export function useStandardizedMutation<
   
   return useMutation({
     ...mutationOptions,
-    onSuccess: (data, variables, context) => {
+    onSuccess: (data, variables, context, mutationContext) => {
       // Show success message if provided
       if (successMessage) {
         toast.success(successMessage);
@@ -76,7 +76,7 @@ export function useStandardizedMutation<
 
       // Call custom onSuccess handler
       if (onSuccess) {
-        onSuccess(data, variables, context);
+        onSuccess(data, variables, context, mutationContext);
       }
     },
     onError: (error, _variables, _context) => {
@@ -130,7 +130,7 @@ export function useMutationWithInvalidation<
   
   return useStandardizedMutation({
     ...restOptions,
-    onSuccess: (data, variables, context) => {
+    onSuccess: (data, variables, context, mutationContext) => {
       // Invalidate specified query keys
       invalidateKeys.forEach(queryKey => {
         queryClient.invalidateQueries({ queryKey });
@@ -138,7 +138,7 @@ export function useMutationWithInvalidation<
       
       // Call custom onSuccess handler
       if (onSuccess) {
-        onSuccess(data, variables, context);
+        onSuccess(data, variables, context, mutationContext);
       }
     },
   });

@@ -1,8 +1,8 @@
 import React from 'react';
 import { Menu, Moon, Sun, LogOut, User, Settings, Trash2 } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
-import { useTheme } from '@/contexts/ThemeContext';
+import { useAuth } from '@/hooks/useAuth';
+import { useTheme } from '@/hooks/useTheme';
 import { useQueryClient } from '@tanstack/react-query';
 import { useCacheClearer } from '@/utils/clearCache';
 import { NotificationCenter } from '@/components/realtime/NotificationCenter';

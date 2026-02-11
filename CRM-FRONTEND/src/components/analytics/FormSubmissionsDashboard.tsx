@@ -27,7 +27,7 @@ import type { FormSubmissionQuery } from '@/services/analytics';
 export const FormSubmissionsDashboard: React.FC = () => {
   const [filters, setFilters] = useState<FormSubmissionQuery>({
     limit: 50,
-    offset: 0,
+    page: 1,
   });
 
   const { data: submissionsData, isLoading: submissionsLoading } = useFormSubmissions(filters);
@@ -44,7 +44,7 @@ export const FormSubmissionsDashboard: React.FC = () => {
     setFilters(prev => ({
       ...prev,
       [key]: value || undefined,
-      offset: 0, // Reset pagination when filters change
+      page: 1, // Reset pagination when filters change
     }));
   };
 

@@ -14,6 +14,13 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
 import { toast } from 'sonner';
 import { usersService } from '@/services/users';
+import type { ApiResponse } from '@/types/api';
+
+interface ImportResult {
+  imported: number;
+  failed: number;
+  errors: string[];
+}
 
 interface BulkImportUsersDialogProps {
   open: boolean;
@@ -22,7 +29,7 @@ interface BulkImportUsersDialogProps {
 
 export function BulkImportUsersDialog({ open, onOpenChange }: BulkImportUsersDialogProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [importResult, setImportResult] = useState<unknown>(null);
+  const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const importMutation = useMutationWithInvalidation({
@@ -31,8 +38,8 @@ export function BulkImportUsersDialog({ open, onOpenChange }: BulkImportUsersDia
     successMessage: 'Users imported successfully',
     errorContext: 'Bulk Import Users',
     errorFallbackMessage: 'Failed to import users',
-    onSuccess: (result: unknown) => {
-      setImportResult(result.data);
+    onSuccess: (result: ApiResponse<ImportResult>) => {
+      setImportResult(result.data ?? null);
     },
   });
 

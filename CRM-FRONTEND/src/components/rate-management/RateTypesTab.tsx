@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Plus, Edit, Trash2, Search } from 'lucide-react';
-import { useStandardizedMutation } from '@/hooks/useStandardizedMutation';
+import { useMutationWithInvalidation } from '@/hooks/useStandardizedMutation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -46,8 +46,8 @@ export function RateTypesTab() {
   const rateTypes = rateTypesData?.data || [];
 
   // Delete mutation
-  const deleteMutation = useStandardizedMutation({
-    mutationFn: (id: string) => rateTypesService.deleteRateType(id),
+  const deleteMutation = useMutationWithInvalidation({
+    mutationFn: (id: number) => rateTypesService.deleteRateType(id),
     invalidateKeys: [['rate-types'], ['rate-management-stats']],
     successMessage: 'Rate type deleted successfully',
     errorContext: 'Rate Type Deletion',
@@ -58,8 +58,8 @@ export function RateTypesTab() {
   });
 
   // Toggle active status mutation
-  const toggleActiveMutation = useStandardizedMutation({
-    mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
+  const toggleActiveMutation = useMutationWithInvalidation({
+    mutationFn: ({ id, isActive }: { id: number; isActive: boolean }) =>
       rateTypesService.updateRateType(id, { isActive }),
     invalidateKeys: [['rate-types'], ['rate-management-stats']],
     successMessage: 'Rate type status updated',

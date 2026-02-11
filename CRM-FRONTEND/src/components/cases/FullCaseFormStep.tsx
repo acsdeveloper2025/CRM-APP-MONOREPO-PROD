@@ -23,15 +23,16 @@ import {
 } from '@/components/ui/select';
 import { ArrowLeft, Send, Loader2, User, Building, Settings } from 'lucide-react';
 import { useFieldUsers } from '@/hooks/useUsers';
+import type { User as UserType } from '@/types/user';
 import { useClients, useVerificationTypes, useProductsByClient } from '@/hooks/useClients';
 import { usePincodes } from '@/hooks/useLocations';
 import { useAreasByPincode } from '@/hooks/useAreas';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 import { CaseFormAttachmentsSection, type CaseFormAttachment } from '@/components/attachments/CaseFormAttachmentsSection';
 import type { CustomerInfoData } from './CustomerInfoStep';
 import { rateTypesService } from '@/services/rateTypes';
 import { useQuery } from '@tanstack/react-query';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 
 const fullCaseFormSchema = z.object({
   // Customer Information (new fields)
@@ -186,7 +187,7 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
     const pincodeId = parseInt(selectedPincodeId, 10);
     const areaId = parseInt(selectedAreaId, 10);
 
-    return (fieldUsers || []).filter((user: unknown) => {
+    return (fieldUsers || []).filter((user: UserType) => {
       const hasPincodeAccess = user.assignedPincodes?.includes(pincodeId) ?? false;
       const hasAreaAccess = user.assignedAreas?.includes(areaId) ?? false;
       return hasPincodeAccess && hasAreaAccess;

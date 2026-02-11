@@ -16,6 +16,7 @@ import { useNavigate } from 'react-router-dom';
 
 interface InProgressTaskFilters {
   priority?: string;
+  [key: string]: unknown;
 }
 
 export const InProgressTasksPage: React.FC = () => {
@@ -59,9 +60,14 @@ export const InProgressTasksPage: React.FC = () => {
 
   const { tasks, loading, error, pagination, statistics, refreshTasks } = useAllVerificationTasks(queryFilters);
 
-  const _activeFilterCount = Object.keys(activeFilters).filter(
-    key => activeFilters[key as keyof InProgressTaskFilters] !== undefined
-  ).length;
+  const handleFilterChange = (key: string, value: unknown) => {
+    if (key === 'page') {
+      _setPaginationState(prev => ({ ...prev, page: value as number }));
+    } else {
+      _setFilter(key as keyof InProgressTaskFilters, value);
+      _setPaginationState(prev => ({ ...prev, page: 1 }));
+    }
+  };
 
   // Calculate statistics
   const activeAgents = new Set(tasks.map(t => t.assignedTo).filter(Boolean)).size;
@@ -150,7 +156,7 @@ export const InProgressTasksPage: React.FC = () => {
             <TrendingUp className="h-4 w-4 text-red-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{statistics.highPriority}</div>
+            <div className="text-2xl font-bold">{statistics.urgent}</div>
             <p className="text-xs text-gray-600">
               Urgent + High
             </p>

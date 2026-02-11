@@ -43,7 +43,14 @@ export const DocumentTypesPage: React.FC = () => {
   });
 
   const documentTypes = documentTypesData?.data || [];
-  const stats = statsData?.data || { total: 0, active: 0, inactive: 0, byCategory: {} };
+  const stats = statsData?.data || { 
+    totalDocumentTypes: 0, 
+    activeDocumentTypes: 0, 
+    inactiveDocumentTypes: 0, 
+    documentTypesByCategory: [],
+    governmentIssuedCount: 0,
+    requiresVerificationCount: 0
+  };
 
   return (
     <div className="space-y-6">
@@ -65,7 +72,7 @@ export const DocumentTypesPage: React.FC = () => {
             <FileText className="h-4 w-4 text-gray-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.total}</div>
+            <div className="text-2xl font-bold">{stats.totalDocumentTypes}</div>
             <p className="text-xs text-gray-600">All document types</p>
           </CardContent>
         </Card>
@@ -75,7 +82,7 @@ export const DocumentTypesPage: React.FC = () => {
             <Badge variant="default" className="bg-green-500">Active</Badge>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.active}</div>
+            <div className="text-2xl font-bold">{stats.activeDocumentTypes}</div>
             <p className="text-xs text-gray-600">Currently active</p>
           </CardContent>
         </Card>
@@ -85,7 +92,7 @@ export const DocumentTypesPage: React.FC = () => {
             <Badge variant="secondary">Inactive</Badge>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.inactive}</div>
+            <div className="text-2xl font-bold">{stats.inactiveDocumentTypes}</div>
             <p className="text-xs text-gray-600">Disabled types</p>
           </CardContent>
         </Card>
@@ -95,7 +102,7 @@ export const DocumentTypesPage: React.FC = () => {
             <Filter className="h-4 w-4 text-blue-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{Object.keys(stats.byCategory || {}).length}</div>
+            <div className="text-2xl font-bold">{stats.documentTypesByCategory?.length || 0}</div>
             <p className="text-xs text-gray-600">Type categories</p>
           </CardContent>
         </Card>

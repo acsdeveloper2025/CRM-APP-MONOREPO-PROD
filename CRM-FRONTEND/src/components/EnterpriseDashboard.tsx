@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { RootState, AppDispatch, fetchCases, fetchFieldAgentWorkload } from '../store/enterpriseStore';
+import { RootState, AppDispatch, fetchCases, fetchFieldAgentWorkload, CaseFilters } from '../store/enterpriseStore';
 import { VirtualizedCaseList } from './VirtualizedCaseList';
 import { usePerformanceMonitor, useMemoryMonitor } from '../hooks/useEnterprisePerformance';
 import { 
@@ -147,7 +147,7 @@ export const EnterpriseDashboard: React.FC = () => {
     dispatch(fetchCases({ page: 1, limit: 50, search: query }));
   };
 
-  const handleFilter = (newFilters: unknown) => {
+  const handleFilter = (newFilters: CaseFilters) => {
     dispatch(fetchCases({ page: 1, limit: 50, filters: newFilters }));
   };
 

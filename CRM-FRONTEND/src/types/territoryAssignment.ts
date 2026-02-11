@@ -88,3 +88,12 @@ export interface AvailableFieldAgent {
   employeeId: string | null;
 }
 
+// Response type for field agents assigned to territory (via pincode)
+export interface FieldAgentAssignment {
+  userId: string;
+  userName: string;
+  username: string;
+  employeeId: string;
+  isActive: boolean;
+  email?: string; // Optional as it might not be in the lightweight response
+}
