@@ -184,7 +184,7 @@ export const PendingReviewTable: React.FC<PendingReviewTableProps> = ({
               <TableCell>
                 <div className="flex items-center space-x-2">
                   <User className="h-4 w-4 text-gray-600" />
-                  <span className="text-sm">{caseItem.assignedTo?.name || 'Unassigned'}</span>
+                  <span className="text-sm">{caseItem.assignedToId || 'Unassigned'}</span>
                 </div>
               </TableCell>
               <TableCell>

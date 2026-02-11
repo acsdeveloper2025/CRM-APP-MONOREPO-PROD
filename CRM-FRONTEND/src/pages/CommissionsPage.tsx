@@ -17,17 +17,12 @@ export const CommissionsPage: React.FC = () => {
     queryFn: () => commissionManagementService.getCommissionStats(),
   });
 
-  const stats = statsData?.data || {
-    totalCommissions: 0,
-    totalAmount: 0,
-    pendingCommissions: 0,
-    pendingAmount: 0,
-    approvedCommissions: 0,
-    approvedAmount: 0,
-    paidCommissions: 0,
-    paidAmount: 0,
-    activeFieldUsers: 0,
-  };
+  const stats = statsData?.data || {};
+  const totalCommissions = stats.totalCommissions ?? 0;
+  const totalAmount = stats.totalAmount ?? 0;
+  const pendingCommissions = stats.pendingCommissions ?? 0;
+  const pendingAmount = stats.pendingAmount ?? 0;
+  const approvedCommissions = stats.approvedCommissions ?? 0;
 
   const exportAllData = () => {
     // This would trigger export from both tabs
@@ -64,7 +59,7 @@ export const CommissionsPage: React.FC = () => {
             <Calculator className="h-4 w-4 text-gray-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.totalCommissions || 0}</div>
+            <div className="text-2xl font-bold">{totalCommissions}</div>
             <p className="text-xs text-gray-600">
               All commission records
             </p>
@@ -77,9 +72,9 @@ export const CommissionsPage: React.FC = () => {
             <Clock className="h-4 w-4 text-yellow-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.pendingCommissions || 0}</div>
+            <div className="text-2xl font-bold">{pendingCommissions}</div>
             <p className="text-xs text-gray-600">
-              ₹{stats.pendingAmount?.toLocaleString() || 0} pending
+              ₹{pendingAmount.toLocaleString()} pending
             </p>
           </CardContent>
         </Card>
@@ -90,7 +85,7 @@ export const CommissionsPage: React.FC = () => {
             <CheckCircle className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.approvedCommissions || 0}</div>
+            <div className="text-2xl font-bold">{approvedCommissions}</div>
             <p className="text-xs text-gray-600">
               Ready for payment
             </p>
@@ -103,7 +98,7 @@ export const CommissionsPage: React.FC = () => {
             <DollarSign className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">₹{stats.totalAmount?.toLocaleString() || 0}</div>
+            <div className="text-2xl font-bold">₹{totalAmount.toLocaleString()}</div>
             <p className="text-xs text-gray-600">
               All commissions
             </p>
@@ -117,7 +112,7 @@ export const CommissionsPage: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              ₹{stats.totalCommissions > 0 ? Math.round(stats.totalAmount / stats.totalCommissions).toLocaleString() : 0}
+              ₹{totalCommissions > 0 ? Math.round(totalAmount / totalCommissions).toLocaleString() : 0}
             </div>
             <p className="text-xs text-gray-600">
               Per calculation

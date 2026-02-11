@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -15,7 +15,8 @@ import {
 import { Form } from '@/components/ui/form';
 import { toast } from 'sonner';
 import { locationsService } from '@/services/locations';
-import { Pincode } from '@/types/location';
+import { Pincode, City, State, Country } from '@/types/location';
+import { ApiResponse } from '@/types/api';
 import { CascadingLocationSelector } from './CascadingLocationSelector';
 
 const cascadingEditPincodeSchema = z.object({
@@ -52,24 +53,24 @@ export function CascadingEditPincodeDialog({ pincode, open, onOpenChange }: Casc
   });
 
   // Fetch the city details to get the full hierarchy
-  const { data: cityData } = useQuery({
+  const { data: cityData } = useQuery<ApiResponse<City>>({
     queryKey: ['city', pincode.cityId],
     queryFn: () => locationsService.getCityById(pincode.cityId),
     enabled: open && !!pincode.cityId,
   });
 
   // Fetch states to find the state ID
-  const { data: statesData } = useQuery({
+  const { data: statesData } = useQuery<ApiResponse<State[]>>({
     queryKey: ['states-for-edit', cityData?.data?.country],
     queryFn: () => {
-      if (!cityData?.data?.country) {return Promise.resolve({ data: [] });}
+      if (!cityData?.data?.country) {return Promise.resolve({ success: true, message: '', data: [] } as ApiResponse<State[]>);}
       return locationsService.getStates({ country: cityData.data.country, limit: 100 });
     },
     enabled: !!cityData?.data?.country,
   });
 
   // Fetch countries to find the country ID
-  const { data: countriesData } = useQuery({
+  const { data: countriesData } = useQuery<ApiResponse<Country[]>>({
     queryKey: ['countries-for-edit'],
     queryFn: () => locationsService.getCountries({ limit: 100 }),
     enabled: open,
@@ -79,16 +80,16 @@ export function CascadingEditPincodeDialog({ pincode, open, onOpenChange }: Casc
   useEffect(() => {
     if (pincode && cityData?.data && statesData?.data && countriesData?.data) {
       const city = cityData.data;
-      const state = statesData.data.find(s => s.name === city.state);
-      const country = countriesData.data.find(c => c.name === city.country);
+      const state = statesData.data.find((s: State) => s.name === city.state);
+      const country = countriesData.data.find((c: Country) => c.name === city.country);
 
       if (state && country) {
         form.reset({
-          countryId: country.id,
-          stateId: state.id,
-          cityId: pincode.cityId,
+          countryId: String(country.id),
+          stateId: String(state.id),
+          cityId: String(pincode.cityId),
           pincodeCode: pincode.code,
-          areas: pincode.areas?.map(area => area.id) || [],
+          areas: pincode.areas?.map(area => String(area.id)) || [],
         });
       }
     }
@@ -107,7 +108,7 @@ export function CascadingEditPincodeDialog({ pincode, open, onOpenChange }: Casc
       const response = await locationsService.updatePincode(pincode.id, updateData);
       
       // Then update areas if they changed
-      const currentAreaIds = pincode.areas?.map(area => area.id) || [];
+      const currentAreaIds = pincode.areas?.map(area => String(area.id)) || [];
       const newAreaIds = data.areas;
       
       if (JSON.stringify(currentAreaIds.sort()) !== JSON.stringify(newAreaIds.sort())) {
@@ -126,7 +127,8 @@ export function CascadingEditPincodeDialog({ pincode, open, onOpenChange }: Casc
     },
     onError: (error: unknown) => {
       console.error('Update pincode error:', error);
-      const errorMessage = error?.response?.data?.message || 'Failed to update pincode';
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const errorMessage = (error as any)?.response?.data?.message || 'Failed to update pincode';
       toast.error(errorMessage);
     },
   });
@@ -140,16 +142,16 @@ export function CascadingEditPincodeDialog({ pincode, open, onOpenChange }: Casc
       // Reset form to original values when closing
       if (pincode && cityData?.data && statesData?.data && countriesData?.data) {
         const city = cityData.data;
-        const state = statesData.data.find(s => s.name === city.state);
-        const country = countriesData.data.find(c => c.name === city.country);
+        const state = statesData.data.find((s: State) => s.name === city.state);
+        const country = countriesData.data.find((c: Country) => c.name === city.country);
 
         if (state && country) {
           form.reset({
-            countryId: country.id,
-            stateId: state.id,
-            cityId: pincode.cityId,
+            countryId: String(country.id),
+            stateId: String(state.id),
+            cityId: String(pincode.cityId),
             pincodeCode: pincode.code,
-            areas: pincode.areas?.map(area => area.id) || [],
+            areas: pincode.areas?.map(area => String(area.id)) || [],
           });
         }
       }

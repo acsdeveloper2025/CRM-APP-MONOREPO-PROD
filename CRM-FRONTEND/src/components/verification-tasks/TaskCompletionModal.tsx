@@ -250,7 +250,7 @@ export const TaskCompletionModal: React.FC<TaskCompletionModalProps> = ({
                   <div className="text-sm text-green-800 space-y-1">
                     <p>
                       <span className="font-medium">Outcome:</span>{' '}
-                      <Badge className={getOutcomeColor(verificationOutcome)} size="sm">
+                      <Badge className={getOutcomeColor(verificationOutcome)}>
                         {outcomeOptions.find(opt => opt.value === verificationOutcome)?.label}
                       </Badge>
                     </p>

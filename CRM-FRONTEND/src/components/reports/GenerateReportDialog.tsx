@@ -35,6 +35,7 @@ import { toast } from 'sonner';
 import { reportsService } from '@/services/reports';
 import { clientsService } from '@/services/clients';
 import { addDays } from 'date-fns';
+import { AxiosError } from 'axios';
 
 const generateReportSchema = z.object({
   reportType: z.string().min(1, 'Report type is required'),
@@ -99,7 +100,11 @@ export function GenerateReportDialog({ open, onOpenChange }: GenerateReportDialo
       onOpenChange(false);
     },
     onError: (error: unknown) => {
-      toast.error(error.response?.data?.message || 'Failed to generate report');
+      const message =
+        error instanceof AxiosError
+          ? error.response?.data?.message || error.message
+          : 'Failed to generate report';
+      toast.error(message);
     },
   });
 

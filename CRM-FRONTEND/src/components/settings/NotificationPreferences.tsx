@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Bell, Clock, Smartphone, Monitor, AlertCircle, CheckCircle, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -47,9 +47,9 @@ export function NotificationPreferences() {
   const loadPreferences = async () => {
     try {
       setLoading(true);
-      const response = await apiService.get('/notifications/preferences');
+      const response = await apiService.get<NotificationPreferences>('/notifications/preferences');
       if (response.success) {
-        setPreferences(response.data);
+        setPreferences(response.data as NotificationPreferences);
       } else {
         toast.error('Failed to load notification preferences');
       }

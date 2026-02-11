@@ -83,7 +83,7 @@ export class UsersService extends BaseApiService {
    * Get paginated list of users with filters
    */
   async getUsers(query: UserListQuery = {}): Promise<PaginatedResponse<User>> {
-    return this.getPaginated('', query);
+    return this.getPaginated('', query as unknown as Record<string, unknown>);
   }
 
   /**

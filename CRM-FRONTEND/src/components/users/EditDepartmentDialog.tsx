@@ -1,4 +1,5 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
+import { AxiosError } from 'axios';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -103,7 +104,8 @@ export function EditDepartmentDialog({ open, onOpenChange, department }: EditDep
       onOpenChange(false);
     },
     onError: (error: unknown) => {
-      toast.error(error.response?.data?.message || 'Failed to update department');
+      const axiosError = error as AxiosError<{ message: string }>;
+      toast.error(axiosError.response?.data?.message || 'Failed to update department');
     },
   });
 

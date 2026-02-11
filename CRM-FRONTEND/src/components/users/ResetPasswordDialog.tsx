@@ -16,6 +16,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
 import { usersService } from '@/services/users';
 import { User } from '@/types/user';
+import { ApiResponse } from '@/types/api';
 
 interface ResetPasswordDialogProps {
   user: User;
@@ -36,7 +37,7 @@ export function ResetPasswordDialog({ user, open, onOpenChange }: ResetPasswordD
       : 'Temporary password generated successfully',
     errorContext: 'Generate Temporary Password',
     errorFallbackMessage: 'Failed to generate temporary password',
-    onSuccess: (data: unknown) => {
+    onSuccess: (data: ApiResponse<{ temporaryPassword: string }>) => {
       setGeneratedPassword(data.data?.temporaryPassword || '');
       setShowPassword(true); // Show password by default when generated
     },

@@ -22,6 +22,7 @@ interface CaseFilters {
   status?: string;
   priority?: string;
   clientId?: string;
+  [key: string]: string | undefined;
 }
 
 export const CasesPage: React.FC = () => {

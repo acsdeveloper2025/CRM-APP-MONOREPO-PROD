@@ -27,7 +27,7 @@ import {
   TabsList,
   TabsTrigger,
 } from '@/components/ui/tabs';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 import { useCase, useUpdateCase } from '@/hooks/useCases';
 import { useVerificationTasks } from '@/hooks/useVerificationTasks';
 import { useClients, useProductsByClient } from '@/hooks/useClients';
@@ -61,8 +61,8 @@ export const EditCasePage: React.FC = () => {
   const { data: tasksData, isLoading: loadingTasks, refetch: refetchTasks } = useVerificationTasks(id || '');
   const { data: clients } = useClients();
   
-    const caseItem = (caseData as unknown)?.data;
-    const tasks = (tasksData as unknown)?.data?.tasks || [];
+    const caseItem = caseData?.data;
+    const tasks = tasksData?.tasks || [];
 
   const { data: products } = useProductsByClient(
     caseItem?.clientId ? caseItem.clientId.toString() : ''

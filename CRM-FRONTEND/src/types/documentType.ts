@@ -34,6 +34,7 @@ export interface DocumentType extends Omit<BaseEntity, 'id'> {
   isActive?: boolean;
   sortOrder?: number;
   clientCount?: number;
+  hasRates?: boolean;
 }
 
 // Client-Document Type Mapping

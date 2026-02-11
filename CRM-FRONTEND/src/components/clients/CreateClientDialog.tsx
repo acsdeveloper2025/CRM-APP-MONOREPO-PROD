@@ -30,6 +30,7 @@ import { clientsService } from '@/services/clients';
 import { productsService } from '@/services/products';
 import { verificationTypesService } from '@/services/verificationTypes';
 import { documentTypesService } from '@/services/documentTypes';
+import type { CreateClientData } from '@/types/client';
 
 const createClientSchema = z.object({
   name: z.string().min(1, 'Client name is required').max(100, 'Name too long'),
@@ -91,11 +92,11 @@ export function CreateClientDialog({ open, onOpenChange }: CreateClientDialogPro
   const createMutation = useCRUDMutation({
     mutationFn: (data: CreateClientFormData) => {
       // Convert productIds from string[] to number[]
-      const cleanData = {
+      const cleanData: CreateClientData = {
         ...data,
         productIds: data.productIds?.map(id => parseInt(id, 10)),
       };
-      return clientsService.createClient(cleanData as unknown);
+      return clientsService.createClient(cleanData);
     },
     queryKey: ['clients'],
     resourceName: 'Client',

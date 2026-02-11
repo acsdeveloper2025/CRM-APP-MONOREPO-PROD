@@ -8,7 +8,8 @@ import type {
   TopPerformer,
   UpcomingDeadline,
   Alert,
-  TATStats
+  TATStats,
+  OverdueTasksResponse
 } from '@/types/dto/dashboard.dto';
 
 // Smart API URL selection
@@ -103,7 +104,7 @@ export class DashboardService {
     limit?: number;
     sortBy?: string;
     sortOrder?: 'asc' | 'desc';
-  } = {}): Promise<ApiResponse<unknown>> {
+  } = {}): Promise<ApiResponse<OverdueTasksResponse>> {
     return apiService.get('/dashboard/overdue-tasks', params);
   }
 

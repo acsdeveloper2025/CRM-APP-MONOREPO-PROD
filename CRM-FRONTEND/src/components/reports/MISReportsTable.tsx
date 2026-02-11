@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { MoreHorizontal, Download, Trash2, BarChart3, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -55,7 +55,10 @@ export function MISReportsTable({ data, isLoading }: MISReportsTableProps) {
       setReportToDelete(null);
     },
     onError: (error: unknown) => {
-      toast.error(error.response?.data?.message || 'Failed to delete report');
+      const message =
+        error instanceof Error ? error.message : 'Failed to delete report';
+      const axiosError = error as { response?: { data?: { message?: string } } };
+      toast.error(axiosError.response?.data?.message || message);
     },
   });
 

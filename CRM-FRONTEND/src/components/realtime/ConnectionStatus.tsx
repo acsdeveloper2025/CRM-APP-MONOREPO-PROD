@@ -1,4 +1,3 @@
-import React from 'react';
 import { Wifi, WifiOff, Loader2, AlertCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import {

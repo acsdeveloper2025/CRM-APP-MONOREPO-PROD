@@ -54,7 +54,10 @@ export const ReassignCaseModal: React.FC<ReassignCaseModalProps> = ({
   };
 
   const selectedUser = fieldUsers?.find(user => user.id === selectedUserId);
-  const currentAssignee = caseItem.assignedToName || 'Unassigned';
+  
+  // Use legacy assignedToId to lookup name as assignedTo object is deprecated
+  const currentAssigneeUser = fieldUsers?.find(user => user.id === caseItem.assignedToId);
+  const currentAssignee = currentAssigneeUser?.name || 'Unassigned';
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -106,7 +109,7 @@ export const ReassignCaseModal: React.FC<ReassignCaseModalProps> = ({
                   </SelectItem>
                 ) : (
                   fieldUsers
-                    .filter(user => user.id !== caseItem.assignedTo) // Exclude current assignee
+                    .filter(user => user.id !== caseItem.assignedToId) // Exclude current assignee (using legacy field)
                     .map((user) => (
                       <SelectItem key={user.id} value={user.id}>
                         <div className="flex items-center space-x-2">

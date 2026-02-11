@@ -21,6 +21,7 @@ import { CreateAreaDialog } from '@/components/locations/CreateAreaDialog';
 import { BulkImportLocationDialog } from '@/components/locations/BulkImportLocationDialog';
 import { useUnifiedSearch } from '@/hooks/useUnifiedSearch';
 import { UnifiedSearchInput } from '@/components/ui/unified-search-input';
+import { PincodeArea } from '@/types/location';
 
 export function LocationsPage() {
   console.warn('LocationsPage component loaded');
@@ -130,7 +131,7 @@ export function LocationsPage() {
 
   const stats = getTabStats();
 
-  const _continents = ['Africa', 'Antarctica', 'Asia', 'Europe', 'North America', 'Oceania', 'South America'];
+  // const _continents = ['Africa', 'Antarctica', 'Asia', 'Europe', 'North America', 'Oceania', 'South America'];
 
   return (
     <div className="space-y-6">
@@ -493,18 +494,18 @@ export function LocationsPage() {
                       variant="outline"
                       size="sm"
                       onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                      disabled={!pincodesData.pagination.hasPrev}
+                      disabled={currentPage === 1}
                     >
                       Previous
                     </Button>
                     <div className="text-sm">
-                      Page {currentPage} of {pincodesData.pagination.pages}
+                      Page {currentPage} of {pincodesData.pagination.totalPages || 1}
                     </div>
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => setCurrentPage(p => p + 1)}
-                      disabled={!pincodesData.pagination.hasNext}
+                      disabled={currentPage >= (pincodesData.pagination.totalPages || 1)}
                     >
                       Next
                     </Button>
@@ -515,7 +516,7 @@ export function LocationsPage() {
 
             <TabsContent value="areas" className="space-y-4">
               <AreasTable
-                data={areasData?.data || []}
+                data={(areasData?.data as unknown as PincodeArea[]) || []}
                 isLoading={areasLoading}
               />
               {areasData?.pagination && (
@@ -528,18 +529,18 @@ export function LocationsPage() {
                       variant="outline"
                       size="sm"
                       onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                      disabled={!areasData.pagination.hasPrev}
+                      disabled={currentPage === 1}
                     >
                       Previous
                     </Button>
                     <div className="text-sm">
-                      Page {currentPage} of {areasData.pagination.pages}
+                      Page {currentPage} of {areasData.pagination.totalPages || 1}
                     </div>
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => setCurrentPage(p => p + 1)}
-                      disabled={!areasData.pagination.hasNext}
+                      disabled={currentPage >= (areasData.pagination.totalPages || 1)}
                     >
                       Next
                     </Button>

@@ -41,12 +41,12 @@ export interface Case {
   // All assignments are now handled at the verification task level
   // assignedToId?: string;
   assignedToId?: string; // Legacy field for compatibility
-  // assignedTo?: {
-  //   id: string;
-  //   name: string;
-  //   username?: string;
-  //   employeeId?: string;
-  // };
+  assignedTo?: {
+    id: string;
+    name: string;
+    username?: string;
+    employeeId?: string;
+  };
   // assignedToName?: string;
   // assignedAt?: string;
 

@@ -71,7 +71,8 @@ export function CascadingCreatePincodeDialog({ open, onOpenChange }: CascadingCr
     },
     onError: (error: unknown) => {
       console.error('Create pincode error:', error);
-      const errorMessage = error?.response?.data?.message || 'Failed to create pincode';
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const errorMessage = (error as any)?.response?.data?.message || 'Failed to create pincode';
       toast.error(errorMessage);
     },
   });

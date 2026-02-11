@@ -15,6 +15,7 @@ import {
 import { useOverdueTasks } from '@/hooks/useDashboard';
 import { Clock, AlertTriangle, User, ArrowUpDown, ChevronLeft, ChevronRight, CheckCircle, TrendingUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import type { OverdueTask, OverdueTasksResponse } from '@/types/dto/dashboard.dto';
 
 export const TATMonitoringPage: React.FC = () => {
   const navigate = useNavigate();
@@ -43,10 +44,10 @@ export const TATMonitoringPage: React.FC = () => {
   });
 
   const criticalTasks = criticalData?.data?.tasks || [];
-  const criticalPagination = criticalData?.data?.pagination || { page: 1, totalPages: 1, totalCount: 0 };
+  const criticalPagination = criticalData?.data?.pagination || { page: 1, totalPages: 1, totalCount: 0, limit: 20, total: 0 };
   
   const allTasks = allData?.data?.tasks || [];
-  const allPagination = allData?.data?.pagination || { page: 1, totalPages: 1, totalCount: 0 };
+  const allPagination = allData?.data?.pagination || { page: 1, totalPages: 1, totalCount: 0, limit: 20, total: 0 };
 
   const handleSort = (column: string) => {
     if (sortBy === column) {
@@ -91,7 +92,7 @@ export const TATMonitoringPage: React.FC = () => {
     return 'text-yellow-600';
   };
   
-  const renderTaskTable = (tasks: unknown[], isLoading: boolean, pagination: unknown, onPageChange: (page: number) => void) => {
+  const renderTaskTable = (tasks: OverdueTask[], isLoading: boolean, pagination: OverdueTasksResponse['pagination'], onPageChange: (page: number) => void) => {
     if (isLoading) {
       return (
         <div className="flex items-center justify-center h-64">
@@ -295,7 +296,7 @@ export const TATMonitoringPage: React.FC = () => {
           <CardContent>
             <div className="text-2xl font-bold">
               {criticalTasks.length > 0
-                ? Math.round(criticalTasks.reduce((acc, t) => acc + (t.days_overdue || 0), 0) / criticalTasks.length)
+                ? Math.round(criticalTasks.reduce((acc, t) => acc + (t.daysOverdue || 0), 0) / criticalTasks.length)
                 : 0} days
             </div>
             <p className="text-xs text-gray-600">Average overdue</p>

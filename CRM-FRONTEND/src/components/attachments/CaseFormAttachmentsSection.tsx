@@ -18,7 +18,7 @@ import {
   Clock
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 
 export interface CaseFormAttachment {
   id: string;

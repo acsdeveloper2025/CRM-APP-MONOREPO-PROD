@@ -254,10 +254,6 @@ export const CaseTable: React.FC<CaseTableProps> = ({
               }
             />
             <MobileTableField
-              label="Assigned To"
-              value={caseItem.assignedToName || caseItem.assignedTo?.name || 'Unassigned'}
-            />
-            <MobileTableField
               label="Updated"
               value={format(new Date(caseItem.updatedAt), 'dd MMM yyyy, hh:mm a')}
             />

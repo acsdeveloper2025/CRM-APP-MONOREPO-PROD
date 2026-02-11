@@ -28,6 +28,7 @@ import { useNavigate } from 'react-router-dom';
 interface TaskFilters {
   status?: string;
   priority?: string;
+  [key: string]: string | undefined;
 }
 
 export const AllTasksPage: React.FC = () => {
@@ -55,7 +56,7 @@ export const AllTasksPage: React.FC = () => {
     syncWithUrl: true,
   });
 
-  const [paginationState, _setPaginationState] = useState({
+  const [paginationState, setPaginationState] = useState({
     page: 1,
     limit: 20,
     sortBy: 'created_at',
@@ -75,6 +76,13 @@ export const AllTasksPage: React.FC = () => {
   const activeFilterCount = Object.keys(activeFilters).filter(
     key => activeFilters[key as keyof TaskFilters] !== undefined
   ).length;
+
+  const handleFilterChange = (key: string, value: string | number) => {
+    setPaginationState(prev => ({
+      ...prev,
+      [key]: value
+    }));
+  };
 
   const handleAssignTask = (taskId: string) => {
     setSelectedTaskId(taskId);
@@ -119,7 +127,7 @@ export const AllTasksPage: React.FC = () => {
         activeFilterCount={activeFilterCount}
         onClearFilters={clearFilters}
         filterContent={
-          <FilterGrid columns={{ sm: 1, md: 2 }}>
+          <FilterGrid columns={2}>
             {/* Status Filter */}
             <div className="space-y-2">
               <Label htmlFor="status">Status</Label>

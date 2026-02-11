@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -93,7 +93,12 @@ export function CreateBankBillDialog({ open, onOpenChange }: CreateBankBillDialo
       onOpenChange(false);
     },
     onError: (error: unknown) => {
-      toast.error(error.response?.data?.message || 'Failed to create bank bill');
+      let message = 'Failed to create bank bill';
+      if (error instanceof Error) {
+        const err = error as Error & { response?: { data?: { message?: string } } };
+        message = err.response?.data?.message || error.message;
+      }
+      toast.error(message);
     },
   });
 
@@ -146,7 +151,7 @@ export function CreateBankBillDialog({ open, onOpenChange }: CreateBankBillDialo
                     </FormControl>
                     <SelectContent>
                       {clients.map((client) => (
-                        <SelectItem key={client.id} value={client.id}>
+                        <SelectItem key={client.id} value={String(client.id)}>
                           <div className="flex flex-col">
                             <span>{client.name}</span>
                             <span className="text-xs text-gray-600">

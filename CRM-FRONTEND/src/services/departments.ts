@@ -20,31 +20,31 @@ class DepartmentsService {
     if (params.search) {queryParams.append('search', params.search);}
     if (params.includeInactive) {queryParams.append('includeInactive', params.includeInactive.toString());}
 
-    const response = await apiService.get<PaginatedResponse<Department>>(`/departments?${queryParams.toString()}`);
-    return response;
+    const response = await apiService.get<Department[]>(`/departments?${queryParams.toString()}`);
+    return response as PaginatedResponse<Department>;
   }
 
   // Get department by ID
-  async getDepartmentById(id: string): Promise<ApiResponse<Department>> {
-    const response = await apiService.get<ApiResponse<Department>>(`/departments/${id}`);
+  async getDepartmentById(id: string | number): Promise<ApiResponse<Department>> {
+    const response = await apiService.get<Department>(`/departments/${id}`);
     return response;
   }
 
   // Create new department
   async createDepartment(data: CreateDepartmentRequest): Promise<ApiResponse<Department>> {
-    const response = await apiService.post<ApiResponse<Department>>('/departments', data);
+    const response = await apiService.post<Department>('/departments', data);
     return response;
   }
 
   // Update department
-  async updateDepartment(id: string, data: UpdateDepartmentRequest): Promise<ApiResponse<Department>> {
-    const response = await apiService.put<ApiResponse<Department>>(`/departments/${id}`, data);
+  async updateDepartment(id: string | number, data: UpdateDepartmentRequest): Promise<ApiResponse<Department>> {
+    const response = await apiService.put<Department>(`/departments/${id}`, data);
     return response;
   }
 
   // Delete department
-  async deleteDepartment(id: string): Promise<ApiResponse<void>> {
-    const response = await apiService.delete<ApiResponse<void>>(`/departments/${id}`);
+  async deleteDepartment(id: string | number): Promise<ApiResponse<void>> {
+    const response = await apiService.delete<void>(`/departments/${id}`);
     return response;
   }
 

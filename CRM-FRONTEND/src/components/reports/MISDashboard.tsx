@@ -17,7 +17,7 @@ import { reportsService } from '@/services/reports';
 import { useUnifiedSearch, useUnifiedFilters } from '@/hooks/useUnifiedSearch';
 import { UnifiedSearchFilterLayout, FilterGrid } from '@/components/ui/unified-search-filter-layout';
 import type { MISFilters, MISDataResponse } from '@/types/mis';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 import type { VerificationType } from '@/types/client';
 import { USER_ROLES } from '@/types/constants';
 import { useClients, useProducts } from '@/hooks/useClients';

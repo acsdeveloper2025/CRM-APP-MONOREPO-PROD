@@ -90,7 +90,14 @@ export class RateManagementService {
     search?: string;
     isActive?: boolean;
   }): Promise<ApiResponse<Rate[]>> {
-    const response = await ratesService.getAllRates(filters);
+    const queryFilters = filters ? {
+      ...filters,
+      clientId: filters.clientId ? Number(filters.clientId) : undefined,
+      productId: filters.productId ? Number(filters.productId) : undefined,
+      verificationTypeId: filters.verificationTypeId ? Number(filters.verificationTypeId) : undefined
+    } : undefined;
+
+    const response = await ratesService.getAllRates(queryFilters);
     return {
       success: response.success,
       message: response.message,

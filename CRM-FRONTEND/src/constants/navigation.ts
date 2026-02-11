@@ -18,14 +18,15 @@ import {
   PlayCircle,
   List,
   XCircle,
-  Copy
+  Copy,
+  type LucideIcon
 } from 'lucide-react';
 
 export interface NavigationItem {
   id: string;
   label: string;
   href: string;
-  icon: unknown;
+  icon: LucideIcon;
   roles?: Role[]; // Made optional for backward compatibility
   permission?: {
     resource: string;

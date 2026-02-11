@@ -42,14 +42,13 @@ const createDocumentTypeSchema = z.object({
     .regex(/^[A-Z0-9_]+$/, 'Code must contain only uppercase letters, numbers, and underscores'),
   description: z.string().max(1000, 'Description too long').optional(),
   category: z.enum(['IDENTITY', 'ADDRESS', 'FINANCIAL', 'EDUCATION', 'BUSINESS', 'OTHER']),
-  isGovernmentIssued: z.boolean().default(false),
-  requiresVerification: z.boolean().default(true),
+  isGovernmentIssued: z.boolean().optional(),
+  requiresVerification: z.boolean().optional(),
   validityPeriodMonths: z.number().min(1).max(1200).optional(),
   formatPattern: z.string().max(500, 'Pattern too long').optional(),
   minLength: z.number().min(1).max(100).optional(),
   maxLength: z.number().min(1).max(100).optional(),
-  isActive: z.boolean().default(true),
-  sortOrder: z.number().min(0).max(9999).default(0),
+  sortOrder: z.number().min(0).max(9999).optional(),
 });
 
 type CreateDocumentTypeData = z.infer<typeof createDocumentTypeSchema>;
@@ -74,7 +73,6 @@ export const CreateDocumentTypeDialog: React.FC<CreateDocumentTypeDialogProps> =
       category: 'IDENTITY',
       isGovernmentIssued: false,
       requiresVerification: true,
-      isActive: true,
       sortOrder: 0,
     },
   });
@@ -202,7 +200,18 @@ export const CreateDocumentTypeDialog: React.FC<CreateDocumentTypeDialogProps> =
                         type="number" 
                         placeholder="e.g., 120"
                         {...field}
-                        onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
+                        value={field.value ?? ''}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          if (value === '') {
+                            field.onChange(undefined);
+                          } else {
+                            const parsed = parseInt(value, 10);
+                            if (!isNaN(parsed)) {
+                              field.onChange(parsed);
+                            }
+                          }
+                        }}
                       />
                     </FormControl>
                     <FormDescription>Leave empty for permanent documents</FormDescription>
@@ -274,26 +283,6 @@ export const CreateDocumentTypeDialog: React.FC<CreateDocumentTypeDialogProps> =
                 )}
               />
 
-              <FormField
-                control={form.control}
-                name="isActive"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
-                    <div className="space-y-0.5">
-                      <FormLabel>Active</FormLabel>
-                      <FormDescription>
-                        Is this document type currently active?
-                      </FormDescription>
-                    </div>
-                    <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
             </div>
 
             <DialogFooter className="flex-col sm:flex-row gap-2">

@@ -31,7 +31,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { clientsService } from '@/services/clients';
-import { Product } from '@/types/client';
+import { Product } from '@/types/product';
 import { EditProductDialog } from './EditProductDialog';
 import { ProductDetailsDialog } from './ProductDetailsDialog';
 

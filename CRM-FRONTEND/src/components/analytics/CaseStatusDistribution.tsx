@@ -140,7 +140,14 @@ export const CaseStatusDistribution: React.FC = () => {
     return STATUS_ICONS[status.replace(' ', '_') as keyof typeof STATUS_ICONS] || Clock;
   };
 
-  const renderCustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: unknown) => {
+  const renderCustomLabel = (props: { cx?: string | number; cy?: string | number; midAngle?: number; innerRadius?: string | number; outerRadius?: string | number; percent?: number }) => {
+    const cx = typeof props.cx === 'string' ? parseFloat(props.cx) : (props.cx || 0);
+    const cy = typeof props.cy === 'string' ? parseFloat(props.cy) : (props.cy || 0);
+    const midAngle = props.midAngle || 0;
+    const innerRadius = typeof props.innerRadius === 'string' ? parseFloat(props.innerRadius) : (props.innerRadius || 0);
+    const outerRadius = typeof props.outerRadius === 'string' ? parseFloat(props.outerRadius) : (props.outerRadius || 0);
+    const percent = props.percent || 0;
+    
     const RADIAN = Math.PI / 180;
     const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
     const x = cx + radius * Math.cos(-midAngle * RADIAN);
@@ -172,7 +179,7 @@ export const CaseStatusDistribution: React.FC = () => {
           </p>
         </div>
         <div className="flex items-center space-x-4">
-          <Select value={viewType} onValueChange={(value: unknown) => setViewType(value)}>
+          <Select value={viewType} onValueChange={(value) => setViewType(value as 'distribution' | 'trends' | 'flow')}>
             <SelectTrigger className="w-40">
               <SelectValue />
             </SelectTrigger>

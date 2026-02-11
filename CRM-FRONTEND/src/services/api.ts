@@ -1,5 +1,6 @@
 import axios, { type AxiosInstance, type AxiosResponse, type AxiosRequestConfig } from 'axios';
 import type { ApiResponse } from '@/types/api';
+import { triggerLogout } from '@/utils/events';
 
 class ApiService {
   private api: AxiosInstance;
@@ -97,10 +98,7 @@ class ApiService {
       (error) => {
         if (error.response?.status === 401) {
           // Token expired or invalid
-          localStorage.removeItem('crm_auth_token');
-          localStorage.removeItem('crm_refresh_token');
-          localStorage.removeItem('crm_user_data');
-          window.location.href = '/login';
+          triggerLogout();
         }
         return Promise.reject(error);
       }
@@ -134,6 +132,14 @@ class ApiService {
 
   getBaseUrl(): string {
     return this.api.defaults.baseURL || '';
+  }
+
+  async getBlob(url: string, params?: unknown): Promise<Blob> {
+    const response = await this.api.get(url, {
+      params,
+      responseType: 'blob',
+    });
+    return response.data;
   }
 }
 

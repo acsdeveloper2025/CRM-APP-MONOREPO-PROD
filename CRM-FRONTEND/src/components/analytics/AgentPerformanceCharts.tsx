@@ -28,6 +28,7 @@ import {
   Scatter
 } from 'recharts';
 import { useAgentPerformance } from '@/hooks/useAnalytics';
+import type { AgentPerformance } from '@/services/analytics';
 import {
   Users,
   TrendingUp,
@@ -121,7 +122,7 @@ export const AgentPerformanceCharts: React.FC = () => {
     return data;
   }
 
-  function generateRadarData(agent: unknown) {
+  function generateRadarData(agent: AgentPerformance | undefined) {
     if (!agent) {return [];}
     
     const completionRate = agent.totalCasesAssigned > 0 ? (agent.casesCompleted / agent.totalCasesAssigned) * 100 : 0;
@@ -198,7 +199,7 @@ export const AgentPerformanceCharts: React.FC = () => {
           </p>
         </div>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4">
-          <Select value={viewType} onValueChange={(value: unknown) => setViewType(value)}>
+          <Select value={viewType} onValueChange={(value) => setViewType(value as 'overview' | 'individual' | 'comparison' | 'trends')}>
             <SelectTrigger className="w-full sm:w-40">
               <SelectValue />
             </SelectTrigger>

@@ -1,25 +1,24 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Shield, Monitor, Palette, AlertTriangle, RefreshCw, Eye, EyeOff } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { useTheme } from '@/contexts/ThemeContext';
+import { useTheme } from '@/hooks/useTheme';
 import { useResponsive } from '@/hooks/useResponsive';
 import { useErrorHandling } from '@/hooks/useErrorHandling';
 import { LoadingSpinner, LoadingOverlay, LoadingCard, LoadingSkeleton, LoadingButton } from '@/components/ui/loading';
 import { SecurityUtils } from '@/utils/security';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 
 export function SecurityUXPage() {
   const { theme, actualTheme, setTheme, toggleTheme } = useTheme();
-  const { isMobile, isTablet, isDesktop: _isDesktop, screenWidth, screenHeight } = useResponsive();
+  const { isMobile, isTablet, isDesktop: _isDesktop, windowSize } = useResponsive();
   const { errors, isLoading: _isLoading, handleError, handleAsyncOperation, clearErrors } = useErrorHandling();
-
+  
   // Derive current breakpoint from responsive state
   const currentBreakpoint = isMobile ? 'mobile' : isTablet ? 'tablet' : 'desktop';
-  const windowSize = { width: screenWidth, height: screenHeight };
   
   const [demoLoading, setDemoLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);

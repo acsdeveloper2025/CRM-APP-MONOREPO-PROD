@@ -56,8 +56,11 @@ export interface Rate {
   updatedAt: string;
   // Populated fields for display
   clientName?: string;
+  clientCode?: string;
   productName?: string;
+  productCode?: string;
   verificationTypeName?: string;
+  verificationTypeCode?: string;
   rateTypeName?: string;
 }
 
@@ -120,6 +123,7 @@ export interface RateTypeListQuery {
   isActive?: boolean;
   limit?: number;
   offset?: number;
+  page?: number;
   sortBy?: 'name' | 'description' | 'isActive' | 'createdAt' | 'updatedAt';
   sortOrder?: 'asc' | 'desc';
 }

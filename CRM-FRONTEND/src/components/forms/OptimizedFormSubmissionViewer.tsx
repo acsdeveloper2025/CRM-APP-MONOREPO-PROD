@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { FormSubmission } from '@/types/form';
+import { FormField, FormSubmission } from '@/types/form';
 import VerificationImages from '@/components/VerificationImages';
 import { TemplateReportCard } from '@/components/forms/TemplateReportCard';
 import { baseBadgeStyle } from '@/lib/badgeStyles';
@@ -25,6 +25,42 @@ interface OptimizedFormSubmissionViewerProps {
   submission: FormSubmission;
   caseId: string;
 }
+
+const getFieldValue = (field: FormField): React.ReactNode => {
+  if (field.displayValue) {
+    return field.displayValue;
+  }
+  
+  const val = field.value;
+  if (val === null || val === undefined || val === '') {
+    return null;
+  }
+  
+  if (typeof val === 'string' || typeof val === 'number') {
+    return val;
+  }
+  if (typeof val === 'boolean') {
+    return val ? 'Yes' : 'No';
+  }
+  if (Array.isArray(val)) {
+    return val.join(', ');
+  }
+  
+  if (typeof val === 'object') {
+    // Try to be smart about objects - if it has a url, likely a file
+    const objVal = val as Record<string, unknown>;
+    if ('url' in objVal && typeof objVal.url === 'string') {
+        return <a href={objVal.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">View File</a>;
+    }
+    try {
+      return JSON.stringify(val);
+    } catch {
+      return '[Complex Object]';
+    }
+  }
+  
+  return String(val);
+};
 
 export const OptimizedFormSubmissionViewer: React.FC<OptimizedFormSubmissionViewerProps> = ({
   submission,
@@ -57,16 +93,23 @@ export const OptimizedFormSubmissionViewer: React.FC<OptimizedFormSubmissionView
   const totalFields = formSections.reduce((total, section) => total + (section.fields?.length || 0), 0);
   
   // Try to get outcome from multiple sources
-  const verificationOutcome = 
-    submission.outcome || // First try direct outcome field
-    submission.formType || // Then try formType (POSITIVE, SHIFTED, etc.)
-    formSections.flatMap(s => s.fields || []).find(
-      field => field.id === 'finalStatus' || 
-               field.id === 'verification_outcome' || 
-               field.label?.toLowerCase().includes('outcome') ||
-               field.label?.toLowerCase().includes('final status')
-    )?.value || 
-    'Not specified';
+  const verificationOutcome = (() => {
+    if (submission.outcome) { return submission.outcome; }
+    if (submission.formType) { return submission.formType; }
+
+    const field = formSections.flatMap(s => s.fields || []).find(
+      f => f.id === 'finalStatus' || 
+           f.id === 'verification_outcome' || 
+           f.label?.toLowerCase().includes('outcome') ||
+           f.label?.toLowerCase().includes('final status')
+    );
+
+    if (field?.value && typeof field.value === 'string') {
+      return field.value;
+    }
+
+    return 'Not specified';
+  })();
 
   return (
     <div className="space-y-6">
@@ -204,7 +247,7 @@ export const OptimizedFormSubmissionViewer: React.FC<OptimizedFormSubmissionView
                               {field.label}:
                             </span>
                             <span className="text-sm text-gray-900 ml-2 flex-1">
-                              {field.value || <span className="text-gray-400 italic">Not provided</span>}
+                              {getFieldValue(field) || <span className="text-gray-400 italic">Not provided</span>}
                             </span>
                           </div>
                         ))}

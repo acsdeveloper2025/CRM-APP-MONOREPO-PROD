@@ -10,7 +10,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { LoadingState } from '@/components/ui/loading';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { RolePermission } from '@/types/user';
+import { RolePermission, UserPermission } from '@/types/user';
 import { getRoleBadge, getRoleIcon } from '@/utils/roleUtils';
 
 interface RolePermissionsTableProps {
@@ -41,17 +41,14 @@ export function RolePermissionsTable({ data, isLoading }: RolePermissionsTablePr
   };
 
   // Group permissions by module
-  interface PermissionWithModule { module: string; [key: string]: unknown }
-  const groupPermissionsByModule = (permissions: unknown[]): Record<string, unknown[]> => {
-    return permissions.reduce((acc, permission) => {
-      const accObj = acc as Record<string, unknown[]>;
-      const perm = permission as PermissionWithModule;
-      if (!accObj[perm.module]) {
-        accObj[perm.module] = [];
+  const groupPermissionsByModule = (permissions: UserPermission[]): Record<string, UserPermission[]> => {
+    return permissions.reduce<Record<string, UserPermission[]>>((acc, permission) => {
+      if (!acc[permission.module]) {
+        acc[permission.module] = [];
       }
-      accObj[perm.module].push(permission);
-      return accObj;
-    }, {} as Record<string, unknown[]>);
+      acc[permission.module].push(permission);
+      return acc;
+    }, {});
   };
 
   return (
@@ -87,29 +84,26 @@ export function RolePermissionsTable({ data, isLoading }: RolePermissionsTablePr
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {permissions.map((permission) => {
-                            const perm = permission as { id: string; name: string; description: string; action: string };
-                            return (
-                            <TableRow key={perm.id}>
+                          {permissions.map((permission) => (
+                            <TableRow key={permission.id}>
                               <TableCell className="font-medium">
-                                {perm.name}
+                                {permission.name}
                               </TableCell>
                               <TableCell>
                                 <span className="text-sm text-gray-600">
-                                  {perm.description}
+                                  {permission.description}
                                 </span>
                               </TableCell>
                               <TableCell>
                                 <Badge variant="outline" className="text-xs">
-                                  {perm.action}
+                                  {permission.action}
                                 </Badge>
                               </TableCell>
                               <TableCell className="text-center">
                                 <Check className="h-4 w-4 text-green-600 mx-auto" />
                               </TableCell>
                             </TableRow>
-                            );
-                          })}
+                          ))}
                         </TableBody>
                       </Table>
                     </div>

@@ -33,6 +33,7 @@ import { usersService } from '@/services/users';
 import { rolesService } from '@/services/roles';
 import { departmentsService } from '@/services/departments';
 import { designationsService } from '@/services/designations';
+import type { CreateUserData } from '@/types/user';
 
 const createUserSchema = z.object({
   name: z.string().min(1, 'Name is required').max(100, 'Name too long'),
@@ -106,7 +107,7 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
         departmentId: data.departmentId ? parseInt(data.departmentId, 10) : undefined,
         designationId: data.designationId ? parseInt(data.designationId, 10) : undefined,
       };
-      return usersService.createUser(cleanData as unknown);
+      return usersService.createUser(cleanData as CreateUserData);
     },
     queryKey: ['users'],
     resourceName: 'User',

@@ -14,7 +14,7 @@ import { Label } from '@/components/ui/label';
 import { locationsService } from '@/services/locations';
 
 interface Area {
-  id: string;
+  id: string | number;
   name: string;
   usageCount?: number;
   createdAt?: string;
@@ -36,7 +36,7 @@ export function EditAreaDialog({ area, open, onOpenChange }: EditAreaDialogProps
   }, [area]);
 
   const updateMutation = useMutationWithInvalidation({
-    mutationFn: (data: { name: string }) => locationsService.updateArea(area.id, data),
+    mutationFn: (data: { name: string }) => locationsService.updateArea(String(area.id), data),
     invalidateKeys: [['areas'], ['pincodes']],
     successMessage: 'Area updated successfully',
     errorContext: 'Area Update',

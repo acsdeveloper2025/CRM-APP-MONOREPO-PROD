@@ -83,7 +83,7 @@ export function EditCityDialog({ city, open, onOpenChange }: EditCityDialogProps
   });
 
   const updateMutation = useCRUDMutation({
-    mutationFn: (data: EditCityFormData) => locationsService.updateCity(city.id, data),
+    mutationFn: (data: EditCityFormData) => locationsService.updateCity(city.id.toString(), data),
     queryKey: ['cities'],
     resourceName: 'City',
     operation: 'update',

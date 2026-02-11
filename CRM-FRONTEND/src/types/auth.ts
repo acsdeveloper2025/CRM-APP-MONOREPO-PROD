@@ -1,9 +1,11 @@
 import { type UserRole } from './constants';
 
+import { type User } from './user';
+
 export type Role = UserRole;
 
 // Re-export User interface from user.ts to avoid duplication
-export type { User } from './user';
+export type { User };
 
 export interface LoginRequest {
   username: string;

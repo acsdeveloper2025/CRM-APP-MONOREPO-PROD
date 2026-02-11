@@ -16,7 +16,7 @@ import {
   Battery,
   Signal
 } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 
 interface MobileNavigationProps {
