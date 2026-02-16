@@ -33,9 +33,9 @@ export const config = {
   databaseUrl: process.env.DATABASE_URL || '',
 
   // JWT
-  jwtSecret: process.env.JWT_SECRET || 'production-jwt-secret-change-me',
+  jwtSecret: process.env.JWT_SECRET as string,
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
-  jwtRefreshSecret: process.env.JWT_REFRESH_SECRET || 'production-refresh-secret-change-me',
+  jwtRefreshSecret: process.env.JWT_REFRESH_SECRET as string,
   jwtRefreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '30d',
 
   // Redis
@@ -181,7 +181,7 @@ export const config = {
 };
 
 // Validate required environment variables
-const requiredEnvVars = ['DATABASE_URL', 'JWT_SECRET'];
+const requiredEnvVars = ['DATABASE_URL', 'JWT_SECRET', 'JWT_REFRESH_SECRET'];
 
 for (const envVar of requiredEnvVars) {
   if (!process.env[envVar]) {

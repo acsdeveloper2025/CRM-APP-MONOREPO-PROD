@@ -11,6 +11,7 @@ import { MobileLocationController } from '../controllers/mobileLocationControlle
 import { MobileSyncController } from '../controllers/mobileSyncController';
 import { authenticateToken } from '../middleware/auth';
 import { validateMobileVersion, mobileRateLimit } from '../middleware/mobileValidation';
+import { geoRateLimit, uploadRateLimit } from '../middleware/rateLimiter';
 import { createMobileAuditLogs } from '../controllers/auditLogsController';
 import { body } from 'express-validator';
 import { EnterpriseCache, EnterpriseCacheConfigs } from '../middleware/enterpriseCache';
@@ -132,6 +133,7 @@ router.post(
   '/verification-tasks/:taskId/attachments',
   authenticateToken,
   validateMobileVersion,
+  uploadRateLimit,
   mobileUpload.array('files', 15),
   MobileAttachmentController.uploadFiles
 );
@@ -251,6 +253,7 @@ router.post(
   '/location/capture',
   authenticateToken,
   validateMobileVersion,
+  geoRateLimit,
   MobileLocationController.captureLocation
 );
 router.post(

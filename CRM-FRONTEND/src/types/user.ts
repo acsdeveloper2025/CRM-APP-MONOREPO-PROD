@@ -104,12 +104,14 @@ export interface UserActivity {
   id: string;
   userId: string;
   action: string;
-  description: string;
+  description?: string; // Optional if not always present
   ipAddress?: string;
   userAgent?: string;
-  metadata?: Record<string, unknown>;
-  timestamp: string;
-  user: {
+  details?: Record<string, unknown>;
+  createdAt: string;
+  userName?: string;
+  // Legacy support for nested user if needed elsewhere
+  user?: {
     id: string;
     name: string;
     username: string;
@@ -255,12 +257,16 @@ export interface UserSession {
   id: string;
   userId: string;
   deviceId?: string;
-  ipAddress: string;
-  userAgent: string;
+  ipAddress?: string;
+  userAgent?: string;
   isActive: boolean;
-  lastActivityAt: string;
+  lastActivityAt?: string;
   createdAt: string;
-  user: {
+  expiresAt?: string;
+  userName?: string;
+  username?: string;
+  // Legacy support for nested user
+  user?: {
     id: string;
     name: string;
     username: string;

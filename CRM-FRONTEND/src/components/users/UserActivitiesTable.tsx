@@ -67,12 +67,12 @@ export function UserActivitiesTable({ data, isLoading }: UserActivitiesTableProp
                 <div className="flex items-center space-x-3">
                   <Avatar className="h-8 w-8">
                     <AvatarFallback>
-                      {activity.user.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                      {(activity.userName || 'U').split(' ').map(n => n[0]).join('').toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   <div>
-                    <div className="font-medium">{activity.user.name}</div>
-                    <div className="text-sm text-gray-600">{activity.user.username}</div>
+                    <div className="font-medium">{activity.userName || 'Unknown User'}</div>
+                    <div className="text-sm text-gray-600">{activity.userId}</div>
                   </div>
                 </div>
               </TableCell>
@@ -80,16 +80,18 @@ export function UserActivitiesTable({ data, isLoading }: UserActivitiesTableProp
                 {getActionBadge(activity.action)}
               </TableCell>
               <TableCell>
-                <span className="text-sm">{activity.description}</span>
+                <code className="text-[10px] bg-gray-100 p-1 rounded block max-w-[200px] truncate">
+                  {JSON.stringify(activity.details || {})}
+                </code>
               </TableCell>
               <TableCell>
                 <span className="text-sm font-mono">{activity.ipAddress || 'N/A'}</span>
               </TableCell>
               <TableCell>
-                <div className="flex items-center space-x-1">
+                <div className="flex items-center space-x-1 whitespace-nowrap">
                   <Clock className="h-3 w-3 text-gray-600" />
                   <span className="text-sm">
-                    {new Date(activity.timestamp).toLocaleString()}
+                    {new Date(activity.createdAt).toLocaleString()}
                   </span>
                 </div>
               </TableCell>

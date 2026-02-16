@@ -1,4 +1,5 @@
-import { BaseApiService, getApiBaseUrl } from './base';
+import { BaseApiService } from './base';
+import { apiService } from './api';
 import { attachmentsService } from './attachments';
 import type { Case } from '@/types/case';
 import type { ApiResponse, PaginationQuery } from '@/types/api';
@@ -61,7 +62,7 @@ export class CasesService extends BaseApiService {
   }
 
   async getCases(query: CaseListQuery = {}): Promise<ApiResponse<Case[]>> {
-    return this.get('', query);
+    return this.get('', query as unknown as Record<string, unknown>);
   }
 
   async getCaseById(id: string): Promise<ApiResponse<Case>> {
@@ -141,23 +142,9 @@ export class CasesService extends BaseApiService {
       formData.append('attachments', file);
     });
 
-    // Use fetch directly for FormData to avoid setting Content-Type header
-    const apiBaseUrl = getApiBaseUrl();
-    const response = await fetch(`${apiBaseUrl}/cases/create`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`,
-        // Don't set Content-Type - let browser set it with boundary for multipart/form-data
-      },
-      body: formData,
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ message: 'Request failed' }));
-      throw new Error(errorData.message || `HTTP ${response.status}`);
-    }
-
-    return response.json();
+    // Use this.post() which uses apiService.post() -> axios.post()
+    // Axios handles FormData automatically (sets multipart/form-data boundary)
+    return this.post<CreateCaseWithMultipleTasksResponse>('/create', formData);
   }
 
   async createCaseWithMultipleTasks(payload: CreateCaseWithMultipleTasksPayload): Promise<ApiResponse<CreateCaseWithMultipleTasksResponse>> {
@@ -277,28 +264,21 @@ export class CasesService extends BaseApiService {
     dateFrom?: string;
     dateTo?: string;
   } = {}): Promise<{ blob: Blob; filename: string }> {
-    const queryParams = new URLSearchParams();
+    const queryParams: Record<string, string> = {};
 
     Object.entries(params).forEach(([key, value]) => {
       if (value !== undefined && value !== null && value !== '') {
-        queryParams.append(key, String(value));
+        queryParams[key] = String(value);
       }
     });
 
-    const apiBaseUrl = getApiBaseUrl();
-    const response = await fetch(`${apiBaseUrl}/cases/export?${queryParams}`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`,
-      },
+    const response = await apiService.getRaw<Blob>('/cases/export', undefined, { 
+        params: queryParams,
+        responseType: 'blob' 
     });
 
-    if (!response.ok) {
-      throw new Error('Failed to export cases');
-    }
-
     // Extract filename from Content-Disposition header
-    const contentDisposition = response.headers.get('Content-Disposition');
+    const contentDisposition = response.headers['content-disposition'];
     let filename = 'cases_export.xlsx'; // fallback filename
 
     if (contentDisposition) {
@@ -308,8 +288,7 @@ export class CasesService extends BaseApiService {
       }
     }
 
-    const blob = await response.blob();
-    return { blob, filename };
+    return { blob: response.data, filename };
   }
 }
 

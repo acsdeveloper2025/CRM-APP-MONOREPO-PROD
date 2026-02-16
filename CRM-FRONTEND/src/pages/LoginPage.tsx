@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useAuth } from '@/hooks/useAuth';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -35,6 +36,15 @@ export const LoginPage: React.FC = () => {
   });
 
   useEffect(() => {
+    // Check for logout reason in URL
+    const params = new URLSearchParams(window.location.search);
+    const reason = params.get('reason');
+    if (reason) {
+      toast.info(decodeURIComponent(reason));
+      // Clean up URL to prevent toast repeating on refresh
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
     if (isAuthenticated) {
       navigate('/dashboard');
     }

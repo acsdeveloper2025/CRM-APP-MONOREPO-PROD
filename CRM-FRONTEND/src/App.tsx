@@ -7,20 +7,55 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { AppRoutes } from '@/components/AppRoutes';
-import { useWebSocket } from '@/hooks/useWebSocket';
 
 // Note: Page imports are now handled in AppRoutes component
 
-// Global WebSocket connection component
-function GlobalWebSocket() {
-  useWebSocket({
-    autoConnect: true,
-    onNotification: (_notification) => {
-      // Handle global notifications
-    },
-  });
-  return null;
+import { SessionTimeoutModal } from '@/components/auth/SessionTimeoutModal';
+import { sessionManager } from '@/services/sessionManager';
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/hooks/useAuth';
+
+// Handle session timeout logic
+function SessionHandler() {
+  const { isAuthenticated } = useAuth();
+  const [showTimeoutModal, setShowTimeoutModal] = useState(false);
+  const [remainingSeconds, setRemainingSeconds] = useState(60);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      sessionManager.init((seconds) => {
+        setRemainingSeconds(seconds);
+        setShowTimeoutModal(true);
+      });
+    } else {
+      sessionManager.destroy();
+      setShowTimeoutModal(false);
+      // Reset timer when logged out
+      sessionManager.resetTimer(); 
+    }
+
+    return () => {
+      sessionManager.destroy();
+    };
+  }, [isAuthenticated]);
+
+  // Handle modal close (users should use buttons, but just in case)
+  const handleClose = () => {
+    setShowTimeoutModal(false);
+  };
+
+  // If we receive a warning update while modal is open, update seconds
+  // The init callback is called every second during warning phase
+  
+  return (
+    <SessionTimeoutModal 
+      isOpen={showTimeoutModal} 
+      onClose={handleClose} 
+      remainingSeconds={remainingSeconds} 
+    />
+  );
 }
+
 
 // Create a client
 const queryClient = new QueryClient({
@@ -38,7 +73,7 @@ function App() {
       <ThemeProvider defaultTheme="system" storageKey="acs-theme">
         <QueryClientProvider client={queryClient}>
           <AuthProvider>
-            <GlobalWebSocket />
+            <SessionHandler />
             <Router>
               <div className="min-h-screen bg-[#FAFAFA]">
                 <AppRoutes />

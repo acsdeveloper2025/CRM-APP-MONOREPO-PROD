@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Plus, FileCheck, CheckCircle, XCircle, Layers, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -7,6 +7,7 @@ import { verificationTypesService } from '@/services/verificationTypes';
 import { VerificationTypesTable } from '@/components/clients/VerificationTypesTable';
 import { CreateVerificationTypeDialog } from '@/components/clients/CreateVerificationTypeDialog';
 import { useUnifiedSearch } from '@/hooks/useUnifiedSearch';
+import { UnifiedSearchFilterLayout } from '@/components/ui/unified-search-filter-layout';
 
 export function VerificationTypesPage() {
   const [showCreateVerificationType, setShowCreateVerificationType] = useState(false);
@@ -15,14 +16,19 @@ export function VerificationTypesPage() {
 
   // Unified search with 800ms debounce
   const {
-    searchValue: _searchValue,
+    searchValue,
     debouncedSearchValue,
-    setSearchValue: _setSearchValue,
-    clearSearch: _clearSearch,
-    isDebouncing: _isDebouncing,
+    setSearchValue,
+    clearSearch,
+    isDebouncing,
   } = useUnifiedSearch({
     syncWithUrl: true,
   });
+
+  // Reset pagination to page 1 when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearchValue]);
 
   const { data: verificationTypesData, isLoading: verificationTypesLoading } = useQuery({
     queryKey: ['verification-types', debouncedSearchValue, currentPage, pageSize],
@@ -136,15 +142,23 @@ export function VerificationTypesPage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <div className="flex items-center justify-end gap-2">
-              <Button
-                size="sm"
-                onClick={() => setShowCreateVerificationType(true)}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Type
-              </Button>
-            </div>
+            <UnifiedSearchFilterLayout
+              searchValue={searchValue}
+              onSearchChange={setSearchValue}
+              onSearchClear={clearSearch}
+              isSearchLoading={isDebouncing}
+              searchPlaceholder="Search verification types by name, code or category..."
+              showFilters={false}
+              actions={
+                <Button
+                  size="sm"
+                  onClick={() => setShowCreateVerificationType(true)}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Type
+                </Button>
+              }
+            />
 
             {/* Verification Types Table */}
             <VerificationTypesTable

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Plus, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -18,6 +18,7 @@ import { CreateVerificationTypeDialog } from '@/components/clients/CreateVerific
 import { CreateDocumentTypeDialog } from '@/components/document-types/CreateDocumentTypeDialog';
 import { BulkImportDialog } from '@/components/clients/BulkImportDialog';
 import { useUnifiedSearch } from '@/hooks/useUnifiedSearch';
+import { UnifiedSearchFilterLayout } from '@/components/ui/unified-search-filter-layout';
 
 export function ClientsPage() {
   const [activeTab, setActiveTab] = useState('clients');
@@ -37,14 +38,22 @@ export function ClientsPage() {
 
   // Unified search with 800ms debounce
   const {
-    searchValue: _searchValue,
+    searchValue,
     debouncedSearchValue,
-    setSearchValue: _setSearchValue,
-    clearSearch: _clearSearch,
-    isDebouncing: _isDebouncing,
+    setSearchValue,
+    clearSearch,
+    isDebouncing,
   } = useUnifiedSearch({
     syncWithUrl: true,
   });
+
+  // Reset pagination to page 1 when search changes for all tabs
+  useEffect(() => {
+    setClientsPage(1);
+    setProductsPage(1);
+    setVerificationTypesPage(1);
+    setDocumentTypesPage(1);
+  }, [debouncedSearchValue]);
 
   const { data: clientsData, isLoading: clientsLoading } = useQuery({
     queryKey: ['clients', debouncedSearchValue, clientsPage, pageSize],
@@ -56,24 +65,27 @@ export function ClientsPage() {
   });
 
   const { data: productsData, isLoading: productsLoading } = useQuery({
-    queryKey: ['products', productsPage, pageSize],
+    queryKey: ['products', debouncedSearchValue, productsPage, pageSize],
     queryFn: () => clientsService.getProducts({
+      search: debouncedSearchValue || undefined,
       page: productsPage,
       limit: pageSize,
     }),
   });
 
   const { data: verificationTypesData, isLoading: verificationTypesLoading } = useQuery({
-    queryKey: ['verification-types', verificationTypesPage, pageSize],
+    queryKey: ['verification-types', debouncedSearchValue, verificationTypesPage, pageSize],
     queryFn: () => clientsService.getVerificationTypes({
+      search: debouncedSearchValue || undefined,
       page: verificationTypesPage,
       limit: pageSize,
     }),
   });
 
   const { data: documentTypesData, isLoading: documentTypesLoading } = useQuery({
-    queryKey: ['document-types', documentTypesPage, pageSize],
+    queryKey: ['document-types', debouncedSearchValue, documentTypesPage, pageSize],
     queryFn: () => documentTypesService.getDocumentTypes({
+      search: debouncedSearchValue || undefined,
       page: documentTypesPage,
       limit: pageSize,
     }),
@@ -230,8 +242,21 @@ export function ClientsPage() {
                 </TabsList>
 
               <div className="flex flex-wrap gap-2">
-                {activeTab === 'clients' && (
-                  <>
+                {/* Actions handled by UnifiedSearchFilterLayout within tabs */}
+              </div>
+            </div>
+
+            {/* Tab Content - Responsive with overflow handling */}
+            <TabsContent value="clients" className="space-y-4">
+              <UnifiedSearchFilterLayout
+                searchValue={searchValue}
+                onSearchChange={setSearchValue}
+                onSearchClear={clearSearch}
+                isSearchLoading={isDebouncing}
+                searchPlaceholder="Search clients by name, email or code..."
+                showFilters={false}
+                actions={
+                  <div className="flex gap-2">
                     <Button
                       variant="outline"
                       size="sm"
@@ -247,11 +272,58 @@ export function ClientsPage() {
                       <Plus className="h-4 w-4 mr-2" />
                       Add Client
                     </Button>
-                  </>
+                  </div>
+                }
+              />
+              <div className="overflow-x-auto">
+                <div className="min-w-[800px] lg:min-w-0">
+                  <ClientsTable
+                    data={clientsData?.data || []}
+                    isLoading={clientsLoading}
+                  />
+                </div>
+                {/* Pagination Controls */}
+                {clientsData?.pagination && (
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
+                    <div className="text-sm text-gray-600">
+                      Showing {clientsData.data?.length || 0} of {clientsData.pagination.total} clients
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setClientsPage(prev => Math.max(1, prev - 1))}
+                        disabled={clientsPage === 1}
+                      >
+                        Previous
+                      </Button>
+                      <div className="text-sm">
+                        Page {clientsPage} of {clientsData.pagination.totalPages || 1}
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setClientsPage(prev => prev + 1)}
+                        disabled={clientsPage >= (clientsData.pagination.totalPages || 1)}
+                      >
+                        Next
+                      </Button>
+                    </div>
+                  </div>
                 )}
+              </div>
+            </TabsContent>
 
-                {activeTab === 'products' && (
-                  <>
+            <TabsContent value="products" className="space-y-4">
+              <UnifiedSearchFilterLayout
+                searchValue={searchValue}
+                onSearchChange={setSearchValue}
+                onSearchClear={clearSearch}
+                isSearchLoading={isDebouncing}
+                searchPlaceholder="Search products by name, code or category..."
+                showFilters={false}
+                actions={
+                  <div className="flex gap-2">
                     <Button
                       variant="outline"
                       size="sm"
@@ -267,10 +339,57 @@ export function ClientsPage() {
                       <Plus className="h-4 w-4 mr-2" />
                       Add Product
                     </Button>
-                  </>
+                  </div>
+                }
+              />
+              <div className="overflow-x-auto">
+                <div className="min-w-[800px] lg:min-w-0">
+                  <ProductsTable
+                    data={productsData?.data || []}
+                    isLoading={productsLoading}
+                  />
+                </div>
+                {/* Pagination Controls */}
+                {productsData?.pagination && (
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
+                    <div className="text-sm text-gray-600">
+                      Showing {productsData.data?.length || 0} of {productsData.pagination.total} products
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setProductsPage(prev => Math.max(1, prev - 1))}
+                        disabled={productsPage === 1}
+                      >
+                        Previous
+                      </Button>
+                      <div className="text-sm">
+                        Page {productsPage} of {productsData.pagination.totalPages || 1}
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setProductsPage(prev => prev + 1)}
+                        disabled={productsPage >= (productsData.pagination.totalPages || 1)}
+                      >
+                        Next
+                      </Button>
+                    </div>
+                  </div>
                 )}
+              </div>
+            </TabsContent>
 
-                {activeTab === 'verification-types' && (
+            <TabsContent value="verification-types" className="space-y-4">
+              <UnifiedSearchFilterLayout
+                searchValue={searchValue}
+                onSearchChange={setSearchValue}
+                onSearchClear={clearSearch}
+                isSearchLoading={isDebouncing}
+                searchPlaceholder="Search verification types by name, code or category..."
+                showFilters={false}
+                actions={
                   <Button
                     size="sm"
                     onClick={() => setShowCreateVerificationType(true)}
@@ -278,9 +397,56 @@ export function ClientsPage() {
                     <Plus className="h-4 w-4 mr-2" />
                     Add Type
                   </Button>
+                }
+              />
+              <div className="overflow-x-auto">
+                <div className="min-w-[600px] lg:min-w-0">
+                  <VerificationTypesTable
+                    data={verificationTypesData?.data || []}
+                    isLoading={verificationTypesLoading}
+                  />
+                </div>
+                {/* Pagination Controls */}
+                {verificationTypesData?.pagination && (
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
+                    <div className="text-sm text-gray-600">
+                      Showing {verificationTypesData.data?.length || 0} of {verificationTypesData.pagination.total} verification types
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setVerificationTypesPage(prev => Math.max(1, prev - 1))}
+                        disabled={verificationTypesPage === 1}
+                      >
+                        Previous
+                      </Button>
+                      <div className="text-sm">
+                        Page {verificationTypesPage} of {verificationTypesData.pagination.totalPages || 1}
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setVerificationTypesPage(prev => prev + 1)}
+                        disabled={verificationTypesPage >= (verificationTypesData.pagination.totalPages || 1)}
+                      >
+                        Next
+                      </Button>
+                    </div>
+                  </div>
                 )}
+              </div>
+            </TabsContent>
 
-                {activeTab === 'document-types' && (
+            <TabsContent value="document-types" className="space-y-4">
+              <UnifiedSearchFilterLayout
+                searchValue={searchValue}
+                onSearchChange={setSearchValue}
+                onSearchClear={clearSearch}
+                isSearchLoading={isDebouncing}
+                searchPlaceholder="Search document types by name, code or category..."
+                showFilters={false}
+                actions={
                   <Button
                     size="sm"
                     onClick={() => setShowCreateDocumentType(true)}
@@ -288,161 +454,45 @@ export function ClientsPage() {
                     <Plus className="h-4 w-4 mr-2" />
                     Add Document Type
                   </Button>
+                }
+              />
+              <div className="overflow-x-auto">
+                <div className="min-w-[700px] lg:min-w-0">
+                  <DocumentTypesTable
+                    data={documentTypesData?.data || []}
+                    isLoading={documentTypesLoading}
+                  />
+                </div>
+                {/* Pagination Controls */}
+                {documentTypesData?.pagination && (
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
+                    <div className="text-sm text-gray-600">
+                      Showing {documentTypesData.data?.length || 0} of {documentTypesData.pagination.total} document types
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setDocumentTypesPage(prev => Math.max(1, prev - 1))}
+                        disabled={documentTypesPage === 1}
+                      >
+                        Previous
+                      </Button>
+                      <div className="text-sm">
+                        Page {documentTypesPage} of {documentTypesData.pagination.totalPages || 1}
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setDocumentTypesPage(prev => prev + 1)}
+                        disabled={documentTypesPage >= (documentTypesData.pagination.totalPages || 1)}
+                      >
+                        Next
+                      </Button>
+                    </div>
+                  </div>
                 )}
               </div>
-            </div>
-
-            {/* Tab Content - Responsive with overflow handling */}
-            <TabsContent value="clients" className="space-y-4 overflow-x-auto">
-              <div className="min-w-[800px] lg:min-w-0">
-                <ClientsTable
-                  data={clientsData?.data || []}
-                  isLoading={clientsLoading}
-                />
-              </div>
-              {/* Pagination Controls */}
-              {clientsData?.pagination && (
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
-                  <div className="text-sm text-gray-600">
-                    Showing {clientsData.data?.length || 0} of {clientsData.pagination.total} clients
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setClientsPage(prev => Math.max(1, prev - 1))}
-                      disabled={clientsPage === 1}
-                    >
-                      Previous
-                    </Button>
-                    <div className="text-sm">
-                      Page {clientsPage} of {clientsData.pagination.totalPages || 1}
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setClientsPage(prev => prev + 1)}
-                      disabled={clientsPage >= (clientsData.pagination.totalPages || 1)}
-                    >
-                      Next
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </TabsContent>
-
-            <TabsContent value="products" className="space-y-4 overflow-x-auto">
-              <div className="min-w-[800px] lg:min-w-0">
-                <ProductsTable
-                  data={productsData?.data || []}
-                  isLoading={productsLoading}
-                />
-              </div>
-              {/* Pagination Controls */}
-              {productsData?.pagination && (
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
-                  <div className="text-sm text-gray-600">
-                    Showing {productsData.data?.length || 0} of {productsData.pagination.total} products
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setProductsPage(prev => Math.max(1, prev - 1))}
-                      disabled={productsPage === 1}
-                    >
-                      Previous
-                    </Button>
-                    <div className="text-sm">
-                      Page {productsPage} of {productsData.pagination.totalPages || 1}
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setProductsPage(prev => prev + 1)}
-                      disabled={productsPage >= (productsData.pagination.totalPages || 1)}
-                    >
-                      Next
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </TabsContent>
-
-            <TabsContent value="verification-types" className="space-y-4 overflow-x-auto">
-              <div className="min-w-[600px] lg:min-w-0">
-                <VerificationTypesTable
-                  data={verificationTypesData?.data || []}
-                  isLoading={verificationTypesLoading}
-                />
-              </div>
-              {/* Pagination Controls */}
-              {verificationTypesData?.pagination && (
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
-                  <div className="text-sm text-gray-600">
-                    Showing {verificationTypesData.data?.length || 0} of {verificationTypesData.pagination.total} verification types
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setVerificationTypesPage(prev => Math.max(1, prev - 1))}
-                      disabled={verificationTypesPage === 1}
-                    >
-                      Previous
-                    </Button>
-                    <div className="text-sm">
-                      Page {verificationTypesPage} of {verificationTypesData.pagination.totalPages || 1}
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setVerificationTypesPage(prev => prev + 1)}
-                      disabled={verificationTypesPage >= (verificationTypesData.pagination.totalPages || 1)}
-                    >
-                      Next
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </TabsContent>
-
-            <TabsContent value="document-types" className="space-y-4 overflow-x-auto">
-              <div className="min-w-[700px] lg:min-w-0">
-                <DocumentTypesTable
-                  data={documentTypesData?.data || []}
-                  isLoading={documentTypesLoading}
-                />
-              </div>
-              {/* Pagination Controls */}
-              {documentTypesData?.pagination && (
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
-                  <div className="text-sm text-gray-600">
-                    Showing {documentTypesData.data?.length || 0} of {documentTypesData.pagination.total} document types
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setDocumentTypesPage(prev => Math.max(1, prev - 1))}
-                      disabled={documentTypesPage === 1}
-                    >
-                      Previous
-                    </Button>
-                    <div className="text-sm">
-                      Page {documentTypesPage} of {documentTypesData.pagination.totalPages || 1}
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setDocumentTypesPage(prev => prev + 1)}
-                      disabled={documentTypesPage >= (documentTypesData.pagination.totalPages || 1)}
-                    >
-                      Next
-                    </Button>
-                  </div>
-                </div>
-              )}
             </TabsContent>
           </Tabs>
         </CardContent>

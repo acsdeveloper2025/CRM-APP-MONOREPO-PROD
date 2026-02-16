@@ -1,10 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { TasksListFlat } from '@/components/verification-tasks/TasksListFlat';
 import { TaskAssignmentModal } from '@/components/verification-tasks/TaskAssignmentModal';
 import { useAllVerificationTasks } from '@/hooks/useVerificationTasks';
 import { useUnifiedSearch, useUnifiedFilters } from '@/hooks/useUnifiedSearch';
+import { UnifiedSearchFilterLayout, FilterGrid } from '@/components/ui/unified-search-filter-layout';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   Play,
   Clock,
@@ -25,11 +34,11 @@ export const InProgressTasksPage: React.FC = () => {
 
   // Unified search with 800ms debounce
   const {
-    searchValue: _searchValue,
+    searchValue,
     debouncedSearchValue,
-    setSearchValue: _setSearchValue,
-    clearSearch: _clearSearch,
-    isDebouncing: _isDebouncing,
+    setSearchValue,
+    clearSearch,
+    isDebouncing,
   } = useUnifiedSearch({
     syncWithUrl: true,
   });
@@ -37,20 +46,25 @@ export const InProgressTasksPage: React.FC = () => {
   // Unified filters with URL sync
   const {
     filters: activeFilters,
-    setFilter: _setFilter,
-    clearFilters: _clearFilters,
-    hasActiveFilters: _hasActiveFilters,
+    setFilter,
+    clearFilters,
+    hasActiveFilters,
   } = useUnifiedFilters<InProgressTaskFilters>({
     syncWithUrl: true,
   });
 
-  const [paginationState, _setPaginationState] = useState({
+  const [paginationState, setPaginationState] = useState({
     page: 1,
     limit: 20,
     sortBy: 'started_at',
     sortOrder: 'asc' as 'asc' | 'desc',
     status: 'IN_PROGRESS',
   });
+
+  // Reset pagination when search or filters change
+  useEffect(() => {
+    setPaginationState(prev => ({ ...prev, page: 1 }));
+  }, [debouncedSearchValue, activeFilters]);
 
   const queryFilters = {
     ...paginationState,
@@ -62,10 +76,9 @@ export const InProgressTasksPage: React.FC = () => {
 
   const handleFilterChange = (key: string, value: unknown) => {
     if (key === 'page') {
-      _setPaginationState(prev => ({ ...prev, page: value as number }));
+      setPaginationState(prev => ({ ...prev, page: value as number }));
     } else {
-      _setFilter(key as keyof InProgressTaskFilters, value);
-      _setPaginationState(prev => ({ ...prev, page: 1 }));
+      setFilter(key as keyof InProgressTaskFilters, value);
     }
   };
 
@@ -97,7 +110,7 @@ export const InProgressTasksPage: React.FC = () => {
     }
   };
 
-
+  const activeFilterCount = Object.values(activeFilters).filter(Boolean).length;
 
   return (
     <div className="container mx-auto py-6 space-y-6">
@@ -108,17 +121,6 @@ export const InProgressTasksPage: React.FC = () => {
           <p className="text-gray-600 mt-1">
             Verification tasks currently being worked on by field agents
           </p>
-        </div>
-        <div className="flex items-center space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => refreshTasks()}
-            disabled={loading}
-          >
-            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
         </div>
       </div>
 
@@ -199,7 +201,50 @@ export const InProgressTasksPage: React.FC = () => {
         </Card>
       </div>
 
-
+      {/* Unified Search & Filter */}
+      <UnifiedSearchFilterLayout
+        searchValue={searchValue}
+        onSearchChange={setSearchValue}
+        onSearchClear={clearSearch}
+        isSearchLoading={isDebouncing}
+        searchPlaceholder="Search in-progress tasks..."
+        hasActiveFilters={hasActiveFilters}
+        activeFilterCount={activeFilterCount}
+        onClearFilters={clearFilters}
+        filterContent={
+          <FilterGrid columns={3}>
+            {/* Priority Filter */}
+            <div className="space-y-2">
+              <Label htmlFor="priority">Priority</Label>
+              <Select
+                value={activeFilters.priority || 'all'}
+                onValueChange={(value) => setFilter('priority', value === 'all' ? undefined : value)}
+              >
+                <SelectTrigger id="priority">
+                  <SelectValue placeholder="All priorities" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Priorities</SelectItem>
+                  <SelectItem value="1">Low</SelectItem>
+                  <SelectItem value="2">Medium</SelectItem>
+                  <SelectItem value="3">High</SelectItem>
+                  <SelectItem value="4">Urgent</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </FilterGrid>
+        }
+        actions={
+          <Button
+            variant="outline"
+            onClick={() => refreshTasks()}
+            disabled={loading}
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+        }
+      />
 
       {/* Tasks List */}
       {error && (
@@ -270,4 +315,3 @@ export const InProgressTasksPage: React.FC = () => {
     </div>
   );
 };
-

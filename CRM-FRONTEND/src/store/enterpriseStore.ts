@@ -121,7 +121,7 @@ export const fetchCases = createAsyncThunk(
       ),
     });
 
-    const response = await apiClient.get(`/api/cases?${queryParams}`);
+    const response = await apiClient.get(`/cases?${queryParams}`);
     return {
       cases: response.data.data,
       totalCount: response.data.pagination.total,
@@ -135,7 +135,7 @@ export const fetchCases = createAsyncThunk(
 export const bulkAssignCases = createAsyncThunk(
   'cases/bulkAssign',
   async (params: { caseIds: string[]; assignToUserId: string }) => {
-    const response = await apiClient.post('/api/cases/bulk/assign', {
+    const response = await apiClient.post('/cases/bulk/assign', {
       caseIds: params.caseIds,
       assignToUserId: params.assignToUserId,
     });
@@ -146,7 +146,7 @@ export const bulkAssignCases = createAsyncThunk(
 export const fetchBulkOperationStatus = createAsyncThunk(
   'cases/fetchBulkOperationStatus',
   async (batchId: string) => {
-    const response = await apiClient.get(`/api/cases/bulk/assign/${batchId}/status`);
+    const response = await apiClient.get(`/cases/bulk/assign/${batchId}/status`);
     return response.data;
   }
 );
@@ -154,7 +154,7 @@ export const fetchBulkOperationStatus = createAsyncThunk(
 export const fetchFieldAgentWorkload = createAsyncThunk(
   'users/fetchFieldAgentWorkload',
   async () => {
-    const response = await apiClient.get('/api/cases/analytics/field-agent-workload');
+    const response = await apiClient.get('/cases/analytics/field-agent-workload');
     return response.data.data;
   }
 );

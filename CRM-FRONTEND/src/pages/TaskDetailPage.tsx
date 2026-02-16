@@ -12,12 +12,14 @@ import {
   CheckCircle2,
   AlertCircle,
   History,
-  XCircle
+  XCircle,
+  Edit
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { apiService } from '@/services/api';
 import { LoadingState } from '@/components/ui/loading';
+import { EditTaskDetailsModal } from '@/components/verification-tasks/EditTaskDetailsModal';
 
 interface TaskDetail {
   id: string;
@@ -83,6 +85,7 @@ export const TaskDetailPage: React.FC = () => {
   const [assignmentHistory, setAssignmentHistory] = useState<AssignmentHistory[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
 
   useEffect(() => {
@@ -163,6 +166,21 @@ export const TaskDetailPage: React.FC = () => {
     }
   };
 
+  const handleUpdateTask = async (taskId: string, updateData: import('@/types/verificationTask').UpdateVerificationTaskRequest) => {
+    try {
+      const response = await apiService.put(`/verification-tasks/${taskId}`, updateData);
+      if (response.success) {
+        toast.success('Task details updated successfully');
+        fetchTaskDetails(); // Refresh data
+      } else {
+        toast.error(response.message || 'Failed to update task');
+      }
+    } catch (error) {
+       console.error('Failed to update task:', error);
+       toast.error('An error occurred while updating the task');
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     type BadgeVariant = 'default' | 'secondary' | 'destructive' | 'outline';
     type IconComponent = typeof Clock | typeof User | typeof CheckCircle2 | typeof XCircle | typeof AlertCircle;
@@ -233,9 +251,9 @@ export const TaskDetailPage: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
-          <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
+          <Button variant="ghost" size="sm" onClick={() => navigate('/tasks')}>
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
+            Back to Tasks
           </Button>
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{task.taskNumber}</h1>
@@ -243,10 +261,31 @@ export const TaskDetailPage: React.FC = () => {
           </div>
         </div>
         <div className="flex items-center space-x-2">
+          <Button variant="outline" size="sm" onClick={() => setIsEditModalOpen(true)}>
+            <Edit className="h-4 w-4 mr-2" />
+            Edit Task
+          </Button>
           {getStatusBadge(task.status)}
           {getPriorityBadge(task.priority)}
         </div>
       </div>
+
+      <EditTaskDetailsModal
+        open={isEditModalOpen}
+        onOpenChange={setIsEditModalOpen}
+        task={{
+            id: task.id,
+            taskTitle: task.taskTitle,
+            taskDescription: task.taskDescription,
+            priority: task.priority,
+            address: task.address,
+            pincode: task.pincode,
+            // Add if available in task object, otherwise defaults to empty
+            documentType: (task as any).documentType,
+            documentNumber: (task as any).documentNumber
+        }}
+        onSubmit={handleUpdateTask}
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Details */}

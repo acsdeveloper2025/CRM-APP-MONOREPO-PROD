@@ -22,6 +22,13 @@ export default defineConfig({
       'example.com',
       'www.example.com'
     ],
+    proxy: {
+      '/api': {
+         target: 'http://localhost:3000', // Default local backend
+         changeOrigin: true,
+         secure: false,
+      }
+    }
   },
   build: {
     rollupOptions: {

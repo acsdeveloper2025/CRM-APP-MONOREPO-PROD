@@ -75,8 +75,8 @@ export const useAllVerificationTasks = (filters: Record<string, unknown> = {}) =
     queryKey,
     queryFn: async () => {
       // Cast response to expected type as structure might vary from standard ApiResponse
-      const response = await api.get('/verification-tasks', filters);
-      return response as unknown as VerificationTaskListResponse;
+      const response = await api.get<VerificationTaskListResponse>('/verification-tasks', filters);
+      return response.data;
     },
   });
 

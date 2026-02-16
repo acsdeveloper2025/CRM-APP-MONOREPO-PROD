@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useCaseAttachments } from '@/hooks/useCases';
 import type { Attachment } from '@/services/attachments';
+import { authenticatedFetch } from '@/services/api';
 import {
   Upload,
   FileText,
@@ -38,9 +39,18 @@ export const CaseAttachmentsSection: React.FC<CaseAttachmentsSectionProps> = ({ 
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [previewAttachment, setPreviewAttachment] = useState<Attachment | null>(null);
   const [showPreview, setShowPreview] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const attachments = (attachmentsResponse?.data || []) as Attachment[];
+
+  // Clean up object URL when dialog closes or component unmounts
+  React.useEffect(() => {
+    if (!showPreview && previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(null);
+    }
+  }, [showPreview, previewUrl]);
 
   const validateFile = (file: File): string | null => {
     if (!Object.keys(ALLOWED_FILE_TYPES).includes(file.type)) {
@@ -102,39 +112,7 @@ export const CaseAttachmentsSection: React.FC<CaseAttachmentsSectionProps> = ({ 
     setSelectedFiles(prev => prev.filter((_, i) => i !== index));
   };
 
-  // Smart API URL selection
-  const getApiBaseUrl = () => {
-    const hostname = window.location.hostname;
-    const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
-    const isLocalNetwork = hostname.startsWith('10.') || hostname.startsWith('192.168.') || hostname.startsWith('172.');
-    const staticIP = import.meta.env.VITE_STATIC_IP || 'PUBLIC_STATIC_IP';
-    const isStaticIP = hostname === staticIP;
-    const isDomain = hostname === 'example.com' || hostname === 'www.example.com';
 
-    // Priority order for API URL selection:
-    // 1. Check if we're on localhost (development)
-    if (isLocalhost) {
-      return 'http://localhost:3000/api';
-    }
-
-    // 2. Check if we're on the local network IP (hairpin NAT workaround)
-    if (isLocalNetwork) {
-      return `http://${staticIP}:3000/api`;
-    }
-
-    // 3. Check if we're on the domain name (production access)
-    if (isDomain) {
-      return 'https://example.com/api';
-    }
-
-    // 4. Check if we're on the static IP (external access)
-    if (isStaticIP) {
-      return `http://${staticIP}:3000/api`;
-    }
-
-    // 5. Fallback to environment variable or localhost
-    return import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
-  };
 
   const uploadFiles = async () => {
     if (selectedFiles.length === 0) {return;}
@@ -148,12 +126,8 @@ export const CaseAttachmentsSection: React.FC<CaseAttachmentsSectionProps> = ({ 
       formData.append('caseId', caseId);
       formData.append('category', 'DOCUMENT');
 
-      const apiBaseUrl = getApiBaseUrl();
-      const response = await fetch(`${apiBaseUrl}/attachments/upload`, {
+      const response = await authenticatedFetch('/attachments/upload', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`,
-        },
         body: formData,
       });
 
@@ -173,12 +147,8 @@ export const CaseAttachmentsSection: React.FC<CaseAttachmentsSectionProps> = ({ 
 
   const deleteAttachment = async (attachmentId: string) => {
     try {
-      const apiBaseUrl = getApiBaseUrl();
-      const response = await fetch(`${apiBaseUrl}/attachments/${attachmentId}`, {
+      const response = await authenticatedFetch(`/attachments/${attachmentId}`, {
         method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`,
-        },
       });
 
       if (!response.ok) {
@@ -194,12 +164,8 @@ export const CaseAttachmentsSection: React.FC<CaseAttachmentsSectionProps> = ({ 
 
   const downloadAttachment = async (attachment: Attachment) => {
     try {
-      const apiBaseUrl = getApiBaseUrl();
-      const response = await fetch(`${apiBaseUrl}/attachments/${attachment.id}/download`, {
+      const response = await authenticatedFetch(`/attachments/${attachment.id}/download`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`,
-        },
       });
 
       if (!response.ok) {
@@ -220,9 +186,25 @@ export const CaseAttachmentsSection: React.FC<CaseAttachmentsSectionProps> = ({ 
     }
   };
 
-  const previewAttachmentHandler = (attachment: Attachment) => {
+  const previewAttachmentHandler = async (attachment: Attachment) => {
     setPreviewAttachment(attachment);
     setShowPreview(true);
+
+    if (attachment.mimeType.startsWith('image/')) {
+      try {
+        const response = await authenticatedFetch(`/attachments/${attachment.id}/serve`);
+        if (response.ok) {
+          const blob = await response.blob();
+          const url = URL.createObjectURL(blob);
+          setPreviewUrl(url);
+        } else {
+            toast.error('Failed to load image preview');
+        }
+      } catch (error) {
+        console.error('Error loading preview:', error);
+        toast.error('Failed to load image preview');
+      }
+    }
   };
 
   const getFileIcon = (mimeType: string) => {
@@ -372,15 +354,17 @@ export const CaseAttachmentsSection: React.FC<CaseAttachmentsSectionProps> = ({ 
           {previewAttachment && (
             <div className="flex justify-center">
               {previewAttachment.mimeType.startsWith('image/') ? (
-                <img
-                  src={`${getApiBaseUrl()}/attachments/${previewAttachment.id}/serve?token=${localStorage.getItem('crm_auth_token')}`}
-                  alt={previewAttachment.originalName}
-                  className="max-w-full max-h-[60vh] object-contain"
-                  onError={(e) => {
-                    // Fallback if serve endpoint fails
-                    e.currentTarget.style.display = 'none';
-                  }}
-                />
+                previewUrl ? (
+                  <img
+                    src={previewUrl}
+                    alt={previewAttachment.originalName}
+                    className="max-w-full max-h-[60vh] object-contain"
+                  />
+                ) : (
+                  <div className="flex justify-center items-center h-64">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600" />
+                  </div>
+                )
               ) : (
                 <div className="text-center py-8">
                   <FileText className="h-16 w-16 mx-auto mb-4 text-gray-600" />

@@ -38,7 +38,6 @@ const BillingPage = React.lazy(() => import('@/pages/BillingPage').then(module =
 const CommissionManagementPage = React.lazy(() => import('@/pages/CommissionManagementPage').then(module => ({ default: module.CommissionManagementPage })));
 const CommissionsPage = React.lazy(() => import('@/pages/CommissionsPage').then(module => ({ default: module.CommissionsPage })));
 const LocationsPage = React.lazy(() => import('@/pages/LocationsPage').then(module => ({ default: module.LocationsPage })));
-const RealTimePage = React.lazy(() => import('@/pages/RealTimePage').then(module => ({ default: module.RealTimePage })));
 const FormViewerPage = React.lazy(() => import('@/pages/FormViewerPage').then(module => ({ default: module.FormViewerPage })));
 const SecurityUXPage = React.lazy(() => import('@/pages/SecurityUXPage').then(module => ({ default: module.SecurityUXPage })));
 const SettingsPage = React.lazy(() => import('@/pages/SettingsPage').then(module => ({ default: module.SettingsPage })));
@@ -474,16 +473,6 @@ export const AppRoutes: React.FC = () => {
                   <CommissionManagementPage />
                 </Layout>
               </PermissionProtectedRoute>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/realtime"
-          element={
-            <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND_USER', 'SUPER_ADMIN']}>
-              <Layout>
-                <RealTimePage />
-              </Layout>
             </ProtectedRoute>
           }
         />

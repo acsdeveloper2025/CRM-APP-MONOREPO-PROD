@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Plus, Package, CheckCircle, XCircle, TrendingUp, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -7,6 +7,7 @@ import { productsService } from '@/services/products';
 import { ProductsTable } from '@/components/clients/ProductsTable';
 import { CreateProductDialog } from '@/components/clients/CreateProductDialog';
 import { useUnifiedSearch } from '@/hooks/useUnifiedSearch';
+import { UnifiedSearchFilterLayout } from '@/components/ui/unified-search-filter-layout';
 
 export function ProductsPage() {
   const [showCreateProduct, setShowCreateProduct] = useState(false);
@@ -15,14 +16,19 @@ export function ProductsPage() {
 
   // Unified search with 800ms debounce
   const {
-    searchValue: _searchValue,
+    searchValue,
     debouncedSearchValue,
-    setSearchValue: _setSearchValue,
-    clearSearch: _clearSearch,
-    isDebouncing: _isDebouncing,
+    setSearchValue,
+    clearSearch,
+    isDebouncing,
   } = useUnifiedSearch({
     syncWithUrl: true,
   });
+
+  // Reset pagination to page 1 when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearchValue]);
 
   const { data: productsData, isLoading: productsLoading } = useQuery({
     queryKey: ['products', debouncedSearchValue, currentPage, pageSize],
@@ -144,15 +150,23 @@ export function ProductsPage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <div className="flex items-center justify-end gap-2">
-              <Button
-                size="sm"
-                onClick={() => setShowCreateProduct(true)}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Product
-              </Button>
-            </div>
+            <UnifiedSearchFilterLayout
+              searchValue={searchValue}
+              onSearchChange={setSearchValue}
+              onSearchClear={clearSearch}
+              isSearchLoading={isDebouncing}
+              searchPlaceholder="Search products by name, code or category..."
+              showFilters={false}
+              actions={
+                <Button
+                  size="sm"
+                  onClick={() => setShowCreateProduct(true)}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Product
+                </Button>
+              }
+            />
 
             {/* Products Table */}
             <ProductsTable

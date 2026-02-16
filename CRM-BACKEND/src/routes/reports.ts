@@ -2,6 +2,7 @@ import express from 'express';
 import { body, query } from 'express-validator';
 import { authenticateToken } from '@/middleware/auth';
 import { validate } from '@/middleware/validation';
+import { exportRateLimit, listRateLimit } from '@/middleware/rateLimiter';
 import {
   getCasesReport,
   getUserPerformanceReport,
@@ -168,7 +169,7 @@ const agentPerformanceValidation = [
 ];
 
 // Report routes
-router.get('/cases', casesReportValidation, validate, getCasesReport);
+router.get('/cases', listRateLimit, casesReportValidation, validate, getCasesReport);
 
 router.get('/users', usersReportValidation, validate, getUserPerformanceReport);
 
@@ -177,7 +178,7 @@ router.get('/clients', clientsReportValidation, validate, getClientReport);
 // ===== PHASE 1: NEW DATA VISUALIZATION & REPORTING ROUTES =====
 
 // 1.1 Form Submission Data APIs
-router.get('/form-submissions', formSubmissionsValidation, validate, getFormSubmissions);
+router.get('/form-submissions', listRateLimit, formSubmissionsValidation, validate, getFormSubmissions);
 
 router.get(
   '/form-submissions/:formType',
@@ -263,6 +264,7 @@ router.get(
     query('format').isIn(['EXCEL', 'CSV']).withMessage('Format must be EXCEL or CSV'),
   ],
   validate,
+  exportRateLimit,
   exportMISData
 );
 

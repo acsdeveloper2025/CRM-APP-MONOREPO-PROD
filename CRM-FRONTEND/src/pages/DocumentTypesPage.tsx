@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Plus, FileText, Filter, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,7 @@ import { documentTypesService } from '@/services/documentTypes';
 import { DocumentTypesTable } from '@/components/document-types/DocumentTypesTable';
 import { CreateDocumentTypeDialog } from '@/components/document-types/CreateDocumentTypeDialog';
 import { useUnifiedSearch } from '@/hooks/useUnifiedSearch';
+import { UnifiedSearchFilterLayout } from '@/components/ui/unified-search-filter-layout';
 
 export const DocumentTypesPage: React.FC = () => {
   const [showCreateDocumentType, setShowCreateDocumentType] = useState(false);
@@ -16,14 +17,19 @@ export const DocumentTypesPage: React.FC = () => {
 
   // Unified search with 800ms debounce
   const {
-    searchValue: _searchValue,
+    searchValue,
     debouncedSearchValue,
-    setSearchValue: _setSearchValue,
-    clearSearch: _clearSearch,
-    isDebouncing: _isDebouncing,
+    setSearchValue,
+    clearSearch,
+    isDebouncing,
   } = useUnifiedSearch({
     syncWithUrl: true,
   });
+
+  // Reset pagination to page 1 when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearchValue]);
 
   const { data: documentTypesData, isLoading: documentTypesLoading } = useQuery({
     queryKey: ['document-types', debouncedSearchValue, currentPage, pageSize],
@@ -128,15 +134,23 @@ export const DocumentTypesPage: React.FC = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <div className="flex items-center justify-end gap-2">
-              <Button
-                size="sm"
-                onClick={() => setShowCreateDocumentType(true)}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Document Type
-              </Button>
-            </div>
+            <UnifiedSearchFilterLayout
+              searchValue={searchValue}
+              onSearchChange={setSearchValue}
+              onSearchClear={clearSearch}
+              isSearchLoading={isDebouncing}
+              searchPlaceholder="Search document types by name, code or category..."
+              showFilters={false}
+              actions={
+                <Button
+                  size="sm"
+                  onClick={() => setShowCreateDocumentType(true)}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Document Type
+                </Button>
+              }
+            />
 
             {/* Document Types Table */}
             <DocumentTypesTable

@@ -82,8 +82,8 @@ export function UserSessionsTable({ data, isLoading }: UserSessionsTableProps) {
             <TableHead>Device</TableHead>
             <TableHead>IP Address</TableHead>
             <TableHead>Status</TableHead>
-            <TableHead>Last Activity</TableHead>
-            <TableHead>Session Started</TableHead>
+            <TableHead>Login Time</TableHead>
+            <TableHead>Expiry Time</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -94,40 +94,40 @@ export function UserSessionsTable({ data, isLoading }: UserSessionsTableProps) {
                 <div className="flex items-center space-x-3">
                   <Avatar className="h-8 w-8">
                     <AvatarFallback>
-                      {session.user.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                      {(session.userName || 'U').split(' ').map(n => n[0]).join('').toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   <div>
-                    <div className="font-medium">{session.user.name}</div>
-                    <div className="text-sm text-gray-600">{session.user.username}</div>
+                    <div className="font-medium">{session.userName || 'Unknown User'}</div>
+                    <div className="text-sm text-gray-600">{session.username}</div>
                   </div>
                 </div>
               </TableCell>
               <TableCell>
                 <div className="flex items-center space-x-2">
-                  {getDeviceIcon(session.userAgent)}
-                  <span className="text-sm">{getDeviceInfo(session.userAgent)}</span>
+                  {getDeviceIcon(session.userAgent || '')}
+                  <span className="text-sm">{getDeviceInfo(session.userAgent || '')}</span>
                 </div>
               </TableCell>
               <TableCell>
-                <span className="text-sm font-mono">{session.ipAddress}</span>
+                <span className="text-sm font-mono">{session.ipAddress || 'N/A'}</span>
               </TableCell>
               <TableCell>
                 <Badge variant={session.isActive ? 'default' : 'secondary'}>
-                  {session.isActive ? 'Active' : 'Inactive'}
+                  {session.isActive ? 'Active' : 'Expired'}
                 </Badge>
               </TableCell>
               <TableCell>
                 <div className="flex items-center space-x-1">
                   <Clock className="h-3 w-3 text-gray-600" />
                   <span className="text-sm">
-                    {new Date(session.lastActivityAt).toLocaleString()}
+                    {new Date(session.createdAt).toLocaleString()}
                   </span>
                 </div>
               </TableCell>
               <TableCell>
                 <span className="text-sm">
-                  {new Date(session.createdAt).toLocaleString()}
+                  {session.expiresAt ? new Date(session.expiresAt).toLocaleString() : 'N/A'}
                 </span>
               </TableCell>
               <TableCell className="text-right">

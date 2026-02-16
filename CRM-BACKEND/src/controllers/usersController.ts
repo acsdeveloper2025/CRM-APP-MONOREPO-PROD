@@ -4,6 +4,7 @@ import { query } from '@/config/database';
 import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
 import { EmailDeliveryService } from '@/services/EmailDeliveryService';
+import ExcelJS from 'exceljs';
 
 // GET /api/users - List users with pagination and filters
 export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
@@ -959,23 +960,149 @@ export const getDesignations = async (req: AuthenticatedRequest, res: Response) 
   }
 };
 
-// Placeholder functions for activities and sessions (to be implemented)
-export const getUserActivities = (req: AuthenticatedRequest, res: Response) => {
-  res.json({
-    success: true,
-    data: [],
-    pagination: { page: 1, limit: 50, total: 0, totalPages: 0 },
-    message: 'User activities feature coming soon',
-  });
+// GET /api/users/activities - Get user activity logs
+export const getUserActivities = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const {
+      page = 1,
+      limit = 20,
+      search,
+      userId,
+      fromDate,
+      toDate,
+    } = req.query;
+
+    const isAdmin = req.user?.role === 'SUPER_ADMIN' || req.user?.role === 'ADMIN';
+    const targetUserId = isAdmin ? (userId as string) : req.user?.id;
+
+    // Build query conditions
+    const conditions: string[] = [];
+    const params: (string | number)[] = [];
+    let paramIndex = 1;
+
+    if (targetUserId) {
+      conditions.push(`al."userId" = $${paramIndex++}`);
+      params.push(targetUserId);
+    }
+
+    if (search && typeof search === 'string') {
+      conditions.push(`(al.action ILIKE $${paramIndex} OR al.details::text ILIKE $${paramIndex})`);
+      params.push(`%${search}%`);
+      paramIndex++;
+    }
+
+    if (fromDate) {
+      conditions.push(`al."createdAt" >= $${paramIndex++}`);
+      params.push(fromDate as string);
+    }
+
+    if (toDate) {
+      conditions.push(`al."createdAt" <= $${paramIndex++}`);
+      params.push(toDate as string);
+    }
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    // Get total count
+    const countQuery = `SELECT COUNT(*) as total FROM "auditLogs" al ${whereClause}`;
+    const countResult = await query(countQuery, params);
+    const total = parseInt(countResult.rows[0].total);
+
+    // Get paginated results
+    const offset = (Number(page) - 1) * Number(limit);
+    const activitiesQuery = `
+      SELECT 
+        al.id, 
+        al.action, 
+        al."createdAt", 
+        al."ipAddress", 
+        al."userAgent", 
+        al.details, 
+        al."userId",
+        u.name as "userName"
+      FROM "auditLogs" al
+      LEFT JOIN users u ON al."userId" = u.id
+      ${whereClause}
+      ORDER BY al."createdAt" DESC
+      LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+    `;
+
+    params.push(Number(limit), offset);
+    const result = await query(activitiesQuery, params);
+
+    res.json({
+      success: true,
+      data: result.rows,
+      pagination: {
+        page: Number(page),
+        limit: Number(limit),
+        total,
+        totalPages: Math.ceil(total / Number(limit)),
+      },
+    });
+  } catch (error) {
+    logger.error('Error fetching user activities:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch user activities',
+      error: { code: 'INTERNAL_ERROR' },
+    });
+  }
 };
 
-export const getUserSessions = (req: AuthenticatedRequest, res: Response) => {
-  res.json({
-    success: true,
-    data: [],
-    pagination: { page: 1, limit: 50, total: 0, totalPages: 0 },
-    message: 'User sessions feature coming soon',
-  });
+// GET /api/users/sessions - Get user refresh token sessions
+export const getUserSessions = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { userId } = req.query;
+
+    const isAdmin = req.user?.role === 'SUPER_ADMIN' || req.user?.role === 'ADMIN' || req.user?.role === 'BACKEND_USER';
+    const targetUserId = isAdmin ? (userId as string) : req.user?.id;
+
+    // We only filter by targetUserId if provided (for Admin) or enforced (for regular user)
+    const conditions: string[] = [];
+    const params: (string | number)[] = [];
+    let paramIndex = 1;
+
+    if (targetUserId) {
+      conditions.push(`rt."userId" = $${paramIndex++}`);
+      params.push(targetUserId);
+    }
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    // Join with users to get name/username, and calculate isActive
+    const sessionsQuery = `
+      SELECT 
+        rt.id,
+        rt."userId",
+        rt."createdAt",
+        rt."expiresAt",
+        rt."ipAddress",
+        rt."userAgent",
+        (rt."expiresAt" > CURRENT_TIMESTAMP) as "isActive",
+        u.name as "userName",
+        u.username
+      FROM "refreshTokens" rt
+      LEFT JOIN users u ON rt."userId" = u.id
+      ${whereClause}
+      ORDER BY rt."createdAt" DESC
+    `;
+
+    const result = await query(sessionsQuery, params);
+
+    res.json({
+      success: true,
+      data: result.rows,
+      message: result.rows.length > 0 ? 'Sessions retrieved successfully' : 'No active sessions found',
+    });
+  } catch (error) {
+    logger.error('Error fetching user sessions:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch user sessions',
+      error: { code: 'INTERNAL_ERROR' },
+    });
+  }
 };
 
 export const getRolePermissions = (req: AuthenticatedRequest, res: Response) => {
@@ -1771,6 +1898,252 @@ export const getAvailableFieldAgents = async (req: AuthenticatedRequest, res: Re
     res.status(500).json({
       success: false,
       message: 'Failed to fetch field agents',
+      error: { code: 'INTERNAL_ERROR' },
+    });
+  }
+};
+
+// POST /api/users/export - Export users to Excel
+export const exportUsers = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const {
+      role,
+      department,
+      isActive,
+      search,
+      sortBy = 'name',
+      sortOrder = 'asc',
+      format = 'EXCEL',
+    } = { ...req.query, ...(req.method === 'POST' ? req.body : {}) };
+
+    // Build the WHERE clause (same logic as getUsers but without pagination)
+    const conditions: string[] = [];
+    const params: (string | number | boolean)[] = [];
+    let paramIndex = 1;
+
+    // Always exclude soft-deleted users
+    conditions.push(`u."deletedAt" IS NULL`);
+
+    if (role && typeof role === 'string') {
+      conditions.push(`u.role = $${paramIndex++}`);
+      params.push(role);
+    }
+
+    if (department && typeof department === 'string') {
+      conditions.push(`d.name ILIKE $${paramIndex++}`);
+      params.push(`%${department}%`);
+    }
+
+    if (isActive !== undefined) {
+      conditions.push(`u."isActive" = $${paramIndex++}`);
+      params.push(isActive === 'true' || isActive === true);
+    }
+
+    if (search && typeof search === 'string') {
+      conditions.push(`(
+        COALESCE(u.name, '') ILIKE $${paramIndex} OR
+        COALESCE(u.email, '') ILIKE $${paramIndex} OR
+        COALESCE(u.username, '') ILIKE $${paramIndex} OR
+        COALESCE(u."employeeId", '') ILIKE $${paramIndex}
+      )`);
+      params.push(`%${search}%`);
+      paramIndex++;
+    }
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    // Validate sortBy to prevent SQL injection
+    const validSortColumns = ['name', 'username', 'email', 'role', 'createdAt', 'updatedAt'];
+    const safeSortBy: string = validSortColumns.includes(sortBy as string)
+      ? (sortBy as string)
+      : 'name';
+    const safeSortOrder: 'ASC' | 'DESC' = sortOrder === 'desc' ? 'DESC' : 'ASC';
+
+    const usersQuery = `
+      SELECT
+        u.id,
+        u.name,
+        u.username,
+        u.email,
+        u.phone,
+        u.role,
+        u."employeeId",
+        u.designation,
+        u."isActive",
+        u."lastLogin",
+        u."createdAt",
+        u."updatedAt",
+        r.name as "roleName",
+        d.name as "departmentName"
+      FROM users u
+      LEFT JOIN roles r ON u."roleId" = r.id
+      LEFT JOIN departments d ON u."departmentId" = d.id
+      ${whereClause}
+      ORDER BY u.${safeSortBy} ${safeSortOrder}
+    `;
+
+    const usersResult = await query(usersQuery, params);
+    const users = usersResult.rows;
+
+    if (format === 'EXCEL') {
+      // Create Excel workbook
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Users');
+
+      // Define columns
+      worksheet.columns = [
+        { header: 'ID', key: 'id', width: 36 },
+        { header: 'Name', key: 'name', width: 25 },
+        { header: 'Username', key: 'username', width: 20 },
+        { header: 'Email', key: 'email', width: 30 },
+        { header: 'Role', key: 'roleName', width: 15 },
+        { header: 'Department', key: 'departmentName', width: 20 },
+        { header: 'Employee ID', key: 'employeeId', width: 15 },
+        { header: 'Phone', key: 'phone', width: 15 },
+        { header: 'Status', key: 'isActive', width: 10 },
+        { header: 'Created At', key: 'createdAt', width: 20 },
+      ];
+
+      // Style header row
+      worksheet.getRow(1).font = { bold: true };
+      worksheet.getRow(1).fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FF4472C4' },
+      };
+      worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+
+      // Add data rows
+      users.forEach((user: any) => {
+        worksheet.addRow({
+          ...user,
+          isActive: user.isActive ? 'Active' : 'Inactive',
+          createdAt: user.createdAt ? new Date(user.createdAt).toLocaleString() : '',
+        });
+      });
+
+      // Generate buffer
+      const buffer = await workbook.xlsx.writeBuffer();
+
+      // Set response headers
+      res.setHeader(
+        'Content-Type',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      );
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename=Users_Export_${new Date().toISOString().split('T')[0]}.xlsx`
+      );
+      res.send(buffer);
+    } else {
+      // Default to CSV
+      const headers = ['ID', 'Name', 'Username', 'Email', 'Role', 'Department', 'Employee ID', 'Phone', 'Status', 'Created At'];
+      const csvRows = [headers.join(',')];
+
+      users.forEach((user: any) => {
+        const row = [
+          user.id,
+          `"${user.name || ''}"`,
+          user.username,
+          user.email,
+          user.roleName || user.role,
+          `"${user.departmentName || ''}"`,
+          user.employeeId || '',
+          user.phone || '',
+          user.isActive ? 'Active' : 'Inactive',
+          user.createdAt ? new Date(user.createdAt).toISOString() : '',
+        ];
+        csvRows.push(row.join(','));
+      });
+
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename=Users_Export_${new Date().toISOString().split('T')[0]}.csv`
+      );
+      res.send(csvRows.join('\n'));
+    }
+
+    logger.info('Users exported successfully', {
+      userId: req.user?.id,
+      recordCount: users.length,
+      format,
+    });
+  } catch (error) {
+    logger.error('Error exporting users:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to export users',
+      error: { code: 'INTERNAL_ERROR' },
+    });
+  }
+};
+
+/**
+ * GET /api/users/import-template
+ * Download an Excel template for bulk user imports
+ */
+export const downloadUserTemplate = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Import Template');
+
+    // Define template columns
+    worksheet.columns = [
+      { header: 'Name*', key: 'name', width: 25 },
+      { header: 'Username*', key: 'username', width: 20 },
+      { header: 'Email*', key: 'email', width: 30 },
+      { header: 'Role* (SUPER_ADMIN, ADMIN, BACKEND_USER, FIELD_AGENT, MANAGER)', key: 'role', width: 40 },
+      { header: 'Employee ID*', key: 'employeeId', width: 15 },
+      { header: 'Phone', key: 'phone', width: 15 },
+      { header: 'Department', key: 'department', width: 20 },
+      { header: 'Designation', key: 'designation', width: 20 },
+      { header: 'Password (Required if creating)', key: 'password', width: 30 },
+    ];
+
+    // Style header row
+    worksheet.getRow(1).font = { bold: true };
+    worksheet.getRow(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF4472C4' },
+    };
+    worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+
+    // Add sample row
+    worksheet.addRow({
+      name: 'John Doe',
+      username: 'johndoe',
+      email: 'john@example.com',
+      role: 'BACKEND_USER',
+      employeeId: 'EMP001',
+      phone: '+919876543210',
+      department: 'Operations',
+      designation: 'Executive',
+    });
+
+    // Generate buffer
+    const buffer = await workbook.xlsx.writeBuffer();
+
+    // Set response headers
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader(
+      'Content-Disposition',
+      'attachment; filename=User_Import_Template.xlsx'
+    );
+    res.send(buffer);
+
+    logger.info('User import template downloaded successfully', {
+      userId: req.user?.id,
+    });
+  } catch (error) {
+    logger.error('Error downloading user template:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to download user template',
       error: { code: 'INTERNAL_ERROR' },
     });
   }

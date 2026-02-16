@@ -8,7 +8,7 @@ const createRateLimiter = (
   windowMs: number,
   max: number,
   message: string,
-  skipForAllUsers = false
+  keyType: 'IP' | 'USER' | 'AUTO' = 'AUTO'
 ) => {
   return rateLimit({
     windowMs,
@@ -22,73 +22,79 @@ const createRateLimiter = (
     } as ApiResponse,
     standardHeaders: true,
     legacyHeaders: false,
-    skip: skipForAllUsers
-      ? (req: AuthenticatedRequest) => {
-          try {
-            // Check if user is authenticated
-            const authHeader = req.headers.authorization;
-            if (!authHeader?.startsWith('Bearer ')) {
-              return false; // Apply rate limiting for unauthenticated requests
-            }
-
-            const token = authHeader.substring(7);
-
-            // Handle dev token for SUPER_ADMIN
-            if (token === 'dev-token') {
-              return true; // Skip rate limiting for dev token
-            }
-
-            const decoded = jwt.verify(token, config.jwtSecret) as jwt.JwtPayload;
-
-            // Skip rate limiting for ALL authenticated users (SUPER_ADMIN, ADMIN, BACKEND_USER, FIELD_AGENT)
-            // This prevents rate limiting issues for field agents processing 100+ cases per day
-            return (
-              decoded.role &&
-              ['SUPER_ADMIN', 'ADMIN', 'BACKEND_USER', 'FIELD_AGENT'].includes(decoded.role)
-            );
-          } catch (_error) {
-            return false; // Apply rate limiting if token verification fails
-          }
-        }
-      : undefined,
+    keyGenerator: (req: AuthenticatedRequest) => {
+      if (keyType === 'USER' && req.user?.id) {
+        return req.user.id;
+      }
+      if (keyType === 'AUTO') {
+        return req.user?.id || req.ip || 'unknown';
+      }
+      return req.ip || 'unknown';
+    },
+    // We removed the blanket 'skip' for authenticated users to ensure all activity is capped
+    skip: (req: AuthenticatedRequest) => {
+      // Still skip for dev-token to avoid blocking local development tests
+      const authHeader = req.headers.authorization;
+      return authHeader === 'Bearer dev-token';
+    },
   });
 };
 
-// General API rate limiter - skip for all authenticated users
-export const generalRateLimit = createRateLimiter(
-  config.rateLimitWindowMs,
-  config.rateLimitMaxRequests,
-  'Too many requests from this IP, please try again later',
-  true // Skip rate limiting for all authenticated users
-);
-
-// Auth endpoints - stricter limits (only for unauthenticated requests)
+/**
+ * Tier 1: Auth Endpoints - Very Strict
+ * Prevents brute force on login/refresh
+ */
 export const authRateLimit = createRateLimiter(
   15 * 60 * 1000, // 15 minutes
-  10, // Increased from 5 to 10 attempts per 15 minutes
-  'Too many authentication attempts, please try again later'
+  10, // 10 attempts
+  'Too many authentication attempts, please try again later',
+  'IP' // Always IP-based for auth since user ID isn't known yet
 );
 
-// File upload - generous limits, skip for all authenticated users
+/**
+ * Tier 2: General API Usage
+ * Provides a generous ceiling for normal user activity
+ */
+export const generalRateLimit = createRateLimiter(
+  60 * 1000, // 1 minute
+  200, // 200 requests per minute
+  'Too many requests, please slow down',
+  'AUTO' // Uses userId if authenticated, IP otherwise
+);
+
+/**
+ * Tier 3: Sensitive/Heavy Operations
+ * Stricter limits for resource-intensive tasks
+ */
+
+// File Uploads
 export const uploadRateLimit = createRateLimiter(
   60 * 1000, // 1 minute
-  200, // Increased from 50 to 200 uploads per minute for field agents
-  'Too many file uploads, please try again later',
-  true // Skip rate limiting for all authenticated users
+  30, // 30 uploads per minute
+  'Too many file uploads, please wait before uploading more',
+  'USER'
 );
 
-// Case operations - generous limits, skip for all authenticated users
-export const caseRateLimit = createRateLimiter(
+// Reports & Exports (Heavy DB/CPU)
+export const exportRateLimit = createRateLimiter(
+  5 * 60 * 1000, // 5 minutes
+  5, // 5 exports per 5 minutes
+  'Too many report/export requests, please wait for previous ones to complete',
+  'USER'
+);
+
+// High-volume List operations
+export const listRateLimit = createRateLimiter(
   60 * 1000, // 1 minute
-  500, // Increased from 100 to 500 requests per minute for high-volume field operations
-  'Too many case operations, please try again later',
-  true // Skip rate limiting for all authenticated users
+  60, // 1 request per second on average for lists
+  'Too many list operations, please refine your filters',
+  'USER'
 );
 
-// Geolocation - generous limits, skip for all authenticated users
+// Geolocation tracking (Mobile)
 export const geoRateLimit = createRateLimiter(
   60 * 1000, // 1 minute
-  100, // Increased from 20 to 100 requests per minute
-  'Too many geolocation requests, please try again later',
-  true // Skip rate limiting for all authenticated users
+  120, // 2 updates per second allowed
+  'Too many location updates',
+  'USER'
 );

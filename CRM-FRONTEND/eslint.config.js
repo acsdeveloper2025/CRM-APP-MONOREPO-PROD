@@ -101,6 +101,30 @@ export default tseslint.config(
       'no-restricted-imports': ['error', {
         patterns: ['../**/index'], // Prevent importing from index files
       }],
+      // Enforce API Client Usage
+      'no-restricted-globals': ['warn', {
+        name: 'fetch',
+        message: 'Direct fetch usage is deprecated. Please use apiService from @/services/api.'
+      }],
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "CallExpression[callee.object.name='axios'][callee.property.name='create']",
+          message: "Direct axios.create() is forbidden. Use apiService from @/services/api."
+        },
+        {
+          selector: "NewExpression[callee.name='Axios']",
+          message: "Direct new Axios() is forbidden. Use apiService from @/services/api."
+        }
+      ],
     },
+  },
+  // Exempt api.ts from restriction rules
+  {
+    files: ['src/services/api.ts'],
+    rules: {
+      'no-restricted-globals': 'off',
+      'no-restricted-syntax': 'off',
+    }
   }
 )

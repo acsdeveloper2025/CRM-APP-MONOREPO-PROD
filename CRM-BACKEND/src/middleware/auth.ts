@@ -24,28 +24,6 @@ const verifyTokenAndSetUser = (
   res: Response,
   next: NextFunction
 ): void => {
-  // Development bypass
-  if (config.nodeEnv === 'development' && token === 'dev-token') {
-    req.user = {
-      id: '02dbbee4-37ed-48e1-b899-24bb21a87b5d', // Use actual admin user UUID
-      username: 'admin',
-      role: Role.ADMIN,
-    };
-    next();
-    return;
-  }
-
-  // Development field agent bypass
-  if (config.nodeEnv === 'development' && token === 'field-agent-token') {
-    req.user = {
-      id: '66ed9c1b-e02e-4769-b7d5-903bcc0a3ba9', // nikhil.parab's ID from debug script
-      username: 'nikhil.parab',
-      role: Role.FIELD_AGENT,
-    };
-    next();
-    return;
-  }
-
   try {
     const decoded = jwt.verify(token, config.jwtSecret) as JwtPayload;
     req.user = {
@@ -64,7 +42,7 @@ const verifyTokenAndSetUser = (
         code: 'INVALID_TOKEN',
       },
     };
-    res.status(403).json(response);
+    res.status(401).json(response);
   }
 };
 
@@ -148,7 +126,7 @@ export const requireRole = (allowedRoles: Role[]) => {
           },
         },
       };
-      res.status(403).json(response);
+      res.status(401).json(response);
       return;
     }
 
@@ -270,7 +248,7 @@ export const requirePermission = (resource: string, action: string) => {
           },
         },
       };
-      res.status(403).json(response);
+      res.status(401).json(response);
       return;
     }
 

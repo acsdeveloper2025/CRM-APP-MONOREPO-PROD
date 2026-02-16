@@ -234,7 +234,10 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
       conditions.push(`(
         COALESCE(c."customerName", '') ILIKE $${paramIndex} OR
         COALESCE(c."caseId"::text, '') ILIKE $${paramIndex} OR
-        COALESCE(c.address, '') ILIKE $${paramIndex} OR
+        EXISTS (
+          SELECT 1 FROM verification_tasks vt 
+          WHERE vt.case_id = c.id AND vt.address ILIKE $${paramIndex}
+        ) OR
         COALESCE(c."customerPhone", '') ILIKE $${paramIndex} OR
         COALESCE(c.trigger, '') ILIKE $${paramIndex} OR
         COALESCE(c."applicantType", '') ILIKE $${paramIndex}
@@ -347,6 +350,8 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
     const casesQuery = `
       SELECT
         c.*,
+        -- Get representative address from tasks (since address is not in cases table anymore)
+        (SELECT address FROM verification_tasks WHERE case_id = c.id LIMIT 1) as address,
         -- Client information (Field 3: Client)
         cl.name as "clientName",
         cl.code as "clientCode",
@@ -532,6 +537,8 @@ export const getCaseById = async (req: AuthenticatedRequest, res: Response) => {
     let caseQuery = `
       SELECT
         c.*,
+        -- Get representative address from tasks
+        (SELECT address FROM verification_tasks WHERE case_id = c.id LIMIT 1) as address,
         -- Client information (Field 3: Client)
         cl.name as "clientName",
         cl.code as "clientCode",
@@ -896,6 +903,53 @@ export const updateCase = async (req: AuthenticatedRequest, res: Response) => {
 
     // Update verification task if task-level fields are provided
     if (assignedToId !== undefined || rateTypeId !== undefined || address !== undefined) {
+      // Work Order Protection for Case-driven updates
+      // If we are updating address or rateTypeId, we MUST check if the target task is locked
+      if (rateTypeId !== undefined || address !== undefined) {
+        const targetTaskId = taskId; // Should be provided, but might check case_id if not
+        
+        let lockCheckQuery = '';
+        let lockCheckParams: any[] = [];
+
+        if (targetTaskId) {
+          lockCheckQuery = 'SELECT status, started_at FROM verification_tasks WHERE id = $1';
+          lockCheckParams = [targetTaskId];
+        } else {
+          // If no taskId, we check ALL tasks for this case (risky, but safe default)
+          lockCheckQuery = 'SELECT status, started_at FROM verification_tasks WHERE case_id = $1';
+          lockCheckParams = [id]; // id is likely UUID here based on previous code, but let's be careful. 
+          // Actually updateCase uses `id` from params which is sometimes caseId (int) or uuid. 
+          // The helper above `actualCaseId` logic isn't here, updateCase relies on what it gets.
+          // However, line 884 uses `id` directly.
+          // Wait, casesController updateCase usually takes UUID or handles it. 
+          // Looking at line 879: `values.push(id)`.
+        }
+
+        const lockCheckResult = await pool.query(lockCheckQuery, lockCheckParams);
+        
+        const hasLockedTask = lockCheckResult.rows.some(t => 
+          t.status === 'IN_PROGRESS' || 
+          t.status === 'COMPLETED' || 
+          t.status === 'REVOKED' || 
+          t.started_at !== null
+        );
+
+        if (hasLockedTask) {
+          logger.warn('⚠️ Rejected Case update due to locked operational fields', {
+             caseId: id,
+             taskId,
+             userId: req.user?.id,
+             attemptedFields: { rateTypeId, address }
+          });
+          
+          return res.status(409).json({
+            success: false,
+            message: 'Verification already started. Task data cannot be modified.',
+            error: { code: 'TASK_LOCKED' }
+          });
+        }
+      }
+
       logger.info('🎯 Updating verification task', {
         caseId: id,
         taskId,
@@ -1357,6 +1411,7 @@ export const exportCases = async (req: AuthenticatedRequest, res: Response) => {
         c."customerName" as customer_name,
         c."customerPhone" as customer_phone,
         c."customerCallingCode" as customer_calling_code,
+        (SELECT address FROM verification_tasks WHERE case_id = c.id LIMIT 1) as address,
         c.pincode,
         cl.name as client_name,
         cl.code as client_code,

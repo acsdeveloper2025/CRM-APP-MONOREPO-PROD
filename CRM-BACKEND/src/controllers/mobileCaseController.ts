@@ -13,6 +13,7 @@ import { config } from '../config';
 import { query } from '@/config/database';
 import { queueCaseRevocationNotification } from '../queues/notificationQueue';
 import { TaskLookupService } from '../services/taskLookupService';
+import { CaseStatusSyncService } from '../services/caseStatusSyncService';
 import { logger } from '../utils/logger';
 
 // Type guards and interfaces for WhereClause usage
@@ -702,18 +703,8 @@ export class MobileCaseController {
         userAgent: req.get('User-Agent'),
       });
 
-      // Auto-calculate commission if case is completed
-      if (status === 'COMPLETED') {
-        try {
-          const { autoCalculateCommissionForCase } = await import(
-            '../controllers/commissionManagementController'
-          );
-          await autoCalculateCommissionForCase(actualCaseId);
-        } catch (error) {
-          console.error('Error auto-calculating commission:', error);
-          // Don't fail the case update if commission calculation fails
-        }
-      }
+      // Commission is now handled at the verification task level via VerificationTasksController.
+      // Case-level commission trigger is legacy and has been removed to avoid duplicate payouts.
 
       // Emit WebSocket events to notify frontend about case status change
       try {
@@ -741,6 +732,9 @@ export class MobileCaseController {
         console.error('Error sending WebSocket notifications:', error);
         // Don't fail the case update if WebSocket notification fails
       }
+
+      // Sync case status
+      await CaseStatusSyncService.recalculateCaseStatus(actualCaseId);
 
       res.json({
         success: true,
@@ -1455,6 +1449,9 @@ export class MobileCaseController {
 
       logger.info(`✅ Task ${updatedTask.task_number} status updated to ${status}`);
 
+      // Sync case status
+      await CaseStatusSyncService.recalculateCaseStatus(updatedTask.case_id);
+
       res.json({
         success: true,
         message: 'Task status updated successfully',
@@ -1488,7 +1485,7 @@ export class MobileCaseController {
         UPDATE verification_tasks
         SET
           status = 'IN_PROGRESS',
-          started_at = COALESCE(started_at, NOW()),
+          started_at = NOW(),
           updated_at = NOW()
         WHERE id = $1
         RETURNING *
@@ -1516,6 +1513,9 @@ export class MobileCaseController {
       });
 
       logger.info(`✅ Task ${updatedTask.task_number} started by user ${userId}`);
+
+      // Sync case status
+      await CaseStatusSyncService.recalculateCaseStatus(updatedTask.case_id);
 
       res.json({
         success: true,
@@ -1643,6 +1643,9 @@ export class MobileCaseController {
       });
 
       logger.info(`✅ Task ${completedTask.task_number} completed successfully by user ${userId}`);
+
+      // Sync case status
+      await CaseStatusSyncService.recalculateCaseStatus(task.case_id);
 
       res.json({
         success: true,
@@ -1806,6 +1809,9 @@ export class MobileCaseController {
       });
 
       logger.info(`✅ Task ${taskData.task_number} revoked successfully by ${fieldUserName}`);
+
+      // Sync case status
+      await CaseStatusSyncService.recalculateCaseStatus(taskData.case_id);
 
       res.json({
         success: true,

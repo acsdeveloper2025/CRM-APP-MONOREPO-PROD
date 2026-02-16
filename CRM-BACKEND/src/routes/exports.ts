@@ -7,6 +7,7 @@ import {
   getExportHistory,
   testEmailConfig,
 } from '../controllers/exportController';
+import { exportRateLimit } from '../middleware/rateLimiter';
 import {
   createScheduledReport,
   getScheduledReports,
@@ -56,6 +57,7 @@ router.use(authenticateToken);
  */
 router.post(
   '/generate',
+  exportRateLimit,
   requireRole([Role.ADMIN, Role.BACKEND_USER, Role.MANAGER]),
   generateReport
 );
@@ -98,6 +100,7 @@ router.post('/test-email', requireRole([Role.ADMIN, Role.BACKEND_USER]), testEma
  */
 router.post(
   '/quick/form-submissions',
+  exportRateLimit,
   requireRole([Role.ADMIN, Role.BACKEND_USER, Role.MANAGER]),
   (req: AuthenticatedRequest, res, next) => {
     req.body = {
@@ -119,6 +122,7 @@ router.post(
  */
 router.post(
   '/quick/agent-performance',
+  exportRateLimit,
   requireRole([Role.ADMIN, Role.BACKEND_USER, Role.MANAGER]),
   (req: AuthenticatedRequest, res, next) => {
     req.body = {
@@ -141,6 +145,7 @@ router.post(
  */
 router.post(
   '/quick/case-analytics',
+  exportRateLimit,
   requireRole([Role.ADMIN, Role.BACKEND_USER, Role.MANAGER]),
   (req: AuthenticatedRequest, res, next) => {
     req.body = {
