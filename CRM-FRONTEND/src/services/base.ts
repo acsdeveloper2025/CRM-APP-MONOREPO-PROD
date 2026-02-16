@@ -5,104 +5,21 @@
  * to eliminate code duplication across service files.
  */
 
-import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
+import { AxiosRequestConfig, isAxiosError } from 'axios';
 import { ApiResponse, PaginatedResponse, ErrorResponse } from '@/types';
-import { ERROR_CODES, STORAGE_KEYS } from '@/types/constants';
+import { ERROR_CODES } from '@/types/constants';
+import { apiService as coreApiService } from './api';
 
 // Environment configuration
 const getApiBaseUrl = (): string => {
-  // Smart URL detection logic (centralized)
-  if (typeof window !== 'undefined') {
-    const hostname = window.location.hostname;
-    
-    // Production environment
-    if (hostname === 'crm.allcheckservices.com') {
-      return 'https://crm.allcheckservices.com/api';
-    }
-    
-    // Local development
-    if (hostname === 'localhost' || hostname === '127.0.0.1') {
-      return import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
-    }
-    
-    // Default fallback
-    return `${window.location.protocol}//${hostname}/api`;
-  }
-  
-  // Server-side fallback
-  return import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
-};
-
-// Create axios instance with default configuration
-const createApiInstance = (): AxiosInstance => {
-  const instance = axios.create({
-    baseURL: getApiBaseUrl(),
-    timeout: parseInt(import.meta.env.VITE_API_TIMEOUT || '10000'),
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  });
-
-  // Request interceptor for authentication
-  instance.interceptors.request.use(
-    (config) => {
-      const token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-      return config;
-    },
-    (error) => Promise.reject(error)
-  );
-
-  // Response interceptor for error handling
-  instance.interceptors.response.use(
-    (response) => response,
-    async (error) => {
-      const originalRequest = error.config;
-
-      // Handle 401 errors (token expired)
-      if (error.response?.status === 401 && !originalRequest._retry) {
-        originalRequest._retry = true;
-        
-        try {
-          const refreshToken = localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
-          if (refreshToken) {
-            const response = await axios.post(`${getApiBaseUrl()}/auth/refresh`, {
-              refreshToken,
-            });
-            
-            const { accessToken } = response.data.data;
-            localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, accessToken);
-            
-            // Retry original request with new token
-            originalRequest.headers.Authorization = `Bearer ${accessToken}`;
-            return instance(originalRequest);
-          }
-        } catch (refreshError) {
-          // Refresh failed, redirect to login
-          localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
-          localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
-          localStorage.removeItem(STORAGE_KEYS.USER_DATA);
-          window.location.href = '/login';
-          return Promise.reject(refreshError);
-        }
-      }
-
-      return Promise.reject(error);
-    }
-  );
-
-  return instance;
+  return coreApiService.getBaseUrl();
 };
 
 // Base API service class
 export class BaseApiService {
-  protected api: AxiosInstance;
   protected baseEndpoint: string;
 
   constructor(baseEndpoint: string) {
-    this.api = createApiInstance();
     this.baseEndpoint = baseEndpoint;
   }
 
@@ -113,11 +30,11 @@ export class BaseApiService {
     config?: AxiosRequestConfig
   ): Promise<ApiResponse<T>> {
     try {
-      const response: AxiosResponse<ApiResponse<T>> = await this.api.get(
+      return await coreApiService.get<T>(
         `${this.baseEndpoint}${endpoint}`,
-        { params, ...config }
+        params,
+        config
       );
-      return response.data;
     } catch (error) {
       return this.handleError(error);
     }
@@ -130,12 +47,11 @@ export class BaseApiService {
     config?: AxiosRequestConfig
   ): Promise<ApiResponse<T>> {
     try {
-      const response: AxiosResponse<ApiResponse<T>> = await this.api.post(
+      return await coreApiService.post<T>(
         `${this.baseEndpoint}${endpoint}`,
         data,
         config
       );
-      return response.data;
     } catch (error) {
       return this.handleError(error);
     }
@@ -148,12 +64,11 @@ export class BaseApiService {
     config?: AxiosRequestConfig
   ): Promise<ApiResponse<T>> {
     try {
-      const response: AxiosResponse<ApiResponse<T>> = await this.api.put(
+      return await coreApiService.put<T>(
         `${this.baseEndpoint}${endpoint}`,
         data,
         config
       );
-      return response.data;
     } catch (error) {
       return this.handleError(error);
     }
@@ -166,12 +81,11 @@ export class BaseApiService {
     config?: AxiosRequestConfig
   ): Promise<ApiResponse<T>> {
     try {
-      const response: AxiosResponse<ApiResponse<T>> = await this.api.patch(
+      return await coreApiService.patch<T>(
         `${this.baseEndpoint}${endpoint}`,
         data,
         config
       );
-      return response.data;
     } catch (error) {
       return this.handleError(error);
     }
@@ -183,11 +97,10 @@ export class BaseApiService {
     config?: AxiosRequestConfig
   ): Promise<ApiResponse<T>> {
     try {
-      const response: AxiosResponse<ApiResponse<T>> = await this.api.delete(
+      return await coreApiService.delete<T>(
         `${this.baseEndpoint}${endpoint}`,
         config
       );
-      return response.data;
     } catch (error) {
       return this.handleError(error);
     }
@@ -200,11 +113,16 @@ export class BaseApiService {
     config?: AxiosRequestConfig
   ): Promise<PaginatedResponse<T>> {
     try {
-      const response: AxiosResponse<PaginatedResponse<T>> = await this.api.get(
+      const response = await coreApiService.get<T>(
         `${this.baseEndpoint}${endpoint}`,
-        { params, ...config }
+        params,
+        config
       );
-      return response.data;
+      // Assuming the response body IS the PaginatedResponse
+      // Note: If coreApiService.get returns ApiResponse<T>, we might need casting.
+      // But typically for Paginated, the 'T' passed to get should match the expected structure.
+      // If PaginatedResponse extends ApiResponse, it's fine.
+      return response as unknown as PaginatedResponse<T>;
     } catch (error) {
       return this.handleError(error) as PaginatedResponse<T>;
     }
@@ -227,7 +145,7 @@ export class BaseApiService {
         });
       }
 
-      const response: AxiosResponse<ApiResponse<T>> = await this.api.post(
+      return await coreApiService.post<T>(
         `${this.baseEndpoint}${endpoint}`,
         formData,
         {
@@ -237,7 +155,6 @@ export class BaseApiService {
           onUploadProgress,
         }
       );
-      return response.data;
     } catch (error) {
       return this.handleError(error);
     }
@@ -264,11 +181,7 @@ export class BaseApiService {
     filters?: Record<string, unknown>
   ): Promise<Blob> {
     try {
-      const response = await this.api.get(`${this.baseEndpoint}${endpoint}`, {
-        params: { format, ...filters },
-        responseType: 'blob',
-      });
-      return response.data;
+      return await coreApiService.getBlob(`${this.baseEndpoint}${endpoint}`, { format, ...filters });
     } catch (error) {
       throw this.handleError(error);
     }
@@ -278,7 +191,7 @@ export class BaseApiService {
   private handleError(error: unknown): ErrorResponse {
     console.error('API Error:', error);
 
-    if (axios.isAxiosError(error)) {
+    if (isAxiosError(error)) {
       if (error.response) {
         // Server responded with error status
         const { status, data } = error.response;
@@ -348,7 +261,7 @@ export class BaseApiService {
   }
 }
 
-// Export singleton instance for direct use
+// Export singleton instance for direct use (Wrapper around apiService)
 export const apiService = new BaseApiService('');
 
 // Export utility functions

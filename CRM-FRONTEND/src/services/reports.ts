@@ -17,39 +17,7 @@ import type { ApiResponse, PaginationQuery } from '@/types/api';
 import type { MISFilters, MISDataResponse, ExportFormat } from '@/types/mis';
 import type { ScheduledReport, ScheduledReportData } from '@/types/dto/report.dto';
 
-// Smart API URL selection
-const getApiBaseUrl = () => {
-  const hostname = window.location.hostname;
-    const staticIP = import.meta.env.VITE_STATIC_IP || '103.14.234.36';
-  const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
-  const isLocalNetwork = hostname.startsWith('10.') || hostname.startsWith('192.168.') || hostname.startsWith('172.');
-  const isStaticIP = hostname === staticIP;
-  const isDomain = hostname === 'crm.allcheckservices.com' || hostname === 'www.crm.allcheckservices.com';
 
-  // Priority order for API URL selection:
-  // 1. Check if we're on localhost (development)
-  if (isLocalhost) {
-    return 'http://localhost:3000/api';
-  }
-
-  // 2. Check if we're on the local network IP (hairpin NAT workaround)
-  if (isLocalNetwork) {
-    return `http://${staticIP}:3000/api`;
-  }
-
-  // 3. Check if we're on the domain name (production access)
-  if (isDomain) {
-    return 'https://crm.allcheckservices.com/api';
-  }
-
-  // 4. Check if we're on the static IP (external access)
-  if (isStaticIP) {
-    return `http://${staticIP}:3000/api`;
-  }
-
-  // 5. Fallback to environment variable or localhost
-  return import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
-};
 
 export interface BankBillQuery extends PaginationQuery {
   clientId?: string;
@@ -89,14 +57,7 @@ export class ReportsService {
   }
 
   async downloadBankBillPDF(id: string): Promise<Blob> {
-    const apiBaseUrl = getApiBaseUrl();
-    const response = await fetch(`${apiBaseUrl}/bank-bills/${id}/download`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`,
-      },
-    });
-    return response.blob();
+    return apiService.getBlob(`/bank-bills/${id}/download`);
   }
 
   async markBankBillPaid(id: string, paidAmount: number): Promise<ApiResponse<BankBill>> {
@@ -121,14 +82,7 @@ export class ReportsService {
   }
 
   async downloadMISReport(id: string, format: 'PDF' | 'EXCEL' | 'CSV' = 'PDF'): Promise<Blob> {
-    const apiBaseUrl = getApiBaseUrl();
-    const response = await fetch(`${apiBaseUrl}/mis-reports/${id}/download?format=${format}`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`,
-      },
-    });
-    return response.blob();
+    return apiService.getBlob(`/mis-reports/${id}/download`, { format });
   }
 
   // Specific Report Types
@@ -167,16 +121,10 @@ export class ReportsService {
   }
 
   async bulkDownloadReports(reportIds: string[], format: 'PDF' | 'EXCEL' | 'CSV' = 'PDF'): Promise<Blob> {
-    const apiBaseUrl = getApiBaseUrl();
-    const response = await fetch(`${apiBaseUrl}/mis-reports/bulk-download?format=${format}`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ reportIds }),
+    const response = await apiService.postRaw<Blob>(`/mis-reports/bulk-download?format=${format}`, { reportIds }, {
+        responseType: 'blob'
     });
-    return response.blob();
+    return response.data;
   }
 
   // Dashboard Data for Reports
@@ -190,29 +138,17 @@ export class ReportsService {
 
   // Export Functions
   async exportBankBills(query: BankBillQuery = {}, format: 'PDF' | 'EXCEL' | 'CSV' = 'EXCEL'): Promise<Blob> {
-    const apiBaseUrl = getApiBaseUrl();
-    const response = await fetch(`${apiBaseUrl}/bank-bills/export?format=${format}`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(query),
+    const response = await apiService.postRaw<Blob>(`/bank-bills/export?format=${format}`, query, {
+        responseType: 'blob'
     });
-    return response.blob();
+    return response.data;
   }
 
   async exportMISReports(query: ReportQuery = {}, format: 'PDF' | 'EXCEL' | 'CSV' = 'EXCEL'): Promise<Blob> {
-    const apiBaseUrl = getApiBaseUrl();
-    const response = await fetch(`${apiBaseUrl}/mis-reports/export?format=${format}`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(query),
+    const response = await apiService.postRaw<Blob>(`/mis-reports/export?format=${format}`, query, {
+        responseType: 'blob'
     });
-    return response.blob();
+    return response.data;
   }
 
   // Scheduled Reports
@@ -264,32 +200,20 @@ export class ReportsService {
    * Export MIS Dashboard data to Excel or CSV
    */
   async exportMISDashboardData(filters: MISFilters = {}, format: ExportFormat = 'EXCEL'): Promise<Blob> {
-    const params = new URLSearchParams();
+    const params: Record<string, string> = {};
 
-    if (filters.dateFrom) {params.append('dateFrom', filters.dateFrom);}
-    if (filters.dateTo) {params.append('dateTo', filters.dateTo);}
-    if (filters.clientId) {params.append('clientId', filters.clientId.toString());}
-    if (filters.productId) {params.append('productId', filters.productId.toString());}
-    if (filters.verificationTypeId) {params.append('verificationTypeId', filters.verificationTypeId.toString());}
-    if (filters.caseStatus) {params.append('caseStatus', filters.caseStatus);}
-    if (filters.fieldAgentId) {params.append('fieldAgentId', filters.fieldAgentId);}
-    if (filters.backendUserId) {params.append('backendUserId', filters.backendUserId);}
-    if (filters.priority) {params.append('priority', filters.priority);}
-    params.append('format', format);
+    if (filters.dateFrom) {params.dateFrom = filters.dateFrom;}
+    if (filters.dateTo) {params.dateTo = filters.dateTo;}
+    if (filters.clientId) {params.clientId = filters.clientId.toString();}
+    if (filters.productId) {params.productId = filters.productId.toString();}
+    if (filters.verificationTypeId) {params.verificationTypeId = filters.verificationTypeId.toString();}
+    if (filters.caseStatus) {params.caseStatus = filters.caseStatus;}
+    if (filters.fieldAgentId) {params.fieldAgentId = filters.fieldAgentId;}
+    if (filters.backendUserId) {params.backendUserId = filters.backendUserId;}
+    if (filters.priority) {params.priority = filters.priority;}
+    params.format = format;
 
-    const apiBaseUrl = getApiBaseUrl();
-    const response = await fetch(`${apiBaseUrl}/reports/mis-dashboard-data/export?${params.toString()}`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`,
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to export MIS data');
-    }
-
-    return response.blob();
+    return apiService.getBlob('/reports/mis-dashboard-data/export', params);
   }
 }
 

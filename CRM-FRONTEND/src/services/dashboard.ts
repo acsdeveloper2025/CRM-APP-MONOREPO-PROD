@@ -12,40 +12,6 @@ import type {
   OverdueTasksResponse
 } from '@/types/dto/dashboard.dto';
 
-// Smart API URL selection
-const getApiBaseUrl = () => {
-  const hostname = window.location.hostname;
-    const staticIP = import.meta.env.VITE_STATIC_IP || '103.14.234.36';
-  const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
-  const isLocalNetwork = hostname.startsWith('10.') || hostname.startsWith('192.168.') || hostname.startsWith('172.');
-  const isStaticIP = hostname === staticIP;
-  const isDomain = hostname === 'crm.allcheckservices.com' || hostname === 'www.crm.allcheckservices.com';
-
-  // Priority order for API URL selection:
-  // 1. Check if we're on localhost (development)
-  if (isLocalhost) {
-    return 'http://localhost:3000/api';
-  }
-
-  // 2. Check if we're on the local network IP (hairpin NAT workaround)
-  if (isLocalNetwork) {
-    return `http://${staticIP}:3000/api`;
-  }
-
-  // 3. Check if we're on the domain name (production access)
-  if (isDomain) {
-    return 'https://crm.allcheckservices.com/api';
-  }
-
-  // 4. Check if we're on the static IP (external access)
-  if (isStaticIP) {
-    return `http://${staticIP}:3000/api`;
-  }
-
-  // 5. Fallback to environment variable or localhost
-  return import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
-};
-
 export interface DashboardQuery {
   period?: 'week' | 'month' | 'quarter' | 'year';
   clientId?: string;
@@ -104,6 +70,9 @@ export class DashboardService {
     limit?: number;
     sortBy?: string;
     sortOrder?: 'asc' | 'desc';
+    search?: string;
+    priority?: string;
+    status?: string;
   } = {}): Promise<ApiResponse<OverdueTasksResponse>> {
     return apiService.get('/dashboard/overdue-tasks', params);
   }
@@ -114,16 +83,10 @@ export class DashboardService {
 
   // Export dashboard data
   async exportDashboardReport(query: DashboardQuery = {}): Promise<Blob> {
-    const apiBaseUrl = getApiBaseUrl();
-    const response = await fetch(`${apiBaseUrl}/dashboard/export`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(query),
+    const response = await apiService.postRaw<Blob>('/dashboard/export', query, {
+      responseType: 'blob',
     });
-    return response.blob();
+    return response.data;
   }
 }
 

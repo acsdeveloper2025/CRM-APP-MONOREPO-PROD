@@ -8,6 +8,7 @@ import { TaskCaseCreationForm, type CaseLevelFormData, type TaskFormData } from 
 import { DeduplicationDialog } from './DeduplicationDialog';
 import { deduplicationService, type DeduplicationResult } from '@/services/deduplication';
 import { casesService, type CreateCaseData } from '@/services/cases';
+import { attachmentsService } from '@/services/attachments';
 import { usePincodes } from '@/hooks/useLocations';
 import { useVerificationTypes } from '@/hooks/useClients';
 import { toast } from 'sonner';
@@ -52,40 +53,6 @@ const mapVerificationType = (verificationType: string): string => {
     'OTHER': 'OTHER'
   };
   return typeMap[verificationType] || 'OTHER';
-};
-
-// Smart API URL selection
-const getApiBaseUrl = () => {
-  const hostname = window.location.hostname;
-  const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
-  const isLocalNetwork = hostname.startsWith('10.') || hostname.startsWith('192.168.') || hostname.startsWith('172.');
-  const staticIP = import.meta.env.VITE_STATIC_IP || '103.14.234.36';
-  const isStaticIP = hostname === staticIP;
-  const isDomain = hostname === 'crm.allcheckservices.com' || hostname === 'www.crm.allcheckservices.com';
-
-  // Priority order for API URL selection:
-  // 1. Check if we're on localhost (development)
-  if (isLocalhost) {
-    return 'http://localhost:3000/api';
-  }
-
-  // 2. Check if we're on the local network IP (hairpin NAT workaround)
-  if (isLocalNetwork) {
-    return `http://${staticIP}:3000/api`;
-  }
-
-  // 3. Check if we're on the domain name (production access)
-  if (isDomain) {
-    return 'https://crm.allcheckservices.com/api';
-  }
-
-  // 4. Check if we're on the static IP (external access)
-  if (isStaticIP) {
-    return `http://${staticIP}:3000/api`;
-  }
-
-  // 5. Fallback to environment variable or localhost
-  return import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
 };
 
 export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
@@ -336,23 +303,13 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
               // Current update response might not return task IDs easily, so we upload to case
               // Ideally we should get the task ID for the updated task
               
-              const formData = new FormData();
-              files.forEach(file => {
-                formData.append('files', file);
-              });
-              formData.append('caseId', String(editCaseId));
-              formData.append('category', 'DOCUMENT');
+            const uploadResponse = await attachmentsService.uploadAttachments({
+                caseId: editCaseId,
+                files,
+                category: 'DOCUMENT'
+            });
 
-              const apiBaseUrl = getApiBaseUrl();
-              const uploadResponse = await fetch(`${apiBaseUrl}/attachments/upload`, {
-                method: 'POST',
-                headers: {
-                  'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`,
-                },
-                body: formData,
-              });
-
-              if (uploadResponse.ok) {
+              if (uploadResponse.success) {
                 toast.success(`${files.length} attachment(s) uploaded successfully`);
               } else {
                 console.error('Attachment upload failed');
@@ -618,23 +575,14 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
         // Handle attachments separately for edit mode (if needed)
         if (attachments.length > 0) {
           try {
-            const formData = new FormData();
-            attachments.forEach(attachment => {
-              formData.append('files', attachment.file);
-            });
-            formData.append('caseId', String(editCaseId));
-            formData.append('category', 'DOCUMENT');
-
-            const apiBaseUrl = getApiBaseUrl();
-            const uploadResponse = await fetch(`${apiBaseUrl}/attachments/upload`, {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`,
-              },
-              body: formData,
+            const files = attachments.map(att => att.file);
+            const uploadResponse = await attachmentsService.uploadAttachments({
+                caseId: editCaseId,
+                files,
+                category: 'DOCUMENT'
             });
 
-            if (uploadResponse.ok) {
+            if (uploadResponse.success) {
               toast.success(`${attachments.length} file(s) uploaded successfully`);
             } else {
               toast.error('Case updated but some attachments failed to upload');

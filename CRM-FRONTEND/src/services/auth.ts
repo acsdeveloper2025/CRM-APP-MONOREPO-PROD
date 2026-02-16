@@ -1,5 +1,5 @@
 import { apiService } from './api';
-import { STORAGE_KEYS } from '@/types/constants';
+import { STORAGE_KEYS, SYNC_KEYS } from '@/types/constants';
 import type { LoginRequest, LoginResponse, User } from '@/types/auth';
 
 interface UuidLoginRequest {
@@ -14,8 +14,8 @@ export class AuthService {
     const response = await apiService.post<LoginResponse['data']>('/auth/login', credentials);
 
     if (response.success && response.data) {
-      // Store token and user data
-      localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, response.data.tokens.accessToken);
+      // Store token in memory and refresh token/user in localStorage
+      apiService.setAccessToken(response.data.tokens.accessToken);
       localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, response.data.tokens.refreshToken);
       localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(response.data.user));
     }
@@ -31,8 +31,8 @@ export class AuthService {
     const response = await apiService.post<LoginResponse['data']>('/auth/uuid-login', credentials);
 
     if (response.success && response.data) {
-      // Store token and user data
-      localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, response.data.tokens.accessToken);
+      // Store token in memory and refresh token/user in localStorage
+      apiService.setAccessToken(response.data.tokens.accessToken);
       localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, response.data.tokens.refreshToken);
       localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(response.data.user));
     }
@@ -50,8 +50,11 @@ export class AuthService {
     } catch (_error) {
       // Continue with logout even if API call fails
     } finally {
-      // Clear local storage
-      localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+      // Notify other tabs
+      localStorage.setItem(SYNC_KEYS.FORCE_LOGOUT, Date.now().toString());
+
+      // Clear storage and memory
+      apiService.setAccessToken(null);
       localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
       localStorage.removeItem(STORAGE_KEYS.USER_DATA);
     }
@@ -71,7 +74,7 @@ export class AuthService {
   }
 
   getToken(): string | null {
-    return localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
+    return apiService.getAccessToken();
   }
 
   isAuthenticated(): boolean {
@@ -90,78 +93,13 @@ export class AuthService {
     return user ? roles.includes(user.role) : false;
   }
 
-  private getApiBaseUrl(): string {
-    const hostname = window.location.hostname;
-    const staticIP = import.meta.env.VITE_STATIC_IP || '103.14.234.36';
-    const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
-    const isLocalNetwork = hostname.startsWith('10.') || hostname.startsWith('192.168.') || hostname.startsWith('172.');
-    const isStaticIP = hostname === staticIP;
-    const isDomain = hostname === 'crm.allcheckservices.com' || hostname === 'www.crm.allcheckservices.com';
-
-    console.warn('🔐 Auth Service - API URL Detection:', {
-      hostname,
-      isLocalhost,
-      isLocalNetwork,
-      isStaticIP,
-      isDomain
-    });
-
-    // Priority order for API URL selection:
-    // 1. Check if we're on localhost (development)
-    if (isLocalhost) {
-      const url = 'http://localhost:3000/api';
-      console.warn('🏠 Auth Service - Using localhost API URL:', url);
-      return url;
-    }
-
-    // 2. Check if we're on the local network IP (hairpin NAT workaround)
-    if (isLocalNetwork) {
-      const url = `http://${staticIP}:3000/api`;
-      console.warn('🏠 Auth Service - Using local network API URL (hairpin NAT workaround):', url);
-      return url;
-    }
-
-    // 3. Check if we're on the domain name (production access)
-    if (isDomain) {
-      const url = 'https://crm.allcheckservices.com/api';
-      console.warn('🌐 Auth Service - Using domain API URL:', url);
-      return url;
-    }
-
-    // 4. Check if we're on the static IP (external access)
-    if (isStaticIP) {
-      const url = `http://${staticIP}:3000/api`;
-      console.warn('🌍 Auth Service - Using static IP API URL:', url);
-      return url;
-    }
-
-    // 5. Fallback to environment variable or localhost
-    const fallbackUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
-    console.warn('⚠️ Auth Service - Using fallback API URL:', fallbackUrl);
-    return fallbackUrl;
-  }
-
   async refreshUserData(): Promise<User | null> {
     try {
-      const token = this.getToken();
-      if (!token) {return null;}
+      const response = await apiService.get<User>('/auth/me');
 
-      const apiBaseUrl = this.getApiBaseUrl();
-      console.warn('🔄 Auth Service - Refreshing user data with URL:', apiBaseUrl);
-
-      const response = await fetch(`${apiBaseUrl}/auth/me`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        if (result.success && result.data) {
-          localStorage.setItem('authUser', JSON.stringify(result.data));
-          return result.data;
-        }
+      if (response.success && response.data) {
+        localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(response.data));
+        return response.data;
       }
       return null;
     } catch (error) {
@@ -172,20 +110,10 @@ export class AuthService {
 
   async resetRateLimit(): Promise<{ success: boolean; message: string }> {
     try {
-      const apiBaseUrl = this.getApiBaseUrl();
-      console.warn('🔄 Auth Service - Resetting rate limit with URL:', apiBaseUrl);
-
-      const response = await fetch(`${apiBaseUrl}/auth/reset-rate-limit`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      const result = await response.json();
+      const response = await apiService.post<{ success: boolean; message: string }>('/auth/reset-rate-limit');
       return {
-        success: result.success,
-        message: result.message || (result.success ? 'Rate limit reset successfully' : 'Failed to reset rate limit'),
+        success: response.success,
+        message: response.message || (response.success ? 'Rate limit reset successfully' : 'Failed to reset rate limit'),
       };
     } catch (error) {
       console.error('Failed to reset rate limit:', error);
@@ -198,23 +126,10 @@ export class AuthService {
 
   async resetUserRateLimit(userId: string, ip?: string): Promise<{ success: boolean; message: string }> {
     try {
-      const token = this.getToken();
-      const apiBaseUrl = this.getApiBaseUrl();
-      console.warn('🔄 Auth Service - Resetting user rate limit with URL:', apiBaseUrl);
-
-      const response = await fetch(`${apiBaseUrl}/auth/reset-user-rate-limit/${userId}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({ ip }),
-      });
-
-      const result = await response.json();
+      const response = await apiService.post<{ success: boolean; message: string }>(`/auth/reset-user-rate-limit/${userId}`, { ip });
       return {
-        success: result.success,
-        message: result.message || (result.success ? 'User rate limit reset successfully' : 'Failed to reset user rate limit'),
+        success: response.success,
+        message: response.message || (response.success ? 'User rate limit reset successfully' : 'Failed to reset user rate limit'),
       };
     } catch (error) {
       console.error('Failed to reset user rate limit:', error);

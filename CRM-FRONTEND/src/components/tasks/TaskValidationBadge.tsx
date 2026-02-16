@@ -8,6 +8,7 @@ import {
 } from '@/components/ui/tooltip';
 import { AlertCircle, CheckCircle, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { apiService } from '@/services/api';
 
 interface TaskValidationBadgeProps {
   taskId: string;
@@ -29,15 +30,10 @@ export function TaskValidationBadge({ taskId, taskStatus, className }: TaskValid
   const validateTask = useCallback(async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/verification-tasks/${taskId}/validate`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
+      const response = await apiService.get<ValidationResult>(`/verification-tasks/${taskId}/validate`);
 
-      if (response.ok) {
-        const result = await response.json();
-        setValidation(result.data);
+      if (response.success && response.data) {
+        setValidation(response.data);
       }
     } catch (error) {
       console.error('Failed to validate task:', error);

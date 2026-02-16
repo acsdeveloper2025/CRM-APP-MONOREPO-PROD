@@ -134,8 +134,8 @@ export class MobileAuthController {
 
       // Store refresh token (simplified - no device ID)
       await query(
-        `INSERT INTO "refreshTokens" (token, "userId", "expiresAt", "createdAt") VALUES ($1, $2, $3, CURRENT_TIMESTAMP)`,
-        [refreshToken, user.id, new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)]
+        `INSERT INTO "refreshTokens" (token, "userId", "expiresAt", "createdAt", "ipAddress", "userAgent") VALUES ($1, $2, $3, CURRENT_TIMESTAMP, $4, $5)`,
+        [refreshToken, user.id, new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), req.ip, req.get('User-Agent') || null]
       );
 
       // Fetch role-based assignments for FIELD_AGENT users (mobile app is primarily for field agents)

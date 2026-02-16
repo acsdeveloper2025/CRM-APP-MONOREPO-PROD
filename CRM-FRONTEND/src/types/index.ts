@@ -169,10 +169,6 @@ export type {
   ReportSummary,
 } from './reports';
 
-// WebSocket Types
-export type {
-  WebSocketMessage
-} from './websocket';
 
 // Common Base Types
 export interface BaseEntity {

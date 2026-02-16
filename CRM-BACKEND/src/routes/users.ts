@@ -33,6 +33,8 @@ import {
   changePassword,
   resetPassword,
   getAvailableFieldAgents,
+  exportUsers,
+  downloadUserTemplate,
 } from '@/controllers/usersController';
 
 const router = express.Router();
@@ -300,6 +302,19 @@ router.get(
   searchValidation,
   validate,
   searchUsers
+);
+
+// Export users route
+router.post(
+    '/export',
+    authenticateToken,
+    exportUsers
+);
+
+router.get(
+    '/import-template',
+    authenticateToken,
+    downloadUserTemplate
 );
 
 // Get available field agents filtered by territory (must come before /stats)

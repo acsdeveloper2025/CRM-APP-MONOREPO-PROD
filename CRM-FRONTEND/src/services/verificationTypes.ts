@@ -14,6 +14,7 @@ export interface VerificationType {
     required: boolean;
     options?: string[];
   }[];
+  hasRates?: boolean;
   createdAt: string;
   updatedAt: string;
 }

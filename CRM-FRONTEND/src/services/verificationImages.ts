@@ -1,42 +1,8 @@
-import { apiService } from './api';
+import { apiService, authenticatedFetch } from './api';
 import type { ApiResponse } from '@/types/api';
 
 // Cache for blob URLs to avoid re-fetching
 const blobUrlCache = new Map<string, string>();
-
-// Smart API URL selection function (moved to top level to avoid scope issues)
-const getApiBaseUrl = (): string => {
-  const hostname = window.location.hostname;
-  const staticIP = import.meta.env.VITE_STATIC_IP || '103.14.234.36';
-  const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
-  const isLocalNetwork = hostname.startsWith('10.') || hostname.startsWith('192.168.') || hostname.startsWith('172.');
-  const isStaticIP = hostname === staticIP;
-  const isDomain = hostname === 'crm.allcheckservices.com' || hostname === 'www.crm.allcheckservices.com';
-
-  // Priority order for API URL selection:
-  // 1. Check if we're on localhost (development)
-  if (isLocalhost) {
-    return 'http://localhost:3000/api';
-  }
-
-  // 2. Check if we're on the local network IP (hairpin NAT workaround)
-  if (isLocalNetwork) {
-    return `http://${staticIP}:3000/api`;
-  }
-
-  // 3. Check if we're on the domain name (production access)
-  if (isDomain) {
-    return 'https://crm.allcheckservices.com/api';
-  }
-
-  // 4. Check if we're on the static IP (external access)
-  if (isStaticIP) {
-    return `http://${staticIP}:3000/api`;
-  }
-
-  // 5. Fallback to environment variable or localhost
-  return import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
-};
 
 export interface VerificationImage {
   id: number;
@@ -131,12 +97,7 @@ class VerificationImagesService {
    * Download verification image
    */
   async downloadVerificationImage(imageId: number): Promise<Blob> {
-    const apiBaseUrl = getApiBaseUrl();
-    const response = await fetch(`${apiBaseUrl}/cases/verification-images/${imageId}/serve`, {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`,
-      },
-    });
+    const response = await authenticatedFetch(`/cases/verification-images/${imageId}/serve`);
 
     if (!response.ok) {
       throw new Error(`Failed to download image: ${response.statusText}`);
@@ -159,15 +120,8 @@ class VerificationImagesService {
       }
 
       try {
-        const apiBaseUrl = getApiBaseUrl();
-        console.warn('🖼️ Verification Images - Using API URL:', apiBaseUrl);
-
         // Fetch the image as blob with authentication
-        const response = await fetch(`${apiBaseUrl}/cases/verification-images/${imageId}/serve`, {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`,
-          },
-        });
+        const response = await authenticatedFetch(`/cases/verification-images/${imageId}/serve`);
 
         if (!response.ok) {
           throw new Error(`Failed to fetch image: ${response.statusText}`);
@@ -183,15 +137,13 @@ class VerificationImagesService {
         return blobUrl;
       } catch (error) {
         console.error('Error fetching image:', error);
-        // Fallback to direct URL (might not work with auth)
-        const apiBaseUrl = getApiBaseUrl();
-        const baseUrl = apiBaseUrl.replace('/api', '');
+        const baseUrl = apiService.getRootUrl();
         return `${baseUrl}${imageUrl}`;
       }
     }
 
     // Fallback to direct URL (for backward compatibility)
-    const baseUrl = getApiBaseUrl().replace('/api', '');
+    const baseUrl = apiService.getRootUrl();
     console.warn('🖼️ Verification Images - Fallback using base URL:', baseUrl);
     return `${baseUrl}${imageUrl}`;
   }
@@ -211,12 +163,7 @@ class VerificationImagesService {
 
       try {
         // Fetch the thumbnail as blob with authentication
-        const apiBaseUrl = getApiBaseUrl();
-        const response = await fetch(`${apiBaseUrl}/cases/verification-images/${imageId}/thumbnail`, {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`,
-          },
-        });
+        const response = await authenticatedFetch(`/cases/verification-images/${imageId}/thumbnail`);
 
         if (!response.ok) {
           throw new Error(`Failed to fetch thumbnail: ${response.statusText}`);
@@ -232,16 +179,13 @@ class VerificationImagesService {
         return blobUrl;
       } catch (error) {
         console.error('Error fetching thumbnail:', error);
-        // Fallback to direct URL (might not work with auth)
-        const apiBaseUrl = getApiBaseUrl();
-        const baseUrl = apiBaseUrl.replace('/api', '');
+        const baseUrl = apiService.getRootUrl();
         return `${baseUrl}${thumbnailUrl}`;
       }
     }
 
     // Fallback to direct URL (for backward compatibility)
-    const apiBaseUrl = getApiBaseUrl();
-    const baseUrl = apiBaseUrl.replace('/api', '');
+    const baseUrl = apiService.getRootUrl();
     return `${baseUrl}${thumbnailUrl}`;
   }
 
