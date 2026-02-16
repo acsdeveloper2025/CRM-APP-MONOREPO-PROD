@@ -2,7 +2,7 @@ import express from 'express';
 import { body, query, param } from 'express-validator';
 import { authenticateToken, requireFieldOrHigher } from '@/middleware/auth';
 import { validate } from '@/middleware/validation';
-import { caseRateLimit } from '@/middleware/rateLimiter';
+import { listRateLimit } from '@/middleware/rateLimiter';
 import { EnterpriseRateLimit, EnterpriseRateLimits } from '../middleware/enterpriseRateLimit';
 import {
   EnterpriseCache,
@@ -27,7 +27,7 @@ const router = express.Router();
 // Apply authentication and rate limiting
 router.use(authenticateToken);
 router.use(requireFieldOrHigher);
-router.use(caseRateLimit);
+router.use(listRateLimit);
 
 // Validation schemas
 const _createCaseValidation = [

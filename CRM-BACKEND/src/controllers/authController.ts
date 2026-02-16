@@ -1,4 +1,5 @@
 import type { Request, Response } from 'express';
+import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { query } from '@/config/database';
@@ -75,6 +76,15 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     const refreshToken = jwt.sign(refreshTokenPayload, config.jwtRefreshSecret, {
       expiresIn: '7d',
     });
+
+    // Store refresh token hash
+    const tokenHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+
+    await query(
+      `INSERT INTO "refreshTokens" (token, "userId", "expiresAt", "createdAt", "ipAddress", "userAgent") VALUES ($1, $2, $3, CURRENT_TIMESTAMP, $4, $5)`,
+      [tokenHash, user.id, expiresAt, req.ip, req.get('User-Agent') || null]
+    );
 
     // Update user's lastLogin timestamp
     await query(`UPDATE users SET "lastLogin" = CURRENT_TIMESTAMP WHERE id = $1`, [user.id]);
@@ -369,6 +379,92 @@ export const getCurrentUser = async (req: AuthenticatedRequest, res: Response): 
     res.status(500).json({
       success: false,
       message: 'Failed to get user information',
+      error: { code: 'INTERNAL_ERROR' },
+    });
+  }
+};
+
+export const refreshToken = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      res.status(400).json({
+        success: false,
+        message: 'Refresh token is required',
+        error: { code: 'MISSING_TOKEN' },
+      });
+      return;
+    }
+
+    // Verify token signature
+    let decoded: RefreshTokenPayload;
+    try {
+      decoded = jwt.verify(refreshToken, config.jwtRefreshSecret) as RefreshTokenPayload;
+    } catch (err) {
+      res.status(401).json({
+        success: false,
+        message: 'Invalid refresh token signature',
+        error: { code: 'INVALID_TOKEN' },
+      });
+      return;
+    }
+
+    // Hash incoming token to find in DB
+    const tokenHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
+
+    // Check DB for valid, non-expired token
+    const result = await query(
+      `SELECT * FROM "refreshTokens" WHERE token = $1 AND "userId" = $2 AND "expiresAt" > CURRENT_TIMESTAMP`,
+      [tokenHash, decoded.userId]
+    );
+
+    if (result.rows.length === 0) {
+      res.status(401).json({
+        success: false,
+        message: 'Invalid or expired refresh token',
+        error: { code: 'INVALID_TOKEN' },
+      });
+      return;
+    }
+
+    // Fetch user to ensure they still exist and get current role
+    const userRes = await query(`SELECT * FROM users WHERE id = $1`, [decoded.userId]);
+    const user = userRes.rows[0];
+
+    if (!user) {
+      res.status(401).json({
+        success: false,
+        message: 'User not found',
+        error: { code: 'USER_NOT_FOUND' },
+      });
+      return;
+    }
+
+    // Generate NEW access token
+    const accessTokenPayload: JwtPayload = {
+      userId: user.id,
+      username: user.username,
+      role: user.role,
+      authMethod: 'PASSWORD',
+    };
+
+    const accessToken = jwt.sign(accessTokenPayload, config.jwtSecret, {
+      expiresIn: '24h',
+    });
+
+    res.json({
+      success: true,
+      message: 'Token refreshed successfully',
+      data: {
+        accessToken,
+      },
+    });
+  } catch (error) {
+    logger.error('Token refresh error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
       error: { code: 'INTERNAL_ERROR' },
     });
   }

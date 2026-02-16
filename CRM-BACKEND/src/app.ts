@@ -133,7 +133,7 @@ app.use(express.urlencoded({ extended: true, limit: '100mb' }));
 // app.use(databaseMonitoring);
 
 // Rate limiting
-app.use(generalRateLimit);
+app.use('/api', generalRateLimit);
 
 // Health check endpoint
 app.get('/health', (req, res) => {

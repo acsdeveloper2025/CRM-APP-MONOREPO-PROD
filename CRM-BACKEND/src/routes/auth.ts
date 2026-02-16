@@ -1,13 +1,14 @@
 import { Router, type Request, type Response } from 'express';
 import { body } from 'express-validator';
-import { login, logout, getCurrentUser, preloginInfo } from '@/controllers/authController';
+import { login, logout, getCurrentUser, preloginInfo, refreshToken } from '@/controllers/authController';
 import { authenticateToken } from '@/middleware/auth';
 import { validate } from '@/middleware/validation';
+import { authRateLimit } from '@/middleware/rateLimiter';
 import { EnterpriseRateLimit } from '@/middleware/enterpriseRateLimit';
 
 const router = Router();
 
-// Removed auth rate limiting for better user experience
+// Auth rate limiting applied for security
 
 // Login validation
 const loginValidation = [
@@ -108,7 +109,9 @@ router.post(
   validate,
   preloginInfo
 );
-router.post('/login', validate(loginValidation), login);
+// ... (skip lines) ...
+router.post('/login', authRateLimit, validate(loginValidation), login);
+router.post('/refresh-token', authRateLimit, refreshToken);
 router.post('/logout', authenticateToken, logout);
 router.get('/me', authenticateToken, getCurrentUser);
 router.post('/reset-rate-limit', resetRateLimit);

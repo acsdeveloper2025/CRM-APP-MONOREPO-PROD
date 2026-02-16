@@ -7,7 +7,7 @@ import type { QueryParams } from '@/types/database';
 
 // Mock data removed - using database operations only
 
-// GET /api/dashboard - Get dashboard overview
+// GET /api/dashboard - Get dashboard overview (TASK-CENTRIC)
 export const getDashboardData = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { period = 'month', clientId, userId } = req.query;
@@ -31,52 +31,132 @@ export const getDashboardData = async (req: AuthenticatedRequest, res: Response)
         break;
     }
 
-    // Get cases from database with filters
-    let casesQuery = 'SELECT DISTINCT c.* FROM cases c';
-    const queryParams: QueryParams = [startDate];
-    let paramIndex = 2;
-
-    // Join with verification_tasks if filtering by userId
-    if (userId) {
-      casesQuery += ' INNER JOIN verification_tasks vt ON c.id = vt.case_id';
-    }
-
-    casesQuery += ' WHERE c."createdAt" >= $1';
+    // Build filter conditions for tasks
+    let taskFilterConditions = 'WHERE 1=1';
+    const taskParams: any[] = [];
+    let paramIndex = 1;
 
     if (clientId) {
-      casesQuery += ` AND c."clientId" = $${paramIndex}`;
-      queryParams.push(parseInt(clientId as string));
+      taskFilterConditions += ` AND c."clientId" = $${paramIndex}`;
+      taskParams.push(parseInt(clientId as string));
       paramIndex++;
     }
 
     if (userId) {
-      casesQuery += ` AND vt.assigned_to = $${paramIndex}`;
-      queryParams.push(userId as string); // UUID, not integer
+      taskFilterConditions += ` AND vt.assigned_to = $${paramIndex}`;
+      taskParams.push(userId as string);
       paramIndex++;
     }
 
-    const casesResult = await pool.query(casesQuery, queryParams);
-    const filteredCases = casesResult.rows;
-
-    // Calculate case statistics
-    const totalCases = filteredCases.length;
-    const pendingCases = filteredCases.filter(c => c.status === 'PENDING').length;
-    const inProgressCases = filteredCases.filter(c => c.status === 'IN_PROGRESS').length;
-    const completedCases = filteredCases.filter(
-      c => c.status === 'COMPLETED' || c.status === 'APPROVED'
-    ).length;
-    const rejectedCases = filteredCases.filter(c => c.status === 'REJECTED').length;
-
-    // Get additional statistics from database
-    const statsQuery = `
-      SELECT
-        (SELECT COUNT(*) FROM clients WHERE "isActive" = true) as "totalClients",
-        (SELECT COUNT(*) FROM users WHERE "isActive" = true) as "activeUsers",
-        (SELECT COUNT(*) FROM users) as "totalUsers"
+    // OPERATIONAL WORKLOAD (Task-Centric Metrics)
+    
+    // 1. Total Tasks (Operational Workload)
+    const totalTasksQuery = `
+      SELECT COUNT(*) as total_tasks
+      FROM verification_tasks vt
+      LEFT JOIN cases c ON vt.case_id = c.id
+      ${taskFilterConditions}
     `;
+    const totalTasksResult = await pool.query(totalTasksQuery, taskParams);
+    const totalTasks = parseInt(totalTasksResult.rows[0].total_tasks) || 0;
 
-    const statsResult = await pool.query(statsQuery);
-    const stats = statsResult.rows[0];
+    // 2. Open Tasks
+    const openTasksQuery = `
+      SELECT COUNT(*) as open_tasks
+      FROM verification_tasks vt
+      LEFT JOIN cases c ON vt.case_id = c.id
+      ${taskFilterConditions}
+        AND vt.status IN ('PENDING', 'ASSIGNED', 'IN_PROGRESS')
+    `;
+    const openTasksResult = await pool.query(openTasksQuery, taskParams);
+    const openTasks = parseInt(openTasksResult.rows[0].open_tasks) || 0;
+
+    // 3. Completed Tasks (Billable Work) - MUST MATCH MIS REPORT
+    const completedTasksQuery = `
+      SELECT COUNT(*) as completed_tasks
+      FROM verification_tasks vt
+      LEFT JOIN cases c ON vt.case_id = c.id
+      ${taskFilterConditions}
+        AND vt.status = 'COMPLETED'
+    `;
+    const completedTasksResult = await pool.query(completedTasksQuery, taskParams);
+    const completedTasks = parseInt(completedTasksResult.rows[0].completed_tasks) || 0;
+
+    // 4. Today's Output
+    const todaysOutputQuery = `
+      SELECT COUNT(*) as todays_output
+      FROM verification_tasks vt
+      LEFT JOIN cases c ON vt.case_id = c.id
+      ${taskFilterConditions}
+        AND vt.status = 'COMPLETED'
+        AND DATE(vt.completed_at) = CURRENT_DATE
+    `;
+    const todaysOutputResult = await pool.query(todaysOutputQuery, taskParams);
+    const todaysOutput = parseInt(todaysOutputResult.rows[0].todays_output) || 0;
+
+    // 5. Financial Exposure
+    const financialExposureQuery = `
+      SELECT COALESCE(SUM(vt.actual_amount), 0) as financial_exposure
+      FROM verification_tasks vt
+      LEFT JOIN cases c ON vt.case_id = c.id
+      ${taskFilterConditions}
+        AND vt.status = 'COMPLETED'
+    `;
+    const financialExposureResult = await pool.query(financialExposureQuery, taskParams);
+    const financialExposure = parseFloat(financialExposureResult.rows[0].financial_exposure) || 0;
+
+    // 6. In-Progress Cases (Cases with at least one active task)
+    const inProgressCasesQuery = `
+      SELECT COUNT(DISTINCT c.id) as in_progress_cases
+      FROM cases c
+      WHERE EXISTS (
+        SELECT 1 FROM verification_tasks vt
+        WHERE vt.case_id = c.id
+          AND vt.status IN ('PENDING', 'ASSIGNED', 'IN_PROGRESS')
+      )
+      ${clientId ? `AND c."clientId" = $1` : ''}
+    `;
+    const inProgressCasesParams = clientId ? [parseInt(clientId as string)] : [];
+    const inProgressCasesResult = await pool.query(inProgressCasesQuery, inProgressCasesParams);
+    const inProgressCases = parseInt(inProgressCasesResult.rows[0].in_progress_cases) || 0;
+
+    // MANAGEMENT SUMMARY (Case-Based Metrics)
+    
+    // Total Cases
+    const totalCasesQuery = `
+      SELECT COUNT(*) as total_cases
+      FROM cases
+      ${clientId ? `WHERE "clientId" = $1` : ''}
+    `;
+    const totalCasesResult = await pool.query(totalCasesQuery, clientId ? [parseInt(clientId as string)] : []);
+    const totalCases = parseInt(totalCasesResult.rows[0].total_cases) || 0;
+
+    // Average Case TAT (in days)
+    const avgCaseTATQuery = `
+      SELECT AVG(
+        EXTRACT(EPOCH FROM (completed_at - created_at)) / 86400
+      ) as avg_case_tat_days
+      FROM cases
+      WHERE completed_at IS NOT NULL
+      ${clientId ? `AND "clientId" = $1` : ''}
+    `;
+    const avgCaseTATResult = await pool.query(avgCaseTATQuery, clientId ? [parseInt(clientId as string)] : []);
+    const avgCaseTAT = parseFloat(avgCaseTATResult.rows[0].avg_case_tat_days) || 0;
+
+    // Task Breakdown
+    const taskBreakdownQuery = `
+      SELECT
+        COUNT(*) FILTER (WHERE vt.status = 'PENDING') as pending,
+        COUNT(*) FILTER (WHERE vt.status = 'ASSIGNED') as assigned,
+        COUNT(*) FILTER (WHERE vt.status = 'IN_PROGRESS') as in_progress,
+        COUNT(*) FILTER (WHERE vt.status = 'COMPLETED') as completed,
+        COUNT(*) FILTER (WHERE vt.status = 'REVOKED') as revoked
+      FROM verification_tasks vt
+      LEFT JOIN cases c ON vt.case_id = c.id
+      ${taskFilterConditions}
+    `;
+    const taskBreakdownResult = await pool.query(taskBreakdownQuery, taskParams);
+    const taskBreakdown = taskBreakdownResult.rows[0];
 
     const dashboardData = {
       period,
@@ -84,23 +164,33 @@ export const getDashboardData = async (req: AuthenticatedRequest, res: Response)
         start: startDate.toISOString(),
         end: now.toISOString(),
       },
-      summary: {
-        totalCases,
-        pendingCases,
+      operationalWorkload: {
+        totalTasks,
+        openTasks,
+        completedTasks,
+        todaysOutput,
+        financialExposure: parseFloat(financialExposure.toFixed(2)),
         inProgressCases,
-        completedCases,
-        rejectedCases,
-        completionRate: totalCases > 0 ? Math.round((completedCases / totalCases) * 100) : 0,
-        totalClients: parseInt(stats.totalClients) || 0,
-        activeUsers: parseInt(stats.activeUsers) || 0,
-        totalUsers: parseInt(stats.totalUsers) || 0,
+      },
+      managementSummary: {
+        totalCases,
+        averageCaseTAT: parseFloat(avgCaseTAT.toFixed(2)),
+        completionRate: totalCases > 0 ? parseFloat(((completedTasks / totalTasks) * 100).toFixed(2)) : 0,
+      },
+      taskBreakdown: {
+        pending: parseInt(taskBreakdown.pending) || 0,
+        assigned: parseInt(taskBreakdown.assigned) || 0,
+        inProgress: parseInt(taskBreakdown.in_progress) || 0,
+        completed: parseInt(taskBreakdown.completed) || 0,
+        revoked: parseInt(taskBreakdown.revoked) || 0,
       },
     };
 
-    logger.info('Dashboard data retrieved', {
+    logger.info('Dashboard data retrieved (task-centric)', {
       userId: req.user?.id,
       period,
-      totalCases,
+      totalTasks,
+      completedTasks,
     });
 
     res.json({
@@ -286,10 +376,10 @@ export const getPerformanceMetrics = async (req: AuthenticatedRequest, res: Resp
         COUNT(*) as "totalCases",
         COUNT(CASE WHEN status = 'COMPLETED' OR status = 'APPROVED' THEN 1 END) as "completedCases",
         AVG(CASE
-          WHEN "completedAt" IS NOT NULL
-          THEN EXTRACT(EPOCH FROM ("completedAt" - "createdAt")) / 86400
+          WHEN vt.completed_at IS NOT NULL AND vt.first_assigned_at IS NOT NULL
+          THEN EXTRACT(EPOCH FROM (vt.completed_at - vt.first_assigned_at)) / 86400
         END) as "avgTurnaroundDays"
-      FROM cases
+      FROM verification_tasks vt
     `;
 
     const result = await pool.query<{
@@ -311,8 +401,8 @@ export const getPerformanceMetrics = async (req: AuthenticatedRequest, res: Resp
         COUNT(DISTINCT vt.case_id) as "assignedCases",
         COUNT(DISTINCT CASE WHEN vt.status = 'COMPLETED' THEN vt.case_id END) as "completedCases",
         AVG(CASE
-          WHEN vt.completed_at IS NOT NULL
-          THEN EXTRACT(EPOCH FROM (vt.completed_at - vt.created_at)) / 86400
+          WHEN vt.completed_at IS NOT NULL AND vt.current_assigned_at IS NOT NULL
+          THEN EXTRACT(EPOCH FROM (vt.completed_at - vt.current_assigned_at)) / 86400
         END) as "avgTurnaroundDays"
       FROM users u
       LEFT JOIN verification_tasks vt ON u.id = vt.assigned_to
@@ -735,6 +825,8 @@ export const getOverdueTasks = async (req: AuthenticatedRequest, res: Response) 
         vt.status,
         vt.priority,
         vt.assigned_at,
+        vt.first_assigned_at,
+        vt.current_assigned_at,
         vt.created_at,
         vt.estimated_completion_date,
         c.id as case_id,
@@ -744,8 +836,8 @@ export const getOverdueTasks = async (req: AuthenticatedRequest, res: Response) 
         u.name as assigned_to_name,
         u."employeeId" as assigned_to_employee_id,
         CASE
-          WHEN vt.assigned_at IS NOT NULL THEN
-            EXTRACT(EPOCH FROM (NOW() - vt.assigned_at)) / 86400
+          WHEN vt.current_assigned_at IS NOT NULL THEN
+            EXTRACT(EPOCH FROM (NOW() - vt.current_assigned_at)) / 86400
           ELSE
             EXTRACT(EPOCH FROM (NOW() - vt.created_at)) / 86400
         END as days_overdue
@@ -770,8 +862,8 @@ export const getOverdueTasks = async (req: AuthenticatedRequest, res: Response) 
     overdueQuery += `
       AND (
         CASE
-          WHEN vt.assigned_at IS NOT NULL THEN
-            EXTRACT(EPOCH FROM (NOW() - vt.assigned_at)) / 86400
+          WHEN vt.current_assigned_at IS NOT NULL THEN
+            EXTRACT(EPOCH FROM (NOW() - vt.current_assigned_at)) / 86400
           ELSE
             EXTRACT(EPOCH FROM (NOW() - vt.created_at)) / 86400
         END
@@ -779,6 +871,37 @@ export const getOverdueTasks = async (req: AuthenticatedRequest, res: Response) 
     `;
     queryParams.push(thresholdDays);
     paramIndex++;
+
+    // Add search filter
+    if (req.query.search) {
+      const search = String(req.query.search);
+      overdueQuery += `
+        AND (
+          COALESCE(c."customerName", '') ILIKE $${paramIndex} OR
+          COALESCE(vt.task_title, '') ILIKE $${paramIndex} OR
+          COALESCE(vt.address, '') ILIKE $${paramIndex} OR
+          COALESCE(vt.task_number, '') ILIKE $${paramIndex} OR
+          COALESCE(c."caseId"::text, '') ILIKE $${paramIndex}
+        )
+      `;
+      queryParams.push(`%${search}%`);
+      paramIndex++;
+    }
+
+    // Add priority filter
+    if (req.query.priority) {
+      overdueQuery += ` AND vt.priority = $${paramIndex}`;
+      queryParams.push(String(req.query.priority));
+      paramIndex++;
+    }
+
+    // Add status filter
+    if (req.query.status) {
+      // split by comma if needed, but for now simple single status
+      overdueQuery += ` AND vt.status = $${paramIndex}`;
+      queryParams.push(String(req.query.status));
+      paramIndex++;
+    }
 
     // Add sorting
     const validSortColumns = [
@@ -805,6 +928,7 @@ export const getOverdueTasks = async (req: AuthenticatedRequest, res: Response) 
     let countQuery = `
       SELECT COUNT(*) as total
       FROM verification_tasks vt
+      INNER JOIN cases c ON vt.case_id = c.id
       WHERE vt.status IN ('PENDING', 'ASSIGNED', 'IN_PROGRESS')
     `;
 
@@ -814,6 +938,36 @@ export const getOverdueTasks = async (req: AuthenticatedRequest, res: Response) 
     if (effectiveUserId) {
       countQuery += ` AND vt.assigned_to = $${countParamIndex}`;
       countParams.push(effectiveUserId);
+      countParamIndex++;
+    }
+
+    // Add search filter to count query
+    if (req.query.search) {
+      const search = String(req.query.search);
+      countQuery += `
+        AND (
+          COALESCE(c."customerName", '') ILIKE $${countParamIndex} OR
+          COALESCE(vt.task_title, '') ILIKE $${countParamIndex} OR
+          COALESCE(vt.address, '') ILIKE $${countParamIndex} OR
+          COALESCE(vt.task_number, '') ILIKE $${countParamIndex} OR
+          COALESCE(c."caseId"::text, '') ILIKE $${countParamIndex}
+        )
+      `;
+      countParams.push(`%${search}%`);
+      countParamIndex++;
+    }
+
+    // Add priority filter to count query
+    if (req.query.priority) {
+      countQuery += ` AND vt.priority = $${countParamIndex}`;
+      countParams.push(String(req.query.priority));
+      countParamIndex++;
+    }
+
+    // Add status filter to count query
+    if (req.query.status) {
+      countQuery += ` AND vt.status = $${countParamIndex}`;
+      countParams.push(String(req.query.status));
       countParamIndex++;
     }
 
@@ -900,8 +1054,8 @@ export const getTATStats = async (req: AuthenticatedRequest, res: Response) => {
           vt.status IN ('PENDING', 'ASSIGNED', 'IN_PROGRESS')
           AND (
             CASE
-              WHEN vt.assigned_at IS NOT NULL THEN
-                EXTRACT(EPOCH FROM (NOW() - vt.assigned_at)) / 86400
+              WHEN vt.current_assigned_at IS NOT NULL THEN
+                EXTRACT(EPOCH FROM (NOW() - vt.current_assigned_at)) / 86400
               ELSE
                 EXTRACT(EPOCH FROM (NOW() - vt.created_at)) / 86400
             END
@@ -911,8 +1065,8 @@ export const getTATStats = async (req: AuthenticatedRequest, res: Response) => {
           vt.status IN ('PENDING', 'ASSIGNED', 'IN_PROGRESS')
           AND (
             CASE
-              WHEN vt.assigned_at IS NOT NULL THEN
-                EXTRACT(EPOCH FROM (NOW() - vt.assigned_at)) / 86400
+              WHEN vt.current_assigned_at IS NOT NULL THEN
+                EXTRACT(EPOCH FROM (NOW() - vt.current_assigned_at)) / 86400
               ELSE
                 EXTRACT(EPOCH FROM (NOW() - vt.created_at)) / 86400
             END
@@ -957,6 +1111,168 @@ export const getTATStats = async (req: AuthenticatedRequest, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Failed to retrieve TAT statistics',
+      error: { code: 'INTERNAL_ERROR' },
+    });
+  }
+};
+
+// GET /api/dashboard/sla-risk - Get SLA risk monitoring data
+export const getSLARiskMonitoring = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { clientId, userId } = req.query;
+
+    // Build filter conditions
+    let filterConditions = '';
+    const params: any[] = [];
+    let paramIndex = 1;
+
+    if (clientId) {
+      filterConditions += ` AND c."clientId" = $${paramIndex}`;
+      params.push(parseInt(clientId as string));
+      paramIndex++;
+    }
+
+    if (userId) {
+      filterConditions += ` AND vt.assigned_to = $${paramIndex}`;
+      params.push(userId as string);
+      paramIndex++;
+    }
+
+    // SLA Status Counts Query
+    const slaCountsQuery = `
+      WITH sla_calculations AS (
+        SELECT
+          vt.id,
+          vt.task_number,
+          vt.first_assigned_at,
+          sz.sla_hours,
+          vt.first_assigned_at + (sz.sla_hours || ' hours')::INTERVAL as deadline,
+          EXTRACT(EPOCH FROM (NOW() - vt.first_assigned_at)) / 
+          EXTRACT(EPOCH FROM (sz.sla_hours || ' hours')::INTERVAL) as percent_elapsed,
+          CASE
+            WHEN NOW() > vt.first_assigned_at + (sz.sla_hours || ' hours')::INTERVAL THEN 'BREACHED'
+            WHEN EXTRACT(EPOCH FROM (NOW() - vt.first_assigned_at)) / 
+                 EXTRACT(EPOCH FROM (sz.sla_hours || ' hours')::INTERVAL) >= 0.75 THEN 'CRITICAL'
+            WHEN EXTRACT(EPOCH FROM (NOW() - vt.first_assigned_at)) / 
+                 EXTRACT(EPOCH FROM (sz.sla_hours || ' hours')::INTERVAL) >= 0.50 THEN 'WARNING'
+            ELSE 'SAFE'
+          END as sla_status
+        FROM verification_tasks vt
+        INNER JOIN service_zones sz ON vt.service_zone_id = sz.id
+        LEFT JOIN cases c ON vt.case_id = c.id
+        WHERE vt.status IN ('ASSIGNED', 'IN_PROGRESS')
+          AND vt.first_assigned_at IS NOT NULL
+          AND vt.service_zone_id IS NOT NULL
+          ${filterConditions}
+      )
+      SELECT
+        COUNT(*) FILTER (WHERE sla_status = 'SAFE') as safe,
+        COUNT(*) FILTER (WHERE sla_status = 'WARNING') as warning,
+        COUNT(*) FILTER (WHERE sla_status = 'CRITICAL') as critical,
+        COUNT(*) FILTER (WHERE sla_status = 'BREACHED') as breached,
+        COUNT(*) as total
+      FROM sla_calculations
+    `;
+
+    const countsResult = await pool.query(slaCountsQuery, params);
+    const counts = countsResult.rows[0];
+
+    // Top 20 Critical Tasks Query
+    const criticalTasksQuery = `
+      SELECT
+        vt.id,
+        vt.task_number,
+        vt.case_id,
+        c."caseId" as case_number,
+        c."customerName" as customer_name,
+        vt.assigned_to,
+        u."firstName" || ' ' || u."lastName" as assigned_user_name,
+        vt.service_zone_id,
+        sz.name as service_zone_name,
+        sz.sla_hours,
+        vt.first_assigned_at,
+        vt.first_assigned_at + (sz.sla_hours || ' hours')::INTERVAL as deadline,
+        EXTRACT(EPOCH FROM (
+          (vt.first_assigned_at + (sz.sla_hours || ' hours')::INTERVAL) - NOW()
+        )) / 3600 as time_remaining_hours,
+        EXTRACT(EPOCH FROM (NOW() - vt.first_assigned_at)) / 
+        EXTRACT(EPOCH FROM (sz.sla_hours || ' hours')::INTERVAL) * 100 as percent_elapsed,
+        CASE
+          WHEN NOW() > vt.first_assigned_at + (sz.sla_hours || ' hours')::INTERVAL THEN 'BREACHED'
+          WHEN EXTRACT(EPOCH FROM (NOW() - vt.first_assigned_at)) / 
+               EXTRACT(EPOCH FROM (sz.sla_hours || ' hours')::INTERVAL) >= 0.75 THEN 'CRITICAL'
+          WHEN EXTRACT(EPOCH FROM (NOW() - vt.first_assigned_at)) / 
+               EXTRACT(EPOCH FROM (sz.sla_hours || ' hours')::INTERVAL) >= 0.50 THEN 'WARNING'
+          ELSE 'SAFE'
+        END as sla_status,
+        cl.name as client_name,
+        p.name as product_name
+      FROM verification_tasks vt
+      INNER JOIN service_zones sz ON vt.service_zone_id = sz.id
+      LEFT JOIN cases c ON vt.case_id = c.id
+      LEFT JOIN users u ON vt.assigned_to = u.id
+      LEFT JOIN clients cl ON c."clientId" = cl.id
+      LEFT JOIN products p ON c."productId" = p.id
+      WHERE vt.status IN ('ASSIGNED', 'IN_PROGRESS')
+        AND vt.first_assigned_at IS NOT NULL
+        AND vt.service_zone_id IS NOT NULL
+        AND EXTRACT(EPOCH FROM (NOW() - vt.first_assigned_at)) / 
+            EXTRACT(EPOCH FROM (sz.sla_hours || ' hours')::INTERVAL) >= 0.75
+        ${filterConditions}
+      ORDER BY 
+        vt.first_assigned_at + (sz.sla_hours || ' hours')::INTERVAL ASC
+      LIMIT 20
+    `;
+
+    const criticalTasksResult = await pool.query(criticalTasksQuery, params);
+    const criticalTasks = criticalTasksResult.rows.map(task => ({
+      id: task.id,
+      taskNumber: task.task_number,
+      caseId: task.case_id,
+      caseNumber: task.case_number,
+      customerName: task.customer_name,
+      assignedTo: task.assigned_to,
+      assignedUserName: task.assigned_user_name,
+      serviceZoneId: task.service_zone_id,
+      serviceZoneName: task.service_zone_name,
+      slaHours: parseInt(task.sla_hours),
+      firstAssignedAt: task.first_assigned_at,
+      deadline: task.deadline,
+      timeRemaining: parseFloat(task.time_remaining_hours?.toFixed(2)) || 0,
+      slaStatus: task.sla_status,
+      percentElapsed: parseFloat(task.percent_elapsed?.toFixed(2)) || 0,
+      clientName: task.client_name,
+      productName: task.product_name,
+    }));
+
+    const slaRiskData = {
+      summary: {
+        safe: parseInt(counts.safe) || 0,
+        warning: parseInt(counts.warning) || 0,
+        critical: parseInt(counts.critical) || 0,
+        breached: parseInt(counts.breached) || 0,
+        total: parseInt(counts.total) || 0,
+      },
+      criticalTasks,
+    };
+
+    logger.info('SLA risk monitoring data retrieved', {
+      userId: req.user?.id,
+      totalTasks: slaRiskData.summary.total,
+      criticalCount: slaRiskData.summary.critical,
+      breachedCount: slaRiskData.summary.breached,
+    });
+
+    res.json({
+      success: true,
+      data: slaRiskData,
+      message: 'SLA risk monitoring data retrieved successfully',
+    });
+  } catch (error) {
+    logger.error('Error retrieving SLA risk monitoring data:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to retrieve SLA risk monitoring data',
       error: { code: 'INTERNAL_ERROR' },
     });
   }

@@ -5,8 +5,6 @@ import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
 import { useQueryClient } from '@tanstack/react-query';
 import { useCacheClearer } from '@/utils/clearCache';
-import { NotificationCenter } from '@/components/realtime/NotificationCenter';
-import { ConnectionStatus } from '@/components/realtime/ConnectionStatus';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -59,7 +57,6 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
     if (path === '/reports') {return 'Reports';}
     if (path === '/billing') {return 'Billing';}
     if (path === '/locations') {return 'Locations';}
-    if (path === '/realtime') {return 'Real-time';}
     if (path === '/forms') {return 'Forms';}
     if (path === '/security-ux') {return 'Security & UX';}
     if (path === '/settings') {return 'Settings';}
@@ -88,10 +85,6 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
 
         {/* Right side actions */}
         <div className="flex items-center space-x-1 sm:space-x-2 lg:space-x-4">
-          {/* Connection Status */}
-          <div className="hidden md:flex">
-            <ConnectionStatus showText />
-          </div>
 
           {/* Theme toggle */}
           <Button
@@ -110,8 +103,6 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
             )}
           </Button>
 
-          {/* Real-time Notifications */}
-          <NotificationCenter />
 
           {/* User menu */}
           <DropdownMenu>

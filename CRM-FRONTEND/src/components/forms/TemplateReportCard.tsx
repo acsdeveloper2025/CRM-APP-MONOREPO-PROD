@@ -8,6 +8,7 @@ import {
   AlertCircle,
   Loader2
 } from 'lucide-react';
+import { apiService } from '@/services/api';
 
 interface TemplateReport {
   id: string;
@@ -44,33 +45,22 @@ export const TemplateReportCard: React.FC<TemplateReportCardProps> = ({
       setLoading(true);
       setError(null);
 
-      const token = localStorage.getItem('crm_auth_token');
-      const response = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api'}/template-reports/cases/${caseId}/submissions/${submissionId}`.replace('/api/api', '/api'),
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        }
+      const response = await apiService.getRaw<{ success: boolean; report: TemplateReport }> (
+        `/template-reports/cases/${caseId}/submissions/${submissionId}`
       );
 
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success && data.report) {
-          setReport(data.report);
-        }
+      if (response.status === 200 && response.data.success) {
+        setReport(response.data.report);
       } else if (response.status === 404) {
-        // 404 is expected when no report exists yet - this is normal behavior
-        // Don't log this as an error since it's expected
         setReport(null);
       } else {
-        // Other HTTP errors are unexpected and should be handled
-        throw new Error(`Failed to load template report: ${response.status} ${response.statusText}`);
+        throw new Error(`Failed to load template report: ${response.status}`);
       }
-    } catch (err) {
-      // Only show error for unexpected failures, not for 404s
-      if (err instanceof Error && !err.message.includes('404')) {
+    } catch (err: unknown) {
+      const error = err as { response?: { status: number } };
+      if (error.response?.status === 404) {
+        setReport(null);
+      } else {
         console.error('Error loading template report:', err);
         setError('Failed to load existing template report. You can still generate a new one.');
       }
@@ -89,36 +79,28 @@ export const TemplateReportCard: React.FC<TemplateReportCardProps> = ({
       setGenerating(true);
       setError(null);
 
-      const token = localStorage.getItem('crm_auth_token');
-      const response = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api'}/template-reports/cases/${caseId}/submissions/${submissionId}/generate`.replace('/api/api', '/api'),
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
+      const response = await apiService.post<{
+        success: boolean;
+        reportId: string;
+        report: string;
+        metadata: TemplateReport['metadata'];
+        error?: string;
+      }>(`/template-reports/cases/${caseId}/submissions/${submissionId}/generate`);
 
-      if (!response.ok) {
-        throw new Error('Failed to generate template report');
-      }
-
-      const data = await response.json();
-      if (data.success) {
+      if (response.success && response.data) {
         setReport({
-          id: data.reportId,
-          content: data.report,
-          metadata: data.metadata,
+          id: response.data.reportId,
+          content: response.data.report,
+          metadata: response.data.metadata,
           createdAt: new Date().toISOString()
         });
       } else {
-        throw new Error(data.error || 'Failed to generate report');
+        throw new Error(response.message || 'Failed to generate report');
       }
-    } catch (err) {
-      console.error('Error generating template report:', err);
-      setError(err instanceof Error ? err.message : 'Failed to generate report');
+    } catch (err: unknown) {
+      const error = err as Error;
+      console.error('Error generating template report:', error);
+      setError(error.message || 'Failed to generate report');
     } finally {
       setGenerating(false);
     }

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import type { AuthState, LoginRequest } from '@/types/auth';
 import { authService } from '@/services/auth';
 import { toast } from 'sonner';
+import { STORAGE_KEYS } from '@/types/constants';
 import { AuthContext, AuthContextType } from './AuthContextObject';
 import { AUTH_LOGOUT_EVENT } from '@/utils/events';
 
@@ -21,23 +22,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Check if user is already authenticated on app start
     const initializeAuth = async () => {
       try {
-        const token = authService.getToken();
         const user = authService.getCurrentUser();
+        const refreshToken = localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
 
-        if (token && user) {
-          // Refresh user data to get latest permissions
+        if (user && refreshToken) {
+          // We have user data and a refresh token, but access token is in memory (and thus gone on reload)
+          // Proactively refresh user data/token
           try {
             const refreshedUser = await authService.refreshUserData();
             if (refreshedUser) {
-              // Token is valid and user data refreshed
               setState({
                 user: refreshedUser,
-                token,
+                token: authService.getToken(), // This will now get the newly refreshed in-memory token
                 isAuthenticated: true,
                 isLoading: false,
               });
             } else {
-              // Token is invalid, clear auth data
+              // Refresh failed, likely expired session
               await authService.logout();
               setState({
                 user: null,
@@ -47,8 +48,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               });
             }
           } catch (error) {
-            // Network error or token invalid, clear auth data
-            console.warn('Token validation failed:', error);
+            console.warn('Auto-refresh failed during initialization:', error);
             await authService.logout();
             setState({
               user: null,
@@ -58,7 +58,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             });
           }
         } else {
-          // No token or user data
+          // No user data or no refresh token
           setState({
             user: null,
             token: null,
@@ -80,8 +80,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     initializeAuth();
 
     // Listen for logout events (e.g. from 401 responses)
-    const handleLogoutEvent = () => {
-      logout();
+    const handleLogoutEvent = (event: Event) => {
+      const message = (event as CustomEvent).detail?.message;
+      logout(message);
     };
 
     window.addEventListener(AUTH_LOGOUT_EVENT, handleLogoutEvent);
@@ -124,7 +125,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const logout = async (): Promise<void> => {
+  const logout = async (customMessage?: string): Promise<void> => {
     setState(prev => ({ ...prev, isLoading: true }));
 
     try {
@@ -135,7 +136,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         isAuthenticated: false,
         isLoading: false,
       });
-      toast.success('Logged out successfully');
+      toast.success(customMessage || 'Logged out successfully');
     } catch (error) {
       console.error('Logout error:', error);
       // Still clear the state even if logout API fails
@@ -145,6 +146,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         isAuthenticated: false,
         isLoading: false,
       });
+      if (customMessage) {
+        toast.info(customMessage);
+      }
     }
   };
 
@@ -168,3 +172,5 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
+
+export const useAuth = () => React.useContext(AuthContext);

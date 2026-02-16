@@ -294,6 +294,12 @@ export const STORAGE_KEYS = {
   LAST_ROUTE: 'crm_last_route'
 } as const;
 
+// Cross-tab Synchronization Keys
+export const SYNC_KEYS = {
+  LAST_ACTIVITY: 'crm_last_activity',
+  FORCE_LOGOUT: 'crm_force_logout'
+} as const;
+
 // API Endpoints
 export const API_ENDPOINTS = {
   AUTH: {

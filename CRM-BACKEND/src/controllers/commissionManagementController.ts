@@ -1075,7 +1075,7 @@ export const autoCalculateCommissionForTask = async (taskId: string): Promise<bo
   try {
     logger.info(`🧮 Auto-calculating commission for completed verification task: ${taskId}`);
 
-    // Get task details
+    // Get task details with STRICT status validation
     const taskQuery = `
       SELECT
         vt.id,
@@ -1093,17 +1093,25 @@ export const autoCalculateCommissionForTask = async (taskId: string): Promise<bo
       FROM verification_tasks vt
       LEFT JOIN cases c ON vt.case_id = c.id
       LEFT JOIN "rateTypes" rt ON vt.rate_type_id = rt.id
-      WHERE vt.id = $1 AND vt.status = 'COMPLETED'
+      WHERE vt.id = $1 
+        AND vt.status = 'COMPLETED'  -- MUST be COMPLETED
+        AND vt.status != 'REVOKED'   -- NEVER generate for REVOKED tasks
     `;
 
     const taskResult = await query(taskQuery, [taskId]);
 
     if (taskResult.rows.length === 0) {
-      logger.info(`⚠️ Task not found or not completed: ${taskId}`);
+      logger.info(`⚠️ Task not found, not completed, or revoked: ${taskId}`);
       return false;
     }
 
     const taskData = taskResult.rows[0];
+
+    // Validate task status is COMPLETED (double-check)
+    if (taskData.status !== 'COMPLETED') {
+      logger.warn(`⚠️ Task ${taskId} status is ${taskData.status}, not COMPLETED. Skipping commission.`);
+      return false;
+    }
 
     if (!taskData.rate_type_id) {
       logger.info(`⚠️ No rate type assigned for task: ${taskId}`);
@@ -1147,24 +1155,12 @@ export const autoCalculateCommissionForTask = async (taskId: string): Promise<bo
 
     const assignment = assignmentResult.rows[0];
 
-    // Check if commission already calculated for this task
-    const existingQuery = `
-      SELECT id FROM commission_calculations
-      WHERE verification_task_id = $1 AND user_id = $2
-    `;
-
-    const existingResult = await query(existingQuery, [taskId, taskData.user_id]);
-
-    if (existingResult.rows.length > 0) {
-      logger.info(`ℹ️ Commission already calculated for task: ${taskId}`);
-      return true;
-    }
-
     // Calculate commission
     const commissionAmount = parseFloat(assignment.commission_amount);
     const baseAmount = parseFloat(taskData.base_amount) || 0;
 
-    // Insert commission calculation
+    // IDEMPOTENT INSERT: Use ON CONFLICT DO NOTHING for concurrency safety
+    // The UNIQUE constraint on verification_task_id prevents duplicates
     const insertQuery = `
       INSERT INTO commission_calculations (
         id,
@@ -1186,7 +1182,9 @@ export const autoCalculateCommissionForTask = async (taskId: string): Promise<bo
       ) VALUES (
         gen_random_uuid(),
         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
-      ) RETURNING id, commission_amount, currency
+      )
+      ON CONFLICT (verification_task_id) DO NOTHING
+      RETURNING id, commission_amount, currency
     `;
 
     const insertResult = await query(insertQuery, [
@@ -1204,6 +1202,12 @@ export const autoCalculateCommissionForTask = async (taskId: string): Promise<bo
       'CALCULATED',
       taskData.task_completed_at,
     ]);
+
+    // Check if insert was successful or skipped due to conflict
+    if (insertResult.rows.length === 0) {
+      logger.info(`ℹ️ Commission already exists for task: ${taskId}. Skipped duplicate calculation (concurrent request).`);
+      return true; // Return success - commission exists
+    }
 
     const calculation = insertResult.rows[0];
     logger.info(

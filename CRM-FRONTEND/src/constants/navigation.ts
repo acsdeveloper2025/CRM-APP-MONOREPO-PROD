@@ -10,7 +10,6 @@ import {
   Users,
   CheckSquare,
   Settings,
-  Wifi,
   Shield,
   Plus,
   Clock,
@@ -293,13 +292,6 @@ export const navigationItems: NavigationItem[] = [
       },
 
     ],
-  },
-  {
-    id: 'realtime',
-    label: 'Real-time Features',
-    href: '/realtime',
-    icon: Wifi,
-    permission: { resource: 'cases', action: 'read' },
   },
   {
     id: 'forms',

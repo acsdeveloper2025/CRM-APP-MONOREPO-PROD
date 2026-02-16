@@ -437,8 +437,11 @@ export const getCaseAnalytics = async (req: AuthenticatedRequest, res: Response)
         COUNT(DISTINCT tfs.id) as form_submissions,
         0 as attachment_count,
         CASE
-          WHEN c.status IN ('COMPLETED', 'APPROVED') AND c."updatedAt" IS NOT NULL
-          THEN EXTRACT(EPOCH FROM (c."updatedAt" - c."createdAt"))/86400
+          WHEN COUNT(DISTINCT CASE WHEN vt.status IN ('COMPLETED', 'APPROVED') THEN vt.id END) > 0
+          THEN AVG(CASE
+            WHEN vt.status IN ('COMPLETED', 'APPROVED') AND vt.completed_at IS NOT NULL AND vt.first_assigned_at IS NOT NULL
+            THEN EXTRACT(EPOCH FROM (vt.completed_at - vt.first_assigned_at))/86400
+          END)
           ELSE NULL
         END as completion_days,
         CASE
@@ -678,8 +681,8 @@ export const getAgentPerformance = async (req: AuthenticatedRequest, res: Respon
         vtype.name as verification_type,
         rt.name as rate_type,
         CASE
-          WHEN vt.status IN ('COMPLETED', 'APPROVED') AND vt.updated_at IS NOT NULL
-          THEN EXTRACT(EPOCH FROM (vt.updated_at - vt.created_at))/86400
+          WHEN vt.status IN ('COMPLETED', 'APPROVED') AND vt.completed_at IS NOT NULL AND vt.current_assigned_at IS NOT NULL
+          THEN EXTRACT(EPOCH FROM (vt.completed_at - vt.current_assigned_at))/86400
           ELSE NULL
         END as completion_days
       FROM verification_tasks vt
@@ -1358,13 +1361,20 @@ export const getMISData = async (req: AuthenticatedRequest, res: Response) => {
         vt.created_at as task_created_date,
         vt.started_at as task_started_date,
         vt.completed_at as task_completion_date,
+        vt.first_assigned_at as bank_sla_start,
+        vt.current_assigned_at as agent_sla_start,
         vt.trigger,
         vt.applicant_type,
         CASE
-          WHEN vt.completed_at IS NOT NULL AND vt.created_at IS NOT NULL
-          THEN EXTRACT(EPOCH FROM (vt.completed_at - vt.created_at)) / 86400
+          WHEN vt.completed_at IS NOT NULL AND vt.first_assigned_at IS NOT NULL
+          THEN EXTRACT(EPOCH FROM (vt.completed_at - vt.first_assigned_at)) / 86400
           ELSE NULL
         END as task_tat_days,
+        CASE
+          WHEN vt.completed_at IS NOT NULL AND vt.started_at IS NOT NULL
+          THEN EXTRACT(EPOCH FROM (vt.completed_at - vt.started_at)) / 3600
+          ELSE NULL
+        END as visit_duration_hours,
 
         -- Field User Data
         u.name as assigned_field_user,
@@ -1427,8 +1437,8 @@ export const getMISData = async (req: AuthenticatedRequest, res: Response) => {
         COUNT(DISTINCT CASE WHEN vt.status = 'APPROVED' THEN vt.id END) as approved_tasks,
         COUNT(DISTINCT CASE WHEN vt.status = 'REJECTED' THEN vt.id END) as rejected_tasks,
         AVG(CASE
-          WHEN vt.completed_at IS NOT NULL AND vt.created_at IS NOT NULL
-          THEN EXTRACT(EPOCH FROM (vt.completed_at - vt.created_at)) / 86400
+          WHEN vt.completed_at IS NOT NULL AND vt.first_assigned_at IS NOT NULL
+          THEN EXTRACT(EPOCH FROM (vt.completed_at - vt.first_assigned_at)) / 86400
         END) as avg_tat_days
       FROM verification_tasks vt
       LEFT JOIN cases c ON vt.case_id = c.id
@@ -1601,10 +1611,15 @@ export const exportMISData = async (req: AuthenticatedRequest, res: Response) =>
         vt.trigger,
         vt.applicant_type,
         CASE
-          WHEN vt.completed_at IS NOT NULL AND vt.created_at IS NOT NULL
-          THEN EXTRACT(EPOCH FROM (vt.completed_at - vt.created_at)) / 86400
+          WHEN vt.completed_at IS NOT NULL AND vt.first_assigned_at IS NOT NULL
+          THEN EXTRACT(EPOCH FROM (vt.completed_at - vt.first_assigned_at)) / 86400
           ELSE NULL
         END as task_tat_days,
+        CASE
+          WHEN vt.completed_at IS NOT NULL AND vt.started_at IS NOT NULL
+          THEN EXTRACT(EPOCH FROM (vt.completed_at - vt.started_at)) / 3600
+          ELSE NULL
+        END as visit_duration_hours,
 
         -- Field User Data
         u.name as assigned_field_user,

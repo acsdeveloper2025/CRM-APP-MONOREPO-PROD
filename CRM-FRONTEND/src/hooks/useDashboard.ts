@@ -114,6 +114,9 @@ export const useOverdueTasks = (params: {
   limit?: number;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
+  search?: string;
+  priority?: string;
+  status?: string;
 } = {}) => {
   return useQuery({
     queryKey: dashboardKeys.overdueTasks(params),

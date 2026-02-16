@@ -114,6 +114,7 @@ import fs from 'fs/promises';
 import sharp from 'sharp';
 import { queueCaseCompletionNotification } from '../queues/notificationQueue';
 import { logger } from '../utils/logger';
+import { CaseStatusSyncService } from '../services/caseStatusSyncService';
 // Enhanced services temporarily disabled for debugging
 
 export class MobileFormController {
@@ -191,64 +192,6 @@ export class MobileFormController {
       };
     }
   }
-  /**
-   * Helper function to update case status based on ALL verification tasks
-   * Case should only be COMPLETED when ALL tasks are completed
-   */
-  private static async updateCaseStatusBasedOnTasks(caseId: string): Promise<void> {
-    try {
-      // Get task statistics for this case
-      const taskStatsQuery = `
-        SELECT
-          COUNT(*) as total_tasks,
-          COUNT(*) FILTER (WHERE status = 'COMPLETED') as completed_tasks,
-          COUNT(*) FILTER (WHERE status = 'CANCELLED') as cancelled_tasks
-        FROM verification_tasks
-        WHERE case_id = $1
-      `;
-      const taskStatsResult = await query(taskStatsQuery, [caseId]);
-      const stats = taskStatsResult.rows[0];
-
-      const totalTasks = parseInt(stats.total_tasks);
-      const completedTasks = parseInt(stats.completed_tasks);
-      const cancelledTasks = parseInt(stats.cancelled_tasks);
-
-      // Determine case status based on task completion
-      let caseStatus = 'IN_PROGRESS';
-      let completedAt = null;
-
-      // Case is COMPLETED only if ALL tasks are either COMPLETED or CANCELLED
-      if (totalTasks > 0 && completedTasks + cancelledTasks === totalTasks) {
-        caseStatus = 'COMPLETED';
-        completedAt = new Date();
-      }
-
-      // Update case status
-      await query(
-        `
-        UPDATE cases
-        SET
-          status = $1,
-          "completedAt" = $2,
-          "updatedAt" = CURRENT_TIMESTAMP
-        WHERE id = $3
-      `,
-        [caseStatus, completedAt, caseId]
-      );
-
-      logger.info('Case status updated based on tasks', {
-        caseId,
-        totalTasks,
-        completedTasks,
-        cancelledTasks,
-        newStatus: caseStatus,
-      });
-    } catch (error) {
-      logger.error('Failed to update case status based on tasks:', error);
-      throw error;
-    }
-  }
-
   /**
    * Helper function to send case completion notifications to backend users
    */
@@ -1994,16 +1937,8 @@ export class MobileFormController {
       ]);
       const updatedCase = caseUpd.rows[0];
 
-      // Auto-calculate commission for completed case
-      try {
-        const { autoCalculateCommissionForCase } = await import(
-          '../controllers/commissionManagementController'
-        );
-        await autoCalculateCommissionForCase(caseId);
-      } catch (error) {
-        console.error('Error auto-calculating commission for residence form:', error);
-        // Don't fail the form submission if commission calculation fails
-      }
+      // Commission is now handled at the verification task level.
+      // Legacy Case-level commission trigger removed to avoid duplication.
 
       // Update attachment geo-locations
       for (const photo of photos) {
@@ -2560,7 +2495,7 @@ export class MobileFormController {
       );
 
       // Update case status based on ALL tasks (only mark as COMPLETED if all tasks are done)
-      await MobileFormController.updateCaseStatusBasedOnTasks(caseId);
+      await CaseStatusSyncService.recalculateCaseStatus(caseId);
 
       // Update case with verification data (without changing status)
       await query(
@@ -2937,7 +2872,7 @@ export class MobileFormController {
       );
 
       // Update case status based on ALL tasks (only mark as COMPLETED if all tasks are done)
-      await MobileFormController.updateCaseStatusBasedOnTasks(caseId);
+      await CaseStatusSyncService.recalculateCaseStatus(caseId);
 
       // Update case with verification data (without changing status)
       await query(
@@ -2950,16 +2885,8 @@ export class MobileFormController {
       );
       const updatedCase = caseUpd.rows[0];
 
-      // Auto-calculate commission for completed case
-      try {
-        const { autoCalculateCommissionForCase } = await import(
-          '../controllers/commissionManagementController'
-        );
-        await autoCalculateCommissionForCase(caseId);
-      } catch (error) {
-        console.error('Error auto-calculating commission for office form:', error);
-        // Don't fail the form submission if commission calculation fails
-      }
+      // Commission is now handled at the verification task level.
+      // Legacy Case-level commission trigger removed to avoid duplication.
 
       // Create comprehensive office verification report using all available fields
       const dbInsertData = {
@@ -3332,7 +3259,7 @@ export class MobileFormController {
       );
 
       // Update case status based on ALL tasks (only mark as COMPLETED if all tasks are done)
-      await MobileFormController.updateCaseStatusBasedOnTasks(caseId);
+      await CaseStatusSyncService.recalculateCaseStatus(caseId);
 
       // Update case with verification data (without changing status)
       await query(
@@ -3345,16 +3272,8 @@ export class MobileFormController {
       );
       const updatedCase = caseUpd.rows[0];
 
-      // Auto-calculate commission for completed case
-      try {
-        const { autoCalculateCommissionForCase } = await import(
-          '../controllers/commissionManagementController'
-        );
-        await autoCalculateCommissionForCase(caseId);
-      } catch (error) {
-        console.error('Error auto-calculating commission for business form:', error);
-        // Don't fail the form submission if commission calculation fails
-      }
+      // Commission is now handled at the verification task level.
+      // Legacy Case-level commission trigger removed to avoid duplication.
 
       // Create comprehensive business verification report using all available fields
       const dbInsertData = {
@@ -3709,7 +3628,7 @@ export class MobileFormController {
       );
 
       // Update case status based on ALL tasks (only mark as COMPLETED if all tasks are done)
-      await MobileFormController.updateCaseStatusBasedOnTasks(caseId);
+      await CaseStatusSyncService.recalculateCaseStatus(caseId);
 
       // Update case with verification data (without changing status)
       await query(
@@ -3722,16 +3641,8 @@ export class MobileFormController {
       );
       const updatedCase = caseUpd.rows[0];
 
-      // Auto-calculate commission for completed case
-      try {
-        const { autoCalculateCommissionForCase } = await import(
-          '../controllers/commissionManagementController'
-        );
-        await autoCalculateCommissionForCase(caseId);
-      } catch (error) {
-        console.error('Error auto-calculating commission for builder form:', error);
-        // Don't fail the form submission if commission calculation fails
-      }
+      // Commission is now handled at the verification task level.
+      // Legacy Case-level commission trigger removed to avoid duplication.
 
       // Create comprehensive builder verification report using all available fields
       const dbInsertData = {
@@ -3985,7 +3896,7 @@ export class MobileFormController {
         [verificationOutcome || 'VERIFIED', taskId]
       );
 
-      await MobileFormController.updateCaseStatusBasedOnTasks(caseId);
+      await CaseStatusSyncService.recalculateCaseStatus(caseId);
 
       await createAuditLog({
         action: 'RESIDENCE_CUM_OFFICE_VERIFICATION_SUBMITTED',
@@ -4250,7 +4161,7 @@ export class MobileFormController {
       );
 
       // Update case status based on ALL tasks (only mark as COMPLETED if all tasks are done)
-      await MobileFormController.updateCaseStatusBasedOnTasks(caseId);
+      await CaseStatusSyncService.recalculateCaseStatus(caseId);
 
       // Update case with verification data (without changing status)
       await query(
@@ -4263,16 +4174,8 @@ export class MobileFormController {
       );
       const updatedCase = caseUpd.rows[0];
 
-      // Auto-calculate commission for completed case
-      try {
-        const { autoCalculateCommissionForCase } = await import(
-          '../controllers/commissionManagementController'
-        );
-        await autoCalculateCommissionForCase(caseId);
-      } catch (error) {
-        console.error('Error auto-calculating commission for DSA connector form:', error);
-        // Don't fail the form submission if commission calculation fails
-      }
+      // Commission is now handled at the verification task level.
+      // Legacy Case-level commission trigger removed to avoid duplication.
 
       // Create comprehensive DSA/DST Connector verification report using all available fields
       const dbInsertData = {
@@ -4529,7 +4432,7 @@ export class MobileFormController {
         [verificationOutcome || 'VERIFIED', taskId]
       );
 
-      await MobileFormController.updateCaseStatusBasedOnTasks(caseId);
+      await CaseStatusSyncService.recalculateCaseStatus(caseId);
 
       await createAuditLog({
         action: 'PROPERTY_INDIVIDUAL_VERIFICATION_SUBMITTED',
@@ -4790,7 +4693,7 @@ export class MobileFormController {
       );
 
       // Update case status based on ALL tasks (only mark as COMPLETED if all tasks are done)
-      await MobileFormController.updateCaseStatusBasedOnTasks(caseId);
+      await CaseStatusSyncService.recalculateCaseStatus(caseId);
 
       // Update case with verification data (without changing status)
       await query(
@@ -5164,7 +5067,7 @@ export class MobileFormController {
       );
 
       // Update case status based on ALL tasks (only mark as COMPLETED if all tasks are done)
-      await MobileFormController.updateCaseStatusBasedOnTasks(caseId);
+      await CaseStatusSyncService.recalculateCaseStatus(caseId);
 
       // Update case with verification data (without changing status)
       await query(

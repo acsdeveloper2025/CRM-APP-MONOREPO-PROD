@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,9 +13,25 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useOverdueTasks } from '@/hooks/useDashboard';
-import { Clock, AlertTriangle, User, ArrowUpDown, ChevronLeft, ChevronRight, CheckCircle, TrendingUp } from 'lucide-react';
+import { useUnifiedSearch, useUnifiedFilters } from '@/hooks/useUnifiedSearch';
+import { UnifiedSearchFilterLayout, FilterGrid } from '@/components/ui/unified-search-filter-layout';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Clock, AlertTriangle, User, ArrowUpDown, ChevronLeft, ChevronRight, CheckCircle, TrendingUp, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { OverdueTask, OverdueTasksResponse } from '@/types/dto/dashboard.dto';
+
+interface TATMonitoringFilters {
+  priority?: string;
+  status?: string;
+  [key: string]: unknown;
+}
 
 export const TATMonitoringPage: React.FC = () => {
   const navigate = useNavigate();
@@ -25,23 +41,62 @@ export const TATMonitoringPage: React.FC = () => {
   const [sortBy, setSortBy] = useState('days_overdue');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
+  // Unified search with 800ms debounce
+  const {
+    searchValue,
+    debouncedSearchValue,
+    setSearchValue,
+    clearSearch,
+    isDebouncing,
+  } = useUnifiedSearch({
+    syncWithUrl: true,
+  });
+
+  // Unified filters with URL sync
+  const {
+    filters: activeFilters,
+    setFilter,
+    clearFilters,
+    hasActiveFilters,
+  } = useUnifiedFilters<TATMonitoringFilters>({
+    syncWithUrl: true,
+  });
+
+  // Reset pagination when search or filters change
+  useEffect(() => {
+    setCriticalPage(1);
+    setAllPage(1);
+  }, [debouncedSearchValue, activeFilters]);
+
+  // Common filter params
+  const filterParams = {
+    sortBy,
+    sortOrder,
+    search: debouncedSearchValue || undefined,
+    priority: activeFilters.priority || undefined,
+    status: activeFilters.status || undefined,
+  };
+
   // Fetch critical overdue tasks (>1 day)
-  const { data: criticalData, isLoading: criticalLoading } = useOverdueTasks({
+  const { data: criticalData, isLoading: criticalLoading, refetch: refetchCritical } = useOverdueTasks({
     threshold: 1,
     page: criticalPage,
     limit: 20,
-    sortBy,
-    sortOrder,
+    ...filterParams,
   });
 
   // Fetch all overdue tasks (>2 days)
-  const { data: allData, isLoading: allLoading } = useOverdueTasks({
+  const { data: allData, isLoading: allLoading, refetch: refetchAll } = useOverdueTasks({
     threshold: 2,
     page: allPage,
     limit: 20,
-    sortBy,
-    sortOrder,
+    ...filterParams,
   });
+
+  const handleRefresh = () => {
+    refetchCritical();
+    refetchAll();
+  };
 
   const criticalTasks = criticalData?.data?.tasks || [];
   const criticalPagination = criticalData?.data?.pagination || { page: 1, totalPages: 1, totalCount: 0, limit: 20, total: 0 };
@@ -239,6 +294,8 @@ export const TATMonitoringPage: React.FC = () => {
     );
   };
 
+  const activeFilterCount = Object.values(activeFilters).filter(Boolean).length;
+
   return (
     <div className="container mx-auto p-4 sm:p-6 space-y-6">
       {/* Header */}
@@ -322,34 +379,96 @@ export const TATMonitoringPage: React.FC = () => {
         </Card>
       </div>
 
-      {/* Tabs */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Overdue Tasks</CardTitle>
-          <CardDescription>View and manage tasks that have exceeded their turnaround time</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'critical' | 'all')}>
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="critical" className="flex items-center space-x-2">
-                <AlertTriangle className="h-4 w-4" />
-                <span>Critical Overdue (&gt;1 Day)</span>
-              </TabsTrigger>
-              <TabsTrigger value="all" className="flex items-center space-x-2">
-                <Clock className="h-4 w-4" />
-                <span>All Overdue Tasks (&gt;2 Days)</span>
-              </TabsTrigger>
-            </TabsList>
-            <TabsContent value="critical" className="mt-6">
-              {renderTaskTable(criticalTasks, criticalLoading, criticalPagination, setCriticalPage)}
-            </TabsContent>
-            <TabsContent value="all" className="mt-6">
-              {renderTaskTable(allTasks, allLoading, allPagination, setAllPage)}
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
+      {/* Unified Search & Filter Layout */}
+      <UnifiedSearchFilterLayout
+        searchValue={searchValue}
+        onSearchChange={setSearchValue}
+        onSearchClear={clearSearch}
+        isSearchLoading={isDebouncing}
+        searchPlaceholder="Search task number, case number, customer..."
+        hasActiveFilters={hasActiveFilters}
+        activeFilterCount={activeFilterCount}
+        onClearFilters={clearFilters}
+        filterContent={
+          <FilterGrid columns={2}>
+            {/* Priority Filter */}
+            <div className="space-y-2">
+              <Label htmlFor="priority">Priority</Label>
+              <Select
+                value={activeFilters.priority || 'all'}
+                onValueChange={(value) => setFilter('priority', value === 'all' ? undefined : value)}
+              >
+                <SelectTrigger id="priority">
+                  <SelectValue placeholder="All priorities" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Priorities</SelectItem>
+                  <SelectItem value="URGENT">Urgent</SelectItem>
+                  <SelectItem value="HIGH">High</SelectItem>
+                  <SelectItem value="MEDIUM">Medium</SelectItem>
+                  <SelectItem value="LOW">Low</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Status Filter */}
+            <div className="space-y-2">
+              <Label htmlFor="status">Status</Label>
+              <Select
+                value={activeFilters.status || 'all'}
+                onValueChange={(value) => setFilter('status', value === 'all' ? undefined : value)}
+              >
+                <SelectTrigger id="status">
+                  <SelectValue placeholder="All statuses" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="PENDING">Pending</SelectItem>
+                  <SelectItem value="ASSIGNED">Assigned</SelectItem>
+                  <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </FilterGrid>
+        }
+        actions={
+          <Button
+            variant="outline"
+            onClick={handleRefresh}
+            disabled={criticalLoading || allLoading}
+          >
+            <RefreshCw className={cn("h-4 w-4 mr-2", (criticalLoading || allLoading) && "animate-spin")} />
+            Refresh
+          </Button>
+        }
+      >
+        <Card>
+          <CardHeader>
+            <CardTitle>Overdue Tasks</CardTitle>
+            <CardDescription>View and manage tasks that have exceeded their turnaround time</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'critical' | 'all')}>
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="critical" className="flex items-center space-x-2">
+                  <AlertTriangle className="h-4 w-4" />
+                  <span>Critical Overdue (&gt;1 Day)</span>
+                </TabsTrigger>
+                <TabsTrigger value="all" className="flex items-center space-x-2">
+                  <Clock className="h-4 w-4" />
+                  <span>All Overdue Tasks (&gt;2 Days)</span>
+                </TabsTrigger>
+              </TabsList>
+              <TabsContent value="critical" className="mt-6">
+                {renderTaskTable(criticalTasks, criticalLoading, criticalPagination, setCriticalPage)}
+              </TabsContent>
+              <TabsContent value="all" className="mt-6">
+                {renderTaskTable(allTasks, allLoading, allPagination, setAllPage)}
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+        </Card>
+      </UnifiedSearchFilterLayout>
     </div>
   );
 };
-

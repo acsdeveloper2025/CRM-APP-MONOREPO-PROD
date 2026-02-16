@@ -2,7 +2,7 @@ import { BaseEntity } from './index';
 import { DocumentType } from './documentType';
 import type { Product } from './product';
 
-export type { DocumentType };
+export type { DocumentType, Product };
 
 export interface Client extends Omit<BaseEntity, 'id'> {
   id: number; // Numeric ID for clients (SERIAL)
