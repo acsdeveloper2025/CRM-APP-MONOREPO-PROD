@@ -963,16 +963,10 @@ export const getDesignations = async (req: AuthenticatedRequest, res: Response) 
 // GET /api/users/activities - Get user activity logs
 export const getUserActivities = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const {
-      page = 1,
-      limit = 20,
-      search,
-      userId,
-      fromDate,
-      toDate,
-    } = req.query;
+    const { page = 1, limit = 20, search, userId, fromDate, toDate } = req.query;
+    const { Role } = await import('@/types/auth');
 
-    const isAdmin = req.user?.role === 'SUPER_ADMIN' || req.user?.role === 'ADMIN';
+    const isAdmin = req.user?.role === Role.SUPER_ADMIN || req.user?.role === Role.ADMIN;
     const targetUserId = isAdmin ? (userId as string) : req.user?.id;
 
     // Build query conditions
@@ -1055,7 +1049,12 @@ export const getUserSessions = async (req: AuthenticatedRequest, res: Response) 
   try {
     const { userId } = req.query;
 
-    const isAdmin = req.user?.role === 'SUPER_ADMIN' || req.user?.role === 'ADMIN' || req.user?.role === 'BACKEND_USER';
+    const { Role } = await import('@/types/auth');
+
+    const isAdmin =
+      req.user?.role === Role.SUPER_ADMIN ||
+      req.user?.role === Role.ADMIN ||
+      req.user?.role === Role.BACKEND_USER;
     const targetUserId = isAdmin ? (userId as string) : req.user?.id;
 
     // We only filter by targetUserId if provided (for Admin) or enforced (for regular user)
@@ -1093,7 +1092,8 @@ export const getUserSessions = async (req: AuthenticatedRequest, res: Response) 
     res.json({
       success: true,
       data: result.rows,
-      message: result.rows.length > 0 ? 'Sessions retrieved successfully' : 'No active sessions found',
+      message:
+        result.rows.length > 0 ? 'Sessions retrieved successfully' : 'No active sessions found',
     });
   } catch (error) {
     logger.error('Error fetching user sessions:', error);
@@ -2014,13 +2014,27 @@ export const exportUsers = async (req: AuthenticatedRequest, res: Response) => {
       worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
 
       // Add data rows
-      users.forEach((user: any) => {
-        worksheet.addRow({
-          ...user,
-          isActive: user.isActive ? 'Active' : 'Inactive',
-          createdAt: user.createdAt ? new Date(user.createdAt).toLocaleString() : '',
-        });
-      });
+      users.forEach(
+        (user: {
+          id: string;
+          name: string;
+          username: string;
+          email: string;
+          role: string;
+          isActive: boolean;
+          createdAt: string;
+          roleName?: string;
+          departmentName?: string;
+          employeeId?: string;
+          phone?: string;
+        }) => {
+          worksheet.addRow({
+            ...user,
+            isActive: user.isActive ? 'Active' : 'Inactive',
+            createdAt: user.createdAt ? new Date(user.createdAt).toLocaleString() : '',
+          });
+        }
+      );
 
       // Generate buffer
       const buffer = await workbook.xlsx.writeBuffer();
@@ -2037,24 +2051,49 @@ export const exportUsers = async (req: AuthenticatedRequest, res: Response) => {
       res.send(buffer);
     } else {
       // Default to CSV
-      const headers = ['ID', 'Name', 'Username', 'Email', 'Role', 'Department', 'Employee ID', 'Phone', 'Status', 'Created At'];
+      const headers = [
+        'ID',
+        'Name',
+        'Username',
+        'Email',
+        'Role',
+        'Department',
+        'Employee ID',
+        'Phone',
+        'Status',
+        'Created At',
+      ];
       const csvRows = [headers.join(',')];
 
-      users.forEach((user: any) => {
-        const row = [
-          user.id,
-          `"${user.name || ''}"`,
-          user.username,
-          user.email,
-          user.roleName || user.role,
-          `"${user.departmentName || ''}"`,
-          user.employeeId || '',
-          user.phone || '',
-          user.isActive ? 'Active' : 'Inactive',
-          user.createdAt ? new Date(user.createdAt).toISOString() : '',
-        ];
-        csvRows.push(row.join(','));
-      });
+      users.forEach(
+        (user: {
+          id: string;
+          name: string;
+          username: string;
+          email: string;
+          role: string;
+          isActive: boolean;
+          createdAt: string;
+          roleName?: string;
+          departmentName?: string;
+          employeeId?: string;
+          phone?: string;
+        }) => {
+          const row = [
+            user.id,
+            `"${user.name || ''}"`,
+            user.username,
+            user.email,
+            user.roleName || user.role,
+            `"${user.departmentName || ''}"`,
+            user.employeeId || '',
+            user.phone || '',
+            user.isActive ? 'Active' : 'Inactive',
+            user.createdAt ? new Date(user.createdAt).toISOString() : '',
+          ];
+          csvRows.push(row.join(','));
+        }
+      );
 
       res.setHeader('Content-Type', 'text/csv');
       res.setHeader(
@@ -2093,7 +2132,11 @@ export const downloadUserTemplate = async (req: AuthenticatedRequest, res: Respo
       { header: 'Name*', key: 'name', width: 25 },
       { header: 'Username*', key: 'username', width: 20 },
       { header: 'Email*', key: 'email', width: 30 },
-      { header: 'Role* (SUPER_ADMIN, ADMIN, BACKEND_USER, FIELD_AGENT, MANAGER)', key: 'role', width: 40 },
+      {
+        header: 'Role* (SUPER_ADMIN, ADMIN, BACKEND_USER, FIELD_AGENT, MANAGER)',
+        key: 'role',
+        width: 40,
+      },
       { header: 'Employee ID*', key: 'employeeId', width: 15 },
       { header: 'Phone', key: 'phone', width: 15 },
       { header: 'Department', key: 'department', width: 20 },
@@ -2130,10 +2173,7 @@ export const downloadUserTemplate = async (req: AuthenticatedRequest, res: Respo
       'Content-Type',
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     );
-    res.setHeader(
-      'Content-Disposition',
-      'attachment; filename=User_Import_Template.xlsx'
-    );
+    res.setHeader('Content-Disposition', 'attachment; filename=User_Import_Template.xlsx');
     res.send(buffer);
 
     logger.info('User import template downloaded successfully', {

@@ -33,7 +33,7 @@ export const getDashboardData = async (req: AuthenticatedRequest, res: Response)
 
     // Build filter conditions for tasks
     let taskFilterConditions = 'WHERE 1=1';
-    const taskParams: any[] = [];
+    const taskParams: (string | number)[] = [];
     let paramIndex = 1;
 
     if (clientId) {
@@ -49,7 +49,7 @@ export const getDashboardData = async (req: AuthenticatedRequest, res: Response)
     }
 
     // OPERATIONAL WORKLOAD (Task-Centric Metrics)
-    
+
     // 1. Total Tasks (Operational Workload)
     const totalTasksQuery = `
       SELECT COUNT(*) as total_tasks
@@ -121,14 +121,17 @@ export const getDashboardData = async (req: AuthenticatedRequest, res: Response)
     const inProgressCases = parseInt(inProgressCasesResult.rows[0].in_progress_cases) || 0;
 
     // MANAGEMENT SUMMARY (Case-Based Metrics)
-    
+
     // Total Cases
     const totalCasesQuery = `
       SELECT COUNT(*) as total_cases
       FROM cases
       ${clientId ? `WHERE "clientId" = $1` : ''}
     `;
-    const totalCasesResult = await pool.query(totalCasesQuery, clientId ? [parseInt(clientId as string)] : []);
+    const totalCasesResult = await pool.query(
+      totalCasesQuery,
+      clientId ? [parseInt(clientId as string)] : []
+    );
     const totalCases = parseInt(totalCasesResult.rows[0].total_cases) || 0;
 
     // Average Case TAT (in days)
@@ -140,7 +143,10 @@ export const getDashboardData = async (req: AuthenticatedRequest, res: Response)
       WHERE completed_at IS NOT NULL
       ${clientId ? `AND "clientId" = $1` : ''}
     `;
-    const avgCaseTATResult = await pool.query(avgCaseTATQuery, clientId ? [parseInt(clientId as string)] : []);
+    const avgCaseTATResult = await pool.query(
+      avgCaseTATQuery,
+      clientId ? [parseInt(clientId as string)] : []
+    );
     const avgCaseTAT = parseFloat(avgCaseTATResult.rows[0].avg_case_tat_days) || 0;
 
     // Task Breakdown
@@ -175,7 +181,8 @@ export const getDashboardData = async (req: AuthenticatedRequest, res: Response)
       managementSummary: {
         totalCases,
         averageCaseTAT: parseFloat(avgCaseTAT.toFixed(2)),
-        completionRate: totalCases > 0 ? parseFloat(((completedTasks / totalTasks) * 100).toFixed(2)) : 0,
+        completionRate:
+          totalCases > 0 ? parseFloat(((completedTasks / totalTasks) * 100).toFixed(2)) : 0,
       },
       taskBreakdown: {
         pending: parseInt(taskBreakdown.pending) || 0,
@@ -873,8 +880,8 @@ export const getOverdueTasks = async (req: AuthenticatedRequest, res: Response) 
     paramIndex++;
 
     // Add search filter
-    if (req.query.search) {
-      const search = String(req.query.search);
+    if (typeof req.query.search === 'string') {
+      const search = req.query.search;
       overdueQuery += `
         AND (
           COALESCE(c."customerName", '') ILIKE $${paramIndex} OR
@@ -889,17 +896,17 @@ export const getOverdueTasks = async (req: AuthenticatedRequest, res: Response) 
     }
 
     // Add priority filter
-    if (req.query.priority) {
+    if (typeof req.query.priority === 'string') {
       overdueQuery += ` AND vt.priority = $${paramIndex}`;
-      queryParams.push(String(req.query.priority));
+      queryParams.push(req.query.priority);
       paramIndex++;
     }
 
     // Add status filter
-    if (req.query.status) {
+    if (typeof req.query.status === 'string') {
       // split by comma if needed, but for now simple single status
       overdueQuery += ` AND vt.status = $${paramIndex}`;
-      queryParams.push(String(req.query.status));
+      queryParams.push(req.query.status);
       paramIndex++;
     }
 
@@ -942,8 +949,8 @@ export const getOverdueTasks = async (req: AuthenticatedRequest, res: Response) 
     }
 
     // Add search filter to count query
-    if (req.query.search) {
-      const search = String(req.query.search);
+    if (typeof req.query.search === 'string') {
+      const search = req.query.search;
       countQuery += `
         AND (
           COALESCE(c."customerName", '') ILIKE $${countParamIndex} OR
@@ -958,16 +965,16 @@ export const getOverdueTasks = async (req: AuthenticatedRequest, res: Response) 
     }
 
     // Add priority filter to count query
-    if (req.query.priority) {
+    if (typeof req.query.priority === 'string') {
       countQuery += ` AND vt.priority = $${countParamIndex}`;
-      countParams.push(String(req.query.priority));
+      countParams.push(req.query.priority);
       countParamIndex++;
     }
 
     // Add status filter to count query
-    if (req.query.status) {
+    if (typeof req.query.status === 'string') {
       countQuery += ` AND vt.status = $${countParamIndex}`;
-      countParams.push(String(req.query.status));
+      countParams.push(req.query.status);
       countParamIndex++;
     }
 
@@ -1123,7 +1130,7 @@ export const getSLARiskMonitoring = async (req: AuthenticatedRequest, res: Respo
 
     // Build filter conditions
     let filterConditions = '';
-    const params: any[] = [];
+    const params: (string | number | boolean)[] = [];
     let paramIndex = 1;
 
     if (clientId) {

@@ -13,40 +13,57 @@ import type { QueryParams } from '@/types/database';
 
 // Configure storage for verification attachments
 const storage = multer.diskStorage({
-  destination: async (req, file, cb) => {
-    let { caseId, taskId } = req.params;
+  destination: (req, file, cb) => {
+    const { taskId } = req.params;
+    let { caseId } = req.params;
     const verificationType = req.body.verificationType || 'verification';
 
     // Stage-2A: Resolve caseId from taskId if needed
     if (!caseId && taskId) {
-      try {
-        const taskResult = await query('SELECT case_id FROM verification_tasks WHERE id = $1', [taskId]);
-        if (taskResult.rows.length > 0) {
-          caseId = taskResult.rows[0].case_id;
+      void (async () => {
+        try {
+          const taskResult = await query('SELECT case_id FROM verification_tasks WHERE id = $1', [
+            taskId,
+          ]);
+          if (taskResult.rows.length > 0) {
+            caseId = taskResult.rows[0].case_id;
+          }
+        } catch (error) {
+          console.error('Error resolving caseId from taskId in storage:', error);
+        } finally {
+          const uploadDir = path.join(
+            process.cwd(),
+            'uploads',
+            verificationType,
+            caseId || 'unassigned'
+          );
+
+          void fs
+            .mkdir(uploadDir, { recursive: true })
+            .then(() => {
+              cb(null, uploadDir);
+            })
+            .catch(err => {
+              cb(err as Error, '');
+            });
         }
-      } catch (error) {
-        console.error('Error resolving caseId from taskId in storage:', error);
-      }
-    }
+      })();
+    } else {
+      const uploadDir = path.join(
+        process.cwd(),
+        'uploads',
+        verificationType,
+        caseId || 'unassigned'
+      );
 
-    // specific fallback or error if caseId still missing? 
-    // For now, if resolution fails, it might use 'undefined' or root. 
-    // Ideally validation happens before upload, but middleware order...
-    // We'll proceed, assuming caseId is resolved or route provides it.
-    
-    const uploadDir = path.join(
-      process.cwd(),
-      'uploads',
-      'verification',
-      verificationType.toLowerCase(),
-      caseId || 'unknown'
-    );
-
-    try {
-      await fs.mkdir(uploadDir, { recursive: true });
-      cb(null, uploadDir);
-    } catch (error) {
-      cb(error as Error, '');
+      void fs
+        .mkdir(uploadDir, { recursive: true })
+        .then(() => {
+          cb(null, uploadDir);
+        })
+        .catch(err => {
+          cb(err as Error, '');
+        });
     }
   },
   filename: (req, file, cb) => {
@@ -131,11 +148,13 @@ export class VerificationAttachmentController {
 
       const task = taskResult.rows[0];
       const targetTaskId = task.id;
-      const targetCaseId = task.case_id;         // Auto-derived from task
+      const targetCaseId = task.case_id; // Auto-derived from task
       const targetCaseNumber = task.case_number; // Auto-derived from task
       const verificationTypeToUse = verificationType || task.verification_type; // Prefer payload but fallback to task
 
-      logger.info(`🔗 Linked Attachment to Task: ${targetTaskId}, Case: ${targetCaseId}, File: ${files[0]?.originalname}`);
+      logger.info(
+        `🔗 Linked Attachment to Task: ${targetTaskId}, Case: ${targetCaseId}, File: ${files[0]?.originalname}`
+      );
 
       const uploadedAttachments: Record<string, unknown>[] = [];
 
@@ -359,7 +378,7 @@ export class VerificationAttachmentController {
             id: `case_${caseId}_img_${index}`,
             filename: img.filename || `image_${index}.jpg`,
             originalName: img.originalName || img.filename || `image_${index}.jpg`,
-            mimeType: img.mimeType || 'image/jpeg',
+            mimeType: (img.mimeType as string) || 'image/jpeg',
             size: img.size || 0,
             url: img.url || img.filePath || '',
             thumbnailUrl: img.thumbnailUrl || img.thumbnailPath || img.url || img.filePath || '',

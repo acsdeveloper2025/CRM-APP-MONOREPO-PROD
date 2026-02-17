@@ -1,8 +1,6 @@
-import rateLimit from 'express-rate-limit';
-import jwt from 'jsonwebtoken';
-import { config } from '@/config';
 import type { ApiResponse } from '@/types/api';
 import type { AuthenticatedRequest } from '@/types/auth';
+import rateLimit from 'express-rate-limit';
 
 const createRateLimiter = (
   windowMs: number,

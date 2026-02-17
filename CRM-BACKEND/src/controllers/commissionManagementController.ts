@@ -1109,7 +1109,9 @@ export const autoCalculateCommissionForTask = async (taskId: string): Promise<bo
 
     // Validate task status is COMPLETED (double-check)
     if (taskData.status !== 'COMPLETED') {
-      logger.warn(`⚠️ Task ${taskId} status is ${taskData.status}, not COMPLETED. Skipping commission.`);
+      logger.warn(
+        `⚠️ Task ${taskId} status is ${taskData.status}, not COMPLETED. Skipping commission.`
+      );
       return false;
     }
 
@@ -1205,7 +1207,9 @@ export const autoCalculateCommissionForTask = async (taskId: string): Promise<bo
 
     // Check if insert was successful or skipped due to conflict
     if (insertResult.rows.length === 0) {
-      logger.info(`ℹ️ Commission already exists for task: ${taskId}. Skipped duplicate calculation (concurrent request).`);
+      logger.info(
+        `ℹ️ Commission already exists for task: ${taskId}. Skipped duplicate calculation (concurrent request).`
+      );
       return true; // Return success - commission exists
     }
 

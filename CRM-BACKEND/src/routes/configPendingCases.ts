@@ -1,7 +1,6 @@
 import { Router } from 'express';
 import { ConfigPendingCasesController } from '@/controllers/configPendingCasesController';
-import { authenticateToken } from '@/middleware/auth';
-import { requireRole } from '@/middleware/auth';
+import { authenticateToken, requireRole } from '@/middleware/auth';
 import { Role } from '@/types/auth';
 
 const router = Router();
@@ -15,20 +14,22 @@ router.use(requireRole([Role.ADMIN, Role.MANAGER]));
  * @desc    List all cases in CONFIG_PENDING state
  * @access  Admin, Manager
  */
-router.get('/', ConfigPendingCasesController.listConfigPendingCases);
+router.get('/', (req, res) => ConfigPendingCasesController.listConfigPendingCases(req, res));
 
 /**
  * @route   GET /api/admin/config-pending-cases/:caseId
  * @desc    Get details for a specific config pending case
  * @access  Admin, Manager
  */
-router.get('/:caseId', ConfigPendingCasesController.getConfigPendingCaseDetails);
+router.get('/:caseId', (req, res) =>
+  ConfigPendingCasesController.getConfigPendingCaseDetails(req, res)
+);
 
 /**
  * @route   POST /api/admin/config-pending-cases/:caseId/retry
  * @desc    Retry processing for a quarantined case
  * @access  Admin, Manager
  */
-router.post('/:caseId/retry', ConfigPendingCasesController.retryProcessing);
+router.post('/:caseId/retry', (req, res) => ConfigPendingCasesController.retryProcessing(req, res));
 
 export default router;

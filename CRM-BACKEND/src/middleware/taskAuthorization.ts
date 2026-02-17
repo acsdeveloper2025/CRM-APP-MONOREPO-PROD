@@ -7,12 +7,12 @@ import { logger } from '@/config/logger';
 
 /**
  * Middleware to validate that the authenticated user has access to a verification task.
- * 
+ *
  * Authorization Rules:
  * - FIELD_AGENT: Can only access tasks assigned to them (assigned_to = user.id)
  * - BACKEND_USER, MANAGER: Can access all tasks
  * - ADMIN, SUPER_ADMIN: Can access all tasks
- * 
+ *
  * Returns:
  * - 404 if task not found
  * - 403 if user not authorized to access the task

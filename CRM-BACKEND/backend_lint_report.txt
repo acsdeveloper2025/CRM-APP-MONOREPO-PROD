@@ -1,0 +1,80 @@
+
+> crm-backend@1.0.0 lint
+> ESLINT_USE_FLAT_CONFIG=false eslint . --ext .ts
+
+
+/Users/mayurkulkarni/Downloads/CRM-APP-MONOREPO-PROD/CRM-BACKEND/src/controllers/authController.ts
+  389:13  error  'refreshToken' is already declared in the upper scope on line 387 column 14     @typescript-eslint/no-shadow
+  404:14  error  'err' is defined but never used. Allowed unused caught errors must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/mayurkulkarni/Downloads/CRM-APP-MONOREPO-PROD/CRM-BACKEND/src/controllers/casesController.ts
+  912:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/mayurkulkarni/Downloads/CRM-APP-MONOREPO-PROD/CRM-BACKEND/src/controllers/configPendingCasesController.ts
+  23:33  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/mayurkulkarni/Downloads/CRM-APP-MONOREPO-PROD/CRM-BACKEND/src/controllers/dashboardController.ts
+    36:23  error  Unexpected any. Specify a different type                                                                   @typescript-eslint/no-explicit-any
+   884:29  error  'req.query.search' may use Object's default stringification format ('[object Object]') when stringified    @typescript-eslint/no-base-to-string
+   901:31  error  'req.query.priority' may use Object's default stringification format ('[object Object]') when stringified  @typescript-eslint/no-base-to-string
+   909:31  error  'req.query.status' may use Object's default stringification format ('[object Object]') when stringified    @typescript-eslint/no-base-to-string
+   953:29  error  'req.query.search' may use Object's default stringification format ('[object Object]') when stringified    @typescript-eslint/no-base-to-string
+   970:31  error  'req.query.priority' may use Object's default stringification format ('[object Object]') when stringified  @typescript-eslint/no-base-to-string
+   977:31  error  'req.query.status' may use Object's default stringification format ('[object Object]') when stringified    @typescript-eslint/no-base-to-string
+  1133:19  error  Unexpected any. Specify a different type                                                                   @typescript-eslint/no-explicit-any
+
+/Users/mayurkulkarni/Downloads/CRM-APP-MONOREPO-PROD/CRM-BACKEND/src/controllers/mobileLocationController.ts
+  25:9  error  'caseId' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/mayurkulkarni/Downloads/CRM-APP-MONOREPO-PROD/CRM-BACKEND/src/controllers/usersController.ts
+   968:21  error  The two values in this comparison do not have a shared enum type  @typescript-eslint/no-unsafe-enum-comparison
+   968:57  error  The two values in this comparison do not have a shared enum type  @typescript-eslint/no-unsafe-enum-comparison
+  1052:7   error  The two values in this comparison do not have a shared enum type  @typescript-eslint/no-unsafe-enum-comparison
+  1053:7   error  The two values in this comparison do not have a shared enum type  @typescript-eslint/no-unsafe-enum-comparison
+  1054:7   error  The two values in this comparison do not have a shared enum type  @typescript-eslint/no-unsafe-enum-comparison
+  2014:28  error  Unexpected any. Specify a different type                          @typescript-eslint/no-explicit-any
+  2051:28  error  Unexpected any. Specify a different type                          @typescript-eslint/no-explicit-any
+
+/Users/mayurkulkarni/Downloads/CRM-APP-MONOREPO-PROD/CRM-BACKEND/src/controllers/verificationAttachmentController.ts
+  16:3   error  Promise-returning function provided to property where a void return was expected  @typescript-eslint/no-misused-promises
+  17:19  error  'taskId' is never reassigned. Use 'const' instead                                 prefer-const
+
+/Users/mayurkulkarni/Downloads/CRM-APP-MONOREPO-PROD/CRM-BACKEND/src/controllers/verificationTasksController.ts
+   110:29  error  'estimatedAmount' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  1646:41  error  Unexpected any. Specify a different type                                                    @typescript-eslint/no-explicit-any
+
+/Users/mayurkulkarni/Downloads/CRM-APP-MONOREPO-PROD/CRM-BACKEND/src/index.ts
+  16:1  warning  Unexpected console statement. Only these console methods are allowed: warn, error, info  no-console
+
+/Users/mayurkulkarni/Downloads/CRM-APP-MONOREPO-PROD/CRM-BACKEND/src/middleware/rateLimiter.ts
+  2:8   error  'jwt' is defined but never used. Allowed unused vars must match /^_/u     @typescript-eslint/no-unused-vars
+  3:10  error  'config' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/mayurkulkarni/Downloads/CRM-APP-MONOREPO-PROD/CRM-BACKEND/src/routes/configPendingCases.ts
+   4:1   error  '@/middleware/auth' import is duplicated                                                                                                                                                                                                                                                                                                    no-duplicate-imports
+  18:17  error  A method that is not declared with `this: void` may cause unintentional scoping of `this` when separated from its object.
+Consider using an arrow function or explicitly `.bind()`ing the method to avoid calling the method with an unintended `this` value. 
+If a function does not access `this`, it can be annotated with `this: void`  @typescript-eslint/unbound-method
+  25:24  error  A method that is not declared with `this: void` may cause unintentional scoping of `this` when separated from its object.
+Consider using an arrow function or explicitly `.bind()`ing the method to avoid calling the method with an unintended `this` value. 
+If a function does not access `this`, it can be annotated with `this: void`  @typescript-eslint/unbound-method
+  32:31  error  A method that is not declared with `this: void` may cause unintentional scoping of `this` when separated from its object.
+Consider using an arrow function or explicitly `.bind()`ing the method to avoid calling the method with an unintended `this` value. 
+If a function does not access `this`, it can be annotated with `this: void`  @typescript-eslint/unbound-method
+
+/Users/mayurkulkarni/Downloads/CRM-APP-MONOREPO-PROD/CRM-BACKEND/src/routes/mobile.ts
+  6:3  error  'mobileUpload' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/mayurkulkarni/Downloads/CRM-APP-MONOREPO-PROD/CRM-BACKEND/src/services/caseStatusSyncService.ts
+   6:34  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   6:52  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  28:40  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/mayurkulkarni/Downloads/CRM-APP-MONOREPO-PROD/CRM-BACKEND/src/services/configurationQuarantineService.ts
+  161:13  error  'taskResult' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  232:19  error  Unexpected any. Specify a different type                                               @typescript-eslint/no-explicit-any
+
+✖ 37 problems (36 errors, 1 warning)
+
+(node:65795) ESLintRCWarning: You are using an eslintrc configuration file, which is deprecated and support will be removed in v10.0.0. Please migrate to an eslint.config.js file. See https://eslint.org/docs/latest/use/configure/migration-guide for details. An eslintrc configuration file is used because you have the ESLINT_USE_FLAT_CONFIG environment variable set to false. If you want to use an eslint.config.js file, remove the environment variable. If you want to find the location of the eslintrc configuration file, use the --debug flag.
+(Use `node --trace-warnings ...` to show where the warning was created)

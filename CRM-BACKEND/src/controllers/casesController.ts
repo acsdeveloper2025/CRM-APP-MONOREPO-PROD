@@ -907,9 +907,9 @@ export const updateCase = async (req: AuthenticatedRequest, res: Response) => {
       // If we are updating address or rateTypeId, we MUST check if the target task is locked
       if (rateTypeId !== undefined || address !== undefined) {
         const targetTaskId = taskId; // Should be provided, but might check case_id if not
-        
+
         let lockCheckQuery = '';
-        let lockCheckParams: any[] = [];
+        let lockCheckParams: (string | number)[] = [];
 
         if (targetTaskId) {
           lockCheckQuery = 'SELECT status, started_at FROM verification_tasks WHERE id = $1';
@@ -917,35 +917,36 @@ export const updateCase = async (req: AuthenticatedRequest, res: Response) => {
         } else {
           // If no taskId, we check ALL tasks for this case (risky, but safe default)
           lockCheckQuery = 'SELECT status, started_at FROM verification_tasks WHERE case_id = $1';
-          lockCheckParams = [id]; // id is likely UUID here based on previous code, but let's be careful. 
-          // Actually updateCase uses `id` from params which is sometimes caseId (int) or uuid. 
+          lockCheckParams = [id]; // id is likely UUID here based on previous code, but let's be careful.
+          // Actually updateCase uses `id` from params which is sometimes caseId (int) or uuid.
           // The helper above `actualCaseId` logic isn't here, updateCase relies on what it gets.
           // However, line 884 uses `id` directly.
-          // Wait, casesController updateCase usually takes UUID or handles it. 
+          // Wait, casesController updateCase usually takes UUID or handles it.
           // Looking at line 879: `values.push(id)`.
         }
 
         const lockCheckResult = await pool.query(lockCheckQuery, lockCheckParams);
-        
-        const hasLockedTask = lockCheckResult.rows.some(t => 
-          t.status === 'IN_PROGRESS' || 
-          t.status === 'COMPLETED' || 
-          t.status === 'REVOKED' || 
-          t.started_at !== null
+
+        const hasLockedTask = lockCheckResult.rows.some(
+          t =>
+            t.status === 'IN_PROGRESS' ||
+            t.status === 'COMPLETED' ||
+            t.status === 'REVOKED' ||
+            t.started_at !== null
         );
 
         if (hasLockedTask) {
           logger.warn('⚠️ Rejected Case update due to locked operational fields', {
-             caseId: id,
-             taskId,
-             userId: req.user?.id,
-             attemptedFields: { rateTypeId, address }
+            caseId: id,
+            taskId,
+            userId: req.user?.id,
+            attemptedFields: { rateTypeId, address },
           });
-          
+
           return res.status(409).json({
             success: false,
             message: 'Verification already started. Task data cannot be modified.',
-            error: { code: 'TASK_LOCKED' }
+            error: { code: 'TASK_LOCKED' },
           });
         }
       }
