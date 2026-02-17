@@ -22,7 +22,7 @@ export class MobileLocationController {
         accuracy,
         timestamp,
         source,
-        caseId,
+        caseId: _caseId,
         taskId, // Stage-2: Dual Write
         activityType,
       }: MobileLocationCaptureRequest = req.body;
@@ -67,7 +67,7 @@ export class MobileLocationController {
       // ----------------------------------------------------------------------
       // STAGE-2B STRICT DUAL WRITE LOGIC
       // ----------------------------------------------------------------------
-      
+
       // 1. Validate Task and User Assignment
       const taskResult = await query(
         `SELECT vt.id, vt.case_id, c."caseId" as case_number, vt.assigned_to
@@ -125,14 +125,14 @@ export class MobileLocationController {
          )
          RETURNING id, "recordedAt" as timestamp`,
         [
-          targetCaseNumber, 
-          targetCaseId, 
-          targetTaskId, 
-          latitude, 
-          longitude, 
-          accuracy, 
-          new Date(timestamp), 
-          userId // recordedBy
+          targetCaseNumber,
+          targetCaseId,
+          targetTaskId,
+          latitude,
+          longitude,
+          accuracy,
+          new Date(timestamp),
+          userId, // recordedBy
         ]
       );
       const locationRecord = locRes.rows[0];

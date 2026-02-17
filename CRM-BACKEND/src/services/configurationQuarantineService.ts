@@ -7,15 +7,15 @@ import { FinancialConfigErrorCode } from './financialConfigurationValidator';
  * Request Source Types
  */
 export enum RequestSource {
-  MANUAL_UI = 'MANUAL_UI',           // User creating case via frontend
+  MANUAL_UI = 'MANUAL_UI', // User creating case via frontend
   API_INTEGRATION = 'API_INTEGRATION', // External API calls
-  BULK_UPLOAD = 'BULK_UPLOAD',       // CSV/Excel bulk import
+  BULK_UPLOAD = 'BULK_UPLOAD', // CSV/Excel bulk import
   EXTERNAL_INGESTION = 'EXTERNAL_INGESTION', // Bank API, webhooks, etc.
 }
 
 /**
  * Configuration Quarantine Service
- * 
+ *
  * Handles cases that fail financial configuration validation during bulk operations.
  * Instead of rejecting the entire batch, quarantines individual cases for admin review.
  */
@@ -108,10 +108,9 @@ export const configurationQuarantineService = {
       // Resolve pincode ID
       let pincodeId: number | null = null;
       if (caseData.pincode) {
-        const pinRes = await client.query(
-          'SELECT id FROM pincodes WHERE code = $1',
-          [caseData.pincode.toString()]
-        );
+        const pinRes = await client.query('SELECT id FROM pincodes WHERE code = $1', [
+          caseData.pincode.toString(),
+        ]);
         if (pinRes.rows[0]) {
           pincodeId = pinRes.rows[0].id;
         }
@@ -159,7 +158,7 @@ export const configurationQuarantineService = {
       };
 
       // Insert verification task
-      const taskResult = await client.query(
+      const _taskResult = await client.query(
         `INSERT INTO verification_tasks (
           case_id, verification_type_id, task_title, task_description,
           priority, rate_type_id, estimated_amount, pincode,
@@ -224,13 +223,14 @@ export const configurationQuarantineService = {
     limit?: number;
     clientId?: number;
     errorCode?: FinancialConfigErrorCode;
+    search?: string;
   }) => {
     const page = filters?.page || 1;
     const limit = filters?.limit || 50;
     const offset = (page - 1) * limit;
 
     const conditions: string[] = ["c.status = 'CONFIG_PENDING'"];
-    const params: any[] = [];
+    const params: (string | number | boolean | null | undefined)[] = [];
     let paramIndex = 1;
 
     if (filters?.clientId) {
@@ -242,6 +242,14 @@ export const configurationQuarantineService = {
     if (filters?.errorCode) {
       conditions.push(`cce.error_code = $${paramIndex}`);
       params.push(filters.errorCode);
+      paramIndex++;
+    }
+
+    if (filters?.search) {
+      conditions.push(
+        `(c."customerName" ILIKE $${paramIndex} OR c."caseId"::text ILIKE $${paramIndex})`
+      );
+      params.push(`%${filters.search}%`);
       paramIndex++;
     }
 

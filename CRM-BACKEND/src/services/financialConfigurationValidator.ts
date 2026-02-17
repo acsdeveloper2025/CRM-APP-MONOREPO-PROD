@@ -24,18 +24,18 @@ export interface FinancialConfigValidationResult {
 
 /**
  * Financial Configuration Validator
- * 
+ *
  * Validates the complete financial configuration chain before task creation:
  * 1. Service Zone Rules → serviceZoneId
  * 2. Zone-Rate Mapping → rateTypeId
  * 3. Rates Table → amount
- * 
+ *
  * NO FALLBACKS. NO DEFAULTS. Strict validation only.
  */
 export const financialConfigurationValidator = {
   /**
    * Validate complete financial configuration for a task.
-   * 
+   *
    * @throws Never - Returns validation result with error details instead
    * @returns FinancialConfigValidationResult
    */
@@ -59,7 +59,8 @@ export const financialConfigurationValidator = {
         return {
           isValid: false,
           errorCode: FinancialConfigErrorCode.CONFIG_SERVICE_ZONE_MISSING,
-          errorMessage: 'Service configuration missing for selected pincode/area. Service zone rule not defined.',
+          errorMessage:
+            'Service configuration missing for selected pincode/area. Service zone rule not defined.',
         };
       }
 
@@ -75,7 +76,8 @@ export const financialConfigurationValidator = {
         return {
           isValid: false,
           errorCode: FinancialConfigErrorCode.CONFIG_RATE_MAPPING_MISSING,
-          errorMessage: 'Service configuration missing for selected pincode/area. Billing rule not defined.',
+          errorMessage:
+            'Service configuration missing for selected pincode/area. Billing rule not defined.',
         };
       }
 
@@ -91,7 +93,8 @@ export const financialConfigurationValidator = {
         return {
           isValid: false,
           errorCode: FinancialConfigErrorCode.CONFIG_RATE_AMOUNT_MISSING,
-          errorMessage: 'Service configuration missing for selected pincode/area. Billing amount not defined.',
+          errorMessage:
+            'Service configuration missing for selected pincode/area. Billing amount not defined.',
         };
       }
 

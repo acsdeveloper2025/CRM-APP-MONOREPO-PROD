@@ -386,9 +386,9 @@ export const getCurrentUser = async (req: AuthenticatedRequest, res: Response): 
 
 export const refreshToken = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { refreshToken } = req.body;
+    const { refreshToken: token } = req.body;
 
-    if (!refreshToken) {
+    if (!token) {
       res.status(400).json({
         success: false,
         message: 'Refresh token is required',
@@ -400,8 +400,8 @@ export const refreshToken = async (req: Request, res: Response): Promise<void> =
     // Verify token signature
     let decoded: RefreshTokenPayload;
     try {
-      decoded = jwt.verify(refreshToken, config.jwtRefreshSecret) as RefreshTokenPayload;
-    } catch (err) {
+      decoded = jwt.verify(token, config.jwtRefreshSecret) as RefreshTokenPayload;
+    } catch (_err) {
       res.status(401).json({
         success: false,
         message: 'Invalid refresh token signature',
@@ -411,7 +411,7 @@ export const refreshToken = async (req: Request, res: Response): Promise<void> =
     }
 
     // Hash incoming token to find in DB
-    const tokenHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
 
     // Check DB for valid, non-expired token
     const result = await query(

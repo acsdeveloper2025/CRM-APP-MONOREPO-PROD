@@ -305,17 +305,9 @@ router.get(
 );
 
 // Export users route
-router.post(
-    '/export',
-    authenticateToken,
-    exportUsers
-);
+router.post('/export', authenticateToken, exportUsers);
 
-router.get(
-    '/import-template',
-    authenticateToken,
-    downloadUserTemplate
-);
+router.get('/import-template', authenticateToken, downloadUserTemplate);
 
 // Get available field agents filtered by territory (must come before /stats)
 router.get('/field-agents/available', authenticateToken, getAvailableFieldAgents);
