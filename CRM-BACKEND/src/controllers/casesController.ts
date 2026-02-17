@@ -86,20 +86,26 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
   const startTime = Date.now();
 
   try {
-    const {
-      page = 1,
-      limit = 50, // Increased default limit for enterprise
-      sortBy = 'updatedAt',
-      sortOrder = 'desc',
-      status,
-      search,
-      assignedTo,
-      clientId,
-      priority,
-      dateFrom,
-      dateTo,
-      useCache = 'true', // Allow cache bypass for real-time needs
-    } = req.query;
+    const page = Number(Array.isArray(req.query.page) ? req.query.page[0] : req.query.page || 1);
+    const limit = Number(
+      Array.isArray(req.query.limit) ? req.query.limit[0] : req.query.limit || 50
+    );
+    const sortBy = (
+      Array.isArray(req.query.sortBy) ? req.query.sortBy[0] : req.query.sortBy || 'updatedAt'
+    ) as string;
+    const sortOrder = (
+      Array.isArray(req.query.sortOrder) ? req.query.sortOrder[0] : req.query.sortOrder || 'desc'
+    ) as string;
+    const status = req.query.status as string;
+    const search = req.query.search as string;
+    const assignedTo = req.query.assignedTo as string;
+    const clientId = req.query.clientId as string;
+    const priority = req.query.priority as string;
+    const dateFrom = req.query.dateFrom as string;
+    const dateTo = req.query.dateTo as string;
+    const useCache = (
+      Array.isArray(req.query.useCache) ? req.query.useCache[0] : req.query.useCache || 'true'
+    ) as string;
 
     // Enterprise cache key generation
     const cacheKey = `${CacheKeys.userCases(
@@ -218,14 +224,14 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
         WHERE vt.case_id = c.id
         AND vt.assigned_to = $${paramIndex}
       )`);
-      params.push(assignedTo as string);
+      params.push(assignedTo);
       paramIndex++;
     }
 
     // Status filter
     if (status) {
       conditions.push(`c.status = $${paramIndex}`);
-      params.push(status as string);
+      params.push(status);
       paramIndex++;
     }
 
@@ -251,27 +257,27 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
     // Client filter
     if (clientId) {
       conditions.push(`c."clientId" = $${paramIndex}`);
-      params.push(parseInt(clientId as string));
+      params.push(parseInt(clientId));
       paramIndex++;
     }
 
     // Priority filter
     if (priority) {
       conditions.push(`c.priority = $${paramIndex}`);
-      params.push(priority as string);
+      params.push(priority);
       paramIndex++;
     }
 
     // Date range filter
     if (dateFrom) {
       conditions.push(`c."createdAt" >= $${paramIndex}`);
-      params.push(dateFrom as string);
+      params.push(dateFrom);
       paramIndex++;
     }
 
     if (dateTo) {
       conditions.push(`c."createdAt" <= $${paramIndex}`);
-      params.push(dateTo as string);
+      params.push(dateTo);
       paramIndex++;
     }
 
@@ -289,7 +295,7 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
       'completedAt',
       'pendingDuration',
     ];
-    let safeSortBy = allowedSortColumns.includes(sortBy as string) ? sortBy : 'caseId';
+    let safeSortBy = allowedSortColumns.includes(sortBy) ? sortBy : 'caseId';
     let safeSortOrder = sortOrder === 'asc' ? 'ASC' : 'DESC';
 
     // Custom sorting logic based on status filter
@@ -312,7 +318,7 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
     }
 
     // Calculate offset
-    const offset = (parseInt(page as string) - 1) * parseInt(limit as string);
+    const offset = (Number(page) - 1) * Number(limit);
 
     // Get total count
     const countQuery = `
@@ -407,7 +413,7 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `;
 
-    params.push(parseInt(limit as string), offset);
+    params.push(Number(limit), offset);
 
     // Execute query with performance monitoring
     const queryStartTime = Date.now();
@@ -415,7 +421,7 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
     const queryTime = Date.now() - queryStartTime;
 
     // Calculate pagination info
-    const totalPages = Math.ceil(total / parseInt(limit as string));
+    const totalPages = Math.ceil(total / Number(limit));
 
     // Transform data to match frontend expectations
     const transformedData = casesResult.rows.map((row: CaseRow & Record<string, unknown>) => ({
@@ -470,8 +476,8 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
       success: true,
       data: transformedData,
       pagination: {
-        page: parseInt(page as string),
-        limit: parseInt(limit as string),
+        page: Number(page),
+        limit: Number(limit),
         total,
         totalPages,
       },
@@ -523,7 +529,8 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
 // GET /api/cases/:id - Get case by ID
 export const getCaseById = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { id } = req.params;
+    const rawId = req.params.id;
+    const id = Array.isArray(rawId) ? String(rawId[0]) : String(rawId || '');
     logger.info(`getCaseById called with id: ${id}`);
 
     // Check if id is numeric (caseId) or UUID (id)
@@ -768,7 +775,8 @@ export const getCaseById = async (req: AuthenticatedRequest, res: Response) => {
 // PUT /api/cases/:id - Update case
 export const updateCase = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { id } = req.params;
+    const rawId = req.params.id;
+    const id = Array.isArray(rawId) ? String(rawId[0]) : String(rawId || '');
     const {
       customerName,
       customerPhone,
@@ -1057,7 +1065,8 @@ export const updateCase = async (req: AuthenticatedRequest, res: Response) => {
 
 export const assignCase = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { id } = req.params;
+    const rawId = req.params.id;
+    const id = Array.isArray(rawId) ? String(rawId[0]) : String(rawId || '');
     const { assignedToId, reason } = req.body;
 
     // Import the service here to avoid circular dependencies
@@ -1157,7 +1166,8 @@ export const bulkAssignCases = async (req: AuthenticatedRequest, res: Response) 
 // GET /api/cases/bulk/assign/:batchId/status - Get bulk assignment status
 export const getBulkAssignmentStatus = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { batchId } = req.params;
+    const rawBatchId = req.params.batchId;
+    const batchId = Array.isArray(rawBatchId) ? String(rawBatchId[0]) : String(rawBatchId || '');
 
     // Import the service here to avoid circular dependencies
     const { CaseAssignmentService } = await import('../services/caseAssignmentService');
@@ -1190,7 +1200,8 @@ export const getBulkAssignmentStatus = async (req: AuthenticatedRequest, res: Re
 // POST /api/cases/:id/reassign - Reassign case to another field agent
 export const reassignCase = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { id } = req.params;
+    const rawId = req.params.id;
+    const id = Array.isArray(rawId) ? String(rawId[0]) : String(rawId || '');
     const { fromUserId, toUserId, reason } = req.body;
 
     if (!fromUserId || !toUserId || !reason) {
@@ -1239,7 +1250,8 @@ export const reassignCase = async (req: AuthenticatedRequest, res: Response) => 
 // GET /api/cases/:id/assignment-history - Get case assignment history
 export const getCaseAssignmentHistory = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { id } = req.params;
+    const rawId = req.params.id;
+    const id = Array.isArray(rawId) ? String(rawId[0]) : String(rawId || '');
 
     // Import the service here to avoid circular dependencies
     const { CaseAssignmentService } = await import('../services/caseAssignmentService');
@@ -1613,7 +1625,8 @@ export const exportCases = async (req: AuthenticatedRequest, res: Response) => {
  * GET /api/cases/:caseId/summary
  */
 export const getCaseSummaryWithTasks = async (req: AuthenticatedRequest, res: Response) => {
-  const { caseId } = req.params;
+  const rawCaseId = req.params.caseId;
+  const caseId = Array.isArray(rawCaseId) ? String(rawCaseId[0]) : String(rawCaseId || '');
 
   try {
     // Get case information

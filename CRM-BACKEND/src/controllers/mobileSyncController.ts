@@ -223,10 +223,11 @@ export class MobileSyncController {
     try {
       const userId = req.user?.id;
       const userRole = req.user?.role;
-      const { lastSyncTimestamp, limit = config.mobile.syncBatchSize } = req.query;
+      const lastSyncTimestamp = (req.query.lastSyncTimestamp as unknown as string) || '';
+      const limit = Number(req.query.limit) || config.mobile.syncBatchSize;
 
       const syncTimestamp = lastSyncTimestamp
-        ? new Date(lastSyncTimestamp as string)
+        ? new Date(lastSyncTimestamp)
         : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000); // 30 days ago
 
       // Get updated cases
@@ -388,7 +389,7 @@ export class MobileSyncController {
   static async getSyncStatus(this: void, req: AuthenticatedRequest, res: Response) {
     try {
       const userId = req.user?.id;
-      const deviceId = req.headers['x-device-id'] as string;
+      const deviceId = String(req.headers['x-device-id'] || '');
 
       const devRes = await query(
         `SELECT * FROM devices WHERE "userId" = $1 AND "deviceId" = $2 LIMIT 1`,

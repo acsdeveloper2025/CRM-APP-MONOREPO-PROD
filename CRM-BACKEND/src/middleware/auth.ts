@@ -51,7 +51,8 @@ export const authenticateToken = (
   res: Response,
   next: NextFunction
 ): void => {
-  const authHeader = req.headers.authorization;
+  const rawAuthHeader = req.headers.authorization;
+  const authHeader = Array.isArray(rawAuthHeader) ? rawAuthHeader[0] : rawAuthHeader;
   const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
 
   if (!token) {
@@ -76,7 +77,8 @@ export const authenticateTokenFlexible = (
   next: NextFunction
 ): void => {
   // Try Authorization header first
-  const authHeader = req.headers.authorization;
+  const rawAuthHeader = req.headers.authorization;
+  const authHeader = Array.isArray(rawAuthHeader) ? rawAuthHeader[0] : rawAuthHeader;
   let token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
 
   // If no header token, try query parameter (for image serving)

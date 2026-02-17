@@ -115,7 +115,8 @@ export class MobileAttachmentController {
   // Upload files for mobile app
   static async uploadFiles(this: void, req: AuthenticatedRequest, res: Response) {
     try {
-      const { caseId: paramCaseId, taskId: paramTaskId } = req.params;
+      const paramCaseId = String(req.params.caseId || '');
+      const paramTaskId = String(req.params.taskId || '');
       const caseId = paramCaseId || paramTaskId;
       const userId = req.user?.id;
       const userRole = req.user?.role;
@@ -328,7 +329,8 @@ export class MobileAttachmentController {
   // Get attachments for a case
   static async getCaseAttachments(this: void, req: AuthenticatedRequest, res: Response) {
     try {
-      const { caseId: paramCaseId, taskId: paramTaskId } = req.params;
+      const paramCaseId = String(req.params.caseId || '');
+      const paramTaskId = String(req.params.taskId || '');
       const caseId = paramCaseId || paramTaskId;
       const userId = req.user?.id;
       const userRole = req.user?.role;
@@ -504,7 +506,7 @@ export class MobileAttachmentController {
   // Get attachment content
   static async getAttachmentContent(this: void, req: AuthenticatedRequest, res: Response) {
     try {
-      const { attachmentId } = req.params;
+      const attachmentId = String(req.params.attachmentId || '');
       const userId = req.user?.id;
       const userRole = req.user?.role;
 
@@ -621,7 +623,7 @@ export class MobileAttachmentController {
       assignedTo?: string;
     };
     try {
-      const { attachmentId } = req.params;
+      const attachmentId = String(req.params.attachmentId || '');
       const userId = req.user?.id;
       const userRole = req.user?.role;
 

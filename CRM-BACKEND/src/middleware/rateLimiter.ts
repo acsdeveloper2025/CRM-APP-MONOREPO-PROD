@@ -32,7 +32,8 @@ const createRateLimiter = (
     // We removed the blanket 'skip' for authenticated users to ensure all activity is capped
     skip: (req: AuthenticatedRequest) => {
       // Still skip for dev-token to avoid blocking local development tests
-      const authHeader = req.headers.authorization;
+      const rawAuthHeader = req.headers.authorization;
+      const authHeader = Array.isArray(rawAuthHeader) ? rawAuthHeader[0] : rawAuthHeader;
       return authHeader === 'Bearer dev-token';
     },
   });

@@ -10,7 +10,7 @@ import { EnterpriseCacheService, CacheKeys } from '../services/enterpriseCacheSe
  */
 export const getUserTerritoryAssignments = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { userId } = req.params;
+    const userId = String(req.params.userId || '');
 
     // Fetch pincode assignments with areas
     const result = await query(
@@ -77,7 +77,7 @@ export const bulkSaveTerritoryAssignments = async (req: AuthenticatedRequest, re
   const client = await pool.connect();
 
   try {
-    const { userId } = req.params;
+    const userId = String(req.params.userId || '');
     const { assignments } = req.body;
     const assignedBy = req.user.id;
 

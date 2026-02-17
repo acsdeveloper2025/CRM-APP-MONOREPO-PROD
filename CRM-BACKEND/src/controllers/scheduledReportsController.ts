@@ -124,7 +124,7 @@ export const getScheduledReports = async (req: AuthenticatedRequest, res: Respon
 // Get a specific scheduled report
 export const getScheduledReport = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = String(req.params.id || '');
     const scheduledReportsService = ScheduledReportsService.getInstance();
 
     const reports = await scheduledReportsService.getScheduledReports();
@@ -162,7 +162,7 @@ export const getScheduledReport = async (req: AuthenticatedRequest, res: Respons
 // Update a scheduled report
 export const updateScheduledReport = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = String(req.params.id || '');
     const updates = req.body;
 
     const scheduledReportsService = ScheduledReportsService.getInstance();
@@ -234,7 +234,7 @@ export const updateScheduledReport = async (req: AuthenticatedRequest, res: Resp
 // Delete a scheduled report
 export const deleteScheduledReport = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = String(req.params.id || '');
     const scheduledReportsService = ScheduledReportsService.getInstance();
 
     // Check if report exists and user has permission
@@ -276,7 +276,7 @@ export const deleteScheduledReport = async (req: AuthenticatedRequest, res: Resp
 // Toggle scheduled report active status
 export const toggleScheduledReport = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = String(req.params.id || '');
     const { isActive } = req.body;
 
     if (typeof isActive !== 'boolean') {
@@ -330,8 +330,13 @@ export const toggleScheduledReport = async (req: AuthenticatedRequest, res: Resp
 // Get scheduled report execution history
 export const getScheduledReportHistory = (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { id } = req.params;
-    const { limit = 50, offset = 0 } = req.query;
+    const id = String(req.params.id || '');
+    const limit = Number(
+      Array.isArray(req.query.limit) ? req.query.limit[0] : req.query.limit || 50
+    );
+    const offset = Number(
+      Array.isArray(req.query.offset) ? req.query.offset[0] : req.query.offset || 0
+    );
 
     // This would typically come from a database table tracking executions
     // For now, return mock data
@@ -374,8 +379,8 @@ export const getScheduledReportHistory = (req: AuthenticatedRequest, res: Respon
         history: mockHistory,
         pagination: {
           total: mockHistory.length,
-          limit: parseInt(limit as string),
-          offset: parseInt(offset as string),
+          limit,
+          offset,
         },
       },
     });
@@ -392,7 +397,7 @@ export const getScheduledReportHistory = (req: AuthenticatedRequest, res: Respon
 // Test scheduled report (execute immediately)
 export const testScheduledReport = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = String(req.params.id || '');
     const scheduledReportsService = ScheduledReportsService.getInstance();
 
     // Check if report exists and user has permission

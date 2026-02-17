@@ -67,11 +67,15 @@ export const validateAreaAccess = (source: 'params' | 'body' | 'query' = 'params
       // Get the area ID from the specified source
       let areaId: number | undefined;
       if (source === 'params') {
-        areaId = req.params.areaId ? parseInt(req.params.areaId) : undefined;
+        const rawId = req.params.areaId as unknown as string;
+        areaId = rawId ? parseInt(Array.isArray(rawId) ? (rawId[0] as string) : rawId) : undefined;
       } else if (source === 'body') {
         areaId = req.body.areaId ? parseInt(req.body.areaId) : undefined;
       } else if (source === 'query') {
-        areaId = req.query.areaId ? parseInt(req.query.areaId as string) : undefined;
+        const rawId = req.query.areaId;
+        areaId = rawId
+          ? parseInt(Array.isArray(rawId) ? (rawId[0] as string) : (rawId as string))
+          : undefined;
       }
 
       // If no area ID is provided, let the request continue

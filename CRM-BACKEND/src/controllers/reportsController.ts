@@ -61,16 +61,18 @@ interface DashboardSummaryRow {
 // GET /api/reports/form-submissions - Get all form submissions with analytics
 export const getFormSubmissions = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const {
-      formType,
-      dateFrom,
-      dateTo,
-      agentId,
-      validationStatus,
-      caseId,
-      limit = 100,
-      offset = 0,
-    } = req.query;
+    const formType = (req.query.formType as unknown as string) || '';
+    const dateFrom = (req.query.dateFrom as unknown as string) || '';
+    const dateTo = (req.query.dateTo as unknown as string) || '';
+    const agentId = (req.query.agentId as unknown as string) || '';
+    const validationStatus = (req.query.validationStatus as unknown as string) || '';
+    const caseId = (req.query.caseId as unknown as string) || '';
+    const limit = Number(
+      Array.isArray(req.query.limit) ? req.query.limit[0] : req.query.limit || 100
+    );
+    const offset = Number(
+      Array.isArray(req.query.offset) ? req.query.offset[0] : req.query.offset || 0
+    );
 
     // Build WHERE conditions using CORRECT snake_case column names
     const conditions: string[] = [];
@@ -79,32 +81,32 @@ export const getFormSubmissions = async (req: AuthenticatedRequest, res: Respons
 
     if (dateFrom) {
       conditions.push(`tfs.submitted_at >= $${paramIndex}`);
-      params.push(dateFrom as string);
+      params.push(dateFrom);
       paramIndex++;
     }
     if (dateTo) {
       conditions.push(`tfs.submitted_at <= $${paramIndex}`);
-      params.push(dateTo as string);
+      params.push(dateTo);
       paramIndex++;
     }
     if (agentId) {
       conditions.push(`tfs.submitted_by = $${paramIndex}`);
-      params.push(agentId as string);
+      params.push(agentId);
       paramIndex++;
     }
     if (validationStatus) {
       conditions.push(`tfs.validation_status = $${paramIndex}`);
-      params.push(validationStatus as string);
+      params.push(validationStatus);
       paramIndex++;
     }
     if (caseId) {
       conditions.push(`tfs.case_id = $${paramIndex}`);
-      params.push(caseId as string);
+      params.push(caseId);
       paramIndex++;
     }
     if (formType) {
       conditions.push(`tfs.form_type = $${paramIndex}`);
-      params.push(formType as string);
+      params.push(formType);
       paramIndex++;
     }
 
@@ -137,7 +139,7 @@ export const getFormSubmissions = async (req: AuthenticatedRequest, res: Respons
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `;
 
-    params.push(parseInt(limit as string), parseInt(offset as string));
+    params.push(limit, offset);
     const result = await pool.query(query, params);
 
     // Get summary statistics (using snake_case)
@@ -177,18 +179,18 @@ export const getFormSubmissions = async (req: AuthenticatedRequest, res: Respons
       data: {
         submissions: result.rows,
         summary: {
-          totalSubmissions: parseInt(summary.total_submissions),
-          validSubmissions: parseInt(summary.valid_submissions),
-          pendingSubmissions: parseInt(summary.pending_submissions),
-          invalidSubmissions: parseInt(summary.invalid_submissions),
-          residenceForms: parseInt(summary.residence_forms),
-          officeForms: parseInt(summary.office_forms),
-          businessForms: parseInt(summary.business_forms),
+          totalSubmissions: Number(summary.total_submissions),
+          validSubmissions: Number(summary.valid_submissions),
+          pendingSubmissions: Number(summary.pending_submissions),
+          invalidSubmissions: Number(summary.invalid_submissions),
+          residenceForms: Number(summary.residence_forms),
+          officeForms: Number(summary.office_forms),
+          businessForms: Number(summary.business_forms),
         },
         pagination: {
-          limit: parseInt(limit as string),
-          offset: parseInt(offset as string),
-          total: parseInt(summary.total_submissions),
+          limit,
+          offset,
+          total: Number(summary.total_submissions),
         },
       },
       message: 'Form submissions retrieved successfully (table may be empty)',
@@ -206,8 +208,16 @@ export const getFormSubmissions = async (req: AuthenticatedRequest, res: Respons
 // GET /api/reports/form-submissions/:formType - Get specific form type submissions
 export const getFormSubmissionsByType = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { formType } = req.params;
-    const { dateFrom, dateTo, agentId, limit = 50, offset = 0 } = req.query;
+    const formType = String(req.params.formType || '');
+    const dateFrom = (req.query.dateFrom as unknown as string) || '';
+    const dateTo = (req.query.dateTo as unknown as string) || '';
+    const agentId = (req.query.agentId as unknown as string) || '';
+    const limit = Number(
+      Array.isArray(req.query.limit) ? req.query.limit[0] : req.query.limit || 50
+    );
+    const offset = Number(
+      Array.isArray(req.query.offset) ? req.query.offset[0] : req.query.offset || 0
+    );
 
     if (!['RESIDENCE', 'OFFICE', 'BUSINESS'].includes(formType.toUpperCase())) {
       return res.status(400).json({
@@ -223,17 +233,17 @@ export const getFormSubmissionsByType = async (req: AuthenticatedRequest, res: R
 
     if (dateFrom) {
       conditions.push(`"createdAt" >= $${paramIndex}`);
-      params.push(dateFrom as string);
+      params.push(dateFrom);
       paramIndex++;
     }
     if (dateTo) {
       conditions.push(`"createdAt" <= $${paramIndex}`);
-      params.push(dateTo as string);
+      params.push(dateTo);
       paramIndex++;
     }
     if (agentId) {
       conditions.push(`"createdBy" = $${paramIndex}`);
-      params.push(agentId as string);
+      params.push(agentId);
       paramIndex++;
     }
 
@@ -278,7 +288,7 @@ export const getFormSubmissionsByType = async (req: AuthenticatedRequest, res: R
       `;
     }
 
-    params.push(parseInt(limit as string), parseInt(offset as string));
+    params.push(limit, offset);
     const result = await pool.query(query, params);
 
     res.json({
@@ -287,8 +297,8 @@ export const getFormSubmissionsByType = async (req: AuthenticatedRequest, res: R
         formType: formType.toUpperCase(),
         submissions: result.rows,
         pagination: {
-          limit: parseInt(limit as string),
-          offset: parseInt(offset as string),
+          limit,
+          offset,
           total: result.rows.length,
         },
       },
@@ -307,7 +317,8 @@ export const getFormSubmissionsByType = async (req: AuthenticatedRequest, res: R
 // GET /api/reports/form-validation-status - Get form validation status overview
 export const getFormValidationStatus = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { dateFrom, dateTo } = req.query;
+    const dateFrom = (req.query.dateFrom as unknown as string) || '';
+    const dateTo = (req.query.dateTo as unknown as string) || '';
 
     const conditions: string[] = [];
     const params: QueryParams = [];
@@ -315,12 +326,12 @@ export const getFormValidationStatus = async (req: AuthenticatedRequest, res: Re
 
     if (dateFrom) {
       conditions.push(`"createdAt" >= $${paramIndex}`);
-      params.push(dateFrom as string);
+      params.push(dateFrom);
       paramIndex++;
     }
     if (dateTo) {
       conditions.push(`"createdAt" <= $${paramIndex}`);
-      params.push(dateTo as string);
+      params.push(dateTo);
       paramIndex++;
     }
 
@@ -393,7 +404,11 @@ export const getFormValidationStatus = async (req: AuthenticatedRequest, res: Re
 // GET /api/reports/case-analytics - Comprehensive case analytics
 export const getCaseAnalytics = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { dateFrom, dateTo, clientId, agentId, status } = req.query;
+    const dateFrom = (req.query.dateFrom as unknown as string) || '';
+    const dateTo = (req.query.dateTo as unknown as string) || '';
+    const clientId = (req.query.clientId as unknown as string) || '';
+    const agentId = (req.query.agentId as unknown as string) || '';
+    const status = (req.query.status as unknown as string) || '';
 
     const conditions: string[] = [];
     const params: QueryParams = [];
@@ -401,27 +416,27 @@ export const getCaseAnalytics = async (req: AuthenticatedRequest, res: Response)
 
     if (dateFrom) {
       conditions.push(`c."createdAt" >= $${paramIndex}`);
-      params.push(dateFrom as string);
+      params.push(dateFrom);
       paramIndex++;
     }
     if (dateTo) {
       conditions.push(`c."createdAt" <= $${paramIndex}`);
-      params.push(dateTo as string);
+      params.push(dateTo);
       paramIndex++;
     }
     if (clientId) {
       conditions.push(`c."clientId" = $${paramIndex}`);
-      params.push(parseInt(clientId as string));
+      params.push(parseInt(clientId));
       paramIndex++;
     }
     if (agentId) {
       conditions.push(`c."assignedTo" = $${paramIndex}`);
-      params.push(agentId as string);
+      params.push(agentId);
       paramIndex++;
     }
     if (status) {
       conditions.push(`c.status = $${paramIndex}`);
-      params.push(status as string);
+      params.push(status);
       paramIndex++;
     }
 
@@ -515,7 +530,7 @@ export const getCaseAnalytics = async (req: AuthenticatedRequest, res: Response)
 // GET /api/reports/case-timeline/:caseId - Get detailed case timeline
 export const getCaseTimeline = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { caseId } = req.params;
+    const caseId = String(req.params.caseId || '');
 
     // Get case details
     const caseQuery = `
@@ -633,7 +648,10 @@ export const getCaseTimeline = async (req: AuthenticatedRequest, res: Response) 
 // GET /api/reports/agent-performance - Get agent performance metrics
 export const getAgentPerformance = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { dateFrom, dateTo, agentId, departmentId } = req.query;
+    const dateFrom = (req.query.dateFrom as unknown as string) || '';
+    const dateTo = (req.query.dateTo as unknown as string) || '';
+    const agentId = (req.query.agentId as unknown as string) || '';
+    const departmentId = (req.query.departmentId as unknown as string) || '';
 
     // Build WHERE conditions for verification tasks
     const conditions: string[] = [];
@@ -642,22 +660,22 @@ export const getAgentPerformance = async (req: AuthenticatedRequest, res: Respon
 
     if (dateFrom) {
       conditions.push(`vt.created_at >= $${paramIndex}`);
-      params.push(dateFrom as string);
+      params.push(dateFrom);
       paramIndex++;
     }
     if (dateTo) {
       conditions.push(`vt.created_at <= $${paramIndex}`);
-      params.push(dateTo as string);
+      params.push(dateTo);
       paramIndex++;
     }
     if (agentId) {
       conditions.push(`vt.assigned_to = $${paramIndex}`);
-      params.push(agentId as string);
+      params.push(agentId);
       paramIndex++;
     }
     if (departmentId) {
       conditions.push(`u."departmentId" = $${paramIndex}`);
-      params.push(parseInt(departmentId as string));
+      params.push(parseInt(departmentId));
       paramIndex++;
     }
 
@@ -830,8 +848,9 @@ export const getAgentPerformance = async (req: AuthenticatedRequest, res: Respon
 // GET /api/reports/agent-productivity/:agentId - Get specific agent productivity
 export const getAgentProductivity = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { agentId } = req.params;
-    const { dateFrom, dateTo } = req.query;
+    const agentId = String(req.params.agentId || '');
+    const dateFrom = (req.query.dateFrom as unknown as string) || '';
+    const dateTo = (req.query.dateTo as unknown as string) || '';
 
     // Verify agent exists
     const agentQuery = `
@@ -858,12 +877,12 @@ export const getAgentProductivity = async (req: AuthenticatedRequest, res: Respo
 
     if (dateFrom) {
       conditions.push(`c."createdAt" >= $${paramIndex}`);
-      params.push(dateFrom as string);
+      params.push(dateFrom);
       paramIndex++;
     }
     if (dateTo) {
       conditions.push(`c."createdAt" <= $${paramIndex}`);
-      params.push(dateTo as string);
+      params.push(dateTo);
       paramIndex++;
     }
 
@@ -1056,7 +1075,12 @@ export const getCasesReport = async (req: AuthenticatedRequest, res: Response) =
 // GET /api/reports/users - User performance report
 export const getUserPerformanceReport = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { dateFrom, dateTo, department, role, isActive, format: _format = 'JSON' } = req.query;
+    const dateFrom = (req.query.dateFrom as unknown as string) || '';
+    const dateTo = (req.query.dateTo as unknown as string) || '';
+    const department = (req.query.department as unknown as string) || '';
+    const role = (req.query.role as unknown as string) || '';
+    const isActive = (req.query.isActive as unknown as string) || '';
+    const _format = (req.query.format as unknown as string) || 'JSON';
 
     // Build WHERE conditions for users query
     const userConditions: string[] = [];
@@ -1065,12 +1089,12 @@ export const getUserPerformanceReport = async (req: AuthenticatedRequest, res: R
 
     if (department) {
       userConditions.push(`u.department = $${userParamIndex}`);
-      userParams.push(department as string);
+      userParams.push(department);
       userParamIndex++;
     }
     if (role) {
       userConditions.push(`u.role = $${userParamIndex}`);
-      userParams.push(role as string);
+      userParams.push(role);
       userParamIndex++;
     }
     if (isActive !== undefined) {
@@ -1101,11 +1125,11 @@ export const getUserPerformanceReport = async (req: AuthenticatedRequest, res: R
       },
       data: usersResult.rows,
       filters: {
-        dateFrom: dateFrom as string,
-        dateTo: dateTo as string,
-        department: department as string,
-        role: role as string,
-        isActive: isActive as string,
+        dateFrom,
+        dateTo,
+        department,
+        role,
+        isActive,
       },
       generatedAt: new Date().toISOString(),
       generatedBy: req.user?.id,
@@ -1129,7 +1153,8 @@ export const getUserPerformanceReport = async (req: AuthenticatedRequest, res: R
 // GET /api/reports/clients - Client report
 export const getClientReport = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { isActive, format: _format = 'JSON' } = req.query;
+    const isActive = (req.query.isActive as unknown as string) || '';
+    const _format = (req.query.format as unknown as string) || 'JSON';
 
     // Build WHERE conditions for clients query
     const conditions: string[] = [];
@@ -1163,7 +1188,7 @@ export const getClientReport = async (req: AuthenticatedRequest, res: Response) 
       },
       data: clientsResult.rows,
       filters: {
-        isActive: isActive as string,
+        isActive,
       },
       generatedAt: new Date().toISOString(),
       generatedBy: req.user?.id,

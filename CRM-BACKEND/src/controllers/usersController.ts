@@ -9,16 +9,20 @@ import ExcelJS from 'exceljs';
 // GET /api/users - List users with pagination and filters
 export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const {
-      page = 1,
-      limit = 20,
-      role,
-      department,
-      isActive,
-      search,
-      sortBy = 'name',
-      sortOrder = 'asc',
-    } = req.query;
+    const page = Number(Array.isArray(req.query.page) ? req.query.page[0] : req.query.page || 1);
+    const limit = Number(
+      Array.isArray(req.query.limit) ? req.query.limit[0] : req.query.limit || 20
+    );
+    const role = req.query.role as string;
+    const department = req.query.department as string;
+    const isActive = req.query.isActive as string;
+    const search = req.query.search as string;
+    const sortBy = (
+      Array.isArray(req.query.sortBy) ? req.query.sortBy[0] : req.query.sortBy || 'name'
+    ) as string;
+    const sortOrder = (
+      Array.isArray(req.query.sortOrder) ? req.query.sortOrder[0] : req.query.sortOrder || 'asc'
+    ) as string;
 
     // Build the WHERE clause
     const conditions: string[] = [];
@@ -58,9 +62,7 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
 
     // Validate sortBy to prevent SQL injection
     const validSortColumns = ['name', 'username', 'email', 'role', 'createdAt', 'updatedAt'];
-    const safeSortBy: string = validSortColumns.includes(sortBy as string)
-      ? (sortBy as string)
-      : 'name';
+    const safeSortBy: string = validSortColumns.includes(sortBy) ? sortBy : 'name';
     const safeSortOrder: 'ASC' | 'DESC' = sortOrder === 'desc' ? 'DESC' : 'ASC';
 
     // Get total count
@@ -202,7 +204,7 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
 // GET /api/users/:id - Get user by ID
 export const getUserById = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = String(req.params.id || '');
 
     const userQuery = `
       SELECT
@@ -498,7 +500,7 @@ export const createUser = async (req: AuthenticatedRequest, res: Response) => {
 // PUT /api/users/:id - Update user
 export const updateUser = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = String(req.params.id || '');
     const updateData = req.body;
 
     // Check if user exists
@@ -613,7 +615,7 @@ export const updateUser = async (req: AuthenticatedRequest, res: Response) => {
 // DELETE /api/users/:id - Delete user
 export const deleteUser = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = String(req.params.id || '');
 
     // Check if user exists
     const userExistsQuery = `SELECT id, username FROM users WHERE id = $1`;
@@ -706,7 +708,7 @@ export const deleteUser = async (req: AuthenticatedRequest, res: Response) => {
 // POST /api/users/:id/activate - Activate user
 export const activateUser = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = String(req.params.id || '');
 
     const updateQuery = `
       UPDATE users
@@ -745,7 +747,7 @@ export const activateUser = async (req: AuthenticatedRequest, res: Response) => 
 // POST /api/users/:id/deactivate - Deactivate user
 export const deactivateUser = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = String(req.params.id || '');
 
     const updateQuery = `
       UPDATE users
@@ -1570,7 +1572,7 @@ export const removeProductAssignment = async (req: AuthenticatedRequest, res: Re
 // POST /api/users/:id/generate-temp-password - Generate temporary password
 export const generateTemporaryPassword = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = String(req.params.id || '');
 
     // Check if user exists
     const userCheck = await query('SELECT id, name, username, email FROM users WHERE id = $1', [
@@ -1677,7 +1679,7 @@ If you did not request this password reset, please contact your administrator im
 // POST /api/users/:id/change-password - Change user password
 export const changePassword = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = String(req.params.id || '');
     const { currentPassword, newPassword } = req.body;
 
     // Validate input
