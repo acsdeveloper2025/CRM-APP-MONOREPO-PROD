@@ -2,7 +2,6 @@
 import { useEffect, useState } from 'react';
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
@@ -39,7 +38,6 @@ export function SessionTimeoutModal({ isOpen, onClose, remainingSeconds }: Sessi
   const handleOpenChange = (open: boolean) => {
     if (!open) {
       // Only allow closing via buttons
-      return;
     }
   };
 
