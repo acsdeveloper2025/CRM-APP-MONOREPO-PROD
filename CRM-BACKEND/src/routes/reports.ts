@@ -178,7 +178,13 @@ router.get('/clients', clientsReportValidation, validate, getClientReport);
 // ===== PHASE 1: NEW DATA VISUALIZATION & REPORTING ROUTES =====
 
 // 1.1 Form Submission Data APIs
-router.get('/form-submissions', listRateLimit, formSubmissionsValidation, validate, getFormSubmissions);
+router.get(
+  '/form-submissions',
+  listRateLimit,
+  formSubmissionsValidation,
+  validate,
+  getFormSubmissions
+);
 
 router.get(
   '/form-submissions/:formType',

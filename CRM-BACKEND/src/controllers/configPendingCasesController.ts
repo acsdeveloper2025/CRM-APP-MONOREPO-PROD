@@ -2,6 +2,7 @@ import type { Response } from 'express';
 import type { AuthenticatedRequest } from '@/middleware/auth';
 import { configurationQuarantineService } from '@/services/configurationQuarantineService';
 import { logger } from '@/config/logger';
+import { FinancialConfigErrorCode } from '@/services/financialConfigurationValidator';
 
 /**
  * Admin Controller for Configuration Pending Cases
@@ -14,18 +15,15 @@ export class ConfigPendingCasesController {
    */
   static async listConfigPendingCases(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-      const {
-        page = 1,
-        limit = 50,
-        clientId,
-        errorCode,
-      } = req.query;
+      const { page = 1, limit = 50, clientId, errorCode, search } = req.query;
 
       const result = await configurationQuarantineService.getConfigPendingCases({
         page: Number(page),
         limit: Number(limit),
         clientId: clientId ? Number(clientId) : undefined,
-        errorCode: errorCode as any,
+        errorCode:
+          typeof errorCode === 'string' ? (errorCode as FinancialConfigErrorCode) : undefined,
+        search: typeof search === 'string' ? search : undefined,
       });
 
       res.status(200).json({
@@ -93,12 +91,15 @@ export class ConfigPendingCasesController {
    * Get details for a specific config pending case
    * GET /api/admin/config-pending-cases/:caseId
    */
-  static async getConfigPendingCaseDetails(req: AuthenticatedRequest, res: Response): Promise<void> {
+  static async getConfigPendingCaseDetails(
+    req: AuthenticatedRequest,
+    res: Response
+  ): Promise<void> {
     const { caseId } = req.params;
 
     try {
       const { query } = await import('@/config/database');
-      
+
       const result = await query(
         `SELECT 
           c.id, c."caseId", c."customerName", c."clientId", c."productId",

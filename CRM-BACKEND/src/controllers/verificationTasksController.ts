@@ -15,7 +15,10 @@ import { Role } from '../types/auth';
 import { pool } from '../config/database';
 import { CaseStatusSyncService } from '../services/caseStatusSyncService';
 import { financialConfigurationValidator } from '../services/financialConfigurationValidator';
-import { configurationQuarantineService, RequestSource } from '../services/configurationQuarantineService';
+import {
+  configurationQuarantineService,
+  RequestSource,
+} from '../services/configurationQuarantineService';
 
 export class VerificationTasksController {
   /**
@@ -28,7 +31,8 @@ export class VerificationTasksController {
     const userId = req.user?.id;
 
     // Detect request source for quarantine vs strict validation
-    const requestSource = (req.headers['x-request-source'] as RequestSource) || RequestSource.MANUAL_UI;
+    const requestSource =
+      (req.headers['x-request-source'] as RequestSource) || RequestSource.MANUAL_UI;
     const useQuarantine = requestSource !== RequestSource.MANUAL_UI;
 
     if (!tasks || !Array.isArray(tasks) || tasks.length === 0) {
@@ -103,7 +107,7 @@ export class VerificationTasksController {
           priority = 'MEDIUM',
           assigned_to: assignedTo,
           rate_type_id: initialRateTypeId,
-          estimated_amount: estimatedAmount,
+          estimated_amount: _estimatedAmount,
           address,
           pincode,
           document_type: documentType,
@@ -122,18 +126,20 @@ export class VerificationTasksController {
         // Resolve pincodeId from pincode string
         let pincodeDbId: number | null = null;
         if (pincode) {
-           const pinRes = await client.query('SELECT id FROM pincodes WHERE code = $1', [pincode.toString()]);
-           if (pinRes.rows[0]) {
-             pincodeDbId = pinRes.rows[0].id;
-           } else {
-             await client.query('ROLLBACK');
-             res.status(400).json({
-               success: false,
-               message: 'Invalid pincode provided',
-               error: { code: 'INVALID_PINCODE' },
-             });
-             return;
-           }
+          const pinRes = await client.query('SELECT id FROM pincodes WHERE code = $1', [
+            pincode.toString(),
+          ]);
+          if (pinRes.rows[0]) {
+            pincodeDbId = pinRes.rows[0].id;
+          } else {
+            await client.query('ROLLBACK');
+            res.status(400).json({
+              success: false,
+              message: 'Invalid pincode provided',
+              error: { code: 'INVALID_PINCODE' },
+            });
+            return;
+          }
         } else {
           await client.query('ROLLBACK');
           res.status(400).json({
@@ -170,8 +176,8 @@ export class VerificationTasksController {
             await configurationQuarantineService.quarantineCase(
               client,
               actualCaseId,
-              validationResult.errorCode!,
-              validationResult.errorMessage!,
+              validationResult.errorCode,
+              validationResult.errorMessage,
               {
                 clientId: caseInfo.clientId,
                 productId: caseInfo.productId,
@@ -191,7 +197,8 @@ export class VerificationTasksController {
               reason: 'CONFIG_PENDING',
               errorCode: validationResult.errorCode,
               errorMessage: validationResult.errorMessage,
-              message: 'Case received and quarantined for admin configuration. Will be processed automatically once configuration is added.',
+              message:
+                'Case received and quarantined for admin configuration. Will be processed automatically once configuration is added.',
             });
             return;
           }
@@ -529,7 +536,10 @@ export class VerificationTasksController {
         taskStatus,
         userId,
         taskId, // parent_task_id
-        originalTask.first_assigned_at || originalTask.assigned_at || originalTask.created_at || new Date(),
+        originalTask.first_assigned_at ||
+          originalTask.assigned_at ||
+          originalTask.created_at ||
+          new Date(),
       ];
 
       const newTaskResult = await client.query(insertQuery, insertParams);
@@ -1188,7 +1198,7 @@ export class VerificationTasksController {
           'verificationTypeId',
           'verification_type_id',
         ];
-        
+
         const attemptedRestrictedUpdates = Object.keys(updateData).filter(
           key =>
             restrictedFields.includes(key) &&
@@ -1202,7 +1212,7 @@ export class VerificationTasksController {
             attemptedFields: attemptedRestrictedUpdates,
             taskStatus: currentTask.status,
           });
-          
+
           res.status(409).json({
             success: false,
             message: 'Verification already started. Task data cannot be modified.',
@@ -1633,7 +1643,7 @@ export class VerificationTasksController {
           taskNumber: finalTask.task_number, // Use new task number if recreated
           customerName: caseData.customerName,
           verificationType,
-          assignmentType: actionType as any,
+          assignmentType: actionType as 'assignment' | 'reassignment',
           assignedBy: userId,
           reason: assignmentReason,
         });
@@ -1675,11 +1685,8 @@ export class VerificationTasksController {
    */
   static async completeTask(req: AuthenticatedRequest, res: Response): Promise<void> {
     const { taskId } = req.params;
-    const {
-      verificationOutcome,
-      actualAmount,
-      completionNotes,
-    }: CompleteVerificationTaskData = req.body;
+    const { verificationOutcome, actualAmount, completionNotes }: CompleteVerificationTaskData =
+      req.body;
     const userId = req.user?.id;
 
     // 1. Task ID Validation
@@ -1687,7 +1694,7 @@ export class VerificationTasksController {
       res.status(400).json({
         success: false,
         message: 'Task ID is required',
-        error: { code: 'TASK_ID_REQUIRED' }
+        error: { code: 'TASK_ID_REQUIRED' },
       });
       return;
     }
@@ -1719,7 +1726,7 @@ export class VerificationTasksController {
         res.status(400).json({
           success: false,
           message: 'Invalid Task ID',
-          error: { code: 'INVALID_TASK_ID' }
+          error: { code: 'INVALID_TASK_ID' },
         });
         return;
       }
@@ -1732,7 +1739,7 @@ export class VerificationTasksController {
         res.status(403).json({
           success: false,
           message: 'Only the assigned field agent may complete the task',
-          error: { code: 'ONLY_ASSIGNED_AGENT_CAN_COMPLETE_TASK' }
+          error: { code: 'ONLY_ASSIGNED_AGENT_CAN_COMPLETE_TASK' },
         });
         return;
       }
@@ -1743,13 +1750,13 @@ export class VerificationTasksController {
         res.status(409).json({
           success: false,
           message: 'Task must be in progress to be completed',
-          error: { code: 'TASK_NOT_IN_PROGRESS' }
+          error: { code: 'TASK_NOT_IN_PROGRESS' },
         });
         return;
       }
 
       // 5. Evidence validation (CRITICAL)
-      
+
       // A) Location must exist
       const locationResult = await client.query(
         `SELECT id, "recordedAt" FROM locations WHERE verification_task_id = $1 LIMIT 1`,
@@ -1760,7 +1767,7 @@ export class VerificationTasksController {
         res.status(412).json({
           success: false,
           message: 'Visit location capture is missing',
-          error: { code: 'VISIT_LOCATION_MISSING' }
+          error: { code: 'VISIT_LOCATION_MISSING' },
         });
         return;
       }
@@ -1777,7 +1784,7 @@ export class VerificationTasksController {
         res.status(412).json({
           success: false,
           message: 'At least 5 photos are required as evidence',
-          error: { code: 'INSUFFICIENT_PHOTO_EVIDENCE' }
+          error: { code: 'INSUFFICIENT_PHOTO_EVIDENCE' },
         });
         return;
       }
@@ -1792,7 +1799,7 @@ export class VerificationTasksController {
         res.status(412).json({
           success: false,
           message: 'Verification form narrative is missing',
-          error: { code: 'VERIFICATION_FORM_MISSING' }
+          error: { code: 'VERIFICATION_FORM_MISSING' },
         });
         return;
       }
@@ -1808,7 +1815,7 @@ export class VerificationTasksController {
         res.status(412).json({
           success: false,
           message: 'Form submission must occur after location capture',
-          error: { code: 'INVALID_EVIDENCE_SEQUENCE' }
+          error: { code: 'INVALID_EVIDENCE_SEQUENCE' },
         });
         return;
       }
@@ -1831,7 +1838,9 @@ export class VerificationTasksController {
       // Calculate commission if rate type is available
       if (completedTask.rate_type_id && completedTask.assigned_to) {
         try {
-          const { autoCalculateCommissionForTask } = await import('./commissionManagementController');
+          const { autoCalculateCommissionForTask } = await import(
+            './commissionManagementController'
+          );
           await autoCalculateCommissionForTask(taskId);
         } catch (commError) {
           logger.error('Error calculating commission:', commError);
@@ -1844,7 +1853,7 @@ export class VerificationTasksController {
         caseId: task.case_id,
         userId,
         photoCount,
-        formId: form.id
+        formId: form.id,
       });
 
       // Create audit log
@@ -1858,8 +1867,8 @@ export class VerificationTasksController {
           actualAmount,
           completionNotes,
           photoCount,
-          formId: form.id
-        }
+          formId: form.id,
+        },
       });
 
       await client.query('COMMIT');
@@ -1870,7 +1879,7 @@ export class VerificationTasksController {
       res.json({
         success: true,
         data: completedTask,
-        message: 'Verification task completed successfully'
+        message: 'Verification task completed successfully',
       });
     } catch (error) {
       await client.query('ROLLBACK');

@@ -1,10 +1,7 @@
 import { Router } from 'express';
 import { MobileAuthController } from '../controllers/mobileAuthController';
 import { MobileCaseController } from '../controllers/mobileCaseController';
-import {
-  MobileAttachmentController,
-  mobileUpload,
-} from '../controllers/mobileAttachmentController';
+import { MobileAttachmentController } from '../controllers/mobileAttachmentController';
 import {
   VerificationAttachmentController,
   verificationUpload,

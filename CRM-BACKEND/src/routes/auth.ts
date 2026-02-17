@@ -1,6 +1,12 @@
 import { Router, type Request, type Response } from 'express';
 import { body } from 'express-validator';
-import { login, logout, getCurrentUser, preloginInfo, refreshToken } from '@/controllers/authController';
+import {
+  login,
+  logout,
+  getCurrentUser,
+  preloginInfo,
+  refreshToken,
+} from '@/controllers/authController';
 import { authenticateToken } from '@/middleware/auth';
 import { validate } from '@/middleware/validation';
 import { authRateLimit } from '@/middleware/rateLimiter';
