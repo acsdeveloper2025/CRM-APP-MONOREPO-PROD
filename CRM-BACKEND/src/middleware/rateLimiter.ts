@@ -1,6 +1,7 @@
 import type { ApiResponse } from '@/types/api';
 import type { AuthenticatedRequest } from '@/types/auth';
-import rateLimit from 'express-rate-limit';
+import type { Response } from 'express';
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 
 const createRateLimiter = (
   windowMs: number,
@@ -20,14 +21,15 @@ const createRateLimiter = (
     } as ApiResponse,
     standardHeaders: true,
     legacyHeaders: false,
-    keyGenerator: (req: AuthenticatedRequest) => {
+    keyGenerator: (req: AuthenticatedRequest, res: Response) => {
       if (keyType === 'USER' && req.user?.id) {
         return req.user.id;
       }
-      if (keyType === 'AUTO') {
-        return req.user?.id || req.ip || 'unknown';
+      if (keyType === 'AUTO' && req.user?.id) {
+        return req.user.id;
       }
-      return req.ip || 'unknown';
+      // Use standard behavior for IP-based limiting (handles IPv6 correctly)
+      return ipKeyGenerator(req.ip || 'unknown');
     },
     // We removed the blanket 'skip' for authenticated users to ensure all activity is capped
     skip: (req: AuthenticatedRequest) => {

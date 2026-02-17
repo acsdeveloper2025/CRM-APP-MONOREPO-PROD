@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { usePermissions } from '@/hooks/usePermissions';
 import { navigationItems, type NavigationItem } from '@/constants/navigation';
 import { cn } from '@/lib/utils';
+import { useLayout } from '@/contexts/LayoutContextDefinition';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -14,16 +15,10 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   const { hasAnyRole } = useAuth();
   const { hasPermission } = usePermissions();
+  const { expandedMenus: expandedItems, toggleMenu: toggleExpanded } = useLayout();
   const location = useLocation();
-  const [expandedItems, setExpandedItems] = useState<string[]>([]);
+  
 
-  const toggleExpanded = (itemId: string) => {
-    setExpandedItems(prev =>
-      prev.includes(itemId)
-        ? prev.filter(id => id !== itemId)
-        : [...prev, itemId]
-    );
-  };
 
   const isItemVisible = (item: NavigationItem): boolean => {
     // Check permission-based access first
