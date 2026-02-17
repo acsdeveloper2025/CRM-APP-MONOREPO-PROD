@@ -1,4 +1,5 @@
 import type { Request, Response } from 'express';
+import { v4 as uuidv4 } from 'uuid';
 import type { MobileFormSubmissionRequest, FormSubmissionData, FormSection } from '../types/mobile';
 import type {
   QueryParams,
@@ -119,6 +120,114 @@ import { CaseStatusSyncService } from '../services/caseStatusSyncService';
 
 export class MobileFormController {
   /**
+   * Helper method to validate task submission rules (Stage-2C Strict Logic)
+   */
+  private static async validateTaskSubmission(
+    taskId: string,
+    userId: string
+  ): Promise<{
+    success: boolean;
+    data?: {
+        taskId: string;
+        caseId: string;
+        caseNumber: number | null;
+        taskNumber: string;
+        verificationTypeName: string | null;
+    };
+    error?: { status: number; message: string; code: string };
+  }> {
+    try {
+        // 1. Fetch Task & Case Info
+        const taskQuery = await query(
+            `SELECT 
+                vt.id, 
+                vt.case_id, 
+                vt.task_number,
+                c."caseId" as "caseNumber", 
+                vt.assigned_to,
+                vtype.name as "verificationTypeName"
+             FROM verification_tasks vt
+             JOIN cases c ON vt.case_id = c.id
+             LEFT JOIN "verificationTypes" vtype ON vt.verification_type_id = vtype.id
+             WHERE vt.id = $1`,
+            [taskId]
+        );
+
+        if (taskQuery.rows.length === 0) {
+            return {
+                success: false,
+                error: { status: 400, message: 'Invalid Task ID', code: 'INVALID_TASK_ID' }
+            };
+        }
+
+        const task = taskQuery.rows[0];
+
+        // 2. Assignment Validation
+        if (task.assigned_to !== userId) {
+            return {
+                success: false,
+                error: { status: 403, message: 'Task not assigned to user', code: 'TASK_NOT_ASSIGNED_TO_USER' }
+            };
+        }
+
+        // 3. Location Existence Check & 90-Minute Rule
+        const locQuery = await query(
+            `SELECT id, "recordedAt" FROM locations WHERE verification_task_id = $1 ORDER BY "recordedAt" DESC LIMIT 1`,
+            [taskId]
+        );
+
+        if (locQuery.rows.length === 0) {
+            return {
+                success: false,
+                error: { status: 412, message: 'Location capture required before form submission', code: 'LOCATION_REQUIRED_BEFORE_FORM' }
+            };
+        }
+
+        const locationTime = new Date(locQuery.rows[0].recordedAt).getTime();
+        const now = Date.now();
+        const diffMinutes = (now - locationTime) / (1000 * 60);
+
+        if (diffMinutes > 90) {
+            return {
+                success: false,
+                error: { status: 412, message: 'Visit session expired (90 min limit). Please recapture location.', code: 'VISIT_SESSION_EXPIRED' }
+            };
+        }
+
+        // 4. Duplicate Submission Check
+        const subQuery = await query(
+            `SELECT id FROM task_form_submissions WHERE verification_task_id = $1`,
+            [taskId]
+        );
+
+        if (subQuery.rows.length > 0) {
+            return {
+                success: false,
+                error: { status: 409, message: 'Form already submitted for this task', code: 'FORM_ALREADY_SUBMITTED_FOR_TASK' }
+            };
+        }
+
+        return {
+            success: true,
+            data: {
+                taskId: task.id,
+                caseId: task.case_id,
+                caseNumber: task.caseNumber || null,
+                taskNumber: task.task_number,
+                verificationTypeName: task.verificationTypeName
+            }
+        };
+
+    } catch (error) {
+        console.error('Task submission validation error:', error);
+        return {
+            success: false,
+            error: { status: 500, message: 'Internal validation error', code: 'VALIDATION_ERROR' }
+        };
+    }
+  }
+
+  /**
    * Helper method to resolve caseId from verificationTaskId
    * This supports the new verificationTaskId-based flow
    */
@@ -132,6 +241,8 @@ export class MobileFormController {
     task?: VerificationTaskRow;
     error?: { status: number; message: string; code: string };
   }> {
+    // Legacy resolver kept for backward compatibility if needed, 
+    // but validateTaskSubmission is preferred for strict flow.
     try {
       // Step 1: Query verification_tasks table to get caseId
       const taskQuery = await query(
@@ -2295,47 +2406,39 @@ export class MobileFormController {
       logger.info(`   - User: ${userId} (${userRole})`);
       logger.info(`   - Verification Task ID from body: ${verificationTaskId}`);
       logger.info(`   - Images: ${images?.length || 0}`);
-      logger.info(`   - Form data keys: ${Object.keys(formData || {}).join(', ')}`);
 
-      // Validate verificationTaskId is provided
-      if (!verificationTaskId) {
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          message: 'User authentication required',
+          error: {
+            code: 'AUTHENTICATION_REQUIRED',
+            timestamp: new Date().toISOString(),
+          },
+        });
+      }
+
+      if (!taskId) {
         return res.status(400).json({
           success: false,
-          message: 'Verification task ID is required',
-          error: {
-            code: 'MISSING_TASK_ID',
-            timestamp: new Date().toISOString(),
-          },
+          message: 'Task ID is required for form submission',
+          error: { code: 'TASK_ID_REQUIRED' },
         });
       }
 
-      // UPDATED: Auto-resolve caseId from verificationTaskId
-      const resolution = await MobileFormController.resolveCaseIdFromTaskId(
-        taskId,
-        userId,
-        userRole
-      );
-
-      if (!resolution.success) {
-        logger.info(`❌ Failed to resolve case from task: ${taskId}`);
-        return res.status(resolution.error.status).json({
-          success: false,
-          message: resolution.error.message,
-          error: {
-            code: resolution.error.code,
-            timestamp: new Date().toISOString(),
-            taskId,
-          },
-        });
+      // STAGE-2C: STRICT VALIDATION
+      const taskValidation = await MobileFormController.validateTaskSubmission(taskId, userId);
+      if (!taskValidation.success || !taskValidation.data) {
+          return res.status(taskValidation.error!.status).json({
+              success: false,
+              message: taskValidation.error!.message,
+              error: { code: taskValidation.error!.code }
+          });
       }
 
-      const caseId = resolution.caseId;
-      const task = resolution.task;
-
-      logger.info(`✅ Resolved caseId: ${caseId} from taskId: ${taskId}`);
-      logger.info(
-        `✅ Verification task validated: ${task.task_number} (Type: ${task.verification_type_name})`
-      );
+      const { caseId, caseNumber, taskId: targetTaskId, taskNumber, verificationTypeName } = taskValidation.data;
+      logger.info(`✅ Task Validated: ${targetTaskId} (${taskNumber}) -> Case: ${caseId}`);
+      logger.info(`✅ Verification Type: ${verificationTypeName}`);
 
       // Verify case exists (additional validation)
       const caseRes = await query(`SELECT id, "caseId", status FROM cases WHERE id = $1`, [caseId]);
@@ -2456,7 +2559,7 @@ export class MobileFormController {
       );
 
       logger.info(
-        `✅ Processed ${uploadedImages.length} verification images for residence verification (Task: ${task.task_number})`
+        `✅ Processed ${uploadedImages.length} verification images for residence verification (Task: ${taskNumber})`
       );
 
       // Prepare verification data (excluding old attachment references)
@@ -2512,8 +2615,8 @@ export class MobileFormController {
       const dbInsertData = {
         // Core case information
         case_id: caseId,
-        verification_task_id: verificationTaskId, // ✅ Link to verification task
-        caseId: parseInt(updatedCase.caseId) || null,
+        verification_task_id: targetTaskId, // ✅ Link to verification task
+        caseId: caseNumber,
         form_type: formType,
         verification_outcome: verificationOutcome,
         customer_name: updatedCase.customerName || 'Unknown',
@@ -2564,6 +2667,28 @@ export class MobileFormController {
       logger.info(`📝 Inserting residence verification with ${columns.length} fields:`, columns);
 
       await query(insertQuery, values);
+      
+      // STAGE-2D: Strict Task Completion - Populate task_form_submissions
+      try {
+        await query(
+          `INSERT INTO task_form_submissions (
+            id, verification_task_id, case_id, form_submission_id, form_type, 
+            submitted_by, submitted_at, validation_status
+          ) VALUES ($1, $2, $3, $4, $5, $6, NOW(), 'PENDING')`,
+          [
+            uuidv4(), // task_form_submission record ID
+            targetTaskId,
+            caseId,
+            uuidv4(), // NEW: form_submission_id (mandatory)
+            'RESIDENCE_VERIFICATION',
+            userId
+          ]
+        );
+        logger.info(`✅ Linked residence form submission to task ${targetTaskId}`);
+      } catch (linkError) {
+        logger.error('Failed to link form submission to task:', linkError);
+        // Don't fail the request, but log critical error
+      }
 
       // Remove auto-save data (autoSaves table doesn't have form_type column)
       await query(`DELETE FROM "autoSaves" WHERE case_id = $1::uuid`, [caseId]);
@@ -2650,10 +2775,6 @@ export class MobileFormController {
       logger.info(`   - User: ${userId} (${userRole})`);
       logger.info(`   - Verification Task ID from body: ${verificationTaskId}`);
       logger.info(`   - Images: ${images?.length || 0}`);
-      logger.info(`   - Form data keys: ${Object.keys(formData || {}).join(', ')}`);
-      logger.info(
-        `   - Form data outcome: ${formData?.outcome || formData?.finalStatus || 'Not specified'}`
-      );
 
       if (!userId) {
         return res.status(401).json({
@@ -2666,44 +2787,27 @@ export class MobileFormController {
         });
       }
 
-      if (!verificationTaskId) {
+      if (!taskId) {
         return res.status(400).json({
           success: false,
-          message: 'Verification task ID is required',
-          error: {
-            code: 'MISSING_TASK_ID',
-            timestamp: new Date().toISOString(),
-          },
+          message: 'Task ID is required for form submission',
+          error: { code: 'TASK_ID_REQUIRED' },
         });
       }
 
-      // UPDATED: Auto-resolve caseId from verificationTaskId
-      const resolution = await MobileFormController.resolveCaseIdFromTaskId(
-        taskId,
-        userId,
-        userRole
-      );
-
-      if (!resolution.success) {
-        logger.info(`❌ Failed to resolve case from task: ${taskId}`);
-        return res.status(resolution.error.status).json({
-          success: false,
-          message: resolution.error.message,
-          error: {
-            code: resolution.error.code,
-            timestamp: new Date().toISOString(),
-            taskId,
-          },
-        });
+      // STAGE-2C: STRICT VALIDATION
+      const taskValidation = await MobileFormController.validateTaskSubmission(taskId, userId);
+      if (!taskValidation.success || !taskValidation.data) {
+          return res.status(taskValidation.error!.status).json({
+              success: false,
+              message: taskValidation.error!.message,
+              error: { code: taskValidation.error!.code }
+          });
       }
 
-      const caseId = resolution.caseId;
-      const task = resolution.task;
-
-      logger.info(`✅ Resolved caseId: ${caseId} from taskId: ${taskId}`);
-      logger.info(
-        `✅ Verification task validated: ${task.task_number} (Type: ${task.verification_type_name})`
-      );
+      const { caseId, caseNumber, taskId: targetTaskId, taskNumber, verificationTypeName } = taskValidation.data;
+      logger.info(`✅ Task Validated: ${targetTaskId} (${taskNumber}) -> Case: ${caseId}`);
+      logger.info(`✅ Verification Type: ${verificationTypeName}`);
 
       // Verify case exists (additional validation)
       const caseQuery = await query(
@@ -2833,7 +2937,7 @@ export class MobileFormController {
       );
 
       logger.info(
-        `✅ Processed ${uploadedImages.length} verification images for office verification (Task: ${task.task_number})`
+        `✅ Processed ${uploadedImages.length} verification images for office verification (Task: ${taskNumber})`
       );
 
       // Prepare verification data (excluding old attachment references)
@@ -2892,8 +2996,8 @@ export class MobileFormController {
       const dbInsertData = {
         // Core case information
         case_id: caseId,
-        verification_task_id: verificationTaskId,
-        caseId: parseInt(updatedCase.caseId) || null,
+        verification_task_id: targetTaskId,
+        caseId: caseNumber,
         form_type: formType,
         verification_outcome: verificationOutcome,
         customer_name: updatedCase.customerName || 'Unknown',
@@ -3028,10 +3132,6 @@ export class MobileFormController {
       logger.info(`   - User: ${userId} (${userRole})`);
       logger.info(`   - Verification Task ID from body: ${verificationTaskId}`);
       logger.info(`   - Images: ${images?.length || 0}`);
-      logger.info(`   - Form data keys: ${Object.keys(formData || {}).join(', ')}`);
-      logger.info(
-        `   - Form data outcome: ${formData?.outcome || formData?.finalStatus || 'Not specified'}`
-      );
 
       if (!userId) {
         return res.status(401).json({
@@ -3044,44 +3144,27 @@ export class MobileFormController {
         });
       }
 
-      if (!verificationTaskId) {
+      if (!taskId) {
         return res.status(400).json({
           success: false,
-          message: 'Verification task ID is required',
-          error: {
-            code: 'MISSING_TASK_ID',
-            timestamp: new Date().toISOString(),
-          },
+          message: 'Task ID is required for form submission',
+          error: { code: 'TASK_ID_REQUIRED' },
         });
       }
 
-      // UPDATED: Auto-resolve caseId from verificationTaskId
-      const resolution = await MobileFormController.resolveCaseIdFromTaskId(
-        taskId,
-        userId,
-        userRole
-      );
-
-      if (!resolution.success) {
-        logger.info(`❌ Failed to resolve case from task: ${taskId}`);
-        return res.status(resolution.error.status).json({
-          success: false,
-          message: resolution.error.message,
-          error: {
-            code: resolution.error.code,
-            timestamp: new Date().toISOString(),
-            taskId,
-          },
-        });
+      // STAGE-2C: STRICT VALIDATION
+      const taskValidation = await MobileFormController.validateTaskSubmission(taskId, userId);
+      if (!taskValidation.success || !taskValidation.data) {
+          return res.status(taskValidation.error!.status).json({
+              success: false,
+              message: taskValidation.error!.message,
+              error: { code: taskValidation.error!.code }
+          });
       }
 
-      const caseId = resolution.caseId;
-      const task = resolution.task;
-
-      logger.info(`✅ Resolved caseId: ${caseId} from taskId: ${taskId}`);
-      logger.info(
-        `✅ Verification task validated: ${task.task_number} (Type: ${task.verification_type_name})`
-      );
+      const { caseId, caseNumber, taskId: targetTaskId, taskNumber, verificationTypeName } = taskValidation.data;
+      logger.info(`✅ Task Validated: ${targetTaskId} (${taskNumber}) -> Case: ${caseId}`);
+      logger.info(`✅ Verification Type: ${verificationTypeName}`);
 
       if (!formData) {
         return res.status(400).json({
@@ -3222,7 +3305,7 @@ export class MobileFormController {
       );
 
       logger.info(
-        `✅ Processed ${uploadedImages.length} verification images for business verification (Task: ${task.task_number})`
+        `✅ Processed ${uploadedImages.length} verification images for business verification (Task: ${taskNumber})`
       );
 
       // Prepare verification data (excluding old attachment references)
@@ -3279,8 +3362,8 @@ export class MobileFormController {
       const dbInsertData = {
         // Core case information
         case_id: caseId,
-        verification_task_id: verificationTaskId,
-        caseId: parseInt(updatedCase.caseId) || null,
+        verification_task_id: targetTaskId,
+        caseId: caseNumber,
         form_type: formType,
         verification_outcome: verificationOutcome,
         customer_name: updatedCase.customerName || 'Unknown',

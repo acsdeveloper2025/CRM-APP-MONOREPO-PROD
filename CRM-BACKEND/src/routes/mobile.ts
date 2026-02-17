@@ -5,7 +5,10 @@ import {
   MobileAttachmentController,
   mobileUpload,
 } from '../controllers/mobileAttachmentController';
-import { VerificationAttachmentController } from '../controllers/verificationAttachmentController';
+import {
+  VerificationAttachmentController,
+  verificationUpload,
+} from '../controllers/verificationAttachmentController';
 import { MobileFormController } from '../controllers/mobileFormController';
 import { MobileLocationController } from '../controllers/mobileLocationController';
 import { MobileSyncController } from '../controllers/mobileSyncController';
@@ -134,8 +137,8 @@ router.post(
   authenticateToken,
   validateMobileVersion,
   uploadRateLimit,
-  mobileUpload.array('files', 15),
-  MobileAttachmentController.uploadFiles
+  verificationUpload.array('files', 15),
+  VerificationAttachmentController.uploadVerificationImages
 );
 router.get(
   '/verification-tasks/:taskId/attachments',

@@ -1669,15 +1669,28 @@ export class VerificationTasksController {
    * Complete a verification task
    * POST /api/verification-tasks/:taskId/complete
    */
+  /**
+   * Complete a verification task
+   * POST /api/verification-tasks/:taskId/complete
+   */
   static async completeTask(req: AuthenticatedRequest, res: Response): Promise<void> {
     const { taskId } = req.params;
     const {
       verificationOutcome,
       actualAmount,
       completionNotes,
-      formSubmissionId,
     }: CompleteVerificationTaskData = req.body;
     const userId = req.user?.id;
+
+    // 1. Task ID Validation
+    if (!taskId) {
+      res.status(400).json({
+        success: false,
+        message: 'Task ID is required',
+        error: { code: 'TASK_ID_REQUIRED' }
+      });
+      return;
+    }
 
     if (!verificationOutcome) {
       res.status(400).json({
@@ -1693,149 +1706,146 @@ export class VerificationTasksController {
     try {
       await client.query('BEGIN');
 
-      // Get current task details
+      // 2. Fetch task details
       const taskResult = await client.query(
-        `
-        SELECT vt.*, c."clientId", c."productId", vtype.name as verification_type_name
-        FROM verification_tasks vt
-        JOIN cases c ON vt.case_id = c.id
-        LEFT JOIN "verificationTypes" vtype ON vt.verification_type_id = vtype.id
-        WHERE vt.id = $1
-      `,
+        `SELECT id, assigned_to, case_id, status, task_number
+         FROM verification_tasks
+         WHERE id = $1`,
         [taskId]
       );
 
       if (taskResult.rows.length === 0) {
         await client.query('ROLLBACK');
-        res.status(404).json({
+        res.status(400).json({
           success: false,
-          message: 'Verification task not found',
-          error: { code: 'TASK_NOT_FOUND' },
+          message: 'Invalid Task ID',
+          error: { code: 'INVALID_TASK_ID' }
         });
         return;
       }
 
       const task = taskResult.rows[0];
 
-      // ✅ ADD AUTHORIZATION CHECKS
-      const userRole = req.user?.role;
-      const isFieldAgent = userRole === Role.FIELD_AGENT;
-      const isAssignedAgent = task.assigned_to === userId;
-
-      if (!isFieldAgent || !isAssignedAgent) {
+      // 3. Assignment validation
+      if (task.assigned_to !== userId) {
         await client.query('ROLLBACK');
-        
-        // Log unauthorized attempt
-        await createAuditLog({
-          userId,
-          action: 'UNAUTHORIZED_TASK_COMPLETION_ATTEMPT',
-          entityType: 'VERIFICATION_TASK',
-          entityId: taskId,
-          details: {
-            taskNumber: task.task_number,
-            userRole,
-            assignedTo: task.assigned_to,
-            reason: !isFieldAgent ? 'User is not a FIELD_AGENT' : 'User is not the assigned agent',
-          },
-          ipAddress: req.ip,
-          userAgent: req.get('User-Agent'),
-        });
-
-        logger.warn(`Unauthorized task completion attempt`, {
-          taskId,
-          userId,
-          userRole,
-          assignedTo: task.assigned_to,
-        });
-
         res.status(403).json({
           success: false,
-          message: 'Only the assigned field agent can complete this task',
-          error: { code: 'FORBIDDEN' },
+          message: 'Only the assigned field agent may complete the task',
+          error: { code: 'ONLY_ASSIGNED_AGENT_CAN_COMPLETE_TASK' }
         });
         return;
       }
 
-      if (task.status === 'COMPLETED') {
+      // 4. Task state validation
+      if (task.status !== 'IN_PROGRESS') {
         await client.query('ROLLBACK');
-        res.status(400).json({
+        res.status(409).json({
           success: false,
-          message: 'Task is already completed',
-          error: { code: 'TASK_ALREADY_COMPLETED' },
+          message: 'Task must be in progress to be completed',
+          error: { code: 'TASK_NOT_IN_PROGRESS' }
         });
         return;
       }
 
-      // ✅ VALIDATE TASK COMPLETION REQUIREMENTS
-      const { TaskCompletionValidator } = await import('../services/taskCompletionValidator');
-      const validation = await TaskCompletionValidator.validateTaskCompletion(
-        taskId,
-        task.verification_type_name,
-        verificationOutcome
+      // 5. Evidence validation (CRITICAL)
+      
+      // A) Location must exist
+      const locationResult = await client.query(
+        `SELECT id, "recordedAt" FROM locations WHERE verification_task_id = $1 LIMIT 1`,
+        [taskId]
       );
-
-      if (!validation.isValid) {
+      if (locationResult.rows.length === 0) {
         await client.query('ROLLBACK');
-        logger.warn(`Task ${task.task_number} completion validation failed`, {
-          errors: validation.errors,
-        });
-        res.status(400).json({
+        res.status(412).json({
           success: false,
-          message: 'Task cannot be completed due to validation errors',
-          errors: validation.errors,
-          warnings: validation.warnings,
-          error: { code: 'VALIDATION_FAILED' },
+          message: 'Visit location capture is missing',
+          error: { code: 'VISIT_LOCATION_MISSING' }
+        });
+        return;
+      }
+      const location = locationResult.rows[0];
+
+      // B) At least 5 photos must exist
+      const photoResult = await client.query(
+        `SELECT COUNT(*) FROM verification_attachments WHERE verification_task_id = $1`,
+        [taskId]
+      );
+      const photoCount = parseInt(photoResult.rows[0].count);
+      if (photoCount < 5) {
+        await client.query('ROLLBACK');
+        res.status(412).json({
+          success: false,
+          message: 'At least 5 photos are required as evidence',
+          error: { code: 'INSUFFICIENT_PHOTO_EVIDENCE' }
         });
         return;
       }
 
-      // Log warnings if any
-      if (validation.warnings.length > 0) {
-        logger.warn(`Task ${task.task_number} completion warnings`, {
-          warnings: validation.warnings,
+      // C) Form submission must exist
+      const formResult = await client.query(
+        `SELECT id, submitted_at FROM task_form_submissions WHERE verification_task_id = $1 LIMIT 1`,
+        [taskId]
+      );
+      if (formResult.rows.length === 0) {
+        await client.query('ROLLBACK');
+        res.status(412).json({
+          success: false,
+          message: 'Verification form narrative is missing',
+          error: { code: 'VERIFICATION_FORM_MISSING' }
         });
+        return;
+      }
+      const form = formResult.rows[0];
+
+      // 6. Time consistency check
+      // Convert timestamps to Date objects for comparison
+      const locationTime = new Date(location.recordedAt);
+      const formTime = new Date(form.submitted_at);
+
+      if (formTime < locationTime) {
+        await client.query('ROLLBACK');
+        res.status(412).json({
+          success: false,
+          message: 'Form submission must occur after location capture',
+          error: { code: 'INVALID_EVIDENCE_SEQUENCE' }
+        });
+        return;
       }
 
-      // Update task to completed
+      // 7. Complete task
       const updateResult = await client.query(
-        `
-        UPDATE verification_tasks
-        SET
-          status = 'COMPLETED',
-          verification_outcome = $1,
-          actual_amount = COALESCE($2, estimated_amount),
-          completed_at = NOW(),
-          updated_at = NOW()
-        WHERE id = $3
-        RETURNING *
-      `,
+        `UPDATE verification_tasks
+         SET status = 'COMPLETED',
+             verification_outcome = $1,
+             actual_amount = COALESCE($2, estimated_amount),
+             completed_at = NOW(),
+             updated_at = NOW()
+         WHERE id = $3
+         RETURNING *`,
         [verificationOutcome, actualAmount, taskId]
       );
 
       const completedTask = updateResult.rows[0];
 
-      // Link form submission if provided
-      if (formSubmissionId) {
-        await client.query(
-          `
-          INSERT INTO task_form_submissions (
-            verification_task_id, case_id, form_submission_id,
-            form_type, submitted_by, submitted_at
-          ) VALUES ($1, $2, $3, $4, $5, NOW())
-        `,
-          [taskId, task.case_id, formSubmissionId, 'VERIFICATION_FORM', userId]
-        );
+      // Calculate commission if rate type is available
+      if (completedTask.rate_type_id && completedTask.assigned_to) {
+        try {
+          const { autoCalculateCommissionForTask } = await import('./commissionManagementController');
+          await autoCalculateCommissionForTask(taskId);
+        } catch (commError) {
+          logger.error('Error calculating commission:', commError);
+        }
       }
 
-      // Calculate commission if rate type is available
-      if (task.rate_type_id && task.assigned_to) {
-        await VerificationTasksController.calculateTaskCommission(
-          client,
-          taskId,
-          task,
-          completedTask.actual_amount
-        );
-      }
+      // 8. Logging
+      logger.info('Verification task completed with validated evidence', {
+        taskId,
+        caseId: task.case_id,
+        userId,
+        photoCount,
+        formId: form.id
+      });
 
       // Create audit log
       await createAuditLog({
@@ -1847,9 +1857,9 @@ export class VerificationTasksController {
           verificationOutcome,
           actualAmount,
           completionNotes,
-          formSubmissionId,
-          validationWarnings: validation.warnings,
-        },
+          photoCount,
+          formId: form.id
+        }
       });
 
       await client.query('COMMIT');
@@ -1857,16 +1867,10 @@ export class VerificationTasksController {
       // Sync case status
       await CaseStatusSyncService.recalculateCaseStatus(task.case_id);
 
-      logger.info(`Task ${completedTask.task_number} completed successfully`, {
-        taskId,
-        verificationOutcome,
-      });
-
       res.json({
         success: true,
         data: completedTask,
-        message: 'Verification task completed successfully',
-        warnings: validation.warnings,
+        message: 'Verification task completed successfully'
       });
     } catch (error) {
       await client.query('ROLLBACK');
