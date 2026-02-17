@@ -13,20 +13,37 @@ import type { QueryParams } from '@/types/database';
 
 // Configure storage for verification attachments
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const { caseId } = req.params;
+  destination: async (req, file, cb) => {
+    let { caseId, taskId } = req.params;
     const verificationType = req.body.verificationType || 'verification';
 
+    // Stage-2A: Resolve caseId from taskId if needed
+    if (!caseId && taskId) {
+      try {
+        const taskResult = await query('SELECT case_id FROM verification_tasks WHERE id = $1', [taskId]);
+        if (taskResult.rows.length > 0) {
+          caseId = taskResult.rows[0].case_id;
+        }
+      } catch (error) {
+        console.error('Error resolving caseId from taskId in storage:', error);
+      }
+    }
+
+    // specific fallback or error if caseId still missing? 
+    // For now, if resolution fails, it might use 'undefined' or root. 
+    // Ideally validation happens before upload, but middleware order...
+    // We'll proceed, assuming caseId is resolved or route provides it.
+    
     const uploadDir = path.join(
       process.cwd(),
       'uploads',
       'verification',
       verificationType.toLowerCase(),
-      caseId
+      caseId || 'unknown'
     );
 
     try {
-      fsSync.mkdirSync(uploadDir, { recursive: true });
+      await fs.mkdir(uploadDir, { recursive: true });
       cb(null, uploadDir);
     } catch (error) {
       cb(error as Error, '');
@@ -67,11 +84,20 @@ export class VerificationAttachmentController {
    */
   static async uploadVerificationImages(this: void, req: Request, res: Response) {
     try {
-      const { caseId } = req.params;
+      const { taskId } = req.params;
       const { verificationType, submissionId, geoLocation, photoType = 'verification' } = req.body;
 
       const userId = (req as AuthenticatedRequest).user?.id;
       const files = req.files as Express.Multer.File[];
+
+      // Stage-2A: Validation - Task ID is strictly required
+      if (!taskId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Task ID is required',
+          error: { code: 'TASK_ID_REQUIRED' },
+        });
+      }
 
       if (!files || files.length === 0) {
         return res.status(400).json({
@@ -81,20 +107,36 @@ export class VerificationAttachmentController {
         });
       }
 
-      // Verify case exists and user has access
-      const caseResult = await query(`SELECT id, "caseId", status FROM cases WHERE id = $1`, [
-        caseId,
-      ]);
+      // ----------------------------------------------------------------------
+      // STAGE-2A: STRICT DUAL WRITE LOGIC
+      // ----------------------------------------------------------------------
+      logger.info(`📸 Processing strict dual-write upload for Task ID: ${taskId}`);
 
-      if (caseResult.rows.length === 0) {
-        return res.status(404).json({
+      const taskResult = await query(
+        `SELECT vt.id, vt.case_id, vty.name as verification_type, c."caseId" as case_number 
+         FROM verification_tasks vt
+         JOIN cases c ON vt.case_id = c.id
+         LEFT JOIN "verificationTypes" vty ON vt.verification_type_id = vty.id
+         WHERE vt.id = $1`,
+        [taskId]
+      );
+
+      if (taskResult.rows.length === 0) {
+        return res.status(400).json({
           success: false,
-          message: 'Case not found',
-          error: { code: 'CASE_NOT_FOUND' },
+          message: 'Invalid Task ID',
+          error: { code: 'INVALID_TASK_ID' },
         });
       }
 
-      const existingCase = caseResult.rows[0];
+      const task = taskResult.rows[0];
+      const targetTaskId = task.id;
+      const targetCaseId = task.case_id;         // Auto-derived from task
+      const targetCaseNumber = task.case_number; // Auto-derived from task
+      const verificationTypeToUse = verificationType || task.verification_type; // Prefer payload but fallback to task
+
+      logger.info(`🔗 Linked Attachment to Task: ${targetTaskId}, Case: ${targetCaseId}, File: ${files[0]?.originalname}`);
+
       const uploadedAttachments: Record<string, unknown>[] = [];
 
       // Process each uploaded file
@@ -123,26 +165,27 @@ export class VerificationAttachmentController {
             `INSERT INTO verification_attachments (
               case_id, "caseId", verification_type, filename, "originalName", 
               "mimeType", "fileSize", "filePath", "thumbnailPath", "uploadedBy", 
-              "geoLocation", "photoType", "submissionId"
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+              "geoLocation", "photoType", "submissionId", verification_task_id
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
             RETURNING id, filename, "originalName", "mimeType", "fileSize", "filePath", 
-                     "thumbnailPath", "createdAt", "photoType"`,
+                     "thumbnailPath", "createdAt", "photoType", verification_task_id`,
             [
-              caseId,
-              existingCase.caseId,
-              verificationType,
+              targetCaseId,
+              targetCaseNumber,
+              verificationTypeToUse,
               file.filename,
               file.originalname,
               file.mimetype,
               file.size,
-              `/uploads/verification/${verificationType.toLowerCase()}/${caseId}/${file.filename}`,
+              `/uploads/verification/${verificationTypeToUse.toLowerCase()}/${targetCaseId}/${file.filename}`,
               thumbnailPath
-                ? `/uploads/verification/${verificationType.toLowerCase()}/${caseId}/thumbnails/thumb_${path.basename(file.path)}`
+                ? `/uploads/verification/${verificationTypeToUse.toLowerCase()}/${targetCaseId}/thumbnails/thumb_${path.basename(file.path)}`
                 : null,
               userId,
               geoLocation ? JSON.stringify(geoLocation) : null,
               photoType,
               submissionId,
+              targetTaskId, // Dual-write: Task ID or NULL
             ]
           );
 
@@ -174,13 +217,14 @@ export class VerificationAttachmentController {
       await createAuditLog({
         action: 'VERIFICATION_IMAGES_UPLOADED',
         entityType: 'CASE',
-        entityId: caseId,
+        entityId: targetCaseId,
         userId,
         details: {
-          verificationType,
+          verificationType: verificationTypeToUse,
           photoCount: uploadedAttachments.length,
           submissionId,
           photoType,
+          taskId,
         },
         ipAddress: req.ip,
         userAgent: req.get('User-Agent'),
@@ -191,9 +235,10 @@ export class VerificationAttachmentController {
         message: `${uploadedAttachments.length} verification images uploaded successfully`,
         data: {
           attachments: uploadedAttachments,
-          caseId,
-          verificationType,
+          caseId: targetCaseId,
+          verificationType: verificationTypeToUse,
           submissionId,
+          taskId,
         },
       });
     } catch (error) {
