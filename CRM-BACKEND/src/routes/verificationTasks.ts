@@ -7,6 +7,7 @@ import {
   validateTaskUpdate,
   validateTaskAssignment,
 } from '../middleware/taskValidation';
+import { requireTaskAccess } from '../middleware/taskAuthorization';
 import { pool } from '../config/db';
 
 const router = express.Router();
@@ -67,6 +68,7 @@ router.post(
 router.put(
   '/verification-tasks/:taskId',
   authenticateToken,
+  requireTaskAccess,
   validateTaskUpdate,
   VerificationTasksController.updateTask.bind(VerificationTasksController)
 );
@@ -78,6 +80,7 @@ router.put(
 router.post(
   '/verification-tasks/:taskId/assign',
   authenticateToken,
+  requireTaskAccess,
   validateTaskAssignment,
   VerificationTasksController.assignTask.bind(VerificationTasksController)
 );
@@ -89,6 +92,7 @@ router.post(
 router.post(
   '/verification-tasks/:taskId/complete',
   authenticateToken,
+  requireTaskAccess,
   VerificationTasksController.completeTask.bind(VerificationTasksController)
 );
 
@@ -100,6 +104,7 @@ router.post(
 router.get(
   '/verification-tasks/:taskId/validate',
   authenticateToken,
+  requireTaskAccess,
   VerificationTasksController.validateTask.bind(VerificationTasksController)
 );
 
@@ -110,6 +115,7 @@ router.get(
 router.post(
   '/verification-tasks/:taskId/start',
   authenticateToken,
+  requireTaskAccess,
   async (req: AuthenticatedRequest, res) => {
     try {
       const { taskId: _taskId } = req.params;
@@ -140,6 +146,7 @@ router.post(
 router.get(
   '/verification-tasks/:taskId/assignment-history',
   authenticateToken,
+  requireTaskAccess,
   async (req: AuthenticatedRequest, res) => {
     try {
       const { taskId } = req.params;
@@ -183,6 +190,7 @@ router.get(
 router.get(
   '/verification-tasks/:taskId',
   authenticateToken,
+  requireTaskAccess,
   async (req: AuthenticatedRequest, res) => {
     try {
       const { taskId } = req.params;
@@ -243,6 +251,7 @@ router.get(
 router.post(
   '/verification-tasks/:taskId/cancel',
   authenticateToken,
+  requireTaskAccess,
   async (req: AuthenticatedRequest, res) => {
     try {
       const { taskId: _taskId } = req.params;

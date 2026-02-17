@@ -23,6 +23,7 @@ export class MobileLocationController {
         timestamp,
         source,
         caseId,
+        taskId, // Stage-2: Dual Write
         activityType,
       }: MobileLocationCaptureRequest = req.body;
       const userId = req.user?.id;
@@ -35,6 +36,15 @@ export class MobileLocationController {
             code: 'MISSING_REQUIRED_FIELDS',
             timestamp: new Date().toISOString(),
           },
+        });
+      }
+
+      // Stage-2B Strict Validation: Task ID is required
+      if (!taskId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Task ID is required for location capture',
+          error: { code: 'TASK_ID_REQUIRED' },
         });
       }
 
@@ -54,57 +64,88 @@ export class MobileLocationController {
         });
       }
 
-      // Validate case access if caseId provided
-      if (caseId) {
-        const userRole = req.user?.role;
-        const where: Record<string, unknown> = { id: caseId };
+      // ----------------------------------------------------------------------
+      // STAGE-2B STRICT DUAL WRITE LOGIC
+      // ----------------------------------------------------------------------
+      
+      // 1. Validate Task and User Assignment
+      const taskResult = await query(
+        `SELECT vt.id, vt.case_id, c."caseId" as case_number, vt.assigned_to
+         FROM verification_tasks vt
+         JOIN cases c ON vt.case_id = c.id
+         WHERE vt.id = $1`,
+        [taskId]
+      );
 
-        if (userRole === Role.FIELD_AGENT) {
-          where.assignedTo = userId;
-        }
-
-        const caseSqlVals: QueryParams = [where.id as string];
-        let caseSql = `SELECT id FROM cases WHERE id = $1`;
-        if (where.assignedTo) {
-          caseSql += ` AND "assignedTo" = $2`;
-          const assignedToValue = where.assignedTo;
-          if (typeof assignedToValue === 'string' || typeof assignedToValue === 'number') {
-            caseSqlVals.push(String(assignedToValue));
-          } else {
-            caseSqlVals.push(String(userId)); // Fallback to userId
-          }
-        }
-        const caseRes = await query(caseSql, caseSqlVals);
-        const existingCase = caseRes.rows[0];
-
-        if (!existingCase) {
-          return res.status(404).json({
-            success: false,
-            message: 'Case not found or access denied',
-            error: {
-              code: 'CASE_NOT_FOUND',
-              timestamp: new Date().toISOString(),
-            },
-          });
-        }
+      if (taskResult.rows.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid Task ID',
+          error: { code: 'INVALID_TASK_ID' },
+        });
       }
 
-      // Save location data
+      const task = taskResult.rows[0];
+      const targetTaskId = task.id;
+      const targetCaseId = task.case_id;
+      const targetCaseNumber = task.case_number;
+
+      // Authorization Check
+      if (userId && task.assigned_to !== userId) {
+        return res.status(403).json({
+          success: false,
+          message: 'Task not assigned to user',
+          error: { code: 'TASK_NOT_ASSIGNED_TO_USER' },
+        });
+      }
+
+      // 2. Prevent Duplicate Visits (One location per task)
+      const duplicateCheck = await query(
+        `SELECT id FROM locations WHERE verification_task_id = $1`,
+        [targetTaskId]
+      );
+
+      if (duplicateCheck.rows.length > 0) {
+        return res.status(409).json({
+          success: false,
+          message: 'Location already captured for this task',
+          error: { code: 'LOCATION_ALREADY_CAPTURED_FOR_TASK' },
+        });
+      }
+
+      // 3. Insert into locations (Dual Write)
       const locRes = await query(
-        `INSERT INTO locations (id, "caseId", latitude, longitude, accuracy, timestamp, source)
-         VALUES (gen_random_uuid()::text, $1, $2, $3, $4, $5, $6)
-         RETURNING id, timestamp`,
-        [caseId || null, latitude, longitude, accuracy, new Date(timestamp), source]
+        `INSERT INTO locations (
+           "caseId", case_id, verification_task_id, 
+           latitude, longitude, accuracy, "recordedAt", "recordedBy"
+         )
+         VALUES (
+           $1, $2, $3, 
+           $4, $5, $6, $7, $8
+         )
+         RETURNING id, "recordedAt" as timestamp`,
+        [
+          targetCaseNumber, 
+          targetCaseId, 
+          targetTaskId, 
+          latitude, 
+          longitude, 
+          accuracy, 
+          new Date(timestamp), 
+          userId // recordedBy
+        ]
       );
       const locationRecord = locRes.rows[0];
 
+      // 4. Logging
       await createAuditLog({
         action: 'MOBILE_LOCATION_CAPTURED',
         entityType: 'LOCATION',
         entityId: locationRecord.id,
         userId,
         details: {
-          caseId,
+          taskId: targetTaskId,
+          caseId: targetCaseId,
           latitude,
           longitude,
           accuracy,
@@ -323,9 +364,9 @@ export class MobileLocationController {
       }
 
       const locRes = await query(
-        `SELECT l.id, l.latitude, l.longitude, l.accuracy, l.timestamp, l.source, c.id as "caseId", c.title, c."customerName"
+        `SELECT l.id, l.latitude, l.longitude, l.accuracy, l."recordedAt" as timestamp, c.id as "caseId", c.title, c."customerName"
          FROM locations l JOIN cases c ON c.id = l."caseId"
-         WHERE l."caseId" = $1 ORDER BY l.timestamp DESC`,
+         WHERE l."caseId" = $1 ORDER BY l."recordedAt" DESC`,
         [caseId]
       );
 
@@ -335,7 +376,6 @@ export class MobileLocationController {
         longitude: location.longitude,
         accuracy: location.accuracy,
         timestamp: new Date(location.timestamp as string).toISOString(),
-        source: location.source,
         case: { id: location.caseId, title: location.title, customerName: location.customerName },
       }));
 
@@ -414,7 +454,7 @@ export class MobileLocationController {
       }
 
       const vals: QueryParams = [];
-      let sql = `SELECT l.id, l.latitude, l.longitude, l.accuracy, l.timestamp, l.source, c.id as "caseId", c.title, c."customerName" FROM locations l JOIN cases c ON c.id = l."caseId"`;
+      let sql = `SELECT l.id, l.latitude, l.longitude, l.accuracy, l."recordedAt" as timestamp, c.id as "caseId", c.title, c."customerName" FROM locations l JOIN cases c ON c.id = l."caseId"`;
       const wh: string[] = [];
       if (where.caseId) {
         vals.push(where.caseId);
@@ -422,16 +462,16 @@ export class MobileLocationController {
       }
       if (where.timestamp?.gte) {
         vals.push(where.timestamp.gte);
-        wh.push(`l.timestamp >= $${vals.length}`);
+        wh.push(`l."recordedAt" >= $${vals.length}`);
       }
       if (where.timestamp?.lte) {
         vals.push(where.timestamp.lte);
-        wh.push(`l.timestamp <= $${vals.length}`);
+        wh.push(`l."recordedAt" <= $${vals.length}`);
       }
       if (wh.length) {
         sql += ` WHERE ${wh.join(' AND ')}`;
       }
-      sql += ` ORDER BY l.timestamp DESC LIMIT $${vals.length + 1}`;
+      sql += ` ORDER BY l."recordedAt" DESC LIMIT $${vals.length + 1}`;
       vals.push(parseInt(limit as string));
       const locationTrailRes = await query(sql, vals);
       const locationTrail = locationTrailRes.rows;
@@ -441,8 +481,7 @@ export class MobileLocationController {
         latitude: location.latitude,
         longitude: location.longitude,
         accuracy: location.accuracy,
-        timestamp: location.timestamp.toISOString(),
-        source: location.source,
+        timestamp: (location.timestamp as Date).toISOString(),
         case: location.case,
       }));
 
