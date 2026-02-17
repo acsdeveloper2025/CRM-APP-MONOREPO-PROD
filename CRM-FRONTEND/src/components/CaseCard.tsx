@@ -35,7 +35,7 @@ export const CaseCard: React.FC<CaseCardProps> = ({
   const formatUpdateDate = (dateString: string) => {
     try {
       return format(new Date(dateString), 'dd MMM yyyy, hh:mm a');
-    } catch (e) {
+    } catch (_e) {
       return 'N/A';
     }
   };
