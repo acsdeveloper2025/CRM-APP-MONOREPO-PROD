@@ -80,7 +80,7 @@ export const validateProductAccess = (source: 'params' | 'body' | 'query' = 'par
           productId = parseInt(req.query.productId as string);
           break;
         default:
-          productId = parseInt(req.params.productId || req.params.id);
+          productId = parseInt((req.params.productId || req.params.id || '0') as string);
       }
 
       // If no product ID is provided, let the request continue
@@ -134,7 +134,8 @@ export const validateCaseProductAccess = async (
   try {
     const userId = req.user?.id;
     const userRole = req.user?.role;
-    const caseId = req.params.id || req.params.caseId;
+    // Check both :id and :caseId parameters
+    const caseId = (req.params.id || req.params.caseId) as string;
 
     // Skip validation for non-authenticated requests
     if (!userId || !userRole) {
