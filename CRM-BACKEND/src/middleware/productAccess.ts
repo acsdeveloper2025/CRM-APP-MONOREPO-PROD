@@ -68,19 +68,29 @@ export const validateProductAccess = (source: 'params' | 'body' | 'query' = 'par
 
       // Get product ID from the specified source
       let productId: number;
-
       switch (source) {
-        case 'params':
-          productId = parseInt(req.params.productId || req.params.id);
+        case 'params': {
+          const rawId = req.params.productId || req.params.id;
+          const idStr = Array.isArray(rawId) ? String(rawId[0] || '') : String(rawId || '');
+          productId = parseInt(idStr || '0');
           break;
+        }
         case 'body':
-          productId = req.body.productId;
+          productId = Number(req.body.productId);
           break;
-        case 'query':
-          productId = parseInt(req.query.productId as string);
+        case 'query': {
+          const rawId = req.query.productId;
+          const idStr = Array.isArray(rawId)
+            ? String((rawId[0] as unknown as string) || '')
+            : String((rawId as unknown as string) || '0');
+          productId = parseInt(idStr);
           break;
-        default:
-          productId = parseInt(req.params.productId || req.params.id || '0');
+        }
+        default: {
+          const rawId = req.params.productId || req.params.id;
+          const idStr = Array.isArray(rawId) ? String(rawId[0] || '') : String(rawId || '');
+          productId = parseInt(String(idStr || '0'));
+        }
       }
 
       // If no product ID is provided, let the request continue
@@ -135,7 +145,8 @@ export const validateCaseProductAccess = async (
     const userId = req.user?.id;
     const userRole = req.user?.role;
     // Check both :id and :caseId parameters
-    const caseId = req.params.id || req.params.caseId;
+    const rawCaseId = req.params.id || req.params.caseId;
+    const caseId = Array.isArray(rawCaseId) ? String(rawCaseId[0] || '') : String(rawCaseId || '');
 
     // Skip validation for non-authenticated requests
     if (!userId || !userRole) {

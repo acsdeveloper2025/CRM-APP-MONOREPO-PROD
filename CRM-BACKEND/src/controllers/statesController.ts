@@ -133,7 +133,7 @@ export const getStates = async (req: AuthenticatedRequest, res: Response) => {
 // GET /api/states/:id - Get state by ID
 export const getStateById = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = String(req.params.id || '');
 
     const result = await query(
       `SELECT s.id, s.name, s.code, c.name as country, s."createdAt", s."updatedAt"
@@ -250,7 +250,7 @@ export const createState = async (req: AuthenticatedRequest, res: Response) => {
 // PUT /api/states/:id - Update state
 export const updateState = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = String(req.params.id || '');
     const updateData = req.body;
 
     // Check if state exists
@@ -345,7 +345,7 @@ export const updateState = async (req: AuthenticatedRequest, res: Response) => {
 
     // Add id for WHERE clause
     paramCount++;
-    updateValues.push(id);
+    updateValues.push(String(id));
 
     const updateQuery = `
       UPDATE states
@@ -390,7 +390,7 @@ export const updateState = async (req: AuthenticatedRequest, res: Response) => {
 // DELETE /api/states/:id - Delete state
 export const deleteState = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = String(req.params.id || '');
 
     // Check if state exists and get its details
     const existingResult = await query(

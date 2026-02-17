@@ -265,7 +265,8 @@ export class MobileLocationController {
   // Reverse geocode coordinates to address
   static async reverseGeocode(this: void, req: AuthenticatedRequest, res: Response) {
     try {
-      const { latitude, longitude } = req.query;
+      const latitude = (req.query.latitude as unknown as string) || '';
+      const longitude = (req.query.longitude as unknown as string) || '';
 
       if (!latitude || !longitude) {
         return res.status(400).json({
@@ -290,8 +291,8 @@ export class MobileLocationController {
       }
 
       const address = await MobileLocationController.reverseGeocodeHelper(
-        parseFloat(latitude as string),
-        parseFloat(longitude as string)
+        parseFloat(latitude),
+        parseFloat(longitude)
       );
 
       if (!address) {
@@ -311,8 +312,8 @@ export class MobileLocationController {
         data: {
           address,
           coordinates: {
-            latitude: parseFloat(latitude as string),
-            longitude: parseFloat(longitude as string),
+            latitude: parseFloat(latitude),
+            longitude: parseFloat(longitude),
           },
         },
       });
@@ -332,7 +333,8 @@ export class MobileLocationController {
   // Get location history for a case
   static async getCaseLocationHistory(this: void, req: AuthenticatedRequest, res: Response) {
     try {
-      const { caseId: paramCaseId, taskId: paramTaskId } = req.params;
+      const paramCaseId = String(req.params.caseId || '');
+      const paramTaskId = String(req.params.taskId || '');
       const caseId = paramCaseId || paramTaskId;
       const userId = req.user?.id;
       const userRole = req.user?.role;
@@ -435,7 +437,9 @@ export class MobileLocationController {
   static async getUserLocationTrail(this: void, req: AuthenticatedRequest, res: Response) {
     try {
       const userId = req.user?.id;
-      const { startDate, endDate, limit = 100 } = req.query;
+      const startDate = (req.query.startDate as unknown as string) || '';
+      const endDate = (req.query.endDate as unknown as string) || '';
+      const limit = Number(req.query.limit) || 100;
 
       const where: {
         userId?: string;
@@ -446,10 +450,10 @@ export class MobileLocationController {
       if (startDate || endDate) {
         where.timestamp = {};
         if (startDate) {
-          where.timestamp.gte = new Date(startDate as string);
+          where.timestamp.gte = new Date(startDate);
         }
         if (endDate) {
-          where.timestamp.lte = new Date(endDate as string);
+          where.timestamp.lte = new Date(endDate);
         }
       }
 
@@ -472,7 +476,7 @@ export class MobileLocationController {
         sql += ` WHERE ${wh.join(' AND ')}`;
       }
       sql += ` ORDER BY l."recordedAt" DESC LIMIT $${vals.length + 1}`;
-      vals.push(parseInt(limit as string));
+      vals.push(limit);
       const locationTrailRes = await query(sql, vals);
       const locationTrail = locationTrailRes.rows;
 

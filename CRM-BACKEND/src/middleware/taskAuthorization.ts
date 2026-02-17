@@ -37,7 +37,8 @@ export const requireTaskAccess = async (
     }
 
     // Extract taskId from params, body, or nested params
-    const taskId = req.params.taskId || req.params.id || req.body.taskId;
+    const rawTaskId = (req.params.taskId || req.params.id || req.body.taskId || '') as string;
+    const taskId = Array.isArray(rawTaskId) ? rawTaskId[0] : String(rawTaskId || '');
 
     if (!taskId) {
       const response: ApiResponse = {

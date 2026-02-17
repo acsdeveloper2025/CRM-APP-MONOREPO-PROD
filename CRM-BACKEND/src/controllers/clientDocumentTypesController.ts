@@ -8,7 +8,7 @@ import type { QueryParams } from '../types/database';
 // GET /api/clients/:id/document-types - Get document types mapped to a client
 export const getDocumentTypesByClient = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { id: clientId } = req.params;
+    const clientId = String(req.params.id || '');
     const { isActive } = req.query as { isActive?: string };
 
     // Build where clause for active filter
@@ -64,7 +64,7 @@ export const getDocumentTypesByClient = async (req: AuthenticatedRequest, res: R
 // POST /api/clients/:id/document-types - Assign document types to a client
 export const assignDocumentTypesToClient = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { id: clientId } = req.params;
+    const clientId = String(req.params.id || '');
     const { documentTypeIds, isRequired = false } = req.body;
 
     if (!Array.isArray(documentTypeIds) || documentTypeIds.length === 0) {
@@ -169,7 +169,8 @@ export const assignDocumentTypesToClient = async (req: AuthenticatedRequest, res
 // DELETE /api/clients/:clientId/document-types/:documentTypeId - Remove document type from client
 export const removeDocumentTypeFromClient = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { clientId, documentTypeId } = req.params;
+    const clientId = String(req.params.clientId || '');
+    const documentTypeId = String(req.params.documentTypeId || '');
 
     // Check if mapping exists
     const existingMapping = await query(
@@ -226,7 +227,8 @@ export const removeDocumentTypeFromClient = async (req: AuthenticatedRequest, re
 // PUT /api/clients/:clientId/document-types/:documentTypeId - Update client document type mapping
 export const updateClientDocumentTypeMapping = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { clientId, documentTypeId } = req.params;
+    const clientId = String(req.params.clientId || '');
+    const documentTypeId = String(req.params.documentTypeId || '');
     const { isRequired, priority, clientSpecificRules } = req.body;
 
     // Check if mapping exists

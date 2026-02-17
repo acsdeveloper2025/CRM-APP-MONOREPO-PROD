@@ -73,15 +73,23 @@ export const validateClientAccess = (source: 'params' | 'body' | 'query' = 'para
       let clientId: number | undefined;
 
       switch (source) {
-        case 'params':
-          clientId = req.params.clientId ? parseInt(req.params.clientId) : undefined;
+        case 'params': {
+          const rawId = req.params.clientId;
+          const idStr = Array.isArray(rawId) ? String(rawId[0] || '') : String(rawId || '');
+          clientId = idStr ? parseInt(idStr) : undefined;
           break;
+        }
         case 'body':
           clientId = req.body.clientId ? parseInt(req.body.clientId) : undefined;
           break;
-        case 'query':
-          clientId = req.query.clientId ? parseInt(req.query.clientId as string) : undefined;
+        case 'query': {
+          const rawId = req.query.clientId;
+          const idStr = Array.isArray(rawId)
+            ? String((rawId[0] as unknown as string) || '')
+            : String((rawId as unknown as string) || '');
+          clientId = idStr ? parseInt(idStr) : undefined;
           break;
+        }
       }
 
       // If no client ID is provided, let the request continue (other validation will handle it)
@@ -147,7 +155,8 @@ export const validateCaseAccess = async (
   try {
     const userId = req.user?.id;
     const userRole = req.user?.role;
-    const caseId = req.params.id || req.params.caseId;
+    const rawCaseId = req.params.id || req.params.caseId || '';
+    const caseId = Array.isArray(rawCaseId) ? String(rawCaseId[0] || '') : String(rawCaseId || '');
 
     // Skip validation for non-authenticated requests
     if (!userId || !userRole) {

@@ -70,11 +70,17 @@ export const validatePincodeAccess = (source: 'params' | 'body' | 'query' = 'par
       // Get the pincode ID from the specified source
       let pincodeId: number | undefined;
       if (source === 'params') {
-        pincodeId = req.params.pincodeId ? parseInt(req.params.pincodeId) : undefined;
+        const rawId = req.params.pincodeId;
+        const idStr = Array.isArray(rawId) ? String(rawId[0] || '') : String(rawId || '');
+        pincodeId = idStr ? parseInt(idStr) : undefined;
       } else if (source === 'body') {
         pincodeId = req.body.pincodeId ? parseInt(req.body.pincodeId) : undefined;
       } else if (source === 'query') {
-        pincodeId = req.query.pincodeId ? parseInt(req.query.pincodeId as string) : undefined;
+        const rawId = req.query.pincodeId;
+        const idStr = Array.isArray(rawId)
+          ? String((rawId[0] as unknown as string) || '')
+          : String((rawId as unknown as string) || '');
+        pincodeId = idStr ? parseInt(idStr) : undefined;
       }
 
       // If no pincode ID is provided, let the request continue
