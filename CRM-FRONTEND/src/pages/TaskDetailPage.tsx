@@ -48,6 +48,8 @@ interface TaskDetail {
   verificationOutcome?: string;
   commissionStatus?: string;
   calculatedCommission?: number;
+  documentType?: string;
+  documentNumber?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -132,6 +134,8 @@ export const TaskDetailPage: React.FC = () => {
           verificationOutcome: taskData.verification_outcome,
           commissionStatus: taskData.commission_status,
           calculatedCommission: taskData.calculated_commission,
+          documentType: taskData.document_type,
+          documentNumber: taskData.document_number,
           createdAt: taskData.created_at,
           updatedAt: taskData.updated_at,
         });
@@ -281,8 +285,8 @@ export const TaskDetailPage: React.FC = () => {
             address: task.address,
             pincode: task.pincode,
             // Add if available in task object, otherwise defaults to empty
-            documentType: (task as any).documentType,
-            documentNumber: (task as any).documentNumber
+            documentType: task.documentType,
+            documentNumber: task.documentNumber
         }}
         onSubmit={handleUpdateTask}
       />
