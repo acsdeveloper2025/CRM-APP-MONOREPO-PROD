@@ -7,6 +7,7 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { AppRoutes } from '@/components/AppRoutes';
+import { LayoutProvider } from '@/contexts/LayoutContext';
 
 // Note: Page imports are now handled in AppRoutes component
 
@@ -73,13 +74,15 @@ function App() {
       <ThemeProvider defaultTheme="system" storageKey="acs-theme">
         <QueryClientProvider client={queryClient}>
           <AuthProvider>
-            <SessionHandler />
-            <Router>
-              <div className="min-h-screen bg-[#FAFAFA]">
-                <AppRoutes />
-              </div>
-            </Router>
-            <Toaster position="top-right" richColors closeButton />
+            <LayoutProvider>
+              <SessionHandler />
+              <Router>
+                <div className="min-h-screen bg-[#FAFAFA]">
+                  <AppRoutes />
+                </div>
+              </Router>
+              <Toaster position="top-right" richColors closeButton />
+            </LayoutProvider>
           </AuthProvider>
         </QueryClientProvider>
       </ThemeProvider>

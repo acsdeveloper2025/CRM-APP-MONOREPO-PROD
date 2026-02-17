@@ -1,5 +1,5 @@
 import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useResponsive } from '@/hooks/useResponsive';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
@@ -72,6 +72,17 @@ const DefaultRoute: React.FC = () => {
   return <Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />;
 };
 
+// Layout wrapper that persists across routes
+const AuthenticatedLayout = () => {
+  return (
+    <ProtectedRoute>
+      <Layout>
+        <Outlet />
+      </Layout>
+    </ProtectedRoute>
+  );
+};
+
 export const AppRoutes: React.FC = () => {
   return (
     <React.Suspense fallback={
@@ -95,410 +106,120 @@ export const AppRoutes: React.FC = () => {
           }
         />
 
-        {/* Protected routes with layout */}
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute>
-              <Layout>
-                <DashboardPage />
-              </Layout>
-            </ProtectedRoute>
-          }
-        />
-        
-        {/* Cases routes */}
-        <Route
-          path="/cases"
-          element={
-            <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND_USER', 'SUPER_ADMIN']}>
-              <Layout>
-                <CasesPage />
-              </Layout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/cases/:id"
-          element={
-            <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND_USER', 'SUPER_ADMIN']}>
-              <Layout>
-                <CaseDetailPage />
-              </Layout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/cases/:id/edit"
-          element={
-            <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND_USER', 'SUPER_ADMIN']}>
-              <Layout>
-                <EditCasePage />
-              </Layout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/tasks/pending"
-          element={
-            <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND_USER', 'SUPER_ADMIN']}>
-              <Layout>
-                <PendingTasksPage />
-              </Layout>
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/tasks/revoked"
-          element={
-            <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND_USER', 'SUPER_ADMIN']}>
-              <Layout>
-                <RevokedTasksPage />
-              </Layout>
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/tasks/in-progress"
-          element={
-            <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND_USER', 'SUPER_ADMIN']}>
-              <Layout>
-                <InProgressTasksPage />
-              </Layout>
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/tasks/completed"
-          element={
-            <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND_USER', 'SUPER_ADMIN']}>
-              <Layout>
-                <CompletedTasksPage />
-              </Layout>
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/tasks/revisit"
-          element={
-            <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND_USER', 'SUPER_ADMIN']}>
-              <Layout>
-                <RevisitTasksPage />
-              </Layout>
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/cases/completed"
-          element={
-            <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND_USER', 'SUPER_ADMIN']}>
-              <Layout>
-                <CompletedCasesPage />
-              </Layout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/cases/new"
-          element={
-            <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND_USER', 'SUPER_ADMIN']}>
-              <Layout>
-                <NewCasePage />
-              </Layout>
-            </ProtectedRoute>
-          }
-        />
-
-        {/* Task Management Routes */}
-        <Route
-          path="/tasks"
-          element={
-            <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND_USER', 'SUPER_ADMIN']}>
-              <Layout>
-                <AllTasksPage />
-              </Layout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/tasks/:taskId"
-          element={
-            <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND_USER', 'SUPER_ADMIN']}>
-              <Layout>
-                <TaskDetailPage />
-              </Layout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/verification-tasks/:taskId"
-          element={
-            <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND_USER', 'SUPER_ADMIN']}>
-              <Layout>
-                <TaskDetailPage />
-              </Layout>
-            </ProtectedRoute>
-          }
-        />
-
-        {/* TAT Monitoring Route */}
-        <Route
-          path="/case-management/tat-monitoring"
-          element={
-            <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND_USER', 'SUPER_ADMIN']}>
+        {/* Protected routes with persistent layout */}
+        <Route element={<AuthenticatedLayout />}>
+          <Route path="/dashboard" element={<DashboardPage />} />
+          
+          {/* Cases routes */}
+          <Route element={<ProtectedRoute requiredRoles={['ADMIN', 'BACKEND_USER', 'SUPER_ADMIN']}><Outlet /></ProtectedRoute>}>
+            <Route path="/cases" element={<CasesPage />} />
+            <Route path="/cases/:id" element={<CaseDetailPage />} />
+            <Route path="/cases/:id/edit" element={<EditCasePage />} />
+            <Route path="/tasks/pending" element={<PendingTasksPage />} />
+            <Route path="/tasks/revoked" element={<RevokedTasksPage />} />
+            <Route path="/tasks/in-progress" element={<InProgressTasksPage />} />
+            <Route path="/tasks/completed" element={<CompletedTasksPage />} />
+            <Route path="/tasks/revisit" element={<RevisitTasksPage />} />
+            <Route path="/cases/completed" element={<CompletedCasesPage />} />
+            <Route path="/cases/new" element={<NewCasePage />} />
+            
+            {/* Task Management Routes */}
+            <Route path="/tasks" element={<AllTasksPage />} />
+            <Route path="/tasks/:taskId" element={<TaskDetailPage />} />
+            <Route path="/verification-tasks/:taskId" element={<TaskDetailPage />} />
+            
+            {/* TAT Monitoring Route */}
+            <Route path="/case-management/tat-monitoring" element={
               <PermissionProtectedRoute resource="tasks" action="read">
-                <Layout>
-                  <TATMonitoringPage />
-                </Layout>
+                <TATMonitoringPage />
               </PermissionProtectedRoute>
-            </ProtectedRoute>
-          }
-        />
-
-        {/* Dedupe Route */}
-        <Route
-          path="/case-management/dedupe"
-          element={
-            <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND_USER', 'SUPER_ADMIN']}>
+            } />
+            
+            {/* Dedupe Route */}
+            <Route path="/case-management/dedupe" element={
               <PermissionProtectedRoute resource="cases" action="read">
-                <Layout>
-                  <DedupePage />
-                </Layout>
+                <DedupePage />
               </PermissionProtectedRoute>
-            </ProtectedRoute>
-          }
-        />
-
-        {/* Clients routes */}
-        <Route
-          path="/clients"
-          element={
-            <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND_USER', 'SUPER_ADMIN']}>
-              <Layout>
-                <ClientsPage />
-              </Layout>
-            </ProtectedRoute>
-          }
-        />
-
-        {/* Products routes */}
-        <Route
-          path="/products"
-          element={
-            <ProtectedRoute requiredRoles={['ADMIN', 'SUPER_ADMIN']}>
-              <PermissionProtectedRoute resource="products" action="read">
-                <Layout>
-                  <ProductsPage />
-                </Layout>
-              </PermissionProtectedRoute>
-            </ProtectedRoute>
-          }
-        />
-
-        {/* Verification Types routes */}
-        <Route
-          path="/verification-types"
-          element={
-            <ProtectedRoute requiredRoles={['ADMIN', 'SUPER_ADMIN']}>
-              <PermissionProtectedRoute resource="verification_types" action="read">
-                <Layout>
-                  <VerificationTypesPage />
-                </Layout>
-              </PermissionProtectedRoute>
-            </ProtectedRoute>
-          }
-        />
-
-        {/* Document Types routes */}
-        <Route
-          path="/document-types"
-          element={
-            <ProtectedRoute requiredRoles={['ADMIN', 'SUPER_ADMIN']}>
-              <PermissionProtectedRoute resource="document_types" action="read">
-                <Layout>
-                  <DocumentTypesPage />
-                </Layout>
-              </PermissionProtectedRoute>
-            </ProtectedRoute>
-          }
-        />
-
-        {/* Rate Management routes */}
-        <Route
-          path="/rate-management"
-          element={
-            <ProtectedRoute requiredRoles={['ADMIN', 'SUPER_ADMIN']}>
-              <PermissionProtectedRoute resource="rate_management" action="read">
-                <Layout>
-                  <RateManagementPage />
-                </Layout>
-              </PermissionProtectedRoute>
-            </ProtectedRoute>
-          }
-        />
-
-
-        
-        {/* Admin only routes */}
-        <Route
-          path="/users"
-          element={
-            <ProtectedRoute requiredRoles={['ADMIN', 'SUPER_ADMIN']}>
-              <Layout>
-                <UsersPage />
-              </Layout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/users/:userId/permissions"
-          element={
-            <ProtectedRoute requiredRoles={['ADMIN', 'SUPER_ADMIN']}>
-              <Layout>
-                <UserPermissionsPage />
-              </Layout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/role-management"
-          element={
-            <ProtectedRoute requiredRoles={['ADMIN', 'SUPER_ADMIN']}>
-              <PermissionProtectedRoute resource="roles" action="read">
-                <Layout>
-                  <RoleManagementPage />
-                </Layout>
-              </PermissionProtectedRoute>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/locations"
-          element={
-            <ProtectedRoute requiredRoles={['ADMIN', 'SUPER_ADMIN']}>
-              <Layout>
-                <LocationsPage />
-              </Layout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/security-ux"
-          element={
-            <ProtectedRoute requiredRoles={['ADMIN', 'SUPER_ADMIN']}>
-              <Layout>
-                <SecurityUXPage />
-              </Layout>
-            </ProtectedRoute>
-          }
-        />
-
-
-        {/* Reports routes */}
-        <Route
-          path="/reports"
-          element={
-            <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND_USER', 'SUPER_ADMIN']}>
-              <Layout>
-                <ReportsPage />
-              </Layout>
-            </ProtectedRoute>
-          }
-        />
-
-        {/* Analytics routes */}
-        <Route
-          path="/analytics"
-          element={
-            <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND_USER', 'SUPER_ADMIN']}>
+            } />
+            
+            {/* Clients routes */}
+            <Route path="/clients" element={<ClientsPage />} />
+            
+            {/* Reports routes */}
+            <Route path="/reports" element={<ReportsPage />} />
+            
+            {/* Analytics routes */}
+            <Route path="/analytics" element={
               <PermissionProtectedRoute resource="analytics" action="read">
-                <Layout>
-                  <AnalyticsPage />
-                </Layout>
+                <AnalyticsPage />
               </PermissionProtectedRoute>
-            </ProtectedRoute>
-          }
-        />
-
-        {/* MIS Dashboard route */}
-        <Route
-          path="/reports/mis"
-          element={
-            <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND_USER', 'SUPER_ADMIN']}>
+            } />
+            
+            {/* MIS Dashboard route */}
+            <Route path="/reports/mis" element={
               <PermissionProtectedRoute resource="analytics" action="read">
-                <Layout>
-                  <MISDashboardPage />
-                </Layout>
+                <MISDashboardPage />
               </PermissionProtectedRoute>
-            </ProtectedRoute>
-          }
-        />
-
-        {/* Additional feature routes */}
-        <Route
-          path="/billing"
-          element={
-            <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND_USER', 'SUPER_ADMIN']}>
+            } />
+            
+            {/* Additional feature routes */}
+            <Route path="/billing" element={
               <PermissionProtectedRoute resource="billing" action="read">
-                <Layout>
-                  <BillingPage />
-                </Layout>
+                <BillingPage />
               </PermissionProtectedRoute>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/commissions"
-          element={
-            <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND_USER', 'SUPER_ADMIN']}>
+            } />
+            <Route path="/commissions" element={
               <PermissionProtectedRoute resource="commissions" action="read">
-                <Layout>
-                  <CommissionsPage />
-                </Layout>
+                <CommissionsPage />
               </PermissionProtectedRoute>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/commission-management"
-          element={
-            <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND_USER', 'SUPER_ADMIN']}>
+            } />
+            <Route path="/commission-management" element={
               <PermissionProtectedRoute resource="commissions" action="read">
-                <Layout>
-                  <CommissionManagementPage />
-                </Layout>
+                <CommissionManagementPage />
               </PermissionProtectedRoute>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/forms"
-          element={
-            <ProtectedRoute requiredRoles={['ADMIN', 'BACKEND_USER', 'SUPER_ADMIN']}>
+            } />
+            <Route path="/forms" element={
               <PermissionProtectedRoute resource="forms" action="read">
-                <Layout>
-                  <FormViewerPage />
-                </Layout>
+                <FormViewerPage />
               </PermissionProtectedRoute>
-            </ProtectedRoute>
-          }
-        />
+            } />
+          </Route>
 
-        <Route
-          path="/settings"
-          element={
-            <ProtectedRoute>
-              <Layout>
-                <SettingsPage />
-              </Layout>
-            </ProtectedRoute>
-          }
-        />
+          {/* Admin routes with stricter roles */}
+          <Route element={<ProtectedRoute requiredRoles={['ADMIN', 'SUPER_ADMIN']}><Outlet /></ProtectedRoute>}>
+            <Route path="/products" element={
+              <PermissionProtectedRoute resource="products" action="read">
+                <ProductsPage />
+              </PermissionProtectedRoute>
+            } />
+            <Route path="/verification-types" element={
+              <PermissionProtectedRoute resource="verification_types" action="read">
+                <VerificationTypesPage />
+              </PermissionProtectedRoute>
+            } />
+            <Route path="/document-types" element={
+              <PermissionProtectedRoute resource="document_types" action="read">
+                <DocumentTypesPage />
+              </PermissionProtectedRoute>
+            } />
+            <Route path="/rate-management" element={
+              <PermissionProtectedRoute resource="rate_management" action="read">
+                <RateManagementPage />
+              </PermissionProtectedRoute>
+            } />
+            <Route path="/users" element={<UsersPage />} />
+            <Route path="/users/:userId/permissions" element={<UserPermissionsPage />} />
+            <Route path="/role-management" element={
+              <PermissionProtectedRoute resource="roles" action="read">
+                <RoleManagementPage />
+              </PermissionProtectedRoute>
+            } />
+            <Route path="/locations" element={<LocationsPage />} />
+            <Route path="/security-ux" element={<SecurityUXPage />} />
+          </Route>
+
+          <Route path="/settings" element={<SettingsPage />} />
+        </Route>
 
         {/* Default routes */}
         <Route path="/" element={<DefaultRoute />} />
