@@ -199,7 +199,7 @@ export class SearchController {
    */
   static async findSimilarCases(req: Request, res: Response) {
     try {
-      const { caseId } = req.params;
+      const caseId = String(req.params.caseId || '');
       const similarityType = (req.query.type as 'customer' | 'address' | 'business') || 'customer';
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 5;
 
@@ -253,7 +253,7 @@ export class SearchController {
    */
   static async updateBusinessRule(req: Request, res: Response) {
     try {
-      const { ruleId } = req.params;
+      const ruleId = String(req.params.ruleId || '');
       const updates = req.body;
       const userId = (req as AuthenticatedRequest).user?.id;
 
@@ -332,7 +332,7 @@ export class SearchController {
    */
   static async getStandardizedAddress(req: Request, res: Response) {
     try {
-      const { caseId } = req.params;
+      const caseId = String(req.params.caseId || '');
 
       const address = await addressStandardizationService.getStandardizedAddress(caseId);
 

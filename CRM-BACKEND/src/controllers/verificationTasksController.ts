@@ -26,13 +26,16 @@ export class VerificationTasksController {
    * POST /api/cases/:caseId/verification-tasks
    */
   static async createMultipleTasksForCase(req: AuthenticatedRequest, res: Response): Promise<void> {
-    const { caseId } = req.params;
+    const rawCaseId = String(req.params.caseId || '');
+    const caseId = Array.isArray(rawCaseId) ? String(rawCaseId[0]) : String(rawCaseId || '');
     const { tasks } = req.body;
     const userId = req.user?.id;
 
     // Detect request source for quarantine vs strict validation
+    const rawSource = String(req.headers['x-request-source'] || '');
     const requestSource =
-      (req.headers['x-request-source'] as RequestSource) || RequestSource.MANUAL_UI;
+      ((Array.isArray(rawSource) ? rawSource[0] : rawSource) as RequestSource) ||
+      RequestSource.MANUAL_UI;
     const useQuarantine = requestSource !== RequestSource.MANUAL_UI;
 
     if (!tasks || !Array.isArray(tasks) || tasks.length === 0) {
@@ -460,7 +463,8 @@ export class VerificationTasksController {
    * POST /api/verification-tasks/revisit/:taskId
    */
   static async revisitTask(req: AuthenticatedRequest, res: Response): Promise<void> {
-    const { taskId } = req.params;
+    const rawTaskId = String(req.params.taskId || '');
+    const taskId = Array.isArray(rawTaskId) ? String(rawTaskId[0]) : String(rawTaskId || '');
     const { assigned_to: assignedTo } = req.body;
     const userId = req.user?.id;
 
@@ -992,8 +996,11 @@ export class VerificationTasksController {
    * GET /api/cases/:caseId/verification-tasks
    */
   static async getTasksForCase(req: Request, res: Response): Promise<void> {
-    const { caseId } = req.params;
-    const { status, assigned_to: assignedTo, verification_type_id: verificationTypeId } = req.query;
+    const rawCaseId = String(req.params.caseId || '');
+    const caseId = Array.isArray(rawCaseId) ? String(rawCaseId[0]) : String(rawCaseId || '');
+    const status = (req.query.status as unknown as string) || '';
+    const assignedTo = (req.query.assigned_to as unknown as string) || '';
+    const verificationTypeId = (req.query.verification_type_id as unknown as string) || '';
 
     try {
       // First, resolve the case ID - it could be a case number or UUID
@@ -1022,19 +1029,19 @@ export class VerificationTasksController {
       // Add filters
       if (status) {
         whereConditions.push(`vt.status = $${paramIndex}`);
-        queryParams.push(status as string);
+        queryParams.push(status);
         paramIndex++;
       }
 
       if (assignedTo) {
         whereConditions.push(`vt.assigned_to = $${paramIndex}`);
-        queryParams.push(assignedTo as string);
+        queryParams.push(assignedTo);
         paramIndex++;
       }
 
       if (verificationTypeId) {
         whereConditions.push(`vt.verification_type_id = $${paramIndex}`);
-        queryParams.push(verificationTypeId as string);
+        queryParams.push(verificationTypeId);
         paramIndex++;
       }
 
@@ -1159,7 +1166,8 @@ export class VerificationTasksController {
    * PUT /api/verification-tasks/:taskId
    */
   static async updateTask(req: AuthenticatedRequest, res: Response): Promise<void> {
-    const { taskId } = req.params;
+    const rawTaskId = String(req.params.taskId || '');
+    const taskId = Array.isArray(rawTaskId) ? String(rawTaskId[0]) : String(rawTaskId || '');
     const updateData: UpdateVerificationTaskData = req.body;
     const userId = req.user?.id;
 
@@ -1411,7 +1419,8 @@ export class VerificationTasksController {
    * POST /api/verification-tasks/:taskId/assign
    */
   static async assignTask(req: AuthenticatedRequest, res: Response): Promise<void> {
-    const { taskId } = req.params;
+    const rawTaskId = String(req.params.taskId || '');
+    const taskId = Array.isArray(rawTaskId) ? String(rawTaskId[0]) : String(rawTaskId || '');
     const { assignedTo, assignmentReason, priority }: AssignVerificationTaskData = req.body;
     const userId = req.user?.id;
 
@@ -1684,7 +1693,8 @@ export class VerificationTasksController {
    * POST /api/verification-tasks/:taskId/complete
    */
   static async completeTask(req: AuthenticatedRequest, res: Response): Promise<void> {
-    const { taskId } = req.params;
+    const rawTaskId = String(req.params.taskId || '');
+    const taskId = Array.isArray(rawTaskId) ? String(rawTaskId[0]) : String(rawTaskId || '');
     const { verificationOutcome, actualAmount, completionNotes }: CompleteVerificationTaskData =
       req.body;
     const userId = req.user?.id;
@@ -1900,7 +1910,8 @@ export class VerificationTasksController {
    */
   static async getMyTasks(req: AuthenticatedRequest, res: Response): Promise<void> {
     const userId = req.user?.id;
-    const { status, priority } = req.query;
+    const status = (req.query.status as unknown as string) || '';
+    const priority = (req.query.priority as unknown as string) || '';
 
     try {
       const whereConditions = ['vt.assigned_to = $1'];
@@ -1909,13 +1920,13 @@ export class VerificationTasksController {
 
       if (status) {
         whereConditions.push(`vt.status = $${paramIndex}`);
-        queryParams.push(status as string);
+        queryParams.push(status);
         paramIndex++;
       }
 
       if (priority) {
         whereConditions.push(`vt.priority = $${paramIndex}`);
-        queryParams.push(priority as string);
+        queryParams.push(priority);
         paramIndex++;
       }
 
@@ -2000,7 +2011,8 @@ export class VerificationTasksController {
    * and meets validation requirements
    */
   static async validateTask(req: AuthenticatedRequest, res: Response): Promise<void> {
-    const { taskId } = req.params;
+    const rawTaskId = String(req.params.taskId || '');
+    const taskId = Array.isArray(rawTaskId) ? String(rawTaskId[0]) : String(rawTaskId || '');
 
     try {
       // Get task details

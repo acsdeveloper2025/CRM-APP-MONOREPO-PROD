@@ -14,8 +14,8 @@ import type { QueryParams } from '@/types/database';
 // Configure storage for verification attachments
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const { taskId } = req.params;
-    let { caseId } = req.params;
+    const taskId = String(req.params.taskId || '');
+    let caseId = String(req.params.caseId || '');
     const verificationType = req.body.verificationType || 'verification';
 
     // Stage-2A: Resolve caseId from taskId if needed
@@ -101,7 +101,7 @@ export class VerificationAttachmentController {
    */
   static async uploadVerificationImages(this: void, req: Request, res: Response) {
     try {
-      const { taskId } = req.params;
+      const taskId = String(req.params.taskId || '');
       const { verificationType, submissionId, geoLocation, photoType = 'verification' } = req.body;
 
       const userId = (req as AuthenticatedRequest).user?.id;
@@ -279,8 +279,9 @@ export class VerificationAttachmentController {
   static async getVerificationImages(this: void, req: Request, res: Response) {
     try {
       // Handle both route patterns: /:id/verification-images and /cases/:caseId/verification-images
-      const caseId = req.params.caseId || req.params.id;
-      const { verificationType, submissionId } = req.query;
+      const caseId = String(req.params.caseId || req.params.id || '');
+      const verificationType = (req.query.verificationType as unknown as string) || '';
+      const submissionId = (req.query.submissionId as unknown as string) || '';
 
       logger.info(
         '🔍 Getting verification images for case:',
@@ -309,13 +310,13 @@ export class VerificationAttachmentController {
 
       if (verificationType) {
         whereClause += ' AND verification_type = $2';
-        queryParams.push(verificationType as string);
+        queryParams.push(verificationType);
       }
 
       if (submissionId) {
         const paramIndex = queryParams.length + 1;
         whereClause += ` AND "submissionId" = $${paramIndex}`;
-        queryParams.push(submissionId as string);
+        queryParams.push(submissionId);
       }
 
       const result = await query(
@@ -413,7 +414,7 @@ export class VerificationAttachmentController {
    */
   static async serveVerificationImage(this: void, req: Request, res: Response) {
     try {
-      const { imageId } = req.params;
+      const imageId = String(req.params.imageId || '');
 
       // Get image details from database
       const imageResult = await query(
@@ -475,7 +476,7 @@ export class VerificationAttachmentController {
    */
   static async serveVerificationThumbnail(this: void, req: Request, res: Response) {
     try {
-      const { imageId } = req.params;
+      const imageId = String(req.params.imageId || '');
 
       // Get image details from database
       const imageResult = await query(

@@ -405,7 +405,7 @@ export class MobileCaseController {
   // Get single case for mobile
   static async getMobileCase(this: void, req: AuthenticatedRequest, res: Response) {
     try {
-      const { taskId } = req.params;
+      const taskId = String(req.params.taskId || '');
       const userId = req.user?.id;
       const userRole = req.user?.role;
 
@@ -625,7 +625,7 @@ export class MobileCaseController {
   // Update case status from mobile
   static async updateCaseStatus(this: void, req: AuthenticatedRequest, res: Response) {
     try {
-      const { taskId } = req.params; // Changed from caseId to taskId
+      const taskId = String(req.params.taskId || '');
       const { status, notes = null } = req.body;
       const userId = req.user?.id;
       const userRole = req.user?.role;
@@ -763,7 +763,7 @@ export class MobileCaseController {
   // Update case priority from mobile
   static async updateCasePriority(this: void, req: AuthenticatedRequest, res: Response) {
     try {
-      const { taskId } = req.params; // Changed from caseId to taskId
+      const taskId = String(req.params.taskId || '');
       const { priority } = req.body;
 
       // Resolve taskId to caseId
@@ -847,7 +847,7 @@ export class MobileCaseController {
   // Auto-save form data
   static async autoSaveForm(this: void, req: AuthenticatedRequest, res: Response) {
     try {
-      const { taskId } = req.params; // Changed from caseId to taskId
+      const taskId = String(req.params.taskId || '');
       const { formType, formData, timestamp }: MobileAutoSaveRequest = req.body;
       const userId = req.user?.id;
       const userRole = req.user?.role;
@@ -934,7 +934,8 @@ export class MobileCaseController {
   // Get auto-saved form data
   static async getAutoSavedForm(this: void, req: AuthenticatedRequest, res: Response) {
     try {
-      const { taskId, formType } = req.params; // Changed from caseId to taskId
+      const taskId = String(req.params.taskId || '');
+      const formType = String(req.params.formType || '');
       const userId = req.user?.id;
       const userRole = req.user?.role;
 
@@ -1012,7 +1013,7 @@ export class MobileCaseController {
   // Add case note from mobile app
   static async addCaseNote(this: void, req: AuthenticatedRequest, res: Response) {
     try {
-      const { caseId } = req.params;
+      const caseId = String(req.params.caseId || '');
       const { note } = req.body;
       const userId = req.user?.id;
       const userRole = req.user?.role;
@@ -1121,7 +1122,7 @@ export class MobileCaseController {
   // Revoke case from mobile app
   static async revokeCase(this: void, req: AuthenticatedRequest, res: Response) {
     try {
-      const { caseId } = req.params;
+      const caseId = String(req.params.caseId || '');
       const { reason } = req.body;
       const userId = req.user?.id;
       const userRole = req.user?.role;
@@ -1278,7 +1279,7 @@ export class MobileCaseController {
    */
   static async getTaskStatus(this: void, req: AuthenticatedRequest, res: Response) {
     try {
-      const { taskId } = req.params;
+      const taskId = String(req.params.taskId || '');
       const userId = req.user?.id;
       const userRole = req.user?.role;
 
@@ -1358,7 +1359,7 @@ export class MobileCaseController {
    */
   static async updateTaskStatus(this: void, req: AuthenticatedRequest, res: Response) {
     try {
-      const { taskId } = req.params;
+      const taskId = String(req.params.taskId || '');
       const { status } = req.body;
       const userId = req.user?.id;
 
@@ -1476,7 +1477,7 @@ export class MobileCaseController {
    */
   static async startTask(this: void, req: AuthenticatedRequest, res: Response) {
     try {
-      const { taskId } = req.params;
+      const taskId = String(req.params.taskId || '');
       const userId = req.user?.id;
 
       // Update task status to IN_PROGRESS and set started_at
@@ -1541,7 +1542,7 @@ export class MobileCaseController {
    */
   static async completeTask(this: void, req: AuthenticatedRequest, res: Response) {
     try {
-      const { taskId } = req.params;
+      const taskId = String(req.params.taskId || '');
       const { verificationOutcome, actualAmount } = req.body;
       const userId = req.user?.id;
 
@@ -1672,7 +1673,7 @@ export class MobileCaseController {
    */
   static async revokeTask(this: void, req: AuthenticatedRequest, res: Response) {
     try {
-      const { taskId } = req.params;
+      const taskId = String(req.params.taskId || '');
       const { reason } = req.body;
       const userId = req.user?.id;
       const userRole = req.user?.role;

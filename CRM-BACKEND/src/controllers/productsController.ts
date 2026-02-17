@@ -115,7 +115,7 @@ export const getProducts = async (req: AuthenticatedRequest, res: Response) => {
 // GET /api/products/:id - Get product by ID
 export const getProductById = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = String(req.params.id || '');
     const productRes = await query(
       `SELECT id, name, code, "createdAt", "updatedAt" FROM products WHERE id = $1`,
       [Number(id)]
@@ -194,7 +194,7 @@ export const createProduct = async (req: AuthenticatedRequest, res: Response) =>
 // PUT /api/products/:id - Update product
 export const updateProduct = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = String(req.params.id || '');
     const updateData = req.body as { name?: string; code?: string };
 
     // Check if product exists
@@ -272,7 +272,7 @@ export const updateProduct = async (req: AuthenticatedRequest, res: Response) =>
 // DELETE /api/products/:id - Delete product
 export const deleteProduct = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = String(req.params.id || '');
 
     // Check if product exists
     const existRes = await query(`SELECT id, name FROM products WHERE id = $1`, [id]);
@@ -312,7 +312,7 @@ export const deleteProduct = async (req: AuthenticatedRequest, res: Response) =>
 // GET /api/clients/:id/products - Get products mapped to a client
 export const getProductsByClient = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { id: clientId } = req.params;
+    const clientId = String(req.params.id || '');
     const { isActive } = req.query as { isActive?: string };
 
     // Build where clause for mapping table
@@ -384,7 +384,7 @@ export const getProductStats = async (req: AuthenticatedRequest, res: Response) 
 // GET /api/products/:id/verification-types - Get verification types for a specific product
 export const getProductVerificationTypes = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = String(req.params.id || '');
     const { isActive } = req.query;
 
     // Check if product exists

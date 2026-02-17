@@ -1898,7 +1898,7 @@ export class MobileFormController {
     _reportTableName?: string
   ) {
     try {
-      const { caseId } = req.params;
+      const caseId = String(req.params.caseId || '');
       const {
         formData,
         attachmentIds,
@@ -2116,7 +2116,7 @@ export class MobileFormController {
   // Get form submissions for a case
   static async getCaseFormSubmissions(this: void, req: AuthenticatedRequest, res: Response) {
     try {
-      const { caseId } = req.params;
+      const caseId = String(req.params.caseId || '');
       const userId = req.user?.id;
       const userRole = req.user?.role;
 
@@ -2378,7 +2378,7 @@ export class MobileFormController {
       console.error('Error details:', {
         message: error.message,
         stack: error.stack,
-        taskId: req.params.taskId,
+        taskId: String(req.params.taskId || ''),
         userId: req.user?.id,
       });
       res.status(500).json({
@@ -2405,7 +2405,7 @@ export class MobileFormController {
   static async submitResidenceVerification(this: void, req: AuthenticatedRequest, res: Response) {
     try {
       // UPDATED: Accept taskId from URL params (this is verificationTaskId)
-      const { taskId } = req.params;
+      const taskId = String(req.params.taskId || '');
       const {
         verificationTaskId,
         formData,
@@ -2781,7 +2781,7 @@ export class MobileFormController {
   static async submitOfficeVerification(this: void, req: AuthenticatedRequest, res: Response) {
     try {
       // UPDATED: Accept taskId from URL params (this is verificationTaskId)
-      const { taskId } = req.params;
+      const taskId = String(req.params.taskId || '');
       const {
         verificationTaskId,
         formData,
@@ -3144,7 +3144,7 @@ export class MobileFormController {
   static async submitBusinessVerification(this: void, req: AuthenticatedRequest, res: Response) {
     try {
       // UPDATED: Accept taskId from URL params (this is verificationTaskId)
-      const { taskId } = req.params;
+      const taskId = String(req.params.taskId || '');
       const {
         verificationTaskId,
         formData,
@@ -3545,7 +3545,7 @@ export class MobileFormController {
   static async submitBuilderVerification(this: void, req: AuthenticatedRequest, res: Response) {
     try {
       // UPDATED: Accept taskId from URL params (this is verificationTaskId)
-      const { taskId } = req.params;
+      const taskId = String(req.params.taskId || '');
       const {
         verificationTaskId,
         formData,
@@ -3917,7 +3917,7 @@ export class MobileFormController {
     res: Response
   ) {
     try {
-      const { taskId } = req.params;
+      const taskId = String(req.params.taskId || '');
       const submissionData: MobileFormSubmissionRequest = req.body;
       const userId = req.user?.id;
       const userRole = req.user?.role;
@@ -4060,7 +4060,7 @@ export class MobileFormController {
   ) {
     try {
       // UPDATED: Accept taskId from URL params (this is verificationTaskId)
-      const { taskId } = req.params;
+      const taskId = String(req.params.taskId || '');
       const {
         verificationTaskId,
         formData,
@@ -4453,7 +4453,7 @@ export class MobileFormController {
     res: Response
   ) {
     try {
-      const { taskId } = req.params;
+      const taskId = String(req.params.taskId || '');
       const submissionData: MobileFormSubmissionRequest = req.body;
       const userId = req.user?.id;
       const userRole = req.user?.role;
@@ -4592,7 +4592,7 @@ export class MobileFormController {
   static async submitPropertyApfVerification(this: void, req: AuthenticatedRequest, res: Response) {
     try {
       // UPDATED: Accept taskId from URL params (this is verificationTaskId)
-      const { taskId } = req.params;
+      const taskId = String(req.params.taskId || '');
       const {
         verificationTaskId,
         formData,
@@ -4976,7 +4976,7 @@ export class MobileFormController {
   static async submitNocVerification(this: void, req: AuthenticatedRequest, res: Response) {
     try {
       // UPDATED: Accept taskId from URL params (this is verificationTaskId)
-      const { taskId } = req.params;
+      const taskId = String(req.params.taskId || '');
       const {
         verificationTaskId,
         formData,
@@ -5349,7 +5349,7 @@ export class MobileFormController {
   // Get verification form template
   static getFormTemplate(this: void, req: Request, res: Response) {
     try {
-      const { formType } = req.params;
+      const formType = String(req.params.formType || '');
 
       if (
         ![

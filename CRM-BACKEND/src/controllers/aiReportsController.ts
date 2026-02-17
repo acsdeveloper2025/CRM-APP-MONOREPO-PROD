@@ -12,7 +12,8 @@ import type { QueryParams } from '../types/database';
  */
 export const generateFormSubmissionReport = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { caseId, submissionId } = req.params;
+    const caseId = String(req.params.caseId || '');
+    const submissionId = String(req.params.submissionId || '');
     const userId = req.user?.id;
 
     if (!caseId || !submissionId) {
@@ -195,7 +196,8 @@ export const generateFormSubmissionReport = async (req: AuthenticatedRequest, re
  */
 export const getFormSubmissionReport = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { caseId, submissionId } = req.params;
+    const caseId = String(req.params.caseId || '');
+    const submissionId = String(req.params.submissionId || '');
 
     // First get the case UUID from the case ID
     const caseUuidQuery = `
@@ -276,7 +278,9 @@ export const testAIConnection = async (req: AuthenticatedRequest, res: Response)
  */
 export const getReportStatistics = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { dateFrom, dateTo, verificationType } = req.query;
+    const dateFrom = (req.query.dateFrom as unknown as string) || '';
+    const dateTo = (req.query.dateTo as unknown as string) || '';
+    const verificationType = (req.query.verificationType as unknown as string) || '';
 
     let whereClause = '';
     const params: QueryParams = [];
@@ -286,17 +290,17 @@ export const getReportStatistics = async (req: AuthenticatedRequest, res: Respon
 
       if (dateFrom) {
         conditions.push(`created_at >= $${params.length + 1}`);
-        params.push(dateFrom as string);
+        params.push(dateFrom);
       }
 
       if (dateTo) {
         conditions.push(`created_at <= $${params.length + 1}`);
-        params.push(dateTo as string);
+        params.push(dateTo);
       }
 
       if (verificationType) {
         conditions.push(`(report_data->'metadata'->>'verificationType') = $${params.length + 1}`);
-        params.push(verificationType as string);
+        params.push(verificationType);
       }
 
       whereClause = `WHERE ${conditions.join(' AND ')}`;

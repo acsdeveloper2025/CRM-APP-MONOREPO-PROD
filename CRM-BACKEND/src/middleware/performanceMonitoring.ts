@@ -36,7 +36,8 @@ export const performanceMonitoring = (
   next: NextFunction
 ) => {
   const startTime = performance.now();
-  const requestId = (req.headers['x-request-id'] as string) || uuidv4();
+  const rawRequestId = req.headers['x-request-id'];
+  const requestId = Array.isArray(rawRequestId) ? rawRequestId[0] : rawRequestId || uuidv4();
 
   // Add request ID and start time to request object
   req.requestId = requestId;
@@ -162,9 +163,11 @@ async function storePerformanceMetrics(metrics: PerformanceMetrics): Promise<voi
  * Get client IP address from request
  */
 function getClientIP(req: Request): string {
+  const forwardedFor = req.headers['x-forwarded-for'];
+  const realIp = req.headers['x-real-ip'];
   return (
-    (req.headers['x-forwarded-for'] as string) ||
-    (req.headers['x-real-ip'] as string) ||
+    (Array.isArray(forwardedFor) ? forwardedFor[0] : forwardedFor) ||
+    (Array.isArray(realIp) ? realIp[0] : realIp) ||
     req.connection.remoteAddress ||
     req.socket.remoteAddress ||
     'unknown'

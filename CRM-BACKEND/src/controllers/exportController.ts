@@ -164,7 +164,7 @@ export const generateReport = async (req: AuthenticatedRequest, res: Response) =
 // Download generated report file
 export const downloadReport = async (req: Request, res: Response) => {
   try {
-    const { fileName } = req.params;
+    const fileName = String(req.params.fileName || '');
     const filePath = path.join(process.cwd(), 'exports', fileName);
 
     // Check if file exists
@@ -212,7 +212,8 @@ export const downloadReport = async (req: Request, res: Response) => {
 // Get export history
 export const getExportHistory = (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { limit = 50, offset = 0 } = req.query;
+    const limit = Number(req.query.limit) || 50;
+    const offset = Number(req.query.offset) || 0;
     const userId = req.user?.id;
 
     // TODO: Connect to real export_history table
@@ -248,8 +249,8 @@ export const getExportHistory = (req: AuthenticatedRequest, res: Response) => {
         exports: mockHistory,
         pagination: {
           total: mockHistory.length,
-          limit: parseInt(limit as string),
-          offset: parseInt(offset as string),
+          limit,
+          offset,
         },
       },
     });

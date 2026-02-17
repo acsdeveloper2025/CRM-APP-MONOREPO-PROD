@@ -56,7 +56,8 @@ function normalizeVerificationType(verificationType: string): string {
  */
 export async function generateTemplateReport(req: AuthenticatedRequest, res: Response) {
   try {
-    const { caseId, submissionId } = req.params;
+    const caseId = String(req.params.caseId || '');
+    const submissionId = String(req.params.submissionId || '');
     const userId = req.user?.id;
 
     logger.info('Generating template report for form submission', {
@@ -652,7 +653,8 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
  */
 export async function getTemplateReport(req: Request, res: Response) {
   try {
-    const { caseId, submissionId } = req.params;
+    const caseId = String(req.params.caseId || '');
+    const submissionId = String(req.params.submissionId || '');
 
     logger.info('Retrieving template report', {
       caseId,
@@ -707,7 +709,7 @@ export async function getTemplateReport(req: Request, res: Response) {
  */
 export async function getCaseTemplateReports(req: Request, res: Response) {
   try {
-    const { caseId } = req.params;
+    const caseId = String(req.params.caseId || '');
 
     logger.info('Retrieving all template reports for case', { caseId });
 
@@ -758,7 +760,7 @@ export async function getCaseTemplateReports(req: Request, res: Response) {
  */
 export async function deleteTemplateReport(req: AuthenticatedRequest, res: Response) {
   try {
-    const { reportId } = req.params;
+    const reportId = String(req.params.reportId || '');
     const userId = req.user?.id;
 
     logger.info('Deleting template report', { reportId, userId });

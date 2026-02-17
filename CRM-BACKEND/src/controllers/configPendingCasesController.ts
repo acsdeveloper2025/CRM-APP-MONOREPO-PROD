@@ -15,7 +15,11 @@ export class ConfigPendingCasesController {
    */
   static async listConfigPendingCases(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-      const { page = 1, limit = 50, clientId, errorCode, search } = req.query;
+      const page = Number(req.query.page) || 1;
+      const limit = Number(req.query.limit) || 50;
+      const clientId = (req.query.clientId as unknown as string) || '';
+      const errorCode = (req.query.errorCode as unknown as string) || '';
+      const search = (req.query.search as unknown as string) || '';
 
       const result = await configurationQuarantineService.getConfigPendingCases({
         page: Number(page),
@@ -45,7 +49,7 @@ export class ConfigPendingCasesController {
    * POST /api/admin/config-pending-cases/:caseId/retry
    */
   static async retryProcessing(req: AuthenticatedRequest, res: Response): Promise<void> {
-    const { caseId } = req.params;
+    const caseId = String(req.params.caseId || '');
     const userId = req.user?.id;
 
     if (!userId) {
@@ -95,7 +99,7 @@ export class ConfigPendingCasesController {
     req: AuthenticatedRequest,
     res: Response
   ): Promise<void> {
-    const { caseId } = req.params;
+    const caseId = String(req.params.caseId || '');
 
     try {
       const { query } = await import('@/config/database');

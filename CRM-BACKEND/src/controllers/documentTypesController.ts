@@ -163,7 +163,7 @@ export const getDocumentTypes = async (req: AuthenticatedRequest, res: Response)
 // GET /api/document-types/:id - Get document type by ID
 export const getDocumentTypeById = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = String(req.params.id || '');
 
     const documentTypeQuery = `
       SELECT 
@@ -333,7 +333,7 @@ export const createDocumentType = async (req: AuthenticatedRequest, res: Respons
 // PUT /api/document-types/:id - Update document type
 export const updateDocumentType = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = String(req.params.id || '');
     const updateData = req.body;
 
     // Check if document type exists
@@ -471,7 +471,7 @@ export const updateDocumentType = async (req: AuthenticatedRequest, res: Respons
 // DELETE /api/document-types/:id - Delete document type
 export const deleteDocumentType = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = String(req.params.id || '');
 
     // Check if document type exists
     const existingResult = await query(`SELECT * FROM "documentTypes" WHERE id = $1`, [Number(id)]);

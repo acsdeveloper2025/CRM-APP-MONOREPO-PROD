@@ -199,9 +199,14 @@ export class EnterpriseCache {
    * Resolve cache invalidation patterns with request data
    */
   private static resolvePattern(pattern: string, req: Request): string {
+    const rawCaseId = req.params.id || req.params.caseId;
+    const caseIdStr = Array.isArray(rawCaseId)
+      ? String(rawCaseId[0] || '')
+      : String(rawCaseId || '');
+    const caseId = caseIdStr || '*';
     return pattern
       .replace('{userId}', (req as AuthenticatedRequest).user?.id || '*')
-      .replace('{caseId}', req.params.id || req.params.caseId || '*')
+      .replace('{caseId}', caseId)
       .replace('{method}', req.method);
   }
 
@@ -299,7 +304,7 @@ export const EnterpriseCacheConfigs = {
     ttl: 300, // 5 minutes (was 1 minute - too aggressive)
     keyGenerator: (req: Request) => {
       const userId = (req as AuthenticatedRequest).user?.id;
-      const page = req.query.page || 1;
+      const page = Number(req.query.page) || 1;
       const filters = JSON.stringify(req.query);
       return `${CacheKeys.userCases(userId, Number(page))}:${crypto.createHash('md5').update(filters).digest('hex')}`;
     },
@@ -309,7 +314,11 @@ export const EnterpriseCacheConfigs = {
   // Case details caching - INCREASED TTL
   caseDetails: {
     ttl: 900, // 15 minutes (was 5 minutes)
-    keyGenerator: (req: Request) => CacheKeys.case(req.params.id),
+    keyGenerator: (req: Request) => {
+      const rawId = req.params.id;
+      const caseId = Array.isArray(rawId) ? String(rawId[0] || '') : String(rawId || '');
+      return CacheKeys.case(caseId);
+    },
     condition: (req: Request) => req.method === 'GET',
   },
 
