@@ -67,7 +67,7 @@ export class EnterpriseCache {
             res.set('Expires', '0');
           }
 
-          return res.status(cached.statusCode).json(cached.data);
+          return res.status(cached.statusCode || 200).json(cached.data);
         }
 
         // Cache miss - intercept response
