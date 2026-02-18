@@ -15,8 +15,27 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   const { hasAnyRole } = useAuth();
   const { hasPermission } = usePermissions();
-  const { expandedMenus: expandedItems, toggleMenu: toggleExpanded } = useLayout();
+  const { expandedMenus: expandedItems, toggleMenu: toggleExpanded, setExpandedMenus } = useLayout();
   const location = useLocation();
+  
+  // Handle initial expansion on mount based on active route
+  React.useEffect(() => {
+    const initialExpanded: string[] = [];
+    navigationItems.forEach(item => {
+      // If parent has active children and isn't already expanded, add to list
+      if (item.children && item.children.some(child => isItemActive(child))) {
+        if (!expandedItems.includes(item.id)) {
+          initialExpanded.push(item.id);
+        }
+      }
+    });
+
+    if (initialExpanded.length > 0) {
+      setExpandedMenus([...expandedItems, ...initialExpanded]);
+    }
+    // Only run on mount to respect subsequent manual user toggles
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   
 
 
@@ -62,9 +81,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     const hasChildren = item.children && item.children.length > 0;
     const isActive = isItemActive(item);
 
-    // Auto-expand if any child is active
-    const shouldAutoExpand = hasChildren && item.children?.some(child => isItemActive(child));
-    const isExpanded = expandedItems.includes(item.id) || shouldAutoExpand;
+    const isExpanded = expandedItems.includes(item.id);
 
     return (
       <div key={item.id}>
