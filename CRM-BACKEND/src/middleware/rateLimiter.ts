@@ -21,7 +21,7 @@ const createRateLimiter = (
     } as ApiResponse,
     standardHeaders: true,
     legacyHeaders: false,
-    keyGenerator: (req: AuthenticatedRequest, res: Response) => {
+    keyGenerator: (req: AuthenticatedRequest, _res: Response) => {
       if (keyType === 'USER' && req.user?.id) {
         return req.user.id;
       }
