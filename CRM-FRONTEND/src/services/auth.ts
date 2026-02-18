@@ -2,33 +2,9 @@ import { apiService } from './api';
 import { STORAGE_KEYS, SYNC_KEYS } from '@/types/constants';
 import type { LoginRequest, LoginResponse, User } from '@/types/auth';
 
-interface UuidLoginRequest {
-  authUuid: string; // This is the device UUID from mobile app pattern
-  deviceId: string; // Same as authUuid for consistency
-  platform?: string;
-  appVersion?: string;
-}
-
 export class AuthService {
   async login(credentials: LoginRequest): Promise<LoginResponse> {
     const response = await apiService.post<LoginResponse['data']>('/auth/login', credentials);
-
-    if (response.success && response.data) {
-      // Store token in memory and refresh token/user in localStorage
-      apiService.setAccessToken(response.data.tokens.accessToken);
-      localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, response.data.tokens.refreshToken);
-      localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(response.data.user));
-    }
-
-    return {
-      success: response.success,
-      message: response.message,
-      data: response.data,
-    };
-  }
-
-  async uuidLogin(credentials: UuidLoginRequest): Promise<LoginResponse> {
-    const response = await apiService.post<LoginResponse['data']>('/auth/uuid-login', credentials);
 
     if (response.success && response.data) {
       // Store token in memory and refresh token/user in localStorage

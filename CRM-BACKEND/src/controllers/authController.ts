@@ -242,8 +242,8 @@ export const preloginInfo = async (req: Request, res: Response): Promise<void> =
       data: {
         role: user.role,
         roleName: user.roleName,
-        requiresDeviceId: !isSuper && isField,
-        requiresMacAddress: !isSuper && !isField,
+        requiresDeviceId: false,
+        requiresMacAddress: false,
       },
     });
   } catch (_error) {
