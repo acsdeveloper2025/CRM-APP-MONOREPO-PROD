@@ -326,9 +326,10 @@ export const EnterpriseCacheConfigs = {
   analytics: {
     ttl: 1800, // 30 minutes (was 15 minutes)
     keyGenerator: (req: Request) => {
+      const userId = (req as AuthenticatedRequest).user?.id || 'anon';
       const path = req.path.replace('/api/', '');
       const query = JSON.stringify(req.query);
-      return `analytics:${path}:${crypto.createHash('md5').update(query).digest('hex')}`;
+      return `analytics:${userId}:${path}:${crypto.createHash('md5').update(query).digest('hex')}`;
     },
   },
 
@@ -348,28 +349,44 @@ export const EnterpriseCacheConfigs = {
   // Client list caching - NEW
   clientList: {
     ttl: 3600, // 1 hour (clients rarely change)
-    keyGenerator: () => 'clients:list',
+    keyGenerator: (req: Request) => {
+      const userId = (req as AuthenticatedRequest).user?.id || 'anon';
+      const query = JSON.stringify(req.query);
+      return `clients:list:${userId}:${crypto.createHash('md5').update(query).digest('hex')}`;
+    },
     condition: (req: Request) => req.method === 'GET',
   },
 
   // Verification types caching - NEW
   verificationTypes: {
     ttl: 3600, // 1 hour (verification types rarely change)
-    keyGenerator: () => 'verification-types:list',
+    keyGenerator: (req: Request) => {
+      const userId = (req as AuthenticatedRequest).user?.id || 'anon';
+      const query = JSON.stringify(req.query);
+      return `verification-types:list:${userId}:${crypto.createHash('md5').update(query).digest('hex')}`;
+    },
     condition: (req: Request) => req.method === 'GET',
   },
 
   // Products caching - NEW
   products: {
     ttl: 3600, // 1 hour (products rarely change)
-    keyGenerator: () => 'products:list',
+    keyGenerator: (req: Request) => {
+      const userId = (req as AuthenticatedRequest).user?.id || 'anon';
+      const query = JSON.stringify(req.query);
+      return `products:list:${userId}:${crypto.createHash('md5').update(query).digest('hex')}`;
+    },
     condition: (req: Request) => req.method === 'GET',
   },
 
   // Rate types caching - NEW
   rateTypes: {
     ttl: 3600, // 1 hour (rate types rarely change)
-    keyGenerator: () => 'rate-types:list',
+    keyGenerator: (req: Request) => {
+      const userId = (req as AuthenticatedRequest).user?.id || 'anon';
+      const query = JSON.stringify(req.query);
+      return `rate-types:list:${userId}:${crypto.createHash('md5').update(query).digest('hex')}`;
+    },
     condition: (req: Request) => req.method === 'GET',
   },
 
