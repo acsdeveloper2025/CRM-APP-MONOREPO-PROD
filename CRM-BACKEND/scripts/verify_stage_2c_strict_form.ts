@@ -40,19 +40,33 @@ async function runVerification() {
     const userId = userResult.rows[0].id;
     console.log(`✅ Created Test User: ${userId}`);
 
+    // Get necessary foreign keys
+    const clientRes = await pool.query(`SELECT id FROM "clients" LIMIT 1`);
+    const clientId = clientRes.rows[0]?.id || 1; 
+
+    const productRes = await pool.query(`SELECT id FROM "products" LIMIT 1`);
+    const productId = productRes.rows[0]?.id || 1;
+
+    const verTypeRes = await pool.query(`SELECT id FROM "verificationTypes" WHERE name = 'RESIDENCE' LIMIT 1`);
+    const verTypeId = verTypeRes.rows[0]?.id || 1; 
+
+    const cityRes = await pool.query(`SELECT id FROM "cities" LIMIT 1`);
+    const cityId = cityRes.rows[0]?.id || 1;
+
+    const caseNumber = Math.floor(Math.random() * 1000000);
     const caseResult = await pool.query(
-      `INSERT INTO cases ("caseId", "customerName", status, type) VALUES ($1, 'Test Customer', 'ASSIGNED', 'RESIDENCE') RETURNING id`,
-      [`CASE_${timestamp}`]
+      `INSERT INTO cases (
+        "caseId", "customerName", status, "verificationType", "clientId", "productId", "verificationTypeId", 
+        "cityId", "applicantType", "backendContactNumber", trigger
+      ) VALUES ($1, 'Test Customer', 'ASSIGNED', 'RESIDENCE', $2, $3, $4, $5, 'APPLICANT', '9999999999', 'TEST_TRIGGER') RETURNING id`,
+      [caseNumber, clientId, productId, verTypeId, cityId]
     );
     const caseId = caseResult.rows[0].id;
     console.log(`✅ Created Test Case: ${caseId}`);
 
-    const verTypeRes = await pool.query(`SELECT id FROM "verificationTypes" WHERE name = 'RESIDENCE' LIMIT 1`);
-    const verTypeId = verTypeRes.rows[0]?.id; // Assuming at least one type exists
-
     const taskResult = await pool.query(
-        `INSERT INTO verification_tasks (case_id, verification_type_id, status, assigned_to, task_number) 
-         VALUES ($1, $2, 'PENDING', $3, $4) RETURNING id`,
+        `INSERT INTO verification_tasks (case_id, verification_type_id, status, assigned_to, task_number, task_title) 
+         VALUES ($1, $2, 'PENDING', $3, $4, 'Test Task') RETURNING id`,
         [caseId, verTypeId, userId, `TASK_${timestamp}`]
     );
     const taskId = taskResult.rows[0].id;
@@ -118,12 +132,15 @@ async function runVerification() {
 
     // --- TEST 4: Submit with Expired Location (90 mins) ---
     console.log('\n🧪 Test 4: Submit with Expired Location');
-    // Insert old location
-    const oldDate = new Date(Date.now() - 100 * 60 * 1000); // 100 mins ago
+    // Insert expired location (older than 30 mins)
+    const expiredDate = new Date();
+    expiredDate.setMinutes(expiredDate.getMinutes() - 40);
+    
+    // Location schema:
+    // id, caseId (int), case_id (uuid), latitude, longitude, accuracy, recordedAt, recordedBy
     await pool.query(
-        `INSERT INTO locations (case_id, verification_task_id, user_id, latitude, longitude, "recordedAt")
-         VALUES ($1, $2, $3, 0, 0, $4)`,
-        [caseId, taskId, userId, oldDate.toISOString()]
+      'INSERT INTO locations (id, "case_id", "caseId", "recordedBy", latitude, longitude, "recordedAt") VALUES ($1, $2, $3, $4, 0, 0, $5)',
+      [Math.floor(Math.random() * 1000000000), caseId, caseNumber, userId, expiredDate]
     );
     
     const res4 = mockResponse();
@@ -136,12 +153,12 @@ async function runVerification() {
 
     // --- TEST 5: Submit with Valid Location (Success) ---
     console.log('\n🧪 Test 5: Submit with Valid Location');
-    // Insert recent location
-    const recentDate = new Date();
+    // 5. Insert location data
+    console.log('Inserting location data...');
+    // Location schema: id, case_id, caseId, recordedBy, latitude, longitude, recordedAt
     await pool.query(
-        `INSERT INTO locations (case_id, verification_task_id, user_id, latitude, longitude, "recordedAt")
-         VALUES ($1, $2, $3, 0, 0, $4)`,
-        [caseId, taskId, userId, recentDate.toISOString()]
+      'INSERT INTO locations (id, "case_id", "caseId", "recordedBy", latitude, longitude, "recordedAt") VALUES ($1, $2, $3, $4, 0, 0, $5)',
+      [Math.floor(Math.random() * 1000000000), caseId, caseNumber, userId, new Date().toISOString()]
     );
     
     // We need 5 photos for success usually

@@ -175,9 +175,11 @@ export class MobileFormController {
       }
 
       // 3. Location Existence Check & 90-Minute Rule
+      // 3. Location Existence Check & 90-Minute Rule
+      // Schema update: locations table uses "case_id" (UUID) and "recordedAt"
       const locQuery = await query(
-        `SELECT id, "recordedAt" FROM locations WHERE verification_task_id = $1 ORDER BY "recordedAt" DESC LIMIT 1`,
-        [taskId]
+        `SELECT id, "recordedAt" FROM locations WHERE case_id = $1 ORDER BY "recordedAt" DESC LIMIT 1`,
+        [task.case_id]
       );
 
       if (locQuery.rows.length === 0) {
