@@ -1,23 +1,28 @@
 
-import * as dotenv from 'dotenv';
-dotenv.config();
-import { pool, disconnectDatabase } from '../src/config/db';
+import { pool } from '../src/config/database';
 
-async function check() {
+async function checkSchema() {
   try {
-    const res = await pool.query(`
-      SELECT column_name, data_type 
+    const locRes = await pool.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'locations'
+    `);
+    console.log('Columns in locations:');
+    console.log(locRes.rows.map(r => r.column_name).sort().join(', '));
+
+    const formRes = await pool.query(`
+      SELECT column_name 
       FROM information_schema.columns 
       WHERE table_name = 'task_form_submissions'
     `);
-    console.log('Schema:', res.rows);
+    console.log('\nColumns in task_form_submissions:');
+    console.log(formRes.rows.map(r => r.column_name).sort().join(', '));
     
-    const count = await pool.query('SELECT COUNT(*) FROM task_form_submissions');
-    console.log('Count:', count.rows[0]);
-  } catch (e) {
-    console.error(e);
+  } catch (err) {
+    console.error(err);
   } finally {
-    await disconnectDatabase().catch(() => {});
+    pool.end();
   }
 }
-check();
+checkSchema();
