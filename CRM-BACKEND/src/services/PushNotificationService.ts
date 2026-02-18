@@ -21,7 +21,6 @@ interface PushNotificationPayload {
 interface NotificationToken {
   id: string;
   userId: string;
-  deviceId: string;
   platform: 'ios' | 'android' | 'web';
   pushToken: string;
   isActive: boolean;
@@ -29,7 +28,7 @@ interface NotificationToken {
 
 export type PushServiceError =
   | Error
-  | { userId: string; deviceId: string; error: string; status?: string };
+  | { userId: string; error: string; status?: string };
 
 export class PushNotificationService {
   private static instance: PushNotificationService;
@@ -257,12 +256,10 @@ export class PushNotificationService {
             const token = tokens[index];
             logger.warn('FCM notification failed', {
               userId: token.userId,
-              deviceId: token.deviceId,
               error: resp.error?.message,
             });
             results.errors.push({
               userId: token.userId,
-              deviceId: token.deviceId,
               error: resp.error?.message,
             });
 
@@ -329,12 +326,11 @@ export class PushNotificationService {
           notification,
           token: token.pushToken,
           userId: token.userId,
-          deviceId: token.deviceId,
           tokenId: token.id,
         };
       });
 
-      for (const { notification, token, userId, deviceId, tokenId } of notifications) {
+      for (const { notification, token, userId, tokenId } of notifications) {
         try {
           const result = await this.apnProvider.send(notification, token);
 
@@ -345,13 +341,11 @@ export class PushNotificationService {
             const failure = result.failed[0];
             logger.warn('APNS notification failed', {
               userId,
-              deviceId,
               error: failure.error,
               status: failure.status,
             });
             results.errors.push({
               userId,
-              deviceId,
               error: failure.error?.message || String(failure.error),
               status: failure.status,
             });
@@ -366,8 +360,8 @@ export class PushNotificationService {
           }
         } catch (error) {
           results.failed++;
-          results.errors.push({ userId, deviceId, error: error.message });
-          logger.error('APNS notification error:', { userId, deviceId, error });
+          results.errors.push({ userId, error: error.message });
+          logger.error('APNS notification error:', { userId, error });
         }
       }
 
@@ -396,7 +390,6 @@ export class PushNotificationService {
         SELECT 
           id,
           user_id as "userId",
-          device_id as "deviceId",
           platform,
           push_token as "pushToken",
           is_active as "isActive"

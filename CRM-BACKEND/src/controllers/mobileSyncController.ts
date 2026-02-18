@@ -65,16 +65,6 @@ export class MobileSyncController {
         });
       }
 
-      if (!deviceId) {
-        return res.status(400).json({
-          success: false,
-          message: 'Device ID is required for enterprise sync',
-          error: {
-            code: 'MISSING_DEVICE_ID',
-            timestamp: new Date().toISOString(),
-          },
-        });
-      }
 
       // Use enterprise sync service
       const syncResponse = await EnterpriseMobileSyncService.syncFieldAgentData({
@@ -389,7 +379,7 @@ export class MobileSyncController {
   static async getSyncStatus(this: void, req: AuthenticatedRequest, res: Response) {
     try {
       const userId = req.user?.id;
-      const deviceId = String(req.headers['x-device-id'] || '');
+      const deviceId = String(req.headers['x-device-id'] || 'default');
 
       const devRes = await query(
         `SELECT * FROM devices WHERE "userId" = $1 AND "deviceId" = $2 LIMIT 1`,

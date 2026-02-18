@@ -10,16 +10,10 @@ export type { User };
 export interface LoginRequest {
   username: string;
   password: string;
-  deviceId?: string;
   macAddress?: string;
 }
 
-export interface UuidLoginRequest {
-  authUuid: string;
-  deviceId: string;
-  platform?: string;
-  appVersion?: string;
-}
+
 
 export interface LoginResponse {
   success: boolean;
