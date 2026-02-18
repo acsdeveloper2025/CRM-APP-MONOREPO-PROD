@@ -21,6 +21,7 @@ export const dashboardKeys = {
 
 // Queries
 export const useDashboardData = (query: DashboardQuery = {}) => {
+  /** @deprecated Use useDashboardKPI instead */
   return useQuery({
     queryKey: dashboardKeys.data(query),
     queryFn: () => dashboardService.getDashboardData(query),
@@ -29,6 +30,7 @@ export const useDashboardData = (query: DashboardQuery = {}) => {
 };
 
 export const useDashboardStats = (query: DashboardQuery = {}) => {
+  /** @deprecated Use useDashboardKPI instead */
   return useQuery({
     queryKey: dashboardKeys.stats(query),
     queryFn: () => dashboardService.getDashboardStats(query),
@@ -37,6 +39,7 @@ export const useDashboardStats = (query: DashboardQuery = {}) => {
 };
 
 export const useCaseStatusDistribution = (query: DashboardQuery = {}) => {
+  /** @deprecated Use useDashboardKPI instead */
   return useQuery({
     queryKey: dashboardKeys.caseDistribution(query),
     queryFn: () => dashboardService.getCaseStatusDistribution(query),
@@ -53,6 +56,7 @@ export const useClientStats = (query: DashboardQuery = {}) => {
 };
 
 export const useMonthlyTrends = (query: DashboardQuery = {}) => {
+  /** @deprecated Use useDashboardKPI instead */
   return useQuery({
     queryKey: dashboardKeys.monthlyTrends(query),
     queryFn: () => dashboardService.getMonthlyTrends(query),
@@ -61,6 +65,7 @@ export const useMonthlyTrends = (query: DashboardQuery = {}) => {
 };
 
 export const useRecentActivities = (limit: number = 10) => {
+  /** @deprecated Use useDashboardKPI instead (Future migration) */
   return useQuery({
     queryKey: dashboardKeys.recentActivities(limit),
     queryFn: () => dashboardService.getRecentActivities(limit),

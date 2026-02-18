@@ -5,7 +5,7 @@ import { StatsCard } from '@/components/dashboard/StatsCard';
 import { CaseStatusChart } from '@/components/dashboard/CaseStatusChart';
 import { MonthlyTrendsChart } from '@/components/dashboard/MonthlyTrendsChart';
 import { RecentActivities } from '@/components/dashboard/RecentActivities';
-import { useDashboardStats, useRecentActivities, useCaseStatusDistribution, useMonthlyTrends, useTATStats } from '@/hooks/useDashboard';
+import { useDashboardKPI } from '@/hooks/useDashboardKPI';
 import { 
   Users,
   XCircle,
@@ -21,12 +21,27 @@ import { Link, useNavigate } from 'react-router-dom';
 export const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
 
-  // Fetch dashboard data
-  const { data: statsData } = useDashboardStats();
-  const { data: activitiesData, isLoading: activitiesLoading } = useRecentActivities(10);
-  const { data: caseDistributionData, isLoading: distributionLoading } = useCaseStatusDistribution();
-  const { data: trendsData, isLoading: trendsLoading } = useMonthlyTrends();
-  const { data: tatStatsData } = useTATStats();
+  // Fetch dashboard data via Unified KPI Engine
+  const { 
+    stats: kpiStats, 
+    tatStats: tatStatsRaw, 
+    caseDistributionData: distData, 
+    trendsData: trData, 
+    activitiesData: actData,
+    cardTrends,
+    isLoading 
+  } = useDashboardKPI();
+
+  // Adapters for legacy JSX compatibility
+  const statsData = { data: kpiStats };
+  const tatStatsData = { data: tatStatsRaw };
+  const caseDistributionData = { data: distData };
+  const trendsData = { data: trData };
+  const activitiesData = { data: actData };
+
+  const activitiesLoading = isLoading;
+  const distributionLoading = isLoading;
+  const trendsLoading = isLoading;
 
   // Mock data fallback for development
 
@@ -160,7 +175,7 @@ export const DashboardPage: React.FC = () => {
           value={stats.totalCases}
           description="from last month"
           icon={FileText}
-          trend={{ value: 20.1, isPositive: true }}
+          trend={cardTrends?.totalCases}
           color="text-green-600"
           onClick={() => navigate('/cases')}
           className="cursor-pointer"
@@ -179,7 +194,7 @@ export const DashboardPage: React.FC = () => {
           value={stats.revokedTasks || 0}
           description="Tasks revoked by field agents"
           icon={XCircle}
-          trend={{ value: 2.4, isPositive: true }}
+          trend={cardTrends?.revokedTasks}
           color="text-red-600"
           onClick={() => navigate('/tasks/revoked')}
           className="cursor-pointer"
@@ -189,7 +204,7 @@ export const DashboardPage: React.FC = () => {
           value={stats.inProgressCases}
           description="from last month"
           icon={CheckSquare}
-          trend={{ value: 15, isPositive: true }}
+          trend={cardTrends?.inProgress}
           color="text-yellow-600"
           onClick={() => navigate('/tasks/in-progress')}
           className="cursor-pointer"
@@ -199,7 +214,7 @@ export const DashboardPage: React.FC = () => {
           value={stats.completedCases}
           description="from last month"
           icon={CheckSquare}
-          trend={{ value: 25, isPositive: true }}
+          trend={cardTrends?.completed}
           color="text-green-600"
           onClick={() => navigate('/tasks/completed')}
           className="cursor-pointer"
@@ -209,7 +224,7 @@ export const DashboardPage: React.FC = () => {
           value={stats.totalClients || 0}
           description="from last month" // This description might need update if not actually diffing from last month
           icon={Users}
-          trend={{ value: 5.2, isPositive: true }}
+          trend={cardTrends?.totalClients}
           color="text-green-600"
           onClick={() => navigate('/clients')}
           className="cursor-pointer"

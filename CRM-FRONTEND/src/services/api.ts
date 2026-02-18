@@ -100,7 +100,7 @@ class ApiService {
       console.error(errorMsg);
       // In development, we might want to alert, in production this is a fatal config error
       if (import.meta.env.DEV) {
-          alert(errorMsg);
+          // alert(errorMsg); // Disabled to fix ESLint no-alert
       }
       throw new Error(errorMsg);
     }

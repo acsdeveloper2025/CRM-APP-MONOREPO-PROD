@@ -15,7 +15,14 @@ import {
   getTATStats,
 } from '@/controllers/dashboardController';
 
+import { DashboardKPIController } from '../controllers/dashboardKPIController';
+
 const router = express.Router();
+
+// New KPI Engine Endpoint
+router.get('/kpi', authenticateToken, (req, res, next) =>
+  DashboardKPIController.getKPIs(req, res).catch(next)
+);
 
 // Validation schemas
 const dashboardQueryValidation = [
