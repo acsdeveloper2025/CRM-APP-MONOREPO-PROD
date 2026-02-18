@@ -93,15 +93,9 @@ class DocumentTypesService {
     const formData = new FormData();
     formData.append('file', file);
     
-    const response = await fetch(`${apiService.getBaseUrl()}/document-types/import`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`,
-      },
-      body: formData,
-    });
-    
-    return response.json();
+    // Use apiService directly - it handles Content-Type for FormData automatically
+    // and adds the Authorization header via interceptors
+    return apiService.post('/document-types/import', formData);
   }
 
   // Helper Methods
