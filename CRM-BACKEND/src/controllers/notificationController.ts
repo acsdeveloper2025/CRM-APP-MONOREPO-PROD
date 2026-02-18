@@ -535,7 +535,6 @@ export class NotificationController {
       const selectQuery = `
         SELECT 
           id,
-          device_id as "deviceId",
           platform,
           is_active as "isActive",
           created_at as "createdAt",
@@ -578,10 +577,10 @@ export class NotificationController {
         });
       }
 
-      if (!deviceId || !platform || !pushToken) {
+      if (!platform || !pushToken) {
         return res.status(400).json({
           success: false,
-          message: 'Device ID, platform, and push token are required',
+          message: 'Platform and push token are required',
           error: { code: 'MISSING_REQUIRED_FIELDS' },
         });
       }
@@ -590,7 +589,7 @@ export class NotificationController {
       const upsertQuery = `
         INSERT INTO notification_tokens (user_id, device_id, platform, push_token, last_used_at)
         VALUES ($1, $2, $3, $4, NOW())
-        ON CONFLICT (device_id, platform)
+        ON CONFLICT (user_id, platform)
         DO UPDATE SET 
           user_id = EXCLUDED.user_id,
           push_token = EXCLUDED.push_token,
@@ -599,18 +598,16 @@ export class NotificationController {
           updated_at = NOW()
         RETURNING 
           id,
-          device_id as "deviceId",
           platform,
           is_active as "isActive",
           created_at as "createdAt",
           updated_at as "updatedAt"
       `;
 
-      const result = await query(upsertQuery, [userId, deviceId, platform, pushToken]);
+      const result = await query(upsertQuery, [userId, deviceId || 'default', platform, pushToken]);
 
       logger.info('Notification token registered', {
         userId,
-        deviceId,
         platform,
         tokenId: result.rows[0].id,
       });

@@ -63,7 +63,7 @@ export interface NotificationPreferences {
 export interface NotificationToken {
   id: string;
   userId: string;
-  deviceId: string;
+  deviceId?: string;
   platform: 'IOS' | 'ANDROID' | 'WEB';
   pushToken: string;
   isActive: boolean;
@@ -307,14 +307,12 @@ export class NotificationService {
 
         // Log successful delivery attempt
         await this.logDeliveryAttempt(notificationId, 'PUSH', 'SENT', {
-          deviceId: token.deviceId,
           platform: token.platform,
           pushTokenUsed: `${token.pushToken.substring(0, 20)}...`,
         });
       } else {
         // Log failed delivery attempt
         await this.logDeliveryAttempt(notificationId, 'PUSH', 'FAILED', {
-          deviceId: token.deviceId,
           platform: token.platform,
           errors: result.errors,
           pushTokenUsed: `${token.pushToken.substring(0, 20)}...`,
@@ -330,7 +328,6 @@ export class NotificationService {
       }
     } catch (error) {
       await this.logDeliveryAttempt(notificationId, 'PUSH', 'FAILED', {
-        deviceId: token.deviceId,
         platform: token.platform,
         errorMessage: error instanceof Error ? error.message : 'Unknown error',
       });
@@ -397,7 +394,7 @@ export class NotificationService {
   private static async getUserPushTokens(userId: string): Promise<NotificationToken[]> {
     const selectQuery = `
       SELECT 
-        id, user_id as "userId", device_id as "deviceId",
+        id, user_id as "userId",
         platform, push_token as "pushToken", is_active as "isActive"
       FROM notification_tokens 
       WHERE user_id = $1 AND is_active = true
@@ -428,7 +425,6 @@ export class NotificationService {
         notificationId,
         deliveryMethod,
         deliveryStatus,
-        additionalData?.deviceId || null,
         additionalData?.platform || null,
         additionalData?.pushTokenUsed || null,
         additionalData?.errorCode || null,

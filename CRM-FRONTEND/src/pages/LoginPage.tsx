@@ -15,7 +15,6 @@ import { LoadingPage } from '@/components/ui/loading';
 const loginSchema = z.object({
   username: z.string().min(1, 'Username is required'),
   password: z.string().min(1, 'Password is required'),
-  deviceId: z.string().optional(),
   macAddress: z.string().optional(),
 });
 
@@ -119,22 +118,6 @@ export const LoginPage: React.FC = () => {
                 )}
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="deviceId">Device ID (Optional)</Label>
-                <Input
-                  id="deviceId"
-                  type="text"
-                  placeholder="Enter device UUID for device authentication"
-                  {...register('deviceId')}
-                  className={errors.deviceId ? 'border-red-500' : ''}
-                />
-                {errors.deviceId && (
-                  <p className="text-sm text-red-500">{errors.deviceId.message}</p>
-                )}
-                <p className="text-xs text-gray-500">
-                  Optional: Use device UUID for enhanced security authentication
-                </p>
-              </div>
 
               <Button
                 type="submit"

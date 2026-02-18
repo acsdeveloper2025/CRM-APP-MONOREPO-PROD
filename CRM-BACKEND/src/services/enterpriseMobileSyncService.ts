@@ -5,7 +5,7 @@ import { PoolClient } from 'pg';
 export interface MobileSyncRequest {
   userId: string;
   lastSyncTimestamp?: string;
-  deviceId: string;
+  deviceId?: string;
   appVersion: string;
   platform: 'iOS' | 'Android';
 }
@@ -281,7 +281,7 @@ export class EnterpriseMobileSyncService {
 
     await client.query(upsertQuery, [
       request.userId,
-      request.deviceId,
+      request.deviceId || 'default',
       syncTimestamp,
       request.appVersion,
       request.platform,

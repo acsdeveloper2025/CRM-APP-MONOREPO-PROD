@@ -21,7 +21,6 @@ export interface User {
   departmentId?: number;
   departmentName?: string;
   profilePhotoUrl?: string;
-  deviceId?: string; // Device ID for field agents
   isActive?: boolean;
   lastLogin?: string;
   lastLoginAt?: string; // Some views may still use lastLoginAt
@@ -69,7 +68,6 @@ export interface CreateUserData {
   designationId?: number; // New designation system
   department?: string; // Legacy display only
   departmentId?: number; // New department system
-  deviceId?: string; // Device ID for field agents
   profilePhotoUrl?: string;
 }
 
@@ -83,7 +81,6 @@ export interface UpdateUserData {
   designationId?: number; // New designation system
   department?: string; // Legacy display only
   departmentId?: number; // New department system
-  deviceId?: string; // Device ID for field agents
   profilePhotoUrl?: string;
   isActive?: boolean;
 }
@@ -256,7 +253,6 @@ export interface UpdateDesignationRequest {
 export interface UserSession {
   id: string;
   userId: string;
-  deviceId?: string;
   ipAddress?: string;
   userAgent?: string;
   isActive: boolean;
