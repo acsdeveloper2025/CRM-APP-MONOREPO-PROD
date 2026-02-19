@@ -132,9 +132,10 @@ export type TaskStatus =
   | 'ASSIGNED'
   | 'IN_PROGRESS'
   | 'COMPLETED'
-  | 'CANCELLED'
   | 'ON_HOLD'
-  | 'REVOKED';
+  | 'REVOKED'
+  | 'SAVED'
+  | 'REJECTED';
 
 export type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
 
@@ -157,7 +158,7 @@ export interface VerificationTaskSummary {
   completedTasks: number;
   inProgressTasks: number;
   pendingTasks: number;
-  cancelledTasks: number;
+  revokedTasks: number;
   completionPercentage: number;
   totalEstimatedAmount: number;
   totalActualAmount: number;
@@ -392,7 +393,7 @@ export interface TaskSummaryResponse {
       pendingTasks: number;
       inProgressTasks: number;
       completedTasks: number;
-      cancelledTasks: number;
+      revokedTasks: number;
     };
     financialSummary: {
       totalEstimatedAmount: number;
@@ -408,7 +409,7 @@ export interface TaskSummaryResponse {
 }
 
 export interface TaskActivity {
-  type: 'TASK_CREATED' | 'TASK_ASSIGNED' | 'TASK_STARTED' | 'TASK_COMPLETED' | 'TASK_CANCELLED';
+  type: 'TASK_CREATED' | 'TASK_ASSIGNED' | 'TASK_STARTED' | 'TASK_COMPLETED' | 'TASK_REVOKED';
   taskId: string;
   taskTitle: string;
   userName?: string;

@@ -7,7 +7,7 @@ export interface Invoice {
   totalAmount: number;
   subtotalAmount?: number;
   taxPercentage?: number;
-  status: 'DRAFT' | 'SENT' | 'PAID' | 'OVERDUE' | 'CANCELLED';
+  status: 'DRAFT' | 'SENT' | 'PAID' | 'OVERDUE' | 'REVOKED';
   issueDate: string;
   dueDate: string;
   paidDate?: string;

@@ -194,7 +194,7 @@ export const TaskDetailPage: React.FC = () => {
       ASSIGNED: { variant: 'default', label: 'Assigned', icon: User },
       IN_PROGRESS: { variant: 'default', label: 'In Progress', icon: Clock },
       COMPLETED: { variant: 'default', label: 'Completed', icon: CheckCircle2 },
-      CANCELLED: { variant: 'destructive', label: 'Cancelled', icon: XCircle },
+      REVOKED: { variant: 'destructive', label: 'Revoked', icon: XCircle },
       ON_HOLD: { variant: 'secondary', label: 'On Hold', icon: AlertCircle },
     };
 

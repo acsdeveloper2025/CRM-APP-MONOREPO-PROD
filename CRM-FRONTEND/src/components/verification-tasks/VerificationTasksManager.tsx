@@ -53,7 +53,7 @@ export const VerificationTasksManager: React.FC<VerificationTasksManagerProps> =
   const assignedTasks = getTasksByStatus('ASSIGNED');
   const inProgressTasks = getTasksByStatus('IN_PROGRESS');
   const completedTasks = getTasksByStatus('COMPLETED');
-  const cancelledTasks = getTasksByStatus('CANCELLED');
+  const revokedTasks = getTasksByStatus('REVOKED');
 
   // Calculate summary
   const summary = {
@@ -121,8 +121,8 @@ export const VerificationTasksManager: React.FC<VerificationTasksManagerProps> =
         return inProgressTasks;
       case 'completed':
         return completedTasks;
-      case 'cancelled':
-        return cancelledTasks;
+      case 'revoked':
+        return revokedTasks;
       default:
         return tasks;
     }
@@ -238,8 +238,8 @@ export const VerificationTasksManager: React.FC<VerificationTasksManagerProps> =
               <TabsTrigger value="completed" className="text-xs">
                 Completed ({completedTasks.length})
               </TabsTrigger>
-              <TabsTrigger value="cancelled" className="text-xs">
-                Cancelled ({cancelledTasks.length})
+              <TabsTrigger value="revoked" className="text-xs">
+                Revoked ({revokedTasks.length})
               </TabsTrigger>
             </TabsList>
           </Tabs>
