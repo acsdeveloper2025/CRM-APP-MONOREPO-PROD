@@ -262,11 +262,11 @@ router.post(
         {
           ...req,
           body: {
-            status: 'CANCELLED',
+            status: 'REVOKED',
             // eslint-disable-next-line camelcase
-            cancellationReason: cancellation_reason,
-            cancelledAt: new Date().toISOString(),
-            cancelledBy: userId,
+            revocationReason: cancellation_reason,
+            revokedAt: new Date().toISOString(),
+            revokedBy: userId,
           },
         } as AuthenticatedRequest,
         res
@@ -333,7 +333,7 @@ router.post(
               assigned_at = NOW(),
               status = CASE 
                 WHEN status = 'PENDING' THEN 'ASSIGNED'
-                WHEN status = 'COMPLETED' OR status = 'CANCELLED' THEN status
+                WHEN status = 'COMPLETED' OR status = 'REVOKED' THEN status
                 ELSE 'ASSIGNED'
               END,
               updated_at = NOW()

@@ -945,7 +945,7 @@ export class VerificationTasksController {
           COUNT(*) FILTER (WHERE vt.status = 'ASSIGNED') as assigned_count,
           COUNT(*) FILTER (WHERE vt.status = 'IN_PROGRESS') as in_progress_count,
           COUNT(*) FILTER (WHERE vt.status = 'COMPLETED') as completed_count,
-          COUNT(*) FILTER (WHERE vt.status = 'CANCELLED') as cancelled_count,
+          COUNT(*) FILTER (WHERE vt.status = 'REVOKED') as revoked_count,
           COUNT(*) FILTER (WHERE vt.status = 'ON_HOLD') as on_hold_count,
           COUNT(*) FILTER (WHERE vt.priority = 'URGENT') as urgent_count,
           COUNT(*) FILTER (WHERE vt.priority = 'HIGH') as high_priority_count
@@ -973,7 +973,7 @@ export class VerificationTasksController {
             assigned: parseInt(stats.assigned_count || '0'),
             inProgress: parseInt(stats.in_progress_count || '0'),
             completed: parseInt(stats.completed_count || '0'),
-            cancelled: parseInt(stats.cancelled_count || '0'),
+            revoked: parseInt(stats.revoked_count || '0'),
             onHold: parseInt(stats.on_hold_count || '0'),
             urgent: parseInt(stats.urgent_count || '0'),
             highPriority: parseInt(stats.high_priority_count || '0'),

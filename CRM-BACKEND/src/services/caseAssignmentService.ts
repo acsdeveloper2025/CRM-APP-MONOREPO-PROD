@@ -323,7 +323,7 @@ export class CaseAssignmentService {
 
       // Update status
       await this.updateQueueStatus(batchId, {
-        status: 'CANCELLED',
+        status: 'REVOKED',
         completedAt: new Date(),
       });
 

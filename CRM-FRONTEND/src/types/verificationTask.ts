@@ -144,7 +144,6 @@ export type TaskStatus =
   | 'ASSIGNED'
   | 'IN_PROGRESS'
   | 'COMPLETED'
-  | 'CANCELLED'
   | 'ON_HOLD'
   | 'REVOKED';
 
@@ -280,7 +279,7 @@ export interface CaseSummaryResponse {
     assignedTasks: number;
     inProgressTasks: number;
     completedTasks: number;
-    cancelledTasks: number;
+    revokedTasks: number;
     onHoldTasks: number;
   };
   financialSummary: {
@@ -296,7 +295,7 @@ export interface CaseSummaryResponse {
 }
 
 export interface TaskActivity {
-  type: 'TASK_CREATED' | 'TASK_ASSIGNED' | 'TASK_STARTED' | 'TASK_COMPLETED' | 'TASK_CANCELLED';
+  type: 'TASK_CREATED' | 'TASK_ASSIGNED' | 'TASK_STARTED' | 'TASK_COMPLETED' | 'TASK_REVOKED';
   taskId: string;
   taskTitle: string;
   userName?: string;
@@ -410,7 +409,6 @@ export const TASK_STATUS_COLORS: Record<TaskStatus, string> = {
   ASSIGNED: 'blue',
   IN_PROGRESS: 'yellow',
   COMPLETED: 'green',
-  CANCELLED: 'red',
   ON_HOLD: 'orange',
   REVOKED: 'red'
 };
