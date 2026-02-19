@@ -11,7 +11,7 @@ import { QueryParams, VerificationAttachmentRow, WhereClause, CaseRow } from '..
 import { createAuditLog } from '../utils/auditLogger';
 import { config } from '../config';
 import { query } from '@/config/database';
-import { queueCaseRevocationNotification } from '../queues/notificationQueue';
+import { queueCaseRevocationNotification, queueTaskRevocationNotification } from '../queues/notificationQueue';
 import { TaskLookupService } from '../services/taskLookupService';
 import { CaseStatusSyncService } from '../services/caseStatusSyncService';
 import { logger } from '../utils/logger';
@@ -1377,8 +1377,10 @@ export class MobileCaseController {
         'ASSIGNED',
         'IN_PROGRESS',
         'COMPLETED',
-        'CANCELLED',
+        'REVOKED',
         'ON_HOLD',
+        'SAVED',
+        'REJECTED',
       ];
       if (!validStatuses.includes(status)) {
         return res.status(400).json({
@@ -1779,40 +1781,59 @@ export class MobileCaseController {
 
       // Send revocation notification to backend users
       if (backendUserIds.length > 0) {
-        const { queueTaskRevocationNotification } = await import('../queues/notificationQueue');
-        await queueTaskRevocationNotification({
-          taskId: taskData.id,
-          taskNumber: taskData.task_number,
-          caseId: taskData.case_id,
-          caseNumber: taskData.case_number,
-          customerName: taskData.customer_name || 'Unknown Customer',
-          fieldUserId: userId,
-          fieldUserName,
-          revocationReason: reason,
-          backendUserIds,
-        });
+        try {
+          // Use statically imported function instead of dynamic import
+          // const { queueTaskRevocationNotification } = await import('../queues/notificationQueue');
+          await queueTaskRevocationNotification({
+            taskId: taskData.id,
+            taskNumber: taskData.task_number,
+            caseId: taskData.case_id,
+            caseNumber: taskData.case_number,
+            customerName: taskData.customer_name || 'Unknown Customer',
+            fieldUserId: userId,
+            fieldUserName,
+            revocationReason: reason,
+            backendUserIds,
+          });
+          logger.info(`🔔 Revocation notification queued for task ${taskData.task_number}`);
+        } catch (notifError) {
+          logger.error(`❌ Failed to queue revocation notification for task ${taskId}:`, notifError);
+          // Don't fail the request if notification fails
+        }
       }
 
       // Create audit log
-      await createAuditLog({
-        userId,
-        action: 'TASK_REVOKED',
-        entityType: 'VERIFICATION_TASK',
-        entityId: taskId,
-        details: {
-          taskNumber: taskData.task_number,
-          caseNumber: taskData.case_number,
-          customerName: taskData.customer_name,
-          reason,
-          previousStatus: taskData.status,
-          newStatus: 'REVOKED',
-        },
-      });
+      try {
+        await createAuditLog({
+          userId,
+          action: 'TASK_REVOKED',
+          entityType: 'VERIFICATION_TASK',
+          entityId: taskId,
+          details: {
+            taskNumber: taskData.task_number,
+            caseNumber: taskData.case_number,
+            customerName: taskData.customer_name,
+            reason,
+            previousStatus: taskData.status,
+            newStatus: 'REVOKED',
+          },
+        });
+        logger.info(`📝 Audit log created for task revocation: ${taskData.task_number}`);
+      } catch (auditError) {
+        logger.error(`❌ Failed to create audit log for task revocation ${taskId}:`, auditError);
+        // Don't fail the request if audit log fails
+      }
 
       logger.info(`✅ Task ${taskData.task_number} revoked successfully by ${fieldUserName}`);
 
       // Sync case status
-      await CaseStatusSyncService.recalculateCaseStatus(taskData.case_id);
+      try {
+        await CaseStatusSyncService.recalculateCaseStatus(taskData.case_id);
+        logger.info(`🔄 Case status synced for case ${taskData.case_id}`);
+      } catch (syncError) {
+        logger.error(`❌ Failed to sync case status for case ${taskData.case_id}:`, syncError);
+        // Don't fail the request if sync fails, but log it as error
+      }
 
       res.json({
         success: true,
@@ -1829,10 +1850,11 @@ export class MobileCaseController {
       console.error('Revoke task error:', error);
       res.status(500).json({
         success: false,
-        message: 'Internal server error',
+        message: error instanceof Error ? `Revocation failed: ${error.message}` : 'Internal server error',
         error: {
           code: 'TASK_REVOCATION_FAILED',
           timestamp: new Date().toISOString(),
+          details: error instanceof Error ? error.message : String(error)
         },
       });
     }

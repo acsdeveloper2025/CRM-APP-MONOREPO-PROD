@@ -29,13 +29,14 @@ const VALID_OUTCOMES: Record<string, string[]> = {
 
 // Valid status transitions
 const VALID_STATUS_TRANSITIONS: Record<string, string[]> = {
-  PENDING: ['ASSIGNED', 'CANCELLED'],
-  ASSIGNED: ['IN_PROGRESS', 'CANCELLED'],
-  IN_PROGRESS: ['COMPLETED', 'ON_HOLD', 'CANCELLED'],
-  ON_HOLD: ['IN_PROGRESS', 'CANCELLED'],
+  PENDING: ['ASSIGNED', 'REVOKED'],
+  ASSIGNED: ['IN_PROGRESS', 'REVOKED'],
+  IN_PROGRESS: ['COMPLETED', 'ON_HOLD', 'REVOKED'],
+  ON_HOLD: ['IN_PROGRESS', 'REVOKED'],
   COMPLETED: [], // Terminal state
-  CANCELLED: [], // Terminal state
   REVOKED: [], // Terminal state
+  SAVED: ['IN_PROGRESS', 'REVOKED'],
+  REJECTED: ['ASSIGNED', 'REVOKED'],
 };
 
 export interface ValidationResult {

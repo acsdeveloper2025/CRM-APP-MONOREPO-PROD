@@ -1665,7 +1665,7 @@ export const getCaseSummaryWithTasks = async (req: AuthenticatedRequest, res: Re
         COUNT(CASE WHEN status = 'ASSIGNED' THEN 1 END) as assigned_tasks,
         COUNT(CASE WHEN status = 'IN_PROGRESS' THEN 1 END) as in_progress_tasks,
         COUNT(CASE WHEN status = 'COMPLETED' THEN 1 END) as completed_tasks,
-        COUNT(CASE WHEN status = 'CANCELLED' THEN 1 END) as cancelled_tasks,
+        COUNT(CASE WHEN status = 'REVOKED' THEN 1 END) as revoked_tasks,
         COUNT(CASE WHEN status = 'ON_HOLD' THEN 1 END) as on_hold_tasks
       FROM verification_tasks
       WHERE case_id = $1
@@ -1682,7 +1682,7 @@ export const getCaseSummaryWithTasks = async (req: AuthenticatedRequest, res: Re
         COALESCE(SUM(estimated_amount), 0) as total_estimated_amount,
         COALESCE(SUM(actual_amount), 0) as total_actual_amount,
         COALESCE(SUM(CASE WHEN status = 'COMPLETED' THEN actual_amount ELSE 0 END), 0) as completed_amount,
-        COALESCE(SUM(CASE WHEN status != 'COMPLETED' AND status != 'CANCELLED' THEN estimated_amount ELSE 0 END), 0) as pending_amount
+        COALESCE(SUM(CASE WHEN status != 'COMPLETED' AND status != 'REVOKED' THEN estimated_amount ELSE 0 END), 0) as pending_amount
       FROM verification_tasks
       WHERE case_id = $1
     `,

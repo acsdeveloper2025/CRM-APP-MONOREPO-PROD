@@ -71,8 +71,7 @@ export interface VerificationOperationsKPI {
       total: MetricWithTrend; // Alias for workload.total_tasks
       in_progress: MetricWithTrend; // Alias for workload.in_progress_tasks
       completed: MetricWithTrend; // Completed in period
-      revoked: MetricWithTrend; // Status = 'REVOKED' (if exists) or 'CANCELLED'
-      cancelled: MetricWithTrend; // Status = 'CANCELLED'
+      revoked: MetricWithTrend; // Status = 'REVOKED'
       on_hold: MetricWithTrend; // Status = 'ON_HOLD'
     };
     clients: {
@@ -142,7 +141,7 @@ export class DashboardKPIService {
     // NOTE: reconstructing PP Snapshot for "In Progress" requires checking history.
     // Logic: Task was InProgress at T if:
     //    created_at <= T AND (completed_at > T OR completed_at IS NULL)
-    //    AND status != 'CANCELLED' (simplified)
+    //    AND status != 'REVOKED' (simplified)
 
     const coreQuery = `
       WITH date_ranges AS (
@@ -181,7 +180,7 @@ export class DashboardKPIService {
         COUNT(*) FILTER (
           WHERE created_at <= (SELECT pp_end FROM date_ranges) 
           AND (completed_at > (SELECT pp_end FROM date_ranges) OR completed_at IS NULL)
-          AND status != 'CANCELLED' -- Exclude cancelled from active count approximation
+          AND status != 'REVOKED' -- Exclude revoked from active count approximation
         ) as pp_in_progress,
 
         -- OPEN TASKS (PENDING + ASSIGNED + IN_PROGRESS)
@@ -385,7 +384,6 @@ export class DashboardKPIService {
           in_progress: buildMetric(stats.cp_in_progress, stats.pp_in_progress),
           completed: buildMetric(stats.cp_completed, stats.pp_completed),
           revoked: buildMetric(0, 0),
-          cancelled: buildMetric(0, 0),
           on_hold: buildMetric(0, 0),
         },
         clients: {

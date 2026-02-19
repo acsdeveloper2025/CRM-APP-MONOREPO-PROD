@@ -15,8 +15,8 @@ export class CaseStatusSyncService {
    *
    * Rules:
    * - ANY task is PENDING / ASSIGNED / IN_PROGRESS → case = IN_PROGRESS
-   * - ALL tasks are COMPLETED or CANCELLED → case = COMPLETED
-   * - ALL tasks are REVOKED → case = CLOSED
+   * - ALL tasks are COMPLETED or REVOKED → case = COMPLETED
+   * - ALL tasks are REVOKED → case = REVOKED
    *
    * Also updates cases.completedAt:
    * - Set to NOW() if status becomes COMPLETED
@@ -49,16 +49,16 @@ export class CaseStatusSyncService {
       let completedAt: Date | null = null;
 
       const allRevoked = tasks.every(t => t.status === 'REVOKED');
-      const allCompletedOrCancelled = tasks.every(
-        t => t.status === 'COMPLETED' || t.status === 'CANCELLED'
+      const allCompletedOrRevoked = tasks.every(
+        t => t.status === 'COMPLETED' || t.status === 'REVOKED'
       );
       const anyInProgress = tasks.some(
         t => t.status === 'PENDING' || t.status === 'ASSIGNED' || t.status === 'IN_PROGRESS'
       );
 
       if (allRevoked) {
-        newStatus = 'CLOSED';
-      } else if (allCompletedOrCancelled) {
+        newStatus = 'REVOKED';
+      } else if (allCompletedOrRevoked) {
         newStatus = 'COMPLETED';
         completedAt = new Date();
       } else if (anyInProgress) {

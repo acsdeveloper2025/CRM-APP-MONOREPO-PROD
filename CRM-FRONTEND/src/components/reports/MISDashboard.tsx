@@ -285,7 +285,7 @@ export function MISDashboard() {
                   <SelectItem value="COMPLETED">Completed</SelectItem>
                   <SelectItem value="APPROVED">Approved</SelectItem>
                   <SelectItem value="REJECTED">Rejected</SelectItem>
-                  <SelectItem value="CANCELLED">Cancelled</SelectItem>
+                  <SelectItem value="REVOKED">Revoked</SelectItem>
                 </SelectContent>
               </Select>
             </div>
