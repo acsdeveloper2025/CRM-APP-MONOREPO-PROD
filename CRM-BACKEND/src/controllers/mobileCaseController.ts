@@ -11,7 +11,10 @@ import { QueryParams, VerificationAttachmentRow, WhereClause, CaseRow } from '..
 import { createAuditLog } from '../utils/auditLogger';
 import { config } from '../config';
 import { query } from '@/config/database';
-import { queueCaseRevocationNotification, queueTaskRevocationNotification } from '../queues/notificationQueue';
+import {
+  queueCaseRevocationNotification,
+  queueTaskRevocationNotification,
+} from '../queues/notificationQueue';
 import { TaskLookupService } from '../services/taskLookupService';
 import { CaseStatusSyncService } from '../services/caseStatusSyncService';
 import { logger } from '../utils/logger';
@@ -1797,7 +1800,10 @@ export class MobileCaseController {
           });
           logger.info(`🔔 Revocation notification queued for task ${taskData.task_number}`);
         } catch (notifError) {
-          logger.error(`❌ Failed to queue revocation notification for task ${taskId}:`, notifError);
+          logger.error(
+            `❌ Failed to queue revocation notification for task ${taskId}:`,
+            notifError
+          );
           // Don't fail the request if notification fails
         }
       }
@@ -1850,11 +1856,12 @@ export class MobileCaseController {
       console.error('Revoke task error:', error);
       res.status(500).json({
         success: false,
-        message: error instanceof Error ? `Revocation failed: ${error.message}` : 'Internal server error',
+        message:
+          error instanceof Error ? `Revocation failed: ${error.message}` : 'Internal server error',
         error: {
           code: 'TASK_REVOCATION_FAILED',
           timestamp: new Date().toISOString(),
-          details: error instanceof Error ? error.message : String(error)
+          details: error instanceof Error ? error.message : String(error),
         },
       });
     }
