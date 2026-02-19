@@ -143,6 +143,7 @@ export class MobileFormController {
                 vt.id, 
                 vt.case_id, 
                 vt.task_number,
+                vt.status,
                 c."caseId" as "caseNumber", 
                 vt.assigned_to,
                 vtype.name as "verificationTypeName"
@@ -162,6 +163,18 @@ export class MobileFormController {
 
       const task = taskQuery.rows[0];
 
+      // CRITICAL: Block submission if task is already completed
+      if (task.status === 'COMPLETED') {
+        return {
+          success: false,
+          error: {
+            status: 409,
+            message: 'Task already completed. Modifications not allowed.',
+            code: 'TASK_ALREADY_SUBMITTED',
+          },
+        };
+      }
+
       // 2. Assignment Validation
       if (task.assigned_to !== userId) {
         return {
@@ -174,7 +187,6 @@ export class MobileFormController {
         };
       }
 
-      // 3. Location Existence Check & 90-Minute Rule
       // 3. Location Existence Check & 90-Minute Rule
       // Schema update: locations table uses "case_id" (UUID) and "recordedAt"
       const locQuery = await query(
@@ -208,7 +220,7 @@ export class MobileFormController {
         };
       }
 
-      // 4. Duplicate Submission Check
+      // 4. Duplicate Submission Check (Task Form Submissions table)
       const subQuery = await query(
         `SELECT id FROM task_form_submissions WHERE verification_task_id = $1`,
         [taskId]
@@ -2757,6 +2769,7 @@ export class MobileFormController {
         data: {
           caseId: updatedCase.id,
           caseNumber: updatedCase.caseId,
+          taskId: verificationTaskId, // ✅ ADDED: Explicit Task ID for mobile app
           status: updatedCase.status,
           completedAt: updatedCase.completedAt?.toISOString(),
           submissionId,
@@ -3120,6 +3133,7 @@ export class MobileFormController {
         data: {
           caseId: updatedCase.id,
           caseNumber: updatedCase.caseId,
+          taskId: verificationTaskId, // ✅ ADDED: Explicit Task ID for mobile app
           status: updatedCase.status,
           completedAt: updatedCase.completedAt?.toISOString(),
           submissionId,
@@ -3521,6 +3535,7 @@ export class MobileFormController {
         data: {
           caseId: updatedCase.id,
           caseNumber: updatedCase.caseId,
+          taskId: verificationTaskId, // ✅ ADDED: Explicit Task ID for mobile app
           status: updatedCase.status,
           completedAt: updatedCase.completedAt?.toISOString(),
           submissionId,
@@ -3890,6 +3905,7 @@ export class MobileFormController {
         data: {
           caseId: updatedCase.id,
           caseNumber: updatedCase.caseId,
+          taskId: verificationTaskId, // ✅ ADDED: Explicit Task ID for mobile app
           status: updatedCase.status,
           completedAt: updatedCase.completedAt?.toISOString(),
           submissionId,
@@ -4036,7 +4052,8 @@ export class MobileFormController {
         message: 'Residence-cum-office verification submitted successfully',
         data: {
           submissionId,
-          taskId,
+          taskId, // ✅ Already present, but confirming explicit field
+          caseId, // ✅ ADDED for consistency (though taskId is what mobile needs)
           status: 'COMPLETED',
           completedAt: new Date().toISOString(),
         },
@@ -4426,6 +4443,7 @@ export class MobileFormController {
         data: {
           caseId: updatedCase.id,
           caseNumber: updatedCase.caseId,
+          taskId: verificationTaskId, // ✅ ADDED: Explicit Task ID for mobile app
           status: updatedCase.status,
           completedAt: updatedCase.completedAt?.toISOString(),
           submissionId,
@@ -4952,6 +4970,7 @@ export class MobileFormController {
         data: {
           caseId: updatedCase.id,
           caseNumber: updatedCase.caseId,
+          taskId: verificationTaskId, // ✅ ADDED: Explicit Task ID for mobile app
           status: updatedCase.status,
           completedAt: updatedCase.completedAt?.toISOString(),
           submissionId,
@@ -5326,6 +5345,7 @@ export class MobileFormController {
         data: {
           caseId: updatedCase.id,
           caseNumber: updatedCase.caseId,
+          taskId: verificationTaskId, // ✅ ADDED: Explicit Task ID for mobile app
           status: updatedCase.status,
           completedAt: updatedCase.completedAt?.toISOString(),
           submissionId,
