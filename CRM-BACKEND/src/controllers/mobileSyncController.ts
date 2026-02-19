@@ -65,7 +65,6 @@ export class MobileSyncController {
         });
       }
 
-
       // Use enterprise sync service
       const syncResponse = await EnterpriseMobileSyncService.syncFieldAgentData({
         userId,
