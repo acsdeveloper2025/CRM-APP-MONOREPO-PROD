@@ -26,9 +26,7 @@ interface NotificationToken {
   isActive: boolean;
 }
 
-export type PushServiceError =
-  | Error
-  | { userId: string; error: string; status?: string };
+export type PushServiceError = Error | { userId: string; error: string; status?: string };
 
 export class PushNotificationService {
   private static instance: PushNotificationService;
