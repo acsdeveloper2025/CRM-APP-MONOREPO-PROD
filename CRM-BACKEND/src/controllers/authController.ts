@@ -232,10 +232,6 @@ export const preloginInfo = async (req: Request, res: Response): Promise<void> =
       return;
     }
 
-    const isSuper = user.role === 'SUPER_ADMIN' || user.roleName === 'SUPER_ADMIN';
-    const isField =
-      user.role === 'FIELD' || user.roleName === 'FIELD' || user.roleName === 'FIELD_AGENT';
-
     res.json({
       success: true,
       message: 'OK',
