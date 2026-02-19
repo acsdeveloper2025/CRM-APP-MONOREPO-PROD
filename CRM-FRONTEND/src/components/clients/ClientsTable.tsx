@@ -134,19 +134,64 @@ export function ClientsTable({ data, isLoading }: ClientsTableProps) {
                   <Badge className={baseBadgeStyle}>{formatBadgeLabel(client.code)}</Badge>
                 </TableCell>
                 <TableCell>
-                  <span className="text-sm text-gray-600">
-                    {client.products?.length || 0} products
-                  </span>
+                  <div className="flex flex-wrap gap-1">
+                    {client.products && client.products.length > 0 ? (
+                      <>
+                        {client.products.slice(0, 2).map((p) => (
+                          <Badge key={p.id} variant="outline" className="text-xs">
+                            {p.code}
+                          </Badge>
+                        ))}
+                        {client.products.length > 2 && (
+                          <Badge variant="secondary" className="text-xs">
+                            +{client.products.length - 2}
+                          </Badge>
+                        )}
+                      </>
+                    ) : (
+                      <span className="text-sm text-gray-400">-</span>
+                    )}
+                  </div>
                 </TableCell>
                 <TableCell>
-                  <span className="text-sm text-gray-600">
-                    {client.verificationTypes?.length || 0} types
-                  </span>
+                  <div className="flex flex-wrap gap-1">
+                    {client.verificationTypes && client.verificationTypes.length > 0 ? (
+                      <>
+                        {client.verificationTypes.slice(0, 2).map((vt) => (
+                          <Badge key={vt.id} variant="outline" className="text-xs">
+                            {vt.code}
+                          </Badge>
+                        ))}
+                        {client.verificationTypes.length > 2 && (
+                          <Badge variant="secondary" className="text-xs">
+                            +{client.verificationTypes.length - 2}
+                          </Badge>
+                        )}
+                      </>
+                    ) : (
+                      <span className="text-sm text-gray-400">-</span>
+                    )}
+                  </div>
                 </TableCell>
                 <TableCell>
-                  <span className="text-sm text-gray-600">
-                    {client.documentTypes?.length || 0} types
-                  </span>
+                  <div className="flex flex-wrap gap-1">
+                    {client.documentTypes && client.documentTypes.length > 0 ? (
+                      <>
+                        {client.documentTypes.slice(0, 2).map((dt) => (
+                          <Badge key={dt.id} variant="outline" className="text-xs">
+                            {dt.code}
+                          </Badge>
+                        ))}
+                        {client.documentTypes.length > 2 && (
+                          <Badge variant="secondary" className="text-xs">
+                            +{client.documentTypes.length - 2}
+                          </Badge>
+                        )}
+                      </>
+                    ) : (
+                      <span className="text-sm text-gray-400">-</span>
+                    )}
+                  </div>
                 </TableCell>
                 <TableCell>
                   {new Date(client.createdAt).toLocaleDateString()}
