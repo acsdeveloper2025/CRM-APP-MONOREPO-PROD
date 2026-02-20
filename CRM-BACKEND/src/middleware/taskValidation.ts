@@ -202,8 +202,7 @@ export const validateTaskUpdate = (req: Request, res: Response, next: NextFuncti
   if (updateData.status !== undefined && !isValidStatus(updateData.status)) {
     return res.status(400).json({
       success: false,
-      message:
-        'status must be one of: PENDING, ASSIGNED, IN_PROGRESS, COMPLETED, REVOKED, ON_HOLD',
+      message: 'status must be one of: PENDING, ASSIGNED, IN_PROGRESS, COMPLETED, REVOKED, ON_HOLD',
       error: { code: 'INVALID_INPUT' },
     });
   }
@@ -359,9 +358,7 @@ function isValidPriority(priority: string): priority is TaskPriority {
 }
 
 function isValidStatus(status: string): status is TaskStatus {
-  return ['PENDING', 'ASSIGNED', 'IN_PROGRESS', 'COMPLETED', 'REVOKED', 'ON_HOLD'].includes(
-    status
-  );
+  return ['PENDING', 'ASSIGNED', 'IN_PROGRESS', 'COMPLETED', 'REVOKED', 'ON_HOLD'].includes(status);
 }
 
 function isValidDate(dateString: string): boolean {

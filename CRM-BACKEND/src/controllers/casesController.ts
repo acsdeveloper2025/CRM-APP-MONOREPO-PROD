@@ -330,6 +330,31 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
     const countResult = await pool.query(countQuery, params);
     const total = parseInt(countResult.rows[0].total);
 
+    // Get case statistics for metric cards (ignoring pagination)
+    const statsQuery = `
+      SELECT
+        COUNT(*) as "totalCases",
+        COUNT(*) FILTER (WHERE status = 'PENDING') as pending,
+        COUNT(*) FILTER (WHERE status = 'IN_PROGRESS') as "inProgress",
+        COUNT(*) FILTER (WHERE status = 'COMPLETED') as completed,
+        COUNT(*) FILTER (WHERE status = 'ON_HOLD') as "onHold",
+        COUNT(*) FILTER (WHERE status = 'REVOKED') as revoked,
+        COUNT(*) FILTER (
+          WHERE status NOT IN ('COMPLETED', 'REVOKED', 'CANCELLED')
+          AND "createdAt" < NOW() - INTERVAL '48 hours'
+        ) as overdue,
+        COUNT(*) FILTER (WHERE priority >= 3) as "highPriority",
+        COUNT(DISTINCT "assignedTo") FILTER (WHERE status = 'IN_PROGRESS') as "activeAgentsInProgress",
+        AVG(EXTRACT(EPOCH FROM (NOW() - "createdAt"))/86400) FILTER (WHERE status = 'IN_PROGRESS') as "avgDurationDaysInProgress",
+        COUNT(*) FILTER (WHERE status = 'COMPLETED' AND "completedAt" >= DATE_TRUNC('month', NOW())) as "completedThisMonth",
+        COUNT(DISTINCT "assignedTo") FILTER (WHERE status = 'COMPLETED') as "activeAgentsCompleted",
+        AVG(EXTRACT(EPOCH FROM ("completedAt" - "createdAt"))/86400) FILTER (WHERE status = 'COMPLETED') as "avgTATDays"
+      FROM cases c
+      ${whereClause}
+    `;
+    const statsResult = await pool.query(statsQuery, params);
+    const statistics = statsResult.rows[0];
+
     // Enhanced query with all 13 required fields for mobile app and custom sorting
     let orderByClause;
     if (safeSortBy === 'pendingDuration') {
@@ -481,6 +506,7 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
         total,
         totalPages,
       },
+      statistics,
       metadata: {
         queryTime,
         totalResponseTime: Date.now() - startTime,

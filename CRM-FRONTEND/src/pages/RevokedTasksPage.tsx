@@ -21,8 +21,10 @@ import {
   UserCheck
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { VerificationTask } from '@/types/verificationTask';
 
 interface RevokedTaskFilters {
+  [key: string]: unknown;
   priority?: string;
 }
 
@@ -70,6 +72,11 @@ export const RevokedTasksPage: React.FC = () => {
     key => activeFilters[key as keyof RevokedTaskFilters] !== undefined
   ).length;
 
+  const totalRevoked = statistics?.revoked || pagination?.total || 0;
+  const highPriorityCount = (statistics?.highPriority || 0) + (statistics?.urgent || 0);
+  const uniqueCases = new Set(tasks.map((t: VerificationTask) => t.caseId)).size;
+  const uniqueFieldAgents = new Set(tasks.map((t: VerificationTask) => t.assignedTo?.id).filter(Boolean)).size;
+
   const handleViewTask = (taskId: string) => {
     navigate(`/tasks/${taskId}`);
   };
@@ -97,7 +104,7 @@ export const RevokedTasksPage: React.FC = () => {
           </p>
         </div>
         <Button
-          onClick={refreshTasks}
+          onClick={() => refreshTasks()}
           variant="outline"
           size="sm"
           disabled={loading}
@@ -117,7 +124,7 @@ export const RevokedTasksPage: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold" style={{ color: '#000000' }}>
-              {statistics?.totalTasks || 0}
+              {totalRevoked}
             </div>
             <p className="text-xs mt-1" style={{ color: '#1F2937' }}>
               Tasks revoked by field agents
@@ -132,7 +139,7 @@ export const RevokedTasksPage: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold" style={{ color: '#000000' }}>
-              {statistics?.highPriorityTasks || 0}
+              {highPriorityCount}
             </div>
             <p className="text-xs mt-1" style={{ color: '#1F2937' }}>
               Urgent attention needed
@@ -147,7 +154,7 @@ export const RevokedTasksPage: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold" style={{ color: '#000000' }}>
-              {statistics?.uniqueCases || 0}
+              {uniqueCases}
             </div>
             <p className="text-xs mt-1" style={{ color: '#1F2937' }}>
               Cases with revoked tasks
@@ -162,7 +169,7 @@ export const RevokedTasksPage: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold" style={{ color: '#000000' }}>
-              {statistics?.uniqueFieldAgents || 0}
+              {uniqueFieldAgents}
             </div>
             <p className="text-xs mt-1" style={{ color: '#1F2937' }}>
               Agents who revoked tasks
@@ -171,70 +178,93 @@ export const RevokedTasksPage: React.FC = () => {
         </Card>
       </div>
 
-      {/* Search and Filters */}
+      {/* Unified Search & Filter */}
       <UnifiedSearchFilterLayout
         searchValue={searchValue}
         onSearchChange={setSearchValue}
-        onClearSearch={clearSearch}
-        isDebouncing={isDebouncing}
+        onSearchClear={clearSearch}
+        isSearchLoading={isDebouncing}
         searchPlaceholder="Search by task number, case number, customer name..."
         hasActiveFilters={hasActiveFilters}
         activeFilterCount={activeFilterCount}
         onClearFilters={clearFilters}
-      >
-        <FilterGrid>
-          <div className="space-y-2">
-            <Label htmlFor="priority-filter" style={{ color: '#1F2937' }}>Priority</Label>
-            <Select
-              value={activeFilters.priority || 'all'}
-              onValueChange={(value) => setFilter('priority', value === 'all' ? undefined : value)}
-            >
-              <SelectTrigger id="priority-filter">
-                <SelectValue placeholder="All Priorities" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Priorities</SelectItem>
-                <SelectItem value="URGENT">Urgent</SelectItem>
-                <SelectItem value="HIGH">High</SelectItem>
-                <SelectItem value="MEDIUM">Medium</SelectItem>
-                <SelectItem value="LOW">Low</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </FilterGrid>
-      </UnifiedSearchFilterLayout>
+        filterContent={
+          <FilterGrid columns={3}>
+            <div className="space-y-2">
+              <Label htmlFor="priority">Priority</Label>
+              <Select
+                value={activeFilters.priority || 'all'}
+                onValueChange={(value) => setFilter('priority', value === 'all' ? undefined : value)}
+              >
+                <SelectTrigger id="priority">
+                  <SelectValue placeholder="All Priorities" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Priorities</SelectItem>
+                  <SelectItem value="URGENT">Urgent</SelectItem>
+                  <SelectItem value="HIGH">High</SelectItem>
+                  <SelectItem value="MEDIUM">Medium</SelectItem>
+                  <SelectItem value="LOW">Low</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </FilterGrid>
+        }
+      />
 
       {/* Tasks List */}
-      <Card style={{ backgroundColor: '#FFFFFF' }}>
-        <CardHeader>
-          <CardTitle style={{ color: '#000000' }}>Revoked Tasks</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {error && (
-            <div className="p-4 mb-4 bg-red-50 border border-red-200 rounded-md">
-              <p className="text-sm text-red-800">{error}</p>
-            </div>
-          )}
+      {error && (
+        <Card className="border-red-200 bg-red-50">
+          <CardContent className="py-4">
+            <p className="text-red-600">Error loading tasks: {error}</p>
+          </CardContent>
+        </Card>
+      )}
 
-          <TasksListFlat
-            tasks={tasks}
-            loading={loading}
-            onViewTask={handleViewTask}
-            onViewCase={handleViewCase}
-            onEditCase={handleEditCase}
-            emptyMessage="No revoked tasks found"
-            emptyDescription="Tasks revoked by field agents will appear here"
-            pagination={{
-              currentPage: pagination?.currentPage || 1,
-              totalPages: pagination?.totalPages || 1,
-              totalItems: pagination?.totalItems || 0,
-              itemsPerPage: pagination?.itemsPerPage || 20,
-              onPageChange: (page) => setPaginationState(prev => ({ ...prev, page })),
-              onItemsPerPageChange: (limit) => setPaginationState(prev => ({ ...prev, limit, page: 1 })),
-            }}
-          />
-        </CardContent>
-      </Card>
+      <TasksListFlat
+        tasks={tasks}
+        loading={loading}
+        onViewTask={handleViewTask}
+        onViewCase={handleViewCase}
+        onEditCase={handleEditCase}
+        onAssignTask={() => {}}
+      />
+
+      {/* Pagination - Always show for better UX */}
+      {pagination.total > 0 && (
+        <Card>
+          <CardContent className="py-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-gray-600">
+                Showing {((pagination.page - 1) * pagination.limit) + 1} to {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} tasks
+              </p>
+              {pagination.totalPages > 1 && (
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPaginationState(prev => ({ ...prev, page: prev.page - 1 }))}
+                    disabled={pagination.page === 1}
+                  >
+                    Previous
+                  </Button>
+                  <span className="text-sm">
+                    Page {pagination.page} of {pagination.totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPaginationState(prev => ({ ...prev, page: prev.page + 1 }))}
+                    disabled={pagination.page === pagination.totalPages}
+                  >
+                    Next
+                  </Button>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };

@@ -64,8 +64,9 @@ export const InProgressCasesPage: React.FC = () => {
   const { data: casesData, isLoading, refetch: _refetch } = useCases(query);
   const { refreshCases } = useRefreshCases();
 
-  const cases = casesData?.data || [];
-  const paginationData = casesData?.pagination || { page: 1, limit: 20, total: 0, totalPages: 0 };
+  const cases = casesData?.data?.data || [];
+  const statistics = casesData?.data?.statistics;
+  const paginationData = casesData?.data?.pagination || { page: 1, limit: 20, total: 0, totalPages: 0 };
 
   const handlePageChange = (page: number) => {
     setPagination(prev => ({ ...prev, page }));
@@ -185,7 +186,7 @@ export const InProgressCasesPage: React.FC = () => {
               <PlayCircle className="h-8 w-8 text-green-600" />
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Total In Progress</p>
-                <p className="text-2xl font-bold text-foreground">{paginationData.total}</p>
+                <p className="text-2xl font-bold text-foreground">{statistics?.inProgress || 0}</p>
               </div>
             </div>
           </CardContent>
@@ -199,10 +200,7 @@ export const InProgressCasesPage: React.FC = () => {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Long Running</p>
                 <p className="text-2xl font-bold text-foreground">
-                  {cases.filter(c => {
-                    const duration = c.pendingDurationSeconds || 0;
-                    return duration > 172800; // More than 2 days
-                  }).length}
+                  {statistics?.overdue || 0}
                 </p>
               </div>
             </div>
@@ -217,7 +215,7 @@ export const InProgressCasesPage: React.FC = () => {
               <div className="ml-4">
                 <p className="text-sm font-medium text-muted-foreground">High Priority</p>
                 <p className="text-2xl font-bold text-foreground">
-                  {cases.filter(c => c.priority >= 4).length}
+                  {statistics?.highPriority || 0}
                 </p>
               </div>
             </div>
@@ -232,7 +230,7 @@ export const InProgressCasesPage: React.FC = () => {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Active Agents</p>
                 <p className="text-2xl font-bold text-foreground">
-                  {new Set(cases.map(c => c.assignedToId)).size}
+                  {statistics?.activeAgentsInProgress || 0}
                 </p>
               </div>
             </div>
@@ -247,12 +245,7 @@ export const InProgressCasesPage: React.FC = () => {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Avg Duration</p>
                 <p className="text-2xl font-bold text-foreground">
-                  {cases.length > 0
-                    ? Math.round(cases.reduce((acc, c) => {
-                        const duration = c.pendingDurationSeconds || 0;
-                        return acc + (duration / 86400); // Convert to days
-                      }, 0) / cases.length)
-                    : 0} days
+                  {Math.round(statistics?.avgDurationDaysInProgress || 0)} days
                 </p>
               </div>
             </div>

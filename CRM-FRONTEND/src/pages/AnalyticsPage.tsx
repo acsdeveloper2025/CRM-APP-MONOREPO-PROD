@@ -40,17 +40,31 @@ export const AnalyticsPage: React.FC = () => {
   });
 
   const caseSummary = caseAnalytics?.data?.summary;
-  const tasks = (tasksData?.data as { data?: unknown[] })?.data || [];
-
-  // Calculate task metrics
-  const totalTasks = tasks.length;
-  const completedTasks = tasks.filter((t: unknown) => (t as { status?: string }).status === 'COMPLETED').length;
-  const inProgressTasks = tasks.filter((t: unknown) => (t as { status?: string }).status === 'IN_PROGRESS').length;
-  const pendingTasks = tasks.filter((t: unknown) => { const task = t as { status?: string }; return task.status === 'PENDING' || task.status === 'ASSIGNED'; }).length;
+  
+  // Extract task statistics and pagination info from backend
+  const taskPayload = (tasksData?.data as { 
+    data?: { 
+      statistics: {
+        pending: number;
+        assigned: number;
+        inProgress: number;
+        completed: number;
+        highPriority: number;
+        totalAgents: number;
+      }, 
+      pagination: { total: number } 
+    } 
+  })?.data;
+  const taskStats = taskPayload?.statistics;
+  const totalTasks = taskPayload?.pagination?.total || 0;
+  
+  const completedTasks = taskStats?.completed || 0;
+  const inProgressTasks = taskStats?.inProgress || 0;
+  const pendingTasks = (taskStats?.pending || 0) + (taskStats?.assigned || 0);
   const taskCompletionRate = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
 
-  // Calculate active agents
-  const activeAgents = new Set(tasks.filter((t: unknown) => (t as { assigned_to?: string }).assigned_to).map((t: unknown) => (t as { assigned_to: string }).assigned_to)).size;
+  // Use backend aggregated agent count
+  const activeAgents = taskStats?.totalAgents || 0;
 
   return (
     <div className="space-y-6">

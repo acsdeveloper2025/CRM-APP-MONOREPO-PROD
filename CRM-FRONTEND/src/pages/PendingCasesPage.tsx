@@ -64,7 +64,8 @@ export const PendingCasesPage: React.FC = () => {
   const assignCaseMutation = useAssignCase();
   const { refreshCases } = useRefreshCases();
 
-  const rawCases = React.useMemo(() => casesData?.data || [], [casesData]);
+  const rawCases = React.useMemo(() => casesData?.data?.data || [], [casesData]);
+  const statistics = casesData?.data?.statistics;
 
   // Helper function to check if a case is overdue
   const isOverdue = React.useCallback((pendingDurationSeconds?: number) => {
@@ -111,14 +112,12 @@ export const PendingCasesPage: React.FC = () => {
     return sortedCases;
   }, [rawCases, flagOverdueCases, reviewUrgentFirst, isOverdue]);
 
-  // Calculate statistics
-  const totalPending = rawCases.length;
-  const pendingCases = rawCases.filter(c => c.status === 'PENDING').length;
-  const inProgressCases = rawCases.filter(c => c.status === 'IN_PROGRESS').length;
-  const urgentCases = rawCases.filter(c => Number(c.priority) >= 3).length;
-  const oldCases = rawCases.filter(c => {
-    return (c.pendingDurationSeconds || 0) > 172800; // More than 2 days
-  }).length;
+  // Statistics from backend
+  const totalPending = statistics?.totalCases || 0;
+  const pendingCases = statistics?.pending || 0;
+  const inProgressCases = statistics?.inProgress || 0;
+  const urgentCases = statistics?.highPriority || 0;
+  const oldCases = statistics?.overdue || 0;
 
   const handleUpdateStatus = async (caseId: string, status: string) => {
     await updateStatusMutation.mutateAsync({ id: caseId, status });
@@ -323,7 +322,7 @@ export const PendingCasesPage: React.FC = () => {
           {casesData?.pagination && (
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-6">
               <div className="text-sm text-gray-600">
-                Showing {casesData.data?.length || 0} of {casesData.pagination.total} pending cases
+                Showing {casesData?.data?.data?.length || 0} of {casesData?.data?.pagination?.total || 0} pending cases
               </div>
               <div className="flex items-center gap-2">
                 <Button
@@ -335,13 +334,13 @@ export const PendingCasesPage: React.FC = () => {
                   Previous
                 </Button>
                 <div className="text-sm">
-                  Page {currentPage} of {casesData.pagination.totalPages || 1}
+                  Page {currentPage} of {casesData?.data?.pagination?.totalPages || 1}
                 </div>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setCurrentPage(prev => prev + 1)}
-                  disabled={currentPage >= (casesData.pagination.totalPages || 1)}
+                  disabled={currentPage >= (casesData?.data?.pagination?.totalPages || 1)}
                 >
                   Next
                 </Button>
