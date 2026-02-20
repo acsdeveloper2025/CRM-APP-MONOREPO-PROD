@@ -49,7 +49,7 @@ const STATUS_COLORS: Record<string, string> = {
   ASSIGNED: '#3b82f6',
   IN_PROGRESS: '#8b5cf6',
   COMPLETED: '#10b981',
-  CANCELLED: '#ef4444',
+  REVOKED: '#ef4444',
   ON_HOLD: '#6b7280'
 };
 
@@ -89,8 +89,8 @@ export const TasksAnalytics: React.FC = () => {
   // Calculate metrics
   const totalTasks = tasks.length;
   const completedTasks = tasks.filter((t: VerificationTask) => t.status === 'COMPLETED').length;
-  const inProgressTasks = tasks.filter((t: VerificationTask) => t.status === 'IN_PROGRESS').length;
-  const pendingTasks = tasks.filter((t: VerificationTask) => t.status === 'PENDING' || t.status === 'ASSIGNED').length;
+  const inProgressTasks = tasks.filter((t: VerificationTask) => t.status === 'IN_PROGRESS' || t.status === 'ASSIGNED').length;
+  const pendingTasks = tasks.filter((t: VerificationTask) => t.status === 'PENDING').length;
   const completionRate = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
 
   // Calculate total amounts

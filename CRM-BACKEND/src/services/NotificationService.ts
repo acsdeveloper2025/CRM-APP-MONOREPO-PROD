@@ -28,8 +28,6 @@ export type NotificationType =
   | 'CASE_REVOKED'
   | 'TASK_REVOKED'
   | 'TASK_COMPLETED'
-  | 'CASE_APPROVED'
-  | 'CASE_REJECTED'
   | 'SYSTEM_MAINTENANCE'
   | 'APP_UPDATE'
   | 'EMERGENCY_ALERT';

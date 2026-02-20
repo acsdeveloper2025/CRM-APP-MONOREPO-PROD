@@ -22,8 +22,6 @@ export const CASE_STATUS = {
   PENDING: 'PENDING',
   IN_PROGRESS: 'IN_PROGRESS',
   COMPLETED: 'COMPLETED',
-  APPROVED: 'APPROVED',
-  REJECTED: 'REJECTED',
   REWORK_REQUIRED: 'REWORK_REQUIRED'
 } as const;
 
@@ -71,10 +69,7 @@ export type VerificationOutcome = typeof VERIFICATION_OUTCOMES[keyof typeof VERI
 // Form Submission Status
 export const FORM_SUBMISSION_STATUS = {
   DRAFT: 'DRAFT',
-  SUBMITTED: 'SUBMITTED',
-  UNDER_REVIEW: 'UNDER_REVIEW',
-  APPROVED: 'APPROVED',
-  REJECTED: 'REJECTED'
+  COMPLETED: 'COMPLETED'
 } as const;
 
 export type FormSubmissionStatus = typeof FORM_SUBMISSION_STATUS[keyof typeof FORM_SUBMISSION_STATUS];

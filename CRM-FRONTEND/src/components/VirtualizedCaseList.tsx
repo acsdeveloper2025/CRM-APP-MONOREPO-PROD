@@ -201,7 +201,7 @@ export const VirtualizedCaseList: React.FC<VirtualizedCaseListProps> = ({
                   <option value="PENDING">Pending</option>
                   <option value="IN_PROGRESS">In Progress</option>
                   <option value="COMPLETED">Completed</option>
-                  <option value="CANCELLED">Cancelled</option>
+                  <option value="REVOKED">Revoked</option>
                 </select>
               </div>
 

@@ -68,9 +68,9 @@ export const VerificationTasksList: React.FC<VerificationTasksListProps> = ({
       ASSIGNED: UserCheck,
       IN_PROGRESS: Play,
       COMPLETED: CheckCircle,
-      CANCELLED: X,
       ON_HOLD: AlertTriangle,
-      REVOKED: X
+      REVOKED: X,
+      SAVED: Clock
     };
     return icons[status] || Clock;
   };
@@ -274,13 +274,13 @@ export const VerificationTasksList: React.FC<VerificationTasksListProps> = ({
                           </DropdownMenuItem>
                         )}
                         
-                        {task.status !== 'COMPLETED' && task.status !== 'CANCELLED' && onCancelTask && (
+                        {task.status !== 'COMPLETED' && task.status !== 'REVOKED' && onCancelTask && (
                           <DropdownMenuItem 
                             onClick={() => onCancelTask(task.id)}
                             className="text-red-600"
                           >
                             <X className="h-4 w-4 mr-2" />
-                            Cancel Task
+                            Revoke Task
                           </DropdownMenuItem>
                         )}
                       </>

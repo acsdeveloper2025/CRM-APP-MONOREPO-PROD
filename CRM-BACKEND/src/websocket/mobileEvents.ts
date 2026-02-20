@@ -145,7 +145,7 @@ export class MobileWebSocketEvents {
   // Notify mobile app about case approval/rejection
   notifyCaseReviewed(
     caseId: string,
-    outcome: 'APPROVED' | 'REJECTED' | 'REWORK',
+    outcome: 'VERIFIED' | 'NOT_VERIFIED' | 'REWORK',
     feedback: string,
     reviewedBy: string
   ) {

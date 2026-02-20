@@ -1383,7 +1383,6 @@ export class MobileCaseController {
         'REVOKED',
         'ON_HOLD',
         'SAVED',
-        'REJECTED',
       ];
       if (!validStatuses.includes(status)) {
         return res.status(400).json({
