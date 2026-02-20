@@ -948,7 +948,8 @@ export class VerificationTasksController {
           COUNT(*) FILTER (WHERE vt.status = 'REVOKED') as revoked_count,
           COUNT(*) FILTER (WHERE vt.status = 'ON_HOLD') as on_hold_count,
           COUNT(*) FILTER (WHERE vt.priority = 'URGENT') as urgent_count,
-          COUNT(*) FILTER (WHERE vt.priority = 'HIGH') as high_priority_count
+          COUNT(*) FILTER (WHERE vt.priority IN ('HIGH', 'URGENT')) as high_priority_count,
+          COUNT(DISTINCT vt.assigned_to) FILTER (WHERE vt.assigned_to IS NOT NULL) as total_agents
         FROM verification_tasks vt
         LEFT JOIN cases c ON vt.case_id = c.id
         ${whereClause}
@@ -977,6 +978,7 @@ export class VerificationTasksController {
             onHold: parseInt(stats.on_hold_count || '0'),
             urgent: parseInt(stats.urgent_count || '0'),
             highPriority: parseInt(stats.high_priority_count || '0'),
+            totalAgents: parseInt(stats.total_agents || '0'),
           },
         },
         message: 'Verification tasks retrieved successfully',

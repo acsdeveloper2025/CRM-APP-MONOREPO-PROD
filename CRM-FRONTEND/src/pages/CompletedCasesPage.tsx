@@ -48,8 +48,9 @@ export const CompletedCasesPage: React.FC = () => {
   const { data: casesData, isLoading } = useCases(query);
   const { refreshCases } = useRefreshCases();
 
-  const cases = casesData?.data || [];
-  const paginationData = casesData?.pagination || { page: 1, limit: 20, total: 0, totalPages: 0 };
+  const cases = casesData?.data?.data || [];
+  const statistics = casesData?.data?.statistics;
+  const paginationData = casesData?.data?.pagination || { page: 1, limit: 20, total: 0, totalPages: 0 };
 
   const handlePageChange = (page: number) => {
     setPagination(prev => ({ ...prev, page }));
@@ -113,7 +114,7 @@ export const CompletedCasesPage: React.FC = () => {
               <CheckCircle className="h-8 w-8 text-green-600" />
               <div className="ml-4">
                 <p className="text-sm font-medium text-muted-foreground">Total Completed</p>
-                <p className="text-2xl font-bold text-foreground">{paginationData.total}</p>
+                <p className="text-2xl font-bold text-foreground">{statistics?.completed || 0}</p>
               </div>
             </div>
           </CardContent>
@@ -127,12 +128,7 @@ export const CompletedCasesPage: React.FC = () => {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">This Month</p>
                 <p className="text-2xl font-bold text-foreground">
-                  {cases.filter(c => {
-                    const completedDate = new Date(c.completedAt || c.updatedAt);
-                    const now = new Date();
-                    return completedDate.getMonth() === now.getMonth() && 
-                           completedDate.getFullYear() === now.getFullYear();
-                  }).length}
+                  {statistics?.completedThisMonth || 0}
                 </p>
               </div>
             </div>
@@ -147,7 +143,7 @@ export const CompletedCasesPage: React.FC = () => {
               <div className="ml-4">
                 <p className="text-sm font-medium text-muted-foreground">High Priority</p>
                 <p className="text-2xl font-bold text-foreground">
-                  {cases.filter(c => c.priority >= 4).length}
+                  {statistics?.highPriority || 0}
                 </p>
               </div>
             </div>
@@ -162,7 +158,7 @@ export const CompletedCasesPage: React.FC = () => {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Field Users</p>
                 <p className="text-2xl font-bold text-foreground">
-                  {new Set(cases.map(c => c.assignedToId)).size}
+                  {statistics?.activeAgentsCompleted || 0}
                 </p>
               </div>
             </div>
@@ -177,15 +173,7 @@ export const CompletedCasesPage: React.FC = () => {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Avg TAT</p>
                 <p className="text-2xl font-bold text-foreground">
-                  {cases.length > 0
-                    ? Math.round(cases.reduce((acc, c) => {
-                        if (!c.createdAt || !c.completedAt) {return acc;}
-                        const created = new Date(c.createdAt);
-                        const completed = new Date(c.completedAt);
-                        const tatInDays = Math.floor((completed.getTime() - created.getTime()) / (1000 * 60 * 60 * 24));
-                        return acc + tatInDays;
-                      }, 0) / cases.length)
-                    : 0} days
+                  {Math.round(statistics?.avgTATDays || 0)} days
                 </p>
               </div>
             </div>
@@ -221,10 +209,10 @@ export const CompletedCasesPage: React.FC = () => {
       {/* Pagination */}
       {paginationData.total > 0 && (
         <CasePagination
-          currentPage={pagination.page}
+          currentPage={paginationData.page}
           totalPages={paginationData.totalPages}
           totalItems={paginationData.total}
-          itemsPerPage={pagination.limit}
+          itemsPerPage={paginationData.limit}
           onPageChange={handlePageChange}
           onItemsPerPageChange={handleItemsPerPageChange}
           isLoading={isLoading}

@@ -12,7 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { useOverdueTasks } from '@/hooks/useDashboard';
+import { useOverdueTasks, useTATStats } from '@/hooks/useDashboard';
 import { useUnifiedSearch, useUnifiedFilters } from '@/hooks/useUnifiedSearch';
 import { UnifiedSearchFilterLayout, FilterGrid } from '@/components/ui/unified-search-filter-layout';
 import { Label } from '@/components/ui/label';
@@ -67,6 +67,10 @@ export const TATMonitoringPage: React.FC = () => {
     setCriticalPage(1);
     setAllPage(1);
   }, [debouncedSearchValue, activeFilters]);
+
+  // Fetch TAT Statistics for the cards
+  const { data: tatStatsData } = useTATStats();
+  const tatStats = tatStatsData?.data;
 
   // Common filter params
   const filterParams = {
@@ -339,12 +343,12 @@ export const TATMonitoringPage: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
-              {Math.max(0, (criticalTasks.filter(t => t.status !== 'COMPLETED').length || 0) - criticalPagination.totalCount)}
+              {tatStats?.onTrack || 0}
             </div>
             <p className="text-xs text-gray-600">Within TAT</p>
           </CardContent>
         </Card>
-
+ 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Avg TAT</CardTitle>
@@ -352,14 +356,12 @@ export const TATMonitoringPage: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {criticalTasks.length > 0
-                ? Math.round(criticalTasks.reduce((acc, t) => acc + (t.daysOverdue || 0), 0) / criticalTasks.length)
-                : 0} days
+              {tatStats?.avgOverdueDays || 0} days
             </div>
             <p className="text-xs text-gray-600">Average overdue</p>
           </CardContent>
         </Card>
-
+ 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Completed Today</CardTitle>
@@ -367,19 +369,13 @@ export const TATMonitoringPage: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {criticalTasks.filter(t => {
-                if (!t.completed_at) {return false;}
-                const completed = new Date(t.completed_at);
-                const today = new Date();
-                return completed.toDateString() === today.toDateString();
-              }).length}
+              {tatStats?.completedToday || 0}
             </div>
             <p className="text-xs text-gray-600">Tasks completed</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Unified Search & Filter Layout */}
       <UnifiedSearchFilterLayout
         searchValue={searchValue}
         onSearchChange={setSearchValue}
@@ -441,34 +437,34 @@ export const TATMonitoringPage: React.FC = () => {
             Refresh
           </Button>
         }
-      >
-        <Card>
-          <CardHeader>
-            <CardTitle>Overdue Tasks</CardTitle>
-            <CardDescription>View and manage tasks that have exceeded their turnaround time</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'critical' | 'all')}>
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="critical" className="flex items-center space-x-2">
-                  <AlertTriangle className="h-4 w-4" />
-                  <span>Critical Overdue (&gt;1 Day)</span>
-                </TabsTrigger>
-                <TabsTrigger value="all" className="flex items-center space-x-2">
-                  <Clock className="h-4 w-4" />
-                  <span>All Overdue Tasks (&gt;2 Days)</span>
-                </TabsTrigger>
-              </TabsList>
-              <TabsContent value="critical" className="mt-6">
-                {renderTaskTable(criticalTasks, criticalLoading, criticalPagination, setCriticalPage)}
-              </TabsContent>
-              <TabsContent value="all" className="mt-6">
-                {renderTaskTable(allTasks, allLoading, allPagination, setAllPage)}
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
-      </UnifiedSearchFilterLayout>
+      />
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Overdue Tasks</CardTitle>
+          <CardDescription>View and manage tasks that have exceeded their turnaround time</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'critical' | 'all')}>
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="critical" className="flex items-center space-x-2">
+                <AlertTriangle className="h-4 w-4" />
+                <span>Critical Overdue (&gt;1 Day)</span>
+              </TabsTrigger>
+              <TabsTrigger value="all" className="flex items-center space-x-2">
+                <Clock className="h-4 w-4" />
+                <span>All Overdue Tasks (&gt;2 Days)</span>
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value="critical" className="mt-6">
+              {renderTaskTable(criticalTasks, criticalLoading, criticalPagination, setCriticalPage)}
+            </TabsContent>
+            <TabsContent value="all" className="mt-6">
+              {renderTaskTable(allTasks, allLoading, allPagination, setAllPage)}
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
     </div>
   );
 };

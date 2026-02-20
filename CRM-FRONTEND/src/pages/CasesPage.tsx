@@ -69,8 +69,18 @@ export const CasesPage: React.FC = () => {
 
   const { refreshCases } = useRefreshCases();
 
-  const cases = casesData?.data || [];
-  const paginationData = casesData?.pagination || {
+  const cases = casesData?.data?.data || [];
+  const statistics = casesData?.data?.statistics || {
+    totalCases: 0,
+    pending: 0,
+    inProgress: 0,
+    completed: 0,
+    onHold: 0,
+    revoked: 0,
+    overdue: 0,
+    highPriority: 0,
+  };
+  const paginationData = casesData?.data?.pagination || {
     page: 1,
     limit: 20,
     total: 0,
@@ -121,18 +131,14 @@ export const CasesPage: React.FC = () => {
     key => activeFilters[key as keyof CaseFilters] !== undefined
   ).length;
 
-  // Calculate statistics
-  const totalCases = paginationData.total;
-  const pendingCases = cases.filter(c => c.status === 'PENDING').length;
-  const inProgressCases = cases.filter(c => c.status === 'IN_PROGRESS').length;
-  const completedCases = cases.filter(c => c.status === 'COMPLETED').length;
-  const overdueCases = cases.filter(c => {
-    if (!c.createdAt) {return false;}
-    const created = new Date(c.createdAt);
-    const now = new Date();
-    const diffInHours = Math.floor((now.getTime() - created.getTime()) / (1000 * 60 * 60));
-    return diffInHours > 48 && c.status !== 'COMPLETED'; // More than 2 days and not completed
-  }).length;
+  // Statistics from backend
+  const { 
+    totalCases, 
+    pending: pendingCases, 
+    inProgress: inProgressCases, 
+    completed: completedCases, 
+    overdue: overdueCases 
+  } = statistics;
 
   return (
     <div className="space-y-4 sm:space-y-6 animate-fade-in">

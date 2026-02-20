@@ -158,7 +158,7 @@ export const InProgressTasksPage: React.FC = () => {
             <TrendingUp className="h-4 w-4 text-red-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{statistics.urgent}</div>
+            <div className="text-2xl font-bold">{(statistics.urgent || 0) + (statistics.highPriority || 0)}</div>
             <p className="text-xs text-gray-600">
               Urgent + High
             </p>
