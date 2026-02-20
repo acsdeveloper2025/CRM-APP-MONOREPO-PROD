@@ -72,24 +72,26 @@ export const FormSubmissionsList: React.FC<FormSubmissionsListProps> = ({
 
     // Apply sorting
     filtered.sort((a, b) => {
-      let aValue: unknown = a[sortField];
-      let bValue: unknown = b[sortField];
+      const aValue = a[sortField];
+      const bValue = b[sortField];
 
       if (sortField === 'submittedAt') {
-        aValue = new Date(aValue).getTime();
-        bValue = new Date(bValue).getTime();
+        const aTime = new Date(aValue as string).getTime();
+        const bTime = new Date(bValue as string).getTime();
+        return sortDirection === 'asc' ? aTime - bTime : bTime - aTime;
       }
 
-      if (typeof aValue === 'string') {
-        aValue = aValue.toLowerCase();
-        bValue = bValue.toLowerCase();
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
+        const aStr = aValue.toLowerCase();
+        const bStr = bValue.toLowerCase();
+        if (aStr === bStr) {
+          return 0;
+        }
+        const result = aStr > bStr ? 1 : -1;
+        return sortDirection === 'asc' ? result : -result;
       }
 
-      if (sortDirection === 'asc') {
-        return aValue > bValue ? 1 : -1;
-      } else {
-        return aValue < bValue ? 1 : -1;
-      }
+      return 0;
     });
 
     return filtered;
@@ -97,14 +99,10 @@ export const FormSubmissionsList: React.FC<FormSubmissionsListProps> = ({
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'SUBMITTED':
+      case 'COMPLETED':
         return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300';
-      case 'UNDER_REVIEW':
+      case 'DRAFT':
         return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300';
-      case 'APPROVED':
-        return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300';
-      case 'REJECTED':
-        return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300';
       default:
         return 'bg-muted text-gray-600';
     }
@@ -130,14 +128,6 @@ export const FormSubmissionsList: React.FC<FormSubmissionsListProps> = ({
       .join(' ');
   };
 
-  const _toggleSort = (field: SortField) => {
-    if (sortField === field) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortField(field);
-      setSortDirection('desc');
-    }
-  };
 
   if (isLoading) {
     return (

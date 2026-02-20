@@ -40,9 +40,8 @@ const STATUS_COLORS = {
   ASSIGNED: '#3b82f6',
   IN_PROGRESS: '#f59e0b',
   COMPLETED: '#10b981',
-  APPROVED: '#059669',
-  REJECTED: '#ef4444',
-  ON_HOLD: '#8b5cf6'
+  ON_HOLD: '#8b5cf6',
+  REVOKED: '#ef4444'
 };
 
 const STATUS_ICONS = {
@@ -50,9 +49,8 @@ const STATUS_ICONS = {
   ASSIGNED: AlertCircle,
   IN_PROGRESS: PlayCircle,
   COMPLETED: CheckCircle,
-  APPROVED: CheckCircle,
-  REJECTED: XCircle,
-  ON_HOLD: PauseCircle
+  ON_HOLD: PauseCircle,
+  REVOKED: XCircle
 };
 
 export const CaseStatusDistribution: React.FC = () => {
@@ -114,7 +112,7 @@ export const CaseStatusDistribution: React.FC = () => {
         ASSIGNED: Math.floor(Math.random() * 12) + 3,
         IN_PROGRESS: Math.floor(Math.random() * 15) + 5,
         COMPLETED: Math.floor(Math.random() * 10) + 2,
-        APPROVED: Math.floor(Math.random() * 6) + 1,
+        REVOKED: Math.floor(Math.random() * 6) + 1,
       });
     }
     
@@ -126,9 +124,8 @@ export const CaseStatusDistribution: React.FC = () => {
       { from: 'PENDING', to: 'ASSIGNED', count: 45, percentage: 85 },
       { from: 'ASSIGNED', to: 'IN_PROGRESS', count: 38, percentage: 78 },
       { from: 'IN_PROGRESS', to: 'COMPLETED', count: 32, percentage: 72 },
-      { from: 'COMPLETED', to: 'APPROVED', count: 28, percentage: 88 },
       { from: 'IN_PROGRESS', to: 'ON_HOLD', count: 6, percentage: 13 },
-      { from: 'COMPLETED', to: 'REJECTED', count: 4, percentage: 12 }
+      { from: 'IN_PROGRESS', to: 'REVOKED', count: 4, percentage: 12 }
     ];
   }
 
@@ -375,10 +372,10 @@ export const CaseStatusDistribution: React.FC = () => {
                 />
                 <Area 
                   type="monotone" 
-                  dataKey="APPROVED" 
+                  dataKey="REVOKED" 
                   stackId="1" 
-                  stroke={STATUS_COLORS.APPROVED} 
-                  fill={STATUS_COLORS.APPROVED}
+                  stroke={STATUS_COLORS.REVOKED} 
+                  fill={STATUS_COLORS.REVOKED}
                   fillOpacity={0.8}
                 />
               </AreaChart>

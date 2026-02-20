@@ -57,9 +57,9 @@ export const TasksListFlat: React.FC<TasksListFlatProps> = ({
       ASSIGNED: UserCheck,
       IN_PROGRESS: Play,
       COMPLETED: CheckCircle,
-      CANCELLED: X,
       ON_HOLD: AlertTriangle,
-      REVOKED: AlertTriangle // Using AlertTriangle for REVOKED as well
+      REVOKED: X,
+      SAVED: Clock
     };
     return icons[status] || Clock;
   };

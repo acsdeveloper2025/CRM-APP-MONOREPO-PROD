@@ -203,7 +203,6 @@ export class QueryOptimizationService {
           COUNT(CASE WHEN status = 'PENDING' THEN 1 END) as pending_cases,
           COUNT(CASE WHEN status = 'IN_PROGRESS' THEN 1 END) as in_progress_cases,
           COUNT(CASE WHEN status = 'COMPLETED' THEN 1 END) as completed_cases,
-          COUNT(CASE WHEN status = 'REJECTED' THEN 1 END) as rejected_cases,
           COUNT(CASE WHEN priority = 'HIGH' THEN 1 END) as high_priority_cases,
           COUNT(CASE WHEN "createdAt" >= CURRENT_DATE THEN 1 END) as today_cases
         FROM cases c

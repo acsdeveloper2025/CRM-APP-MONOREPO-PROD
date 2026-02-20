@@ -165,12 +165,8 @@ export class DashboardKPIService {
         COUNT(*) FILTER (WHERE created_at BETWEEN (SELECT pp_start FROM date_ranges) AND (SELECT pp_end FROM date_ranges)) as pp_created,
         
         -- COMPLETED (FLOW)
-        COUNT(*) FILTER (WHERE status IN ('COMPLETED', 'APPROVED') AND completed_at BETWEEN (SELECT cp_start FROM date_ranges) AND (SELECT cp_end FROM date_ranges)) as cp_completed,
-        COUNT(*) FILTER (WHERE status IN ('COMPLETED', 'APPROVED') AND completed_at BETWEEN (SELECT pp_start FROM date_ranges) AND (SELECT pp_end FROM date_ranges)) as pp_completed,
-
-        -- REJECTED (FLOW)
-        COUNT(*) FILTER (WHERE status = 'REJECTED' AND completed_at BETWEEN (SELECT cp_start FROM date_ranges) AND (SELECT cp_end FROM date_ranges)) as cp_rejected,
-        COUNT(*) FILTER (WHERE status = 'REJECTED' AND completed_at BETWEEN (SELECT pp_start FROM date_ranges) AND (SELECT pp_end FROM date_ranges)) as pp_rejected,
+        COUNT(*) FILTER (WHERE status = 'COMPLETED' AND completed_at BETWEEN (SELECT cp_start FROM date_ranges) AND (SELECT cp_end FROM date_ranges)) as cp_completed,
+        COUNT(*) FILTER (WHERE status = 'COMPLETED' AND completed_at BETWEEN (SELECT pp_start FROM date_ranges) AND (SELECT pp_end FROM date_ranges)) as pp_completed,
 
         -- IN PROGRESS (SNAPSHOT RECONSTRUCTION)
         -- Current: Status is IN_PROGRESS
@@ -202,8 +198,8 @@ export class DashboardKPIService {
         SUM(estimated_amount) FILTER (WHERE created_at BETWEEN (SELECT cp_start FROM date_ranges) AND (SELECT cp_end FROM date_ranges)) as cp_est_amt,
         SUM(estimated_amount) FILTER (WHERE created_at BETWEEN (SELECT pp_start FROM date_ranges) AND (SELECT pp_end FROM date_ranges)) as pp_est_amt,
 
-        SUM(actual_amount) FILTER (WHERE status IN ('COMPLETED','APPROVED') AND completed_at BETWEEN (SELECT cp_start FROM date_ranges) AND (SELECT cp_end FROM date_ranges)) as cp_act_amt,
-        SUM(actual_amount) FILTER (WHERE status IN ('COMPLETED','APPROVED') AND completed_at BETWEEN (SELECT pp_start FROM date_ranges) AND (SELECT pp_end FROM date_ranges)) as pp_act_amt
+        SUM(actual_amount) FILTER (WHERE status = 'COMPLETED' AND completed_at BETWEEN (SELECT cp_start FROM date_ranges) AND (SELECT cp_end FROM date_ranges)) as cp_act_amt,
+        SUM(actual_amount) FILTER (WHERE status = 'COMPLETED' AND completed_at BETWEEN (SELECT pp_start FROM date_ranges) AND (SELECT pp_end FROM date_ranges)) as pp_act_amt
 
       FROM filtered_tasks
     `;
@@ -265,13 +261,12 @@ export class DashboardKPIService {
     // PERFORMANCE QUERIES
     // ----------------------------------------------------------------------
     const perfQuery = `
-      SELECT
         AVG(EXTRACT(EPOCH FROM (completed_at - created_at))/86400) 
-          FILTER (WHERE status IN ('COMPLETED', 'APPROVED') AND completed_at BETWEEN (SELECT cp_start FROM date_ranges) AND (SELECT cp_end FROM date_ranges)) 
+          FILTER (WHERE status = 'COMPLETED' AND completed_at BETWEEN (SELECT cp_start FROM date_ranges) AND (SELECT cp_end FROM date_ranges)) 
           as cp_avg_tat,
         
         AVG(EXTRACT(EPOCH FROM (completed_at - created_at))/86400) 
-          FILTER (WHERE status IN ('COMPLETED', 'APPROVED') AND completed_at BETWEEN (SELECT pp_start FROM date_ranges) AND (SELECT pp_end FROM date_ranges)) 
+          FILTER (WHERE status = 'COMPLETED' AND completed_at BETWEEN (SELECT pp_start FROM date_ranges) AND (SELECT pp_end FROM date_ranges)) 
           as pp_avg_tat
       FROM filtered_tasks
     `;

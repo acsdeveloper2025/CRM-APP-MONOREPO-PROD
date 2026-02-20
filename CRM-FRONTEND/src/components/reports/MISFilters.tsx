@@ -199,7 +199,6 @@ export function MISFiltersComponent({ filters, onFiltersChange, onReset }: MISFi
                 <SelectItem value="ASSIGNED">Assigned</SelectItem>
                 <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
                 <SelectItem value="COMPLETED">Completed</SelectItem>
-                <SelectItem value="CANCELLED">Cancelled</SelectItem>
               </SelectContent>
             </Select>
           </div>

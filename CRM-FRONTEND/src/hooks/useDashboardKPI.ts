@@ -60,7 +60,6 @@ export interface VerificationOperationsKPI {
       in_progress: MetricWithTrend;
       completed: MetricWithTrend;
       revoked: MetricWithTrend;
-      cancelled: MetricWithTrend;
       on_hold: MetricWithTrend;
     };
     clients: {
@@ -133,7 +132,6 @@ export const useDashboardKPI = () => {
     { status: 'IN_PROGRESS', count: kpi.legacy_compatibility.tasks.in_progress.value, percentage: 0 },
     { status: 'COMPLETED', count: kpi.legacy_compatibility.tasks.completed.value, percentage: 0 },
     { status: 'REVOKED', count: kpi.legacy_compatibility.tasks.revoked.value, percentage: 0 },
-    { status: 'CANCELLED', count: kpi.legacy_compatibility.tasks.cancelled.value, percentage: 0 },
     { status: 'ON_HOLD', count: kpi.legacy_compatibility.tasks.on_hold.value, percentage: 0 }
   ].map(item => {
     // Calculate percentages

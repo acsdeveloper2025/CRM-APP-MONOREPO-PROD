@@ -5666,7 +5666,7 @@ export class MobileFormController {
               type: 'select',
               required: true,
               label: 'NOC Status',
-              options: ['APPROVED', 'PENDING', 'REJECTED'],
+              options: ['VERIFIED', 'NOT_VERIFIED', 'PENDING'],
             },
             { name: 'issuingAuthority', type: 'text', required: false, label: 'Issuing Authority' },
             { name: 'remarks', type: 'textarea', required: false, label: 'Remarks' },

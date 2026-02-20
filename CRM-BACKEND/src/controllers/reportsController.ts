@@ -448,13 +448,13 @@ export const getCaseAnalytics = async (req: AuthenticatedRequest, res: Response)
         c.*,
         cl.name as client_name,
         COUNT(DISTINCT vt.id) as total_tasks,
-        COUNT(DISTINCT CASE WHEN vt.status IN ('COMPLETED', 'APPROVED') THEN vt.id END) as completed_tasks,
+        COUNT(DISTINCT CASE WHEN vt.status = 'COMPLETED' THEN vt.id END) as completed_tasks,
         COUNT(DISTINCT tfs.id) as form_submissions,
         0 as attachment_count,
         CASE
-          WHEN COUNT(DISTINCT CASE WHEN vt.status IN ('COMPLETED', 'APPROVED') THEN vt.id END) > 0
+          WHEN COUNT(DISTINCT CASE WHEN vt.status = 'COMPLETED' THEN vt.id END) > 0
           THEN AVG(CASE
-            WHEN vt.status IN ('COMPLETED', 'APPROVED') AND vt.completed_at IS NOT NULL AND vt.first_assigned_at IS NOT NULL
+            WHEN vt.status = 'COMPLETED' AND vt.completed_at IS NOT NULL AND vt.first_assigned_at IS NOT NULL
             THEN EXTRACT(EPOCH FROM (vt.completed_at - vt.first_assigned_at))/86400
           END)
           ELSE NULL
@@ -462,7 +462,7 @@ export const getCaseAnalytics = async (req: AuthenticatedRequest, res: Response)
         CASE
           WHEN COUNT(DISTINCT vt.id) > 0
           THEN ROUND(
-            COUNT(DISTINCT CASE WHEN vt.status IN ('COMPLETED', 'APPROVED') THEN vt.id END)::numeric /
+            COUNT(DISTINCT CASE WHEN vt.status = 'COMPLETED' THEN vt.id END)::numeric /
             COUNT(DISTINCT vt.id) * 100, 2
           )
           ELSE 0
@@ -481,7 +481,7 @@ export const getCaseAnalytics = async (req: AuthenticatedRequest, res: Response)
     // Calculate summary metrics
     const cases = analyticsResult.rows;
     const totalCases = cases.length;
-    const completedCases = cases.filter(c => ['COMPLETED', 'APPROVED'].includes(c.status)).length;
+    const completedCases = cases.filter(c => c.status === 'COMPLETED').length;
     const avgCompletionDays =
       cases
         .filter(c => c.completionDays !== null)
@@ -699,7 +699,7 @@ export const getAgentPerformance = async (req: AuthenticatedRequest, res: Respon
         vtype.name as verification_type,
         rt.name as rate_type,
         CASE
-          WHEN vt.status IN ('COMPLETED', 'APPROVED') AND vt.completed_at IS NOT NULL AND vt.current_assigned_at IS NOT NULL
+          WHEN vt.status = 'COMPLETED' AND vt.completed_at IS NOT NULL AND vt.current_assigned_at IS NOT NULL
           THEN EXTRACT(EPOCH FROM (vt.completed_at - vt.current_assigned_at))/86400
           ELSE NULL
         END as completion_days
@@ -761,7 +761,7 @@ export const getAgentPerformance = async (req: AuthenticatedRequest, res: Respon
       agent.total_tasks++;
       agent.tasks.push(task);
 
-      if (task.status === 'COMPLETED' || task.status === 'APPROVED') {
+      if (task.status === 'COMPLETED') {
         agent.completed_tasks++;
 
         // TAT calculation (assuming 2 days TAT)
@@ -893,7 +893,7 @@ export const getAgentProductivity = async (req: AuthenticatedRequest, res: Respo
       SELECT
         DATE(c."createdAt") as work_date,
         COUNT(DISTINCT c.id) as cases_assigned,
-        COUNT(DISTINCT CASE WHEN c.status IN ('COMPLETED', 'APPROVED') THEN c.id END) as cases_completed,
+        COUNT(DISTINCT CASE WHEN c.status = 'COMPLETED' THEN c.id END) as cases_completed,
         COUNT(DISTINCT r.id) as residence_forms,
         COUNT(DISTINCT o.id) as office_forms,
         COUNT(DISTINCT a.id) as attachments_uploaded
@@ -1010,7 +1010,7 @@ export const getCasesReport = async (req: AuthenticatedRequest, res: Response) =
     // Calculate summary statistics
     const totalCases = filteredCases.length;
     const completedCases = filteredCases.filter(
-      c => c.status === 'COMPLETED' || c.status === 'APPROVED'
+      c => c.status === 'COMPLETED'
     ).length;
     const pendingCases = filteredCases.filter(
       c => c.status === 'PENDING' || c.status === 'IN_PROGRESS'
@@ -1018,7 +1018,7 @@ export const getCasesReport = async (req: AuthenticatedRequest, res: Response) =
 
     // Calculate average turnaround time for completed cases
     const completedCasesWithDates = filteredCases.filter(
-      c => c.updatedAt && (c.status === 'COMPLETED' || c.status === 'APPROVED')
+      c => c.updatedAt && c.status === 'COMPLETED'
     );
     const avgTurnaroundTime =
       completedCasesWithDates.length > 0
@@ -1458,9 +1458,7 @@ export const getMISData = async (req: AuthenticatedRequest, res: Response) => {
         COUNT(DISTINCT vt.id) as total_tasks,
         SUM(vt.estimated_amount) as total_estimated_amount,
         SUM(vt.actual_amount) as total_actual_amount,
-        COUNT(DISTINCT CASE WHEN vt.status IN ('COMPLETED', 'APPROVED') THEN vt.id END) as completed_tasks,
-        COUNT(DISTINCT CASE WHEN vt.status = 'APPROVED' THEN vt.id END) as approved_tasks,
-        COUNT(DISTINCT CASE WHEN vt.status = 'REJECTED' THEN vt.id END) as rejected_tasks,
+        COUNT(DISTINCT CASE WHEN vt.status = 'COMPLETED' THEN vt.id END) as completed_tasks,
         AVG(CASE
           WHEN vt.completed_at IS NOT NULL AND vt.first_assigned_at IS NOT NULL
           THEN EXTRACT(EPOCH FROM (vt.completed_at - vt.first_assigned_at)) / 86400
@@ -1494,8 +1492,6 @@ export const getMISData = async (req: AuthenticatedRequest, res: Response) => {
         total_estimated_amount: parseFloat(summary.total_estimated_amount) || 0,
         total_actual_amount: parseFloat(summary.total_actual_amount) || 0,
         completed_tasks: parseInt(summary.completed_tasks) || 0,
-        approved_tasks: parseInt(summary.approved_tasks) || 0,
-        rejected_tasks: parseInt(summary.rejected_tasks) || 0,
         task_completion_rate:
           summary.total_tasks > 0
             ? Math.round((parseInt(summary.completed_tasks) / parseInt(summary.total_tasks)) * 100)

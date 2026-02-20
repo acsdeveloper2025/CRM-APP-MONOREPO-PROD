@@ -36,7 +36,6 @@ const VALID_STATUS_TRANSITIONS: Record<string, string[]> = {
   COMPLETED: [], // Terminal state
   REVOKED: [], // Terminal state
   SAVED: ['IN_PROGRESS', 'REVOKED'],
-  REJECTED: ['ASSIGNED', 'REVOKED'],
 };
 
 export interface ValidationResult {
