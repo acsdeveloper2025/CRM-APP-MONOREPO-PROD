@@ -145,7 +145,8 @@ export type TaskStatus =
   | 'IN_PROGRESS'
   | 'COMPLETED'
   | 'ON_HOLD'
-  | 'REVOKED';
+  | 'REVOKED'
+  | 'SAVED';
 
 export type TaskPriority = 
   | 'LOW'
@@ -410,7 +411,8 @@ export const TASK_STATUS_COLORS: Record<TaskStatus, string> = {
   IN_PROGRESS: 'yellow',
   COMPLETED: 'green',
   ON_HOLD: 'orange',
-  REVOKED: 'red'
+  REVOKED: 'red',
+  SAVED: 'gray'
 };
 
 export const TASK_PRIORITY_COLORS: Record<TaskPriority, string> = {

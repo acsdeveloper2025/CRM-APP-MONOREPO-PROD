@@ -52,14 +52,10 @@ export function FormViewer({
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
-      case 'submitted':
+      case 'completed':
         return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300';
-      case 'reviewed':
-        return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300';
-      case 'pending':
+      case 'draft':
         return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300';
-      case 'rejected':
-        return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300';
       default:
         return 'bg-muted text-gray-600';
     }
@@ -81,10 +77,7 @@ export function FormViewer({
   const getStatusBadge = (status: string) => {
     const statusConfig = {
       DRAFT: { variant: 'secondary' as const, label: 'Draft' },
-      SUBMITTED: { variant: 'default' as const, label: 'Submitted' },
-      UNDER_REVIEW: { variant: 'outline' as const, label: 'Under Review' },
-      APPROVED: { variant: 'default' as const, label: 'Approved' },
-      REJECTED: { variant: 'destructive' as const, label: 'Rejected' },
+      COMPLETED: { variant: 'default' as const, label: 'Completed' },
     };
     
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.DRAFT;

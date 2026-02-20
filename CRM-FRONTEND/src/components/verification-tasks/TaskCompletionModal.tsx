@@ -30,11 +30,10 @@ export const TaskCompletionModal: React.FC<TaskCompletionModalProps> = ({
 
   const outcomeOptions = [
     { value: 'VERIFIED', label: 'Verified', color: 'bg-green-100 text-green-800' },
-    { value: 'REJECTED', label: 'Rejected', color: 'bg-red-100 text-red-800' },
+    { value: 'NOT_VERIFIED', label: 'Not Verified', color: 'bg-red-100 text-red-800' },
     { value: 'PARTIAL', label: 'Partially Verified', color: 'bg-yellow-100 text-yellow-800' },
     { value: 'PENDING_DOCS', label: 'Pending Documents', color: 'bg-yellow-100 text-orange-800' },
     { value: 'NOT_FOUND', label: 'Not Found', color: 'bg-gray-100 text-gray-800' },
-    { value: 'INVALID', label: 'Invalid Information', color: 'bg-red-100 text-red-800' }
   ];
 
   const validateForm = (): boolean => {

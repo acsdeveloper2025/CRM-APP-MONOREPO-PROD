@@ -207,7 +207,7 @@ export const RevisitTasksPage: React.FC = () => {
                   <SelectItem value="ASSIGNED">Assigned</SelectItem>
                   <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
                   <SelectItem value="COMPLETED">Completed</SelectItem>
-                  <SelectItem value="CANCELLED">Cancelled</SelectItem>
+                  <SelectItem value="REVOKED">Revoked</SelectItem>
                 </SelectContent>
               </Select>
             </div>

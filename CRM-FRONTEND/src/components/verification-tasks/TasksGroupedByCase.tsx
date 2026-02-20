@@ -83,9 +83,9 @@ export const TasksGroupedByCase: React.FC<TasksGroupedByCaseProps> = ({
       ASSIGNED: UserCheck,
       IN_PROGRESS: Play,
       COMPLETED: CheckCircle,
-      CANCELLED: X,
       ON_HOLD: AlertTriangle,
-      REVOKED: X
+      REVOKED: X,
+      SAVED: Clock
     };
     return icons[status] || Clock;
   };

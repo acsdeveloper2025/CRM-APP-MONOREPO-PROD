@@ -134,8 +134,7 @@ export type TaskStatus =
   | 'COMPLETED'
   | 'ON_HOLD'
   | 'REVOKED'
-  | 'SAVED'
-  | 'REJECTED';
+  | 'SAVED';
 
 export type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
 
