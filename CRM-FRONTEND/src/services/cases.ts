@@ -1,7 +1,7 @@
 import { BaseApiService } from './base';
 import { apiService } from './api';
 import { attachmentsService } from './attachments';
-import type { Case } from '@/types/case';
+import type { Case, CaseListResponse } from '@/types/case';
 import type { ApiResponse, PaginationQuery } from '@/types/api';
 import type {
   CompleteCaseData,
@@ -61,7 +61,7 @@ export class CasesService extends BaseApiService {
     super('/cases');
   }
 
-  async getCases(query: CaseListQuery = {}): Promise<ApiResponse<Case[]>> {
+  async getCases(query: CaseListQuery = {}): Promise<ApiResponse<CaseListResponse>> {
     return this.get('', query as unknown as Record<string, unknown>);
   }
 
@@ -200,11 +200,11 @@ export class CasesService extends BaseApiService {
     return this.get(`/${id}/history`);
   }
 
-  async getCasesByStatus(status: string): Promise<ApiResponse<Case[]>> {
+  async getCasesByStatus(status: string): Promise<ApiResponse<CaseListResponse>> {
     return this.getCases({ status });
   }
 
-  async getPendingReviewCases(): Promise<ApiResponse<Case[]>> {
+  async getPendingReviewCases(): Promise<ApiResponse<CaseListResponse>> {
     return this.getCases({ status: 'COMPLETED' });
   }
 
@@ -224,8 +224,8 @@ export class CasesService extends BaseApiService {
     ]);
 
     // Combine the results and sort by pending duration
-    const pendingCases = pendingResponse.data || [];
-    const inProgressCases = inProgressResponse.data || [];
+    const pendingCases = pendingResponse.data?.data || [];
+    const inProgressCases = inProgressResponse.data?.data || [];
     const allCases = [...pendingCases, ...inProgressCases];
 
     // Sort combined cases by pending duration (longest pending first)

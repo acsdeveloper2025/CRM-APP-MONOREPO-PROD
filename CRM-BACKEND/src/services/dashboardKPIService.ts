@@ -44,6 +44,7 @@ export interface VerificationOperationsKPI {
     completed_today: number; // Absolute value for "Today"
     overdue_tasks: MetricWithTrend; // Snapshot
     sla_risk_tasks: MetricWithTrend; // Snapshot
+    avg_overdue_days: number; // Average days overdue for active overdue tasks
   };
 
   performance: {
@@ -168,6 +169,14 @@ export class DashboardKPIService {
         COUNT(*) FILTER (WHERE status = 'COMPLETED' AND completed_at BETWEEN (SELECT cp_start FROM date_ranges) AND (SELECT cp_end FROM date_ranges)) as cp_completed,
         COUNT(*) FILTER (WHERE status = 'COMPLETED' AND completed_at BETWEEN (SELECT pp_start FROM date_ranges) AND (SELECT pp_end FROM date_ranges)) as pp_completed,
 
+        -- REVOKED (FLOW)
+        COUNT(*) FILTER (WHERE status = 'REVOKED' AND updated_at BETWEEN (SELECT cp_start FROM date_ranges) AND (SELECT cp_end FROM date_ranges)) as cp_revoked,
+        COUNT(*) FILTER (WHERE status = 'REVOKED' AND updated_at BETWEEN (SELECT pp_start FROM date_ranges) AND (SELECT pp_end FROM date_ranges)) as pp_revoked,
+
+        -- ON HOLD (FLOW)
+        COUNT(*) FILTER (WHERE status = 'ON_HOLD' AND updated_at BETWEEN (SELECT cp_start FROM date_ranges) AND (SELECT cp_end FROM date_ranges)) as cp_on_hold,
+        COUNT(*) FILTER (WHERE status = 'ON_HOLD' AND updated_at BETWEEN (SELECT pp_start FROM date_ranges) AND (SELECT pp_end FROM date_ranges)) as pp_on_hold,
+
         -- IN PROGRESS (SNAPSHOT RECONSTRUCTION)
         -- Current: Status is IN_PROGRESS
         COUNT(*) FILTER (WHERE status = 'IN_PROGRESS') as cp_in_progress,
@@ -199,8 +208,13 @@ export class DashboardKPIService {
         SUM(estimated_amount) FILTER (WHERE created_at BETWEEN (SELECT pp_start FROM date_ranges) AND (SELECT pp_end FROM date_ranges)) as pp_est_amt,
 
         SUM(actual_amount) FILTER (WHERE status = 'COMPLETED' AND completed_at BETWEEN (SELECT cp_start FROM date_ranges) AND (SELECT cp_end FROM date_ranges)) as cp_act_amt,
-        SUM(actual_amount) FILTER (WHERE status = 'COMPLETED' AND completed_at BETWEEN (SELECT pp_start FROM date_ranges) AND (SELECT pp_end FROM date_ranges)) as pp_act_amt
+        SUM(actual_amount) FILTER (WHERE status = 'COMPLETED' AND completed_at BETWEEN (SELECT pp_start FROM date_ranges) AND (SELECT pp_end FROM date_ranges)) as pp_act_amt,
 
+        -- OVERDUE & RISK (SNAPSHOT)
+        COUNT(*) FILTER (WHERE status NOT IN ('COMPLETED', 'REVOKED', 'CANCELLED') AND created_at < NOW() - INTERVAL '48 hours') as cp_overdue,
+        COUNT(*) FILTER (WHERE status NOT IN ('COMPLETED', 'REVOKED', 'CANCELLED') AND created_at < NOW() - INTERVAL '24 hours') as cp_sla_risk,
+        AVG(EXTRACT(EPOCH FROM (NOW() - created_at))/86400) FILTER (WHERE status NOT IN ('COMPLETED', 'REVOKED', 'CANCELLED') AND created_at < NOW() - INTERVAL '48 hours') as cp_avg_overdue_days,
+        COUNT(*) FILTER (WHERE status = 'COMPLETED' AND completed_at >= CURRENT_DATE) as completed_today
       FROM filtered_tasks
     `;
 
@@ -261,6 +275,7 @@ export class DashboardKPIService {
     // PERFORMANCE QUERIES
     // ----------------------------------------------------------------------
     const perfQuery = `
+      SELECT
         AVG(EXTRACT(EPOCH FROM (completed_at - created_at))/86400) 
           FILTER (WHERE status = 'COMPLETED' AND completed_at BETWEEN (SELECT cp_start FROM date_ranges) AND (SELECT cp_end FROM date_ranges)) 
           as cp_avg_tat,
@@ -346,9 +361,10 @@ export class DashboardKPIService {
         total_tasks: buildMetric(stats.cp_created, stats.pp_created),
         open_tasks: buildMetric(stats.cp_open, stats.pp_open),
         in_progress_tasks: buildMetric(stats.cp_in_progress, stats.pp_in_progress),
-        completed_today: Number(stats.today_completed),
-        overdue_tasks: buildMetric(0, 0), // Placeholder: Needs 'due_date' logic
-        sla_risk_tasks: buildMetric(0, 0), // Placeholder
+        completed_today: Number(stats.completed_today),
+        overdue_tasks: buildStaticMetric(stats.cp_overdue),
+        sla_risk_tasks: buildStaticMetric(stats.cp_sla_risk),
+        avg_overdue_days: Number(Number(stats.cp_avg_overdue_days || 0).toFixed(1)),
       },
 
       performance: {
@@ -378,8 +394,8 @@ export class DashboardKPIService {
           total: buildMetric(stats.cp_created, stats.pp_created),
           in_progress: buildMetric(stats.cp_in_progress, stats.pp_in_progress),
           completed: buildMetric(stats.cp_completed, stats.pp_completed),
-          revoked: buildMetric(0, 0),
-          on_hold: buildMetric(0, 0),
+          revoked: buildMetric(stats.cp_revoked, stats.pp_revoked),
+          on_hold: buildMetric(stats.cp_on_hold, stats.pp_on_hold),
         },
         clients: {
           total: buildStaticMetric(clientStats.total),

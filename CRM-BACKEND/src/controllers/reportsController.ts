@@ -1009,9 +1009,7 @@ export const getCasesReport = async (req: AuthenticatedRequest, res: Response) =
 
     // Calculate summary statistics
     const totalCases = filteredCases.length;
-    const completedCases = filteredCases.filter(
-      c => c.status === 'COMPLETED'
-    ).length;
+    const completedCases = filteredCases.filter(c => c.status === 'COMPLETED').length;
     const pendingCases = filteredCases.filter(
       c => c.status === 'PENDING' || c.status === 'IN_PROGRESS'
     ).length;

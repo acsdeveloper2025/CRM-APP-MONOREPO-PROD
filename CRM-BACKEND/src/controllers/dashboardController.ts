@@ -3,6 +3,7 @@ import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
 import { DashboardKPIService } from '@/services/dashboardKPIService';
 import { Role } from '@/types/auth'; // Kept for other functions
+import { pool } from '@/config/database';
 
 // GET /api/dashboard - Get dashboard overview (TASK-CENTRIC)
 export const getDashboardData = async (req: AuthenticatedRequest, res: Response) => {
@@ -355,22 +356,108 @@ export const getMonthlyTrends = (req: AuthenticatedRequest, res: Response) => {
 };
 
 // GET /api/dashboard/overdue-tasks - Get overdue verification tasks
-export const getOverdueTasks = (req: AuthenticatedRequest, res: Response) => {
+export const getOverdueTasks = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { threshold = '1', page = 1, limit = 50 } = req.query;
+    const {
+      threshold = '1',
+      page = 1,
+      limit = 20,
+      sortBy = 'days_overdue',
+      sortOrder = 'desc',
+      search,
+      priority,
+      status,
+    } = req.query;
 
     const thresholdDays = parseInt(threshold as string);
     const pageNum = parseInt(page as string);
     const limitNum = parseInt(limit as string);
+    const offset = (pageNum - 1) * limitNum;
 
-    // KPI Engine does not yet support paginated list of overdue tasks.
-    // Returning empty list to strictly adhere to "No Direct SQL" rule.
-    // Future: KPI Service should likely expose a method for this.
-    const tasks: unknown[] = [];
-    const totalCount = 0;
-    const totalPages = 0;
+    const conditions: string[] = [
+      `vt.status NOT IN ('COMPLETED', 'REVOKED', 'CANCELLED')`,
+      `vt.created_at < NOW() - INTERVAL '${thresholdDays} days'`,
+    ];
+    const params: (string | number)[] = [];
+    let paramIdx = 1;
 
-    logger.info('Overdue tasks retrieved (via KPI Engine - Empty)', {
+    if (search) {
+      conditions.push(
+        `(vt.task_number ILIKE $${paramIdx} OR c.case_number ILIKE $${paramIdx} OR c."customerName" ILIKE $${paramIdx})`
+      );
+      params.push(`%${search as string}%`);
+      paramIdx++;
+    }
+
+    if (priority) {
+      conditions.push(`vt.priority = $${paramIdx}`);
+      params.push(priority as string);
+      paramIdx++;
+    }
+
+    if (status) {
+      conditions.push(`vt.status = $${paramIdx}`);
+      params.push(status as string);
+      paramIdx++;
+    }
+
+    const whereClause = conditions.join(' AND ');
+
+    // Sort mapping
+    const sortFieldMap: Record<string, string> = {
+      task_number: 'vt.task_number',
+      customer_name: 'c."customerName"',
+      days_overdue: 'days_overdue',
+      status: 'vt.status',
+      priority: 'vt.priority',
+      created_at: 'vt.created_at',
+    };
+    const orderBy = sortFieldMap[sortBy as string] || 'days_overdue';
+    const direction = sortOrder === 'asc' ? 'ASC' : 'DESC';
+
+    const query = `
+      SELECT 
+        vt.id,
+        vt.task_number as "taskNumber",
+        vt.case_id as "caseId",
+        c.case_number as "caseNumber",
+        c."customerName" as "customerName",
+        vt.status,
+        vt.priority,
+        vtype.name as "verificationTypeName",
+        u.name as "assignedToName",
+        EXTRACT(EPOCH FROM (NOW() - vt.created_at))/86400 as days_overdue
+      FROM verification_tasks vt
+      LEFT JOIN cases c ON vt.case_id = c.id
+      LEFT JOIN users u ON vt.assigned_to = u.id
+      LEFT JOIN verification_types vtype ON vt.verification_type_id = vtype.id
+      WHERE ${whereClause}
+      ORDER BY ${orderBy} ${direction}
+      LIMIT $${paramIdx} OFFSET $${paramIdx + 1}
+    `;
+
+    const countQuery = `
+      SELECT COUNT(*) 
+      FROM verification_tasks vt
+      LEFT JOIN cases c ON vt.case_id = c.id
+      WHERE ${whereClause}
+    `;
+
+    const [tasksRes, countRes] = await Promise.all([
+      pool.query(query, [...params, limitNum, offset]),
+      pool.query(countQuery, params),
+    ]);
+
+    const totalCount = parseInt(countRes.rows[0].count);
+    const totalPages = Math.ceil(totalCount / limitNum);
+
+    // Format tasks to match frontend interface
+    const formattedTasks = tasksRes.rows.map(t => ({
+      ...t,
+      daysOverdue: Math.floor(parseFloat(t.days_overdue)),
+    }));
+
+    logger.info('Overdue tasks retrieved', {
       userId: req.user?.id,
       threshold: thresholdDays,
       totalCount,
@@ -380,10 +467,11 @@ export const getOverdueTasks = (req: AuthenticatedRequest, res: Response) => {
     res.json({
       success: true,
       data: {
-        tasks,
+        tasks: formattedTasks,
         pagination: {
           page: pageNum,
           limit: limitNum,
+          total: totalCount, // Added for frontend compatibility
           totalCount,
           totalPages,
         },
@@ -427,6 +515,9 @@ export const getTATStats = async (req: AuthenticatedRequest, res: Response) => {
       criticalOverdue: kpi.workload.sla_risk_tasks.value,
       totalOverdue: kpi.workload.overdue_tasks.value,
       totalActiveTasks: kpi.workload.open_tasks.value,
+      onTrack: Math.max(0, kpi.workload.open_tasks.value - kpi.workload.overdue_tasks.value),
+      avgOverdueDays: kpi.workload.avg_overdue_days,
+      completedToday: kpi.workload.completed_today,
       overduePercentage:
         kpi.workload.open_tasks.value > 0
           ? Math.round((kpi.workload.overdue_tasks.value / kpi.workload.open_tasks.value) * 100)

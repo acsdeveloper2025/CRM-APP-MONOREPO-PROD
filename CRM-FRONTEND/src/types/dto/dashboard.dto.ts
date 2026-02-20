@@ -35,6 +35,9 @@ export interface TATStats {
   criticalOverdue: number;
   totalOverdue: number;
   totalActiveTasks: number;
+  onTrack: number;
+  avgOverdueDays: number;
+  completedToday: number;
   overduePercentage: number;
 }
 

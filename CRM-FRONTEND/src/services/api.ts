@@ -162,7 +162,12 @@ class ApiService {
         if ((status === 401 || status === 403) && !originalRequest._retry) {
           // Prevent infinite loops: sensitive endpoints shouldn't trigger refresh logic
           const url = originalRequest.url || '';
-          if (url.includes('/auth/login') || url.includes('/auth/refresh-token') || url.includes('/auth/logout')) {
+          if (
+            url.includes('/auth/login') || 
+            url.includes('/auth/refresh-token') || 
+            url.includes('/auth/logout') ||
+            url.includes('/mobile/auth/')
+          ) {
             return Promise.reject(error);
           }
 
@@ -195,13 +200,8 @@ class ApiService {
               throw new Error('No refresh token available');
             }
 
-            console.warn('🔄 Attempting token refresh (mobile endpoint)...');
-            
             // Call backend refresh endpoint
             // Using a fresh axios instance to avoid interceptors
-            // We usually don't track this request in activeRequestCount to avoid loops? 
-            // Actually we should track it so session doesn't timeout DURING refresh.
-            // But we are using raw axios here.
             this.incrementActiveRequests(); 
             const response = await axios.post(`${this.getOptimalApiUrl()}/auth/refresh-token`, {
               refreshToken,

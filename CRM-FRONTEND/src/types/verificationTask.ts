@@ -334,6 +334,10 @@ export interface VerificationTaskListResponse {
     completed: number;
     inProgress: number;
     urgent: number;
+    revoked: number;
+    onHold: number;
+    highPriority: number;
+    totalAgents: number;
   };
 }
 

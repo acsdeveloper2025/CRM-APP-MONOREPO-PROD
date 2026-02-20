@@ -41,7 +41,24 @@ interface VerificationTask {
 }
 
 interface VerificationTasksResponse {
-  data: VerificationTask[];
+  tasks: VerificationTask[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+  statistics: {
+    pending: number;
+    assigned: number;
+    inProgress: number;
+    completed: number;
+    revoked: number;
+    onHold: number;
+    urgent: number;
+    highPriority: number;
+    totalAgents: number;
+  };
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -84,31 +101,33 @@ export const TasksAnalytics: React.FC = () => {
     }
   });
 
-  const tasks: VerificationTask[] = tasksData?.data?.data || [];
+  // Extract backend statistics
+  const payload = tasksData?.data;
+  const taskStats = payload?.statistics;
+  const totalTasks = payload?.pagination?.total || 0;
 
-  // Calculate metrics
-  const totalTasks = tasks.length;
-  const completedTasks = tasks.filter((t: VerificationTask) => t.status === 'COMPLETED').length;
-  const inProgressTasks = tasks.filter((t: VerificationTask) => t.status === 'IN_PROGRESS' || t.status === 'ASSIGNED').length;
-  const pendingTasks = tasks.filter((t: VerificationTask) => t.status === 'PENDING').length;
+  // Calculate metrics using backend stats
+  const completedTasks = taskStats?.completed || 0;
+  const inProgressTasks = taskStats?.inProgress || 0;
+  const pendingTasks = (taskStats?.pending || 0) + (taskStats?.assigned || 0);
   const completionRate = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
 
-  // Calculate total amounts
+  // Status distribution from backend
+  const statusData = [
+    { name: 'Pending', value: taskStats?.pending || 0, color: STATUS_COLORS.PENDING },
+    { name: 'Assigned', value: taskStats?.assigned || 0, color: STATUS_COLORS.ASSIGNED },
+    { name: 'In Progress', value: taskStats?.inProgress || 0, color: STATUS_COLORS.IN_PROGRESS },
+    { name: 'Completed', value: taskStats?.completed || 0, color: STATUS_COLORS.COMPLETED },
+    { name: 'Revoked', value: taskStats?.revoked || 0, color: STATUS_COLORS.REVOKED },
+    { name: 'On Hold', value: taskStats?.onHold || 0, color: STATUS_COLORS.ON_HOLD },
+  ].filter(d => d.value > 0);
+
+  // Still need to use the tasks array for type and agent distribution as backend doesn't aggregate them yet
+  const tasks: VerificationTask[] = payload?.tasks || [];
+
+  // Calculate total amounts (ideally these should also come from backend statistics)
   const totalEstimatedAmount = tasks.reduce((sum: number, t: VerificationTask) => sum + (parseFloat(t.estimated_amount) || 0), 0);
   const totalActualAmount = tasks.reduce((sum: number, t: VerificationTask) => sum + (parseFloat(t.actual_amount) || 0), 0);
-
-  // Status distribution
-  const statusDistribution = tasks.reduce((acc: Record<string, number>, t: VerificationTask) => {
-    const status = t.status || 'PENDING';
-    acc[status] = (acc[status] || 0) + 1;
-    return acc;
-  }, {});
-
-  const statusData = Object.entries(statusDistribution).map(([name, count]) => ({
-    name: name.replace(/_/g, ' '),
-    value: count as number,
-    color: STATUS_COLORS[name] || '#6b7280'
-  }));
 
   // Verification type distribution
   const typeDistribution = tasks.reduce((acc: Record<string, number>, t: VerificationTask) => {

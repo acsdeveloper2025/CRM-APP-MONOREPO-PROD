@@ -134,3 +134,29 @@ export interface CaseFilters {
   dateFrom?: string;
   dateTo?: string;
 }
+export interface CaseStatistics {
+  totalCases: number;
+  pending: number;
+  inProgress: number;
+  completed: number;
+  onHold: number;
+  revoked: number;
+  overdue: number;
+  highPriority: number;
+  activeAgentsInProgress: number;
+  avgDurationDaysInProgress: number;
+  completedThisMonth: number;
+  activeAgentsCompleted: number;
+  avgTATDays: number;
+}
+
+export interface CaseListResponse {
+  data: Case[];
+  statistics: CaseStatistics;
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
