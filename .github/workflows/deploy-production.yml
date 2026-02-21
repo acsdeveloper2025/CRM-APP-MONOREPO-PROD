@@ -20,6 +20,11 @@ on:
         required: false
         default: false
         type: boolean
+      restore_database:
+        description: "Restore database from full dump (acs_db_final_version.sql)"
+        required: false
+        default: false
+        type: boolean
 
 env:
   NODE_VERSION: "22"
@@ -286,6 +291,7 @@ jobs:
             --argjson backend "${{ needs.pre-deployment.outputs.backend_changed }}" \
             --argjson frontend "${{ needs.pre-deployment.outputs.frontend_changed }}" \
             --argjson force_rebuild "${{ github.event.inputs.force_rebuild || false }}" \
+            --argjson restore_database "${{ github.event.inputs.restore_database || false }}" \
             '{
               timestamp: $timestamp,
               commit_sha: $commit_sha,
@@ -297,7 +303,8 @@ jobs:
                 backend: $backend,
                 frontend: $frontend
               },
-              force_rebuild: $force_rebuild
+              force_rebuild: $force_rebuild,
+              restore_database: $restore_database
             }' > deployment-info.json
 
       - name: 📤 Transfer Files to Server
@@ -309,6 +316,7 @@ jobs:
             scripts/health-check.sh \
             start-production.sh \
             ecosystem.config.js \
+            acs_db_final_version.sql \
             ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }}:/tmp/
 
       - name: 🚀 Execute Deployment
