@@ -129,7 +129,7 @@ export const AppRoutes: React.FC = () => {
             <Route path="/verification-tasks/:taskId" element={<TaskDetailPage />} />
             
             {/* TAT Monitoring Route */}
-            <Route path="/case-management/tat-monitoring" element={
+            <Route path="/tasks/tat-monitoring" element={
               <PermissionProtectedRoute resource="tasks" action="read">
                 <TATMonitoringPage />
               </PermissionProtectedRoute>

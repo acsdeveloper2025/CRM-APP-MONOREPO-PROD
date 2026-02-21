@@ -374,6 +374,18 @@ export const getOverdueTasks = async (req: AuthenticatedRequest, res: Response) 
     const limitNum = parseInt(limit as string);
     const offset = (pageNum - 1) * limitNum;
 
+    const { clientId, userId } = req.query;
+
+    // RBAC: Field Agents can only see their own data
+    const userRole = req.user?.role;
+    const currentUserId = req.user?.id;
+    const effectiveAgentId =
+      userRole === Role.FIELD_AGENT
+        ? String(currentUserId)
+        : typeof userId === 'string'
+          ? userId
+          : undefined;
+
     const conditions: string[] = [
       `vt.status NOT IN ('COMPLETED', 'REVOKED', 'CANCELLED')`,
       `vt.created_at < NOW() - INTERVAL '${thresholdDays} days'`,
@@ -381,9 +393,21 @@ export const getOverdueTasks = async (req: AuthenticatedRequest, res: Response) 
     const params: (string | number)[] = [];
     let paramIdx = 1;
 
+    if (clientId) {
+      conditions.push(`c."clientId" = $${paramIdx}`);
+      params.push(Number(clientId));
+      paramIdx++;
+    }
+
+    if (effectiveAgentId) {
+      conditions.push(`vt.assigned_to = $${paramIdx}`);
+      params.push(effectiveAgentId);
+      paramIdx++;
+    }
+
     if (search) {
       conditions.push(
-        `(vt.task_number ILIKE $${paramIdx} OR c.case_number ILIKE $${paramIdx} OR c."customerName" ILIKE $${paramIdx})`
+        `(vt.task_number ILIKE $${paramIdx} OR c."caseId"::text ILIKE $${paramIdx} OR c."customerName" ILIKE $${paramIdx})`
       );
       params.push(`%${search as string}%`);
       paramIdx++;
@@ -420,7 +444,7 @@ export const getOverdueTasks = async (req: AuthenticatedRequest, res: Response) 
         vt.id,
         vt.task_number as "taskNumber",
         vt.case_id as "caseId",
-        c.case_number as "caseNumber",
+        c."caseId" as "caseNumber",
         c."customerName" as "customerName",
         vt.status,
         vt.priority,

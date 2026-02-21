@@ -85,7 +85,20 @@ export const useAllVerificationTasks = (filters: Record<string, unknown> = {}) =
     loading: isLoading,
     error: error ? (error as Error).message : null,
     pagination: data?.pagination || { page: 1, limit: 20, total: 0, totalPages: 0 },
-    statistics: data?.statistics || { pending: 0, assigned: 0, completed: 0, inProgress: 0, urgent: 0, revoked: 0, onHold: 0, highPriority: 0 },
+    statistics: data?.statistics || { 
+      pending: 0, 
+      assigned: 0, 
+      completed: 0, 
+      inProgress: 0, 
+      urgent: 0, 
+      revoked: 0, 
+      onHold: 0, 
+      highPriority: 0,
+      totalAgents: 0,
+      longRunning: 0,
+      avgDuration: 0,
+      completedToday: 0
+    },
     refreshTasks: refetch,
   };
 };

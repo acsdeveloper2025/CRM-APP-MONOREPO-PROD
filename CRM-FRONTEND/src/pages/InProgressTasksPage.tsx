@@ -82,13 +82,15 @@ export const InProgressTasksPage: React.FC = () => {
     }
   };
 
-  // Calculate statistics
-  const activeAgents = new Set(tasks.map(t => t.assignedTo).filter(Boolean)).size;
-  const longRunningTasks = tasks.filter(t => {
-    if (!t.startedAt) {return false;}
-    const hoursSinceStart = (Date.now() - new Date(t.startedAt).getTime()) / (1000 * 60 * 60);
-    return hoursSinceStart > 24; // More than 24 hours
-  }).length;
+  // Use backend statistics
+  const { 
+    inProgress: totalInProgress = 0,
+    longRunning: longRunningTasks = 0,
+    urgent = 0,
+    highPriority = 0,
+    totalAgents = 0,
+    avgDuration = 0
+  } = statistics || {};
 
   const handleAssignTask = (taskId: string) => {
     setSelectedTaskId(taskId);
@@ -132,7 +134,7 @@ export const InProgressTasksPage: React.FC = () => {
             <Play className="h-4 w-4 text-blue-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{statistics.inProgress}</div>
+            <div className="text-2xl font-bold">{totalInProgress}</div>
             <p className="text-xs text-gray-600">
               Active tasks
             </p>
@@ -158,7 +160,7 @@ export const InProgressTasksPage: React.FC = () => {
             <TrendingUp className="h-4 w-4 text-red-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{(statistics.urgent || 0) + (statistics.highPriority || 0)}</div>
+            <div className="text-2xl font-bold">{(urgent) + (highPriority)}</div>
             <p className="text-xs text-gray-600">
               Urgent + High
             </p>
@@ -171,7 +173,7 @@ export const InProgressTasksPage: React.FC = () => {
             <Users className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{activeAgents}</div>
+            <div className="text-2xl font-bold">{totalAgents}</div>
             <p className="text-xs text-gray-600">
               Field agents
             </p>
@@ -185,14 +187,7 @@ export const InProgressTasksPage: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {tasks.length > 0
-                ? Math.round(tasks.reduce((acc, t) => {
-                    const started = new Date(t.createdAt);
-                    const now = new Date();
-                    const durationInHours = Math.floor((now.getTime() - started.getTime()) / (1000 * 60 * 60));
-                    return acc + durationInHours;
-                  }, 0) / tasks.length)
-                : 0}h
+              {Math.round(avgDuration)}h
             </div>
             <p className="text-xs text-gray-600">
               Average runtime
