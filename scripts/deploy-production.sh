@@ -134,6 +134,7 @@ parse_deployment_info() {
     BACKEND_CHANGED=$(jq -r '.components.backend' "$DEPLOYMENT_INFO_FILE")
     FRONTEND_CHANGED=$(jq -r '.components.frontend' "$DEPLOYMENT_INFO_FILE")
     FORCE_REBUILD=$(jq -r '.force_rebuild' "$DEPLOYMENT_INFO_FILE")
+    RESTORE_DATABASE=$(jq -r '.restore_database // false' "$DEPLOYMENT_INFO_FILE")
 
     # Force rebuild all components for now
     FORCE_REBUILD="true"
@@ -145,6 +146,7 @@ parse_deployment_info() {
     print_info "  Backend Changed: $BACKEND_CHANGED"
     print_info "  Frontend Changed: $FRONTEND_CHANGED"
     print_info "  Force Rebuild: $FORCE_REBUILD (FORCED FOR ALL COMPONENTS)"
+    print_info "  Restore Database: $RESTORE_DATABASE"
 }
 
 # Create backup
@@ -383,6 +385,33 @@ run_database_migrations() {
     print_status "Database migrations completed"
 }
 
+# Restore database from dump
+restore_database_from_dump() {
+    print_header "🗄️ Restoring Database from Dump"
+
+    if [ "$RESTORE_DATABASE" != "true" ]; then
+        print_info "Database restoration not requested, skipping"
+        return 0
+    fi
+
+    local dump_file="/tmp/acs_db_final_version.sql"
+
+    if [ ! -f "$dump_file" ]; then
+        print_error "Database dump file not found: $dump_file"
+        exit 1
+    fi
+
+    print_info "Importing database dump: $dump_file"
+    
+    # Use PGPASSWORD safely from environment if possible, or assume localhost connection works for root/admin1
+    if PGPASSWORD=acs_password psql -h localhost -U acs_user -d acs_db < "$dump_file" > /dev/null; then
+        print_success "Database restored successfully from dump"
+    else
+        print_error "Database restoration failed"
+        exit 1
+    fi
+}
+
 # Setup environment files
 setup_environment_files() {
     print_header "⚙️ Setting Up Environment Files"
@@ -615,6 +644,7 @@ main() {
 
     # Database migrations (NEW)
     run_database_migrations
+    restore_database_from_dump
 
     clear_caches
 
