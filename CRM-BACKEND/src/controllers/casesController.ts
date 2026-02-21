@@ -130,158 +130,150 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
     }
 
     // Build WHERE conditions
-    const conditions: string[] = [];
-    const params: QueryParams = [];
-    let paramIndex = 1;
+    const baseConditions: string[] = [];
+    const baseParams: (string | number | boolean | string[] | number[])[] = [];
+    let baseParamIndex = 1;
 
     // Role-based filtering - FIELD_AGENT users can only see cases with their assigned tasks
     const userRole = req.user?.role;
     const userId = req.user?.id;
 
     if (userRole === Role.FIELD_AGENT) {
-      // Filter by task-level assignment AND pincode/area assignments
-      // FIELD_AGENT can see cases if:
-      // 1. They are assigned to a verification task in the case, OR
-      // 2. The case has tasks in their assigned pincodes/areas
       const { getAssignedPincodeIds } = await import('@/middleware/pincodeAccess');
       const { getAssignedAreaIds } = await import('@/middleware/areaAccess');
 
       const assignedPincodeIds = await getAssignedPincodeIds(userId, userRole);
       const assignedAreaIds = await getAssignedAreaIds(userId, userRole);
 
-      // Build complex filter: (assigned to task) OR (task in assigned pincode/area)
       const fieldAgentConditions: string[] = [];
 
-      // Condition 1: Directly assigned to a task
       fieldAgentConditions.push(`EXISTS (
         SELECT 1 FROM verification_tasks vt
         WHERE vt.case_id = c.id
-        AND vt.assigned_to = $${paramIndex}
+        AND vt.assigned_to = $${baseParamIndex}
       )`);
-      params.push(userId);
-      paramIndex++;
+      baseParams.push(userId);
+      baseParamIndex++;
 
-      // Condition 2: Task in assigned pincode
       if (assignedPincodeIds && assignedPincodeIds.length > 0) {
         fieldAgentConditions.push(`EXISTS (
           SELECT 1 FROM verification_tasks vt
           WHERE vt.case_id = c.id
-          AND vt.pincode_id = ANY($${paramIndex}::int[])
+          AND vt.pincode_id = ANY($${baseParamIndex}::int[])
         )`);
-        params.push(assignedPincodeIds);
-        paramIndex++;
+        baseParams.push(assignedPincodeIds);
+        baseParamIndex++;
       }
 
-      // Condition 3: Task in assigned area
       if (assignedAreaIds && assignedAreaIds.length > 0) {
         fieldAgentConditions.push(`EXISTS (
           SELECT 1 FROM verification_tasks vt
           WHERE vt.case_id = c.id
-          AND vt.area_id = ANY($${paramIndex}::int[])
+          AND vt.area_id = ANY($${baseParamIndex}::int[])
         )`);
-        params.push(assignedAreaIds);
-        paramIndex++;
+        baseParams.push(assignedAreaIds);
+        baseParamIndex++;
       }
 
-      // If user has no assignments at all, show only directly assigned tasks
       if (fieldAgentConditions.length > 0) {
-        conditions.push(`(${fieldAgentConditions.join(' OR ')})`);
+        baseConditions.push(`(${fieldAgentConditions.join(' OR ')})`);
       } else {
-        // No assignments, show nothing
-        conditions.push('FALSE');
+        baseConditions.push('FALSE');
       }
     } else if (userRole === Role.BACKEND_USER) {
-      // Filter by client and product assignments for BACKEND_USER
       const { getAssignedClientIds } = await import('@/middleware/clientAccess');
       const { getAssignedProductIds } = await import('@/middleware/productAccess');
 
       const assignedClientIds = await getAssignedClientIds(userId, userRole);
       const assignedProductIds = await getAssignedProductIds(userId, userRole);
 
-      // If user has client assignments, filter by them
       if (assignedClientIds && assignedClientIds.length > 0) {
-        conditions.push(`c."clientId" = ANY($${paramIndex}::int[])`);
-        params.push(assignedClientIds);
-        paramIndex++;
+        baseConditions.push(`c."clientId" = ANY($${baseParamIndex}::int[])`);
+        baseParams.push(assignedClientIds);
+        baseParamIndex++;
       } else if (assignedClientIds && assignedClientIds.length === 0) {
-        // User has no client assignments, show no cases
-        conditions.push('FALSE');
+        baseConditions.push('FALSE');
       }
 
-      // If user has product assignments, filter by them
       if (assignedProductIds && assignedProductIds.length > 0) {
-        conditions.push(`c."productId" = ANY($${paramIndex}::int[])`);
-        params.push(assignedProductIds);
-        paramIndex++;
+        baseConditions.push(`c."productId" = ANY($${baseParamIndex}::int[])`);
+        baseParams.push(assignedProductIds);
+        baseParamIndex++;
       } else if (assignedProductIds && assignedProductIds.length === 0) {
-        // User has no product assignments, show no cases
-        conditions.push('FALSE');
+        baseConditions.push('FALSE');
       }
     } else if (assignedTo) {
-      // For other roles, filter by task-level assignment if explicitly provided
-      conditions.push(`EXISTS (
+      baseConditions.push(`EXISTS (
         SELECT 1 FROM verification_tasks vt
         WHERE vt.case_id = c.id
-        AND vt.assigned_to = $${paramIndex}
+        AND vt.assigned_to = $${baseParamIndex}
       )`);
-      params.push(assignedTo);
-      paramIndex++;
+      baseParams.push(assignedTo);
+      baseParamIndex++;
     }
 
-    // Status filter
+    // Search filter (customer name, case ID, address, phone, trigger, applicant type)
+    if (search) {
+      baseConditions.push(`(
+        COALESCE(c."customerName", '') ILIKE $${baseParamIndex} OR
+        COALESCE(c."caseId"::text, '') ILIKE $${baseParamIndex} OR
+        EXISTS (
+          SELECT 1 FROM verification_tasks vt 
+          WHERE vt.case_id = c.id AND vt.address ILIKE $${baseParamIndex}
+        ) OR
+        COALESCE(c."customerPhone", '') ILIKE $${baseParamIndex} OR
+        COALESCE(c.trigger, '') ILIKE $${baseParamIndex} OR
+        COALESCE(c."applicantType", '') ILIKE $${baseParamIndex}
+      )`);
+      baseParams.push(
+        `%${typeof search === 'string' || typeof search === 'number' ? String(search) : ''}%`
+      );
+      baseParamIndex++;
+    }
+
+    // Client filter
+    if (clientId) {
+      baseConditions.push(`c."clientId" = $${baseParamIndex}`);
+      baseParams.push(parseInt(clientId));
+      baseParamIndex++;
+    }
+
+    // Priority filter
+    if (priority) {
+      baseConditions.push(`c.priority = $${baseParamIndex}`);
+      baseParams.push(priority);
+      baseParamIndex++;
+    }
+
+    // Date range filter
+    if (dateFrom) {
+      baseConditions.push(`c."createdAt" >= $${baseParamIndex}`);
+      baseParams.push(dateFrom);
+      baseParamIndex++;
+    }
+    if (dateTo) {
+      baseConditions.push(`c."createdAt" <= $${baseParamIndex}`);
+      baseParams.push(dateTo);
+      baseParamIndex++;
+    }
+
+    // Build BASE WHERE clause for statistics
+    const baseWhereClause =
+      baseConditions.length > 0 ? `WHERE ${baseConditions.join(' AND ')}` : '';
+
+    // Build FULL WHERE conditions for listing
+    const conditions = [...baseConditions];
+    const params = [...baseParams];
+    let paramIndex = baseParamIndex;
+
+    // Status filter (applied to listing but NOT to statistics)
     if (status) {
       conditions.push(`c.status = $${paramIndex}`);
       params.push(status);
       paramIndex++;
     }
 
-    // Search filter (customer name, case ID, address, phone, trigger, applicant type)
-    if (search) {
-      conditions.push(`(
-        COALESCE(c."customerName", '') ILIKE $${paramIndex} OR
-        COALESCE(c."caseId"::text, '') ILIKE $${paramIndex} OR
-        EXISTS (
-          SELECT 1 FROM verification_tasks vt 
-          WHERE vt.case_id = c.id AND vt.address ILIKE $${paramIndex}
-        ) OR
-        COALESCE(c."customerPhone", '') ILIKE $${paramIndex} OR
-        COALESCE(c.trigger, '') ILIKE $${paramIndex} OR
-        COALESCE(c."applicantType", '') ILIKE $${paramIndex}
-      )`);
-      params.push(
-        `%${typeof search === 'string' || typeof search === 'number' ? String(search) : ''}%`
-      );
-      paramIndex++;
-    }
-
-    // Client filter
-    if (clientId) {
-      conditions.push(`c."clientId" = $${paramIndex}`);
-      params.push(parseInt(clientId));
-      paramIndex++;
-    }
-
-    // Priority filter
-    if (priority) {
-      conditions.push(`c.priority = $${paramIndex}`);
-      params.push(priority);
-      paramIndex++;
-    }
-
-    // Date range filter
-    if (dateFrom) {
-      conditions.push(`c."createdAt" >= $${paramIndex}`);
-      params.push(dateFrom);
-      paramIndex++;
-    }
-
-    if (dateTo) {
-      conditions.push(`c."createdAt" <= $${paramIndex}`);
-      params.push(dateTo);
-      paramIndex++;
-    }
-
-    // Build WHERE clause
+    // Build FINAL WHERE clause for listing
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
     // Validate sort column and implement custom sorting logic
@@ -330,7 +322,7 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
     const countResult = await pool.query(countQuery, params);
     const total = parseInt(countResult.rows[0].total);
 
-    // Get case statistics for metric cards (ignoring pagination)
+    // Get case statistics for metric cards (ignoring the active tab's status filter)
     const statsQuery = `
       SELECT
         COUNT(*) as "totalCases",
@@ -350,9 +342,9 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
         COUNT(DISTINCT "assignedTo") FILTER (WHERE status = 'COMPLETED') as "activeAgentsCompleted",
         AVG(EXTRACT(EPOCH FROM ("completedAt" - "createdAt"))/86400) FILTER (WHERE status = 'COMPLETED') as "avgTATDays"
       FROM cases c
-      ${whereClause}
+      ${baseWhereClause}
     `;
-    const statsResult = await pool.query(statsQuery, params);
+    const statsResult = await pool.query(statsQuery, baseParams);
     const statistics = statsResult.rows[0];
 
     // Enhanced query with all 13 required fields for mobile app and custom sorting

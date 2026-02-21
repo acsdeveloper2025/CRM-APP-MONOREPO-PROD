@@ -13,6 +13,7 @@ import {
 import { CaseTable } from '@/components/cases/CaseTable';
 import { CasePagination } from '@/components/cases/CasePagination';
 import { useCases, useRefreshCases } from '@/hooks/useCases';
+import { useClients } from '@/hooks/useClients';
 import { useUnifiedSearch, useUnifiedFilters } from '@/hooks/useUnifiedSearch';
 import { UnifiedSearchFilterLayout, FilterGrid } from '@/components/ui/unified-search-filter-layout';
 import { Download, Plus, RefreshCw, FileText, Clock, CheckCircle, PlayCircle, AlertTriangle } from 'lucide-react';
@@ -66,6 +67,7 @@ export const CasesPage: React.FC = () => {
   };
 
   const { data: casesData, isLoading, error: _error } = useCases(query);
+  const { data: clientsData } = useClients({ limit: 100 });
 
   const { refreshCases } = useRefreshCases();
 
@@ -86,6 +88,8 @@ export const CasesPage: React.FC = () => {
     total: 0,
     totalPages: 0,
   };
+
+  const clients = clientsData?.data || [];
 
   const handlePageChange = (page: number) => {
     setPagination(prev => ({ ...prev, page }));
@@ -286,7 +290,11 @@ export const CasesPage: React.FC = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Clients</SelectItem>
-                  {/* TODO: Load clients from API */}
+                  {clients.map((client: { id: number; name: string }) => (
+                    <SelectItem key={client.id} value={client.id.toString()}>
+                      {client.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

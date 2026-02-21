@@ -949,7 +949,11 @@ export class VerificationTasksController {
           COUNT(*) FILTER (WHERE vt.status = 'ON_HOLD') as on_hold_count,
           COUNT(*) FILTER (WHERE vt.priority = 'URGENT') as urgent_count,
           COUNT(*) FILTER (WHERE vt.priority IN ('HIGH', 'URGENT')) as high_priority_count,
-          COUNT(DISTINCT vt.assigned_to) FILTER (WHERE vt.assigned_to IS NOT NULL) as total_agents
+          COUNT(DISTINCT vt.assigned_to) FILTER (WHERE vt.assigned_to IS NOT NULL) as total_agents,
+          COUNT(*) FILTER (WHERE vt.status NOT IN ('COMPLETED', 'REVOKED', 'CANCELLED') AND vt.created_at < NOW() - INTERVAL '24 hours') as long_running_count,
+          AVG(CASE WHEN vt.status = 'IN_PROGRESS' AND vt.started_at IS NOT NULL THEN EXTRACT(EPOCH FROM (NOW() - vt.started_at)) / 3600 END) as avg_duration_hours,
+          AVG(CASE WHEN vt.status = 'COMPLETED' AND vt.completed_at IS NOT NULL THEN EXTRACT(EPOCH FROM (vt.completed_at - vt.created_at)) / 3600 END) as avg_turnaround_hours,
+          COUNT(*) FILTER (WHERE vt.status = 'COMPLETED' AND vt.completed_at >= CURRENT_DATE) as completed_today_count
         FROM verification_tasks vt
         LEFT JOIN cases c ON vt.case_id = c.id
         ${whereClause}
@@ -979,6 +983,10 @@ export class VerificationTasksController {
             urgent: parseInt(stats.urgent_count || '0'),
             highPriority: parseInt(stats.high_priority_count || '0'),
             totalAgents: parseInt(stats.total_agents || '0'),
+            longRunning: parseInt(stats.long_running_count || '0'),
+            avgDuration: parseFloat(stats.avg_duration_hours || '0'),
+            avgTurnaround: parseFloat(stats.avg_turnaround_hours || '0'),
+            completedToday: parseInt(stats.completed_today_count || '0'),
           },
         },
         message: 'Verification tasks retrieved successfully',

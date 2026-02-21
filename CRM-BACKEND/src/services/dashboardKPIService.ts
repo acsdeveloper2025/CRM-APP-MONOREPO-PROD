@@ -245,7 +245,7 @@ export class DashboardKPIService {
       FROM cases c
       -- We must apply filters if relevant (Agent filter might not apply to Cases directly if assigned at task level, implies Join)
       -- Keeping simple based strictly on table 'cases' but respecting clientId
-      WHERE 1=1 ${clientId ? `AND "clientId" = $${idx}` : ''}
+      WHERE 1=1 ${clientId ? `AND "clientId" = $1` : ''}
     `;
     // Note: If agentId is provided, cases query might be inaccurate unless we join tasks or look at case assignment.
     // Assuming for dashboard simplicity, Agent view focuses on Tasks.

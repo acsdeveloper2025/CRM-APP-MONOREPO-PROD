@@ -75,6 +75,16 @@ export const CompletedTasksPage: React.FC = () => {
 
   const { tasks, loading, error, pagination, statistics, refreshTasks } = useAllVerificationTasks(queryFilters);
 
+  // Use backend statistics
+  const { 
+    completed: totalCompleted = 0,
+    avgTurnaround = 0,
+    completedToday = 0,
+    inProgress = 0,
+    pending = 0,
+    assigned = 0
+  } = statistics || {};
+
   const handleViewTask = (taskId: string) => {
     navigate(`/tasks/${taskId}`);
   };
@@ -141,7 +151,7 @@ export const CompletedTasksPage: React.FC = () => {
             <CheckCircle className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{statistics.completed}</div>
+            <div className="text-2xl font-bold">{totalCompleted}</div>
             <p className="text-xs text-gray-600">
               All completed
             </p>
@@ -168,8 +178,8 @@ export const CompletedTasksPage: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {statistics.completed > 0
-                ? Math.round((statistics.completed / (statistics.completed + statistics.inProgress + statistics.pending + statistics.assigned)) * 100)
+              {totalCompleted > 0
+                ? Math.round((totalCompleted / (totalCompleted + inProgress + pending + assigned)) * 100)
                 : 0}%
             </div>
             <p className="text-xs text-gray-600">
@@ -185,15 +195,7 @@ export const CompletedTasksPage: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {tasks.length > 0
-                ? Math.round(tasks.reduce((acc, t) => {
-                    if (!t.createdAt || !t.completedAt) {return acc;}
-                    const created = new Date(t.createdAt);
-                    const completed = new Date(t.completedAt);
-                    const tatInDays = Math.floor((completed.getTime() - created.getTime()) / (1000 * 60 * 60 * 24));
-                    return acc + tatInDays;
-                  }, 0) / tasks.length)
-                : 0} days
+              {Math.round(avgTurnaround)} days
             </div>
             <p className="text-xs text-gray-600">
               Average turnaround
@@ -208,12 +210,7 @@ export const CompletedTasksPage: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {tasks.filter(t => {
-                if (!t.completedAt) {return false;}
-                const completed = new Date(t.completedAt);
-                const today = new Date();
-                return completed.toDateString() === today.toDateString();
-              }).length}
+              {completedToday}
             </div>
             <p className="text-xs text-gray-600">
               Completed today

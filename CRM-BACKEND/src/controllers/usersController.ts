@@ -179,6 +179,19 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
       pagination: { page, limit },
     });
 
+    // Calculate statistics (total, active, inactive)
+    const statsQuery = `
+      SELECT
+        COUNT(*) as total,
+        COUNT(*) FILTER (WHERE "isActive" = true) as active,
+        COUNT(*) FILTER (WHERE "isActive" = false) as inactive
+      FROM users u
+      LEFT JOIN departments d ON u."departmentId" = d.id
+      ${whereClause}
+    `;
+    const statsResult = await query(statsQuery, params);
+    const stats = statsResult.rows[0];
+
     const responseData = {
       success: true,
       data: usersResult.rows,
@@ -187,6 +200,11 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
         limit: Number(limit),
         total,
         totalPages: Math.ceil(total / Number(limit)),
+      },
+      statistics: {
+        total: parseInt(stats.total || '0'),
+        active: parseInt(stats.active || '0'),
+        inactive: parseInt(stats.inactive || '0'),
       },
     };
 

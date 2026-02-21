@@ -338,6 +338,10 @@ export interface VerificationTaskListResponse {
     onHold: number;
     highPriority: number;
     totalAgents: number;
+    longRunning?: number;
+    avgDuration?: number;
+    avgTurnaround?: number;
+    completedToday?: number;
   };
 }
 

@@ -142,20 +142,19 @@ export function UsersPage() {
 
   const getTabStats = () => {
     try {
-      const users = usersData?.data || [];
+      const usersStats = (usersData as { statistics?: { total: number; active: number; inactive: number } })?.statistics || { total: 0, active: 0, inactive: 0 };
       const activities = activitiesData?.data || [];
       const sessions = sessionsData?.data || [];
 
       // Ensure all arrays are properly defined
-      const safeUsers = Array.isArray(users) ? users : [];
       const safeActivities = Array.isArray(activities) ? activities : [];
       const safeSessions = Array.isArray(sessions) ? sessions : [];
 
       return {
         users: {
-          total: safeUsers.length,
-          active: safeUsers.filter(user => user?.isActive).length,
-          inactive: safeUsers.filter(user => !user?.isActive).length,
+          total: Number(usersStats.total || 0),
+          active: Number(usersStats.active || 0),
+          inactive: Number(usersStats.inactive || 0),
         },
         activities: {
           total: safeActivities.length,

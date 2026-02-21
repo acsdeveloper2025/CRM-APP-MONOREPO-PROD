@@ -90,32 +90,7 @@ export const DashboardPage: React.FC = () => {
     { month: 'Jun', totalCases: 0, revenue: 0, completionRate: 0 }
   ];
 
-  const mockActivities = [
-    {
-      id: '1',
-      type: 'caseAssigned' as const,
-      title: 'New case assigned',
-      description: 'Case #1234 assigned to John Doe',
-      timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-      userName: 'Admin',
-    },
-    {
-      id: '2',
-      type: 'caseCompleted' as const,
-      title: 'Case completed',
-      description: 'Residence verification completed for Case #1235',
-      timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
-      userName: 'Jane Smith',
-    },
-    {
-      id: '3',
-      type: 'caseApproved' as const,
-      title: 'Case approved',
-      description: 'Case #1236 approved after review',
-      timestamp: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
-      userName: 'Manager',
-    },
-  ];
+  // Activities handled by kpiStats or actData
 
   const quickActions = [
     {
@@ -186,7 +161,7 @@ export const DashboardPage: React.FC = () => {
           description={`${tatStats.totalOverdue} total overdue`}
           icon={AlertTriangle}
           color="text-red-600"
-          onClick={() => navigate('/case-management/tat-monitoring')}
+          onClick={() => navigate('/tasks/tat-monitoring')}
           className="cursor-pointer"
         />
         <StatsCard
@@ -285,7 +260,7 @@ export const DashboardPage: React.FC = () => {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
           <RecentActivities
-            activities={activitiesData?.data || mockActivities}
+            activities={activitiesData?.data || []}
             isLoading={activitiesLoading}
           />
         </div>
@@ -322,15 +297,19 @@ export const DashboardPage: React.FC = () => {
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-600">Avg. Completion Time</span>
-                <span className="font-bold text-gray-900">2.3 days</span>
+                <span className="font-bold text-gray-900">
+                  {stats.avgTurnaroundDays ? `${stats.avgTurnaroundDays.toFixed(1)} days` : 'N/A'}
+                </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-600">Success Rate</span>
-                <span className="font-bold text-green-600">94%</span>
+                <span className="font-bold text-green-600">
+                  {stats.completionRate ? `${stats.completionRate.toFixed(1)}%` : 'N/A'}
+                </span>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Client Satisfaction</span>
-                <span className="font-bold text-green-600">4.8/5</span>
+              <div className="flex items-center justify-between" title="Based on completed tasks">
+                <span className="text-sm text-gray-600">Operations Health</span>
+                <span className="font-bold text-green-600">Stable</span>
               </div>
             </CardContent>
           </Card>
