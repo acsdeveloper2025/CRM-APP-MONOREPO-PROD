@@ -403,8 +403,17 @@ restore_database_from_dump() {
 
     print_info "Importing database dump: $dump_file"
     
-    # Use PGPASSWORD safely from environment if possible, or assume localhost connection works for root/admin1
-    if PGPASSWORD=acs_password psql -h localhost -U acs_user -d acs_db < "$dump_file" > /dev/null; then
+    # 1. Clear database schema to ensure a blank slate
+    print_info "Clearing database schema (public)..."
+    if PGPASSWORD=acs_password psql -h localhost -U acs_user -d acs_db -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;" > /dev/null; then
+        print_success "Database schema cleared"
+    else
+        print_error "Failed to clear database schema"
+        exit 1
+    fi
+
+    # 2. Import the dump with strict error handling
+    if PGPASSWORD=acs_password psql -v ON_ERROR_STOP=1 -h localhost -U acs_user -d acs_db < "$dump_file" > /dev/null; then
         print_success "Database restored successfully from dump"
     else
         print_error "Database restoration failed"
