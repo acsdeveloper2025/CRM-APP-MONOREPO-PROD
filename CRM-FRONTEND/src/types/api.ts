@@ -12,6 +12,7 @@ export interface ApiResponse<T = unknown> {
     total: number;
     totalPages: number;
   };
+  statistics?: unknown;
 }
 
 export interface PaginationQuery {
