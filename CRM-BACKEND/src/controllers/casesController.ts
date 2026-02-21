@@ -100,7 +100,6 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
     const search = req.query.search as string;
     const assignedTo = req.query.assignedTo as string;
     const clientId = req.query.clientId as string;
-    const priority = req.query.priority as string;
     const dateFrom = req.query.dateFrom as string;
     const dateTo = req.query.dateTo as string;
     const useCache = (
@@ -238,13 +237,6 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
       baseParamIndex++;
     }
 
-    // Priority filter
-    if (priority) {
-      baseConditions.push(`c.priority = $${baseParamIndex}`);
-      baseParams.push(priority);
-      baseParamIndex++;
-    }
-
     // Date range filter
     if (dateFrom) {
       baseConditions.push(`c."createdAt" >= $${baseParamIndex}`);
@@ -325,23 +317,24 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
     // Get case statistics for metric cards (ignoring the active tab's status filter)
     const statsQuery = `
       SELECT
-        COUNT(*) as "totalCases",
-        COUNT(*) FILTER (WHERE status = 'PENDING') as pending,
-        COUNT(*) FILTER (WHERE status = 'IN_PROGRESS') as "inProgress",
-        COUNT(*) FILTER (WHERE status = 'COMPLETED') as completed,
-        COUNT(*) FILTER (WHERE status = 'ON_HOLD') as "onHold",
-        COUNT(*) FILTER (WHERE status = 'REVOKED') as revoked,
-        COUNT(*) FILTER (
-          WHERE status NOT IN ('COMPLETED', 'REVOKED', 'CANCELLED')
-          AND "createdAt" < NOW() - INTERVAL '48 hours'
+        COUNT(DISTINCT c.id) as "totalCases",
+        COUNT(DISTINCT c.id) FILTER (WHERE c.status = 'PENDING') as pending,
+        COUNT(DISTINCT c.id) FILTER (WHERE c.status = 'IN_PROGRESS') as "inProgress",
+        COUNT(DISTINCT c.id) FILTER (WHERE c.status = 'COMPLETED') as completed,
+        COUNT(DISTINCT c.id) FILTER (WHERE c.status = 'ON_HOLD') as "onHold",
+        COUNT(DISTINCT c.id) FILTER (WHERE c.status = 'REVOKED') as revoked,
+        COUNT(DISTINCT c.id) FILTER (
+          WHERE c.status NOT IN ('COMPLETED', 'REVOKED', 'CANCELLED')
+          AND c."createdAt" < NOW() - INTERVAL '48 hours'
         ) as overdue,
-        COUNT(*) FILTER (WHERE priority >= 3) as "highPriority",
-        COUNT(DISTINCT "assignedTo") FILTER (WHERE status = 'IN_PROGRESS') as "activeAgentsInProgress",
-        AVG(EXTRACT(EPOCH FROM (NOW() - "createdAt"))/86400) FILTER (WHERE status = 'IN_PROGRESS') as "avgDurationDaysInProgress",
-        COUNT(*) FILTER (WHERE status = 'COMPLETED' AND "completedAt" >= DATE_TRUNC('month', NOW())) as "completedThisMonth",
-        COUNT(DISTINCT "assignedTo") FILTER (WHERE status = 'COMPLETED') as "activeAgentsCompleted",
-        AVG(EXTRACT(EPOCH FROM ("completedAt" - "createdAt"))/86400) FILTER (WHERE status = 'COMPLETED') as "avgTATDays"
+        0 as "highPriority",
+        COUNT(DISTINCT vt.assigned_to) FILTER (WHERE c.status = 'IN_PROGRESS' AND vt.assigned_to IS NOT NULL) as "activeAgentsInProgress",
+        AVG(EXTRACT(EPOCH FROM (NOW() - c."createdAt"))/86400) FILTER (WHERE c.status = 'IN_PROGRESS') as "avgDurationDaysInProgress",
+        COUNT(DISTINCT c.id) FILTER (WHERE c.status = 'COMPLETED' AND c."completedAt" >= DATE_TRUNC('month', NOW())) as "completedThisMonth",
+        COUNT(DISTINCT vt.assigned_to) FILTER (WHERE c.status = 'COMPLETED' AND vt.assigned_to IS NOT NULL) as "activeAgentsCompleted",
+        AVG(EXTRACT(EPOCH FROM (c."completedAt" - c."createdAt"))/86400) FILTER (WHERE c.status = 'COMPLETED') as "avgTATDays"
       FROM cases c
+      LEFT JOIN verification_tasks vt ON c.id = vt.case_id
       ${baseWhereClause}
     `;
     const statsResult = await pool.query(statsQuery, baseParams);
@@ -408,13 +401,25 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
         COALESCE(task_stats.completed_tasks, 0) as "completedTasks",
         COALESCE(task_stats.pending_tasks, 0) as "pendingTasks",
         COALESCE(task_stats.in_progress_tasks, 0) as "inProgressTasks",
-        COALESCE(task_stats.revisit_tasks, 0) as "revisitTasks"
+        COALESCE(task_stats.revisit_tasks, 0) as "revisitTasks",
+        -- Representative assigned agent from tasks
+        assigned_user.id as "assignedTo",
+        assigned_user.name as "assignedToName",
+        assigned_user.email as "assignedToEmail"
       FROM cases c
       LEFT JOIN clients cl ON c."clientId" = cl.id
       LEFT JOIN users created_user ON c."createdByBackendUser" = created_user.id
       LEFT JOIN products p ON c."productId" = p.id
       LEFT JOIN "verificationTypes" vt ON c."verificationTypeId" = vt.id
       LEFT JOIN "rateTypes" rt ON c."rateTypeId" = rt.id
+      LEFT JOIN LATERAL (
+        SELECT u.id, u.name, u.email
+        FROM verification_tasks vts
+        LEFT JOIN users u ON vts.assigned_to = u.id
+        WHERE vts.case_id = c.id AND vts.assigned_to IS NOT NULL
+        ORDER BY vts.created_at DESC
+        LIMIT 1
+      ) assigned_user ON true
       LEFT JOIN LATERAL (
         SELECT
           COUNT(*) as total_tasks,
@@ -487,18 +492,22 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
             employeeId: row.createdByBackendUserEmail,
           }
         : null,
+      // Pass raw assignedTo for backwards compatibility if needed
+      assignedToId: row.assignedTo,
     }));
 
     const response = {
       success: true,
-      data: transformedData,
-      pagination: {
-        page: Number(page),
-        limit: Number(limit),
-        total,
-        totalPages,
+      data: {
+        data: transformedData,
+        pagination: {
+          page: Number(page),
+          limit: Number(limit),
+          total,
+          totalPages,
+        },
+        statistics,
       },
-      statistics,
       metadata: {
         queryTime,
         totalResponseTime: Date.now() - startTime,
@@ -591,13 +600,25 @@ export const getCaseById = async (req: AuthenticatedRequest, res: Response) => {
         COALESCE(task_stats.completed_tasks, 0) as "completedTasks",
         COALESCE(task_stats.pending_tasks, 0) as "pendingTasks",
         COALESCE(task_stats.in_progress_tasks, 0) as "inProgressTasks",
-        COALESCE(task_stats.revisit_tasks, 0) as "revisitTasks"
+        COALESCE(task_stats.revisit_tasks, 0) as "revisitTasks",
+        -- Representative assigned agent from tasks
+        assigned_user.id as "assignedTo",
+        assigned_user.name as "assignedToName",
+        assigned_user.email as "assignedToEmail"
       FROM cases c
       LEFT JOIN clients cl ON c."clientId" = cl.id
       LEFT JOIN users created_user ON c."createdByBackendUser" = created_user.id
       LEFT JOIN products p ON c."productId" = p.id
       LEFT JOIN "verificationTypes" vt ON c."verificationTypeId" = vt.id
       LEFT JOIN "rateTypes" rt ON c."rateTypeId" = rt.id
+      LEFT JOIN LATERAL (
+        SELECT u.id, u.name, u.email
+        FROM verification_tasks vts
+        LEFT JOIN users u ON vts.assigned_to = u.id
+        WHERE vts.case_id = c.id AND vts.assigned_to IS NOT NULL
+        ORDER BY vts.created_at DESC
+        LIMIT 1
+      ) assigned_user ON true
       LEFT JOIN LATERAL (
         SELECT
           COUNT(*) as total_tasks,
@@ -1372,7 +1393,9 @@ export const exportCases = async (req: AuthenticatedRequest, res: Response) => {
     }
 
     if (assignedTo) {
-      whereConditions.push(`c."assignedToId" = $${paramIndex}`);
+      whereConditions.push(
+        `EXISTS (SELECT 1 FROM verification_tasks vte WHERE vte.case_id = c.id AND vte.assigned_to = $${paramIndex})`
+      );
       queryParams.push(assignedTo as string);
       paramIndex++;
     }
@@ -1453,8 +1476,8 @@ export const exportCases = async (req: AuthenticatedRequest, res: Response) => {
         c."applicantType" as applicant_type,
         c."backendContactNumber" as backend_contact_number,
         c.trigger,
-        u.name as assigned_to_name,
-        u."employeeId" as assigned_to_employee_id,
+        assigned_user.name as assigned_to_name,
+        assigned_user."employeeId" as assigned_to_employee_id,
         bu.name as created_by_backend_user_name,
         bu."employeeId" as created_by_backend_user_employee_id,
         c."verificationOutcome" as verification_outcome,
@@ -1467,10 +1490,17 @@ export const exportCases = async (req: AuthenticatedRequest, res: Response) => {
           ELSE NULL
         END as pending_duration_seconds
       FROM cases c
-      LEFT JOIN clients cl ON c."client" = cl.name
-      LEFT JOIN products p ON c."product" = p.name
+      LEFT JOIN clients cl ON c."clientId" = cl.id
+      LEFT JOIN products p ON c."productId" = p.id
       LEFT JOIN "verificationTypes" vt ON c."verificationTypeId" = vt.id
-      LEFT JOIN users u ON c."assignedTo" = u.id
+      LEFT JOIN LATERAL (
+        SELECT u.name, u."employeeId"
+        FROM verification_tasks vte
+        LEFT JOIN users u ON vte.assigned_to = u.id
+        WHERE vte.case_id = c.id AND vte.assigned_to IS NOT NULL
+        ORDER BY vte.created_at DESC
+        LIMIT 1
+      ) assigned_user ON true
       LEFT JOIN users bu ON c."createdByBackendUser" = bu.id
       ${whereClause}
       ORDER BY c."caseId" DESC

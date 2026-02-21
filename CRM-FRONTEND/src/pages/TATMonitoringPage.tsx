@@ -81,17 +81,17 @@ export const TATMonitoringPage: React.FC = () => {
     status: activeFilters.status || undefined,
   };
 
-  // Fetch critical overdue tasks (>1 day)
+  // Fetch critical overdue tasks (>3 days)
   const { data: criticalData, isLoading: criticalLoading, refetch: refetchCritical } = useOverdueTasks({
-    threshold: 1,
+    threshold: 3,
     page: criticalPage,
     limit: 20,
     ...filterParams,
   });
 
-  // Fetch all overdue tasks (>2 days)
+  // Fetch all overdue tasks (>1 day)
   const { data: allData, isLoading: allLoading, refetch: refetchAll } = useOverdueTasks({
-    threshold: 2,
+    threshold: 1,
     page: allPage,
     limit: 20,
     ...filterParams,
@@ -321,7 +321,7 @@ export const TATMonitoringPage: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-600">{criticalPagination.totalCount}</div>
-            <p className="text-xs text-gray-600">More than 1 day</p>
+            <p className="text-xs text-gray-600">More than 3 days</p>
           </CardContent>
         </Card>
 
@@ -332,7 +332,7 @@ export const TATMonitoringPage: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-yellow-600">{allPagination.totalCount}</div>
-            <p className="text-xs text-gray-600">More than 2 days</p>
+            <p className="text-xs text-gray-600">More than 1 day</p>
           </CardContent>
         </Card>
 
@@ -449,11 +449,11 @@ export const TATMonitoringPage: React.FC = () => {
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="critical" className="flex items-center space-x-2">
                 <AlertTriangle className="h-4 w-4" />
-                <span>Critical Overdue (&gt;1 Day)</span>
+                <span>Critical Overdue (&gt;3 Days)</span>
               </TabsTrigger>
               <TabsTrigger value="all" className="flex items-center space-x-2">
                 <Clock className="h-4 w-4" />
-                <span>All Overdue Tasks (&gt;2 Days)</span>
+                <span>All Overdue Tasks (&gt;1 Day)</span>
               </TabsTrigger>
             </TabsList>
             <TabsContent value="critical" className="mt-6">

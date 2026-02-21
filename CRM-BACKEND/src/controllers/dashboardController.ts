@@ -454,7 +454,7 @@ export const getOverdueTasks = async (req: AuthenticatedRequest, res: Response) 
       FROM verification_tasks vt
       LEFT JOIN cases c ON vt.case_id = c.id
       LEFT JOIN users u ON vt.assigned_to = u.id
-      LEFT JOIN verification_types vtype ON vt.verification_type_id = vtype.id
+      LEFT JOIN "verificationTypes" vtype ON vt.verification_type_id = vtype.id
       WHERE ${whereClause}
       ORDER BY ${orderBy} ${direction}
       LIMIT $${paramIdx} OFFSET $${paramIdx + 1}

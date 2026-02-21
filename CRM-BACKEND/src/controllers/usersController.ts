@@ -170,8 +170,7 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `;
 
-    params.push(Number(limit), offset);
-    const usersResult = await query(usersQuery, params);
+    const usersResult = await query(usersQuery, [...params, Number(limit), offset]);
 
     logger.info(`Retrieved ${usersResult.rows.length} users`, {
       userId: req.user?.id,
@@ -183,8 +182,8 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
     const statsQuery = `
       SELECT
         COUNT(*) as total,
-        COUNT(*) FILTER (WHERE "isActive" = true) as active,
-        COUNT(*) FILTER (WHERE "isActive" = false) as inactive
+        COUNT(*) FILTER (WHERE u."isActive" = true) as active,
+        COUNT(*) FILTER (WHERE u."isActive" = false) as inactive
       FROM users u
       LEFT JOIN departments d ON u."departmentId" = d.id
       ${whereClause}

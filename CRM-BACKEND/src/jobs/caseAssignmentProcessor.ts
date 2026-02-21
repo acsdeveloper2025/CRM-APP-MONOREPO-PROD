@@ -177,7 +177,7 @@ async function processCaseReassignment(
     const verificationTypeQuery = `
       SELECT vt.name as verification_type_name
       FROM cases c
-      LEFT JOIN verification_types vt ON c."verificationTypeId" = vt.id
+      LEFT JOIN "verificationTypes" vt ON c."verificationTypeId" = vt.id
       WHERE c.id = $1
     `;
     const verificationResult = await client.query(verificationTypeQuery, [caseId]);
@@ -372,7 +372,7 @@ async function processSingleAssignment(
     const verificationTypeQuery = `
       SELECT vt.name as verification_type_name
       FROM cases c
-      LEFT JOIN verification_types vt ON c."verificationTypeId" = vt.id
+      LEFT JOIN "verificationTypes" vt ON c."verificationTypeId" = vt.id
       WHERE c.id = $1
     `;
     const verificationResult = await client.query(verificationTypeQuery, [caseId]);
