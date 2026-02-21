@@ -50,15 +50,20 @@ jobs:
       - name: 🔍 Detect Changes
         id: changes
         run: |
-          # Check if force rebuild is requested
+          # Check if manual triggers are requested
           FORCE_REBUILD="${{ github.event.inputs.force_rebuild || 'false' }}"
           DEPLOY_DATABASE="${{ github.event.inputs.deploy_database || 'false' }}"
+          RESTORE_DATABASE="${{ github.event.inputs.restore_database || 'false' }}"
 
-          if [ "$FORCE_REBUILD" = "true" ]; then
-            echo "🔄 Force rebuild requested - deploying all components"
+          if [ "$FORCE_REBUILD" = "true" ] || [ "$RESTORE_DATABASE" = "true" ]; then
+            echo "🔄 Manual trigger or Restore requested - forcing deployment"
             echo "backend=true" >> $GITHUB_OUTPUT
             echo "frontend=true" >> $GITHUB_OUTPUT
-            echo "migrations=$DEPLOY_DATABASE" >> $GITHUB_OUTPUT
+            if [ "$RESTORE_DATABASE" = "true" ]; then
+              echo "migrations=true" >> $GITHUB_OUTPUT
+            else
+              echo "migrations=$DEPLOY_DATABASE" >> $GITHUB_OUTPUT
+            fi
             echo "deploy_needed=true" >> $GITHUB_OUTPUT
           else
             # Check for changes in different components
