@@ -211,9 +211,9 @@ export class DashboardKPIService {
         SUM(actual_amount) FILTER (WHERE status = 'COMPLETED' AND completed_at BETWEEN (SELECT pp_start FROM date_ranges) AND (SELECT pp_end FROM date_ranges)) as pp_act_amt,
 
         -- OVERDUE & RISK (SNAPSHOT)
-        COUNT(*) FILTER (WHERE status NOT IN ('COMPLETED', 'REVOKED', 'CANCELLED') AND created_at < NOW() - INTERVAL '48 hours') as cp_overdue,
+        COUNT(*) FILTER (WHERE status NOT IN ('COMPLETED', 'REVOKED', 'CANCELLED') AND created_at < NOW() - INTERVAL '72 hours') as cp_overdue,
         COUNT(*) FILTER (WHERE status NOT IN ('COMPLETED', 'REVOKED', 'CANCELLED') AND created_at < NOW() - INTERVAL '24 hours') as cp_sla_risk,
-        AVG(EXTRACT(EPOCH FROM (NOW() - created_at))/86400) FILTER (WHERE status NOT IN ('COMPLETED', 'REVOKED', 'CANCELLED') AND created_at < NOW() - INTERVAL '48 hours') as cp_avg_overdue_days,
+        AVG(EXTRACT(EPOCH FROM (NOW() - created_at))/86400) FILTER (WHERE status NOT IN ('COMPLETED', 'REVOKED', 'CANCELLED') AND created_at < NOW() - INTERVAL '72 hours') as cp_avg_overdue_days,
         COUNT(*) FILTER (WHERE status = 'COMPLETED' AND completed_at >= CURRENT_DATE) as completed_today
       FROM filtered_tasks
     `;

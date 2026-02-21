@@ -232,17 +232,20 @@ export const getFormSubmissionsByType = async (req: AuthenticatedRequest, res: R
     let paramIndex = 1;
 
     if (dateFrom) {
-      conditions.push(`"createdAt" >= $${paramIndex}`);
+      const alias = formType.toUpperCase() === 'RESIDENCE' ? 'r' : 'o';
+      conditions.push(`${alias}."createdAt" >= $${paramIndex}`);
       params.push(dateFrom);
       paramIndex++;
     }
     if (dateTo) {
-      conditions.push(`"createdAt" <= $${paramIndex}`);
+      const alias = formType.toUpperCase() === 'RESIDENCE' ? 'r' : 'o';
+      conditions.push(`${alias}."createdAt" <= $${paramIndex}`);
       params.push(dateTo);
       paramIndex++;
     }
     if (agentId) {
-      conditions.push(`"createdBy" = $${paramIndex}`);
+      const alias = formType.toUpperCase() === 'RESIDENCE' ? 'r' : 'o';
+      conditions.push(`${alias}."createdBy" = $${paramIndex}`);
       params.push(agentId);
       paramIndex++;
     }

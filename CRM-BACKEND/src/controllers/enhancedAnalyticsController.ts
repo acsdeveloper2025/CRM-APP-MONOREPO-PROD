@@ -57,7 +57,7 @@ export const getEnhancedFormSubmissions = async (req: Request, res: Response) =>
     }
 
     if (caseId) {
-      whereConditions.push(`c."caseId" = $${paramIndex}`);
+      whereConditions.push(`fs."caseId" = $${paramIndex}`);
       queryParams.push(caseId);
       paramIndex++;
     }
@@ -333,31 +333,31 @@ export const getEnhancedCaseAnalytics = async (req: Request, res: Response) => {
 
     // Build WHERE clause
     if (dateFrom) {
-      whereConditions.push(`c."createdAt" >= $${paramIndex}`);
+      whereConditions.push(`cca."createdAt" >= $${paramIndex}`);
       queryParams.push(dateFrom);
       paramIndex++;
     }
 
     if (dateTo) {
-      whereConditions.push(`c."createdAt" <= $${paramIndex}`);
+      whereConditions.push(`cca."createdAt" <= $${paramIndex}`);
       queryParams.push(dateTo);
       paramIndex++;
     }
 
     if (status) {
-      whereConditions.push(`c.status = $${paramIndex}`);
+      whereConditions.push(`cca.status = $${paramIndex}`);
       queryParams.push(status);
       paramIndex++;
     }
 
     if (agentId) {
-      whereConditions.push(`c."assignedTo" = $${paramIndex}`);
+      whereConditions.push(`cca."assignedTo" = $${paramIndex}`);
       queryParams.push(agentId);
       paramIndex++;
     }
 
     if (_clientId) {
-      whereConditions.push(`c."clientId" = $${paramIndex}`);
+      whereConditions.push(`cca."clientId" = $${paramIndex}`);
       queryParams.push(_clientId);
       paramIndex++;
     }
