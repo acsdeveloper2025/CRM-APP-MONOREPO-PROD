@@ -651,9 +651,9 @@ main() {
     configure_nginx
     build_applications
 
-    # Database migrations (NEW)
-    run_database_migrations
+    # Database operations
     restore_database_from_dump
+    run_database_migrations
 
     clear_caches
 
