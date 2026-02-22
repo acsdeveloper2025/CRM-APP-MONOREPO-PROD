@@ -51,15 +51,24 @@ jobs:
         id: changes
         run: |
           # Check if manual triggers are requested
-          FORCE_REBUILD="${{ github.event.inputs.force_rebuild || 'false' }}"
-          DEPLOY_DATABASE="${{ github.event.inputs.deploy_database || 'false' }}"
-          RESTORE_DATABASE="${{ github.event.inputs.restore_database || 'false' }}"
+          FORCE_REBUILD="${{ github.event.inputs.force_rebuild }}"
+          DEPLOY_DATABASE="${{ github.event.inputs.deploy_database }}"
+          RESTORE_DATABASE="${{ github.event.inputs.restore_database }}"
 
-          if [ "$FORCE_REBUILD" = "true" ] || [ "$RESTORE_DATABASE" = "true" ]; then
+          echo "DEBUG: Raw force_rebuild: $FORCE_REBUILD"
+          echo "DEBUG: Raw deploy_database: $DEPLOY_DATABASE"
+          echo "DEBUG: Raw restore_database: $RESTORE_DATABASE"
+
+          # Normalize boolean strings
+          [ "$FORCE_REBUILD" = "true" ] && FORCE_REBUILD_FLAG=true || FORCE_REBUILD_FLAG=false
+          [ "$DEPLOY_DATABASE" = "true" ] && DEPLOY_DATABASE_FLAG=true || DEPLOY_DATABASE_FLAG=false
+          [ "$RESTORE_DATABASE" = "true" ] && RESTORE_DATABASE_FLAG=true || RESTORE_DATABASE_FLAG=false
+
+          if [ "$FORCE_REBUILD_FLAG" = "true" ] || [ "$RESTORE_DATABASE_FLAG" = "true" ]; then
             echo "🔄 Manual trigger or Restore requested - forcing deployment"
             echo "backend=true" >> $GITHUB_OUTPUT
             echo "frontend=true" >> $GITHUB_OUTPUT
-            if [ "$RESTORE_DATABASE" = "true" ]; then
+            if [ "$RESTORE_DATABASE_FLAG" = "true" ]; then
               echo "migrations=true" >> $GITHUB_OUTPUT
             else
               echo "migrations=$DEPLOY_DATABASE" >> $GITHUB_OUTPUT
