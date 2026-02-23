@@ -41,6 +41,16 @@ export interface CreateVerificationTask {
 export interface CreateCaseRequest {
   case_details: CreateCaseDetails;
   verification_tasks: CreateVerificationTask[];
+  applicants?: CreateApplicantData[];
+}
+
+export interface CreateApplicantData {
+  name: string;
+  mobile: string;
+  role?: string;
+  pan_number?: string;
+  id_details?: Record<string, unknown>;
+  verifications?: CreateVerificationTask[];
 }
 
 export interface CaseUpdateBody {

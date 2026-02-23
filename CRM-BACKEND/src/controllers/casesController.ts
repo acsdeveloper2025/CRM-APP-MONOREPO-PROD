@@ -737,60 +737,136 @@ export const getCaseById = async (req: AuthenticatedRequest, res: Response) => {
       });
     }
 
-    // Transform data to match frontend expectations
-    const row = result.rows[0];
+    const caseRow = result.rows[0];
+
+    // NEW: Fetch applicants, verifications, and visits hierarchy
+    const hierarchyQuery = `
+      SELECT 
+        a.id as applicant_id, a.name as applicant_name, a.mobile as applicant_mobile, a.role as applicant_role,
+        v.id as verification_id, v.verification_type_id, v.address, v.pincode_id,
+        vt.name as verification_type_name,
+        vi.id as visit_id, vi.status as visit_status, vi.assigned_to as visit_assigned_to,
+        vi.visit_number, vi.completed_at as visit_completed_at,
+        au.name as visit_assigned_to_name
+      FROM applicants a
+      LEFT JOIN verifications v ON a.id = v.applicant_id
+      LEFT JOIN "verificationTypes" vt ON v.verification_type_id = vt.id
+      LEFT JOIN visits vi ON v.id = vi.verification_id
+      LEFT JOIN users au ON vi.assigned_to = au.id
+      WHERE a.case_id = $1
+      ORDER BY a.created_at ASC, v.created_at ASC, vi.visit_number DESC
+    `;
+    
+    const hierarchyResult = await pool.query(hierarchyQuery, [caseRow.id]);
+    
+    // Group hierarchy data
+    const applicantsMap = new Map();
+    
+    hierarchyResult.rows.forEach(row => {
+      if (!row.applicant_id) return;
+      
+      if (!applicantsMap.has(row.applicant_id)) {
+        applicantsMap.set(row.applicant_id, {
+          id: row.applicant_id,
+          name: row.applicant_name,
+          mobile: row.applicant_mobile,
+          role: row.applicant_role,
+          verifications: new Map()
+        });
+      }
+      
+      const applicant = applicantsMap.get(row.applicant_id);
+      
+      if (row.verification_id) {
+        if (!applicant.verifications.has(row.verification_id)) {
+          applicant.verifications.set(row.verification_id, {
+            id: row.verification_id,
+            verification_type_id: row.verification_type_id,
+            verification_type_name: row.verification_type_name,
+            address: row.address,
+            pincode_id: row.pincode_id,
+            visits: []
+          });
+        }
+        
+        const verification = applicant.verifications.get(row.verification_id);
+        
+        if (row.visit_id) {
+          verification.visits.push({
+            id: row.visit_id,
+            status: row.visit_status,
+            visit_number: row.visit_number,
+            assigned_to: row.visit_assigned_to ? {
+              id: row.visit_assigned_to,
+              name: row.visit_assigned_to_name
+            } : null,
+            completed_at: row.visit_completed_at
+          });
+        }
+      }
+    });
+    
+    // Transform maps to arrays
+    const applicants = Array.from(applicantsMap.values()).map(app => ({
+      ...app,
+      verifications: Array.from(app.verifications.values())
+    }));
+
+    // Transform data to match frontend expectations (Backward Compatibility + New Hierarchy)
     const transformedData = {
-      ...row,
-      // Provide flat fields for frontend compatibility
-      clientName: row.clientName,
-      clientCode: row.clientCode,
-      assignedToName: row.assignedToName,
-      productName: row.productName,
-      productCode: row.productCode,
+      ...caseRow,
+      applicants,
+      // Provide flat fields for frontend compatibility (derived from first applicant/verification/visit)
+      clientName: caseRow.clientName,
+      clientCode: caseRow.clientCode,
+      assignedToName: caseRow.assignedToName,
+      productName: caseRow.productName,
+      productCode: caseRow.productCode,
       // Task statistics
-      totalTasks: row.totalTasks || 0,
-      completedTasks: row.completedTasks || 0,
-      pendingTasks: row.pendingTasks || 0,
-      inProgressTasks: row.inProgressTasks || 0,
-      revisitTasks: row.revisitTasks || 0,
-      // Transform client data to nested object
-      client: row.clientName
+      totalTasks: caseRow.totalTasks || 0,
+      completedTasks: caseRow.completedTasks || 0,
+      pendingTasks: caseRow.pendingTasks || 0,
+      inProgressTasks: caseRow.inProgressTasks || 0,
+      revisitTasks: caseRow.revisitTasks || 0,
+      // Transform client data
+      client: caseRow.clientName
         ? {
-            id: row.clientId,
-            name: row.clientName,
-            code: row.clientCode,
+            id: caseRow.clientId,
+            name: caseRow.clientName,
+            code: caseRow.clientCode,
           }
         : null,
-      // Transform assigned user data to nested object
-      assignedTo: row.assignedToName
+      // Transform assigned user
+      assignedTo: caseRow.assignedToName
         ? {
-            id: row.assignedTo,
-            name: row.assignedToName,
-            username: row.assignedToEmail,
-            employeeId: row.assignedToEmail,
+            id: caseRow.assignedTo,
+            name: caseRow.assignedToName,
+            username: caseRow.assignedToEmail,
+            employeeId: caseRow.assignedToEmail,
           }
         : null,
-      // Transform product data to nested object
-      product: row.productName
+      // Transform product data
+      product: caseRow.productName
         ? {
-            id: row.productId,
-            name: row.productName,
-            code: row.productCode,
+            id: caseRow.productId,
+            name: caseRow.productName,
+            code: caseRow.productCode,
           }
         : null,
-      // Transform created by backend user data to nested object
-      createdByBackendUser: row.createdByBackendUserName
+      // Transform created by user
+      createdByBackendUser: caseRow.createdByBackendUserName
         ? {
-            id: row.createdByBackendUser,
-            name: row.createdByBackendUserName,
-            employeeId: row.createdByBackendUserEmail,
+            id: caseRow.createdByBackendUser,
+            name: caseRow.createdByBackendUserName,
+            employeeId: caseRow.createdByBackendUserEmail,
           }
         : null,
     };
 
-    logger.info('Case retrieved', {
+    logger.info('Case hierarchy retrieved', {
       userId: req.user?.id,
       caseId: id,
+      applicantCount: applicants.length
     });
 
     res.json({
@@ -1954,9 +2030,9 @@ export const createCase = [
           userId,
           hasFormData: !!req.body.data,
           caseDetailsKeys: requestData.case_details ? Object.keys(requestData.case_details) : [],
-          tasksCount: requestData.verification_tasks?.length || 0,
-          firstTaskKeys: requestData.verification_tasks?.[0]
-            ? Object.keys(requestData.verification_tasks[0])
+          applicantsCount: requestData.applicants?.length || 0,
+          firstApplicantKeys: requestData.applicants?.[0]
+            ? Object.keys(requestData.applicants[0])
             : [],
         });
       } catch (parseError: unknown) {
@@ -1975,536 +2051,91 @@ export const createCase = [
         });
       }
 
-      const { case_details: caseDetails, verification_tasks: verificationTasks } = requestData;
+      const { case_details: caseDetails, applicants: applicantsData } = requestData;
 
       // ========== COMPREHENSIVE VALIDATION ==========
-
-      // Validate case_details
       if (!caseDetails || typeof caseDetails !== 'object') {
-        await client.query('ROLLBACK');
-        await cleanupFiles();
-        return res.status(400).json({
-          success: false,
-          message: 'case_details is required and must be an object',
-          error: { code: 'VALIDATION_ERROR', field: 'case_details' },
-        });
+        throw new Error('case_details is required');
       }
-
-      // Validate verification_tasks
-      if (
-        !verificationTasks ||
-        !Array.isArray(verificationTasks) ||
-        verificationTasks.length === 0
-      ) {
-        await client.query('ROLLBACK');
-        await cleanupFiles();
-        return res.status(400).json({
-          success: false,
-          message: 'At least one verification task is required',
-          error: { code: 'VALIDATION_ERROR', field: 'verification_tasks' },
-        });
-      }
-
-      // Limit maximum tasks per case to prevent abuse
-      if (verificationTasks.length > 50) {
-        await client.query('ROLLBACK');
-        await cleanupFiles();
-        return res.status(400).json({
-          success: false,
-          message: 'Maximum 50 tasks allowed per case',
-          error: { code: 'VALIDATION_ERROR', field: 'verification_tasks', max: 50 },
-        });
+      if (!applicantsData || !Array.isArray(applicantsData) || applicantsData.length === 0) {
+        throw new Error('At least one applicant is required');
       }
 
       const {
-        customerName,
-        customerPhone,
-        customerCallingCode = '+91',
         clientId,
         productId,
-        backendContactNumber,
         priority = 'MEDIUM',
-        pincode,
-        deduplicationDecision: _deduplicationDecision,
-        deduplicationRationale: _deduplicationRationale,
-        panNumber: _panNumber,
+        loanReferenceNumber,
+        backendContactNumber,
       } = caseDetails;
 
-      // Validate required fields with specific error messages
-      const validationErrors: string[] = [];
-
-      if (!customerName || typeof customerName !== 'string' || customerName.trim().length === 0) {
-        validationErrors.push('customerName is required and must be a non-empty string');
-      }
-
-      // customerPhone is optional - only validate if provided
-      if (
-        customerPhone !== undefined &&
-        customerPhone !== null &&
-        typeof customerPhone === 'string' &&
-        customerPhone.trim().length > 0
-      ) {
-        // Validate phone format if provided
-        const phoneDigits = customerPhone.replace(/\D/g, '');
-        if (phoneDigits.length < 10) {
-          validationErrors.push('customerPhone must be at least 10 digits if provided');
-        }
-      }
-
-      if (!clientId) {
-        validationErrors.push('clientId is required');
-      }
-
-      if (!productId) {
-        validationErrors.push('productId is required');
-      }
-
-      // Validate priority value
-      const validPriorities = ['LOW', 'MEDIUM', 'HIGH', 'URGENT'];
-      if (priority && !validPriorities.includes(priority)) {
-        validationErrors.push(`priority must be one of: ${validPriorities.join(', ')}`);
-      }
-
-      if (validationErrors.length > 0) {
-        await client.query('ROLLBACK');
-        await cleanupFiles();
-        logger.error('Case creation validation failed:', {
-          userId,
-          validationErrors,
-          caseDetails: {
-            customerName,
-            customerPhone,
-            clientId,
-            productId,
-            priority,
-          },
-        });
-        return res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          error: {
-            code: 'VALIDATION_ERROR',
-            details: validationErrors,
-          },
-        });
-      }
-
-      // Validate each task
-      for (let i = 0; i < verificationTasks.length; i++) {
-        const task = verificationTasks[i];
-        if (!task.verification_type_id) {
-          await client.query('ROLLBACK');
-          await cleanupFiles();
-          logger.error('Task validation failed - missing verification_type_id:', {
-            userId,
-            taskIndex: i,
-            taskData: task,
-          });
-          return res.status(400).json({
-            success: false,
-            message: `verification_type_id is required for task ${i + 1}`,
-            error: { code: 'VALIDATION_ERROR', taskIndex: i },
-          });
-        }
-      }
-
-      // ========== CLIENT ACCESS & ENTITY VALIDATION ==========
-      try {
-        // Validate client access
-        if (userRole !== Role.ADMIN && userRole !== Role.SUPER_ADMIN) {
-          const clientAccessQuery = `
-            SELECT 1 FROM user_client_access
-            WHERE "userId" = $1 AND "clientId" = $2
-          `;
-          const accessResult = await client.query(clientAccessQuery, [userId, clientId]);
-
-          if (accessResult.rows.length === 0) {
-            await client.query('ROLLBACK');
-            await cleanupFiles();
-            logger.warn('Client access denied', { userId, clientId, userRole });
-            return res.status(403).json({
-              success: false,
-              message: 'Access denied: You do not have permission to create cases for this client',
-              error: { code: 'ACCESS_DENIED', clientId },
-            });
-          }
-        }
-
-        // Validate client exists and is active
-        const clientCheckResult = await client.query(
-          `SELECT id, name, "isActive" FROM clients WHERE id = $1`,
-          [clientId]
-        );
-
-        if (clientCheckResult.rows.length === 0) {
-          await client.query('ROLLBACK');
-          await cleanupFiles();
-          return res.status(400).json({
-            success: false,
-            message: 'Invalid client ID',
-            error: { code: 'INVALID_CLIENT', clientId },
-          });
-        }
-
-        if (!clientCheckResult.rows[0].isActive) {
-          await client.query('ROLLBACK');
-          await cleanupFiles();
-          return res.status(400).json({
-            success: false,
-            message: 'Client is inactive',
-            error: { code: 'INACTIVE_CLIENT', clientId },
-          });
-        }
-
-        // Validate product exists and is active
-        const productCheckResult = await client.query(
-          `SELECT id, name, "isActive" FROM products WHERE id = $1`,
-          [productId]
-        );
-
-        if (productCheckResult.rows.length === 0) {
-          await client.query('ROLLBACK');
-          await cleanupFiles();
-          return res.status(400).json({
-            success: false,
-            message: 'Invalid product ID',
-            error: { code: 'INVALID_PRODUCT', productId },
-          });
-        }
-
-        if (!productCheckResult.rows[0].isActive) {
-          await client.query('ROLLBACK');
-          await cleanupFiles();
-          return res.status(400).json({
-            success: false,
-            message: 'Product is inactive',
-            error: { code: 'INACTIVE_PRODUCT', productId },
-          });
-        }
-      } catch (validationError: unknown) {
-        await client.query('ROLLBACK');
-        await cleanupFiles();
-        const err = validationError as DatabaseError;
-        logger.error('Entity validation error:', {
-          error: err.message,
-          code: err.code,
-          userId,
-          clientId,
-          productId,
-        });
-        return res.status(500).json({
-          success: false,
-          message: 'Validation failed',
-          error: { code: 'VALIDATION_QUERY_ERROR' },
-        });
-      }
-
       // ========== CREATE CASE ==========
-
-      const firstTask = verificationTasks[0];
-      const firstTaskVerificationTypeId = firstTask.verification_type_id;
-      const firstTaskPincode = firstTask.pincode;
-      const firstTaskTrigger =
-        firstTask.trigger || firstTask.task_description || 'Verification required';
-      const firstTaskApplicantType =
-        firstTask.applicant_type || firstTask.applicantType || 'APPLICANT';
-
-      const insertCaseQuery = `
-        INSERT INTO cases (
-          "customerName", "customerPhone", "customerCallingCode",
-          "clientId", "productId", "verificationTypeId",
-          pincode, priority, trigger, "applicantType",
-          "backendContactNumber", status, "createdByBackendUser",
-          "has_multiple_tasks", "total_tasks_count", "completed_tasks_count", "case_completion_percentage",
-          "createdAt", "updatedAt"
-        ) VALUES (
-          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, NOW(), NOW()
-        ) RETURNING *
-      `;
-
-      const caseValues = [
-        customerName,
-        customerPhone,
-        customerCallingCode,
-        clientId,
-        productId,
-        firstTaskVerificationTypeId,
-        pincode || firstTaskPincode || null,
-        priority,
-        firstTaskTrigger,
-        firstTaskApplicantType,
-        backendContactNumber || customerPhone,
-        'PENDING',
-        userId,
-        verificationTasks.length > 1,
-        verificationTasks.length,
-        0,
-        0.0,
-      ];
-
-      const caseResult = await client.query(insertCaseQuery, caseValues);
+      const caseResult = await client.query(
+        `INSERT INTO cases (
+          "clientId", "productId", priority, "backendContactNumber",
+          loan_reference_number, "createdByBackendUser", status, "createdAt", "updatedAt"
+        ) VALUES ($1, $2, $3, $4, $5, $6, 'PENDING', NOW(), NOW()) RETURNING *`,
+        [clientId, productId, priority, backendContactNumber, loanReferenceNumber, userId]
+      );
       const newCase = caseResult.rows[0];
 
-      logger.info('Unified case created:', {
-        caseId: newCase.id,
-        caseNumber: newCase.caseId,
-        customerName,
-        tasksCount: verificationTasks.length,
-        userId,
-      });
+      const createdHierarchy = [];
 
-      // ========== CREATE VERIFICATION TASKS ==========
-
-      const createdTasks = [];
-      let totalEstimatedAmount = 0;
-
-      for (let i = 0; i < verificationTasks.length; i++) {
-        const taskData = verificationTasks[i];
-        const {
-          verification_type_id: verificationTypeId,
-          task_title: taskTitle,
-          task_description: taskDescription,
-          priority: taskPriority = 'MEDIUM',
-          assigned_to: assignedToId,
-          assignedTo,
-          rate_type_id: rateTypeId,
-          estimated_amount: estimatedAmount,
-          address: taskAddress,
-          pincode: taskPincode,
-          trigger: taskTrigger,
-          document_type: documentType,
-          document_number: documentNumber,
-          document_details: documentDetails,
-          estimated_completion_date: estimatedCompletionDate,
-          applicant_type: applicantTypeSnake,
-          applicantType,
-          attachment_keys: attachmentKeys,
-        } = taskData;
-
-        const taskAssignedTo = assignedTo || assignedToId;
-        const taskApplicantType = applicantType || applicantTypeSnake;
-        const finalTaskTitle = taskTitle || `Verification Task ${i + 1}`;
-        const finalTaskDescription = taskDescription || taskTrigger || 'Verification required';
-
-        // Insert verification task
-        const taskResult = await client.query(
-          `
-          INSERT INTO verification_tasks (
-            case_id, verification_type_id, task_title, task_description,
-            priority, assigned_to, assigned_by, assigned_at,
-            rate_type_id, estimated_amount, address, pincode,
-            document_type, document_number, document_details,
-            estimated_completion_date, trigger, applicant_type, status, created_by
-          ) VALUES (
-            $1, $2, $3, $4, $5, $6::uuid, $7,
-            CASE WHEN $6 IS NOT NULL THEN NOW() ELSE NULL::timestamp with time zone END,
-            $8, $9, $10, $11, $12, $13, $14, $15, $16, $17,
-            CASE WHEN $6 IS NOT NULL THEN 'ASSIGNED'::text ELSE 'PENDING'::text END,
-            $18
-          ) RETURNING *
-        `,
-
-          [
-            newCase.id,
-            verificationTypeId,
-            finalTaskTitle,
-            finalTaskDescription,
-            taskPriority,
-            taskAssignedTo || null,
-            userId,
-            rateTypeId || null,
-            estimatedAmount || null,
-            taskAddress || null,
-            taskPincode || pincode || null,
-            documentType || null,
-            documentNumber || null,
-            documentDetails ? JSON.stringify(documentDetails) : null,
-            estimatedCompletionDate || null,
-            taskTrigger || finalTaskDescription,
-            taskApplicantType || null,
-            userId,
-          ]
+      // ========== CREATE APPLICANTS, VERIFICATIONS, VISITS ==========
+      for (const appData of applicantsData) {
+        const applicantResult = await client.query(
+          `INSERT INTO applicants (case_id, name, mobile, role, pan_number, id_details)
+           VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+          [newCase.id, appData.name, appData.mobile, appData.role || 'APPLICANT', appData.pan_number, appData.id_details || {}]
         );
+        const applicant = applicantResult.rows[0];
+        const verifications = [];
 
-        const task = taskResult.rows[0];
-        createdTasks.push({
-          ...task,
-          attachment_keys: attachmentKeys || [],
-        });
-        totalEstimatedAmount += estimatedAmount || 0;
-
-        logger.info('Task created:', {
-          taskId: task.id,
-          taskNumber: task.task_number,
-          assignedTo: taskAssignedTo,
-        });
-
-        // Create assignment history if assigned
-        if (taskAssignedTo) {
-          await client.query(
-            `
-            INSERT INTO task_assignment_history (
-              verification_task_id, case_id, assigned_to, assigned_by,
-              assignment_reason, task_status_before, task_status_after
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7)
-          `,
-            [
-              task.id,
-              newCase.id,
-              taskAssignedTo,
-              userId,
-              'Initial assignment during case creation',
-              'PENDING',
-              'ASSIGNED',
-            ]
-          );
-        }
-      }
-
-      // ========== PROCESS FILE ATTACHMENTS ==========
-
-      const files = req.files as Express.Multer.File[];
-      const uploadedAttachments: {
-        id: string;
-        filename: string;
-        originalName: string;
-        verification_task_id?: string;
-        fileSize: number;
-        [key: string]: unknown;
-      }[] = [];
-
-      if (files && files.length > 0) {
-        // Create permanent directory for this case
-        const permanentDir = path.join(
-          process.cwd(),
-          'uploads',
-          'attachments',
-          `case_${newCase.caseId}`
-        );
-        if (!fs.existsSync(permanentDir)) {
-          fs.mkdirSync(permanentDir, { recursive: true });
-        }
-
-        for (let fileIndex = 0; fileIndex < files.length; fileIndex++) {
-          const file = files[fileIndex];
-          const fileKey = `attachment_${fileIndex}`;
-
-          try {
-            // Move file from temp to permanent location
-            const tempPath = file.path;
-            const permanentPath = path.join(permanentDir, file.filename);
-            fs.renameSync(tempPath, permanentPath);
-
-            // Determine which task this file belongs to
-            let verificationTaskId = null;
-            for (const task of createdTasks) {
-              if (task.attachment_keys?.includes(fileKey)) {
-                verificationTaskId = task.id;
-                break;
-              }
-            }
-
-            // If no specific task mapping, link to first task
-            if (!verificationTaskId && createdTasks.length > 0) {
-              verificationTaskId = createdTasks[0].id;
-            }
-
-            // Insert attachment record
-            const attachmentResult = await client.query(
-              `
-              INSERT INTO attachments (
-                filename, "originalName", "filePath", "fileSize",
-                "mimeType", "uploadedBy", "caseId", case_id,
-                verification_task_id, "createdAt"
-              ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
-              RETURNING *
-            `,
-              [
-                file.filename,
-                file.originalname,
-                permanentPath,
-                file.size,
-                file.mimetype,
-                userId,
-                newCase.caseId,
-                newCase.id,
-                verificationTaskId,
-              ]
+        if (appData.verifications && Array.isArray(appData.verifications)) {
+          for (const verData of appData.verifications) {
+            const verificationResult = await client.query(
+              `INSERT INTO verifications (applicant_id, verification_type_id, address, pincode_id)
+               VALUES ($1, $2, $3, $4) RETURNING *`,
+              [applicant.id, verData.verification_type_id, verData.address, verData.pincode_id]
             );
+            const verification = verificationResult.rows[0];
+            const visits = [];
 
-            uploadedAttachments.push(attachmentResult.rows[0]);
-
-            logger.info('Attachment saved:', {
-              filename: file.filename,
-              taskId: verificationTaskId,
-              caseId: newCase.id,
-            });
-          } catch (fileError) {
-            logger.error('Error processing file:', {
-              filename: file.filename,
-              error: fileError,
-            });
-            // Continue with other files
+            // Automatically create initial visit for each verification
+            const visitResult = await client.query(
+              `INSERT INTO visits (verification_id, visit_number, status, assigned_to, sla_deadline)
+               VALUES ($1, 1, 'PENDING', $2, $3) RETURNING *`,
+              [verification.id, verData.assigned_to || null, verData.sla_deadline || null]
+            );
+            visits.push(visitResult.rows[0]);
+            
+            verifications.push({ ...verification, visits });
           }
         }
-
-        // Clean up temp directory
-        try {
-          const tempDir = path.dirname(files[0].path);
-          if (fs.existsSync(tempDir) && tempDir.includes('temp')) {
-            fs.rmSync(tempDir, { recursive: true, force: true });
-          }
-        } catch (cleanupError) {
-          logger.warn('Failed to cleanup temp directory:', cleanupError);
-        }
+        createdHierarchy.push({ ...applicant, verifications });
       }
 
-      await client.query('COMMIT');
+      // Backward compatibility: Set customerName on case from primary applicant
+      if (createdHierarchy.length > 0) {
+        await client.query(
+          'UPDATE cases SET "customerName" = $1 WHERE id = $2',
+          [createdHierarchy[0].name, newCase.id]
+        );
+      }
 
       // ========== RESPONSE ==========
-
       res.status(201).json({
         success: true,
-        message: `Case created successfully with ${verificationTasks.length} verification task${verificationTasks.length > 1 ? 's' : ''}`,
+        message: `Case created successfully with ${applicantsData.length} applicant(s)`,
         data: {
           case: {
             id: newCase.id,
             caseId: newCase.caseId,
-            customerName: newCase.customerName,
             status: newCase.status,
             priority: newCase.priority,
             createdAt: newCase.createdAt,
-            has_multiple_tasks: newCase.has_multiple_tasks,
-            total_tasks_count: newCase.total_tasks_count,
-            completed_tasks_count: newCase.completed_tasks_count,
           },
-          tasks: createdTasks.map(task => ({
-            id: task.id,
-            task_number: task.task_number,
-            verification_type_id: task.verification_type_id,
-            task_title: task.task_title,
-            status: task.status,
-            assigned_to: task.assigned_to,
-            applicant_type: task.applicant_type,
-            priority: task.priority,
-            attachment_count: uploadedAttachments.filter(
-              att => att.verification_task_id === task.id
-            ).length,
-          })),
-          attachments: uploadedAttachments.map(att => ({
-            id: att.id,
-            filename: att.filename,
-            originalName: att.originalName,
-            verification_task_id: att.verification_task_id,
-            fileSize: att.fileSize,
-          })),
-          summary: {
-            total_tasks: verificationTasks.length,
-            assigned_tasks: createdTasks.filter(t => t.assigned_to).length,
-            pending_tasks: createdTasks.filter(t => !t.assigned_to).length,
-            total_attachments: uploadedAttachments.length,
-            estimated_total_amount: totalEstimatedAmount,
-          },
+          hierarchy: createdHierarchy,
         },
       });
     } catch (error: unknown) {
