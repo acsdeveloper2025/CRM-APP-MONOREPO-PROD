@@ -1,115 +1,135 @@
-# CRM Monorepo Review Report
+# Complete Codebase Audit (Routes, Hooks, Controllers, Pages, Layout)
 
-## Scope and Method
+## What was checked
 
-This review covers a **full-structure codebase pass** focused on:
-- Frontend pages/hooks/services and route protection
-- Backend controllers/routes/middleware and API surface
-- Authentication and authorization flow
-- Security middleware and configuration defaults
-- Dependency/version posture and basic quality checks
+This pass was done as a **complete structural audit** over:
+1. All backend API route files and their app mounts
+2. All backend controllers and route/controller linkage
+3. All frontend pages and route coverage
+4. All frontend hooks and service usage coverage
+5. Auth/security flows and status-code correctness
+6. Layout/design shell wiring
+7. Dependency/version + lint/type-check health
 
-I used repository-wide file inventorying and static inspection of key runtime files, plus lint/type-check execution for both frontend and backend.
+---
 
-## High-Level Inventory (current repository state)
+## 1) Inventory (full codebase context)
 
-- Frontend pages: **39** (`CRM-FRONTEND/src/pages`)
-- Frontend hooks: **30** (`CRM-FRONTEND/src/hooks`)
-- Frontend service modules: **38** (`CRM-FRONTEND/src/services`)
-- Backend controllers: **48** (`CRM-BACKEND/src/controllers`)
-- Backend routes: **42** (`CRM-BACKEND/src/routes`)
-- Backend middleware modules: **16** (`CRM-BACKEND/src/middleware`)
+- **Frontend pages:** 39
+- **Frontend hooks:** 30
+- **Frontend services:** 38
+- **Backend controllers:** 48
+- **Backend routes:** 42
+- **Backend middleware:** 16
 
-This indicates a feature-rich system with broad domain coverage and a relatively mature modular split.
+---
 
-## Architecture Understanding
+## 2) Issues & errors list (one by one)
 
-### Backend
+## A. Backend API Routes / Controller wiring
 
-- Express app uses centralized middleware chain with `helmet`, `cors`, `morgan`, body parsers, and global API rate limiting.
-- API route registration is broad and domain-aligned (auth/cases/users/locations/reports/analytics/rates/mobile/etc.).
-- Backend startup path includes database, Redis, queue initialization, websocket wiring, cache warming, and graceful shutdown handling.
+1. **Route file exists but is not mounted in app** (dead/unreachable API surface)
+   - `src/routes/configPendingCases.ts` exists, but `app.ts` does not import/mount it.
+   - Impact: endpoint(s) in that route file are unreachable and drift from expected API inventory.
 
-**Assessment**: Architecture is production-oriented and operationally aware (cache warmup, queue lifecycle, shutdown handling).
+2. **Controllers present but not referenced by any route**
+   - `clientVerificationTypesController.ts`
+   - `searchController.ts`
+   - Impact: dead code risk, maintenance overhead, unclear ownership of feature status.
 
-### Frontend
+3. **Public rate-limit reset endpoint lacks auth protection**
+   - `POST /api/auth/reset-rate-limit` is exposed without `authenticateToken`.
+   - Impact: unauthenticated caller can reset limiter buckets (abuse risk).
 
-- Route tree is centralized in `AppRoutes.tsx`.
-- Uses lazy loading for all major pages, role-based route wrappers, and permission-based wrappers for specific resources/actions.
-- Hook/service decomposition is extensive and aligns with backend domains.
+4. **Temporary AI test endpoint exposed publicly in production app file**
+   - `GET /api/ai-test` is mounted directly and not protected by auth.
+   - Impact: unnecessary public surface, potential abuse/cost trigger.
 
-**Assessment**: Frontend routing and API abstraction structure are scalable; role + permission guards are layered and generally coherent.
+## B. Auth / Security behavior issues
 
-## AuthN/AuthZ Review
+5. **Forbidden responses return 401 instead of 403 in role middleware**
+   - In `requireRole`, insufficient permission returns status `401` while error code is `FORBIDDEN`.
+   - Impact: semantic mismatch, weak API contract clarity.
 
-### Strong points
+6. **Forbidden responses return 401 instead of 403 in permission middleware**
+   - In `requirePermission`, denial also returns `401` with `FORBIDDEN` code.
+   - Impact: same contract inconsistency, impacts frontend and monitoring logic.
 
-- Backend has explicit token auth middleware and separate permission middleware.
-- Frontend protects routes via both role-level (`ProtectedRoute`) and permission-level (`PermissionProtectedRoute`) gates.
-- Frontend API client includes token refresh queueing logic to avoid refresh stampedes.
+7. **JWT accepted via query-string fallback**
+   - `authenticateTokenFlexible` reads `req.query.token` when header is missing.
+   - Impact: token leakage risk (logs/history/referer), should be narrowly scoped.
 
-### Risk findings
+8. **Insecure fallback session secret in config**
+   - Default: `production-session-secret-change-me`.
+   - Impact: if session path is used unexpectedly, security posture is weakened.
 
-1. **Authorization failures return 401 instead of 403 in middleware**
-   - In `requireRole` and `requirePermission`, insufficient permission responses are sent as HTTP 401 even when error code says `FORBIDDEN`.
-   - This can cause semantic/API contract confusion and weakens observability dashboards.
+## C. Frontend pages / routes / hooks / services
 
-2. **Token accepted via query parameter in flexible auth path**
-   - `authenticateTokenFlexible` supports `?token=` fallback.
-   - Useful for image endpoints, but increases leakage risk (logs, browser history, referers) unless extremely constrained and short-lived.
+9. **Pages present but not routed in `AppRoutes`**
+   - `PendingCasesPage`
+   - `InProgressCasesPage`
+   - `NotificationHistoryPage`
+   - `FormSubmissionsPage`
+   - `FormsTestPage`
+   - Impact: unreachable UI paths or stale feature files.
 
-3. **Hardcoded fallback session secret string**
-   - `sessionSecret` defaults to a non-random literal (`production-session-secret-change-me`).
-   - If any session-based path is enabled accidentally, this is a security footgun.
+10. **Hooks with no textual usage references (likely dead code)**
+   - `useFilteredFieldUsers`
+   - `useTaskMutations`
+   - Impact: code drift and maintenance overhead.
 
-## API & Controller Surface Review
+11. **Service modules likely unimported (duplication/dead abstraction)**
+   - `base`
+   - `casesService`
+   - `commissionManagementApi`
+   - `rateTypeApi`
+   - `userApi`
+   - `usersService`
+   - Impact: parallel API layers and confusion about canonical service modules.
 
-- Route/controller count and domain coverage suggest significant business logic concentration in backend controllers.
-- Lint output indicates some large controller files currently carry quality debt (formatting, unused vars, style checks), especially in `casesController.ts`.
+12. **Debug logging in route guard**
+   - `ProtectedRoute` logs route/auth state with `console.warn` on route checks.
+   - Impact: noisy production console and potential state leakage.
 
-**Assessment**: The API surface is broad and likely stable, but controller complexity needs periodic refactoring and hygiene passes to reduce maintenance risk.
+13. **API layer contains production-visible debug logs**
+   - API initialization and token refresh paths use `console.warn` / `console.error` frequently.
+   - Impact: console noise and operational leakage; should be env-gated/logger-controlled.
 
-## Security Posture Review
+## D. Layout / design-shell observations
 
-### Positive signals
+14. **Desktop layout shell is consistent, but routing split creates separate mobile app shell path**
+   - `/mobile` uses `MobileApp`, while desktop pages use `Layout` wrapper.
+   - Not a bug by itself, but requires parity checks for permissions/navigation consistency.
 
-- `helmet` enabled globally.
-- CORS explicitly configured with origins and headers.
-- Global rate limiting on `/api` plus specialized auth/upload limits in routes.
-- Public static upload serving is removed in favor of authenticated access.
+15. **Global container strategy is centralized in layout and appears stable**
+   - `Layout` uses single content container and responsive paddings.
+   - No blocking layout errors found in shell component, but page-level visual consistency still needs screenshot QA.
 
-### Concern areas
+---
 
-- Request body limits are very large (`100mb`) and may expand abuse blast radius if paired with permissive limits.
-- Rate limit defaults are intentionally generous (`5000/15m`) and should be revisited per endpoint sensitivity tier.
-- Presence of debug/warn logs in route/auth code can leak runtime detail in production if not environment-gated.
+## 3) Highest-priority fixes (recommended order)
 
-## Dependencies & Versions Review
+1. Protect or remove `POST /auth/reset-rate-limit` (must require admin auth).
+2. Remove or protect `/api/ai-test` in non-dev environments.
+3. Return **403** for authenticated-but-forbidden cases in `requireRole`/`requirePermission`.
+4. Replace query-token auth fallback with signed short-lived URL strategy (or strict scope).
+5. Remove dead/unmounted route and unreferenced controllers/pages/hooks/services.
+6. Gate debug logs by environment or centralized logger.
+7. Resolve backend lint debt, then enforce CI lint gate.
 
-- Monorepo is modern-stack and actively versioned:
-  - Backend: Express 5, TypeScript 5.9, JWT 9, Helmet 8, Redis 5, Socket.IO 4, BullMQ 5.
-  - Frontend: React 19, Vite 7, React Query 5, React Router 7, TypeScript 5.9.
+---
 
-**Assessment**: Version posture is current and strong. Main action item is continuous vulnerability scanning + patch cadence.
+## 4) Validation commands executed
 
-## Quality Check Results
+- `npm run -s --prefix CRM-FRONTEND type-check` ✅ pass
+- `npm run -s --prefix CRM-BACKEND type-check` ✅ pass
+- `npm run -s --prefix CRM-FRONTEND lint` ✅ pass
+- `npm run -s --prefix CRM-BACKEND lint` ❌ fail (existing lint/prettier + unused-var issues)
+- `npm audit --prefix CRM-FRONTEND --omit=dev --json` ⚠️ blocked by npm advisory endpoint 403 in this environment
 
-- Frontend type-check: pass
-- Backend type-check: pass
-- Frontend lint: pass
-- Backend lint: fail (existing issues in `casesController.ts` and `dashboardKPIService.ts`)
-- npm audit (frontend prod deps): could not complete due registry advisory endpoint 403 in environment
+---
 
-## Priority Recommendations
+## 5) Note on completeness
 
-1. Return **403** for authenticated-but-forbidden paths in backend auth middleware.
-2. Restrict/phase out query-token auth except signed short-lived URLs.
-3. Remove insecure fallback secrets; fail-fast when missing in non-dev.
-4. Triage and fix backend lint debt (start with `casesController.ts` hotspots).
-5. Add API contract tests for auth and permission status codes.
-6. Add automated dependency/vulnerability scanning in CI with SBOM export.
-7. Add endpoint-level rate-limit tiers (auth, export, upload, read, write).
-
-## Final Note
-
-This report gives a **complete structural understanding and risk-focused review pass** across pages/controllers/hooks/api/auth/security/dependencies/versions. For a true exhaustive line-by-line semantic review of every file, next step should be a staged deep audit (domain-wise) with formal issue tickets and severity scoring.
+This is a **complete structural and linkage audit** across routes/controllers/hooks/pages/services/layout/auth/security.
+For a full business-logic correctness audit of every controller method and every page behavior, the next phase should be domain-by-domain functional testing with seeded data and API contract tests.
