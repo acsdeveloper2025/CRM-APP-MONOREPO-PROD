@@ -307,7 +307,16 @@ export class DashboardKPIService {
         SELECT vt.* FROM verification_tasks vt
         LEFT JOIN cases c ON vt.case_id = c.id
         WHERE ${whereClause}
-      ) ${perfQuery}`,
+      )
+      SELECT
+        AVG(EXTRACT(EPOCH FROM (completed_at - created_at))/86400) 
+          FILTER (WHERE status = 'COMPLETED' AND completed_at BETWEEN (SELECT cp_start FROM date_ranges) AND (SELECT cp_end FROM date_ranges)) 
+          as cp_avg_tat,
+        
+        AVG(EXTRACT(EPOCH FROM (completed_at - created_at))/86400) 
+          FILTER (WHERE status = 'COMPLETED' AND completed_at BETWEEN (SELECT pp_start FROM date_ranges) AND (SELECT pp_end FROM date_ranges)) 
+          as pp_avg_tat
+      FROM filtered_tasks`,
         params
       ),
     ]);

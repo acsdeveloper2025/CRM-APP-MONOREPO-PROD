@@ -119,22 +119,15 @@ class MigrationRunner {
       // Execute the migration SQL
       await client.query(migration.sql);
       
-      // Record the migration (using UPSERT to handle retries)
+      // Record the migration
       await client.query(
-        `INSERT INTO schema_migrations (id, filename, checksum, execution_time_ms, success) 
-         VALUES ($1, $2, $3, $4, $5)
-         ON CONFLICT (id) DO UPDATE SET
-           filename = EXCLUDED.filename,
-           checksum = EXCLUDED.checksum,
-           execution_time_ms = EXCLUDED.execution_time_ms,
-           success = EXCLUDED.success,
-           executed_at = NOW()`,
+        `INSERT INTO schema_migrations (id, filename, checksum, execution_time_ms) 
+         VALUES ($1, $2, $3, $4)`,
         [
           migration.id, 
           migration.filename, 
           checksum, 
-          Date.now() - startTime,
-          true
+          Date.now() - startTime
         ]
       );
       
@@ -145,17 +138,11 @@ class MigrationRunner {
     } catch (error) {
       await client.query('ROLLBACK');
       
-      // Record failed migration (using UPSERT to handle retries)
+      // Record failed migration
       try {
         await client.query(
           `INSERT INTO schema_migrations (id, filename, checksum, execution_time_ms, success) 
-           VALUES ($1, $2, $3, $4, $5)
-           ON CONFLICT (id) DO UPDATE SET
-             filename = EXCLUDED.filename,
-             checksum = EXCLUDED.checksum,
-             execution_time_ms = EXCLUDED.execution_time_ms,
-             success = EXCLUDED.success,
-             executed_at = NOW()`,
+           VALUES ($1, $2, $3, $4, $5)`,
           [
             migration.id, 
             migration.filename, 
@@ -187,16 +174,10 @@ class MigrationRunner {
       // Get migration files and executed migrations
       const migrationFiles = this.getMigrationFiles();
       const executedMigrations = await this.getExecutedMigrations();
-      
-      // ONLY skip migrations that have been successfully executed
-      const successfulIds = new Set(
-        executedMigrations
-          .filter(m => m.success !== false) // Handle potential undefined or null as well
-          .map(m => m.id)
-      );
+      const executedIds = new Set(executedMigrations.map(m => m.id));
       
       // Find pending migrations
-      const pendingMigrations = migrationFiles.filter(m => !successfulIds.has(m.id));
+      const pendingMigrations = migrationFiles.filter(m => !executedIds.has(m.id));
       
       if (pendingMigrations.length === 0) {
         logger.info('✅ No pending migrations found');
