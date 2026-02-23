@@ -1,8 +1,8 @@
-# Complete Codebase Audit (Routes, Hooks, Controllers, Pages, Layout)
+# Complete Codebase Audit (Routes, Hooks, Controllers, Pages, Layout, Security)
 
 ## What was checked
 
-This pass was done as a **complete structural audit** over:
+This pass was done as a **complete structural + security audit** over:
 1. All backend API route files and their app mounts
 2. All backend controllers and route/controller linkage
 3. All frontend pages and route coverage
@@ -10,6 +10,7 @@ This pass was done as a **complete structural audit** over:
 5. Auth/security flows and status-code correctness
 6. Layout/design shell wiring
 7. Dependency/version + lint/type-check health
+8. Vulnerability assessment and security testing (SAST-style pattern scans + dependency audit attempts)
 
 ---
 
@@ -63,9 +64,13 @@ This pass was done as a **complete structural audit** over:
    - Default: `production-session-secret-change-me`.
    - Impact: if session path is used unexpectedly, security posture is weakened.
 
+9. **Access + refresh tokens are handled in response/local storage model**
+   - Backend returns tokens in response payload and frontend stores refresh token/user info in `localStorage`.
+   - Impact: XSS blast radius is higher than strict httpOnly-cookie-only session models.
+
 ## C. Frontend pages / routes / hooks / services
 
-9. **Pages present but not routed in `AppRoutes`**
+10. **Pages present but not routed in `AppRoutes`**
    - `PendingCasesPage`
    - `InProgressCasesPage`
    - `NotificationHistoryPage`
@@ -73,12 +78,12 @@ This pass was done as a **complete structural audit** over:
    - `FormsTestPage`
    - Impact: unreachable UI paths or stale feature files.
 
-10. **Hooks with no textual usage references (likely dead code)**
+11. **Hooks with no textual usage references (likely dead code)**
    - `useFilteredFieldUsers`
    - `useTaskMutations`
    - Impact: code drift and maintenance overhead.
 
-11. **Service modules likely unimported (duplication/dead abstraction)**
+12. **Service modules likely unimported (duplication/dead abstraction)**
    - `base`
    - `casesService`
    - `commissionManagementApi`
@@ -87,49 +92,122 @@ This pass was done as a **complete structural audit** over:
    - `usersService`
    - Impact: parallel API layers and confusion about canonical service modules.
 
-12. **Debug logging in route guard**
+13. **Debug logging in route guard**
    - `ProtectedRoute` logs route/auth state with `console.warn` on route checks.
    - Impact: noisy production console and potential state leakage.
 
-13. **API layer contains production-visible debug logs**
+14. **API layer contains production-visible debug logs**
    - API initialization and token refresh paths use `console.warn` / `console.error` frequently.
    - Impact: console noise and operational leakage; should be env-gated/logger-controlled.
 
 ## D. Layout / design-shell observations
 
-14. **Desktop layout shell is consistent, but routing split creates separate mobile app shell path**
+15. **Desktop layout shell is consistent, but routing split creates separate mobile app shell path**
    - `/mobile` uses `MobileApp`, while desktop pages use `Layout` wrapper.
    - Not a bug by itself, but requires parity checks for permissions/navigation consistency.
 
-15. **Global container strategy is centralized in layout and appears stable**
+16. **Global container strategy is centralized in layout and appears stable**
    - `Layout` uses single content container and responsive paddings.
    - No blocking layout errors found in shell component, but page-level visual consistency still needs screenshot QA.
 
+## E. Vulnerability assessment findings
+
+17. **Hardcoded-like API key values present in deployment script templates**
+   - Deployment script contains values resembling real Google Maps keys.
+   - Impact: credential leakage / accidental key reuse risk if copied to production without rotation.
+
+18. **Dynamic SQL template usage hotspots detected**
+   - Multiple backend files build SQL with template literals that include `${...}` interpolation.
+   - Impact: potential SQL injection risk if any interpolated value is not from strict allowlists/validated constants.
+   - Note: this is a hotspot list requiring targeted code-level review, not proof of exploit for each instance.
+
+19. **No obvious direct use of high-risk JS eval sinks in app code**
+   - Pattern scan did not find `eval(`, `new Function(`, frontend `dangerouslySetInnerHTML`, or backend shell exec usage in app logic.
+   - Impact: positive finding, reduces common code-injection vectors.
+
+20. **Rate-limit profile is intentionally generous**
+   - Default limit profile favors high-volume operations.
+   - Impact: operationally useful, but increases brute-force/abuse tolerance if not endpoint-tiered.
+
 ---
 
-## 3) Highest-priority fixes (recommended order)
+## 3) Vulnerability severity matrix (initial)
+
+### Critical
+- None proven by static scan in this pass.
+
+### High
+- Public rate-limit reset endpoint without auth (#3).
+- Public AI test endpoint in app surface (#4).
+- Query-string token fallback support (#7).
+
+### Medium
+- 401/403 authorization semantic mismatch (#5/#6).
+- Hardcoded-like key material in deployment script templates (#17).
+- Dynamic SQL interpolation hotspots requiring verification (#18).
+- Token handling model with localStorage exposure tradeoff (#9).
+
+### Low
+- Debug logging exposure (#13/#14).
+- Unrouted/unreferenced files (maintainability and drift risk) (#1/#2/#10/#11/#12).
+
+---
+
+## 4) Security testing performed
+
+### Dependency vulnerability scanning
+- Attempted:
+  - `npm audit --omit=dev --json`
+  - `npm audit --prefix CRM-BACKEND --omit=dev --json`
+  - `npm audit --prefix CRM-FRONTEND --omit=dev --json`
+- Result: all blocked by npm advisory API `403 Forbidden` in this environment.
+
+### Static security pattern scans
+- Executed pattern scans for risky sinks/patterns:
+  - Frontend: `dangerouslySetInnerHTML`, `innerHTML =`, `eval(`, `new Function(`
+  - Backend: `eval(`, `new Function(`, `child_process`, `exec(`, `spawn(`, `vm.`
+- Result: no direct app-level hits for these dangerous sinks.
+- Additional scans:
+  - key/secret-like string detection in repo text
+  - dynamic SQL template interpolation hotspots (`query(\`...${...}\`)`) for manual review queue
+
+### Config/security posture checks
+- Verified presence of `helmet`, CORS config, global API rate limiter, and auth middleware usage pattern.
+- Verified presence of unauthenticated endpoint exceptions requiring remediation.
+
+---
+
+## 5) Highest-priority fixes (recommended order)
 
 1. Protect or remove `POST /auth/reset-rate-limit` (must require admin auth).
 2. Remove or protect `/api/ai-test` in non-dev environments.
 3. Return **403** for authenticated-but-forbidden cases in `requireRole`/`requirePermission`.
 4. Replace query-token auth fallback with signed short-lived URL strategy (or strict scope).
-5. Remove dead/unmounted route and unreferenced controllers/pages/hooks/services.
-6. Gate debug logs by environment or centralized logger.
-7. Resolve backend lint debt, then enforce CI lint gate.
+5. Remove hardcoded-like key material from scripts and rotate any exposed keys.
+6. Audit each dynamic SQL interpolation hotspot and convert to parameterized/allowlisted patterns.
+7. Remove dead/unmounted route and unreferenced controllers/pages/hooks/services.
+8. Gate debug logs by environment or centralized logger.
+9. Resolve backend lint debt, then enforce CI lint gate.
+10. Add CI security stage: audit/SCA + secret scan + SAST pattern rules.
 
 ---
 
-## 4) Validation commands executed
+## 6) Validation commands executed
 
 - `npm run -s --prefix CRM-FRONTEND type-check` ✅ pass
 - `npm run -s --prefix CRM-BACKEND type-check` ✅ pass
 - `npm run -s --prefix CRM-FRONTEND lint` ✅ pass
 - `npm run -s --prefix CRM-BACKEND lint` ❌ fail (existing lint/prettier + unused-var issues)
+- `npm audit --omit=dev --json` ⚠️ blocked by npm advisory endpoint 403 in this environment
+- `npm audit --prefix CRM-BACKEND --omit=dev --json` ⚠️ blocked by npm advisory endpoint 403 in this environment
 - `npm audit --prefix CRM-FRONTEND --omit=dev --json` ⚠️ blocked by npm advisory endpoint 403 in this environment
+- `rg -n "dangerouslySetInnerHTML|innerHTML\s*=|eval\(|new Function\(" CRM-FRONTEND/src` ✅ no hits
+- `rg -n "eval\(|new Function\(|child_process|exec\(|spawn\(|shelljs|vm\." CRM-BACKEND/src` ✅ no high-risk app hits (only Redis `multi.exec()` false-positive pattern)
+- `rg -n "(JWT_SECRET|API_KEY|SECRET_KEY|PRIVATE_KEY|BEGIN RSA|BEGIN OPENSSH|password\s*=\s*['\"][^'\"]+['\"])" --glob '!**/node_modules/**'` ✅ findings captured in vulnerability section
 
 ---
 
-## 5) Note on completeness
+## 7) Note on completeness
 
-This is a **complete structural and linkage audit** across routes/controllers/hooks/pages/services/layout/auth/security.
-For a full business-logic correctness audit of every controller method and every page behavior, the next phase should be domain-by-domain functional testing with seeded data and API contract tests.
+This is a **complete structural + security-focused audit** across routes/controllers/hooks/pages/services/layout/auth/security.
+For a full exploit-validated penetration test, the next phase should include running-stack DAST, authenticated API fuzzing, and endpoint-level abuse testing in a staging environment.
