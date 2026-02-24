@@ -356,7 +356,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
         role,
         pan_number: customerInfo.panNumber || undefined,
         verifications: applicantTasks.map(applicantTask => ({
-          verification_type_id: applicantTask.verificationTypeId,
+          verification_type_id: applicantTask.verificationTypeId ?? null,
           address: applicantTask.address,
           pincode_id: Number.isNaN(parseInt(applicantTask.pincodeId, 10))
             ? undefined
@@ -376,7 +376,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
           customerCallingCode: customerInfo.customerCallingCode,
           clientId: parsedClientId,
           productId: parsedProductId,
-          verificationTypeId: firstTask?.verificationTypeId,
+          verificationTypeId: firstTask?.verificationTypeId ?? undefined,
           applicantType: firstTask?.applicantType,
           trigger: firstTask?.trigger,
           backendContactNumber: caseLevelData.backendContactNumber,
@@ -392,8 +392,8 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
             throw new Error(`Verification type missing for task ${index + 1}`);
           }
           return {
-            verification_type_id: task.verificationTypeId,
-            task_title: `${getVerificationTypeName(task.verificationTypeId)} - Task ${index + 1}`,
+            verification_type_id: task.verificationTypeId as number,
+            task_title: `${getVerificationTypeName(task.verificationTypeId as number)} - Task ${index + 1}`,
             task_description: task.trigger,
             priority: task.priority,
             assigned_to: task.assignedTo || undefined,
