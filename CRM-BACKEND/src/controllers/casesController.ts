@@ -9,7 +9,11 @@ import path from 'path';
 import fs from 'fs';
 import ExcelJS from 'exceljs';
 import { QueryParams, CaseRow } from '../types/database';
-import { CreateCaseRequest } from '../types/cases';
+import { CreateApplicantData, CreateCaseRequest, CreateVerificationTask } from '../types/cases';
+import {
+  VerificationTaskCreationError,
+  VerificationTaskCreationService,
+} from '../services/verificationTaskCreationService';
 
 interface DatabaseError extends Error {
   code?: string;
@@ -756,27 +760,29 @@ export const getCaseById = async (req: AuthenticatedRequest, res: Response) => {
       WHERE a.case_id = $1
       ORDER BY a.created_at ASC, v.created_at ASC, vi.visit_number DESC
     `;
-    
+
     const hierarchyResult = await pool.query(hierarchyQuery, [caseRow.id]);
-    
+
     // Group hierarchy data
     const applicantsMap = new Map();
-    
+
     hierarchyResult.rows.forEach(row => {
-      if (!row.applicant_id) return;
-      
+      if (!row.applicant_id) {
+        return;
+      }
+
       if (!applicantsMap.has(row.applicant_id)) {
         applicantsMap.set(row.applicant_id, {
           id: row.applicant_id,
           name: row.applicant_name,
           mobile: row.applicant_mobile,
           role: row.applicant_role,
-          verifications: new Map()
+          verifications: new Map(),
         });
       }
-      
+
       const applicant = applicantsMap.get(row.applicant_id);
-      
+
       if (row.verification_id) {
         if (!applicant.verifications.has(row.verification_id)) {
           applicant.verifications.set(row.verification_id, {
@@ -785,31 +791,33 @@ export const getCaseById = async (req: AuthenticatedRequest, res: Response) => {
             verification_type_name: row.verification_type_name,
             address: row.address,
             pincode_id: row.pincode_id,
-            visits: []
+            visits: [],
           });
         }
-        
+
         const verification = applicant.verifications.get(row.verification_id);
-        
+
         if (row.visit_id) {
           verification.visits.push({
             id: row.visit_id,
             status: row.visit_status,
             visit_number: row.visit_number,
-            assigned_to: row.visit_assigned_to ? {
-              id: row.visit_assigned_to,
-              name: row.visit_assigned_to_name
-            } : null,
-            completed_at: row.visit_completed_at
+            assigned_to: row.visit_assigned_to
+              ? {
+                  id: row.visit_assigned_to,
+                  name: row.visit_assigned_to_name,
+                }
+              : null,
+            completed_at: row.visit_completed_at,
           });
         }
       }
     });
-    
+
     // Transform maps to arrays
     const applicants = Array.from(applicantsMap.values()).map(app => ({
       ...app,
-      verifications: Array.from(app.verifications.values())
+      verifications: Array.from(app.verifications.values()),
     }));
 
     // Transform data to match frontend expectations (Backward Compatibility + New Hierarchy)
@@ -866,7 +874,7 @@ export const getCaseById = async (req: AuthenticatedRequest, res: Response) => {
     logger.info('Case hierarchy retrieved', {
       userId: req.user?.id,
       caseId: id,
-      applicantCount: applicants.length
+      applicantCount: applicants.length,
     });
 
     res.json({
@@ -2002,7 +2010,7 @@ export const createCase = [
       await client.query('BEGIN');
 
       const userId = req.user?.id;
-      const userRole = req.user?.role;
+      const _userRole = req.user?.role;
 
       if (!userId) {
         await client.query('ROLLBACK');
@@ -2017,6 +2025,7 @@ export const createCase = [
       // ========== PARSE AND VALIDATE REQUEST DATA ==========
       let requestData: CreateCaseRequest;
       try {
+        console.info('REQ BODY:', JSON.stringify(req.body, null, 2));
         if (req.body.data) {
           // FormData format (with file uploads)
           requestData = JSON.parse(req.body.data);
@@ -2051,31 +2060,239 @@ export const createCase = [
         });
       }
 
-      const { case_details: caseDetails, applicants: applicantsData } = requestData;
+      const { case_details: caseDetails, verification_tasks: verificationTasksFromRequest } =
+        requestData;
+      let applicantsData = requestData.applicants;
+
+      if (
+        (!Array.isArray(applicantsData) || applicantsData.length === 0) &&
+        Array.isArray(verificationTasksFromRequest) &&
+        verificationTasksFromRequest.length > 0
+      ) {
+        const applicantsMap = new Map<
+          string,
+          {
+            name: string;
+            mobile: string;
+            role: string;
+            pan_number?: string;
+            verifications: CreateVerificationTask[];
+          }
+        >();
+        const pincodeIdCache = new Map<string, number | null>();
+
+        const resolvePincodeId = async (pincodeValue: unknown): Promise<number | null> => {
+          if (!pincodeValue) {
+            return null;
+          }
+          const pincodeCode =
+            typeof pincodeValue === 'string'
+              ? pincodeValue.trim()
+              : typeof pincodeValue === 'number'
+                ? String(pincodeValue).trim()
+                : '';
+          if (!pincodeCode) {
+            return null;
+          }
+          if (pincodeIdCache.has(pincodeCode)) {
+            return pincodeIdCache.get(pincodeCode);
+          }
+
+          const pincodeResult = await client.query('SELECT id FROM pincodes WHERE code = $1', [
+            pincodeCode,
+          ]);
+          const resolvedId = pincodeResult.rows[0]?.id ? Number(pincodeResult.rows[0].id) : null;
+          pincodeIdCache.set(pincodeCode, resolvedId);
+          return resolvedId;
+        };
+
+        for (const taskRaw of verificationTasksFromRequest) {
+          const task = taskRaw as Record<string, unknown>;
+          const role = String(
+            (task.applicant_type as string) ||
+              (task.applicantType as string) ||
+              caseDetails?.applicantType ||
+              'APPLICANT'
+          );
+          const name = String(
+            ((task.applicant as Record<string, unknown> | undefined)?.name as string) ||
+              caseDetails?.customerName ||
+              'Applicant'
+          );
+          const mobile = String(
+            ((task.applicant as Record<string, unknown> | undefined)?.mobile as string) ||
+              caseDetails?.customerPhone ||
+              ''
+          );
+          const panNumber = String(
+            ((task.applicant as Record<string, unknown> | undefined)?.pan_number as string) ||
+              caseDetails?.panNumber ||
+              ''
+          );
+          const verificationTypeId = Number(
+            task.verification_type_id || task.verificationTypeId || 0
+          );
+          if (!verificationTypeId) {
+            continue;
+          }
+
+          const pincodeIdFromTask =
+            task.pincode_id && Number(task.pincode_id)
+              ? Number(task.pincode_id)
+              : await resolvePincodeId(task.pincode);
+
+          const applicantKey = `${role}:${mobile || name}`;
+          if (!applicantsMap.has(applicantKey)) {
+            applicantsMap.set(applicantKey, {
+              name,
+              mobile,
+              role,
+              pan_number: panNumber || undefined,
+              verifications: [],
+            });
+          }
+
+          applicantsMap.get(applicantKey).verifications.push({
+            verification_type_id: verificationTypeId,
+            address: task.address || null,
+            pincode_id: pincodeIdFromTask,
+            assigned_to: task.assigned_to || task.assignedTo || null,
+            sla_deadline: task.estimated_completion_date || task.sla_deadline || null,
+          } as unknown as CreateVerificationTask);
+        }
+
+        applicantsData = Array.from(applicantsMap.values()) as CreateApplicantData[];
+      }
+
+      console.info('Parsed applicants:', applicantsData);
+      console.info('Parsed verification_tasks:', verificationTasksFromRequest);
 
       // ========== COMPREHENSIVE VALIDATION ==========
       if (!caseDetails || typeof caseDetails !== 'object') {
-        throw new Error('case_details is required');
+        const validationError = new Error('case_details is required');
+        (validationError as DatabaseError).code = 'VALIDATION_ERROR';
+        throw validationError;
       }
       if (!applicantsData || !Array.isArray(applicantsData) || applicantsData.length === 0) {
-        throw new Error('At least one applicant is required');
+        const validationError = new Error('At least one applicant is required');
+        (validationError as DatabaseError).code = 'VALIDATION_ERROR';
+        throw validationError;
       }
 
       const {
         clientId,
         productId,
+        customerName,
+        customerPhone,
+        customerCallingCode,
+        verificationTypeId,
+        applicantType,
+        trigger,
         priority = 'MEDIUM',
-        loanReferenceNumber,
         backendContactNumber,
       } = caseDetails;
+
+      const resolvedCaseCustomerName =
+        (customerName ? String(customerName).trim() : '') ||
+        (Array.isArray(applicantsData) && applicantsData.length > 0 && applicantsData[0].name
+          ? String(applicantsData[0].name).trim()
+          : '');
+      const resolvedCaseVerificationTypeId =
+        (verificationTypeId ? Number(verificationTypeId) : null) ||
+        (Array.isArray(verificationTasksFromRequest) &&
+        verificationTasksFromRequest.length > 0 &&
+        Number((verificationTasksFromRequest[0] as Record<string, unknown>).verification_type_id)
+          ? Number(
+              (verificationTasksFromRequest[0] as Record<string, unknown>).verification_type_id
+            )
+          : null) ||
+        (Array.isArray(applicantsData) &&
+        applicantsData.length > 0 &&
+        Array.isArray(applicantsData[0].verifications) &&
+        applicantsData[0].verifications.length > 0 &&
+        Number(applicantsData[0].verifications[0].verification_type_id)
+          ? Number(applicantsData[0].verifications[0].verification_type_id)
+          : null);
+      const resolvedCaseApplicantType =
+        (applicantType ? String(applicantType) : null) ||
+        (Array.isArray(applicantsData) && applicantsData.length > 0 && applicantsData[0].role
+          ? String(applicantsData[0].role)
+          : null) ||
+        (Array.isArray(verificationTasksFromRequest) &&
+        verificationTasksFromRequest.length > 0 &&
+        ((verificationTasksFromRequest[0] as Record<string, unknown>).applicant_type ||
+          (verificationTasksFromRequest[0] as Record<string, unknown>).applicantType)
+          ? String(
+              ((verificationTasksFromRequest[0] as Record<string, unknown>)
+                .applicant_type as string) ||
+                ((verificationTasksFromRequest[0] as Record<string, unknown>)
+                  .applicantType as string)
+            )
+          : null);
+      const resolvedCaseTrigger =
+        (trigger ? String(trigger) : null) ||
+        (Array.isArray(verificationTasksFromRequest) &&
+        verificationTasksFromRequest.length > 0 &&
+        (verificationTasksFromRequest[0] as Record<string, unknown>).trigger
+          ? String((verificationTasksFromRequest[0] as Record<string, unknown>).trigger as string)
+          : null);
+      const resolvedClientId =
+        clientId !== undefined && clientId !== null && String(clientId).trim() !== ''
+          ? Number(clientId)
+          : null;
+      const resolvedProductId =
+        productId !== undefined && productId !== null && String(productId).trim() !== ''
+          ? Number(productId)
+          : null;
+      const resolvedBackendContactNumber =
+        backendContactNumber !== undefined && backendContactNumber !== null
+          ? String(backendContactNumber).trim()
+          : '';
+      if (
+        !resolvedClientId ||
+        !resolvedProductId ||
+        !resolvedBackendContactNumber ||
+        !resolvedCaseCustomerName ||
+        !resolvedCaseVerificationTypeId ||
+        !resolvedCaseApplicantType ||
+        !resolvedCaseTrigger
+      ) {
+        const missingFields = [
+          !resolvedClientId ? 'clientId' : null,
+          !resolvedProductId ? 'productId' : null,
+          !resolvedBackendContactNumber ? 'backendContactNumber' : null,
+          !resolvedCaseCustomerName ? 'customerName' : null,
+          !resolvedCaseVerificationTypeId ? 'verificationTypeId' : null,
+          !resolvedCaseApplicantType ? 'applicantType' : null,
+          !resolvedCaseTrigger ? 'trigger' : null,
+        ].filter(Boolean);
+        const validationError = new Error(
+          `Missing required case fields: ${missingFields.join(', ')}`
+        );
+        (validationError as DatabaseError).code = 'VALIDATION_ERROR';
+        throw validationError;
+      }
 
       // ========== CREATE CASE ==========
       const caseResult = await client.query(
         `INSERT INTO cases (
-          "clientId", "productId", priority, "backendContactNumber",
-          loan_reference_number, "createdByBackendUser", status, "createdAt", "updatedAt"
-        ) VALUES ($1, $2, $3, $4, $5, $6, 'PENDING', NOW(), NOW()) RETURNING *`,
-        [clientId, productId, priority, backendContactNumber, loanReferenceNumber, userId]
+          "clientId", "productId", "customerName", "customerPhone", "customerCallingCode",
+          priority, "backendContactNumber",
+          "verificationTypeId", "applicantType", trigger, "createdByBackendUser", status, "createdAt", "updatedAt"
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'PENDING', NOW(), NOW()) RETURNING *`,
+        [
+          resolvedClientId,
+          resolvedProductId,
+          resolvedCaseCustomerName,
+          customerPhone || null,
+          customerCallingCode || null,
+          priority,
+          resolvedBackendContactNumber,
+          resolvedCaseVerificationTypeId,
+          resolvedCaseApplicantType,
+          resolvedCaseTrigger,
+          userId,
+        ]
       );
       const newCase = caseResult.rows[0];
 
@@ -2086,17 +2303,31 @@ export const createCase = [
         const applicantResult = await client.query(
           `INSERT INTO applicants (case_id, name, mobile, role, pan_number, id_details)
            VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-          [newCase.id, appData.name, appData.mobile, appData.role || 'APPLICANT', appData.pan_number, appData.id_details || {}]
+          [
+            newCase.id,
+            appData.name,
+            appData.mobile,
+            appData.role || 'APPLICANT',
+            appData.pan_number,
+            appData.id_details || {},
+          ]
         );
         const applicant = applicantResult.rows[0];
         const verifications = [];
 
         if (appData.verifications && Array.isArray(appData.verifications)) {
           for (const verData of appData.verifications) {
+            const pincodeId =
+              verData.pincode_id ||
+              (verData.pincode
+                ? (await client.query('SELECT id FROM pincodes WHERE code = $1', [verData.pincode]))
+                    .rows[0]?.id
+                : null);
+
             const verificationResult = await client.query(
               `INSERT INTO verifications (applicant_id, verification_type_id, address, pincode_id)
                VALUES ($1, $2, $3, $4) RETURNING *`,
-              [applicant.id, verData.verification_type_id, verData.address, verData.pincode_id]
+              [applicant.id, verData.verification_type_id, verData.address, pincodeId]
             );
             const verification = verificationResult.rows[0];
             const visits = [];
@@ -2108,7 +2339,7 @@ export const createCase = [
               [verification.id, verData.assigned_to || null, verData.sla_deadline || null]
             );
             visits.push(visitResult.rows[0]);
-            
+
             verifications.push({ ...verification, visits });
           }
         }
@@ -2117,11 +2348,95 @@ export const createCase = [
 
       // Backward compatibility: Set customerName on case from primary applicant
       if (createdHierarchy.length > 0) {
-        await client.query(
-          'UPDATE cases SET "customerName" = $1 WHERE id = $2',
-          [createdHierarchy[0].name, newCase.id]
-        );
+        await client.query('UPDATE cases SET "customerName" = $1 WHERE id = $2', [
+          createdHierarchy[0].name,
+          newCase.id,
+        ]);
       }
+
+      // Build verification tasks payload:
+      // 1) Prefer explicit verification_tasks from request
+      // 2) Fallback to applicants[].verifications[]
+      let tasksToCreate: Record<string, unknown>[] = [];
+
+      if (Array.isArray(verificationTasksFromRequest) && verificationTasksFromRequest.length > 0) {
+        tasksToCreate = verificationTasksFromRequest as unknown as Record<string, unknown>[];
+      } else {
+        // Cache pincode_id -> pincode code resolution to avoid repeated queries
+        const pincodeCodeCache = new Map<number, string>();
+
+        const resolvePincodeCode = async (pincodeId?: number): Promise<string | null> => {
+          if (!pincodeId) {
+            return null;
+          }
+          if (pincodeCodeCache.has(pincodeId)) {
+            return pincodeCodeCache.get(pincodeId);
+          }
+
+          const pincodeRes = await client.query('SELECT code FROM pincodes WHERE id = $1', [
+            pincodeId,
+          ]);
+          const pincodeCode = pincodeRes.rows[0]?.code ? String(pincodeRes.rows[0].code) : null;
+          if (pincodeCode) {
+            pincodeCodeCache.set(pincodeId, pincodeCode);
+          }
+          return pincodeCode;
+        };
+
+        for (const appData of applicantsData) {
+          if (!appData.verifications || !Array.isArray(appData.verifications)) {
+            continue;
+          }
+
+          for (const verData of appData.verifications) {
+            const pincodeCode =
+              typeof (verData as Record<string, unknown>).pincode === 'string'
+                ? String((verData as Record<string, unknown>).pincode as string)
+                : await resolvePincodeCode(
+                    Number((verData as Record<string, unknown>).pincode_id || 0) || undefined
+                  );
+
+            if (!pincodeCode) {
+              continue;
+            }
+
+            tasksToCreate.push({
+              verification_type_id: (verData as Record<string, unknown>).verification_type_id,
+              task_title: `Verification for ${appData.name}`,
+              task_description: 'Auto-generated task from case creation',
+              priority: caseDetails.priority || 'MEDIUM',
+              assigned_to:
+                (verData as Record<string, unknown>).assigned_to ||
+                (verData as Record<string, unknown>).assignedTo ||
+                null,
+              address: (verData as Record<string, unknown>).address,
+              pincode: pincodeCode,
+              estimated_completion_date: (verData as Record<string, unknown>).sla_deadline,
+              area_id: (verData as Record<string, unknown>).area_id || null,
+              applicant_type: appData.role || 'APPLICANT',
+              trigger: caseDetails.trigger || null,
+            });
+          }
+        }
+      }
+
+      if (!tasksToCreate || tasksToCreate.length === 0) {
+        const validationError = new Error('At least one verification task is required');
+        (validationError as DatabaseError).code = 'VALIDATION_ERROR';
+        throw validationError;
+      }
+
+      // Atomic requirement:
+      // case + hierarchy + verification tasks must all succeed in one transaction
+      await VerificationTaskCreationService.createForCase(
+        client,
+        newCase.id,
+        tasksToCreate,
+        userId
+      );
+
+      // Explicit commit before returning success
+      await client.query('COMMIT');
 
       // ========== RESPONSE ==========
       res.status(201).json({
@@ -2168,6 +2483,11 @@ export const createCase = [
         executionTime,
         stack: process.env.NODE_ENV !== 'production' ? err.stack : undefined,
       });
+
+      // Handle verification task creation structured errors
+      if (error instanceof VerificationTaskCreationError) {
+        return res.status(error.status).json(error.responseBody);
+      }
 
       // Handle specific database errors
       if (errorCode === '23505') {
@@ -2239,6 +2559,16 @@ export const createCase = [
           message: 'Database connection error. Please try again.',
           error: {
             code: 'DB_CONNECTION_ERROR',
+          },
+        });
+      }
+
+      if (errorCode === 'VALIDATION_ERROR') {
+        return res.status(400).json({
+          success: false,
+          message: errorMessage,
+          error: {
+            code: 'VALIDATION_ERROR',
           },
         });
       }
