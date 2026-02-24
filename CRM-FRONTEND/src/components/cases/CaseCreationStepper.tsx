@@ -258,6 +258,13 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
         return pincode?.code || pincodeId;
       };
 
+      const parsedClientId = parseInt(caseLevelData.clientId, 10);
+      const parsedProductId = parseInt(caseLevelData.productId, 10);
+      if (!Number.isFinite(parsedClientId) || !Number.isFinite(parsedProductId)) {
+        toast.error('Client and Product are required');
+        return;
+      }
+
       // Handle Edit Mode - Update Case
       if (editMode && editCaseId) {
         // For edit mode, we currently only support updating the case details and the first task
@@ -333,186 +340,119 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
         return;
       }
 
-      // If only 1 task, use the regular single-task case creation endpoint
-      if (tasks.length === 1) {
-        const task = tasks[0];
-        const selectedVerificationType = verificationTypes.find(vt => vt.id === task.verificationTypeId);
-        const verificationTypeName = selectedVerificationType?.name || '';
+      const applicantsByType = new Map<string, TaskFormData[]>();
+      for (const task of tasks) {
+        const applicantType = task.applicantType || 'APPLICANT';
+        const existingTasks = applicantsByType.get(applicantType) || [];
+        existingTasks.push(task);
+        applicantsByType.set(applicantType, existingTasks);
+      }
 
-        const caseData: CreateCaseData = {
-          // Core case fields
+      const applicants = Array.from(applicantsByType.entries()).map(([role, applicantTasks]) => ({
+        name: customerInfo.customerName,
+        mobile: customerInfo.mobileNumber || '',
+        role,
+        pan_number: customerInfo.panNumber || undefined,
+        verifications: applicantTasks.map(applicantTask => ({
+          verification_type_id: applicantTask.verificationTypeId,
+          address: applicantTask.address,
+          pincode_id: Number.isNaN(parseInt(applicantTask.pincodeId, 10))
+            ? undefined
+            : parseInt(applicantTask.pincodeId, 10),
+          area_id: Number.isNaN(parseInt(applicantTask.areaId, 10))
+            ? undefined
+            : parseInt(applicantTask.areaId, 10),
+          assigned_to: applicantTask.assignedTo || undefined,
+        })),
+      }));
+
+      const firstTask = tasks[0];
+      const payload = {
+        case_details: {
           customerName: customerInfo.customerName,
-          customerCallingCode: customerInfo.customerCallingCode,
           customerPhone: customerInfo.mobileNumber,
-          createdByBackendUser: caseLevelData.createdByBackendUser,
-          verificationType: mapVerificationType(verificationTypeName),
-          address: task.address,
-          pincode: getPincodeCode(task.pincodeId),
-          assignedToId: task.assignedTo,
-          clientId: caseLevelData.clientId,
-          productId: caseLevelData.productId,
-          verificationTypeId: (task.verificationTypeId || '').toString(),
-          applicantType: task.applicantType,
+          customerCallingCode: customerInfo.customerCallingCode,
+          clientId: parsedClientId,
+          productId: parsedProductId,
+          verificationTypeId: firstTask?.verificationTypeId,
+          applicantType: firstTask?.applicantType,
+          trigger: firstTask?.trigger,
           backendContactNumber: caseLevelData.backendContactNumber,
-          priority: task.priority,
-          trigger: task.trigger,
-          rateTypeId: task.rateTypeId,
-
-          // Deduplication fields
+          priority: firstTask?.priority || 'MEDIUM',
+          pincode: firstTask ? getPincodeCode(firstTask.pincodeId) : '',
           panNumber: customerInfo.panNumber,
           deduplicationDecision: deduplicationRationale.includes('No duplicate cases found') ? 'NO_DUPLICATES_FOUND' : 'CREATE_NEW',
           deduplicationRationale,
-        };
+        },
+        applicants,
+        verification_tasks: tasks.map((task, index) => {
+          if (!task.verificationTypeId) {
+            throw new Error(`Verification type missing for task ${index + 1}`);
+          }
+          return {
+            verification_type_id: task.verificationTypeId,
+            task_title: `${getVerificationTypeName(task.verificationTypeId)} - Task ${index + 1}`,
+            task_description: task.trigger,
+            priority: task.priority,
+            assigned_to: task.assignedTo || undefined,
+            rate_type_id: task.rateTypeId ? parseInt(task.rateTypeId, 10) : undefined,
+            address: task.address,
+            pincode: getPincodeCode(task.pincodeId),
+            area_id: Number.isNaN(parseInt(task.areaId, 10))
+              ? undefined
+              : parseInt(task.areaId, 10),
+            applicant_type: task.applicantType,
+            trigger: task.trigger,
+            document_type: task.documentType || undefined,
+            document_number: task.documentNumber || undefined,
+          };
+        })
+      };
 
-        const response = await casesService.createCase(caseData);
+      console.warn('CASE PAYLOAD', JSON.stringify(payload, null, 2));
+      const response = await casesService.createCaseWithMultipleTasks(payload);
 
-        if (response.success) {
-          // Upload attachments if any
-          if (task.attachments && task.attachments.length > 0) {
-            try {
-              const files = task.attachments.map(att => att.file);
-              // Extract caseId (integer) and taskId (UUID) from response
-              // Note: createCase uses unified /create endpoint which returns CreateCaseWithMultipleTasksResponse
-              const caseId = response.data?.case?.caseId ? String(response.data.case.caseId) : null;
-              const createdTasks = response.data?.tasks || [];
-              const taskId = createdTasks.length > 0 ? createdTasks[0].id : null;
+      if (response.success && response.data) {
+        const caseId = response.data.case?.caseId ? String(response.data.case.caseId) : null;
+        const createdTasks = response.data.tasks || [];
+        let totalAttachments = 0;
 
-              console.warn('📎 Uploading attachments:', {
-                caseId,
-                taskId,
-                caseIdType: typeof response.data?.case?.caseId,
-                fileCount: files.length,
-                responseData: response.data
-              });
+        if (caseId && createdTasks.length > 0) {
+          for (let i = 0; i < tasks.length; i++) {
+            const frontendTask = tasks[i];
+            const backendTask = createdTasks[i];
 
-              if (caseId && taskId) {
-                await casesService.uploadCaseAttachments(caseId, files, taskId);
-                toast.success(`Case created successfully with ${task.attachments.length} attachment(s)!`);
-              } else {
-                console.error('❌ No caseId or taskId found in response:', response.data);
-                toast.error('Case created but caseId/taskId not found for attachment upload');
+            if (frontendTask.attachments && frontendTask.attachments.length > 0 && backendTask) {
+              try {
+                const files = frontendTask.attachments.map(att => att.file);
+                await casesService.uploadCaseAttachments(caseId, files, backendTask.id);
+                totalAttachments += files.length;
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              } catch (error: any) {
+                console.error('❌ Error uploading task attachments:', {
+                  taskIndex: i,
+                  taskId: backendTask?.id,
+                  error: error.message || error,
+                });
+                toast.error(`Some attachments failed: ${error.message || 'Unknown error'}`);
               }
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            } catch (error: any) {
-              console.error('❌ Error uploading attachments:', {
-                error: error.message || error,
-                stack: error.stack,
-                caseId: response.data?.case?.caseId,
-                taskId: response.data?.tasks?.[0]?.id
-              });
-              toast.error(`Case created but attachments failed: ${error.message || 'Unknown error'}`);
             }
-          } else {
-            toast.success('Case created successfully!');
           }
+        } else if (tasks.some(t => t.attachments && t.attachments.length > 0)) {
+          toast.error('Case created but caseId/tasks not found for attachment upload');
+        }
 
-          if (onSuccess && response.data?.case?.caseId) {
-            onSuccess(response.data.case.caseId.toString());
-          }
+        if (totalAttachments > 0) {
+          toast.success(`Case created successfully with ${tasks.length} tasks and ${totalAttachments} attachment(s)!`);
         } else {
-          toast.error(response.message || 'Failed to create case');
+          toast.success(`Case created successfully with ${tasks.length} tasks!`);
+        }
+
+        if (onSuccess && response.data?.case?.caseId) {
+          onSuccess(response.data.case.caseId.toString());
         }
       } else {
-        // Multiple tasks - use multi-task endpoint
-        const payload = {
-          case_details: {
-            customerName: customerInfo.customerName,
-            customerPhone: customerInfo.mobileNumber,
-            customerCallingCode: customerInfo.customerCallingCode,
-            clientId: parseInt(caseLevelData.clientId),
-            productId: parseInt(caseLevelData.productId),
-            backendContactNumber: caseLevelData.backendContactNumber,
-            priority: 'MEDIUM',
-            pincode: tasks.length > 0 ? getPincodeCode(tasks[0].pincodeId) : '', // Use first task's pincode for case-level pincode
-            panNumber: customerInfo.panNumber,
-            deduplicationDecision: deduplicationRationale.includes('No duplicate cases found') ? 'NO_DUPLICATES_FOUND' : 'CREATE_NEW',
-            deduplicationRationale,
-          },
-          verification_tasks: tasks.map((task, index) => {
-            if (!task.verificationTypeId) {
-              throw new Error(`Verification type missing for task ${index + 1}`);
-            }
-            return {
-              verification_type_id: task.verificationTypeId,
-              task_title: `${getVerificationTypeName(task.verificationTypeId)} - Task ${index + 1}`,
-              task_description: task.trigger,
-              priority: task.priority,
-              assignedTo: task.assignedTo, // Use camelCase for consistency
-              rate_type_id: task.rateTypeId ? parseInt(task.rateTypeId) : undefined,
-              address: task.address,
-              pincode: getPincodeCode(task.pincodeId),
-              applicantType: task.applicantType, // Use camelCase for consistency with single task endpoint
-              trigger: task.trigger,
-              document_type: task.documentType || undefined,
-              document_number: task.documentNumber || undefined,
-            };
-          })
-        };
-
-        const response = await casesService.createCaseWithMultipleTasks(payload);
-
-        if (response.success && response.data) {
-          // Upload attachments for each task if any
-          // Extract caseId (integer) from response - must use integer for backend
-          const caseId = response.data.case?.caseId ? String(response.data.case.caseId) : null;
-          const createdTasks = response.data.tasks || [];
-          let totalAttachments = 0;
-
-          console.warn('📎 Multi-task case created, preparing to upload attachments:', {
-            caseId,
-            caseIdType: typeof response.data?.case?.caseId,
-            tasksWithAttachments: tasks.filter(t => t.attachments && t.attachments.length > 0).length,
-            createdTasksCount: createdTasks.length,
-            responseData: response.data
-          });
-
-          if (caseId && createdTasks.length > 0) {
-            // Match frontend tasks with backend tasks by index (they're in the same order)
-            for (let i = 0; i < tasks.length; i++) {
-              const frontendTask = tasks[i];
-              const backendTask = createdTasks[i];
-
-              if (frontendTask.attachments && frontendTask.attachments.length > 0 && backendTask) {
-                try {
-                  const files = frontendTask.attachments.map(att => att.file);
-                  const taskId = backendTask.id; // UUID of the created verification task
-
-                  console.warn(`📎 Uploading ${files.length} files for task ${i + 1} (ID: ${taskId})`);
-
-                  // Upload attachments with verification_task_id
-                  await casesService.uploadCaseAttachments(caseId, files, taskId);
-                  totalAttachments += files.length;
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                } catch (error: any) {
-                  console.error('❌ Error uploading task attachments:', {
-                    taskIndex: i,
-                    taskId: backendTask?.id,
-                    error: error.message || error,
-                    stack: error.stack
-                  });
-                  toast.error(`Some attachments failed: ${error.message || 'Unknown error'}`);
-                }
-              }
-            }
-          } else {
-            console.error('❌ No caseId or tasks found in multi-task response:', response.data);
-            if (tasks.some(t => t.attachments && t.attachments.length > 0)) {
-              toast.error('Case created but caseId/tasks not found for attachment upload');
-            }
-          }
-
-          if (totalAttachments > 0) {
-            toast.success(`Case created successfully with ${tasks.length} tasks and ${totalAttachments} attachment(s)!`);
-          } else {
-            toast.success(`Case created successfully with ${tasks.length} tasks!`);
-          }
-
-          if (onSuccess && response.data?.case?.caseId) {
-            onSuccess(response.data.case.caseId.toString());
-          }
-        } else {
-          toast.error(response.message || 'Failed to create case');
-        }
+        toast.error(response.message || 'Failed to create case');
       }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
@@ -568,6 +508,13 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
         deduplicationRationale,
       };
 
+      const parsedClientId = parseInt(caseData.clientId, 10);
+      const parsedProductId = caseData.productId ? parseInt(caseData.productId, 10) : undefined;
+      if (!Number.isFinite(parsedClientId) || (caseData.productId && !Number.isFinite(parsedProductId))) {
+        toast.error('Client and Product are required');
+        return;
+      }
+
       let result;
       if (editMode && editCaseId) {
         result = await casesService.updateCaseDetails(editCaseId, caseData);
@@ -593,17 +540,70 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
           }
         }
       } else {
-        // Create new case with attachments in single request
-        if (attachments.length > 0) {
-          const attachmentFiles = attachments.map(att => att.file);
-          result = await casesService.createCaseWithAttachments(caseData, attachmentFiles);
+        const payload = {
+          case_details: {
+            customerName: caseData.customerName,
+            customerPhone: caseData.customerPhone,
+            customerCallingCode: caseData.customerCallingCode,
+            clientId: parsedClientId,
+            productId: parsedProductId,
+            verificationTypeId: caseData.verificationTypeId ? parseInt(caseData.verificationTypeId, 10) : undefined,
+            applicantType: caseData.applicantType,
+            trigger: caseData.trigger,
+            backendContactNumber: caseData.backendContactNumber,
+            priority: caseData.priority || 'MEDIUM',
+            pincode: caseData.pincode,
+            deduplicationDecision: caseData.deduplicationDecision,
+            deduplicationRationale: caseData.deduplicationRationale,
+            panNumber: caseData.panNumber,
+          },
+          applicants: [{
+            name: caseData.customerName,
+            mobile: caseData.customerPhone || '',
+            role: caseData.applicantType || 'APPLICANT',
+            pan_number: caseData.panNumber || undefined,
+            verifications: [{
+              verification_type_id: caseData.verificationTypeId ? parseInt(caseData.verificationTypeId, 10) : undefined,
+              address: caseData.address,
+              pincode_id: Number.isNaN(parseInt(data.pincodeId, 10))
+                ? undefined
+                : parseInt(data.pincodeId, 10),
+              area_id: Number.isNaN(parseInt(data.areaId, 10))
+                ? undefined
+                : parseInt(data.areaId, 10),
+              assigned_to: caseData.assignedToId || undefined,
+            }],
+          }],
+          verification_tasks: [{
+            verification_type_id: caseData.verificationTypeId ? parseInt(caseData.verificationTypeId, 10) : 0,
+            task_title: `${caseData.verificationType || 'Verification'} Task`,
+            task_description: caseData.trigger,
+            priority: caseData.priority || 'MEDIUM',
+            assigned_to: caseData.assignedToId || undefined,
+            rate_type_id: caseData.rateTypeId ? parseInt(caseData.rateTypeId, 10) : undefined,
+            address: caseData.address,
+            pincode: caseData.pincode,
+            area_id: Number.isNaN(parseInt(data.areaId, 10))
+              ? undefined
+              : parseInt(data.areaId, 10),
+            applicant_type: caseData.applicantType,
+            trigger: caseData.trigger,
+          }]
+        };
 
-          if (result.success) {
+        console.warn('CASE PAYLOAD', JSON.stringify(payload, null, 2));
+        result = await casesService.createCaseWithMultipleTasks(payload);
+
+        if (result.success && attachments.length > 0) {
+          const attachmentFiles = attachments.map(att => att.file);
+          const createdCaseId = result.data?.case?.caseId ? String(result.data.case.caseId) : null;
+          const createdTaskId = result.data?.tasks?.[0]?.id || null;
+          if (createdCaseId && createdTaskId) {
+            await casesService.uploadCaseAttachments(createdCaseId, attachmentFiles, createdTaskId);
             toast.success(`Case created successfully with ${attachments.length} attachment(s)!`);
+          } else {
+            toast.error('Case created but attachment upload skipped because case/task id missing');
           }
-        } else {
-          // No attachments, use regular create endpoint
-          result = await casesService.createCase(caseData);
         }
       }
 
