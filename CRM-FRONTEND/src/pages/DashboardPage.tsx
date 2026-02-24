@@ -112,7 +112,7 @@ export const DashboardPage: React.FC = () => {
     {
       title: 'Pending Reviews',
       description: 'Cases waiting for approval',
-      href: '/cases/pending',
+      href: '/tasks/pending',
       icon: CheckSquare,
       count: stats.pendingReviewCases,
       color: 'bg-yellow-500',

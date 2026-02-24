@@ -15,13 +15,29 @@ export interface CreateCaseWithMultipleTasksPayload {
     customerCallingCode?: string;
     clientId: number;
     productId?: number;
+    verificationTypeId?: number;
+    applicantType?: string;
     backendContactNumber?: string;
     priority: string;
     pincode: string;
+    trigger?: string;
     deduplicationDecision?: string;
     deduplicationRationale?: string;
     panNumber?: string;
   };
+  applicants: Array<{
+    name: string;
+    mobile?: string;
+    role?: string;
+    pan_number?: string;
+    verifications?: Array<{
+      verification_type_id: number | null;
+      address?: string;
+      pincode_id?: number;
+      area_id?: number;
+      assigned_to?: string;
+    }>;
+  }>;
   verification_tasks: Array<{
     verification_type_id: number;
     task_title: string;
@@ -31,6 +47,7 @@ export interface CreateCaseWithMultipleTasksPayload {
     rate_type_id?: number;
     address: string;
     pincode: string;
+    area_id?: number;
     applicant_type?: string;
     trigger?: string;
   }>;

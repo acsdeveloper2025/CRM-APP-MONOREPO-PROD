@@ -28,6 +28,11 @@ interface SyncResults {
   errors: SyncError[];
 }
 
+interface SyncControllerError extends Error {
+  status?: number;
+  errorCode?: string;
+}
+
 // Type guards and interfaces for WhereClause usage
 interface DateRangeFilter {
   gte?: Date;
@@ -120,6 +125,22 @@ export class MobileSyncController {
           try {
             await MobileSyncController.processCaseChange(caseChange, userId, userRole, syncResults);
           } catch (error) {
+            const syncError = error as SyncControllerError;
+            if (
+              caseChange.action === 'CREATE' &&
+              syncError.status === 403 &&
+              syncError.errorCode === 'CASE_CREATION_DISABLED'
+            ) {
+              return res.status(403).json({
+                success: false,
+                message: 'Case creation must be performed via CRM backend.',
+                error: {
+                  code: 'CASE_CREATION_DISABLED',
+                  timestamp: new Date().toISOString(),
+                },
+              });
+            }
+
             logger.error(`Error processing case change ${caseChange.id}:`, error);
             syncResults.errors.push({
               type: 'CASE',
@@ -483,24 +504,12 @@ export class MobileSyncController {
       }
 
       case 'CREATE': {
-        // Create new case (if allowed)
-        if (userRole === 'FIELD_AGENT') {
-          throw new Error('Field users cannot create cases');
-        }
-
-        const cols: string[] = ['id', 'createdAt', 'updatedAt'];
-        const vals11: QueryParams = [id, new Date(timestamp), new Date()];
-        let _idx2 = 4;
-        for (const [key, value] of Object.entries(data)) {
-          cols.push(`"${key}"`);
-          vals11.push(value);
-          _idx2++;
-        }
-        const placeholders = vals11.map((_, i) => `$${i + 1}`).join(', ');
-        await query(`INSERT INTO cases (${cols.join(', ')}) VALUES (${placeholders})`, vals11);
-
-        syncResults.processedCases++;
-        break;
+        const createDisabledError = new Error(
+          'Case creation must be performed via CRM backend.'
+        ) as SyncControllerError;
+        createDisabledError.status = 403;
+        createDisabledError.errorCode = 'CASE_CREATION_DISABLED';
+        throw createDisabledError;
       }
 
       default:

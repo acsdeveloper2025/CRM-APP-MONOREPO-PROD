@@ -268,7 +268,20 @@ export interface CreateCaseWithMultipleTasksRequest {
     applicantType?: string;
     backendContactNumber?: string;
     trigger?: string;
+    verificationTypeId?: number;
   };
+  applicants?: Array<{
+    name: string;
+    mobile?: string;
+    role?: string;
+    pan_number?: string;
+    verifications?: Array<{
+      verification_type_id?: number | null;
+      address?: string;
+      pincode_id?: number;
+      assigned_to?: string;
+    }>;
+  }>;
   verification_tasks: CreateVerificationTaskRequest[];
 }
 

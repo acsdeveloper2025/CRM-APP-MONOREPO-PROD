@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { casesService, type CaseListQuery, type CaseUpdateData, type CreateCaseData } from '@/services/cases';
+import { casesService, type CaseListQuery, type CaseUpdateData } from '@/services/cases';
+import type { CreateCaseWithMultipleTasksPayload } from '@/types/dto/case.dto';
 import { toast } from 'sonner';
 import { useCallback } from 'react';
 import { useMutationWithInvalidation } from './useStandardizedMutation';
@@ -109,7 +110,7 @@ export const useAssignCase = () => {
 
 export const useCreateCase = () => {
   return useMutationWithInvalidation({
-    mutationFn: (data: CreateCaseData) => casesService.createCase(data),
+    mutationFn: (data: CreateCaseWithMultipleTasksPayload) => casesService.createCaseWithMultipleTasks(data),
     invalidateKeys: [caseKeys.all, ['dashboard'], ['verification-tasks']],
     successMessage: 'Case created and assigned successfully',
     errorContext: 'Case Creation',

@@ -1,0 +1,155 @@
+                                           Table "public.users"
+          Column          |            Type             | Collation | Nullable |          Default          
+--------------------------+-----------------------------+-----------+----------+---------------------------
+ id                       | uuid                        |           | not null | gen_random_uuid()
+ name                     | character varying(100)      |           | not null | 
+ username                 | character varying(50)       |           | not null | 
+ password                 | character varying(255)      |           | not null | 
+ passwordHash             | character varying(255)      |           | not null | 
+ role                     | character varying(20)       |           | not null | 'USER'::character varying
+ email                    | character varying(100)      |           |          | 
+ phone                    | character varying(20)       |           |          | 
+ isActive                 | boolean                     |           |          | true
+ lastLogin                | timestamp with time zone    |           |          | 
+ createdAt                | timestamp with time zone    |           |          | CURRENT_TIMESTAMP
+ updatedAt                | timestamp with time zone    |           |          | CURRENT_TIMESTAMP
+ employeeId               | character varying(50)       |           |          | 
+ designation              | character varying(100)      |           |          | 
+ department               | character varying(100)      |           |          | 
+ profilePhotoUrl          | character varying(500)      |           |          | 
+ roleId                   | integer                     |           |          | 
+ departmentId             | integer                     |           |          | 
+ designationId            | integer                     |           |          | 
+ performance_rating       | numeric(3,2)                |           |          | NULL::numeric
+ total_cases_handled      | integer                     |           |          | 0
+ avg_case_completion_days | numeric(6,2)                |           |          | NULL::numeric
+ last_active_at           | timestamp without time zone |           |          | 
+ preferred_form_types     | character varying(100)      |           |          | NULL::character varying
+ deletedAt                | timestamp with time zone    |           |          | 
+Indexes:
+    "users_pkey" PRIMARY KEY, btree (id)
+    "idx_users_deleted_at" btree ("deletedAt")
+    "idx_users_department_id" btree ("departmentId")
+    "idx_users_designation_id" btree ("designationId")
+    "idx_users_email" btree (email)
+    "idx_users_employee_id" btree ("employeeId")
+    "idx_users_is_active" btree ("isActive")
+    "idx_users_last_active_at" btree (last_active_at)
+    "idx_users_last_login" btree ("lastLogin")
+    "idx_users_name_search" gin (to_tsvector('english'::regconfig, name::text))
+    "idx_users_performance_rating" btree (performance_rating)
+    "idx_users_role" btree (role)
+    "idx_users_role_active" btree (role, "isActive")
+    "idx_users_role_id" btree ("roleId")
+    "idx_users_username" btree (username)
+    "users_username_key" UNIQUE CONSTRAINT, btree (username)
+Check constraints:
+    "chk_users_role" CHECK (role::text = ANY (ARRAY['SUPER_ADMIN'::character varying::text, 'ADMIN'::character varying::text, 'BACKEND_USER'::character varying::text, 'FIELD_AGENT'::character varying::text, 'MANAGER'::character varying::text, 'REPORT_PERSON'::character varying::text]))
+    "users_avg_case_completion_days_check" CHECK (avg_case_completion_days >= 0::numeric)
+    "users_performance_rating_check" CHECK (performance_rating >= 0::numeric AND performance_rating <= 5::numeric)
+    "users_total_cases_handled_check" CHECK (total_cases_handled >= 0)
+Foreign-key constraints:
+    "fk_users_department_id" FOREIGN KEY ("departmentId") REFERENCES departments(id)
+    "fk_users_designation_id" FOREIGN KEY ("designationId") REFERENCES designations(id)
+    "fk_users_role_id" FOREIGN KEY ("roleId") REFERENCES roles(id)
+Referenced by:
+    TABLE "agent_performance_daily" CONSTRAINT "agent_performance_daily_agent_id_fkey" FOREIGN KEY (agent_id) REFERENCES users(id) ON DELETE CASCADE
+    TABLE "attachments" CONSTRAINT "attachments_uploaded_by_fkey" FOREIGN KEY ("uploadedBy") REFERENCES users(id) ON DELETE RESTRICT
+    TABLE ""auditLogs"" CONSTRAINT "audit_logs_user_id_fkey" FOREIGN KEY ("userId") REFERENCES users(id) ON DELETE SET NULL
+    TABLE ""autoSaves"" CONSTRAINT "auto_saves_user_id_fkey" FOREIGN KEY ("userId") REFERENCES users(id) ON DELETE CASCADE
+    TABLE ""backgroundSyncQueue"" CONSTRAINT "background_sync_queue_user_id_fkey" FOREIGN KEY ("userId") REFERENCES users(id) ON DELETE CASCADE
+    TABLE "case_assignment_conflicts" CONSTRAINT "case_assignment_conflicts_clientAssignedTo_fkey" FOREIGN KEY ("clientAssignedTo") REFERENCES users(id) ON DELETE SET NULL
+    TABLE "case_assignment_conflicts" CONSTRAINT "case_assignment_conflicts_resolvedBy_fkey" FOREIGN KEY ("resolvedBy") REFERENCES users(id) ON DELETE SET NULL
+    TABLE "case_assignment_conflicts" CONSTRAINT "case_assignment_conflicts_serverAssignedTo_fkey" FOREIGN KEY ("serverAssignedTo") REFERENCES users(id) ON DELETE SET NULL
+    TABLE "case_assignment_history" CONSTRAINT "case_assignment_history_assignedById_fkey" FOREIGN KEY ("assignedById") REFERENCES users(id) ON DELETE CASCADE
+    TABLE "case_assignment_history" CONSTRAINT "case_assignment_history_assignedBy_fkey" FOREIGN KEY ("assignedBy") REFERENCES users(id)
+    TABLE "case_assignment_history" CONSTRAINT "case_assignment_history_fromUserId_fkey" FOREIGN KEY ("fromUserId") REFERENCES users(id) ON DELETE SET NULL
+    TABLE "case_assignment_history" CONSTRAINT "case_assignment_history_newAssignee_fkey" FOREIGN KEY ("newAssignee") REFERENCES users(id)
+    TABLE "case_assignment_history" CONSTRAINT "case_assignment_history_previousAssignee_fkey" FOREIGN KEY ("previousAssignee") REFERENCES users(id)
+    TABLE "case_assignment_history" CONSTRAINT "case_assignment_history_toUserId_fkey" FOREIGN KEY ("toUserId") REFERENCES users(id) ON DELETE CASCADE
+    TABLE "case_assignment_queue_status" CONSTRAINT "case_assignment_queue_status_assignedToId_fkey" FOREIGN KEY ("assignedToId") REFERENCES users(id) ON DELETE CASCADE
+    TABLE "case_assignment_queue_status" CONSTRAINT "case_assignment_queue_status_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES users(id) ON DELETE CASCADE
+    TABLE "case_configuration_errors" CONSTRAINT "case_configuration_errors_resolved_by_fkey" FOREIGN KEY (resolved_by) REFERENCES users(id)
+    TABLE ""caseDeduplicationAudit"" CONSTRAINT "case_deduplication_audit_performedBy_fkey" FOREIGN KEY ("performedBy") REFERENCES users(id) ON DELETE RESTRICT
+    TABLE "case_timeline_events" CONSTRAINT "case_timeline_events_performed_by_fkey" FOREIGN KEY (performed_by) REFERENCES users(id)
+    TABLE ""clientDocumentTypes"" CONSTRAINT "clientDocumentTypes_created_by_fkey" FOREIGN KEY (created_by) REFERENCES users(id)
+    TABLE "commission_calculations" CONSTRAINT "commission_calculations_approved_by_fkey" FOREIGN KEY (approved_by) REFERENCES users(id)
+    TABLE "commission_calculations" CONSTRAINT "commission_calculations_paid_by_fkey" FOREIGN KEY (paid_by) REFERENCES users(id)
+    TABLE "commission_calculations" CONSTRAINT "commission_calculations_user_id_fkey" FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    TABLE "commission_payment_batches" CONSTRAINT "commission_payment_batches_created_by_fkey" FOREIGN KEY (created_by) REFERENCES users(id)
+    TABLE "commission_payment_batches" CONSTRAINT "commission_payment_batches_processed_by_fkey" FOREIGN KEY (processed_by) REFERENCES users(id)
+    TABLE "commission_rate_types" CONSTRAINT "commission_rate_types_created_by_fkey" FOREIGN KEY (created_by) REFERENCES users(id)
+    TABLE "designations" CONSTRAINT "designations_created_by_fkey" FOREIGN KEY ("createdBy") REFERENCES users(id) ON DELETE SET NULL
+    TABLE "designations" CONSTRAINT "designations_updated_by_fkey" FOREIGN KEY ("updatedBy") REFERENCES users(id) ON DELETE SET NULL
+    TABLE ""documentTypeRates"" CONSTRAINT "documentTypeRates_createdBy_fkey" FOREIGN KEY ("createdBy") REFERENCES users(id)
+    TABLE ""documentTypes"" CONSTRAINT "documentTypes_created_by_fkey" FOREIGN KEY (created_by) REFERENCES users(id)
+    TABLE "error_logs" CONSTRAINT "error_logs_user_id_fkey" FOREIGN KEY (user_id) REFERENCES users(id)
+    TABLE "field_user_commission_assignments" CONSTRAINT "field_user_commission_assignments_created_by_fkey" FOREIGN KEY (created_by) REFERENCES users(id)
+    TABLE "field_user_commission_assignments" CONSTRAINT "field_user_commission_assignments_user_id_fkey" FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    TABLE "ai_reports" CONSTRAINT "fk_ai_reports_generated_by" FOREIGN KEY (generated_by) REFERENCES users(id) ON DELETE SET NULL
+    TABLE ""builderVerificationReports"" CONSTRAINT "fk_builder_verification_verified_by" FOREIGN KEY (verified_by) REFERENCES users(id) ON DELETE SET NULL
+    TABLE ""businessVerificationReports"" CONSTRAINT "fk_business_verification_verified_by" FOREIGN KEY (verified_by) REFERENCES users(id) ON DELETE SET NULL
+    TABLE "case_status_history" CONSTRAINT "fk_case_status_history_user" FOREIGN KEY ("transitionedBy") REFERENCES users(id) ON DELETE SET NULL
+    TABLE "cases" CONSTRAINT "fk_cases_created_by_backend_user" FOREIGN KEY ("createdByBackendUser") REFERENCES users(id) ON DELETE SET NULL
+    TABLE "departments" CONSTRAINT "fk_departments_created_by" FOREIGN KEY ("createdBy") REFERENCES users(id) ON DELETE SET NULL
+    TABLE "departments" CONSTRAINT "fk_departments_head" FOREIGN KEY ("departmentHeadId") REFERENCES users(id) ON DELETE SET NULL
+    TABLE "departments" CONSTRAINT "fk_departments_updated_by" FOREIGN KEY ("updatedBy") REFERENCES users(id) ON DELETE SET NULL
+    TABLE ""dsaConnectorVerificationReports"" CONSTRAINT "fk_dsa_connector_verification_verified_by" FOREIGN KEY (verified_by) REFERENCES users(id) ON DELETE SET NULL
+    TABLE ""nocVerificationReports"" CONSTRAINT "fk_noc_verification_verified_by" FOREIGN KEY (verified_by) REFERENCES users(id) ON DELETE SET NULL
+    TABLE ""officeVerificationReports"" CONSTRAINT "fk_office_verification_verified_by" FOREIGN KEY (verified_by) REFERENCES users(id) ON DELETE SET NULL
+    TABLE ""propertyApfVerificationReports"" CONSTRAINT "fk_property_apf_verification_verified_by" FOREIGN KEY (verified_by) REFERENCES users(id) ON DELETE SET NULL
+    TABLE ""propertyIndividualVerificationReports"" CONSTRAINT "fk_property_individual_verification_verified_by" FOREIGN KEY (verified_by) REFERENCES users(id) ON DELETE SET NULL
+    TABLE ""residenceCumOfficeVerificationReports"" CONSTRAINT "fk_res_cum_office_verification_verified_by" FOREIGN KEY (verified_by) REFERENCES users(id) ON DELETE SET NULL
+    TABLE ""residenceVerificationReports"" CONSTRAINT "fk_residence_verification_verified_by" FOREIGN KEY (verified_by) REFERENCES users(id) ON DELETE SET NULL
+    TABLE "roles" CONSTRAINT "fk_roles_created_by" FOREIGN KEY ("createdBy") REFERENCES users(id) ON DELETE SET NULL
+    TABLE "roles" CONSTRAINT "fk_roles_updated_by" FOREIGN KEY ("updatedBy") REFERENCES users(id) ON DELETE SET NULL
+    TABLE "task_assignment_history" CONSTRAINT "fk_task_assignment_assigned_by" FOREIGN KEY (assigned_by) REFERENCES users(id)
+    TABLE "task_assignment_history" CONSTRAINT "fk_task_assignment_assigned_to" FOREIGN KEY (assigned_to) REFERENCES users(id)
+    TABLE "task_commission_calculations" CONSTRAINT "fk_task_commission_user" FOREIGN KEY (user_id) REFERENCES users(id)
+    TABLE "task_form_submissions" CONSTRAINT "fk_task_form_submitted_by" FOREIGN KEY (submitted_by) REFERENCES users(id)
+    TABLE ""territoryAssignmentAudit"" CONSTRAINT "fk_territory_assignment_audit_performed_by" FOREIGN KEY ("performedBy") REFERENCES users(id) ON DELETE RESTRICT
+    TABLE ""territoryAssignmentAudit"" CONSTRAINT "fk_territory_assignment_audit_user" FOREIGN KEY ("userId") REFERENCES users(id) ON DELETE CASCADE
+    TABLE ""userAreaAssignments"" CONSTRAINT "fk_user_area_assignments_assigned_by" FOREIGN KEY ("assignedBy") REFERENCES users(id) ON DELETE RESTRICT
+    TABLE ""userAreaAssignments"" CONSTRAINT "fk_user_area_assignments_user" FOREIGN KEY ("userId") REFERENCES users(id) ON DELETE CASCADE
+    TABLE ""userClientAssignments"" CONSTRAINT "fk_user_client_assignments_assigned_by" FOREIGN KEY ("assignedBy") REFERENCES users(id) ON DELETE SET NULL
+    TABLE ""userClientAssignments"" CONSTRAINT "fk_user_client_assignments_user" FOREIGN KEY ("userId") REFERENCES users(id) ON DELETE CASCADE
+    TABLE ""userPincodeAssignments"" CONSTRAINT "fk_user_pincode_assignments_assigned_by" FOREIGN KEY ("assignedBy") REFERENCES users(id) ON DELETE RESTRICT
+    TABLE ""userPincodeAssignments"" CONSTRAINT "fk_user_pincode_assignments_user" FOREIGN KEY ("userId") REFERENCES users(id) ON DELETE CASCADE
+    TABLE ""userProductAssignments"" CONSTRAINT "fk_user_product_assignments_assigned_by" FOREIGN KEY ("assignedBy") REFERENCES users(id) ON DELETE SET NULL
+    TABLE ""userProductAssignments"" CONSTRAINT "fk_user_product_assignments_user" FOREIGN KEY ("userId") REFERENCES users(id) ON DELETE CASCADE
+    TABLE "verification_attachments" CONSTRAINT "fk_verification_attachments_uploaded_by" FOREIGN KEY ("uploadedBy") REFERENCES users(id) ON DELETE SET NULL
+    TABLE "verification_tasks" CONSTRAINT "fk_verification_tasks_assigned_by" FOREIGN KEY (assigned_by) REFERENCES users(id)
+    TABLE "verification_tasks" CONSTRAINT "fk_verification_tasks_assigned_to" FOREIGN KEY (assigned_to) REFERENCES users(id)
+    TABLE "visits" CONSTRAINT "fk_visits_assignee" FOREIGN KEY (assigned_to) REFERENCES users(id)
+    TABLE "form_submissions" CONSTRAINT "form_submissions_submitted_by_fkey" FOREIGN KEY (submitted_by) REFERENCES users(id)
+    TABLE "form_submissions" CONSTRAINT "form_submissions_validated_by_fkey" FOREIGN KEY (validated_by) REFERENCES users(id)
+    TABLE "locations" CONSTRAINT "locations_recorded_by_fkey" FOREIGN KEY ("recordedBy") REFERENCES users(id) ON DELETE RESTRICT
+    TABLE "mobile_device_sync" CONSTRAINT "mobile_device_sync_userId_fkey" FOREIGN KEY ("userId") REFERENCES users(id) ON DELETE CASCADE
+    TABLE "mobile_notification_audit" CONSTRAINT "mobile_notification_audit_userId_fkey" FOREIGN KEY ("userId") REFERENCES users(id) ON DELETE SET NULL
+    TABLE "mobile_notification_queue" CONSTRAINT "mobile_notification_queue_userId_fkey" FOREIGN KEY ("userId") REFERENCES users(id) ON DELETE CASCADE
+    TABLE "notification_batches" CONSTRAINT "notification_batches_created_by_fkey" FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+    TABLE "notification_preferences" CONSTRAINT "notification_preferences_user_id_fkey" FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    TABLE ""notificationTokens"" CONSTRAINT "notification_tokens_user_id_fkey" FOREIGN KEY ("userId") REFERENCES users(id) ON DELETE CASCADE
+    TABLE "notification_tokens" CONSTRAINT "notification_tokens_user_id_fkey1" FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    TABLE "notifications" CONSTRAINT "notifications_user_id_fkey" FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    TABLE "performance_metrics" CONSTRAINT "performance_metrics_user_id_fkey" FOREIGN KEY (user_id) REFERENCES users(id)
+    TABLE ""productDocumentTypes"" CONSTRAINT "productDocumentTypes_created_by_fkey" FOREIGN KEY (created_by) REFERENCES users(id)
+    TABLE ""rateHistory"" CONSTRAINT "rateHistory_changedBy_fkey" FOREIGN KEY ("changedBy") REFERENCES users(id) ON DELETE SET NULL
+    TABLE "rates" CONSTRAINT "rates_createdBy_fkey" FOREIGN KEY ("createdBy") REFERENCES users(id) ON DELETE SET NULL
+    TABLE ""refreshTokens"" CONSTRAINT "refresh_tokens_user_id_fkey" FOREIGN KEY ("userId") REFERENCES users(id) ON DELETE CASCADE
+    TABLE "scheduled_reports" CONSTRAINT "scheduled_reports_created_by_fkey" FOREIGN KEY (created_by) REFERENCES users(id)
+    TABLE "security_audit_events" CONSTRAINT "security_audit_events_user_id_fkey" FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+    TABLE "template_reports" CONSTRAINT "template_reports_created_by_fkey" FOREIGN KEY (created_by) REFERENCES users(id)
+    TABLE "trusted_devices" CONSTRAINT "trusted_devices_user_id_fkey" FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+    TABLE ""userAreaAssignments"" CONSTRAINT "userAreaAssignments_userId_fkey" FOREIGN KEY ("userId") REFERENCES users(id) ON DELETE CASCADE
+    TABLE ""userClientAssignments"" CONSTRAINT "userClientAssignments_userId_fkey" FOREIGN KEY ("userId") REFERENCES users(id) ON DELETE CASCADE
+    TABLE ""userPincodeAssignments"" CONSTRAINT "userPincodeAssignments_userId_fkey" FOREIGN KEY ("userId") REFERENCES users(id) ON DELETE CASCADE
+    TABLE ""userProductAssignments"" CONSTRAINT "userProductAssignments_userId_fkey" FOREIGN KEY ("userId") REFERENCES users(id) ON DELETE CASCADE
+    TABLE "verification_attachments" CONSTRAINT "verification_attachments_deleted_by_fkey" FOREIGN KEY (deleted_by) REFERENCES users(id) ON DELETE SET NULL
+    TABLE "verification_tasks" CONSTRAINT "verification_tasks_cancelled_by_fkey" FOREIGN KEY (cancelled_by) REFERENCES users(id)
+    TABLE "verification_tasks" CONSTRAINT "verification_tasks_reviewer_id_fkey" FOREIGN KEY (reviewer_id) REFERENCES users(id) ON DELETE SET NULL
+    TABLE "verification_tasks" CONSTRAINT "verification_tasks_revoked_by_fkey" FOREIGN KEY (revoked_by) REFERENCES users(id)
+Triggers:
+    trigger_create_notification_preferences AFTER INSERT ON users FOR EACH ROW EXECUTE FUNCTION create_default_notification_preferences()
+    update_users_updated_at BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION update_users_updated_at()
+

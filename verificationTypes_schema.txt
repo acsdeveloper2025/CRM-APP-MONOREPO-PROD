@@ -1,0 +1,22 @@
+                                           Table "public.verificationTypes"
+   Column    |           Type           | Collation | Nullable |                       Default                        
+-------------+--------------------------+-----------+----------+------------------------------------------------------
+ name        | character varying(255)   |           | not null | 
+ code        | character varying(50)    |           | not null | 
+ description | text                     |           |          | 
+ createdAt   | timestamp with time zone |           |          | CURRENT_TIMESTAMP
+ updatedAt   | timestamp with time zone |           |          | CURRENT_TIMESTAMP
+ isActive    | boolean                  |           |          | true
+ id          | integer                  |           | not null | nextval('"verificationTypes_temp_id_seq"'::regclass)
+Indexes:
+    "verificationTypes_pkey" PRIMARY KEY, btree (id)
+    "verificationTypes_code_key" UNIQUE CONSTRAINT, btree (code)
+Referenced by:
+    TABLE "cases" CONSTRAINT "fk_cases_verification_type_id" FOREIGN KEY ("verificationTypeId") REFERENCES "verificationTypes"(id) ON DELETE RESTRICT
+    TABLE ""productVerificationTypes"" CONSTRAINT "fk_product_verification_types_verification_type" FOREIGN KEY ("verificationTypeId") REFERENCES "verificationTypes"(id)
+    TABLE ""rateTypeAssignments"" CONSTRAINT "fk_rate_type_assignments_verification_type" FOREIGN KEY ("verificationTypeId") REFERENCES "verificationTypes"(id)
+    TABLE "rates" CONSTRAINT "fk_rates_verification_type" FOREIGN KEY ("verificationTypeId") REFERENCES "verificationTypes"(id)
+    TABLE "verification_tasks" CONSTRAINT "fk_verification_tasks_verification_type" FOREIGN KEY (verification_type_id) REFERENCES "verificationTypes"(id)
+    TABLE "verifications" CONSTRAINT "fk_verifications_type" FOREIGN KEY (verification_type_id) REFERENCES "verificationTypes"(id)
+    TABLE "form_submissions" CONSTRAINT "form_submissions_verification_type_id_fkey" FOREIGN KEY (verification_type_id) REFERENCES "verificationTypes"(id)
+

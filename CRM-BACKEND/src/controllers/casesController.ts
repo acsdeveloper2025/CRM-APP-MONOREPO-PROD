@@ -2428,7 +2428,7 @@ export const createCase = [
 
       // Atomic requirement:
       // case + hierarchy + verification tasks must all succeed in one transaction
-      await VerificationTaskCreationService.createForCase(
+      const taskCreationResult = await VerificationTaskCreationService.createForCase(
         client,
         newCase.id,
         tasksToCreate,
@@ -2451,6 +2451,7 @@ export const createCase = [
             createdAt: newCase.createdAt,
           },
           hierarchy: createdHierarchy,
+          tasks: taskCreationResult.createdTasks,
         },
       });
     } catch (error: unknown) {

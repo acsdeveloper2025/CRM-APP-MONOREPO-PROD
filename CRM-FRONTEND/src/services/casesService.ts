@@ -19,6 +19,7 @@ import type {
   BulkOperationResult,
   ExportOptions
 } from '@/types';
+import type { CreateCaseWithMultipleTasksPayload } from '@/types/dto/case.dto';
 import type { CreateCaseWithMultipleTasksResponse } from '@/types/verificationTask';
 
 // Request/Response interfaces
@@ -169,93 +170,10 @@ export class CasesService extends BaseApiService {
     return this.get(`/${id}`);
   }
 
-  /**
-   * Create new case (uses unified /create endpoint)
-   * Returns CreateCaseWithMultipleTasksResponse structure
-   */
-  async createCase(data: CreateCaseData): Promise<ApiResponse<CreateCaseWithMultipleTasksResponse>> {
-    // Transform old format to new unified format
-    const unifiedPayload = {
-      case_details: {
-        customerName: data.customerName,
-        customerPhone: data.customerPhone,
-        customerCallingCode: data.customerCallingCode,
-        clientId: data.clientId,
-        productId: data.productId,
-        backendContactNumber: data.backendContactNumber,
-        priority: data.priority,
-        pincode: data.pincode,
-        deduplicationDecision: data.deduplicationDecision,
-        deduplicationRationale: data.deduplicationRationale,
-        panNumber: data.panNumber,
-      },
-      verification_tasks: [{
-        verification_type_id: data.verificationTypeId || 0,
-        task_title: `${data.verificationType || 'Verification'} Task`,
-        task_description: data.trigger,
-        priority: data.priority,
-        assigned_to: data.assignedToId || undefined,
-        rate_type_id: data.rateTypeId,
-        address: data.address,
-        pincode: data.pincode,
-        applicant_type: data.applicantType,
-        trigger: data.trigger,
-      }]
-    };
-
-    return this.post('/create', unifiedPayload);
-  }
-
-  /**
-   * Create case with file attachments (uses unified /create endpoint)
-   * Returns CreateCaseWithMultipleTasksResponse structure
-   */
-  async createCaseWithAttachments(
-    data: CreateCaseData,
-    attachments: File[]
+  async createCaseWithMultipleTasks(
+    payload: CreateCaseWithMultipleTasksPayload
   ): Promise<ApiResponse<CreateCaseWithMultipleTasksResponse>> {
-    const formData = new FormData();
-
-    // Transform to unified format
-    const unifiedPayload = {
-      case_details: {
-        customerName: data.customerName,
-        customerPhone: data.customerPhone,
-        customerCallingCode: data.customerCallingCode,
-        clientId: data.clientId,
-        productId: data.productId,
-        backendContactNumber: data.backendContactNumber,
-        priority: data.priority,
-        pincode: data.pincode,
-        deduplicationDecision: data.deduplicationDecision,
-        deduplicationRationale: data.deduplicationRationale,
-        panNumber: data.panNumber,
-      },
-      verification_tasks: [{
-        verification_type_id: data.verificationTypeId || 0,
-        task_title: `${data.verificationType || 'Verification'} Task`,
-        task_description: data.trigger,
-        priority: data.priority,
-        assigned_to: data.assignedToId || undefined,
-        rate_type_id: data.rateTypeId,
-        address: data.address,
-        pincode: data.pincode,
-        applicant_type: data.applicantType,
-        trigger: data.trigger,
-      }]
-    };
-
-    // Add unified payload as JSON string
-    formData.append('data', JSON.stringify(unifiedPayload));
-
-    // Add attachments
-    attachments.forEach((file) => {
-      formData.append(`attachments`, file);
-    });
-
-    return this.post('/create', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    });
+    return this.post('/create', payload);
   }
 
   /**

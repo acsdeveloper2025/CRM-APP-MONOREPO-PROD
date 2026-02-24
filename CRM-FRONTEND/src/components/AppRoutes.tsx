@@ -13,7 +13,7 @@ const DashboardPage = React.lazy(() => import('@/pages/DashboardPage').then(modu
 const CasesPage = React.lazy(() => import('@/pages/CasesPage').then(module => ({ default: module.CasesPage })));
 const CaseDetailPage = React.lazy(() => import('@/pages/CaseDetailPage').then(module => ({ default: module.CaseDetailPage })));
 
-// Unused imports removed: PendingCasesPage, InProgressCasesPage
+// Unused imports removed
 const CompletedCasesPage = React.lazy(() => import('@/pages/CompletedCasesPage').then(module => ({ default: module.CompletedCasesPage })));
 const PendingTasksPage = React.lazy(() => import('@/pages/PendingTasksPage').then(module => ({ default: module.PendingTasksPage })));
 const RevokedTasksPage = React.lazy(() => import('@/pages/RevokedTasksPage').then(module => ({ default: module.RevokedTasksPage })));

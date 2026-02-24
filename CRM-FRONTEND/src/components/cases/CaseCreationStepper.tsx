@@ -411,7 +411,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
         })
       };
 
-      console.warn('CASE PAYLOAD', JSON.stringify(payload, null, 2));
+
       const response = await casesService.createCaseWithMultipleTasks(payload);
 
       if (response.success && response.data) {
@@ -564,7 +564,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
             role: caseData.applicantType || 'APPLICANT',
             pan_number: caseData.panNumber || undefined,
             verifications: [{
-              verification_type_id: caseData.verificationTypeId ? parseInt(caseData.verificationTypeId, 10) : undefined,
+              verification_type_id: caseData.verificationTypeId ? parseInt(caseData.verificationTypeId, 10) : null,
               address: caseData.address,
               pincode_id: Number.isNaN(parseInt(data.pincodeId, 10))
                 ? undefined
@@ -592,7 +592,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
           }]
         };
 
-        console.warn('CASE PAYLOAD', JSON.stringify(payload, null, 2));
+
         result = await casesService.createCaseWithMultipleTasks(payload);
 
         if (result.success && attachments.length > 0) {
@@ -628,7 +628,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
   };
 
   const handleCreateNewFromDialog = async (rationale: string) => {
-    console.warn('🚀 Create New Case Anyway button clicked with rationale:', rationale);
+
 
     if (!customerInfo) {
       console.error('❌ No customer info available');
@@ -639,7 +639,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
     try {
       // Record the deduplication decision for creating new case (but don't block UI on this)
       if (deduplicationResult) {
-        console.warn('📝 Recording deduplication decision...');
+
         const decision = {
           caseId: 'NEW_CASE_PLACEHOLDER', // This will be updated by the backend
           decision: 'CREATE_NEW' as const,
@@ -659,7 +659,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
       }
 
       // Immediately proceed to next step
-      console.warn('✅ Proceeding to case details step...');
+
       setDeduplicationRationale(rationale);
       setShowDeduplicationDialog(false);
       setDeduplicationResult(null);

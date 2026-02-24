@@ -2,7 +2,7 @@ import { Pool } from 'pg';
 import * as dotenv from 'dotenv';
 import * as path from 'path';
 
-dotenv.config({ path: path.join(__dirname, 'crm-backend/.env') });
+dotenv.config({ path: path.join(__dirname, 'CRM-BACKEND/.env') });
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,

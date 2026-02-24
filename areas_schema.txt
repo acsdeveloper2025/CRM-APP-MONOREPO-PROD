@@ -1,0 +1,13 @@
+                                         Table "public.areas"
+  Column   |           Type           | Collation | Nullable |                Default                 
+-----------+--------------------------+-----------+----------+----------------------------------------
+ name      | character varying(255)   |           | not null | 
+ createdAt | timestamp with time zone |           |          | CURRENT_TIMESTAMP
+ updatedAt | timestamp with time zone |           |          | CURRENT_TIMESTAMP
+ id        | integer                  |           | not null | nextval('areas_temp_id_seq'::regclass)
+Indexes:
+    "areas_pkey" PRIMARY KEY, btree (id)
+Referenced by:
+    TABLE ""pincodeAreas"" CONSTRAINT "fk_pincode_areas_area" FOREIGN KEY ("areaId") REFERENCES areas(id)
+    TABLE ""userAreaAssignments"" CONSTRAINT "fk_user_area_assignments_area" FOREIGN KEY ("areaId") REFERENCES areas(id) ON DELETE CASCADE
+

@@ -162,12 +162,12 @@ export class VerificationTaskCreationService {
               document_type, document_number, document_details,
               estimated_completion_date, status, created_by,
               first_assigned_at, current_assigned_at,
-              service_zone_id
+              service_zone_id, area_id
             ) VALUES (
               $1, $2, $3, $4, $5, $6, $7, NOW(),
               $8, $9, $10, $11, $12, $13, $14, $15,
               $16, $17, NOW(), NOW(),
-              $18
+              $18, $19
             ) RETURNING *
           `;
         insertParams = [
@@ -189,6 +189,7 @@ export class VerificationTaskCreationService {
           taskStatus,
           userId,
           serviceZoneId,
+          areaId ? Number(areaId) : null,
         ];
       } else {
         insertQuery = `
@@ -199,12 +200,12 @@ export class VerificationTaskCreationService {
               document_type, document_number, document_details,
               estimated_completion_date, status, created_by,
               first_assigned_at, current_assigned_at,
-              service_zone_id
+              service_zone_id, area_id
             ) VALUES (
               $1, $2, $3, $4, $5, NULL, NULL, NULL,
               $6, $7, $8, $9, $10, $11, $12, $13,
               $14, $15, NOW(), NOW(),
-              $16
+              $16, $17
             ) RETURNING *
           `;
         insertParams = [
@@ -224,6 +225,7 @@ export class VerificationTaskCreationService {
           taskStatus,
           userId,
           serviceZoneId,
+          areaId ? Number(areaId) : null,
         ];
       }
 

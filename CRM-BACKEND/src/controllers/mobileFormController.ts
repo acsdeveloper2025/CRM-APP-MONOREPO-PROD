@@ -120,11 +120,36 @@ import { CaseStatusSyncService } from '../services/caseStatusSyncService';
 
 export class MobileFormController {
   /**
+   * Enforce assignment ownership for field agents only.
+   * Non-field roles keep existing behavior.
+   */
+  private static assertAssignedFieldAgent(
+    assignedTo: string | null | undefined,
+    userId: string,
+    userRole?: string
+  ): { status: number; message: string; code: string } | null {
+    if ((userRole as Role) !== Role.FIELD_AGENT) {
+      return null;
+    }
+
+    if (assignedTo !== userId) {
+      return {
+        status: 403,
+        message: 'Task not assigned to user',
+        code: 'TASK_NOT_ASSIGNED_TO_USER',
+      };
+    }
+
+    return null;
+  }
+
+  /**
    * Helper method to validate task submission rules (Stage-2C Strict Logic)
    */
   private static async validateTaskSubmission(
     taskId: string,
-    userId: string
+    userId: string,
+    userRole?: string
   ): Promise<{
     success: boolean;
     data?: {
@@ -163,27 +188,43 @@ export class MobileFormController {
 
       const task = taskQuery.rows[0];
 
-      // CRITICAL: Block submission if task is already completed
-      if (task.status === 'COMPLETED') {
+      // CRITICAL: Block submission if task is superseded or revoked
+      if (task.status === 'REVOKED' || task.status === 'COMPLETED') {
         return {
           success: false,
           error: {
             status: 409,
-            message: 'Task already completed. Modifications not allowed.',
-            code: 'TASK_ALREADY_SUBMITTED',
+            message: 'Task is superseded or revoked. Submission is not allowed.',
+            code: 'TASK_SUPERSEDED_OR_REVOKED',
           },
         };
       }
 
-      // 2. Assignment Validation
-      if (task.assigned_to !== userId) {
+      const childTaskQuery = await query(
+        `SELECT 1 FROM verification_tasks WHERE parent_task_id = $1 LIMIT 1`,
+        [taskId]
+      );
+      if (childTaskQuery.rows.length > 0) {
         return {
           success: false,
           error: {
-            status: 403,
-            message: 'Task not assigned to user',
-            code: 'TASK_NOT_ASSIGNED_TO_USER',
+            status: 409,
+            message: 'Task is superseded or revoked. Submission is not allowed.',
+            code: 'TASK_SUPERSEDED_OR_REVOKED',
           },
+        };
+      }
+
+      // 2. Assignment Validation (field-agent ownership)
+      const assignmentError = MobileFormController.assertAssignedFieldAgent(
+        task.assigned_to,
+        userId,
+        userRole
+      );
+      if (assignmentError) {
+        return {
+          success: false,
+          error: assignmentError,
         };
       }
 
@@ -263,7 +304,7 @@ export class MobileFormController {
   private static async resolveCaseIdFromTaskId(
     taskId: string,
     userId: string,
-    userRole: string
+    userRole?: string
   ): Promise<{
     success: boolean;
     caseId?: string;
@@ -302,19 +343,47 @@ export class MobileFormController {
 
       const task = taskQuery.rows[0];
 
-      // Step 2: Verify user has access to this task (for field agents)
-      if ((userRole as Role) === Role.FIELD_AGENT && task.assignedTo !== userId) {
+      // Step 2: Block superseded/revoked/completed tasks
+      if (task.status === 'REVOKED' || task.status === 'COMPLETED') {
         return {
           success: false,
           error: {
-            status: 403,
-            message: 'This verification task is not assigned to you',
-            code: 'TASK_NOT_ASSIGNED',
+            status: 409,
+            message: 'Task is superseded or revoked. Submission is not allowed.',
+            code: 'TASK_SUPERSEDED_OR_REVOKED',
           },
         };
       }
 
-      // Step 3: Return resolved caseId and task info
+      const childTaskQuery = await query(
+        `SELECT 1 FROM verification_tasks WHERE parent_task_id = $1 LIMIT 1`,
+        [taskId]
+      );
+      if (childTaskQuery.rows.length > 0) {
+        return {
+          success: false,
+          error: {
+            status: 409,
+            message: 'Task is superseded or revoked. Submission is not allowed.',
+            code: 'TASK_SUPERSEDED_OR_REVOKED',
+          },
+        };
+      }
+
+      // Step 3: Verify field-agent ownership (non-field roles unchanged)
+      const assignmentError = MobileFormController.assertAssignedFieldAgent(
+        task.assignedTo,
+        userId,
+        userRole
+      );
+      if (assignmentError) {
+        return {
+          success: false,
+          error: assignmentError,
+        };
+      }
+
+      // Step 4: Return resolved caseId and task info
       return {
         success: true,
         caseId: task.caseId,
@@ -2456,7 +2525,11 @@ export class MobileFormController {
       }
 
       // STAGE-2C: STRICT VALIDATION
-      const taskValidation = await MobileFormController.validateTaskSubmission(taskId, userId);
+      const taskValidation = await MobileFormController.validateTaskSubmission(
+        taskId,
+        userId,
+        userRole
+      );
       if (!taskValidation.success || !taskValidation.data) {
         return res.status(taskValidation.error.status).json({
           success: false,
@@ -2832,7 +2905,11 @@ export class MobileFormController {
       }
 
       // STAGE-2C: STRICT VALIDATION
-      const taskValidation = await MobileFormController.validateTaskSubmission(taskId, userId);
+      const taskValidation = await MobileFormController.validateTaskSubmission(
+        taskId,
+        userId,
+        userRole
+      );
       if (!taskValidation.success || !taskValidation.data) {
         return res.status(taskValidation.error.status).json({
           success: false,
@@ -3196,7 +3273,11 @@ export class MobileFormController {
       }
 
       // STAGE-2C: STRICT VALIDATION
-      const taskValidation = await MobileFormController.validateTaskSubmission(taskId, userId);
+      const taskValidation = await MobileFormController.validateTaskSubmission(
+        taskId,
+        userId,
+        userRole
+      );
       if (!taskValidation.success || !taskValidation.data) {
         return res.status(taskValidation.error.status).json({
           success: false,

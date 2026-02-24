@@ -342,20 +342,66 @@ export const CaseWithTasksCreationForm: React.FC<CaseWithTasksCreationFormProps>
       return;
     }
 
+    const clientId = parseInt(data.caseDetails.clientId, 10);
+    const productId = parseInt(data.caseDetails.productId, 10);
+    if (!Number.isFinite(clientId) || !Number.isFinite(productId)) {
+      toast.error('Client and Product are required');
+      return;
+    }
+
+    const pincodeCodeById = new Map(pincodes.map(pin => [pin.id.toString(), pin.code]));
+
+    const applicantsByType = new Map<string, typeof validTasks>();
+    for (const task of validTasks) {
+      const applicantType = task.applicantType || 'APPLICANT';
+      const existingTasks = applicantsByType.get(applicantType) || [];
+      existingTasks.push(task);
+      applicantsByType.set(applicantType, existingTasks);
+    }
+
+    const applicants = Array.from(applicantsByType.entries()).map(([role, applicantTasks]) => ({
+      name: customerInfo.customerName,
+      mobile: customerInfo.mobileNumber || '',
+      role,
+      pan_number: customerInfo.panNumber || undefined,
+      verifications: applicantTasks.map(applicantTask => ({
+        verification_type_id: applicantTask.verificationTypeId || undefined,
+        address: applicantTask.address || undefined,
+        pincode_id: applicantTask.pincode ? Number(applicantTask.pincode) : undefined,
+        assigned_to:
+          applicantTask.assignedTo && applicantTask.assignedTo !== 'unassigned'
+            ? applicantTask.assignedTo
+            : undefined,
+      })),
+    }));
+
+    const firstTask = validTasks[0];
+    const firstTaskPincodeCode = firstTask?.pincode ? pincodeCodeById.get(firstTask.pincode) : undefined;
+
     // Prepare case data
     const caseData: CreateCaseWithMultipleTasksRequest = {
       case_details: {
         customerName: customerInfo.customerName,
         customerPhone: customerInfo.mobileNumber || '', // Map mobileNumber to customerPhone
         customerCallingCode: customerInfo.customerCallingCode,
-        clientId: parseInt(data.caseDetails.clientId),
-        productId: parseInt(data.caseDetails.productId),
+        clientId,
+        productId,
+        verificationTypeId: firstTask?.verificationTypeId || undefined,
+        applicantType: firstTask?.applicantType || undefined,
+        trigger: firstTask?.trigger || undefined,
+        priority: firstTask?.priority || 'MEDIUM',
+        pincode: firstTaskPincodeCode || '',
         backendContactNumber: data.caseDetails.backendContactNumber,
       },
+      applicants,
       verification_tasks: validTasks.map((task, index) => {
         // Get verification type name for task title
         const verificationType = verificationTypes.find(vt => vt.id === task.verificationTypeId);
         const taskTitle = `${verificationType?.name || 'Verification'} - Task ${index + 1}`;
+        const taskPincodeCode = task.pincode ? pincodeCodeById.get(task.pincode) : undefined;
+        if (!taskPincodeCode) {
+          throw new Error(`Invalid pincode selected for task ${index + 1}`);
+        }
 
         return {
           verification_type_id: task.verificationTypeId as number,
@@ -364,7 +410,7 @@ export const CaseWithTasksCreationForm: React.FC<CaseWithTasksCreationFormProps>
           assigned_to: task.assignedTo && task.assignedTo !== 'unassigned' ? task.assignedTo : undefined,
           rate_type_id: parseInt(task.rateTypeId as string),
           address: task.address || undefined,
-          pincode: task.pincode as string,
+          pincode: taskPincodeCode,
           area_id: parseInt(task.areaId as string),
           applicant_type: task.applicantType as string,
           trigger: task.trigger as string,
