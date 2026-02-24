@@ -163,6 +163,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
         // Let the user review and decide what to do
         console.warn(`⚠️ Found ${result.data.duplicatesFound.length} potential duplicate(s)`);
 
+/*
         // Show detailed match information in console for debugging
         result.data.duplicatesFound.forEach((dup, index) => {
           console.warn(`  Duplicate ${index + 1}:`, {
@@ -172,6 +173,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
             matchType: dup.matchType,
           });
         });
+*/
 
         // Always show the dialog when duplicates are found
         setDeduplicationResult(result.data);
@@ -322,10 +324,10 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
                 console.error('Attachment upload failed');
                 toast.error('Case updated but attachments failed to upload');
               }
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            } catch (error: any) {
+            } catch (error) {
+              const errorMessage = error instanceof Error ? error.message : 'Unknown error';
               console.error('Error uploading attachments:', error);
-              toast.error(`Case updated but attachments failed: ${error.message || 'Unknown error'}`);
+              toast.error(`Case updated but attachments failed: ${errorMessage}`);
             }
           } else {
             toast.success('Case updated successfully!');
@@ -427,14 +429,14 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
                 const files = frontendTask.attachments.map(att => att.file);
                 await casesService.uploadCaseAttachments(caseId, files, backendTask.id);
                 totalAttachments += files.length;
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              } catch (error: any) {
+              } catch (error) {
+                const errorMessage = error instanceof Error ? error.message : 'Unknown error';
                 console.error('❌ Error uploading task attachments:', {
                   taskIndex: i,
                   taskId: backendTask?.id,
-                  error: error.message || error,
+                  error: errorMessage,
                 });
-                toast.error(`Some attachments failed: ${error.message || 'Unknown error'}`);
+                toast.error(`Some attachments failed: ${errorMessage}`);
               }
             }
           }
@@ -454,10 +456,9 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
       } else {
         toast.error(response.message || 'Failed to create case');
       }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error creating case:', error);
-      toast.error(error.response?.data?.message || 'Failed to create case');
+      toast.error('Failed to create case. Please check your input.');
     } finally {
       setIsSubmitting(false);
     }
@@ -618,10 +619,9 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
         const action = editMode ? 'update' : 'create';
         toast.error(`Failed to ${action} case`);
       }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (error: any) {
-      const errorMessage = error.response?.data?.error?.message || error.response?.data?.message || 'Failed to create case';
-      toast.error(errorMessage);
+    } catch (error) {
+      console.error('Error in handleCaseFormSubmit:', error);
+      toast.error('An unexpected error occurred. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -666,8 +666,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
       proceedToCaseDetails(customerInfo);
       toast.success('Proceeding to create new case despite duplicates');
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error in handleCreateNewFromDialog:', error);
       toast.error('An error occurred, but proceeding to create case anyway');
 
@@ -703,8 +702,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
 
       // Navigate to the existing case instead of canceling
       onSuccess?.(caseId);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error recording deduplication decision:', error);
       toast.error('Failed to record decision, but redirecting to case anyway');
 
