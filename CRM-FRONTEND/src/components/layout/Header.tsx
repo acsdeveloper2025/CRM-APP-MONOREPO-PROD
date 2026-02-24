@@ -51,7 +51,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
     const path = location.pathname;
     if (path === '/dashboard') {return 'Dashboard';}
     if (path === '/cases') {return 'Cases';}
-    if (path === '/cases/pending') {return 'Pending Review';}
+    if (path === '/tasks/pending') {return 'Pending Tasks';}
     if (path === '/clients') {return 'Clients';}
     if (path === '/users') {return 'Users';}
     if (path === '/reports') {return 'Reports';}

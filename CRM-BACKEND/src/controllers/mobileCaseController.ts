@@ -1483,6 +1483,34 @@ export class MobileCaseController {
     try {
       const taskId = String(req.params.taskId || '');
       const userId = req.user?.id;
+      const userRole = req.user?.role;
+
+      const taskQuery = await query(
+        `
+        SELECT id, assigned_to
+        FROM verification_tasks
+        WHERE id = $1
+      `,
+        [taskId]
+      );
+
+      if (taskQuery.rows.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: 'Verification task not found',
+          error: { code: 'TASK_NOT_FOUND' },
+        });
+      }
+
+      const task = taskQuery.rows[0];
+
+      if (userRole === Role.FIELD_AGENT && task.assigned_to !== userId) {
+        return res.status(409).json({
+          success: false,
+          message: 'Task not assigned to user',
+          error: { code: 'TASK_NOT_ASSIGNED_TO_USER' },
+        });
+      }
 
       // Update task status to IN_PROGRESS and set started_at
       const result = await query(
@@ -1497,14 +1525,6 @@ export class MobileCaseController {
       `,
         [taskId]
       );
-
-      if (result.rows.length === 0) {
-        return res.status(404).json({
-          success: false,
-          message: 'Verification task not found',
-          error: { code: 'TASK_NOT_FOUND' },
-        });
-      }
 
       const updatedTask = result.rows[0];
 
@@ -1579,12 +1599,24 @@ export class MobileCaseController {
 
       const task = taskQuery.rows[0];
 
-      // Check if task is already completed
-      if (task.status === 'COMPLETED') {
-        return res.status(400).json({
+      // Block superseded or revoked tasks
+      if (task.status === 'REVOKED' || task.status === 'COMPLETED') {
+        return res.status(409).json({
           success: false,
-          message: 'Task is already completed',
-          error: { code: 'TASK_ALREADY_COMPLETED' },
+          message: 'Task is superseded or revoked. Submission is not allowed.',
+          error: { code: 'TASK_SUPERSEDED_OR_REVOKED' },
+        });
+      }
+
+      const childTaskQuery = await query(
+        `SELECT 1 FROM verification_tasks WHERE parent_task_id = $1 LIMIT 1`,
+        [taskId]
+      );
+      if (childTaskQuery.rows.length > 0) {
+        return res.status(409).json({
+          success: false,
+          message: 'Task is superseded or revoked. Submission is not allowed.',
+          error: { code: 'TASK_SUPERSEDED_OR_REVOKED' },
         });
       }
 
@@ -1742,12 +1774,16 @@ export class MobileCaseController {
 
       // Check if task is already revoked
       if (taskData.status === 'REVOKED') {
-        return res.status(400).json({
-          success: false,
-          message: 'Task is already revoked',
-          error: {
-            code: 'TASK_ALREADY_REVOKED',
-            timestamp: new Date().toISOString(),
+        logger.info(`ℹ️ Task ${taskData.task_number} is already revoked`);
+        return res.status(200).json({
+          success: true,
+          message: 'Task already revoked',
+          data: {
+            taskId: taskData.id,
+            taskNumber: taskData.task_number,
+            status: 'REVOKED',
+            revokedAt: taskData.revoked_at || new Date().toISOString(),
+            reason: taskData.revocation_reason || reason,
           },
         });
       }

@@ -1,0 +1,29 @@
+                                        Table "public.userPincodeAssignments"
+   Column   |           Type           | Collation | Nullable |                       Default                        
+------------+--------------------------+-----------+----------+------------------------------------------------------
+ id         | integer                  |           | not null | nextval('"userPincodeAssignments_id_seq"'::regclass)
+ userId     | uuid                     |           | not null | 
+ pincodeId  | integer                  |           | not null | 
+ assignedBy | uuid                     |           | not null | 
+ assignedAt | timestamp with time zone |           |          | CURRENT_TIMESTAMP
+ isActive   | boolean                  |           |          | true
+ createdAt  | timestamp with time zone |           |          | CURRENT_TIMESTAMP
+ updatedAt  | timestamp with time zone |           |          | CURRENT_TIMESTAMP
+Indexes:
+    "userPincodeAssignments_pkey" PRIMARY KEY, btree (id)
+    "idx_user_pincode_assignments_active" btree ("isActive") WHERE "isActive" = true
+    "idx_user_pincode_assignments_pincode_id" btree ("pincodeId")
+    "idx_user_pincode_assignments_user_active" btree ("userId", "isActive") WHERE "isActive" = true
+    "idx_user_pincode_assignments_user_id" btree ("userId")
+    "uk_user_pincode_assignments_active_only" UNIQUE, btree ("userId", "pincodeId") WHERE "isActive" = true
+Foreign-key constraints:
+    "fk_user_pincode_assignments_assigned_by" FOREIGN KEY ("assignedBy") REFERENCES users(id) ON DELETE RESTRICT
+    "fk_user_pincode_assignments_pincode" FOREIGN KEY ("pincodeId") REFERENCES pincodes(id) ON DELETE CASCADE
+    "fk_user_pincode_assignments_user" FOREIGN KEY ("userId") REFERENCES users(id) ON DELETE CASCADE
+    "userPincodeAssignments_userId_fkey" FOREIGN KEY ("userId") REFERENCES users(id) ON DELETE CASCADE
+Referenced by:
+    TABLE ""userAreaAssignments"" CONSTRAINT "fk_user_area_assignments_user_pincode" FOREIGN KEY ("userPincodeAssignmentId") REFERENCES "userPincodeAssignments"(id) ON DELETE CASCADE
+Triggers:
+    audit_user_pincode_assignments AFTER INSERT OR UPDATE ON "userPincodeAssignments" FOR EACH ROW EXECUTE FUNCTION audit_territory_assignment_changes()
+    update_user_pincode_assignments_updated_at BEFORE UPDATE ON "userPincodeAssignments" FOR EACH ROW EXECUTE FUNCTION update_camel_case_updated_at()
+

@@ -1,0 +1,21 @@
+                                 Table "public.verifications"
+        Column        |            Type             | Collation | Nullable |      Default      
+----------------------+-----------------------------+-----------+----------+-------------------
+ id                   | uuid                        |           | not null | gen_random_uuid()
+ applicant_id         | uuid                        |           | not null | 
+ verification_type_id | integer                     |           | not null | 
+ address              | text                        |           | not null | 
+ pincode_id           | integer                     |           |          | 
+ created_at           | timestamp without time zone |           |          | now()
+ updated_at           | timestamp without time zone |           |          | now()
+Indexes:
+    "verifications_pkey" PRIMARY KEY, btree (id)
+Foreign-key constraints:
+    "fk_verifications_applicant" FOREIGN KEY (applicant_id) REFERENCES applicants(id) ON DELETE CASCADE
+    "fk_verifications_pincode" FOREIGN KEY (pincode_id) REFERENCES pincodes(id)
+    "fk_verifications_type" FOREIGN KEY (verification_type_id) REFERENCES "verificationTypes"(id)
+Referenced by:
+    TABLE "visits" CONSTRAINT "fk_visits_verification" FOREIGN KEY (verification_id) REFERENCES verifications(id) ON DELETE CASCADE
+Triggers:
+    trg_verifications_updated_at BEFORE UPDATE ON verifications FOR EACH ROW EXECUTE FUNCTION update_cases_updated_at()
+

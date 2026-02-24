@@ -14,7 +14,11 @@ import { validateMobileVersion, mobileRateLimit } from '../middleware/mobileVali
 import { geoRateLimit, uploadRateLimit } from '../middleware/rateLimiter';
 import { createMobileAuditLogs } from '../controllers/auditLogsController';
 import { body } from 'express-validator';
-import { EnterpriseCache, EnterpriseCacheConfigs } from '../middleware/enterpriseCache';
+import {
+  EnterpriseCache,
+  EnterpriseCacheConfigs,
+  CacheInvalidationPatterns,
+} from '../middleware/enterpriseCache';
 
 const router = Router();
 
@@ -84,24 +88,28 @@ router.put(
   '/verification-tasks/:taskId/status',
   authenticateToken,
   validateMobileVersion,
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.assignmentUpdate, { synchronous: true }),
   MobileCaseController.updateTaskStatus
 );
 router.post(
   '/verification-tasks/:taskId/start',
   authenticateToken,
   validateMobileVersion,
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.assignmentUpdate, { synchronous: true }),
   MobileCaseController.startTask
 );
 router.post(
   '/verification-tasks/:taskId/complete',
   authenticateToken,
   validateMobileVersion,
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.assignmentUpdate, { synchronous: true }),
   MobileCaseController.completeTask
 );
 router.post(
   '/verification-tasks/:taskId/revoke',
   authenticateToken,
   validateMobileVersion,
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.assignmentUpdate, { synchronous: true }),
   MobileCaseController.revokeTask
 );
 
