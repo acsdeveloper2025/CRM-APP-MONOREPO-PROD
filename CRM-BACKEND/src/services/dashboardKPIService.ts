@@ -271,20 +271,7 @@ export class DashboardKPIService {
         ) as active_today
     `;
 
-    // ----------------------------------------------------------------------
-    // PERFORMANCE QUERIES
-    // ----------------------------------------------------------------------
-    const perfQuery = `
-      SELECT
-        AVG(EXTRACT(EPOCH FROM (completed_at - created_at))/86400) 
-          FILTER (WHERE status = 'COMPLETED' AND completed_at BETWEEN (SELECT cp_start FROM date_ranges) AND (SELECT cp_end FROM date_ranges)) 
-          as cp_avg_tat,
-        
-        AVG(EXTRACT(EPOCH FROM (completed_at - created_at))/86400) 
-          FILTER (WHERE status = 'COMPLETED' AND completed_at BETWEEN (SELECT pp_start FROM date_ranges) AND (SELECT pp_end FROM date_ranges)) 
-          as pp_avg_tat
-      FROM filtered_tasks
-    `;
+    // Performance queries moved to separate DB call for simplicity
 
     // ----------------------------------------------------------------------
     // EXECUTION
