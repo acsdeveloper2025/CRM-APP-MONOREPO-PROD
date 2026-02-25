@@ -147,7 +147,7 @@ export function MISDataTable({ data, pagination, onPageChange, isLoading: _isLoa
                 {/* 5. Area Column */}
                 <td className="px-4 py-4 whitespace-nowrap">
                   <div className="text-sm text-gray-600">
-                    -
+                    {taskRow.area_name || '-'}
                   </div>
                 </td>
 
@@ -293,4 +293,3 @@ export function MISDataTable({ data, pagination, onPageChange, isLoading: _isLoa
     </div>
   );
 }
-

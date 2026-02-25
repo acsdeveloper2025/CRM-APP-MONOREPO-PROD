@@ -140,6 +140,7 @@ export const AppRoutes: React.FC = () => {
           <Route path="/document-types" element={<ProtectedRoute permission="page.masterdata"><DocumentTypesPage /></ProtectedRoute>} />
           <Route path="/rate-management" element={<ProtectedRoute permission="page.masterdata"><RateManagementPage /></ProtectedRoute>} />
           <Route path="/locations" element={<ProtectedRoute permission="page.masterdata"><LocationsPage /></ProtectedRoute>} />
+          <Route path="/locations/:tab" element={<ProtectedRoute permission="page.masterdata"><LocationsPage /></ProtectedRoute>} />
 
           <Route path="/reports" element={<ProtectedRoute permission="page.reports"><ReportsPage /></ProtectedRoute>} />
           <Route path="/analytics" element={<ProtectedRoute permission="page.analytics"><AnalyticsPage /></ProtectedRoute>} />

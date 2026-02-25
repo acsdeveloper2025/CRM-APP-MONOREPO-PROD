@@ -21,7 +21,165 @@ export interface VerificationTaskCreationResult {
   totalEstimatedAmount: number;
 }
 
+export interface ValidatedTaskTerritoryContext {
+  pincodeDbId: number;
+  areaId: number;
+  serviceZoneId: number;
+  rateTypeId: number;
+  amount: number;
+}
+
 export class VerificationTaskCreationService {
+  static async validateTerritoryAndFinancialConfig(
+    client: Pick<PoolClient, 'query'>,
+    params: {
+      clientId: number;
+      productId: number;
+      verificationTypeId: number;
+      pincode: unknown;
+      areaId: unknown;
+    }
+  ): Promise<ValidatedTaskTerritoryContext> {
+    const { clientId, productId, verificationTypeId } = params;
+
+    const pincodeCode =
+      typeof params.pincode === 'string' || typeof params.pincode === 'number'
+        ? String(params.pincode).trim()
+        : '';
+
+    if (!pincodeCode) {
+      throw new VerificationTaskCreationError(400, {
+        success: false,
+        message: 'Pincode is required for task creation',
+        error: { code: 'PINCODE_REQUIRED' },
+      });
+    }
+
+    const pinRes = await client.query('SELECT id FROM pincodes WHERE code = $1', [pincodeCode]);
+    if (!pinRes.rows[0]) {
+      throw new VerificationTaskCreationError(400, {
+        success: false,
+        message: 'Invalid pincode provided',
+        error: { code: 'INVALID_PINCODE' },
+      });
+    }
+    const pincodeDbId = Number(pinRes.rows[0].id);
+
+    const areaIdInput = params.areaId;
+    const normalizedAreaId =
+      areaIdInput === null ||
+      areaIdInput === undefined ||
+      ((typeof areaIdInput === 'string' || typeof areaIdInput === 'number') &&
+        String(areaIdInput).trim() === '')
+        ? null
+        : Number(areaIdInput);
+
+    if (!normalizedAreaId || Number.isNaN(normalizedAreaId) || normalizedAreaId <= 0) {
+      throw new VerificationTaskCreationError(400, {
+        success: false,
+        message: 'Area is required for task creation',
+        error: { code: 'AREA_REQUIRED' },
+      });
+    }
+
+    const pincodeAreaRes = await client.query(
+      'SELECT 1 FROM "pincodeAreas" WHERE "pincodeId" = $1 AND "areaId" = $2 LIMIT 1',
+      [pincodeDbId, normalizedAreaId]
+    );
+    if (!pincodeAreaRes.rows[0]) {
+      throw new VerificationTaskCreationError(400, {
+        success: false,
+        message: 'Selected area is not mapped to the selected pincode',
+        error: {
+          code: 'AREA_PINCODE_MISMATCH',
+          details: { pincodeId: pincodeDbId, areaId: normalizedAreaId },
+        },
+      });
+    }
+
+    // Territory integrity contract: require exact area-level service zone rule for the tuple.
+    const exactServiceZoneRule = await client.query(
+      `SELECT service_zone_id
+       FROM service_zone_rules
+       WHERE client_id = $1 AND product_id = $2 AND pincode_id = $3 AND area_id = $4
+         AND is_active = true
+       LIMIT 1`,
+      [clientId, productId, pincodeDbId, normalizedAreaId]
+    );
+
+    if (!exactServiceZoneRule.rows[0]) {
+      throw new VerificationTaskCreationError(422, {
+        success: false,
+        message:
+          'Service configuration missing for selected pincode/area. Exact area service zone rule not defined.',
+        error: {
+          code: 'CONFIG_SERVICE_ZONE_MISSING',
+          details: {
+            clientId,
+            productId,
+            verificationTypeId,
+            pincodeId: pincodeDbId,
+            areaId: normalizedAreaId,
+          },
+        },
+      });
+    }
+
+    const expectedServiceZoneId = Number(exactServiceZoneRule.rows[0].service_zone_id);
+
+    const validationResult = await financialConfigurationValidator.validateTaskConfiguration(
+      clientId,
+      productId,
+      verificationTypeId,
+      pincodeDbId,
+      normalizedAreaId
+    );
+
+    if (!validationResult.isValid) {
+      throw new VerificationTaskCreationError(422, {
+        success: false,
+        message: validationResult.errorMessage,
+        error: {
+          code: validationResult.errorCode,
+          details: {
+            clientId,
+            productId,
+            verificationTypeId,
+            pincodeId: pincodeDbId,
+            areaId: normalizedAreaId,
+          },
+        },
+      });
+    }
+
+    if (Number(validationResult.serviceZoneId) !== expectedServiceZoneId) {
+      throw new VerificationTaskCreationError(422, {
+        success: false,
+        message: 'Service zone mismatch for selected pincode/area configuration',
+        error: {
+          code: 'SERVICE_ZONE_TERRITORY_MISMATCH',
+          details: {
+            clientId,
+            productId,
+            verificationTypeId,
+            pincodeId: pincodeDbId,
+            areaId: normalizedAreaId,
+            expectedServiceZoneId,
+            resolvedServiceZoneId: validationResult.serviceZoneId,
+          },
+        },
+      });
+    }
+
+    return {
+      pincodeDbId,
+      areaId: normalizedAreaId,
+      serviceZoneId: Number(validationResult.serviceZoneId),
+      rateTypeId: Number(validationResult.rateTypeId),
+      amount: Number(validationResult.amount),
+    };
+  }
+
   static async createForCase(
     client: PoolClient,
     caseId: string,
@@ -67,32 +225,9 @@ export class VerificationTaskCreationService {
 
       let rateTypeId = initialRateTypeId as number | undefined;
 
-      // STRICT VALIDATION: Resolve Pincode ID and Validate Financial Configuration
+      // STRICT VALIDATION: Resolve territory and validate financial configuration
       let serviceZoneId: number | null = null;
       let actualAmount: number | null = null;
-
-      // Resolve pincodeId from pincode string
-      let pincodeDbId: number | null = null;
-      if (pincode) {
-        const pinRes = await client.query('SELECT id FROM pincodes WHERE code = $1', [
-          String(pincode as string),
-        ]);
-        if (pinRes.rows[0]) {
-          pincodeDbId = pinRes.rows[0].id as number;
-        } else {
-          throw new VerificationTaskCreationError(400, {
-            success: false,
-            message: 'Invalid pincode provided',
-            error: { code: 'INVALID_PINCODE' },
-          });
-        }
-      } else {
-        throw new VerificationTaskCreationError(400, {
-          success: false,
-          message: 'Pincode is required for task creation',
-          error: { code: 'PINCODE_REQUIRED' },
-        });
-      }
 
       // STRICT VALIDATION: Validate complete financial configuration chain
       if (!caseInfo.clientId || !caseInfo.productId || !verificationTypeId) {
@@ -103,35 +238,19 @@ export class VerificationTaskCreationService {
         });
       }
 
-      const validationResult = await financialConfigurationValidator.validateTaskConfiguration(
-        caseInfo.clientId as number,
-        caseInfo.productId as number,
-        Number(verificationTypeId),
-        pincodeDbId,
-        areaId ? Number(areaId) : null
-      );
-
-      if (!validationResult.isValid) {
-        throw new VerificationTaskCreationError(422, {
-          success: false,
-          message: validationResult.errorMessage,
-          error: {
-            code: validationResult.errorCode,
-            details: {
-              clientId: caseInfo.clientId,
-              productId: caseInfo.productId,
-              verificationTypeId,
-              pincodeId: pincodeDbId,
-              areaId: areaId ? Number(areaId) : null,
-            },
-          },
+      const territoryValidation =
+        await VerificationTaskCreationService.validateTerritoryAndFinancialConfig(client, {
+          clientId: Number(caseInfo.clientId),
+          productId: Number(caseInfo.productId),
+          verificationTypeId: Number(verificationTypeId),
+          pincode,
+          areaId,
         });
-      }
 
       // Configuration is valid - use validated values
-      serviceZoneId = validationResult.serviceZoneId!;
-      rateTypeId = validationResult.rateTypeId!;
-      actualAmount = validationResult.amount!;
+      serviceZoneId = territoryValidation.serviceZoneId;
+      rateTypeId = territoryValidation.rateTypeId;
+      actualAmount = territoryValidation.amount;
 
       // actualAmount is already set by the validator
       // No need for additional rate lookup
@@ -189,7 +308,7 @@ export class VerificationTaskCreationService {
           taskStatus,
           userId,
           serviceZoneId,
-          areaId ? Number(areaId) : null,
+          territoryValidation.areaId,
         ];
       } else {
         insertQuery = `
@@ -225,7 +344,7 @@ export class VerificationTaskCreationService {
           taskStatus,
           userId,
           serviceZoneId,
-          areaId ? Number(areaId) : null,
+          territoryValidation.areaId,
         ];
       }
 

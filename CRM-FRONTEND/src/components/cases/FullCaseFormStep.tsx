@@ -172,6 +172,7 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
   const pincodes = useMemo(() => pincodesResponseAll?.data || [], [pincodesResponseAll?.data]);
   const { data: areasResponse } = useAreasByPincode(selectedPincodeId ? parseInt(selectedPincodeId) : undefined);
   const areas = useMemo(() => areasResponse?.data || [], [areasResponse?.data]);
+  const areaIds = useMemo(() => areas.map((area) => area.id.toString()), [areas]);
 
   // Filter field users based on pincode and area access
   const filteredFieldUsers = useMemo(() => {
@@ -246,6 +247,32 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
       }
     }
   }, [editMode, initialData, products, areas, form]);
+
+  // Operational area policy:
+  // 1) Auto-select when pincode resolves to exactly one area
+  // 2) Clear stale area when pincode changes and current area is no longer valid
+  useEffect(() => {
+    const currentAreaId = form.getValues('areaId');
+
+    if (!selectedPincodeId) {
+      if (currentAreaId) {
+        form.setValue('areaId', '');
+      }
+      return;
+    }
+
+    if (areas.length === 1) {
+      const onlyAreaId = areas[0].id.toString();
+      if (currentAreaId !== onlyAreaId) {
+        form.setValue('areaId', onlyAreaId, { shouldValidate: true });
+      }
+      return;
+    }
+
+    if (currentAreaId && !areaIds.includes(currentAreaId)) {
+      form.setValue('areaId', '', { shouldValidate: true });
+    }
+  }, [selectedPincodeId, areas, areaIds, form]);
 
   const handleSubmit = (data: FullCaseFormData) => {
     if (hasAttachmentValidationErrors) {

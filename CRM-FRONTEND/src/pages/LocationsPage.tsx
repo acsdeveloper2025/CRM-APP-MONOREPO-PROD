@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Plus, Upload, MapPin, Building, Globe, Map } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -25,7 +25,9 @@ import { PincodeArea } from '@/types/location';
 
 export function LocationsPage() {
   console.warn('LocationsPage component loaded');
-  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const { tab: tabParam } = useParams<{ tab?: string }>();
+  const [searchParams] = useSearchParams();
   const [showCreateCountry, setShowCreateCountry] = useState(false);
   const [showCreateState, setShowCreateState] = useState(false);
   const [showCreateCity, setShowCreateCity] = useState(false);
@@ -39,12 +41,28 @@ export function LocationsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, _setPageSize] = useState(100); // Increased default page size
 
-  // Get active tab from URL or default to 'countries'
-  const activeTab = searchParams.get('tab') || 'countries';
+  const validTabs = ['countries', 'states', 'cities', 'pincodes', 'areas'] as const;
+  type LocationTab = (typeof validTabs)[number];
+
+  const queryTab = searchParams.get('tab');
+  const rawTab = tabParam || queryTab || 'countries';
+  const activeTab: LocationTab = validTabs.includes(rawTab as LocationTab)
+    ? (rawTab as LocationTab)
+    : 'countries';
+
+  React.useEffect(() => {
+    if (!tabParam) {
+      navigate(`/locations/${activeTab}`, { replace: true });
+      return;
+    }
+    if (tabParam !== activeTab) {
+      navigate(`/locations/${activeTab}`, { replace: true });
+    }
+  }, [tabParam, activeTab, navigate]);
 
   // Handle tab change and update URL
   const handleTabChange = (newTab: string) => {
-    setSearchParams({ tab: newTab });
+    navigate(`/locations/${newTab}`);
     setCurrentPage(1); // Reset to page 1 when changing tabs
   };
 
@@ -71,7 +89,6 @@ export function LocationsPage() {
       page: currentPage,
       limit: pageSize,
     }),
-    enabled: activeTab === 'countries',
   });
 
   const { data: statesData, isLoading: statesLoading } = useQuery({
@@ -81,7 +98,6 @@ export function LocationsPage() {
       page: currentPage,
       limit: pageSize,
     }),
-    enabled: activeTab === 'states',
   });
 
   const { data: citiesData, isLoading: citiesLoading } = useQuery({
@@ -91,7 +107,6 @@ export function LocationsPage() {
       page: currentPage,
       limit: pageSize,
     }),
-    enabled: activeTab === 'cities',
   });
 
   const { data: pincodesData, isLoading: pincodesLoading } = useQuery({
@@ -101,7 +116,6 @@ export function LocationsPage() {
       page: currentPage,
       limit: pageSize
     }),
-    enabled: activeTab === 'pincodes',
   });
 
   const { data: areasData, isLoading: areasLoading } = useQuery({
@@ -111,7 +125,6 @@ export function LocationsPage() {
       page: currentPage,
       limit: pageSize
     }),
-    enabled: activeTab === 'areas',
   });
 
   const handleBulkImport = (type: 'countries' | 'states' | 'cities' | 'pincodes') => {
