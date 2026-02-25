@@ -309,11 +309,9 @@ router.post(
   authorize('case.reassign'),
   async (req: AuthenticatedRequest, res) => {
     try {
-      // eslint-disable-next-line camelcase
       const { task_ids: taskIds, assigned_to, assignment_reason } = req.body;
       const userId = req.user?.id;
 
-      // eslint-disable-next-line camelcase
       if (!taskIds || !Array.isArray(taskIds) || taskIds.length === 0) {
         res.status(400).json({
           success: false,
@@ -416,7 +414,6 @@ router.post(
                 assignment_reason, task_status_after
               ) VALUES ($1, $2, $3, $4, $5, $6)
             `,
-              // eslint-disable-next-line camelcase
               [
                 taskId,
                 task.case_id,

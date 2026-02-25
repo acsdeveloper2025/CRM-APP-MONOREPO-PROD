@@ -155,7 +155,6 @@ const upload = multer({
 export const uploadAttachment = (req: AuthenticatedRequest, res: Response) => {
   try {
     // Use multer middleware
-    // eslint-disable-next-line @typescript-eslint/no-misused-promises
     upload.array('files', 10)(req, res, (err: unknown) => {
       void (async () => {
         if (err) {
