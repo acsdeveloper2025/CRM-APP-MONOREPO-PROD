@@ -1,14 +1,6 @@
 import type { Request, Response } from 'express';
 import type { QueryParams, VerificationAttachmentRow } from '../types/database';
-
-interface AuthenticatedRequest extends Request {
-  user?: {
-    id: string;
-    role: string;
-    email?: string;
-    name?: string;
-  };
-}
+import type { AuthenticatedRequest } from '@/middleware/auth';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs/promises';
@@ -21,6 +13,7 @@ import { createAuditLog } from '../utils/auditLogger';
 import { logger } from '../utils/logger';
 import { config } from '../config';
 import { query } from '@/config/database';
+import { isFieldExecutionActor } from '@/security/rbacAccess';
 
 /**
  * Get the appropriate API base URL based on request headers
@@ -119,7 +112,7 @@ export class MobileAttachmentController {
       const paramTaskId = String(req.params.taskId || '');
       const caseId = paramCaseId || paramTaskId;
       const userId = req.user?.id;
-      const userRole = req.user?.role;
+      const isExecutionActor = isFieldExecutionActor(req.user);
       const files = req.files as Express.Multer.File[];
       const geoLocation = req.body.geoLocation ? JSON.parse(req.body.geoLocation) : null;
 
@@ -162,7 +155,7 @@ export class MobileAttachmentController {
 
       // For FIELD_AGENT: Check task-level assignment and get their task ID
       let userTaskId: string | null = null;
-      if (userRole === 'FIELD_AGENT') {
+      if (isExecutionActor) {
         caseSql += ` AND EXISTS (
           SELECT 1 FROM verification_tasks vt
           WHERE vt.case_id = cases.id
@@ -175,7 +168,7 @@ export class MobileAttachmentController {
       const existingCase = caseRes.rows[0];
 
       // Get the field agent's assigned task ID for this case
-      if (userRole === 'FIELD_AGENT' && existingCase) {
+      if (isExecutionActor && existingCase) {
         const taskRes = await query(
           `SELECT id FROM verification_tasks WHERE case_id = $1 AND assigned_to = $2 LIMIT 1`,
           [existingCase.id, userId]
@@ -333,7 +326,7 @@ export class MobileAttachmentController {
       const paramTaskId = String(req.params.taskId || '');
       const caseId = paramCaseId || paramTaskId;
       const userId = req.user?.id;
-      const userRole = req.user?.role;
+      const isExecutionActor = isFieldExecutionActor(req.user);
 
       // Check if caseId is a UUID (mobile sends UUID) or case number (web sends case number)
       const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(caseId);
@@ -362,7 +355,7 @@ export class MobileAttachmentController {
       }
 
       // For FIELD_AGENT: Check task-level assignment
-      if (userRole === 'FIELD_AGENT') {
+      if (isExecutionActor) {
         caseSql += ` AND EXISTS (
           SELECT 1 FROM verification_tasks vt
           WHERE vt.case_id = cases.id
@@ -392,7 +385,7 @@ export class MobileAttachmentController {
 
       // Get the field agent's assigned task ID for this case
       let userTaskId: string | null = null;
-      if (userRole === 'FIELD_AGENT') {
+      if (isExecutionActor) {
         const taskRes = await query(
           `SELECT id FROM verification_tasks WHERE case_id = $1 AND assigned_to = $2 LIMIT 1`,
           [actualCaseId, userId]
@@ -405,7 +398,7 @@ export class MobileAttachmentController {
       let attachmentQuery: string;
       let attachmentParams: QueryParams;
 
-      if (userRole === 'FIELD_AGENT' && userTaskId) {
+      if (isExecutionActor && userTaskId) {
         // Filter attachments by specific verification task OR show attachments with NULL task_id (admin-uploaded/legacy)
         attachmentQuery = `
           SELECT a.id, a.filename, a."originalName", a."mimeType", a."fileSize", a."filePath", a."createdAt"
@@ -429,7 +422,7 @@ export class MobileAttachmentController {
       const attRes = await query(attachmentQuery, attachmentParams);
 
       logger.info(
-        `📎 Mobile Get Attachments - Case: ${caseId}, User: ${userId}, Role: ${userRole}, TaskId: ${userTaskId}, Found: ${attRes.rows.length} attachments`
+        `📎 Mobile Get Attachments - Case: ${caseId}, User: ${userId}, ExecutionActor: ${isExecutionActor}, TaskId: ${userTaskId}, Found: ${attRes.rows.length} attachments`
       );
       logger.info(`📋 Query used:`, attachmentQuery);
       logger.info(`📋 Query params:`, attachmentParams);
@@ -508,13 +501,13 @@ export class MobileAttachmentController {
     try {
       const attachmentId = String(req.params.attachmentId || '');
       const userId = req.user?.id;
-      const userRole = req.user?.role;
+      const isExecutionActor = isFieldExecutionActor(req.user);
 
       // Get attachment with case assignment check
       let attachmentQuery: string;
       let queryParams: QueryParams;
 
-      if (userRole === 'FIELD_AGENT') {
+      if (isExecutionActor) {
         // Field agents can only access attachments for their assigned task OR attachments with NULL task_id
         attachmentQuery = `
           SELECT a.id, a.filename, a."originalName", a."mimeType", a."fileSize", a."filePath",
@@ -551,10 +544,9 @@ export class MobileAttachmentController {
       if (!attachment) {
         return res.status(404).json({
           success: false,
-          message:
-            userRole === 'FIELD_AGENT'
-              ? 'Attachment not found or access denied'
-              : 'Attachment not found',
+          message: isExecutionActor
+            ? 'Attachment not found or access denied'
+            : 'Attachment not found',
           error: {
             code: 'ATTACHMENT_NOT_FOUND',
             timestamp: new Date().toISOString(),
@@ -585,11 +577,46 @@ export class MobileAttachmentController {
       // Set appropriate headers
       res.setHeader('Content-Type', attachment.mimeType);
       res.setHeader('Content-Disposition', `inline; filename="${attachment.originalName}"`);
-      res.setHeader('Content-Length', (attachment.fileSize || 0).toString());
 
-      // Stream the file
-      const fileStream = createReadStream(filePath);
-      fileStream.pipe(res);
+      if (String(attachment.mimeType || '').startsWith('image/')) {
+        try {
+          const createdAt = attachment.createdAt ? new Date(attachment.createdAt) : new Date();
+          const dateLabel = Number.isNaN(createdAt.getTime())
+            ? new Date().toLocaleString()
+            : createdAt.toLocaleString();
+          const watermarkText = `ACS CRM | Case ${attachment.caseId} | ${dateLabel}`;
+          const escapedText = watermarkText
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&apos;');
+          const svgOverlay = `
+            <svg width="820" height="56" xmlns="http://www.w3.org/2000/svg">
+              <rect x="0" y="0" width="820" height="56" fill="rgba(0,0,0,0.45)" />
+              <text x="14" y="35" fill="white" font-size="18" font-family="Arial, sans-serif">${escapedText}</text>
+            </svg>
+          `;
+
+          const watermarkedBuffer = await sharp(filePath)
+            .composite([{ input: Buffer.from(svgOverlay), gravity: 'southeast' }])
+            .toBuffer();
+          res.setHeader('Content-Length', watermarkedBuffer.length.toString());
+          res.end(watermarkedBuffer);
+        } catch (watermarkError) {
+          logger.error('Watermark generation failed, serving original mobile attachment', {
+            attachmentId,
+            watermarkError,
+          });
+          res.setHeader('Content-Length', (attachment.fileSize || 0).toString());
+          const fileStream = createReadStream(filePath);
+          fileStream.pipe(res);
+        }
+      } else {
+        res.setHeader('Content-Length', (attachment.fileSize || 0).toString());
+        const fileStream = createReadStream(filePath);
+        fileStream.pipe(res);
+      }
 
       await createAuditLog({
         action: 'MOBILE_ATTACHMENT_ACCESSED',
@@ -625,13 +652,13 @@ export class MobileAttachmentController {
     try {
       const attachmentId = String(req.params.attachmentId || '');
       const userId = req.user?.id;
-      const userRole = req.user?.role;
+      const isExecutionActor = isFieldExecutionActor(req.user);
 
       // Get attachment with case assignment check
       let attachmentQuery: string;
       let queryParams: QueryParams;
 
-      if (userRole === 'FIELD_AGENT') {
+      if (isExecutionActor) {
         // Field agents can only delete attachments for their assigned task OR attachments with NULL task_id
         attachmentQuery = `
           SELECT a.id, a.filename, a."originalName", a."mimeType", a."fileSize", a."filePath",
@@ -666,10 +693,9 @@ export class MobileAttachmentController {
       if (!attachment) {
         return res.status(404).json({
           success: false,
-          message:
-            userRole === 'FIELD_AGENT'
-              ? 'Attachment not found or access denied'
-              : 'Attachment not found',
+          message: isExecutionActor
+            ? 'Attachment not found or access denied'
+            : 'Attachment not found',
           error: {
             code: 'ATTACHMENT_NOT_FOUND',
             timestamp: new Date().toISOString(),
@@ -748,7 +774,7 @@ export class MobileAttachmentController {
     try {
       const { caseIds } = req.body;
       const userId = req.user?.id;
-      const userRole = req.user?.role;
+      const isExecutionActor = isFieldExecutionActor(req.user);
 
       if (!Array.isArray(caseIds) || caseIds.length === 0) {
         res.status(400).json({
@@ -784,7 +810,7 @@ export class MobileAttachmentController {
       let attachmentsSql: string;
       let queryParams: QueryParams;
 
-      if (userRole === 'FIELD_AGENT') {
+      if (isExecutionActor) {
         // Field agents can only see attachments for cases with assigned tasks
         attachmentsSql = `
           SELECT

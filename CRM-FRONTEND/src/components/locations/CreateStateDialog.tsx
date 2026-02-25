@@ -153,7 +153,7 @@ export function CreateStateDialog({ open, onOpenChange }: CreateStateDialogProps
                       {countries.map((country) => (
                         <SelectItem key={country.id} value={country.name}>
                           <div className="flex items-center space-x-2">
-                            <span className="font-mono text-xs bg-muted px-1 rounded">
+                            <span className="font-mono text-xs bg-green-50 text-green-700 border border-green-100 px-1 rounded">
                               {country.code}
                             </span>
                             <span>{country.name}</span>

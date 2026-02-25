@@ -1,9 +1,15 @@
 import type { Response, NextFunction } from 'express';
 import { query } from '@/config/database';
-import { Role } from '@/types/auth';
 import type { AuthenticatedRequest } from '@/middleware/auth';
 import type { ApiResponse } from '@/types/api';
 import { logger } from '@/config/logger';
+import { getAssignedClientIds } from '@/middleware/clientAccess';
+import { getAssignedProductIds } from '@/middleware/productAccess';
+import {
+  hasSystemScopeBypass,
+  isFieldExecutionActor,
+  isScopedOperationsUser,
+} from '@/security/rbacAccess';
 
 /**
  * Middleware to validate that the authenticated user has access to a verification task.
@@ -24,9 +30,9 @@ export const requireTaskAccess = async (
 ): Promise<void> => {
   try {
     const userId = req.user?.id;
-    const userRole = req.user?.role;
+    const user = req.user;
 
-    if (!userId || !userRole) {
+    if (!userId || !user) {
       const response: ApiResponse = {
         success: false,
         message: 'Authentication required',
@@ -50,20 +56,54 @@ export const requireTaskAccess = async (
       return;
     }
 
-    // ADMIN and SUPER_ADMIN bypass ownership checks
-    if (userRole === Role.ADMIN || userRole === Role.SUPER_ADMIN) {
+    if (hasSystemScopeBypass(user)) {
       next();
       return;
     }
 
-    // BACKEND_USER and MANAGER have full access to all tasks
-    if (userRole === Role.BACKEND_USER || userRole === Role.MANAGER) {
+    if (isScopedOperationsUser(user)) {
+      const taskScopeResult = await query(
+        `SELECT vt.id, c."clientId" as client_id, c."productId" as product_id
+         FROM verification_tasks vt
+         JOIN cases c ON c.id = vt.case_id
+         WHERE vt.id = $1`,
+        [taskId]
+      );
+
+      if (taskScopeResult.rows.length === 0) {
+        res.status(404).json({
+          success: false,
+          message: 'Verification task not found',
+          error: { code: 'TASK_NOT_FOUND' },
+        });
+        return;
+      }
+
+      const [assignedClientIds, assignedProductIds] = await Promise.all([
+        getAssignedClientIds(userId),
+        getAssignedProductIds(userId),
+      ]);
+
+      const row = taskScopeResult.rows[0];
+      if (
+        assignedClientIds.length === 0 ||
+        assignedProductIds.length === 0 ||
+        !assignedClientIds.includes(Number(row.client_id)) ||
+        !assignedProductIds.includes(Number(row.product_id))
+      ) {
+        res.status(403).json({
+          success: false,
+          message: 'Access denied',
+          error: { code: 'TASK_SCOPE_ACCESS_DENIED' },
+        });
+        return;
+      }
+
       next();
       return;
     }
 
-    // FIELD_AGENT: Must validate ownership
-    if (userRole === Role.FIELD_AGENT) {
+    if (isFieldExecutionActor(user)) {
       const taskResult = await query(
         'SELECT id, assigned_to, status, task_number FROM verification_tasks WHERE id = $1',
         [taskId]
@@ -86,7 +126,7 @@ export const requireTaskAccess = async (
         // Log unauthorized access attempt
         logger.warn('Unauthorized task access attempt', {
           userId,
-          userRole,
+          permissionCodes: user.permissionCodes,
           taskId,
           assignedTo: task.assigned_to,
           taskNumber: task.task_number,
@@ -113,16 +153,15 @@ export const requireTaskAccess = async (
       return;
     }
 
-    // Unknown role - deny access
-    logger.error('Unknown user role in task access check', {
+    logger.error('User profile could not be classified for task access check', {
       userId,
-      userRole,
+      permissionCodes: user.permissionCodes,
       taskId,
     });
 
     const response: ApiResponse = {
       success: false,
-      message: 'Invalid user role',
+      message: 'Task access profile not recognized',
       error: { code: 'FORBIDDEN' },
     };
     res.status(403).json(response);
@@ -136,3 +175,5 @@ export const requireTaskAccess = async (
     res.status(500).json(response);
   }
 };
+
+export const validateTaskRecordAccess = requireTaskAccess;

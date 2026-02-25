@@ -210,7 +210,13 @@ export const getEnhancedAgentPerformance = async (req: Request, res: Response) =
       LEFT JOIN departments d ON u."departmentId" = d.id
       LEFT JOIN agent_performance_daily apd ON u.id = apd.agent_id
       ${whereClause}
-      AND u.role = 'FIELD_AGENT'
+      AND EXISTS (
+        SELECT 1
+        FROM user_roles urf
+        JOIN role_permissions rpf ON rpf.role_id = urf.role_id AND rpf.allowed = true
+        JOIN permissions pf ON pf.id = rpf.permission_id
+        WHERE urf.user_id = u.id AND pf.code = 'visit.submit'
+      )
       GROUP BY u.id, u.name, u."employeeId", u.email, u.performance_rating, 
                u.total_cases_handled, u.avg_case_completion_days, u.last_active_at, d.name
       ORDER BY avg_quality_score DESC, completion_rate DESC
@@ -233,7 +239,13 @@ export const getEnhancedAgentPerformance = async (req: Request, res: Response) =
       FROM users u
       LEFT JOIN agent_performance_daily apd ON u.id = apd.agent_id
       ${whereClause}
-      AND u.role = 'FIELD_AGENT'
+      AND EXISTS (
+        SELECT 1
+        FROM user_roles urf
+        JOIN role_permissions rpf ON rpf.role_id = urf.role_id AND rpf.allowed = true
+        JOIN permissions pf ON pf.id = rpf.permission_id
+        WHERE urf.user_id = u.id AND pf.code = 'visit.submit'
+      )
     `;
 
     const [performanceResult, summaryResult] = await Promise.all([
@@ -285,7 +297,13 @@ export const getEnhancedAgentPerformance = async (req: Request, res: Response) =
       FROM users u
       JOIN agent_performance_daily apd ON u.id = apd.agent_id
       ${whereClause}
-      AND u.role = 'FIELD_AGENT'
+      AND EXISTS (
+        SELECT 1
+        FROM user_roles urf
+        JOIN role_permissions rpf ON rpf.role_id = urf.role_id AND rpf.allowed = true
+        JOIN permissions pf ON pf.id = rpf.permission_id
+        WHERE urf.user_id = u.id AND pf.code = 'visit.submit'
+      )
       GROUP BY u.id, u.name, u."employeeId"
       HAVING AVG(apd.quality_score) > 85
       ORDER BY AVG(apd.quality_score) DESC, SUM(apd.cases_completed) DESC

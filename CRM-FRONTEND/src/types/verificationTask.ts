@@ -112,14 +112,28 @@ export interface CreateVerificationTaskRequest {
 }
 
 export interface UpdateVerificationTaskRequest {
-  task_title?: string;
-  task_description?: string;
+  taskTitle?: string;
+  taskDescription?: string;
   priority?: TaskPriority;
   status?: TaskStatus;
-  verification_outcome?: string;
-  actual_amount?: number;
+  assignedTo?: string | null;
+  rateTypeId?: number;
+  verificationOutcome?: string;
+  actualAmount?: number;
   address?: string;
   pincode?: string;
+  trigger?: string;
+  applicantType?: string;
+  documentType?: string;
+  documentNumber?: string;
+  documentDetails?: Record<string, unknown>;
+  estimatedCompletionDate?: string;
+  caseId?: string;
+  // Legacy snake_case keys kept for backward compatibility in older callers
+  task_title?: string;
+  task_description?: string;
+  verification_outcome?: string;
+  actual_amount?: number;
   document_type?: string;
   document_number?: string;
   document_details?: Record<string, unknown>;

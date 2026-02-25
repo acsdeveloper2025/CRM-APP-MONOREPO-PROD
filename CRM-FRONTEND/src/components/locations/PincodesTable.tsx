@@ -132,8 +132,12 @@ export function PincodesTable({ data, isLoading }: PincodesTableProps) {
                   )}
                 </TableCell>
                 <TableCell>
-                  {pincode.state ? (
-                    <Badge className={baseBadgeStyle}>{formatBadgeLabel(pincode.state)}</Badge>
+                  {(pincode.state || (pincode as Pincode & { stateName?: string }).stateName) ? (
+                    <Badge className={baseBadgeStyle}>
+                      {formatBadgeLabel(
+                        pincode.state || (pincode as Pincode & { stateName?: string }).stateName || ''
+                      )}
+                    </Badge>
                   ) : (
                     <span className="text-gray-600">-</span>
                   )}

@@ -2,13 +2,17 @@
 import express from 'express';
 import { VerificationTasksController } from '../controllers/verificationTasksController';
 import { authenticateToken, type AuthenticatedRequest } from '../middleware/auth';
+import { getAssignedClientIds, validateCaseAccess } from '@/middleware/clientAccess';
+import { getAssignedProductIds, validateCaseProductAccess } from '@/middleware/productAccess';
 import {
   validateTaskCreation,
   validateTaskUpdate,
   validateTaskAssignment,
 } from '../middleware/taskValidation';
-import { requireTaskAccess } from '../middleware/taskAuthorization';
+import { validateTaskRecordAccess } from '../middleware/taskAuthorization';
 import { pool } from '../config/db';
+import { authorize } from '@/middleware/authorize';
+import { isScopedOperationsUser } from '@/security/rbacAccess';
 
 const router = express.Router();
 
@@ -25,6 +29,7 @@ const router = express.Router();
 router.get(
   '/verification-tasks',
   authenticateToken,
+  authorize('case.view'),
   VerificationTasksController.getAllTasks.bind(VerificationTasksController)
 );
 
@@ -35,6 +40,9 @@ router.get(
 router.post(
   '/cases/:caseId/verification-tasks',
   authenticateToken,
+  authorize('case.assign'),
+  validateCaseAccess,
+  validateCaseProductAccess,
   validateTaskCreation,
   VerificationTasksController.createMultipleTasksForCase.bind(VerificationTasksController)
 );
@@ -47,6 +55,9 @@ router.post(
 router.get(
   '/cases/:caseId/verification-tasks',
   authenticateToken,
+  authorize('case.view'),
+  validateCaseAccess,
+  validateCaseProductAccess,
   VerificationTasksController.getTasksForCase.bind(VerificationTasksController)
 );
 
@@ -58,6 +69,7 @@ router.get(
 router.post(
   '/verification-tasks/revisit/:taskId',
   authenticateToken,
+  authorize('visit.revisit', { ownership: 'task' }),
   VerificationTasksController.revisitTask.bind(VerificationTasksController)
 );
 
@@ -68,7 +80,8 @@ router.post(
 router.put(
   '/verification-tasks/:taskId',
   authenticateToken,
-  requireTaskAccess,
+  authorize('case.update'),
+  validateTaskRecordAccess,
   validateTaskUpdate,
   VerificationTasksController.updateTask.bind(VerificationTasksController)
 );
@@ -80,7 +93,8 @@ router.put(
 router.post(
   '/verification-tasks/:taskId/assign',
   authenticateToken,
-  requireTaskAccess,
+  authorize('case.reassign'),
+  validateTaskRecordAccess,
   validateTaskAssignment,
   VerificationTasksController.assignTask.bind(VerificationTasksController)
 );
@@ -92,7 +106,7 @@ router.post(
 router.post(
   '/verification-tasks/:taskId/complete',
   authenticateToken,
-  requireTaskAccess,
+  authorize('visit.submit', { ownership: 'task' }),
   VerificationTasksController.completeTask.bind(VerificationTasksController)
 );
 
@@ -104,7 +118,8 @@ router.post(
 router.get(
   '/verification-tasks/:taskId/validate',
   authenticateToken,
-  requireTaskAccess,
+  authorize('case.view'),
+  validateTaskRecordAccess,
   VerificationTasksController.validateTask.bind(VerificationTasksController)
 );
 
@@ -115,7 +130,7 @@ router.get(
 router.post(
   '/verification-tasks/:taskId/start',
   authenticateToken,
-  requireTaskAccess,
+  authorize('visit.start', { ownership: 'task' }),
   async (req: AuthenticatedRequest, res) => {
     try {
       const { taskId: _taskId } = req.params;
@@ -146,7 +161,8 @@ router.post(
 router.get(
   '/verification-tasks/:taskId/assignment-history',
   authenticateToken,
-  requireTaskAccess,
+  authorize('case.view'),
+  validateTaskRecordAccess,
   async (req: AuthenticatedRequest, res) => {
     try {
       const { taskId } = req.params;
@@ -190,7 +206,8 @@ router.get(
 router.get(
   '/verification-tasks/:taskId',
   authenticateToken,
-  requireTaskAccess,
+  authorize('case.view'),
+  validateTaskRecordAccess,
   async (req: AuthenticatedRequest, res) => {
     try {
       const { taskId } = req.params;
@@ -251,7 +268,8 @@ router.get(
 router.post(
   '/verification-tasks/:taskId/cancel',
   authenticateToken,
-  requireTaskAccess,
+  authorize('visit.revoke', { ownership: 'task' }),
+  validateTaskRecordAccess,
   async (req: AuthenticatedRequest, res) => {
     try {
       const { taskId: _taskId } = req.params;
@@ -288,14 +306,15 @@ router.post(
 router.post(
   '/verification-tasks/bulk-assign',
   authenticateToken,
+  authorize('case.reassign'),
   async (req: AuthenticatedRequest, res) => {
     try {
       // eslint-disable-next-line camelcase
-      const { task_ids, assigned_to, assignment_reason } = req.body;
+      const { task_ids: taskIds, assigned_to, assignment_reason } = req.body;
       const userId = req.user?.id;
 
       // eslint-disable-next-line camelcase
-      if (!task_ids || !Array.isArray(task_ids) || task_ids.length === 0) {
+      if (!taskIds || !Array.isArray(taskIds) || taskIds.length === 0) {
         res.status(400).json({
           success: false,
           message: 'task_ids array is required',
@@ -314,6 +333,48 @@ router.post(
         return;
       }
 
+      if (isScopedOperationsUser(req.user) && req.user?.id) {
+        const [assignedClientIds, assignedProductIds] = await Promise.all([
+          getAssignedClientIds(req.user.id),
+          getAssignedProductIds(req.user.id),
+        ]);
+
+        if (
+          !assignedClientIds ||
+          !assignedProductIds ||
+          assignedClientIds.length === 0 ||
+          assignedProductIds.length === 0
+        ) {
+          res.status(403).json({
+            success: false,
+            message: 'Access denied',
+            error: { code: 'TASK_SCOPE_ACCESS_DENIED' },
+          });
+          return;
+        }
+
+        const scopeCheck = await pool.query(
+          `SELECT COUNT(*)::int AS denied_count
+           FROM verification_tasks vt
+           JOIN cases c ON c.id = vt.case_id
+           WHERE vt.id = ANY($1::uuid[])
+             AND (
+               c."clientId" <> ALL($2::int[])
+               OR c."productId" <> ALL($3::int[])
+             )`,
+          [taskIds, assignedClientIds, assignedProductIds]
+        );
+
+        if (Number(scopeCheck.rows[0]?.denied_count || 0) > 0) {
+          res.status(403).json({
+            success: false,
+            message: 'One or more tasks are outside your assigned client/product scope',
+            error: { code: 'TASK_SCOPE_ACCESS_DENIED' },
+          });
+          return;
+        }
+      }
+
       const client = await pool.connect();
 
       try {
@@ -321,8 +382,7 @@ router.post(
 
         const updatedTasks = [];
 
-        // eslint-disable-next-line camelcase
-        for (const taskId of task_ids) {
+        for (const taskId of taskIds) {
           // Update task assignment
           const result = await client.query(
             `
@@ -408,6 +468,7 @@ router.post(
 router.get(
   '/mobile/my-verification-tasks',
   authenticateToken,
+  authorize('visit.start'),
   VerificationTasksController.getMyTasks.bind(VerificationTasksController)
 );
 
@@ -418,6 +479,7 @@ router.get(
 router.post(
   '/mobile/verification-tasks/:taskId/submit',
   authenticateToken,
+  authorize('visit.submit', { ownership: 'task' }),
   async (req: AuthenticatedRequest, res) => {
     try {
       const { taskId: _taskId } = req.params;

@@ -1,6 +1,7 @@
 import express from 'express';
 import { body, query, param } from 'express-validator';
-import { authenticateToken, requireFieldOrHigher } from '@/middleware/auth';
+import { authenticateToken } from '@/middleware/auth';
+import { authorize } from '@/middleware/authorize';
 import { validate } from '@/middleware/validation';
 import { listRateLimit } from '@/middleware/rateLimiter';
 import { EnterpriseRateLimit, EnterpriseRateLimits } from '../middleware/enterpriseRateLimit';
@@ -10,6 +11,7 @@ import {
   CacheInvalidationPatterns,
 } from '../middleware/enterpriseCache';
 import { validateCaseAccess, validateCaseCreationAccess } from '@/middleware/clientAccess';
+import { validateCaseProductAccess } from '@/middleware/productAccess';
 import {
   getCases,
   getCaseById,
@@ -26,7 +28,6 @@ const router = express.Router();
 
 // Apply authentication and rate limiting
 router.use(authenticateToken);
-router.use(requireFieldOrHigher);
 router.use(listRateLimit);
 
 // Validation schemas
@@ -257,6 +258,7 @@ const _reworkValidation = [
 // Core CRUD routes
 router.get(
   '/',
+  authorize('case.view'),
   EnterpriseRateLimit.roleBasedLimiter(EnterpriseRateLimits.byRole),
   EnterpriseCache.create(EnterpriseCacheConfigs.caseList),
   listCasesValidation,
@@ -270,6 +272,7 @@ router.get(
 // ============================================================================
 router.post(
   '/create',
+  authorize('case.create'),
   EnterpriseRateLimit.roleBasedLimiter(EnterpriseRateLimits.byRole),
   EnterpriseCache.invalidate(CacheInvalidationPatterns.caseUpdate),
   validateCaseCreationAccess,
@@ -282,6 +285,7 @@ router.post(
 // ============================================================================
 router.post(
   '/dedupe/global-search',
+  authorize('case.view'),
   EnterpriseRateLimit.roleBasedLimiter(EnterpriseRateLimits.byRole),
   [
     body('mobile').optional().trim(),
@@ -301,6 +305,7 @@ router.post(
 // Get case summary with tasks
 router.get(
   '/:id/summary',
+  authorize('case.view'),
   EnterpriseRateLimit.roleBasedLimiter(EnterpriseRateLimits.byRole),
   EnterpriseCache.create(EnterpriseCacheConfigs.caseDetails),
   [param('id').trim().notEmpty().withMessage('Case ID is required')],
@@ -312,6 +317,7 @@ router.get(
 // Export cases to Excel - MUST be before /:id route
 router.get(
   '/export',
+  authorize('case.view'),
   EnterpriseRateLimit.roleBasedLimiter(EnterpriseRateLimits.byRole),
   [
     query('exportType')
@@ -332,6 +338,7 @@ router.get(
 
 router.get(
   '/:id',
+  authorize('case.view'),
   EnterpriseRateLimit.roleBasedLimiter(EnterpriseRateLimits.byRole),
   EnterpriseCache.create(EnterpriseCacheConfigs.caseDetails),
   [param('id').trim().notEmpty().withMessage('Case ID is required')],
@@ -342,6 +349,7 @@ router.get(
 
 router.put(
   '/:id',
+  authorize('case.update'),
   [param('id').trim().notEmpty().withMessage('Case ID is required')],
   updateCaseValidation,
   validate,
@@ -418,20 +426,28 @@ router.put(
 // );
 
 // Analytics routes
-router.get('/analytics/field-agent-workload', validate, getFieldAgentWorkload);
+router.get(
+  '/analytics/field-agent-workload',
+  authorize('dashboard.view'),
+  validate,
+  getFieldAgentWorkload
+);
 
 // Verification Images route
 router.get(
   '/:id/verification-images',
+  authorize('case.view'),
   [param('id').trim().notEmpty().withMessage('Case ID is required')],
   validate,
   validateCaseAccess,
+  validateCaseProductAccess,
   VerificationAttachmentController.getVerificationImages
 );
 
 // Serve verification image file
 router.get(
   '/verification-images/:imageId/serve',
+  authorize('case.view'),
   [param('imageId').trim().notEmpty().withMessage('Image ID is required')],
   validate,
   VerificationAttachmentController.serveVerificationImage
@@ -440,6 +456,7 @@ router.get(
 // Serve verification image thumbnail
 router.get(
   '/verification-images/:imageId/thumbnail',
+  authorize('case.view'),
   [param('imageId').trim().notEmpty().withMessage('Image ID is required')],
   validate,
   VerificationAttachmentController.serveVerificationThumbnail

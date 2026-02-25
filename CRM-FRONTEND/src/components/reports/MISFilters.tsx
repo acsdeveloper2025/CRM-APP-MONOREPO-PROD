@@ -13,6 +13,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import type { MISFilters } from '@/types/mis';
 import { apiService } from '@/services/api';
+import { isBackendScopedUser, isFieldAgentUser } from '@/utils/userPermissionProfiles';
 
 interface MISFiltersProps {
   filters: MISFilters;
@@ -51,8 +52,8 @@ export function MISFiltersComponent({ filters, onFiltersChange, onReset }: MISFi
       setVerificationTypes((verificationTypesRes.data as unknown[]) || []);
       
       const users = (usersRes.data as unknown[]) || [];
-      setFieldAgents(users.filter((u: unknown) => (u as { role: string }).role === 'FIELD_AGENT'));
-      setBackendUsers(users.filter((u: unknown) => ['ADMIN', 'BACKEND', 'MANAGER'].includes((u as { role: string }).role)));
+      setFieldAgents(users.filter((u: unknown) => isFieldAgentUser(u as never)));
+      setBackendUsers(users.filter((u: unknown) => isBackendScopedUser(u as never)));
     } catch (error) {
       console.error('Failed to load filter options:', error);
     }
@@ -269,4 +270,3 @@ export function MISFiltersComponent({ filters, onFiltersChange, onReset }: MISFi
     </div>
   );
 }
-

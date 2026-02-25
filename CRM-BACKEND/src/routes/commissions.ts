@@ -1,6 +1,7 @@
 import express from 'express';
 import { body, query, param } from 'express-validator';
 import { authenticateToken } from '@/middleware/auth';
+import { authorize } from '@/middleware/authorize';
 import { validate } from '@/middleware/validation';
 import {
   getCommissions,
@@ -16,6 +17,7 @@ const router = express.Router();
 
 // Apply authentication
 router.use(authenticateToken);
+router.use(authorize('billing.approve'));
 
 // Validation schemas
 const listCommissionsValidation = [

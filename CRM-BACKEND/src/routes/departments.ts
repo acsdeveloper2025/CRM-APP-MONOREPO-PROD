@@ -1,5 +1,6 @@
 import express from 'express';
-import { auth, requirePermission } from '../middleware/auth';
+import { auth } from '../middleware/auth';
+import { authorize } from '../middleware/authorize';
 import {
   getDepartments,
   getDepartmentById,
@@ -12,20 +13,21 @@ const router = express.Router();
 
 // All department routes require authentication
 router.use(auth);
+router.use(authorize('settings.manage'));
 
 // GET /api/departments - Get all departments
-router.get('/', requirePermission('departments', 'read'), getDepartments);
+router.get('/', getDepartments);
 
 // GET /api/departments/:id - Get department by ID
-router.get('/:id', requirePermission('departments', 'read'), getDepartmentById);
+router.get('/:id', getDepartmentById);
 
 // POST /api/departments - Create new department
-router.post('/', requirePermission('departments', 'create'), createDepartment);
+router.post('/', createDepartment);
 
 // PUT /api/departments/:id - Update department
-router.put('/:id', requirePermission('departments', 'update'), updateDepartment);
+router.put('/:id', updateDepartment);
 
 // DELETE /api/departments/:id - Delete department
-router.delete('/:id', requirePermission('departments', 'delete'), deleteDepartment);
+router.delete('/:id', deleteDepartment);
 
 export default router;

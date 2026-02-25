@@ -1,4 +1,4 @@
-import type { Request, Response } from 'express';
+import type { Response } from 'express';
 import type { AuthenticatedRequest } from '../middleware/auth';
 import { PoolClient } from 'pg';
 import type {
@@ -9,7 +9,9 @@ import type {
 } from '../types/verificationTask';
 import { createAuditLog } from '../utils/auditLogger';
 import { logger } from '../utils/logger';
-import { Role } from '../types/auth';
+import { getAssignedClientIds } from '@/middleware/clientAccess';
+import { getAssignedProductIds } from '@/middleware/productAccess';
+import { isFieldExecutionActor, isScopedOperationsUser } from '@/security/rbacAccess';
 
 // Database connection (assuming it's imported from your existing setup)
 import { pool } from '../config/database';
@@ -397,18 +399,19 @@ export class VerificationTasksController {
       let paramIndex = 1;
 
       // Role-based filtering - FIELD_AGENT users can see tasks assigned to them OR in their territory
-      const userRole = req.user?.role;
       const userId = req.user?.id;
+      const isExecutionActor = isFieldExecutionActor(req.user);
+      const isScopedOps = isScopedOperationsUser(req.user);
 
-      if (userRole === Role.FIELD_AGENT) {
+      if (isExecutionActor) {
         // FIELD_AGENT can see tasks if:
         // 1. They are assigned to the task, OR
         // 2. The task is in their assigned pincodes/areas
         const { getAssignedPincodeIds } = await import('@/middleware/pincodeAccess');
         const { getAssignedAreaIds } = await import('@/middleware/areaAccess');
 
-        const assignedPincodeIds = await getAssignedPincodeIds(userId, userRole);
-        const assignedAreaIds = await getAssignedAreaIds(userId, userRole);
+        const assignedPincodeIds = await getAssignedPincodeIds(userId);
+        const assignedAreaIds = await getAssignedAreaIds(userId);
 
         const fieldAgentConditions: string[] = [];
 
@@ -438,7 +441,31 @@ export class VerificationTasksController {
           // No assignments, show nothing
           conditions.push('FALSE');
         }
-      } else if (assignedTo) {
+      } else if (isScopedOps) {
+        const [assignedClientIds, assignedProductIds] = await Promise.all([
+          getAssignedClientIds(userId),
+          getAssignedProductIds(userId),
+        ]);
+
+        if (
+          !assignedClientIds ||
+          !assignedProductIds ||
+          assignedClientIds.length === 0 ||
+          assignedProductIds.length === 0
+        ) {
+          conditions.push('FALSE');
+        } else {
+          conditions.push(`c."clientId" = ANY($${paramIndex}::int[])`);
+          params.push(assignedClientIds);
+          paramIndex++;
+
+          conditions.push(`c."productId" = ANY($${paramIndex}::int[])`);
+          params.push(assignedProductIds);
+          paramIndex++;
+        }
+      }
+
+      if (!isExecutionActor && assignedTo) {
         conditions.push(`vt.assigned_to = $${paramIndex}`);
         params.push(assignedTo as string);
         paramIndex++;
@@ -709,7 +736,7 @@ export class VerificationTasksController {
    * Get all verification tasks for a case
    * GET /api/cases/:caseId/verification-tasks
    */
-  static async getTasksForCase(req: Request, res: Response): Promise<void> {
+  static async getTasksForCase(req: AuthenticatedRequest, res: Response): Promise<void> {
     const rawCaseId = String(req.params.caseId || '');
     const caseId = Array.isArray(rawCaseId) ? String(rawCaseId[0]) : String(rawCaseId || '');
     const status = (req.query.status as unknown as string) || '';
@@ -766,6 +793,7 @@ export class VerificationTasksController {
         `
         SELECT
           c.id, c."caseId" as case_number, c."customerName" as customer_name,
+          c."clientId" as client_id, c."productId" as product_id,
           c.trigger, c."applicantType" as applicant_type,
           c.has_multiple_tasks, c.total_tasks_count, c.completed_tasks_count,
           c.case_completion_percentage
@@ -785,6 +813,32 @@ export class VerificationTasksController {
       }
 
       const caseInfo = caseResult.rows[0];
+
+      if (isScopedOperationsUser(req.user) && req.user?.id) {
+        const [assignedClientIds, assignedProductIds] = await Promise.all([
+          getAssignedClientIds(req.user.id),
+          getAssignedProductIds(req.user.id),
+        ]);
+
+        const caseClientId = Number(caseInfo.client_id);
+        const caseProductId = Number(caseInfo.product_id);
+
+        if (
+          !assignedClientIds ||
+          !assignedProductIds ||
+          assignedClientIds.length === 0 ||
+          assignedProductIds.length === 0 ||
+          !assignedClientIds.includes(caseClientId) ||
+          !assignedProductIds.includes(caseProductId)
+        ) {
+          res.status(403).json({
+            success: false,
+            message: 'Access denied - case/tasks not assigned to user scope',
+            error: { code: 'CASE_TASK_ACCESS_DENIED' },
+          });
+          return;
+        }
+      }
 
       // Get verification tasks with populated data
       const tasksResult = await pool.query(
@@ -834,6 +888,7 @@ export class VerificationTasksController {
         actual_amount: parseFloat(row.actual_amount || '0'),
         address: row.address,
         pincode: row.pincode,
+        area_id: row.area_id,
         // Use task-level trigger/applicant_type if available, otherwise fall back to case-level
         trigger: row.trigger || caseInfo.trigger,
         applicant_type: row.applicant_type || caseInfo.applicant_type,

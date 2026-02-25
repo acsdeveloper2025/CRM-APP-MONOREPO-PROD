@@ -1,6 +1,7 @@
 import express from 'express';
 import { param, body } from 'express-validator';
 import { authenticateToken } from '../middleware/auth';
+import { authorize } from '../middleware/authorize';
 import { validate } from '../middleware/validation';
 import {
   getUserTerritoryAssignments,
@@ -12,6 +13,7 @@ const router = express.Router();
 
 // Apply authentication
 router.use(authenticateToken);
+router.use(authorize('territory.assign'));
 
 // GET /api/users/:userId/territory-assignments
 // Fetch user's territory assignments (pincodes and areas)

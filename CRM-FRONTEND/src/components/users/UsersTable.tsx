@@ -47,6 +47,7 @@ import { UserDetailsDialog } from './UserDetailsDialog';
 import { ResetPasswordDialog } from './ResetPasswordDialog';
 
 import { getRoleBadge } from '@/utils/roleUtils';
+import { getPrimaryRoleLabel, isBackendScopedUser, isFieldAgentUser } from '@/utils/userPermissionProfiles';
 
 interface UsersTableProps {
   data: User[];
@@ -279,7 +280,7 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
-                    {getUserRoleBadge(user.roleName || user.role)}
+                    {getUserRoleBadge(getPrimaryRoleLabel(user))}
                   </div>
                 </TableCell>
                 <TableCell className="hidden lg:table-cell">
@@ -289,7 +290,7 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
                   </div>
                 </TableCell>
                 <TableCell className="hidden lg:table-cell">
-                  {(user.role === 'BACKEND_USER' || user.roleName === 'BACKEND_USER') ? (
+                  {isBackendScopedUser(user) ? (
                     <div className="text-sm">
                       <div className="flex items-center gap-1">
                         <span className="font-medium text-green-700">{user.assignedClientsCount || 0}</span>
@@ -300,7 +301,7 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
                         <span className="text-gray-600">products</span>
                       </div>
                     </div>
-                  ) : (user.role === 'FIELD_AGENT' || user.roleName === 'FIELD_AGENT') ? (
+                  ) : isFieldAgentUser(user) ? (
                     <div className="text-sm">
                       <div className="flex items-center gap-1">
                         <span className="font-medium text-green-700">{user.assignedPincodesCount || 0}</span>
@@ -481,7 +482,7 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
             <div className="grid grid-cols-2 gap-3">
               <MobileTableField
                 label="Role"
-                value={getUserRoleBadge(user.roleName || user.role)}
+                value={getUserRoleBadge(getPrimaryRoleLabel(user))}
               />
               <MobileTableField
                 label="Status"
@@ -498,7 +499,7 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
                   </div>
                 }
               />
-              {(user.role === 'BACKEND_USER' || user.roleName === 'BACKEND_USER') && (
+              {isBackendScopedUser(user) && (
                 <MobileTableField
                   label="Assignments"
                   value={
@@ -515,7 +516,7 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
                   }
                 />
               )}
-              {(user.role === 'FIELD_AGENT' || user.roleName === 'FIELD_AGENT') && (
+              {isFieldAgentUser(user) && (
                 <MobileTableField
                   label="Territory Assignments"
                   value={

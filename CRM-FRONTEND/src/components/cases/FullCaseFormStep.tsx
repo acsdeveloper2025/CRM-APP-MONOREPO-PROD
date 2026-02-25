@@ -28,6 +28,7 @@ import { useClients, useVerificationTypes, useProductsByClient } from '@/hooks/u
 import { usePincodes } from '@/hooks/useLocations';
 import { useAreasByPincode } from '@/hooks/useAreas';
 import { useAuth } from '@/hooks/useAuth';
+import { isBackendScopedUser } from '@/utils/userPermissionProfiles';
 import { CaseFormAttachmentsSection, type CaseFormAttachment } from '@/components/attachments/CaseFormAttachmentsSection';
 import type { CustomerInfoData } from './CustomerInfoStep';
 import { rateTypesService } from '@/services/rateTypes';
@@ -115,10 +116,7 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
 
   // Filter clients based on user role and assignments
   const clients = useMemo(() => {
-    if (!user || user.role === 'SUPER_ADMIN' || user.role === 'ADMIN') {
-      return allClients; // No filtering for admins
-    }
-    if (user.role === 'BACKEND_USER' && user.assignedClients) {
+    if (isBackendScopedUser(user) && Array.isArray(user?.assignedClients)) {
       return allClients.filter(client => user.assignedClients?.includes(client.id));
     }
     return allClients;
@@ -154,10 +152,7 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
 
   // Filter products based on user role and assignments
   const products = useMemo(() => {
-    if (!user || user.role === 'SUPER_ADMIN' || user.role === 'ADMIN') {
-      return allProducts; // No filtering for admins
-    }
-    if (user.role === 'BACKEND_USER' && user.assignedProducts) {
+    if (isBackendScopedUser(user) && Array.isArray(user?.assignedProducts)) {
       return allProducts.filter(product => user.assignedProducts?.includes(product.id));
     }
     return allProducts;

@@ -27,6 +27,7 @@ import { Product } from '@/types/client';
 
 const editProductSchema = z.object({
   name: z.string().min(1, 'Product name is required').max(100, 'Name too long'),
+  code: z.string().min(2, 'Product code is required').max(50, 'Code too long'),
 });
 
 type EditProductFormData = z.infer<typeof editProductSchema>;
@@ -42,6 +43,7 @@ export function EditProductDialog({ product, open, onOpenChange }: EditProductDi
     resolver: zodResolver(editProductSchema),
     defaultValues: {
       name: product.name,
+      code: product.code,
     },
   });
 
@@ -49,6 +51,7 @@ export function EditProductDialog({ product, open, onOpenChange }: EditProductDi
     if (product) {
       form.reset({
         name: product.name,
+        code: product.code,
       });
     }
   }, [product, form]);
@@ -80,6 +83,26 @@ export function EditProductDialog({ product, open, onOpenChange }: EditProductDi
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="code"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Product Code</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="e.g., LOAN_VERIFICATION"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Unique identifier for this product
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             <FormField
               control={form.control}
               name="name"

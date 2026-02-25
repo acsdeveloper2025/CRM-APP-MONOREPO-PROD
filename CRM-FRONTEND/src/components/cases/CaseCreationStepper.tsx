@@ -305,9 +305,10 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
 
         if (response.success) {
           // Upload attachments if any
-          if (task.attachments && task.attachments.length > 0) {
+          const newAttachments = (task.attachments || []).filter(att => att.id.startsWith('temp-'));
+          if (newAttachments.length > 0) {
             try {
-              const files = task.attachments.map(att => att.file);
+              const files = newAttachments.map(att => att.file);
               // For updates, we upload to the case generally or need task ID if available
               // Current update response might not return task IDs easily, so we upload to case
               // Ideally we should get the task ID for the updated task
@@ -424,9 +425,10 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
             const frontendTask = tasks[i];
             const backendTask = createdTasks[i];
 
-            if (frontendTask.attachments && frontendTask.attachments.length > 0 && backendTask) {
+            const newAttachments = (frontendTask.attachments || []).filter(att => att.id.startsWith('temp-'));
+            if (newAttachments.length > 0 && backendTask) {
               try {
-                const files = frontendTask.attachments.map(att => att.file);
+                const files = newAttachments.map(att => att.file);
                 await casesService.uploadCaseAttachments(caseId, files, backendTask.id);
                 totalAttachments += files.length;
               } catch (error) {

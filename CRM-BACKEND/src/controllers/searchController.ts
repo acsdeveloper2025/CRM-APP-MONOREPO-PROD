@@ -18,7 +18,6 @@ export class SearchController {
   static async searchFormSubmissions(req: Request, res: Response) {
     try {
       const userId = (req as AuthenticatedRequest).user?.id;
-      const _userRole = (req as AuthenticatedRequest).user?.role;
 
       // Extract search filters from query parameters
       const filters: SearchFilters = {

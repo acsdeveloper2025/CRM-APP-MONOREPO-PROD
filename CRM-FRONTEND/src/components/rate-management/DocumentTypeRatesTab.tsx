@@ -316,7 +316,6 @@ export function DocumentTypeRatesTab() {
                   <TableHead>Client</TableHead>
                   <TableHead>Product</TableHead>
                   <TableHead>Document Type</TableHead>
-                  <TableHead>Category</TableHead>
                   <TableHead className="text-right">Rate</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -328,9 +327,6 @@ export function DocumentTypeRatesTab() {
                     <TableCell className="font-medium">{rate.clientName}</TableCell>
                     <TableCell>{rate.productName}</TableCell>
                     <TableCell>{rate.documentTypeName}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{rate.documentTypeCategory || 'N/A'}</Badge>
-                    </TableCell>
                     <TableCell className="text-right font-mono">
                       {rate.currency} {Number(rate.amount).toFixed(2)}
                     </TableCell>
@@ -398,4 +394,3 @@ export function DocumentTypeRatesTab() {
     </div>
   );
 }
-

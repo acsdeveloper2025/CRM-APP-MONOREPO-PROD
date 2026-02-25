@@ -2,6 +2,11 @@ import type { Request, Response, NextFunction } from 'express';
 import { EnterpriseCacheService, CacheKeys } from '../services/enterpriseCacheService';
 import { logger } from '../config/logger';
 import type { AuthenticatedRequest } from './auth';
+import {
+  hasSystemScopeBypass,
+  isFieldExecutionActor,
+  isScopedOperationsUser,
+} from '@/security/rbacAccess';
 
 interface RequestWithRateLimit extends Request {
   rateLimit?: RateLimitInfo;
@@ -110,12 +115,21 @@ export class EnterpriseRateLimit {
   }
 
   /**
-   * Role-based rate limiting
+   * Permission/capability-based rate limiting (legacy method name retained)
    */
   static roleBasedLimiter(limits: Record<string, RateLimitConfig>) {
     return async (req: Request, res: Response, next: NextFunction) => {
-      const userRole = (req as AuthenticatedRequest).user?.role || 'GUEST';
-      const config = limits[userRole] || limits['DEFAULT'];
+      const authUser = (req as AuthenticatedRequest).user;
+      const profileKey = authUser
+        ? hasSystemScopeBypass(authUser)
+          ? 'SYSTEM'
+          : isFieldExecutionActor(authUser)
+            ? 'EXECUTION'
+            : isScopedOperationsUser(authUser)
+              ? 'OPERATIONS'
+              : 'DEFAULT'
+        : 'DEFAULT';
+      const config = limits[profileKey] || limits['DEFAULT'];
 
       if (!config) {
         return next();
@@ -301,17 +315,17 @@ export class EnterpriseRateLimit {
 
 // Enterprise rate limit configurations
 export const EnterpriseRateLimits = {
-  // General API limits by role
+  // General API limits by capability profile
   byRole: {
-    ADMIN: {
+    SYSTEM: {
       windowMs: 15 * 60 * 1000, // 15 minutes
       maxRequests: 5000, // High limit for admins
     },
-    BACKEND_USER: {
+    OPERATIONS: {
       windowMs: 15 * 60 * 1000,
       maxRequests: 2000, // Standard limit for backend users
     },
-    FIELD_AGENT: {
+    EXECUTION: {
       windowMs: 15 * 60 * 1000,
       maxRequests: 10000, // Increased from 1500 to 10000 for high-volume case processing (100+ cases/day)
     },

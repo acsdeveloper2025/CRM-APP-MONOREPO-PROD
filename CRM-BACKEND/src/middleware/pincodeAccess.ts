@@ -3,6 +3,7 @@ import type { Response, NextFunction } from 'express';
 import { query } from '@/config/database';
 import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from './auth';
+import { hasSystemScopeBypass, isFieldExecutionActor } from '@/security/rbacAccess';
 
 /**
  * Middleware to enforce pincode-level access restrictions for FIELD_AGENT users
@@ -11,15 +12,7 @@ import type { AuthenticatedRequest } from './auth';
  */
 
 // Helper function to get assigned pincode IDs for FIELD_AGENT users
-const getAssignedPincodeIds = async (
-  userId: string,
-  userRole: string
-): Promise<number[] | null> => {
-  // Only apply pincode filtering for FIELD_AGENT users
-  if (userRole !== 'FIELD_AGENT') {
-    return null; // null means no filtering (access to all pincodes)
-  }
-
+const getAssignedPincodeIds = async (userId: string): Promise<number[]> => {
   try {
     const result = await query(
       'SELECT "pincodeId" FROM "userPincodeAssignments" WHERE "userId" = $1 AND "isActive" = true',
@@ -46,10 +39,8 @@ export const validatePincodeAccess = (source: 'params' | 'body' | 'query' = 'par
   return async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const userId = req.user?.id;
-      const userRole = req.user?.role;
-
       // Skip validation for non-authenticated requests (should not happen due to auth middleware)
-      if (!userId || !userRole) {
+      if (!userId) {
         return res.status(401).json({
           success: false,
           message: 'Authentication required',
@@ -57,13 +48,11 @@ export const validatePincodeAccess = (source: 'params' | 'body' | 'query' = 'par
         });
       }
 
-      // SUPER_ADMIN users bypass all pincode restrictions
-      if ((userRole as string) === 'SUPER_ADMIN') {
+      if (hasSystemScopeBypass(req.user)) {
         return next();
       }
 
-      // Only apply restrictions to FIELD_AGENT users
-      if ((userRole as string) !== 'FIELD_AGENT') {
+      if (!isFieldExecutionActor(req.user)) {
         return next();
       }
 
@@ -89,7 +78,7 @@ export const validatePincodeAccess = (source: 'params' | 'body' | 'query' = 'par
       }
 
       // Get assigned pincode IDs for the FIELD_AGENT user
-      const assignedPincodeIds = await getAssignedPincodeIds(userId, userRole);
+      const assignedPincodeIds = await getAssignedPincodeIds(userId);
 
       // If user has no pincode assignments, deny access
       if (assignedPincodeIds?.length === 0) {
@@ -97,7 +86,7 @@ export const validatePincodeAccess = (source: 'params' | 'body' | 'query' = 'par
           `FIELD_AGENT user ${userId} attempted to access pincode ${pincodeId} with no pincode assignments`,
           {
             userId,
-            userRole,
+            executionActor: true,
             pincodeId,
             endpoint: req.originalUrl,
             method: req.method,
@@ -117,7 +106,7 @@ export const validatePincodeAccess = (source: 'params' | 'body' | 'query' = 'par
           `FIELD_AGENT user ${userId} attempted to access unauthorized pincode ${pincodeId}`,
           {
             userId,
-            userRole,
+            executionActor: true,
             pincodeId,
             assignedPincodeIds,
             endpoint: req.originalUrl,
@@ -155,25 +144,21 @@ export const addPincodeFiltering = async (
 ) => {
   try {
     const userId = req.user?.id;
-    const userRole = req.user?.role;
-
     // Skip for non-authenticated requests
-    if (!userId || !userRole) {
+    if (!userId) {
       return next();
     }
 
-    // SUPER_ADMIN users bypass all filtering
-    if ((userRole as string) === 'SUPER_ADMIN') {
+    if (hasSystemScopeBypass(req.user)) {
       return next();
     }
 
-    // Only apply filtering to FIELD_AGENT users
-    if ((userRole as string) !== 'FIELD_AGENT') {
+    if (!isFieldExecutionActor(req.user)) {
       return next();
     }
 
     // Get assigned pincode IDs for the FIELD_AGENT user
-    const assignedPincodeIds = await getAssignedPincodeIds(userId, userRole);
+    const assignedPincodeIds = await getAssignedPincodeIds(userId);
 
     if (assignedPincodeIds?.length === 0) {
       // User has no pincode assignments, they should see no data

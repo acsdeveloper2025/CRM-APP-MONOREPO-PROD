@@ -1,9 +1,8 @@
 import React from 'react';
-import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { Routes, Route, Navigate, Outlet, useParams } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useResponsive } from '@/hooks/useResponsive';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
-import { PermissionProtectedRoute } from '@/components/auth/PermissionProtectedRoute';
 import { Layout } from '@/components/layout/Layout';
 import { MobileApp } from '@/components/mobile/MobileApp';
 
@@ -24,13 +23,12 @@ const TaskDetailPage = React.lazy(() => import('@/pages/TaskDetailPage').then(mo
 const RevisitTasksPage = React.lazy(() => import('@/pages/RevisitTasksPage').then(module => ({ default: module.RevisitTasksPage })));
 const TATMonitoringPage = React.lazy(() => import('@/pages/TATMonitoringPage').then(module => ({ default: module.TATMonitoringPage })));
 const NewCasePage = React.lazy(() => import('@/pages/NewCasePage').then(module => ({ default: module.NewCasePage })));
-const EditCasePage = React.lazy(() => import('@/pages/EditCasePage').then(module => ({ default: module.EditCasePage })));
 const ClientsPage = React.lazy(() => import('@/pages/ClientsPage').then(module => ({ default: module.ClientsPage })));
 const UsersPage = React.lazy(() => import('@/pages/UsersPage').then(module => ({ default: module.UsersPage })));
 const UserPermissionsPage = React.lazy(() => import('@/pages/UserPermissionsPage').then(module => ({ default: module.UserPermissionsPage })));
 // Default export needs special handling or ensure it's exported as named too. Assuming named for consistency or default logic.
-// Checking RoleManagementPage import: import RoleManagementPage from '@/pages/RoleManagementPage';
-const RoleManagementPage = React.lazy(() => import('@/pages/RoleManagementPage')); 
+const RBACAdminPage = React.lazy(() => import('@/pages/RBACAdminPage').then(module => ({ default: module.RBACAdminPage })));
+const UnauthorizedPage = React.lazy(() => import('@/pages/UnauthorizedPage').then(module => ({ default: module.UnauthorizedPage })));
 const ReportsPage = React.lazy(() => import('@/pages/ReportsPage').then(module => ({ default: module.ReportsPage })));
 const AnalyticsPage = React.lazy(() => import('@/pages/AnalyticsPage').then(module => ({ default: module.AnalyticsPage })));
 const MISDashboardPage = React.lazy(() => import('@/pages/MISDashboardPage').then(module => ({ default: module.MISDashboardPage })));
@@ -83,6 +81,12 @@ const AuthenticatedLayout = () => {
   );
 };
 
+const LegacyCaseEditRedirect: React.FC = () => {
+  const { id } = useParams<{ id: string }>();
+  const target = id ? `/cases/new?edit=${encodeURIComponent(id)}` : '/cases/new';
+  return <Navigate to={target} replace />;
+};
+
 export const AppRoutes: React.FC = () => {
   return (
     <React.Suspense fallback={
@@ -94,13 +98,14 @@ export const AppRoutes: React.FC = () => {
         {/* ... routes ... */}
         {/* Public routes */}
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
         {/* ... rest of the routes remain same but lazy loaded components need Suspense up the tree or here ... */}
         {/* Mobile app route */}
         <Route
           path="/mobile"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute permission="page.mobile">
               <MobileApp />
             </ProtectedRoute>
           }
@@ -108,117 +113,48 @@ export const AppRoutes: React.FC = () => {
 
         {/* Protected routes with persistent layout */}
         <Route element={<AuthenticatedLayout />}>
-          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/dashboard" element={<ProtectedRoute permission="page.dashboard"><DashboardPage /></ProtectedRoute>} />
           
-          {/* Cases routes */}
-          <Route element={<ProtectedRoute requiredRoles={['ADMIN', 'BACKEND_USER', 'SUPER_ADMIN']}><Outlet /></ProtectedRoute>}>
-            <Route path="/cases" element={<CasesPage />} />
-            <Route path="/cases/:id" element={<CaseDetailPage />} />
-            <Route path="/cases/:id/edit" element={<EditCasePage />} />
-            <Route path="/tasks/pending" element={<PendingTasksPage />} />
-            <Route path="/tasks/revoked" element={<RevokedTasksPage />} />
-            <Route path="/tasks/in-progress" element={<InProgressTasksPage />} />
-            <Route path="/tasks/completed" element={<CompletedTasksPage />} />
-            <Route path="/tasks/revisit" element={<RevisitTasksPage />} />
-            <Route path="/cases/completed" element={<CompletedCasesPage />} />
-            <Route path="/cases/new" element={<NewCasePage />} />
-            
-            {/* Task Management Routes */}
-            <Route path="/tasks" element={<AllTasksPage />} />
-            <Route path="/tasks/:taskId" element={<TaskDetailPage />} />
-            <Route path="/verification-tasks/:taskId" element={<TaskDetailPage />} />
-            
-            {/* TAT Monitoring Route */}
-            <Route path="/tasks/tat-monitoring" element={
-              <PermissionProtectedRoute resource="tasks" action="read">
-                <TATMonitoringPage />
-              </PermissionProtectedRoute>
-            } />
-            
-            {/* Dedupe Route */}
-            <Route path="/case-management/dedupe" element={
-              <PermissionProtectedRoute resource="cases" action="read">
-                <DedupePage />
-              </PermissionProtectedRoute>
-            } />
-            
-            {/* Clients routes */}
-            <Route path="/clients" element={<ClientsPage />} />
-            
-            {/* Reports routes */}
-            <Route path="/reports" element={<ReportsPage />} />
-            
-            {/* Analytics routes */}
-            <Route path="/analytics" element={
-              <PermissionProtectedRoute resource="analytics" action="read">
-                <AnalyticsPage />
-              </PermissionProtectedRoute>
-            } />
-            
-            {/* MIS Dashboard route */}
-            <Route path="/reports/mis" element={
-              <PermissionProtectedRoute resource="analytics" action="read">
-                <MISDashboardPage />
-              </PermissionProtectedRoute>
-            } />
-            
-            {/* Additional feature routes */}
-            <Route path="/billing" element={
-              <PermissionProtectedRoute resource="billing" action="read">
-                <BillingPage />
-              </PermissionProtectedRoute>
-            } />
-            <Route path="/commissions" element={
-              <PermissionProtectedRoute resource="commissions" action="read">
-                <CommissionsPage />
-              </PermissionProtectedRoute>
-            } />
-            <Route path="/commission-management" element={
-              <PermissionProtectedRoute resource="commissions" action="read">
-                <CommissionManagementPage />
-              </PermissionProtectedRoute>
-            } />
-            <Route path="/forms" element={
-              <PermissionProtectedRoute resource="forms" action="read">
-                <FormViewerPage />
-              </PermissionProtectedRoute>
-            } />
-          </Route>
+          {/* Page access routes (page.* permissions only) */}
+          <Route path="/cases" element={<ProtectedRoute permission="page.cases"><CasesPage /></ProtectedRoute>} />
+          <Route path="/cases/:id" element={<ProtectedRoute permission="page.cases"><CaseDetailPage /></ProtectedRoute>} />
+          <Route path="/cases/:id/edit" element={<ProtectedRoute permission="page.cases"><LegacyCaseEditRedirect /></ProtectedRoute>} />
+          <Route path="/cases/completed" element={<ProtectedRoute permission="page.cases"><CompletedCasesPage /></ProtectedRoute>} />
+          <Route path="/cases/new" element={<ProtectedRoute permission="page.cases"><NewCasePage /></ProtectedRoute>} />
+          <Route path="/case-management/dedupe" element={<ProtectedRoute permission="page.cases"><DedupePage /></ProtectedRoute>} />
 
-          {/* Admin routes with stricter roles */}
-          <Route element={<ProtectedRoute requiredRoles={['ADMIN', 'SUPER_ADMIN']}><Outlet /></ProtectedRoute>}>
-            <Route path="/products" element={
-              <PermissionProtectedRoute resource="products" action="read">
-                <ProductsPage />
-              </PermissionProtectedRoute>
-            } />
-            <Route path="/verification-types" element={
-              <PermissionProtectedRoute resource="verification_types" action="read">
-                <VerificationTypesPage />
-              </PermissionProtectedRoute>
-            } />
-            <Route path="/document-types" element={
-              <PermissionProtectedRoute resource="document_types" action="read">
-                <DocumentTypesPage />
-              </PermissionProtectedRoute>
-            } />
-            <Route path="/rate-management" element={
-              <PermissionProtectedRoute resource="rate_management" action="read">
-                <RateManagementPage />
-              </PermissionProtectedRoute>
-            } />
-            <Route path="/users" element={<UsersPage />} />
-            <Route path="/users/:userId/permissions" element={<UserPermissionsPage />} />
-            <Route path="/role-management" element={
-              <PermissionProtectedRoute resource="roles" action="read">
-                <RoleManagementPage />
-              </PermissionProtectedRoute>
-            } />
-            <Route path="/locations" element={<LocationsPage />} />
-            <Route path="/security-ux" element={<SecurityUXPage />} />
-          </Route>
+          <Route path="/tasks" element={<ProtectedRoute permission="page.tasks"><AllTasksPage /></ProtectedRoute>} />
+          <Route path="/tasks/:taskId" element={<ProtectedRoute permission="page.tasks"><TaskDetailPage /></ProtectedRoute>} />
+          <Route path="/verification-tasks/:taskId" element={<ProtectedRoute permission="page.tasks"><TaskDetailPage /></ProtectedRoute>} />
+          <Route path="/tasks/pending" element={<ProtectedRoute permission="page.tasks"><PendingTasksPage /></ProtectedRoute>} />
+          <Route path="/tasks/revoked" element={<ProtectedRoute permission="page.tasks"><RevokedTasksPage /></ProtectedRoute>} />
+          <Route path="/tasks/in-progress" element={<ProtectedRoute permission="page.tasks"><InProgressTasksPage /></ProtectedRoute>} />
+          <Route path="/tasks/completed" element={<ProtectedRoute permission="page.tasks"><CompletedTasksPage /></ProtectedRoute>} />
+          <Route path="/tasks/revisit" element={<ProtectedRoute permission="page.tasks"><RevisitTasksPage /></ProtectedRoute>} />
+          <Route path="/tasks/tat-monitoring" element={<ProtectedRoute permission="page.tasks"><TATMonitoringPage /></ProtectedRoute>} />
+          <Route path="/forms" element={<ProtectedRoute permission="page.tasks"><FormViewerPage /></ProtectedRoute>} />
 
-          <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/clients" element={<ProtectedRoute permission="page.masterdata"><ClientsPage /></ProtectedRoute>} />
+          <Route path="/products" element={<ProtectedRoute permission="page.masterdata"><ProductsPage /></ProtectedRoute>} />
+          <Route path="/verification-types" element={<ProtectedRoute permission="page.masterdata"><VerificationTypesPage /></ProtectedRoute>} />
+          <Route path="/document-types" element={<ProtectedRoute permission="page.masterdata"><DocumentTypesPage /></ProtectedRoute>} />
+          <Route path="/rate-management" element={<ProtectedRoute permission="page.masterdata"><RateManagementPage /></ProtectedRoute>} />
+          <Route path="/locations" element={<ProtectedRoute permission="page.masterdata"><LocationsPage /></ProtectedRoute>} />
+
+          <Route path="/reports" element={<ProtectedRoute permission="page.reports"><ReportsPage /></ProtectedRoute>} />
+          <Route path="/analytics" element={<ProtectedRoute permission="page.analytics"><AnalyticsPage /></ProtectedRoute>} />
+          <Route path="/reports/mis" element={<ProtectedRoute permission="page.analytics"><MISDashboardPage /></ProtectedRoute>} />
+
+          <Route path="/billing" element={<ProtectedRoute permission="page.billing"><BillingPage /></ProtectedRoute>} />
+          <Route path="/commissions" element={<ProtectedRoute permission="page.billing"><CommissionsPage /></ProtectedRoute>} />
+          <Route path="/commission-management" element={<ProtectedRoute permission="page.billing"><CommissionManagementPage /></ProtectedRoute>} />
+
+          <Route path="/users" element={<ProtectedRoute permission="page.users"><UsersPage /></ProtectedRoute>} />
+          <Route path="/users/:userId/permissions" element={<ProtectedRoute permission="page.users"><UserPermissionsPage /></ProtectedRoute>} />
+          <Route path="/admin/rbac" element={<ProtectedRoute permission="page.rbac"><RBACAdminPage /></ProtectedRoute>} />
+
+          <Route path="/security-ux" element={<ProtectedRoute permission="page.settings"><SecurityUXPage /></ProtectedRoute>} />
+          <Route path="/settings" element={<ProtectedRoute permission="page.settings"><SettingsPage /></ProtectedRoute>} />
         </Route>
 
         {/* Default routes */}

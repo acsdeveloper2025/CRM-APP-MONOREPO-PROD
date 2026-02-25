@@ -2,10 +2,14 @@
 import { Router } from 'express';
 import { body, param } from 'express-validator';
 import { authenticateToken } from '@/middleware/auth';
+import { authorize } from '@/middleware/authorize';
 import { validate } from '@/middleware/validation';
 import { NotificationController } from '@/controllers/notificationController';
 
 const router = Router();
+
+router.use(authenticateToken);
+router.use(authorize('settings.manage'));
 
 // Validation schemas
 const updatePreferencesValidation = [
@@ -124,11 +128,7 @@ const _getNotificationsValidation = [
  * @desc Get user's notifications
  * @access Private
  */
-router.get(
-  '/',
-  authenticateToken,
-  NotificationController.getNotifications.bind(NotificationController)
-);
+router.get('/', NotificationController.getNotifications.bind(NotificationController));
 
 /**
  * @route PUT /api/notifications/:notificationId/read
@@ -137,7 +137,6 @@ router.get(
  */
 router.put(
   '/:notificationId/read',
-  authenticateToken,
   notificationIdValidation,
   validate,
   NotificationController.markNotificationAsRead.bind(NotificationController)
@@ -150,7 +149,6 @@ router.put(
  */
 router.put(
   '/mark-all-read',
-  authenticateToken,
   NotificationController.markAllNotificationsAsRead.bind(NotificationController)
 );
 
@@ -161,7 +159,6 @@ router.put(
  */
 router.delete(
   '/:notificationId',
-  authenticateToken,
   notificationIdValidation,
   validate,
   NotificationController.deleteNotification.bind(NotificationController)
@@ -172,11 +169,7 @@ router.delete(
  * @desc Clear all notifications
  * @access Private
  */
-router.delete(
-  '/',
-  authenticateToken,
-  NotificationController.clearAllNotifications.bind(NotificationController)
-);
+router.delete('/', NotificationController.clearAllNotifications.bind(NotificationController));
 
 /**
  * @route GET /api/notifications/preferences
@@ -185,7 +178,6 @@ router.delete(
  */
 router.get(
   '/preferences',
-  authenticateToken,
   NotificationController.getNotificationPreferences.bind(NotificationController)
 );
 
@@ -196,7 +188,6 @@ router.get(
  */
 router.put(
   '/preferences',
-  authenticateToken,
   updatePreferencesValidation,
   validate,
   NotificationController.updateNotificationPreferences.bind(NotificationController)
@@ -207,11 +198,7 @@ router.put(
  * @desc Get user's notification tokens
  * @access Private
  */
-router.get(
-  '/tokens',
-  authenticateToken,
-  NotificationController.getNotificationTokens.bind(NotificationController)
-);
+router.get('/tokens', NotificationController.getNotificationTokens.bind(NotificationController));
 
 /**
  * @route POST /api/notifications/tokens
@@ -220,7 +207,6 @@ router.get(
  */
 router.post(
   '/tokens',
-  authenticateToken,
   registerTokenValidation,
   validate,
   NotificationController.registerNotificationToken.bind(NotificationController)
@@ -233,7 +219,6 @@ router.post(
  */
 router.delete(
   '/tokens/:tokenId',
-  authenticateToken,
   tokenIdValidation,
   validate,
   NotificationController.deactivateNotificationToken.bind(NotificationController)
@@ -246,7 +231,6 @@ router.delete(
  */
 router.post(
   '/test',
-  authenticateToken,
   testNotificationValidation,
   validate,
   NotificationController.sendTestNotification.bind(NotificationController)
@@ -259,7 +243,6 @@ router.post(
  */
 router.get(
   '/analytics',
-  authenticateToken,
   NotificationController.getNotificationAnalytics.bind(NotificationController)
 );
 

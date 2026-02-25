@@ -83,7 +83,9 @@ export function CascadingLocationSelector({
     queryKey: ['states', selectedCountryId],
     queryFn: () => {
       if (!selectedCountryId) {return Promise.resolve({ success: true, message: '', data: [] } as ApiResponse<State[]>);}
-      const selectedCountry = countries.find((c: Country) => c.id === selectedCountryId);
+      const selectedCountry = countries.find(
+        (c: Country) => String(c.id) === String(selectedCountryId)
+      );
       if (!selectedCountry) {return Promise.resolve({ success: true, message: '', data: [] } as ApiResponse<State[]>);}
       return locationsService.getStates({ country: selectedCountry.name, limit: 100 });
     },
@@ -95,7 +97,7 @@ export function CascadingLocationSelector({
     queryKey: ['cities', selectedStateId],
     queryFn: () => {
       if (!selectedStateId) {return Promise.resolve({ success: true, message: '', data: [] } as ApiResponse<City[]>);}
-      const selectedState = states.find((s: State) => s.id === selectedStateId);
+      const selectedState = states.find((s: State) => String(s.id) === String(selectedStateId));
       if (!selectedState) {return Promise.resolve({ success: true, message: '', data: [] } as ApiResponse<City[]>);}
       return locationsService.getCities({ state: selectedState.name, limit: 100 });
     },
@@ -150,6 +152,16 @@ export function CascadingLocationSelector({
     // Only clear areas in create mode
     if (showAreasSelect && mode === 'create') {form.setValue(areasField, []);}
   };
+
+  // Keep edit-mode pincode preselected when opening the dialog.
+  useEffect(() => {
+    if (mode === 'edit' && selectedPincodeCode !== undefined && selectedPincodeCode !== null) {
+      const normalized = String(selectedPincodeCode);
+      if (selectedPincodeCode !== normalized) {
+        form.setValue(pincodeField, normalized);
+      }
+    }
+  }, [mode, selectedPincodeCode, form, pincodeField]);
 
 
 
@@ -305,9 +317,9 @@ export function CascadingLocationSelector({
                   </FormControl>
                   <SelectContent>
                     {pincodes.map((pincode: Pincode) => (
-                      <SelectItem key={pincode.id} value={pincode.code}>
+                      <SelectItem key={String(pincode.id)} value={String(pincode.code)}>
                         <div className="flex flex-col">
-                          <span className="font-mono">{pincode.code}</span>
+                          <span className="font-mono">{String(pincode.code)}</span>
                           <span className="text-xs text-gray-600">
                             {pincode.areas?.length || 0} areas
                           </span>

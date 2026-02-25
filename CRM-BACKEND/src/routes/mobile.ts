@@ -10,6 +10,7 @@ import { MobileFormController } from '../controllers/mobileFormController';
 import { MobileLocationController } from '../controllers/mobileLocationController';
 import { MobileSyncController } from '../controllers/mobileSyncController';
 import { authenticateToken } from '../middleware/auth';
+import { authorize } from '../middleware/authorize';
 import { validateMobileVersion, mobileRateLimit } from '../middleware/mobileValidation';
 import { geoRateLimit, uploadRateLimit } from '../middleware/rateLimiter';
 import { createMobileAuditLogs } from '../controllers/auditLogsController';
@@ -39,12 +40,18 @@ router.get('/health', (req, res) => {
 // Mobile Authentication Routes
 router.post('/auth/login', MobileAuthController.mobileLogin);
 router.post('/auth/refresh', MobileAuthController.refreshToken);
-router.post('/auth/logout', authenticateToken, MobileAuthController.mobileLogout);
+router.post(
+  '/auth/logout',
+  authenticateToken,
+  authorize('visit.start'),
+  MobileAuthController.mobileLogout
+);
 router.post('/auth/version-check', MobileAuthController.checkVersion);
 router.get('/auth/config', MobileAuthController.getAppConfig);
 router.post(
   '/auth/notifications/register',
   authenticateToken,
+  authorize('visit.start'),
   MobileAuthController.registerNotifications
 );
 
@@ -52,6 +59,7 @@ router.post(
 router.get(
   '/cases',
   authenticateToken,
+  authorize('visit.start'),
   validateMobileVersion,
   EnterpriseCache.create(EnterpriseCacheConfigs.mobileSync),
   MobileCaseController.getMobileCases
@@ -61,6 +69,7 @@ router.get(
 router.get(
   '/tasks',
   authenticateToken,
+  authorize('visit.start'),
   validateMobileVersion,
   EnterpriseCache.create(EnterpriseCacheConfigs.mobileSync),
   MobileCaseController.getMobileCases
@@ -73,6 +82,7 @@ router.get(
 router.get(
   '/verification-tasks/:taskId',
   authenticateToken,
+  authorize('case.view', { ownership: 'task' }),
   validateMobileVersion,
   EnterpriseCache.create(EnterpriseCacheConfigs.caseDetails),
   MobileCaseController.getMobileCase // Updated to accept taskId
@@ -81,19 +91,28 @@ router.get(
 router.get(
   '/verification-tasks/:taskId/status',
   authenticateToken,
+  authorize('visit.start', { ownership: 'task' }),
   validateMobileVersion,
   MobileCaseController.getTaskStatus
 );
 router.put(
   '/verification-tasks/:taskId/status',
   authenticateToken,
+  authorize('visit.start', { ownership: 'task' }),
   validateMobileVersion,
   EnterpriseCache.invalidate(CacheInvalidationPatterns.assignmentUpdate, { synchronous: true }),
-  MobileCaseController.updateTaskStatus
+  (_req, res) =>
+    res.status(410).json({
+      success: false,
+      message:
+        'Generic task status update endpoint is disabled. Use secured start/complete/revoke APIs.',
+      error: { code: 'TASK_STATUS_ENDPOINT_DISABLED' },
+    })
 );
 router.post(
   '/verification-tasks/:taskId/start',
   authenticateToken,
+  authorize('visit.start', { ownership: 'task' }),
   validateMobileVersion,
   EnterpriseCache.invalidate(CacheInvalidationPatterns.assignmentUpdate, { synchronous: true }),
   MobileCaseController.startTask
@@ -101,6 +120,7 @@ router.post(
 router.post(
   '/verification-tasks/:taskId/complete',
   authenticateToken,
+  authorize('visit.submit', { ownership: 'task' }),
   validateMobileVersion,
   EnterpriseCache.invalidate(CacheInvalidationPatterns.assignmentUpdate, { synchronous: true }),
   MobileCaseController.completeTask
@@ -108,6 +128,7 @@ router.post(
 router.post(
   '/verification-tasks/:taskId/revoke',
   authenticateToken,
+  authorize('visit.revoke', { ownership: 'task' }),
   validateMobileVersion,
   EnterpriseCache.invalidate(CacheInvalidationPatterns.assignmentUpdate, { synchronous: true }),
   MobileCaseController.revokeTask
@@ -117,12 +138,14 @@ router.post(
 router.post(
   '/verification-tasks/:taskId/auto-save',
   authenticateToken,
+  authorize('visit.submit', { ownership: 'task' }),
   validateMobileVersion,
   MobileCaseController.autoSaveForm
 );
 router.get(
   '/verification-tasks/:taskId/auto-save/:formType',
   authenticateToken,
+  authorize('visit.submit', { ownership: 'task' }),
   validateMobileVersion,
   EnterpriseCache.create(EnterpriseCacheConfigs.caseDetails),
   MobileCaseController.getAutoSavedForm
@@ -133,6 +156,7 @@ router.get(
 router.post(
   '/cases/batch/attachments',
   authenticateToken,
+  authorize('visit.upload'),
   validateMobileVersion,
   MobileAttachmentController.getBatchAttachments
 );
@@ -140,6 +164,7 @@ router.post(
 router.post(
   '/verification-tasks/:taskId/attachments',
   authenticateToken,
+  authorize('visit.upload', { ownership: 'task' }),
   validateMobileVersion,
   uploadRateLimit,
   verificationUpload.array('files', 15),
@@ -148,24 +173,28 @@ router.post(
 router.get(
   '/verification-tasks/:taskId/attachments',
   authenticateToken,
+  authorize('visit.upload', { ownership: 'task' }),
   validateMobileVersion,
   MobileAttachmentController.getCaseAttachments
 );
 router.get(
   '/verification-tasks/:taskId/attachments/:attachmentId',
   authenticateToken,
+  authorize('visit.upload', { ownership: 'task' }),
   validateMobileVersion,
   MobileAttachmentController.getAttachmentContent
 );
 router.get(
   '/attachments/:attachmentId/content',
   authenticateToken,
+  authorize('visit.upload'),
   validateMobileVersion,
   MobileAttachmentController.getAttachmentContent
 );
 router.delete(
   '/attachments/:attachmentId',
   authenticateToken,
+  authorize('visit.upload'),
   validateMobileVersion,
   MobileAttachmentController.deleteAttachment
 );
@@ -174,6 +203,7 @@ router.delete(
 router.get(
   '/verification-tasks/:taskId/verification-images',
   authenticateToken,
+  authorize('visit.upload', { ownership: 'task' }),
   validateMobileVersion,
   VerificationAttachmentController.getVerificationImages
 );
@@ -182,54 +212,63 @@ router.get(
 router.post(
   '/verification-tasks/:taskId/verification/residence',
   authenticateToken,
+  authorize('visit.submit', { ownership: 'task' }),
   validateMobileVersion,
   MobileFormController.submitResidenceVerification
 );
 router.post(
   '/verification-tasks/:taskId/verification/office',
   authenticateToken,
+  authorize('visit.submit', { ownership: 'task' }),
   validateMobileVersion,
   MobileFormController.submitOfficeVerification
 );
 router.post(
   '/verification-tasks/:taskId/verification/business',
   authenticateToken,
+  authorize('visit.submit', { ownership: 'task' }),
   validateMobileVersion,
   MobileFormController.submitBusinessVerification
 );
 router.post(
   '/verification-tasks/:taskId/verification/builder',
   authenticateToken,
+  authorize('visit.submit', { ownership: 'task' }),
   validateMobileVersion,
   MobileFormController.submitBuilderVerification
 );
 router.post(
   '/verification-tasks/:taskId/verification/residence-cum-office',
   authenticateToken,
+  authorize('visit.submit', { ownership: 'task' }),
   validateMobileVersion,
   MobileFormController.submitResidenceCumOfficeVerification
 );
 router.post(
   '/verification-tasks/:taskId/verification/dsa-connector',
   authenticateToken,
+  authorize('visit.submit', { ownership: 'task' }),
   validateMobileVersion,
   MobileFormController.submitDsaConnectorVerification
 );
 router.post(
   '/verification-tasks/:taskId/verification/property-individual',
   authenticateToken,
+  authorize('visit.submit', { ownership: 'task' }),
   validateMobileVersion,
   MobileFormController.submitPropertyIndividualVerification
 );
 router.post(
   '/verification-tasks/:taskId/verification/property-apf',
   authenticateToken,
+  authorize('visit.submit', { ownership: 'task' }),
   validateMobileVersion,
   MobileFormController.submitPropertyApfVerification
 );
 router.post(
   '/verification-tasks/:taskId/verification/noc',
   authenticateToken,
+  authorize('visit.submit', { ownership: 'task' }),
   validateMobileVersion,
   MobileFormController.submitNocVerification
 );
@@ -237,6 +276,7 @@ router.post(
 router.get(
   '/verification-tasks/:taskId/forms',
   authenticateToken,
+  authorize('visit.submit', { ownership: 'task' }),
   validateMobileVersion,
   MobileFormController.getCaseFormSubmissions
 );
@@ -245,6 +285,7 @@ router.get(
 router.put(
   '/verification-tasks/:taskId/priority',
   authenticateToken,
+  authorize('visit.start', { ownership: 'task' }),
   validateMobileVersion,
   MobileCaseController.updateCasePriority
 );
@@ -252,6 +293,7 @@ router.put(
 router.get(
   '/forms/:formType/template',
   authenticateToken,
+  authorize('visit.submit'),
   validateMobileVersion,
   MobileFormController.getFormTemplate
 );
@@ -260,6 +302,7 @@ router.get(
 router.post(
   '/location/capture',
   authenticateToken,
+  authorize('visit.start'),
   validateMobileVersion,
   geoRateLimit,
   MobileLocationController.captureLocation
@@ -267,24 +310,28 @@ router.post(
 router.post(
   '/location/validate',
   authenticateToken,
+  authorize('visit.start'),
   validateMobileVersion,
   MobileLocationController.validateLocation
 );
 router.get(
   '/location/reverse-geocode',
   authenticateToken,
+  authorize('visit.start'),
   validateMobileVersion,
   MobileLocationController.reverseGeocode
 );
 router.get(
   '/verification-tasks/:taskId/location-history',
   authenticateToken,
+  authorize('visit.start', { ownership: 'task' }),
   validateMobileVersion,
   MobileLocationController.getCaseLocationHistory
 );
 router.get(
   '/location/trail',
   authenticateToken,
+  authorize('visit.start'),
   validateMobileVersion,
   MobileLocationController.getUserLocationTrail
 );
@@ -294,24 +341,28 @@ router.get(
 router.post(
   '/sync/enterprise',
   authenticateToken,
+  authorize('visit.start'),
   validateMobileVersion,
   MobileSyncController.enterpriseSync
 );
 router.post(
   '/sync/upload',
   authenticateToken,
+  authorize('visit.start'),
   validateMobileVersion,
   MobileSyncController.uploadSync
 );
 router.get(
   '/sync/download',
   authenticateToken,
+  authorize('visit.start'),
   validateMobileVersion,
   MobileSyncController.downloadSync
 );
 router.get(
   '/sync/status',
   authenticateToken,
+  authorize('visit.start'),
   validateMobileVersion,
   MobileSyncController.getSyncStatus
 );
@@ -353,7 +404,13 @@ const _createAuditLogValidation = [
     .withMessage('Invalid category'),
 ];
 
-router.post('/audit/logs', authenticateToken, validateMobileVersion, createMobileAuditLogs);
+router.post(
+  '/audit/logs',
+  authenticateToken,
+  authorize('visit.start'),
+  validateMobileVersion,
+  createMobileAuditLogs
+);
 
 // Mobile Version Management Routes
 router.post('/version/check', authenticateToken, MobileAuthController.checkVersion);

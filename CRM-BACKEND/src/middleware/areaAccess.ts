@@ -3,6 +3,7 @@ import type { Response, NextFunction } from 'express';
 import { query } from '@/config/database';
 import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from './auth';
+import { hasSystemScopeBypass, isFieldExecutionActor } from '@/security/rbacAccess';
 
 /**
  * Middleware to enforce area-level access restrictions for FIELD_AGENT users
@@ -11,12 +12,7 @@ import type { AuthenticatedRequest } from './auth';
  */
 
 // Helper function to get assigned area IDs for FIELD_AGENT users
-const getAssignedAreaIds = async (userId: string, userRole: string): Promise<number[] | null> => {
-  // Only apply area filtering for FIELD_AGENT users
-  if (userRole !== 'FIELD_AGENT') {
-    return null; // null means no filtering (access to all areas)
-  }
-
+const getAssignedAreaIds = async (userId: string): Promise<number[]> => {
   try {
     const result = await query(
       'SELECT "areaId" FROM "userAreaAssignments" WHERE "userId" = $1 AND "isActive" = true',
@@ -43,10 +39,8 @@ export const validateAreaAccess = (source: 'params' | 'body' | 'query' = 'params
   return async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const userId = req.user?.id;
-      const userRole = req.user?.role;
-
       // Skip validation for non-authenticated requests (should not happen due to auth middleware)
-      if (!userId || !userRole) {
+      if (!userId) {
         return res.status(401).json({
           success: false,
           message: 'Authentication required',
@@ -54,13 +48,11 @@ export const validateAreaAccess = (source: 'params' | 'body' | 'query' = 'params
         });
       }
 
-      // SUPER_ADMIN users bypass all area restrictions
-      if ((userRole as string) === 'SUPER_ADMIN') {
+      if (hasSystemScopeBypass(req.user)) {
         return next();
       }
 
-      // Only apply restrictions to FIELD_AGENT users
-      if ((userRole as string) !== 'FIELD_AGENT') {
+      if (!isFieldExecutionActor(req.user)) {
         return next();
       }
 
@@ -84,7 +76,7 @@ export const validateAreaAccess = (source: 'params' | 'body' | 'query' = 'params
       }
 
       // Get assigned area IDs for the FIELD_AGENT user
-      const assignedAreaIds = await getAssignedAreaIds(userId, userRole);
+      const assignedAreaIds = await getAssignedAreaIds(userId);
 
       // If user has no area assignments, deny access
       if (assignedAreaIds?.length === 0) {
@@ -92,7 +84,7 @@ export const validateAreaAccess = (source: 'params' | 'body' | 'query' = 'params
           `FIELD_AGENT user ${userId} attempted to access area ${areaId} with no area assignments`,
           {
             userId,
-            userRole,
+            executionActor: true,
             areaId,
             endpoint: req.originalUrl,
             method: req.method,
@@ -110,7 +102,7 @@ export const validateAreaAccess = (source: 'params' | 'body' | 'query' = 'params
       if (assignedAreaIds && !assignedAreaIds.includes(areaId)) {
         logger.warn(`FIELD_AGENT user ${userId} attempted to access unauthorized area ${areaId}`, {
           userId,
-          userRole,
+          executionActor: true,
           areaId,
           assignedAreaIds,
           endpoint: req.originalUrl,
@@ -147,25 +139,21 @@ export const addAreaFiltering = async (
 ) => {
   try {
     const userId = req.user?.id;
-    const userRole = req.user?.role;
-
     // Skip for non-authenticated requests
-    if (!userId || !userRole) {
+    if (!userId) {
       return next();
     }
 
-    // SUPER_ADMIN users bypass all filtering
-    if ((userRole as string) === 'SUPER_ADMIN') {
+    if (hasSystemScopeBypass(req.user)) {
       return next();
     }
 
-    // Only apply filtering to FIELD_AGENT users
-    if ((userRole as string) !== 'FIELD_AGENT') {
+    if (!isFieldExecutionActor(req.user)) {
       return next();
     }
 
     // Get assigned area IDs for the FIELD_AGENT user
-    const assignedAreaIds = await getAssignedAreaIds(userId, userRole);
+    const assignedAreaIds = await getAssignedAreaIds(userId);
 
     if (assignedAreaIds?.length === 0) {
       // User has no area assignments, they should see no data

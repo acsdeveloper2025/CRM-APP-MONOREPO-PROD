@@ -1,8 +1,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
-import { usePermissions } from '@/hooks/usePermissions';
+import { usePermissionContext } from '@/contexts/PermissionContext';
 import { navigationItems, type NavigationItem } from '@/constants/navigation';
 import { cn } from '@/lib/utils';
 import { useLayout } from '@/contexts/LayoutContextDefinition';
@@ -13,8 +12,7 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
-  const { hasAnyRole } = useAuth();
-  const { hasPermission } = usePermissions();
+  const { hasPermissionCode } = usePermissionContext();
   const { expandedMenus: expandedItems, toggleMenu: toggleExpanded, setExpandedMenus } = useLayout();
   const location = useLocation();
   
@@ -40,20 +38,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
 
 
   const isItemVisible = (item: NavigationItem): boolean => {
-    // Check permission-based access first
-    if (item.permission) {
-      const hasAccess = hasPermission(item.permission.resource, item.permission.action);
-      if (!hasAccess) {
-        return false;
+    // For parent items with children, show parent when any child is visible
+    // (even if parent-level legacy permission differs from child-specific RBAC config).
+    if (item.children && item.children.length > 0) {
+      const anyChildVisible = item.children.some(child => isItemVisible(child));
+      if (anyChildVisible) {
+        return true;
       }
-    } else if (item.roles && !hasAnyRole(item.roles)) {
-      // Fallback to role-based access for backward compatibility
-      return false;
     }
 
-    // For parent items with children, check if at least one child is visible
-    if (item.children && item.children.length > 0) {
-      return item.children.some(child => isItemVisible(child));
+    if (item.permissionCode) {
+      return hasPermissionCode(item.permissionCode);
     }
 
     return true;

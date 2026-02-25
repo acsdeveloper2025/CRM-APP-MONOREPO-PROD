@@ -260,7 +260,13 @@ export class ExcelExportService {
       LEFT JOIN departments d ON u."departmentId" = d.id
       LEFT JOIN agent_performance_daily apd ON u.id = apd.agent_id
       ${whereClause}
-      AND u.role = 'FIELD_AGENT'
+      AND EXISTS (
+        SELECT 1
+        FROM user_roles urf
+        JOIN role_permissions rpf ON rpf.role_id = urf.role_id AND rpf.allowed = true
+        JOIN permissions pf ON pf.id = rpf.permission_id
+        WHERE urf.user_id = u.id AND pf.code = 'visit.submit'
+      )
       GROUP BY u.id, u.name, u."employeeId", u.email, u.performance_rating, d.name
       ORDER BY avg_quality_score DESC
     `;

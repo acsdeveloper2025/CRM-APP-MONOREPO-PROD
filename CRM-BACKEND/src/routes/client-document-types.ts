@@ -1,6 +1,7 @@
 import express from 'express';
 import { body, query, param } from 'express-validator';
 import { authenticateToken } from '../middleware/auth';
+import { authorize } from '../middleware/authorize';
 import { handleValidationErrors } from '../middleware/validation';
 import {
   getDocumentTypesByClient,
@@ -13,6 +14,7 @@ const router = express.Router();
 
 // Apply authentication
 router.use(authenticateToken);
+router.use(authorize('settings.manage'));
 
 // Validation schemas
 const assignDocumentTypesValidation = [

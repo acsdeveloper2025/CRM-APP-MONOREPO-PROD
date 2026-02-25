@@ -2,28 +2,58 @@ import type { Response } from 'express';
 import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
 import { DashboardKPIService } from '@/services/dashboardKPIService';
-import { Role } from '@/types/auth'; // Kept for other functions
 import { pool } from '@/config/database';
+import { getAssignedClientIds } from '@/middleware/clientAccess';
+import { getAssignedProductIds } from '@/middleware/productAccess';
+import { isFieldExecutionActor, isScopedOperationsUser } from '@/security/rbacAccess';
+
+const getBackendUserScopeFilters = async (req: AuthenticatedRequest) => {
+  if (!req.user?.id || !isScopedOperationsUser(req.user)) {
+    return {
+      clientIds: undefined as number[] | undefined,
+      productIds: undefined as number[] | undefined,
+    };
+  }
+
+  const [assignedClientIds, assignedProductIds] = await Promise.all([
+    getAssignedClientIds(req.user.id),
+    getAssignedProductIds(req.user.id),
+  ]);
+
+  const safeClientIds =
+    assignedClientIds && assignedClientIds.length > 0 ? assignedClientIds : [-1];
+  const safeProductIds =
+    assignedProductIds && assignedProductIds.length > 0 ? assignedProductIds : [-1];
+
+  return {
+    clientIds: safeClientIds,
+    productIds: safeProductIds,
+  };
+};
+
+const getEffectiveAgentId = (req: AuthenticatedRequest): string | undefined => {
+  const requestedUserId = req.query.userId;
+  if (isFieldExecutionActor(req.user)) {
+    return req.user?.id ? String(req.user.id) : undefined;
+  }
+  return typeof requestedUserId === 'string' ? requestedUserId : undefined;
+};
 
 // GET /api/dashboard - Get dashboard overview (TASK-CENTRIC)
 export const getDashboardData = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { period, clientId, userId } = req.query;
+    const { period, clientId } = req.query;
+    const backendScope = await getBackendUserScopeFilters(req);
 
     // RBAC: Field Agents can only see their own data
-    const userRole = req.user?.role;
-    const currentUserId = req.user?.id;
-    const effectiveAgentId =
-      userRole === Role.FIELD_AGENT
-        ? String(currentUserId)
-        : typeof userId === 'string'
-          ? userId
-          : undefined;
+    const effectiveAgentId = getEffectiveAgentId(req);
 
     // KPI Service uses 'agentId' instead of 'userId'
     const filters = {
       clientId: clientId ? Number(clientId) : undefined,
       agentId: effectiveAgentId,
+      clientIds: backendScope.clientIds,
+      productIds: backendScope.productIds,
     };
 
     const kpi = await DashboardKPIService.getKPIs(filters);
@@ -157,21 +187,17 @@ export const getRecentActivities = (req: AuthenticatedRequest, res: Response) =>
 // GET /api/dashboard/performance - Get performance metrics
 export const getPerformanceMetrics = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { clientId, userId } = req.query; // Added query params support
+    const { clientId } = req.query; // Added query params support
+    const backendScope = await getBackendUserScopeFilters(req);
 
     // RBAC: Field Agents can only see their own data
-    const userRole = req.user?.role;
-    const currentUserId = req.user?.id;
-    const effectiveAgentId =
-      userRole === Role.FIELD_AGENT
-        ? String(currentUserId)
-        : typeof userId === 'string'
-          ? userId
-          : undefined;
+    const effectiveAgentId = getEffectiveAgentId(req);
 
     const filters = {
       clientId: clientId ? Number(clientId) : undefined,
       agentId: effectiveAgentId,
+      clientIds: backendScope.clientIds,
+      productIds: backendScope.productIds,
     };
 
     const kpi = await DashboardKPIService.getKPIs(filters);
@@ -217,21 +243,17 @@ export const getPerformanceMetrics = async (req: AuthenticatedRequest, res: Resp
 // GET /api/dashboard/stats - Get dashboard statistics
 export const getDashboardStats = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { period, clientId, userId } = req.query;
+    const { period, clientId } = req.query;
+    const backendScope = await getBackendUserScopeFilters(req);
 
     // RBAC: Field Agents can only see their own data
-    const userRole = req.user?.role;
-    const currentUserId = req.user?.id;
-    const effectiveAgentId =
-      userRole === Role.FIELD_AGENT
-        ? String(currentUserId)
-        : typeof userId === 'string'
-          ? userId
-          : undefined;
+    const effectiveAgentId = getEffectiveAgentId(req);
 
     const filters = {
       clientId: clientId ? Number(clientId) : undefined,
       agentId: effectiveAgentId,
+      clientIds: backendScope.clientIds,
+      productIds: backendScope.productIds,
     };
 
     const kpi = await DashboardKPIService.getKPIs(filters);
@@ -368,34 +390,40 @@ export const getOverdueTasks = async (req: AuthenticatedRequest, res: Response) 
       priority,
       status,
     } = req.query;
+    const backendScope = await getBackendUserScopeFilters(req);
 
     const thresholdDays = parseInt(threshold as string);
     const pageNum = parseInt(page as string);
     const limitNum = parseInt(limit as string);
     const offset = (pageNum - 1) * limitNum;
 
-    const { clientId, userId } = req.query;
+    const { clientId } = req.query;
 
     // RBAC: Field Agents can only see their own data
-    const userRole = req.user?.role;
-    const currentUserId = req.user?.id;
-    const effectiveAgentId =
-      userRole === Role.FIELD_AGENT
-        ? String(currentUserId)
-        : typeof userId === 'string'
-          ? userId
-          : undefined;
+    const effectiveAgentId = getEffectiveAgentId(req);
 
     const conditions: string[] = [
       `vt.status NOT IN ('COMPLETED', 'REVOKED', 'CANCELLED')`,
       `vt.created_at < NOW() - INTERVAL '${thresholdDays} days'`,
     ];
-    const params: (string | number)[] = [];
+    const params: (string | number | number[])[] = [];
     let paramIdx = 1;
 
     if (clientId) {
       conditions.push(`c."clientId" = $${paramIdx}`);
       params.push(Number(clientId));
+      paramIdx++;
+    }
+
+    if (backendScope.clientIds) {
+      conditions.push(`c."clientId" = ANY($${paramIdx}::int[])`);
+      params.push(backendScope.clientIds);
+      paramIdx++;
+    }
+
+    if (backendScope.productIds) {
+      conditions.push(`c."productId" = ANY($${paramIdx}::int[])`);
+      params.push(backendScope.productIds);
       paramIdx++;
     }
 
@@ -516,21 +544,17 @@ export const getOverdueTasks = async (req: AuthenticatedRequest, res: Response) 
 // GET /api/dashboard/tat-stats - Get TAT statistics
 export const getTATStats = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { clientId, userId } = req.query;
+    const { clientId } = req.query;
+    const backendScope = await getBackendUserScopeFilters(req);
 
     // RBAC: Field Agents can only see their own data
-    const userRole = req.user?.role;
-    const currentUserId = req.user?.id;
-    const effectiveAgentId =
-      userRole === Role.FIELD_AGENT
-        ? String(currentUserId)
-        : typeof userId === 'string'
-          ? userId
-          : undefined;
+    const effectiveAgentId = getEffectiveAgentId(req);
 
     const filters = {
       clientId: clientId ? Number(clientId) : undefined,
       agentId: effectiveAgentId,
+      clientIds: backendScope.clientIds,
+      productIds: backendScope.productIds,
     };
 
     const kpi = await DashboardKPIService.getKPIs(filters);
@@ -574,21 +598,17 @@ export const getTATStats = async (req: AuthenticatedRequest, res: Response) => {
 // GET /api/dashboard/sla-risk - Get SLA risk monitoring data
 export const getSLARiskMonitoring = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { clientId, userId } = req.query;
+    const { clientId } = req.query;
+    const backendScope = await getBackendUserScopeFilters(req);
 
     // RBAC: Field Agents can only see their own data
-    const userRole = req.user?.role;
-    const currentUserId = req.user?.id;
-    const effectiveAgentId =
-      userRole === Role.FIELD_AGENT
-        ? String(currentUserId)
-        : typeof userId === 'string'
-          ? userId
-          : undefined;
+    const effectiveAgentId = getEffectiveAgentId(req);
 
     const filters = {
       clientId: clientId ? Number(clientId) : undefined,
       agentId: effectiveAgentId,
+      clientIds: backendScope.clientIds,
+      productIds: backendScope.productIds,
     };
 
     const kpi = await DashboardKPIService.getKPIs(filters);

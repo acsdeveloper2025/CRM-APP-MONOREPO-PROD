@@ -3,6 +3,9 @@ import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
 import { pool } from '@/config/database';
 import { QueryParams } from '@/types/database';
+import { getAssignedClientIds } from '@/middleware/clientAccess';
+import { getAssignedProductIds } from '@/middleware/productAccess';
+import { isFieldExecutionActor, isScopedOperationsUser } from '@/security/rbacAccess';
 import { CaseAnalyticsRow } from '../types/reports';
 import ExcelJS from 'exceljs';
 
@@ -53,6 +56,25 @@ interface DashboardSummaryRow {
   activeUsers: string;
   activeClients: string;
 }
+
+const getBackendUserReportScope = async (req: AuthenticatedRequest) => {
+  if (!req.user?.id || !isScopedOperationsUser(req.user)) {
+    return {
+      clientIds: undefined as number[] | undefined,
+      productIds: undefined as number[] | undefined,
+    };
+  }
+
+  const [clientIds, productIds] = await Promise.all([
+    getAssignedClientIds(req.user.id),
+    getAssignedProductIds(req.user.id),
+  ]);
+
+  return {
+    clientIds: clientIds && clientIds.length > 0 ? clientIds : [-1],
+    productIds: productIds && productIds.length > 0 ? productIds : [-1],
+  };
+};
 
 // ===== PHASE 1: NEW DATA VISUALIZATION & REPORTING APIs =====
 
@@ -555,6 +577,44 @@ export const getCaseTimeline = async (req: AuthenticatedRequest, res: Response) 
 
     const caseData = caseResult.rows[0];
 
+    if (isFieldExecutionActor(req.user)) {
+      const taskAccess = await pool.query(
+        `SELECT 1
+         FROM verification_tasks vt
+         JOIN cases c ON vt.case_id = c.id
+         WHERE c."caseId" = $1 AND vt.assigned_to = $2
+         LIMIT 1`,
+        [caseId, req.user.id]
+      );
+      if (taskAccess.rows.length === 0) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied',
+          error: { code: 'CASE_ACCESS_DENIED' },
+        });
+      }
+    }
+
+    if (isScopedOperationsUser(req.user) && req.user?.id) {
+      const [assignedClientIds, assignedProductIds] = await Promise.all([
+        getAssignedClientIds(req.user.id),
+        getAssignedProductIds(req.user.id),
+      ]);
+
+      if (
+        assignedClientIds.length === 0 ||
+        assignedProductIds.length === 0 ||
+        !assignedClientIds.includes(Number(caseData.clientId)) ||
+        !assignedProductIds.includes(Number(caseData.productId))
+      ) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied',
+          error: { code: 'CASE_ACCESS_DENIED' },
+        });
+      }
+    }
+
     // Get timeline events
     const timelineQuery = `
       SELECT
@@ -860,7 +920,14 @@ export const getAgentProductivity = async (req: AuthenticatedRequest, res: Respo
       SELECT u.*, d.name as "departmentName"
       FROM users u
       LEFT JOIN departments d ON u."departmentId" = d.id
-      WHERE u.id = $1 AND u.role = 'FIELD_AGENT'
+      WHERE u.id = $1
+        AND EXISTS (
+          SELECT 1
+          FROM user_roles urf
+          JOIN role_permissions rpf ON rpf.role_id = urf.role_id AND rpf.allowed = true
+          JOIN permissions pf ON pf.id = rpf.permission_id
+          WHERE urf.user_id = u.id AND pf.code = 'visit.submit'
+        )
     `;
     const agentResult = await pool.query(agentQuery, [agentId]);
 
@@ -957,6 +1024,7 @@ export const getCasesReport = async (req: AuthenticatedRequest, res: Response) =
     const conditions: string[] = [];
     const params: QueryParams = [];
     let paramIndex = 1;
+    const backendScope = await getBackendUserReportScope(req);
 
     if (dateFrom) {
       conditions.push(`c."createdAt" >= $${paramIndex}`);
@@ -986,6 +1054,17 @@ export const getCasesReport = async (req: AuthenticatedRequest, res: Response) =
     if (priority) {
       conditions.push(`c.priority = $${paramIndex}`);
       params.push(priority as string);
+      paramIndex++;
+    }
+
+    if (backendScope.clientIds) {
+      conditions.push(`c."clientId" = ANY($${paramIndex}::int[])`);
+      params.push(backendScope.clientIds);
+      paramIndex++;
+    }
+    if (backendScope.productIds) {
+      conditions.push(`c."productId" = ANY($${paramIndex}::int[])`);
+      params.push(backendScope.productIds);
       paramIndex++;
     }
 
@@ -1094,7 +1173,12 @@ export const getUserPerformanceReport = async (req: AuthenticatedRequest, res: R
       userParamIndex++;
     }
     if (role) {
-      userConditions.push(`u.role = $${userParamIndex}`);
+      userConditions.push(`EXISTS (
+        SELECT 1
+        FROM user_roles urf
+        JOIN roles_v2 rvf ON rvf.id = urf.role_id
+        WHERE urf.user_id = u.id AND rvf.name = $${userParamIndex}
+      )`);
       userParams.push(role);
       userParamIndex++;
     }
@@ -1270,6 +1354,7 @@ export const getMISData = async (req: AuthenticatedRequest, res: Response) => {
     const conditions: string[] = [];
     const params: QueryParams = [];
     let paramIndex = 1;
+    const backendScope = await getBackendUserReportScope(req);
 
     // Search across case number, customer name, customer phone, task number
     if (search && typeof search === 'string' && search.trim()) {
@@ -1339,6 +1424,17 @@ export const getMISData = async (req: AuthenticatedRequest, res: Response) => {
     if (fieldAgentId) {
       conditions.push(`vt.assigned_to = $${paramIndex}`);
       params.push(fieldAgentId as string);
+      paramIndex++;
+    }
+
+    if (backendScope.clientIds) {
+      conditions.push(`c."clientId" = ANY($${paramIndex}::int[])`);
+      params.push(backendScope.clientIds);
+      paramIndex++;
+    }
+    if (backendScope.productIds) {
+      conditions.push(`c."productId" = ANY($${paramIndex}::int[])`);
+      params.push(backendScope.productIds);
       paramIndex++;
     }
 
@@ -1538,6 +1634,7 @@ export const exportMISData = async (req: AuthenticatedRequest, res: Response) =>
     const conditions: string[] = [];
     const params: QueryParams = [];
     let paramIndex = 1;
+    const backendScope = await getBackendUserReportScope(req);
 
     // Search across case number, customer name, customer phone, task number
     if (search && typeof search === 'string' && search.trim()) {
@@ -1607,6 +1704,17 @@ export const exportMISData = async (req: AuthenticatedRequest, res: Response) =>
     if (fieldAgentId) {
       conditions.push(`vt.assigned_to = $${paramIndex}`);
       params.push(fieldAgentId as string);
+      paramIndex++;
+    }
+
+    if (backendScope.clientIds) {
+      conditions.push(`c."clientId" = ANY($${paramIndex}::int[])`);
+      params.push(backendScope.clientIds);
+      paramIndex++;
+    }
+    if (backendScope.productIds) {
+      conditions.push(`c."productId" = ANY($${paramIndex}::int[])`);
+      params.push(backendScope.productIds);
       paramIndex++;
     }
 

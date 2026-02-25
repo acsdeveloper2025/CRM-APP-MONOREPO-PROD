@@ -1,6 +1,7 @@
 import type { Response } from 'express';
 import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
+import { isScopedOperationsUser } from '@/security/rbacAccess';
 
 interface InvoiceItem {
   id: string;
@@ -114,9 +115,25 @@ const invoices: Invoice[] = [
   },
 ];
 
+const enforceInvoiceScope = (req: AuthenticatedRequest, res: Response): boolean => {
+  if (isScopedOperationsUser(req.user)) {
+    res.status(403).json({
+      success: false,
+      message:
+        'Billing access is temporarily disabled until client/product scope enforcement is implemented',
+      error: { code: 'BILLING_SCOPE_ENFORCEMENT_REQUIRED' },
+    });
+    return false;
+  }
+  return true;
+};
+
 // GET /api/invoices - List invoices with pagination and filters
 export const getInvoices = (req: AuthenticatedRequest, res: Response) => {
   try {
+    if (!enforceInvoiceScope(req, res)) {
+      return;
+    }
     const {
       page = 1,
       limit = 20,
@@ -202,6 +219,9 @@ export const getInvoices = (req: AuthenticatedRequest, res: Response) => {
 // GET /api/invoices/:id - Get invoice by ID
 export const getInvoiceById = (req: AuthenticatedRequest, res: Response) => {
   try {
+    if (!enforceInvoiceScope(req, res)) {
+      return;
+    }
     const { id } = req.params;
     const invoice = invoices.find(inv => inv.id === id);
 
@@ -232,6 +252,9 @@ export const getInvoiceById = (req: AuthenticatedRequest, res: Response) => {
 // POST /api/invoices - Create new invoice
 export const createInvoice = (req: AuthenticatedRequest, res: Response) => {
   try {
+    if (!enforceInvoiceScope(req, res)) {
+      return;
+    }
     const { clientId, clientName, items, dueDate, notes, currency = 'INR' } = req.body;
 
     // Calculate amounts
@@ -300,6 +323,9 @@ export const createInvoice = (req: AuthenticatedRequest, res: Response) => {
 // PUT /api/invoices/:id - Update invoice
 export const updateInvoice = (req: AuthenticatedRequest, res: Response) => {
   try {
+    if (!enforceInvoiceScope(req, res)) {
+      return;
+    }
     const { id } = req.params;
     const updateData = req.body;
 
@@ -369,6 +395,9 @@ export const updateInvoice = (req: AuthenticatedRequest, res: Response) => {
 // DELETE /api/invoices/:id - Delete invoice
 export const deleteInvoice = (req: AuthenticatedRequest, res: Response) => {
   try {
+    if (!enforceInvoiceScope(req, res)) {
+      return;
+    }
     const { id } = req.params;
 
     const invoiceIndex = invoices.findIndex(inv => inv.id === id);
@@ -414,6 +443,9 @@ export const deleteInvoice = (req: AuthenticatedRequest, res: Response) => {
 // POST /api/invoices/:id/send - Send invoice
 export const sendInvoice = (req: AuthenticatedRequest, res: Response) => {
   try {
+    if (!enforceInvoiceScope(req, res)) {
+      return;
+    }
     const { id } = req.params;
     const { email, message: _message } = req.body;
 
@@ -457,6 +489,9 @@ export const sendInvoice = (req: AuthenticatedRequest, res: Response) => {
 // POST /api/invoices/:id/mark-paid - Mark invoice as paid
 export const markInvoicePaid = (req: AuthenticatedRequest, res: Response) => {
   try {
+    if (!enforceInvoiceScope(req, res)) {
+      return;
+    }
     const { id } = req.params;
     const { paidDate, paymentMethod, transactionId, notes } = req.body;
 
@@ -511,6 +546,9 @@ export const markInvoicePaid = (req: AuthenticatedRequest, res: Response) => {
 // GET /api/invoices/:id/download - Download invoice PDF
 export const downloadInvoice = (req: AuthenticatedRequest, res: Response) => {
   try {
+    if (!enforceInvoiceScope(req, res)) {
+      return;
+    }
     const { id } = req.params;
     const invoice = invoices.find(inv => inv.id === id);
 
@@ -553,6 +591,9 @@ export const downloadInvoice = (req: AuthenticatedRequest, res: Response) => {
 // GET /api/invoices/stats - Get invoice statistics
 export const getInvoiceStats = (req: AuthenticatedRequest, res: Response) => {
   try {
+    if (!enforceInvoiceScope(req, res)) {
+      return;
+    }
     const { period = 'month' } = req.query;
 
     const totalInvoices = invoices.length;

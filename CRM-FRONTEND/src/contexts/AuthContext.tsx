@@ -1,22 +1,74 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import type { AuthState, LoginRequest } from '@/types/auth';
 import { authService } from '@/services/auth';
 import { toast } from 'sonner';
 import { STORAGE_KEYS } from '@/types/constants';
 import { AuthContext, AuthContextType } from './AuthContextObject';
 import { AUTH_LOGOUT_EVENT } from '@/utils/events';
+import { frontendSocketService } from '@/services/socket';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface AuthProviderProps {
   children: React.ReactNode;
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+  const queryClient = useQueryClient();
   const [state, setState] = useState<AuthState>({
     user: null,
     token: null,
     isAuthenticated: false,
     isLoading: true,
   });
+
+  const normalizeUserPermissions = useCallback(<T extends { permissions?: unknown; permissionCodes?: string[] }>(
+    user: T | null
+  ): T | null => {
+    if (!user) {return null;}
+    if (Array.isArray(user.permissions)) {return user;}
+    if (Array.isArray(user.permissionCodes)) {
+      return { ...user, permissions: user.permissionCodes } as T;
+    }
+    return { ...user, permissions: [] } as T;
+  }, []);
+
+  const refreshUserPermissions = useCallback(async (): Promise<void> => {
+    try {
+      const updated = await authService.refreshUserData();
+
+      if (!updated) {
+        await authService.logout();
+        setState({
+          user: null,
+          token: null,
+          isAuthenticated: false,
+          isLoading: false,
+        });
+        return;
+      }
+
+      const normalizedUpdated = normalizeUserPermissions(updated);
+      setState(prev => ({
+        ...prev,
+        user: normalizedUpdated,
+        token: authService.getToken(),
+        isAuthenticated: true,
+        isLoading: false,
+      }));
+
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['dashboard'] }),
+        queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] }),
+        queryClient.invalidateQueries({ queryKey: ['reports-dashboard'] }),
+        queryClient.invalidateQueries({ queryKey: ['verification-tasks'] }),
+        queryClient.invalidateQueries({ queryKey: ['cases'] }),
+      ]);
+
+      void queryClient.refetchQueries({ queryKey: ['dashboard'], type: 'active' });
+    } catch (error) {
+      console.error('Permission refresh failed:', error);
+    }
+  }, [normalizeUserPermissions, queryClient]);
 
   useEffect(() => {
     // Check if user is already authenticated on app start
@@ -32,7 +84,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             const refreshedUser = await authService.refreshUserData();
             if (refreshedUser) {
               setState({
-                user: refreshedUser,
+                user: normalizeUserPermissions(refreshedUser),
                 token: authService.getToken(), // This will now get the newly refreshed in-memory token
                 isAuthenticated: true,
                 isLoading: false,
@@ -90,7 +142,30 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return () => {
       window.removeEventListener(AUTH_LOGOUT_EVENT, handleLogoutEvent);
     };
-  }, []);
+  }, [normalizeUserPermissions]);
+
+  useEffect(() => {
+    if (!state.isAuthenticated || !state.token) {
+      frontendSocketService.disconnect();
+      return;
+    }
+
+    const socket = frontendSocketService.connect(state.token);
+    const unsubscribe =
+      frontendSocketService.onPermissionsUpdated(async () => {
+        await refreshUserPermissions();
+      }) || undefined;
+
+    socket.on('connect_error', (error) => {
+      console.warn('Socket connect error:', error.message);
+    });
+
+    return () => {
+      if (unsubscribe) {unsubscribe();}
+      socket.off('connect_error');
+      frontendSocketService.disconnect();
+    };
+  }, [state.isAuthenticated, state.token, refreshUserPermissions]);
 
   const login = async (credentials: LoginRequest): Promise<boolean> => {
     setState(prev => ({ ...prev, isLoading: true }));
@@ -103,7 +178,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const refreshedUser = await authService.refreshUserData();
 
         setState({
-          user: refreshedUser || response.data.user,
+          user: normalizeUserPermissions(refreshedUser || response.data.user),
           token: response.data.tokens.accessToken,
           isAuthenticated: true,
           isLoading: false,
@@ -166,10 +241,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     ...state,
     login,
     logout,
+    refreshUserPermissions,
     hasRole,
     hasAnyRole,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
-

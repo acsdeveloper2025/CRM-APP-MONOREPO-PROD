@@ -24,7 +24,7 @@ import { useUserSessions } from '@/hooks/useUserSessions';
 import { format } from 'date-fns';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { useAuth } from '@/hooks/useAuth';
+import { usePermissionContext } from '@/contexts/PermissionContext';
 import { cn } from '@/lib/utils';
 
 interface UserFilters extends Record<string, unknown> {
@@ -184,8 +184,8 @@ export function UsersPage() {
     }
   };
 
-  const { user } = useAuth();
-  const isAdmin = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN';
+  const { hasPermissionCode } = usePermissionContext();
+  const isAdmin = hasPermissionCode('permission.manage') || hasPermissionCode('role.manage');
 
   // Early return if critical data is still loading to prevent undefined errors
   if (usersLoading && !usersData) {

@@ -11,8 +11,14 @@ export interface User {
   email: string;
   phone?: string;
   role: Role;
-  roleId?: number;
+  roles?: string[];
+  roleId?: number | string;
   roleName?: string;
+  permissions?: unknown;
+  permissionCodes?: string[];
+  permissionMap?: Record<string, unknown>;
+  legacyPermissions?: Record<string, unknown>;
+  routeAccess?: string[];
   employeeId: string;
   designation: string;
   designationId?: number;
@@ -62,7 +68,7 @@ export interface CreateUserData {
   email: string;
   password: string;
   role?: Role; // Legacy display only
-  roleId?: number; // New role system
+  roleId?: number | string; // New role system (legacy int or RBAC UUID)
   employeeId: string;
   designation?: string; // Legacy display only
   designationId?: number; // New designation system
@@ -75,7 +81,7 @@ export interface UpdateUserData {
   name?: string;
   email?: string;
   role?: Role; // Legacy display only
-  roleId?: number; // New role system
+  roleId?: number | string; // New role system (legacy int or RBAC UUID)
   employeeId?: string;
   designation?: string; // Legacy display only
   designationId?: number; // New designation system
@@ -92,9 +98,9 @@ export interface ChangePasswordData {
 }
 
 export interface ResetPasswordData {
-  userId: string;
+  username: string;
   newPassword: string;
-  confirmPassword: string;
+  confirmPassword?: string;
 }
 
 export interface UserActivity {

@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import type { User } from '@/types/user';
 import type { Product } from '@/types/product';
 import { LoadingSpinner } from '@/components/ui/loading';
+import { isBackendScopedUser } from '@/utils/userPermissionProfiles';
 
 interface ProductAssignmentSectionProps {
   user: User;
@@ -55,7 +56,7 @@ export function ProductAssignmentSection({ user }: ProductAssignmentSectionProps
   });
 
   // Only show for BACKEND_USER users (moved after all hooks)
-  if (user.role !== 'BACKEND_USER') {
+  if (!isBackendScopedUser(user)) {
     return null;
   }
 

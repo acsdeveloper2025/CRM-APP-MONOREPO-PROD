@@ -2,6 +2,9 @@ import type { Response } from 'express';
 import type { AuthenticatedRequest } from '../middleware/auth';
 import { DashboardKPIService } from '../services/dashboardKPIService';
 import { logger } from '../utils/logger';
+import { getAssignedClientIds } from '../middleware/clientAccess';
+import { getAssignedProductIds } from '../middleware/productAccess';
+import { isScopedOperationsUser } from '@/security/rbacAccess';
 
 export class DashboardKPIController {
   /**
@@ -12,11 +15,25 @@ export class DashboardKPIController {
   static async getKPIs(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const { clientId, agentId, dateFrom, dateTo } = req.query;
+      let clientIds: number[] | undefined;
+      let productIds: number[] | undefined;
+
+      if (req.user?.id && isScopedOperationsUser(req.user)) {
+        const [assignedClientIds, assignedProductIds] = await Promise.all([
+          getAssignedClientIds(req.user.id),
+          getAssignedProductIds(req.user.id),
+        ]);
+        clientIds = assignedClientIds && assignedClientIds.length > 0 ? assignedClientIds : [-1];
+        productIds =
+          assignedProductIds && assignedProductIds.length > 0 ? assignedProductIds : [-1];
+      }
 
       // Convert query params to expected types
       const filters = {
         clientId: clientId ? Number(clientId) : undefined,
         agentId: typeof agentId === 'string' ? agentId : undefined,
+        clientIds,
+        productIds,
         dateFrom: typeof dateFrom === 'string' ? dateFrom : undefined,
         dateTo: typeof dateTo === 'string' ? dateTo : undefined,
       };

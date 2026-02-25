@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import type { User } from '@/types/user';
 import type { Client } from '@/types/client';
 import { LoadingSpinner } from '@/components/ui/loading';
+import { isBackendScopedUser } from '@/utils/userPermissionProfiles';
 
 interface ClientAssignmentSectionProps {
   user: User;
@@ -55,7 +56,7 @@ export function ClientAssignmentSection({ user }: ClientAssignmentSectionProps) 
   });
 
   // Only show for BACKEND_USER users (moved after all hooks)
-  if (user.role !== 'BACKEND_USER') {
+  if (!isBackendScopedUser(user)) {
     return null;
   }
 

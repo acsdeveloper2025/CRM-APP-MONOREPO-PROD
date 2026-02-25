@@ -2,26 +2,31 @@ import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import type { Role } from '@/types/auth';
+import { usePermissionContext } from '@/contexts/PermissionContext';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
   requiredRoles?: Role[];
+  permission?: string;
   fallbackPath?: string;
 }
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   children,
   requiredRoles = [],
+  permission,
   fallbackPath = '/login',
 }) => {
   const { isAuthenticated, isLoading, hasAnyRole } = useAuth();
+  const { hasPermissionCode } = usePermissionContext();
   const location = useLocation();
 
   console.warn('ProtectedRoute:', {
     path: location.pathname,
     isAuthenticated,
     isLoading,
-    requiredRoles
+    requiredRoles,
+    permission,
   });
 
   if (isLoading) {
@@ -35,6 +40,10 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   if (!isAuthenticated) {
     // Redirect to login page with return url
     return <Navigate to={fallbackPath} state={{ from: location }} replace />;
+  }
+
+  if (permission && !hasPermissionCode(permission)) {
+    return <Navigate to="/unauthorized" replace />;
   }
 
   if (requiredRoles.length > 0 && !hasAnyRole(requiredRoles)) {

@@ -1,8 +1,9 @@
 import express from 'express';
 import { body, query, param } from 'express-validator';
 import { authenticateToken } from '@/middleware/auth';
+import { authorize } from '@/middleware/authorize';
 import { validate } from '@/middleware/validation';
-import { addClientFiltering } from '@/middleware/clientAccess';
+import { addClientFiltering, validateClientAccess } from '@/middleware/clientAccess';
 import {
   EnterpriseCache,
   EnterpriseCacheConfigs,
@@ -20,6 +21,8 @@ import {
 
 const router = express.Router();
 
+router.use(authenticateToken);
+router.use(authorize('settings.manage'));
 // Validation rules
 const createClientValidation = [
   body('name')
@@ -114,6 +117,7 @@ router.get(
   authenticateToken,
   EnterpriseCache.create(EnterpriseCacheConfigs.clientList),
   validate([param('id').isInt({ min: 1 }).withMessage('Client ID must be a positive integer')]),
+  validateClientAccess(),
   getClientById
 );
 
@@ -126,6 +130,7 @@ router.get(
     param('id').isInt({ min: 1 }).withMessage('Client ID must be a positive integer'),
     query('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
   ]),
+  validateClientAccess(),
   getClientVerificationTypes
 );
 
@@ -167,6 +172,7 @@ router.get(
     param('id').isInt({ min: 1 }).withMessage('Client ID must be a positive integer'),
     query('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
   ]),
+  validateClientAccess(),
   getClientProducts
 );
 

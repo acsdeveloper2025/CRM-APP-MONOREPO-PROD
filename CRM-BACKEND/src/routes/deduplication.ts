@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { authenticateToken } from '@/middleware/auth';
+import { authorize } from '@/middleware/authorize';
 import {
   searchDuplicates,
   recordDeduplicationDecision,
@@ -11,12 +12,13 @@ const router = Router();
 
 // Apply authentication middleware to all routes
 router.use(authenticateToken);
+router.use(authorize('case.view'));
 
 // POST /api/cases/deduplication/search - Search for potential duplicates
-router.post('/search', searchDuplicates);
+router.post('/search', authorize('case.create'), searchDuplicates);
 
 // POST /api/cases/deduplication/decision - Record deduplication decision
-router.post('/decision', recordDeduplicationDecision);
+router.post('/decision', authorize('case.update'), recordDeduplicationDecision);
 
 // GET /api/cases/:caseId/deduplication/history - Get deduplication history for a case
 router.get('/:caseId/history', getDeduplicationHistory);

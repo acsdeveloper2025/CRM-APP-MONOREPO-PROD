@@ -87,7 +87,11 @@ export class QueryOptimizationService {
 
     const query = `
       SELECT 
-        u.id, u.name, u.username, u.email, u.phone, u.role,
+        u.id, u.name, u.username, u.email, u.phone,
+        COALESCE(
+          (SELECT rv.name FROM user_roles ur JOIN roles_v2 rv ON rv.id = ur.role_id WHERE ur.user_id = u.id ORDER BY rv.name LIMIT 1),
+          r.name
+        ) as role,
         u."employeeId", u."isActive", u."lastLogin", u."createdAt", u."updatedAt",
         r.name as "roleName", r.permissions as "rolePermissions",
         d.name as "departmentName", d.description as "departmentDescription",
@@ -98,7 +102,12 @@ export class QueryOptimizationService {
       LEFT JOIN designations des ON u."designationId" = des.id
       WHERE ($1::text IS NULL OR u.name ILIKE $1 OR u.username ILIKE $1 OR u.email ILIKE $1)
         AND ($2::boolean IS NULL OR u."isActive" = $2)
-        AND ($3::text IS NULL OR u.role = $3)
+        AND ($3::text IS NULL OR EXISTS (
+          SELECT 1
+          FROM user_roles urf
+          JOIN roles_v2 rvf ON rvf.id = urf.role_id
+          WHERE urf.user_id = u.id AND rvf.name = $3
+        ))
       ORDER BY u.name
       LIMIT $4 OFFSET $5
     `;
@@ -267,7 +276,13 @@ export class QueryOptimizationService {
       LEFT JOIN "userAreaAssignments" uaa ON u.id = uaa."userId" AND uaa."isActive" = true
       LEFT JOIN areas a ON uaa."areaId" = a.id
       LEFT JOIN pincodes ap ON uaa."pincodeId" = ap.id
-      WHERE u.role = 'FIELD_AGENT'
+      WHERE EXISTS (
+        SELECT 1
+        FROM user_roles urf
+        JOIN role_permissions rpf ON rpf.role_id = urf.role_id AND rpf.allowed = true
+        JOIN permissions pf ON pf.id = rpf.permission_id
+        WHERE urf.user_id = u.id AND pf.code = 'visit.submit'
+      )
         AND ($1::text IS NULL OR u.name ILIKE $1 OR u.username ILIKE $1)
         AND ($2::integer IS NULL OR p.id = $2 OR ap.id = $2)
         AND ($3::integer IS NULL OR c.id = $3)

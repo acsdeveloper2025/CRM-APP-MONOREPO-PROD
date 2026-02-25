@@ -4,6 +4,7 @@ import { query } from '@/config/database';
 import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from './auth';
 import { getAssignedProductIds } from './productAccess';
+import { hasSystemScopeBypass, isScopedOperationsUser } from '@/security/rbacAccess';
 
 interface RequestWithClientFilter extends AuthenticatedRequest {
   clientFilter?: number[];
@@ -16,12 +17,7 @@ interface RequestWithClientFilter extends AuthenticatedRequest {
  */
 
 // Helper function to get assigned client IDs for BACKEND_USER users
-const getAssignedClientIds = async (userId: string, userRole: string): Promise<number[] | null> => {
-  // Only apply client filtering for BACKEND_USER users
-  if (userRole !== 'BACKEND_USER') {
-    return null; // null means no filtering (access to all clients)
-  }
-
+const getAssignedClientIds = async (userId: string): Promise<number[]> => {
   try {
     const result = await query(
       'SELECT "clientId" FROM "userClientAssignments" WHERE "userId" = $1',
@@ -48,10 +44,10 @@ export const validateClientAccess = (source: 'params' | 'body' | 'query' = 'para
   return async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const userId = req.user?.id;
-      const userRole = req.user?.role;
+      const user = req.user;
 
       // Skip validation for non-authenticated requests (should not happen due to auth middleware)
-      if (!userId || !userRole) {
+      if (!userId || !user) {
         return res.status(401).json({
           success: false,
           message: 'Authentication required',
@@ -60,12 +56,11 @@ export const validateClientAccess = (source: 'params' | 'body' | 'query' = 'para
       }
 
       // SUPER_ADMIN users bypass all client restrictions
-      if ((userRole as string) === 'SUPER_ADMIN') {
+      if (hasSystemScopeBypass(user)) {
         return next();
       }
 
-      // Only apply restrictions to BACKEND_USER users
-      if ((userRole as string) !== 'BACKEND_USER') {
+      if (!isScopedOperationsUser(user)) {
         return next();
       }
 
@@ -98,9 +93,9 @@ export const validateClientAccess = (source: 'params' | 'body' | 'query' = 'para
       }
 
       // Get assigned client IDs for the BACKEND_USER user
-      const assignedClientIds = await getAssignedClientIds(userId, userRole);
+      const assignedClientIds = await getAssignedClientIds(userId);
 
-      if (assignedClientIds?.length === 0) {
+      if (assignedClientIds.length === 0) {
         return res.status(403).json({
           success: false,
           message: 'Access denied - user has no assigned clients',
@@ -109,12 +104,12 @@ export const validateClientAccess = (source: 'params' | 'body' | 'query' = 'para
       }
 
       // Check if the user has access to the requested client
-      if (assignedClientIds && !assignedClientIds.includes(clientId)) {
+      if (!assignedClientIds.includes(clientId)) {
         logger.warn(
           `BACKEND_USER user ${userId} attempted to access unauthorized client ${clientId}`,
           {
             userId,
-            userRole,
+            permissionCodes: user.permissionCodes,
             requestedClientId: clientId,
             assignedClientIds,
             endpoint: req.originalUrl,
@@ -154,12 +149,12 @@ export const validateCaseAccess = async (
 ) => {
   try {
     const userId = req.user?.id;
-    const userRole = req.user?.role;
+    const user = req.user;
     const rawCaseId = req.params.id || req.params.caseId || '';
     const caseId = Array.isArray(rawCaseId) ? String(rawCaseId[0] || '') : String(rawCaseId || '');
 
     // Skip validation for non-authenticated requests
-    if (!userId || !userRole) {
+    if (!userId || !user) {
       return res.status(401).json({
         success: false,
         message: 'Authentication required',
@@ -168,12 +163,11 @@ export const validateCaseAccess = async (
     }
 
     // SUPER_ADMIN users bypass all restrictions
-    if ((userRole as string) === 'SUPER_ADMIN') {
+    if (hasSystemScopeBypass(user)) {
       return next();
     }
 
-    // Only apply restrictions to BACKEND_USER users
-    if ((userRole as string) !== 'BACKEND_USER') {
+    if (!isScopedOperationsUser(user)) {
       return next();
     }
 
@@ -203,9 +197,9 @@ export const validateCaseAccess = async (
     const caseClientId = caseResult.rows[0].clientId;
 
     // Get assigned client IDs for the BACKEND_USER user
-    const assignedClientIds = await getAssignedClientIds(userId, userRole);
+    const assignedClientIds = await getAssignedClientIds(userId);
 
-    if (assignedClientIds?.length === 0) {
+    if (assignedClientIds.length === 0) {
       return res.status(403).json({
         success: false,
         message: 'Access denied - user has no assigned clients',
@@ -214,12 +208,12 @@ export const validateCaseAccess = async (
     }
 
     // Check if the user has access to the case's client
-    if (assignedClientIds && !assignedClientIds.includes(caseClientId)) {
+    if (!assignedClientIds.includes(caseClientId)) {
       logger.warn(
         `BACKEND_USER user ${userId} attempted to access case ${caseId} from unauthorized client ${caseClientId}`,
         {
           userId,
-          userRole,
+          permissionCodes: user.permissionCodes,
           caseId,
           caseClientId,
           assignedClientIds,
@@ -258,41 +252,39 @@ export const addClientFiltering = async (
 ) => {
   try {
     const userId = req.user?.id;
-    const userRole = req.user?.role;
+    const user = req.user;
 
     logger.info('Client filtering middleware called', {
       userId,
-      userRole,
+      permissionCodes: user?.permissionCodes,
       originalQuery: req.query,
     });
 
     // Skip for non-authenticated requests
-    if (!userId || !userRole) {
+    if (!userId || !user) {
       logger.info('Skipping client filtering - no user or role');
       return next();
     }
 
-    // SUPER_ADMIN users bypass all filtering
-    if ((userRole as string) === 'SUPER_ADMIN') {
-      logger.info('Skipping client filtering - SUPER_ADMIN user');
+    if (hasSystemScopeBypass(user)) {
+      logger.info('Skipping client filtering - system scope bypass');
       return next();
     }
 
-    // Only apply filtering to BACKEND_USER users
-    if ((userRole as string) !== 'BACKEND_USER') {
-      logger.info('Skipping client filtering - not BACKEND_USER', { userRole });
+    if (!isScopedOperationsUser(user)) {
+      logger.info('Skipping client filtering - user is not scoped ops profile');
       return next();
     }
 
     // Get assigned client IDs for the BACKEND_USER user
-    const assignedClientIds = await getAssignedClientIds(userId, userRole);
+    const assignedClientIds = await getAssignedClientIds(userId);
     logger.info('Retrieved assigned client IDs', { userId, assignedClientIds });
 
-    if (assignedClientIds?.length === 0) {
+    if (assignedClientIds.length === 0) {
       // User has no client assignments, they should see no data
       (req as RequestWithClientFilter).clientFilter = [];
       logger.info('Set clientFilter to empty array - no assignments');
-    } else if (assignedClientIds) {
+    } else {
       // Add client filtering to the request
       (req as RequestWithClientFilter).clientFilter = assignedClientIds;
       logger.info('Set clientFilter', {
@@ -325,11 +317,11 @@ export const validateCaseCreationAccess = async (
 ) => {
   try {
     const userId = req.user?.id;
-    const userRole = req.user?.role;
+    const user = req.user;
     const { clientId, productId } = req.body;
 
     // Skip validation for non-authenticated requests
-    if (!userId || !userRole) {
+    if (!userId || !user) {
       return res.status(401).json({
         success: false,
         message: 'Authentication required',
@@ -338,12 +330,11 @@ export const validateCaseCreationAccess = async (
     }
 
     // SUPER_ADMIN users bypass all restrictions
-    if ((userRole as string) === 'SUPER_ADMIN') {
+    if (hasSystemScopeBypass(user)) {
       return next();
     }
 
-    // Only apply restrictions to BACKEND_USER users
-    if ((userRole as string) !== 'BACKEND_USER') {
+    if (!isScopedOperationsUser(user)) {
       return next();
     }
 
@@ -353,10 +344,10 @@ export const validateCaseCreationAccess = async (
     }
 
     // Get assigned client IDs for the BACKEND_USER user
-    const assignedClientIds = await getAssignedClientIds(userId, userRole);
+    const assignedClientIds = await getAssignedClientIds(userId);
 
     // Check client access
-    if (assignedClientIds?.length === 0) {
+    if (assignedClientIds.length === 0) {
       return res.status(403).json({
         success: false,
         message: 'Access denied: No clients assigned to your account',
@@ -364,7 +355,7 @@ export const validateCaseCreationAccess = async (
       });
     }
 
-    if (assignedClientIds && !assignedClientIds.includes(parseInt(clientId))) {
+    if (!assignedClientIds.includes(parseInt(clientId))) {
       return res.status(403).json({
         success: false,
         message: 'Access denied: You do not have access to this client',
@@ -373,10 +364,10 @@ export const validateCaseCreationAccess = async (
     }
 
     // Get assigned product IDs for the BACKEND_USER user
-    const assignedProductIds = await getAssignedProductIds(userId, userRole);
+    const assignedProductIds = await getAssignedProductIds(userId);
 
     // Check product access
-    if (assignedProductIds?.length === 0) {
+    if (assignedProductIds.length === 0) {
       return res.status(403).json({
         success: false,
         message: 'Access denied: No products assigned to your account',
@@ -384,7 +375,7 @@ export const validateCaseCreationAccess = async (
       });
     }
 
-    if (assignedProductIds && !assignedProductIds.includes(parseInt(productId))) {
+    if (!assignedProductIds.includes(parseInt(productId))) {
       return res.status(403).json({
         success: false,
         message: 'Access denied: You do not have access to this product',

@@ -19,9 +19,17 @@ export const getFieldAgentTerritories = async (req: AuthenticatedRequest, res: R
     } = req.query;
 
     // Build the WHERE clause
-    const conditions: string[] = ['u.role = $1'];
-    const params: QueryParams = ['FIELD'];
-    let paramIndex = 2;
+    const conditions: string[] = [
+      `EXISTS (
+        SELECT 1
+        FROM user_roles urf
+        JOIN role_permissions rpf ON rpf.role_id = urf.role_id AND rpf.allowed = true
+        JOIN permissions pf ON pf.id = rpf.permission_id
+        WHERE urf.user_id = u.id AND pf.code = 'visit.submit'
+      )`,
+    ];
+    const params: QueryParams = [];
+    let paramIndex = 1;
 
     if (search && typeof search === 'string') {
       conditions.push(

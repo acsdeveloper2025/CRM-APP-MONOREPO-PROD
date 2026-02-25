@@ -1,8 +1,9 @@
 import express from 'express';
 import { body, query, param } from 'express-validator';
 import { authenticateToken } from '@/middleware/auth';
+import { authorize } from '@/middleware/authorize';
 import { handleValidationErrors } from '@/middleware/validation';
-import { addProductFiltering } from '@/middleware/productAccess';
+import { addProductFiltering, validateProductAccess } from '@/middleware/productAccess';
 import {
   EnterpriseCache,
   EnterpriseCacheConfigs,
@@ -22,6 +23,7 @@ const router = express.Router();
 
 // Apply authentication
 router.use(authenticateToken);
+router.use(authorize('settings.manage'));
 
 // Validation schemas
 const createProductValidation = [
@@ -179,6 +181,7 @@ router.get(
   EnterpriseCache.create(EnterpriseCacheConfigs.products),
   [param('id').isInt({ min: 1 }).withMessage('Product ID must be a positive integer')],
   handleValidationErrors,
+  validateProductAccess(),
   getProductById
 );
 
@@ -211,6 +214,7 @@ router.get(
     query('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
   ],
   handleValidationErrors,
+  validateProductAccess(),
   getProductVerificationTypes
 );
 

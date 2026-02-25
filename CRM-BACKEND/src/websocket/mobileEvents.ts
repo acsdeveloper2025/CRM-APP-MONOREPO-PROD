@@ -277,13 +277,13 @@ export class MobileWebSocketEvents {
       this.io.to(`user:${userId}`).emit('notification', notificationData);
     });
 
-    // Also send to role rooms for case completion notifications
-    this.io.to('role:BACKEND_USER').emit('notification', notificationData);
-    this.io.to('role:REPORT_PERSON').emit('notification', notificationData);
-    this.io.to('role:SUPER_ADMIN').emit('notification', notificationData);
+    // Permission-group routing for operational/review/billing supervision
+    this.io.to('perm:operations').emit('notification', notificationData);
+    this.io.to('perm:review').emit('notification', notificationData);
+    this.io.to('perm:billing').emit('notification', notificationData);
 
     logger.info(
-      `Case completion notification sent to ${userIds.length} users (BACKEND_USER, REPORT_PERSON, SUPER_ADMIN)`,
+      `Case completion notification sent to ${userIds.length} users + permission groups`,
       {
         notificationId,
         caseId: caseData.id,
@@ -326,8 +326,9 @@ export class MobileWebSocketEvents {
       this.io.to(`user:${userId}`).emit('notification', notificationData);
     });
 
-    // Also send to backend role room
-    this.io.to('role:BACKEND_USER').emit('notification', notificationData);
+    // Permission-group routing for operational/review supervision
+    this.io.to('perm:operations').emit('notification', notificationData);
+    this.io.to('perm:review').emit('notification', notificationData);
 
     logger.info(`Case revocation notification sent to ${userIds.length} backend users`, {
       notificationId,
@@ -525,14 +526,18 @@ export class MobileWebSocketEvents {
     }
   }
 
-  // Broadcast to all mobile users of a specific role
-  broadcastToRole(role: string, event: string, data: Record<string, unknown>) {
-    this.io.to(`role:${role}`).emit(event, {
+  // Broadcast to all mobile users in a permission group
+  broadcastToPermissionGroup(
+    permissionGroup: 'operations' | 'review' | 'billing',
+    event: string,
+    data: Record<string, unknown>
+  ) {
+    this.io.to(`perm:${permissionGroup}`).emit(event, {
       ...data,
       timestamp: new Date().toISOString(),
     });
 
-    logger.info(`Broadcast sent to role ${role}: ${event}`);
+    logger.info(`Broadcast sent to permission group ${permissionGroup}: ${event}`);
   }
 
   // Broadcast to all mobile users

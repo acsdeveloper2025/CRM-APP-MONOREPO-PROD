@@ -1,13 +1,16 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { usePermissions } from '@/hooks/usePermissions';
+import { usePermissionContext } from '@/contexts/PermissionContext';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Shield, AlertTriangle } from 'lucide-react';
+import { matchesAnyLegacyRoleAlias } from '@/utils/userPermissionProfiles';
 
 interface PermissionProtectedRouteProps {
   children: React.ReactNode;
   resource: string;
   action: string;
+  permissionCode?: string;
   fallbackPath?: string;
   showError?: boolean;
 }
@@ -25,17 +28,21 @@ export function PermissionProtectedRoute({
   children,
   resource,
   action,
-  fallbackPath = '/dashboard',
-  showError = true,
+  permissionCode,
+  fallbackPath = '/unauthorized',
+  showError = false,
 }: PermissionProtectedRouteProps) {
   const { hasPermission, user } = usePermissions();
+  const { hasPermissionCode } = usePermissionContext();
   const location = useLocation();
 
   if (!user) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  if (!hasPermission(resource, action)) {
+  const allowed = permissionCode ? hasPermissionCode(permissionCode) : hasPermission(resource, action);
+
+  if (!allowed) {
     if (showError) {
       return (
         <div className="container mx-auto py-6">
@@ -43,6 +50,7 @@ export function PermissionProtectedRoute({
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>
               You don&apos;t have permission to access this page. Required permission: {resource}.{action}
+              {permissionCode ? ` (${permissionCode})` : ''}
             </AlertDescription>
           </Alert>
         </div>
@@ -59,8 +67,8 @@ export function MultiplePermissionProtectedRoute({
   children,
   permissions,
   requireAll = true,
-  fallbackPath = '/dashboard',
-  showError = true,
+  fallbackPath = '/unauthorized',
+  showError = false,
 }: MultiplePermissionProtectedRouteProps) {
   const { hasAllPermissions, hasAnyPermission, user } = usePermissions();
   const location = useLocation();
@@ -100,8 +108,8 @@ export function MultiplePermissionProtectedRoute({
 // Admin only protected route
 export function AdminProtectedRoute({
   children,
-  fallbackPath = '/dashboard',
-  showError = true,
+  fallbackPath = '/unauthorized',
+  showError = false,
 }: {
   children: React.ReactNode;
   fallbackPath?: string;
@@ -137,8 +145,8 @@ export function AdminProtectedRoute({
 export function RoleProtectedRoute({
   children,
   allowedRoles,
-  fallbackPath = '/dashboard',
-  showError = true,
+  fallbackPath = '/unauthorized',
+  showError = false,
 }: {
   children: React.ReactNode;
   allowedRoles: string[];
@@ -152,7 +160,7 @@ export function RoleProtectedRoute({
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  if (!allowedRoles.includes(user.role)) {
+  if (!matchesAnyLegacyRoleAlias(user, allowedRoles)) {
     if (showError) {
       return (
         <div className="container mx-auto py-6">

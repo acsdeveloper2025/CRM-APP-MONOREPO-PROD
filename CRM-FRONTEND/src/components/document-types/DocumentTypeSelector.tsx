@@ -19,7 +19,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { documentTypesService } from '@/services/documentTypes';
-import { DOCUMENT_TYPE_COLORS, DOCUMENT_TYPE_DISPLAY_NAMES, type DocumentType, type DocumentCategory } from '@/types/documentType';
+import { type DocumentType, type DocumentCategory } from '@/types/documentType';
 
 interface DocumentTypeSelectorProps {
   selectedDocumentTypes: DocumentType[];
@@ -49,12 +49,11 @@ export const DocumentTypeSelector: React.FC<DocumentTypeSelectorProps> = ({
 
   // Fetch document types
   const { data: documentTypesResponse, isLoading } = useQuery({
-    queryKey: ['document-types', { category, isActive: true }],
+    queryKey: ['document-types', { category }],
     queryFn: () => documentTypesService.getDocumentTypes({ 
       category, 
-      isActive: true,
       limit: 100,
-      sortBy: 'sort_order',
+      sortBy: 'name',
       sortOrder: 'asc'
     }),
   });
@@ -64,18 +63,8 @@ export const DocumentTypeSelector: React.FC<DocumentTypeSelectorProps> = ({
   // Filter document types based on search
   const filteredDocumentTypes = documentTypes.filter(dt =>
     dt.name.toLowerCase().includes(searchValue.toLowerCase()) ||
-    dt.code.toLowerCase().includes(searchValue.toLowerCase()) ||
-    dt.description?.toLowerCase().includes(searchValue.toLowerCase())
+    dt.code.toLowerCase().includes(searchValue.toLowerCase())
   );
-
-  // Group document types by category
-  const groupedDocumentTypes = filteredDocumentTypes.reduce((acc, dt) => {
-    if (!acc[dt.category]) {
-      acc[dt.category] = [];
-    }
-    acc[dt.category].push(dt);
-    return acc;
-  }, {} as Record<DocumentCategory, DocumentType[]>);
 
   const handleSelect = (documentType: DocumentType) => {
     if (multiple) {
@@ -125,10 +114,7 @@ export const DocumentTypeSelector: React.FC<DocumentTypeSelectorProps> = ({
             <Badge
               key={dt.id}
               variant="secondary"
-              className={cn(
-                'flex items-center gap-1 px-2 py-1',
-                `bg-${DOCUMENT_TYPE_COLORS[dt.category]}-100 text-${DOCUMENT_TYPE_COLORS[dt.category]}-800`
-              )}
+              className="flex items-center gap-1 px-2 py-1"
             >
               <span className="text-xs">{dt.name}</span>
               {!disabled && (
@@ -178,15 +164,11 @@ export const DocumentTypeSelector: React.FC<DocumentTypeSelectorProps> = ({
                 <div className="p-4 text-center text-sm text-gray-600">
                   Loading document types...
                 </div>
-              ) : Object.keys(groupedDocumentTypes).length === 0 ? (
+              ) : filteredDocumentTypes.length === 0 ? (
                 <CommandEmpty>No document types found.</CommandEmpty>
               ) : (
-                Object.entries(groupedDocumentTypes).map(([categoryKey, categoryDocumentTypes]) => (
-                  <CommandGroup 
-                    key={categoryKey} 
-                    heading={DOCUMENT_TYPE_DISPLAY_NAMES[categoryKey as DocumentCategory]}
-                  >
-                    {categoryDocumentTypes.map((documentType) => (
+                <CommandGroup heading="Document Types">
+                  {filteredDocumentTypes.map((documentType) => (
                       <CommandItem
                         key={documentType.id}
                         value={`${documentType.name} ${documentType.code}`}
@@ -203,29 +185,13 @@ export const DocumentTypeSelector: React.FC<DocumentTypeSelectorProps> = ({
                             />
                             <div>
                               <div className="font-medium">{documentType.name}</div>
-                              <div className="text-xs text-gray-600">
-                                {documentType.code}
-                                {documentType.description && ` • ${documentType.description}`}
-                              </div>
+                              <div className="text-xs text-gray-600">{documentType.code}</div>
                             </div>
                           </div>
                         </div>
-                        <div className="flex items-center space-x-1">
-                          {documentType.isGovernmentIssued && (
-                            <Badge variant="outline" className="text-xs">
-                              Govt
-                            </Badge>
-                          )}
-                          {documentType.requiresVerification && (
-                            <Badge variant="outline" className="text-xs">
-                              Verify
-                            </Badge>
-                          )}
-                        </div>
                       </CommandItem>
                     ))}
-                  </CommandGroup>
-                ))
+                </CommandGroup>
               )}
             </CommandList>
           </Command>

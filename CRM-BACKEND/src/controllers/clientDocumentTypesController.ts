@@ -21,23 +21,13 @@ export const getDocumentTypesByClient = async (req: AuthenticatedRequest, res: R
         dt.id,
         dt.name,
         dt.code,
-        dt.description,
-        dt.category,
-        dt.is_government_issued as "isGovernmentIssued",
-        dt.requires_verification as "requiresVerification",
-        dt.validity_period_months as "validityPeriodMonths",
-        dt.format_pattern as "formatPattern",
-        dt.min_length as "minLength",
-        dt.max_length as "maxLength",
-        dt.is_active as "isActive",
-        dt.sort_order as "sortOrder",
         cdt.is_required as "isRequired",
         cdt.priority,
         cdt.client_specific_rules as "clientSpecificRules"
       FROM "clientDocumentTypes" cdt
       JOIN "documentTypes" dt ON cdt."documentTypeId" = dt.id
       WHERE cdt."clientId" = $1 ${whereClause}
-      ORDER BY cdt.priority ASC, dt.sort_order ASC, dt.name ASC
+      ORDER BY cdt.priority ASC, dt.name ASC
     `;
 
     const result = await query(documentTypesQuery, params);

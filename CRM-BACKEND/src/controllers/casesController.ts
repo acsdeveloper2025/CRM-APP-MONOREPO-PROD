@@ -1,6 +1,5 @@
 import type { Response } from 'express';
 import type { AuthenticatedRequest } from '../middleware/auth';
-import { Role } from '../types/auth';
 import { logger } from '../utils/logger';
 import { pool } from '../config/database';
 import { EnterpriseCacheService, CacheKeys } from '../services/enterpriseCacheService';
@@ -14,6 +13,7 @@ import {
   VerificationTaskCreationError,
   VerificationTaskCreationService,
 } from '../services/verificationTaskCreationService';
+import { isFieldExecutionActor, isScopedOperationsUser } from '@/security/rbacAccess';
 
 interface DatabaseError extends Error {
   code?: string;
@@ -138,15 +138,16 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
     let baseParamIndex = 1;
 
     // Role-based filtering - FIELD_AGENT users can only see cases with their assigned tasks
-    const userRole = req.user?.role;
     const userId = req.user?.id;
+    const isExecutionActor = isFieldExecutionActor(req.user);
+    const isScopedOps = isScopedOperationsUser(req.user);
 
-    if (userRole === Role.FIELD_AGENT) {
+    if (isExecutionActor) {
       const { getAssignedPincodeIds } = await import('@/middleware/pincodeAccess');
       const { getAssignedAreaIds } = await import('@/middleware/areaAccess');
 
-      const assignedPincodeIds = await getAssignedPincodeIds(userId, userRole);
-      const assignedAreaIds = await getAssignedAreaIds(userId, userRole);
+      const assignedPincodeIds = await getAssignedPincodeIds(userId);
+      const assignedAreaIds = await getAssignedAreaIds(userId);
 
       const fieldAgentConditions: string[] = [];
 
@@ -183,12 +184,12 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
       } else {
         baseConditions.push('FALSE');
       }
-    } else if (userRole === Role.BACKEND_USER) {
+    } else if (isScopedOps) {
       const { getAssignedClientIds } = await import('@/middleware/clientAccess');
       const { getAssignedProductIds } = await import('@/middleware/productAccess');
 
-      const assignedClientIds = await getAssignedClientIds(userId, userRole);
-      const assignedProductIds = await getAssignedProductIds(userId, userRole);
+      const assignedClientIds = await getAssignedClientIds(userId);
+      const assignedProductIds = await getAssignedProductIds(userId);
 
       if (assignedClientIds && assignedClientIds.length > 0) {
         baseConditions.push(`c."clientId" = ANY($${baseParamIndex}::int[])`);
@@ -538,7 +539,8 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
 
     logger.info('Cases retrieved', {
       userId: req.user?.id,
-      role: req.user?.role,
+      executionActor: isExecutionActor,
+      scopedOps: isScopedOps,
       page,
       limit,
       total,
@@ -568,8 +570,9 @@ export const getCaseById = async (req: AuthenticatedRequest, res: Response) => {
     const isNumeric = /^\d+$/.test(id);
 
     // Role-based access control
-    const userRole = req.user?.role;
     const userId = req.user?.id;
+    const isExecutionActor = isFieldExecutionActor(req.user);
+    const isScopedOps = isScopedOperationsUser(req.user);
 
     // Build query with role-based filtering
     let caseQuery = `
@@ -639,12 +642,12 @@ export const getCaseById = async (req: AuthenticatedRequest, res: Response) => {
     const queryParams: QueryParams = [isNumeric ? parseInt(id) : id];
 
     // Add role-based filtering for FIELD_AGENT - filter by task-level assignment AND pincode/area
-    if (userRole === Role.FIELD_AGENT) {
+    if (isExecutionActor) {
       const { getAssignedPincodeIds } = await import('@/middleware/pincodeAccess');
       const { getAssignedAreaIds } = await import('@/middleware/areaAccess');
 
-      const assignedPincodeIds = await getAssignedPincodeIds(userId, userRole);
-      const assignedAreaIds = await getAssignedAreaIds(userId, userRole);
+      const assignedPincodeIds = await getAssignedPincodeIds(userId);
+      const assignedAreaIds = await getAssignedAreaIds(userId);
 
       // Build complex filter: (assigned to task) OR (task in assigned pincode/area)
       const fieldAgentConditions: string[] = [];
@@ -692,13 +695,13 @@ export const getCaseById = async (req: AuthenticatedRequest, res: Response) => {
           error: { code: 'NO_TERRITORY_ACCESS' },
         });
       }
-    } else if (userRole === Role.BACKEND_USER) {
+    } else if (isScopedOps) {
       // Filter by client and product assignments for BACKEND_USER
       const { getAssignedClientIds } = await import('@/middleware/clientAccess');
       const { getAssignedProductIds } = await import('@/middleware/productAccess');
 
-      const assignedClientIds = await getAssignedClientIds(userId, userRole);
-      const assignedProductIds = await getAssignedProductIds(userId, userRole);
+      const assignedClientIds = await getAssignedClientIds(userId);
+      const assignedProductIds = await getAssignedProductIds(userId);
 
       // Check if user has access to this case's client and product
       if (assignedClientIds && assignedClientIds.length > 0) {
@@ -729,10 +732,9 @@ export const getCaseById = async (req: AuthenticatedRequest, res: Response) => {
     const result = await pool.query(caseQuery, queryParams);
 
     if (result.rows.length === 0) {
-      const message =
-        userRole === Role.FIELD_AGENT
-          ? 'Case not found or access denied. You can only view cases assigned to you.'
-          : 'Case not found';
+      const message = isExecutionActor
+        ? 'Case not found or access denied. You can only view cases assigned to you.'
+        : 'Case not found';
 
       return res.status(404).json({
         success: false,
@@ -1445,6 +1447,8 @@ export const exportCases = async (req: AuthenticatedRequest, res: Response) => {
     const whereConditions: string[] = [];
     const queryParams: QueryParams = [];
     let paramIndex = 1;
+    const userId = req.user?.id;
+    const isScopedOps = isScopedOperationsUser(req.user);
 
     // Filter by export type (status)
     if (exportType && exportType !== 'all') {
@@ -1538,6 +1542,31 @@ export const exportCases = async (req: AuthenticatedRequest, res: Response) => {
         `${typeof dateTo === 'string' || typeof dateTo === 'number' ? String(dateTo) : new Date().toISOString().split('T')[0]} 23:59:59`
       );
       paramIndex++;
+    }
+
+    if (isScopedOps && userId) {
+      const { getAssignedClientIds } = await import('@/middleware/clientAccess');
+      const { getAssignedProductIds } = await import('@/middleware/productAccess');
+      const [assignedClientIds, assignedProductIds] = await Promise.all([
+        getAssignedClientIds(userId),
+        getAssignedProductIds(userId),
+      ]);
+
+      if (!assignedClientIds || assignedClientIds.length === 0) {
+        whereConditions.push('FALSE');
+      } else {
+        whereConditions.push(`c."clientId" = ANY($${paramIndex}::int[])`);
+        queryParams.push(assignedClientIds);
+        paramIndex++;
+      }
+
+      if (!assignedProductIds || assignedProductIds.length === 0) {
+        whereConditions.push('FALSE');
+      } else {
+        whereConditions.push(`c."productId" = ANY($${paramIndex}::int[])`);
+        queryParams.push(assignedProductIds);
+        paramIndex++;
+      }
     }
 
     const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
@@ -1788,6 +1817,30 @@ export const getCaseSummaryWithTasks = async (req: AuthenticatedRequest, res: Re
 
     const caseInfo = caseResult.rows[0];
 
+    if (isScopedOperationsUser(req.user) && req.user?.id) {
+      const { getAssignedClientIds } = await import('@/middleware/clientAccess');
+      const { getAssignedProductIds } = await import('@/middleware/productAccess');
+      const [assignedClientIds, assignedProductIds] = await Promise.all([
+        getAssignedClientIds(req.user.id),
+        getAssignedProductIds(req.user.id),
+      ]);
+
+      if (
+        !assignedClientIds ||
+        !assignedProductIds ||
+        assignedClientIds.length === 0 ||
+        assignedProductIds.length === 0 ||
+        !assignedClientIds.includes(Number(caseInfo.clientId)) ||
+        !assignedProductIds.includes(Number(caseInfo.productId))
+      ) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied',
+          error: { code: 'CASE_ACCESS_DENIED' },
+        });
+      }
+    }
+
     // Get task summary
     const taskSummaryResult = await pool.query(
       `
@@ -2010,8 +2063,6 @@ export const createCase = [
       await client.query('BEGIN');
 
       const userId = req.user?.id;
-      const _userRole = req.user?.role;
-
       if (!userId) {
         await client.query('ROLLBACK');
         await cleanupFiles();

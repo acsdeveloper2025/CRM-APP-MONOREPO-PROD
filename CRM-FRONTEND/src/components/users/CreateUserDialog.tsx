@@ -29,17 +29,25 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
+import { PasswordPolicyChecklist } from '@/components/users/PasswordPolicyChecklist';
 import { usersService } from '@/services/users';
 import { rolesService } from '@/services/roles';
 import { departmentsService } from '@/services/departments';
 import { designationsService } from '@/services/designations';
 import type { CreateUserData } from '@/types/user';
+import { PASSWORD_POLICY_REGEX } from '@/lib/passwordPolicy';
 
 const createUserSchema = z.object({
   name: z.string().min(1, 'Name is required').max(100, 'Name too long'),
   username: z.string().min(3, 'Username must be at least 3 characters').max(50, 'Username too long'),
   email: z.string().email('Invalid email address'),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
+  password: z
+    .string()
+    .min(8, 'Password must be at least 8 characters')
+    .regex(
+      PASSWORD_POLICY_REGEX,
+      'Password must include uppercase, lowercase, number, and special character'
+    ),
   roleId: z.string().min(1, 'Role is required'),
   departmentId: z.string().optional(),
   employeeId: z.string().min(1, 'Employee ID is required'),
@@ -97,11 +105,10 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
 
   const createMutation = useCRUDMutation({
     mutationFn: (data: CreateUserFormData) => {
-      // Convert string IDs to numbers for API
       const cleanData = {
         ...data,
-        // Required fields - parse roleId to number
-        roleId: data.roleId ? parseInt(data.roleId, 10) : undefined,
+        // roleId can be RBAC UUID (preferred) or legacy numeric string
+        roleId: data.roleId || undefined,
         employeeId: data.employeeId,
         // Optional fields - parse to number or undefined
         departmentId: data.departmentId ? parseInt(data.departmentId, 10) : undefined,
@@ -199,8 +206,9 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
                     <Input type="password" placeholder="Enter password" {...field} />
                   </FormControl>
                   <FormDescription>
-                    Password must be at least 8 characters long
+                    Use a strong password matching all requirements below.
                   </FormDescription>
+                  <PasswordPolicyChecklist password={field.value || ''} />
                   <FormMessage />
                 </FormItem>
               )}

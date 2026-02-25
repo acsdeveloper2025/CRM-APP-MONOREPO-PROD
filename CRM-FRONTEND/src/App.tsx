@@ -8,6 +8,7 @@ import { ThemeProvider } from '@/contexts/ThemeContext';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { AppRoutes } from '@/components/AppRoutes';
 import { LayoutProvider } from '@/contexts/LayoutContext';
+import { PermissionProvider } from '@/contexts/PermissionContext';
 
 // Note: Page imports are now handled in AppRoutes component
 
@@ -74,15 +75,17 @@ function App() {
       <ThemeProvider defaultTheme="system" storageKey="acs-theme">
         <QueryClientProvider client={queryClient}>
           <AuthProvider>
-            <LayoutProvider>
-              <SessionHandler />
-              <Router>
-                <div className="min-h-screen bg-[#FAFAFA]">
-                  <AppRoutes />
-                </div>
-              </Router>
-              <Toaster position="top-right" richColors closeButton />
-            </LayoutProvider>
+            <PermissionProvider>
+              <LayoutProvider>
+                <SessionHandler />
+                <Router>
+                  <div className="min-h-screen bg-[#FAFAFA]">
+                    <AppRoutes />
+                  </div>
+                </Router>
+                <Toaster position="top-right" richColors closeButton />
+              </LayoutProvider>
+            </PermissionProvider>
           </AuthProvider>
         </QueryClientProvider>
       </ThemeProvider>

@@ -115,10 +115,9 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
 
   const updateMutation = useCRUDMutation({
     mutationFn: (data: EditUserFormData) => {
-      // Convert string IDs to numbers for API
       const cleanData = {
         ...data,
-        roleId: data.roleId ? parseInt(data.roleId, 10) : undefined,
+        roleId: data.roleId || undefined,
         departmentId: data.departmentId ? parseInt(data.departmentId, 10) : undefined,
         designationId: data.designationId ? parseInt(data.designationId, 10) : undefined,
       };

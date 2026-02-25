@@ -201,7 +201,7 @@ export function RateTypeAssignmentTab() {
 
           {/* Selection Summary */}
           {canShowAssignments && (
-            <div className="mt-4 p-4 bg-muted rounded-lg">
+            <div className="mt-4 p-4 rounded-lg border border-green-100 bg-green-50">
               <h4 className="font-medium mb-2">Selected Combination:</h4>
               <div className="flex flex-wrap gap-2">
                 <Badge variant="outline">
@@ -277,7 +277,7 @@ export function RateTypeAssignmentTab() {
                 </div>
 
                 {/* Assignment Summary */}
-                <div className="mt-4 p-4 bg-muted rounded-lg">
+                <div className="mt-4 p-4 rounded-lg border border-green-100 bg-green-50">
                   <h4 className="font-medium mb-2">
                     Assigned Rate Types ({assignedRateTypeIds.length}):
                   </h4>

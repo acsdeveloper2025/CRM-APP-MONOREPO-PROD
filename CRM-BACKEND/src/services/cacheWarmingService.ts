@@ -115,17 +115,25 @@ export class CacheWarmingService {
    */
   private static async warmActiveUsersCache(): Promise<void> {
     try {
-      // Cache users by role
-      const roles = ['FIELD_AGENT', 'MANAGER', 'ADMIN', 'SUPER_ADMIN'];
+      // Cache users by RBAC permission profile (query still uses role names for warm selection only)
+      const profiles = [
+        { roleName: 'FIELD_AGENT', cacheKey: 'visit-submit' },
+        { roleName: 'MANAGER', cacheKey: 'review' },
+        { roleName: 'ADMIN', cacheKey: 'system-manage' },
+        { roleName: 'SUPER_ADMIN', cacheKey: 'wildcard' },
+      ];
 
-      for (const role of roles) {
+      for (const profile of profiles) {
         const result = await pool.query(
           `
           SELECT
             u.id,
             u.username,
             u.email,
-            u.role,
+            COALESCE(
+              (SELECT rv.name FROM user_roles ur JOIN roles_v2 rv ON rv.id = ur.role_id WHERE ur.user_id = u.id ORDER BY rv.name LIMIT 1),
+              'UNASSIGNED'
+            ) as role,
             u.name,
             u.phone,
             u."isActive",
@@ -160,10 +168,15 @@ export class CacheWarmingService {
             WHERE "isActive" = true
             GROUP BY "userId"
           ) area_arrays ON u.id = area_arrays."userId"
-          WHERE u.role = $1 AND u."isActive" = true
+          WHERE EXISTS (
+            SELECT 1
+            FROM user_roles urf
+            JOIN roles_v2 rvf ON rvf.id = urf.role_id
+            WHERE urf.user_id = u.id AND rvf.name = $1
+          ) AND u."isActive" = true
           ORDER BY u.username ASC
         `,
-          [role]
+          [profile.roleName]
         );
 
         // Store in the same format as the cache middleware expects
@@ -189,8 +202,12 @@ export class CacheWarmingService {
           statusCode: 200,
           timestamp: Date.now(),
         };
-        await EnterpriseCacheService.set(`users:list:${role}`, cacheData, 600); // 10 minutes
-        logger.debug(`✓ Warmed users cache for ${role}: ${result.rows.length} users`);
+        await EnterpriseCacheService.set(
+          `users:list:perm-profile:${profile.cacheKey}`,
+          cacheData,
+          600
+        ); // 10 minutes
+        logger.debug(`✓ Warmed users cache for ${profile.cacheKey}: ${result.rows.length} users`);
       }
 
       // Cache all active users
@@ -199,7 +216,10 @@ export class CacheWarmingService {
           u.id,
           u.username,
           u.email,
-          u.role,
+          COALESCE(
+            (SELECT rv.name FROM user_roles ur JOIN roles_v2 rv ON rv.id = ur.role_id WHERE ur.user_id = u.id ORDER BY rv.name LIMIT 1),
+            'UNASSIGNED'
+          ) as role,
           u.name,
           u.phone,
           u."isActive",
@@ -349,7 +369,13 @@ export class CacheWarmingService {
         FROM users u
         LEFT JOIN verification_tasks vt ON u.id = vt.assigned_to
         LEFT JOIN cases c ON vt.case_id = c.id
-        WHERE u.role = 'FIELD_AGENT' AND u."isActive" = true
+        WHERE EXISTS (
+          SELECT 1
+          FROM user_roles urf
+          JOIN role_permissions rpf ON rpf.role_id = urf.role_id AND rpf.allowed = true
+          JOIN permissions pf ON pf.id = rpf.permission_id
+          WHERE urf.user_id = u.id AND pf.code = 'visit.submit'
+        ) AND u."isActive" = true
         GROUP BY u.id, u.username, u.name
         ORDER BY "totalCases" DESC
       `);

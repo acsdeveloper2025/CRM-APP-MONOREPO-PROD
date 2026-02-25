@@ -3,6 +3,7 @@ import type { Response, NextFunction } from 'express';
 import { query } from '@/config/database';
 import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/types/auth';
+import { hasSystemScopeBypass, isScopedOperationsUser } from '@/security/rbacAccess';
 
 /**
  * Product Access Control Middleware
@@ -10,15 +11,7 @@ import type { AuthenticatedRequest } from '@/types/auth';
  */
 
 // Helper function to get assigned product IDs for BACKEND_USER users
-const getAssignedProductIds = async (
-  userId: string,
-  userRole: string
-): Promise<number[] | null> => {
-  // Only apply product filtering for BACKEND_USER users
-  if (userRole !== 'BACKEND_USER') {
-    return null; // null means no filtering (access to all products)
-  }
-
+const getAssignedProductIds = async (userId: string): Promise<number[]> => {
   try {
     const result = await query(
       'SELECT "productId" FROM "userProductAssignments" WHERE "userId" = $1',
@@ -45,10 +38,10 @@ export const validateProductAccess = (source: 'params' | 'body' | 'query' = 'par
   return async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const userId = req.user?.id;
-      const userRole = req.user?.role;
+      const user = req.user;
 
       // Skip validation for non-authenticated requests
-      if (!userId || !userRole) {
+      if (!userId || !user) {
         return res.status(401).json({
           success: false,
           message: 'Authentication required',
@@ -57,12 +50,11 @@ export const validateProductAccess = (source: 'params' | 'body' | 'query' = 'par
       }
 
       // SUPER_ADMIN users bypass all restrictions
-      if ((userRole as string) === 'SUPER_ADMIN') {
+      if (hasSystemScopeBypass(user)) {
         return next();
       }
 
-      // Only apply restrictions to BACKEND_USER users
-      if ((userRole as string) !== 'BACKEND_USER') {
+      if (!isScopedOperationsUser(user)) {
         return next();
       }
 
@@ -99,10 +91,10 @@ export const validateProductAccess = (source: 'params' | 'body' | 'query' = 'par
       }
 
       // Get assigned product IDs for the BACKEND_USER user
-      const assignedProductIds = await getAssignedProductIds(userId, userRole);
+      const assignedProductIds = await getAssignedProductIds(userId);
 
       // If user has no product assignments, deny access
-      if (assignedProductIds?.length === 0) {
+      if (assignedProductIds.length === 0) {
         return res.status(403).json({
           success: false,
           message: 'Access denied: No products assigned to your account',
@@ -111,7 +103,7 @@ export const validateProductAccess = (source: 'params' | 'body' | 'query' = 'par
       }
 
       // Check if user has access to the specific product
-      if (assignedProductIds && !assignedProductIds.includes(productId)) {
+      if (!assignedProductIds.includes(productId)) {
         return res.status(403).json({
           success: false,
           message: 'Access denied: You do not have access to this product',
@@ -143,13 +135,13 @@ export const validateCaseProductAccess = async (
 ) => {
   try {
     const userId = req.user?.id;
-    const userRole = req.user?.role;
+    const user = req.user;
     // Check both :id and :caseId parameters
     const rawCaseId = req.params.id || req.params.caseId;
     const caseId = Array.isArray(rawCaseId) ? String(rawCaseId[0] || '') : String(rawCaseId || '');
 
     // Skip validation for non-authenticated requests
-    if (!userId || !userRole) {
+    if (!userId || !user) {
       return res.status(401).json({
         success: false,
         message: 'Authentication required',
@@ -158,12 +150,11 @@ export const validateCaseProductAccess = async (
     }
 
     // SUPER_ADMIN users bypass all restrictions
-    if ((userRole as string) === 'SUPER_ADMIN') {
+    if (hasSystemScopeBypass(user)) {
       return next();
     }
 
-    // Only apply restrictions to BACKEND_USER users
-    if ((userRole as string) !== 'BACKEND_USER') {
+    if (!isScopedOperationsUser(user)) {
       return next();
     }
 
@@ -186,10 +177,10 @@ export const validateCaseProductAccess = async (
     const productId = caseResult.rows[0].productId;
 
     // Get assigned product IDs for the BACKEND_USER user
-    const assignedProductIds = await getAssignedProductIds(userId, userRole);
+    const assignedProductIds = await getAssignedProductIds(userId);
 
     // If user has no product assignments, deny access
-    if (assignedProductIds?.length === 0) {
+    if (assignedProductIds.length === 0) {
       return res.status(403).json({
         success: false,
         message: 'Access denied: No products assigned to your account',
@@ -198,7 +189,7 @@ export const validateCaseProductAccess = async (
     }
 
     // Check if user has access to the product associated with the case
-    if (assignedProductIds && !assignedProductIds.includes(productId)) {
+    if (!assignedProductIds.includes(productId)) {
       return res.status(403).json({
         success: false,
         message: "Access denied: You do not have access to this case's product",
@@ -228,30 +219,29 @@ export const addProductFiltering = async (
 ) => {
   try {
     const userId = req.user?.id;
-    const userRole = req.user?.role;
+    const user = req.user;
 
     // Skip for non-authenticated requests
-    if (!userId || !userRole) {
+    if (!userId || !user) {
       return next();
     }
 
     // SUPER_ADMIN users bypass all filtering
-    if ((userRole as string) === 'SUPER_ADMIN') {
+    if (hasSystemScopeBypass(user)) {
       return next();
     }
 
-    // Only apply filtering to BACKEND_USER users
-    if ((userRole as string) !== 'BACKEND_USER') {
+    if (!isScopedOperationsUser(user)) {
       return next();
     }
 
     // Get assigned product IDs for the BACKEND_USER user
-    const assignedProductIds = await getAssignedProductIds(userId, userRole);
+    const assignedProductIds = await getAssignedProductIds(userId);
 
-    if (assignedProductIds?.length === 0) {
+    if (assignedProductIds.length === 0) {
       // User has no product assignments, they should see no data
       req.query.productIds = '[]';
-    } else if (assignedProductIds) {
+    } else {
       // Add product filtering to the query
       req.query.productIds = JSON.stringify(assignedProductIds);
     }

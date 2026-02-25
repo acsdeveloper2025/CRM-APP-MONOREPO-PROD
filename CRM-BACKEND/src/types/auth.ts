@@ -49,8 +49,8 @@ export interface LoginResponse {
 
 export interface JwtPayload {
   userId: string;
-  username: string;
-  role: Role;
+  username?: string;
+  role?: Role;
   deviceId?: string;
   authMethod?: 'PASSWORD' | 'UUID'; // Authentication method used
   iat?: number;

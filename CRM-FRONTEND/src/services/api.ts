@@ -74,6 +74,13 @@ class ApiService {
       },
     });
 
+    // Rehydrate access token on app reload so first authenticated call
+    // does not start with an avoidable 401.
+    const persistedAccessToken = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
+    if (persistedAccessToken) {
+      this.setAccessToken(persistedAccessToken);
+    }
+
     this.setupInterceptors();
     this.startCacheCleanup();
   }
@@ -593,8 +600,10 @@ class ApiService {
   setAccessToken(token: string | null): void {
     this.accessToken = token;
     if (token) {
+        localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, token);
         this.api.defaults.headers.common.Authorization = `Bearer ${token}`;
     } else {
+        localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
         delete this.api.defaults.headers.common.Authorization;
     }
   }
