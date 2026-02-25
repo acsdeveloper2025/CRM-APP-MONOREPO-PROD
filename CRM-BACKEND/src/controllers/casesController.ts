@@ -162,8 +162,9 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
       if (assignedPincodeIds && assignedPincodeIds.length > 0) {
         fieldAgentConditions.push(`EXISTS (
           SELECT 1 FROM verification_tasks vt
+          JOIN pincodes p_scope ON p_scope.code = vt.pincode
           WHERE vt.case_id = c.id
-          AND vt.pincode_id = ANY($${baseParamIndex}::int[])
+          AND p_scope.id = ANY($${baseParamIndex}::int[])
         )`);
         baseParams.push(assignedPincodeIds);
         baseParamIndex++;
@@ -666,8 +667,9 @@ export const getCaseById = async (req: AuthenticatedRequest, res: Response) => {
       if (assignedPincodeIds && assignedPincodeIds.length > 0) {
         fieldAgentConditions.push(`EXISTS (
           SELECT 1 FROM verification_tasks vt
+          JOIN pincodes p_scope ON p_scope.code = vt.pincode
           WHERE vt.case_id = c.id
-          AND vt.pincode_id = ANY($${paramIndex}::int[])
+          AND p_scope.id = ANY($${paramIndex}::int[])
         )`);
         queryParams.push(assignedPincodeIds);
         paramIndex++;

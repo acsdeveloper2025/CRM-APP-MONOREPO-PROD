@@ -1477,6 +1477,7 @@ export const getMISData = async (req: AuthenticatedRequest, res: Response) => {
         vt.priority as task_priority,
         vt.address,
         vt.pincode,
+        ar.name as area_name,
         rt.name as rate_type,
         vt.estimated_amount,
         vt.actual_amount,
@@ -1485,7 +1486,7 @@ export const getMISData = async (req: AuthenticatedRequest, res: Response) => {
         vt.completed_at as task_completion_date,
         vt.first_assigned_at as bank_sla_start,
         vt.current_assigned_at as agent_sla_start,
-        vt.trigger,
+        COALESCE(NULLIF(vt.trigger, ''), NULLIF(vt.task_type, '')) as trigger,
         vt.applicant_type,
         CASE
           WHEN vt.completed_at IS NOT NULL AND vt.first_assigned_at IS NOT NULL
@@ -1536,6 +1537,7 @@ export const getMISData = async (req: AuthenticatedRequest, res: Response) => {
       LEFT JOIN products p ON c."productId" = p.id
       LEFT JOIN "verificationTypes" vt_type ON vt.verification_type_id = vt_type.id
       LEFT JOIN "rateTypes" rt ON vt.rate_type_id = rt.id
+      LEFT JOIN areas ar ON vt.area_id = ar.id
       LEFT JOIN users u ON vt.assigned_to = u.id
       LEFT JOIN users bu ON c."createdByBackendUser" = bu.id
       LEFT JOIN task_form_submissions tfs ON vt.id = tfs.verification_task_id

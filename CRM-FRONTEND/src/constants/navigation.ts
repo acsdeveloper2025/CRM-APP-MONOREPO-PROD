@@ -205,7 +205,7 @@ export const navigationItems: NavigationItem[] = [
       {
         id: 'countries',
         label: 'Countries',
-        href: '/locations?tab=countries',
+        href: '/locations/countries',
         icon: MapPin,
         permissionCode: 'page.masterdata',
         permission: { resource: 'locations', action: 'read' },
@@ -213,7 +213,7 @@ export const navigationItems: NavigationItem[] = [
       {
         id: 'states',
         label: 'States',
-        href: '/locations?tab=states',
+        href: '/locations/states',
         icon: MapPin,
         permissionCode: 'page.masterdata',
         permission: { resource: 'locations', action: 'read' },
@@ -221,7 +221,7 @@ export const navigationItems: NavigationItem[] = [
       {
         id: 'cities',
         label: 'Cities',
-        href: '/locations?tab=cities',
+        href: '/locations/cities',
         icon: MapPin,
         permissionCode: 'page.masterdata',
         permission: { resource: 'locations', action: 'read' },
@@ -229,7 +229,7 @@ export const navigationItems: NavigationItem[] = [
       {
         id: 'pincodes',
         label: 'Pincodes',
-        href: '/locations?tab=pincodes',
+        href: '/locations/pincodes',
         icon: MapPin,
         permissionCode: 'page.masterdata',
         permission: { resource: 'locations', action: 'read' },
@@ -237,7 +237,7 @@ export const navigationItems: NavigationItem[] = [
       {
         id: 'areas',
         label: 'Areas',
-        href: '/locations?tab=areas',
+        href: '/locations/areas',
         icon: MapPin,
         permissionCode: 'page.masterdata',
         permission: { resource: 'locations', action: 'read' },

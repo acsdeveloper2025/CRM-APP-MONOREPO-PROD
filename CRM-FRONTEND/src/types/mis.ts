@@ -27,6 +27,7 @@ export interface MISTaskRowData {
   task_priority: string;
   address: string;
   pincode: string;
+  area_name?: string | null;
   rate_type: string;
   estimated_amount: number;
   actual_amount: number;
@@ -75,8 +76,6 @@ export interface MISSummary {
   total_estimated_amount: number;
   total_actual_amount: number;
   completed_tasks: number;
-  approved_tasks: number;
-  rejected_tasks: number;
   task_completion_rate: number;
   avg_tat_days: number;
 }
@@ -97,4 +96,3 @@ export interface MISDataResponse {
 }
 
 export type ExportFormat = 'EXCEL' | 'CSV';
-

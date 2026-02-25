@@ -197,6 +197,48 @@ export class VerificationTasksController {
 
       const originalTask = originalTaskResult.rows[0];
 
+      const caseScopeResult = await client.query(
+        'SELECT "clientId", "productId" FROM cases WHERE id = $1',
+        [originalTask.case_id]
+      );
+      if (caseScopeResult.rows.length === 0) {
+        await client.query('ROLLBACK');
+        res.status(404).json({
+          success: false,
+          message: 'Case not found for original task',
+          error: { code: 'CASE_NOT_FOUND' },
+        });
+        return;
+      }
+
+      // Enforce territory integrity on child task creation; reject if parent territory is invalid.
+      const revisitedTerritory =
+        await VerificationTaskCreationService.validateTerritoryAndFinancialConfig(client, {
+          clientId: Number(caseScopeResult.rows[0].clientId),
+          productId: Number(caseScopeResult.rows[0].productId),
+          verificationTypeId: Number(originalTask.verification_type_id),
+          pincode: originalTask.pincode,
+          areaId: originalTask.area_id,
+        });
+
+      if (
+        originalTask.service_zone_id !== null &&
+        Number(originalTask.service_zone_id) !== revisitedTerritory.serviceZoneId
+      ) {
+        throw new VerificationTaskCreationError(422, {
+          success: false,
+          message: 'Parent task territory configuration is inconsistent for revisit',
+          error: {
+            code: 'PARENT_TASK_TERRITORY_INVALID',
+            details: {
+              taskId,
+              parentServiceZoneId: originalTask.service_zone_id,
+              resolvedServiceZoneId: revisitedTerritory.serviceZoneId,
+            },
+          },
+        });
+      }
+
       // 2. Create new task (REVISIT type)
       // Clone details but reset status, dates, and outcome
       // Photos are NOT cloned here as they are stored in a separate table (verification_attachments)
@@ -213,16 +255,19 @@ export class VerificationTasksController {
           case_id, verification_type_id, task_title, task_description,
           priority, assigned_to, assigned_by, assigned_at,
           rate_type_id, estimated_amount, address, pincode,
+          service_zone_id, area_id,
           document_type, document_number, document_details,
           estimated_completion_date, status, created_by,
           task_type, parent_task_id,
           first_assigned_at, current_assigned_at
         ) VALUES (
           $1, $2, $3, $4, $5, $6, $7, $8,
-          $9, $10, $11, $12, $13, $14, $15,
-          $16, $17, $18,
-          'REVISIT', $19,
-          $20, NOW()
+          $9, $10, $11, $12,
+          $13, $14,
+          $15, $16, $17,
+          $18, $19, $20,
+          'REVISIT', $21,
+          $22, NOW()
         ) RETURNING *
       `;
 
@@ -239,6 +284,8 @@ export class VerificationTasksController {
         originalTask.estimated_amount,
         originalTask.address,
         originalTask.pincode,
+        revisitedTerritory.serviceZoneId,
+        revisitedTerritory.areaId,
         originalTask.document_type,
         originalTask.document_number,
         originalTask.document_details,
@@ -356,6 +403,11 @@ export class VerificationTasksController {
         message: 'Revisit task created successfully',
       });
     } catch (error) {
+      if (error instanceof VerificationTaskCreationError) {
+        await client.query('ROLLBACK');
+        res.status(error.status).json(error.responseBody);
+        return;
+      }
       await client.query('ROLLBACK');
       logger.error('Error creating revisit task:', error);
       res.status(500).json({
@@ -422,7 +474,11 @@ export class VerificationTasksController {
 
         // Condition 2: Task in assigned pincode
         if (assignedPincodeIds && assignedPincodeIds.length > 0) {
-          fieldAgentConditions.push(`vt.pincode_id = ANY($${paramIndex}::int[])`);
+          fieldAgentConditions.push(`EXISTS (
+            SELECT 1 FROM pincodes p_scope
+            WHERE p_scope.code = vt.pincode
+              AND p_scope.id = ANY($${paramIndex}::int[])
+          )`);
           params.push(assignedPincodeIds);
           paramIndex++;
         }
@@ -941,9 +997,13 @@ export class VerificationTasksController {
     const userId = req.user?.id;
 
     try {
-      // First, fetch the current task to check if it's a REVISIT task
+      // First, fetch the current task to check if it's a REVISIT task and validate territory updates
       const currentTaskResult = await pool.query(
-        'SELECT task_type, status FROM verification_tasks WHERE id = $1',
+        `SELECT vt.task_type, vt.status, vt.started_at, vt.pincode, vt.area_id, vt.service_zone_id,
+                vt.verification_type_id, c."clientId" as client_id, c."productId" as product_id
+         FROM verification_tasks vt
+         JOIN cases c ON c.id = vt.case_id
+         WHERE vt.id = $1`,
         [taskId]
       );
 
@@ -970,6 +1030,8 @@ export class VerificationTasksController {
         const restrictedFields = [
           'address',
           'pincode',
+          'areaId',
+          'area_id',
           'rateTypeId',
           'rate_type_id',
           'verificationTypeId',
@@ -1005,9 +1067,39 @@ export class VerificationTasksController {
       // Check if this is an assignment update
       const isAssignment = updateData.assignedTo !== undefined;
 
+      const updateDataAny = updateData as Record<string, unknown>;
+      const hasPincodeChange = updateDataAny.pincode !== undefined;
+      const hasAreaChange =
+        updateDataAny.areaId !== undefined || updateDataAny.area_id !== undefined;
+
+      if (hasPincodeChange || hasAreaChange) {
+        const nextPincode = hasPincodeChange ? updateDataAny.pincode : currentTask.pincode;
+        const nextAreaId =
+          updateDataAny.area_id !== undefined
+            ? updateDataAny.area_id
+            : updateDataAny.areaId !== undefined
+              ? updateDataAny.areaId
+              : currentTask.area_id;
+
+        const territoryValidation =
+          await VerificationTaskCreationService.validateTerritoryAndFinancialConfig(pool, {
+            clientId: Number(currentTask.client_id),
+            productId: Number(currentTask.product_id),
+            verificationTypeId: Number(currentTask.verification_type_id),
+            pincode: nextPincode,
+            areaId: nextAreaId,
+          });
+
+        // Normalize/lock territory fields so partial updates cannot leave task inconsistent.
+        updateDataAny.pincode = String(nextPincode);
+        updateDataAny.area_id = territoryValidation.areaId;
+        delete updateDataAny.areaId;
+        updateDataAny.service_zone_id = territoryValidation.serviceZoneId;
+      }
+
       logger.info('=== UPDATE TASK DEBUG ===', {
         taskId,
-        updateData,
+        updateData: updateDataAny,
         isAssignment,
         currentTask,
         isLocked,
@@ -1018,11 +1110,11 @@ export class VerificationTasksController {
       const queryParams: (string | number | boolean | Date | null | undefined)[] = [];
       let paramIndex = 1;
 
-      Object.entries(updateData).forEach(([key, value]) => {
+      Object.entries(updateDataAny).forEach(([key, value]) => {
         if (value !== undefined) {
           const dbField = this.camelToSnakeCase(key);
           updateFields.push(`${dbField} = $${paramIndex}`);
-          queryParams.push(value);
+          queryParams.push(value as string | number | boolean | Date | null);
           paramIndex++;
         }
       });
@@ -1142,6 +1234,10 @@ export class VerificationTasksController {
         message: 'Verification task updated successfully',
       });
     } catch (error) {
+      if (error instanceof VerificationTaskCreationError) {
+        res.status(error.status).json(error.responseBody);
+        return;
+      }
       logger.error('Error updating verification task:', error);
       res.status(500).json({
         success: false,
@@ -1223,6 +1319,19 @@ export class VerificationTasksController {
       }
 
       const currentTask = taskResult.rows[0];
+      const taskCaseScopeResult = await client.query(
+        'SELECT "clientId", "productId" FROM cases WHERE id = $1',
+        [currentTask.case_id]
+      );
+      if (taskCaseScopeResult.rows.length === 0) {
+        await client.query('ROLLBACK');
+        res.status(404).json({
+          success: false,
+          message: 'Case not found for verification task',
+          error: { code: 'CASE_NOT_FOUND' },
+        });
+        return;
+      }
       const previousAssignee = currentTask.assigned_to;
       const previousStatus = currentTask.status;
 
@@ -1302,11 +1411,39 @@ export class VerificationTasksController {
 
         // 2. Create NEW task
         // Copy critical fields, reset operational fields
+        const recreatedTerritory =
+          await VerificationTaskCreationService.validateTerritoryAndFinancialConfig(client, {
+            clientId: Number(taskCaseScopeResult.rows[0].clientId),
+            productId: Number(taskCaseScopeResult.rows[0].productId),
+            verificationTypeId: Number(currentTask.verification_type_id),
+            pincode: currentTask.pincode,
+            areaId: currentTask.area_id,
+          });
+
+        if (
+          currentTask.service_zone_id !== null &&
+          Number(currentTask.service_zone_id) !== recreatedTerritory.serviceZoneId
+        ) {
+          throw new VerificationTaskCreationError(422, {
+            success: false,
+            message: 'Current task territory configuration is inconsistent for reassign',
+            error: {
+              code: 'PARENT_TASK_TERRITORY_INVALID',
+              details: {
+                taskId,
+                parentServiceZoneId: currentTask.service_zone_id,
+                resolvedServiceZoneId: recreatedTerritory.serviceZoneId,
+              },
+            },
+          });
+        }
+
         const newTaskResult = await client.query(
           `
           INSERT INTO verification_tasks (
             case_id, verification_type_id, task_title, task_description,
             priority, rate_type_id, estimated_amount, address, pincode,
+            service_zone_id, area_id,
             document_type, document_number, document_details,
             assigned_to, assigned_by, assigned_at, current_assigned_at,
             status, created_by, parent_task_id, task_type,
@@ -1314,9 +1451,10 @@ export class VerificationTasksController {
           ) VALUES (
             $1, $2, $3, $4,
             $5, $6, $7, $8, $9,
-            $10, $11, $12,
-            $13, $14, NOW(), NOW(),
-            'ASSIGNED', $15, $16, $17,
+            $10, $11,
+            $12, $13, $14,
+            $15, $16, NOW(), NOW(),
+            'ASSIGNED', $17, $18, $19,
             NOW()
           ) RETURNING *
         `,
@@ -1330,6 +1468,8 @@ export class VerificationTasksController {
             currentTask.estimated_amount,
             currentTask.address,
             currentTask.pincode,
+            recreatedTerritory.serviceZoneId,
+            recreatedTerritory.areaId,
             currentTask.document_type,
             currentTask.document_number,
             currentTask.document_details,
@@ -1441,6 +1581,11 @@ export class VerificationTasksController {
           : 'Verification task assigned successfully',
       });
     } catch (error) {
+      if (error instanceof VerificationTaskCreationError) {
+        await client.query('ROLLBACK');
+        res.status(error.status).json(error.responseBody);
+        return;
+      }
       await client.query('ROLLBACK');
       logger.error('Error assigning verification task:', error);
       res.status(500).json({

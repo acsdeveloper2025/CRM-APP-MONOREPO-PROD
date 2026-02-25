@@ -25,44 +25,56 @@ export function MISSummaryCards({ summary, isLoading }: MISSummaryCardsProps) {
     );
   }
 
+  const num = (value: unknown): number => (typeof value === 'number' && Number.isFinite(value) ? value : 0);
+
+  const safeSummary = {
+    total_tasks: num(summary?.total_tasks),
+    total_estimated_amount: num(summary?.total_estimated_amount),
+    total_actual_amount: num(summary?.total_actual_amount),
+    completed_tasks: num(summary?.completed_tasks),
+    task_completion_rate: num(summary?.task_completion_rate),
+    avg_tat_days: num(summary?.avg_tat_days),
+  };
+  const openTasks = Math.max(safeSummary.total_tasks - safeSummary.completed_tasks, 0);
+
   // TASK-BASED SUMMARY CARDS
   const cards = [
     {
       title: 'Total Tasks',
-      value: summary.total_tasks.toLocaleString(),
-      subtitle: `${summary.completed_tasks} completed`,
+      value: safeSummary.total_tasks.toLocaleString(),
+      subtitle: `${safeSummary.completed_tasks} completed`,
       icon: FileText,
       color: 'text-blue-600 dark:text-blue-400',
       bgColor: 'bg-blue-100 dark:bg-blue-900/20',
     },
     {
       title: 'Total Amount',
-      value: `₹${summary.total_actual_amount.toLocaleString()}`,
-      subtitle: `Est: ₹${summary.total_estimated_amount.toLocaleString()}`,
+      value: `₹${safeSummary.total_actual_amount.toLocaleString()}`,
+      subtitle: `Est: ₹${safeSummary.total_estimated_amount.toLocaleString()}`,
       icon: DollarSign,
       color: 'text-green-600 dark:text-green-400',
       bgColor: 'bg-green-100 dark:bg-green-900/20',
     },
     {
       title: 'Completion Rate',
-      value: `${summary.task_completion_rate}%`,
-      subtitle: `${summary.approved_tasks} approved`,
+      value: `${safeSummary.task_completion_rate}%`,
+      subtitle: `${safeSummary.completed_tasks} completed`,
       icon: CheckCircle,
       color: 'text-green-600 dark:text-green-400',
       bgColor: 'bg-green-100 dark:bg-green-900/20',
     },
     {
       title: 'Avg TAT',
-      value: `${summary.avg_tat_days.toFixed(1)} days`,
+      value: `${safeSummary.avg_tat_days.toFixed(1)} days`,
       subtitle: 'Turnaround time',
       icon: Clock,
       color: 'text-yellow-600 dark:text-orange-400',
       bgColor: 'bg-yellow-100 dark:bg-yellow-900/20',
     },
     {
-      title: 'Rejected Tasks',
-      value: summary.rejected_tasks.toLocaleString(),
-      subtitle: `${((summary.rejected_tasks / summary.total_tasks) * 100).toFixed(1)}% rejection rate`,
+      title: 'Open Tasks',
+      value: openTasks.toLocaleString(),
+      subtitle: `${((openTasks / Math.max(safeSummary.total_tasks, 1)) * 100).toFixed(1)}% of total`,
       icon: TrendingUp,
       color: 'text-red-600 dark:text-red-400',
       bgColor: 'bg-red-100 dark:bg-red-900/20',
@@ -95,4 +107,3 @@ export function MISSummaryCards({ summary, isLoading }: MISSummaryCardsProps) {
     </div>
   );
 }
-

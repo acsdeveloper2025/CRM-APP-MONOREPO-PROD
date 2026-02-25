@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -43,7 +43,30 @@ const TaskAreaSelect: React.FC<{
   updateTask: (taskId: string, field: keyof TaskFormData, value: unknown) => void;
 }> = ({ task, updateTask }) => {
   const { data: areasResponse } = useAreasByPincode(task.pincode ? parseInt(task.pincode) : undefined);
-  const areas = areasResponse?.data || [];
+  const areas = useMemo(() => areasResponse?.data || [], [areasResponse?.data]);
+
+  useEffect(() => {
+    const currentAreaId = task.areaId || '';
+
+    if (!task.pincode) {
+      if (currentAreaId) {
+        updateTask(task.id, 'areaId', '');
+      }
+      return;
+    }
+
+    if (areas.length === 1) {
+      const onlyAreaId = areas[0].id.toString();
+      if (currentAreaId !== onlyAreaId) {
+        updateTask(task.id, 'areaId', onlyAreaId);
+      }
+      return;
+    }
+
+    if (currentAreaId && !areas.some((area) => area.id.toString() === currentAreaId)) {
+      updateTask(task.id, 'areaId', '');
+    }
+  }, [task.id, task.pincode, task.areaId, areas, updateTask]);
 
   return (
     <div>
@@ -53,7 +76,15 @@ const TaskAreaSelect: React.FC<{
         onValueChange={(value) => updateTask(task.id, 'areaId', value)}
       >
         <SelectTrigger>
-          <SelectValue placeholder="Select area" />
+          <SelectValue
+            placeholder={
+              !task.pincode
+                ? 'Select pincode first'
+                : areas.length === 1
+                  ? 'Auto-selected area'
+                  : 'Select area'
+            }
+          />
         </SelectTrigger>
         <SelectContent>
           {areas.map((area) => (

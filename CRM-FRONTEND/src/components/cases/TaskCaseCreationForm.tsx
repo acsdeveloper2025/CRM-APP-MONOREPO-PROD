@@ -511,7 +511,32 @@ const TaskCard: React.FC<TaskCardProps> = ({
   }, [fieldUsers, task.pincodeId, task.areaId]);
   // Fetch areas based on selected pincode
   const { data: areasResponse } = useAreasByPincode(task.pincodeId ? parseInt(task.pincodeId) : undefined);
-  const areas = areasResponse?.data || [];
+  const areas = useMemo(() => areasResponse?.data || [], [areasResponse?.data]);
+  const areaIds = useMemo(() => areas.map((area) => area.id.toString()), [areas]);
+
+  // Operational area policy:
+  // 1) Auto-select only when pincode maps to exactly one area
+  // 2) Clear stale area if it is not valid for the selected pincode
+  useEffect(() => {
+    if (!task.pincodeId) {
+      if (task.areaId) {
+        updateTask(task.id, 'areaId', '');
+      }
+      return;
+    }
+
+    if (areas.length === 1) {
+      const onlyAreaId = areas[0].id.toString();
+      if (task.areaId !== onlyAreaId) {
+        updateTask(task.id, 'areaId', onlyAreaId);
+      }
+      return;
+    }
+
+    if (task.areaId && !areaIds.includes(task.areaId)) {
+      updateTask(task.id, 'areaId', '');
+    }
+  }, [task.id, task.pincodeId, task.areaId, areas, areaIds, updateTask]);
 
   // Fetch rate types based on client, product, and verification type
   const { data: rateTypesResponse } = useQuery({
@@ -684,8 +709,16 @@ const TaskCard: React.FC<TaskCardProps> = ({
               onValueChange={(value) => updateTask(task.id, 'areaId', value)}
               disabled={!task.pincodeId}
             >
-              <SelectTrigger>
-                <SelectValue placeholder={task.pincodeId ? "Select area" : "Select pincode first"} />
+            <SelectTrigger>
+                <SelectValue
+                  placeholder={
+                    !task.pincodeId
+                      ? "Select pincode first"
+                      : areas.length === 1
+                        ? "Auto-selected area"
+                        : "Select area"
+                  }
+                />
               </SelectTrigger>
               <SelectContent>
                 {areas.map((area) => (
