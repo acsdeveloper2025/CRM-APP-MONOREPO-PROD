@@ -2,10 +2,17 @@ import type { Request, Response } from 'express';
 import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
 import type { QueryParams } from '@/types/database';
-import { Role } from '@/types/auth'; // Import Role enum
+import { getAssignedClientIds } from '@/middleware/clientAccess';
+import { getAssignedProductIds } from '@/middleware/productAccess';
+import {
+  hasSystemScopeBypass,
+  isFieldExecutionActor,
+  isScopedOperationsUser,
+} from '@/security/rbacAccess';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import sharp from 'sharp';
 
 // Mock data for demonstration (replace with actual database operations)
 const attachments: Record<string, unknown>[] = [
@@ -49,6 +56,50 @@ const ALL_SUPPORTED_EXTENSIONS = [
   ...SUPPORTED_FILE_TYPES.images,
   ...SUPPORTED_FILE_TYPES.documents,
 ];
+
+const enforceBackendUserCaseScope = async (
+  userId: string | undefined,
+  user: AuthenticatedRequest['user'] | undefined,
+  caseUuid: string | undefined
+): Promise<boolean> => {
+  if (!userId || !user || !caseUuid) {
+    return false;
+  }
+
+  if (!isScopedOperationsUser(user)) {
+    return true;
+  }
+
+  const { query } = await import('@/config/database');
+  const caseResult = await query<{ clientId: number; productId: number }>(
+    `SELECT "clientId", "productId" FROM cases WHERE id = $1`,
+    [caseUuid]
+  );
+
+  if (caseResult.rows.length === 0) {
+    return false;
+  }
+
+  const [assignedClientIds, assignedProductIds] = await Promise.all([
+    getAssignedClientIds(userId),
+    getAssignedProductIds(userId),
+  ]);
+
+  if (
+    !assignedClientIds ||
+    !assignedProductIds ||
+    assignedClientIds.length === 0 ||
+    assignedProductIds.length === 0
+  ) {
+    return false;
+  }
+
+  const row = caseResult.rows[0];
+  return (
+    assignedClientIds.includes(Number(row.clientId)) &&
+    assignedProductIds.includes(Number(row.productId))
+  );
+};
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
@@ -148,7 +199,7 @@ export const uploadAttachment = (req: AuthenticatedRequest, res: Response) => {
         let caseQuery: string;
         let caseParams: QueryParams;
 
-        if (req.user?.role === Role.FIELD_AGENT) {
+        if (isFieldExecutionActor(req.user)) {
           // Field agents can only upload to cases assigned to them
           caseQuery = 'SELECT id FROM cases WHERE "caseId" = $1 AND "assignedTo" = $2';
           caseParams = [caseId, req.user.id];
@@ -163,10 +214,9 @@ export const uploadAttachment = (req: AuthenticatedRequest, res: Response) => {
         if (caseResult.rows.length === 0) {
           return res.status(404).json({
             success: false,
-            message:
-              req.user?.role === Role.FIELD_AGENT
-                ? 'Case not found or not assigned to you'
-                : 'Case not found',
+            message: isFieldExecutionActor(req.user)
+              ? 'Case not found or not assigned to you'
+              : 'Case not found',
             error: { code: 'CASE_NOT_FOUND' },
           });
         }
@@ -260,7 +310,7 @@ export const getAttachmentsByCase = async (req: AuthenticatedRequest, res: Respo
     const { caseId } = req.params;
     const { category, limit = 50 } = req.query;
     const userId = req.user?.id;
-    const userRole = req.user?.role;
+    const isExecutionActor = isFieldExecutionActor(req.user);
 
     // Import query function
     const { query } = await import('@/config/database');
@@ -269,7 +319,7 @@ export const getAttachmentsByCase = async (req: AuthenticatedRequest, res: Respo
     let queryText: string;
     let queryParams: QueryParams;
 
-    if (userRole === Role.FIELD_AGENT) {
+    if (isExecutionActor) {
       // Field agents can only see attachments for cases assigned to them
       queryText = `
         SELECT
@@ -281,7 +331,8 @@ export const getAttachmentsByCase = async (req: AuthenticatedRequest, res: Respo
           a."filePath",
           a."uploadedBy",
           a."createdAt" as "uploadedAt",
-          a."caseId"
+          a."caseId",
+          a.verification_task_id
         FROM attachments a
         JOIN cases c ON a.case_id = c.id
         WHERE a."caseId" = $1 AND c."assignedTo" = $2
@@ -299,7 +350,8 @@ export const getAttachmentsByCase = async (req: AuthenticatedRequest, res: Respo
           "filePath",
           "uploadedBy",
           "createdAt" as "uploadedAt",
-          "caseId"
+          "caseId",
+          verification_task_id
         FROM attachments
         WHERE "caseId" = $1
       `;
@@ -337,7 +389,7 @@ export const getAttachmentById = async (req: AuthenticatedRequest, res: Response
   try {
     const { id } = req.params;
     const userId = req.user?.id;
-    const userRole = req.user?.role;
+    const isExecutionActor = isFieldExecutionActor(req.user);
 
     // Import query function
     const { query } = await import('@/config/database');
@@ -346,11 +398,11 @@ export const getAttachmentById = async (req: AuthenticatedRequest, res: Response
     let attachmentQuery: string;
     let queryParams: QueryParams;
 
-    if (userRole === Role.FIELD_AGENT) {
+    if (isExecutionActor) {
       // Field agents can only access attachments for cases assigned to them
       attachmentQuery = `
         SELECT a.id, a.filename, a."originalName", a."mimeType", a."fileSize",
-               a."filePath", a."uploadedBy", a."createdAt", a."caseId"
+               a."filePath", a."uploadedBy", a."createdAt", a."caseId", a.case_id
         FROM attachments a
         JOIN cases c ON a.case_id = c.id
         WHERE a.id = $1 AND c."assignedTo" = $2
@@ -360,7 +412,7 @@ export const getAttachmentById = async (req: AuthenticatedRequest, res: Response
       // Admin/Manager can access any attachment
       attachmentQuery = `
         SELECT id, filename, "originalName", "mimeType", "fileSize",
-               "filePath", "uploadedBy", "createdAt", "caseId"
+               "filePath", "uploadedBy", "createdAt", "caseId", case_id
         FROM attachments
         WHERE id = $1
       `;
@@ -372,15 +424,27 @@ export const getAttachmentById = async (req: AuthenticatedRequest, res: Response
     if (result.rows.length === 0) {
       return res.status(404).json({
         success: false,
-        message:
-          userRole === Role.FIELD_AGENT
-            ? 'Attachment not found or access denied'
-            : 'Attachment not found',
+        message: isExecutionActor
+          ? 'Attachment not found or access denied'
+          : 'Attachment not found',
         error: { code: 'NOT_FOUND' },
       });
     }
 
     const attachment = result.rows[0];
+
+    const backendScopeOk = await enforceBackendUserCaseScope(
+      userId,
+      req.user,
+      attachment.case_id as string | undefined
+    );
+    if (!backendScopeOk) {
+      return res.status(403).json({
+        success: false,
+        message: 'Attachment not found or access denied',
+        error: { code: 'FORBIDDEN' },
+      });
+    }
 
     logger.info(`Retrieved attachment ${id}`, { userId: req.user?.id });
 
@@ -413,7 +477,7 @@ export const deleteAttachment = async (req: AuthenticatedRequest, res: Response)
   try {
     const { id } = req.params;
     const userId = req.user?.id;
-    const userRole = req.user?.role;
+    const isExecutionActor = isFieldExecutionActor(req.user);
 
     // Import query function
     const { query } = await import('@/config/database');
@@ -422,10 +486,11 @@ export const deleteAttachment = async (req: AuthenticatedRequest, res: Response)
     let attachmentQuery: string;
     let queryParams: QueryParams;
 
-    if (userRole === Role.FIELD_AGENT) {
+    if (isExecutionActor) {
       // Field agents can only delete attachments for cases assigned to them
       attachmentQuery = `
         SELECT a.filename, a."filePath", a."uploadedBy", a."caseId"
+             , a.case_id
         FROM attachments a
         JOIN cases c ON a.case_id = c.id
         WHERE a.id = $1 AND c."assignedTo" = $2
@@ -434,7 +499,7 @@ export const deleteAttachment = async (req: AuthenticatedRequest, res: Response)
     } else {
       // Admin/Manager can delete any attachment
       attachmentQuery =
-        'SELECT filename, "filePath", "uploadedBy", "caseId" FROM attachments WHERE id = $1';
+        'SELECT filename, "filePath", "uploadedBy", "caseId", case_id FROM attachments WHERE id = $1';
       queryParams = [id];
     }
 
@@ -443,18 +508,30 @@ export const deleteAttachment = async (req: AuthenticatedRequest, res: Response)
     if (attachmentResult.rows.length === 0) {
       return res.status(404).json({
         success: false,
-        message:
-          userRole === Role.FIELD_AGENT
-            ? 'Attachment not found or access denied'
-            : 'Attachment not found',
+        message: isExecutionActor
+          ? 'Attachment not found or access denied'
+          : 'Attachment not found',
         error: { code: 'NOT_FOUND' },
       });
     }
 
     const attachment = attachmentResult.rows[0];
 
+    const backendScopeOk = await enforceBackendUserCaseScope(
+      userId,
+      req.user,
+      attachment.case_id as string | undefined
+    );
+    if (!backendScopeOk) {
+      return res.status(403).json({
+        success: false,
+        message: 'Attachment not found or access denied',
+        error: { code: 'FORBIDDEN' },
+      });
+    }
+
     // Additional permission check: owner or admin can delete
-    if ((userRole as string) !== 'ADMIN' && attachment.uploadedBy !== userId) {
+    if (!hasSystemScopeBypass(req.user) && attachment.uploadedBy !== userId) {
       return res.status(403).json({
         success: false,
         message: 'You do not have permission to delete this attachment',
@@ -515,7 +592,7 @@ export const updateAttachment = (req: AuthenticatedRequest, res: Response) => {
     const attachment = attachments[attachmentIndex];
 
     // Check if user has permission to update (owner or admin)
-    if (attachment.uploadedBy !== req.user?.id && (req.user?.role as string) !== 'ADMIN') {
+    if (attachment.uploadedBy !== req.user?.id && !hasSystemScopeBypass(req.user)) {
       return res.status(403).json({
         success: false,
         message: 'You do not have permission to update this attachment',
@@ -559,7 +636,7 @@ export const downloadAttachment = async (req: AuthenticatedRequest, res: Respons
   try {
     const { id } = req.params;
     const userId = req.user?.id;
-    const userRole = req.user?.role;
+    const isExecutionActor = isFieldExecutionActor(req.user);
 
     // Import query function
     const { query } = await import('@/config/database');
@@ -568,10 +645,11 @@ export const downloadAttachment = async (req: AuthenticatedRequest, res: Respons
     let attachmentQuery: string;
     let queryParams: QueryParams;
 
-    if (userRole === Role.FIELD_AGENT) {
+    if (isExecutionActor) {
       // Field agents can only download attachments for cases assigned to them
       attachmentQuery = `
         SELECT a.filename, a."originalName", a."mimeType", a."fileSize", a."caseId"
+             , a.case_id
         FROM attachments a
         JOIN cases c ON a.case_id = c.id
         WHERE a.id = $1 AND c."assignedTo" = $2
@@ -580,7 +658,7 @@ export const downloadAttachment = async (req: AuthenticatedRequest, res: Respons
     } else {
       // Admin/Manager can download any attachment
       attachmentQuery =
-        'SELECT filename, "originalName", "mimeType", "fileSize", "caseId" FROM attachments WHERE id = $1';
+        'SELECT filename, "originalName", "mimeType", "fileSize", "caseId", case_id FROM attachments WHERE id = $1';
       queryParams = [id];
     }
 
@@ -589,15 +667,27 @@ export const downloadAttachment = async (req: AuthenticatedRequest, res: Respons
     if (attachmentResult.rows.length === 0) {
       return res.status(404).json({
         success: false,
-        message:
-          userRole === Role.FIELD_AGENT
-            ? 'Attachment not found or access denied'
-            : 'Attachment not found',
+        message: isExecutionActor
+          ? 'Attachment not found or access denied'
+          : 'Attachment not found',
         error: { code: 'NOT_FOUND' },
       });
     }
 
     const attachment = attachmentResult.rows[0];
+
+    const backendScopeOk = await enforceBackendUserCaseScope(
+      userId,
+      req.user,
+      attachment.case_id as string | undefined
+    );
+    if (!backendScopeOk) {
+      return res.status(403).json({
+        success: false,
+        message: 'Attachment not found or access denied',
+        error: { code: 'FORBIDDEN' },
+      });
+    }
 
     // Check if file exists in case-specific folder
     const filePath = path.join(
@@ -645,7 +735,7 @@ export const serveAttachment = async (req: AuthenticatedRequest, res: Response) 
   try {
     const { id } = req.params;
     const userId = req.user?.id;
-    const userRole = req.user?.role;
+    const isExecutionActor = isFieldExecutionActor(req.user);
 
     // Import query function
     const { query } = await import('@/config/database');
@@ -654,10 +744,11 @@ export const serveAttachment = async (req: AuthenticatedRequest, res: Response) 
     let attachmentQuery: string;
     let queryParams: QueryParams;
 
-    if (userRole === Role.FIELD_AGENT) {
+    if (isExecutionActor) {
       // Field agents can only serve attachments for cases assigned to them
       attachmentQuery = `
-        SELECT a.filename, a."originalName", a."mimeType", a."fileSize", a."caseId"
+        SELECT a.filename, a."originalName", a."mimeType", a."fileSize", a."caseId", a."filePath", a."createdAt"
+             , a.case_id
         FROM attachments a
         JOIN cases c ON a.case_id = c.id
         WHERE a.id = $1 AND c."assignedTo" = $2
@@ -666,7 +757,7 @@ export const serveAttachment = async (req: AuthenticatedRequest, res: Response) 
     } else {
       // Admin/Manager can serve any attachment
       attachmentQuery =
-        'SELECT filename, "originalName", "mimeType", "fileSize", "caseId" FROM attachments WHERE id = $1';
+        'SELECT filename, "originalName", "mimeType", "fileSize", "caseId", "filePath", "createdAt", case_id FROM attachments WHERE id = $1';
       queryParams = [id];
     }
 
@@ -675,24 +766,40 @@ export const serveAttachment = async (req: AuthenticatedRequest, res: Response) 
     if (attachmentResult.rows.length === 0) {
       return res.status(404).json({
         success: false,
-        message:
-          userRole === Role.FIELD_AGENT
-            ? 'Attachment not found or access denied'
-            : 'Attachment not found',
+        message: isExecutionActor
+          ? 'Attachment not found or access denied'
+          : 'Attachment not found',
         error: { code: 'NOT_FOUND' },
       });
     }
 
     const attachment = attachmentResult.rows[0];
 
-    // Check if file exists in case-specific folder
-    const filePath = path.join(
+    const backendScopeOk = await enforceBackendUserCaseScope(
+      userId,
+      req.user,
+      attachment.case_id as string | undefined
+    );
+    if (!backendScopeOk) {
+      return res.status(403).json({
+        success: false,
+        message: 'Attachment not found or access denied',
+        error: { code: 'FORBIDDEN' },
+      });
+    }
+
+    const fromDbPath = attachment.filePath
+      ? path.join(process.cwd(), String(attachment.filePath).replace(/^\//, ''))
+      : '';
+    // Prefer stored file path (works for both web and mobile uploads), then fallback to legacy path
+    const fallbackPath = path.join(
       process.cwd(),
       'uploads',
       'attachments',
       `case_${attachment.caseId}`,
       attachment.filename
     );
+    const filePath = fromDbPath && fs.existsSync(fromDbPath) ? fromDbPath : fallbackPath;
     if (!fs.existsSync(filePath)) {
       return res.status(404).json({
         success: false,
@@ -705,12 +812,42 @@ export const serveAttachment = async (req: AuthenticatedRequest, res: Response) 
     res.setHeader('Content-Type', attachment.mimeType);
     res.setHeader('Content-Length', attachment.fileSize.toString());
     res.setHeader('Cache-Control', 'private, max-age=3600'); // Cache for 1 hour
-    res.setHeader('Access-Control-Allow-Origin', '*'); // Allow CORS for mobile app
-    res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type');
+    // CORS headers are handled globally in app.ts (credentials-aware)
 
-    // Stream the file
-    const fileStream = fs.createReadStream(filePath);
-    fileStream.pipe(res);
+    if (String(attachment.mimeType || '').startsWith('image/')) {
+      try {
+        const createdAt = attachment.createdAt ? new Date(attachment.createdAt) : new Date();
+        const dateLabel = Number.isNaN(createdAt.getTime())
+          ? new Date().toLocaleString()
+          : createdAt.toLocaleString();
+        const watermarkText = `ACS CRM | Case #${attachment.caseId} | ${dateLabel}`;
+        const escapedText = watermarkText
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&apos;');
+        const svgOverlay = `
+          <svg width="800" height="56" xmlns="http://www.w3.org/2000/svg">
+            <rect x="0" y="0" width="800" height="56" fill="rgba(0,0,0,0.45)" />
+            <text x="14" y="35" fill="white" font-size="18" font-family="Arial, sans-serif">${escapedText}</text>
+          </svg>
+        `;
+        const watermarkedBuffer = await sharp(filePath)
+          .composite([{ input: Buffer.from(svgOverlay), gravity: 'southeast' }])
+          .toBuffer();
+        res.setHeader('Content-Length', watermarkedBuffer.length.toString());
+        res.end(watermarkedBuffer);
+      } catch (watermarkError) {
+        logger.error('Watermark generation failed, serving original file:', watermarkError);
+        const fileStream = fs.createReadStream(filePath);
+        fileStream.pipe(res);
+      }
+    } else {
+      // Stream non-image files as-is
+      const fileStream = fs.createReadStream(filePath);
+      fileStream.pipe(res);
+    }
 
     logger.info(`Served attachment: ${id}`, {
       userId: req.user?.id,
@@ -890,7 +1027,7 @@ export const bulkDeleteAttachments = (req: AuthenticatedRequest, res: Response) 
         const attachment = attachments[attachmentIndex];
 
         // Check permissions
-        if (attachment.uploadedBy !== req.user?.id && req.user?.role !== Role.ADMIN) {
+        if (attachment.uploadedBy !== req.user?.id && !hasSystemScopeBypass(req.user)) {
           errors.push(`Attachment ${id}: Permission denied`);
           continue;
         }

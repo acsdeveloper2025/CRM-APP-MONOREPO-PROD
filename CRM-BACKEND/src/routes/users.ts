@@ -1,6 +1,7 @@
 import express, { Request, Response, NextFunction } from 'express';
 import { body, query, param } from 'express-validator';
 import { authenticateToken } from '@/middleware/auth';
+import { authorize } from '@/middleware/authorize';
 import { validate } from '@/middleware/validation';
 import {
   EnterpriseCache,
@@ -52,16 +53,24 @@ const createUserValidation = [
     .matches(/^[a-zA-Z0-9._-]+$/)
     .withMessage('Username can only contain letters, numbers, dots, underscores, and hyphens'),
   body('email').isEmail().withMessage('Valid email is required').normalizeEmail(),
-  body('password').isLength({ min: 8 }).withMessage('Password must be at least 8 characters'),
+  body('password')
+    .isLength({ min: 8 })
+    .withMessage('Password must be at least 8 characters')
+    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).+$/)
+    .withMessage('Password must include uppercase, lowercase, number, and special character'),
   // Support both new roleId and legacy role fields
   body('roleId')
     .optional()
     .custom(value => {
       if (value && value.toString().trim() !== '') {
-        // If provided and not empty, must be a valid integer
-        const intValue = parseInt(value, 10);
-        if (isNaN(intValue) || intValue < 1) {
-          throw new Error('Role ID must be a valid positive integer');
+        const stringValue = String(value).trim();
+        const intValue = parseInt(stringValue, 10);
+        const isUuid =
+          /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+            stringValue
+          );
+        if (!isUuid && (isNaN(intValue) || intValue < 1)) {
+          throw new Error('Role ID must be a valid positive integer or UUID');
         }
       }
       return true;
@@ -120,8 +129,12 @@ const createUserValidation = [
   body('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
   // Custom validation to ensure either roleId or role is provided
   body().custom((_value, { req }) => {
-    const hasRoleId = req.body.roleId && req.body.roleId.trim() !== '';
-    const hasRole = req.body.role && req.body.role.trim() !== '';
+    const roleIdValue = req.body.roleId;
+    const roleValue = req.body.role;
+    const hasRoleId =
+      roleIdValue !== undefined && roleIdValue !== null && String(roleIdValue).trim() !== '';
+    const hasRole =
+      roleValue !== undefined && roleValue !== null && String(roleValue).trim() !== '';
 
     if (!hasRoleId && !hasRole) {
       throw new Error('Either roleId or role must be provided');
@@ -154,10 +167,14 @@ const updateUserValidation = [
     .optional()
     .custom(value => {
       if (value && value.toString().trim() !== '') {
-        // If provided and not empty, must be a valid integer
-        const intValue = parseInt(value, 10);
-        if (isNaN(intValue) || intValue < 1) {
-          throw new Error('Role ID must be a valid positive integer');
+        const stringValue = String(value).trim();
+        const intValue = parseInt(stringValue, 10);
+        const isUuid =
+          /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+            stringValue
+          );
+        if (!isUuid && (isNaN(intValue) || intValue < 1)) {
+          throw new Error('Role ID must be a valid positive integer or UUID');
         }
       }
       return true;
@@ -288,6 +305,7 @@ const noBrowserCache = (req: Request, res: Response, next: NextFunction) => {
 router.get(
   '/',
   authenticateToken,
+  authorize('user.view'),
   noBrowserCache, // Prevent browser caching and 304 responses
   EnterpriseCache.create(EnterpriseCacheConfigs.usersList),
   listUsersValidation,
@@ -298,6 +316,7 @@ router.get(
 router.get(
   '/search',
   authenticateToken,
+  authorize('user.view'),
   EnterpriseCache.create(EnterpriseCacheConfigs.usersList),
   searchValidation,
   validate,
@@ -305,16 +324,22 @@ router.get(
 );
 
 // Export users route
-router.post('/export', authenticateToken, exportUsers);
+router.post('/export', authenticateToken, authorize('user.view'), exportUsers);
 
-router.get('/import-template', authenticateToken, downloadUserTemplate);
+router.get('/import-template', authenticateToken, authorize('user.view'), downloadUserTemplate);
 
 // Get available field agents filtered by territory (must come before /stats)
-router.get('/field-agents/available', authenticateToken, getAvailableFieldAgents);
+router.get(
+  '/field-agents/available',
+  authenticateToken,
+  authorize('user.view'),
+  getAvailableFieldAgents
+);
 
 router.get(
   '/stats',
   authenticateToken,
+  authorize('user.view'),
   EnterpriseCache.create(EnterpriseCacheConfigs.analytics),
   getUserStats
 );
@@ -322,6 +347,7 @@ router.get(
 router.get(
   '/departments',
   authenticateToken,
+  authorize('user.view'),
   EnterpriseCache.create(EnterpriseCacheConfigs.analytics),
   getDepartments
 );
@@ -329,6 +355,7 @@ router.get(
 router.get(
   '/designations',
   authenticateToken,
+  authorize('user.view'),
   EnterpriseCache.create(EnterpriseCacheConfigs.analytics),
   getDesignations
 );
@@ -336,6 +363,7 @@ router.get(
 router.get(
   '/activities',
   authenticateToken,
+  authorize('user.view'),
   EnterpriseCache.create(EnterpriseCacheConfigs.analytics),
   getUserActivities
 );
@@ -343,6 +371,7 @@ router.get(
 router.get(
   '/sessions',
   authenticateToken,
+  authorize('user.view'),
   EnterpriseCache.create(EnterpriseCacheConfigs.analytics),
   getUserSessions
 );
@@ -350,6 +379,7 @@ router.get(
 router.get(
   '/roles/permissions',
   authenticateToken,
+  authorize('role.manage'),
   EnterpriseCache.create(EnterpriseCacheConfigs.analytics),
   getRolePermissions
 );
@@ -357,6 +387,7 @@ router.get(
 router.post(
   '/',
   authenticateToken,
+  authorize('user.create'),
   EnterpriseCache.invalidate(CacheInvalidationPatterns.userUpdate),
   createUserValidation,
   validate,
@@ -366,6 +397,7 @@ router.post(
 router.post(
   '/bulk-operation',
   authenticateToken,
+  authorize('user.update'),
   EnterpriseCache.invalidate(CacheInvalidationPatterns.userUpdate),
   bulkOperationValidation,
   validate,
@@ -376,6 +408,7 @@ router.post(
 router.get(
   '/:userId/client-assignments',
   authenticateToken,
+  authorize('territory.assign'),
   userIdValidation,
   validate,
   getUserClientAssignments
@@ -384,6 +417,7 @@ router.get(
 router.post(
   '/:userId/client-assignments',
   authenticateToken,
+  authorize('territory.assign'),
   EnterpriseCache.invalidate(CacheInvalidationPatterns.assignmentUpdate, { synchronous: true }),
   userIdValidation,
   clientAssignmentValidation,
@@ -394,6 +428,7 @@ router.post(
 router.delete(
   '/:userId/client-assignments/:clientId',
   authenticateToken,
+  authorize('territory.assign'),
   EnterpriseCache.invalidate(CacheInvalidationPatterns.assignmentUpdate, { synchronous: true }),
   userIdValidation,
   clientIdValidation,
@@ -405,6 +440,7 @@ router.delete(
 router.get(
   '/:userId/product-assignments',
   authenticateToken,
+  authorize('territory.assign'),
   userIdValidation,
   validate,
   getUserProductAssignments
@@ -413,6 +449,7 @@ router.get(
 router.post(
   '/:userId/product-assignments',
   authenticateToken,
+  authorize('territory.assign'),
   EnterpriseCache.invalidate(CacheInvalidationPatterns.assignmentUpdate, { synchronous: true }),
   userIdValidation,
   productAssignmentValidation,
@@ -423,6 +460,7 @@ router.post(
 router.delete(
   '/:userId/product-assignments/:productId',
   authenticateToken,
+  authorize('territory.assign'),
   EnterpriseCache.invalidate(CacheInvalidationPatterns.assignmentUpdate, { synchronous: true }),
   userIdValidation,
   productIdValidation,
@@ -433,6 +471,7 @@ router.delete(
 router.get(
   '/:id',
   authenticateToken,
+  authorize('user.view'),
   [param('id').trim().notEmpty().withMessage('User ID is required')],
   validate,
   getUserById
@@ -441,6 +480,7 @@ router.get(
 router.put(
   '/:id',
   authenticateToken,
+  authorize('user.update'),
   EnterpriseCache.invalidate(CacheInvalidationPatterns.userUpdate),
   [param('id').trim().notEmpty().withMessage('User ID is required')],
   updateUserValidation,
@@ -451,6 +491,7 @@ router.put(
 router.delete(
   '/:id',
   authenticateToken,
+  authorize('user.delete'),
   EnterpriseCache.invalidate(CacheInvalidationPatterns.userUpdate),
   [param('id').trim().notEmpty().withMessage('User ID is required')],
   validate,
@@ -460,6 +501,7 @@ router.delete(
 router.post(
   '/:id/activate',
   authenticateToken,
+  authorize('user.update'),
   EnterpriseCache.invalidate(CacheInvalidationPatterns.userUpdate),
   [param('id').trim().notEmpty().withMessage('User ID is required')],
   validate,
@@ -469,6 +511,7 @@ router.post(
 router.post(
   '/:id/deactivate',
   authenticateToken,
+  authorize('user.update'),
   EnterpriseCache.invalidate(CacheInvalidationPatterns.userUpdate),
   [
     param('id').trim().notEmpty().withMessage('User ID is required'),
@@ -486,6 +529,7 @@ router.post(
 router.post(
   '/:id/generate-temp-password',
   authenticateToken,
+  authorize('user.update'),
   [param('id').trim().notEmpty().withMessage('User ID is required')],
   validate,
   generateTemporaryPassword
@@ -494,12 +538,15 @@ router.post(
 router.post(
   '/:id/change-password',
   authenticateToken,
+  authorize('user.update'),
   [
     param('id').trim().notEmpty().withMessage('User ID is required'),
     body('currentPassword').notEmpty().withMessage('Current password is required'),
     body('newPassword')
-      .isLength({ min: 6 })
-      .withMessage('New password must be at least 6 characters long'),
+      .isLength({ min: 8 })
+      .withMessage('New password must be at least 8 characters long')
+      .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).+$/)
+      .withMessage('New password must include uppercase, lowercase, number, and special character'),
   ],
   validate,
   changePassword
@@ -508,11 +555,14 @@ router.post(
 router.post(
   '/reset-password',
   authenticateToken,
+  authorize('user.update'),
   [
     body('username').notEmpty().withMessage('Username is required'),
     body('newPassword')
-      .isLength({ min: 6 })
-      .withMessage('New password must be at least 6 characters long'),
+      .isLength({ min: 8 })
+      .withMessage('New password must be at least 8 characters long')
+      .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).+$/)
+      .withMessage('New password must include uppercase, lowercase, number, and special character'),
   ],
   validate,
   resetPassword

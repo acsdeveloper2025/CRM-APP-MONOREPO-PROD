@@ -13,7 +13,8 @@ import type {
 } from '../types/mobile';
 import { createAuditLog } from '../utils/auditLogger';
 import { logger } from '../utils/logger';
-import { AuthenticatedRequest, JwtPayload, Role } from '../types/auth';
+import { AuthenticatedRequest, JwtPayload } from '../types/auth';
+import { getPrimaryRoleNameFromRbac, isFieldExecutionActor } from '@/security/rbacAccess';
 
 interface UserQueryResult {
   id: string;
@@ -21,7 +22,6 @@ interface UserQueryResult {
   username: string;
   email: string;
   passwordHash: string;
-  role: Role;
   roleId: number | null;
   employeeId: string;
   designation: string;
@@ -56,12 +56,10 @@ export class MobileAuthController {
         });
       }
 
-      // Find user with role information
+      // Find user
       const userRes = await query<UserQueryResult>(
-        `SELECT u.id, u.name, u.username, u.email, u."passwordHash", u.role, u."roleId", u."employeeId", u.designation, u.department, u."profilePhotoUrl",
-                r.name as "roleName", r.permissions
+        `SELECT u.id, u.name, u.username, u.email, u."passwordHash", u."roleId", u."employeeId", u.designation, u.department, u."profilePhotoUrl"
          FROM users u
-         LEFT JOIN roles r ON u."roleId" = r.id
          WHERE u.username = $1`,
         [username]
       );
@@ -110,14 +108,35 @@ export class MobileAuthController {
       }
 
       // Simplified authentication - no device validation required
+      const rbacRes = await query<{ roles: string[] | null; permissions: string[] | null }>(
+        `SELECT
+          COALESCE((
+            SELECT array_agg(DISTINCT rv2.name)
+            FROM user_roles ur
+            JOIN roles_v2 rv2 ON rv2.id = ur.role_id
+            WHERE ur.user_id = $1
+          ), ARRAY[]::varchar[]) as roles,
+          COALESCE((
+            SELECT array_agg(DISTINCT p.code)
+            FROM user_roles ur
+            JOIN role_permissions rp ON rp.role_id = ur.role_id AND rp.allowed = true
+            JOIN permissions p ON p.id = rp.permission_id
+            WHERE ur.user_id = $1
+          ), ARRAY[]::varchar[]) as permissions`,
+        [user.id]
+      );
+      const rbacRoles = rbacRes.rows[0]?.roles || [];
+      const rbacPermissionCodes = rbacRes.rows[0]?.permissions || [];
+      const derivedRole = getPrimaryRoleNameFromRbac(rbacRoles) || null;
+      const authProfile = {
+        permissionCodes: rbacPermissionCodes,
+      } as unknown as AuthenticatedRequest['user'];
 
       // Generate tokens (simplified - no device ID)
       // Generate tokens (simplified - no device ID)
       const accessToken = jwt.sign(
         {
           userId: user.id,
-          username: user.username,
-          role: user.role,
         } as JwtPayload,
         config.jwtSecret as jwt.Secret,
         { expiresIn: '24h' }
@@ -148,7 +167,7 @@ export class MobileAuthController {
       let assignedPincodes: number[] = [];
       let assignedAreas: number[] = [];
 
-      if (user.role === Role.FIELD_AGENT) {
+      if (isFieldExecutionActor(authProfile)) {
         // Fetch assigned pincodes
         const pincodesRes = await query<UserPincodeRow>(
           'SELECT "pincodeId" FROM "userPincodeAssignments" WHERE "userId" = $1 AND "isActive" = true',
@@ -185,13 +204,13 @@ export class MobileAuthController {
             name: user.name,
             username: user.username,
             email: user.email,
-            role: user.role,
+            role: derivedRole,
             employeeId: user.employeeId,
             designation: user.designation,
             department: user.department,
             profilePhotoUrl: user.profilePhotoUrl,
             // Include field agent assignments for mobile app
-            ...(user.role === Role.FIELD_AGENT && {
+            ...(isFieldExecutionActor(authProfile) && {
               assignedPincodes,
               assignedAreas,
             }),
@@ -240,7 +259,7 @@ export class MobileAuthController {
 
       // Check if refresh token exists in database
       const storedRes = await query(
-        `SELECT rt.token, u.id as "userId", u.username, u.role
+        `SELECT rt.token, u.id as "userId", u.username
          FROM "refreshTokens" rt JOIN users u ON u.id = rt."userId"
          WHERE rt.token = $1 AND rt."userId" = $2 AND rt."expiresAt" > CURRENT_TIMESTAMP
          LIMIT 1`,
@@ -264,8 +283,6 @@ export class MobileAuthController {
       const newAccessToken = jwt.sign(
         {
           userId: storedToken.userId,
-          username: storedToken.username,
-          role: storedToken.role,
         } as JwtPayload,
         config.jwtSecret as jwt.Secret,
         { expiresIn: '24h' }

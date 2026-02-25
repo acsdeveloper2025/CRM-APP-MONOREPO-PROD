@@ -28,7 +28,17 @@ export const generateUserAuthUuid = async (
 ): Promise<string> => {
   // Get user information (no role restrictions)
   const userRes = await query(
-    `SELECT u.id, u.username, u.role, r.name as "roleName"
+    `SELECT u.id, u.username,
+            COALESCE(
+              (SELECT rv.name FROM user_roles ur JOIN roles_v2 rv ON rv.id = ur.role_id WHERE ur.user_id = u.id ORDER BY rv.name LIMIT 1),
+              r.name,
+              'UNASSIGNED'
+            ) as role,
+            COALESCE(
+              (SELECT rv.name FROM user_roles ur JOIN roles_v2 rv ON rv.id = ur.role_id WHERE ur.user_id = u.id ORDER BY rv.name LIMIT 1),
+              r.name,
+              'UNASSIGNED'
+            ) as "roleName"
      FROM users u
      LEFT JOIN roles r ON u."roleId" = r.id
      WHERE u.id = $1`,
@@ -79,7 +89,17 @@ export const generateUserAuthUuid = async (
 export const revokeUserAuthUuid = async (userId: string, adminUserId?: string): Promise<void> => {
   // Get user information (no role restrictions)
   const userRes = await query(
-    `SELECT u.id, u.username, u.role, r.name as "roleName"
+    `SELECT u.id, u.username,
+            COALESCE(
+              (SELECT rv.name FROM user_roles ur JOIN roles_v2 rv ON rv.id = ur.role_id WHERE ur.user_id = u.id ORDER BY rv.name LIMIT 1),
+              r.name,
+              'UNASSIGNED'
+            ) as role,
+            COALESCE(
+              (SELECT rv.name FROM user_roles ur JOIN roles_v2 rv ON rv.id = ur.role_id WHERE ur.user_id = u.id ORDER BY rv.name LIMIT 1),
+              r.name,
+              'UNASSIGNED'
+            ) as "roleName"
      FROM users u
      LEFT JOIN roles r ON u."roleId" = r.id
      WHERE u.id = $1`,
@@ -125,7 +145,17 @@ export const revokeUserAuthUuid = async (userId: string, adminUserId?: string): 
 export const getUserAuthInfo = async (userId: string): Promise<UserAuthInfo | null> => {
   try {
     const result = await query(
-      `SELECT u.id, u.username, u.name, u."authUuid", u."isActive", u.role, r.name as "roleName"
+      `SELECT u.id, u.username, u.name, u."authUuid", u."isActive",
+              COALESCE(
+                (SELECT rv.name FROM user_roles ur JOIN roles_v2 rv ON rv.id = ur.role_id WHERE ur.user_id = u.id ORDER BY rv.name LIMIT 1),
+                r.name,
+                'UNASSIGNED'
+              ) as role,
+              COALESCE(
+                (SELECT rv.name FROM user_roles ur JOIN roles_v2 rv ON rv.id = ur.role_id WHERE ur.user_id = u.id ORDER BY rv.name LIMIT 1),
+                r.name,
+                'UNASSIGNED'
+              ) as "roleName"
        FROM users u
        LEFT JOIN roles r ON u."roleId" = r.id
        WHERE u.id = $1`,
@@ -175,7 +205,17 @@ export const validateUserAuthUuid = async (authUuid: string): Promise<boolean> =
 export const getUserByAuthUuid = async (authUuid: string): Promise<UserAuthInfo | null> => {
   try {
     const result = await query(
-      `SELECT u.id, u.username, u.name, u."authUuid", u."isActive", u.role, r.name as "roleName"
+      `SELECT u.id, u.username, u.name, u."authUuid", u."isActive",
+              COALESCE(
+                (SELECT rv.name FROM user_roles ur JOIN roles_v2 rv ON rv.id = ur.role_id WHERE ur.user_id = u.id ORDER BY rv.name LIMIT 1),
+                r.name,
+                'UNASSIGNED'
+              ) as role,
+              COALESCE(
+                (SELECT rv.name FROM user_roles ur JOIN roles_v2 rv ON rv.id = ur.role_id WHERE ur.user_id = u.id ORDER BY rv.name LIMIT 1),
+                r.name,
+                'UNASSIGNED'
+              ) as "roleName"
        FROM users u
        LEFT JOIN roles r ON u."roleId" = r.id
        WHERE u."authUuid" = $1`,

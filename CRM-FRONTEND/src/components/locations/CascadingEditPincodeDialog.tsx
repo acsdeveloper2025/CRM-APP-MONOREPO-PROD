@@ -88,7 +88,7 @@ export function CascadingEditPincodeDialog({ pincode, open, onOpenChange }: Casc
           countryId: String(country.id),
           stateId: String(state.id),
           cityId: String(pincode.cityId),
-          pincodeCode: pincode.code,
+          pincodeCode: String(pincode.code),
           areas: pincode.areas?.map(area => String(area.id)) || [],
         });
       }
@@ -150,7 +150,7 @@ export function CascadingEditPincodeDialog({ pincode, open, onOpenChange }: Casc
             countryId: String(country.id),
             stateId: String(state.id),
             cityId: String(pincode.cityId),
-            pincodeCode: pincode.code,
+            pincodeCode: String(pincode.code),
             areas: pincode.areas?.map(area => String(area.id)) || [],
           });
         }

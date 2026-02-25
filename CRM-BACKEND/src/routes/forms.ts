@@ -1,13 +1,14 @@
 // Disabled unbound-method rule for this file as it uses method references in routes
 import { Router } from 'express';
-import { authenticateToken, requireFieldOrHigher } from '@/middleware/auth';
+import { authenticateToken } from '@/middleware/auth';
+import { authorize } from '@/middleware/authorize';
 import { MobileFormController } from '@/controllers/mobileFormController';
 
 const router = Router();
 
 // Apply authentication
 router.use(authenticateToken);
-router.use(requireFieldOrHigher);
+router.use(authorize('case.view'));
 
 // Placeholder routes - will be implemented
 router.post('/residence-verification', (req, res) => {

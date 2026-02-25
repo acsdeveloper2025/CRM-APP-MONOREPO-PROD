@@ -1,6 +1,7 @@
 import express from 'express';
 import { body, query, param } from 'express-validator';
 import { authenticateToken } from '@/middleware/auth';
+import { authorize } from '@/middleware/authorize';
 import { validate } from '@/middleware/validation';
 import {
   // Commission Rate Types
@@ -24,6 +25,7 @@ const router = express.Router();
 
 // Apply authentication to all routes
 router.use(authenticateToken);
+router.use(authorize('billing.approve'));
 
 // =====================================================
 // COMMISSION RATE TYPES ROUTES

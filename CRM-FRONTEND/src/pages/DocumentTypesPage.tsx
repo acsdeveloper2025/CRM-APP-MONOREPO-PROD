@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Plus, FileText, Filter, TrendingUp } from 'lucide-react';
+import { Plus, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -36,7 +36,7 @@ export const DocumentTypesPage: React.FC = () => {
     queryFn: () => documentTypesService.getDocumentTypes({
       page: currentPage,
       limit: pageSize,
-      sortBy: 'sort_order',
+      sortBy: 'name',
       sortOrder: 'asc',
       search: debouncedSearchValue || undefined,
     }),
@@ -49,13 +49,9 @@ export const DocumentTypesPage: React.FC = () => {
   });
 
   const documentTypes = documentTypesData?.data || [];
-  const stats = statsData?.data || { 
-    totalDocumentTypes: 0, 
-    activeDocumentTypes: 0, 
-    inactiveDocumentTypes: 0, 
-    documentTypesByCategory: [],
-    governmentIssuedCount: 0,
-    requiresVerificationCount: 0
+  const stats = statsData?.data || {
+    totalDocumentTypes: 0,
+    activeDocumentTypes: 0,
   };
 
   return (
@@ -64,14 +60,12 @@ export const DocumentTypesPage: React.FC = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Document Types Management</h1>
-          <p className="text-gray-600">
-            Manage document types, categories, and validation rules
-          </p>
+          <p className="text-gray-600">Manage document types with only name and code.</p>
         </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Types</CardTitle>
@@ -92,36 +86,6 @@ export const DocumentTypesPage: React.FC = () => {
             <p className="text-xs text-gray-600">Currently active</p>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Inactive Types</CardTitle>
-            <Badge variant="secondary">Inactive</Badge>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.inactiveDocumentTypes}</div>
-            <p className="text-xs text-gray-600">Disabled types</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Categories</CardTitle>
-            <Filter className="h-4 w-4 text-blue-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.documentTypesByCategory?.length || 0}</div>
-            <p className="text-xs text-gray-600">Type categories</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">With Rates</CardTitle>
-            <TrendingUp className="h-4 w-4 text-purple-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{documentTypes.filter(d => d.hasRates).length}</div>
-            <p className="text-xs text-gray-600">Rate configured</p>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Main Content */}
@@ -129,7 +93,7 @@ export const DocumentTypesPage: React.FC = () => {
         <CardHeader>
           <CardTitle>Document Types</CardTitle>
           <CardDescription>
-            Configure document types for verification processes
+            Configure document types
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -139,7 +103,7 @@ export const DocumentTypesPage: React.FC = () => {
               onSearchChange={setSearchValue}
               onSearchClear={clearSearch}
               isSearchLoading={isDebouncing}
-              searchPlaceholder="Search document types by name, code or category..."
+              searchPlaceholder="Search document types by name or code..."
               showFilters={false}
               actions={
                 <Button

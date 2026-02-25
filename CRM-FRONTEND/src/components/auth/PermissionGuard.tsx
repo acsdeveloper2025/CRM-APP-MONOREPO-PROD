@@ -2,6 +2,7 @@ import React from 'react';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Shield, AlertTriangle } from 'lucide-react';
+import { matchesAnyLegacyRoleAlias } from '@/utils/userPermissionProfiles';
 
 interface PermissionGuardProps {
   children: React.ReactNode;
@@ -140,7 +141,7 @@ export function RoleGuard({
 }) {
   const { user } = usePermissions();
 
-  if (!user || !allowedRoles.includes(user.role)) {
+  if (!user || !matchesAnyLegacyRoleAlias(user, allowedRoles)) {
     if (fallback) {
       return <>{fallback}</>;
     }

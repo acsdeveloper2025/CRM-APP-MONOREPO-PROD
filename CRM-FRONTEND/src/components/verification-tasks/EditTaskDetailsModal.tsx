@@ -93,15 +93,15 @@ export const EditTaskDetailsModal: React.FC<EditTaskDetailsModalProps> = ({
 
     try {
       setLoading(true);
-      // Construct UpdateVerificationTaskRequest (snake_case for API)
+      // Construct UpdateVerificationTaskRequest (camelCase for API)
       const updateData: UpdateVerificationTaskRequest = {
-        task_title: formData.taskTitle,
-        task_description: formData.taskDescription,
+        taskTitle: formData.taskTitle,
+        taskDescription: formData.taskDescription,
         priority: formData.priority,
         address: formData.address,
         pincode: formData.pincode,
-        document_type: formData.documentType || undefined,
-        document_number: formData.documentNumber || undefined
+        documentType: formData.documentType || undefined,
+        documentNumber: formData.documentNumber || undefined
       };
 
       await onSubmit(task.id, updateData);

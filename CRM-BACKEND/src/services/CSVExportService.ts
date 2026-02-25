@@ -266,7 +266,13 @@ export class CSVExportService {
       LEFT JOIN departments d ON u."departmentId" = d.id
       LEFT JOIN agent_performance_daily apd ON u.id = apd.agent_id
       ${whereClause}
-      AND u.role = 'FIELD_AGENT'
+      AND EXISTS (
+        SELECT 1
+        FROM user_roles urf
+        JOIN role_permissions rpf ON rpf.role_id = urf.role_id AND rpf.allowed = true
+        JOIN permissions pf ON pf.id = rpf.permission_id
+        WHERE urf.user_id = u.id AND pf.code = 'visit.submit'
+      )
       ORDER BY apd.date DESC, u.name
     `;
 

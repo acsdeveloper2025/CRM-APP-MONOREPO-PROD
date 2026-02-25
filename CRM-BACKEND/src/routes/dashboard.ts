@@ -2,6 +2,7 @@
 import express from 'express';
 import { body, query } from 'express-validator';
 import { authenticateToken } from '@/middleware/auth';
+import { authorize } from '@/middleware/authorize';
 import { validate } from '@/middleware/validation';
 import {
   getDashboardData,
@@ -20,7 +21,7 @@ import { DashboardKPIController } from '../controllers/dashboardKPIController';
 const router = express.Router();
 
 // New KPI Engine Endpoint
-router.get('/kpi', authenticateToken, (req, res, next) =>
+router.get('/kpi', authenticateToken, authorize('dashboard.view'), (req, res, next) =>
   DashboardKPIController.getKPIs(req, res).catch(next)
 );
 
@@ -77,17 +78,39 @@ const _exportValidation = [
 ];
 
 // Dashboard routes
-router.get('/', authenticateToken, dashboardQueryValidation, validate, getDashboardData);
+router.get(
+  '/',
+  authenticateToken,
+  authorize('dashboard.view'),
+  dashboardQueryValidation,
+  validate,
+  getDashboardData
+);
 
-router.get('/charts', authenticateToken, dashboardQueryValidation, validate, getChartData);
+router.get(
+  '/charts',
+  authenticateToken,
+  authorize('dashboard.view'),
+  dashboardQueryValidation,
+  validate,
+  getChartData
+);
 
 // Dashboard statistics
-router.get('/stats', authenticateToken, dashboardQueryValidation, validate, getDashboardStats);
+router.get(
+  '/stats',
+  authenticateToken,
+  authorize('dashboard.view'),
+  dashboardQueryValidation,
+  validate,
+  getDashboardStats
+);
 
 // Case status distribution
 router.get(
   '/case-status-distribution',
   authenticateToken,
+  authorize('dashboard.view'),
   dashboardQueryValidation,
   validate,
   getCaseStatusDistribution
@@ -97,6 +120,7 @@ router.get(
 router.get(
   '/monthly-trends',
   authenticateToken,
+  authorize('dashboard.view'),
   monthlyTrendsValidation,
   validate,
   getMonthlyTrends
@@ -113,6 +137,7 @@ router.get(
 router.get(
   '/recent-activities',
   authenticateToken,
+  authorize('dashboard.view'),
   recentActivitiesValidation,
   validate,
   getRecentActivities
@@ -121,6 +146,7 @@ router.get(
 router.get(
   '/performance-metrics',
   authenticateToken,
+  authorize('dashboard.view'),
   dashboardQueryValidation,
   validate,
   getPerformanceMetrics
@@ -130,6 +156,7 @@ router.get(
 router.get(
   '/overdue-tasks',
   authenticateToken,
+  authorize('dashboard.view'),
   [
     query('threshold')
       .optional()
@@ -153,7 +180,7 @@ router.get(
   getOverdueTasks
 );
 
-router.get('/tat-stats', authenticateToken, getTATStats);
+router.get('/tat-stats', authenticateToken, authorize('dashboard.view'), getTATStats);
 
 // TODO: Implement remaining dashboard functions
 // router.get('/turnaround-times',

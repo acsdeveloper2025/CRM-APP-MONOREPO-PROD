@@ -9,8 +9,7 @@ import { createAuditLog } from '../utils/auditLogger';
 import { config } from '../config';
 import type { AuthenticatedRequest } from '../middleware/auth';
 import type { QueryParams } from '../types/database';
-
-import { Role } from '../types/auth';
+import { isFieldExecutionActor } from '@/security/rbacAccess';
 
 export class MobileLocationController {
   // Capture GPS location
@@ -337,17 +336,17 @@ export class MobileLocationController {
       const paramTaskId = String(req.params.taskId || '');
       const caseId = paramCaseId || paramTaskId;
       const userId = req.user?.id;
-      const userRole = req.user?.role;
+      const isExecutionActor = isFieldExecutionActor(req.user);
 
       // Verify case access
       const where: Record<string, unknown> = { id: caseId };
-      if (userRole === Role.FIELD_AGENT) {
+      if (isExecutionActor) {
         where.assignedToId = userId;
       }
 
       const vals8: QueryParams = [caseId];
       let exSql6 = `SELECT id FROM cases WHERE id = $1`;
-      if (userRole === Role.FIELD_AGENT) {
+      if (isExecutionActor) {
         exSql6 += ` AND "assignedToId" = $2`;
         vals8.push(String(userId));
       }

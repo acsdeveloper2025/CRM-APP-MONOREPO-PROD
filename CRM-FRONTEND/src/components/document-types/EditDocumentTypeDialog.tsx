@@ -15,41 +15,22 @@ import {
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { documentTypesService } from '@/services/documentTypes';
-import { DOCUMENT_CATEGORIES, DOCUMENT_TYPE_DISPLAY_NAMES, type DocumentType } from '@/types/documentType';
+import type { DocumentType } from '@/types/documentType';
 
 const editDocumentTypeSchema = z.object({
   name: z.string().min(1, 'Name is required').max(255, 'Name too long'),
-  code: z.string()
+  code: z
+    .string()
     .min(2, 'Code must be at least 2 characters')
     .max(50, 'Code must be at most 50 characters')
     .regex(/^[A-Z0-9_]+$/, 'Code must contain only uppercase letters, numbers, and underscores'),
-  description: z.string().max(1000, 'Description too long').optional().or(z.literal('')),
-  category: z.enum(['IDENTITY', 'ADDRESS', 'FINANCIAL', 'EDUCATION', 'BUSINESS', 'OTHER']),
-  isGovernmentIssued: z.boolean(),
-  requiresVerification: z.boolean(),
-  validityPeriodMonths: z.number().min(1).max(1200).optional(),
-  formatPattern: z.string().max(500, 'Pattern too long').optional().or(z.literal('')),
-  minLength: z.number().min(1).max(100).optional(),
-  maxLength: z.number().min(1).max(100).optional(),
-  isActive: z.boolean(),
-  sortOrder: z.number().min(0).max(9999),
 });
 
 type EditDocumentTypeData = z.infer<typeof editDocumentTypeSchema>;
@@ -69,34 +50,14 @@ export const EditDocumentTypeDialog: React.FC<EditDocumentTypeDialogProps> = ({
 
   const form = useForm<EditDocumentTypeData>({
     resolver: zodResolver(editDocumentTypeSchema),
-    defaultValues: {
-      name: '',
-      code: '',
-      description: '',
-      category: 'IDENTITY',
-      isGovernmentIssued: false,
-      requiresVerification: true,
-      isActive: true,
-      sortOrder: 0,
-    },
+    defaultValues: { name: '', code: '' },
   });
 
-  // Update form when documentType changes
   useEffect(() => {
     if (documentType) {
       form.reset({
         name: documentType.name,
         code: documentType.code,
-        description: documentType.description || '',
-        category: documentType.category,
-        isGovernmentIssued: documentType.isGovernmentIssued || false,
-        requiresVerification: documentType.requiresVerification || true,
-        validityPeriodMonths: documentType.validityPeriodMonths || undefined,
-        formatPattern: documentType.formatPattern || '',
-        minLength: documentType.minLength || undefined,
-        maxLength: documentType.maxLength || undefined,
-        isActive: documentType.isActive !== false,
-        sortOrder: documentType.sortOrder || 0,
       });
     }
   }, [documentType, form]);
@@ -104,7 +65,7 @@ export const EditDocumentTypeDialog: React.FC<EditDocumentTypeDialogProps> = ({
   const updateDocumentTypeMutation = useMutation({
     mutationFn: (data: EditDocumentTypeData) => {
       if (!documentType) {
-        throw new Error("Document Type is missing");
+        throw new Error('Document Type is missing');
       }
       return documentTypesService.updateDocumentType(documentType.id, data);
     },
@@ -116,10 +77,7 @@ export const EditDocumentTypeDialog: React.FC<EditDocumentTypeDialogProps> = ({
   });
 
   const onSubmit = async (data: EditDocumentTypeData) => {
-    if (!documentType) {
-      return;
-    }
-    
+    if (!documentType) {return;}
     try {
       await updateDocumentTypeMutation.mutateAsync(data);
     } catch (error) {
@@ -132,66 +90,29 @@ export const EditDocumentTypeDialog: React.FC<EditDocumentTypeDialogProps> = ({
     onOpenChange(false);
   };
 
-  if (!documentType) {
-    return null;
-  }
+  if (!documentType) {return null;}
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-[95vw] sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-[95vw] sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Edit Document Type</DialogTitle>
-          <DialogDescription>
-            Update the document type configuration
-          </DialogDescription>
+          <DialogDescription>Update only name and code.</DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Name *</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g., Aadhaar Card" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="code"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Code *</FormLabel>
-                    <FormControl>
-                      <Input 
-                        placeholder="e.g., AADHAAR" 
-                        {...field}
-                        onChange={(e) => field.onChange(e.target.value.toUpperCase())}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
             <FormField
               control={form.control}
-              name="description"
+              name="code"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Description</FormLabel>
+                  <FormLabel>Document Type Code *</FormLabel>
                   <FormControl>
-                    <Textarea 
-                      placeholder="Brief description of the document type..."
+                    <Input
+                      placeholder="e.g., AADHAAR"
                       {...field}
+                      onChange={e => field.onChange(e.target.value.toUpperCase())}
                     />
                   </FormControl>
                   <FormMessage />
@@ -201,143 +122,27 @@ export const EditDocumentTypeDialog: React.FC<EditDocumentTypeDialogProps> = ({
 
             <FormField
               control={form.control}
-              name="category"
+              name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Category *</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a category" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {Object.values(DOCUMENT_CATEGORIES).map((category) => (
-                        <SelectItem key={category} value={category}>
-                          {DOCUMENT_TYPE_DISPLAY_NAMES[category]}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <FormLabel>Document Type Name *</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g., Aadhaar Card" {...field} />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="validityPeriodMonths"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Validity Period (Months)</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="number" 
-                        placeholder="e.g., 120"
-                        {...field}
-                        onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
-                      />
-                    </FormControl>
-                    <FormDescription>Leave empty for permanent documents</FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="sortOrder"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Sort Order</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="number" 
-                        placeholder="0"
-                        {...field}
-                        onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <div className="space-y-4">
-              <FormField
-                control={form.control}
-                name="isGovernmentIssued"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
-                    <div className="space-y-0.5">
-                      <FormLabel>Government Issued</FormLabel>
-                      <FormDescription>
-                        Is this document issued by a government authority?
-                      </FormDescription>
-                    </div>
-                    <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="requiresVerification"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
-                    <div className="space-y-0.5">
-                      <FormLabel>Requires Verification</FormLabel>
-                      <FormDescription>
-                        Does this document require verification?
-                      </FormDescription>
-                    </div>
-                    <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="isActive"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
-                    <div className="space-y-0.5">
-                      <FormLabel>Active</FormLabel>
-                      <FormDescription>
-                        Is this document type currently active?
-                      </FormDescription>
-                    </div>
-                    <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-            </div>
-
             <DialogFooter className="flex-col sm:flex-row gap-2">
               <Button type="button" variant="outline" onClick={handleClose} className="w-full sm:w-auto">
                 Cancel
               </Button>
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 disabled={updateDocumentTypeMutation.isPending}
-               className="w-full sm:w-auto">
+                className="w-full sm:w-auto"
+              >
                 {updateDocumentTypeMutation.isPending ? 'Updating...' : 'Update Document Type'}
               </Button>
             </DialogFooter>

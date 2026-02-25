@@ -1,10 +1,20 @@
 import type { Response } from 'express';
 import bcrypt from 'bcryptjs';
-import { query } from '@/config/database';
+import { query, withTransaction } from '@/config/database';
 import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
 import { EmailDeliveryService } from '@/services/EmailDeliveryService';
 import ExcelJS from 'exceljs';
+import {
+  hasSystemScopeBypass,
+  userHasAnyPermission,
+  userHasPermission,
+} from '@/security/rbacAccess';
+
+const STRONG_PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
+
+const isStrongPassword = (password: string): boolean => STRONG_PASSWORD_REGEX.test(password);
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 // GET /api/users - List users with pagination and filters
 export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
@@ -33,7 +43,12 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
     conditions.push(`u."deletedAt" IS NULL`);
 
     if (role && typeof role === 'string') {
-      conditions.push(`u.role = $${paramIndex++}`);
+      conditions.push(`EXISTS (
+        SELECT 1
+        FROM user_roles urf
+        JOIN roles_v2 rvf ON rvf.id = urf.role_id
+        WHERE urf.user_id = u.id AND rvf.name = $${paramIndex++}
+      )`);
       params.push(role);
     }
 
@@ -63,6 +78,15 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
     // Validate sortBy to prevent SQL injection
     const validSortColumns = ['name', 'username', 'email', 'role', 'createdAt', 'updatedAt'];
     const safeSortBy: string = validSortColumns.includes(sortBy) ? sortBy : 'name';
+    const sortColumnMap: Record<string, string> = {
+      name: 'u.name',
+      username: 'u.username',
+      email: 'u.email',
+      role: '"roleName"',
+      createdAt: 'u."createdAt"',
+      updatedAt: 'u."updatedAt"',
+    };
+    const safeSortColumn = sortColumnMap[safeSortBy] || 'u.name';
     const safeSortOrder: 'ASC' | 'DESC' = sortOrder === 'desc' ? 'DESC' : 'ASC';
 
     // Get total count
@@ -84,7 +108,11 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
         u.username,
         u.email,
         u.phone,
-        u.role,
+        COALESCE(
+          (SELECT rv.name FROM user_roles ur JOIN roles_v2 rv ON rv.id = ur.role_id WHERE ur.user_id = u.id ORDER BY rv.name LIMIT 1),
+          r.name,
+          'UNASSIGNED'
+        ) as role,
         u."roleId",
         u."departmentId",
         u."designationId",
@@ -94,7 +122,23 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
         u."lastLogin",
         u."createdAt",
         u."updatedAt",
-        r.name as "roleName",
+        COALESCE((
+          SELECT ARRAY_AGG(rv.name ORDER BY rv.name)
+          FROM user_roles ur
+          JOIN roles_v2 rv ON rv.id = ur.role_id
+          WHERE ur.user_id = u.id
+        ), ARRAY[]::text[]) as roles,
+        COALESCE((
+          SELECT ARRAY_AGG(DISTINCT p.code ORDER BY p.code)
+          FROM user_roles ur
+          JOIN role_permissions rp ON rp.role_id = ur.role_id AND rp.allowed = true
+          JOIN permissions p ON p.id = rp.permission_id
+          WHERE ur.user_id = u.id
+        ), ARRAY[]::text[]) as "permissionCodes",
+        COALESCE(
+          (SELECT rv.name FROM user_roles ur JOIN roles_v2 rv ON rv.id = ur.role_id WHERE ur.user_id = u.id ORDER BY rv.name LIMIT 1),
+          r.name
+        ) as "roleName",
         d.name as "departmentName",
         des.name as "designationName",
 
@@ -166,7 +210,7 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
         GROUP BY uaa."userId"
       ) area_arrays ON u.id = area_arrays."userId"
       ${whereClause}
-      ORDER BY u.${safeSortBy} ${safeSortOrder}
+      ORDER BY ${safeSortColumn} ${safeSortOrder}
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `;
 
@@ -230,7 +274,11 @@ export const getUserById = async (req: AuthenticatedRequest, res: Response) => {
         u.username,
         u.email,
         u.phone,
-        u.role,
+        COALESCE(
+          (SELECT rv.name FROM user_roles ur JOIN roles_v2 rv ON rv.id = ur.role_id WHERE ur.user_id = u.id ORDER BY rv.name LIMIT 1),
+          r.name,
+          'UNASSIGNED'
+        ) as role,
         u."roleId",
         u."departmentId",
         u."designationId",
@@ -240,8 +288,24 @@ export const getUserById = async (req: AuthenticatedRequest, res: Response) => {
         u."lastLogin",
         u."createdAt",
         u."updatedAt",
+        COALESCE((
+          SELECT ARRAY_AGG(rv.name ORDER BY rv.name)
+          FROM user_roles ur
+          JOIN roles_v2 rv ON rv.id = ur.role_id
+          WHERE ur.user_id = u.id
+        ), ARRAY[]::text[]) as roles,
+        COALESCE((
+          SELECT ARRAY_AGG(DISTINCT p.code ORDER BY p.code)
+          FROM user_roles ur
+          JOIN role_permissions rp ON rp.role_id = ur.role_id AND rp.allowed = true
+          JOIN permissions p ON p.id = rp.permission_id
+          WHERE ur.user_id = u.id
+        ), ARRAY[]::text[]) as "permissionCodes",
 
-        r.name as "roleName",
+        COALESCE(
+          (SELECT rv.name FROM user_roles ur JOIN roles_v2 rv ON rv.id = ur.role_id WHERE ur.user_id = u.id ORDER BY rv.name LIMIT 1),
+          r.name
+        ) as "roleName",
         r.description as "roleDescription",
         r.permissions as "rolePermissions",
         d.name as "departmentName",
@@ -418,19 +482,50 @@ export const createUser = async (req: AuthenticatedRequest, res: Response) => {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Determine the role string from roleId (prioritize roleId over role field)
-    let finalRole = null;
+    // Determine role using RBAC role UUID first, then legacy roles table / role string fallback
+    let finalRole: string | null = null;
+    let legacyRoleId: number | null = null;
+    let rbacRoleId: string | null = null;
 
-    if (cleanRoleId) {
-      // Get role name from roleId
-      const roleQuery = `SELECT name FROM roles WHERE id = $1`;
-      const roleResult = await query(roleQuery, [cleanRoleId]);
+    if (cleanRoleId && typeof cleanRoleId === 'string' && UUID_REGEX.test(cleanRoleId)) {
+      const roleResult = await query<{ name: string }>('SELECT name FROM roles_v2 WHERE id = $1', [
+        cleanRoleId,
+      ]);
       if (roleResult.rows.length > 0) {
         finalRole = roleResult.rows[0].name;
+        rbacRoleId = cleanRoleId;
+      }
+    } else if (cleanRoleId) {
+      const roleResult = await query<{ id: number; name: string }>(
+        'SELECT id, name FROM roles WHERE id = $1',
+        [cleanRoleId]
+      );
+      if (roleResult.rows.length > 0) {
+        finalRole = roleResult.rows[0].name;
+        legacyRoleId = roleResult.rows[0].id;
       }
     } else if (role) {
-      // Fallback to role field if roleId is not provided
       finalRole = role;
+    }
+
+    if (finalRole && legacyRoleId === null) {
+      const legacyRoleResult = await query<{ id: number }>(
+        'SELECT id FROM roles WHERE name = $1 LIMIT 1',
+        [finalRole]
+      );
+      if (legacyRoleResult.rows.length > 0) {
+        legacyRoleId = legacyRoleResult.rows[0].id;
+      }
+    }
+
+    if (finalRole && !rbacRoleId) {
+      const rbacRoleResult = await query<{ id: string }>(
+        'SELECT id FROM roles_v2 WHERE name = $1 LIMIT 1',
+        [finalRole]
+      );
+      if (rbacRoleResult.rows.length > 0) {
+        rbacRoleId = rbacRoleResult.rows[0].id;
+      }
     }
 
     // Ensure we have a valid role
@@ -453,43 +548,46 @@ export const createUser = async (req: AuthenticatedRequest, res: Response) => {
       }
     );
 
-    // Validate role against allowed values
-    const allowedRoles = ['SUPER_ADMIN', 'ADMIN', 'BACKEND_USER', 'FIELD_AGENT', 'MANAGER'];
-    if (!allowedRoles.includes(finalRole)) {
-      return res.status(400).json({
-        success: false,
-        message: `Role must be one of: ${allowedRoles.join(', ')}`,
-        error: { code: 'VALIDATION_ERROR' },
-      });
-    }
+    const result = await withTransaction(async client => {
+      const createUserQuery = `
+        INSERT INTO users (
+          name, username, email, password, "passwordHash", role, "roleId", "departmentId", "designationId",
+          "employeeId", designation, phone, "isActive", "createdAt", "updatedAt"
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+        RETURNING id, name, username, email, role, "roleId", "departmentId", "designationId",
+                  "employeeId", designation, phone, "isActive", "createdAt", "updatedAt"
+      `;
 
-    // Create new user in database
-    const createUserQuery = `
-      INSERT INTO users (
-        name, username, email, password, "passwordHash", role, "roleId", "departmentId", "designationId",
-        "employeeId", designation, phone, "isActive", "createdAt", "updatedAt"
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
-      RETURNING id, name, username, email, role, "roleId", "departmentId", "designationId",
-                "employeeId", designation, phone, "isActive", "createdAt", "updatedAt"
-    `;
+      const insertRes = await client.query(createUserQuery, [
+        name,
+        username,
+        email,
+        hashedPassword,
+        hashedPassword,
+        finalRole,
+        legacyRoleId,
+        cleanDepartmentId,
+        cleanDesignationId,
+        employeeId || null,
+        designation || null,
+        phone || null,
+        isActive,
+        new Date(),
+        new Date(),
+      ]);
 
-    const result = await query(createUserQuery, [
-      name,
-      username,
-      email,
-      hashedPassword, // password column
-      hashedPassword, // passwordHash column
-      finalRole, // Use the validated role
-      cleanRoleId,
-      cleanDepartmentId,
-      cleanDesignationId,
-      employeeId || null,
-      designation || null,
-      phone || null,
-      isActive,
-      new Date(), // createdAt
-      new Date(), // updatedAt
-    ]);
+      const createdUser = insertRes.rows[0];
+
+      if (rbacRoleId) {
+        await client.query('DELETE FROM user_roles WHERE user_id = $1', [createdUser.id]);
+        await client.query(
+          'INSERT INTO user_roles (user_id, role_id) VALUES ($1, $2) ON CONFLICT (user_id, role_id) DO NOTHING',
+          [createdUser.id, rbacRoleId]
+        );
+      }
+
+      return insertRes;
+    });
 
     const newUser = result.rows[0];
 
@@ -551,6 +649,47 @@ export const updateUser = async (req: AuthenticatedRequest, res: Response) => {
 
     // Device management is handled separately through device management endpoints
 
+    // RBAC role resolution (UUID roles_v2 -> users.role + user_roles sync)
+    let rbacRoleId: string | null = null;
+    if (
+      updateData.roleId &&
+      typeof updateData.roleId === 'string' &&
+      UUID_REGEX.test(updateData.roleId)
+    ) {
+      const rbacRoleRes = await query<{ name: string }>('SELECT name FROM roles_v2 WHERE id = $1', [
+        updateData.roleId,
+      ]);
+      if (rbacRoleRes.rows.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid RBAC role ID',
+          error: { code: 'VALIDATION_ERROR' },
+        });
+      }
+      updateData.role = rbacRoleRes.rows[0].name;
+      rbacRoleId = updateData.roleId;
+      const legacyRoleRes = await query<{ id: number }>(
+        'SELECT id FROM roles WHERE name = $1 LIMIT 1',
+        [updateData.role]
+      );
+      updateData.roleId = legacyRoleRes.rows[0]?.id ?? null;
+    }
+
+    if (!rbacRoleId && updateData.role && typeof updateData.role === 'string') {
+      const rbacRoleRes = await query<{ id: string }>(
+        'SELECT id FROM roles_v2 WHERE name = $1 LIMIT 1',
+        [updateData.role]
+      );
+      rbacRoleId = rbacRoleRes.rows[0]?.id || null;
+      const legacyRoleRes = await query<{ id: number }>(
+        'SELECT id FROM roles WHERE name = $1 LIMIT 1',
+        [updateData.role]
+      );
+      if (legacyRoleRes.rows.length > 0) {
+        updateData.roleId = legacyRoleRes.rows[0].id;
+      }
+    }
+
     // Build update query dynamically
     const updateFields: string[] = [];
     const updateParams: (string | number | boolean | null)[] = [];
@@ -606,7 +745,17 @@ export const updateUser = async (req: AuthenticatedRequest, res: Response) => {
                 "employeeId", designation, phone, "isActive", "createdAt", "updatedAt"
     `;
 
-    const result = await query(updateQuery, updateParams);
+    const result = await withTransaction(async client => {
+      const updateRes = await client.query(updateQuery, updateParams);
+      if (rbacRoleId) {
+        await client.query('DELETE FROM user_roles WHERE user_id = $1', [id]);
+        await client.query(
+          'INSERT INTO user_roles (user_id, role_id) VALUES ($1, $2) ON CONFLICT (user_id, role_id) DO NOTHING',
+          [id, rbacRoleId]
+        );
+      }
+      return updateRes;
+    });
     const updatedUser = result.rows[0];
 
     logger.info(`Updated user: ${id}`, {
@@ -819,7 +968,11 @@ export const searchUsers = async (req: AuthenticatedRequest, res: Response) => {
         u.name,
         u.username,
         u.email,
-        u.role,
+        COALESCE(
+          (SELECT rv.name FROM user_roles ur JOIN roles_v2 rv ON rv.id = ur.role_id WHERE ur.user_id = u.id ORDER BY rv.name LIMIT 1),
+          r.name,
+          'UNASSIGNED'
+        ) as role,
         d.name as "departmentName",
         u.designation,
         u."isActive"
@@ -868,11 +1021,19 @@ export const getUserStats = async (req: AuthenticatedRequest, res: Response) => 
     // Get users by role
     const roleStatsQuery = `
       SELECT
-        COALESCE(r.name, u.role) as role,
+        COALESCE(
+          (SELECT rv.name FROM user_roles ur JOIN roles_v2 rv ON rv.id = ur.role_id WHERE ur.user_id = u.id ORDER BY rv.name LIMIT 1),
+          r.name,
+          'UNASSIGNED'
+        ) as role,
         COUNT(*) as count
       FROM users u
       LEFT JOIN roles r ON u."roleId" = r.id
-      GROUP BY COALESCE(r.name, u.role)
+      GROUP BY COALESCE(
+        (SELECT rv.name FROM user_roles ur JOIN roles_v2 rv ON rv.id = ur.role_id WHERE ur.user_id = u.id ORDER BY rv.name LIMIT 1),
+        r.name,
+        'UNASSIGNED'
+      )
       ORDER BY count DESC
     `;
     const roleStats = await query(roleStatsQuery);
@@ -983,10 +1144,11 @@ export const getDesignations = async (req: AuthenticatedRequest, res: Response) 
 export const getUserActivities = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { page = 1, limit = 20, search, userId, fromDate, toDate } = req.query;
-    const { Role } = await import('@/types/auth');
-
-    const isAdmin = req.user?.role === Role.SUPER_ADMIN || req.user?.role === Role.ADMIN;
-    const targetUserId = isAdmin ? (userId as string) : req.user?.id;
+    const canViewAllActivities =
+      hasSystemScopeBypass(req.user) ||
+      userHasPermission(req.user, 'permission.manage') ||
+      userHasPermission(req.user, 'role.manage');
+    const targetUserId = canViewAllActivities ? (userId as string) : req.user?.id;
 
     // Build query conditions
     const conditions: string[] = [];
@@ -1068,13 +1230,10 @@ export const getUserSessions = async (req: AuthenticatedRequest, res: Response) 
   try {
     const { userId } = req.query;
 
-    const { Role } = await import('@/types/auth');
-
-    const isAdmin =
-      req.user?.role === Role.SUPER_ADMIN ||
-      req.user?.role === Role.ADMIN ||
-      req.user?.role === Role.BACKEND_USER;
-    const targetUserId = isAdmin ? (userId as string) : req.user?.id;
+    const canViewOtherSessions =
+      hasSystemScopeBypass(req.user) ||
+      userHasAnyPermission(req.user, ['user.update', 'territory.assign']);
+    const targetUserId = canViewOtherSessions ? (userId as string) : req.user?.id;
 
     // We only filter by targetUserId if provided (for Admin) or enforced (for regular user)
     const conditions: string[] = [];
@@ -1708,10 +1867,11 @@ export const changePassword = async (req: AuthenticatedRequest, res: Response) =
       });
     }
 
-    if (newPassword.length < 6) {
+    if (!isStrongPassword(newPassword)) {
       return res.status(400).json({
         success: false,
-        message: 'New password must be at least 6 characters long',
+        message:
+          'New password must be at least 8 characters and include uppercase, lowercase, number, and special character',
         error: { code: 'VALIDATION_ERROR' },
       });
     }
@@ -1784,10 +1944,11 @@ export const resetPassword = async (req: AuthenticatedRequest, res: Response) =>
       });
     }
 
-    if (newPassword.length < 6) {
+    if (!isStrongPassword(newPassword)) {
       return res.status(400).json({
         success: false,
-        message: 'New password must be at least 6 characters long',
+        message:
+          'New password must be at least 8 characters and include uppercase, lowercase, number, and special character',
         error: { code: 'VALIDATION_ERROR' },
       });
     }
@@ -1874,7 +2035,13 @@ export const getAvailableFieldAgents = async (req: AuthenticatedRequest, res: Re
           AND uaa."pincodeId" = $1
           AND uaa."areaId" = $2
           AND uaa."isActive" = true
-        WHERE u.role = 'FIELD_AGENT'
+        WHERE EXISTS (
+          SELECT 1
+          FROM user_roles urf
+          JOIN role_permissions rpf ON rpf.role_id = urf.role_id AND rpf.allowed = true
+          JOIN permissions pf ON pf.id = rpf.permission_id
+          WHERE urf.user_id = u.id AND pf.code = 'visit.submit'
+        )
           AND u."isActive" = true
         ORDER BY u.name
       `;
@@ -1892,7 +2059,13 @@ export const getAvailableFieldAgents = async (req: AuthenticatedRequest, res: Re
           ON u.id = upa."userId"
           AND upa."pincodeId" = $1
           AND upa."isActive" = true
-        WHERE u.role = 'FIELD_AGENT'
+        WHERE EXISTS (
+          SELECT 1
+          FROM user_roles urf
+          JOIN role_permissions rpf ON rpf.role_id = urf.role_id AND rpf.allowed = true
+          JOIN permissions pf ON pf.id = rpf.permission_id
+          WHERE urf.user_id = u.id AND pf.code = 'visit.submit'
+        )
           AND u."isActive" = true
         ORDER BY u.name
       `;
@@ -1944,7 +2117,12 @@ export const exportUsers = async (req: AuthenticatedRequest, res: Response) => {
     conditions.push(`u."deletedAt" IS NULL`);
 
     if (role && typeof role === 'string') {
-      conditions.push(`u.role = $${paramIndex++}`);
+      conditions.push(`EXISTS (
+        SELECT 1
+        FROM user_roles urf
+        JOIN roles_v2 rvf ON rvf.id = urf.role_id
+        WHERE urf.user_id = u.id AND rvf.name = $${paramIndex++}
+      )`);
       params.push(role);
     }
 
@@ -1977,6 +2155,15 @@ export const exportUsers = async (req: AuthenticatedRequest, res: Response) => {
       ? (sortBy as string)
       : 'name';
     const safeSortOrder: 'ASC' | 'DESC' = sortOrder === 'desc' ? 'DESC' : 'ASC';
+    const sortColumnMap: Record<string, string> = {
+      name: 'u.name',
+      username: 'u.username',
+      email: 'u.email',
+      role: '"roleName"',
+      createdAt: 'u."createdAt"',
+      updatedAt: 'u."updatedAt"',
+    };
+    const safeSortColumn = sortColumnMap[safeSortBy] || 'u.name';
 
     const usersQuery = `
       SELECT
@@ -1985,20 +2172,28 @@ export const exportUsers = async (req: AuthenticatedRequest, res: Response) => {
         u.username,
         u.email,
         u.phone,
-        u.role,
+        COALESCE(
+          (SELECT rv.name FROM user_roles ur JOIN roles_v2 rv ON rv.id = ur.role_id WHERE ur.user_id = u.id ORDER BY rv.name LIMIT 1),
+          r.name,
+          'UNASSIGNED'
+        ) as role,
         u."employeeId",
         u.designation,
         u."isActive",
         u."lastLogin",
         u."createdAt",
         u."updatedAt",
-        r.name as "roleName",
+        COALESCE(
+          (SELECT rv.name FROM user_roles ur JOIN roles_v2 rv ON rv.id = ur.role_id WHERE ur.user_id = u.id ORDER BY rv.name LIMIT 1),
+          r.name,
+          'UNASSIGNED'
+        ) as "roleName",
         d.name as "departmentName"
       FROM users u
       LEFT JOIN roles r ON u."roleId" = r.id
       LEFT JOIN departments d ON u."departmentId" = d.id
       ${whereClause}
-      ORDER BY u.${safeSortBy} ${safeSortOrder}
+      ORDER BY ${safeSortColumn} ${safeSortOrder}
     `;
 
     const usersResult = await query(usersQuery, params);

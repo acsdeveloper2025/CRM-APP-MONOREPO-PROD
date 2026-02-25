@@ -1,6 +1,6 @@
 import express from 'express';
-import { authenticateToken, requireRole, type AuthenticatedRequest } from '../middleware/auth';
-import { Role } from '../types/auth';
+import { authenticateToken, type AuthenticatedRequest } from '../middleware/auth';
+import { authorize } from '../middleware/authorize';
 import {
   generateReport,
   downloadReport,
@@ -55,22 +55,13 @@ router.use(authenticateToken);
  *   }
  * }
  */
-router.post(
-  '/generate',
-  exportRateLimit,
-  requireRole([Role.ADMIN, Role.BACKEND_USER, Role.MANAGER]),
-  generateReport
-);
+router.post('/generate', exportRateLimit, authorize('report.generate'), generateReport);
 
 /**
  * GET /api/exports/download/:fileName
  * Download a generated report file
  */
-router.get(
-  '/download/:fileName',
-  requireRole([Role.ADMIN, Role.BACKEND_USER, Role.MANAGER, Role.FIELD_AGENT]),
-  downloadReport
-);
+router.get('/download/:fileName', authorize('report.download'), downloadReport);
 
 /**
  * GET /api/exports/history
@@ -82,17 +73,13 @@ router.get(
  * - reportType: string (optional filter)
  * - format: string (optional filter)
  */
-router.get(
-  '/history',
-  requireRole([Role.ADMIN, Role.BACKEND_USER, Role.MANAGER, Role.FIELD_AGENT]),
-  getExportHistory
-);
+router.get('/history', authorize('report.download'), getExportHistory);
 
 /**
  * POST /api/exports/test-email
  * Test email configuration
  */
-router.post('/test-email', requireRole([Role.ADMIN, Role.BACKEND_USER]), testEmailConfig);
+router.post('/test-email', authorize('report.generate'), testEmailConfig);
 
 /**
  * POST /api/exports/quick/form-submissions
@@ -101,7 +88,7 @@ router.post('/test-email', requireRole([Role.ADMIN, Role.BACKEND_USER]), testEma
 router.post(
   '/quick/form-submissions',
   exportRateLimit,
-  requireRole([Role.ADMIN, Role.BACKEND_USER, Role.MANAGER]),
+  authorize('report.generate'),
   (req: AuthenticatedRequest, res, next) => {
     req.body = {
       format: 'csv',
@@ -123,7 +110,7 @@ router.post(
 router.post(
   '/quick/agent-performance',
   exportRateLimit,
-  requireRole([Role.ADMIN, Role.BACKEND_USER, Role.MANAGER]),
+  authorize('report.generate'),
   (req: AuthenticatedRequest, res, next) => {
     req.body = {
       format: 'excel',
@@ -146,7 +133,7 @@ router.post(
 router.post(
   '/quick/case-analytics',
   exportRateLimit,
-  requireRole([Role.ADMIN, Role.BACKEND_USER, Role.MANAGER]),
+  authorize('report.generate'),
   (req: AuthenticatedRequest, res, next) => {
     req.body = {
       format: 'pdf',
@@ -168,7 +155,7 @@ router.post(
  */
 router.post(
   '/email/weekly-summary',
-  requireRole([Role.ADMIN, Role.BACKEND_USER, Role.MANAGER]),
+  authorize('report.generate'),
   (req: AuthenticatedRequest, res, next) => {
     const weekAgo = new Date();
     weekAgo.setDate(weekAgo.getDate() - 7);
@@ -196,7 +183,7 @@ router.post(
  */
 router.post(
   '/email/monthly-performance',
-  requireRole([Role.ADMIN, Role.BACKEND_USER, Role.MANAGER]),
+  authorize('report.generate'),
   (req: AuthenticatedRequest, res, next) => {
     const monthAgo = new Date();
     monthAgo.setMonth(monthAgo.getMonth() - 1);
@@ -222,133 +209,125 @@ router.post(
  * GET /api/exports/templates
  * Get available export templates
  */
-router.get(
-  '/templates',
-  requireRole([Role.ADMIN, Role.BACKEND_USER, Role.MANAGER]),
-  (req: AuthenticatedRequest, res) => {
-    try {
-      const templates = {
-        pdf: [
-          {
-            id: 'standard',
-            name: 'Standard Report',
-            description: 'Basic report with data tables and summary',
-            features: ['Data tables', 'Summary statistics', 'Basic formatting'],
-          },
-          {
-            id: 'detailed',
-            name: 'Detailed Report',
-            description: 'Comprehensive report with charts and analysis',
-            features: ['Data tables', 'Charts', 'Detailed analysis', 'Recommendations'],
-          },
-          {
-            id: 'summary',
-            name: 'Executive Summary',
-            description: 'High-level overview for management',
-            features: ['Key metrics', 'Trends', 'Executive insights'],
-          },
-        ],
-        excel: [
-          {
-            id: 'standard',
-            name: 'Standard Workbook',
-            description: 'Multiple worksheets with data and summaries',
-            features: ['Multiple sheets', 'Data tables', 'Summary sheet', 'Formatting'],
-          },
-          {
-            id: 'pivot',
-            name: 'Pivot Table Report',
-            description: 'Interactive pivot tables for analysis',
-            features: ['Pivot tables', 'Charts', 'Interactive filters'],
-          },
-        ],
-        csv: [
-          {
-            id: 'standard',
-            name: 'Standard CSV',
-            description: 'Simple comma-separated values file',
-            features: ['Raw data', 'Headers', 'UTF-8 encoding'],
-          },
-          {
-            id: 'excel-compatible',
-            name: 'Excel Compatible',
-            description: 'CSV optimized for Excel import',
-            features: ['Excel formatting', 'Date formatting', 'Number formatting'],
-          },
-        ],
-      };
+router.get('/templates', authorize('report.generate'), (req: AuthenticatedRequest, res) => {
+  try {
+    const templates = {
+      pdf: [
+        {
+          id: 'standard',
+          name: 'Standard Report',
+          description: 'Basic report with data tables and summary',
+          features: ['Data tables', 'Summary statistics', 'Basic formatting'],
+        },
+        {
+          id: 'detailed',
+          name: 'Detailed Report',
+          description: 'Comprehensive report with charts and analysis',
+          features: ['Data tables', 'Charts', 'Detailed analysis', 'Recommendations'],
+        },
+        {
+          id: 'summary',
+          name: 'Executive Summary',
+          description: 'High-level overview for management',
+          features: ['Key metrics', 'Trends', 'Executive insights'],
+        },
+      ],
+      excel: [
+        {
+          id: 'standard',
+          name: 'Standard Workbook',
+          description: 'Multiple worksheets with data and summaries',
+          features: ['Multiple sheets', 'Data tables', 'Summary sheet', 'Formatting'],
+        },
+        {
+          id: 'pivot',
+          name: 'Pivot Table Report',
+          description: 'Interactive pivot tables for analysis',
+          features: ['Pivot tables', 'Charts', 'Interactive filters'],
+        },
+      ],
+      csv: [
+        {
+          id: 'standard',
+          name: 'Standard CSV',
+          description: 'Simple comma-separated values file',
+          features: ['Raw data', 'Headers', 'UTF-8 encoding'],
+        },
+        {
+          id: 'excel-compatible',
+          name: 'Excel Compatible',
+          description: 'CSV optimized for Excel import',
+          features: ['Excel formatting', 'Date formatting', 'Number formatting'],
+        },
+      ],
+    };
 
-      res.json({
-        success: true,
-        data: templates,
-      });
-    } catch (error) {
-      res.status(500).json({
-        success: false,
-        message: 'Failed to fetch export templates',
-        error: process.env.NODE_ENV === 'development' ? error : undefined,
-      });
-    }
+    res.json({
+      success: true,
+      data: templates,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch export templates',
+      error: process.env.NODE_ENV === 'development' ? error : undefined,
+    });
   }
-);
+});
 
 /**
  * GET /api/exports/formats
  * Get supported export formats and their capabilities
  */
-router.get(
-  '/formats',
-  requireRole([Role.ADMIN, Role.BACKEND_USER, Role.MANAGER, Role.FIELD_AGENT]),
-  (req: AuthenticatedRequest, res) => {
-    try {
-      const formats = {
-        pdf: {
-          name: 'PDF',
-          description: 'Portable Document Format with charts and formatting',
-          features: ['Charts', 'Formatting', 'Print-ready', 'Secure'],
-          maxRecords: 10000,
-          supportsCharts: true,
-          supportsImages: true,
-        },
-        excel: {
-          name: 'Excel',
-          description: 'Microsoft Excel format with multiple worksheets',
-          features: ['Multiple sheets', 'Formulas', 'Charts', 'Pivot tables'],
-          maxRecords: 100000,
-          supportsCharts: true,
-          supportsImages: false,
-        },
-        csv: {
-          name: 'CSV',
-          description: 'Comma-separated values for data analysis',
-          features: ['Raw data', 'Universal compatibility', 'Large datasets'],
-          maxRecords: 1000000,
-          supportsCharts: false,
-          supportsImages: false,
-        },
-        json: {
-          name: 'JSON',
-          description: 'JavaScript Object Notation for API integration',
-          features: ['Structured data', 'API friendly', 'Programmatic access'],
-          maxRecords: 100000,
-          supportsCharts: false,
-          supportsImages: false,
-        },
-      };
+router.get('/formats', authorize('report.download'), (req: AuthenticatedRequest, res) => {
+  try {
+    const formats = {
+      pdf: {
+        name: 'PDF',
+        description: 'Portable Document Format with charts and formatting',
+        features: ['Charts', 'Formatting', 'Print-ready', 'Secure'],
+        maxRecords: 10000,
+        supportsCharts: true,
+        supportsImages: true,
+      },
+      excel: {
+        name: 'Excel',
+        description: 'Microsoft Excel format with multiple worksheets',
+        features: ['Multiple sheets', 'Formulas', 'Charts', 'Pivot tables'],
+        maxRecords: 100000,
+        supportsCharts: true,
+        supportsImages: false,
+      },
+      csv: {
+        name: 'CSV',
+        description: 'Comma-separated values for data analysis',
+        features: ['Raw data', 'Universal compatibility', 'Large datasets'],
+        maxRecords: 1000000,
+        supportsCharts: false,
+        supportsImages: false,
+      },
+      json: {
+        name: 'JSON',
+        description: 'JavaScript Object Notation for API integration',
+        features: ['Structured data', 'API friendly', 'Programmatic access'],
+        maxRecords: 100000,
+        supportsCharts: false,
+        supportsImages: false,
+      },
+    };
 
-      res.json({
-        success: true,
-        data: formats,
-      });
-    } catch (error) {
-      res.status(500).json({
-        success: false,
-        message: 'Failed to fetch export formats',
-        error: process.env.NODE_ENV === 'development' ? error : undefined,
-      });
-    }
+    res.json({
+      success: true,
+      data: formats,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch export formats',
+      error: process.env.NODE_ENV === 'development' ? error : undefined,
+    });
   }
-);
+});
 
 /**
  * SCHEDULED REPORTS ROUTES
@@ -358,80 +337,48 @@ router.get(
  * POST /api/exports/scheduled
  * Create a new scheduled report
  */
-router.post(
-  '/scheduled',
-  requireRole([Role.ADMIN, Role.BACKEND_USER, Role.MANAGER]),
-  createScheduledReport
-);
+router.post('/scheduled', authorize('report.generate'), createScheduledReport);
 
 /**
  * GET /api/exports/scheduled
  * Get all scheduled reports for the current user
  */
-router.get(
-  '/scheduled',
-  requireRole([Role.ADMIN, Role.BACKEND_USER, Role.MANAGER, Role.FIELD_AGENT]),
-  getScheduledReports
-);
+router.get('/scheduled', authorize('report.download'), getScheduledReports);
 
 /**
  * GET /api/exports/scheduled/:id
  * Get a specific scheduled report
  */
-router.get(
-  '/scheduled/:id',
-  requireRole([Role.ADMIN, Role.BACKEND_USER, Role.MANAGER, Role.FIELD_AGENT]),
-  getScheduledReport
-);
+router.get('/scheduled/:id', authorize('report.download'), getScheduledReport);
 
 /**
  * PUT /api/exports/scheduled/:id
  * Update a scheduled report
  */
-router.put(
-  '/scheduled/:id',
-  requireRole([Role.ADMIN, Role.BACKEND_USER, Role.MANAGER]),
-  updateScheduledReport
-);
+router.put('/scheduled/:id', authorize('report.generate'), updateScheduledReport);
 
 /**
  * DELETE /api/exports/scheduled/:id
  * Delete a scheduled report
  */
-router.delete(
-  '/scheduled/:id',
-  requireRole([Role.ADMIN, Role.BACKEND_USER, Role.MANAGER]),
-  deleteScheduledReport
-);
+router.delete('/scheduled/:id', authorize('report.generate'), deleteScheduledReport);
 
 /**
  * PATCH /api/exports/scheduled/:id/toggle
  * Toggle scheduled report active status
  */
-router.patch(
-  '/scheduled/:id/toggle',
-  requireRole([Role.ADMIN, Role.BACKEND_USER, Role.MANAGER]),
-  toggleScheduledReport
-);
+router.patch('/scheduled/:id/toggle', authorize('report.generate'), toggleScheduledReport);
 
 /**
  * GET /api/exports/scheduled/:id/history
  * Get execution history for a scheduled report
  */
-router.get(
-  '/scheduled/:id/history',
-  requireRole([Role.ADMIN, Role.BACKEND_USER, Role.MANAGER]),
-  getScheduledReportHistory
-);
+router.get('/scheduled/:id/history', authorize('report.generate'), getScheduledReportHistory);
 
 /**
  * POST /api/exports/scheduled/:id/test
  * Test a scheduled report (execute immediately)
  */
-router.post(
-  '/scheduled/:id/test',
-  requireRole([Role.ADMIN, Role.BACKEND_USER, Role.MANAGER]),
-  testScheduledReport
-);
+router.post('/scheduled/:id/test', authorize('report.generate'), testScheduledReport);
 
 export default router;

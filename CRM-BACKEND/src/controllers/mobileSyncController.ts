@@ -1,5 +1,4 @@
 import type { Response } from 'express';
-import { Role } from '../types/auth'; // Import Role enum
 import type {
   MobileSyncUploadRequest,
   MobileSyncDownloadResponse,
@@ -47,6 +46,7 @@ import { config } from '../config';
 import { query } from '@/config/database';
 import { logger } from '../utils/logger';
 import { EnterpriseMobileSyncService } from '../services/enterpriseMobileSyncService';
+import { isFieldExecutionActor } from '@/security/rbacAccess';
 
 export class MobileSyncController {
   /**
@@ -57,9 +57,9 @@ export class MobileSyncController {
     try {
       const { lastSyncTimestamp, deviceId, appVersion, platform } = req.body;
       const userId = req.user?.id;
-      const userRole = req.user?.role;
+      const isExecutionActor = isFieldExecutionActor(req.user);
 
-      if (userRole !== Role.FIELD_AGENT) {
+      if (!isExecutionActor) {
         return res.status(403).json({
           success: false,
           message: 'Enterprise sync is only available for field agents',
@@ -98,7 +98,7 @@ export class MobileSyncController {
     try {
       const { localChanges, deviceInfo, lastSyncTimestamp }: MobileSyncUploadRequest = req.body;
       const userId = req.user?.id;
-      const userRole = req.user?.role;
+      const isExecutionActor = isFieldExecutionActor(req.user);
 
       if (!localChanges) {
         return res.status(400).json({
@@ -123,7 +123,12 @@ export class MobileSyncController {
       if (localChanges.cases && localChanges.cases.length > 0) {
         for (const caseChange of localChanges.cases) {
           try {
-            await MobileSyncController.processCaseChange(caseChange, userId, userRole, syncResults);
+            await MobileSyncController.processCaseChange(
+              caseChange,
+              userId,
+              isExecutionActor,
+              syncResults
+            );
           } catch (error) {
             const syncError = error as SyncControllerError;
             if (
@@ -232,7 +237,7 @@ export class MobileSyncController {
   static async downloadSync(this: void, req: AuthenticatedRequest, res: Response) {
     try {
       const userId = req.user?.id;
-      const userRole = req.user?.role;
+      const isExecutionActor = isFieldExecutionActor(req.user);
       const lastSyncTimestamp = (req.query.lastSyncTimestamp as unknown as string) || '';
       const limit = Number(req.query.limit) || config.mobile.syncBatchSize;
 
@@ -246,7 +251,7 @@ export class MobileSyncController {
       };
 
       // Role-based filtering
-      if (userRole === Role.FIELD_AGENT) {
+      if (isExecutionActor) {
         where.hasAssignedTask = userId;
       }
 
@@ -380,7 +385,7 @@ export class MobileSyncController {
       logger.error('Error details:', {
         message: error instanceof Error ? error.message : String(error),
         userId: req.user?.id,
-        userRole: req.user?.role,
+        executionActor: isFieldExecutionActor(req.user),
       });
 
       res.status(500).json({
@@ -452,7 +457,7 @@ export class MobileSyncController {
       timestamp: string;
     },
     userId: string,
-    userRole: string,
+    isExecutionActor: boolean,
     syncResults: SyncResults
   ) {
     const { id, action, data, timestamp } = caseChange;
@@ -462,7 +467,7 @@ export class MobileSyncController {
         // Check if case exists and user has access
         const vals9: QueryParams = [id];
         let exSql7 = `SELECT id, "updatedAt" FROM cases WHERE id = $1`;
-        if (userRole === 'FIELD_AGENT') {
+        if (isExecutionActor) {
           exSql7 += ` AND EXISTS (
             SELECT 1 FROM verification_tasks vt
             WHERE vt.case_id = cases.id

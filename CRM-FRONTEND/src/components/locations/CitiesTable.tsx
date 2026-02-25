@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { MoreHorizontal, Edit, Trash2, Eye, Building, MapPin } from 'lucide-react';
+import { MoreHorizontal, Edit, Trash2, Eye, Building } from 'lucide-react';
 import { useMutationWithInvalidation } from '@/hooks/useStandardizedMutation';
 import { Button } from '@/components/ui/button';
 import {
@@ -106,7 +106,6 @@ export function CitiesTable({ data, isLoading }: CitiesTableProps) {
               <TableHead>City Name</TableHead>
               <TableHead>State</TableHead>
               <TableHead>Country</TableHead>
-              <TableHead>Pincodes</TableHead>
               <TableHead>Created Date</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
@@ -127,14 +126,6 @@ export function CitiesTable({ data, isLoading }: CitiesTableProps) {
                 </TableCell>
                 <TableCell>
                   <Badge className={baseBadgeStyle}>{formatBadgeLabel(city.country)}</Badge>
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center space-x-1">
-                    <MapPin className="h-3 w-3 text-gray-600" />
-                    <span className="text-sm text-gray-600">
-                      {city.pincodeCount || 0} pincodes
-                    </span>
-                  </div>
                 </TableCell>
                 <TableCell>
                   {new Date(city.createdAt).toLocaleDateString()}

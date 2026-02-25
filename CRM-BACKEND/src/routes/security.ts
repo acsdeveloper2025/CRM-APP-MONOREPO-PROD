@@ -1,14 +1,13 @@
 import { Router } from 'express';
-import { authenticateToken, requireRole } from '@/middleware/auth';
-import { Role } from '@/types/auth';
+import { authenticateToken } from '@/middleware/auth';
+import { authorize } from '@/middleware/authorize';
 import { body, param } from 'express-validator';
 import { validate } from '@/middleware/validation';
 import { query } from '@/config/database';
 
 const router = Router();
 
-// Admin only
-router.use(authenticateToken, requireRole([Role.ADMIN, Role.SUPER_ADMIN]));
+router.use(authenticateToken, authorize('settings.manage'));
 
 const macCreateValidation = [
   body('userId')

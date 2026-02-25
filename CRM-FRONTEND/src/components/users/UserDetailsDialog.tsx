@@ -13,6 +13,8 @@ import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { usersService } from '@/services/users';
 import { User as UserType } from '@/types/user';
+import { getRoleBadge } from '@/utils/roleUtils';
+import { getPrimaryRoleLabel } from '@/utils/userPermissionProfiles';
 
 interface UserDetailsDialogProps {
   user: UserType;
@@ -28,18 +30,6 @@ export function UserDetailsDialog({ user, open, onOpenChange }: UserDetailsDialo
   });
 
   const profile = userProfileData?.data;
-
-  const getRoleBadge = (role: string) => {
-    const roleConfig = {
-      ADMIN: { variant: 'default' as const, label: 'Admin' },
-      BACKEND: { variant: 'secondary' as const, label: 'Backend' },
-      BANK: { variant: 'outline' as const, label: 'Bank' },
-      FIELD: { variant: 'outline' as const, label: 'Field' },
-    };
-    
-    const config = roleConfig[role as keyof typeof roleConfig] || roleConfig.FIELD;
-    return <Badge variant={config.variant}>{config.label}</Badge>;
-  };
 
   const getStatusBadge = (isActive: boolean) => {
     return (
@@ -82,7 +72,7 @@ export function UserDetailsDialog({ user, open, onOpenChange }: UserDetailsDialo
                     <p className="text-gray-600">{user.username}</p>
                   </div>
                   <div className="flex items-center space-x-2">
-                    {getRoleBadge(user.roleName || user.role)}
+                    {getRoleBadge(getPrimaryRoleLabel(user))}
                     {getStatusBadge(user.isActive ?? false)}
                   </div>
                 </div>

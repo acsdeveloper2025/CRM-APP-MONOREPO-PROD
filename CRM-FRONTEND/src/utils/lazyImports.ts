@@ -83,11 +83,6 @@ export const CreateCasePage = createLazyComponent(
   'CreateCasePage'
 );
 
-export const EditCasePage = createLazyComponent(
-  () => import('@/pages/EditCasePage').then(module => ({ default: module.EditCasePage })),
-  'EditCasePage'
-);
-
 // User Management Pages
 export const UsersListPage = createLazyComponent(
   () => import('@/pages/UsersPage').then(module => ({ default: module.UsersPage })),
@@ -160,8 +155,8 @@ export const SettingsPage = createLazyComponent(
 );
 
 export const RoleManagementPage = createLazyComponent(
-  () => import('@/pages/RoleManagementPage'),
-  'RoleManagementPage'
+  () => import('@/pages/RolePermissionsAdminPage').then(module => ({ default: module.RolePermissionsAdminPage })),
+  'RolePermissionsAdminPage'
 );
 
 /*
@@ -278,7 +273,7 @@ export const routeComponents = {
   cases: {
     list: CasesListPage,
     create: CreateCasePage,
-    edit: EditCasePage,
+    edit: CreateCasePage,
     detail: CaseDetailPage,
   },
   

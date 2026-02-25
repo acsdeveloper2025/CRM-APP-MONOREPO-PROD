@@ -163,8 +163,8 @@ export const createProduct = async (req: AuthenticatedRequest, res: Response) =>
 
     // Create product in database
     const insertRes = await query(
-      `INSERT INTO products (id, name, code, "createdAt", "updatedAt")
-       VALUES (gen_random_uuid(), $1, $2, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+      `INSERT INTO products (name, code, "createdAt", "updatedAt")
+       VALUES ($1, $2, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
        RETURNING id, name, code, "createdAt", "updatedAt"`,
       [name, code]
     );
@@ -239,11 +239,14 @@ export const updateProduct = async (req: AuthenticatedRequest, res: Response) =>
       sets.push(`${key} = $${idx++}`);
       vals.push(updatePayload[key]);
     }
-    sets.push(`updatedAt = CURRENT_TIMESTAMP`);
+    sets.push(`"updatedAt" = CURRENT_TIMESTAMP`);
     vals.push(id);
 
     const updRes = await query(
-      `UPDATE products SET ${sets.join(', ')} WHERE id = $${idx} RETURNING id, name, code, createdAt, updatedAt`,
+      `UPDATE products
+       SET ${sets.join(', ')}
+       WHERE id = $${idx}
+       RETURNING id, name, code, "createdAt", "updatedAt"`,
       vals
     );
     const updatedProduct = updRes.rows[0];

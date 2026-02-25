@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useCaseAttachments } from '@/hooks/useCases';
 import type { Attachment } from '@/services/attachments';
 import { authenticatedFetch } from '@/services/api';
@@ -43,6 +43,14 @@ export const CaseAttachmentsSection: React.FC<CaseAttachmentsSectionProps> = ({ 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const attachments = (attachmentsResponse?.data || []) as Attachment[];
+
+  const getAttachmentSize = (attachment: Attachment): number => {
+    return Number(attachment.fileSize ?? attachment.size ?? 0);
+  };
+
+  const getAttachmentDate = (attachment: Attachment): string | null => {
+    return attachment.createdAt || attachment.uploadedAt || null;
+  };
 
   // Clean up object URL when dialog closes or component unmounts
   React.useEffect(() => {
@@ -307,7 +315,13 @@ export const CaseAttachmentsSection: React.FC<CaseAttachmentsSectionProps> = ({ 
                 <div>
                   <p className="text-sm font-medium">{attachment.originalName}</p>
                   <p className="text-xs text-gray-600">
-                    {formatFileSize(attachment.fileSize)} • {new Date(attachment.createdAt).toLocaleDateString()}
+                    {formatFileSize(getAttachmentSize(attachment))} •{' '}
+                    {(() => {
+                      const rawDate = getAttachmentDate(attachment);
+                      if (!rawDate) {return 'Unknown Date';}
+                      const parsed = new Date(rawDate);
+                      return Number.isNaN(parsed.getTime()) ? 'Unknown Date' : parsed.toLocaleDateString();
+                    })()}
                   </p>
                 </div>
               </div>
@@ -350,6 +364,9 @@ export const CaseAttachmentsSection: React.FC<CaseAttachmentsSectionProps> = ({ 
         <DialogContent className="max-w-4xl max-h-[80vh]">
           <DialogHeader>
             <DialogTitle>{previewAttachment?.originalName}</DialogTitle>
+            <DialogDescription className="sr-only">
+              Preview of the selected case attachment.
+            </DialogDescription>
           </DialogHeader>
           {previewAttachment && (
             <div className="flex justify-center">

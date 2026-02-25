@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { MoreHorizontal, Edit, Trash2, Eye, Shield, FileText } from 'lucide-react';
+import { MoreHorizontal, Edit, Trash2, Eye, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { baseBadgeStyle, formatBadgeLabel } from '@/lib/badgeStyles';
@@ -77,9 +77,6 @@ export const DocumentTypesTable: React.FC<DocumentTypesTableProps> = ({
             <TableRow>
               <TableHead>Name</TableHead>
               <TableHead>Code</TableHead>
-              <TableHead>Category</TableHead>
-              <TableHead>Properties</TableHead>
-              <TableHead>Status</TableHead>
               <TableHead>Usage</TableHead>
               <TableHead className="w-[70px]">Actions</TableHead>
             </TableRow>
@@ -87,7 +84,7 @@ export const DocumentTypesTable: React.FC<DocumentTypesTableProps> = ({
           <TableBody>
             {data.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-gray-600">
+                <TableCell colSpan={4} className="text-center py-8 text-gray-600">
                   No document types found
                 </TableCell>
               </TableRow>
@@ -99,44 +96,11 @@ export const DocumentTypesTable: React.FC<DocumentTypesTableProps> = ({
                       <FileText className="h-4 w-4 text-gray-600" />
                       <div>
                         <div className="font-medium">{documentType.name}</div>
-                        {documentType.description && (
-                          <div className="text-sm text-gray-600 truncate max-w-[200px]">
-                            {documentType.description}
-                          </div>
-                        )}
                       </div>
                     </div>
                   </TableCell>
                   <TableCell>
                     <Badge className={baseBadgeStyle}>{formatBadgeLabel(documentType.code)}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge className={baseBadgeStyle}>{formatBadgeLabel(documentType.category)}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex flex-wrap gap-1">
-                      {documentType.isGovernmentIssued && (
-                        <Badge className={baseBadgeStyle}>
-                          <Shield className="h-3 w-3 mr-1" />
-                          GOVT. ISSUED
-                        </Badge>
-                      )}
-                      {documentType.requiresVerification && (
-                        <Badge className={baseBadgeStyle}>
-                          VERIFICATION REQUIRED
-                        </Badge>
-                      )}
-                      {documentType.validityPeriodMonths && (
-                        <Badge className={baseBadgeStyle}>
-                          {documentType.validityPeriodMonths}M VALIDITY
-                        </Badge>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge className={baseBadgeStyle}>
-                      {documentType.isActive ? 'ACTIVE' : 'INACTIVE'}
-                    </Badge>
                   </TableCell>
                   <TableCell>
                     <div className="text-sm text-gray-600">

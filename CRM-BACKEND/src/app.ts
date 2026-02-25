@@ -39,6 +39,7 @@ import countriesRoutes from '@/routes/countries';
 import pincodesRoutes from '@/routes/pincodes';
 import areasRoutes from '@/routes/areas';
 import rolesRoutes from '@/routes/roles';
+import rbacRoutes from '@/routes/rbac';
 import departmentsRoutes from '@/routes/departments';
 import designationsRoutes from '@/routes/designations';
 
@@ -174,6 +175,8 @@ app.use('/api/countries', countriesRoutes);
 app.use('/api/pincodes', pincodesRoutes);
 app.use('/api/areas', areasRoutes);
 app.use('/api/roles', rolesRoutes);
+app.use('/api/rbac', rbacRoutes);
+app.use('/api/permissions', rbacRoutes);
 app.use('/api/departments', departmentsRoutes);
 app.use('/api/designations', designationsRoutes);
 

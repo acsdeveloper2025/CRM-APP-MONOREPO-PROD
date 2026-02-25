@@ -3,6 +3,8 @@ import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
 import { query, withTransaction } from '@/config/database';
 import type { QueryParams } from '@/types/database';
+import { getAssignedProductIds } from '@/middleware/productAccess';
+import { isScopedOperationsUser } from '@/security/rbacAccess';
 
 interface DatabaseError extends Error {
   code?: string;
@@ -19,7 +21,7 @@ export const getClients = async (req: AuthenticatedRequest, res: Response) => {
 
     logger.info('getClients controller called', {
       userId: req.user?.id,
-      userRole: req.user?.role,
+      scopedOpsUser: isScopedOperationsUser(req.user),
       query: req.query,
       clientFilter,
       clientFilterType: typeof clientFilter,
@@ -136,7 +138,7 @@ export const getClients = async (req: AuthenticatedRequest, res: Response) => {
 
       // Load document types through client relationships
       const dtMapRes = await query(
-        `SELECT cdt."clientId", dt.id, dt.name, dt.code, dt.category
+        `SELECT cdt."clientId", dt.id, dt.name, dt.code
          FROM "clientDocumentTypes" cdt
          JOIN "documentTypes" dt ON cdt."documentTypeId" = dt.id
          WHERE cdt."clientId" = ANY($1::integer[])`,
@@ -144,7 +146,7 @@ export const getClients = async (req: AuthenticatedRequest, res: Response) => {
       );
       dtMapRes.rows.forEach(r => {
         const arr = dtsByClient.get(r.clientId) || [];
-        arr.push({ id: r.id, name: r.name, code: r.code, category: r.category });
+        arr.push({ id: r.id, name: r.name, code: r.code });
         dtsByClient.set(r.clientId, arr);
       });
 
@@ -231,7 +233,7 @@ export const getClientById = async (req: AuthenticatedRequest, res: Response) =>
 
     // Load document types through client relationships
     const dtRes = await query(
-      `SELECT dt.id, dt.name, dt.code, dt.category
+      `SELECT dt.id, dt.name, dt.code
        FROM "clientDocumentTypes" cdt
        JOIN "documentTypes" dt ON cdt."documentTypeId" = dt.id
        WHERE cdt."clientId" = $1`,
@@ -421,7 +423,7 @@ export const createClient = async (req: AuthenticatedRequest, res: Response) => 
 
       // Load document types through client relationships
       const dtRes2 = await cx.query(
-        `SELECT dt.id, dt.name, dt.code, dt.category
+        `SELECT dt.id, dt.name, dt.code
          FROM "clientDocumentTypes" cdt
          JOIN "documentTypes" dt ON cdt."documentTypeId" = dt.id
          WHERE cdt."clientId" = $1`,
@@ -500,10 +502,58 @@ export const updateClient = async (req: AuthenticatedRequest, res: Response) => 
     const updateData = req.body as {
       name?: string;
       code?: string;
-      productIds?: string[];
-      verificationTypeIds?: string[];
-      documentTypeIds?: string[];
+      productIds?: unknown[];
+      verificationTypeIds?: unknown[];
+      documentTypeIds?: unknown[];
     };
+
+    const normalizeIdArray = (values: unknown[]): { normalized: number[]; invalid: boolean } => {
+      const normalized: number[] = [];
+      for (const value of values) {
+        if (value === null || value === undefined || value === '') {
+          continue;
+        }
+        const num = typeof value === 'number' ? value : Number(value);
+        if (!Number.isInteger(num) || num <= 0) {
+          return { normalized: [], invalid: true };
+        }
+        normalized.push(num);
+      }
+      return { normalized, invalid: false };
+    };
+
+    const normalizedProductIds = Array.isArray(updateData.productIds)
+      ? normalizeIdArray(updateData.productIds)
+      : null;
+    if (normalizedProductIds?.invalid) {
+      return res.status(400).json({
+        success: false,
+        message: 'productIds must contain only positive integer IDs',
+        error: { code: 'INVALID_PRODUCT_IDS' },
+      });
+    }
+
+    const normalizedVerificationTypeIds = Array.isArray(updateData.verificationTypeIds)
+      ? normalizeIdArray(updateData.verificationTypeIds)
+      : null;
+    if (normalizedVerificationTypeIds?.invalid) {
+      return res.status(400).json({
+        success: false,
+        message: 'verificationTypeIds must contain only positive integer IDs',
+        error: { code: 'INVALID_VERIFICATION_TYPE_IDS' },
+      });
+    }
+
+    const normalizedDocumentTypeIds = Array.isArray(updateData.documentTypeIds)
+      ? normalizeIdArray(updateData.documentTypeIds)
+      : null;
+    if (normalizedDocumentTypeIds?.invalid) {
+      return res.status(400).json({
+        success: false,
+        message: 'documentTypeIds must contain only positive integer IDs',
+        error: { code: 'INVALID_DOCUMENT_TYPE_IDS' },
+      });
+    }
 
     // Check if client exists
     const existRes = await query(`SELECT id, code FROM clients WHERE id = $1`, [id]);
@@ -544,13 +594,12 @@ export const updateClient = async (req: AuthenticatedRequest, res: Response) => 
       await cx.query(`UPDATE clients SET ${updates.join(', ')} WHERE id = $${i}`, vals);
 
       // Sync product mappings if provided
-      if (Array.isArray(updateData.productIds)) {
-        const ids = updateData.productIds;
+      if (normalizedProductIds) {
+        const ids = Array.from(new Set(normalizedProductIds.normalized));
         if (ids.length > 0) {
-          const numericIds = ids.map(Number);
           const prodCheck = await cx.query(
             `SELECT id FROM products WHERE id = ANY($1::integer[])`,
-            [numericIds]
+            [ids]
           );
           if (prodCheck.rowCount !== ids.length) {
             throw Object.assign(new Error('One or more products not found'), {
@@ -558,12 +607,11 @@ export const updateClient = async (req: AuthenticatedRequest, res: Response) => 
             });
           }
         }
-        const numericIds = ids.map(Number);
         await cx.query(
           `DELETE FROM "clientProducts" WHERE "clientId" = $1 AND "productId" <> ALL($2::integer[])`,
-          [Number(id), numericIds]
+          [Number(id), ids]
         );
-        for (const pid of Array.from(new Set(numericIds))) {
+        for (const pid of ids) {
           // Check if relationship already exists
           const existingRel = await cx.query(
             `SELECT id FROM "clientProducts" WHERE "clientId" = $1 AND "productId" = $2`,
@@ -580,13 +628,12 @@ export const updateClient = async (req: AuthenticatedRequest, res: Response) => 
       }
 
       // Sync verification type mappings through products if provided
-      if (Array.isArray(updateData.verificationTypeIds)) {
-        const vtIds = updateData.verificationTypeIds;
+      if (normalizedVerificationTypeIds) {
+        const vtIds = Array.from(new Set(normalizedVerificationTypeIds.normalized));
         if (vtIds.length > 0) {
-          const numericVtIds = vtIds.map(Number);
           const vtCheck = await cx.query(
             `SELECT id FROM "verificationTypes" WHERE id = ANY($1::integer[])`,
-            [numericVtIds]
+            [vtIds]
           );
           if (vtCheck.rowCount !== vtIds.length) {
             throw Object.assign(new Error('One or more verification types not found'), {
@@ -604,15 +651,14 @@ export const updateClient = async (req: AuthenticatedRequest, res: Response) => 
 
         if (productIds.length > 0) {
           // Remove existing product-verification type relationships for this client's products
-          const numericVtIds = vtIds.map(Number);
           await cx.query(
             `DELETE FROM "productVerificationTypes" WHERE "productId" = ANY($1::integer[]) AND "verificationTypeId" NOT IN (SELECT UNNEST($2::integer[]))`,
-            [productIds, numericVtIds]
+            [productIds, vtIds]
           );
 
           // Add new product-verification type relationships
           for (const productId of productIds) {
-            for (const vtId of numericVtIds) {
+            for (const vtId of vtIds) {
               // Check if relationship already exists
               const existingRel = await cx.query(
                 `SELECT id FROM "productVerificationTypes" WHERE "productId" = $1 AND "verificationTypeId" = $2`,
@@ -631,13 +677,12 @@ export const updateClient = async (req: AuthenticatedRequest, res: Response) => 
       }
 
       // Sync document type mappings if provided
-      if (Array.isArray(updateData.documentTypeIds)) {
-        const dtIds = updateData.documentTypeIds;
+      if (normalizedDocumentTypeIds) {
+        const dtIds = Array.from(new Set(normalizedDocumentTypeIds.normalized));
         if (dtIds.length > 0) {
-          const numericDtIds = dtIds.map(Number);
           const dtCheck = await cx.query(
             `SELECT id FROM "documentTypes" WHERE id = ANY($1::integer[])`,
-            [numericDtIds]
+            [dtIds]
           );
           if (dtCheck.rowCount !== dtIds.length) {
             throw Object.assign(new Error('One or more document types not found'), {
@@ -645,12 +690,11 @@ export const updateClient = async (req: AuthenticatedRequest, res: Response) => 
             });
           }
         }
-        const numericDtIds = dtIds.map(Number);
         await cx.query(
           `DELETE FROM "clientDocumentTypes" WHERE "clientId" = $1 AND "documentTypeId" <> ALL($2::integer[])`,
-          [Number(id), numericDtIds]
+          [Number(id), dtIds]
         );
-        for (const dtId of Array.from(new Set(numericDtIds))) {
+        for (const dtId of dtIds) {
           await cx.query(
             `INSERT INTO "clientDocumentTypes" ("clientId", "documentTypeId", "is_active", "createdAt")
              VALUES ($1, $2, true, CURRENT_TIMESTAMP)
@@ -678,7 +722,7 @@ export const updateClient = async (req: AuthenticatedRequest, res: Response) => 
 
       // Load document types through client relationships
       const dtRes3 = await cx.query(
-        `SELECT dt.id, dt.name, dt.code, dt.category
+        `SELECT dt.id, dt.name, dt.code
          FROM "clientDocumentTypes" cdt
          JOIN "documentTypes" dt ON cdt."documentTypeId" = dt.id
          WHERE cdt."clientId" = $1`,
@@ -851,17 +895,38 @@ export const getClientProducts = async (req: AuthenticatedRequest, res: Response
       });
     }
 
-    // Build where clause for active filter
-    const whereClause = isActive !== undefined ? 'AND cp."isActive" = $2' : '';
-    const isActiveStr =
-      typeof isActive === 'string' || typeof isActive === 'number' ? String(isActive) : 'false';
-    const params = isActive !== undefined ? [Number(id), isActiveStr === 'true'] : [Number(id)];
+    const filters: string[] = [];
+    const params: (number | boolean | number[])[] = [Number(id)];
+    let paramIndex = 2;
+
+    if (isActive !== undefined) {
+      const isActiveStr =
+        typeof isActive === 'string' || typeof isActive === 'number' ? String(isActive) : 'false';
+      filters.push(`cp."isActive" = $${paramIndex}`);
+      params.push(isActiveStr === 'true');
+      paramIndex++;
+    }
+
+    if (req.user?.id && isScopedOperationsUser(req.user)) {
+      const assignedProductIds = await getAssignedProductIds(req.user.id);
+      if (!assignedProductIds || assignedProductIds.length === 0) {
+        return res.json({
+          success: true,
+          data: [],
+        });
+      }
+      filters.push(`p.id = ANY($${paramIndex}::int[])`);
+      params.push(assignedProductIds);
+      paramIndex++;
+    }
+
+    const whereClause = filters.length > 0 ? ` AND ${filters.join(' AND ')}` : '';
 
     const productsRes = await query(
       `SELECT p.id, p.name, p.code, p.description, cp."createdAt" as "assignedAt"
        FROM "clientProducts" cp
        JOIN products p ON p.id = cp."productId"
-       WHERE cp."clientId" = $1 ${whereClause}
+       WHERE cp."clientId" = $1${whereClause}
        ORDER BY p.name`,
       params
     );

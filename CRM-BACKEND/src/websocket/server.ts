@@ -3,6 +3,12 @@ import jwt from 'jsonwebtoken';
 import { config } from '@/config';
 import { logger } from '@/config/logger';
 import type { JwtPayload } from '@/types/auth';
+import { loadUserAuthContext } from '@/middleware/auth';
+import {
+  hasSystemScopeBypass,
+  isFieldExecutionActor,
+  isScopedOperationsUser,
+} from '@/security/rbacAccess';
 import { MobileWebSocketEvents } from './mobileEvents';
 import type { NotificationCaseData } from './eventTypes';
 
@@ -13,8 +19,14 @@ let mobileEvents: MobileWebSocketEvents | null = null;
 interface AuthenticatedSocket extends Socket {
   user?: {
     id: string;
-    username: string;
-    role: string;
+    permissionCodes: string[];
+    capabilities: {
+      systemScopeBypass: boolean;
+      operationalScope: boolean;
+      executionActor: boolean;
+    };
+    assignedClientIds: number[];
+    assignedProductIds: number[];
     deviceId?: string;
     platform?: string;
   };
@@ -37,14 +49,38 @@ export const initializeWebSocket = (io: SocketIOServer): void => {
 
     try {
       const decoded = jwt.verify(token, config.jwtSecret) as JwtPayload;
-      socket.user = {
-        id: decoded.userId,
-        username: decoded.username,
-        role: decoded.role,
-        deviceId,
-        platform,
-      };
-      next();
+      void (async () => {
+        const userContext = await loadUserAuthContext(decoded.userId);
+        if (!userContext) {
+          next(new Error('Authentication error: User not found'));
+          return;
+        }
+
+        const userLike = {
+          id: userContext.id,
+          permissionCodes: userContext.permissionCodes,
+          assignedClientIds: userContext.assignedClientIds,
+          assignedProductIds: userContext.assignedProductIds,
+        };
+
+        socket.user = {
+          id: userContext.id,
+          permissionCodes: userContext.permissionCodes,
+          capabilities: {
+            systemScopeBypass: hasSystemScopeBypass(userLike),
+            operationalScope: isScopedOperationsUser(userLike),
+            executionActor: isFieldExecutionActor(userLike),
+          },
+          assignedClientIds: userContext.assignedClientIds,
+          assignedProductIds: userContext.assignedProductIds,
+          deviceId,
+          platform,
+        };
+        next();
+      })().catch(error => {
+        logger.error('WebSocket auth context load failed:', error);
+        next(new Error('Authentication error: Context load failed'));
+      });
     } catch (error) {
       logger.error('WebSocket authentication failed:', error);
       next(new Error('Authentication error: Invalid token'));
@@ -57,13 +93,40 @@ export const initializeWebSocket = (io: SocketIOServer): void => {
       return;
     }
 
-    logger.info(`User ${socket.user.username} connected to WebSocket`);
+    logger.info(`User ${socket.user.id} connected to WebSocket`);
 
     // Join user to their personal room
     void socket.join(`user:${socket.user.id}`);
 
-    // Join user to role-based rooms
-    void socket.join(`role:${socket.user.role}`);
+    // Join permission-group rooms (supervisory/operations routing)
+    if (
+      socket.user.permissionCodes.includes('*') ||
+      socket.user.permissionCodes.includes('case.assign')
+    ) {
+      void socket.join('perm:operations');
+    }
+    if (
+      socket.user.permissionCodes.includes('*') ||
+      socket.user.permissionCodes.includes('review.approve')
+    ) {
+      void socket.join('perm:review');
+    }
+    if (
+      socket.user.permissionCodes.includes('*') ||
+      socket.user.permissionCodes.includes('billing.generate')
+    ) {
+      void socket.join('perm:billing');
+    }
+
+    // Join scope rooms for operational users
+    if (socket.user.capabilities.operationalScope || socket.user.capabilities.systemScopeBypass) {
+      socket.user.assignedClientIds.forEach(clientId => {
+        void socket.join(`client:${clientId}`);
+      });
+      socket.user.assignedProductIds.forEach(productId => {
+        void socket.join(`product:${productId}`);
+      });
+    }
 
     // Join device-specific room for mobile apps
     if (socket.user.deviceId) {
@@ -78,13 +141,13 @@ export const initializeWebSocket = (io: SocketIOServer): void => {
     // Handle case updates subscription
     socket.on('subscribe:case', (caseId: string) => {
       void socket.join(`case:${caseId}`);
-      logger.info(`User ${socket.user?.username} subscribed to case ${caseId}`);
+      logger.info(`User ${socket.user?.id} subscribed to case ${caseId}`);
     });
 
     // Handle case updates unsubscription
     socket.on('unsubscribe:case', (caseId: string) => {
       void socket.leave(`case:${caseId}`);
-      logger.info(`User ${socket.user?.username} unsubscribed from case ${caseId}`);
+      logger.info(`User ${socket.user?.id} unsubscribed from case ${caseId}`);
     });
 
     // Handle real-time location updates
@@ -95,7 +158,7 @@ export const initializeWebSocket = (io: SocketIOServer): void => {
         socket.to(`case:${data.caseId}`).emit('location:updated', {
           caseId: data.caseId,
           userId: socket.user?.id,
-          username: socket.user?.username,
+          username: socket.user?.id,
           latitude: data.latitude,
           longitude: data.longitude,
           timestamp: new Date().toISOString(),
@@ -109,7 +172,7 @@ export const initializeWebSocket = (io: SocketIOServer): void => {
       socket.to(`case:${data.caseId}`).emit('case:status:updated', {
         caseId: data.caseId,
         status: data.status,
-        updatedBy: socket.user?.username,
+        updatedBy: socket.user?.id,
         timestamp: new Date().toISOString(),
       });
     });
@@ -119,7 +182,7 @@ export const initializeWebSocket = (io: SocketIOServer): void => {
       socket.to(`case:${data.caseId}`).emit('case:typing:update', {
         caseId: data.caseId,
         userId: socket.user?.id,
-        username: socket.user?.username,
+        username: socket.user?.id,
         isTyping: data.isTyping,
       });
     });
@@ -128,7 +191,7 @@ export const initializeWebSocket = (io: SocketIOServer): void => {
 
     // Handle mobile app state changes
     socket.on('mobile:app:state', (data: { state: 'foreground' | 'background' | 'inactive' }) => {
-      logger.info(`Mobile app state changed for user ${socket.user?.username}: ${data.state}`);
+      logger.info(`Mobile app state changed for user ${socket.user?.id}: ${data.state}`);
       // Update user's online status or handle background sync
     });
 
@@ -155,7 +218,7 @@ export const initializeWebSocket = (io: SocketIOServer): void => {
         socket.to(`case:${data.caseId}`).emit('mobile:location:update', {
           caseId: data.caseId,
           userId: socket.user?.id,
-          username: socket.user?.username,
+          username: socket.user?.id,
           location: {
             latitude: data.latitude,
             longitude: data.longitude,
@@ -174,7 +237,7 @@ export const initializeWebSocket = (io: SocketIOServer): void => {
         socket.to(`case:${data.caseId}`).emit('mobile:form:progress', {
           caseId: data.caseId,
           userId: socket.user?.id,
-          username: socket.user?.username,
+          username: socket.user?.id,
           formType: data.formType,
           progress: data.progress,
           timestamp: new Date().toISOString(),
@@ -190,7 +253,7 @@ export const initializeWebSocket = (io: SocketIOServer): void => {
         socket.to(`case:${data.caseId}`).emit('mobile:photo:update', {
           caseId: data.caseId,
           userId: socket.user?.id,
-          username: socket.user?.username,
+          username: socket.user?.id,
           photoCount: data.photoCount,
           hasGeoLocation: data.hasGeoLocation,
           timestamp: new Date().toISOString(),
@@ -203,7 +266,7 @@ export const initializeWebSocket = (io: SocketIOServer): void => {
       'mobile:connectivity',
       (data: { isOnline: boolean; connectionType: string; pendingSync: number }) => {
         logger.info(
-          `Mobile connectivity update for user ${socket.user?.username}: ${data.isOnline ? 'online' : 'offline'}`
+          `Mobile connectivity update for user ${socket.user?.id}: ${data.isOnline ? 'online' : 'offline'}`
         );
 
         // If coming back online with pending sync, trigger sync
@@ -221,7 +284,7 @@ export const initializeWebSocket = (io: SocketIOServer): void => {
     socket.on('mobile:notification:ack', (data: { notificationId: string }) => {
       void (async () => {
         logger.info(
-          `Push notification acknowledged by user ${socket.user?.username}: ${data.notificationId}`
+          `Push notification acknowledged by user ${socket.user?.id}: ${data.notificationId}`
         );
 
         // Update notification status in audit log
@@ -237,7 +300,7 @@ export const initializeWebSocket = (io: SocketIOServer): void => {
 
     // Handle disconnect
     socket.on('disconnect', reason => {
-      logger.info(`User ${socket.user?.username} disconnected from WebSocket: ${reason}`);
+      logger.info(`User ${socket.user?.id} disconnected from WebSocket: ${reason}`);
     });
 
     // Send welcome message
@@ -275,14 +338,25 @@ export const emitNotification = (
   });
 };
 
-export const emitBroadcast = (
+export const emitPermissionGroupBroadcast = (
   io: SocketIOServer,
-  role: string,
+  permissionGroup: 'operations' | 'review' | 'billing',
   data: Record<string, unknown>
 ): void => {
-  io.to(`role:${role}`).emit('broadcast', {
+  io.to(`perm:${permissionGroup}`).emit('broadcast', {
     ...data,
     timestamp: new Date().toISOString(),
+  });
+};
+
+export const emitPermissionsUpdated = (io: SocketIOServer, userIds: string[] | string): void => {
+  const ids = Array.isArray(userIds) ? userIds : [userIds];
+  ids.forEach(userId => {
+    io.to(`user:${userId}`).emit('permissions_updated', {
+      type: 'PERMISSIONS_UPDATED',
+      userId,
+      timestamp: new Date().toISOString(),
+    });
   });
 };
 

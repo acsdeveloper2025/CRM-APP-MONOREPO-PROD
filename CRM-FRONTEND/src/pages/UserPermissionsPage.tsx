@@ -11,6 +11,12 @@ import { ClientAssignmentSection } from '@/components/users/ClientAssignmentSect
 import { ProductAssignmentSection } from '@/components/users/ProductAssignmentSection';
 import { TerritoryAssignmentSection } from '@/components/users/TerritoryAssignmentSection';
 import type { User as UserType, UserClientAssignment, UserProductAssignment } from '@/types/user';
+import {
+  getPrimaryRoleLabel,
+  isAdminLikeUser,
+  isBackendScopedUser,
+  isFieldAgentUser,
+} from '@/utils/userPermissionProfiles';
 
 export function UserPermissionsPage() {
   const { userId } = useParams<{ userId: string }>();
@@ -81,6 +87,10 @@ export function UserPermissionsPage() {
   }
 
   const user: UserType = userData.data;
+  const adminLike = isAdminLikeUser(user);
+  const backendScoped = isBackendScopedUser(user);
+  const fieldAgent = isFieldAgentUser(user);
+  const roleLabel = getPrimaryRoleLabel(user);
 
   return (
     <div className="space-y-6">
@@ -120,8 +130,8 @@ export function UserPermissionsPage() {
             </div>
             <div>
               <p className="text-sm font-medium text-gray-600">Role</p>
-              <Badge variant={user.role === 'SUPER_ADMIN' ? 'default' : 'secondary'}>
-                {user.role}
+              <Badge variant={adminLike ? 'default' : 'secondary'}>
+                {roleLabel}
               </Badge>
             </div>
             <div>
@@ -135,27 +145,25 @@ export function UserPermissionsPage() {
       </Card>
 
       {/* Role-based Access Control Info */}
-      {user.role === 'SUPER_ADMIN' && (
+      {adminLike && (
         <Alert>
           <Shield className="h-4 w-4" />
           <AlertDescription>
-            <strong>SUPER_ADMIN Access:</strong> This user has unrestricted access to all clients and products. 
-            Client and product assignments do not apply to SUPER_ADMIN users.
+            <strong>Administrative Access:</strong> This user has elevated access and is not restricted by client/product assignment scoping.
           </AlertDescription>
         </Alert>
       )}
 
-      {user.role !== 'BACKEND_USER' && user.role !== 'SUPER_ADMIN' && (
+      {!backendScoped && !adminLike && (
         <Alert>
           <AlertDescription>
-            <strong>Role-based Access:</strong> Client and product access control only applies to BACKEND_USER users.
-            This user&apos;s role ({user.role}) has different permission structures.
+            <strong>Permission-based Access:</strong> Client and product assignment scoping applies only to users with case assignment permissions.
           </AlertDescription>
         </Alert>
       )}
 
       {/* Client Assignment Section */}
-      {user.role === 'BACKEND_USER' && (
+      {backendScoped && (
         <>
           <ClientAssignmentSection user={user} />
           <ProductAssignmentSection user={user} />
@@ -163,7 +171,7 @@ export function UserPermissionsPage() {
       )}
 
       {/* Territory Assignment Section */}
-      {user.role === 'FIELD_AGENT' && <TerritoryAssignmentSection user={user} />}
+      {fieldAgent && <TerritoryAssignmentSection user={user} />}
 
       {/* Additional Permissions Info */}
       <Card>
@@ -177,17 +185,15 @@ export function UserPermissionsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className={`grid grid-cols-1 gap-6 ${
-            user.role === 'BACKEND_USER' ? 'md:grid-cols-2' : 'md:grid-cols-1'
-          }`}>
+          <div className={`grid grid-cols-1 gap-6 ${backendScoped ? 'md:grid-cols-2' : 'md:grid-cols-1'}`}>
               <div>
                 <h4 className="font-medium mb-2 flex items-center space-x-2">
                   <Building2 className="h-4 w-4" />
                   <span>Client Access</span>
                 </h4>
-                {user.role === 'SUPER_ADMIN' ? (
-                  <p className="text-sm text-gray-600">Full access to all clients</p>
-                ) : user.role === 'BACKEND_USER' ? (
+                {adminLike ? (
+                  <p className="text-sm text-gray-600">Full/elevated access to clients</p>
+                ) : backendScoped ? (
                   <div className="space-y-2">
                     {clientAssignmentsLoading ? (
                       <p className="text-sm text-gray-600">Loading assignments...</p>
@@ -221,9 +227,9 @@ export function UserPermissionsPage() {
                 <Package className="h-4 w-4" />
                 <span>Product Access</span>
               </h4>
-              {user.role === 'SUPER_ADMIN' ? (
-                <p className="text-sm text-gray-600">Full access to all products</p>
-              ) : user.role === 'BACKEND_USER' ? (
+              {adminLike ? (
+                <p className="text-sm text-gray-600">Full/elevated access to products</p>
+              ) : backendScoped ? (
                 <div className="space-y-2">
                   {productAssignmentsLoading ? (
                     <p className="text-sm text-gray-600">Loading assignments...</p>

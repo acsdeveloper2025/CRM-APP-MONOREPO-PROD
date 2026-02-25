@@ -257,7 +257,7 @@ export const createMobileAuditLogs = (req: AuthenticatedRequest, res: Response) 
     const processedLogs = logs.map(log => ({
       id: log.id || `audit_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       userId: req.user?.id || log.userId,
-      userName: req.user?.username || log.username || 'Mobile User',
+      userName: log.username || (req.user?.id ? `User ${req.user.id}` : 'Mobile User'),
       action: log.action || 'MOBILE_ACTION',
       resource: log.entityType || 'mobile',
       resourceId: log.entityId || 'unknown',
@@ -305,7 +305,7 @@ export const createAuditLog = (req: AuthenticatedRequest, res: Response) => {
     const newAuditLog = {
       id: `audit_${Date.now()}`,
       userId: req.user?.id,
-      userName: req.user?.username || 'Unknown User',
+      userName: req.user?.id ? `User ${req.user.id}` : 'Unknown User',
       action,
       resource,
       resourceId,
@@ -589,7 +589,7 @@ export const exportAuditLogs = (req: AuthenticatedRequest, res: Response) => {
     const exportAuditLog = {
       id: `audit_${Date.now()}`,
       userId: req.user?.id,
-      userName: req.user?.username || 'Unknown User',
+      userName: req.user?.id ? `User ${req.user.id}` : 'Unknown User',
       action: 'DATA_EXPORT',
       resource: 'audit-logs',
       resourceId: null,
@@ -656,7 +656,7 @@ export const cleanupAuditLogs = (req: AuthenticatedRequest, res: Response) => {
     const cleanupAuditLog = {
       id: `audit_${Date.now()}`,
       userId: req.user?.id,
-      userName: req.user?.username || 'Unknown User',
+      userName: req.user?.id ? `User ${req.user.id}` : 'Unknown User',
       action: 'SYSTEM_MAINTENANCE',
       resource: 'audit-logs',
       resourceId: null,

@@ -1,10 +1,7 @@
 import express from 'express';
 import { body, query, param } from 'express-validator';
-import {
-  authenticateToken,
-  authenticateTokenFlexible,
-  requireFieldOrHigher,
-} from '@/middleware/auth';
+import { authenticateToken, authenticateTokenFlexible } from '@/middleware/auth';
+import { authorize } from '@/middleware/authorize';
 import { validate } from '@/middleware/validation';
 import { uploadRateLimit } from '@/middleware/rateLimiter';
 import {
@@ -55,12 +52,18 @@ const bulkDeleteValidation = [
 ];
 
 // File upload routes
-router.post('/upload', authenticateToken, requireFieldOrHigher, uploadRateLimit, uploadAttachment);
+router.post(
+  '/upload',
+  authenticateToken,
+  authorize('case.update'),
+  uploadRateLimit,
+  uploadAttachment
+);
 
 router.post(
   '/bulk-upload',
   authenticateToken,
-  requireFieldOrHigher,
+  authorize('case.update'),
   uploadRateLimit,
   bulkUploadAttachments
 );
@@ -69,18 +72,18 @@ router.post(
 router.get(
   '/case/:caseId',
   authenticateToken,
-  requireFieldOrHigher,
+  authorize('case.view'),
   caseAttachmentsValidation,
   validate,
   getAttachmentsByCase
 );
 
-router.get('/types', authenticateToken, requireFieldOrHigher, getSupportedFileTypes);
+router.get('/types', authenticateToken, authorize('case.view'), getSupportedFileTypes);
 
 router.get(
   '/:id',
   authenticateToken,
-  requireFieldOrHigher,
+  authorize('case.view'),
   [param('id').trim().notEmpty().withMessage('Attachment ID is required')],
   validate,
   getAttachmentById
@@ -90,7 +93,7 @@ router.get(
 router.post(
   '/:id/download',
   authenticateToken,
-  requireFieldOrHigher,
+  authorize('case.view'),
   [param('id').trim().notEmpty().withMessage('Attachment ID is required')],
   validate,
   downloadAttachment
@@ -100,7 +103,7 @@ router.post(
 router.get(
   '/:id/serve',
   authenticateTokenFlexible,
-  requireFieldOrHigher,
+  authorize('case.view'),
   [param('id').trim().notEmpty().withMessage('Attachment ID is required')],
   validate,
   serveAttachment
@@ -110,7 +113,7 @@ router.get(
 router.put(
   '/:id',
   authenticateToken,
-  requireFieldOrHigher,
+  authorize('case.update'),
   updateAttachmentValidation,
   validate,
   updateAttachment
@@ -119,7 +122,7 @@ router.put(
 router.delete(
   '/:id',
   authenticateToken,
-  requireFieldOrHigher,
+  authorize('case.update'),
   [param('id').trim().notEmpty().withMessage('Attachment ID is required')],
   validate,
   deleteAttachment
@@ -128,7 +131,7 @@ router.delete(
 router.post(
   '/bulk-delete',
   authenticateToken,
-  requireFieldOrHigher,
+  authorize('case.update'),
   bulkDeleteValidation,
   validate,
   bulkDeleteAttachments

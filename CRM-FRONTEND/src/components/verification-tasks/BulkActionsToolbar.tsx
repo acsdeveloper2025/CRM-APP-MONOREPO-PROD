@@ -14,7 +14,7 @@ import {
   User
 } from 'lucide-react';
 import { useUsers } from '@/hooks/useUsers';
-import { USER_ROLES } from '@/types/constants';
+import { isFieldAgentUser } from '@/utils/userPermissionProfiles';
 
 interface BulkActionsToolbarProps {
   selectedCount: number;
@@ -32,7 +32,7 @@ export const BulkActionsToolbar: React.FC<BulkActionsToolbarProps> = ({
   const [loading, setLoading] = useState(false);
 
   const { data: usersData } = useUsers();
-  const fieldUsers = usersData?.filter(user => user.role === USER_ROLES.FIELD_AGENT) || [];
+  const fieldUsers = usersData?.filter(user => isFieldAgentUser(user)) || [];
 
   const handleBulkAssign = async () => {
     if (!assignedTo) {return;}

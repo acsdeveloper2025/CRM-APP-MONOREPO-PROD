@@ -9,12 +9,15 @@ export interface Attachment {
   originalName: string;
   filePath: string;
   fileSize: number;
+  size?: number;
   mimeType: string;
   category?: 'PHOTO' | 'DOCUMENT' | 'VIDEO' | 'AUDIO' | 'OTHER';
   description?: string;
   isPublic: boolean;
   uploadedBy: string;
+  verification_task_id?: string | null;
   createdAt: string;
+  uploadedAt?: string;
 }
 
 export interface UploadAttachmentData {
@@ -163,4 +166,3 @@ class AttachmentsService extends BaseApiService {
 
 export const attachmentsService = new AttachmentsService();
 export default attachmentsService;
-

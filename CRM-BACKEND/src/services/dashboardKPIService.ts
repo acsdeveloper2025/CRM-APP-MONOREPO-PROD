@@ -104,6 +104,8 @@ export class DashboardKPIService {
   static async getKPIs(filters: {
     clientId?: number;
     agentId?: string;
+    clientIds?: number[];
+    productIds?: number[];
   }): Promise<VerificationOperationsKPI> {
     // ----------------------------------------------------------------------
     // DATE MATH (7-Day Rolling Window)
@@ -112,7 +114,7 @@ export class DashboardKPIService {
     // PP: [Now-14d, Now-7d]
     // Note: We use Postgres intervals in SQL for precision, but passed params are helpful.
 
-    const { clientId, agentId } = filters;
+    const { clientId, agentId, clientIds, productIds } = filters;
 
     // Base WHERE clauses
     const conditions: string[] = ['1=1'];
@@ -122,6 +124,14 @@ export class DashboardKPIService {
     if (clientId) {
       conditions.push(`c."clientId" = $${idx++}`);
       params.push(clientId);
+    }
+    if (clientIds && clientIds.length > 0) {
+      conditions.push(`c."clientId" = ANY($${idx++}::int[])`);
+      params.push(clientIds);
+    }
+    if (productIds && productIds.length > 0) {
+      conditions.push(`c."productId" = ANY($${idx++}::int[])`);
+      params.push(productIds);
     }
     if (agentId) {
       conditions.push(`vt.assigned_to = $${idx++}`);
@@ -262,7 +272,17 @@ export class DashboardKPIService {
 
     const agentsQuery = `
       SELECT
-        (SELECT COUNT(*) FROM users WHERE role = 'FIELD_AGENT') as total_agents,
+        (
+          SELECT COUNT(*)
+          FROM users u
+          WHERE EXISTS (
+            SELECT 1
+            FROM user_roles urf
+            JOIN role_permissions rpf ON rpf.role_id = urf.role_id AND rpf.allowed = true
+            JOIN permissions pf ON pf.id = rpf.permission_id
+            WHERE urf.user_id = u.id AND pf.code = 'visit.submit'
+          )
+        ) as total_agents,
         (
           SELECT COUNT(DISTINCT assigned_to) 
           FROM verification_tasks 

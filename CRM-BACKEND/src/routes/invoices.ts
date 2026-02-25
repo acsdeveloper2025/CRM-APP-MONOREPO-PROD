@@ -1,6 +1,7 @@
 import express from 'express';
 import { body, query, param } from 'express-validator';
 import { authenticateToken } from '@/middleware/auth';
+import { authorize } from '@/middleware/authorize';
 import { validate } from '@/middleware/validation';
 import {
   getInvoices,
@@ -134,14 +135,15 @@ const markPaidValidation = [
 ];
 
 // Core CRUD routes
-router.get('/', listInvoicesValidation, validate, getInvoices);
+router.get('/', authorize('billing.download'), listInvoicesValidation, validate, getInvoices);
 
-router.get('/stats', getInvoiceStats);
+router.get('/stats', authorize('billing.download'), getInvoiceStats);
 
-router.post('/', createInvoiceValidation, validate, createInvoice);
+router.post('/', authorize('billing.generate'), createInvoiceValidation, validate, createInvoice);
 
 router.get(
   '/:id',
+  authorize('billing.download'),
   [param('id').trim().notEmpty().withMessage('Invoice ID is required')],
   validate,
   getInvoiceById
@@ -149,6 +151,7 @@ router.get(
 
 router.put(
   '/:id',
+  authorize('billing.generate'),
   [param('id').trim().notEmpty().withMessage('Invoice ID is required')],
   updateInvoiceValidation,
   validate,
@@ -157,6 +160,7 @@ router.put(
 
 router.delete(
   '/:id',
+  authorize('billing.generate'),
   [param('id').trim().notEmpty().withMessage('Invoice ID is required')],
   validate,
   deleteInvoice
@@ -165,6 +169,7 @@ router.delete(
 // Invoice operations
 router.post(
   '/:id/send',
+  authorize('billing.generate'),
   [param('id').trim().notEmpty().withMessage('Invoice ID is required')],
   sendInvoiceValidation,
   validate,
@@ -173,6 +178,7 @@ router.post(
 
 router.post(
   '/:id/mark-paid',
+  authorize('billing.approve'),
   [param('id').trim().notEmpty().withMessage('Invoice ID is required')],
   markPaidValidation,
   validate,
@@ -181,6 +187,7 @@ router.post(
 
 router.get(
   '/:id/download',
+  authorize('billing.download'),
   [param('id').trim().notEmpty().withMessage('Invoice ID is required')],
   validate,
   downloadInvoice

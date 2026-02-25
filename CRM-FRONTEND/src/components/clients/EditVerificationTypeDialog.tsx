@@ -27,6 +27,7 @@ import { VerificationType } from '@/types/client';
 
 const editVerificationTypeSchema = z.object({
   name: z.string().min(1, 'Verification type name is required').max(100, 'Name too long'),
+  code: z.string().min(2, 'Code is required').max(50, 'Code too long'),
 });
 
 type EditVerificationTypeFormData = z.infer<typeof editVerificationTypeSchema>;
@@ -42,6 +43,7 @@ export function EditVerificationTypeDialog({ verificationType, open, onOpenChang
     resolver: zodResolver(editVerificationTypeSchema),
     defaultValues: {
       name: verificationType.name,
+      code: verificationType.code || '',
     },
   });
 
@@ -49,6 +51,7 @@ export function EditVerificationTypeDialog({ verificationType, open, onOpenChang
     if (verificationType) {
       form.reset({
         name: verificationType.name,
+        code: verificationType.code || '',
       });
     }
   }, [verificationType, form]);
@@ -81,6 +84,26 @@ export function EditVerificationTypeDialog({ verificationType, open, onOpenChang
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="code"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Verification Type Code</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="e.g., RESIDENCE_VERIFICATION"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Unique identifier for this verification type
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             <FormField
               control={form.control}
               name="name"

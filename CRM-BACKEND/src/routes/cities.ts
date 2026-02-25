@@ -1,6 +1,7 @@
 import express from 'express';
 import { body, query, param } from 'express-validator';
 import { authenticateToken } from '@/middleware/auth';
+import { authorize } from '@/middleware/authorize';
 import { validate } from '@/middleware/validation';
 import { upload } from '@/middleware/upload';
 import {
@@ -18,6 +19,7 @@ const router = express.Router();
 
 // Apply authentication
 router.use(authenticateToken);
+router.use(authorize('settings.manage'));
 
 // Validation schemas
 const createCityValidation = [

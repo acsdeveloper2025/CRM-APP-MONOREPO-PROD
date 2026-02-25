@@ -86,7 +86,7 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
   // Fetch document types for selection
   const { data: documentTypesData } = useStandardizedQuery({
     queryKey: ['document-types'],
-    queryFn: () => documentTypesService.getDocumentTypes({ isActive: true }),
+    queryFn: () => documentTypesService.getDocumentTypes(),
     enabled: open,
     errorContext: 'Loading Document Types',
     errorFallbackMessage: 'Failed to load document types',
@@ -246,7 +246,11 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
                                     const currentIds = field.value || [];
                                     const productIdStr = String(product.id);
                                     if (checked) {
-                                      field.onChange([...currentIds, productIdStr]);
+                                      field.onChange(
+                                        currentIds.includes(productIdStr)
+                                          ? currentIds
+                                          : [...currentIds, productIdStr]
+                                      );
                                     } else {
                                       field.onChange(currentIds.filter(id => id !== productIdStr));
                                     }
@@ -297,7 +301,11 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
                                   onCheckedChange={(checked) => {
                                     const currentIds = field.value || [];
                                     if (checked) {
-                                      field.onChange([...currentIds, verificationType.id]);
+                                      field.onChange(
+                                        currentIds.includes(verificationType.id)
+                                          ? currentIds
+                                          : [...currentIds, verificationType.id]
+                                      );
                                     } else {
                                       field.onChange(currentIds.filter(id => id !== verificationType.id));
                                     }
@@ -336,7 +344,6 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
                     {currentDocumentTypes.map((documentType: DocumentType) => (
                       <Badge key={documentType.id} variant="secondary">
                         {documentType.name}
-                        <span className="ml-1 text-xs">({documentType.category})</span>
                       </Badge>
                     ))}
                   </div>
@@ -362,7 +369,11 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
                                   onCheckedChange={(checked) => {
                                     const currentIds = field.value || [];
                                     if (checked) {
-                                      field.onChange([...currentIds, documentType.id]);
+                                      field.onChange(
+                                        currentIds.includes(documentType.id)
+                                          ? currentIds
+                                          : [...currentIds, documentType.id]
+                                      );
                                     } else {
                                       field.onChange(currentIds.filter(id => id !== documentType.id));
                                     }
@@ -375,17 +386,7 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
                                   <div className="flex items-center justify-between">
                                     <div>
                                       <div className="text-gray-900">{documentType.name}</div>
-                                      <div className="text-xs text-gray-600">
-                                        {documentType.code} • {documentType.category}
-                                      </div>
-                                    </div>
-                                    <div className="flex gap-1">
-                                      {documentType.isGovernmentIssued && (
-                                        <Badge variant="outline" className="text-xs">Govt</Badge>
-                                      )}
-                                      {documentType.requiresVerification && (
-                                        <Badge variant="outline" className="text-xs">Verify</Badge>
-                                      )}
+                                      <div className="text-xs text-gray-600">{documentType.code}</div>
                                     </div>
                                   </div>
                                 </label>

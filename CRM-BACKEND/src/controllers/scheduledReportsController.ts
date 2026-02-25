@@ -1,8 +1,8 @@
 import type { Response } from 'express';
 import { ScheduledReportsService, type ScheduledReport } from '../services/ScheduledReportsService';
 import { logger } from '../utils/logger';
-import { Role } from '../types/auth';
 import type { AuthenticatedRequest } from '../middleware/auth';
+import { canManageScheduledReportsGlobally } from '@/security/rbacAccess';
 
 /**
  * Scheduled Reports Controller
@@ -100,7 +100,7 @@ export const getScheduledReports = async (req: AuthenticatedRequest, res: Respon
     const scheduledReportsService = ScheduledReportsService.getInstance();
 
     // For non-admin users, only show their own reports
-    const userId = req.user.role === Role.ADMIN ? undefined : req.user.id;
+    const userId = canManageScheduledReportsGlobally(req.user) ? undefined : req.user.id;
 
     const reports = await scheduledReportsService.getScheduledReports(userId);
 
@@ -138,7 +138,7 @@ export const getScheduledReport = async (req: AuthenticatedRequest, res: Respons
     }
 
     // Check if user has permission to view this report
-    if (req.user.role !== Role.ADMIN && report.createdBy !== req.user.id) {
+    if (!canManageScheduledReportsGlobally(req.user) && report.createdBy !== req.user.id) {
       return res.status(403).json({
         success: false,
         message: 'Access denied',
@@ -178,7 +178,7 @@ export const updateScheduledReport = async (req: AuthenticatedRequest, res: Resp
       });
     }
 
-    if (req.user.role !== Role.ADMIN && existingReport.createdBy !== req.user.id) {
+    if (!canManageScheduledReportsGlobally(req.user) && existingReport.createdBy !== req.user.id) {
       return res.status(403).json({
         success: false,
         message: 'Access denied',
@@ -248,7 +248,7 @@ export const deleteScheduledReport = async (req: AuthenticatedRequest, res: Resp
       });
     }
 
-    if (req.user.role !== Role.ADMIN && existingReport.createdBy !== req.user.id) {
+    if (!canManageScheduledReportsGlobally(req.user) && existingReport.createdBy !== req.user.id) {
       return res.status(403).json({
         success: false,
         message: 'Access denied',
@@ -299,7 +299,7 @@ export const toggleScheduledReport = async (req: AuthenticatedRequest, res: Resp
       });
     }
 
-    if (req.user.role !== Role.ADMIN && existingReport.createdBy !== req.user.id) {
+    if (!canManageScheduledReportsGlobally(req.user) && existingReport.createdBy !== req.user.id) {
       return res.status(403).json({
         success: false,
         message: 'Access denied',
@@ -411,7 +411,7 @@ export const testScheduledReport = async (req: AuthenticatedRequest, res: Respon
       });
     }
 
-    if (req.user.role !== Role.ADMIN && report.createdBy !== req.user.id) {
+    if (!canManageScheduledReportsGlobally(req.user) && report.createdBy !== req.user.id) {
       return res.status(403).json({
         success: false,
         message: 'Access denied',

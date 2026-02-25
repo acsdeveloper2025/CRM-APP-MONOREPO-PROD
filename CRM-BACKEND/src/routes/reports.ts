@@ -1,6 +1,8 @@
 import express from 'express';
 import { body, query } from 'express-validator';
 import { authenticateToken } from '@/middleware/auth';
+import { authorize } from '@/middleware/authorize';
+import { validateCaseRecordAccess } from '@/middleware/recordAccess';
 import { validate } from '@/middleware/validation';
 import { exportRateLimit, listRateLimit } from '@/middleware/rateLimiter';
 import {
@@ -24,6 +26,7 @@ const router = express.Router();
 
 // Apply authentication
 router.use(authenticateToken);
+router.use(authorize('report.generate'));
 
 // Validation schemas
 const dateRangeValidation = [
@@ -211,6 +214,7 @@ router.get('/case-analytics', caseAnalyticsValidation, validate, getCaseAnalytic
 
 router.get(
   '/case-timeline/:caseId',
+  ...validateCaseRecordAccess,
   [query('caseId').isString().trim().notEmpty().withMessage('Case ID is required')],
   validate,
   getCaseTimeline

@@ -28,6 +28,7 @@ import { useClients, useVerificationTypes, useProductsByClient } from '@/hooks/u
 import { usePincodes } from '@/hooks/useLocations';
 import { useAreasByPincode } from '@/hooks/useAreas';
 import { useAuth } from '@/hooks/useAuth';
+import { isBackendScopedUser } from '@/utils/userPermissionProfiles';
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import type { CustomerInfoData } from './CustomerInfoStep';
 import { rateTypesService } from '@/services/rateTypes';
@@ -162,23 +163,19 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
   const selectedClientId = form.watch('clientId');
   const { data: productsResponse } = useProductsByClient(selectedClientId);
   const allProducts = useMemo(() => productsResponse?.data || [], [productsResponse?.data]);
+  const didInitializeClientRef = useRef(false);
+  const previousClientIdRef = useRef<string>('');
 
   // Filter clients and products based on user role and assignments
   const clients = useMemo(() => {
-    if (!user || user.role === 'SUPER_ADMIN' || user.role === 'ADMIN') {
-      return allClients; // No filtering for admins
-    }
-    if (user.role === 'BACKEND_USER' && user.assignedClients) {
+    if (isBackendScopedUser(user) && Array.isArray(user?.assignedClients)) {
       return allClients.filter(client => user.assignedClients?.includes(client.id));
     }
     return allClients;
   }, [allClients, user]);
 
   const products = useMemo(() => {
-    if (!user || user.role === 'SUPER_ADMIN' || user.role === 'ADMIN') {
-      return allProducts; // No filtering for admins
-    }
-    if (user.role === 'BACKEND_USER' && user.assignedProducts) {
+    if (isBackendScopedUser(user) && Array.isArray(user?.assignedProducts)) {
       return allProducts.filter(product => user.assignedProducts?.includes(product.id));
     }
     return allProducts;
@@ -186,7 +183,15 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
 
   // Reset product when client changes
   useEffect(() => {
-    form.setValue('productId', '');
+    if (!didInitializeClientRef.current) {
+      didInitializeClientRef.current = true;
+      previousClientIdRef.current = selectedClientId;
+      return;
+    }
+    if (previousClientIdRef.current && selectedClientId !== previousClientIdRef.current) {
+      form.setValue('productId', '');
+    }
+    previousClientIdRef.current = selectedClientId;
   }, [selectedClientId, form]);
 
   // Add task
@@ -1126,4 +1131,3 @@ const TaskAttachmentsSection: React.FC<TaskAttachmentsSectionProps> = ({
     </div>
   );
 };
-

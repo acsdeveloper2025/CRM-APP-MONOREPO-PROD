@@ -6,7 +6,6 @@ import type {
   MobileAutoSaveResponse,
 } from '../types/mobile';
 import { AuthenticatedRequest } from '../middleware/auth';
-import { Role } from '../types/auth';
 import { QueryParams, VerificationAttachmentRow, WhereClause, CaseRow } from '../types/database';
 import { createAuditLog } from '../utils/auditLogger';
 import { config } from '../config';
@@ -18,6 +17,7 @@ import {
 import { TaskLookupService } from '../services/taskLookupService';
 import { CaseStatusSyncService } from '../services/caseStatusSyncService';
 import { logger } from '../utils/logger';
+import { isFieldExecutionActor } from '../security/rbacAccess';
 
 // Type guards and interfaces for WhereClause usage
 interface DateRangeFilter {
@@ -57,7 +57,7 @@ export class MobileCaseController {
   static async getMobileCases(this: void, req: AuthenticatedRequest, res: Response) {
     try {
       const userId = req.user?.id;
-      const userRole = req.user?.role;
+      const isExecutionActor = isFieldExecutionActor(req.user);
 
       const {
         page = 1,
@@ -80,7 +80,7 @@ export class MobileCaseController {
       // Role-based filtering
       // For FIELD_AGENT: Filter by task-level assignment (verification_tasks.assigned_to)
       // For other roles: Filter by task-level assignment if specified
-      if (userRole === Role.FIELD_AGENT) {
+      if (isExecutionActor) {
         where.hasAssignedTask = userId; // Task-level assignment
       } else if (assignedTo) {
         where.hasAssignedTask = assignedTo; // Task-level assignment
@@ -169,14 +169,14 @@ export class MobileCaseController {
 
       logger.info('🔍 Mobile API Debug:', {
         userId,
-        userRole,
+        isExecutionActor,
         where,
         whereSql,
         vals,
       });
 
       // For FIELD_AGENT: Add userId to vals for LATERAL JOIN to filter their assigned task
-      const userIdForTaskFilter = userRole === Role.FIELD_AGENT ? userId : null;
+      const userIdForTaskFilter = isExecutionActor ? userId : null;
       const taskFilterParamIndex = vals.length + 1;
 
       const listSql = `
@@ -274,7 +274,7 @@ export class MobileCaseController {
       logger.info('📋 Mobile Cases Results:', {
         totalCount,
         casesFound: cases.length,
-        userRole,
+        isExecutionActor,
         userId,
         firstCaseAssignedTo: cases[0]?.assignedTo,
         firstCaseId: cases[0]?.caseId,
@@ -410,7 +410,7 @@ export class MobileCaseController {
     try {
       const taskId = String(req.params.taskId || '');
       const userId = req.user?.id;
-      const userRole = req.user?.role;
+      const isExecutionActor = isFieldExecutionActor(req.user);
 
       // Resolve taskId to caseId
       const caseId = await TaskLookupService.resolveCaseId(taskId);
@@ -422,7 +422,7 @@ export class MobileCaseController {
       // For other roles: No additional filtering
 
       const vals2: QueryParams = [caseId];
-      const _userIdForTaskFilter = userRole === Role.FIELD_AGENT ? userId : null;
+      const _userIdForTaskFilter = isExecutionActor ? userId : null;
 
       let caseSql = `
         SELECT c.*,
@@ -473,7 +473,7 @@ export class MobileCaseController {
         WHERE c.id = $1`;
 
       // For FIELD_AGENT: Add task-level access control
-      if (userRole === Role.FIELD_AGENT) {
+      if (isExecutionActor) {
         caseSql += ` AND EXISTS (
           SELECT 1 FROM verification_tasks vt
           WHERE vt.case_id = c.id
@@ -631,7 +631,7 @@ export class MobileCaseController {
       const taskId = String(req.params.taskId || '');
       const { status, notes = null } = req.body;
       const userId = req.user?.id;
-      const userRole = req.user?.role;
+      const isExecutionActor = isFieldExecutionActor(req.user);
 
       // Resolve taskId to caseId
       const caseId = await TaskLookupService.resolveCaseId(taskId);
@@ -642,13 +642,13 @@ export class MobileCaseController {
         status,
         notes,
         userId,
-        userRole,
+        isExecutionActor,
       });
 
       const vals3: QueryParams = [caseId];
       let exSql = `SELECT id, "caseId", status, trigger, "completedAt" FROM cases WHERE id = $1`;
 
-      if (userRole === Role.FIELD_AGENT) {
+      if (isExecutionActor) {
         exSql += ` AND EXISTS (
           SELECT 1 FROM verification_tasks vt
           WHERE vt.case_id = cases.id
@@ -714,7 +714,7 @@ export class MobileCaseController {
         const { emitCaseStatusChanged, emitCaseUpdate, getSocketIO } = await import(
           '../websocket/server'
         );
-        const username = req.user?.username || 'Mobile User';
+        const username = req.user?.id ? `User ${req.user.id}` : 'Mobile User';
 
         // Emit case status change notification
         emitCaseStatusChanged(actualCaseId, existingCase.status, status, username);
@@ -773,9 +773,9 @@ export class MobileCaseController {
       const caseId = await TaskLookupService.resolveCaseId(taskId);
 
       const userId = req.user?.id;
-      const userRole = req.user?.role;
+      const isExecutionActor = isFieldExecutionActor(req.user);
 
-      if (userRole === Role.FIELD_AGENT) {
+      if (isExecutionActor) {
         return res.status(403).json({
           success: false,
           message: 'Insufficient permissions to update priority',
@@ -853,7 +853,7 @@ export class MobileCaseController {
       const taskId = String(req.params.taskId || '');
       const { formType, formData, timestamp }: MobileAutoSaveRequest = req.body;
       const userId = req.user?.id;
-      const userRole = req.user?.role;
+      const isExecutionActor = isFieldExecutionActor(req.user);
 
       // Resolve taskId to caseId
       const caseId = await TaskLookupService.resolveCaseId(taskId);
@@ -865,7 +865,7 @@ export class MobileCaseController {
       const vals5: QueryParams = [caseId];
       let exSql3 = `SELECT id FROM cases WHERE id = $1`;
 
-      if (userRole === Role.FIELD_AGENT) {
+      if (isExecutionActor) {
         exSql3 += ` AND EXISTS (
           SELECT 1 FROM verification_tasks vt
           WHERE vt.case_id = cases.id
@@ -940,7 +940,7 @@ export class MobileCaseController {
       const taskId = String(req.params.taskId || '');
       const formType = String(req.params.formType || '');
       const userId = req.user?.id;
-      const userRole = req.user?.role;
+      const isExecutionActor = isFieldExecutionActor(req.user);
 
       // Resolve taskId to caseId
       const caseId = await TaskLookupService.resolveCaseId(taskId);
@@ -952,7 +952,7 @@ export class MobileCaseController {
       const vals7: QueryParams = [caseId];
       let exSql5 = `SELECT id FROM cases WHERE id = $1`;
 
-      if (userRole === Role.FIELD_AGENT) {
+      if (isExecutionActor) {
         exSql5 += ` AND EXISTS (
           SELECT 1 FROM verification_tasks vt
           WHERE vt.case_id = cases.id
@@ -1019,13 +1019,13 @@ export class MobileCaseController {
       const caseId = String(req.params.caseId || '');
       const { note } = req.body;
       const userId = req.user?.id;
-      const userRole = req.user?.role;
+      const isExecutionActor = isFieldExecutionActor(req.user);
 
       logger.info(`📱 Mobile case note request:`, {
         caseId,
         note,
         userId,
-        userRole,
+        isExecutionActor,
       });
 
       if (!note || note.trim() === '') {
@@ -1040,7 +1040,7 @@ export class MobileCaseController {
       }
 
       // Validate case exists and user has access
-      const val = userRole === Role.FIELD_AGENT && req.user?.id ? [caseId, req.user.id] : [caseId];
+      const val = isExecutionActor && req.user?.id ? [caseId, req.user.id] : [caseId];
       const caseQuery = await query<CaseRow>(
         `
         SELECT
@@ -1053,7 +1053,7 @@ export class MobileCaseController {
         LEFT JOIN verification_tasks vt ON c.id = vt.case_id
         LEFT JOIN users u ON vt.assigned_to = u.id
         WHERE c.id = $1
-        ${userRole === Role.FIELD_AGENT ? 'AND vt.assigned_to = $2' : ''}
+        ${isExecutionActor ? 'AND vt.assigned_to = $2' : ''}
       `,
         val
       );
@@ -1128,13 +1128,13 @@ export class MobileCaseController {
       const caseId = String(req.params.caseId || '');
       const { reason } = req.body;
       const userId = req.user?.id;
-      const userRole = req.user?.role;
+      const isExecutionActor = isFieldExecutionActor(req.user);
 
       logger.info(`📱 Mobile case revocation request:`, {
         caseId,
         reason,
         userId,
-        userRole,
+        isExecutionActor,
       });
 
       if (!reason) {
@@ -1150,7 +1150,7 @@ export class MobileCaseController {
 
       // Validate case exists and user has access
       // Validate case exists and user has access
-      const val = userRole === Role.FIELD_AGENT && req.user?.id ? [caseId, req.user.id] : [caseId];
+      const val = isExecutionActor && req.user?.id ? [caseId, req.user.id] : [caseId];
       const caseQuery = await query<CaseRow>(
         `
         SELECT
@@ -1163,7 +1163,7 @@ export class MobileCaseController {
         LEFT JOIN verification_tasks vt ON c.id = vt.case_id
         LEFT JOIN users u ON vt.assigned_to = u.id
         WHERE c.id = $1
-        ${userRole === Role.FIELD_AGENT ? 'AND vt.assigned_to = $2' : ''}
+        ${isExecutionActor ? 'AND vt.assigned_to = $2' : ''}
       `,
         val
       );
@@ -1218,7 +1218,13 @@ export class MobileCaseController {
 
       // Get backend users to notify
       const backendUsersQuery = await query(`
-        SELECT id FROM users WHERE role = 'BACKEND_USER' AND "isActive" = true
+        SELECT DISTINCT u.id
+        FROM users u
+        JOIN user_roles ur ON ur.user_id = u.id
+        JOIN role_permissions rp ON rp.role_id = ur.role_id AND rp.allowed = true
+        JOIN permissions p ON p.id = rp.permission_id
+        WHERE u."isActive" = true
+          AND p.code IN ('case.reassign', 'review.view', 'report.generate')
       `);
       const backendUserIds = backendUsersQuery.rows.map(row => row.id);
 
@@ -1284,7 +1290,7 @@ export class MobileCaseController {
     try {
       const taskId = String(req.params.taskId || '');
       const userId = req.user?.id;
-      const userRole = req.user?.role;
+      const isExecutionActor = isFieldExecutionActor(req.user);
 
       logger.info(`📊 Getting task status for task: ${taskId}, user: ${userId}`);
 
@@ -1318,7 +1324,7 @@ export class MobileCaseController {
       const task = result.rows[0];
 
       // For field agents, verify they are assigned to this task
-      if (userRole === Role.FIELD_AGENT && task.assigned_to !== userId) {
+      if (isExecutionActor && task.assigned_to !== userId) {
         return res.status(403).json({
           success: false,
           message: 'Access denied. You are not assigned to this task.',
@@ -1483,7 +1489,7 @@ export class MobileCaseController {
     try {
       const taskId = String(req.params.taskId || '');
       const userId = req.user?.id;
-      const userRole = req.user?.role;
+      const isExecutionActor = isFieldExecutionActor(req.user);
 
       const taskQuery = await query(
         `
@@ -1504,7 +1510,7 @@ export class MobileCaseController {
 
       const task = taskQuery.rows[0];
 
-      if (userRole === Role.FIELD_AGENT && task.assigned_to !== userId) {
+      if (isExecutionActor && task.assigned_to !== userId) {
         return res.status(409).json({
           success: false,
           message: 'Task not assigned to user',
@@ -1712,13 +1718,13 @@ export class MobileCaseController {
       const taskId = String(req.params.taskId || '');
       const { reason } = req.body;
       const userId = req.user?.id;
-      const userRole = req.user?.role;
+      const isExecutionActor = isFieldExecutionActor(req.user);
 
       logger.info(`📱 Mobile task revocation request:`, {
         taskId,
         reason,
         userId,
-        userRole,
+        isExecutionActor,
       });
 
       if (!reason) {
@@ -1813,7 +1819,13 @@ export class MobileCaseController {
 
       // Get backend users to notify
       const backendUsersQuery = await query(`
-        SELECT id FROM users WHERE role IN ('BACKEND_USER', 'ADMIN', 'SUPER_ADMIN') AND "isActive" = true
+        SELECT DISTINCT u.id
+        FROM users u
+        JOIN user_roles ur ON ur.user_id = u.id
+        JOIN role_permissions rp ON rp.role_id = ur.role_id AND rp.allowed = true
+        JOIN permissions p ON p.id = rp.permission_id
+        WHERE u."isActive" = true
+          AND p.code IN ('case.reassign', 'review.view', 'report.generate')
       `);
       const backendUserIds = backendUsersQuery.rows.map(row => row.id);
 

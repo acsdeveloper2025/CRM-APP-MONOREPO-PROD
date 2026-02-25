@@ -55,18 +55,18 @@ export function EditPincodeDialog({ pincode, open, onOpenChange }: EditPincodeDi
   const form = useForm<EditPincodeFormData>({
     resolver: zodResolver(editPincodeSchema),
     defaultValues: {
-      code: pincode.code,
+      code: String(pincode.code),
       areas: pincode.areas?.map(area => String(area.id)) || [], // Convert areas to IDs or empty array
-      cityId: pincode.cityId,
+      cityId: String(pincode.cityId),
     },
   });
 
   useEffect(() => {
     if (pincode) {
       form.reset({
-        code: pincode.code,
+        code: String(pincode.code),
         areas: pincode.areas?.map(area => String(area.id)) || [], // Convert areas to IDs or empty array
-        cityId: pincode.cityId,
+        cityId: String(pincode.cityId),
       });
     }
   }, [pincode, form]);

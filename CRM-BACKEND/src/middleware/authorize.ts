@@ -1,0 +1,141 @@
+import type { NextFunction, Response } from 'express';
+import { query } from '@/config/database';
+import type { ApiResponse } from '@/types/api';
+import type { AuthenticatedRequest } from '@/middleware/auth';
+
+type OwnershipType = 'task' | 'case';
+
+interface AuthorizeOptions {
+  ownership?: OwnershipType;
+}
+
+const STRICT_OWNERSHIP_PERMISSIONS = [
+  'visit.start',
+  'visit.upload',
+  'visit.submit',
+  'visit.revoke',
+  'visit.revisit',
+] as const;
+
+const forbidden = (res: Response, permissionCode: string, reason?: string): void => {
+  const response: ApiResponse = {
+    success: false,
+    message: 'Insufficient permissions',
+    error: {
+      code: 'FORBIDDEN',
+      details: {
+        permission: permissionCode,
+        ...(reason ? { reason } : {}),
+      },
+    },
+  };
+  res.status(403).json(response);
+};
+
+const getTaskIdFromRequest = (req: AuthenticatedRequest): string | undefined => {
+  return req.params.taskId || req.params.id || (req.body?.taskId as string | undefined);
+};
+
+const getCaseIdFromRequest = (req: AuthenticatedRequest): string | undefined => {
+  return req.params.caseId || req.params.id || (req.body?.caseId as string | undefined);
+};
+
+const hasPermission = (req: AuthenticatedRequest, permissionCode: string): boolean => {
+  const codes = req.user?.permissionCodes || [];
+  return codes.includes('*') || codes.includes(permissionCode);
+};
+
+const enforceTaskOwnership = async (req: AuthenticatedRequest, res: Response): Promise<boolean> => {
+  const taskId = getTaskIdFromRequest(req);
+  if (!taskId || !req.user?.id) {
+    forbidden(res, 'ownership.task', 'TASK_ID_REQUIRED_FOR_OWNERSHIP');
+    return false;
+  }
+
+  const result = await query<{ id: string }>(
+    `SELECT id FROM verification_tasks WHERE id = $1 AND assigned_to = $2 LIMIT 1`,
+    [taskId, req.user.id]
+  );
+
+  if (result.rows.length === 0) {
+    forbidden(res, 'ownership.task', 'TASK_NOT_ASSIGNED_TO_USER');
+    return false;
+  }
+
+  return true;
+};
+
+const enforceCaseOwnership = async (req: AuthenticatedRequest, res: Response): Promise<boolean> => {
+  const caseId = getCaseIdFromRequest(req);
+  if (!caseId || !req.user?.id) {
+    forbidden(res, 'ownership.case', 'CASE_ID_REQUIRED_FOR_OWNERSHIP');
+    return false;
+  }
+
+  const result = await query<{ id: string }>(
+    `SELECT c.id
+     FROM cases c
+     WHERE c.id = $1
+       AND EXISTS (
+         SELECT 1 FROM verification_tasks vt
+         WHERE vt.case_id = c.id
+           AND vt.assigned_to = $2
+       )
+     LIMIT 1`,
+    [caseId, req.user.id]
+  );
+
+  if (result.rows.length === 0) {
+    forbidden(res, 'ownership.case', 'CASE_NOT_OWNED_BY_USER');
+    return false;
+  }
+
+  return true;
+};
+
+export const authorize = (permissionCode: string, options?: AuthorizeOptions) => {
+  return (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
+    void (async () => {
+      if (!req.user) {
+        const response: ApiResponse = {
+          success: false,
+          message: 'Authentication required',
+          error: { code: 'UNAUTHORIZED' },
+        };
+        res.status(401).json(response);
+        return;
+      }
+
+      if (!hasPermission(req, permissionCode)) {
+        forbidden(res, permissionCode);
+        return;
+      }
+
+      const requiresStrictOwnership = STRICT_OWNERSHIP_PERMISSIONS.includes(
+        permissionCode as (typeof STRICT_OWNERSHIP_PERMISSIONS)[number]
+      );
+      const canBypassOwnership = hasPermission(req, '*') && !requiresStrictOwnership;
+
+      if (options?.ownership && !canBypassOwnership) {
+        const ok =
+          options.ownership === 'task'
+            ? await enforceTaskOwnership(req, res)
+            : await enforceCaseOwnership(req, res);
+        if (!ok) {
+          return;
+        }
+      }
+
+      next();
+    })().catch(error => {
+      res.status(500).json({
+        success: false,
+        message: 'Authorization failed',
+        error: {
+          code: 'AUTHORIZATION_ERROR',
+          details: error instanceof Error ? error.message : String(error),
+        },
+      });
+    });
+  };
+};

@@ -1,6 +1,7 @@
 import express from 'express';
 import { body, query, param } from 'express-validator';
-import { authenticateToken, requirePermission } from '@/middleware/auth';
+import { authenticateToken } from '@/middleware/auth';
+import { authorize } from '@/middleware/authorize';
 import { validate } from '@/middleware/validation';
 import {
   getFieldAgentTerritories,
@@ -90,7 +91,7 @@ const _removeAssignmentValidation = [
 // GET /api/territory-assignments/field-agents - List all field agents with their territory assignments
 router.get(
   '/field-agents',
-  requirePermission('users', 'read'), // Use existing permission
+  authorize('user.view'),
   listFieldAgentsValidation,
   validate,
   getFieldAgentTerritories
@@ -99,7 +100,7 @@ router.get(
 // GET /api/territory-assignments/field-agents/:userId - Get specific field agent's territory assignments
 router.get(
   '/field-agents/:userId',
-  requirePermission('users', 'read'),
+  authorize('user.view'),
   [param('userId').isUUID().withMessage('User ID must be a valid UUID')],
   validate,
   getFieldAgentTerritoryById
@@ -108,7 +109,7 @@ router.get(
 // POST /api/territory-assignments/field-agents/:userId/pincodes - Assign pincodes to field agent
 router.post(
   '/field-agents/:userId/pincodes',
-  requirePermission('users', 'update'),
+  authorize('territory.assign'),
   assignPincodesValidation,
   validate,
   assignPincodesToFieldAgent
@@ -117,7 +118,7 @@ router.post(
 // POST /api/territory-assignments/field-agents/:userId/areas - Assign areas within pincodes to field agent
 router.post(
   '/field-agents/:userId/areas',
-  requirePermission('users', 'update'),
+  authorize('territory.assign'),
   assignAreasValidation,
   validate,
   assignAreasToFieldAgent
@@ -126,7 +127,7 @@ router.post(
 // POST /api/territory-assignments/field-agents/:userId/add-pincode - Add single pincode with areas (incremental)
 router.post(
   '/field-agents/:userId/add-pincode',
-  requirePermission('users', 'update'),
+  authorize('territory.assign'),
   [
     param('userId').isUUID().withMessage('User ID must be a valid UUID'),
     body('pincodeId').isInt({ min: 1 }).withMessage('Pincode ID must be a positive integer'),
@@ -143,7 +144,7 @@ router.post(
 // DELETE /api/territory-assignments/field-agents/:userId/pincodes/:pincodeId - Remove pincode assignment
 router.delete(
   '/field-agents/:userId/pincodes/:pincodeId',
-  requirePermission('users', 'delete'),
+  authorize('territory.assign'),
   [
     param('userId').isUUID().withMessage('User ID must be a valid UUID'),
     param('pincodeId').isInt({ min: 1 }).withMessage('Pincode ID must be a positive integer'),
@@ -155,7 +156,7 @@ router.delete(
 // DELETE /api/territory-assignments/field-agents/:userId/areas/:areaId - Remove area assignment
 router.delete(
   '/field-agents/:userId/areas/:areaId',
-  requirePermission('users', 'delete'),
+  authorize('territory.assign'),
   [
     param('userId').isUUID().withMessage('User ID must be a valid UUID'),
     param('areaId').isInt({ min: 1 }).withMessage('Area ID must be a positive integer'),
@@ -168,7 +169,7 @@ router.delete(
 // DELETE /api/territory-assignments/field-agents/:userId/all - Remove all territory assignments
 router.delete(
   '/field-agents/:userId/all',
-  requirePermission('users', 'delete'),
+  authorize('territory.assign'),
   [param('userId').isUUID().withMessage('User ID must be a valid UUID')],
   validate,
   removeAllTerritoryAssignments

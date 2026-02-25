@@ -10,6 +10,9 @@ import sharp from 'sharp';
 import { config } from '@/config';
 import { logger } from '@/config/logger';
 import type { QueryParams } from '@/types/database';
+import { getAssignedClientIds } from '@/middleware/clientAccess';
+import { getAssignedProductIds } from '@/middleware/productAccess';
+import { isFieldExecutionActor, isScopedOperationsUser } from '@/security/rbacAccess';
 
 // Configure storage for verification attachments
 const storage = multer.diskStorage({
@@ -96,6 +99,91 @@ export const verificationUpload = multer({
 });
 
 export class VerificationAttachmentController {
+  private static async verifyCaseLevelAccess(
+    req: Request,
+    caseId: string
+  ): Promise<{ ok: boolean; status?: number; body?: Record<string, unknown> }> {
+    const authReq = req as AuthenticatedRequest;
+    const userId = authReq.user?.id;
+    const user = authReq.user;
+
+    if (!userId || !user) {
+      return {
+        ok: false,
+        status: 401,
+        body: {
+          success: false,
+          message: 'Authentication required',
+          error: { code: 'UNAUTHORIZED' },
+        },
+      };
+    }
+
+    if (isFieldExecutionActor(user)) {
+      const taskAccess = await query(
+        `SELECT 1 FROM verification_tasks WHERE case_id = $1 AND assigned_to = $2 LIMIT 1`,
+        [caseId, userId]
+      );
+      if (taskAccess.rows.length === 0) {
+        return {
+          ok: false,
+          status: 403,
+          body: {
+            success: false,
+            message: 'Access denied',
+            error: { code: 'CASE_ACCESS_DENIED' },
+          },
+        };
+      }
+      return { ok: true };
+    }
+
+    if (isScopedOperationsUser(user)) {
+      const caseRes = await query<{ clientId: number; productId: number }>(
+        `SELECT "clientId", "productId" FROM cases WHERE id = $1`,
+        [caseId]
+      );
+      if (caseRes.rows.length === 0) {
+        return {
+          ok: false,
+          status: 404,
+          body: {
+            success: false,
+            message: 'Case not found',
+            error: { code: 'CASE_NOT_FOUND' },
+          },
+        };
+      }
+
+      const [assignedClientIds, assignedProductIds] = await Promise.all([
+        getAssignedClientIds(userId),
+        getAssignedProductIds(userId),
+      ]);
+      const caseRow = caseRes.rows[0];
+
+      if (
+        !assignedClientIds ||
+        !assignedProductIds ||
+        assignedClientIds.length === 0 ||
+        assignedProductIds.length === 0 ||
+        !assignedClientIds.includes(Number(caseRow.clientId)) ||
+        !assignedProductIds.includes(Number(caseRow.productId))
+      ) {
+        return {
+          ok: false,
+          status: 403,
+          body: {
+            success: false,
+            message: 'Access denied',
+            error: { code: 'CASE_ACCESS_DENIED' },
+          },
+        };
+      }
+    }
+
+    return { ok: true };
+  }
+
   /**
    * Upload verification images during form submission
    */
@@ -433,6 +521,14 @@ export class VerificationAttachmentController {
 
       const image = imageResult.rows[0];
 
+      const access = await VerificationAttachmentController.verifyCaseLevelAccess(
+        req,
+        image.case_id
+      );
+      if (!access.ok) {
+        return res.status(access.status || 403).json(access.body || { success: false });
+      }
+
       // Construct file path
       const filePath = path.join(
         process.cwd(),
@@ -454,11 +550,41 @@ export class VerificationAttachmentController {
 
       // Set appropriate headers
       res.setHeader('Content-Type', image.mimeType);
-      res.setHeader('Content-Length', image.fileSize);
       res.setHeader('Content-Disposition', `inline; filename="${image.originalName}"`);
       res.setHeader('Cache-Control', 'public, max-age=31536000'); // Cache for 1 year
 
-      // Stream the file
+      if (String(image.mimeType || '').startsWith('image/')) {
+        try {
+          const watermarkText = `ACS CRM | Case ${image.case_id} | Verification`;
+          const escapedText = watermarkText
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&apos;');
+
+          const svgOverlay = `
+            <svg width="820" height="56" xmlns="http://www.w3.org/2000/svg">
+              <rect x="0" y="0" width="820" height="56" fill="rgba(0,0,0,0.45)" />
+              <text x="14" y="35" fill="white" font-size="18" font-family="Arial, sans-serif">${escapedText}</text>
+            </svg>
+          `;
+
+          const watermarkedBuffer = await sharp(filePath)
+            .composite([{ input: Buffer.from(svgOverlay), gravity: 'southeast' }])
+            .toBuffer();
+
+          res.setHeader('Content-Length', watermarkedBuffer.length.toString());
+          return res.end(watermarkedBuffer);
+        } catch (watermarkError) {
+          console.error(
+            'Watermark generation failed, serving original verification image:',
+            watermarkError
+          );
+        }
+      }
+
+      res.setHeader('Content-Length', String(image.fileSize || 0));
       const fileStream = fsSync.createReadStream(filePath);
       fileStream.pipe(res);
     } catch (error) {
@@ -494,6 +620,14 @@ export class VerificationAttachmentController {
       }
 
       const image = imageResult.rows[0];
+
+      const access = await VerificationAttachmentController.verifyCaseLevelAccess(
+        req,
+        image.case_id
+      );
+      if (!access.ok) {
+        return res.status(access.status || 403).json(access.body || { success: false });
+      }
 
       // If no thumbnail, serve original image
       if (!image.thumbnailPath) {

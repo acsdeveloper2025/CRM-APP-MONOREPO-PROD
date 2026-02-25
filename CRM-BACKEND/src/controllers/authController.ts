@@ -10,18 +10,21 @@ import type { AuthenticatedRequest } from '@/middleware/auth';
 import { createAuditLog } from '@/utils/auditLogger';
 import type { LoginRequest, LoginResponse, JwtPayload, RefreshTokenPayload } from '@/types/auth';
 import type { ApiResponse } from '@/types/api';
+import {
+  getPrimaryRoleNameFromRbac,
+  isFieldExecutionActor,
+  isScopedOperationsUser,
+} from '@/security/rbacAccess';
 
 export const login = async (req: Request, res: Response): Promise<void> => {
   // eslint-disable-next-line no-useless-catch
   try {
     const { username, password }: LoginRequest = req.body;
 
-    // Find user by username (with roleId to check SUPER_ADMIN from roles table)
+    // Find user by username
     const userRes = await query(
-      `SELECT u.id, u.name, u.username, u.email, u."passwordHash", u.role, u."roleId", u."employeeId", u.designation, u.department, u."profilePhotoUrl",
-              r.name as "roleName"
+      `SELECT u.id, u.name, u.username, u.email, u."passwordHash", u."roleId", u."employeeId", u.designation, u.department, u."profilePhotoUrl"
        FROM users u
-       LEFT JOIN roles r ON u."roleId" = r.id
        WHERE u.username = $1`,
       [username]
     );
@@ -55,12 +58,33 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     }
 
     // Simplified authentication - only username and password required
+    const rbacRes = await query<{ roles: string[] | null; permissions: string[] | null }>(
+      `SELECT
+         COALESCE((
+           SELECT array_agg(DISTINCT rv2.name)
+           FROM user_roles ur
+           JOIN roles_v2 rv2 ON rv2.id = ur.role_id
+           WHERE ur.user_id = $1
+         ), ARRAY[]::varchar[]) as roles,
+         COALESCE((
+           SELECT array_agg(DISTINCT p.code)
+           FROM user_roles ur
+           JOIN role_permissions rp ON rp.role_id = ur.role_id AND rp.allowed = true
+           JOIN permissions p ON p.id = rp.permission_id
+           WHERE ur.user_id = $1
+         ), ARRAY[]::varchar[]) as permissions`,
+      [user.id]
+    );
+    const rbacRoles = rbacRes.rows[0]?.roles || [];
+    const rbacPermissionCodes = rbacRes.rows[0]?.permissions || [];
+    const derivedRole = getPrimaryRoleNameFromRbac(rbacRoles) || null;
+    const authProfile = {
+      permissionCodes: rbacPermissionCodes,
+    } as unknown as AuthenticatedRequest['user'];
 
     // Generate tokens
     const accessTokenPayload: JwtPayload = {
       userId: user.id,
-      username: user.username,
-      role: user.role,
       authMethod: 'PASSWORD', // Mark as password authentication
     };
 
@@ -95,7 +119,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     let assignedPincodes: number[] = [];
     let assignedAreas: number[] = [];
 
-    if (user.role === 'BACKEND_USER') {
+    if (isScopedOperationsUser(authProfile)) {
       // Fetch assigned clients
       const clientsRes = await query(
         'SELECT "clientId" FROM "userClientAssignments" WHERE "userId" = $1',
@@ -109,7 +133,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
         [user.id]
       );
       assignedProducts = productsRes.rows.map(row => row.productId);
-    } else if (user.role === 'FIELD_AGENT') {
+    } else if (isFieldExecutionActor(authProfile)) {
       // Fetch assigned pincodes
       const pincodesRes = await query(
         'SELECT "pincodeId" FROM "userPincodeAssignments" WHERE "userId" = $1 AND "isActive" = true',
@@ -131,7 +155,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       entityType: 'USER',
       entityId: user.id,
       userId: user.id,
-      details: { role: user.role },
+      details: { role: derivedRole },
       ipAddress: req.ip,
       userAgent: req.get('User-Agent') || undefined,
     });
@@ -145,17 +169,17 @@ export const login = async (req: Request, res: Response): Promise<void> => {
           name: user.name,
           username: user.username,
           email: user.email,
-          role: user.role,
+          role: (derivedRole || 'BACKEND_USER') as LoginResponse['data']['user']['role'],
           employeeId: user.employeeId,
           designation: user.designation,
           department: user.department,
           ...(user.profilePhotoUrl && { profilePhotoUrl: user.profilePhotoUrl }),
           // Include role-based assignments
-          ...(user.role === 'BACKEND_USER' && {
+          ...(isScopedOperationsUser(authProfile) && {
             assignedClients,
             assignedProducts,
           }),
-          ...(user.role === 'FIELD_AGENT' && {
+          ...(isFieldExecutionActor(authProfile) && {
             assignedPincodes,
             assignedAreas,
           }),
@@ -192,7 +216,7 @@ export const logout = async (req: AuthenticatedRequest, res: Response): Promise<
       message: 'Logout successful',
     };
 
-    logger.info(`User ${req.user.username} logged out successfully`);
+    logger.info(`User ${req.user.id} logged out successfully`);
     res.json(response);
   } catch (error) {
     throw error;
@@ -213,9 +237,8 @@ export const preloginInfo = async (req: Request, res: Response): Promise<void> =
     }
 
     const userRes = await query(
-      `SELECT u.id, u.role, u."roleId", r.name as "roleName"
+      `SELECT u.id, u."roleId"
        FROM users u
-       LEFT JOIN roles r ON u."roleId" = r.id
        WHERE u.username = $1
        LIMIT 1`,
       [username]
@@ -236,8 +259,8 @@ export const preloginInfo = async (req: Request, res: Response): Promise<void> =
       success: true,
       message: 'OK',
       data: {
-        role: user.role,
-        roleName: user.roleName,
+        role: null,
+        roleName: null,
         requiresDeviceId: false,
         requiresMacAddress: false,
       },
@@ -268,7 +291,6 @@ export const getCurrentUser = async (req: AuthenticatedRequest, res: Response): 
         u.name,
         u.username,
         u.email,
-        u.role,
         u."roleId",
         u."departmentId",
         u."employeeId",
@@ -278,11 +300,8 @@ export const getCurrentUser = async (req: AuthenticatedRequest, res: Response): 
         u."isActive",
         u."lastLogin",
         u."createdAt",
-        r.name as "roleName",
-        r.permissions as "rolePermissions",
         d.name as "departmentName"
       FROM users u
-      LEFT JOIN roles r ON u."roleId" = r.id
       LEFT JOIN departments d ON u."departmentId" = d.id
       WHERE u.id = $1
     `;
@@ -299,6 +318,33 @@ export const getCurrentUser = async (req: AuthenticatedRequest, res: Response): 
     }
 
     const userData = result.rows[0];
+    let rbacRoles: string[] = [];
+    let rbacPermissionCodes: string[] = [];
+    const rbacRes = await query<{ roles: string[] | null; permissions: string[] | null }>(
+      `SELECT
+         COALESCE((
+           SELECT array_agg(DISTINCT rv2.name)
+           FROM user_roles ur
+           JOIN roles_v2 rv2 ON rv2.id = ur.role_id
+           WHERE ur.user_id = u.id
+         ), ARRAY[]::varchar[]) as roles,
+         COALESCE((
+           SELECT array_agg(DISTINCT p.code)
+           FROM user_roles ur
+           JOIN role_permissions rp ON rp.role_id = ur.role_id AND rp.allowed = true
+           JOIN permissions p ON p.id = rp.permission_id
+           WHERE ur.user_id = u.id
+         ), ARRAY[]::varchar[]) as permissions
+       FROM users u
+       WHERE u.id = $1`,
+      [userData.id]
+    );
+    rbacRoles = rbacRes.rows[0]?.roles || [];
+    rbacPermissionCodes = rbacRes.rows[0]?.permissions || [];
+    const derivedRole = getPrimaryRoleNameFromRbac(rbacRoles) || null;
+    const authProfile = {
+      permissionCodes: rbacPermissionCodes,
+    } as unknown as AuthenticatedRequest['user'];
 
     // Fetch role-based assignments for BACKEND_USER and FIELD_AGENT users
     let assignedClients: number[] = [];
@@ -306,7 +352,7 @@ export const getCurrentUser = async (req: AuthenticatedRequest, res: Response): 
     let assignedPincodes: number[] = [];
     let assignedAreas: number[] = [];
 
-    if (userData.role === 'BACKEND_USER') {
+    if (isScopedOperationsUser(authProfile)) {
       // Fetch assigned clients
       const clientsRes = await query(
         'SELECT "clientId" FROM "userClientAssignments" WHERE "userId" = $1',
@@ -320,7 +366,7 @@ export const getCurrentUser = async (req: AuthenticatedRequest, res: Response): 
         [userData.id]
       );
       assignedProducts = productsRes.rows.map(row => row.productId);
-    } else if (userData.role === 'FIELD_AGENT') {
+    } else if (isFieldExecutionActor(authProfile)) {
       // Fetch assigned pincodes
       const pincodesRes = await query(
         'SELECT "pincodeId" FROM "userPincodeAssignments" WHERE "userId" = $1 AND "isActive" = true',
@@ -344,10 +390,11 @@ export const getCurrentUser = async (req: AuthenticatedRequest, res: Response): 
         name: userData.name,
         username: userData.username,
         email: userData.email,
-        role: userData.role,
+        role: derivedRole,
         roleId: userData.roleId,
-        roleName: userData.roleName,
-        permissions: userData.rolePermissions,
+        roleName: derivedRole,
+        roles: rbacRoles,
+        permissions: rbacPermissionCodes,
         departmentId: userData.departmentId,
         departmentName: userData.departmentName,
         employeeId: userData.employeeId,
@@ -358,11 +405,11 @@ export const getCurrentUser = async (req: AuthenticatedRequest, res: Response): 
         lastLogin: userData.lastLogin,
         createdAt: userData.createdAt,
         // Include role-based assignments
-        ...(userData.role === 'BACKEND_USER' && {
+        ...(isScopedOperationsUser(authProfile) && {
           assignedClients,
           assignedProducts,
         }),
-        ...(userData.role === 'FIELD_AGENT' && {
+        ...(isFieldExecutionActor(authProfile) && {
           assignedPincodes,
           assignedAreas,
         }),
@@ -440,8 +487,6 @@ export const refreshToken = async (req: Request, res: Response): Promise<void> =
     // Generate NEW access token
     const accessTokenPayload: JwtPayload = {
       userId: user.id,
-      username: user.username,
-      role: user.role,
       authMethod: 'PASSWORD',
     };
 

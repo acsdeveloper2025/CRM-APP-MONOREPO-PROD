@@ -83,7 +83,7 @@ export function CreateClientDialog({ open, onOpenChange }: CreateClientDialogPro
   // Fetch document types for selection
   const { data: documentTypesData } = useStandardizedQuery({
     queryKey: ['document-types'],
-    queryFn: () => documentTypesService.getDocumentTypes({ isActive: true }),
+    queryFn: () => documentTypesService.getDocumentTypes(),
     enabled: open,
     errorContext: 'Loading Document Types',
     errorFallbackMessage: 'Failed to load document types',
@@ -333,9 +333,6 @@ export function CreateClientDialog({ open, onOpenChange }: CreateClientDialogPro
                               {documentType.name}
                               <Badge variant="outline" className="ml-2 text-xs">
                                 {documentType.code}
-                              </Badge>
-                              <Badge variant="secondary" className="ml-1 text-xs">
-                                {documentType.category}
                               </Badge>
                             </label>
                           </div>

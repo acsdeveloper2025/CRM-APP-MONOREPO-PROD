@@ -1,8 +1,8 @@
 import { Router } from 'express';
 import { body, param, query } from 'express-validator';
-import { auth, requireRole } from '@/middleware/auth';
+import { auth } from '@/middleware/auth';
+import { authorize } from '@/middleware/authorize';
 import { validate } from '@/middleware/validation';
-import { Role } from '@/types/auth';
 import {
   getDesignations,
   getDesignationById,
@@ -13,6 +13,8 @@ import {
 } from '@/controllers/designationsController';
 
 const router = Router();
+router.use(auth);
+router.use(authorize('settings.manage'));
 
 // Validation schemas
 const createDesignationValidation = [
@@ -76,19 +78,11 @@ const designationIdValidation = [
 // Routes
 
 // GET /api/designations - Get all designations (paginated)
-router.get(
-  '/',
-  auth,
-  requireRole([Role.ADMIN]),
-  getDesignationsValidation,
-  validate,
-  getDesignations
-);
+router.get('/', getDesignationsValidation, validate, getDesignations);
 
 // GET /api/designations/active - Get active designations for dropdowns
 router.get(
   '/active',
-  auth,
   query('departmentId')
     .optional()
     .isInt({ min: 1 })
@@ -98,43 +92,15 @@ router.get(
 );
 
 // GET /api/designations/:id - Get designation by ID
-router.get(
-  '/:id',
-  auth,
-  requireRole([Role.ADMIN]),
-  designationIdValidation,
-  validate,
-  getDesignationById
-);
+router.get('/:id', designationIdValidation, validate, getDesignationById);
 
 // POST /api/designations - Create new designation
-router.post(
-  '/',
-  auth,
-  requireRole([Role.ADMIN]),
-  createDesignationValidation,
-  validate,
-  createDesignation
-);
+router.post('/', createDesignationValidation, validate, createDesignation);
 
 // PUT /api/designations/:id - Update designation
-router.put(
-  '/:id',
-  auth,
-  requireRole([Role.ADMIN]),
-  updateDesignationValidation,
-  validate,
-  updateDesignation
-);
+router.put('/:id', updateDesignationValidation, validate, updateDesignation);
 
 // DELETE /api/designations/:id - Delete designation
-router.delete(
-  '/:id',
-  auth,
-  requireRole([Role.ADMIN]),
-  designationIdValidation,
-  validate,
-  deleteDesignation
-);
+router.delete('/:id', designationIdValidation, validate, deleteDesignation);
 
 export default router;

@@ -19,11 +19,11 @@ import { UnifiedSearchFilterLayout, FilterGrid } from '@/components/ui/unified-s
 import type { MISFilters, MISDataResponse } from '@/types/mis';
 import { toast } from 'sonner';
 import type { VerificationType } from '@/types/client';
-import { USER_ROLES } from '@/types/constants';
 import { useClients, useProducts } from '@/hooks/useClients';
 import { useVerificationTypes } from '@/hooks/useVerificationTypes';
 import { useUsers } from '@/hooks/useUsers';
 import { LoadingState } from '@/components/ui/loading';
+import { isBackendScopedUser, isFieldAgentUser } from '@/utils/userPermissionProfiles';
 
 interface MISFilterValues {
   dateFrom?: string;
@@ -83,8 +83,8 @@ export function MISDashboard() {
   const products = productsData?.data || [];
   const verificationTypes = verificationTypesData?.data || [];
   const users = usersData || [];
-  const fieldAgents = users.filter(u => u.role === USER_ROLES.FIELD_AGENT);
-  const backendUsers = users.filter(u => u.role === USER_ROLES.BACKEND_USER || u.role === USER_ROLES.ADMIN || u.role === USER_ROLES.SUPER_ADMIN);
+  const fieldAgents = users.filter(u => isFieldAgentUser(u));
+  const backendUsers = users.filter(u => isBackendScopedUser(u));
 
   // Build query with search and filters
   const buildFilters = useCallback((): MISFilters => {
@@ -416,4 +416,3 @@ export function MISDashboard() {
     </div>
   );
 }
-

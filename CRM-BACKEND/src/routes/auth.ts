@@ -1,13 +1,8 @@
 import { Router, type Request, type Response } from 'express';
 import { body } from 'express-validator';
-import {
-  login,
-  logout,
-  getCurrentUser,
-  preloginInfo,
-  refreshToken,
-} from '@/controllers/authController';
+import { login, logout, getCurrentUser, refreshToken } from '@/controllers/authController';
 import { authenticateToken } from '@/middleware/auth';
+import { authorize } from '@/middleware/authorize';
 import { validate } from '@/middleware/validation';
 import { authRateLimit } from '@/middleware/rateLimiter';
 import { EnterpriseRateLimit } from '@/middleware/enterpriseRateLimit';
@@ -109,18 +104,17 @@ const resetUserRateLimit = async (req: Request, res: Response) => {
 };
 
 // Routes
-router.post(
-  '/prelogin',
-  [body('username').notEmpty().withMessage('Username is required')],
-  validate,
-  preloginInfo
-);
 // ... (skip lines) ...
 router.post('/login', authRateLimit, validate(loginValidation), login);
 router.post('/refresh-token', authRateLimit, refreshToken);
-router.post('/logout', authenticateToken, logout);
-router.get('/me', authenticateToken, getCurrentUser);
-router.post('/reset-rate-limit', resetRateLimit);
-router.post('/reset-user-rate-limit/:userId', authenticateToken, resetUserRateLimit);
+router.post('/logout', authenticateToken, authorize('dashboard.view'), logout);
+router.get('/me', authenticateToken, authorize('dashboard.view'), getCurrentUser);
+router.post('/reset-rate-limit', authenticateToken, authorize('settings.manage'), resetRateLimit);
+router.post(
+  '/reset-user-rate-limit/:userId',
+  authenticateToken,
+  authorize('settings.manage'),
+  resetUserRateLimit
+);
 
 export default router;

@@ -10,12 +10,13 @@ import type {
   OfficeVerificationRow,
   BusinessVerificationRow,
 } from '../types/database';
-import { Role } from '../types/auth';
+import { isFieldExecutionActor } from '../security/rbacAccess';
 
 interface AuthenticatedRequest extends Request {
   user?: {
     id: string;
-    role: string;
+    role?: string;
+    permissionCodes?: string[];
     email?: string;
     name?: string;
   };
@@ -120,15 +121,15 @@ import { CaseStatusSyncService } from '../services/caseStatusSyncService';
 
 export class MobileFormController {
   /**
-   * Enforce assignment ownership for field agents only.
-   * Non-field roles keep existing behavior.
+   * Enforce assignment ownership for execution actors only.
+   * Supervisory users keep existing behavior.
    */
-  private static assertAssignedFieldAgent(
+  private static assertAssignedExecutionActor(
     assignedTo: string | null | undefined,
     userId: string,
-    userRole?: string
+    user?: AuthenticatedRequest['user']
   ): { status: number; message: string; code: string } | null {
-    if ((userRole as Role) !== Role.FIELD_AGENT) {
+    if (!isFieldExecutionActor(user as never)) {
       return null;
     }
 
@@ -149,7 +150,7 @@ export class MobileFormController {
   private static async validateTaskSubmission(
     taskId: string,
     userId: string,
-    userRole?: string
+    user?: AuthenticatedRequest['user']
   ): Promise<{
     success: boolean;
     data?: {
@@ -216,10 +217,10 @@ export class MobileFormController {
       }
 
       // 2. Assignment Validation (field-agent ownership)
-      const assignmentError = MobileFormController.assertAssignedFieldAgent(
+      const assignmentError = MobileFormController.assertAssignedExecutionActor(
         task.assigned_to,
         userId,
-        userRole
+        user
       );
       if (assignmentError) {
         return {
@@ -304,7 +305,7 @@ export class MobileFormController {
   private static async resolveCaseIdFromTaskId(
     taskId: string,
     userId: string,
-    userRole?: string
+    user?: AuthenticatedRequest['user']
   ): Promise<{
     success: boolean;
     caseId?: string;
@@ -371,10 +372,10 @@ export class MobileFormController {
       }
 
       // Step 3: Verify field-agent ownership (non-field roles unchanged)
-      const assignmentError = MobileFormController.assertAssignedFieldAgent(
+      const assignmentError = MobileFormController.assertAssignedExecutionActor(
         task.assignedTo,
         userId,
-        userRole
+        user
       );
       if (assignmentError) {
         return {
@@ -420,12 +421,15 @@ export class MobileFormController {
       const fieldUserResult = await query(fieldUserQuery, [fieldUserId]);
       const fieldUserName = fieldUserResult.rows[0]?.name || 'Unknown User';
 
-      // Get users who should receive case completion notifications
-      // BACKEND_USER, REPORT_PERSON, and SUPER_ADMIN roles
+      // Get users who should receive case completion notifications by RBAC permissions
       const notificationUsersQuery = `
-        SELECT id FROM users
-        WHERE role IN ('BACKEND_USER', 'REPORT_PERSON', 'SUPER_ADMIN')
-        AND "isActive" = true
+        SELECT DISTINCT u.id
+        FROM users u
+        JOIN user_roles ur ON ur.user_id = u.id
+        JOIN role_permissions rp ON rp.role_id = ur.role_id AND rp.allowed = true
+        JOIN permissions p ON p.id = rp.permission_id
+        WHERE u."isActive" = true
+          AND p.code IN ('report.generate', 'report.download', 'review.view')
       `;
       const notificationUsersResult = await query(notificationUsersQuery);
       const notificationUserIds = notificationUsersResult.rows.map(row => row.id);
@@ -1990,17 +1994,17 @@ export class MobileFormController {
         metadata,
       }: MobileFormSubmissionRequest = req.body;
       const userId = req.user?.id;
-      const userRole = req.user?.role;
+      const isExecutionActor = isFieldExecutionActor(req.user as never);
 
       // Verify case access
       const where: WhereClause = { id: caseId };
-      if ((userRole as Role) === Role.FIELD_AGENT) {
+      if (isExecutionActor) {
         where.assignedTo = userId;
       }
 
       const vals: QueryParams = [caseId];
       let caseSql = `SELECT id FROM cases WHERE id = $1`;
-      if ((userRole as Role) === Role.FIELD_AGENT) {
+      if (isExecutionActor) {
         caseSql += ` AND "assignedTo" = $2`;
         vals.push(userId);
       }
@@ -2201,9 +2205,16 @@ export class MobileFormController {
     try {
       const caseId = String(req.params.caseId || '');
       const userId = req.user?.id;
-      const userRole = req.user?.role;
+      const isExecutionActor = isFieldExecutionActor(req.user as never);
 
-      logger.info('Getting form submissions for case:', caseId, 'User:', userId, 'Role:', userRole);
+      logger.info(
+        'Getting form submissions for case:',
+        caseId,
+        'User:',
+        userId,
+        'ExecutionActor:',
+        isExecutionActor
+      );
 
       // Validate caseId parameter
       if (!caseId || caseId.trim() === '') {
@@ -2233,7 +2244,7 @@ export class MobileFormController {
 
       // FIXED: For FIELD_AGENT, check if they have ANY tasks assigned for this case
       // (removed invalid cases.assignedTo reference)
-      if ((userRole as Role) === Role.FIELD_AGENT) {
+      if (isExecutionActor) {
         caseSql += ` AND EXISTS (
           SELECT 1 FROM verification_tasks vt
           WHERE vt.case_id = cases.id AND vt.assigned_to = $2
@@ -2247,7 +2258,7 @@ export class MobileFormController {
       logger.info('Case data found:', caseData);
 
       if (!caseData) {
-        logger.info('Case not found for ID:', caseId, 'User role:', userRole);
+        logger.info('Case not found for ID:', caseId, 'ExecutionActor:', isExecutionActor);
         return res.status(404).json({
           success: false,
           message: 'Case not found or access denied',
@@ -2498,10 +2509,10 @@ export class MobileFormController {
         images,
       }: MobileFormSubmissionRequest = req.body;
       const userId = req.user?.id;
-      const userRole = req.user?.role;
+      const isExecutionActor = isFieldExecutionActor(req.user as never);
 
       logger.info(`📱 Residence verification submission for task: ${taskId}`);
-      logger.info(`   - User: ${userId} (${userRole})`);
+      logger.info(`   - User: ${userId} (executionActor=${isExecutionActor})`);
       logger.info(`   - Verification Task ID from body: ${verificationTaskId}`);
       logger.info(`   - Images: ${images?.length || 0}`);
 
@@ -2528,7 +2539,7 @@ export class MobileFormController {
       const taskValidation = await MobileFormController.validateTaskSubmission(
         taskId,
         userId,
-        userRole
+        req.user
       );
       if (!taskValidation.success || !taskValidation.data) {
         return res.status(taskValidation.error.status).json({
@@ -2878,10 +2889,10 @@ export class MobileFormController {
         images,
       }: MobileFormSubmissionRequest = req.body;
       const userId = req.user?.id;
-      const userRole = req.user?.role;
+      const isExecutionActor = isFieldExecutionActor(req.user as never);
 
       logger.info(`📱 Office verification submission for task: ${taskId}`);
-      logger.info(`   - User: ${userId} (${userRole})`);
+      logger.info(`   - User: ${userId} (executionActor=${isExecutionActor})`);
       logger.info(`   - Verification Task ID from body: ${verificationTaskId}`);
       logger.info(`   - Images: ${images?.length || 0}`);
 
@@ -2908,7 +2919,7 @@ export class MobileFormController {
       const taskValidation = await MobileFormController.validateTaskSubmission(
         taskId,
         userId,
-        userRole
+        req.user
       );
       if (!taskValidation.success || !taskValidation.data) {
         return res.status(taskValidation.error.status).json({
@@ -3246,10 +3257,10 @@ export class MobileFormController {
         images,
       }: MobileFormSubmissionRequest = req.body;
       const userId = req.user?.id;
-      const userRole = req.user?.role;
+      const isExecutionActor = isFieldExecutionActor(req.user as never);
 
       logger.info(`📱 Business verification submission for task: ${taskId}`);
-      logger.info(`   - User: ${userId} (${userRole})`);
+      logger.info(`   - User: ${userId} (executionActor=${isExecutionActor})`);
       logger.info(`   - Verification Task ID from body: ${verificationTaskId}`);
       logger.info(`   - Images: ${images?.length || 0}`);
 
@@ -3276,7 +3287,7 @@ export class MobileFormController {
       const taskValidation = await MobileFormController.validateTaskSubmission(
         taskId,
         userId,
-        userRole
+        req.user
       );
       if (!taskValidation.success || !taskValidation.data) {
         return res.status(taskValidation.error.status).json({
@@ -3652,10 +3663,10 @@ export class MobileFormController {
         images,
       }: MobileFormSubmissionRequest = req.body;
       const userId = req.user?.id;
-      const userRole = req.user?.role;
+      const isExecutionActor = isFieldExecutionActor(req.user as never);
 
       logger.info(`📱 Builder verification submission for task: ${taskId}`);
-      logger.info(`   - User: ${userId} (${userRole})`);
+      logger.info(`   - User: ${userId} (executionActor=${isExecutionActor})`);
       logger.info(`   - Verification Task ID from body: ${verificationTaskId}`);
       logger.info(`   - Images: ${images?.length || 0}`);
       logger.info(`   - Form data keys: ${Object.keys(formData || {}).join(', ')}`);
@@ -3689,7 +3700,7 @@ export class MobileFormController {
       const resolution = await MobileFormController.resolveCaseIdFromTaskId(
         taskId,
         userId,
-        userRole
+        req.user
       );
 
       if (!resolution.success) {
@@ -4019,13 +4030,12 @@ export class MobileFormController {
       const taskId = String(req.params.taskId || '');
       const submissionData: MobileFormSubmissionRequest = req.body;
       const userId = req.user?.id;
-      const userRole = req.user?.role;
 
       // UPDATED: Auto-resolve caseId from verificationTaskId
       const resolution = await MobileFormController.resolveCaseIdFromTaskId(
         taskId,
         userId,
-        userRole
+        req.user
       );
 
       if (!resolution.success) {
@@ -4169,10 +4179,10 @@ export class MobileFormController {
         images,
       }: MobileFormSubmissionRequest = req.body;
       const userId = req.user?.id;
-      const userRole = req.user?.role;
+      const isExecutionActor = isFieldExecutionActor(req.user as never);
 
       logger.info(`📱 DSA/DST Connector verification submission for task: ${taskId}`);
-      logger.info(`   - User: ${userId} (${userRole})`);
+      logger.info(`   - User: ${userId} (executionActor=${isExecutionActor})`);
       logger.info(`   - Verification Task ID from body: ${verificationTaskId}`);
       logger.info(`   - Images: ${images?.length || 0}`);
       logger.info(`   - Form data keys: ${Object.keys(formData || {}).join(', ')}`);
@@ -4206,7 +4216,7 @@ export class MobileFormController {
       const resolution = await MobileFormController.resolveCaseIdFromTaskId(
         taskId,
         userId,
-        userRole
+        req.user
       );
 
       if (!resolution.success) {
@@ -4557,13 +4567,12 @@ export class MobileFormController {
       const taskId = String(req.params.taskId || '');
       const submissionData: MobileFormSubmissionRequest = req.body;
       const userId = req.user?.id;
-      const userRole = req.user?.role;
 
       // UPDATED: Auto-resolve caseId from verificationTaskId
       const resolution = await MobileFormController.resolveCaseIdFromTaskId(
         taskId,
         userId,
-        userRole
+        req.user
       );
 
       if (!resolution.success) {
@@ -4702,10 +4711,10 @@ export class MobileFormController {
         images,
       }: MobileFormSubmissionRequest = req.body;
       const userId = req.user?.id;
-      const userRole = req.user?.role;
+      const isExecutionActor = isFieldExecutionActor(req.user as never);
 
       logger.info(`📱 Property APF verification submission for task: ${taskId}`);
-      logger.info(`   - User: ${userId} (${userRole})`);
+      logger.info(`   - User: ${userId} (executionActor=${isExecutionActor})`);
       logger.info(`   - Verification Task ID from body: ${verificationTaskId}`);
       logger.info(`   - Images: ${images?.length || 0}`);
       logger.info(`   - Form data keys: ${Object.keys(formData || {}).join(', ')}`);
@@ -4739,7 +4748,7 @@ export class MobileFormController {
       const resolution = await MobileFormController.resolveCaseIdFromTaskId(
         taskId,
         userId,
-        userRole
+        req.user
       );
 
       if (!resolution.success) {
@@ -5087,10 +5096,10 @@ export class MobileFormController {
         images,
       }: MobileFormSubmissionRequest = req.body;
       const userId = req.user?.id;
-      const userRole = req.user?.role;
+      const isExecutionActor = isFieldExecutionActor(req.user as never);
 
       logger.info(`📱 NOC verification submission for task: ${taskId}`);
-      logger.info(`   - User: ${userId} (${userRole})`);
+      logger.info(`   - User: ${userId} (executionActor=${isExecutionActor})`);
       logger.info(`   - Verification Task ID from body: ${verificationTaskId}`);
       logger.info(`   - Images: ${images?.length || 0}`);
       logger.info(`   - Form data keys: ${Object.keys(formData || {}).join(', ')}`);
@@ -5124,7 +5133,7 @@ export class MobileFormController {
       const resolution = await MobileFormController.resolveCaseIdFromTaskId(
         taskId,
         userId,
-        userRole
+        req.user
       );
 
       if (!resolution.success) {

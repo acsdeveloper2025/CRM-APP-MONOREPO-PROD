@@ -215,9 +215,6 @@ export function ClientDetailsDialog({ client, open, onOpenChange }: ClientDetail
                           <Badge variant="outline" className="text-xs">
                             {dt.code}
                           </Badge>
-                          <Badge variant="secondary" className="text-xs">
-                            {dt.category}
-                          </Badge>
                         </div>
                       </div>
                     </div>

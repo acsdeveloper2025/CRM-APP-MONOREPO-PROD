@@ -1,8 +1,33 @@
 import { apiService } from './api';
 import { STORAGE_KEYS, SYNC_KEYS } from '@/types/constants';
 import type { LoginRequest, LoginResponse, User } from '@/types/auth';
+import { matchesAnyLegacyRoleAlias, matchesLegacyRoleAlias } from '@/utils/userPermissionProfiles';
 
 export class AuthService {
+  private async ensureAccessToken(): Promise<void> {
+    if (apiService.getAccessToken()) {
+      return;
+    }
+
+    const refreshToken = localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
+    if (!refreshToken) {
+      return;
+    }
+
+    const refreshResponse = await apiService.post<{ accessToken?: string; tokens?: { accessToken?: string } }>(
+      '/auth/refresh-token',
+      { refreshToken }
+    );
+    const accessToken =
+      refreshResponse.data?.accessToken || refreshResponse.data?.tokens?.accessToken;
+
+    if (!accessToken) {
+      throw new Error('Failed to restore access token');
+    }
+
+    apiService.setAccessToken(accessToken);
+  }
+
   async login(credentials: LoginRequest): Promise<LoginResponse> {
     const response = await apiService.post<LoginResponse['data']>('/auth/login', credentials);
 
@@ -61,16 +86,17 @@ export class AuthService {
 
   hasRole(role: string): boolean {
     const user = this.getCurrentUser();
-    return user?.role === role;
+    return matchesLegacyRoleAlias(user, role);
   }
 
   hasAnyRole(roles: string[]): boolean {
     const user = this.getCurrentUser();
-    return user ? roles.includes(user.role) : false;
+    return matchesAnyLegacyRoleAlias(user, roles);
   }
 
   async refreshUserData(): Promise<User | null> {
     try {
+      await this.ensureAccessToken();
       const response = await apiService.get<User>('/auth/me');
 
       if (response.success && response.data) {
