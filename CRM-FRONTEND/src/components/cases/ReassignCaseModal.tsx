@@ -74,7 +74,7 @@ export const ReassignCaseModal: React.FC<ReassignCaseModalProps> = ({
 
         <div className="space-y-4 py-4">
           {/* Current Assignment Info */}
-          <div className="bg-muted p-3 rounded-lg">
+          <div className="bg-slate-100 dark:bg-slate-800/60 p-3 rounded-lg">
             <div className="text-sm">
               <span className="font-medium">Currently assigned to:</span>{' '}
               <span className="text-green-600">{currentAssignee}</span>

@@ -62,9 +62,9 @@ export const CaseAnalyticsDashboard: React.FC = () => {
       case 'ASSIGNED':
         return 'bg-yellow-100 text-yellow-800';
       case 'PENDING':
-        return 'bg-muted text-gray-900';
+        return 'bg-slate-100 text-slate-900 dark:bg-slate-800/60 dark:text-slate-100';
       default:
-        return 'bg-muted text-gray-900';
+        return 'bg-slate-100 text-slate-900 dark:bg-slate-800/60 dark:text-slate-100';
     }
   };
 
@@ -77,7 +77,7 @@ export const CaseAnalyticsDashboard: React.FC = () => {
       case 'LOW':
         return 'bg-green-100 text-green-800';
       default:
-        return 'bg-muted text-gray-900';
+        return 'bg-slate-100 text-slate-900 dark:bg-slate-800/60 dark:text-slate-100';
     }
   };
 
@@ -303,7 +303,7 @@ export const CaseAnalyticsDashboard: React.FC = () => {
                     <TableRow key={index}>
                       {Array.from({ length: 8 }).map((_, cellIndex) => (
                         <TableCell key={cellIndex}>
-                          <div className="h-4 bg-muted rounded animate-pulse" />
+                          <div className="h-4 bg-slate-100 dark:bg-slate-800/60 rounded animate-pulse" />
                         </TableCell>
                       ))}
                     </TableRow>
@@ -361,7 +361,7 @@ export const CaseAnalyticsDashboard: React.FC = () => {
                           <div className="text-sm font-medium">
                             {caseItem.formCompletionPercentage}%
                           </div>
-                          <div className="w-16 bg-muted rounded-full h-2">
+                          <div className="w-16 bg-slate-100 dark:bg-slate-800/60 rounded-full h-2">
                             <div 
                               className="bg-blue-600 h-2 rounded-full" 
                               style={{ width: `${caseItem.formCompletionPercentage}%` }}

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import type { Role } from '@/types/auth';
 import { Plus, Upload, Download, Calendar as CalendarIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -33,9 +34,43 @@ interface UserFilters extends Record<string, unknown> {
 }
 
 export function UsersPage() {
-  const [activeTab, setActiveTab] = useState('users');
+  const navigate = useNavigate();
+  const { tab: tabParam } = useParams<{ tab?: string }>();
+  const [searchParams] = useSearchParams();
   const [showCreateUser, setShowCreateUser] = useState(false);
   const [showBulkImport, setShowBulkImport] = useState(false);
+
+  const { hasPermissionCode } = usePermissionContext();
+  const isAdmin = hasPermissionCode('permission.manage') || hasPermissionCode('role.manage');
+
+  const adminTabs = ['users', 'activities', 'sessions', 'permissions'] as const;
+  const standardTabs = ['users', 'permissions'] as const;
+  const validTabs = isAdmin ? adminTabs : standardTabs;
+  type UserTab = (typeof adminTabs)[number];
+
+  const queryTab = searchParams.get('tab');
+  const rawTab = tabParam || queryTab || 'users';
+  const activeTab: UserTab = validTabs.includes(rawTab as (typeof validTabs)[number])
+    ? (rawTab as UserTab)
+    : 'users';
+
+  useEffect(() => {
+    if (!tabParam) {
+      if (activeTab !== 'users') {
+        navigate(`/users/${activeTab}`, { replace: true });
+      }
+      return;
+    }
+
+    const canonicalPath = activeTab === 'users' ? '/users' : `/users/${activeTab}`;
+    if (tabParam !== activeTab) {
+      navigate(canonicalPath, { replace: true });
+    }
+  }, [tabParam, activeTab, navigate]);
+
+  const handleTabChange = (nextTab: string) => {
+    navigate(nextTab === 'users' ? '/users' : `/users/${nextTab}`);
+  };
 
   // 1. Users Tab State
   const [userPage, setUserPage] = useState(1);
@@ -109,7 +144,6 @@ export function UsersPage() {
   const { data: userStatsData } = useQuery({
     queryKey: ['user-stats'],
     queryFn: () => usersService.getUserStats(),
-    enabled: activeTab === 'users',
   });
 
   const { data: rolePermissionsData, isLoading: rolePermissionsLoading } = useQuery({
@@ -184,9 +218,6 @@ export function UsersPage() {
     }
   };
 
-  const { hasPermissionCode } = usePermissionContext();
-  const isAdmin = hasPermissionCode('permission.manage') || hasPermissionCode('role.manage');
-
   // Early return if critical data is still loading to prevent undefined errors
   if (usersLoading && !usersData) {
     return (
@@ -199,19 +230,19 @@ export function UsersPage() {
   const stats = getTabStats();
 
   return (
-    <div className="space-y-4 sm:space-y-6 animate-fade-in">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0 flex-1">
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight truncate">User Management</h1>
-          <p className="mt-1 sm:mt-2 text-sm sm:text-base text-gray-600">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">User Management</h1>
+          <p className="text-gray-600">
             Manage users, roles, permissions, and monitor user activities
           </p>
         </div>
       </div>
 
       {/* Stats Cards */}
-      {activeTab === 'users' && userStatsData?.data && (
+      {userStatsData?.data && (
         <UserStatsCards stats={userStatsData.data} />
       )}
 
@@ -227,15 +258,20 @@ export function UsersPage() {
             </div>
           </div>
         </CardHeader>
-        <CardContent>
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-            <div className="flex flex-col space-y-4 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
-              <TabsList className="w-full sm:w-auto">
-                <TabsTrigger value="users" className="flex-1 sm:flex-none">
+        <CardContent className="p-4 sm:p-6">
+          <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <TabsList
+                className={cn(
+                  'grid w-full min-w-max lg:w-auto',
+                  isAdmin ? 'grid-cols-2 md:grid-cols-4 lg:grid-cols-4' : 'grid-cols-2 lg:grid-cols-2'
+                )}
+              >
+                <TabsTrigger value="users" className="text-xs sm:text-sm whitespace-nowrap">
                   <span className="hidden sm:inline">Users</span>
                   <span className="sm:hidden">Users</span>
                   {stats.users.total > 0 && (
-                    <Badge variant="secondary" className="ml-1 sm:ml-2">
+                    <Badge variant="secondary" className="ml-1 sm:ml-2 text-xs">
                       {stats.users.total}
                     </Badge>
                   )}
@@ -243,20 +279,20 @@ export function UsersPage() {
                 
                 {isAdmin && (
                   <>
-                    <TabsTrigger value="activities" className="flex-1 sm:flex-none">
+                    <TabsTrigger value="activities" className="text-xs sm:text-sm whitespace-nowrap">
                       <span className="hidden sm:inline">Activities</span>
                       <span className="sm:hidden">Activity</span>
                       {stats.activities.total > 0 && (
-                        <Badge variant="secondary" className="ml-1 sm:ml-2">
+                        <Badge variant="secondary" className="ml-1 sm:ml-2 text-xs">
                           {stats.activities.total}
                         </Badge>
                       )}
                     </TabsTrigger>
-                    <TabsTrigger value="sessions" className="flex-1 sm:flex-none">
+                    <TabsTrigger value="sessions" className="text-xs sm:text-sm whitespace-nowrap">
                       <span className="hidden sm:inline">Sessions</span>
                       <span className="sm:hidden">Sessions</span>
                       {stats.sessions.total > 0 && (
-                        <Badge variant="secondary" className="ml-1 sm:ml-2">
+                        <Badge variant="secondary" className="ml-1 sm:ml-2 text-xs">
                           {stats.sessions.total}
                         </Badge>
                       )}
@@ -264,19 +300,17 @@ export function UsersPage() {
                   </>
                 )}
                 
-                <TabsTrigger value="permissions" className="flex-1 sm:flex-none">
+                <TabsTrigger value="permissions" className="text-xs sm:text-sm whitespace-nowrap">
                   <span className="hidden sm:inline">Permissions</span>
                   <span className="sm:hidden">Perms</span>
                 </TabsTrigger>
               </TabsList>
 
               {/* Actions */}
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+              <div className="flex flex-wrap gap-2">
                 {/* Global action buttons moved to layout-specific actions prop for better consistency */}
               </div>
             </div>
-
-
 
             <TabsContent value="users" className="space-y-4">
               <UnifiedSearchFilterLayout

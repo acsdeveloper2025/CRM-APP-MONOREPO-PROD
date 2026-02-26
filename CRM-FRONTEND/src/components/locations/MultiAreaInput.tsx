@@ -227,7 +227,7 @@ export function MultiAreaInput({
                 </div>
               ) : (
                 <div
-                  className="flex items-center justify-between cursor-pointer hover:bg-muted p-1 rounded"
+                  className="flex items-center justify-between cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800/60 p-1 rounded"
                   onClick={() => !disabled && startEditing(area)}
                 >
                   <div className="flex items-center gap-2">

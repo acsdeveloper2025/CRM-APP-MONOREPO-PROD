@@ -110,7 +110,7 @@ export function FormAttachmentsViewer({ attachments, readonly: _readonly = true 
                     {categoryAttachments.map((attachment) => (
                       <div
                         key={attachment.id}
-                        className="border rounded-lg p-4 hover:bg-muted/50 transition-colors"
+                        className="border rounded-lg p-4 hover:bg-slate-100/70 dark:hover:bg-slate-800/50 transition-colors"
                       >
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex items-center space-x-2">

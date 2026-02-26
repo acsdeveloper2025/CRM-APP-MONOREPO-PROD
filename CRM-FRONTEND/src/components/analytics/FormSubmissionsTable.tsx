@@ -75,7 +75,7 @@ export const FormSubmissionsTable: React.FC = () => {
       case 'VALID': return 'bg-green-100 text-green-800';
       case 'PENDING': return 'bg-yellow-100 text-yellow-800';
       case 'INVALID': return 'bg-red-100 text-red-800';
-      default: return 'bg-muted text-gray-900';
+      default: return 'bg-slate-100 text-slate-900 dark:bg-slate-800/60 dark:text-slate-100';
     }
   };
 
@@ -84,7 +84,7 @@ export const FormSubmissionsTable: React.FC = () => {
       case 'RESIDENCE': return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300';
       case 'OFFICE': return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300';
       case 'BUSINESS': return 'bg-yellow-100 text-orange-800 dark:bg-yellow-900/20 dark:text-yellow-300';
-      default: return 'bg-muted text-gray-600';
+      default: return 'bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-200';
     }
   };
 
@@ -288,7 +288,7 @@ export const FormSubmissionsTable: React.FC = () => {
                     <TableRow key={index}>
                       {Array.from({ length: 6 }).map((_, cellIndex) => (
                         <TableCell key={cellIndex}>
-                          <div className="h-4 bg-muted rounded animate-pulse" />
+                          <div className="h-4 bg-slate-100 dark:bg-slate-800/60 rounded animate-pulse" />
                         </TableCell>
                       ))}
                     </TableRow>

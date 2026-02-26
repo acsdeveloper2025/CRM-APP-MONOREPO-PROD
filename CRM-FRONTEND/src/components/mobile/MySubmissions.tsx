@@ -224,7 +224,7 @@ export const MySubmissions: React.FC = () => {
       case 'REQUIRES_REVIEW':
         return 'bg-yellow-100 text-orange-800';
       default:
-        return 'bg-muted text-gray-900';
+        return 'bg-slate-100 text-slate-900 dark:bg-slate-800/60 dark:text-slate-100';
     }
   };
 
@@ -237,7 +237,7 @@ export const MySubmissions: React.FC = () => {
       case 'BUSINESS':
         return 'bg-green-100 text-green-800';
       default:
-        return 'bg-muted text-gray-900';
+        return 'bg-slate-100 text-slate-900 dark:bg-slate-800/60 dark:text-slate-100';
     }
   };
 

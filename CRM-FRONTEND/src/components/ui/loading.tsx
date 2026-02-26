@@ -137,7 +137,7 @@ export function LoadingSkeleton({
   height,
   lines = 1,
 }: LoadingSkeletonProps) {
-  const baseClasses = 'animate-pulse bg-muted';
+  const baseClasses = 'animate-pulse bg-slate-100 dark:bg-slate-800/60';
   
   if (variant === 'text') {
     return (

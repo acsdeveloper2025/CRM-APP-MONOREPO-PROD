@@ -163,7 +163,7 @@ export const EnterpriseDashboard: React.FC = () => {
   const systemLoadStatus = getPerformanceStatus(dashboardMetrics.systemLoad, { good: 60, warning: 80 });
 
   return (
-    <div className="min-h-screen bg-muted">
+    <div className="min-h-screen bg-slate-100 dark:bg-slate-800/60">
       {/* Header */}
       <header className="bg-white shadow-sm border-b border-border">
         <div className="px-6 py-4">

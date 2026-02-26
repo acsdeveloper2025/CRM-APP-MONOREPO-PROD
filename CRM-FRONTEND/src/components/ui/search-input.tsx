@@ -181,7 +181,7 @@ export const SearchInput: React.FC<SearchInputProps> = ({
           size="sm"
           onClick={handleClear}
           className={cn(
-            "absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0 hover:bg-muted",
+            "absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0 hover:bg-slate-100 dark:hover:bg-slate-800/60",
             size === 'lg' && 'h-8 w-8'
           )}
           tabIndex={-1} // Prevent tab focus, use mouse/touch only

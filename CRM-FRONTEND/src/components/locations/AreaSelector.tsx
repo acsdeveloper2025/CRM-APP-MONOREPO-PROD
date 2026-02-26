@@ -87,7 +87,7 @@ export function AreaSelector({
       <div className="space-y-2">
         {/* Selected Areas */}
         {selectedAreas.length > 0 && (
-          <div className="flex flex-wrap gap-2 p-2 border rounded-md bg-muted">
+          <div className="flex flex-wrap gap-2 p-2 border rounded-md bg-slate-100 dark:bg-slate-800/60">
             {selectedAreas.map((areaName, index) => (
               <Badge
                 key={`${areaName}-${index}`}

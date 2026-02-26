@@ -736,7 +736,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
                           ? 'bg-green-500 border-green-500 text-white' 
                           : isActive 
                             ? 'bg-green-500 border-green-500 text-white' 
-                            : 'bg-muted border-border text-gray-600'
+                            : 'bg-slate-100 dark:bg-slate-800/60 border-border text-gray-600'
                         }
                       `}
                     >
@@ -761,7 +761,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
                   {index < steps.length - 1 && (
                     <div
                       className={`flex-1 h-0.5 mx-4 ${
-                        isCompleted ? 'bg-green-500' : 'bg-muted'
+                        isCompleted ? 'bg-green-500' : 'bg-slate-100 dark:bg-slate-800/60'
                       }`}
                     />
                   )}

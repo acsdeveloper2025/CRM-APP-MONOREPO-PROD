@@ -389,7 +389,7 @@ export function NotificationHistoryPage() {
               {notifications.map((notification) => (
                 <div
                   key={notification.id}
-                  className={`p-4 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors ${
+                  className={`p-4 border rounded-lg cursor-pointer hover:bg-slate-100/70 dark:hover:bg-slate-800/50 transition-colors ${
                     !notification.isRead ? 'bg-green-50 border-green-200' : ''
                   }`}
                   onClick={() => handleNotificationClick(notification)}

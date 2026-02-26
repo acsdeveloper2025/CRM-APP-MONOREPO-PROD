@@ -24,7 +24,7 @@ interface PendingReviewTableProps {
 const getPriorityColor = (priority: number) => {
   switch (priority) {
     case 1:
-      return 'bg-muted text-gray-900';
+      return 'bg-slate-100 text-slate-900 dark:bg-slate-800/60 dark:text-slate-100';
     case 2:
       return 'bg-green-100 text-green-800';
     case 3:
@@ -32,7 +32,7 @@ const getPriorityColor = (priority: number) => {
     case 4:
       return 'bg-red-100 text-red-800';
     default:
-      return 'bg-muted text-gray-900';
+      return 'bg-slate-100 text-slate-900 dark:bg-slate-800/60 dark:text-slate-100';
   }
 };
 
@@ -103,28 +103,28 @@ export const PendingReviewTable: React.FC<PendingReviewTableProps> = ({
             {[1, 2, 3, 4, 5].map((item) => (
               <TableRow key={item}>
                 <TableCell>
-                  <div className="h-4 bg-muted rounded animate-pulse" />
+                  <div className="h-4 bg-slate-100 dark:bg-slate-800/60 rounded animate-pulse" />
                 </TableCell>
                 <TableCell>
-                  <div className="h-4 bg-muted rounded animate-pulse" />
+                  <div className="h-4 bg-slate-100 dark:bg-slate-800/60 rounded animate-pulse" />
                 </TableCell>
                 <TableCell>
-                  <div className="h-6 bg-muted rounded animate-pulse w-16" />
+                  <div className="h-6 bg-slate-100 dark:bg-slate-800/60 rounded animate-pulse w-16" />
                 </TableCell>
                 <TableCell>
-                  <div className="h-4 bg-muted rounded animate-pulse" />
+                  <div className="h-4 bg-slate-100 dark:bg-slate-800/60 rounded animate-pulse" />
                 </TableCell>
                 <TableCell>
-                  <div className="h-4 bg-muted rounded animate-pulse" />
+                  <div className="h-4 bg-slate-100 dark:bg-slate-800/60 rounded animate-pulse" />
                 </TableCell>
                 <TableCell>
-                  <div className="h-4 bg-muted rounded animate-pulse" />
+                  <div className="h-4 bg-slate-100 dark:bg-slate-800/60 rounded animate-pulse" />
                 </TableCell>
                 <TableCell>
-                  <div className="h-4 bg-muted rounded animate-pulse w-12" />
+                  <div className="h-4 bg-slate-100 dark:bg-slate-800/60 rounded animate-pulse w-12" />
                 </TableCell>
                 <TableCell>
-                  <div className="h-8 bg-muted rounded animate-pulse" />
+                  <div className="h-8 bg-slate-100 dark:bg-slate-800/60 rounded animate-pulse" />
                 </TableCell>
               </TableRow>
             ))}

@@ -279,7 +279,7 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
                 <CardTitle className="text-base">Customer Details</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-muted/50 rounded-lg">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-slate-100/70 dark:bg-slate-800/50 rounded-lg">
                   <div>
                     <label className="text-sm font-medium text-gray-600">Customer Name</label>
                     <p className="text-base font-medium">{customerInfo.customerName}</p>
@@ -381,7 +381,7 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
                       <FormItem>
                         <FormLabel>Created By *</FormLabel>
                         <FormControl>
-                          <Input {...field} disabled className="bg-muted text-black" />
+                          <Input {...field} disabled className="bg-slate-100 dark:bg-slate-800/60 text-black dark:text-slate-100" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>

@@ -329,6 +329,22 @@ export const navigationItems: NavigationItem[] = [
         permission: { resource: 'users', action: 'read' },
       },
       {
+        id: 'users-activities',
+        label: 'User Activity',
+        href: '/users/activities',
+        icon: List,
+        permissionCode: 'page.users',
+        permission: { resource: 'users', action: 'read' },
+      },
+      {
+        id: 'users-sessions',
+        label: 'User Sessions',
+        href: '/users/sessions',
+        icon: Clock,
+        permissionCode: 'page.users',
+        permission: { resource: 'users', action: 'read' },
+      },
+      {
         id: 'rbac-admin',
         label: 'RBAC Administration',
         href: '/admin/rbac',

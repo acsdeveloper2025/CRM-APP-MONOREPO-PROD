@@ -185,7 +185,7 @@ export const UnifiedSearchInput = React.forwardRef<HTMLInputElement, UnifiedSear
               size="sm"
               onClick={handleClear}
               className={cn(
-                'h-6 w-6 p-0 hover:bg-muted',
+                'h-6 w-6 p-0 hover:bg-slate-100 dark:hover:bg-slate-800/60',
                 'transition-opacity duration-200'
               )}
               tabIndex={-1}

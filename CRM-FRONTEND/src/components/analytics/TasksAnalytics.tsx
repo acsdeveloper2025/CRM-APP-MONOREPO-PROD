@@ -163,10 +163,10 @@ export const TasksAnalytics: React.FC = () => {
           {Array.from({ length: 4 }).map((_, i) => (
             <Card key={i}>
               <CardHeader className="pb-2">
-                <div className="h-4 bg-muted animate-pulse rounded w-24" />
+                <div className="h-4 bg-slate-100 dark:bg-slate-800/60 animate-pulse rounded w-24" />
               </CardHeader>
               <CardContent>
-                <div className="h-8 bg-muted animate-pulse rounded w-16" />
+                <div className="h-8 bg-slate-100 dark:bg-slate-800/60 animate-pulse rounded w-16" />
               </CardContent>
             </Card>
           ))}

@@ -79,7 +79,7 @@ export function TurnaroundTimeChart({ data }: TurnaroundTimeChartProps) {
               <div key={index} className="flex items-center justify-between">
                 <span className="text-sm">{range.range}</span>
                 <div className="flex items-center space-x-2">
-                  <div className="w-32 bg-muted rounded-full h-2">
+                  <div className="w-32 bg-slate-100 dark:bg-slate-800/60 rounded-full h-2">
                     <div 
                       className="bg-primary h-2 rounded-full" 
                       style={{ width: `${range.percentage}%` }}
@@ -100,7 +100,7 @@ export function TurnaroundTimeChart({ data }: TurnaroundTimeChartProps) {
           <h4 className="font-medium mb-3">Top Performing Users</h4>
           <div className="space-y-2">
             {data.userWisePerformance.slice(0, 5).map((user, index) => (
-              <div key={user.userId} className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
+              <div key={user.userId} className="flex items-center justify-between p-2 rounded-lg bg-slate-100/70 dark:bg-slate-800/50">
                 <div className="flex items-center space-x-2">
                   <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium">
                     {index + 1}

@@ -138,7 +138,7 @@ export const CommissionManagementPage: React.FC = () => {
 
 
       {/* Help Section */}
-      <Card className="bg-muted/50">
+      <Card className="bg-slate-100/70 dark:bg-slate-800/50">
         <CardContent className="p-4">
           <div className="flex items-start gap-3">
             <div className="p-2 bg-green-100 rounded-lg">

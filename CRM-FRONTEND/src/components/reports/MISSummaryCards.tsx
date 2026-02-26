@@ -15,8 +15,8 @@ export function MISSummaryCards({ summary, isLoading }: MISSummaryCardsProps) {
           <Card key={i}>
             <CardContent className="pt-6">
               <div className="animate-pulse space-y-3">
-                <div className="h-4 bg-muted rounded w-1/2" />
-                <div className="h-8 bg-muted rounded w-3/4" />
+                <div className="h-4 bg-slate-100 dark:bg-slate-800/60 rounded w-1/2" />
+                <div className="h-8 bg-slate-100 dark:bg-slate-800/60 rounded w-3/4" />
               </div>
             </CardContent>
           </Card>

@@ -278,7 +278,7 @@ export const CaseAttachmentsSection: React.FC<CaseAttachmentsSectionProps> = ({ 
         <div className="space-y-2">
           <h4 className="text-sm font-medium">Files to Upload:</h4>
           {selectedFiles.map((file, index) => (
-            <div key={index} className="flex items-center justify-between p-2 bg-muted rounded">
+            <div key={index} className="flex items-center justify-between p-2 bg-slate-100 dark:bg-slate-800/60 rounded">
               <div className="flex items-center space-x-2">
                 {getFileIcon(file.type)}
                 <span className="text-sm">{file.name}</span>

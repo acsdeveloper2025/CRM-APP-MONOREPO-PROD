@@ -70,7 +70,7 @@ export function MarkBillPaidDialog({
 
         <div className="space-y-4">
           {/* Current Status */}
-          <div className="p-4 bg-muted rounded-lg space-y-2">
+          <div className="p-4 bg-slate-100 dark:bg-slate-800/60 rounded-lg space-y-2">
             <div className="flex justify-between text-sm">
               <span>Total Amount:</span>
               <span className="font-medium">₹{bill.totalAmount.toLocaleString()}</span>

@@ -158,7 +158,7 @@ export function FormMetadataViewer({ submission }: FormMetadataViewerProps) {
           </div>
 
           {/* Form Statistics */}
-          <div className="bg-muted/30 rounded-lg p-4">
+          <div className="bg-slate-100/50 dark:bg-slate-800/40 rounded-lg p-4">
             <h4 className="font-medium text-sm mb-3">Form Statistics</h4>
             <div className="grid gap-4 md:grid-cols-4 text-sm">
               <div className="text-center">
@@ -209,7 +209,7 @@ export function FormMetadataViewer({ submission }: FormMetadataViewerProps) {
                         {completedFields}/{totalFields} ({Math.round(percentage)}%)
                       </span>
                     </div>
-                    <div className="w-full bg-muted rounded-full h-2">
+                    <div className="w-full bg-slate-100 dark:bg-slate-800/60 rounded-full h-2">
                       <div 
                         className="bg-primary h-2 rounded-full transition-all duration-300" 
                         style={{ width: `${percentage}%` }}

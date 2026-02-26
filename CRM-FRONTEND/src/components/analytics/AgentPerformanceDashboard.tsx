@@ -290,7 +290,7 @@ export const AgentPerformanceDashboard: React.FC = () => {
                     <TableRow key={index}>
                       {Array.from({ length: 8 }).map((_, cellIndex) => (
                         <TableCell key={cellIndex}>
-                          <div className="h-4 bg-muted rounded animate-pulse" />
+                          <div className="h-4 bg-slate-100 dark:bg-slate-800/60 rounded animate-pulse" />
                         </TableCell>
                       ))}
                     </TableRow>
