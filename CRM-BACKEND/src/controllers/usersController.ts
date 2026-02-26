@@ -5,6 +5,7 @@ import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
 import { EmailDeliveryService } from '@/services/EmailDeliveryService';
 import ExcelJS from 'exceljs';
+import { CANONICAL_RBAC_ROLE_NAMES } from '@/constants/rbacRoles';
 import {
   hasSystemScopeBypass,
   userHasAnyPermission,
@@ -2347,7 +2348,7 @@ export const downloadUserTemplate = async (req: AuthenticatedRequest, res: Respo
       { header: 'Username*', key: 'username', width: 20 },
       { header: 'Email*', key: 'email', width: 30 },
       {
-        header: 'Role* (SUPER_ADMIN, ADMIN, BACKEND_USER, FIELD_AGENT, MANAGER)',
+        header: `Role* (${CANONICAL_RBAC_ROLE_NAMES.join(', ')})`,
         key: 'role',
         width: 40,
       },

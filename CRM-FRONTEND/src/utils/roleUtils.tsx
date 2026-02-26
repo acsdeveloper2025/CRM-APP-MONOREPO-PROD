@@ -3,9 +3,9 @@ import {
   Crown,
   Server,
   MapPin,
-  UserCog,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { normalizeUserRole } from '@/types/constants';
 
 export interface RoleConfig {
   icon: React.ComponentType<{ className?: string }>;
@@ -21,12 +21,6 @@ export const roleConfigs: Record<string, RoleConfig> = {
     label: 'Super Admin',
     color: 'text-red-600'
   },
-  ADMIN: {
-    icon: Crown,
-    variant: 'default',
-    label: 'Admin',
-    color: 'text-yellow-600'
-  },
   BACKEND_USER: {
     icon: Server,
     variant: 'secondary',
@@ -38,23 +32,11 @@ export const roleConfigs: Record<string, RoleConfig> = {
     variant: 'outline',
     label: 'Field Agent',
     color: 'text-purple-600'
-  },
-  MANAGER: {
-    icon: UserCog,
-    variant: 'outline',
-    label: 'Manager',
-    color: 'text-orange-600'
-  },
-  REPORT_PERSON: {
-    icon: UserCog,
-    variant: 'outline',
-    label: 'Report Person',
-    color: 'text-green-600'
   }
 };
 
 export const getRoleIcon = (roleName: string, size: 'sm' | 'md' | 'lg' = 'md') => {
-  const config = roleConfigs[roleName] || roleConfigs.MANAGER;
+  const config = roleConfigs[normalizeUserRole(roleName) || 'BACKEND_USER'] || roleConfigs.BACKEND_USER;
   const Icon = config.icon;
   
   const sizeClasses = {
@@ -67,10 +49,10 @@ export const getRoleIcon = (roleName: string, size: 'sm' | 'md' | 'lg' = 'md') =
 };
 
 export const getRoleBadge = (roleName: string) => {
-  const config = roleConfigs[roleName] || roleConfigs.MANAGER;
+  const config = roleConfigs[normalizeUserRole(roleName) || 'BACKEND_USER'] || roleConfigs.BACKEND_USER;
   return <Badge variant={config.variant}>{config.label}</Badge>;
 };
 
 export const getRoleConfig = (roleName: string): RoleConfig => {
-  return roleConfigs[roleName] || roleConfigs.MANAGER;
+  return roleConfigs[normalizeUserRole(roleName) || 'BACKEND_USER'] || roleConfigs.BACKEND_USER;
 };

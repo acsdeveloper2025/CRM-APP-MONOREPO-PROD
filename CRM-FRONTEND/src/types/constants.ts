@@ -8,14 +8,34 @@
 // User Roles
 export const USER_ROLES = {
   SUPER_ADMIN: 'SUPER_ADMIN',
-  ADMIN: 'ADMIN',
   BACKEND_USER: 'BACKEND_USER',
   FIELD_AGENT: 'FIELD_AGENT',
-  MANAGER: 'MANAGER',
-  REPORT_PERSON: 'REPORT_PERSON'
 } as const;
 
 export type UserRole = typeof USER_ROLES[keyof typeof USER_ROLES];
+
+export const LEGACY_ROLE_ALIASES = {
+  ADMIN: USER_ROLES.SUPER_ADMIN,
+  MANAGER: USER_ROLES.BACKEND_USER,
+  REPORT_PERSON: USER_ROLES.BACKEND_USER,
+} as const;
+
+export const CANONICAL_USER_ROLE_VALUES = Object.values(USER_ROLES) as UserRole[];
+
+export const USER_ROLE_OPTIONS: ReadonlyArray<{ value: UserRole; label: string }> = [
+  { value: USER_ROLES.SUPER_ADMIN, label: 'Super Admin' },
+  { value: USER_ROLES.BACKEND_USER, label: 'Backend User' },
+  { value: USER_ROLES.FIELD_AGENT, label: 'Field Agent' },
+];
+
+export const normalizeUserRole = (role: string | null | undefined): UserRole | undefined => {
+  if (!role) {return undefined;}
+  const normalized = role.trim().toUpperCase();
+  if ((CANONICAL_USER_ROLE_VALUES as readonly string[]).includes(normalized)) {
+    return normalized as UserRole;
+  }
+  return LEGACY_ROLE_ALIASES[normalized as keyof typeof LEGACY_ROLE_ALIASES];
+};
 
 // Case Status
 export const CASE_STATUS = {

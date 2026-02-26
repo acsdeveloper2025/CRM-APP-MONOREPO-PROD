@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import type { Role } from '@/types/auth';
+import { USER_ROLE_OPTIONS } from '@/types/constants';
 import { Plus, Upload, Download, Calendar as CalendarIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,7 +15,6 @@ import { UserSessionsTable } from '@/components/users/UserSessionsTable';
 import { CreateUserDialog } from '@/components/users/CreateUserDialog';
 import { BulkImportUsersDialog } from '@/components/users/BulkImportUsersDialog';
 import { UserStatsCards } from '@/components/users/UserStatsCards';
-import { RolePermissionsTable } from '@/components/users/RolePermissionsTable';
 import { useUnifiedSearch, useUnifiedFilters } from '@/hooks/useUnifiedSearch';
 import { UnifiedSearchFilterLayout, FilterGrid } from '@/components/ui/unified-search-filter-layout';
 import { Label } from '@/components/ui/label';
@@ -43,8 +43,8 @@ export function UsersPage() {
   const { hasPermissionCode } = usePermissionContext();
   const isAdmin = hasPermissionCode('permission.manage') || hasPermissionCode('role.manage');
 
-  const adminTabs = ['users', 'activities', 'sessions', 'permissions'] as const;
-  const standardTabs = ['users', 'permissions'] as const;
+  const adminTabs = ['users', 'activities', 'sessions'] as const;
+  const standardTabs = ['users'] as const;
   const validTabs = isAdmin ? adminTabs : standardTabs;
   type UserTab = (typeof adminTabs)[number];
 
@@ -101,12 +101,6 @@ export function UsersPage() {
     urlParamName: 'sess_search',
   });
 
-  // 4. Permissions Tab State
-  const permSearch = useUnifiedSearch({
-    syncWithUrl: true,
-    urlParamName: 'perm_search',
-  });
-
   // Independent pagination resets
   useEffect(() => { setUserPage(1); }, [userSearch.debouncedSearchValue, userFilters.filters]);
   useEffect(() => { setActPage(1); }, [actSearch.debouncedSearchValue, actFilters.filters]);
@@ -144,19 +138,6 @@ export function UsersPage() {
   const { data: userStatsData } = useQuery({
     queryKey: ['user-stats'],
     queryFn: () => usersService.getUserStats(),
-  });
-
-  const { data: rolePermissionsData, isLoading: rolePermissionsLoading } = useQuery({
-    queryKey: ['role-permissions', permSearch.debouncedSearchValue],
-    queryFn: () => usersService.getRolePermissions(),
-    select: (response) => {
-      if (!permSearch.debouncedSearchValue || !response?.data) {return response;}
-      const filtered = response.data.filter(rp => 
-        rp.role.toLowerCase().includes(permSearch.debouncedSearchValue.toLowerCase())
-      );
-      return { ...response, data: filtered };
-    },
-    enabled: activeTab === 'permissions',
   });
 
   const handleExportUsers = async (format: 'CSV' | 'EXCEL' = 'EXCEL') => {
@@ -264,7 +245,7 @@ export function UsersPage() {
               <TabsList
                 className={cn(
                   'grid w-full min-w-max lg:w-auto',
-                  isAdmin ? 'grid-cols-2 md:grid-cols-4 lg:grid-cols-4' : 'grid-cols-2 lg:grid-cols-2'
+                  isAdmin ? 'grid-cols-2 md:grid-cols-3 lg:grid-cols-3' : 'grid-cols-1'
                 )}
               >
                 <TabsTrigger value="users" className="text-xs sm:text-sm whitespace-nowrap">
@@ -300,10 +281,6 @@ export function UsersPage() {
                   </>
                 )}
                 
-                <TabsTrigger value="permissions" className="text-xs sm:text-sm whitespace-nowrap">
-                  <span className="hidden sm:inline">Permissions</span>
-                  <span className="sm:hidden">Perms</span>
-                </TabsTrigger>
               </TabsList>
 
               {/* Actions */}
@@ -362,11 +339,11 @@ export function UsersPage() {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="all">All Roles</SelectItem>
-                          <SelectItem value="ADMIN">Admin</SelectItem>
-                          <SelectItem value="MANAGER">Manager</SelectItem>
-                          <SelectItem value="FIELD_AGENT">Field Agent</SelectItem>
-                          <SelectItem value="BACKEND_TEAM">Backend Team</SelectItem>
-                          <SelectItem value="CLIENT">Client</SelectItem>
+                          {USER_ROLE_OPTIONS.map(option => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>
@@ -547,21 +524,6 @@ export function UsersPage() {
               {/* Pagination Controls (Placeholder if needed) */}
             </TabsContent>
 
-            <TabsContent value="permissions" className="space-y-4">
-              <UnifiedSearchFilterLayout
-                searchValue={permSearch.searchValue}
-                onSearchChange={permSearch.setSearchValue}
-                onSearchClear={permSearch.clearSearch}
-                isSearchLoading={permSearch.isDebouncing}
-                searchPlaceholder="Search permissions by role or permission name..."
-                showFilters={false}
-              />
-
-              <RolePermissionsTable
-                data={Array.isArray(rolePermissionsData?.data) ? rolePermissionsData.data : []}
-                isLoading={rolePermissionsLoading}
-              />
-            </TabsContent>
           </Tabs>
         </CardContent>
       </Card>

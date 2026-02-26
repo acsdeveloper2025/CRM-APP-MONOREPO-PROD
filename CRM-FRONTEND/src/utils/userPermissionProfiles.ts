@@ -1,4 +1,5 @@
 import type { User } from '@/types/user';
+import { normalizeUserRole } from '@/types/constants';
 
 const getPermissionCodes = (user?: Pick<User, 'permissionCodes' | 'permissions'> | null): string[] => {
   if (!user) {return [];}
@@ -31,16 +32,10 @@ export const canViewAdminUserOps = (user?: User | null): boolean =>
   isAdminLikeUser(user);
 
 export const matchesLegacyRoleAlias = (user: User | null | undefined, role: string): boolean => {
-  const normalized = role.toUpperCase();
-  if (normalized === 'SUPER_ADMIN' || normalized === 'ADMIN') {return isAdminLikeUser(user);}
+  const normalized = normalizeUserRole(role);
+  if (normalized === 'SUPER_ADMIN') {return isAdminLikeUser(user);}
   if (normalized === 'BACKEND_USER') {return isBackendScopedUser(user);}
   if (normalized === 'FIELD_AGENT') {return isFieldAgentUser(user);}
-  if (normalized === 'MANAGER') {
-    return !isAdminLikeUser(user) && userHasPermissionCode(user, 'review.view');
-  }
-  if (normalized === 'REPORT_PERSON') {
-    return !isAdminLikeUser(user) && userHasPermissionCode(user, 'report.download');
-  }
   return false;
 };
 

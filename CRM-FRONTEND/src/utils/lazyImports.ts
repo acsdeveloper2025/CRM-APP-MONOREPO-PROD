@@ -6,6 +6,7 @@
  */
 
 import { lazy, ComponentType, LazyExoticComponent } from 'react';
+import { normalizeUserRole } from '@/types/constants';
 
 // ==================== Lazy Loading Utilities ====================
 
@@ -330,34 +331,28 @@ export const routeComponents = {
  * Preload components based on user role
  */
 export function preloadByRole(role: string): void {
-  switch (role) {
+  const normalizedRole = normalizeUserRole(role) || role.trim().toUpperCase();
+  switch (normalizedRole) {
     case 'SUPER_ADMIN':
-    case 'ADMIN':
       // Preload admin-heavy components
       preloadableDashboard.preload();
       preloadableUsersList.preload();
       preloadComponent(SettingsPage);
       break;
-      
-    case 'MANAGER':
-      // Preload management components
-      preloadableDashboard.preload();
-      preloadableCasesList.preload();
-      preloadComponent(ReportsPage);
-      break;
-      
+
     case 'FIELD_AGENT':
       // Preload field agent components
       preloadableCasesList.preload();
       // preloadComponent(FormViewer);
       break;
-      
+
     case 'BACKEND_USER':
       // Preload backend user components
       preloadableCasesList.preload();
       preloadableUsersList.preload();
+      preloadComponent(ReportsPage);
       break;
-      
+
     default:
       // Preload common components
       preloadableDashboard.preload();

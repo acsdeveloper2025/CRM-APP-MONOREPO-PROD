@@ -21,8 +21,10 @@ import {
   getMISData,
   exportMISData,
 } from '@/controllers/reportsController';
+import { CANONICAL_RBAC_ROLE_NAMES } from '@/constants/rbacRoles';
 
 const router = express.Router();
+const SUPPORTED_REPORT_USER_ROLES = [...CANONICAL_RBAC_ROLE_NAMES];
 
 // Apply authentication
 router.use(authenticateToken);
@@ -63,10 +65,7 @@ const usersReportValidation = [
     .trim()
     .isLength({ max: 100 })
     .withMessage('Department must be less than 100 characters'),
-  query('role')
-    .optional()
-    .isIn(['ADMIN', 'MANAGER', 'FIELD', 'CLIENT'])
-    .withMessage('Invalid role'),
+  query('role').optional().isIn(SUPPORTED_REPORT_USER_ROLES).withMessage('Invalid role'),
   query('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
 ];
 

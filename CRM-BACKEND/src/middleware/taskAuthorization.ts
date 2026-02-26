@@ -16,8 +16,8 @@ import {
  *
  * Authorization Rules:
  * - FIELD_AGENT: Can only access tasks assigned to them (assigned_to = user.id)
- * - BACKEND_USER, MANAGER: Can access all tasks
- * - ADMIN, SUPER_ADMIN: Can access all tasks
+ * - BACKEND_USER: Can access all tasks
+ * - SUPER_ADMIN: Can access all tasks
  *
  * Returns:
  * - 404 if task not found
