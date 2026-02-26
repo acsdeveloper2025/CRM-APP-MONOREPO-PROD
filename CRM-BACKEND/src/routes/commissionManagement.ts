@@ -25,7 +25,6 @@ const router = express.Router();
 
 // Apply authentication to all routes
 router.use(authenticateToken);
-router.use(authorize('billing.approve'));
 
 // =====================================================
 // COMMISSION RATE TYPES ROUTES
@@ -71,10 +70,15 @@ const commissionRateTypeIdValidation = [
 ];
 
 // Commission Rate Types Routes
-router.get('/rate-types', getCommissionRateTypes as express.RequestHandler);
+router.get(
+  '/rate-types',
+  authorize('billing.download'),
+  getCommissionRateTypes as express.RequestHandler
+);
 
 router.post(
   '/rate-types',
+  authorize('billing.approve'),
   createCommissionRateTypeValidation,
   validate,
   createCommissionRateType as express.RequestHandler
@@ -82,6 +86,7 @@ router.post(
 
 router.put(
   '/rate-types/:id',
+  authorize('billing.approve'),
   updateCommissionRateTypeValidation,
   validate,
   updateCommissionRateType as express.RequestHandler
@@ -89,6 +94,7 @@ router.put(
 
 router.delete(
   '/rate-types/:id',
+  authorize('billing.approve'),
   commissionRateTypeIdValidation,
   validate,
   deleteCommissionRateType as express.RequestHandler
@@ -119,10 +125,15 @@ const createFieldUserCommissionAssignmentValidation = [
 ];
 
 // Field User Commission Assignments Routes
-router.get('/field-user-assignments', getFieldUserCommissionAssignments as express.RequestHandler);
+router.get(
+  '/field-user-assignments',
+  authorize('billing.download'),
+  getFieldUserCommissionAssignments as express.RequestHandler
+);
 
 router.post(
   '/field-user-assignments',
+  authorize('billing.approve'),
   createFieldUserCommissionAssignmentValidation,
   validate,
   createFieldUserCommissionAssignment as express.RequestHandler
@@ -130,6 +141,7 @@ router.post(
 
 router.put(
   '/field-user-assignments/:id',
+  authorize('billing.approve'),
   [
     param('id').isInt({ min: 1 }).withMessage('Assignment ID must be a positive integer'),
     ...createFieldUserCommissionAssignmentValidation,
@@ -140,6 +152,7 @@ router.put(
 
 router.delete(
   '/field-user-assignments/:id',
+  authorize('billing.approve'),
   param('id').isInt({ min: 1 }).withMessage('Assignment ID must be a positive integer'),
   validate,
   deleteFieldUserCommissionAssignment as express.RequestHandler
@@ -182,6 +195,7 @@ const commissionCalculationsQueryValidation = [
 // Commission Calculations Routes
 router.get(
   '/calculations',
+  authorize('billing.download'),
   commissionCalculationsQueryValidation,
   validate,
   getCommissionCalculations as express.RequestHandler
@@ -194,6 +208,7 @@ router.get(
 // Test commission calculation endpoint
 router.post(
   '/test-calculation',
+  authorize('billing.generate'),
   body('caseId').isUUID().withMessage('Case ID must be a valid UUID'),
   validate,
   calculateCommissionForCompletedCase as express.RequestHandler
@@ -204,6 +219,6 @@ router.post(
 // =====================================================
 
 // Commission Statistics Route
-router.get('/stats', getCommissionStats as express.RequestHandler);
+router.get('/stats', authorize('billing.download'), getCommissionStats as express.RequestHandler);
 
 export default router;
