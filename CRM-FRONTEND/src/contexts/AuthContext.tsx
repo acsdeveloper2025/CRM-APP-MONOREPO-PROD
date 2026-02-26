@@ -226,24 +226,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
     }
   };
-
-
-
-  const hasRole = (role: string): boolean => {
-    return authService.hasRole(role);
-  };
-
-  const hasAnyRole = (roles: string[]): boolean => {
-    return authService.hasAnyRole(roles);
-  };
-
   const value: AuthContextType = {
     ...state,
     login,
     logout,
     refreshUserPermissions,
-    hasRole,
-    hasAnyRole,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

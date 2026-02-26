@@ -1,33 +1,22 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import type { Role } from '@/types/auth';
 import { usePermissionContext } from '@/contexts/PermissionContext';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  requiredRoles?: Role[];
   permission?: string;
   fallbackPath?: string;
 }
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   children,
-  requiredRoles = [],
   permission,
   fallbackPath = '/login',
 }) => {
-  const { isAuthenticated, isLoading, hasAnyRole } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
   const { hasPermissionCode } = usePermissionContext();
   const location = useLocation();
-
-  console.warn('ProtectedRoute:', {
-    path: location.pathname,
-    isAuthenticated,
-    isLoading,
-    requiredRoles,
-    permission,
-  });
 
   if (isLoading) {
     return (
@@ -44,26 +33,6 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   if (permission && !hasPermissionCode(permission)) {
     return <Navigate to="/unauthorized" replace />;
-  }
-
-  if (requiredRoles.length > 0 && !hasAnyRole(requiredRoles)) {
-    // User doesn't have required role
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Access Denied</h1>
-          <p className="text-gray-600 mb-4">
-            You don&apos;t have permission to access this page.
-          </p>
-          <button
-            onClick={() => window.history.back()}
-            className="text-primary hover:underline"
-          >
-            Go Back
-          </button>
-        </div>
-      </div>
-    );
   }
 
   return <>{children}</>;

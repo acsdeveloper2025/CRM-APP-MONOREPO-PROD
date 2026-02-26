@@ -41,11 +41,11 @@ export function UsersPage() {
   const [showBulkImport, setShowBulkImport] = useState(false);
 
   const { hasPermissionCode } = usePermissionContext();
-  const isAdmin = hasPermissionCode('permission.manage') || hasPermissionCode('role.manage');
+  const canManageRbac = hasPermissionCode('permission.manage') || hasPermissionCode('role.manage');
 
   const adminTabs = ['users', 'activities', 'sessions'] as const;
   const standardTabs = ['users'] as const;
-  const validTabs = isAdmin ? adminTabs : standardTabs;
+  const validTabs = canManageRbac ? adminTabs : standardTabs;
   type UserTab = (typeof adminTabs)[number];
 
   const queryTab = searchParams.get('tab');
@@ -245,7 +245,7 @@ export function UsersPage() {
               <TabsList
                 className={cn(
                   'grid w-full min-w-max lg:w-auto',
-                  isAdmin ? 'grid-cols-2 md:grid-cols-3 lg:grid-cols-3' : 'grid-cols-1'
+                  canManageRbac ? 'grid-cols-2 md:grid-cols-3 lg:grid-cols-3' : 'grid-cols-1'
                 )}
               >
                 <TabsTrigger value="users" className="text-xs sm:text-sm whitespace-nowrap">
@@ -258,7 +258,7 @@ export function UsersPage() {
                   )}
                 </TabsTrigger>
                 
-                {isAdmin && (
+                {canManageRbac && (
                   <>
                     <TabsTrigger value="activities" className="text-xs sm:text-sm whitespace-nowrap">
                       <span className="hidden sm:inline">Activities</span>
