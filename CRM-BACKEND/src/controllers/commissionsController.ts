@@ -5,6 +5,11 @@ import type { AuthenticatedRequest } from '@/middleware/auth';
 import type { QueryParams } from '@/types/database';
 import type { CommissionCalculation } from '@/types/commission';
 import { requireControllerPermission } from '@/security/controllerAuthorization';
+import {
+  appendOperationalScopeConditions,
+  resolveDataScope,
+  valueAllowedByScope,
+} from '@/security/dataScope';
 
 // Extended interface for query results including joined fields
 interface CommissionCalculationRow extends CommissionCalculation {
@@ -18,9 +23,18 @@ interface CountResult {
   total: string;
 }
 
+const toOptionalNumber = (value: unknown): number | null => {
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
 // GET /api/commissions - List commissions with pagination and filters
 export const getCommissions = async (req: AuthenticatedRequest, res: Response) => {
   try {
+    const scope = await resolveDataScope(req);
     const {
       page = 1,
       limit = 20,
@@ -73,6 +87,15 @@ export const getCommissions = async (req: AuthenticatedRequest, res: Response) =
       params.push(`%${search}%`);
       paramIndex++;
     }
+
+    appendOperationalScopeConditions({
+      scope,
+      conditions,
+      params: params as unknown as Array<string | number | boolean | string[] | number[]>,
+      userExpr: `cc."userId"`,
+      clientExpr: `cc."clientId"`,
+    });
+    paramIndex = params.length + 1;
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
@@ -153,6 +176,7 @@ export const getCommissions = async (req: AuthenticatedRequest, res: Response) =
 export const getCommissionById = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { id } = req.params;
+    const scope = await resolveDataScope(req);
 
     const sql = `
       SELECT
@@ -171,6 +195,22 @@ export const getCommissionById = async (req: AuthenticatedRequest, res: Response
     const result = await query<CommissionCalculationRow>(sql, [id]);
 
     if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Commission not found',
+        error: { code: 'NOT_FOUND' },
+      });
+    }
+
+    if (
+      !valueAllowedByScope(
+        {
+          userId: (result.rows[0] as unknown as { userId?: string }).userId ?? null,
+          clientId: toOptionalNumber((result.rows[0] as unknown as { clientId?: number }).clientId),
+        },
+        scope
+      )
+    ) {
       return res.status(404).json({
         success: false,
         message: 'Commission not found',
@@ -203,12 +243,32 @@ export const approveCommission = async (req: AuthenticatedRequest, res: Response
     const { id } = req.params;
     const { notes } = req.body;
     const approverId = req.user?.id;
+    const scope = await resolveDataScope(req);
 
     // Check current status
-    const checkSql = `SELECT status FROM commission_calculations WHERE id = $1`;
-    const checkResult = await query<{ status: string }>(checkSql, [id]);
+    const checkSql = `SELECT status, "userId", "clientId" FROM commission_calculations WHERE id = $1`;
+    const checkResult = await query<{ status: string; userId: string; clientId: number }>(
+      checkSql,
+      [id]
+    );
 
     if (checkResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Commission not found',
+        error: { code: 'NOT_FOUND' },
+      });
+    }
+
+    if (
+      !valueAllowedByScope(
+        {
+          userId: checkResult.rows[0].userId,
+          clientId: Number(checkResult.rows[0].clientId),
+        },
+        scope
+      )
+    ) {
       return res.status(404).json({
         success: false,
         message: 'Commission not found',
@@ -271,11 +331,33 @@ export const markCommissionPaid = async (req: AuthenticatedRequest, res: Respons
     const { id } = req.params;
     const { paidDate, paymentMethod, transactionId, notes } = req.body;
     const payerId = req.user?.id;
+    const scope = await resolveDataScope(req);
 
-    const checkSql = `SELECT status, "paidAt" FROM commission_calculations WHERE id = $1`;
-    const checkResult = await query<{ status: string; paidAt: string | null }>(checkSql, [id]);
+    const checkSql = `SELECT status, "paidAt", "userId", "clientId" FROM commission_calculations WHERE id = $1`;
+    const checkResult = await query<{
+      status: string;
+      paidAt: string | null;
+      userId: string;
+      clientId: number;
+    }>(checkSql, [id]);
 
     if (checkResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Commission not found',
+        error: { code: 'NOT_FOUND' },
+      });
+    }
+
+    if (
+      !valueAllowedByScope(
+        {
+          userId: checkResult.rows[0].userId,
+          clientId: Number(checkResult.rows[0].clientId),
+        },
+        scope
+      )
+    ) {
       return res.status(404).json({
         success: false,
         message: 'Commission not found',
@@ -364,6 +446,7 @@ interface UserSummaryStats extends SummaryStats {
 
 export const getCommissionSummary = async (req: AuthenticatedRequest, res: Response) => {
   try {
+    const scope = await resolveDataScope(req);
     const { userId, period = 'month' } = req.query;
 
     const conditions: string[] = [];
@@ -374,6 +457,14 @@ export const getCommissionSummary = async (req: AuthenticatedRequest, res: Respo
       conditions.push(`"userId" = $${paramIndex++}`);
       params.push(userId as string);
     }
+
+    appendOperationalScopeConditions({
+      scope,
+      conditions,
+      params: params as unknown as Array<string | number | boolean | string[] | number[]>,
+      userExpr: `"userId"`,
+      clientExpr: `"clientId"`,
+    });
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
@@ -455,6 +546,7 @@ export const bulkApproveCommissions = async (req: AuthenticatedRequest, res: Res
     }
     const { commissionIds, notes } = req.body;
     const approverId = req.user?.id;
+    const scope = await resolveDataScope(req);
 
     if (!Array.isArray(commissionIds) || commissionIds.length === 0) {
       return res.status(400).json({
@@ -464,6 +556,21 @@ export const bulkApproveCommissions = async (req: AuthenticatedRequest, res: Res
       });
     }
 
+    const bulkConditions = [`id = ANY($3::int[])`, `status != 'APPROVED'`];
+    const bulkParams: Array<string | number | boolean | string[] | number[]> = [
+      approverId || '',
+      notes || null,
+      [] as number[],
+    ];
+
+    appendOperationalScopeConditions({
+      scope,
+      conditions: bulkConditions,
+      params: bulkParams,
+      userExpr: `"userId"`,
+      clientExpr: `"clientId"`,
+    });
+
     const sql = `
       UPDATE commission_calculations
       SET
@@ -472,8 +579,7 @@ export const bulkApproveCommissions = async (req: AuthenticatedRequest, res: Res
         "approvedAt" = CURRENT_TIMESTAMP,
         notes = CASE WHEN $2::text IS NOT NULL THEN $2 ELSE notes END,
         "updatedAt" = CURRENT_TIMESTAMP
-      WHERE id = ANY($3::int[])
-        AND status != 'APPROVED'
+      WHERE ${bulkConditions.join(' AND ')}
       RETURNING id
     `;
 
@@ -483,7 +589,8 @@ export const bulkApproveCommissions = async (req: AuthenticatedRequest, res: Res
       return res.status(400).json({ message: 'Invalid IDs provided' });
     }
 
-    const result = await query<BulkApproveResult>(sql, [approverId, notes || null, numericIds]);
+    bulkParams[2] = numericIds;
+    const result = await query<BulkApproveResult>(sql, bulkParams);
     const approvedIds = result.rows.map(r => r.id);
     const failedCount = commissionIds.length - approvedIds.length;
 
@@ -519,6 +626,7 @@ export const bulkMarkCommissionsPaid = async (req: AuthenticatedRequest, res: Re
     }
     const { commissionIds, paymentMethod, transactionId, notes } = req.body;
     const payerId = req.user?.id;
+    const scope = await resolveDataScope(req);
 
     if (!Array.isArray(commissionIds) || commissionIds.length === 0) {
       return res.status(400).json({
@@ -527,6 +635,23 @@ export const bulkMarkCommissionsPaid = async (req: AuthenticatedRequest, res: Re
         error: { code: 'MISSING_DATA' },
       });
     }
+
+    const bulkConditions = [`id = ANY($5::int[])`, `status = 'APPROVED'`, `"paidAt" IS NULL`];
+    const bulkParams: Array<string | number | boolean | string[] | number[]> = [
+      payerId || '',
+      paymentMethod as string,
+      transactionId as string,
+      notes || 'Bulk paid',
+      [] as number[],
+    ];
+
+    appendOperationalScopeConditions({
+      scope,
+      conditions: bulkConditions,
+      params: bulkParams,
+      userExpr: `"userId"`,
+      clientExpr: `"clientId"`,
+    });
 
     const sql = `
       UPDATE commission_calculations
@@ -541,9 +666,7 @@ export const bulkMarkCommissionsPaid = async (req: AuthenticatedRequest, res: Re
           ELSE notes || E'\nPayment: ' || $4::text
         END,
         "updatedAt" = CURRENT_TIMESTAMP
-      WHERE id = ANY($5::int[])
-        AND status = 'APPROVED'
-        AND "paidAt" IS NULL
+      WHERE ${bulkConditions.join(' AND ')}
       RETURNING id
     `;
 
@@ -553,13 +676,8 @@ export const bulkMarkCommissionsPaid = async (req: AuthenticatedRequest, res: Re
       return res.status(400).json({ message: 'Invalid IDs provided' });
     }
 
-    const result = await query<{ id: number }>(sql, [
-      payerId,
-      paymentMethod,
-      transactionId,
-      notes || 'Bulk paid',
-      numericIds,
-    ]);
+    bulkParams[4] = numericIds;
+    const result = await query<{ id: number }>(sql, bulkParams);
 
     const paidIds = result.rows.map(r => r.id);
     const failedCount = commissionIds.length - paidIds.length;

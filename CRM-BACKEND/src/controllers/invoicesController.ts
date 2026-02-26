@@ -1,8 +1,8 @@
 import type { Response } from 'express';
 import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
-import { isScopedOperationsUser } from '@/security/rbacAccess';
 import { requireControllerPermission } from '@/security/controllerAuthorization';
+import { resolveDataScope, valueAllowedByScope } from '@/security/dataScope';
 
 interface InvoiceItem {
   id: string;
@@ -116,25 +116,30 @@ const invoices: Invoice[] = [
   },
 ];
 
-const enforceInvoiceScope = (req: AuthenticatedRequest, res: Response): boolean => {
-  if (isScopedOperationsUser(req.user)) {
-    res.status(403).json({
-      success: false,
-      message:
-        'Billing access is temporarily disabled until client/product scope enforcement is implemented',
-      error: { code: 'BILLING_SCOPE_ENFORCEMENT_REQUIRED' },
-    });
-    return false;
+const parseInvoiceClientId = (invoiceClientId: string): number | null => {
+  const direct = Number(invoiceClientId);
+  if (Number.isFinite(direct)) {
+    return direct;
   }
-  return true;
+  const suffix = Number(String(invoiceClientId).replace(/^client_/i, ''));
+  return Number.isFinite(suffix) ? suffix : null;
 };
 
+const invoiceAllowedByScope = (
+  invoice: Pick<Invoice, 'clientId'>,
+  scope: Awaited<ReturnType<typeof resolveDataScope>>
+): boolean =>
+  valueAllowedByScope(
+    {
+      clientId: parseInvoiceClientId(invoice.clientId),
+    },
+    scope
+  );
+
 // GET /api/invoices - List invoices with pagination and filters
-export const getInvoices = (req: AuthenticatedRequest, res: Response) => {
+export const getInvoices = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    if (!enforceInvoiceScope(req, res)) {
-      return;
-    }
+    const scope = await resolveDataScope(req);
     const {
       page = 1,
       limit = 20,
@@ -147,7 +152,7 @@ export const getInvoices = (req: AuthenticatedRequest, res: Response) => {
       sortOrder = 'desc',
     } = req.query;
 
-    let filteredInvoices = [...invoices];
+    let filteredInvoices = invoices.filter(inv => invoiceAllowedByScope(inv, scope));
 
     // Apply filters
     if (clientId) {
@@ -218,15 +223,20 @@ export const getInvoices = (req: AuthenticatedRequest, res: Response) => {
 };
 
 // GET /api/invoices/:id - Get invoice by ID
-export const getInvoiceById = (req: AuthenticatedRequest, res: Response) => {
+export const getInvoiceById = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    if (!enforceInvoiceScope(req, res)) {
-      return;
-    }
+    const scope = await resolveDataScope(req);
     const { id } = req.params;
     const invoice = invoices.find(inv => inv.id === id);
 
     if (!invoice) {
+      return res.status(404).json({
+        success: false,
+        message: 'Invoice not found',
+        error: { code: 'NOT_FOUND' },
+      });
+    }
+    if (!invoiceAllowedByScope(invoice, scope)) {
       return res.status(404).json({
         success: false,
         message: 'Invoice not found',
@@ -251,15 +261,20 @@ export const getInvoiceById = (req: AuthenticatedRequest, res: Response) => {
 };
 
 // POST /api/invoices - Create new invoice
-export const createInvoice = (req: AuthenticatedRequest, res: Response) => {
+export const createInvoice = async (req: AuthenticatedRequest, res: Response) => {
   try {
     if (!requireControllerPermission(req, res, 'billing.generate')) {
       return;
     }
-    if (!enforceInvoiceScope(req, res)) {
-      return;
-    }
+    const scope = await resolveDataScope(req);
     const { clientId, clientName, items, dueDate, notes, currency = 'INR' } = req.body;
+    if (!invoiceAllowedByScope({ clientId }, scope)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Client is outside assigned scope',
+        error: { code: 'OUT_OF_SCOPE' },
+      });
+    }
 
     // Calculate amounts
     const amount = items.reduce(
@@ -325,19 +340,24 @@ export const createInvoice = (req: AuthenticatedRequest, res: Response) => {
 };
 
 // PUT /api/invoices/:id - Update invoice
-export const updateInvoice = (req: AuthenticatedRequest, res: Response) => {
+export const updateInvoice = async (req: AuthenticatedRequest, res: Response) => {
   try {
     if (!requireControllerPermission(req, res, 'billing.generate')) {
       return;
     }
-    if (!enforceInvoiceScope(req, res)) {
-      return;
-    }
+    const scope = await resolveDataScope(req);
     const { id } = req.params;
     const updateData = req.body;
 
     const invoiceIndex = invoices.findIndex(inv => inv.id === id);
     if (invoiceIndex === -1) {
+      return res.status(404).json({
+        success: false,
+        message: 'Invoice not found',
+        error: { code: 'NOT_FOUND' },
+      });
+    }
+    if (!invoiceAllowedByScope(invoices[invoiceIndex], scope)) {
       return res.status(404).json({
         success: false,
         message: 'Invoice not found',
@@ -400,18 +420,23 @@ export const updateInvoice = (req: AuthenticatedRequest, res: Response) => {
 };
 
 // DELETE /api/invoices/:id - Delete invoice
-export const deleteInvoice = (req: AuthenticatedRequest, res: Response) => {
+export const deleteInvoice = async (req: AuthenticatedRequest, res: Response) => {
   try {
     if (!requireControllerPermission(req, res, 'billing.generate')) {
       return;
     }
-    if (!enforceInvoiceScope(req, res)) {
-      return;
-    }
+    const scope = await resolveDataScope(req);
     const { id } = req.params;
 
     const invoiceIndex = invoices.findIndex(inv => inv.id === id);
     if (invoiceIndex === -1) {
+      return res.status(404).json({
+        success: false,
+        message: 'Invoice not found',
+        error: { code: 'NOT_FOUND' },
+      });
+    }
+    if (!invoiceAllowedByScope(invoices[invoiceIndex], scope)) {
       return res.status(404).json({
         success: false,
         message: 'Invoice not found',
@@ -451,19 +476,24 @@ export const deleteInvoice = (req: AuthenticatedRequest, res: Response) => {
 };
 
 // POST /api/invoices/:id/send - Send invoice
-export const sendInvoice = (req: AuthenticatedRequest, res: Response) => {
+export const sendInvoice = async (req: AuthenticatedRequest, res: Response) => {
   try {
     if (!requireControllerPermission(req, res, 'billing.generate')) {
       return;
     }
-    if (!enforceInvoiceScope(req, res)) {
-      return;
-    }
+    const scope = await resolveDataScope(req);
     const { id } = req.params;
     const { email, message: _message } = req.body;
 
     const invoiceIndex = invoices.findIndex(inv => inv.id === id);
     if (invoiceIndex === -1) {
+      return res.status(404).json({
+        success: false,
+        message: 'Invoice not found',
+        error: { code: 'NOT_FOUND' },
+      });
+    }
+    if (!invoiceAllowedByScope(invoices[invoiceIndex], scope)) {
       return res.status(404).json({
         success: false,
         message: 'Invoice not found',
@@ -500,19 +530,24 @@ export const sendInvoice = (req: AuthenticatedRequest, res: Response) => {
 };
 
 // POST /api/invoices/:id/mark-paid - Mark invoice as paid
-export const markInvoicePaid = (req: AuthenticatedRequest, res: Response) => {
+export const markInvoicePaid = async (req: AuthenticatedRequest, res: Response) => {
   try {
     if (!requireControllerPermission(req, res, 'billing.approve')) {
       return;
     }
-    if (!enforceInvoiceScope(req, res)) {
-      return;
-    }
+    const scope = await resolveDataScope(req);
     const { id } = req.params;
     const { paidDate, paymentMethod, transactionId, notes } = req.body;
 
     const invoiceIndex = invoices.findIndex(inv => inv.id === id);
     if (invoiceIndex === -1) {
+      return res.status(404).json({
+        success: false,
+        message: 'Invoice not found',
+        error: { code: 'NOT_FOUND' },
+      });
+    }
+    if (!invoiceAllowedByScope(invoices[invoiceIndex], scope)) {
       return res.status(404).json({
         success: false,
         message: 'Invoice not found',
@@ -560,15 +595,20 @@ export const markInvoicePaid = (req: AuthenticatedRequest, res: Response) => {
 };
 
 // GET /api/invoices/:id/download - Download invoice PDF
-export const downloadInvoice = (req: AuthenticatedRequest, res: Response) => {
+export const downloadInvoice = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    if (!enforceInvoiceScope(req, res)) {
-      return;
-    }
+    const scope = await resolveDataScope(req);
     const { id } = req.params;
     const invoice = invoices.find(inv => inv.id === id);
 
     if (!invoice) {
+      return res.status(404).json({
+        success: false,
+        message: 'Invoice not found',
+        error: { code: 'NOT_FOUND' },
+      });
+    }
+    if (!invoiceAllowedByScope(invoice, scope)) {
       return res.status(404).json({
         success: false,
         message: 'Invoice not found',
@@ -605,29 +645,27 @@ export const downloadInvoice = (req: AuthenticatedRequest, res: Response) => {
 };
 
 // GET /api/invoices/stats - Get invoice statistics
-export const getInvoiceStats = (req: AuthenticatedRequest, res: Response) => {
+export const getInvoiceStats = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    if (!enforceInvoiceScope(req, res)) {
-      return;
-    }
+    const scope = await resolveDataScope(req);
     const { period = 'month' } = req.query;
-
-    const totalInvoices = invoices.length;
-    const paidInvoices = invoices.filter(inv => inv.status === 'PAID').length;
-    const pendingInvoices = invoices.filter(inv => inv.status === 'PENDING').length;
-    const overdueInvoices = invoices.filter(
+    const scopedInvoices = invoices.filter(inv => invoiceAllowedByScope(inv, scope));
+    const totalInvoices = scopedInvoices.length;
+    const paidInvoices = scopedInvoices.filter(inv => inv.status === 'PAID').length;
+    const pendingInvoices = scopedInvoices.filter(inv => inv.status === 'PENDING').length;
+    const overdueInvoices = scopedInvoices.filter(
       inv => inv.status === 'PENDING' && new Date(inv.dueDate) < new Date()
     ).length;
 
-    const totalAmount = invoices.reduce((sum, inv) => sum + inv.totalAmount, 0);
-    const paidAmount = invoices
+    const totalAmount = scopedInvoices.reduce((sum, inv) => sum + inv.totalAmount, 0);
+    const paidAmount = scopedInvoices
       .filter(inv => inv.status === 'PAID')
       .reduce((sum, inv) => sum + inv.totalAmount, 0);
-    const pendingAmount = invoices
+    const pendingAmount = scopedInvoices
       .filter(inv => inv.status === 'PENDING')
       .reduce((sum, inv) => sum + inv.totalAmount, 0);
 
-    const statusDistribution = invoices.reduce(
+    const statusDistribution = scopedInvoices.reduce(
       (acc, inv) => {
         acc[inv.status] = (acc[inv.status] || 0) + 1;
         return acc;
@@ -635,7 +673,7 @@ export const getInvoiceStats = (req: AuthenticatedRequest, res: Response) => {
       {} as Record<string, number>
     );
 
-    const clientDistribution = invoices.reduce(
+    const clientDistribution = scopedInvoices.reduce(
       (acc, inv) => {
         acc[inv.clientName] = (acc[inv.clientName] || 0) + inv.totalAmount;
         return acc;
