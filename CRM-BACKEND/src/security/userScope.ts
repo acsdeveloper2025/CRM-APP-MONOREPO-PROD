@@ -1,6 +1,6 @@
 import type { PoolClient } from 'pg';
 import { query } from '@/config/database';
-import { normalizeRbacRoleName } from '@/constants/rbacRoles';
+import { loadUserCapabilityProfile } from '@/security/userCapabilities';
 
 type Queryable = Pick<PoolClient, 'query'>;
 
@@ -13,8 +13,6 @@ type ScopeUserRow = {
   id: string;
   teamLeaderId: string | null;
   managerId: string | null;
-  roles: string[] | null;
-  role: string | null;
 };
 
 const loadScopeUser = async (userId: string, db?: Queryable): Promise<ScopeUserRow | null> => {
@@ -24,14 +22,7 @@ const loadScopeUser = async (userId: string, db?: Queryable): Promise<ScopeUserR
       SELECT
         u.id,
         u.team_leader_id as "teamLeaderId",
-        u.manager_id as "managerId",
-        COALESCE((
-          SELECT ARRAY_AGG(rv.name ORDER BY rv.name)
-          FROM user_roles ur
-          JOIN roles_v2 rv ON rv.id = ur.role_id
-          WHERE ur.user_id = u.id
-        ), ARRAY[]::text[]) as roles,
-        u.role
+        u.manager_id as "managerId"
       FROM users u
       WHERE u.id = $1
       LIMIT 1
@@ -42,37 +33,13 @@ const loadScopeUser = async (userId: string, db?: Queryable): Promise<ScopeUserR
   return result.rows[0] ?? null;
 };
 
-const resolveCanonicalRole = (user: ScopeUserRow): string | undefined => {
-  const roleSet = new Set((user.roles || []).map(role => normalizeRbacRoleName(role) ?? role));
-  if (roleSet.has('SUPER_ADMIN')) {
-    return 'SUPER_ADMIN';
-  }
-  if (roleSet.has('MANAGER')) {
-    return 'MANAGER';
-  }
-  if (roleSet.has('TEAM_LEADER')) {
-    return 'TEAM_LEADER';
-  }
-  if (roleSet.has('BACKEND_USER')) {
-    return 'BACKEND_USER';
-  }
-  if (roleSet.has('FIELD_AGENT')) {
-    return 'FIELD_AGENT';
-  }
-  return normalizeRbacRoleName(user.role) ?? user.role ?? undefined;
-};
-
-export const getUserScope = async (userId: string, db?: Queryable): Promise<UserHierarchyScope> => {
+export const getSubordinateUsers = async (
+  userId: string,
+  db?: Queryable
+): Promise<{ teamMemberIds: string[]; managedTreeIds: string[] }> => {
   const executor = db ?? { query };
-  const user = await loadScopeUser(userId, db);
-  if (!user) {
-    return { userIds: [] };
-  }
-
-  const role = resolveCanonicalRole(user);
-
-  if (role === 'TEAM_LEADER') {
-    const result = await executor.query<{ id: string }>(
+  const [teamMembers, managedTree] = await Promise.all([
+    executor.query<{ id: string }>(
       `
         SELECT u.id
         FROM users u
@@ -80,17 +47,10 @@ export const getUserScope = async (userId: string, db?: Queryable): Promise<User
           AND u.team_leader_id = $1
       `,
       [userId]
-    );
-    return {
-      userIds: result.rows.map(row => row.id),
-      scopeRole: 'TEAM_LEADER',
-    };
-  }
-
-  if (role === 'MANAGER') {
-    const result = await executor.query<{ id: string }>(
+    ),
+    executor.query<{ id: string }>(
       `
-        WITH RECURSIVE scoped_users AS (
+        WITH RECURSIVE managed_users AS (
           SELECT u.id
           FROM users u
           WHERE u."deletedAt" IS NULL
@@ -98,18 +58,64 @@ export const getUserScope = async (userId: string, db?: Queryable): Promise<User
           UNION
           SELECT child.id
           FROM users child
-          JOIN scoped_users parent_scope ON child.manager_id = parent_scope.id
+          JOIN managed_users parent_scope ON child.manager_id = parent_scope.id
           WHERE child."deletedAt" IS NULL
         )
         SELECT DISTINCT id
-        FROM scoped_users
+        FROM managed_users
       `,
       [userId]
-    );
+    ),
+  ]);
 
+  return {
+    teamMemberIds: teamMembers.rows.map(row => row.id),
+    managedTreeIds: managedTree.rows.map(row => row.id),
+  };
+};
+
+export const getSupervisingUsers = async (
+  userId: string,
+  db?: Queryable
+): Promise<{ teamLeaderId: string | null; managerId: string | null }> => {
+  const user = await loadScopeUser(userId, db);
+  if (!user) {
+    return { teamLeaderId: null, managerId: null };
+  }
+  return {
+    teamLeaderId: user.teamLeaderId ?? null,
+    managerId: user.managerId ?? null,
+  };
+};
+
+export const getUserScope = async (userId: string, db?: Queryable): Promise<UserHierarchyScope> => {
+  const [user, capabilityProfile, subordinates] = await Promise.all([
+    loadScopeUser(userId, db),
+    loadUserCapabilityProfile(userId, db),
+    getSubordinateUsers(userId, db),
+  ]);
+
+  if (!user || !capabilityProfile) {
+    return { userIds: [] };
+  }
+
+  if (!capabilityProfile.capabilities.supervisoryOrGlobal) {
+    return { userIds: [] };
+  }
+
+  const managedTreeIds = subordinates.managedTreeIds.filter(id => id !== userId);
+  if (managedTreeIds.length > 0 && !user.teamLeaderId) {
     return {
-      userIds: result.rows.map(row => row.id),
+      userIds: managedTreeIds,
       scopeRole: 'MANAGER',
+    };
+  }
+
+  const teamMemberIds = subordinates.teamMemberIds.filter(id => id !== userId);
+  if (teamMemberIds.length > 0 && user.managerId) {
+    return {
+      userIds: teamMemberIds,
+      scopeRole: 'TEAM_LEADER',
     };
   }
 

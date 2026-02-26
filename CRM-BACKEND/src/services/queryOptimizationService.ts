@@ -201,9 +201,13 @@ export class QueryOptimizationService {
   /**
    * Get dashboard statistics with optimized queries
    */
-  async getDashboardStats(userId?: string, role?: string): Promise<Record<string, unknown>> {
-    const baseCondition = role === 'FIELD_AGENT' ? 'AND c."assignedTo" = $1' : '';
-    const params = role === 'FIELD_AGENT' ? [userId] : [];
+  async getDashboardStats(
+    userId?: string,
+    options: { restrictToAssignedUser?: boolean } = {}
+  ): Promise<Record<string, unknown>> {
+    const restrictToAssignedUser = Boolean(options.restrictToAssignedUser && userId);
+    const baseCondition = restrictToAssignedUser ? 'AND c."assignedTo" = $1' : '';
+    const params = restrictToAssignedUser ? [userId] : [];
 
     const query = `
       WITH case_stats AS (
