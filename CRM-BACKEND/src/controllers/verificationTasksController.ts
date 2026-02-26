@@ -883,28 +883,54 @@ export class VerificationTasksController {
       const caseInfo = caseResult.rows[0];
 
       if (isScopedOperationsUser(req.user) && req.user?.id) {
-        const [assignedClientIds, assignedProductIds] = await Promise.all([
-          getAssignedClientIds(req.user.id),
-          getAssignedProductIds(req.user.id),
-        ]);
+        const scopedUserIds = await getScopedOperationalUserIds(req.user.id);
 
-        const caseClientId = Number(caseInfo.client_id);
-        const caseProductId = Number(caseInfo.product_id);
+        if (scopedUserIds) {
+          const scopeCheck = await pool.query(
+            `SELECT 1
+             FROM cases c
+             LEFT JOIN verification_tasks vt ON vt.case_id = c.id
+             WHERE c.id = $1
+               AND (
+                 c."createdByBackendUser" = ANY($2::uuid[]) OR
+                 c."assignedTo" = ANY($2::uuid[]) OR
+                 vt.assigned_to = ANY($2::uuid[])
+               )
+             LIMIT 1`,
+            [actualCaseId, scopedUserIds]
+          );
+          if (scopeCheck.rows.length === 0) {
+            res.status(403).json({
+              success: false,
+              message: 'Access denied - case/tasks not assigned to user scope',
+              error: { code: 'CASE_TASK_ACCESS_DENIED' },
+            });
+            return;
+          }
+        } else {
+          const [assignedClientIds, assignedProductIds] = await Promise.all([
+            getAssignedClientIds(req.user.id),
+            getAssignedProductIds(req.user.id),
+          ]);
 
-        if (
-          !assignedClientIds ||
-          !assignedProductIds ||
-          assignedClientIds.length === 0 ||
-          assignedProductIds.length === 0 ||
-          !assignedClientIds.includes(caseClientId) ||
-          !assignedProductIds.includes(caseProductId)
-        ) {
-          res.status(403).json({
-            success: false,
-            message: 'Access denied - case/tasks not assigned to user scope',
-            error: { code: 'CASE_TASK_ACCESS_DENIED' },
-          });
-          return;
+          const caseClientId = Number(caseInfo.client_id);
+          const caseProductId = Number(caseInfo.product_id);
+
+          if (
+            !assignedClientIds ||
+            !assignedProductIds ||
+            assignedClientIds.length === 0 ||
+            assignedProductIds.length === 0 ||
+            !assignedClientIds.includes(caseClientId) ||
+            !assignedProductIds.includes(caseProductId)
+          ) {
+            res.status(403).json({
+              success: false,
+              message: 'Access denied - case/tasks not assigned to user scope',
+              error: { code: 'CASE_TASK_ACCESS_DENIED' },
+            });
+            return;
+          }
         }
       }
 

@@ -13,6 +13,7 @@ import type { QueryParams } from '@/types/database';
 import { getAssignedClientIds } from '@/middleware/clientAccess';
 import { getAssignedProductIds } from '@/middleware/productAccess';
 import { isFieldExecutionActor, isScopedOperationsUser } from '@/security/rbacAccess';
+import { getScopedOperationalUserIds } from '@/security/userScope';
 
 // Configure storage for verification attachments
 const storage = multer.diskStorage({
@@ -155,29 +156,57 @@ export class VerificationAttachmentController {
         };
       }
 
-      const [assignedClientIds, assignedProductIds] = await Promise.all([
-        getAssignedClientIds(userId),
-        getAssignedProductIds(userId),
-      ]);
-      const caseRow = caseRes.rows[0];
+      const scopedUserIds = await getScopedOperationalUserIds(userId);
+      if (scopedUserIds) {
+        const scopeCheck = await query(
+          `SELECT 1
+           FROM cases c
+           LEFT JOIN verification_tasks vt ON vt.case_id = c.id
+           WHERE c.id = $1
+             AND (
+               c."createdByBackendUser" = ANY($2::uuid[]) OR
+               c."assignedTo" = ANY($2::uuid[]) OR
+               vt.assigned_to = ANY($2::uuid[])
+             )
+           LIMIT 1`,
+          [caseId, scopedUserIds]
+        );
+        if (scopeCheck.rows.length === 0) {
+          return {
+            ok: false,
+            status: 403,
+            body: {
+              success: false,
+              message: 'Access denied',
+              error: { code: 'CASE_ACCESS_DENIED' },
+            },
+          };
+        }
+      } else {
+        const [assignedClientIds, assignedProductIds] = await Promise.all([
+          getAssignedClientIds(userId),
+          getAssignedProductIds(userId),
+        ]);
+        const caseRow = caseRes.rows[0];
 
-      if (
-        !assignedClientIds ||
-        !assignedProductIds ||
-        assignedClientIds.length === 0 ||
-        assignedProductIds.length === 0 ||
-        !assignedClientIds.includes(Number(caseRow.clientId)) ||
-        !assignedProductIds.includes(Number(caseRow.productId))
-      ) {
-        return {
-          ok: false,
-          status: 403,
-          body: {
-            success: false,
-            message: 'Access denied',
-            error: { code: 'CASE_ACCESS_DENIED' },
-          },
-        };
+        if (
+          !assignedClientIds ||
+          !assignedProductIds ||
+          assignedClientIds.length === 0 ||
+          assignedProductIds.length === 0 ||
+          !assignedClientIds.includes(Number(caseRow.clientId)) ||
+          !assignedProductIds.includes(Number(caseRow.productId))
+        ) {
+          return {
+            ok: false,
+            status: 403,
+            body: {
+              success: false,
+              message: 'Access denied',
+              error: { code: 'CASE_ACCESS_DENIED' },
+            },
+          };
+        }
       }
     }
 

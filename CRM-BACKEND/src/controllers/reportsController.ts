@@ -63,6 +63,16 @@ const getBackendUserReportScope = async (req: AuthenticatedRequest) => {
     return {
       clientIds: undefined as number[] | undefined,
       productIds: undefined as number[] | undefined,
+      scopedUserIds: undefined as string[] | undefined,
+    };
+  }
+
+  const scopedUserIds = await getScopedOperationalUserIds(req.user.id);
+  if (scopedUserIds) {
+    return {
+      clientIds: undefined as number[] | undefined,
+      productIds: undefined as number[] | undefined,
+      scopedUserIds,
     };
   }
 
@@ -74,6 +84,7 @@ const getBackendUserReportScope = async (req: AuthenticatedRequest) => {
   return {
     clientIds: clientIds && clientIds.length > 0 ? clientIds : [-1],
     productIds: productIds && productIds.length > 0 ? productIds : [-1],
+    scopedUserIds: undefined as string[] | undefined,
   };
 };
 
@@ -643,22 +654,46 @@ export const getCaseTimeline = async (req: AuthenticatedRequest, res: Response) 
     }
 
     if (isScopedOperationsUser(req.user) && req.user?.id) {
-      const [assignedClientIds, assignedProductIds] = await Promise.all([
-        getAssignedClientIds(req.user.id),
-        getAssignedProductIds(req.user.id),
-      ]);
+      const scopedUserIds = await getScopedOperationalUserIds(req.user.id);
+      if (scopedUserIds) {
+        const scopeCheck = await pool.query(
+          `SELECT 1
+           FROM cases c
+           LEFT JOIN verification_tasks vt ON vt.case_id = c.id
+           WHERE c."caseId" = $1
+             AND (
+               c."createdByBackendUser" = ANY($2::uuid[]) OR
+               c."assignedTo" = ANY($2::uuid[]) OR
+               vt.assigned_to = ANY($2::uuid[])
+             )
+           LIMIT 1`,
+          [caseId, scopedUserIds]
+        );
+        if (scopeCheck.rows.length === 0) {
+          return res.status(403).json({
+            success: false,
+            message: 'Access denied',
+            error: { code: 'CASE_ACCESS_DENIED' },
+          });
+        }
+      } else {
+        const [assignedClientIds, assignedProductIds] = await Promise.all([
+          getAssignedClientIds(req.user.id),
+          getAssignedProductIds(req.user.id),
+        ]);
 
-      if (
-        assignedClientIds.length === 0 ||
-        assignedProductIds.length === 0 ||
-        !assignedClientIds.includes(Number(caseData.clientId)) ||
-        !assignedProductIds.includes(Number(caseData.productId))
-      ) {
-        return res.status(403).json({
-          success: false,
-          message: 'Access denied',
-          error: { code: 'CASE_ACCESS_DENIED' },
-        });
+        if (
+          assignedClientIds.length === 0 ||
+          assignedProductIds.length === 0 ||
+          !assignedClientIds.includes(Number(caseData.clientId)) ||
+          !assignedProductIds.includes(Number(caseData.productId))
+        ) {
+          return res.status(403).json({
+            success: false,
+            message: 'Access denied',
+            error: { code: 'CASE_ACCESS_DENIED' },
+          });
+        }
       }
     }
 
@@ -1104,6 +1139,19 @@ export const getCasesReport = async (req: AuthenticatedRequest, res: Response) =
       paramIndex++;
     }
 
+    if (backendScope.scopedUserIds) {
+      conditions.push(`(
+        c."createdByBackendUser" = ANY($${paramIndex}::uuid[]) OR
+        c."assignedTo" = ANY($${paramIndex}::uuid[]) OR
+        EXISTS (
+          SELECT 1 FROM verification_tasks vt_scope
+          WHERE vt_scope.case_id = c.id
+            AND vt_scope.assigned_to = ANY($${paramIndex}::uuid[])
+        )
+      )`);
+      params.push(backendScope.scopedUserIds);
+      paramIndex++;
+    }
     if (backendScope.clientIds) {
       conditions.push(`c."clientId" = ANY($${paramIndex}::int[])`);
       params.push(backendScope.clientIds);
@@ -1474,6 +1522,14 @@ export const getMISData = async (req: AuthenticatedRequest, res: Response) => {
       paramIndex++;
     }
 
+    if (backendScope.scopedUserIds) {
+      conditions.push(`(
+        vt.assigned_to = ANY($${paramIndex}::uuid[]) OR
+        c."createdByBackendUser" = ANY($${paramIndex}::uuid[])
+      )`);
+      params.push(backendScope.scopedUserIds);
+      paramIndex++;
+    }
     if (backendScope.clientIds) {
       conditions.push(`c."clientId" = ANY($${paramIndex}::int[])`);
       params.push(backendScope.clientIds);
@@ -1756,6 +1812,14 @@ export const exportMISData = async (req: AuthenticatedRequest, res: Response) =>
       paramIndex++;
     }
 
+    if (backendScope.scopedUserIds) {
+      conditions.push(`(
+        vt.assigned_to = ANY($${paramIndex}::uuid[]) OR
+        c."createdByBackendUser" = ANY($${paramIndex}::uuid[])
+      )`);
+      params.push(backendScope.scopedUserIds);
+      paramIndex++;
+    }
     if (backendScope.clientIds) {
       conditions.push(`c."clientId" = ANY($${paramIndex}::int[])`);
       params.push(backendScope.clientIds);
