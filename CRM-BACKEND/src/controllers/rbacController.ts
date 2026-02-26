@@ -1,5 +1,11 @@
 import type { Response } from 'express';
 import { query, withTransaction } from '@/config/database';
+import {
+  LEGACY_RBAC_ROLE_NAMES,
+  RBAC_ROLE_CANONICALIZE_SQL_CASE,
+  isCanonicalRbacRoleName,
+  normalizeRbacRoleName,
+} from '@/constants/rbacRoles';
 import type { AuthenticatedRequest } from '@/middleware/auth';
 import { emitPermissionsUpdated, getSocketIO } from '@/websocket/server';
 
@@ -48,10 +54,20 @@ export const getRbacRoles = async (_req: AuthenticatedRequest, res: Response) =>
          r.is_system as "isSystem",
          r.created_at as "createdAt",
          r.updated_at as "updatedAt",
-         (SELECT COUNT(*) FROM user_roles ur WHERE ur.role_id = r.id)::int as "userCount"
+         COALESCE(uc."userCount", 0)::int as "userCount"
        FROM roles_v2 r
        LEFT JOIN roles_v2 pr ON pr.id = r.parent_role_id
-       ORDER BY r.name`
+       LEFT JOIN (
+         SELECT
+           ${RBAC_ROLE_CANONICALIZE_SQL_CASE} as name,
+           COUNT(DISTINCT ur.user_id)::int as "userCount"
+         FROM user_roles ur
+         JOIN roles_v2 rv ON rv.id = ur.role_id
+         GROUP BY 1
+       ) uc ON uc.name = r.name
+       WHERE r.name <> ALL($1::text[])
+       ORDER BY r.name`,
+      [[...LEGACY_RBAC_ROLE_NAMES]]
     );
     res.json({ success: true, data: result.rows });
   } catch (_error) {
@@ -76,9 +92,17 @@ export const getRbacRoleById = async (req: AuthenticatedRequest, res: Response) 
          r.is_system as "isSystem",
          r.created_at as "createdAt",
          r.updated_at as "updatedAt",
-         (SELECT COUNT(*) FROM user_roles ur WHERE ur.role_id = r.id)::int as "userCount"
+         COALESCE(uc."userCount", 0)::int as "userCount"
        FROM roles_v2 r
        LEFT JOIN roles_v2 pr ON pr.id = r.parent_role_id
+       LEFT JOIN (
+         SELECT
+           ${RBAC_ROLE_CANONICALIZE_SQL_CASE} as name,
+           COUNT(DISTINCT ur.user_id)::int as "userCount"
+         FROM user_roles ur
+         JOIN roles_v2 rv ON rv.id = ur.role_id
+         GROUP BY 1
+       ) uc ON uc.name = r.name
        WHERE r.id = $1`,
       [id]
     );
@@ -114,9 +138,19 @@ export const createRbacRole = async (req: AuthenticatedRequest, res: Response) =
         error: { code: 'VALIDATION_ERROR' },
       });
     }
+    const trimmedName = name.trim();
+    const canonicalName = normalizeRbacRoleName(trimmedName);
+    if (canonicalName && !isCanonicalRbacRoleName(trimmedName)) {
+      return res.status(400).json({
+        success: false,
+        message: `Legacy role "${trimmedName}" is not allowed. Use "${canonicalName}" instead.`,
+        error: { code: 'LEGACY_ROLE_ALIAS_FORBIDDEN' },
+      });
+    }
 
     const role = await withTransaction(async client => {
-      const exists = await client.query('SELECT id FROM roles_v2 WHERE name = $1', [name.trim()]);
+      const finalRoleName = canonicalName ?? trimmedName;
+      const exists = await client.query('SELECT id FROM roles_v2 WHERE name = $1', [finalRoleName]);
       if (exists.rows.length > 0) {
         const err = new Error('DUPLICATE_ROLE');
         (err as Error & { code?: string }).code = 'DUPLICATE_ROLE';
@@ -127,7 +161,7 @@ export const createRbacRole = async (req: AuthenticatedRequest, res: Response) =
         `INSERT INTO roles_v2 (name, description, parent_role_id, is_system)
          VALUES ($1, $2, $3, false)
          RETURNING id, name, description, parent_role_id as "parentRoleId", is_system as "isSystem"`,
-        [name.trim(), description?.trim() || null, parentRoleId || null]
+        [finalRoleName, description?.trim() || null, parentRoleId || null]
       );
       const created = insert.rows[0];
 
@@ -178,6 +212,15 @@ export const updateRbacRole = async (req: AuthenticatedRequest, res: Response) =
       description?: string;
       parentRoleId?: string | null;
     };
+    const trimmedName = typeof name === 'string' ? name.trim() : undefined;
+    const canonicalName = normalizeRbacRoleName(trimmedName);
+    if (trimmedName && canonicalName && !isCanonicalRbacRoleName(trimmedName)) {
+      return res.status(400).json({
+        success: false,
+        message: `Legacy role "${trimmedName}" is not allowed. Use "${canonicalName}" instead.`,
+        error: { code: 'LEGACY_ROLE_ALIAS_FORBIDDEN' },
+      });
+    }
 
     const result = await query(
       `UPDATE roles_v2
@@ -188,7 +231,7 @@ export const updateRbacRole = async (req: AuthenticatedRequest, res: Response) =
        WHERE id = $4
        RETURNING id, name, description, parent_role_id as "parentRoleId", is_system as "isSystem"`,
       [
-        name?.trim() || null,
+        (canonicalName ?? trimmedName) || null,
         description !== undefined ? description : null,
         parentRoleId ?? null,
         id,

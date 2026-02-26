@@ -1,6 +1,7 @@
 import { EnterpriseCacheService } from './enterpriseCacheService';
 import { logger } from '../config/logger';
 import { pool } from '../config/database';
+import { CANONICAL_RBAC_ROLE_NAMES } from '@/constants/rbacRoles';
 
 /**
  * Cache Warming Service
@@ -118,10 +119,13 @@ export class CacheWarmingService {
       // Cache users by RBAC permission profile (query still uses role names for warm selection only)
       const profiles = [
         { roleName: 'FIELD_AGENT', cacheKey: 'visit-submit' },
-        { roleName: 'MANAGER', cacheKey: 'review' },
-        { roleName: 'ADMIN', cacheKey: 'system-manage' },
+        { roleName: 'BACKEND_USER', cacheKey: 'review' },
+        { roleName: 'BACKEND_USER', cacheKey: 'system-manage' },
         { roleName: 'SUPER_ADMIN', cacheKey: 'wildcard' },
-      ];
+      ] as const satisfies ReadonlyArray<{
+        roleName: (typeof CANONICAL_RBAC_ROLE_NAMES)[number];
+        cacheKey: string;
+      }>;
 
       for (const profile of profiles) {
         const result = await pool.query(

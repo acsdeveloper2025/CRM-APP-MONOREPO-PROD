@@ -1,4 +1,9 @@
 import type { AuthenticatedRequest } from '@/middleware/auth';
+import {
+  CANONICAL_RBAC_ROLE_NAMES,
+  normalizeRbacRoleName,
+  type CanonicalRbacRoleName,
+} from '@/constants/rbacRoles';
 
 type AuthUser = NonNullable<AuthenticatedRequest['user']>;
 
@@ -83,26 +88,18 @@ export const canManageScheduledReportsGlobally = (
 
 export const getPrimaryRoleNameFromRbac = (
   roles: string[] | null | undefined
-): string | undefined => {
+): CanonicalRbacRoleName | undefined => {
   if (!roles || roles.length === 0) {
     return undefined;
   }
 
   // Compatibility ordering only; authorization must not depend on this.
-  const priority = [
-    'SUPER_ADMIN',
-    'ADMIN',
-    'MANAGER',
-    'BACKEND_USER',
-    'FIELD_AGENT',
-    'REPORT_PERSON',
-  ];
-  for (const role of priority) {
-    if (roles.includes(role)) {
+  for (const role of CANONICAL_RBAC_ROLE_NAMES) {
+    if (roles.some(current => normalizeRbacRoleName(current) === role)) {
       return role;
     }
   }
-  return roles[0];
+  return normalizeRbacRoleName(roles[0]);
 };
 
 export const getScopedUserIdForTaskLists = (

@@ -3,6 +3,7 @@ import { body, query, param } from 'express-validator';
 import { authenticateToken } from '@/middleware/auth';
 import { authorize } from '@/middleware/authorize';
 import { validate } from '@/middleware/validation';
+import { CANONICAL_RBAC_ROLE_NAMES } from '@/constants/rbacRoles';
 import {
   EnterpriseCache,
   EnterpriseCacheConfigs,
@@ -39,6 +40,8 @@ import {
 } from '@/controllers/usersController';
 
 const router = express.Router();
+const SUPPORTED_USER_ROLES = [...CANONICAL_RBAC_ROLE_NAMES];
+const SUPPORTED_USER_ROLES_MESSAGE = `Role must be one of: ${SUPPORTED_USER_ROLES.join(', ')}`;
 
 // Validation schemas
 const createUserValidation = [
@@ -75,12 +78,7 @@ const createUserValidation = [
       }
       return true;
     }),
-  body('role')
-    .optional()
-    .isIn(['SUPER_ADMIN', 'ADMIN', 'BACKEND_USER', 'FIELD_AGENT', 'MANAGER', 'REPORT_PERSON'])
-    .withMessage(
-      'Role must be one of: SUPER_ADMIN, ADMIN, BACKEND_USER, FIELD_AGENT, MANAGER, REPORT_PERSON'
-    ),
+  body('role').optional().isIn(SUPPORTED_USER_ROLES).withMessage(SUPPORTED_USER_ROLES_MESSAGE),
   body('departmentId')
     .optional()
     .custom(value => {
@@ -157,12 +155,7 @@ const updateUserValidation = [
     .matches(/^[a-zA-Z0-9._-]+$/)
     .withMessage('Username can only contain letters, numbers, dots, underscores, and hyphens'),
   body('email').optional().isEmail().withMessage('Valid email is required').normalizeEmail(),
-  body('role')
-    .optional()
-    .isIn(['SUPER_ADMIN', 'ADMIN', 'BACKEND_USER', 'FIELD_AGENT', 'MANAGER', 'REPORT_PERSON'])
-    .withMessage(
-      'Role must be one of: SUPER_ADMIN, ADMIN, BACKEND_USER, FIELD_AGENT, MANAGER, REPORT_PERSON'
-    ),
+  body('role').optional().isIn(SUPPORTED_USER_ROLES).withMessage(SUPPORTED_USER_ROLES_MESSAGE),
   body('roleId')
     .optional()
     .custom(value => {
@@ -227,10 +220,7 @@ const listUsersValidation = [
     .optional()
     .isInt({ min: 1, max: 100 })
     .withMessage('Limit must be between 1 and 100'),
-  query('role')
-    .optional()
-    .isIn(['SUPER_ADMIN', 'ADMIN', 'BACKEND_USER', 'FIELD_AGENT', 'MANAGER'])
-    .withMessage('Role must be one of: SUPER_ADMIN, ADMIN, BACKEND_USER, FIELD_AGENT, MANAGER'),
+  query('role').optional().isIn(SUPPORTED_USER_ROLES).withMessage(SUPPORTED_USER_ROLES_MESSAGE),
   query('department')
     .optional()
     .trim()
