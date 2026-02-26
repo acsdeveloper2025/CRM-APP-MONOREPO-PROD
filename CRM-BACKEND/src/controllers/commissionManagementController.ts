@@ -10,6 +10,7 @@ import type {
 } from '../types/commission';
 import type { QueryParams } from '../types/database';
 import { isExecutionEligibleUser, loadUserCapabilityProfile } from '../security/userCapabilities';
+import { requireControllerPermission } from '@/security/controllerAuthorization';
 import {
   appendOperationalScopeConditions,
   resolveDataScope,
@@ -22,6 +23,9 @@ import {
 
 export const getCommissionRateTypes = async (req: AuthenticatedRequest, res: Response) => {
   try {
+    if (!requireControllerPermission(req as never, res, 'billing.download')) {
+      return;
+    }
     const { isActive, search } = req.query;
 
     let whereClause = '';
@@ -89,6 +93,9 @@ export const getCommissionRateTypes = async (req: AuthenticatedRequest, res: Res
 
 export const createCommissionRateType = async (req: AuthenticatedRequest, res: Response) => {
   try {
+    if (!requireControllerPermission(req as never, res, 'billing.approve')) {
+      return;
+    }
     const {
       rateTypeId,
       commissionAmount,
@@ -163,6 +170,9 @@ export const createCommissionRateType = async (req: AuthenticatedRequest, res: R
 
 export const updateCommissionRateType = async (req: AuthenticatedRequest, res: Response) => {
   try {
+    if (!requireControllerPermission(req as never, res, 'billing.approve')) {
+      return;
+    }
     const { id } = req.params;
     const { commissionAmount, currency, isActive }: UpdateCommissionRateTypeData = req.body;
 
@@ -255,6 +265,9 @@ export const updateCommissionRateType = async (req: AuthenticatedRequest, res: R
 
 export const deleteCommissionRateType = async (req: AuthenticatedRequest, res: Response) => {
   try {
+    if (!requireControllerPermission(req as never, res, 'billing.approve')) {
+      return;
+    }
     const { id } = req.params;
 
     // Check if commission rate type exists
@@ -312,6 +325,9 @@ export const getFieldUserCommissionAssignments = async (
   res: Response
 ) => {
   try {
+    if (!requireControllerPermission(req as never, res, 'billing.download')) {
+      return;
+    }
     const scope = await resolveDataScope(req as never);
     const { userId, rateTypeId, clientId, isActive, page = 1, limit = 20 } = req.query;
 
@@ -421,6 +437,9 @@ export const createFieldUserCommissionAssignment = async (
   res: Response
 ) => {
   try {
+    if (!requireControllerPermission(req as never, res, 'billing.approve')) {
+      return;
+    }
     const scope = await resolveDataScope(req as never);
     const {
       userId,
@@ -547,6 +566,9 @@ export const updateFieldUserCommissionAssignment = async (
   res: Response
 ) => {
   try {
+    if (!requireControllerPermission(req as never, res, 'billing.approve')) {
+      return;
+    }
     const scope = await resolveDataScope(req as never);
     const { id } = req.params;
     const {
@@ -652,6 +674,9 @@ export const deleteFieldUserCommissionAssignment = async (
   res: Response
 ) => {
   try {
+    if (!requireControllerPermission(req as never, res, 'billing.approve')) {
+      return;
+    }
     const scope = await resolveDataScope(req as never);
     const { id } = req.params;
 
@@ -712,6 +737,9 @@ export const deleteFieldUserCommissionAssignment = async (
 
 export const getCommissionCalculations = async (req: AuthenticatedRequest, res: Response) => {
   try {
+    if (!requireControllerPermission(req as never, res, 'billing.download')) {
+      return;
+    }
     const scope = await resolveDataScope(req as never);
     const {
       userId,
@@ -817,6 +845,7 @@ export const getCommissionCalculations = async (req: AuthenticatedRequest, res: 
     const countQuery = `
       SELECT COUNT(*) as total
       FROM commission_calculations cc
+      LEFT JOIN cases ON cc.case_id = cases.id
       ${whereClause ? `WHERE ${whereClause}` : ''}
     `;
     const countParams = queryParams.slice(0, -2); // Remove limit and offset
@@ -832,6 +861,7 @@ export const getCommissionCalculations = async (req: AuthenticatedRequest, res: 
         COUNT(CASE WHEN status = 'APPROVED' THEN 1 END) as approved_count,
         COUNT(CASE WHEN status = 'PAID' THEN 1 END) as paid_count
       FROM commission_calculations cc
+      LEFT JOIN cases ON cc.case_id = cases.id
       ${whereClause ? `WHERE ${whereClause}` : ''}
     `;
     const summaryResult = await query(summaryQuery, countParams);
@@ -870,6 +900,10 @@ export const calculateCommissionForCompletedCase = async (
   res: Response
 ) => {
   try {
+    if (!requireControllerPermission(req as never, res, 'billing.generate')) {
+      return;
+    }
+    const scope = await resolveDataScope(req as never);
     const { caseId } = req.body;
 
     if (!caseId) {
@@ -901,6 +935,28 @@ export const calculateCommissionForCompletedCase = async (
     }
 
     const caseData = caseResult.rows[0];
+    const scopedProductId = Number.isFinite(Number(caseData.product_id))
+      ? Number(caseData.product_id)
+      : Number.isFinite(Number(caseData.productId))
+        ? Number(caseData.productId)
+        : null;
+
+    if (
+      !valueAllowedByScope(
+        {
+          userId: (caseData.assigned_to as string | null) ?? null,
+          clientId: Number.isFinite(Number(caseData.client_id)) ? Number(caseData.client_id) : null,
+          productId: scopedProductId,
+        },
+        scope
+      )
+    ) {
+      return res.status(404).json({
+        success: false,
+        message: 'Case not found',
+        error: { code: 'NOT_FOUND' },
+      });
+    }
 
     // Check if case is completed
     if (caseData.status !== 'COMPLETED') {
@@ -1310,6 +1366,9 @@ export const autoCalculateCommissionForTask = async (taskId: string): Promise<bo
 
 export const getCommissionStats = async (req: AuthenticatedRequest, res: Response) => {
   try {
+    if (!requireControllerPermission(req as never, res, 'billing.download')) {
+      return;
+    }
     const scope = await resolveDataScope(req as never);
     const userId = req.user?.id;
 
