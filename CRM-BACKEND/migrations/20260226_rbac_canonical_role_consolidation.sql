@@ -51,9 +51,13 @@ WITH role_map AS (
   WHERE legacy.name IN ('ADMIN', 'MANAGER', 'REPORT_PERSON')
 )
 INSERT INTO role_permissions (role_id, permission_id, allowed)
-SELECT rm.canonical_role_id, rp.permission_id, rp.allowed
+SELECT
+  rm.canonical_role_id,
+  rp.permission_id,
+  BOOL_OR(rp.allowed) as allowed
 FROM role_permissions rp
 JOIN role_map rm ON rm.legacy_role_id = rp.role_id
+GROUP BY rm.canonical_role_id, rp.permission_id
 ON CONFLICT (role_id, permission_id)
 DO UPDATE SET allowed = role_permissions.allowed OR EXCLUDED.allowed;
 
@@ -71,9 +75,13 @@ WITH role_map AS (
   WHERE legacy.name IN ('ADMIN', 'MANAGER', 'REPORT_PERSON')
 )
 INSERT INTO role_routes (role_id, route_key, allowed)
-SELECT rm.canonical_role_id, rr.route_key, rr.allowed
+SELECT
+  rm.canonical_role_id,
+  rr.route_key,
+  BOOL_OR(rr.allowed) as allowed
 FROM role_routes rr
 JOIN role_map rm ON rm.legacy_role_id = rr.role_id
+GROUP BY rm.canonical_role_id, rr.route_key
 ON CONFLICT (role_id, route_key)
 DO UPDATE SET allowed = role_routes.allowed OR EXCLUDED.allowed;
 
