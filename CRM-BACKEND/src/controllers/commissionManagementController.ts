@@ -9,6 +9,7 @@ import type {
   CreateFieldUserCommissionAssignmentData,
 } from '../types/commission';
 import type { QueryParams } from '../types/database';
+import { isExecutionEligibleUser, loadUserCapabilityProfile } from '../security/userCapabilities';
 
 // =====================================================
 // COMMISSION RATE TYPES MANAGEMENT
@@ -422,9 +423,9 @@ export const createFieldUserCommissionAssignment = async (
       });
     }
 
-    // Check if user exists and is a field user
-    const userCheck = await query('SELECT id, role FROM users WHERE id = $1', [userId]);
-    if (userCheck.rows.length === 0) {
+    // Check if user exists and is execution-eligible for commission assignment
+    const userProfile = await loadUserCapabilityProfile(userId);
+    if (!userProfile) {
       return res.status(404).json({
         success: false,
         message: 'User not found',
@@ -432,10 +433,10 @@ export const createFieldUserCommissionAssignment = async (
       });
     }
 
-    if (userCheck.rows[0].role !== 'FIELD_AGENT') {
+    if (!isExecutionEligibleUser(userProfile)) {
       return res.status(400).json({
         success: false,
-        message: 'User must be a field agent to assign commission rates',
+        message: 'User must be execution-eligible to assign commission rates',
         error: { code: 'VALIDATION_ERROR' },
       });
     }

@@ -2,6 +2,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { caseAssignmentQueue } from '../config/queue';
 import { query } from '../config/database';
 import { logger } from '../config/logger';
+import { loadExecutionEligibleUser } from '@/security/userCapabilities';
 import type {
   SingleAssignmentJobData,
   BulkAssignmentJobData,
@@ -354,20 +355,9 @@ export class CaseAssignmentService {
       throw new Error(`Case ${caseId} not found`);
     }
 
-    // Check if user exists and is a field agent
-    const userQuery = `
-      SELECT id, role, "isActive" 
-      FROM users 
-      WHERE id = $1 AND role = 'FIELD_AGENT'
-    `;
-    const userResult = await query(userQuery, [assignedToId]);
-
-    if (userResult.rows.length === 0) {
-      throw new Error(`Field agent ${assignedToId} not found`);
-    }
-
-    if (!userResult.rows[0].isActive) {
-      throw new Error(`Field agent ${assignedToId} is not active`);
+    const assignee = await loadExecutionEligibleUser(assignedToId);
+    if (!assignee) {
+      throw new Error(`Execution assignee ${assignedToId} not found or not eligible`);
     }
   }
 

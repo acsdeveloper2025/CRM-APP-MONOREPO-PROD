@@ -3,6 +3,7 @@ import { logger } from '../config/logger';
 import type { AuthenticatedRequest } from '../middleware/auth';
 import { query, pool } from '../config/database';
 import { EnterpriseCacheService, CacheKeys } from '../services/enterpriseCacheService';
+import { isExecutionEligibleUser, loadUserCapabilityProfile } from '../security/userCapabilities';
 
 /**
  * GET /api/users/:userId/territory-assignments
@@ -90,10 +91,10 @@ export const bulkSaveTerritoryAssignments = async (req: AuthenticatedRequest, re
       });
     }
 
-    // Verify user exists and is a FIELD_AGENT
-    const userCheck = await client.query('SELECT id, role FROM users WHERE id = $1', [userId]);
+    // Verify user exists and is execution-eligible for territory operations
+    const userProfile = await loadUserCapabilityProfile(userId, client);
 
-    if (userCheck.rows.length === 0) {
+    if (!userProfile) {
       return res.status(404).json({
         success: false,
         message: 'User not found',
@@ -101,10 +102,10 @@ export const bulkSaveTerritoryAssignments = async (req: AuthenticatedRequest, re
       });
     }
 
-    if (userCheck.rows[0].role !== 'FIELD_AGENT') {
+    if (!isExecutionEligibleUser(userProfile)) {
       return res.status(400).json({
         success: false,
-        message: 'Territory assignments can only be made for FIELD_AGENT users',
+        message: 'Territory assignments can only be made for execution-eligible users',
         error: { code: 'INVALID_ROLE' },
       });
     }

@@ -7,6 +7,37 @@ import {
 
 type AuthUser = NonNullable<AuthenticatedRequest['user']>;
 
+const EXECUTION_PERMISSION_CODES = [
+  'visit.start',
+  'visit.upload',
+  'visit.submit',
+  'visit.revoke',
+  'visit.revisit',
+] as const;
+
+const SUPERVISORY_PERMISSION_CODES = [
+  'case.assign',
+  'case.reassign',
+  'review.approve',
+  'review.rework',
+  'billing.generate',
+  'billing.approve',
+  'permission.manage',
+  'role.manage',
+] as const;
+
+const OPERATIONAL_VISIBILITY_PERMISSION_CODES = [
+  'case.view',
+  'case.assign',
+  'case.reassign',
+  'report.generate',
+  'report.download',
+  'billing.generate',
+  'billing.download',
+  'billing.approve',
+  'dashboard.view',
+] as const;
+
 const hasCode = (codes: string[] | undefined, code: string): boolean =>
   Boolean(codes?.includes('*') || codes?.includes(code));
 
@@ -20,6 +51,37 @@ export const userHasAnyPermission = (
   permissionCodes: string[]
 ): boolean => permissionCodes.some(code => hasCode(user?.permissionCodes, code));
 
+export type PermissionCapabilityFlags = {
+  systemScopeBypass: boolean;
+  operationalScope: boolean;
+  executionActor: boolean;
+  supervisoryOrGlobal: boolean;
+};
+
+export const deriveCapabilitiesFromPermissionCodes = (
+  permissionCodes: string[] | undefined
+): PermissionCapabilityFlags => {
+  const codes = permissionCodes || [];
+  const systemScopeBypass = hasCode(codes, '*') || hasCode(codes, 'settings.manage');
+  const executionPermissionPresent = EXECUTION_PERMISSION_CODES.some(code => hasCode(codes, code));
+  const supervisoryPermissionPresent = SUPERVISORY_PERMISSION_CODES.some(code =>
+    hasCode(codes, code)
+  );
+
+  const executionActor =
+    !systemScopeBypass && executionPermissionPresent && !supervisoryPermissionPresent;
+  const operationalScope =
+    !systemScopeBypass &&
+    OPERATIONAL_VISIBILITY_PERMISSION_CODES.some(code => hasCode(codes, code));
+
+  return {
+    systemScopeBypass,
+    operationalScope,
+    executionActor,
+    supervisoryOrGlobal: systemScopeBypass || supervisoryPermissionPresent,
+  };
+};
+
 export const hasSystemScopeBypass = (user: AuthenticatedRequest['user'] | undefined): boolean =>
   userHasPermission(user, '*') || userHasPermission(user, 'settings.manage');
 
@@ -27,55 +89,14 @@ export const isScopedOperationsUser = (user: AuthenticatedRequest['user'] | unde
   if (!user) {
     return false;
   }
-  if (hasSystemScopeBypass(user)) {
-    return false;
-  }
-
-  // Users with operational visibility permissions but without system-level bypass
-  // must be constrained by assignment scope (client/product where applicable).
-  return userHasAnyPermission(user, [
-    'case.view',
-    'case.assign',
-    'case.reassign',
-    'report.generate',
-    'report.download',
-    'billing.generate',
-    'billing.download',
-    'billing.approve',
-    'dashboard.view',
-  ]);
+  return deriveCapabilitiesFromPermissionCodes(user.permissionCodes).operationalScope;
 };
 
 export const isFieldExecutionActor = (user: AuthenticatedRequest['user'] | undefined): boolean => {
   if (!user) {
     return false;
   }
-  if (hasSystemScopeBypass(user)) {
-    return false;
-  }
-
-  const hasVisitExecution =
-    userHasPermission(user, 'visit.start') ||
-    userHasPermission(user, 'visit.upload') ||
-    userHasPermission(user, 'visit.submit') ||
-    userHasPermission(user, 'visit.revoke') ||
-    userHasPermission(user, 'visit.revisit');
-
-  if (!hasVisitExecution) {
-    return false;
-  }
-
-  // Execution actor should not also hold supervisory permissions that imply non-field access.
-  return !userHasAnyPermission(user, [
-    'case.assign',
-    'case.reassign',
-    'review.approve',
-    'review.rework',
-    'billing.generate',
-    'billing.approve',
-    'permission.manage',
-    'role.manage',
-  ]);
+  return deriveCapabilitiesFromPermissionCodes(user.permissionCodes).executionActor;
 };
 
 export const requireOwnershipOnlyForExecutionActor = (
@@ -85,6 +106,11 @@ export const requireOwnershipOnlyForExecutionActor = (
 export const canManageScheduledReportsGlobally = (
   user: AuthenticatedRequest['user'] | undefined
 ): boolean => hasSystemScopeBypass(user) || userHasPermission(user, 'permission.manage');
+
+export const hasSupervisoryOrGlobalCapability = (
+  user: AuthenticatedRequest['user'] | undefined
+): boolean =>
+  Boolean(user && deriveCapabilitiesFromPermissionCodes(user.permissionCodes).supervisoryOrGlobal);
 
 export const getPrimaryRoleNameFromRbac = (
   roles: string[] | null | undefined

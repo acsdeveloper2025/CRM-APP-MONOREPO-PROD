@@ -3,6 +3,7 @@ import { query } from '@/config/database';
 import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
 import type { QueryParams } from '@/types/database';
+import { isExecutionEligibleUser, loadUserCapabilityProfile } from '@/security/userCapabilities';
 
 // GET /api/territory-assignments/field-agents - List all field agents with their territory assignments
 export const getFieldAgentTerritories = async (req: AuthenticatedRequest, res: Response) => {
@@ -166,13 +167,14 @@ export const getFieldAgentTerritoryById = async (req: AuthenticatedRequest, res:
   try {
     const { userId } = req.params;
 
-    // Verify user exists and is a field agent
+    // Verify user exists and is execution-eligible
     const userCheck = await query(
-      'SELECT id, name, username, "employeeId", role FROM users WHERE id = $1',
+      'SELECT id, name, username, "employeeId" FROM users WHERE id = $1',
       [userId]
     );
+    const userProfile = await loadUserCapabilityProfile(userId);
 
-    if (userCheck.rows.length === 0) {
+    if (userCheck.rows.length === 0 || !userProfile) {
       return res.status(404).json({
         success: false,
         message: 'User not found',
@@ -181,10 +183,10 @@ export const getFieldAgentTerritoryById = async (req: AuthenticatedRequest, res:
     }
 
     const user = userCheck.rows[0];
-    if (user.role !== 'FIELD_AGENT') {
+    if (!isExecutionEligibleUser(userProfile)) {
       return res.status(400).json({
         success: false,
-        message: 'User is not a field agent',
+        message: 'User is not execution-eligible',
         error: { code: 'INVALID_USER_ROLE' },
       });
     }
@@ -274,12 +276,11 @@ export const assignPincodesToFieldAgent = async (req: AuthenticatedRequest, res:
       });
     }
 
-    // Verify user exists and is a field agent
-    const userResult = await query('SELECT id, name, username, role FROM users WHERE id = $1', [
-      userId,
-    ]);
+    // Verify user exists and is execution-eligible
+    const userResult = await query('SELECT id, name, username FROM users WHERE id = $1', [userId]);
+    const userProfile = await loadUserCapabilityProfile(userId);
 
-    if (userResult.rows.length === 0) {
+    if (userResult.rows.length === 0 || !userProfile) {
       return res.status(404).json({
         success: false,
         message: 'User not found',
@@ -287,11 +288,11 @@ export const assignPincodesToFieldAgent = async (req: AuthenticatedRequest, res:
       });
     }
 
-    const user = userResult.rows[0];
-    if (user.role !== 'FIELD_AGENT') {
+    const _user = userResult.rows[0];
+    if (!isExecutionEligibleUser(userProfile)) {
       return res.status(400).json({
         success: false,
-        message: 'User is not a field agent',
+        message: 'User is not execution-eligible',
         error: { code: 'INVALID_USER_ROLE' },
       });
     }
@@ -438,12 +439,11 @@ export const assignAreasToFieldAgent = async (req: AuthenticatedRequest, res: Re
       });
     }
 
-    // Verify user exists and is a field agent
-    const userResult = await query('SELECT id, name, username, role FROM users WHERE id = $1', [
-      userId,
-    ]);
+    // Verify user exists and is execution-eligible
+    const userResult = await query('SELECT id, name, username FROM users WHERE id = $1', [userId]);
+    const userProfile = await loadUserCapabilityProfile(userId);
 
-    if (userResult.rows.length === 0) {
+    if (userResult.rows.length === 0 || !userProfile) {
       return res.status(404).json({
         success: false,
         message: 'User not found',
@@ -451,11 +451,11 @@ export const assignAreasToFieldAgent = async (req: AuthenticatedRequest, res: Re
       });
     }
 
-    const user = userResult.rows[0];
-    if (user.role !== 'FIELD_AGENT') {
+    const _user = userResult.rows[0];
+    if (!isExecutionEligibleUser(userProfile)) {
       return res.status(400).json({
         success: false,
-        message: 'User is not a field agent',
+        message: 'User is not execution-eligible',
         error: { code: 'INVALID_USER_ROLE' },
       });
     }
@@ -750,12 +750,11 @@ export const addSinglePincodeAssignment = async (req: AuthenticatedRequest, res:
       });
     }
 
-    // Verify user exists and is a field agent
-    const userResult = await query('SELECT id, name, username, role FROM users WHERE id = $1', [
-      userId,
-    ]);
+    // Verify user exists and is execution-eligible
+    const userResult = await query('SELECT id, name, username FROM users WHERE id = $1', [userId]);
+    const userProfile = await loadUserCapabilityProfile(userId);
 
-    if (userResult.rows.length === 0) {
+    if (userResult.rows.length === 0 || !userProfile) {
       return res.status(404).json({
         success: false,
         message: 'User not found',
@@ -764,10 +763,10 @@ export const addSinglePincodeAssignment = async (req: AuthenticatedRequest, res:
     }
 
     const user = userResult.rows[0];
-    if (user.role !== 'FIELD_AGENT') {
+    if (!isExecutionEligibleUser(userProfile)) {
       return res.status(400).json({
         success: false,
-        message: 'User is not a field agent',
+        message: 'User is not execution-eligible',
         error: { code: 'INVALID_USER_ROLE' },
       });
     }
@@ -883,12 +882,11 @@ export const removeAllTerritoryAssignments = async (req: AuthenticatedRequest, r
   try {
     const { userId } = req.params;
 
-    // Verify user exists and is a field agent
-    const userResult = await query('SELECT id, name, username, role FROM users WHERE id = $1', [
-      userId,
-    ]);
+    // Verify user exists and is execution-eligible
+    const userResult = await query('SELECT id, name, username FROM users WHERE id = $1', [userId]);
+    const userProfile = await loadUserCapabilityProfile(userId);
 
-    if (userResult.rows.length === 0) {
+    if (userResult.rows.length === 0 || !userProfile) {
       return res.status(404).json({
         success: false,
         message: 'User not found',
@@ -897,10 +895,10 @@ export const removeAllTerritoryAssignments = async (req: AuthenticatedRequest, r
     }
 
     const user = userResult.rows[0];
-    if (user.role !== 'FIELD_AGENT') {
+    if (!isExecutionEligibleUser(userProfile)) {
       return res.status(400).json({
         success: false,
-        message: 'User is not a field agent',
+        message: 'User is not execution-eligible',
         error: { code: 'INVALID_USER_ROLE' },
       });
     }

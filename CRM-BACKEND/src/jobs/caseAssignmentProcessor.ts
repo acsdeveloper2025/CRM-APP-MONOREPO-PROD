@@ -4,6 +4,7 @@ import { logger } from '../config/logger';
 import { query, pool } from '../config/database';
 import { createAuditLog } from '../utils/auditLogger';
 import { queueCaseAssignmentNotification } from '../queues/notificationQueue';
+import { loadExecutionEligibleUser } from '@/security/userCapabilities';
 
 // Parse Redis URL to get connection details
 const redisUrl = new URL(config.redisUrl);
@@ -106,18 +107,20 @@ async function processCaseReassignment(
     const previousAssigneeName = prevUserResult.rows[0]?.name || 'Unknown';
 
     // Get new assignee details
-    const userQuery = `
-      SELECT id, name, email, role
-      FROM users
-      WHERE id = $1 AND role = 'FIELD_AGENT' AND "isActive" = true
-    `;
-
-    const userResult = await client.query(userQuery, [toUserId]);
-
-    if (userResult.rows.length === 0) {
-      throw new Error(`Field agent ${toUserId} not found or inactive`);
+    if (!(await loadExecutionEligibleUser(toUserId, client))) {
+      throw new Error(`Execution assignee ${toUserId} not found or not eligible`);
     }
-
+    const userResult = await client.query<{ id: string; name: string; email: string }>(
+      `
+        SELECT id, name, email
+        FROM users
+        WHERE id = $1
+      `,
+      [toUserId]
+    );
+    if (userResult.rows.length === 0) {
+      throw new Error(`Execution assignee ${toUserId} not found`);
+    }
     const newAssignee = userResult.rows[0];
 
     // Update case assignment and RESET status to PENDING for reassignments
@@ -299,16 +302,20 @@ async function processSingleAssignment(
     }
 
     // Get new assignee details
-    const userQuery = `
-      SELECT id, name, email, role 
-      FROM users 
-      WHERE id = $1 AND role = 'FIELD_AGENT' AND "isActive" = true
-    `;
-
-    const userResult = await client.query(userQuery, [assignedToId]);
+    if (!(await loadExecutionEligibleUser(assignedToId, client))) {
+      throw new Error(`Execution assignee ${assignedToId} not found or not eligible`);
+    }
+    const userResult = await client.query<{ id: string; name: string; email: string }>(
+      `
+        SELECT id, name, email
+        FROM users
+        WHERE id = $1
+      `,
+      [assignedToId]
+    );
 
     if (userResult.rows.length === 0) {
-      throw new Error(`Field agent ${assignedToId} not found or inactive`);
+      throw new Error(`Execution assignee ${assignedToId} not found`);
     }
 
     const newAssignee = userResult.rows[0];
@@ -440,16 +447,20 @@ async function processBulkAssignment(
   let failedAssignments = 0;
 
   // Validate assignee first
-  const userQuery = `
-    SELECT id, name, email, role 
-    FROM users 
-    WHERE id = $1 AND role = 'FIELD_AGENT' AND "isActive" = true
-  `;
-
-  const userResult = await query(userQuery, [assignedToId]);
+  if (!(await loadExecutionEligibleUser(assignedToId))) {
+    throw new Error(`Execution assignee ${assignedToId} not found or not eligible`);
+  }
+  const userResult = await query(
+    `
+      SELECT id, name, email
+      FROM users
+      WHERE id = $1
+    `,
+    [assignedToId]
+  );
 
   if (userResult.rows.length === 0) {
-    throw new Error(`Field agent ${assignedToId} not found or inactive`);
+    throw new Error(`Execution assignee ${assignedToId} not found`);
   }
 
   const assignee = userResult.rows[0];

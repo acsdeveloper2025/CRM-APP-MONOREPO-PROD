@@ -7,6 +7,7 @@ import { EmailDeliveryService } from '@/services/EmailDeliveryService';
 import ExcelJS from 'exceljs';
 import { CANONICAL_RBAC_ROLE_NAMES } from '@/constants/rbacRoles';
 import {
+  deriveCapabilitiesFromPermissionCodes,
   hasSystemScopeBypass,
   userHasAnyPermission,
   userHasPermission,
@@ -16,19 +17,15 @@ const STRONG_PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9])
 
 const isStrongPassword = (password: string): boolean => STRONG_PASSWORD_REGEX.test(password);
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const HIERARCHY_MANAGER_ROLE = 'MANAGER';
-const HIERARCHY_TEAM_LEADER_ROLE = 'TEAM_LEADER';
-const HIERARCHY_OPERATIONS_ROLES = new Set(['FIELD_AGENT', 'BACKEND_USER']);
-
 type DbExecutor = {
   query: <T = unknown>(text: string, params?: unknown[]) => Promise<{ rows: T[] }>;
 };
 
 type HierarchyRefUser = {
   id: string;
+  teamLeaderId: string | null;
   managerId: string | null;
-  roles: string[] | null;
-  role: string | null;
+  permissionCodes: string[] | null;
 };
 
 const normalizeOptionalUuid = (value: unknown): string | null | undefined => {
@@ -56,14 +53,15 @@ const loadHierarchyRefUser = async (
     `
       SELECT
         u.id,
+        u.team_leader_id as "teamLeaderId",
         u.manager_id as "managerId",
         COALESCE((
-          SELECT ARRAY_AGG(rv.name ORDER BY rv.name)
+          SELECT ARRAY_AGG(DISTINCT p.code ORDER BY p.code)
           FROM user_roles ur
-          JOIN roles_v2 rv ON rv.id = ur.role_id
+          JOIN role_permissions rp ON rp.role_id = ur.role_id AND rp.allowed = true
+          JOIN permissions p ON p.id = rp.permission_id
           WHERE ur.user_id = u.id
-        ), ARRAY[]::text[]) as roles,
-        u.role
+        ), ARRAY[]::varchar[]) as "permissionCodes"
       FROM users u
       WHERE u.id = $1
         AND u."deletedAt" IS NULL
@@ -75,17 +73,29 @@ const loadHierarchyRefUser = async (
   return result.rows[0];
 };
 
-const getPrimaryRoleName = (user?: HierarchyRefUser): string | undefined => {
+const isHierarchyManagerReference = (user?: HierarchyRefUser): boolean => {
   if (!user) {
-    return undefined;
+    return false;
   }
-  const fromRbac = (user.roles || []).map(r => r.trim().toUpperCase());
-  for (const roleName of CANONICAL_RBAC_ROLE_NAMES) {
-    if (fromRbac.includes(roleName)) {
-      return roleName;
-    }
+  const caps = deriveCapabilitiesFromPermissionCodes(user.permissionCodes || []);
+  return Boolean(
+    (caps.supervisoryOrGlobal || caps.systemScopeBypass) &&
+      !caps.executionActor &&
+      !user.teamLeaderId
+  );
+};
+
+const isHierarchyTeamLeaderReference = (user?: HierarchyRefUser): boolean => {
+  if (!user) {
+    return false;
   }
-  return user.role?.trim().toUpperCase();
+  const caps = deriveCapabilitiesFromPermissionCodes(user.permissionCodes || []);
+  return Boolean(
+    (caps.supervisoryOrGlobal || caps.operationalScope) &&
+      !caps.executionActor &&
+      !!user.managerId &&
+      !user.teamLeaderId
+  );
 };
 
 type HierarchyValidationInput = {
@@ -100,13 +110,66 @@ type HierarchyValidationOutput = {
   managerId: string | null;
 };
 
+type HierarchyTargetMode = 'TOP_LEVEL' | 'MANAGER_PARENT_ONLY' | 'OPERATIONAL_CHILD';
+
+const loadRolePermissionCodes = async (db: DbExecutor, roleName: string): Promise<string[]> => {
+  const result = await db.query<{ permissionCodes: string[] | null }>(
+    `
+      SELECT COALESCE(
+        ARRAY_AGG(DISTINCT p.code ORDER BY p.code) FILTER (WHERE p.code IS NOT NULL),
+        ARRAY[]::varchar[]
+      ) as "permissionCodes"
+      FROM roles_v2 rv
+      LEFT JOIN role_permissions rp ON rp.role_id = rv.id AND rp.allowed = true
+      LEFT JOIN permissions p ON p.id = rp.permission_id
+      WHERE UPPER(rv.name) = UPPER($1)
+      GROUP BY rv.id
+      LIMIT 1
+    `,
+    [roleName]
+  );
+
+  return result.rows[0]?.permissionCodes || [];
+};
+
+const classifyHierarchyTargetMode = (
+  permissionCodes: string[],
+  refs: Pick<HierarchyValidationInput, 'teamLeaderId' | 'managerId'>
+): HierarchyTargetMode => {
+  const caps = deriveCapabilitiesFromPermissionCodes(permissionCodes);
+  const hasTeamLeaderRef = Boolean(refs.teamLeaderId);
+  const hasManagerRef = Boolean(refs.managerId);
+
+  if (hasTeamLeaderRef && hasManagerRef) {
+    return 'OPERATIONAL_CHILD';
+  }
+
+  if (!hasTeamLeaderRef && hasManagerRef && !caps.executionActor) {
+    return 'MANAGER_PARENT_ONLY';
+  }
+
+  if (caps.systemScopeBypass) {
+    return 'TOP_LEVEL';
+  }
+
+  if (caps.executionActor || (caps.operationalScope && !caps.supervisoryOrGlobal)) {
+    return 'OPERATIONAL_CHILD';
+  }
+
+  return 'TOP_LEVEL';
+};
+
 const validateHierarchyAssignments = async (
   db: DbExecutor,
   input: HierarchyValidationInput
 ): Promise<HierarchyValidationOutput> => {
-  const targetRole = input.targetRole.trim().toUpperCase();
   const teamLeaderId = input.teamLeaderId ?? null;
   const managerId = input.managerId ?? null;
+  const targetRolePermissionCodes = await loadRolePermissionCodes(db, input.targetRole);
+  const targetMode = classifyHierarchyTargetMode(targetRolePermissionCodes, {
+    teamLeaderId,
+    managerId,
+  });
 
   if (input.targetUserId && teamLeaderId === input.targetUserId) {
     throw new Error('User cannot report to self as team leader');
@@ -115,25 +178,25 @@ const validateHierarchyAssignments = async (
     throw new Error('User cannot report to self as manager');
   }
 
-  if (targetRole === HIERARCHY_MANAGER_ROLE || targetRole === 'SUPER_ADMIN') {
+  if (targetMode === 'TOP_LEVEL') {
     return { teamLeaderId: null, managerId: null };
   }
 
-  if (targetRole === HIERARCHY_TEAM_LEADER_ROLE) {
+  if (targetMode === 'MANAGER_PARENT_ONLY') {
     if (!managerId) {
-      throw new Error('Manager is required for Team Leader role');
+      throw new Error('Manager is required for this hierarchy configuration');
     }
     const managerUser = await loadHierarchyRefUser(db, managerId);
     if (!managerUser) {
       throw new Error('Selected Manager user not found');
     }
-    if (getPrimaryRoleName(managerUser) !== HIERARCHY_MANAGER_ROLE) {
-      throw new Error('Selected Manager must have MANAGER role');
+    if (!isHierarchyManagerReference(managerUser)) {
+      throw new Error('Selected Manager must be a valid supervisory user');
     }
     return { teamLeaderId: null, managerId };
   }
 
-  if (HIERARCHY_OPERATIONS_ROLES.has(targetRole)) {
+  if (targetMode === 'OPERATIONAL_CHILD') {
     if (!teamLeaderId) {
       throw new Error('Team Leader is required for operational users');
     }
@@ -153,11 +216,11 @@ const validateHierarchyAssignments = async (
       throw new Error('Selected Manager user not found');
     }
 
-    if (getPrimaryRoleName(teamLeaderUser) !== HIERARCHY_TEAM_LEADER_ROLE) {
-      throw new Error('Selected Team Leader must have TEAM_LEADER role');
+    if (!isHierarchyTeamLeaderReference(teamLeaderUser)) {
+      throw new Error('Selected Team Leader must be a valid team supervisor');
     }
-    if (getPrimaryRoleName(managerUser) !== HIERARCHY_MANAGER_ROLE) {
-      throw new Error('Selected Manager must have MANAGER role');
+    if (!isHierarchyManagerReference(managerUser)) {
+      throw new Error('Selected Manager must be a valid supervisory user');
     }
     if (teamLeaderUser.managerId !== managerId) {
       throw new Error('Selected Team Leader does not belong to the selected Manager');
