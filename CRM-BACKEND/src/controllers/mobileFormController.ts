@@ -10,7 +10,7 @@ import type {
   OfficeVerificationRow,
   BusinessVerificationRow,
 } from '../types/database';
-import { isFieldExecutionActor } from '../security/rbacAccess';
+import { isFieldExecutionActor, userHasPermission } from '../security/rbacAccess';
 
 interface AuthenticatedRequest extends Request {
   user?: {
@@ -163,6 +163,17 @@ export class MobileFormController {
     error?: { status: number; message: string; code: string };
   }> {
     try {
+      if (!userHasPermission(user as never, 'visit.submit')) {
+        return {
+          success: false,
+          error: {
+            status: 403,
+            message: 'Missing required permission: visit.submit',
+            code: 'PERMISSION_DENIED',
+          },
+        };
+      }
+
       // 1. Fetch Task & Case Info
       const taskQuery = await query(
         `SELECT 

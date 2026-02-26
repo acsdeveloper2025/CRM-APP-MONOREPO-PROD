@@ -13,6 +13,7 @@ import { getAssignedClientIds } from '@/middleware/clientAccess';
 import { getAssignedProductIds } from '@/middleware/productAccess';
 import { isFieldExecutionActor, isScopedOperationsUser } from '@/security/rbacAccess';
 import { getScopedOperationalUserIds } from '@/security/userScope';
+import { requireControllerPermission } from '@/security/controllerAuthorization';
 
 // Database connection (assuming it's imported from your existing setup)
 import { pool } from '../config/database';
@@ -28,6 +29,9 @@ export class VerificationTasksController {
    * POST /api/cases/:caseId/verification-tasks
    */
   static async createMultipleTasksForCase(req: AuthenticatedRequest, res: Response): Promise<void> {
+    if (!requireControllerPermission(req, res, 'case.assign')) {
+      return;
+    }
     const rawCaseId = String(req.params.caseId || '');
     const caseId = Array.isArray(rawCaseId) ? String(rawCaseId[0]) : String(rawCaseId || '');
     const { tasks } = req.body;
@@ -170,6 +174,9 @@ export class VerificationTasksController {
    * POST /api/verification-tasks/revisit/:taskId
    */
   static async revisitTask(req: AuthenticatedRequest, res: Response): Promise<void> {
+    if (!requireControllerPermission(req, res, 'visit.revisit')) {
+      return;
+    }
     const rawTaskId = String(req.params.taskId || '');
     const taskId = Array.isArray(rawTaskId) ? String(rawTaskId[0]) : String(rawTaskId || '');
     const { assigned_to: assignedTo } = req.body;
@@ -1322,6 +1329,9 @@ export class VerificationTasksController {
    * POST /api/verification-tasks/:taskId/assign
    */
   static async assignTask(req: AuthenticatedRequest, res: Response): Promise<void> {
+    if (!requireControllerPermission(req, res, 'case.reassign')) {
+      return;
+    }
     const rawTaskId = String(req.params.taskId || '');
     const taskId = Array.isArray(rawTaskId) ? String(rawTaskId[0]) : String(rawTaskId || '');
     const { assignedTo, assignmentReason, priority }: AssignVerificationTaskData = req.body;
@@ -1645,6 +1655,9 @@ export class VerificationTasksController {
    * POST /api/verification-tasks/:taskId/complete
    */
   static async completeTask(req: AuthenticatedRequest, res: Response): Promise<void> {
+    if (!requireControllerPermission(req, res, 'visit.submit')) {
+      return;
+    }
     const rawTaskId = String(req.params.taskId || '');
     const taskId = Array.isArray(rawTaskId) ? String(rawTaskId[0]) : String(rawTaskId || '');
     const { verificationOutcome, actualAmount, completionNotes }: CompleteVerificationTaskData =

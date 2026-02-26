@@ -15,6 +15,7 @@ import {
 } from '../services/verificationTaskCreationService';
 import { isFieldExecutionActor, isScopedOperationsUser } from '@/security/rbacAccess';
 import { getScopedOperationalUserIds } from '@/security/userScope';
+import { requireControllerPermission } from '@/security/controllerAuthorization';
 
 interface DatabaseError extends Error {
   code?: string;
@@ -1229,6 +1230,9 @@ export const updateCase = async (req: AuthenticatedRequest, res: Response) => {
 
 export const assignCase = async (req: AuthenticatedRequest, res: Response) => {
   try {
+    if (!requireControllerPermission(req, res, 'case.assign')) {
+      return;
+    }
     const rawId = req.params.id;
     const id = Array.isArray(rawId) ? String(rawId[0]) : String(rawId || '');
     const { assignedToId, reason } = req.body;
@@ -1270,6 +1274,9 @@ export const assignCase = async (req: AuthenticatedRequest, res: Response) => {
 // POST /api/cases/bulk/assign - Bulk assign cases to a field agent
 export const bulkAssignCases = async (req: AuthenticatedRequest, res: Response) => {
   try {
+    if (!requireControllerPermission(req, res, 'case.assign')) {
+      return;
+    }
     const { caseIds, assignedToId, reason, priority } = req.body;
 
     if (!Array.isArray(caseIds) || caseIds.length === 0) {
@@ -1364,6 +1371,9 @@ export const getBulkAssignmentStatus = async (req: AuthenticatedRequest, res: Re
 // POST /api/cases/:id/reassign - Reassign case to another field agent
 export const reassignCase = async (req: AuthenticatedRequest, res: Response) => {
   try {
+    if (!requireControllerPermission(req, res, 'case.reassign')) {
+      return;
+    }
     const rawId = req.params.id;
     const id = Array.isArray(rawId) ? String(rawId[0]) : String(rawId || '');
     const { fromUserId, toUserId, reason } = req.body;
@@ -2114,6 +2124,11 @@ export const createCase = [
     };
 
     try {
+      if (!requireControllerPermission(req, res, 'case.create')) {
+        await cleanupFiles();
+        return;
+      }
+
       // ========== ACQUIRE DATABASE CONNECTION WITH TIMEOUT ==========
       const connectionTimeout = setTimeout(() => {
         logger.error('Database connection timeout', { userId: req.user?.id });

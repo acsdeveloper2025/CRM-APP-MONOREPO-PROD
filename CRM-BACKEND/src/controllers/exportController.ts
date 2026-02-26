@@ -8,6 +8,7 @@ import type { AuthenticatedRequest } from '../middleware/auth';
 import path from 'path';
 import fs from 'fs/promises';
 import { createReadStream } from 'fs';
+import { requireControllerPermission } from '@/security/controllerAuthorization';
 
 export interface ExportRequest {
   format: 'pdf' | 'excel' | 'csv' | 'json';
@@ -64,6 +65,9 @@ interface ExportHistoryItem {
 // Generate and download/email reports
 export const generateReport = async (req: AuthenticatedRequest, res: Response) => {
   try {
+    if (!requireControllerPermission(req, res, 'report.generate')) {
+      return;
+    }
     const exportRequest: ExportRequest = req.body;
 
     // Validate request
@@ -164,6 +168,9 @@ export const generateReport = async (req: AuthenticatedRequest, res: Response) =
 // Download generated report file
 export const downloadReport = async (req: Request, res: Response) => {
   try {
+    if (!requireControllerPermission(req as AuthenticatedRequest, res, 'report.download')) {
+      return;
+    }
     const fileName = String(req.params.fileName || '');
     const filePath = path.join(process.cwd(), 'exports', fileName);
 

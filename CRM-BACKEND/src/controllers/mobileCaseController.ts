@@ -18,6 +18,7 @@ import { TaskLookupService } from '../services/taskLookupService';
 import { CaseStatusSyncService } from '../services/caseStatusSyncService';
 import { logger } from '../utils/logger';
 import { isFieldExecutionActor } from '../security/rbacAccess';
+import { requireControllerPermission } from '@/security/controllerAuthorization';
 
 // Type guards and interfaces for WhereClause usage
 interface DateRangeFilter {
@@ -1487,6 +1488,9 @@ export class MobileCaseController {
    */
   static async startTask(this: void, req: AuthenticatedRequest, res: Response) {
     try {
+      if (!requireControllerPermission(req, res, 'visit.start')) {
+        return;
+      }
       const taskId = String(req.params.taskId || '');
       const userId = req.user?.id;
       const isExecutionActor = isFieldExecutionActor(req.user);
@@ -1572,6 +1576,9 @@ export class MobileCaseController {
    */
   static async completeTask(this: void, req: AuthenticatedRequest, res: Response) {
     try {
+      if (!requireControllerPermission(req, res, 'visit.submit')) {
+        return;
+      }
       const taskId = String(req.params.taskId || '');
       const { verificationOutcome, actualAmount } = req.body;
       const userId = req.user?.id;
@@ -1715,6 +1722,9 @@ export class MobileCaseController {
    */
   static async revokeTask(this: void, req: AuthenticatedRequest, res: Response) {
     try {
+      if (!requireControllerPermission(req, res, 'visit.revoke')) {
+        return;
+      }
       const taskId = String(req.params.taskId || '');
       const { reason } = req.body;
       const userId = req.user?.id;

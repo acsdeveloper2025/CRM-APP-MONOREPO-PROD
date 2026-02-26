@@ -2,6 +2,7 @@ import type { Response } from 'express';
 import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
 import { isScopedOperationsUser } from '@/security/rbacAccess';
+import { requireControllerPermission } from '@/security/controllerAuthorization';
 
 interface InvoiceItem {
   id: string;
@@ -252,6 +253,9 @@ export const getInvoiceById = (req: AuthenticatedRequest, res: Response) => {
 // POST /api/invoices - Create new invoice
 export const createInvoice = (req: AuthenticatedRequest, res: Response) => {
   try {
+    if (!requireControllerPermission(req, res, 'billing.generate')) {
+      return;
+    }
     if (!enforceInvoiceScope(req, res)) {
       return;
     }
@@ -323,6 +327,9 @@ export const createInvoice = (req: AuthenticatedRequest, res: Response) => {
 // PUT /api/invoices/:id - Update invoice
 export const updateInvoice = (req: AuthenticatedRequest, res: Response) => {
   try {
+    if (!requireControllerPermission(req, res, 'billing.generate')) {
+      return;
+    }
     if (!enforceInvoiceScope(req, res)) {
       return;
     }
@@ -395,6 +402,9 @@ export const updateInvoice = (req: AuthenticatedRequest, res: Response) => {
 // DELETE /api/invoices/:id - Delete invoice
 export const deleteInvoice = (req: AuthenticatedRequest, res: Response) => {
   try {
+    if (!requireControllerPermission(req, res, 'billing.generate')) {
+      return;
+    }
     if (!enforceInvoiceScope(req, res)) {
       return;
     }
@@ -443,6 +453,9 @@ export const deleteInvoice = (req: AuthenticatedRequest, res: Response) => {
 // POST /api/invoices/:id/send - Send invoice
 export const sendInvoice = (req: AuthenticatedRequest, res: Response) => {
   try {
+    if (!requireControllerPermission(req, res, 'billing.generate')) {
+      return;
+    }
     if (!enforceInvoiceScope(req, res)) {
       return;
     }
@@ -489,6 +502,9 @@ export const sendInvoice = (req: AuthenticatedRequest, res: Response) => {
 // POST /api/invoices/:id/mark-paid - Mark invoice as paid
 export const markInvoicePaid = (req: AuthenticatedRequest, res: Response) => {
   try {
+    if (!requireControllerPermission(req, res, 'billing.approve')) {
+      return;
+    }
     if (!enforceInvoiceScope(req, res)) {
       return;
     }

@@ -17,7 +17,6 @@ const router = express.Router();
 
 // Apply authentication
 router.use(authenticateToken);
-router.use(authorize('billing.approve'));
 
 // Validation schemas
 const listCommissionsValidation = [
@@ -119,16 +118,35 @@ const summaryValidation = [
 ];
 
 // Core routes
-router.get('/', listCommissionsValidation, validate, getCommissions);
+router.get('/', authorize('billing.download'), listCommissionsValidation, validate, getCommissions);
 
-router.get('/summary', summaryValidation, validate, getCommissionSummary);
+router.get(
+  '/summary',
+  authorize('billing.download'),
+  summaryValidation,
+  validate,
+  getCommissionSummary
+);
 
-router.post('/bulk-approve', bulkApproveValidation, validate, bulkApproveCommissions);
+router.post(
+  '/bulk-approve',
+  authorize('billing.approve'),
+  bulkApproveValidation,
+  validate,
+  bulkApproveCommissions
+);
 
-router.post('/bulk-mark-paid', bulkMarkPaidValidation, validate, bulkMarkCommissionsPaid);
+router.post(
+  '/bulk-mark-paid',
+  authorize('billing.approve'),
+  bulkMarkPaidValidation,
+  validate,
+  bulkMarkCommissionsPaid
+);
 
 router.get(
   '/:id',
+  authorize('billing.download'),
   [param('id').trim().notEmpty().withMessage('Commission ID is required')],
   validate,
   getCommissionById
@@ -136,6 +154,7 @@ router.get(
 
 router.post(
   '/:id/approve',
+  authorize('billing.approve'),
   [param('id').trim().notEmpty().withMessage('Commission ID is required')],
   approveValidation,
   validate,
@@ -144,6 +163,7 @@ router.post(
 
 router.post(
   '/:id/mark-paid',
+  authorize('billing.approve'),
   [param('id').trim().notEmpty().withMessage('Commission ID is required')],
   markPaidValidation,
   validate,

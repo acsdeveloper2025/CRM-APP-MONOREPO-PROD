@@ -4,6 +4,7 @@ import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
 import type { QueryParams } from '@/types/database';
 import type { CommissionCalculation } from '@/types/commission';
+import { requireControllerPermission } from '@/security/controllerAuthorization';
 
 // Extended interface for query results including joined fields
 interface CommissionCalculationRow extends CommissionCalculation {
@@ -196,6 +197,9 @@ export const getCommissionById = async (req: AuthenticatedRequest, res: Response
 // POST /api/commissions/:id/approve - Approve commission
 export const approveCommission = async (req: AuthenticatedRequest, res: Response) => {
   try {
+    if (!requireControllerPermission(req, res, 'billing.approve')) {
+      return;
+    }
     const { id } = req.params;
     const { notes } = req.body;
     const approverId = req.user?.id;
@@ -261,6 +265,9 @@ export const approveCommission = async (req: AuthenticatedRequest, res: Response
 // POST /api/commissions/:id/mark-paid - Mark commission as paid
 export const markCommissionPaid = async (req: AuthenticatedRequest, res: Response) => {
   try {
+    if (!requireControllerPermission(req, res, 'billing.approve')) {
+      return;
+    }
     const { id } = req.params;
     const { paidDate, paymentMethod, transactionId, notes } = req.body;
     const payerId = req.user?.id;
@@ -443,6 +450,9 @@ interface BulkApproveResult {
 
 export const bulkApproveCommissions = async (req: AuthenticatedRequest, res: Response) => {
   try {
+    if (!requireControllerPermission(req, res, 'billing.approve')) {
+      return;
+    }
     const { commissionIds, notes } = req.body;
     const approverId = req.user?.id;
 
@@ -504,6 +514,9 @@ export const bulkApproveCommissions = async (req: AuthenticatedRequest, res: Res
 // POST /api/commissions/bulk-mark-paid - Bulk mark commissions as paid
 export const bulkMarkCommissionsPaid = async (req: AuthenticatedRequest, res: Response) => {
   try {
+    if (!requireControllerPermission(req, res, 'billing.approve')) {
+      return;
+    }
     const { commissionIds, paymentMethod, transactionId, notes } = req.body;
     const payerId = req.user?.id;
 
