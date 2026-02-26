@@ -23,6 +23,8 @@ interface CountResult {
   total: string;
 }
 
+const COMMISSION_PRODUCT_SCOPE_EXPR = `(SELECT c."productId" FROM cases c WHERE c.id = cc."caseId")`;
+
 const toOptionalNumber = (value: unknown): number | null => {
   if (value === null || value === undefined || value === '') {
     return null;
@@ -94,6 +96,7 @@ export const getCommissions = async (req: AuthenticatedRequest, res: Response) =
       params: params as unknown as Array<string | number | boolean | string[] | number[]>,
       userExpr: `cc."userId"`,
       clientExpr: `cc."clientId"`,
+      productExpr: COMMISSION_PRODUCT_SCOPE_EXPR,
     });
     paramIndex = params.length + 1;
 
@@ -133,7 +136,8 @@ export const getCommissions = async (req: AuthenticatedRequest, res: Response) =
         u.name as "userName",
         u.email as "userEmail",
         u2.name as "approvedByName",
-        u3.name as "paidByName"
+        u3.name as "paidByName",
+        ${COMMISSION_PRODUCT_SCOPE_EXPR} as "scopeProductId"
       FROM commission_calculations cc
       LEFT JOIN users u ON cc."userId" = u.id
       LEFT JOIN users u2 ON cc."approvedBy" = u2.id
@@ -207,6 +211,9 @@ export const getCommissionById = async (req: AuthenticatedRequest, res: Response
         {
           userId: (result.rows[0] as unknown as { userId?: string }).userId ?? null,
           clientId: toOptionalNumber((result.rows[0] as unknown as { clientId?: number }).clientId),
+          productId: toOptionalNumber(
+            (result.rows[0] as unknown as { scopeProductId?: number }).scopeProductId
+          ),
         },
         scope
       )
@@ -246,11 +253,21 @@ export const approveCommission = async (req: AuthenticatedRequest, res: Response
     const scope = await resolveDataScope(req);
 
     // Check current status
-    const checkSql = `SELECT status, "userId", "clientId" FROM commission_calculations WHERE id = $1`;
-    const checkResult = await query<{ status: string; userId: string; clientId: number }>(
-      checkSql,
-      [id]
-    );
+    const checkSql = `
+      SELECT
+        cc.status,
+        cc."userId",
+        cc."clientId",
+        ${COMMISSION_PRODUCT_SCOPE_EXPR} as "scopeProductId"
+      FROM commission_calculations cc
+      WHERE cc.id = $1
+    `;
+    const checkResult = await query<{
+      status: string;
+      userId: string;
+      clientId: number;
+      scopeProductId: number | null;
+    }>(checkSql, [id]);
 
     if (checkResult.rows.length === 0) {
       return res.status(404).json({
@@ -265,6 +282,7 @@ export const approveCommission = async (req: AuthenticatedRequest, res: Response
         {
           userId: checkResult.rows[0].userId,
           clientId: Number(checkResult.rows[0].clientId),
+          productId: toOptionalNumber(checkResult.rows[0].scopeProductId),
         },
         scope
       )
@@ -333,12 +351,22 @@ export const markCommissionPaid = async (req: AuthenticatedRequest, res: Respons
     const payerId = req.user?.id;
     const scope = await resolveDataScope(req);
 
-    const checkSql = `SELECT status, "paidAt", "userId", "clientId" FROM commission_calculations WHERE id = $1`;
+    const checkSql = `
+      SELECT
+        cc.status,
+        cc."paidAt",
+        cc."userId",
+        cc."clientId",
+        ${COMMISSION_PRODUCT_SCOPE_EXPR} as "scopeProductId"
+      FROM commission_calculations cc
+      WHERE cc.id = $1
+    `;
     const checkResult = await query<{
       status: string;
       paidAt: string | null;
       userId: string;
       clientId: number;
+      scopeProductId: number | null;
     }>(checkSql, [id]);
 
     if (checkResult.rows.length === 0) {
@@ -354,6 +382,7 @@ export const markCommissionPaid = async (req: AuthenticatedRequest, res: Respons
         {
           userId: checkResult.rows[0].userId,
           clientId: Number(checkResult.rows[0].clientId),
+          productId: toOptionalNumber(checkResult.rows[0].scopeProductId),
         },
         scope
       )
@@ -454,7 +483,7 @@ export const getCommissionSummary = async (req: AuthenticatedRequest, res: Respo
     let paramIndex = 1;
 
     if (userId) {
-      conditions.push(`"userId" = $${paramIndex++}`);
+      conditions.push(`cc."userId" = $${paramIndex++}`);
       params.push(userId as string);
     }
 
@@ -462,8 +491,9 @@ export const getCommissionSummary = async (req: AuthenticatedRequest, res: Respo
       scope,
       conditions,
       params: params as unknown as Array<string | number | boolean | string[] | number[]>,
-      userExpr: `"userId"`,
-      clientExpr: `"clientId"`,
+      userExpr: `cc."userId"`,
+      clientExpr: `cc."clientId"`,
+      productExpr: COMMISSION_PRODUCT_SCOPE_EXPR,
     });
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
@@ -478,7 +508,7 @@ export const getCommissionSummary = async (req: AuthenticatedRequest, res: Respo
         COALESCE(SUM(CASE WHEN status = 'APPROVED' THEN "commissionAmount" ELSE 0 END), 0) as "approvedAmount",
         SUM(CASE WHEN status = 'PAID' THEN 1 ELSE 0 END) as "paidCommissions",
         COALESCE(SUM(CASE WHEN status = 'PAID' THEN "commissionAmount" ELSE 0 END), 0) as "paidAmount"
-      FROM commission_calculations
+      FROM commission_calculations cc
       ${whereClause}
     `;
 
@@ -556,7 +586,7 @@ export const bulkApproveCommissions = async (req: AuthenticatedRequest, res: Res
       });
     }
 
-    const bulkConditions = [`id = ANY($3::int[])`, `status != 'APPROVED'`];
+    const bulkConditions = [`cc.id = ANY($3::int[])`, `cc.status != 'APPROVED'`];
     const bulkParams: Array<string | number | boolean | string[] | number[]> = [
       approverId || '',
       notes || null,
@@ -567,12 +597,13 @@ export const bulkApproveCommissions = async (req: AuthenticatedRequest, res: Res
       scope,
       conditions: bulkConditions,
       params: bulkParams,
-      userExpr: `"userId"`,
-      clientExpr: `"clientId"`,
+      userExpr: `cc."userId"`,
+      clientExpr: `cc."clientId"`,
+      productExpr: COMMISSION_PRODUCT_SCOPE_EXPR,
     });
 
     const sql = `
-      UPDATE commission_calculations
+      UPDATE commission_calculations cc
       SET
         status = 'APPROVED',
         "approvedBy" = $1,
@@ -636,7 +667,11 @@ export const bulkMarkCommissionsPaid = async (req: AuthenticatedRequest, res: Re
       });
     }
 
-    const bulkConditions = [`id = ANY($5::int[])`, `status = 'APPROVED'`, `"paidAt" IS NULL`];
+    const bulkConditions = [
+      `cc.id = ANY($5::int[])`,
+      `cc.status = 'APPROVED'`,
+      `cc."paidAt" IS NULL`,
+    ];
     const bulkParams: Array<string | number | boolean | string[] | number[]> = [
       payerId || '',
       paymentMethod as string,
@@ -649,12 +684,13 @@ export const bulkMarkCommissionsPaid = async (req: AuthenticatedRequest, res: Re
       scope,
       conditions: bulkConditions,
       params: bulkParams,
-      userExpr: `"userId"`,
-      clientExpr: `"clientId"`,
+      userExpr: `cc."userId"`,
+      clientExpr: `cc."clientId"`,
+      productExpr: COMMISSION_PRODUCT_SCOPE_EXPR,
     });
 
     const sql = `
-      UPDATE commission_calculations
+      UPDATE commission_calculations cc
       SET
         status = 'PAID',
         "paidBy" = $1,
