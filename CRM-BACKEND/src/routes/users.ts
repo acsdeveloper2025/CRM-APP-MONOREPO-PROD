@@ -103,6 +103,36 @@ const createUserValidation = [
       }
       return true;
     }),
+  body('teamLeaderId')
+    .optional({ nullable: true })
+    .custom(value => {
+      if (value === null || value === '') {
+        return true;
+      }
+      if (
+        !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+          String(value)
+        )
+      ) {
+        throw new Error('Team Leader must be a valid user ID');
+      }
+      return true;
+    }),
+  body('managerId')
+    .optional({ nullable: true })
+    .custom(value => {
+      if (value === null || value === '') {
+        return true;
+      }
+      if (
+        !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+          String(value)
+        )
+      ) {
+        throw new Error('Manager must be a valid user ID');
+      }
+      return true;
+    }),
   body('department')
     .optional()
     .trim()
@@ -193,6 +223,36 @@ const updateUserValidation = [
         if (isNaN(intValue) || intValue < 1) {
           throw new Error('Designation ID must be a valid positive integer');
         }
+      }
+      return true;
+    }),
+  body('teamLeaderId')
+    .optional({ nullable: true })
+    .custom(value => {
+      if (value === null || value === '') {
+        return true;
+      }
+      if (
+        !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+          String(value)
+        )
+      ) {
+        throw new Error('Team Leader must be a valid user ID');
+      }
+      return true;
+    }),
+  body('managerId')
+    .optional({ nullable: true })
+    .custom(value => {
+      if (value === null || value === '') {
+        return true;
+      }
+      if (
+        !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+          String(value)
+        )
+      ) {
+        throw new Error('Manager must be a valid user ID');
       }
       return true;
     }),

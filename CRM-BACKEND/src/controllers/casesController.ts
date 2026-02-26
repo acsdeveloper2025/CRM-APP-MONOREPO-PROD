@@ -14,6 +14,7 @@ import {
   VerificationTaskCreationService,
 } from '../services/verificationTaskCreationService';
 import { isFieldExecutionActor, isScopedOperationsUser } from '@/security/rbacAccess';
+import { getScopedOperationalUserIds } from '@/security/userScope';
 
 interface DatabaseError extends Error {
   code?: string;
@@ -141,6 +142,7 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
     const userId = req.user?.id;
     const isExecutionActor = isFieldExecutionActor(req.user);
     const isScopedOps = isScopedOperationsUser(req.user);
+    const hierarchyUserIds = userId ? await getScopedOperationalUserIds(userId) : undefined;
 
     if (isExecutionActor) {
       const { getAssignedPincodeIds } = await import('@/middleware/pincodeAccess');
@@ -186,26 +188,43 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
         baseConditions.push('FALSE');
       }
     } else if (isScopedOps) {
-      const { getAssignedClientIds } = await import('@/middleware/clientAccess');
-      const { getAssignedProductIds } = await import('@/middleware/productAccess');
+      if (hierarchyUserIds) {
+        if (hierarchyUserIds.length === 0) {
+          baseConditions.push('FALSE');
+        } else {
+          baseConditions.push(`(
+            c."assignedTo" = ANY($${baseParamIndex}::uuid[]) OR
+            EXISTS (
+              SELECT 1 FROM verification_tasks vt_scope
+              WHERE vt_scope.case_id = c.id
+                AND vt_scope.assigned_to = ANY($${baseParamIndex}::uuid[])
+            )
+          )`);
+          baseParams.push(hierarchyUserIds);
+          baseParamIndex++;
+        }
+      } else {
+        const { getAssignedClientIds } = await import('@/middleware/clientAccess');
+        const { getAssignedProductIds } = await import('@/middleware/productAccess');
 
-      const assignedClientIds = await getAssignedClientIds(userId);
-      const assignedProductIds = await getAssignedProductIds(userId);
+        const assignedClientIds = await getAssignedClientIds(userId);
+        const assignedProductIds = await getAssignedProductIds(userId);
 
-      if (assignedClientIds && assignedClientIds.length > 0) {
-        baseConditions.push(`c."clientId" = ANY($${baseParamIndex}::int[])`);
-        baseParams.push(assignedClientIds);
-        baseParamIndex++;
-      } else if (assignedClientIds && assignedClientIds.length === 0) {
-        baseConditions.push('FALSE');
-      }
+        if (assignedClientIds && assignedClientIds.length > 0) {
+          baseConditions.push(`c."clientId" = ANY($${baseParamIndex}::int[])`);
+          baseParams.push(assignedClientIds);
+          baseParamIndex++;
+        } else if (assignedClientIds && assignedClientIds.length === 0) {
+          baseConditions.push('FALSE');
+        }
 
-      if (assignedProductIds && assignedProductIds.length > 0) {
-        baseConditions.push(`c."productId" = ANY($${baseParamIndex}::int[])`);
-        baseParams.push(assignedProductIds);
-        baseParamIndex++;
-      } else if (assignedProductIds && assignedProductIds.length === 0) {
-        baseConditions.push('FALSE');
+        if (assignedProductIds && assignedProductIds.length > 0) {
+          baseConditions.push(`c."productId" = ANY($${baseParamIndex}::int[])`);
+          baseParams.push(assignedProductIds);
+          baseParamIndex++;
+        } else if (assignedProductIds && assignedProductIds.length === 0) {
+          baseConditions.push('FALSE');
+        }
       }
     } else if (assignedTo) {
       baseConditions.push(`EXISTS (
@@ -1451,6 +1470,7 @@ export const exportCases = async (req: AuthenticatedRequest, res: Response) => {
     let paramIndex = 1;
     const userId = req.user?.id;
     const isScopedOps = isScopedOperationsUser(req.user);
+    const hierarchyUserIds = userId ? await getScopedOperationalUserIds(userId) : undefined;
 
     // Filter by export type (status)
     if (exportType && exportType !== 'all') {
@@ -1547,27 +1567,44 @@ export const exportCases = async (req: AuthenticatedRequest, res: Response) => {
     }
 
     if (isScopedOps && userId) {
-      const { getAssignedClientIds } = await import('@/middleware/clientAccess');
-      const { getAssignedProductIds } = await import('@/middleware/productAccess');
-      const [assignedClientIds, assignedProductIds] = await Promise.all([
-        getAssignedClientIds(userId),
-        getAssignedProductIds(userId),
-      ]);
-
-      if (!assignedClientIds || assignedClientIds.length === 0) {
-        whereConditions.push('FALSE');
+      if (hierarchyUserIds) {
+        if (hierarchyUserIds.length === 0) {
+          whereConditions.push('FALSE');
+        } else {
+          whereConditions.push(`(
+            c."assignedTo" = ANY($${paramIndex}::uuid[]) OR
+            EXISTS (
+              SELECT 1 FROM verification_tasks vts
+              WHERE vts.case_id = c.id
+                AND vts.assigned_to = ANY($${paramIndex}::uuid[])
+            )
+          )`);
+          queryParams.push(hierarchyUserIds);
+          paramIndex++;
+        }
       } else {
-        whereConditions.push(`c."clientId" = ANY($${paramIndex}::int[])`);
-        queryParams.push(assignedClientIds);
-        paramIndex++;
-      }
+        const { getAssignedClientIds } = await import('@/middleware/clientAccess');
+        const { getAssignedProductIds } = await import('@/middleware/productAccess');
+        const [assignedClientIds, assignedProductIds] = await Promise.all([
+          getAssignedClientIds(userId),
+          getAssignedProductIds(userId),
+        ]);
 
-      if (!assignedProductIds || assignedProductIds.length === 0) {
-        whereConditions.push('FALSE');
-      } else {
-        whereConditions.push(`c."productId" = ANY($${paramIndex}::int[])`);
-        queryParams.push(assignedProductIds);
-        paramIndex++;
+        if (!assignedClientIds || assignedClientIds.length === 0) {
+          whereConditions.push('FALSE');
+        } else {
+          whereConditions.push(`c."clientId" = ANY($${paramIndex}::int[])`);
+          queryParams.push(assignedClientIds);
+          paramIndex++;
+        }
+
+        if (!assignedProductIds || assignedProductIds.length === 0) {
+          whereConditions.push('FALSE');
+        } else {
+          whereConditions.push(`c."productId" = ANY($${paramIndex}::int[])`);
+          queryParams.push(assignedProductIds);
+          paramIndex++;
+        }
       }
     }
 

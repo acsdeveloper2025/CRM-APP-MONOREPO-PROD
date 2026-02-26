@@ -1,6 +1,8 @@
 import React from 'react';
 import {
   Crown,
+  ShieldCheck,
+  Users,
   Server,
   MapPin,
 } from 'lucide-react';
@@ -20,6 +22,18 @@ export const roleConfigs: Record<string, RoleConfig> = {
     variant: 'destructive',
     label: 'Super Admin',
     color: 'text-red-600'
+  },
+  MANAGER: {
+    icon: ShieldCheck,
+    variant: 'default',
+    label: 'Manager',
+    color: 'text-emerald-700'
+  },
+  TEAM_LEADER: {
+    icon: Users,
+    variant: 'secondary',
+    label: 'Team Leader',
+    color: 'text-teal-700'
   },
   BACKEND_USER: {
     icon: Server,

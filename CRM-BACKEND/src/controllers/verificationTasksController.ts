@@ -12,6 +12,7 @@ import { logger } from '../utils/logger';
 import { getAssignedClientIds } from '@/middleware/clientAccess';
 import { getAssignedProductIds } from '@/middleware/productAccess';
 import { isFieldExecutionActor, isScopedOperationsUser } from '@/security/rbacAccess';
+import { getScopedOperationalUserIds } from '@/security/userScope';
 
 // Database connection (assuming it's imported from your existing setup)
 import { pool } from '../config/database';
@@ -454,6 +455,7 @@ export class VerificationTasksController {
       const userId = req.user?.id;
       const isExecutionActor = isFieldExecutionActor(req.user);
       const isScopedOps = isScopedOperationsUser(req.user);
+      const hierarchyUserIds = userId ? await getScopedOperationalUserIds(userId) : undefined;
 
       if (isExecutionActor) {
         // FIELD_AGENT can see tasks if:
@@ -498,26 +500,36 @@ export class VerificationTasksController {
           conditions.push('FALSE');
         }
       } else if (isScopedOps) {
-        const [assignedClientIds, assignedProductIds] = await Promise.all([
-          getAssignedClientIds(userId),
-          getAssignedProductIds(userId),
-        ]);
-
-        if (
-          !assignedClientIds ||
-          !assignedProductIds ||
-          assignedClientIds.length === 0 ||
-          assignedProductIds.length === 0
-        ) {
-          conditions.push('FALSE');
+        if (hierarchyUserIds) {
+          if (hierarchyUserIds.length === 0) {
+            conditions.push('FALSE');
+          } else {
+            conditions.push(`vt.assigned_to = ANY($${paramIndex}::uuid[])`);
+            params.push(hierarchyUserIds);
+            paramIndex++;
+          }
         } else {
-          conditions.push(`c."clientId" = ANY($${paramIndex}::int[])`);
-          params.push(assignedClientIds);
-          paramIndex++;
+          const [assignedClientIds, assignedProductIds] = await Promise.all([
+            getAssignedClientIds(userId),
+            getAssignedProductIds(userId),
+          ]);
 
-          conditions.push(`c."productId" = ANY($${paramIndex}::int[])`);
-          params.push(assignedProductIds);
-          paramIndex++;
+          if (
+            !assignedClientIds ||
+            !assignedProductIds ||
+            assignedClientIds.length === 0 ||
+            assignedProductIds.length === 0
+          ) {
+            conditions.push('FALSE');
+          } else {
+            conditions.push(`c."clientId" = ANY($${paramIndex}::int[])`);
+            params.push(assignedClientIds);
+            paramIndex++;
+
+            conditions.push(`c."productId" = ANY($${paramIndex}::int[])`);
+            params.push(assignedProductIds);
+            paramIndex++;
+          }
         }
       }
 

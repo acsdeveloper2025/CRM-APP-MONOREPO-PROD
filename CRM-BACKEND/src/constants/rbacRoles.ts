@@ -1,11 +1,16 @@
-export const CANONICAL_RBAC_ROLE_NAMES = ['SUPER_ADMIN', 'BACKEND_USER', 'FIELD_AGENT'] as const;
+export const CANONICAL_RBAC_ROLE_NAMES = [
+  'SUPER_ADMIN',
+  'MANAGER',
+  'TEAM_LEADER',
+  'BACKEND_USER',
+  'FIELD_AGENT',
+] as const;
 
 export type CanonicalRbacRoleName = (typeof CANONICAL_RBAC_ROLE_NAMES)[number];
 
 export const LEGACY_RBAC_ROLE_ALIAS_TO_CANONICAL: Readonly<Record<string, CanonicalRbacRoleName>> =
   {
     ADMIN: 'SUPER_ADMIN',
-    MANAGER: 'BACKEND_USER',
     REPORT_PERSON: 'BACKEND_USER',
   };
 
@@ -39,6 +44,6 @@ export const isCanonicalRbacRoleName = (roleName: string | null | undefined): bo
 
 export const RBAC_ROLE_CANONICALIZE_SQL_CASE = `CASE
   WHEN rv.name = 'ADMIN' THEN 'SUPER_ADMIN'
-  WHEN rv.name IN ('MANAGER', 'REPORT_PERSON') THEN 'BACKEND_USER'
+  WHEN rv.name = 'REPORT_PERSON' THEN 'BACKEND_USER'
   ELSE rv.name
 END`;

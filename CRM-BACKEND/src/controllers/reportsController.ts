@@ -6,6 +6,7 @@ import { QueryParams } from '@/types/database';
 import { getAssignedClientIds } from '@/middleware/clientAccess';
 import { getAssignedProductIds } from '@/middleware/productAccess';
 import { isFieldExecutionActor, isScopedOperationsUser } from '@/security/rbacAccess';
+import { getScopedOperationalUserIds } from '@/security/userScope';
 import { CaseAnalyticsRow } from '../types/reports';
 import ExcelJS from 'exceljs';
 
@@ -100,6 +101,52 @@ export const getFormSubmissions = async (req: AuthenticatedRequest, res: Respons
     const conditions: string[] = [];
     const params: QueryParams = [];
     let paramIndex = 1;
+    const userId = req.user?.id;
+    const hierarchyUserIds = userId ? await getScopedOperationalUserIds(userId) : undefined;
+
+    if (isFieldExecutionActor(req.user) && userId) {
+      conditions.push(`EXISTS (
+        SELECT 1 FROM verification_tasks vt_scope
+        WHERE vt_scope.case_id = c.id
+          AND vt_scope.assigned_to = $${paramIndex}
+      )`);
+      params.push(userId);
+      paramIndex++;
+    } else if (isScopedOperationsUser(req.user) && userId) {
+      if (hierarchyUserIds) {
+        if (hierarchyUserIds.length === 0) {
+          conditions.push('FALSE');
+        } else {
+          conditions.push(`EXISTS (
+            SELECT 1 FROM verification_tasks vt_scope
+            WHERE vt_scope.case_id = c.id
+              AND vt_scope.assigned_to = ANY($${paramIndex}::uuid[])
+          )`);
+          params.push(hierarchyUserIds);
+          paramIndex++;
+        }
+      } else {
+        const [assignedClientIds, assignedProductIds] = await Promise.all([
+          getAssignedClientIds(userId),
+          getAssignedProductIds(userId),
+        ]);
+        if (
+          !assignedClientIds ||
+          !assignedProductIds ||
+          assignedClientIds.length === 0 ||
+          assignedProductIds.length === 0
+        ) {
+          conditions.push('FALSE');
+        } else {
+          conditions.push(`c."clientId" = ANY($${paramIndex}::int[])`);
+          params.push(assignedClientIds);
+          paramIndex++;
+          conditions.push(`c."productId" = ANY($${paramIndex}::int[])`);
+          params.push(assignedProductIds);
+          paramIndex++;
+        }
+      }
+    }
 
     if (dateFrom) {
       conditions.push(`tfs.submitted_at >= $${paramIndex}`);

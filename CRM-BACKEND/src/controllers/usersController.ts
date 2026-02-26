@@ -16,6 +16,158 @@ const STRONG_PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9])
 
 const isStrongPassword = (password: string): boolean => STRONG_PASSWORD_REGEX.test(password);
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const HIERARCHY_MANAGER_ROLE = 'MANAGER';
+const HIERARCHY_TEAM_LEADER_ROLE = 'TEAM_LEADER';
+const HIERARCHY_OPERATIONS_ROLES = new Set(['FIELD_AGENT', 'BACKEND_USER']);
+
+type DbExecutor = {
+  query: <T = unknown>(text: string, params?: unknown[]) => Promise<{ rows: T[] }>;
+};
+
+type HierarchyRefUser = {
+  id: string;
+  managerId: string | null;
+  roles: string[] | null;
+  role: string | null;
+};
+
+const normalizeOptionalUuid = (value: unknown): string | null | undefined => {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (value === null) {
+    return null;
+  }
+  if (typeof value !== 'string' && typeof value !== 'number' && typeof value !== 'boolean') {
+    return null;
+  }
+  const str = `${value}`.trim();
+  if (!str) {
+    return null;
+  }
+  return str;
+};
+
+const loadHierarchyRefUser = async (
+  db: DbExecutor,
+  userId: string
+): Promise<HierarchyRefUser | undefined> => {
+  const result = await db.query<HierarchyRefUser>(
+    `
+      SELECT
+        u.id,
+        u.manager_id as "managerId",
+        COALESCE((
+          SELECT ARRAY_AGG(rv.name ORDER BY rv.name)
+          FROM user_roles ur
+          JOIN roles_v2 rv ON rv.id = ur.role_id
+          WHERE ur.user_id = u.id
+        ), ARRAY[]::text[]) as roles,
+        u.role
+      FROM users u
+      WHERE u.id = $1
+        AND u."deletedAt" IS NULL
+      LIMIT 1
+    `,
+    [userId]
+  );
+
+  return result.rows[0];
+};
+
+const getPrimaryRoleName = (user?: HierarchyRefUser): string | undefined => {
+  if (!user) {
+    return undefined;
+  }
+  const fromRbac = (user.roles || []).map(r => r.trim().toUpperCase());
+  for (const roleName of CANONICAL_RBAC_ROLE_NAMES) {
+    if (fromRbac.includes(roleName)) {
+      return roleName;
+    }
+  }
+  return user.role?.trim().toUpperCase();
+};
+
+type HierarchyValidationInput = {
+  targetUserId?: string;
+  targetRole: string;
+  teamLeaderId?: string | null;
+  managerId?: string | null;
+};
+
+type HierarchyValidationOutput = {
+  teamLeaderId: string | null;
+  managerId: string | null;
+};
+
+const validateHierarchyAssignments = async (
+  db: DbExecutor,
+  input: HierarchyValidationInput
+): Promise<HierarchyValidationOutput> => {
+  const targetRole = input.targetRole.trim().toUpperCase();
+  const teamLeaderId = input.teamLeaderId ?? null;
+  const managerId = input.managerId ?? null;
+
+  if (input.targetUserId && teamLeaderId === input.targetUserId) {
+    throw new Error('User cannot report to self as team leader');
+  }
+  if (input.targetUserId && managerId === input.targetUserId) {
+    throw new Error('User cannot report to self as manager');
+  }
+
+  if (targetRole === HIERARCHY_MANAGER_ROLE || targetRole === 'SUPER_ADMIN') {
+    return { teamLeaderId: null, managerId: null };
+  }
+
+  if (targetRole === HIERARCHY_TEAM_LEADER_ROLE) {
+    if (!managerId) {
+      throw new Error('Manager is required for Team Leader role');
+    }
+    const managerUser = await loadHierarchyRefUser(db, managerId);
+    if (!managerUser) {
+      throw new Error('Selected Manager user not found');
+    }
+    if (getPrimaryRoleName(managerUser) !== HIERARCHY_MANAGER_ROLE) {
+      throw new Error('Selected Manager must have MANAGER role');
+    }
+    return { teamLeaderId: null, managerId };
+  }
+
+  if (HIERARCHY_OPERATIONS_ROLES.has(targetRole)) {
+    if (!teamLeaderId) {
+      throw new Error('Team Leader is required for operational users');
+    }
+    if (!managerId) {
+      throw new Error('Manager is required for operational users');
+    }
+
+    const [teamLeaderUser, managerUser] = await Promise.all([
+      loadHierarchyRefUser(db, teamLeaderId),
+      loadHierarchyRefUser(db, managerId),
+    ]);
+
+    if (!teamLeaderUser) {
+      throw new Error('Selected Team Leader user not found');
+    }
+    if (!managerUser) {
+      throw new Error('Selected Manager user not found');
+    }
+
+    if (getPrimaryRoleName(teamLeaderUser) !== HIERARCHY_TEAM_LEADER_ROLE) {
+      throw new Error('Selected Team Leader must have TEAM_LEADER role');
+    }
+    if (getPrimaryRoleName(managerUser) !== HIERARCHY_MANAGER_ROLE) {
+      throw new Error('Selected Manager must have MANAGER role');
+    }
+    if (teamLeaderUser.managerId !== managerId) {
+      throw new Error('Selected Team Leader does not belong to the selected Manager');
+    }
+
+    return { teamLeaderId, managerId };
+  }
+
+  return { teamLeaderId: null, managerId: null };
+};
 
 // GET /api/users - List users with pagination and filters
 export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
@@ -142,6 +294,10 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
         ) as "roleName",
         d.name as "departmentName",
         des.name as "designationName",
+        u.team_leader_id as "teamLeaderId",
+        tl.name as "teamLeaderName",
+        u.manager_id as "managerId",
+        mgr.name as "managerName",
 
         -- Assignment counts for BACKEND_USER role
         COALESCE(client_counts.count, 0) as "assignedClientsCount",
@@ -162,6 +318,8 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
       LEFT JOIN roles r ON u."roleId" = r.id
       LEFT JOIN departments d ON u."departmentId" = d.id
       LEFT JOIN designations des ON u."designationId" = des.id
+      LEFT JOIN users tl ON tl.id = u.team_leader_id
+      LEFT JOIN users mgr ON mgr.id = u.manager_id
       LEFT JOIN (
         SELECT "userId", COUNT(*) as count
         FROM "userClientAssignments"
@@ -312,6 +470,10 @@ export const getUserById = async (req: AuthenticatedRequest, res: Response) => {
         d.name as "departmentName",
         d.description as "departmentDescription",
         des.name as "designationName",
+        u.team_leader_id as "teamLeaderId",
+        tl.name as "teamLeaderName",
+        u.manager_id as "managerId",
+        mgr.name as "managerName",
 
         -- Assignment counts for BACKEND_USER role
         COALESCE(client_counts.count, 0) as "assignedClientsCount",
@@ -332,6 +494,8 @@ export const getUserById = async (req: AuthenticatedRequest, res: Response) => {
       LEFT JOIN roles r ON u."roleId" = r.id
       LEFT JOIN departments d ON u."departmentId" = d.id
       LEFT JOIN designations des ON u."designationId" = des.id
+      LEFT JOIN users tl ON tl.id = u.team_leader_id
+      LEFT JOIN users mgr ON mgr.id = u.manager_id
       LEFT JOIN (
         SELECT "userId", COUNT(*) as count
         FROM "userClientAssignments"
@@ -427,6 +591,8 @@ export const createUser = async (req: AuthenticatedRequest, res: Response) => {
       employeeId,
       designation,
       phone,
+      teamLeaderId,
+      managerId,
       isActive = true,
       // Legacy fields for backward compatibility
       role,
@@ -444,6 +610,8 @@ export const createUser = async (req: AuthenticatedRequest, res: Response) => {
       designationId && (typeof designationId === 'string' ? designationId.trim() !== '' : true)
         ? designationId
         : null;
+    const cleanTeamLeaderId = normalizeOptionalUuid(teamLeaderId) ?? null;
+    const cleanManagerId = normalizeOptionalUuid(managerId) ?? null;
 
     // Validate required fields
     if (!name || !username || !email || !password) {
@@ -550,13 +718,27 @@ export const createUser = async (req: AuthenticatedRequest, res: Response) => {
     );
 
     const result = await withTransaction(async client => {
+      let hierarchyAssignments: HierarchyValidationOutput;
+      try {
+        hierarchyAssignments = await validateHierarchyAssignments(client as unknown as DbExecutor, {
+          targetRole: finalRole,
+          teamLeaderId: cleanTeamLeaderId,
+          managerId: cleanManagerId,
+        });
+      } catch (hierarchyError) {
+        const err = hierarchyError as Error;
+        (err as Error & { code?: string }).code = 'HIERARCHY_VALIDATION_ERROR';
+        throw err;
+      }
+
       const createUserQuery = `
         INSERT INTO users (
           name, username, email, password, "passwordHash", role, "roleId", "departmentId", "designationId",
-          "employeeId", designation, phone, "isActive", "createdAt", "updatedAt"
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+          "employeeId", designation, phone, team_leader_id, manager_id, "isActive", "createdAt", "updatedAt"
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
         RETURNING id, name, username, email, role, "roleId", "departmentId", "designationId",
-                  "employeeId", designation, phone, "isActive", "createdAt", "updatedAt"
+                  "employeeId", designation, phone, team_leader_id as "teamLeaderId",
+                  manager_id as "managerId", "isActive", "createdAt", "updatedAt"
       `;
 
       const insertRes = await client.query(createUserQuery, [
@@ -572,6 +754,8 @@ export const createUser = async (req: AuthenticatedRequest, res: Response) => {
         employeeId || null,
         designation || null,
         phone || null,
+        hierarchyAssignments.teamLeaderId,
+        hierarchyAssignments.managerId,
         isActive,
         new Date(),
         new Date(),
@@ -604,6 +788,13 @@ export const createUser = async (req: AuthenticatedRequest, res: Response) => {
       message: 'User created successfully',
     });
   } catch (error) {
+    if ((error as { code?: string }).code === 'HIERARCHY_VALIDATION_ERROR') {
+      return res.status(400).json({
+        success: false,
+        message: (error as Error).message,
+        error: { code: 'VALIDATION_ERROR' },
+      });
+    }
     logger.error('Error creating user:', error);
     res.status(500).json({
       success: false,
@@ -620,7 +811,11 @@ export const updateUser = async (req: AuthenticatedRequest, res: Response) => {
     const updateData = req.body;
 
     // Check if user exists
-    const userExistsQuery = `SELECT id FROM users WHERE id = $1`;
+    const userExistsQuery = `
+      SELECT id, role, team_leader_id as "teamLeaderId", manager_id as "managerId"
+      FROM users
+      WHERE id = $1
+    `;
     const userExists = await query(userExistsQuery, [id]);
 
     if (userExists.rows.length === 0) {
@@ -630,6 +825,12 @@ export const updateUser = async (req: AuthenticatedRequest, res: Response) => {
         error: { code: 'NOT_FOUND' },
       });
     }
+    const existingUser = userExists.rows[0] as {
+      id: string;
+      role: string | null;
+      teamLeaderId: string | null;
+      managerId: string | null;
+    };
 
     // Check for duplicate username/email if being updated
     if (updateData.username || updateData.email) {
@@ -691,6 +892,43 @@ export const updateUser = async (req: AuthenticatedRequest, res: Response) => {
       }
     }
 
+    const cleanTeamLeaderId = normalizeOptionalUuid(updateData.teamLeaderId);
+    const cleanManagerId = normalizeOptionalUuid(updateData.managerId);
+    if (cleanTeamLeaderId !== undefined) {
+      updateData.teamLeaderId = cleanTeamLeaderId;
+    }
+    if (cleanManagerId !== undefined) {
+      updateData.managerId = cleanManagerId;
+    }
+
+    const effectiveRole =
+      typeof updateData.role === 'string' && updateData.role.trim()
+        ? updateData.role
+        : existingUser.role || '';
+
+    let hierarchyAssignments: HierarchyValidationOutput;
+    try {
+      hierarchyAssignments = await validateHierarchyAssignments({ query } as DbExecutor, {
+        targetUserId: id,
+        targetRole: effectiveRole,
+        teamLeaderId:
+          updateData.teamLeaderId !== undefined
+            ? (updateData.teamLeaderId as string | null)
+            : existingUser.teamLeaderId,
+        managerId:
+          updateData.managerId !== undefined
+            ? (updateData.managerId as string | null)
+            : existingUser.managerId,
+      });
+    } catch (hierarchyError) {
+      const err = hierarchyError as Error;
+      (err as Error & { code?: string }).code = 'HIERARCHY_VALIDATION_ERROR';
+      throw err;
+    }
+
+    updateData.teamLeaderId = hierarchyAssignments.teamLeaderId;
+    updateData.managerId = hierarchyAssignments.managerId;
+
     // Build update query dynamically
     const updateFields: string[] = [];
     const updateParams: (string | number | boolean | null)[] = [];
@@ -706,22 +944,23 @@ export const updateUser = async (req: AuthenticatedRequest, res: Response) => {
       'departmentId',
       'employeeId',
       'designation',
+      'teamLeaderId',
+      'managerId',
       'isActive',
     ];
 
+    const fieldColumnMap: Record<string, string> = {
+      employeeId: '"employeeId"',
+      roleId: '"roleId"',
+      departmentId: '"departmentId"',
+      teamLeaderId: 'team_leader_id',
+      managerId: 'manager_id',
+      isActive: '"isActive"',
+    };
+
     for (const field of allowedFields) {
       if (updateData[field] !== undefined) {
-        const column = [
-          'employeeId',
-          'roleId',
-          'departmentId',
-          'isActive',
-          'lastLogin',
-          'createdAt',
-          'updatedAt',
-        ].includes(field)
-          ? `"${field}"`
-          : field;
+        const column = fieldColumnMap[field] || field;
         updateFields.push(`${column} = $${paramIndex++}`);
         updateParams.push(updateData[field]);
       }
@@ -743,7 +982,8 @@ export const updateUser = async (req: AuthenticatedRequest, res: Response) => {
       SET ${updateFields.join(', ')}
       WHERE id = $${paramIndex}
       RETURNING id, name, username, email, role, "roleId", "departmentId",
-                "employeeId", designation, phone, "isActive", "createdAt", "updatedAt"
+                "employeeId", designation, phone, team_leader_id as "teamLeaderId",
+                manager_id as "managerId", "isActive", "createdAt", "updatedAt"
     `;
 
     const result = await withTransaction(async client => {
@@ -770,6 +1010,13 @@ export const updateUser = async (req: AuthenticatedRequest, res: Response) => {
       message: 'User updated successfully',
     });
   } catch (error) {
+    if ((error as { code?: string }).code === 'HIERARCHY_VALIDATION_ERROR') {
+      return res.status(400).json({
+        success: false,
+        message: (error as Error).message,
+        error: { code: 'VALIDATION_ERROR' },
+      });
+    }
     logger.error('Error updating user:', error);
     res.status(500).json({
       success: false,

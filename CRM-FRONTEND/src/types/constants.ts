@@ -8,6 +8,8 @@
 // User Roles
 export const USER_ROLES = {
   SUPER_ADMIN: 'SUPER_ADMIN',
+  MANAGER: 'MANAGER',
+  TEAM_LEADER: 'TEAM_LEADER',
   BACKEND_USER: 'BACKEND_USER',
   FIELD_AGENT: 'FIELD_AGENT',
 } as const;
@@ -16,7 +18,6 @@ export type UserRole = typeof USER_ROLES[keyof typeof USER_ROLES];
 
 export const LEGACY_ROLE_ALIASES = {
   ADMIN: USER_ROLES.SUPER_ADMIN,
-  MANAGER: USER_ROLES.BACKEND_USER,
   REPORT_PERSON: USER_ROLES.BACKEND_USER,
 } as const;
 
@@ -24,6 +25,8 @@ export const CANONICAL_USER_ROLE_VALUES = Object.values(USER_ROLES) as UserRole[
 
 export const USER_ROLE_OPTIONS: ReadonlyArray<{ value: UserRole; label: string }> = [
   { value: USER_ROLES.SUPER_ADMIN, label: 'Super Admin' },
+  { value: USER_ROLES.MANAGER, label: 'Manager' },
+  { value: USER_ROLES.TEAM_LEADER, label: 'Team Leader' },
   { value: USER_ROLES.BACKEND_USER, label: 'Backend User' },
   { value: USER_ROLES.FIELD_AGENT, label: 'Field Agent' },
 ];
