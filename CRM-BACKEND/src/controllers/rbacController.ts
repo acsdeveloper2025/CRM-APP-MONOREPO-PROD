@@ -404,6 +404,10 @@ export const updateRoleRoutes = async (req: AuthenticatedRequest, res: Response)
     const routeEntries = Array.isArray(req.body?.routes)
       ? (req.body.routes as Array<{ routeKey: string; allowed: boolean }>)
       : [];
+    const affectedUsersRes = await query<{ user_id: string }>(
+      'SELECT DISTINCT user_id FROM user_roles WHERE role_id = $1',
+      [id]
+    );
 
     await withTransaction(async client => {
       await client.query('DELETE FROM role_routes WHERE role_id = $1', [id]);
@@ -417,6 +421,14 @@ export const updateRoleRoutes = async (req: AuthenticatedRequest, res: Response)
         );
       }
     });
+
+    const io = getSocketIO();
+    if (io) {
+      emitPermissionsUpdated(
+        io,
+        affectedUsersRes.rows.map(row => row.user_id)
+      );
+    }
 
     res.json({ success: true, message: 'Role routes updated successfully' });
   } catch (_error) {
