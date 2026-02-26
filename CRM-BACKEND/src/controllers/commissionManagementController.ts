@@ -10,6 +10,11 @@ import type {
 } from '../types/commission';
 import type { QueryParams } from '../types/database';
 import { isExecutionEligibleUser, loadUserCapabilityProfile } from '../security/userCapabilities';
+import {
+  appendOperationalScopeConditions,
+  resolveDataScope,
+  valueAllowedByScope,
+} from '@/security/dataScope';
 
 // =====================================================
 // COMMISSION RATE TYPES MANAGEMENT
@@ -307,6 +312,7 @@ export const getFieldUserCommissionAssignments = async (
   res: Response
 ) => {
   try {
+    const scope = await resolveDataScope(req as never);
     const { userId, rateTypeId, clientId, isActive, page = 1, limit = 20 } = req.query;
 
     let whereClause = '';
@@ -336,6 +342,17 @@ export const getFieldUserCommissionAssignments = async (
       whereClause += `${whereClause ? ' AND' : ''} fuca.is_active = $${paramCount}`;
       queryParams.push(isActive === 'true');
     }
+
+    const scopeConditions: string[] = whereClause ? [whereClause] : [];
+    appendOperationalScopeConditions({
+      scope,
+      conditions: scopeConditions,
+      params: queryParams as unknown as Array<string | number | boolean | string[] | number[]>,
+      userExpr: 'fuca.user_id',
+      clientExpr: 'fuca.client_id',
+    });
+    whereClause = scopeConditions.join(' AND ');
+    paramCount = queryParams.length;
 
     const offset = (Number(page) - 1) * Number(limit);
     paramCount++;
@@ -404,6 +421,7 @@ export const createFieldUserCommissionAssignment = async (
   res: Response
 ) => {
   try {
+    const scope = await resolveDataScope(req as never);
     const {
       userId,
       rateTypeId,
@@ -438,6 +456,21 @@ export const createFieldUserCommissionAssignment = async (
         success: false,
         message: 'User must be execution-eligible to assign commission rates',
         error: { code: 'VALIDATION_ERROR' },
+      });
+    }
+    if (
+      !valueAllowedByScope(
+        {
+          userId: userProfile.id,
+          clientId: clientId ?? null,
+        },
+        scope
+      )
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: 'Assignment target is outside assigned scope',
+        error: { code: 'OUT_OF_SCOPE' },
       });
     }
 
@@ -514,6 +547,7 @@ export const updateFieldUserCommissionAssignment = async (
   res: Response
 ) => {
   try {
+    const scope = await resolveDataScope(req as never);
     const { id } = req.params;
     const {
       userId,
@@ -536,11 +570,26 @@ export const updateFieldUserCommissionAssignment = async (
 
     // Check if assignment exists
     const existingAssignment = await query(
-      'SELECT id FROM field_user_commission_assignments WHERE id = $1',
+      'SELECT id, user_id, client_id FROM field_user_commission_assignments WHERE id = $1',
       [Number(id)]
     );
 
     if (existingAssignment.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Field user commission assignment not found',
+        error: { code: 'NOT_FOUND' },
+      });
+    }
+    if (
+      !valueAllowedByScope(
+        {
+          userId: existingAssignment.rows[0].user_id,
+          clientId: existingAssignment.rows[0].client_id ?? null,
+        },
+        scope
+      )
+    ) {
       return res.status(404).json({
         success: false,
         message: 'Field user commission assignment not found',
@@ -603,15 +652,31 @@ export const deleteFieldUserCommissionAssignment = async (
   res: Response
 ) => {
   try {
+    const scope = await resolveDataScope(req as never);
     const { id } = req.params;
 
     // Check if assignment exists
     const existingAssignment = await query(
-      'SELECT id FROM field_user_commission_assignments WHERE id = $1',
+      'SELECT id, user_id, client_id FROM field_user_commission_assignments WHERE id = $1',
       [Number(id)]
     );
 
     if (existingAssignment.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Field user commission assignment not found',
+        error: { code: 'NOT_FOUND' },
+      });
+    }
+    if (
+      !valueAllowedByScope(
+        {
+          userId: existingAssignment.rows[0].user_id,
+          clientId: existingAssignment.rows[0].client_id ?? null,
+        },
+        scope
+      )
+    ) {
       return res.status(404).json({
         success: false,
         message: 'Field user commission assignment not found',
@@ -647,6 +712,7 @@ export const deleteFieldUserCommissionAssignment = async (
 
 export const getCommissionCalculations = async (req: AuthenticatedRequest, res: Response) => {
   try {
+    const scope = await resolveDataScope(req as never);
     const {
       userId,
       clientId,
@@ -697,6 +763,18 @@ export const getCommissionCalculations = async (req: AuthenticatedRequest, res: 
       whereClause += `${whereClause ? ' AND' : ''} cc.created_at <= $${paramCount}`;
       queryParams.push(endDate as string);
     }
+
+    const scopeConditions: string[] = whereClause ? [whereClause] : [];
+    appendOperationalScopeConditions({
+      scope,
+      conditions: scopeConditions,
+      params: queryParams as unknown as Array<string | number | boolean | string[] | number[]>,
+      userExpr: 'cc.user_id',
+      clientExpr: 'cc.client_id',
+      productExpr: 'cases."productId"',
+    });
+    whereClause = scopeConditions.join(' AND ');
+    paramCount = queryParams.length;
 
     const offset = (Number(page) - 1) * Number(limit);
     paramCount++;
@@ -1232,6 +1310,7 @@ export const autoCalculateCommissionForTask = async (taskId: string): Promise<bo
 
 export const getCommissionStats = async (req: AuthenticatedRequest, res: Response) => {
   try {
+    const scope = await resolveDataScope(req as never);
     const userId = req.user?.id;
 
     if (!userId) {
@@ -1242,6 +1321,18 @@ export const getCommissionStats = async (req: AuthenticatedRequest, res: Respons
     }
 
     // Get commission calculations stats
+    const calcConditions: string[] = [];
+    const calcParams: Array<string | number | boolean | string[] | number[]> = [];
+    appendOperationalScopeConditions({
+      scope,
+      conditions: calcConditions,
+      params: calcParams,
+      userExpr: 'cc.user_id',
+      clientExpr: 'cc.client_id',
+      productExpr: 'cases."productId"',
+    });
+    const calcWhere = calcConditions.length ? `WHERE ${calcConditions.join(' AND ')}` : '';
+
     const calculationsStatsQuery = `
       SELECT
         COUNT(*) as total_calculations,
@@ -1252,27 +1343,43 @@ export const getCommissionStats = async (req: AuthenticatedRequest, res: Respons
         COALESCE(SUM(CASE WHEN status = 'PAID' THEN commission_amount ELSE 0 END), 0) as total_paid_amount,
         COALESCE(SUM(CASE WHEN status = 'PENDING' THEN commission_amount ELSE 0 END), 0) as total_pending_amount,
         COALESCE(AVG(commission_amount), 0) as average_commission
-      FROM commission_calculations
+      FROM commission_calculations cc
+      LEFT JOIN cases ON cc.case_id = cases.id
+      ${calcWhere}
     `;
-
-    const calculationsStats = await query(calculationsStatsQuery);
+    const calculationsStats = await query(calculationsStatsQuery, calcParams);
     const stats = calculationsStats.rows[0];
 
     // Get active field users count
+    const assignmentConditions: string[] = [];
+    const assignmentParams: Array<string | number | boolean | string[] | number[]> = [];
+    appendOperationalScopeConditions({
+      scope,
+      conditions: assignmentConditions,
+      params: assignmentParams,
+      userExpr: 'user_id',
+      clientExpr: 'client_id',
+    });
+    const assignmentWhere = assignmentConditions.length
+      ? `AND ${assignmentConditions.join(' AND ')}`
+      : '';
+
     const activeUsersQuery = `
       SELECT COUNT(DISTINCT user_id) as active_users
       FROM field_user_commission_assignments
       WHERE is_active = true
+      ${assignmentWhere}
     `;
-    const activeUsersResult = await query(activeUsersQuery);
+    const activeUsersResult = await query(activeUsersQuery, assignmentParams);
     const activeUsers = activeUsersResult.rows[0]?.active_users || 0;
 
     // Get total assignments count
     const assignmentsQuery = `
       SELECT COUNT(*) as total_assignments
       FROM field_user_commission_assignments
+      ${assignmentConditions.length ? `WHERE ${assignmentConditions.join(' AND ')}` : ''}
     `;
-    const assignmentsResult = await query(assignmentsQuery);
+    const assignmentsResult = await query(assignmentsQuery, assignmentParams);
     const totalAssignments = assignmentsResult.rows[0]?.total_assignments || 0;
 
     // Get top performing user
@@ -1280,12 +1387,14 @@ export const getCommissionStats = async (req: AuthenticatedRequest, res: Respons
       SELECT u.name as user_name, COUNT(*) as calculation_count
       FROM commission_calculations cc
       LEFT JOIN users u ON cc.user_id = u.id
+      LEFT JOIN cases ON cc.case_id = cases.id
       WHERE cc.status = 'PAID'
+      ${calcConditions.length ? `AND ${calcConditions.join(' AND ')}` : ''}
       GROUP BY cc.user_id, u.name
       ORDER BY calculation_count DESC
       LIMIT 1
     `;
-    const topUserResult = await query(topUserQuery);
+    const topUserResult = await query(topUserQuery, calcParams);
     const topUser = topUserResult.rows[0]?.user_name || null;
 
     // Get most used rate type
@@ -1293,11 +1402,19 @@ export const getCommissionStats = async (req: AuthenticatedRequest, res: Respons
       SELECT rt.name as rate_type_name, COUNT(*) as usage_count
       FROM field_user_commission_assignments fuca
       LEFT JOIN "rateTypes" rt ON fuca.rate_type_id = rt.id
+      ${
+        assignmentConditions.length
+          ? `WHERE ${assignmentConditions
+              .join(' AND ')
+              .replace(/\buser_id\b/g, 'fuca.user_id')
+              .replace(/\bclient_id\b/g, 'fuca.client_id')}`
+          : ''
+      }
       GROUP BY fuca.rate_type_id, rt.name
       ORDER BY usage_count DESC
       LIMIT 1
     `;
-    const topRateTypeResult = await query(topRateTypeQuery);
+    const topRateTypeResult = await query(topRateTypeQuery, assignmentParams);
     const topRateType = topRateTypeResult.rows[0]?.rate_type_name || null;
 
     // Get total rate types count
@@ -1315,8 +1432,10 @@ export const getCommissionStats = async (req: AuthenticatedRequest, res: Respons
         COUNT(CASE WHEN DATE(cc.created_at) = CURRENT_DATE THEN 1 END) as calculations_today,
         COALESCE(SUM(CASE WHEN DATE(cc.created_at) = CURRENT_DATE THEN cc.commission_amount ELSE 0 END), 0) as commission_today
       FROM commission_calculations cc
+      LEFT JOIN cases ON cc.case_id = cases.id
+      ${calcWhere}
     `;
-    const todayResult = await query(todayQuery);
+    const todayResult = await query(todayQuery, calcParams);
     const todayStats = todayResult.rows[0];
 
     // Get this week's new assignments
@@ -1324,8 +1443,9 @@ export const getCommissionStats = async (req: AuthenticatedRequest, res: Respons
       SELECT COUNT(*) as new_assignments_week
       FROM field_user_commission_assignments
       WHERE created_at >= DATE_TRUNC('week', CURRENT_DATE)
+      ${assignmentConditions.length ? `AND ${assignmentConditions.join(' AND ')}` : ''}
     `;
-    const thisWeekResult = await query(thisWeekQuery);
+    const thisWeekResult = await query(thisWeekQuery, assignmentParams);
     const newAssignmentsWeek = thisWeekResult.rows[0]?.new_assignments_week || 0;
 
     const commissionStats = {
