@@ -60,6 +60,17 @@ export class MobileCaseController {
       const userId = req.user?.id;
       const isExecutionActor = isFieldExecutionActor(req.user);
 
+      if (!isExecutionActor) {
+        return res.status(403).json({
+          success: false,
+          message: 'Mobile task list is restricted to field execution users',
+          error: {
+            code: 'MOBILE_EXECUTION_ONLY',
+            timestamp: new Date().toISOString(),
+          },
+        });
+      }
+
       const {
         page = 1,
         limit = 20,
