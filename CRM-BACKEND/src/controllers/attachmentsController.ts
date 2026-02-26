@@ -9,6 +9,7 @@ import {
   isFieldExecutionActor,
   isScopedOperationsUser,
 } from '@/security/rbacAccess';
+import { getScopedOperationalUserIds } from '@/security/userScope';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
@@ -71,13 +72,36 @@ const enforceBackendUserCaseScope = async (
   }
 
   const { query } = await import('@/config/database');
-  const caseResult = await query<{ clientId: number; productId: number }>(
-    `SELECT "clientId", "productId" FROM cases WHERE id = $1`,
+  const caseResult = await query<{
+    clientId: number;
+    productId: number;
+    createdByBackendUser: string | null;
+    assignedTo: string | null;
+  }>(
+    `SELECT "clientId", "productId", "createdByBackendUser", "assignedTo" FROM cases WHERE id = $1`,
     [caseUuid]
   );
 
   if (caseResult.rows.length === 0) {
     return false;
+  }
+
+  const scopedUserIds = await getScopedOperationalUserIds(userId);
+  if (scopedUserIds) {
+    const scopeCheck = await query(
+      `SELECT 1
+       FROM cases c
+       LEFT JOIN verification_tasks vt ON vt.case_id = c.id
+       WHERE c.id = $1
+         AND (
+           c."createdByBackendUser" = ANY($2::uuid[]) OR
+           c."assignedTo" = ANY($2::uuid[]) OR
+           vt.assigned_to = ANY($2::uuid[])
+         )
+       LIMIT 1`,
+      [caseUuid, scopedUserIds]
+    );
+    return scopeCheck.rows.length > 0;
   }
 
   const [assignedClientIds, assignedProductIds] = await Promise.all([

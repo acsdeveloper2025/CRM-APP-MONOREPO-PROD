@@ -593,6 +593,7 @@ export const getCaseById = async (req: AuthenticatedRequest, res: Response) => {
     const userId = req.user?.id;
     const isExecutionActor = isFieldExecutionActor(req.user);
     const isScopedOps = isScopedOperationsUser(req.user);
+    const hierarchyUserIds = userId ? await getScopedOperationalUserIds(userId) : undefined;
 
     // Build query with role-based filtering
     let caseQuery = `
@@ -717,36 +718,53 @@ export const getCaseById = async (req: AuthenticatedRequest, res: Response) => {
         });
       }
     } else if (isScopedOps) {
-      // Filter by client and product assignments for BACKEND_USER
-      const { getAssignedClientIds } = await import('@/middleware/clientAccess');
-      const { getAssignedProductIds } = await import('@/middleware/productAccess');
+      if (hierarchyUserIds) {
+        if (hierarchyUserIds.length === 0) {
+          return res.status(403).json({
+            success: false,
+            message: 'Access denied: No users found in your reporting scope',
+            error: { code: 'NO_HIERARCHY_SCOPE' },
+          });
+        }
+        caseQuery += ` AND (
+          c."createdByBackendUser" = ANY($${queryParams.length + 1}::uuid[]) OR
+          c."assignedTo" = ANY($${queryParams.length + 1}::uuid[]) OR
+          EXISTS (
+            SELECT 1 FROM verification_tasks vt_scope
+            WHERE vt_scope.case_id = c.id
+              AND vt_scope.assigned_to = ANY($${queryParams.length + 1}::uuid[])
+          )
+        )`;
+        queryParams.push(hierarchyUserIds);
+      } else {
+        // Filter by client and product assignments for BACKEND_USER
+        const { getAssignedClientIds } = await import('@/middleware/clientAccess');
+        const { getAssignedProductIds } = await import('@/middleware/productAccess');
 
-      const assignedClientIds = await getAssignedClientIds(userId);
-      const assignedProductIds = await getAssignedProductIds(userId);
+        const assignedClientIds = await getAssignedClientIds(userId);
+        const assignedProductIds = await getAssignedProductIds(userId);
 
-      // Check if user has access to this case's client and product
-      if (assignedClientIds && assignedClientIds.length > 0) {
-        caseQuery += ` AND c."clientId" = ANY($${queryParams.length + 1}::int[])`;
-        queryParams.push(assignedClientIds);
-      } else if (assignedClientIds && assignedClientIds.length === 0) {
-        // User has no client assignments, deny access
-        return res.status(403).json({
-          success: false,
-          message: 'Access denied: No clients assigned to your account',
-          error: { code: 'NO_CLIENT_ACCESS' },
-        });
-      }
+        if (assignedClientIds && assignedClientIds.length > 0) {
+          caseQuery += ` AND c."clientId" = ANY($${queryParams.length + 1}::int[])`;
+          queryParams.push(assignedClientIds);
+        } else if (assignedClientIds && assignedClientIds.length === 0) {
+          return res.status(403).json({
+            success: false,
+            message: 'Access denied: No clients assigned to your account',
+            error: { code: 'NO_CLIENT_ACCESS' },
+          });
+        }
 
-      if (assignedProductIds && assignedProductIds.length > 0) {
-        caseQuery += ` AND c."productId" = ANY($${queryParams.length + 1}::int[])`;
-        queryParams.push(assignedProductIds);
-      } else if (assignedProductIds && assignedProductIds.length === 0) {
-        // User has no product assignments, deny access
-        return res.status(403).json({
-          success: false,
-          message: 'Access denied: No products assigned to your account',
-          error: { code: 'NO_PRODUCT_ACCESS' },
-        });
+        if (assignedProductIds && assignedProductIds.length > 0) {
+          caseQuery += ` AND c."productId" = ANY($${queryParams.length + 1}::int[])`;
+          queryParams.push(assignedProductIds);
+        } else if (assignedProductIds && assignedProductIds.length === 0) {
+          return res.status(403).json({
+            success: false,
+            message: 'Access denied: No products assigned to your account',
+            error: { code: 'NO_PRODUCT_ACCESS' },
+          });
+        }
       }
     }
 
@@ -1857,26 +1875,50 @@ export const getCaseSummaryWithTasks = async (req: AuthenticatedRequest, res: Re
     const caseInfo = caseResult.rows[0];
 
     if (isScopedOperationsUser(req.user) && req.user?.id) {
-      const { getAssignedClientIds } = await import('@/middleware/clientAccess');
-      const { getAssignedProductIds } = await import('@/middleware/productAccess');
-      const [assignedClientIds, assignedProductIds] = await Promise.all([
-        getAssignedClientIds(req.user.id),
-        getAssignedProductIds(req.user.id),
-      ]);
+      const scopedUserIds = await getScopedOperationalUserIds(req.user.id);
+      if (scopedUserIds) {
+        const scopeCheck = await pool.query(
+          `SELECT 1
+           FROM cases c
+           LEFT JOIN verification_tasks vt ON vt.case_id = c.id
+           WHERE c.id = $1
+             AND (
+               c."createdByBackendUser" = ANY($2::uuid[]) OR
+               c."assignedTo" = ANY($2::uuid[]) OR
+               vt.assigned_to = ANY($2::uuid[])
+             )
+           LIMIT 1`,
+          [caseId, scopedUserIds]
+        );
+        if (scopeCheck.rows.length === 0) {
+          return res.status(403).json({
+            success: false,
+            message: 'Access denied',
+            error: { code: 'CASE_ACCESS_DENIED' },
+          });
+        }
+      } else {
+        const { getAssignedClientIds } = await import('@/middleware/clientAccess');
+        const { getAssignedProductIds } = await import('@/middleware/productAccess');
+        const [assignedClientIds, assignedProductIds] = await Promise.all([
+          getAssignedClientIds(req.user.id),
+          getAssignedProductIds(req.user.id),
+        ]);
 
-      if (
-        !assignedClientIds ||
-        !assignedProductIds ||
-        assignedClientIds.length === 0 ||
-        assignedProductIds.length === 0 ||
-        !assignedClientIds.includes(Number(caseInfo.clientId)) ||
-        !assignedProductIds.includes(Number(caseInfo.productId))
-      ) {
-        return res.status(403).json({
-          success: false,
-          message: 'Access denied',
-          error: { code: 'CASE_ACCESS_DENIED' },
-        });
+        if (
+          !assignedClientIds ||
+          !assignedProductIds ||
+          assignedClientIds.length === 0 ||
+          assignedProductIds.length === 0 ||
+          !assignedClientIds.includes(Number(caseInfo.clientId)) ||
+          !assignedProductIds.includes(Number(caseInfo.productId))
+        ) {
+          return res.status(403).json({
+            success: false,
+            message: 'Access denied',
+            error: { code: 'CASE_ACCESS_DENIED' },
+          });
+        }
       }
     }
 
