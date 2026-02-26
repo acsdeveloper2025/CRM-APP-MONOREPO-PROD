@@ -1,8 +1,7 @@
 import React from 'react';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Shield, AlertTriangle } from 'lucide-react';
-import { matchesAnyLegacyRoleAlias } from '@/utils/userPermissionProfiles';
+import { AlertTriangle } from 'lucide-react';
 
 interface PermissionGuardProps {
   children: React.ReactNode;
@@ -82,76 +81,6 @@ export function MultiplePermissionGuard({
           <AlertDescription>
             You don&apos;t have permission to access this feature. Required permissions: {permissionList}
             {requireAll ? ' (all required)' : ' (any required)'}
-          </AlertDescription>
-        </Alert>
-      );
-    }
-
-    return null;
-  }
-
-  return <>{children}</>;
-}
-
-// Admin only guard
-export function AdminGuard({
-  children,
-  fallback,
-  showError = false,
-}: {
-  children: React.ReactNode;
-  fallback?: React.ReactNode;
-  showError?: boolean;
-}) {
-  const { isAdmin } = usePermissions();
-
-  if (!isAdmin()) {
-    if (fallback) {
-      return <>{fallback}</>;
-    }
-
-    if (showError) {
-      return (
-        <Alert variant="destructive">
-          <Shield className="h-4 w-4" />
-          <AlertDescription>
-            This feature is only available to administrators.
-          </AlertDescription>
-        </Alert>
-      );
-    }
-
-    return null;
-  }
-
-  return <>{children}</>;
-}
-
-// Role-based guard
-export function RoleGuard({
-  children,
-  allowedRoles,
-  fallback,
-  showError = false,
-}: {
-  children: React.ReactNode;
-  allowedRoles: string[];
-  fallback?: React.ReactNode;
-  showError?: boolean;
-}) {
-  const { user } = usePermissions();
-
-  if (!user || !matchesAnyLegacyRoleAlias(user, allowedRoles)) {
-    if (fallback) {
-      return <>{fallback}</>;
-    }
-
-    if (showError) {
-      return (
-        <Alert variant="destructive">
-          <Shield className="h-4 w-4" />
-          <AlertDescription>
-            You don&apos;t have the required role to access this feature. Required roles: {allowedRoles.join(', ')}
           </AlertDescription>
         </Alert>
       );

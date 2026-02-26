@@ -171,12 +171,6 @@ export function usePermissions() {
     },
   };
 
-  // Check if user is admin
-  const isAdmin = () =>
-    hasPermissionCode(user, '*') ||
-    (hasPermission('role_management', 'read') || hasPermission('roles', 'read') || hasPermission('users', 'delete')) ||
-    (hasPermissionCode(user, 'role.manage') && hasPermissionCode(user, 'settings.manage'));
-
   // Get all user permissions
   const getAllPermissions = (): UserPermissions => {
     return {} as UserPermissions;
@@ -191,7 +185,6 @@ export function usePermissions() {
     canUpdate,
     canDelete,
     permissions,
-    isAdmin,
     getAllPermissions,
     user,
   };

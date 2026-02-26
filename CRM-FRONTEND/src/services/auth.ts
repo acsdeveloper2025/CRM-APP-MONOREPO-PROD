@@ -1,7 +1,6 @@
 import { apiService } from './api';
 import { STORAGE_KEYS, SYNC_KEYS } from '@/types/constants';
 import type { LoginRequest, LoginResponse, User } from '@/types/auth';
-import { matchesAnyLegacyRoleAlias, matchesLegacyRoleAlias } from '@/utils/userPermissionProfiles';
 
 export class AuthService {
   private async ensureAccessToken(): Promise<void> {
@@ -82,16 +81,6 @@ export class AuthService {
     const token = this.getToken();
     const user = this.getCurrentUser();
     return !!(token && user);
-  }
-
-  hasRole(role: string): boolean {
-    const user = this.getCurrentUser();
-    return matchesLegacyRoleAlias(user, role);
-  }
-
-  hasAnyRole(roles: string[]): boolean {
-    const user = this.getCurrentUser();
-    return matchesAnyLegacyRoleAlias(user, roles);
   }
 
   async refreshUserData(): Promise<User | null> {
