@@ -353,6 +353,13 @@ export function preloadByRole(role: string): void {
       preloadComponent(ReportsPage);
       break;
 
+    case 'MANAGER':
+    case 'TEAM_LEADER':
+      preloadableDashboard.preload();
+      preloadableCasesList.preload();
+      preloadComponent(ReportsPage);
+      break;
+
     default:
       // Preload common components
       preloadableDashboard.preload();

@@ -26,6 +26,10 @@ export interface User {
   department?: string; // Legacy display field
   departmentId?: number;
   departmentName?: string;
+  teamLeaderId?: string | null;
+  teamLeaderName?: string | null;
+  managerId?: string | null;
+  managerName?: string | null;
   profilePhotoUrl?: string;
   isActive?: boolean;
   lastLogin?: string;
@@ -75,6 +79,8 @@ export interface CreateUserData {
   department?: string; // Legacy display only
   departmentId?: number; // New department system
   profilePhotoUrl?: string;
+  teamLeaderId?: string;
+  managerId?: string;
 }
 
 export interface UpdateUserData {
@@ -89,6 +95,8 @@ export interface UpdateUserData {
   departmentId?: number; // New department system
   profilePhotoUrl?: string;
   isActive?: boolean;
+  teamLeaderId?: string | null;
+  managerId?: string | null;
 }
 
 export interface ChangePasswordData {

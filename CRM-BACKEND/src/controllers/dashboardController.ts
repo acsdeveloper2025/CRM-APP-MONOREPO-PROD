@@ -6,6 +6,7 @@ import { pool } from '@/config/database';
 import { getAssignedClientIds } from '@/middleware/clientAccess';
 import { getAssignedProductIds } from '@/middleware/productAccess';
 import { isFieldExecutionActor, isScopedOperationsUser } from '@/security/rbacAccess';
+import { getScopedOperationalUserIds } from '@/security/userScope';
 
 const getBackendUserScopeFilters = async (req: AuthenticatedRequest) => {
   if (!req.user?.id || !isScopedOperationsUser(req.user)) {
@@ -44,6 +45,9 @@ export const getDashboardData = async (req: AuthenticatedRequest, res: Response)
   try {
     const { period, clientId } = req.query;
     const backendScope = await getBackendUserScopeFilters(req);
+    const hierarchyAgentIds = req.user?.id
+      ? await getScopedOperationalUserIds(req.user.id)
+      : undefined;
 
     // RBAC: Field Agents can only see their own data
     const effectiveAgentId = getEffectiveAgentId(req);
@@ -52,6 +56,7 @@ export const getDashboardData = async (req: AuthenticatedRequest, res: Response)
     const filters = {
       clientId: clientId ? Number(clientId) : undefined,
       agentId: effectiveAgentId,
+      agentIds: effectiveAgentId ? undefined : hierarchyAgentIds,
       clientIds: backendScope.clientIds,
       productIds: backendScope.productIds,
     };
@@ -189,6 +194,9 @@ export const getPerformanceMetrics = async (req: AuthenticatedRequest, res: Resp
   try {
     const { clientId } = req.query; // Added query params support
     const backendScope = await getBackendUserScopeFilters(req);
+    const hierarchyAgentIds = req.user?.id
+      ? await getScopedOperationalUserIds(req.user.id)
+      : undefined;
 
     // RBAC: Field Agents can only see their own data
     const effectiveAgentId = getEffectiveAgentId(req);
@@ -196,6 +204,7 @@ export const getPerformanceMetrics = async (req: AuthenticatedRequest, res: Resp
     const filters = {
       clientId: clientId ? Number(clientId) : undefined,
       agentId: effectiveAgentId,
+      agentIds: effectiveAgentId ? undefined : hierarchyAgentIds,
       clientIds: backendScope.clientIds,
       productIds: backendScope.productIds,
     };
@@ -245,6 +254,9 @@ export const getDashboardStats = async (req: AuthenticatedRequest, res: Response
   try {
     const { period, clientId } = req.query;
     const backendScope = await getBackendUserScopeFilters(req);
+    const hierarchyAgentIds = req.user?.id
+      ? await getScopedOperationalUserIds(req.user.id)
+      : undefined;
 
     // RBAC: Field Agents can only see their own data
     const effectiveAgentId = getEffectiveAgentId(req);
@@ -252,6 +264,7 @@ export const getDashboardStats = async (req: AuthenticatedRequest, res: Response
     const filters = {
       clientId: clientId ? Number(clientId) : undefined,
       agentId: effectiveAgentId,
+      agentIds: effectiveAgentId ? undefined : hierarchyAgentIds,
       clientIds: backendScope.clientIds,
       productIds: backendScope.productIds,
     };

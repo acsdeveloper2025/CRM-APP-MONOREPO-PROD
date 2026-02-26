@@ -3,6 +3,8 @@ import type { Request } from 'express';
 // Role enum for consistent usage
 export enum Role {
   SUPER_ADMIN = 'SUPER_ADMIN',
+  MANAGER = 'MANAGER',
+  TEAM_LEADER = 'TEAM_LEADER',
   BACKEND_USER = 'BACKEND_USER',
   FIELD_AGENT = 'FIELD_AGENT',
 }

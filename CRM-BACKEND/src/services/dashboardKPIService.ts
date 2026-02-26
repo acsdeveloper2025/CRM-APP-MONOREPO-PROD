@@ -104,6 +104,7 @@ export class DashboardKPIService {
   static async getKPIs(filters: {
     clientId?: number;
     agentId?: string;
+    agentIds?: string[];
     clientIds?: number[];
     productIds?: number[];
   }): Promise<VerificationOperationsKPI> {
@@ -114,7 +115,7 @@ export class DashboardKPIService {
     // PP: [Now-14d, Now-7d]
     // Note: We use Postgres intervals in SQL for precision, but passed params are helpful.
 
-    const { clientId, agentId, clientIds, productIds } = filters;
+    const { clientId, agentId, agentIds, clientIds, productIds } = filters;
 
     // Base WHERE clauses
     const conditions: string[] = ['1=1'];
@@ -136,6 +137,10 @@ export class DashboardKPIService {
     if (agentId) {
       conditions.push(`vt.assigned_to = $${idx++}`);
       params.push(agentId);
+    }
+    if (agentIds && agentIds.length > 0) {
+      conditions.push(`vt.assigned_to = ANY($${idx++}::uuid[])`);
+      params.push(agentIds);
     }
 
     const whereClause = conditions.join(' AND ');

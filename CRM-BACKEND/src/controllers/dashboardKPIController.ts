@@ -5,6 +5,7 @@ import { logger } from '../utils/logger';
 import { getAssignedClientIds } from '../middleware/clientAccess';
 import { getAssignedProductIds } from '../middleware/productAccess';
 import { isScopedOperationsUser } from '@/security/rbacAccess';
+import { getScopedOperationalUserIds } from '@/security/userScope';
 
 export class DashboardKPIController {
   /**
@@ -17,6 +18,9 @@ export class DashboardKPIController {
       const { clientId, agentId, dateFrom, dateTo } = req.query;
       let clientIds: number[] | undefined;
       let productIds: number[] | undefined;
+      const hierarchyAgentIds = req.user?.id
+        ? await getScopedOperationalUserIds(req.user.id)
+        : undefined;
 
       if (req.user?.id && isScopedOperationsUser(req.user)) {
         const [assignedClientIds, assignedProductIds] = await Promise.all([
@@ -32,6 +36,7 @@ export class DashboardKPIController {
       const filters = {
         clientId: clientId ? Number(clientId) : undefined,
         agentId: typeof agentId === 'string' ? agentId : undefined,
+        agentIds: typeof agentId === 'string' ? undefined : hierarchyAgentIds,
         clientIds,
         productIds,
         dateFrom: typeof dateFrom === 'string' ? dateFrom : undefined,

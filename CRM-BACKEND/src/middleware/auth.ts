@@ -9,6 +9,7 @@ import { query } from '@/config/database';
 import {
   hasSystemScopeBypass,
   isFieldExecutionActor,
+  getPrimaryRoleNameFromRbac,
   isScopedOperationsUser,
 } from '@/security/rbacAccess';
 
@@ -23,6 +24,10 @@ export interface AuthenticatedRequest extends Request {
     };
     assignedClientIds?: number[];
     assignedProductIds?: number[];
+    roles?: string[];
+    primaryRole?: string;
+    teamLeaderId?: string | null;
+    managerId?: string | null;
     deviceId?: string;
   };
 }
@@ -32,6 +37,9 @@ type DbUserAuthContext = {
   permissionCodes: string[];
   assignedClientIds: number[];
   assignedProductIds: number[];
+  roles: string[];
+  teamLeaderId: string | null;
+  managerId: string | null;
 };
 
 export const loadUserAuthContext = async (userId: string): Promise<DbUserAuthContext | null> => {
@@ -40,6 +48,9 @@ export const loadUserAuthContext = async (userId: string): Promise<DbUserAuthCon
     permissionCodes: string[] | null;
     assignedClientIds: number[] | null;
     assignedProductIds: number[] | null;
+    roles: string[] | null;
+    teamLeaderId: string | null;
+    managerId: string | null;
   }>(
     `
       SELECT
@@ -60,7 +71,15 @@ export const loadUserAuthContext = async (userId: string): Promise<DbUserAuthCon
           SELECT ARRAY_AGG(DISTINCT upa."productId" ORDER BY upa."productId")
           FROM "userProductAssignments" upa
           WHERE upa."userId" = u.id
-        ), ARRAY[]::int[]) as "assignedProductIds"
+        ), ARRAY[]::int[]) as "assignedProductIds",
+        COALESCE((
+          SELECT ARRAY_AGG(DISTINCT rv.name ORDER BY rv.name)
+          FROM user_roles ur
+          JOIN roles_v2 rv ON rv.id = ur.role_id
+          WHERE ur.user_id = u.id
+        ), ARRAY[]::varchar[]) as roles,
+        u.team_leader_id as "teamLeaderId",
+        u.manager_id as "managerId"
       FROM users u
       WHERE u.id = $1
       LIMIT 1
@@ -78,6 +97,9 @@ export const loadUserAuthContext = async (userId: string): Promise<DbUserAuthCon
     permissionCodes: row.permissionCodes || [],
     assignedClientIds: row.assignedClientIds || [],
     assignedProductIds: row.assignedProductIds || [],
+    roles: row.roles || [],
+    teamLeaderId: row.teamLeaderId ?? null,
+    managerId: row.managerId ?? null,
   };
 };
 
@@ -89,6 +111,10 @@ const buildRequestCapabilities = (
     permissionCodes: ctx.permissionCodes,
     assignedClientIds: ctx.assignedClientIds,
     assignedProductIds: ctx.assignedProductIds,
+    roles: ctx.roles,
+    primaryRole: getPrimaryRoleNameFromRbac(ctx.roles),
+    teamLeaderId: ctx.teamLeaderId,
+    managerId: ctx.managerId,
   };
 
   return {
@@ -123,6 +149,10 @@ const verifyTokenAndSetUser = (
         capabilities: buildRequestCapabilities(userContext),
         assignedClientIds: userContext.assignedClientIds,
         assignedProductIds: userContext.assignedProductIds,
+        roles: userContext.roles,
+        primaryRole: getPrimaryRoleNameFromRbac(userContext.roles),
+        teamLeaderId: userContext.teamLeaderId,
+        managerId: userContext.managerId,
         ...(decoded.deviceId && { deviceId: decoded.deviceId }),
       };
       next();
@@ -245,6 +275,10 @@ export const auth = (req: AuthenticatedRequest, res: Response, next: NextFunctio
             req.user.capabilities = buildRequestCapabilities(userData);
             req.user.assignedClientIds = userData.assignedClientIds;
             req.user.assignedProductIds = userData.assignedProductIds;
+            req.user.roles = userData.roles;
+            req.user.primaryRole = getPrimaryRoleNameFromRbac(userData.roles);
+            req.user.teamLeaderId = userData.teamLeaderId;
+            req.user.managerId = userData.managerId;
           }
 
           next();

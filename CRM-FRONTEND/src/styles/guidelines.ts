@@ -178,6 +178,8 @@ export const priorityStyles = {
  */
 export const roleStyles = {
   SUPER_ADMIN: 'bg-role-super-admin text-white',
+  MANAGER: 'bg-emerald-600 text-white',
+  TEAM_LEADER: 'bg-teal-600 text-white',
   BACKEND_USER: 'bg-role-backend-user text-white',
   FIELD_AGENT: 'bg-role-field-agent text-white',
 } as const;

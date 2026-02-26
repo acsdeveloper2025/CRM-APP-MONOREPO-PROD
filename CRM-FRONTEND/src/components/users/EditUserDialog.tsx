@@ -34,7 +34,7 @@ import { usersService } from '@/services/users';
 import { rolesService } from '@/services/roles';
 import { departmentsService } from '@/services/departments';
 import { designationsService } from '@/services/designations';
-
+import { USER_ROLES } from '@/types/constants';
 import { User } from '@/types/user';
 
 const editUserSchema = z.object({
@@ -44,7 +44,8 @@ const editUserSchema = z.object({
   employeeId: z.string().min(1, 'Employee ID is required'),
   designationId: z.string().min(1, 'Designation is required'),
   departmentId: z.string().min(1, 'Department is required'),
-
+  teamLeaderId: z.string().optional(),
+  managerId: z.string().optional(),
   isActive: z.boolean(),
 });
 
@@ -66,7 +67,8 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
       employeeId: user.employeeId,
       designationId: user.designationId ? String(user.designationId) : '',
       departmentId: user.departmentId ? String(user.departmentId) : '',
-
+      teamLeaderId: user.teamLeaderId || '',
+      managerId: user.managerId || '',
       isActive: user.isActive ?? false,
     },
   });
@@ -98,6 +100,23 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
     errorFallbackMessage: 'Failed to load designations',
   });
 
+  const { data: managersData, isLoading: managersLoading } = useStandardizedQuery({
+    queryKey: ['users', 'hierarchy', 'managers'],
+    queryFn: () => usersService.getUsers({ role: USER_ROLES.MANAGER, isActive: true, limit: 200 }),
+    enabled: open,
+    errorContext: 'Loading Managers',
+    errorFallbackMessage: 'Failed to load managers',
+  });
+
+  const { data: teamLeadersData, isLoading: teamLeadersLoading } = useStandardizedQuery({
+    queryKey: ['users', 'hierarchy', 'team-leaders'],
+    queryFn: () =>
+      usersService.getUsers({ role: USER_ROLES.TEAM_LEADER, isActive: true, limit: 200 }),
+    enabled: open,
+    errorContext: 'Loading Team Leaders',
+    errorFallbackMessage: 'Failed to load team leaders',
+  });
+
   useEffect(() => {
     if (user) {
       form.reset({
@@ -107,7 +126,8 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
         employeeId: user.employeeId,
         designationId: user.designationId ? String(user.designationId) : '',
         departmentId: user.departmentId ? String(user.departmentId) : '',
-
+        teamLeaderId: user.teamLeaderId || '',
+        managerId: user.managerId || '',
         isActive: user.isActive ?? false,
       });
     }
@@ -120,6 +140,8 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
         roleId: data.roleId || undefined,
         departmentId: data.departmentId ? parseInt(data.departmentId, 10) : undefined,
         designationId: data.designationId ? parseInt(data.designationId, 10) : undefined,
+        teamLeaderId: data.teamLeaderId || null,
+        managerId: data.managerId || null,
       };
       return usersService.updateUser(user.id, cleanData as import('@/types/user').UpdateUserData);
     },
@@ -132,17 +154,42 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
     },
   });
 
-  const onSubmit = (data: EditUserFormData) => {
-    updateMutation.mutate(data);
-  };
-
   const roles = rolesData?.data || [];
   const departments = departmentsData?.data || [];
   const designations = designationsData?.data || [];
+  const managers = managersData?.data || [];
+  const teamLeaders = teamLeadersData?.data || [];
+  const selectedRoleId = form.watch('roleId');
+  const selectedRoleName = roles.find(role => String(role.id) === selectedRoleId)?.name?.toUpperCase();
+  const requiresTeamLeader =
+    selectedRoleName === USER_ROLES.FIELD_AGENT || selectedRoleName === USER_ROLES.BACKEND_USER;
+  const requiresManager = requiresTeamLeader || selectedRoleName === USER_ROLES.TEAM_LEADER;
+  const disableTeamLeader = !requiresTeamLeader;
+  const disableManager =
+    selectedRoleName === USER_ROLES.MANAGER || selectedRoleName === USER_ROLES.SUPER_ADMIN;
 
+  useEffect(() => {
+    if (disableTeamLeader) {
+      form.setValue('teamLeaderId', '');
+      form.clearErrors('teamLeaderId');
+    }
+    if (disableManager) {
+      form.setValue('managerId', '');
+      form.clearErrors('managerId');
+    }
+  }, [disableManager, disableTeamLeader, form]);
 
-
-
+  const onSubmit = (data: EditUserFormData) => {
+    if (requiresTeamLeader && !data.teamLeaderId) {
+      form.setError('teamLeaderId', { message: 'Team Leader is required for this role' });
+      return;
+    }
+    if (requiresManager && !data.managerId) {
+      form.setError('managerId', { message: 'Manager is required for this role' });
+      return;
+    }
+    updateMutation.mutate(data);
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -269,6 +316,78 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
                             {dept.name}
                           </SelectItem>
                         ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="teamLeaderId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      Team Leader {requiresTeamLeader ? <span className="text-red-500">*</span> : null}
+                    </FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value} disabled={disableTeamLeader}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue
+                            placeholder={disableTeamLeader ? 'Not applicable for selected role' : 'Select team leader'}
+                          />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {teamLeadersLoading ? (
+                          <SelectItem value="loading" disabled>Loading team leaders...</SelectItem>
+                        ) : teamLeaders.length === 0 ? (
+                          <SelectItem value="empty" disabled>No team leaders available</SelectItem>
+                        ) : (
+                          teamLeaders.map((leader) => (
+                            <SelectItem key={leader.id} value={leader.id}>
+                              {leader.name} ({leader.employeeId})
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="managerId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      Manager {requiresManager ? <span className="text-red-500">*</span> : null}
+                    </FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value} disabled={disableManager}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue
+                            placeholder={disableManager ? 'Not applicable for selected role' : 'Select manager'}
+                          />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {managersLoading ? (
+                          <SelectItem value="loading" disabled>Loading managers...</SelectItem>
+                        ) : managers.length === 0 ? (
+                          <SelectItem value="empty" disabled>No managers available</SelectItem>
+                        ) : (
+                          managers.map((manager) => (
+                            <SelectItem key={manager.id} value={manager.id}>
+                              {manager.name} ({manager.employeeId})
+                            </SelectItem>
+                          ))
+                        )}
                       </SelectContent>
                     </Select>
                     <FormMessage />

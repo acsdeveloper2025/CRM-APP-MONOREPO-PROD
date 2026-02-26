@@ -23,6 +23,13 @@ export const isBackendScopedUser = (user?: User | null): boolean =>
   userHasPermissionCode(user, 'case.create') &&
   (userHasPermissionCode(user, 'case.assign') || userHasPermissionCode(user, 'case.reassign'));
 
+export const isSupervisoryUser = (user?: User | null): boolean =>
+  !isAdminLikeUser(user) &&
+  !isFieldAgentUser(user) &&
+  userHasPermissionCode(user, 'case.view') &&
+  userHasPermissionCode(user, 'page.analytics') &&
+  !userHasPermissionCode(user, 'visit.start');
+
 export const isFieldAgentUser = (user?: User | null): boolean =>
   !isAdminLikeUser(user) &&
   userHasPermissionCode(user, 'visit.start') &&
@@ -34,6 +41,7 @@ export const canViewAdminUserOps = (user?: User | null): boolean =>
 export const matchesLegacyRoleAlias = (user: User | null | undefined, role: string): boolean => {
   const normalized = normalizeUserRole(role);
   if (normalized === 'SUPER_ADMIN') {return isAdminLikeUser(user);}
+  if (normalized === 'MANAGER' || normalized === 'TEAM_LEADER') {return isSupervisoryUser(user);}
   if (normalized === 'BACKEND_USER') {return isBackendScopedUser(user);}
   if (normalized === 'FIELD_AGENT') {return isFieldAgentUser(user);}
   return false;
