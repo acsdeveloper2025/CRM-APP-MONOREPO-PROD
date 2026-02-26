@@ -140,7 +140,7 @@ export const VirtualizedCaseList: React.FC<VirtualizedCaseListProps> = ({
   return (
     <div className="flex flex-col h-full bg-white">
       {/* Header with search and controls */}
-      <div className="shrink-0 p-4 border-b border-border bg-muted">
+      <div className="shrink-0 p-4 border-b border-border bg-slate-100 dark:bg-slate-800/60">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-semibold text-gray-900">
             Cases ({totalCount.toLocaleString()})
@@ -149,7 +149,7 @@ export const VirtualizedCaseList: React.FC<VirtualizedCaseListProps> = ({
             <button
               onClick={onRefresh}
               disabled={loading}
-              className="p-2 text-gray-600 hover:text-gray-900 hover:bg-muted rounded-md transition-colors"
+              className="p-2 text-gray-600 hover:text-gray-900 hover:bg-slate-100 dark:hover:bg-slate-800/60 rounded-md transition-colors"
               title="Refresh cases"
             >
               <RefreshCw className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
@@ -159,7 +159,7 @@ export const VirtualizedCaseList: React.FC<VirtualizedCaseListProps> = ({
               className={`p-2 rounded-md transition-colors ${
                 showFilters || Object.keys(currentFilters).length > 0
                   ? 'text-green-600 bg-green-50 hover:bg-green-100'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-muted'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-slate-100 dark:hover:bg-slate-800/60'
               }`}
               title="Filter cases"
             >
@@ -281,7 +281,7 @@ export const VirtualizedCaseList: React.FC<VirtualizedCaseListProps> = ({
             <div className="flex justify-end space-x-2 mt-4">
               <button
                 onClick={handleFilterReset}
-                className="px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-muted rounded-md transition-colors"
+                className="px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-slate-100 dark:hover:bg-slate-800/60 rounded-md transition-colors"
               >
                 Reset
               </button>

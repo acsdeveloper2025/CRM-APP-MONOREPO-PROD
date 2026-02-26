@@ -168,7 +168,7 @@ export const AgentPerformanceCharts: React.FC = () => {
       average: 'bg-yellow-100 text-yellow-800',
       poor: 'bg-red-100 text-red-800'
     };
-    return colors[performance as keyof typeof colors] || 'bg-muted text-gray-900';
+    return colors[performance as keyof typeof colors] || 'bg-slate-100 text-slate-900 dark:bg-slate-800/60 dark:text-slate-100';
   };
 
   // Error state

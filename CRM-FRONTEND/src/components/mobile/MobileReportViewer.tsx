@@ -233,7 +233,7 @@ export const MobileReportViewer: React.FC<MobileReportViewerProps> = ({
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-muted flex items-center justify-center p-4">
+      <div className="min-h-screen bg-slate-100 dark:bg-slate-800/60 flex items-center justify-center p-4">
         <div className="text-center">
           <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4 text-green-600" />
           <p className="text-gray-600">Loading report...</p>
@@ -244,7 +244,7 @@ export const MobileReportViewer: React.FC<MobileReportViewerProps> = ({
 
   if (!reportData && !isOnline) {
     return (
-      <div className="min-h-screen bg-muted">
+      <div className="min-h-screen bg-slate-100 dark:bg-slate-800/60">
         <div className="bg-white shadow-sm border-b sticky top-0 z-10">
           <div className="px-4 py-3 flex items-center space-x-3">
             <Button variant="ghost" size="sm" onClick={onBack}>
@@ -270,7 +270,7 @@ export const MobileReportViewer: React.FC<MobileReportViewerProps> = ({
   }
 
   return (
-    <div className="min-h-screen bg-muted">
+    <div className="min-h-screen bg-slate-100 dark:bg-slate-800/60">
       {/* Mobile Header */}
       <div className="bg-white shadow-sm border-b sticky top-0 z-10">
         <div className="px-4 py-3">
@@ -379,7 +379,7 @@ const PerformanceReportContent: React.FC<{ data: PerformanceData }> = ({ data })
       <CardContent>
         <div className="space-y-3">
           {data.breakdown.map((item) => (
-            <div key={item.metric} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+            <div key={item.metric} className="flex items-center justify-between p-3 bg-slate-100 dark:bg-slate-800/60 rounded-lg">
               <span className="font-medium">{item.metric}</span>
               <Badge className={
                 item.value >= 90 ? 'bg-green-100 text-green-800' :

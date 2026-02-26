@@ -120,7 +120,7 @@ export const AIReportCard: React.FC<AIReportCardProps> = ({
       case 'LOW': return 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800';
       case 'MEDIUM': return 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-300 dark:border-yellow-800';
       case 'HIGH': return 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800';
-      default: return 'bg-muted text-gray-600 border-border';
+      default: return 'bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-200 border-border';
     }
   };
 
@@ -315,7 +315,7 @@ export const AIReportCard: React.FC<AIReportCardProps> = ({
                 <h3 className="font-semibold text-gray-900">Residence Verification Report</h3>
                 <Badge variant="outline" className="text-xs">Template-Based</Badge>
               </div>
-              <div className="bg-muted rounded-lg p-4">
+              <div className="bg-slate-100 dark:bg-slate-800/60 rounded-lg p-4">
                 <pre className="text-sm text-gray-900 whitespace-pre-wrap font-mono leading-relaxed">
                   {report.templateReport}
                 </pre>
@@ -326,7 +326,7 @@ export const AIReportCard: React.FC<AIReportCardProps> = ({
 
         {/* Metadata */}
         {report.metadata && (
-          <div className="bg-muted border border-border rounded-md p-3">
+          <div className="bg-slate-100 dark:bg-slate-800/60 border border-border rounded-md p-3">
             <div className="flex items-center space-x-2 mb-2">
               <Clock className="h-4 w-4 text-gray-600" />
               <span className="text-sm font-medium text-gray-900">Report Details</span>

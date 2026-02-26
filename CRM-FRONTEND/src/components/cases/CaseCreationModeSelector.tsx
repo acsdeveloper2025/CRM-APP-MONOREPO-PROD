@@ -137,7 +137,7 @@ export const CaseCreationModeSelector: React.FC<CaseCreationModeSelectorProps> =
       </div>
 
       {/* Feature Comparison */}
-      <Card className="bg-muted/30">
+      <Card className="bg-slate-100/50 dark:bg-slate-800/40">
         <CardHeader>
           <CardTitle className="text-lg">Feature Comparison</CardTitle>
         </CardHeader>

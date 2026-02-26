@@ -307,7 +307,7 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Read-only customer details from previous step */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-muted/50 rounded-lg">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-slate-100/70 dark:bg-slate-800/50 rounded-lg">
                 <div>
                   <label className="text-sm font-medium text-gray-600">Customer Name *</label>
                   <p className="text-base font-medium">{customerInfo.customerName}</p>
@@ -533,7 +533,7 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
                           {...field}
                           placeholder="Backend user name"
                           disabled={true}
-                          className="bg-muted text-gray-600"
+                          className="bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-200"
                         />
                       </FormControl>
                       <FormMessage />

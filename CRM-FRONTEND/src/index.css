@@ -149,7 +149,7 @@
   --color-primary-foreground: #ffffff;
   --color-secondary: #f5f5f5;         /* Light gray */
   --color-secondary-foreground: #000000;
-  --color-muted: #f9fafb;             /* Very light gray */
+  --color-muted: #f4fbf7;             /* Branded neutral (green-tinted) */
   --color-muted-foreground: #6b7280;  /* Medium gray text */
   --color-accent: #f0fdf4;            /* Very light green */
   --color-accent-foreground: #047857; /* Dark green text */
@@ -201,7 +201,7 @@
     --color-primary-foreground: #ffffff;
     --color-secondary: #334155;
     --color-secondary-foreground: #f8fafc;
-    --color-muted: #334155;
+    --color-muted: #1f3a34;
     --color-muted-foreground: #94a3b8;
     --color-accent: #064e3b;          /* Dark green */
     --color-accent-foreground: #10b981; /* Light green text */
@@ -247,7 +247,7 @@
   --color-primary-foreground: #ffffff;
   --color-secondary: #334155;
   --color-secondary-foreground: #f8fafc;
-  --color-muted: #334155;
+  --color-muted: #1f3a34;
   --color-muted-foreground: #94a3b8;
   --color-accent: #064e3b;            /* Dark green */
   --color-accent-foreground: #10b981; /* Light green text */

@@ -80,7 +80,7 @@ export function CompletionRateChart({ data }: CompletionRateChartProps) {
                 <span className="text-sm">Completed</span>
               </div>
               <div className="flex items-center space-x-2">
-                <div className="w-32 bg-muted rounded-full h-2">
+                <div className="w-32 bg-slate-100 dark:bg-slate-800/60 rounded-full h-2">
                   <div 
                     className="bg-green-600 h-2 rounded-full" 
                     style={{ width: `${(data.completedCases / data.totalCases) * 100}%` }}
@@ -96,7 +96,7 @@ export function CompletionRateChart({ data }: CompletionRateChartProps) {
                 <span className="text-sm">In Progress</span>
               </div>
               <div className="flex items-center space-x-2">
-                <div className="w-32 bg-muted rounded-full h-2">
+                <div className="w-32 bg-slate-100 dark:bg-slate-800/60 rounded-full h-2">
                   <div 
                     className="bg-blue-600 h-2 rounded-full" 
                     style={{ width: `${(data.inProgressCases / data.totalCases) * 100}%` }}
@@ -112,7 +112,7 @@ export function CompletionRateChart({ data }: CompletionRateChartProps) {
                 <span className="text-sm">Pending</span>
               </div>
               <div className="flex items-center space-x-2">
-                <div className="w-32 bg-muted rounded-full h-2">
+                <div className="w-32 bg-slate-100 dark:bg-slate-800/60 rounded-full h-2">
                   <div 
                     className="bg-muted-foreground h-2 rounded-full"
                     style={{ width: `${(data.pendingCases / data.totalCases) * 100}%` }}
@@ -129,7 +129,7 @@ export function CompletionRateChart({ data }: CompletionRateChartProps) {
           <h4 className="font-medium mb-3">Monthly Trends</h4>
           <div className="space-y-2">
             {data.monthlyTrends.slice(-6).map((trend, _index) => (
-              <div key={trend.month} className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
+              <div key={trend.month} className="flex items-center justify-between p-2 rounded-lg bg-slate-100/70 dark:bg-slate-800/50">
                 <span className="text-sm font-medium">{trend.month}</span>
                 <div className="flex items-center space-x-2">
                   <span className="text-sm">{trend.completedCases}/{trend.totalCases}</span>
@@ -153,7 +153,7 @@ export function CompletionRateChart({ data }: CompletionRateChartProps) {
               .sort((a, b) => b.completionRate - a.completionRate)
               .slice(0, 5)
               .map((client, index) => (
-                <div key={client.clientId} className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
+                <div key={client.clientId} className="flex items-center justify-between p-2 rounded-lg bg-slate-100/70 dark:bg-slate-800/50">
                   <div className="flex items-center space-x-2">
                     <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium">
                       {index + 1}

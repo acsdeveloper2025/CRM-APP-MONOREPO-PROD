@@ -97,7 +97,7 @@ export const AgentDashboard: React.FC = () => {
 
   if (isLoading && !agentStats) {
     return (
-      <div className="min-h-screen bg-muted flex items-center justify-center p-4">
+      <div className="min-h-screen bg-slate-100 dark:bg-slate-800/60 flex items-center justify-center p-4">
         <div className="text-center">
           <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4 text-green-600" />
           <p className="text-gray-600">Loading your dashboard...</p>
@@ -107,7 +107,7 @@ export const AgentDashboard: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-muted">
+    <div className="min-h-screen bg-slate-100 dark:bg-slate-800/60">
       {/* Mobile Header */}
       <div className="bg-white shadow-sm border-b sticky top-0 z-10">
         <div className="px-4 py-3">
@@ -261,7 +261,7 @@ export const AgentDashboard: React.FC = () => {
                 <CardDescription>Your key metrics at a glance</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                <div className="flex items-center justify-between p-3 bg-slate-100 dark:bg-slate-800/60 rounded-lg">
                   <div className="flex items-center space-x-3">
                     <Target className="h-5 w-5 text-green-600" />
                     <span className="font-medium">Quality Score</span>
@@ -271,7 +271,7 @@ export const AgentDashboard: React.FC = () => {
                   </Badge>
                 </div>
 
-                <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                <div className="flex items-center justify-between p-3 bg-slate-100 dark:bg-slate-800/60 rounded-lg">
                   <div className="flex items-center space-x-3">
                     <CheckCircle className="h-5 w-5 text-green-600" />
                     <span className="font-medium">Completion Rate</span>
@@ -281,7 +281,7 @@ export const AgentDashboard: React.FC = () => {
                   </Badge>
                 </div>
 
-                <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                <div className="flex items-center justify-between p-3 bg-slate-100 dark:bg-slate-800/60 rounded-lg">
                   <div className="flex items-center space-x-3">
                     <Clock className="h-5 w-5 text-green-600" />
                     <span className="font-medium">Avg Response Time</span>
@@ -291,7 +291,7 @@ export const AgentDashboard: React.FC = () => {
                   </Badge>
                 </div>
 
-                <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                <div className="flex items-center justify-between p-3 bg-slate-100 dark:bg-slate-800/60 rounded-lg">
                   <div className="flex items-center space-x-3">
                     <Calendar className="h-5 w-5 text-yellow-600" />
                     <span className="font-medium">Monthly Total</span>

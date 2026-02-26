@@ -48,7 +48,7 @@ export const FormSubmissionsPage: React.FC = () => {
       case 'rejected':
         return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300';
       default:
-        return 'bg-muted text-gray-600';
+        return 'bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-200';
     }
   };
 
@@ -63,7 +63,7 @@ export const FormSubmissionsPage: React.FC = () => {
       case 'pending':
         return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300';
       default:
-        return 'bg-muted text-gray-600';
+        return 'bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-200';
     }
   };
 
@@ -185,7 +185,7 @@ export const FormSubmissionsPage: React.FC = () => {
                     className="group relative cursor-pointer"
                     onClick={() => handleSubmissionSelect(submission)}
                   >
-                    <div className="aspect-square bg-muted rounded-lg overflow-hidden">
+                    <div className="aspect-square bg-slate-100 dark:bg-slate-800/60 rounded-lg overflow-hidden">
                       <img
                         src={photo.thumbnailUrl || photo.url}
                         alt={`Photo by ${submission.submittedByName}`}

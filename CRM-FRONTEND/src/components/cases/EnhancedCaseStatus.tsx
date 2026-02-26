@@ -99,7 +99,7 @@ export const EnhancedCaseStatus: React.FC<EnhancedCaseStatusProps> = ({
       case 'FAILED':
         return 'bg-red-100 text-red-800';
       default:
-        return 'bg-muted text-gray-900';
+        return 'bg-slate-100 text-slate-900 dark:bg-slate-800/60 dark:text-slate-100';
     }
   };
 

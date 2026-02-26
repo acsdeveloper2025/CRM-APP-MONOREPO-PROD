@@ -105,7 +105,7 @@ export const MobileApp: React.FC = () => {
   const showNavigation = appState.activeView !== 'report-viewer';
 
   return (
-    <div className="min-h-screen bg-muted">
+    <div className="min-h-screen bg-slate-100 dark:bg-slate-800/60">
       {showNavigation && (
         <MobileNavigation
           activeView={appState.activeView}

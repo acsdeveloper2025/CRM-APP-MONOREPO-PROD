@@ -327,7 +327,7 @@ const VerificationImages: React.FC<VerificationImagesProps> = ({
       case 'selfie':
         return 'bg-green-100 text-green-800';
       default:
-        return 'bg-muted text-gray-900';
+        return 'bg-slate-100 text-slate-900 dark:bg-slate-800/60 dark:text-slate-100';
     }
   };
 
@@ -437,7 +437,7 @@ const VerificationImages: React.FC<VerificationImagesProps> = ({
                         <Card className="border border-border hover:border-border transition-colors">
                           <CardContent className="p-0">
                             {/* Image with overlay */}
-                            <div className="relative aspect-square bg-muted rounded-t-lg overflow-hidden">
+                            <div className="relative aspect-square bg-slate-100 dark:bg-slate-800/60 rounded-t-lg overflow-hidden">
                               <AsyncImage
                                 imageUrl={image.url}
                                 imageId={image.id}
@@ -547,7 +547,7 @@ const VerificationImages: React.FC<VerificationImagesProps> = ({
                         <Card className="border border-border hover:border-border transition-colors">
                           <CardContent className="p-0">
                             {/* Image with overlay */}
-                            <div className="relative aspect-square bg-muted rounded-t-lg overflow-hidden">
+                            <div className="relative aspect-square bg-slate-100 dark:bg-slate-800/60 rounded-t-lg overflow-hidden">
                               <AsyncImage
                                 imageUrl={image.url}
                                 imageId={image.id}

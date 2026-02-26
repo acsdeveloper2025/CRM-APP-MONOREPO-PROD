@@ -483,7 +483,7 @@ export const CaseWithTasksCreationForm: React.FC<CaseWithTasksCreationFormProps>
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Customer Info Display */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-muted/50 rounded-lg">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-slate-100/70 dark:bg-slate-800/50 rounded-lg">
                 <div>
                   <p className="text-sm font-medium">Customer Name</p>
                   <p className="text-sm text-gray-600">{customerInfo.customerName}</p>

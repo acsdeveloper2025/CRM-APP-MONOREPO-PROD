@@ -117,7 +117,7 @@ export const ReviewDialog: React.FC<ReviewDialogProps> = ({
       case 'rework':
         return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       default:
-        return 'bg-muted text-gray-900 border-border';
+        return 'bg-slate-100 text-slate-900 dark:bg-slate-800/60 dark:text-slate-100 border-border';
     }
   };
 
@@ -144,7 +144,7 @@ export const ReviewDialog: React.FC<ReviewDialogProps> = ({
 
         <div className="space-y-4">
           {/* Case Summary */}
-          <div className="p-4 bg-muted rounded-lg">
+          <div className="p-4 bg-slate-100 dark:bg-slate-800/60 rounded-lg">
             <h4 className="font-medium text-gray-900 mb-2">Case Summary</h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
               <div>

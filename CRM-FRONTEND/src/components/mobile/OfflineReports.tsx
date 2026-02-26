@@ -169,7 +169,7 @@ export const OfflineReports: React.FC = () => {
       case 'failed':
         return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300';
       default:
-        return 'bg-muted text-gray-600';
+        return 'bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-200';
     }
   };
 

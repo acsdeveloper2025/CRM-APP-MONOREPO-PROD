@@ -60,7 +60,7 @@ export const CompletedCaseTable: React.FC<CompletedCaseTableProps> = ({
               <TableRow key={item}>
                 {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((cell) => (
                   <TableCell key={cell}>
-                    <div className="h-4 bg-muted rounded animate-pulse" />
+                    <div className="h-4 bg-slate-100 dark:bg-slate-800/60 rounded animate-pulse" />
                   </TableCell>
                 ))}
               </TableRow>

@@ -151,6 +151,7 @@ export const AppRoutes: React.FC = () => {
           <Route path="/commission-management" element={<ProtectedRoute permission="page.billing"><CommissionManagementPage /></ProtectedRoute>} />
 
           <Route path="/users" element={<ProtectedRoute permission="page.users"><UsersPage /></ProtectedRoute>} />
+          <Route path="/users/:tab" element={<ProtectedRoute permission="page.users"><UsersPage /></ProtectedRoute>} />
           <Route path="/users/:userId/permissions" element={<ProtectedRoute permission="page.users"><UserPermissionsPage /></ProtectedRoute>} />
           <Route path="/admin/rbac" element={<ProtectedRoute permission="page.rbac"><RBACAdminPage /></ProtectedRoute>} />
 

@@ -38,9 +38,9 @@ export function CountryDetailsDialog({ country, open, onOpenChange }: CountryDet
       'South America': 'bg-yellow-100 text-orange-800 dark:bg-yellow-900/20 dark:text-yellow-300',
       'Africa': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300',
       'Oceania': 'bg-green-100 text-cyan-800 dark:bg-green-900/20 dark:text-green-300',
-      'Antarctica': 'bg-muted text-gray-600',
+      'Antarctica': 'bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-200',
     };
-    return colors[continent] || 'bg-muted text-gray-600';
+    return colors[continent] || 'bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-200';
   };
 
   return (

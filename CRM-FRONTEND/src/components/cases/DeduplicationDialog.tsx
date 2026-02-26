@@ -75,7 +75,7 @@ export const DeduplicationDialog: React.FC<DeduplicationDialogProps> = ({
       case 'Name':
         return 'bg-green-100 text-green-800';
       default:
-        return 'bg-muted text-gray-900';
+        return 'bg-slate-100 text-slate-900 dark:bg-slate-800/60 dark:text-slate-100';
     }
   };
 
@@ -90,7 +90,7 @@ export const DeduplicationDialog: React.FC<DeduplicationDialogProps> = ({
       case 'cancelled':
         return 'bg-red-100 text-red-800';
       default:
-        return 'bg-muted text-gray-900';
+        return 'bg-slate-100 text-slate-900 dark:bg-slate-800/60 dark:text-slate-100';
     }
   };
 

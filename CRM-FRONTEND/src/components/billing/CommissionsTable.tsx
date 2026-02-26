@@ -145,7 +145,7 @@ export function CommissionsTable({ data, isLoading }: CommissionsTableProps) {
     <div className="space-y-4">
       {/* Bulk Actions */}
       {selectedCommissions.length > 0 && (
-        <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
+        <div className="flex items-center justify-between p-4 bg-slate-100 dark:bg-slate-800/60 rounded-lg">
           <span className="text-sm font-medium">
             {selectedCommissions.length} commission(s) selected
           </span>

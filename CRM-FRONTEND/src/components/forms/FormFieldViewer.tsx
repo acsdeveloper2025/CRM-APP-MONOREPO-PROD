@@ -69,7 +69,7 @@ export function FormFieldViewer({ field, readonly = true, onChange }: FormFieldV
 
       case 'textarea':
         return (
-          <div className="text-sm whitespace-pre-wrap bg-muted/50 rounded-md p-3 min-h-20">
+          <div className="text-sm whitespace-pre-wrap bg-slate-100/70 dark:bg-slate-800/50 rounded-md p-3 min-h-20">
             {(field.value as string) || 'No value provided'}
           </div>
         );
@@ -215,7 +215,7 @@ export function FormFieldViewer({ field, readonly = true, onChange }: FormFieldV
         </Label>
       </div>
 
-      <div className={`${readonly ? 'bg-muted/30 rounded-md p-3' : ''}`}>
+      <div className={`${readonly ? 'bg-slate-100/50 dark:bg-slate-800/40 rounded-md p-3' : ''}`}>
         {renderFieldValue()}
       </div>
 

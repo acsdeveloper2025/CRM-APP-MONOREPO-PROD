@@ -63,7 +63,7 @@ export const DocumentTypesTable: React.FC<DocumentTypesTableProps> = ({
     return (
       <div className="space-y-3">
         {[...Array(5)].map((_, i) => (
-          <div key={i} className="h-12 bg-muted animate-pulse rounded" />
+          <div key={i} className="h-12 bg-slate-100 dark:bg-slate-800/60 animate-pulse rounded" />
         ))}
       </div>
     );

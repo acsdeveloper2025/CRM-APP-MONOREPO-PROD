@@ -56,37 +56,37 @@ export const CaseTable: React.FC<CaseTableProps> = ({
             {[1, 2, 3, 4, 5].map((item) => (
               <TableRow key={item}>
                 <TableCell>
-                  <div className="h-4 bg-muted rounded animate-pulse" />
+                  <div className="h-4 bg-slate-100 dark:bg-slate-800/60 rounded animate-pulse" />
                 </TableCell>
                 <TableCell>
-                  <div className="h-4 bg-muted rounded animate-pulse" />
+                  <div className="h-4 bg-slate-100 dark:bg-slate-800/60 rounded animate-pulse" />
                 </TableCell>
                 <TableCell>
-                  <div className="h-4 bg-muted rounded animate-pulse" />
+                  <div className="h-4 bg-slate-100 dark:bg-slate-800/60 rounded animate-pulse" />
                 </TableCell>
                 <TableCell>
-                  <div className="h-4 bg-muted rounded animate-pulse" />
+                  <div className="h-4 bg-slate-100 dark:bg-slate-800/60 rounded animate-pulse" />
                 </TableCell>
                 <TableCell>
-                  <div className="h-6 bg-muted rounded animate-pulse w-20" />
+                  <div className="h-6 bg-slate-100 dark:bg-slate-800/60 rounded animate-pulse w-20" />
                 </TableCell>
                 <TableCell>
-                  <div className="h-6 bg-muted rounded animate-pulse w-16" />
+                  <div className="h-6 bg-slate-100 dark:bg-slate-800/60 rounded animate-pulse w-16" />
                 </TableCell>
                 <TableCell>
-                  <div className="h-6 bg-muted rounded animate-pulse w-16" />
+                  <div className="h-6 bg-slate-100 dark:bg-slate-800/60 rounded animate-pulse w-16" />
                 </TableCell>
                 <TableCell>
-                  <div className="h-4 bg-muted rounded animate-pulse" />
+                  <div className="h-4 bg-slate-100 dark:bg-slate-800/60 rounded animate-pulse" />
                 </TableCell>
                 <TableCell>
-                  <div className="h-4 bg-muted rounded animate-pulse" />
+                  <div className="h-4 bg-slate-100 dark:bg-slate-800/60 rounded animate-pulse" />
                 </TableCell>
                 <TableCell>
-                  <div className="h-4 bg-muted rounded animate-pulse" />
+                  <div className="h-4 bg-slate-100 dark:bg-slate-800/60 rounded animate-pulse" />
                 </TableCell>
                 <TableCell>
-                  <div className="h-8 w-8 bg-muted rounded animate-pulse" />
+                  <div className="h-8 w-8 bg-slate-100 dark:bg-slate-800/60 rounded animate-pulse" />
                 </TableCell>
               </TableRow>
             ))}

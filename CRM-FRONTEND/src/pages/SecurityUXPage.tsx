@@ -219,7 +219,7 @@ export function SecurityUXPage() {
               <CardContent>
                 <div className="grid gap-2 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
                   {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-                    <div key={i} className="h-16 bg-muted rounded-lg flex items-center justify-center">
+                    <div key={i} className="h-16 bg-slate-100 dark:bg-slate-800/60 rounded-lg flex items-center justify-center">
                       {i}
                     </div>
                   ))}
