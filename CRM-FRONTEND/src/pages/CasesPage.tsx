@@ -18,6 +18,7 @@ import { useUnifiedSearch, useUnifiedFilters } from '@/hooks/useUnifiedSearch';
 import { UnifiedSearchFilterLayout, FilterGrid } from '@/components/ui/unified-search-filter-layout';
 import { Download, Plus, RefreshCw, FileText, Clock, CheckCircle, PlayCircle, AlertTriangle } from 'lucide-react';
 import { casesService, type CaseListQuery } from '@/services/cases';
+import { usePermissionContext } from '@/contexts/PermissionContext';
 
 interface CaseFilters {
   status?: string;
@@ -28,6 +29,9 @@ interface CaseFilters {
 
 export const CasesPage: React.FC = () => {
   const navigate = useNavigate();
+  const { hasPermissionCode } = usePermissionContext();
+  const canViewClientsFilter =
+    hasPermissionCode('client.view') || hasPermissionCode('page.masterdata');
 
   // Unified search with 800ms debounce
   const {
@@ -67,7 +71,7 @@ export const CasesPage: React.FC = () => {
   };
 
   const { data: casesData, isLoading, error: _error } = useCases(query);
-  const { data: clientsData } = useClients({ limit: 100 });
+  const { data: clientsData } = useClients({ limit: 100 }, { enabled: canViewClientsFilter });
 
   const { refreshCases } = useRefreshCases();
 
@@ -279,25 +283,29 @@ export const CasesPage: React.FC = () => {
             </div>
 
             {/* Client Filter */}
-            <div className="space-y-2">
-              <Label htmlFor="client">Client</Label>
-              <Select
-                value={activeFilters.clientId || 'all'}
-                onValueChange={(value) => setFilter('clientId', value === 'all' ? undefined : value)}
-              >
-                <SelectTrigger id="client">
-                  <SelectValue placeholder="All clients" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Clients</SelectItem>
-                  {clients.map((client: { id: number; name: string }) => (
-                    <SelectItem key={client.id} value={client.id.toString()}>
-                      {client.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {canViewClientsFilter && (
+              <div className="space-y-2">
+                <Label htmlFor="client">Client</Label>
+                <Select
+                  value={activeFilters.clientId || 'all'}
+                  onValueChange={(value) =>
+                    setFilter('clientId', value === 'all' ? undefined : value)
+                  }
+                >
+                  <SelectTrigger id="client">
+                    <SelectValue placeholder="All clients" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Clients</SelectItem>
+                    {clients.map((client: { id: number; name: string }) => (
+                      <SelectItem key={client.id} value={client.id.toString()}>
+                        {client.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </FilterGrid>
         }
         actions={

@@ -22,17 +22,9 @@ import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 import { MySubmissions } from './MySubmissions';
 import { PerformanceMetrics } from './PerformanceMetrics';
 import { OfflineReports } from './OfflineReports';
+import { MobileReportsService, type AgentDashboardStats } from '@/services/mobileReports';
 
-interface AgentStats {
-  todaySubmissions: number;
-  weekSubmissions: number;
-  monthSubmissions: number;
-  qualityScore: number;
-  completionRate: number;
-  avgResponseTime: number;
-  pendingTasks: number;
-  completedTasks: number;
-}
+type AgentStats = AgentDashboardStats;
 
 export const AgentDashboard: React.FC = () => {
   const { user } = useAuth();
@@ -51,20 +43,8 @@ export const AgentDashboard: React.FC = () => {
   const fetchAgentStats = async () => {
     try {
       setIsLoading(true);
-      
-      // Simulate API call - replace with actual API
-      const mockStats: AgentStats = {
-        todaySubmissions: Math.floor(Math.random() * 15) + 5,
-        weekSubmissions: Math.floor(Math.random() * 50) + 25,
-        monthSubmissions: Math.floor(Math.random() * 200) + 100,
-        qualityScore: Math.floor(Math.random() * 20) + 80,
-        completionRate: Math.floor(Math.random() * 15) + 85,
-        avgResponseTime: Math.floor(Math.random() * 30) + 15,
-        pendingTasks: Math.floor(Math.random() * 8) + 2,
-        completedTasks: Math.floor(Math.random() * 25) + 15
-      };
-
-      setAgentStats(mockStats);
+      const liveStats = await MobileReportsService.getAgentDashboardStats();
+      setAgentStats(liveStats);
       setLastSync(new Date());
     } catch (error) {
       console.error('Error fetching agent stats:', error);

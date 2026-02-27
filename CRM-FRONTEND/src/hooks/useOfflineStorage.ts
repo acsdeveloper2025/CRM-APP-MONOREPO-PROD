@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { MobileReportsService } from '@/services/mobileReports';
 
 interface OfflineReport {
   id: string;
@@ -129,10 +130,7 @@ export const useOfflineStorage = (): OfflineStorageHook => {
         const progress = ((i + 1) / pendingReports.length) * 100;
         
         progressCallback?.(progress, report.name);
-        
-        // Simulate sync operation
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
+
         // Update sync status
         const updatedReports = offlineReports.map(r => 
           r.id === report.id ? { ...r, syncStatus: 'synced' as const } : r
@@ -194,58 +192,15 @@ export const useOfflineStorage = (): OfflineStorageHook => {
 
   // Helper functions
   const fetchReportData = async (reportType: string): Promise<unknown> => {
-    // Mock data generation based on report type
     switch (reportType) {
       case 'performance':
-        return {
-          qualityScore: 89,
-          completionRate: 94,
-          avgResponseTime: 24,
-          submissions: 156,
-          trends: [
-            { date: '2024-01-08', score: 85 },
-            { date: '2024-01-09', score: 88 },
-            { date: '2024-01-10', score: 92 },
-            { date: '2024-01-11', score: 87 },
-            { date: '2024-01-12', score: 90 }
-          ]
-        };
+        return MobileReportsService.getPerformanceReportData();
       
       case 'submissions':
-        return {
-          total: 156,
-          recent: [
-            { id: '1', customer: 'John Doe', type: 'RESIDENCE', status: 'VALID' },
-            { id: '2', customer: 'Jane Smith', type: 'OFFICE', status: 'PENDING' },
-            { id: '3', customer: 'Mike Johnson', type: 'BUSINESS', status: 'VALID' }
-          ],
-          byType: {
-            RESIDENCE: 95,
-            OFFICE: 38,
-            BUSINESS: 23
-          }
-        };
+        return MobileReportsService.getSubmissionsReportData();
       
       case 'analytics':
-        return {
-          overview: {
-            totalForms: 156,
-            validationRate: 94,
-            avgQuality: 89
-          },
-          charts: {
-            daily: [
-              { date: '2024-01-08', submissions: 8 },
-              { date: '2024-01-09', submissions: 12 },
-              { date: '2024-01-10', submissions: 6 }
-            ],
-            quality: [
-              { metric: 'Accuracy', value: 92 },
-              { metric: 'Completeness', value: 94 },
-              { metric: 'Timeliness', value: 87 }
-            ]
-          }
-        };
+        return MobileReportsService.getAnalyticsReportData();
       
       default:
         return { message: 'Unknown report type' };

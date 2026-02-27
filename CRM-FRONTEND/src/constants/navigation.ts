@@ -18,6 +18,7 @@ import {
   List,
   XCircle,
   Copy,
+  Smartphone,
   type LucideIcon
 } from 'lucide-react';
 
@@ -351,7 +352,13 @@ export const navigationItems: NavigationItem[] = [
         icon: Shield,
         permissionCode: 'page.rbac',
       },
-
+      {
+        id: 'mobile-operations',
+        label: 'Mobile Operations',
+        href: '/users/mobile',
+        icon: Smartphone,
+        permissionCode: 'page.mobile',
+      },
     ],
   },
   {

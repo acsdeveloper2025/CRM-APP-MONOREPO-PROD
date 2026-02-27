@@ -147,15 +147,15 @@ const ProfileView: React.FC = () => {
           </div>
           <div className="flex justify-between">
             <span className="text-gray-600">Department:</span>
-            <span>Field Operations</span>
+            <span>{user?.department || '-'}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-gray-600">Territory:</span>
-            <span>Bangalore South</span>
+            <span>{user?.departmentName || '-'}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-gray-600">Joined:</span>
-            <span>Jan 2024</span>
+            <span>{user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : '-'}</span>
           </div>
         </div>
       </div>
@@ -261,53 +261,41 @@ const SettingsView: React.FC = () => {
 
 // Notifications View Component
 const NotificationsView: React.FC = () => {
-  const notifications = [
-    {
-      id: '1',
-      title: 'Form Validation Complete',
-      message: 'Your submission for Case-001 has been validated',
-      time: '2 hours ago',
-      read: false
-    },
-    {
-      id: '2',
-      title: 'Weekly Report Available',
-      message: 'Your performance report for this week is ready',
-      time: '1 day ago',
-      read: true
-    },
-    {
-      id: '3',
-      title: 'Sync Complete',
-      message: 'All pending data has been synchronized',
-      time: '2 days ago',
-      read: true
-    }
-  ];
+  const notifications: Array<{
+    id: string;
+    title: string;
+    message: string;
+    time: string;
+    read: boolean;
+  }> = [];
 
   return (
     <div className="p-4 space-y-3">
-      {notifications.map((notification) => (
-        <div 
-          key={notification.id}
-          className={`bg-white rounded-lg p-4 border-l-4 ${
-            notification.read ? 'border-l-gray-300' : 'border-l-blue-500'
-          }`}
-        >
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <h4 className={`font-medium ${!notification.read ? 'text-green-900' : 'text-gray-900'}`}>
-                {notification.title}
-              </h4>
-              <p className="text-sm text-gray-600 mt-1">{notification.message}</p>
-              <p className="text-xs text-gray-600 mt-2">{notification.time}</p>
-            </div>
-            {!notification.read && (
-              <div className="w-2 h-2 bg-green-500 rounded-full mt-2" />
-            )}
-          </div>
+      {notifications.length === 0 ? (
+        <div className="bg-white rounded-lg p-6 text-center text-gray-600">
+          No notifications available
         </div>
-      ))}
+      ) : (
+        notifications.map((notification) => (
+          <div
+            key={notification.id}
+            className={`bg-white rounded-lg p-4 border-l-4 ${
+              notification.read ? 'border-l-gray-300' : 'border-l-blue-500'
+            }`}
+          >
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <h4 className={`font-medium ${!notification.read ? 'text-green-900' : 'text-gray-900'}`}>
+                  {notification.title}
+                </h4>
+                <p className="text-sm text-gray-600 mt-1">{notification.message}</p>
+                <p className="text-xs text-gray-600 mt-2">{notification.time}</p>
+              </div>
+              {!notification.read && <div className="w-2 h-2 bg-green-500 rounded-full mt-2" />}
+            </div>
+          </div>
+        ))
+      )}
     </div>
   );
 };

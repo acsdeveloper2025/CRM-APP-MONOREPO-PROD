@@ -2,7 +2,6 @@ import type { Response } from 'express';
 import type { AuthenticatedRequest } from '../middleware/auth';
 import { logger } from '../utils/logger';
 import { pool } from '../config/database';
-import { EnterpriseCacheService, CacheKeys } from '../services/enterpriseCacheService';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
@@ -108,32 +107,6 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
     const clientId = req.query.clientId as string;
     const dateFrom = req.query.dateFrom as string;
     const dateTo = req.query.dateTo as string;
-    const useCache = (
-      Array.isArray(req.query.useCache) ? req.query.useCache[0] : req.query.useCache || 'true'
-    ) as string;
-
-    // Enterprise cache key generation
-    const cacheKey = `${CacheKeys.userCases(
-      req.user?.id || 'anonymous',
-      Number(page)
-    )}:${JSON.stringify(req.query)}`;
-
-    // Try cache first (unless bypassed)
-    if (useCache === 'true') {
-      const cached = await EnterpriseCacheService.get(cacheKey);
-      if (cached) {
-        logger.debug('Cases cache hit', {
-          userId: req.user?.id,
-          page,
-          cacheKey,
-          responseTime: Date.now() - startTime,
-        });
-
-        res.set('X-Cache', 'HIT');
-        return res.json(cached);
-      }
-    }
-
     // Build WHERE conditions
     const baseConditions: string[] = [];
     const baseParams: (string | number | boolean | string[] | number[])[] = [];
@@ -543,16 +516,8 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
       message: 'Cases retrieved successfully',
     };
 
-    // Cache the response for future requests (1 minute TTL for high-frequency data)
-    if (useCache === 'true') {
-      EnterpriseCacheService.set(cacheKey, response, 60).catch(error =>
-        logger.error('Failed to cache cases response:', error)
-      );
-    }
-
     // Add performance headers
     res.set({
-      'X-Cache': 'MISS',
       'X-Query-Time': queryTime.toString(),
       'X-Total-Time': (Date.now() - startTime).toString(),
       'X-Result-Count': casesResult.rows.length.toString(),

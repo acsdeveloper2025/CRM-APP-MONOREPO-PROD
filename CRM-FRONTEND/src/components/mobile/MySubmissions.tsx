@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { 
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -23,13 +23,14 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { MobileReportsService } from '@/services/mobileReports';
 
 interface FormSubmission {
   id: string;
   caseId: string;
   customerName: string;
-  formType: 'RESIDENCE' | 'OFFICE' | 'BUSINESS';
-  status: 'PENDING' | 'VALID' | 'INVALID' | 'REQUIRES_REVIEW';
+  formType: string;
+  status: string;
   submittedAt: string;
   validatedAt?: string;
   location?: {
@@ -62,82 +63,38 @@ export const MySubmissions: React.FC = () => {
   const fetchMySubmissions = async () => {
     try {
       setIsLoading(true);
-      
-      // Mock data - replace with actual API call
-      const mockSubmissions: FormSubmission[] = [
-        {
-          id: '1',
-          caseId: 'CASE-001',
-          customerName: 'John Doe',
-          formType: 'RESIDENCE',
-          status: 'VALID',
-          submittedAt: '2024-01-15T10:30:00Z',
-          validatedAt: '2024-01-15T11:15:00Z',
-          location: {
-            address: '123 Main St, Bangalore',
-            coordinates: { lat: 12.9716, lng: 77.5946 }
-          },
-          photos: 5,
-          attachments: 2,
-          qualityScore: 92,
-          timeSpent: 25,
-          networkQuality: 'EXCELLENT'
-        },
-        {
-          id: '2',
-          caseId: 'CASE-002',
-          customerName: 'Jane Smith',
-          formType: 'OFFICE',
-          status: 'PENDING',
-          submittedAt: '2024-01-15T14:20:00Z',
-          location: {
-            address: '456 Business Park, Bangalore',
-            coordinates: { lat: 12.9716, lng: 77.5946 }
-          },
-          photos: 8,
-          attachments: 3,
-          timeSpent: 35,
-          networkQuality: 'GOOD'
-        },
-        {
-          id: '3',
-          caseId: 'CASE-003',
-          customerName: 'Mike Johnson',
-          formType: 'BUSINESS',
-          status: 'REQUIRES_REVIEW',
-          submittedAt: '2024-01-14T16:45:00Z',
-          validatedAt: '2024-01-14T17:30:00Z',
-          location: {
-            address: '789 Industrial Area, Bangalore',
-            coordinates: { lat: 12.9716, lng: 77.5946 }
-          },
-          photos: 12,
-          attachments: 5,
-          qualityScore: 78,
-          timeSpent: 45,
-          networkQuality: 'POOR'
-        },
-        {
-          id: '4',
-          caseId: 'CASE-004',
-          customerName: 'Sarah Wilson',
-          formType: 'RESIDENCE',
-          status: 'INVALID',
-          submittedAt: '2024-01-14T09:15:00Z',
-          validatedAt: '2024-01-14T10:00:00Z',
-          location: {
-            address: '321 Residential Complex, Bangalore',
-            coordinates: { lat: 12.9716, lng: 77.5946 }
-          },
-          photos: 3,
-          attachments: 1,
-          qualityScore: 65,
-          timeSpent: 20,
-          networkQuality: 'EXCELLENT'
-        }
-      ];
+      const tasks = await MobileReportsService.fetchMobileTasks();
+      const liveSubmissions: FormSubmission[] = tasks.map(task => {
+        const submittedAt = task.completedAt || task.updatedAt || task.assignedAt || new Date().toISOString();
+        const submittedDate = new Date(submittedAt);
+        const startedDate = task.inProgressAt ? new Date(task.inProgressAt) : null;
+        const spentMinutes =
+          startedDate && !Number.isNaN(submittedDate.getTime())
+            ? Math.max(0, Math.round((submittedDate.getTime() - startedDate.getTime()) / (1000 * 60)))
+            : 0;
 
-      setSubmissions(mockSubmissions);
+        return {
+          id: task.verificationTaskId || task.id,
+          caseId: String(task.caseId || '-'),
+          customerName: task.customerName || 'Unknown',
+          formType: task.verificationTypeDetails?.name || task.verificationType || 'UNKNOWN',
+          status: String(task.status || 'PENDING').toUpperCase(),
+          submittedAt,
+          location: task.addressStreet
+            ? {
+                address: task.addressStreet,
+                coordinates: { lat: 0, lng: 0 },
+              }
+            : undefined,
+          photos: Number(task.attachmentCount || 0),
+          attachments: Number(task.attachmentCount || 0),
+          qualityScore: undefined,
+          timeSpent: spentMinutes,
+          networkQuality: 'EXCELLENT',
+        };
+      });
+
+      setSubmissions(liveSubmissions);
     } catch (error) {
       console.error('Error fetching submissions:', error);
     } finally {
@@ -198,13 +155,19 @@ export const MySubmissions: React.FC = () => {
     filterSubmissions();
   }, [filterSubmissions]);
 
+  const availableFormTypes = React.useMemo(() => {
+    return Array.from(new Set(submissions.map(submission => submission.formType))).sort();
+  }, [submissions]);
+
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'VALID':
+      case 'COMPLETED':
         return <CheckCircle className="h-4 w-4 text-green-600" />;
       case 'PENDING':
+      case 'ASSIGNED':
+      case 'IN_PROGRESS':
         return <Clock className="h-4 w-4 text-yellow-600" />;
-      case 'INVALID':
+      case 'REVOKED':
         return <XCircle className="h-4 w-4 text-red-600" />;
       case 'REQUIRES_REVIEW':
         return <AlertCircle className="h-4 w-4 text-yellow-600" />;
@@ -215,11 +178,13 @@ export const MySubmissions: React.FC = () => {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'VALID':
+      case 'COMPLETED':
         return 'bg-green-100 text-green-800';
       case 'PENDING':
+      case 'ASSIGNED':
+      case 'IN_PROGRESS':
         return 'bg-yellow-100 text-yellow-800';
-      case 'INVALID':
+      case 'REVOKED':
         return 'bg-red-100 text-red-800';
       case 'REQUIRES_REVIEW':
         return 'bg-yellow-100 text-orange-800';
@@ -297,10 +262,11 @@ export const MySubmissions: React.FC = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="VALID">Valid</SelectItem>
                 <SelectItem value="PENDING">Pending</SelectItem>
-                <SelectItem value="INVALID">Invalid</SelectItem>
-                <SelectItem value="REQUIRES_REVIEW">Review</SelectItem>
+                <SelectItem value="ASSIGNED">Assigned</SelectItem>
+                <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
+                <SelectItem value="COMPLETED">Completed</SelectItem>
+                <SelectItem value="REVOKED">Revoked</SelectItem>
               </SelectContent>
             </Select>
 
@@ -310,9 +276,11 @@ export const MySubmissions: React.FC = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="RESIDENCE">Residence</SelectItem>
-                <SelectItem value="OFFICE">Office</SelectItem>
-                <SelectItem value="BUSINESS">Business</SelectItem>
+                {availableFormTypes.map(type => (
+                  <SelectItem key={type} value={type}>
+                    {type}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
 

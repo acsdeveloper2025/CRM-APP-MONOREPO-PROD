@@ -46,12 +46,37 @@ const DocumentTypesPage = React.lazy(() => import('@/pages/DocumentTypesPage').t
 const RateManagementPage = React.lazy(() => import('@/pages/RateManagementPage').then(module => ({ default: module.RateManagementPage })));
 const DedupePage = React.lazy(() => import('@/pages/DedupePage').then(module => ({ default: module.DedupePage })));
 
+const resolveFirstAccessibleRoute = (
+  permissionSet: Set<string>,
+  options: { preferMobile: boolean }
+): string => {
+  if (options.preferMobile && permissionSet.has('page.mobile')) {
+    return '/users/mobile';
+  }
+
+  const candidates: Array<{ permission: string; path: string }> = [
+    { permission: 'page.dashboard', path: '/dashboard' },
+    { permission: 'page.cases', path: '/cases' },
+    { permission: 'page.tasks', path: '/tasks' },
+    { permission: 'page.reports', path: '/reports' },
+    { permission: 'page.analytics', path: '/analytics' },
+    { permission: 'page.billing', path: '/billing' },
+    { permission: 'page.masterdata', path: '/clients' },
+    { permission: 'page.users', path: '/users' },
+    { permission: 'page.rbac', path: '/admin/rbac' },
+    { permission: 'page.settings', path: '/settings' },
+    { permission: 'page.mobile', path: '/users/mobile' },
+  ];
+
+  const accessible = candidates.find(candidate => permissionSet.has(candidate.permission));
+  return accessible?.path || '/unauthorized';
+};
 
 
 
 // Default route component that handles authentication-based redirects
 const DefaultRoute: React.FC = () => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
   const { isMobile, isTouchDevice } = useResponsive();
 
   if (isLoading) {
@@ -62,12 +87,23 @@ const DefaultRoute: React.FC = () => {
     );
   }
 
-  // Redirect to mobile app for mobile devices
-  if (isAuthenticated && (isMobile || isTouchDevice)) {
-    return <Navigate to="/mobile" replace />;
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
   }
 
-  return <Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />;
+  const rawPermissions = Array.isArray(user?.permissions)
+    ? user.permissions
+    : Array.isArray(user?.permissionCodes)
+      ? user.permissionCodes
+      : [];
+  const permissionSet = new Set(rawPermissions.map(permission => String(permission)));
+
+  const target = resolveFirstAccessibleRoute(permissionSet, {
+    preferMobile: isMobile || isTouchDevice,
+  });
+
+  // Redirect to mobile app for mobile devices
+  return <Navigate to={target} replace />;
 };
 
 // Layout wrapper that persists across routes
@@ -101,16 +137,6 @@ export const AppRoutes: React.FC = () => {
         <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
         {/* ... rest of the routes remain same but lazy loaded components need Suspense up the tree or here ... */}
-        {/* Mobile app route */}
-        <Route
-          path="/mobile"
-          element={
-            <ProtectedRoute permission="page.mobile">
-              <MobileApp />
-            </ProtectedRoute>
-          }
-        />
-
         {/* Protected routes with persistent layout */}
         <Route element={<AuthenticatedLayout />}>
           <Route path="/dashboard" element={<ProtectedRoute permission="page.dashboard"><DashboardPage /></ProtectedRoute>} />
@@ -152,6 +178,7 @@ export const AppRoutes: React.FC = () => {
 
           <Route path="/users" element={<ProtectedRoute permission="page.users"><UsersPage /></ProtectedRoute>} />
           <Route path="/users/:tab" element={<ProtectedRoute permission="page.users"><UsersPage /></ProtectedRoute>} />
+          <Route path="/users/mobile" element={<ProtectedRoute permission="page.mobile"><MobileApp /></ProtectedRoute>} />
           <Route path="/users/:userId/permissions" element={<ProtectedRoute permission="page.users"><UserPermissionsPage /></ProtectedRoute>} />
           <Route path="/admin/rbac" element={<ProtectedRoute permission="page.rbac"><RBACAdminPage /></ProtectedRoute>} />
 

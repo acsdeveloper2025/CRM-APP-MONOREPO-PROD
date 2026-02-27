@@ -2,7 +2,7 @@ export const routeKeyFromPath = (path: string): string | null => {
   if (path === '/dashboard') {return 'dashboard';}
   if (path.startsWith('/cases')) {return 'cases';}
   if (path.startsWith('/tasks') || path.startsWith('/verification-tasks')) {return 'task-board';}
-  if (path.startsWith('/mobile')) {return 'visit-execution';}
+  if (path.startsWith('/mobile') || path.startsWith('/users/mobile')) {return 'visit-execution';}
   if (path.startsWith('/reports') || path.startsWith('/analytics')) {return 'reports';}
   if (path.startsWith('/billing') || path.startsWith('/invoices')) {return 'billing';}
   if (path.startsWith('/commissions') || path.startsWith('/commission-management')) {return 'commission';}
@@ -20,4 +20,3 @@ export const isRouteAllowed = (routeAccess: string[] | undefined, path: string):
   if (!key) {return true;}
   return routeAccess.includes(key);
 };
-

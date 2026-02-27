@@ -39,10 +39,15 @@ export const verificationTypeKeys = {
 };
 
 // Client queries
-export const useClients = (query: PaginationQuery = {}) => {
+interface UseClientsOptions {
+  enabled?: boolean;
+}
+
+export const useClients = (query: PaginationQuery = {}, options?: UseClientsOptions) => {
   return useQuery({
     queryKey: clientKeys.list(query),
     queryFn: () => clientsService.getClients(query),
+    enabled: options?.enabled ?? true,
   });
 };
 

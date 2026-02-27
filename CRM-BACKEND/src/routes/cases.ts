@@ -307,10 +307,10 @@ router.get(
   '/:id/summary',
   authorize('case.view'),
   EnterpriseRateLimit.roleBasedLimiter(EnterpriseRateLimits.byRole),
-  EnterpriseCache.create(EnterpriseCacheConfigs.caseDetails),
   [param('id').trim().notEmpty().withMessage('Case ID is required')],
   validate,
   validateCaseAccess,
+  EnterpriseCache.create(EnterpriseCacheConfigs.caseDetails),
   getCaseSummaryWithTasks
 );
 
@@ -340,10 +340,10 @@ router.get(
   '/:id',
   authorize('case.view'),
   EnterpriseRateLimit.roleBasedLimiter(EnterpriseRateLimits.byRole),
-  EnterpriseCache.create(EnterpriseCacheConfigs.caseDetails),
   [param('id').trim().notEmpty().withMessage('Case ID is required')],
   validate,
   validateCaseAccess,
+  EnterpriseCache.create(EnterpriseCacheConfigs.caseDetails),
   getCaseById
 );
 

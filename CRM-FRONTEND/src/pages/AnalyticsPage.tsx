@@ -36,7 +36,9 @@ export const AnalyticsPage: React.FC = () => {
         dateTo: new Date().toISOString().split('T')[0]
       });
       return apiService.get(`/verification-tasks?${params.toString()}`);
-    }
+    },
+    enabled: activeTab === 'overview',
+    staleTime: 60 * 1000,
   });
 
   const caseSummary = caseAnalytics?.data?.summary;

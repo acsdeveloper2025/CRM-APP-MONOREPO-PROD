@@ -127,19 +127,20 @@ export function UsersPage() {
     fromDate: actFilters.filters.fromDate,
     toDate: actFilters.filters.toDate,
     userId: actFilters.filters.userId,
-  });
+  }, { enabled: activeTab === 'activities' && canManageRbac });
 
   const { data: sessionsData, isLoading: sessionsLoading } = useUserSessions({
     userId: undefined, // Admins can filter by userId if implemented in UI
     search: sessSearch.debouncedSearchValue || undefined,
     page: sessPage,
     limit: 20,
-  });
+  }, { enabled: activeTab === 'sessions' && canManageRbac });
 
   const { data: userStatsData } = useQuery({
     queryKey: ['user-stats'],
     queryFn: () => usersService.getUserStats(),
     enabled: canViewUsersData,
+    staleTime: 30 * 1000,
   });
 
   const handleExportUsers = async (format: 'CSV' | 'EXCEL' = 'EXCEL') => {
