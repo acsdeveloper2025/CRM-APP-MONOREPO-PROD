@@ -34,6 +34,7 @@ interface MigrationRecord {
   filename: string;
   executed_at: Date;
   checksum: string;
+  success: boolean;
 }
 
 /**
@@ -95,6 +96,29 @@ class MigrationRunner {
   }
 
   /**
+   * Persist migration execution result, allowing retries to overwrite prior failed attempts.
+   */
+  private async recordMigrationResult(
+    client: Awaited<ReturnType<typeof pool.connect>>,
+    migration: Migration,
+    checksum: string,
+    executionTimeMs: number,
+    success: boolean
+  ): Promise<void> {
+    await client.query(
+      `INSERT INTO schema_migrations (id, filename, checksum, execution_time_ms, success)
+       VALUES ($1, $2, $3, $4, $5)
+       ON CONFLICT (id) DO UPDATE SET
+         filename = EXCLUDED.filename,
+         checksum = EXCLUDED.checksum,
+         execution_time_ms = EXCLUDED.execution_time_ms,
+         success = EXCLUDED.success,
+         executed_at = CURRENT_TIMESTAMP`,
+      [migration.id, migration.filename, checksum, executionTimeMs, success]
+    );
+  }
+
+  /**
    * Calculate checksum for migration content
    */
   private calculateChecksum(content: string): string {
@@ -120,16 +144,7 @@ class MigrationRunner {
       await client.query(migration.sql);
       
       // Record the migration
-      await client.query(
-        `INSERT INTO schema_migrations (id, filename, checksum, execution_time_ms) 
-         VALUES ($1, $2, $3, $4)`,
-        [
-          migration.id, 
-          migration.filename, 
-          checksum, 
-          Date.now() - startTime
-        ]
-      );
+      await this.recordMigrationResult(client, migration, checksum, Date.now() - startTime, true);
       
       await client.query('COMMIT');
       
@@ -140,17 +155,18 @@ class MigrationRunner {
       
       // Record failed migration
       try {
-        await client.query(
-          `INSERT INTO schema_migrations (id, filename, checksum, execution_time_ms, success) 
-           VALUES ($1, $2, $3, $4, $5)`,
-          [
-            migration.id, 
-            migration.filename, 
-            checksum, 
+        const recordClient = await pool.connect();
+        try {
+          await this.recordMigrationResult(
+            recordClient,
+            migration,
+            checksum,
             Date.now() - startTime,
             false
-          ]
-        );
+          );
+        } finally {
+          recordClient.release();
+        }
       } catch (recordError) {
         logger.error('Failed to record migration failure:', recordError);
       }
@@ -174,10 +190,12 @@ class MigrationRunner {
       // Get migration files and executed migrations
       const migrationFiles = this.getMigrationFiles();
       const executedMigrations = await this.getExecutedMigrations();
-      const executedIds = new Set(executedMigrations.map(m => m.id));
+      const successfulMigrationIds = new Set(
+        executedMigrations.filter(m => m.success).map(m => m.id)
+      );
       
       // Find pending migrations
-      const pendingMigrations = migrationFiles.filter(m => !executedIds.has(m.id));
+      const pendingMigrations = migrationFiles.filter(m => !successfulMigrationIds.has(m.id));
       
       if (pendingMigrations.length === 0) {
         logger.info('✅ No pending migrations found');
@@ -246,16 +264,32 @@ class MigrationRunner {
     try {
       const migrationFiles = this.getMigrationFiles();
       const executedMigrations = await this.getExecutedMigrations();
-      const executedIds = new Set(executedMigrations.map(m => m.id));
+      const migrationIdSet = new Set(migrationFiles.map(m => m.id));
+      const successfulCurrentMigrationIds = new Set(
+        executedMigrations
+          .filter(m => m.success && migrationIdSet.has(m.id))
+          .map(m => m.id)
+      );
+      const failedCurrentMigrations = executedMigrations.filter(
+        m => !m.success && migrationIdSet.has(m.id)
+      );
+      const legacyTrackedMigrations = executedMigrations.filter(m => !migrationIdSet.has(m.id));
       
       logger.info('📋 Migration Status:');
       logger.info(`Total migrations: ${migrationFiles.length}`);
-      logger.info(`Executed: ${executedMigrations.length}`);
-      logger.info(`Pending: ${migrationFiles.length - executedMigrations.length}`);
+      logger.info(`Executed: ${successfulCurrentMigrationIds.size}`);
+      logger.info(`Pending: ${migrationFiles.length - successfulCurrentMigrationIds.size}`);
+      logger.info(`Failed: ${failedCurrentMigrations.length}`);
+      logger.info(`Legacy tracked records: ${legacyTrackedMigrations.length}`);
       
       // Show detailed status
       migrationFiles.forEach(migration => {
-        const status = executedIds.has(migration.id) ? '✅ Executed' : '⏳ Pending';
+        const failedRecord = failedCurrentMigrations.find(record => record.id === migration.id);
+        const status = successfulCurrentMigrationIds.has(migration.id)
+          ? '✅ Executed'
+          : failedRecord
+            ? '❌ Failed'
+            : '⏳ Pending';
         logger.info(`  ${migration.filename}: ${status}`);
       });
       
