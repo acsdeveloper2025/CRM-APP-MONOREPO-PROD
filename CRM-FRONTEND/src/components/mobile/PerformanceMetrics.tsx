@@ -35,6 +35,7 @@ import {
   RefreshCw,
   Download
 } from 'lucide-react';
+import { MobileReportsService } from '@/services/mobileReports';
 
 interface PerformanceData {
   daily: Array<{
@@ -82,45 +83,8 @@ export const PerformanceMetrics: React.FC = () => {
   const fetchPerformanceData = async () => {
     try {
       setIsLoading(true);
-      
-      // Mock data - replace with actual API call
-      const mockData: PerformanceData = {
-        daily: [
-          { date: '2024-01-08', submissions: 8, quality: 85, completionTime: 25 },
-          { date: '2024-01-09', submissions: 12, quality: 88, completionTime: 22 },
-          { date: '2024-01-10', submissions: 6, quality: 92, completionTime: 28 },
-          { date: '2024-01-11', submissions: 15, quality: 87, completionTime: 20 },
-          { date: '2024-01-12', submissions: 10, quality: 90, completionTime: 24 },
-          { date: '2024-01-13', submissions: 9, quality: 89, completionTime: 26 },
-          { date: '2024-01-14', submissions: 11, quality: 91, completionTime: 23 }
-        ],
-        weekly: [
-          { week: 'Week 1', submissions: 45, quality: 87, completionRate: 92 },
-          { week: 'Week 2', submissions: 52, quality: 89, completionRate: 94 },
-          { week: 'Week 3', submissions: 48, quality: 91, completionRate: 96 },
-          { week: 'Week 4', submissions: 55, quality: 88, completionRate: 93 }
-        ],
-        monthly: [
-          { month: 'Oct', submissions: 180, quality: 86, completionRate: 91 },
-          { month: 'Nov', submissions: 195, quality: 88, completionRate: 93 },
-          { month: 'Dec', submissions: 210, quality: 90, completionRate: 95 },
-          { month: 'Jan', submissions: 200, quality: 89, completionRate: 94 }
-        ],
-        formTypes: [
-          { type: 'Residence', count: 120, percentage: 60 },
-          { type: 'Office', count: 50, percentage: 25 },
-          { type: 'Business', count: 30, percentage: 15 }
-        ],
-        radarData: [
-          { metric: 'Quality', value: 89, fullMark: 100 },
-          { metric: 'Speed', value: 85, fullMark: 100 },
-          { metric: 'Accuracy', value: 92, fullMark: 100 },
-          { metric: 'Consistency', value: 87, fullMark: 100 },
-          { metric: 'Completeness', value: 94, fullMark: 100 }
-        ]
-      };
-
-      setPerformanceData(mockData);
+      const liveData = await MobileReportsService.getPerformanceMetricsData();
+      setPerformanceData(liveData);
     } catch (error) {
       console.error('Error fetching performance data:', error);
     } finally {
@@ -173,6 +137,48 @@ export const PerformanceMetrics: React.FC = () => {
     }
   };
 
+  const summary = React.useMemo(() => {
+    if (!performanceData) {
+      return {
+        avgQuality: 0,
+        avgCompletion: 0,
+        avgCompletionTime: 0,
+        topType: '-',
+      };
+    }
+
+    const avgQuality =
+      performanceData.weekly.length > 0
+        ? Math.round(
+            performanceData.weekly.reduce((sum, item) => sum + item.quality, 0) /
+              performanceData.weekly.length
+          )
+        : 0;
+    const avgCompletion =
+      performanceData.weekly.length > 0
+        ? Math.round(
+            performanceData.weekly.reduce((sum, item) => sum + item.completionRate, 0) /
+              performanceData.weekly.length
+          )
+        : 0;
+    const avgCompletionTime =
+      performanceData.daily.length > 0
+        ? Math.round(
+            performanceData.daily.reduce((sum, item) => sum + item.completionTime, 0) /
+              performanceData.daily.length
+          )
+        : 0;
+    const topType =
+      [...performanceData.formTypes].sort((a, b) => b.count - a.count)[0]?.type || '-';
+
+    return {
+      avgQuality,
+      avgCompletion,
+      avgCompletionTime,
+      topType,
+    };
+  }, [performanceData]);
+
   if (isLoading) {
     return (
       <div className="space-y-4">
@@ -193,7 +199,7 @@ export const PerformanceMetrics: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-blue-100 text-xs">Avg Quality</p>
-                <p className="text-xl font-bold">89%</p>
+                <p className="text-xl font-bold">{summary.avgQuality}%</p>
               </div>
               <Star className="h-6 w-6 text-blue-200" />
             </div>
@@ -205,7 +211,7 @@ export const PerformanceMetrics: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-green-100 text-xs">Completion</p>
-                <p className="text-xl font-bold">94%</p>
+                <p className="text-xl font-bold">{summary.avgCompletion}%</p>
               </div>
               <CheckCircle className="h-6 w-6 text-green-200" />
             </div>
@@ -217,7 +223,7 @@ export const PerformanceMetrics: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-purple-100 text-xs">Avg Time</p>
-                <p className="text-xl font-bold">24min</p>
+                <p className="text-xl font-bold">{summary.avgCompletionTime}min</p>
               </div>
               <Clock className="h-6 w-6 text-purple-200" />
             </div>
@@ -229,7 +235,7 @@ export const PerformanceMetrics: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-orange-100 text-xs">Rank</p>
-                <p className="text-xl font-bold">#3</p>
+                <p className="text-xl font-bold">{summary.topType}</p>
               </div>
               <Award className="h-6 w-6 text-orange-200" />
             </div>
@@ -373,7 +379,9 @@ export const PerformanceMetrics: React.FC = () => {
             <TrendingUp className="h-5 w-5 text-green-600" />
             <div>
               <p className="text-sm font-medium text-green-800">Quality Improving</p>
-              <p className="text-xs text-green-600">+5% increase this week</p>
+              <p className="text-xs text-green-600">
+                Weekly average quality: {summary.avgQuality}%
+              </p>
             </div>
           </div>
 
@@ -381,7 +389,9 @@ export const PerformanceMetrics: React.FC = () => {
             <Target className="h-5 w-5 text-green-600" />
             <div>
               <p className="text-sm font-medium text-green-800">Above Target</p>
-              <p className="text-xs text-green-600">Exceeding monthly goals by 12%</p>
+              <p className="text-xs text-green-600">
+                Weekly completion average: {summary.avgCompletion}%
+              </p>
             </div>
           </div>
 
@@ -389,7 +399,9 @@ export const PerformanceMetrics: React.FC = () => {
             <Clock className="h-5 w-5 text-yellow-600" />
             <div>
               <p className="text-sm font-medium text-orange-800">Time Optimization</p>
-              <p className="text-xs text-yellow-600">Consider reducing form completion time</p>
+              <p className="text-xs text-yellow-600">
+                Average completion time: {summary.avgCompletionTime} minutes
+              </p>
             </div>
           </div>
         </CardContent>

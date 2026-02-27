@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 import { useOfflineStorage } from '@/hooks/useOfflineStorage';
+import { MobileReportsService } from '@/services/mobileReports';
 
 interface MobileReportViewerProps {
   reportId?: string;
@@ -123,78 +124,15 @@ export const MobileReportViewer: React.FC<MobileReportViewerProps> = ({
   };
 
   const fetchFreshReportData = async (type: string): Promise<ReportData> => {
-    // Mock API call - replace with actual API
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
     switch (type) {
       case 'performance':
-        return {
-          qualityScore: 89,
-          completionRate: 94,
-          avgResponseTime: 24,
-          submissions: 156,
-          trends: [
-            { date: '2024-01-08', score: 85, submissions: 8 },
-            { date: '2024-01-09', score: 88, submissions: 12 },
-            { date: '2024-01-10', score: 92, submissions: 6 },
-            { date: '2024-01-11', score: 87, submissions: 15 },
-            { date: '2024-01-12', score: 90, submissions: 10 }
-          ],
-          breakdown: [
-            { metric: 'Accuracy', value: 92 },
-            { metric: 'Completeness', value: 94 },
-            { metric: 'Timeliness', value: 87 },
-            { metric: 'Quality', value: 89 }
-          ]
-        };
+        return MobileReportsService.getPerformanceReportData();
       
       case 'submissions':
-        return {
-          total: 156,
-          recent: [
-            { id: '1', customer: 'John Doe', type: 'RESIDENCE', status: 'VALID', date: '2024-01-15' },
-            { id: '2', customer: 'Jane Smith', type: 'OFFICE', status: 'PENDING', date: '2024-01-15' },
-            { id: '3', customer: 'Mike Johnson', type: 'BUSINESS', status: 'VALID', date: '2024-01-14' },
-            { id: '4', customer: 'Sarah Wilson', type: 'RESIDENCE', status: 'INVALID', date: '2024-01-14' }
-          ],
-          byType: [
-            { type: 'RESIDENCE', count: 95, percentage: 61 },
-            { type: 'OFFICE', count: 38, percentage: 24 },
-            { type: 'BUSINESS', count: 23, percentage: 15 }
-          ],
-          byStatus: [
-            { status: 'VALID', count: 142, percentage: 91 },
-            { status: 'PENDING', count: 8, percentage: 5 },
-            { status: 'INVALID', count: 6, percentage: 4 }
-          ]
-        };
+        return MobileReportsService.getSubmissionsReportData();
       
       case 'analytics':
-        return {
-          overview: {
-            totalForms: 156,
-            validationRate: 94,
-            avgQuality: 89,
-            totalTime: 3744 // minutes
-          },
-          daily: [
-            { date: '2024-01-08', submissions: 8, quality: 85 },
-            { date: '2024-01-09', submissions: 12, quality: 88 },
-            { date: '2024-01-10', submissions: 6, quality: 92 },
-            { date: '2024-01-11', submissions: 15, quality: 87 },
-            { date: '2024-01-12', submissions: 10, quality: 90 }
-          ],
-          hourly: [
-            { hour: '9AM', count: 12 },
-            { hour: '10AM', count: 18 },
-            { hour: '11AM', count: 25 },
-            { hour: '12PM', count: 22 },
-            { hour: '1PM', count: 15 },
-            { hour: '2PM', count: 28 },
-            { hour: '3PM', count: 20 },
-            { hour: '4PM', count: 16 }
-          ]
-        };
+        return MobileReportsService.getAnalyticsReportData();
       
       default:
         return null;

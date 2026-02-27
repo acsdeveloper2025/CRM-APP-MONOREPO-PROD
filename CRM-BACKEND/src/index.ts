@@ -34,14 +34,20 @@ const startServer = async (): Promise<void> => {
     // Run database migrations (temporarily disabled)
     // await runMigrations();
 
-    // Connect to Redis
-    await connectRedis();
+    // Connect to Redis/cache in fail-open mode
+    try {
+      await connectRedis();
+    } catch (error) {
+      logger.warn('Redis connection unavailable, continuing without Redis client', { error });
+    }
 
-    // Initialize enterprise cache service
     await EnterpriseCacheService.initialize();
 
-    // Warm cache with frequently accessed data (improves hit rate)
-    await CacheWarmingService.warmAllCaches();
+    if (EnterpriseCacheService.isAvailable()) {
+      await CacheWarmingService.warmAllCaches();
+    } else {
+      logger.warn('Enterprise cache unavailable, skipping cache warming');
+    }
 
     // Initialize job queues
     await initializeQueues();
@@ -56,6 +62,9 @@ const startServer = async (): Promise<void> => {
       // Schedule periodic cache refresh (every 10 minutes)
       setInterval(
         () => {
+          if (!EnterpriseCacheService.isAvailable()) {
+            return;
+          }
           void (async () => {
             try {
               await CacheWarmingService.refreshCaches();

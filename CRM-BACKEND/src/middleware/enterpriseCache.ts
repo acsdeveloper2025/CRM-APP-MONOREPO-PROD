@@ -24,6 +24,14 @@ export class EnterpriseCache {
   static create(config: CacheConfig) {
     return async (req: Request, res: Response, next: NextFunction) => {
       try {
+        if (!EnterpriseCacheService.isAvailable()) {
+          res.set({
+            'X-Cache': 'BYPASS',
+            'X-Cache-Reason': 'redis_unavailable',
+          });
+          return next();
+        }
+
         // Skip cache if condition not met
         if (config.skipCache && config.skipCache(req)) {
           return next();
@@ -308,6 +316,16 @@ export const EnterpriseCacheConfigs = {
       const filters = JSON.stringify(req.query);
       return `${CacheKeys.userCases(userId, Number(page))}:${crypto.createHash('md5').update(filters).digest('hex')}`;
     },
+    skipCache: (req: Request) => {
+      const rawUseCache = Array.isArray(req.query.useCache)
+        ? req.query.useCache[0]
+        : req.query.useCache;
+      const normalizedUseCache =
+        typeof rawUseCache === 'string' || typeof rawUseCache === 'number'
+          ? String(rawUseCache)
+          : 'true';
+      return normalizedUseCache.toLowerCase() === 'false';
+    },
     varyBy: ['X-User-Role'],
   },
 
@@ -315,9 +333,12 @@ export const EnterpriseCacheConfigs = {
   caseDetails: {
     ttl: 900, // 15 minutes (was 5 minutes)
     keyGenerator: (req: Request) => {
-      const rawId = req.params.id;
+      const userId = (req as AuthenticatedRequest).user?.id || 'anon';
+      const rawId = req.params.id || req.params.caseId || req.params.taskId;
       const caseId = Array.isArray(rawId) ? String(rawId[0] || '') : String(rawId || '');
-      return CacheKeys.case(caseId);
+      const scopeMarker = `${req.path}:${JSON.stringify(req.query)}`;
+      const scopeHash = crypto.createHash('md5').update(scopeMarker).digest('hex');
+      return `${CacheKeys.scopedCase(userId, caseId)}:${scopeHash}`;
     },
     condition: (req: Request) => req.method === 'GET',
   },
@@ -342,7 +363,22 @@ export const EnterpriseCacheConfigs = {
   // Mobile sync data caching - INCREASED TTL
   mobileSync: {
     ttl: 120, // 2 minutes (was 30 seconds - too aggressive)
-    keyGenerator: (req: Request) => CacheKeys.mobileSync((req as AuthenticatedRequest).user?.id),
+    keyGenerator: (req: Request) => {
+      const userId = (req as AuthenticatedRequest).user?.id || 'anon';
+      const queryHash = crypto.createHash('md5').update(JSON.stringify(req.query)).digest('hex');
+      return CacheKeys.scopedMobileSync(userId, queryHash);
+    },
+    condition: (req: Request) => req.method === 'GET',
+  },
+
+  dashboard: {
+    ttl: 60,
+    keyGenerator: (req: Request) => {
+      const userId = (req as AuthenticatedRequest).user?.id || 'anon';
+      const path = req.path;
+      const query = JSON.stringify(req.query);
+      return `dashboard:${userId}:${path}:${crypto.createHash('md5').update(query).digest('hex')}`;
+    },
     condition: (req: Request) => req.method === 'GET',
   },
 
@@ -416,7 +452,15 @@ export const EnterpriseCacheConfigs = {
 
 // Cache invalidation patterns
 export const CacheInvalidationPatterns = {
-  caseUpdate: ['api_cache:*:*cases*', 'analytics:*', CacheKeys.fieldAgentWorkload()],
+  caseUpdate: [
+    'api_cache:*:*cases*',
+    'analytics:*',
+    CacheKeys.fieldAgentWorkload(),
+    'user:*:cases:page:*',
+    'case:*',
+    'dashboard:*',
+    'mobile:sync:*',
+  ],
 
   userUpdate: ['api_cache:{userId}:*', CacheKeys.user('{userId}'), 'users:*', 'users:stats:*'],
 
@@ -424,7 +468,10 @@ export const CacheInvalidationPatterns = {
     'api_cache:*:*cases*',
     'analytics:*',
     CacheKeys.fieldAgentWorkload(),
-    CacheKeys.mobileSync('{userId}'),
+    'mobile:sync:*',
+    'user:*:cases:page:*',
+    'case:*',
+    'dashboard:*',
     'users:*', // Invalidate user lists to update assignment counts
   ],
 

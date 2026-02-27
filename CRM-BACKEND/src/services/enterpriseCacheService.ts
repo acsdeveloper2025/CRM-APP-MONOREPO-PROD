@@ -18,6 +18,7 @@ export interface CacheStats {
 export class EnterpriseCacheService {
   private static redis: RedisClientType;
   private static clusterRedis: RedisClusterType | null = null;
+  private static available = false;
 
   /**
    * Initialize enterprise Redis cache with clustering support
@@ -71,17 +72,26 @@ export class EnterpriseCacheService {
 
       // Test connection
       await this.redis.ping();
+      this.available = true;
       logger.info('Enterprise cache service initialized successfully');
     } catch (error) {
       logger.error('Failed to initialize enterprise cache service:', error);
-      throw error;
+      this.available = false;
     }
+  }
+
+  static isAvailable(): boolean {
+    return this.available;
   }
 
   /**
    * Get cached data with enterprise-level error handling
    */
   static async get<T>(key: string): Promise<T | null> {
+    if (!this.available || !this.redis) {
+      return null;
+    }
+
     try {
       const data = await this.redis.get(key);
       if (!data || typeof data !== 'string') {
@@ -100,6 +110,10 @@ export class EnterpriseCacheService {
    * Set cached data with TTL and enterprise optimizations
    */
   static async set(key: string, value: unknown, ttlSeconds = 3600): Promise<boolean> {
+    if (!this.available || !this.redis) {
+      return false;
+    }
+
     try {
       const serialized = JSON.stringify(value);
       await this.redis.setEx(key, ttlSeconds, serialized);
@@ -115,6 +129,10 @@ export class EnterpriseCacheService {
    * Delete cached data
    */
   static async delete(key: string): Promise<boolean> {
+    if (!this.available || !this.redis) {
+      return false;
+    }
+
     try {
       await this.redis.del(key);
       return true;
@@ -128,6 +146,10 @@ export class EnterpriseCacheService {
    * Batch get multiple keys for performance
    */
   static async mget<T>(keys: string[]): Promise<(T | null)[]> {
+    if (!this.available || !this.redis) {
+      return keys.map(() => null);
+    }
+
     try {
       if (keys.length === 0) {
         return [];
@@ -156,6 +178,10 @@ export class EnterpriseCacheService {
   static async mset(
     keyValuePairs: Array<{ key: string; value: unknown; ttl?: number }>
   ): Promise<boolean> {
+    if (!this.available || !this.redis) {
+      return false;
+    }
+
     try {
       const multi = this.redis.multi();
 
@@ -176,6 +202,10 @@ export class EnterpriseCacheService {
    * Increment counter with expiration (for rate limiting)
    */
   static async increment(key: string, ttlSeconds = 3600): Promise<number> {
+    if (!this.available || !this.redis) {
+      return 0;
+    }
+
     try {
       const multi = this.redis.multi();
       multi.incr(key);
@@ -193,6 +223,10 @@ export class EnterpriseCacheService {
    * Get keys matching pattern (use carefully in production)
    */
   static async getKeysByPattern(pattern: string, limit = 1000): Promise<string[]> {
+    if (!this.available || !this.redis) {
+      return [];
+    }
+
     try {
       return await this.scanKeys(this.redis, pattern, limit);
     } catch (error) {
@@ -232,6 +266,10 @@ export class EnterpriseCacheService {
    * Clear cache by pattern (use with caution)
    */
   static async clearByPattern(pattern: string): Promise<number> {
+    if (!this.available || !this.redis) {
+      return 0;
+    }
+
     try {
       const keys = await this.getKeysByPattern(pattern, 10000);
       if (keys.length === 0) {
@@ -260,6 +298,12 @@ export class EnterpriseCacheService {
    * Get cache statistics for monitoring
    */
   static async getStats(): Promise<CacheStats> {
+    if (!this.available || !this.redis) {
+      return {
+        connected: false,
+      };
+    }
+
     try {
       const info = await this.redis.info('memory');
       const keyspace = await this.redis.info('keyspace');
@@ -270,6 +314,7 @@ export class EnterpriseCacheService {
         cpuUsage: (process.cpuUsage() as unknown as Record<string, number>).user / 1000000,
         resourceUsage: process.resourceUsage() as unknown as Record<string, number>,
         cluster: !!this.clusterRedis,
+        connected: this.available,
       };
     } catch (error) {
       logger.error('Cache getStats error:', error);
@@ -297,6 +342,13 @@ export class EnterpriseCacheService {
    * Health check for cache service
    */
   static async healthCheck(): Promise<{ healthy: boolean; latency?: number; error?: string }> {
+    if (!this.available || !this.redis) {
+      return {
+        healthy: false,
+        error: 'Cache unavailable',
+      };
+    }
+
     try {
       const start = Date.now();
       await this.redis.ping();
@@ -324,6 +376,7 @@ export class EnterpriseCacheService {
         await this.clusterRedis.disconnect();
         logger.info('Enterprise cache cluster service closed');
       }
+      this.available = false;
     } catch (error) {
       logger.error('Error closing cache service:', error);
     }
@@ -348,6 +401,10 @@ export class CacheKeys {
     return `case:${caseId}`;
   }
 
+  static scopedCase(userId: string, caseId: string): string {
+    return `case:${userId}:${caseId}`;
+  }
+
   static caseAttachments(caseId: string): string {
     return `case:${caseId}:attachments`;
   }
@@ -370,6 +427,10 @@ export class CacheKeys {
 
   static mobileSync(userId: string): string {
     return `mobile:sync:${userId}`;
+  }
+
+  static scopedMobileSync(userId: string, queryHash: string): string {
+    return `mobile:sync:${userId}:${queryHash}`;
   }
 
   static notifications(userId: string): string {

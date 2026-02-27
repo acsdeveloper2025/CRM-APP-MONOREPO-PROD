@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Plus, Upload, MapPin, Building, Globe, Map } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -89,6 +89,8 @@ export function LocationsPage() {
       page: currentPage,
       limit: pageSize,
     }),
+    enabled: activeTab === 'countries',
+    placeholderData: keepPreviousData,
   });
 
   const { data: statesData, isLoading: statesLoading } = useQuery({
@@ -98,6 +100,8 @@ export function LocationsPage() {
       page: currentPage,
       limit: pageSize,
     }),
+    enabled: activeTab === 'states',
+    placeholderData: keepPreviousData,
   });
 
   const { data: citiesData, isLoading: citiesLoading } = useQuery({
@@ -107,6 +111,8 @@ export function LocationsPage() {
       page: currentPage,
       limit: pageSize,
     }),
+    enabled: activeTab === 'cities',
+    placeholderData: keepPreviousData,
   });
 
   const { data: pincodesData, isLoading: pincodesLoading } = useQuery({
@@ -116,6 +122,8 @@ export function LocationsPage() {
       page: currentPage,
       limit: pageSize
     }),
+    enabled: activeTab === 'pincodes',
+    placeholderData: keepPreviousData,
   });
 
   const { data: areasData, isLoading: areasLoading } = useQuery({
@@ -125,6 +133,40 @@ export function LocationsPage() {
       page: currentPage,
       limit: pageSize
     }),
+    enabled: activeTab === 'areas',
+    placeholderData: keepPreviousData,
+  });
+
+  const { data: locationStats } = useQuery({
+    queryKey: ['locations-summary-counts'],
+    queryFn: async () => {
+      const [countries, states, cities, pincodes, areas] = await Promise.all([
+        locationsService.getCountries({ page: 1, limit: 1 }).catch(() => null),
+        locationsService.getStates({ page: 1, limit: 1 }).catch(() => null),
+        locationsService.getCities({ page: 1, limit: 1 }).catch(() => null),
+        locationsService.getPincodes({ page: 1, limit: 1 }).catch(() => null),
+        locationsService.getAreas({ page: 1, limit: 1 }).catch(() => null),
+      ]);
+
+      const readTotal = (
+        payload: { pagination?: { total?: number }; data?: unknown[] } | null | undefined
+      ): number => {
+        if (!payload) {return 0;}
+        if (typeof payload.pagination?.total === 'number') {
+          return payload.pagination.total;
+        }
+        return Array.isArray(payload.data) ? payload.data.length : 0;
+      };
+
+      return {
+        countries: readTotal(countries),
+        states: readTotal(states),
+        cities: readTotal(cities),
+        pincodes: readTotal(pincodes),
+        areas: readTotal(areas),
+      };
+    },
+    staleTime: 5 * 60 * 1000,
   });
 
   const handleBulkImport = (type: 'countries' | 'states' | 'cities' | 'pincodes') => {
@@ -133,6 +175,10 @@ export function LocationsPage() {
   };
 
   const getTabStats = () => {
+    if (locationStats) {
+      return locationStats;
+    }
+
     return {
       countries: countriesData?.data?.length || 0,
       states: statesData?.data?.length || 0,

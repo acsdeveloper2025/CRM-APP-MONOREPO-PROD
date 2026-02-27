@@ -17,12 +17,17 @@ import {
 } from '@/controllers/dashboardController';
 
 import { DashboardKPIController } from '../controllers/dashboardKPIController';
+import { EnterpriseCache, EnterpriseCacheConfigs } from '../middleware/enterpriseCache';
 
 const router = express.Router();
 
 // New KPI Engine Endpoint
-router.get('/kpi', authenticateToken, authorize('dashboard.view'), (req, res, next) =>
-  DashboardKPIController.getKPIs(req, res).catch(next)
+router.get(
+  '/kpi',
+  authenticateToken,
+  authorize('dashboard.view'),
+  EnterpriseCache.create(EnterpriseCacheConfigs.dashboard),
+  (req, res, next) => DashboardKPIController.getKPIs(req, res).catch(next)
 );
 
 // Validation schemas
@@ -82,6 +87,7 @@ router.get(
   '/',
   authenticateToken,
   authorize('dashboard.view'),
+  EnterpriseCache.create(EnterpriseCacheConfigs.dashboard),
   dashboardQueryValidation,
   validate,
   getDashboardData
@@ -91,6 +97,7 @@ router.get(
   '/charts',
   authenticateToken,
   authorize('dashboard.view'),
+  EnterpriseCache.create(EnterpriseCacheConfigs.dashboard),
   dashboardQueryValidation,
   validate,
   getChartData
@@ -101,6 +108,7 @@ router.get(
   '/stats',
   authenticateToken,
   authorize('dashboard.view'),
+  EnterpriseCache.create(EnterpriseCacheConfigs.dashboard),
   dashboardQueryValidation,
   validate,
   getDashboardStats
@@ -111,6 +119,7 @@ router.get(
   '/case-status-distribution',
   authenticateToken,
   authorize('dashboard.view'),
+  EnterpriseCache.create(EnterpriseCacheConfigs.dashboard),
   dashboardQueryValidation,
   validate,
   getCaseStatusDistribution
@@ -121,6 +130,7 @@ router.get(
   '/monthly-trends',
   authenticateToken,
   authorize('dashboard.view'),
+  EnterpriseCache.create(EnterpriseCacheConfigs.dashboard),
   monthlyTrendsValidation,
   validate,
   getMonthlyTrends
@@ -138,6 +148,7 @@ router.get(
   '/recent-activities',
   authenticateToken,
   authorize('dashboard.view'),
+  EnterpriseCache.create(EnterpriseCacheConfigs.dashboard),
   recentActivitiesValidation,
   validate,
   getRecentActivities
@@ -147,6 +158,7 @@ router.get(
   '/performance-metrics',
   authenticateToken,
   authorize('dashboard.view'),
+  EnterpriseCache.create(EnterpriseCacheConfigs.dashboard),
   dashboardQueryValidation,
   validate,
   getPerformanceMetrics
@@ -157,6 +169,7 @@ router.get(
   '/overdue-tasks',
   authenticateToken,
   authorize('dashboard.view'),
+  EnterpriseCache.create(EnterpriseCacheConfigs.dashboard),
   [
     query('threshold')
       .optional()
@@ -180,7 +193,13 @@ router.get(
   getOverdueTasks
 );
 
-router.get('/tat-stats', authenticateToken, authorize('dashboard.view'), getTATStats);
+router.get(
+  '/tat-stats',
+  authenticateToken,
+  authorize('dashboard.view'),
+  EnterpriseCache.create(EnterpriseCacheConfigs.dashboard),
+  getTATStats
+);
 
 // TODO: Implement remaining dashboard functions
 // router.get('/turnaround-times',
