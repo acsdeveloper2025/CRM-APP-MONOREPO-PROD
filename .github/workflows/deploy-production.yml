@@ -324,13 +324,26 @@ jobs:
       - name: 📤 Transfer Files to Server
         run: |
           echo "📤 Transferring deployment files to production server..."
+          FILES=(
+            deployment-info.json
+            scripts/deploy-production.sh
+            scripts/health-check.sh
+            start-production.sh
+            ecosystem.config.js
+          )
+
+          if [ "${{ github.event.inputs.restore_database }}" = "true" ]; then
+            if [ ! -f "acs_db_final_version.sql" ]; then
+              echo "❌ restore_database=true but acs_db_final_version.sql is missing in repository root"
+              exit 1
+            fi
+            FILES+=(acs_db_final_version.sql)
+          else
+            echo "ℹ️ restore_database is not enabled; skipping DB dump file transfer"
+          fi
+
           scp -r -P ${{ secrets.PRODUCTION_SSH_PORT || '2232' }} -o StrictHostKeyChecking=no \
-            deployment-info.json \
-            scripts/deploy-production.sh \
-            scripts/health-check.sh \
-            start-production.sh \
-            ecosystem.config.js \
-            acs_db_final_version.sql \
+            "${FILES[@]}" \
             ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }}:/tmp/
 
       - name: 🚀 Execute Deployment
