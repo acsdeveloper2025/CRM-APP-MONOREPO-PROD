@@ -1,6 +1,6 @@
 #!/usr/bin/env ts-node
 
-import { Pool } from 'pg';
+import { Pool, PoolClient } from 'pg';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as dotenv from 'dotenv';
@@ -99,7 +99,7 @@ class MigrationRunner {
    * Persist migration execution result, allowing retries to overwrite prior failed attempts.
    */
   private async recordMigrationResult(
-    client: Awaited<ReturnType<typeof pool.connect>>,
+    client: PoolClient,
     migration: Migration,
     checksum: string,
     executionTimeMs: number,
