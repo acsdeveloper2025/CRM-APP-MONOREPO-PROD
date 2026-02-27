@@ -336,6 +336,10 @@ export class CacheKeys {
     return `user:${userId}`;
   }
 
+  static userStats(userId: string): string {
+    return `users:stats:${userId}`;
+  }
+
   static userCases(userId: string, page = 1): string {
     return `user:${userId}:cases:page:${page}`;
   }
