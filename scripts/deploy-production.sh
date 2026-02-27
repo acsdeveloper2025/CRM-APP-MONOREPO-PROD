@@ -133,19 +133,20 @@ parse_deployment_info() {
     TIMESTAMP=$(jq -r '.timestamp' "$DEPLOYMENT_INFO_FILE")
     BACKEND_CHANGED=$(jq -r '.components.backend' "$DEPLOYMENT_INFO_FILE")
     FRONTEND_CHANGED=$(jq -r '.components.frontend' "$DEPLOYMENT_INFO_FILE")
+    MIGRATIONS_CHANGED=$(jq -r '.migrations_changed // false' "$DEPLOYMENT_INFO_FILE")
     FORCE_REBUILD=$(jq -r '.force_rebuild' "$DEPLOYMENT_INFO_FILE")
+    DEPLOY_DATABASE=$(jq -r '.deploy_database // false' "$DEPLOYMENT_INFO_FILE")
     RESTORE_DATABASE=$(jq -r '.restore_database // false' "$DEPLOYMENT_INFO_FILE")
 
-    # Force rebuild all components for now
-    FORCE_REBUILD="true"
-    
     print_info "Deployment Info:"
     print_info "  Commit: $COMMIT_SHA"
     print_info "  Author: $AUTHOR"
     print_info "  Timestamp: $TIMESTAMP"
     print_info "  Backend Changed: $BACKEND_CHANGED"
     print_info "  Frontend Changed: $FRONTEND_CHANGED"
-    print_info "  Force Rebuild: $FORCE_REBUILD (FORCED FOR ALL COMPONENTS)"
+    print_info "  Migrations Changed: $MIGRATIONS_CHANGED"
+    print_info "  Force Rebuild: $FORCE_REBUILD"
+    print_info "  Deploy Database: $DEPLOY_DATABASE"
     print_info "  Restore Database: $RESTORE_DATABASE"
 }
 
@@ -292,9 +293,10 @@ install_dependencies() {
         components+=("CRM-FRONTEND")
     fi
     
-    # If no specific components changed, update all
+    # Skip dependency install for migration-only deployments
     if [ ${#components[@]} -eq 0 ]; then
-        components=("CRM-BACKEND" "CRM-FRONTEND")
+        print_info "No application dependency changes detected, skipping dependency install"
+        return 0
     fi
     
     for component in "${components[@]}"; do
@@ -305,11 +307,15 @@ install_dependencies() {
             # Clear npm cache
             npm cache clean --force
 
-            # Remove node_modules and package-lock.json for fresh install
-            rm -rf node_modules package-lock.json
+            # Remove installed modules only; keep lockfile for reproducible deploys
+            rm -rf node_modules
 
-            # Install dependencies
-            npm install --production=false
+            # Install dependencies from committed lockfile
+            if [ -f "package-lock.json" ]; then
+                npm ci --no-audit --no-fund
+            else
+                npm install --no-audit --no-fund --production=false
+            fi
 
             print_status "$component dependencies installed"
         fi
@@ -340,6 +346,11 @@ build_applications() {
 # Run database migrations
 run_database_migrations() {
     print_header "🗄️ Running Database Migrations"
+
+    if [ "$MIGRATIONS_CHANGED" != "true" ] && [ "$DEPLOY_DATABASE" != "true" ] && [ "$RESTORE_DATABASE" != "true" ]; then
+        print_info "No migration deployment requested, skipping migrations"
+        return 0
+    fi
 
     cd "$PROJECT_ROOT/CRM-BACKEND"
 
