@@ -18,8 +18,7 @@ import {
   List,
   XCircle,
   Copy,
-  Smartphone,
-  type LucideIcon
+  type LucideIcon,
 } from 'lucide-react';
 
 export interface NavigationItem {
@@ -353,11 +352,11 @@ export const navigationItems: NavigationItem[] = [
         permissionCode: 'page.rbac',
       },
       {
-        id: 'mobile-operations',
-        label: 'Mobile Operations',
-        href: '/users/mobile',
-        icon: Smartphone,
-        permissionCode: 'page.mobile',
+        id: 'field-monitoring',
+        label: 'Field Monitoring',
+        href: '/operations/field-monitoring',
+        icon: MapPin,
+        permissionCode: 'page.field_monitoring',
       },
     ],
   },

@@ -127,7 +127,7 @@ class ApiService {
 
         // Special handling for refresh endpoint: NO Authorization header needed
         // The refresh token is sent in the body
-        if (config.url?.includes('/mobile/auth/refresh')) {
+        if (config.url?.includes('/auth/refresh-token')) {
           delete config.headers.Authorization;
         } else if (token) {
           // Normal requests: Use Access Token
@@ -172,8 +172,7 @@ class ApiService {
           if (
             url.includes('/auth/login') || 
             url.includes('/auth/refresh-token') || 
-            url.includes('/auth/logout') ||
-            url.includes('/mobile/auth/')
+            url.includes('/auth/logout')
           ) {
             return Promise.reject(error);
           }
@@ -651,7 +650,7 @@ class ApiService {
       // Handle 401 Unauthorized OR 403 Forbidden (Session Expiry)
       if (response.status === 401 || response.status === 403) {
         // Prevent infinite loops: Don't refresh if the failed request was an auth endpoint
-        if (url.includes('/auth/login') || url.includes('/mobile/auth/refresh') || url.includes('/auth/refresh-token') || url.includes('/auth/logout')) {
+        if (url.includes('/auth/login') || url.includes('/auth/refresh-token') || url.includes('/auth/logout')) {
           return response; 
         }
         

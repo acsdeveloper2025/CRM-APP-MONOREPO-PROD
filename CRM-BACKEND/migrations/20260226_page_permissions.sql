@@ -10,8 +10,7 @@ INSERT INTO permissions (code, module, description) VALUES
   ('page.rbac', 'page', 'Access RBAC Administration page'),
   ('page.settings', 'page', 'Access Settings page'),
   ('page.masterdata', 'page', 'Access Master Data pages'),
-  ('page.analytics', 'page', 'Access Analytics and MIS pages'),
-  ('page.mobile', 'page', 'Access Mobile Web page')
+  ('page.analytics', 'page', 'Access Analytics and MIS pages')
 ON CONFLICT (code) DO NOTHING;
 
 WITH grants AS (
@@ -21,9 +20,6 @@ WITH grants AS (
     (rv.name IN ('SUPER_ADMIN', 'ADMIN') AND p.code LIKE 'page.%') OR
     (rv.name = 'BACKEND_USER' AND p.code IN (
       'page.dashboard', 'page.cases', 'page.tasks', 'page.reports'
-    )) OR
-    (rv.name = 'FIELD_AGENT' AND p.code IN (
-      'page.mobile'
     )) OR
     (rv.name = 'MANAGER' AND p.code IN (
       'page.dashboard', 'page.tasks', 'page.reports'

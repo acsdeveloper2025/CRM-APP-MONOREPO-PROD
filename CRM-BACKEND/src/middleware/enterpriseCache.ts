@@ -5,6 +5,19 @@ import { EnterpriseCacheService, CacheKeys } from '../services/enterpriseCacheSe
 import { logger } from '../config/logger';
 import crypto from 'crypto';
 
+export const getFieldMonitoringScopeHash = (req: AuthenticatedRequest): string => {
+  const scopePayload = {
+    assignedClientIds: req.user?.assignedClientIds || [],
+    assignedProductIds: req.user?.assignedProductIds || [],
+    teamLeaderId: req.user?.teamLeaderId || null,
+    managerId: req.user?.managerId || null,
+    primaryRole: req.user?.primaryRole || null,
+    permissions: req.user?.permissionCodes || [],
+  };
+
+  return crypto.createHash('md5').update(JSON.stringify(scopePayload)).digest('hex');
+};
+
 export interface CacheConfig {
   ttl: number; // Time to live in seconds
   keyGenerator?: (req: Request) => string;
@@ -448,6 +461,43 @@ export const EnterpriseCacheConfigs = {
     },
     condition: (req: Request) => req.method === 'GET',
   },
+
+  fieldMonitoringStats: {
+    ttl: 30,
+    keyGenerator: (req: Request) => {
+      const authReq = req as AuthenticatedRequest;
+      const userId = authReq.user?.id || 'anon';
+      const scopeHash = getFieldMonitoringScopeHash(authReq);
+      return CacheKeys.fieldMonitoringStats(userId, scopeHash);
+    },
+    condition: (req: Request) => req.method === 'GET',
+  },
+
+  fieldMonitoringRoster: {
+    ttl: 10,
+    keyGenerator: (req: Request) => {
+      const authReq = req as AuthenticatedRequest;
+      const userId = authReq.user?.id || 'anon';
+      const page = Number(req.query.page) || 1;
+      const scopeHash = getFieldMonitoringScopeHash(authReq);
+      const queryHash = crypto.createHash('md5').update(JSON.stringify(req.query)).digest('hex');
+      return CacheKeys.fieldMonitoringRoster(userId, page, scopeHash, queryHash);
+    },
+    condition: (req: Request) => req.method === 'GET',
+  },
+
+  fieldMonitoringDetails: {
+    ttl: 10,
+    keyGenerator: (req: Request) => {
+      const authReq = req as AuthenticatedRequest;
+      const viewerUserId = authReq.user?.id || 'anon';
+      const rawId = req.params.id;
+      const targetUserId = Array.isArray(rawId) ? String(rawId[0] || '') : String(rawId || '');
+      const scopeHash = getFieldMonitoringScopeHash(authReq);
+      return CacheKeys.fieldMonitoringUserDetail(viewerUserId, targetUserId, scopeHash);
+    },
+    condition: (req: Request) => req.method === 'GET',
+  },
 };
 
 // Cache invalidation patterns
@@ -460,9 +510,16 @@ export const CacheInvalidationPatterns = {
     'case:*',
     'dashboard:*',
     'mobile:sync:*',
+    'field-monitoring:*',
   ],
 
-  userUpdate: ['api_cache:{userId}:*', CacheKeys.user('{userId}'), 'users:*', 'users:stats:*'],
+  userUpdate: [
+    'api_cache:{userId}:*',
+    CacheKeys.user('{userId}'),
+    'users:*',
+    'users:stats:*',
+    'field-monitoring:*',
+  ],
 
   assignmentUpdate: [
     'api_cache:*:*cases*',
@@ -473,6 +530,7 @@ export const CacheInvalidationPatterns = {
     'case:*',
     'dashboard:*',
     'users:*', // Invalidate user lists to update assignment counts
+    'field-monitoring:*',
   ],
 
   clientUpdate: ['clients:*', 'api_cache:*:*clients*'],
@@ -482,4 +540,6 @@ export const CacheInvalidationPatterns = {
   productUpdate: ['products:*', 'api_cache:*:*products*'],
 
   rateTypeUpdate: ['rate-types:*', 'api_cache:*:*rate-types*'],
+
+  fieldMonitoringUpdate: ['field-monitoring:*'],
 };

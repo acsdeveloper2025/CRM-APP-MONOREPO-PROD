@@ -61,6 +61,7 @@ import healthRoutes from '@/routes/health';
 import aiReportsRoutes from '@/routes/aiReports';
 import verificationTasksRoutes from '@/routes/verificationTasks';
 import templateReportsRoutes from '@/routes/templateReports';
+import fieldMonitoringRoutes from '@/routes/fieldMonitoring';
 
 const app = express();
 
@@ -195,6 +196,7 @@ app.use('/api/rate-type-assignments', rateTypeAssignmentsRoutes);
 app.use('/api/rates', ratesRoutes);
 app.use('/api/ai-reports', aiReportsRoutes);
 app.use('/api/template-reports', templateReportsRoutes);
+app.use('/api/field-monitoring', fieldMonitoringRoutes);
 
 // Multi-verification task routes
 app.use('/api', verificationTasksRoutes);

@@ -433,6 +433,27 @@ export class CacheKeys {
     return `mobile:sync:${userId}:${queryHash}`;
   }
 
+  static fieldMonitoringStats(userId: string, scopeHash: string): string {
+    return `field-monitoring:stats:${userId}:${scopeHash}`;
+  }
+
+  static fieldMonitoringRoster(
+    userId: string,
+    page: number,
+    scopeHash: string,
+    queryHash: string
+  ): string {
+    return `field-monitoring:users:${userId}:page:${page}:${scopeHash}:${queryHash}`;
+  }
+
+  static fieldMonitoringUserDetail(
+    viewerUserId: string,
+    targetUserId: string,
+    scopeHash: string
+  ): string {
+    return `field-monitoring:user:${viewerUserId}:${targetUserId}:${scopeHash}`;
+  }
+
   static notifications(userId: string): string {
     return `notifications:${userId}`;
   }
