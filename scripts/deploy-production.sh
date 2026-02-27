@@ -257,35 +257,6 @@ stop_services() {
     fi
 }
 
-# Update code
-update_code() {
-    print_header "📥 Updating Code"
-
-    cd "$PROJECT_ROOT"
-
-    # Check if this is a git repository
-    if [ -d ".git" ]; then
-        if [ -n "$(git status --porcelain)" ]; then
-            print_error "Remote git worktree is dirty. Deployment aborted to avoid mixing server-side edits with repository code."
-            print_error "Clean or discard server changes in: $PROJECT_ROOT"
-            print_error "Current modified files:"
-            git status --short | tee -a "$LOG_FILE"
-            exit 1
-        fi
-
-        print_info "Fetching latest changes from repository..."
-        git fetch origin
-
-        # Checkout specific commit
-        print_info "Checking out commit: $COMMIT_SHA"
-        git checkout "$COMMIT_SHA"
-
-        print_status "Code updated successfully"
-    else
-        print_info "Not a git repository, code already synced from release"
-    fi
-}
-
 # Install dependencies
 install_dependencies() {
     print_header "📦 Installing Dependencies"
@@ -558,39 +529,47 @@ start_services() {
     fi
 }
 
-# Create new release (simplified - no tarball extraction)
+# Create new release metadata
 create_release() {
     print_header "📦 Creating New Release"
-    
-    # Get commit SHA from deployment info
+
     local COMMIT_SHA=$(jq -r '.commit_sha // "unknown"' "$DEPLOYMENT_INFO_FILE")
-    
-    # Create timestamped release directory
+
     RELEASE_NAME="$(date +%Y%m%d_%H%M%S)_${COMMIT_SHA:0:8}"
     NEW_RELEASE_DIR="$RELEASES_DIR/$RELEASE_NAME"
-    
+
     print_info "Creating release: $RELEASE_NAME"
     mkdir -p "$NEW_RELEASE_DIR"
-    # This preserves uploads, logs, and other runtime directories
-    print_info "Using rsync to sync files (preserving existing directories)..."
-    rsync -av --exclude='node_modules' \
-              --exclude='dist' \
-              --exclude='build' \
-              --exclude='.env' \
-              --exclude='.env.local' \
-              --exclude='.env.production' \
-              --exclude='uploads' \
-              --exclude='logs' \
-              --exclude='*.log' \
-              "$NEW_RELEASE_DIR/" "$PROJECT_ROOT/"
-
-    print_status "New release created: $NEW_RELEASE_DIR"
-    print_status "Code synced to: $PROJECT_ROOT"
+    cp "$DEPLOYMENT_INFO_FILE" "$NEW_RELEASE_DIR/deployment-info.json"
+    print_status "Release metadata created: $NEW_RELEASE_DIR"
 }
 
-# Update code (Legacy function, now handled by create_release)
+# Update code from git
 update_code() {
-    print_info "Code update handled by release creation (tarball extraction)"
+    print_header "📥 Updating Code"
+
+    cd "$PROJECT_ROOT"
+
+    if [ -d ".git" ]; then
+        if [ -n "$(git status --porcelain)" ]; then
+            print_error "Remote git worktree is dirty. Deployment aborted to avoid mixing server-side edits with repository code."
+            print_error "Clean or discard server changes in: $PROJECT_ROOT"
+            print_error "Current modified files:"
+            git status --short | tee -a "$LOG_FILE"
+            exit 1
+        fi
+
+        print_info "Fetching latest changes from repository..."
+        git fetch origin
+
+        print_info "Checking out commit: $COMMIT_SHA"
+        git checkout "$COMMIT_SHA"
+
+        print_status "Code updated successfully"
+    else
+        print_error "Project root is not a git repository: $PROJECT_ROOT"
+        exit 1
+    fi
 }
 
 # Cleanup old releases and backups
