@@ -22,6 +22,10 @@ import {
 } from '../middleware/enterpriseCache';
 
 const router = Router();
+const invalidateFieldMonitoring = EnterpriseCache.invalidate(
+  CacheInvalidationPatterns.fieldMonitoringUpdate,
+  { synchronous: true }
+);
 
 // Apply mobile-specific rate limiting - GENEROUS limits for field agents
 router.use(mobileRateLimit(10000, 15 * 60 * 1000)); // 10,000 requests per 15 minutes for high-volume field operations
@@ -214,6 +218,7 @@ router.post(
   authenticateToken,
   authorize('visit.submit', { ownership: 'task' }),
   validateMobileVersion,
+  invalidateFieldMonitoring,
   MobileFormController.submitResidenceVerification
 );
 router.post(
@@ -221,6 +226,7 @@ router.post(
   authenticateToken,
   authorize('visit.submit', { ownership: 'task' }),
   validateMobileVersion,
+  invalidateFieldMonitoring,
   MobileFormController.submitOfficeVerification
 );
 router.post(
@@ -228,6 +234,7 @@ router.post(
   authenticateToken,
   authorize('visit.submit', { ownership: 'task' }),
   validateMobileVersion,
+  invalidateFieldMonitoring,
   MobileFormController.submitBusinessVerification
 );
 router.post(
@@ -235,6 +242,7 @@ router.post(
   authenticateToken,
   authorize('visit.submit', { ownership: 'task' }),
   validateMobileVersion,
+  invalidateFieldMonitoring,
   MobileFormController.submitBuilderVerification
 );
 router.post(
@@ -242,6 +250,7 @@ router.post(
   authenticateToken,
   authorize('visit.submit', { ownership: 'task' }),
   validateMobileVersion,
+  invalidateFieldMonitoring,
   MobileFormController.submitResidenceCumOfficeVerification
 );
 router.post(
@@ -249,6 +258,7 @@ router.post(
   authenticateToken,
   authorize('visit.submit', { ownership: 'task' }),
   validateMobileVersion,
+  invalidateFieldMonitoring,
   MobileFormController.submitDsaConnectorVerification
 );
 router.post(
@@ -256,6 +266,7 @@ router.post(
   authenticateToken,
   authorize('visit.submit', { ownership: 'task' }),
   validateMobileVersion,
+  invalidateFieldMonitoring,
   MobileFormController.submitPropertyIndividualVerification
 );
 router.post(
@@ -263,6 +274,7 @@ router.post(
   authenticateToken,
   authorize('visit.submit', { ownership: 'task' }),
   validateMobileVersion,
+  invalidateFieldMonitoring,
   MobileFormController.submitPropertyApfVerification
 );
 router.post(
@@ -270,6 +282,7 @@ router.post(
   authenticateToken,
   authorize('visit.submit', { ownership: 'task' }),
   validateMobileVersion,
+  invalidateFieldMonitoring,
   MobileFormController.submitNocVerification
 );
 
@@ -305,6 +318,7 @@ router.post(
   authorize('visit.start'),
   validateMobileVersion,
   geoRateLimit,
+  invalidateFieldMonitoring,
   MobileLocationController.captureLocation
 );
 router.post(
@@ -343,6 +357,7 @@ router.post(
   authenticateToken,
   authorize('visit.start'),
   validateMobileVersion,
+  invalidateFieldMonitoring,
   MobileSyncController.enterpriseSync
 );
 router.post(
@@ -350,6 +365,7 @@ router.post(
   authenticateToken,
   authorize('visit.start'),
   validateMobileVersion,
+  invalidateFieldMonitoring,
   MobileSyncController.uploadSync
 );
 router.get(
