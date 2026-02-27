@@ -401,13 +401,24 @@ export const EnterpriseCacheConfigs = {
     condition: (req: Request) => req.method === 'GET',
     varyBy: ['X-User-Role'],
   },
+
+  // User dashboard/stats cards caching - short TTL with explicit invalidation
+  userStats: {
+    ttl: 30, // Keep fresh because cards are highly visible and include recent logins
+    keyGenerator: (req: Request) => {
+      const userId = (req as AuthenticatedRequest).user?.id || 'anon';
+      const query = JSON.stringify(req.query);
+      return `${CacheKeys.userStats(userId)}:${crypto.createHash('md5').update(query).digest('hex')}`;
+    },
+    condition: (req: Request) => req.method === 'GET',
+  },
 };
 
 // Cache invalidation patterns
 export const CacheInvalidationPatterns = {
   caseUpdate: ['api_cache:*:*cases*', 'analytics:*', CacheKeys.fieldAgentWorkload()],
 
-  userUpdate: ['api_cache:{userId}:*', CacheKeys.user('{userId}'), 'users:*'],
+  userUpdate: ['api_cache:{userId}:*', CacheKeys.user('{userId}'), 'users:*', 'users:stats:*'],
 
   assignmentUpdate: [
     'api_cache:*:*cases*',

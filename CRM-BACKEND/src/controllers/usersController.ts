@@ -1318,6 +1318,17 @@ export const searchUsers = async (req: AuthenticatedRequest, res: Response) => {
 // GET /api/users/stats - Get user statistics
 export const getUserStats = async (req: AuthenticatedRequest, res: Response) => {
   try {
+    const getCountValue = (row: Record<string, unknown> | undefined, key: string): number => {
+      if (!row) {
+        return 0;
+      }
+      const lowerKey = key.toLowerCase();
+      const snakeKey = key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+      const raw = row[key] ?? row[lowerKey] ?? row[snakeKey];
+      const value = Number(raw ?? 0);
+      return Number.isFinite(value) ? value : 0;
+    };
+
     // Get basic user counts
     const userCountsQuery = `
       SELECT
@@ -1326,6 +1337,7 @@ export const getUserStats = async (req: AuthenticatedRequest, res: Response) => 
         COUNT(CASE WHEN "isActive" = false THEN 1 END) as "inactiveUsers",
         COUNT(CASE WHEN "createdAt" >= DATE_TRUNC('month', CURRENT_DATE) THEN 1 END) as "newUsersThisMonth"
       FROM users
+      WHERE "deletedAt" IS NULL
     `;
     const userCounts = await query(userCountsQuery);
 
@@ -1340,6 +1352,7 @@ export const getUserStats = async (req: AuthenticatedRequest, res: Response) => 
         COUNT(*) as count
       FROM users u
       LEFT JOIN roles r ON u."roleId" = r.id
+      WHERE u."deletedAt" IS NULL
       GROUP BY COALESCE(
         (SELECT rv.name FROM user_roles ur JOIN roles_v2 rv ON rv.id = ur.role_id WHERE ur.user_id = u.id ORDER BY rv.name LIMIT 1),
         r.name,
@@ -1356,6 +1369,7 @@ export const getUserStats = async (req: AuthenticatedRequest, res: Response) => 
         COUNT(*) as count
       FROM users u
       LEFT JOIN departments d ON u."departmentId" = d.id
+      WHERE u."deletedAt" IS NULL
       GROUP BY d.name
       ORDER BY count DESC
     `;
@@ -1370,20 +1384,21 @@ export const getUserStats = async (req: AuthenticatedRequest, res: Response) => 
         "lastLogin" as "lastLoginAt"
       FROM users
       WHERE "lastLogin" >= NOW() - INTERVAL '24 hours'
+        AND "deletedAt" IS NULL
       ORDER BY "lastLogin" DESC
       LIMIT 10
     `;
     const recentLoginsResult = await query(recentLoginsQuery);
 
-    const stats = userCounts.rows[0];
+    const statsRow = (userCounts.rows[0] || {}) as Record<string, unknown>;
 
     res.json({
       success: true,
       data: {
-        totalUsers: parseInt(stats.totalUsers),
-        activeUsers: parseInt(stats.activeUsers),
-        inactiveUsers: parseInt(stats.inactiveUsers),
-        newUsersThisMonth: parseInt(stats.newUsersThisMonth) || 0,
+        totalUsers: getCountValue(statsRow, 'totalUsers'),
+        activeUsers: getCountValue(statsRow, 'activeUsers'),
+        inactiveUsers: getCountValue(statsRow, 'inactiveUsers'),
+        newUsersThisMonth: getCountValue(statsRow, 'newUsersThisMonth'),
         usersByRole: roleStats.rows,
         usersByDepartment: departmentStats.rows,
         recentLogins: recentLoginsResult.rows,

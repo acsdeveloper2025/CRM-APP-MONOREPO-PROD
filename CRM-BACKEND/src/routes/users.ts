@@ -390,7 +390,7 @@ router.get(
   '/stats',
   authenticateToken,
   authorize('user.view'),
-  EnterpriseCache.create(EnterpriseCacheConfigs.analytics),
+  EnterpriseCache.create(EnterpriseCacheConfigs.userStats),
   getUserStats
 );
 

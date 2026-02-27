@@ -42,6 +42,7 @@ export function UsersPage() {
 
   const { hasPermissionCode } = usePermissionContext();
   const canManageRbac = hasPermissionCode('permission.manage') || hasPermissionCode('role.manage');
+  const canViewUsersData = hasPermissionCode('user.view');
 
   const adminTabs = ['users', 'activities', 'sessions'] as const;
   const standardTabs = ['users'] as const;
@@ -138,6 +139,7 @@ export function UsersPage() {
   const { data: userStatsData } = useQuery({
     queryKey: ['user-stats'],
     queryFn: () => usersService.getUserStats(),
+    enabled: canViewUsersData,
   });
 
   const handleExportUsers = async (format: 'CSV' | 'EXCEL' = 'EXCEL') => {
@@ -209,6 +211,15 @@ export function UsersPage() {
   }
 
   const stats = getTabStats();
+  const resolvedUserStats = userStatsData?.data || {
+    totalUsers: Number(stats.users.total || 0),
+    activeUsers: Number(stats.users.active || 0),
+    inactiveUsers: Number(stats.users.inactive || 0),
+    newUsersThisMonth: 0,
+    usersByRole: [],
+    usersByDepartment: [],
+    recentLogins: [],
+  };
 
   return (
     <div className="space-y-6">
@@ -223,8 +234,8 @@ export function UsersPage() {
       </div>
 
       {/* Stats Cards */}
-      {userStatsData?.data && (
-        <UserStatsCards stats={userStatsData.data} />
+      {canViewUsersData && (
+        <UserStatsCards stats={resolvedUserStats} />
       )}
 
       {/* Main Content */}
