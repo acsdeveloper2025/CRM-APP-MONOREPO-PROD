@@ -856,10 +856,10 @@ export const getCommissionCalculations = async (req: AuthenticatedRequest, res: 
     const summaryQuery = `
       SELECT
         COUNT(*) as total_calculations,
-        SUM(calculated_commission) as total_commission,
-        COUNT(CASE WHEN status = 'PENDING' THEN 1 END) as pending_count,
-        COUNT(CASE WHEN status = 'APPROVED' THEN 1 END) as approved_count,
-        COUNT(CASE WHEN status = 'PAID' THEN 1 END) as paid_count
+        SUM(cc.calculated_commission) as total_commission,
+        COUNT(CASE WHEN cc.status = 'PENDING' THEN 1 END) as pending_count,
+        COUNT(CASE WHEN cc.status = 'APPROVED' THEN 1 END) as approved_count,
+        COUNT(CASE WHEN cc.status = 'PAID' THEN 1 END) as paid_count
       FROM commission_calculations cc
       LEFT JOIN cases ON cc.case_id = cases.id
       ${whereClause ? `WHERE ${whereClause}` : ''}
@@ -1395,12 +1395,12 @@ export const getCommissionStats = async (req: AuthenticatedRequest, res: Respons
     const calculationsStatsQuery = `
       SELECT
         COUNT(*) as total_calculations,
-        COUNT(CASE WHEN status = 'PAID' THEN 1 END) as paid_calculations,
-        COUNT(CASE WHEN status = 'PENDING' THEN 1 END) as pending_calculations,
-        COUNT(CASE WHEN status = 'APPROVED' THEN 1 END) as approved_calculations,
-        COUNT(CASE WHEN status = 'REJECTED' THEN 1 END) as rejected_calculations,
-        COALESCE(SUM(CASE WHEN status = 'PAID' THEN commission_amount ELSE 0 END), 0) as total_paid_amount,
-        COALESCE(SUM(CASE WHEN status = 'PENDING' THEN commission_amount ELSE 0 END), 0) as total_pending_amount,
+        COUNT(CASE WHEN cc.status = 'PAID' THEN 1 END) as paid_calculations,
+        COUNT(CASE WHEN cc.status = 'PENDING' THEN 1 END) as pending_calculations,
+        COUNT(CASE WHEN cc.status = 'APPROVED' THEN 1 END) as approved_calculations,
+        COUNT(CASE WHEN cc.status = 'REJECTED' THEN 1 END) as rejected_calculations,
+        COALESCE(SUM(CASE WHEN cc.status = 'PAID' THEN cc.commission_amount ELSE 0 END), 0) as total_paid_amount,
+        COALESCE(SUM(CASE WHEN cc.status = 'PENDING' THEN cc.commission_amount ELSE 0 END), 0) as total_pending_amount,
         COALESCE(AVG(commission_amount), 0) as average_commission
       FROM commission_calculations cc
       LEFT JOIN cases ON cc.case_id = cases.id
