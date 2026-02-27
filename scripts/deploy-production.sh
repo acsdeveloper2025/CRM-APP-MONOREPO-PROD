@@ -265,6 +265,14 @@ update_code() {
 
     # Check if this is a git repository
     if [ -d ".git" ]; then
+        if [ -n "$(git status --porcelain)" ]; then
+            print_error "Remote git worktree is dirty. Deployment aborted to avoid mixing server-side edits with repository code."
+            print_error "Clean or discard server changes in: $PROJECT_ROOT"
+            print_error "Current modified files:"
+            git status --short | tee -a "$LOG_FILE"
+            exit 1
+        fi
+
         print_info "Fetching latest changes from repository..."
         git fetch origin
 
