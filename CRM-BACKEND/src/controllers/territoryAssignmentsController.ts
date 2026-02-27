@@ -5,6 +5,13 @@ import type { AuthenticatedRequest } from '@/middleware/auth';
 import type { QueryParams } from '@/types/database';
 import { isExecutionEligibleUser, loadUserCapabilityProfile } from '@/security/userCapabilities';
 
+const getSingleParam = (value: string | string[] | undefined): string | undefined => {
+  if (typeof value === 'string') {
+    return value;
+  }
+  return Array.isArray(value) ? value[0] : undefined;
+};
+
 // GET /api/territory-assignments/field-agents - List all field agents with their territory assignments
 export const getFieldAgentTerritories = async (req: AuthenticatedRequest, res: Response) => {
   try {
@@ -165,7 +172,14 @@ export const getFieldAgentTerritories = async (req: AuthenticatedRequest, res: R
 // GET /api/territory-assignments/field-agents/:userId - Get specific field agent's territory assignments
 export const getFieldAgentTerritoryById = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { userId } = req.params;
+    const userId = getSingleParam(req.params.userId);
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: 'userId is required',
+        error: { code: 'INVALID_INPUT' },
+      });
+    }
 
     // Verify user exists and is execution-eligible
     const userCheck = await query(
@@ -247,7 +261,14 @@ export const getFieldAgentTerritoryById = async (req: AuthenticatedRequest, res:
 // POST /api/territory-assignments/field-agents/:userId/pincodes - Assign pincodes to field agent
 export const assignPincodesToFieldAgent = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { userId } = req.params;
+    const userId = getSingleParam(req.params.userId);
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: 'userId is required',
+        error: { code: 'INVALID_INPUT' },
+      });
+    }
     const { pincodeIds } = req.body;
 
     // Validate authentication - assignedBy field is required and must reference a valid user
@@ -410,7 +431,14 @@ export const assignPincodesToFieldAgent = async (req: AuthenticatedRequest, res:
 // POST /api/territory-assignments/field-agents/:userId/areas - Assign areas within pincodes to field agent
 export const assignAreasToFieldAgent = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { userId } = req.params;
+    const userId = getSingleParam(req.params.userId);
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: 'userId is required',
+        error: { code: 'INVALID_INPUT' },
+      });
+    }
     const { assignments } = req.body; // Array of { pincodeId, areaIds }
 
     // Validate authentication - assignedBy field is required and must reference a valid user
@@ -730,7 +758,14 @@ export const removeAreaAssignment = async (req: AuthenticatedRequest, res: Respo
 // POST /api/territory-assignments/field-agents/:userId/add-pincode - Add single pincode with areas (incremental)
 export const addSinglePincodeAssignment = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { userId } = req.params;
+    const userId = getSingleParam(req.params.userId);
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: 'userId is required',
+        error: { code: 'INVALID_INPUT' },
+      });
+    }
     const { pincodeId, areaIds = [] } = req.body;
 
     // Validate input
@@ -880,7 +915,14 @@ export const addSinglePincodeAssignment = async (req: AuthenticatedRequest, res:
 // DELETE /api/territory-assignments/field-agents/:userId/all - Remove all territory assignments
 export const removeAllTerritoryAssignments = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { userId } = req.params;
+    const userId = getSingleParam(req.params.userId);
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: 'userId is required',
+        error: { code: 'INVALID_INPUT' },
+      });
+    }
 
     // Verify user exists and is execution-eligible
     const userResult = await query('SELECT id, name, username FROM users WHERE id = $1', [userId]);

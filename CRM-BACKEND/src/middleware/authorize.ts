@@ -32,12 +32,30 @@ const forbidden = (res: Response, permissionCode: string, reason?: string): void
   res.status(403).json(response);
 };
 
+const toSingleString = (value: unknown): string | undefined => {
+  if (typeof value === 'string') {
+    return value;
+  }
+  if (Array.isArray(value) && typeof value[0] === 'string') {
+    return value[0];
+  }
+  return undefined;
+};
+
 const getTaskIdFromRequest = (req: AuthenticatedRequest): string | undefined => {
-  return req.params.taskId || req.params.id || (req.body?.taskId as string | undefined);
+  return (
+    toSingleString(req.params.taskId) ??
+    toSingleString(req.params.id) ??
+    toSingleString(req.body?.taskId)
+  );
 };
 
 const getCaseIdFromRequest = (req: AuthenticatedRequest): string | undefined => {
-  return req.params.caseId || req.params.id || (req.body?.caseId as string | undefined);
+  return (
+    toSingleString(req.params.caseId) ??
+    toSingleString(req.params.id) ??
+    toSingleString(req.body?.caseId)
+  );
 };
 
 const hasPermission = (req: AuthenticatedRequest, permissionCode: string): boolean => {
