@@ -16,7 +16,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { notificationService } from '@/services/notifications';
+import { notificationService, type AppNotification } from '@/services/notifications';
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -77,12 +77,57 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
   const unreadCount = notificationsQuery.data?.unreadCount || 0;
   const recentNotifications = notificationsQuery.data?.items || [];
 
+  const markNotificationReadInCache = (notificationId: string) => {
+    queryClient.setQueriesData<
+      | {
+          items: AppNotification[];
+          unreadCount: number;
+          pagination: {
+            total: number;
+            limit: number;
+            offset: number;
+            hasMore: boolean;
+          };
+        }
+      | undefined
+    >({ queryKey: ['notifications'] }, (current) => {
+      if (!current) {
+        return current;
+      }
+
+      let changed = false;
+      const items = current.items.map((notification) => {
+        if (notification.id !== notificationId || notification.isRead) {
+          return notification;
+        }
+
+        changed = true;
+        return {
+          ...notification,
+          isRead: true,
+          readAt: new Date().toISOString(),
+        };
+      });
+
+      if (!changed) {
+        return current;
+      }
+
+      return {
+        ...current,
+        items,
+        unreadCount: Math.max(0, current.unreadCount - 1),
+      };
+    });
+  };
+
   const handleNotificationOpen = async (notificationId: string, actionUrl?: string) => {
     const notification = recentNotifications.find(item => item.id === notificationId);
 
     try {
       if (notification && !notification.isRead) {
         await notificationService.markRead(notificationId);
+        markNotificationReadInCache(notificationId);
       }
 
       const target = notification
@@ -98,6 +143,10 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
         return;
       }
 
+      void Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['notifications'] }),
+        queryClient.invalidateQueries({ queryKey: ['notifications-history'] }),
+      ]);
       navigate(target);
     } catch {
       void Promise.all([
