@@ -151,9 +151,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
 
     const socket = frontendSocketService.connect(state.token);
-    const unsubscribe =
+    const unsubscribePermissions =
       frontendSocketService.onPermissionsUpdated(async () => {
         await refreshUserPermissions();
+      }) || undefined;
+    const unsubscribeNotifications =
+      frontendSocketService.onNotification(async (notification) => {
+        toast.info(notification.title, {
+          description: notification.message,
+        });
+
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ['notifications'] }),
+          queryClient.invalidateQueries({ queryKey: ['notifications-history'] }),
+        ]);
       }) || undefined;
 
     socket.on('connect_error', (error) => {
@@ -161,11 +172,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     });
 
     return () => {
-      if (unsubscribe) {unsubscribe();}
+      if (unsubscribePermissions) {unsubscribePermissions();}
+      if (unsubscribeNotifications) {unsubscribeNotifications();}
       socket.off('connect_error');
       frontendSocketService.disconnect();
     };
-  }, [state.isAuthenticated, state.token, refreshUserPermissions]);
+  }, [state.isAuthenticated, state.token, refreshUserPermissions, queryClient]);
 
   const login = async (credentials: LoginRequest): Promise<boolean> => {
     setState(prev => ({ ...prev, isLoading: true }));

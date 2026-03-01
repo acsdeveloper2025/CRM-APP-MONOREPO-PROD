@@ -1,9 +1,10 @@
 import React from 'react';
-import { Menu, Moon, Sun, LogOut, User, Settings, Trash2 } from 'lucide-react';
-import { useLocation } from 'react-router-dom';
+import { Menu, Moon, Sun, LogOut, User, Settings, Trash2, Bell } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { useCacheClearer } from '@/utils/clearCache';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -15,6 +16,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { notificationService } from '@/services/notifications';
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -24,8 +26,16 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const location = useLocation();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { clearCache } = useCacheClearer();
+  const notificationsQuery = useQuery({
+    queryKey: ['notifications', 'header'],
+    queryFn: () => notificationService.list({ limit: 8, offset: 0 }),
+    enabled: Boolean(user),
+    refetchInterval: 60000,
+    staleTime: 15000,
+  });
 
   const handleLogout = async () => {
     await logout();
@@ -60,7 +70,42 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
     if (path === '/forms') {return 'Forms';}
     if (path === '/security-ux') {return 'Security & UX';}
     if (path === '/settings') {return 'Settings';}
+    if (path === '/notifications') {return 'Notifications';}
     return 'Dashboard';
+  };
+
+  const unreadCount = notificationsQuery.data?.unreadCount || 0;
+  const recentNotifications = notificationsQuery.data?.items || [];
+
+  const handleNotificationOpen = async (notificationId: string, actionUrl?: string) => {
+    const notification = recentNotifications.find(item => item.id === notificationId);
+
+    try {
+      if (notification && !notification.isRead) {
+        await notificationService.markRead(notificationId);
+      }
+
+      const target = notification
+        ? await notificationService.validateNavigationTarget(notification)
+        : actionUrl || '/notifications';
+
+      if (!target) {
+        toast.error('No longer available');
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ['notifications'] }),
+          queryClient.invalidateQueries({ queryKey: ['notifications-history'] }),
+        ]);
+        return;
+      }
+
+      navigate(target);
+    } catch {
+      void Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['notifications'] }),
+        queryClient.invalidateQueries({ queryKey: ['notifications-history'] }),
+      ]);
+      toast.error('No longer available');
+    }
   };
 
   return (
@@ -85,6 +130,70 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
 
         {/* Right side actions */}
         <div className="flex items-center space-x-1 sm:space-x-2 lg:space-x-4">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="relative h-8 w-8 sm:h-9 sm:w-9 lg:h-10 lg:w-10 text-white hover:bg-green-700 dark:hover:bg-green-800 hover:text-white transition-colors duration-200"
+              >
+                <Bell className="h-4 w-4 sm:h-5 sm:w-5" />
+                {unreadCount > 0 && (
+                  <span className="absolute -right-1 -top-1 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-white px-1 text-[10px] font-semibold text-green-700">
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                )}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-80">
+              <DropdownMenuLabel className="flex items-center justify-between">
+                <span>Notifications</span>
+                <span className="text-xs font-normal text-gray-600">
+                  {unreadCount} unread
+                </span>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {recentNotifications.length === 0 ? (
+                <div className="px-2 py-4 text-sm text-gray-600">No notifications yet</div>
+              ) : (
+                recentNotifications.map((notification) => (
+                  <DropdownMenuItem
+                    key={notification.id}
+                    className="flex cursor-pointer flex-col items-start gap-1 whitespace-normal py-2"
+                    onSelect={(event) => {
+                      event.preventDefault();
+                      void handleNotificationOpen(
+                        notification.id,
+                        notification.actionUrl ||
+                          (typeof notification.data?.actionUrl === 'string'
+                            ? notification.data.actionUrl
+                            : undefined)
+                      );
+                    }}
+                  >
+                    <div className="flex w-full items-start justify-between gap-2">
+                      <span className="font-medium">{notification.title}</span>
+                      {!notification.isRead && (
+                        <span className="mt-1 h-2 w-2 rounded-full bg-green-600" />
+                      )}
+                    </div>
+                    <span className="line-clamp-2 text-xs text-gray-600">
+                      {notification.message}
+                    </span>
+                  </DropdownMenuItem>
+                ))
+              )}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onSelect={(event) => {
+                  event.preventDefault();
+                  navigate('/notifications');
+                }}
+              >
+                View all notifications
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           {/* Theme toggle */}
           <Button

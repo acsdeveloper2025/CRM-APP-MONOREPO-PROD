@@ -38,9 +38,16 @@ export class VerificationTaskCreationService {
       verificationTypeId: number;
       pincode: unknown;
       areaId: unknown;
+      rateTypeId?: number | null;
     }
   ): Promise<ValidatedTaskTerritoryContext> {
     const { clientId, productId, verificationTypeId } = params;
+    const normalizedRateTypeId =
+      params.rateTypeId === null || params.rateTypeId === undefined
+        ? null
+        : typeof params.rateTypeId === 'string' || typeof params.rateTypeId === 'number'
+          ? Number(String(params.rateTypeId).trim())
+          : null;
 
     const pincodeCode =
       typeof params.pincode === 'string' || typeof params.pincode === 'number'
@@ -97,42 +104,15 @@ export class VerificationTaskCreationService {
       });
     }
 
-    // Territory integrity contract: require exact area-level service zone rule for the tuple.
-    const exactServiceZoneRule = await client.query(
-      `SELECT service_zone_id
-       FROM service_zone_rules
-       WHERE client_id = $1 AND product_id = $2 AND pincode_id = $3 AND area_id = $4
-         AND is_active = true
-       LIMIT 1`,
-      [clientId, productId, pincodeDbId, normalizedAreaId]
-    );
-
-    if (!exactServiceZoneRule.rows[0]) {
-      throw new VerificationTaskCreationError(422, {
-        success: false,
-        message:
-          'Service configuration missing for selected pincode/area. Exact area service zone rule not defined.',
-        error: {
-          code: 'CONFIG_SERVICE_ZONE_MISSING',
-          details: {
-            clientId,
-            productId,
-            verificationTypeId,
-            pincodeId: pincodeDbId,
-            areaId: normalizedAreaId,
-          },
-        },
-      });
-    }
-
-    const expectedServiceZoneId = Number(exactServiceZoneRule.rows[0].service_zone_id);
-
     const validationResult = await financialConfigurationValidator.validateTaskConfiguration(
       clientId,
       productId,
       verificationTypeId,
       pincodeDbId,
-      normalizedAreaId
+      normalizedAreaId,
+      normalizedRateTypeId && !Number.isNaN(normalizedRateTypeId) && normalizedRateTypeId > 0
+        ? normalizedRateTypeId
+        : null
     );
 
     if (!validationResult.isValid) {
@@ -147,25 +127,6 @@ export class VerificationTaskCreationService {
             verificationTypeId,
             pincodeId: pincodeDbId,
             areaId: normalizedAreaId,
-          },
-        },
-      });
-    }
-
-    if (Number(validationResult.serviceZoneId) !== expectedServiceZoneId) {
-      throw new VerificationTaskCreationError(422, {
-        success: false,
-        message: 'Service zone mismatch for selected pincode/area configuration',
-        error: {
-          code: 'SERVICE_ZONE_TERRITORY_MISMATCH',
-          details: {
-            clientId,
-            productId,
-            verificationTypeId,
-            pincodeId: pincodeDbId,
-            areaId: normalizedAreaId,
-            expectedServiceZoneId,
-            resolvedServiceZoneId: validationResult.serviceZoneId,
           },
         },
       });
@@ -245,6 +206,10 @@ export class VerificationTaskCreationService {
           verificationTypeId: Number(verificationTypeId),
           pincode,
           areaId,
+          rateTypeId:
+            typeof initialRateTypeId === 'number' && initialRateTypeId > 0
+              ? Number(initialRateTypeId)
+              : null,
         });
 
       // Configuration is valid - use validated values

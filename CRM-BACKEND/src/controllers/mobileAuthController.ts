@@ -474,25 +474,78 @@ export class MobileAuthController {
   }
 
   // Register device for push notifications (simplified)
-  static registerNotifications(this: void, req: Request, res: Response) {
+  static async registerNotifications(this: void, req: Request, res: Response) {
     try {
       const {
-        pushToken: _pushToken,
-        platform: _platform,
-        enabled: _enabled,
-        preferences: _preferences,
+        deviceId,
+        pushToken,
+        platform,
+        enabled = true,
       } = req.body as MobileNotificationRegistrationRequest;
-      const _userId = (req as AuthenticatedRequest).user?.id;
+      const userId = (req as AuthenticatedRequest).user?.id;
 
-      // Store notification preferences in user profile or separate table
-      // For now, just return success since we removed device table
-      res.json({
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          message: 'User not authenticated',
+          error: {
+            code: 'UNAUTHORIZED',
+            timestamp: new Date().toISOString(),
+          },
+        });
+      }
+
+      if (!deviceId || !platform) {
+        return res.status(400).json({
+          success: false,
+          message: 'Device ID and platform are required',
+          error: {
+            code: 'MISSING_REQUIRED_FIELDS',
+            timestamp: new Date().toISOString(),
+          },
+        });
+      }
+
+      const normalizedPlatform = platform.toLowerCase();
+
+      const result = await query(
+        `INSERT INTO notification_tokens (user_id, device_id, platform, push_token, is_active, last_used_at)
+         VALUES ($1, $2, $3, $4, $5, NOW())
+         ON CONFLICT (device_id, platform)
+         DO UPDATE SET
+           user_id = EXCLUDED.user_id,
+           push_token = EXCLUDED.push_token,
+           is_active = EXCLUDED.is_active,
+           last_used_at = NOW(),
+           updated_at = NOW()
+         RETURNING id, device_id as "deviceId", platform, is_active as "isActive"`,
+        [userId, deviceId, normalizedPlatform, pushToken || null, Boolean(enabled)]
+      );
+
+      void createAuditLog({
+        action: 'MOBILE_NOTIFICATION_TOKEN_REGISTERED',
+        entityType: 'NOTIFICATION_TOKEN',
+        entityId: result.rows[0]?.id || deviceId,
+        userId,
+        details: {
+          deviceId,
+          platform: normalizedPlatform,
+          enabled: Boolean(enabled),
+        },
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent'),
+      });
+
+      return res.json({
         success: true,
-        message: 'Notification registration successful',
+        message: enabled
+          ? 'Notification registration successful'
+          : 'Notification token deactivated successfully',
+        data: result.rows[0],
       });
     } catch (error) {
       console.error('Notification registration error:', error);
-      res.status(500).json({
+      return res.status(500).json({
         success: false,
         message: 'Internal server error',
         error: {

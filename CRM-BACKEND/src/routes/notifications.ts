@@ -9,7 +9,6 @@ import { NotificationController } from '@/controllers/notificationController';
 const router = Router();
 
 router.use(authenticateToken);
-router.use(authorize('settings.manage'));
 
 // Validation schemas
 const updatePreferencesValidation = [
@@ -142,6 +141,13 @@ router.put(
   NotificationController.markNotificationAsRead.bind(NotificationController)
 );
 
+router.put(
+  '/:notificationId/unread',
+  notificationIdValidation,
+  validate,
+  NotificationController.markNotificationAsUnread.bind(NotificationController)
+);
+
 /**
  * @route PUT /api/notifications/mark-all-read
  * @desc Mark all notifications as read
@@ -225,24 +231,13 @@ router.delete(
 );
 
 /**
- * @route POST /api/notifications/test
- * @desc Send a test notification
- * @access Private
- */
-router.post(
-  '/test',
-  testNotificationValidation,
-  validate,
-  NotificationController.sendTestNotification.bind(NotificationController)
-);
-
-/**
  * @route GET /api/notifications/analytics
  * @desc Get notification analytics
  * @access Private
  */
 router.get(
   '/analytics',
+  authorize('settings.manage'),
   NotificationController.getNotificationAnalytics.bind(NotificationController)
 );
 
@@ -253,7 +248,7 @@ router.get(
  */
 router.get(
   '/:notificationId/delivery',
-  authenticateToken,
+  authorize('settings.manage'),
   notificationIdValidation,
   validate,
   NotificationController.getDeliveryStatus.bind(NotificationController)
@@ -266,8 +261,16 @@ router.get(
  */
 router.get(
   '/test/connectivity',
-  authenticateToken,
+  authorize('settings.manage'),
   NotificationController.testPushConnectivity.bind(NotificationController)
+);
+
+router.post(
+  '/test',
+  authorize('settings.manage'),
+  testNotificationValidation,
+  validate,
+  NotificationController.sendTestNotification.bind(NotificationController)
 );
 
 export default router;
