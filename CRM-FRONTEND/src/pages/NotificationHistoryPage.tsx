@@ -1,516 +1,393 @@
-import React, { useState, useEffect } from 'react';
-import { Bell, Search, Filter, MoreHorizontal, Trash2, Eye, EyeOff } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { Bell, RefreshCw, Search, Trash2, Eye, EyeOff } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { formatDistanceToNow } from 'date-fns';
+import { toast } from 'sonner';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { toast } from 'sonner';
-import { formatDistanceToNow } from 'date-fns';
-import { apiService } from '@/services/api';
-import { useNavigate } from 'react-router-dom';
-import { LoadingState } from '@/components/ui/loading';
+import { notificationService, type AppNotification } from '@/services/notifications';
 
-interface Notification {
-  id: string;
-  title: string;
-  message: string;
-  type: string;
-  caseId?: string;
-  caseNumber?: string;
-  actionUrl?: string;
-  actionType?: string;
-  priority: 'URGENT' | 'HIGH' | 'MEDIUM' | 'LOW';
-  isRead: boolean;
-  deliveryStatus: 'PENDING' | 'SENT' | 'DELIVERED' | 'FAILED';
-  createdAt: string;
-  readAt?: string;
-  data?: Record<string, unknown>;
-}
+const PAGE_SIZE = 20;
 
 export function NotificationHistoryPage() {
   const navigate = useNavigate();
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterType, setFilterType] = useState<string>('all');
-  const [filterStatus, setFilterStatus] = useState<string>('all');
-  const [selectedNotifications, setSelectedNotifications] = useState<Set<string>>(new Set());
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalCount, setTotalCount] = useState(0);
+  const [filterStatus, setFilterStatus] = useState<'all' | 'read' | 'unread'>('all');
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [page, setPage] = useState(1);
 
+  const notificationsQuery = useQuery({
+    queryKey: ['notifications-history'],
+    queryFn: () => notificationService.list({ limit: 100, offset: 0 }),
+    refetchInterval: 60000,
+    staleTime: 15000,
+  });
 
-
-
-  const loadNotifications = React.useCallback(async () => {
-    try {
-      setLoading(true);
-      const params = new URLSearchParams({
-        page: currentPage.toString(),
-        limit: '20',
-        ...(searchTerm && { search: searchTerm }),
-        ...(filterType !== 'all' && { type: filterType }),
-        ...(filterStatus !== 'all' && { status: filterStatus }),
-      });
-
-      const response = await apiService.get<{ notifications: Notification[]; totalPages: number; totalCount: number }>(`/notifications/history?${params}`);
-      if (response.success && response.data) {
-        setNotifications(response.data.notifications);
-        setTotalPages(response.data.totalPages);
-        setTotalCount(response.data.totalCount);
-      } else {
-        toast.error('Failed to load notifications');
-      }
-    } catch (error) {
-      console.error('Load notifications error:', error);
-      toast.error('Failed to load notifications');
-    } finally {
-      setLoading(false);
-    }
-  }, [currentPage, filterType, filterStatus, searchTerm]);
-
-  useEffect(() => {
-    loadNotifications();
-  }, [loadNotifications]);
-
-  const handleNotificationClick = async (notification: Notification) => {
-    // Mark as read if not already read
-    if (!notification.isRead) {
-      await markAsRead([notification.id]);
-    }
-
-    // Handle navigation
-    if (notification.actionType === 'OPEN_CASE' && notification.caseId) {
-      navigate(`/cases/${notification.caseId}`);
-    } else if (notification.actionUrl) {
-      navigate(notification.actionUrl);
-    }
+  const refreshLists = async () => {
+    setSelectedIds(new Set());
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['notifications'] }),
+      queryClient.invalidateQueries({ queryKey: ['notifications-history'] }),
+    ]);
   };
 
-  const markAsRead = async (notificationIds: string[]) => {
-    try {
-      const response = await apiService.post('/notifications/mark-read', {
-        notificationIds,
-      });
+  const markReadMutation = useMutation({
+    mutationFn: async (ids: string[]) => {
+      await Promise.all(ids.map(id => notificationService.markRead(id)));
+    },
+    onSuccess: async () => {
+      await refreshLists();
+      toast.success('Notifications marked as read');
+    },
+    onError: () => {
+      toast.error('Failed to update notifications');
+    },
+  });
 
-      if (response.success) {
-        setNotifications(prev =>
-          prev.map(n =>
-            notificationIds.includes(n.id)
-              ? { ...n, isRead: true, readAt: new Date().toISOString() }
-              : n
-          )
-        );
-        toast.success(`Marked ${notificationIds.length} notification(s) as read`);
-      } else {
-        toast.error('Failed to mark notifications as read');
-      }
-    } catch (error) {
-      console.error('Mark as read error:', error);
-      toast.error('Failed to mark notifications as read');
-    }
-  };
+  const markUnreadMutation = useMutation({
+    mutationFn: async (ids: string[]) => {
+      await Promise.all(ids.map(id => notificationService.markUnread(id)));
+    },
+    onSuccess: async () => {
+      await refreshLists();
+      toast.success('Notifications marked as unread');
+    },
+    onError: () => {
+      toast.error('Failed to update notifications');
+    },
+  });
 
-  const markAsUnread = async (notificationIds: string[]) => {
-    try {
-      const response = await apiService.post('/notifications/mark-unread', {
-        notificationIds,
-      });
-
-      if (response.success) {
-        setNotifications(prev =>
-          prev.map(n =>
-            notificationIds.includes(n.id)
-              ? { ...n, isRead: false, readAt: undefined }
-              : n
-          )
-        );
-        toast.success(`Marked ${notificationIds.length} notification(s) as unread`);
-      } else {
-        toast.error('Failed to mark notifications as unread');
-      }
-    } catch (error) {
-      console.error('Mark as unread error:', error);
-      toast.error('Failed to mark notifications as unread');
-    }
-  };
-
-  const deleteNotifications = async (notificationIds: string[]) => {
-    try {
-      const response = await apiService.delete('/notifications/bulk', {
-        data: { notificationIds },
-      });
-
-      if (response.success) {
-        setNotifications(prev =>
-          prev.filter(n => !notificationIds.includes(n.id))
-        );
-        setSelectedNotifications(new Set());
-        toast.success(`Deleted ${notificationIds.length} notification(s)`);
-      } else {
-        toast.error('Failed to delete notifications');
-      }
-    } catch (error) {
-      console.error('Delete notifications error:', error);
+  const deleteMutation = useMutation({
+    mutationFn: async (ids: string[]) => {
+      await Promise.all(ids.map(id => notificationService.remove(id)));
+    },
+    onSuccess: async () => {
+      await refreshLists();
+      toast.success('Notifications deleted');
+    },
+    onError: () => {
       toast.error('Failed to delete notifications');
+    },
+  });
+
+  const markAllReadMutation = useMutation({
+    mutationFn: () => notificationService.markAllRead(),
+    onSuccess: async () => {
+      await refreshLists();
+      toast.success('All notifications marked as read');
+    },
+    onError: () => {
+      toast.error('Failed to mark all as read');
+    },
+  });
+
+  const clearAllMutation = useMutation({
+    mutationFn: () => notificationService.clearAll(),
+    onSuccess: async () => {
+      await refreshLists();
+      toast.success('All notifications cleared');
+    },
+    onError: () => {
+      toast.error('Failed to clear notifications');
+    },
+  });
+
+  const filteredNotifications = useMemo(() => {
+    const items = notificationsQuery.data?.items || [];
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+
+    const filtered = items.filter((notification) => {
+      const matchesSearch =
+        !normalizedSearch ||
+        notification.title.toLowerCase().includes(normalizedSearch) ||
+        notification.message.toLowerCase().includes(normalizedSearch) ||
+        notification.caseNumber?.toLowerCase().includes(normalizedSearch) ||
+        notification.taskNumber?.toLowerCase().includes(normalizedSearch);
+
+      const matchesStatus =
+        filterStatus === 'all' ||
+        (filterStatus === 'read' && notification.isRead) ||
+        (filterStatus === 'unread' && !notification.isRead);
+
+      return matchesSearch && matchesStatus;
+    });
+
+    return filtered;
+  }, [filterStatus, notificationsQuery.data?.items, searchTerm]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredNotifications.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const pagedNotifications = filteredNotifications.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE
+  );
+
+  const handleOpenNotification = async (notification: AppNotification) => {
+    try {
+      if (!notification.isRead) {
+        await notificationService.markRead(notification.id);
+      }
+
+      const target = await notificationService.validateNavigationTarget(notification);
+
+      if (!target) {
+        toast.error('No longer available');
+        await refreshLists();
+        return;
+      }
+
+      await refreshLists();
+      navigate(target);
+    } catch {
+      toast.error('No longer available');
+      await refreshLists();
     }
+  };
+
+  const toggleSelected = (notificationId: string) => {
+    setSelectedIds((previous) => {
+      const next = new Set(previous);
+      if (next.has(notificationId)) {
+        next.delete(notificationId);
+      } else {
+        next.add(notificationId);
+      }
+      return next;
+    });
   };
 
   const handleSelectAll = () => {
-    if (selectedNotifications.size === notifications.length) {
-      setSelectedNotifications(new Set());
-    } else {
-      setSelectedNotifications(new Set(notifications.map(n => n.id)));
+    if (selectedIds.size === pagedNotifications.length) {
+      setSelectedIds(new Set());
+      return;
     }
+
+    setSelectedIds(new Set(pagedNotifications.map(notification => notification.id)));
   };
 
-  const handleSelectNotification = (notificationId: string) => {
-    const newSelected = new Set(selectedNotifications);
-    if (newSelected.has(notificationId)) {
-      newSelected.delete(notificationId);
-    } else {
-      newSelected.add(notificationId);
-    }
-    setSelectedNotifications(newSelected);
-  };
-
-  const getNotificationIcon = (type: string) => {
-    switch (type) {
-      case 'CASE_ASSIGNED':
-      case 'CASE_REASSIGNED':
-        return '👤';
-      case 'CASE_COMPLETED':
-        return '✅';
-      case 'CASE_REVOKED':
-        return '❌';
-      case 'CASE_APPROVED':
-        return '👍';
-      case 'CASE_REJECTED':
-        return '👎';
-      case 'SYSTEM_MAINTENANCE':
-        return '🔧';
-      case 'APP_UPDATE':
-        return '📱';
-      case 'EMERGENCY_ALERT':
-        return '🚨';
-      default:
-        return '🔔';
-    }
-  };
-
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'URGENT':
-        return 'destructive';
-      case 'HIGH':
-        return 'secondary';
-      case 'MEDIUM':
-        return 'outline';
-      case 'LOW':
-        return 'outline';
-      default:
-        return 'outline';
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'DELIVERED':
-        return 'text-green-600 dark:text-green-400';
-      case 'SENT':
-        return 'text-green-600 dark:text-green-400';
-      case 'FAILED':
-        return 'text-red-600 dark:text-red-400';
-      case 'PENDING':
-        return 'text-yellow-600 dark:text-yellow-400';
-      default:
-        return 'text-gray-600';
-    }
-  };
-
-  const unreadCount = notifications.filter(n => !n.isRead).length;
-  const selectedCount = selectedNotifications.size;
+  const isBusy =
+    notificationsQuery.isFetching ||
+    markReadMutation.isPending ||
+    markUnreadMutation.isPending ||
+    deleteMutation.isPending ||
+    markAllReadMutation.isPending ||
+    clearAllMutation.isPending;
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Notification History</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Notifications</h1>
           <p className="text-gray-600">
-            View and manage your notification history ({totalCount} total, {unreadCount} unread)
+            Unified inbox backed by the CRM notification service.
           </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() => void notificationsQuery.refetch()}
+            disabled={isBusy}
+          >
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Refresh
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => void markAllReadMutation.mutateAsync()}
+            disabled={isBusy}
+          >
+            <Eye className="mr-2 h-4 w-4" />
+            Mark All Read
+          </Button>
+          <Button
+            variant="destructive"
+            onClick={() => void clearAllMutation.mutateAsync()}
+            disabled={isBusy}
+          >
+            <Trash2 className="mr-2 h-4 w-4" />
+            Clear All
+          </Button>
         </div>
       </div>
 
-      {/* Filters and Search */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center">
-            <Filter className="h-5 w-5 mr-2" />
-            Filters
-          </CardTitle>
+          <CardTitle>Filters</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Search</label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-600" />
-                <Input
-                  placeholder="Search notifications..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Type</label>
-              <Select value={filterType} onValueChange={setFilterType}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All types" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All types</SelectItem>
-                  <SelectItem value="CASE_ASSIGNED">Case Assignment</SelectItem>
-                  <SelectItem value="CASE_COMPLETED">Case Completion</SelectItem>
-                  <SelectItem value="CASE_REVOKED">Case Revocation</SelectItem>
-                  <SelectItem value="SYSTEM_MAINTENANCE">System</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Status</label>
-              <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All statuses" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All statuses</SelectItem>
-                  <SelectItem value="unread">Unread</SelectItem>
-                  <SelectItem value="read">Read</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Actions</label>
-              <Button onClick={loadNotifications} variant="outline" className="w-full">
-                Refresh
-              </Button>
-            </div>
+        <CardContent className="grid gap-4 md:grid-cols-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-600" />
+            <Input
+              value={searchTerm}
+              onChange={(event) => {
+                setSearchTerm(event.target.value);
+                setPage(1);
+              }}
+              placeholder="Search title, message, case, task..."
+              className="pl-10"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant={filterStatus === 'all' ? 'default' : 'outline'}
+              onClick={() => {
+                setFilterStatus('all');
+                setPage(1);
+              }}
+            >
+              All
+            </Button>
+            <Button
+              variant={filterStatus === 'unread' ? 'default' : 'outline'}
+              onClick={() => {
+                setFilterStatus('unread');
+                setPage(1);
+              }}
+            >
+              Unread
+            </Button>
+            <Button
+              variant={filterStatus === 'read' ? 'default' : 'outline'}
+              onClick={() => {
+                setFilterStatus('read');
+                setPage(1);
+              }}
+            >
+              Read
+            </Button>
+          </div>
+          <div className="flex items-center justify-end gap-2 text-sm text-gray-600">
+            <Bell className="h-4 w-4" />
+            <span>{notificationsQuery.data?.unreadCount || 0} unread</span>
           </div>
         </CardContent>
       </Card>
 
-      {/* Bulk Actions */}
-      {selectedCount > 0 && (
+      {selectedIds.size > 0 && (
         <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">
-                {selectedCount} notification(s) selected
-              </span>
-              <div className="flex items-center space-x-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => markAsRead(Array.from(selectedNotifications))}
-                >
-                  <Eye className="h-4 w-4 mr-2" />
-                  Mark as Read
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => markAsUnread(Array.from(selectedNotifications))}
-                >
-                  <EyeOff className="h-4 w-4 mr-2" />
-                  Mark as Unread
-                </Button>
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  onClick={() => deleteNotifications(Array.from(selectedNotifications))}
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete
-                </Button>
-              </div>
+          <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-6">
+            <span className="text-sm text-gray-600">{selectedIds.size} selected</span>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => void markReadMutation.mutateAsync(Array.from(selectedIds))}
+              >
+                <Eye className="mr-2 h-4 w-4" />
+                Mark Read
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => void markUnreadMutation.mutateAsync(Array.from(selectedIds))}
+              >
+                <EyeOff className="mr-2 h-4 w-4" />
+                Mark Unread
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => void deleteMutation.mutateAsync(Array.from(selectedIds))}
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete
+              </Button>
             </div>
           </CardContent>
         </Card>
       )}
 
-      {/* Notifications List */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Notifications</CardTitle>
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                checked={selectedCount === notifications.length && notifications.length > 0}
-                onCheckedChange={handleSelectAll}
-              />
-              <span className="text-sm text-gray-600">Select All</span>
+          <CardTitle>History</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {notificationsQuery.isLoading ? (
+            <div className="py-10 text-center text-gray-600">Loading notifications...</div>
+          ) : pagedNotifications.length === 0 ? (
+            <div className="py-10 text-center text-gray-600">No notifications found.</div>
+          ) : (
+            <>
+              <div className="flex items-center gap-3 rounded-lg border border-gray-200 px-4 py-2">
+                <Checkbox
+                  checked={pagedNotifications.length > 0 && selectedIds.size === pagedNotifications.length}
+                  onCheckedChange={handleSelectAll}
+                />
+                <span className="text-sm text-gray-600">Select page</span>
+              </div>
+              <div className="space-y-3">
+                {pagedNotifications.map((notification) => (
+                  <button
+                    key={notification.id}
+                    type="button"
+                    onClick={() => void handleOpenNotification(notification)}
+                    className={`w-full rounded-xl border p-4 text-left transition ${
+                      notification.isRead
+                        ? 'border-gray-200 bg-white'
+                        : 'border-green-200 bg-green-50'
+                    }`}
+                  >
+                    <div className="mb-2 flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <Checkbox
+                          checked={selectedIds.has(notification.id)}
+                          onCheckedChange={() => toggleSelected(notification.id)}
+                          onClick={(event) => event.stopPropagation()}
+                        />
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-gray-900">{notification.title}</span>
+                            <Badge variant={notification.isRead ? 'outline' : 'default'}>
+                              {notification.isRead ? 'Read' : 'Unread'}
+                            </Badge>
+                          </div>
+                          <p className="mt-1 text-sm text-gray-600">{notification.message}</p>
+                        </div>
+                      </div>
+                      <Badge variant="outline">{notification.priority}</Badge>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500">
+                      {notification.caseNumber && <span>Case: {notification.caseNumber}</span>}
+                      {notification.taskNumber && <span>Task: {notification.taskNumber}</span>}
+                      <span>{formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}</span>
+                      {notification.deliveryStatus && <span>{notification.deliveryStatus}</span>}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+
+          <div className="flex items-center justify-between pt-2">
+            <span className="text-sm text-gray-600">
+              Page {currentPage} of {totalPages}
+            </span>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage(previous => Math.max(1, previous - 1))}
+                disabled={currentPage === 1}
+              >
+                Previous
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage(previous => Math.min(totalPages, previous + 1))}
+                disabled={currentPage === totalPages}
+              >
+                Next
+              </Button>
             </div>
           </div>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <LoadingState message="Fetching your notifications..." size="md" />
-          ) : notifications.length === 0 ? (
-            <div className="text-center py-8">
-              <Bell className="h-12 w-12 mx-auto text-gray-600 mb-4" />
-              <h3 className="text-lg font-medium mb-2">No notifications found</h3>
-              <p className="text-gray-600">
-                {searchTerm || filterType !== 'all' || filterStatus !== 'all'
-                  ? 'Try adjusting your filters'
-                  : 'You have no notifications yet'}
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {notifications.map((notification) => (
-                <div
-                  key={notification.id}
-                  className={`p-4 border rounded-lg cursor-pointer hover:bg-slate-100/70 dark:hover:bg-slate-800/50 transition-colors ${
-                    !notification.isRead ? 'bg-green-50 border-green-200' : ''
-                  }`}
-                  onClick={() => handleNotificationClick(notification)}
-                >
-                  <div className="flex items-start space-x-3">
-                    <Checkbox
-                      checked={selectedNotifications.has(notification.id)}
-                      onCheckedChange={() => handleSelectNotification(notification.id)}
-                      onClick={(e) => e.stopPropagation()}
-                    />
-                    <div className="text-2xl">{getNotificationIcon(notification.type)}</div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-1">
-                        <h4 className="text-sm font-medium truncate">{notification.title}</h4>
-                        <div className="flex items-center space-x-2">
-                          <Badge variant={getPriorityColor(notification.priority)}>
-                            {notification.priority}
-                          </Badge>
-                          {!notification.isRead && (
-                            <div className="h-2 w-2 bg-blue-600 rounded-full" />
-                          )}
-                        </div>
-                      </div>
-                      <p className="text-sm text-gray-600 mb-2 line-clamp-2">
-                        {notification.message}
-                      </p>
-                      <div className="flex items-center justify-between text-xs text-gray-600">
-                        <div className="flex items-center space-x-4">
-                          {notification.caseNumber && (
-                            <span>Case: {notification.caseNumber}</span>
-                          )}
-                          <span className={getStatusColor(notification.deliveryStatus)}>
-                            {notification.deliveryStatus}
-                          </span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <span>
-                            {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
-                          </span>
-                          {notification.readAt && (
-                            <span>
-                              • Read {formatDistanceToNow(new Date(notification.readAt), { addSuffix: true })}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                        <Button variant="ghost" size="sm">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (notification.isRead) {
-                              markAsUnread([notification.id]);
-                            } else {
-                              markAsRead([notification.id]);
-                            }
-                          }}
-                        >
-                          {notification.isRead ? (
-                            <>
-                              <EyeOff className="h-4 w-4 mr-2" />
-                              Mark as Unread
-                            </>
-                          ) : (
-                            <>
-                              <Eye className="h-4 w-4 mr-2" />
-                              Mark as Read
-                            </>
-                          )}
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            deleteNotifications([notification.id]);
-                          }}
-                          className="text-red-600"
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
         </CardContent>
       </Card>
-
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-center space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-            disabled={currentPage === 1}
-          >
-            Previous
-          </Button>
-          <span className="text-sm text-gray-600">
-            Page {currentPage} of {totalPages}
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-            disabled={currentPage === totalPages}
-          >
-            Next
-          </Button>
-        </div>
-      )}
     </div>
   );
 }

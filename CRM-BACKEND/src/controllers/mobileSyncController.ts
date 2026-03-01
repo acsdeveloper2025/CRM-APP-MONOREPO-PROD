@@ -27,6 +27,15 @@ interface SyncResults {
   errors: SyncError[];
 }
 
+interface MobileQueuedAction {
+  id: string;
+  actionType?: string;
+  entityType?: string;
+  entityId?: string;
+  actionData?: string;
+  data?: unknown;
+}
+
 interface SyncControllerError extends Error {
   status?: number;
   errorCode?: string;
@@ -47,6 +56,7 @@ import { query } from '@/config/database';
 import { logger } from '../utils/logger';
 import { EnterpriseMobileSyncService } from '../services/enterpriseMobileSyncService';
 import { isFieldExecutionActor } from '@/security/rbacAccess';
+import { CaseStatusSyncService } from '../services/caseStatusSyncService';
 
 export class MobileSyncController {
   /**
@@ -96,14 +106,19 @@ export class MobileSyncController {
   // Upload offline changes from mobile app
   static async uploadSync(this: void, req: AuthenticatedRequest, res: Response) {
     try {
-      const { localChanges, deviceInfo, lastSyncTimestamp }: MobileSyncUploadRequest = req.body;
+      const {
+        localChanges,
+        actions,
+        deviceInfo,
+        lastSyncTimestamp,
+      }: MobileSyncUploadRequest & { actions?: MobileQueuedAction[] } = req.body;
       const userId = req.user?.id;
       const isExecutionActor = isFieldExecutionActor(req.user);
 
-      if (!localChanges) {
+      if (!localChanges && (!Array.isArray(actions) || actions.length === 0)) {
         return res.status(400).json({
           success: false,
-          message: 'Local changes are required',
+          message: 'Local changes or sync actions are required',
           error: {
             code: 'MISSING_LOCAL_CHANGES',
             timestamp: new Date().toISOString(),
@@ -119,8 +134,28 @@ export class MobileSyncController {
         errors: [] as SyncError[],
       };
 
+      if (Array.isArray(actions) && actions.length > 0) {
+        for (const syncAction of actions) {
+          try {
+            await MobileSyncController.processQueuedAction(
+              syncAction,
+              userId,
+              isExecutionActor,
+              syncResults
+            );
+          } catch (error) {
+            logger.error(`Error processing sync action ${syncAction.id}:`, error);
+            syncResults.errors.push({
+              type: String(syncAction.entityType || 'ACTION'),
+              id: syncAction.id,
+              error: error instanceof Error ? error.message : 'Unknown error',
+            });
+          }
+        }
+      }
+
       // Process case changes
-      if (localChanges.cases && localChanges.cases.length > 0) {
+      if (localChanges?.cases && localChanges.cases.length > 0) {
         for (const caseChange of localChanges.cases) {
           try {
             await MobileSyncController.processCaseChange(
@@ -157,7 +192,7 @@ export class MobileSyncController {
       }
 
       // Process attachment changes
-      if (localChanges.attachments && localChanges.attachments.length > 0) {
+      if (localChanges?.attachments && localChanges.attachments.length > 0) {
         for (const attachmentChange of localChanges.attachments) {
           try {
             await MobileSyncController.processAttachmentChange(
@@ -177,7 +212,7 @@ export class MobileSyncController {
       }
 
       // Process location changes
-      if (localChanges.locations && localChanges.locations.length > 0) {
+      if (localChanges?.locations && localChanges.locations.length > 0) {
         for (const locationChange of localChanges.locations) {
           try {
             await MobileSyncController.processLocationChange(locationChange, userId, syncResults);
@@ -193,18 +228,20 @@ export class MobileSyncController {
       }
 
       // Update device sync timestamp
-      await query(
-        `UPDATE devices SET "lastUsed" = CURRENT_TIMESTAMP WHERE "userId" = $1 AND "deviceId" = $2`,
-        [userId, deviceInfo.deviceId]
-      );
+      if (deviceInfo?.deviceId) {
+        await query(
+          `UPDATE devices SET "lastUsed" = CURRENT_TIMESTAMP WHERE "userId" = $1 AND "deviceId" = $2`,
+          [userId, deviceInfo.deviceId]
+        );
+      }
 
       await createAuditLog({
         action: 'MOBILE_SYNC_UPLOAD',
         entityType: 'SYNC',
-        entityId: deviceInfo.deviceId,
+        entityId: deviceInfo?.deviceId || userId,
         userId,
         details: {
-          deviceId: deviceInfo.deviceId,
+          deviceId: deviceInfo?.deviceId || null,
           lastSyncTimestamp,
           results: syncResults,
         },
@@ -231,6 +268,86 @@ export class MobileSyncController {
         },
       });
     }
+  }
+
+  private static async processQueuedAction(
+    action: MobileQueuedAction,
+    userId: string,
+    isExecutionActor: boolean,
+    syncResults: SyncResults
+  ) {
+    const actionType = String(action.actionType || '').toUpperCase();
+    const entityType = String(action.entityType || '').toLowerCase();
+    const entityId = String(action.entityId || '');
+
+    if (entityType !== 'task' || !entityId) {
+      throw new Error('Unsupported sync action target');
+    }
+
+    const payload =
+      typeof action.actionData === 'string'
+        ? JSON.parse(action.actionData)
+        : action.data && typeof action.data === 'object'
+          ? action.data
+          : {};
+
+    if (actionType !== 'UPDATE_STATUS' && actionType !== 'UPDATE') {
+      throw new Error(`Unsupported sync action: ${actionType || 'UNKNOWN'}`);
+    }
+
+    const requestedStatus = String(
+      (payload as { backendStatus?: string; status?: string }).backendStatus ||
+        (payload as { backendStatus?: string; status?: string }).status ||
+        ''
+    ).toUpperCase();
+
+    const taskResult = await query(
+      `
+      SELECT id, status, assigned_to, case_id, started_at, completed_at
+      FROM verification_tasks
+      WHERE id = $1
+      `,
+      [entityId]
+    );
+
+    if (taskResult.rows.length === 0) {
+      throw new Error('Verification task not found');
+    }
+
+    const task = taskResult.rows[0];
+
+    if (isExecutionActor && task.assigned_to !== userId) {
+      throw new Error('Access denied. Task is not assigned to user.');
+    }
+
+    if (requestedStatus === 'IN_PROGRESS') {
+      await query(
+        `
+        UPDATE verification_tasks
+        SET
+          status = 'IN_PROGRESS',
+          started_at = COALESCE(started_at, NOW()),
+          updated_at = NOW()
+        WHERE id = $1
+        `,
+        [entityId]
+      );
+
+      await CaseStatusSyncService.recalculateCaseStatus(task.case_id as string);
+      syncResults.processedCases++;
+      return;
+    }
+
+    if (requestedStatus === 'COMPLETED') {
+      if (task.status === 'COMPLETED') {
+        syncResults.processedCases++;
+        return;
+      }
+
+      throw new Error('Task completion must be synced through verification submission endpoints');
+    }
+
+    throw new Error(`Unsupported status sync action: ${requestedStatus || 'UNKNOWN'}`);
   }
 
   // Download changes from server for mobile app

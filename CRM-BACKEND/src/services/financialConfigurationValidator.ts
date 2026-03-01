@@ -44,7 +44,8 @@ export const financialConfigurationValidator = {
     productId: number,
     verificationTypeId: number,
     pincodeId: number,
-    areaId?: number | null
+    areaId?: number | null,
+    preferredRateTypeId?: number | null
   ): Promise<FinancialConfigValidationResult> => {
     try {
       // Step 1: Validate Service Zone Rule exists
@@ -61,6 +62,32 @@ export const financialConfigurationValidator = {
           errorCode: FinancialConfigErrorCode.CONFIG_SERVICE_ZONE_MISSING,
           errorMessage:
             'Service configuration missing for selected pincode/area. Service zone rule not defined.',
+        };
+      }
+
+      // Step 2: If the caller explicitly selected a rate type, honor it first.
+      if (preferredRateTypeId && Number(preferredRateTypeId) > 0) {
+        const preferredAmount = await financialConfigurationValidator.validateRateAmount(
+          clientId,
+          productId,
+          verificationTypeId,
+          Number(preferredRateTypeId)
+        );
+
+        if (preferredAmount !== null) {
+          return {
+            isValid: true,
+            serviceZoneId,
+            rateTypeId: Number(preferredRateTypeId),
+            amount: preferredAmount,
+          };
+        }
+
+        return {
+          isValid: false,
+          errorCode: FinancialConfigErrorCode.CONFIG_RATE_AMOUNT_MISSING,
+          errorMessage:
+            'Service configuration missing for selected pincode/area. Billing amount not defined for selected rate type.',
         };
       }
 
@@ -90,6 +117,21 @@ export const financialConfigurationValidator = {
       );
 
       if (amount === null) {
+        const fallbackRate = await financialConfigurationValidator.findDeterministicActiveRate(
+          clientId,
+          productId,
+          verificationTypeId
+        );
+
+        if (fallbackRate) {
+          return {
+            isValid: true,
+            serviceZoneId,
+            rateTypeId: fallbackRate.rateTypeId,
+            amount: fallbackRate.amount,
+          };
+        }
+
         return {
           isValid: false,
           errorCode: FinancialConfigErrorCode.CONFIG_RATE_AMOUNT_MISSING,
@@ -225,5 +267,30 @@ export const financialConfigurationValidator = {
     }
 
     return null;
+  },
+
+  findDeterministicActiveRate: async (
+    clientId: number,
+    productId: number,
+    verificationTypeId: number
+  ): Promise<{ rateTypeId: number; amount: number } | null> => {
+    const result = await query(
+      `SELECT "rateTypeId", amount
+       FROM rates
+       WHERE "clientId" = $1 AND "productId" = $2
+         AND "verificationTypeId" = $3
+         AND "isActive" = true
+       ORDER BY "rateTypeId" ASC`,
+      [clientId, productId, verificationTypeId]
+    );
+
+    if (result.rows.length !== 1) {
+      return null;
+    }
+
+    return {
+      rateTypeId: Number(result.rows[0].rateTypeId),
+      amount: Number(result.rows[0].amount),
+    };
   },
 };

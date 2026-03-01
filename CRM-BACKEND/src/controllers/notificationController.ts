@@ -3,16 +3,99 @@ import { query } from '@/config/database';
 import { logger } from '@/utils/logger';
 import { createAuditLog } from '@/utils/auditLogger';
 import type { QueryParams } from '@/types/database';
+import { filterNotificationsByCurrentScope } from '@/security/notificationScope';
 
 interface AuthenticatedRequest extends Request {
   user?: {
     id: string;
     username: string;
     role: string;
+    permissionCodes?: string[];
+    assignedClientIds?: number[];
+    assignedProductIds?: number[];
   };
 }
 
 export class NotificationController {
+  private static async getScopedNotificationRows(user: NonNullable<AuthenticatedRequest['user']>) {
+    const result = await query<{
+      id: string;
+      title: string;
+      message: string;
+      type: string;
+      caseId: string | null;
+      caseNumber: string | null;
+      taskId: string | null;
+      taskNumber: string | null;
+      data: Record<string, unknown> | null;
+      actionUrl: string | null;
+      actionType: string | null;
+      isRead: boolean;
+      readAt: string | null;
+      deliveryStatus: 'PENDING' | 'SENT' | 'DELIVERED' | 'FAILED' | null;
+      priority: 'URGENT' | 'HIGH' | 'MEDIUM' | 'LOW';
+      expiresAt: string | null;
+      createdAt: string;
+      updatedAt: string;
+    }>(
+      `
+        SELECT
+          id,
+          title,
+          message,
+          type,
+          case_id as "caseId",
+          case_number as "caseNumber",
+          task_id as "taskId",
+          task_number as "taskNumber",
+          data,
+          action_url as "actionUrl",
+          action_type as "actionType",
+          is_read as "isRead",
+          read_at as "readAt",
+          delivery_status as "deliveryStatus",
+          priority,
+          expires_at as "expiresAt",
+          created_at as "createdAt",
+          updated_at as "updatedAt"
+        FROM notifications
+        WHERE user_id = $1
+        ORDER BY created_at DESC
+      `,
+      [user.id]
+    );
+
+    const { visibleIds, actionTargets } = await filterNotificationsByCurrentScope(
+      {
+        id: user.id,
+        permissionCodes: user.permissionCodes,
+        assignedClientIds: user.assignedClientIds,
+        assignedProductIds: user.assignedProductIds,
+      },
+      result.rows.map(row => ({
+        id: row.id,
+        userId: user.id,
+        caseId: row.caseId,
+        taskId: row.taskId,
+      }))
+    );
+
+    return result.rows
+      .filter(row => visibleIds.has(row.id))
+      .map(row => ({
+        ...row,
+        actionUrl: actionTargets.get(row.id) || '/dashboard',
+      }));
+  }
+
+  private static async getScopedNotificationRow(
+    user: NonNullable<AuthenticatedRequest['user']>,
+    notificationId: string
+  ) {
+    const rows = await this.getScopedNotificationRows(user);
+    return rows.find(row => row.id === notificationId);
+  }
+
   /**
    * Get user's notifications
    */
@@ -29,68 +112,22 @@ export class NotificationController {
         });
       }
 
-      let whereClause = 'WHERE user_id = $1';
-      const queryParams: QueryParams = [userId];
-
-      if (unreadOnly === 'true') {
-        whereClause += ' AND is_read = false';
-      }
-
-      const notificationsQuery = `
-        SELECT
-          id,
-          title,
-          message,
-          type,
-          case_id as "caseId",
-          case_number as "caseNumber",
-          data,
-          action_url as "actionUrl",
-          action_type as "actionType",
-          is_read as "read",
-          read_at as "readAt",
-          priority,
-          expires_at as "expiresAt",
-          created_at as "createdAt",
-          updated_at as "updatedAt"
-        FROM notifications
-        ${whereClause}
-        ORDER BY created_at DESC
-        LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}
-      `;
-
-      queryParams.push(Number(limit), Number(offset));
-
-      const result = await query(notificationsQuery, queryParams);
-
-      // Get total count
-      const countQuery = `
-        SELECT COUNT(*) as total
-        FROM notifications
-        ${whereClause}
-      `;
-
-      const countResult = await query(countQuery, [userId]);
-      const total = parseInt(countResult.rows[0].total);
-
-      // Get unread count
-      const unreadCountQuery = `
-        SELECT COUNT(*) as unread_count
-        FROM notifications
-        WHERE user_id = $1 AND is_read = false
-      `;
-
-      const unreadResult = await query(unreadCountQuery, [userId]);
-      const unreadCount = parseInt(unreadResult.rows[0].unread_count);
+      const rows = await this.getScopedNotificationRows(req.user);
+      const visibleRows = unreadOnly === 'true' ? rows.filter(row => !row.isRead) : rows;
+      const total = visibleRows.length;
+      const unreadCount = rows.filter(row => !row.isRead).length;
+      const normalizedLimit = Number(limit);
+      const normalizedOffset = Number(offset);
+      const pagedRows = visibleRows.slice(normalizedOffset, normalizedOffset + normalizedLimit);
 
       res.json({
         success: true,
-        data: result.rows,
+        data: pagedRows,
         pagination: {
           total,
-          limit: parseInt(limit as string),
-          offset: parseInt(offset as string),
-          hasMore: total > parseInt(offset as string) + parseInt(limit as string),
+          limit: normalizedLimit,
+          offset: normalizedOffset,
+          hasMore: total > normalizedOffset + normalizedLimit,
         },
         unreadCount,
         message: 'Notifications retrieved successfully',
@@ -121,22 +158,23 @@ export class NotificationController {
         });
       }
 
-      const updateQuery = `
-        UPDATE notifications
-        SET is_read = true, read_at = NOW(), updated_at = NOW()
-        WHERE id = $1 AND user_id = $2
-        RETURNING id
-      `;
-
-      const result = await query(updateQuery, [notificationId, userId]);
-
-      if (result.rows.length === 0) {
+      const scopedNotification = await this.getScopedNotificationRow(req.user, notificationId);
+      if (!scopedNotification) {
         return res.status(404).json({
           success: false,
           message: 'Notification not found',
           error: { code: 'NOT_FOUND' },
         });
       }
+
+      await query(
+        `
+          UPDATE notifications
+          SET is_read = true, read_at = NOW(), updated_at = NOW()
+          WHERE id = $1 AND user_id = $2
+        `,
+        [notificationId, userId]
+      );
 
       res.json({
         success: true,
@@ -145,6 +183,54 @@ export class NotificationController {
     } catch (error) {
       logger.error('Mark notification as read error:', error);
       res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+        error: { code: 'INTERNAL_ERROR' },
+      });
+    }
+  }
+
+  /**
+   * Mark notification as unread
+   */
+  static async markNotificationAsUnread(req: AuthenticatedRequest, res: Response) {
+    try {
+      const userId = req.user?.id;
+      const { notificationId } = req.params;
+
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          message: 'User not authenticated',
+          error: { code: 'UNAUTHORIZED' },
+        });
+      }
+
+      const scopedNotification = await this.getScopedNotificationRow(req.user, notificationId);
+      if (!scopedNotification) {
+        return res.status(404).json({
+          success: false,
+          message: 'Notification not found',
+          error: { code: 'NOT_FOUND' },
+        });
+      }
+
+      await query(
+        `
+          UPDATE notifications
+          SET is_read = false, read_at = NULL, updated_at = NOW()
+          WHERE id = $1 AND user_id = $2
+        `,
+        [notificationId, userId]
+      );
+
+      return res.json({
+        success: true,
+        message: 'Notification marked as unread',
+      });
+    } catch (error) {
+      logger.error('Mark notification as unread error:', error);
+      return res.status(500).json({
         success: false,
         message: 'Internal server error',
         error: { code: 'INTERNAL_ERROR' },
@@ -167,19 +253,24 @@ export class NotificationController {
         });
       }
 
-      const updateQuery = `
-        UPDATE notifications
-        SET is_read = true, read_at = NOW(), updated_at = NOW()
-        WHERE user_id = $1 AND is_read = false
-        RETURNING id
-      `;
+      const scopedRows = await this.getScopedNotificationRows(req.user);
+      const idsToUpdate = scopedRows.filter(row => !row.isRead).map(row => row.id);
 
-      const result = await query(updateQuery, [userId]);
+      if (idsToUpdate.length > 0) {
+        await query(
+          `
+            UPDATE notifications
+            SET is_read = true, read_at = NOW(), updated_at = NOW()
+            WHERE user_id = $1 AND id = ANY($2::uuid[])
+          `,
+          [userId, idsToUpdate]
+        );
+      }
 
       res.json({
         success: true,
-        data: { updatedCount: result.rows.length },
-        message: `${result.rows.length} notifications marked as read`,
+        data: { updatedCount: idsToUpdate.length },
+        message: `${idsToUpdate.length} notifications marked as read`,
       });
     } catch (error) {
       logger.error('Mark all notifications as read error:', error);
@@ -207,21 +298,22 @@ export class NotificationController {
         });
       }
 
-      const deleteQuery = `
-        DELETE FROM notifications
-        WHERE id = $1 AND user_id = $2
-        RETURNING id
-      `;
-
-      const result = await query(deleteQuery, [notificationId, userId]);
-
-      if (result.rows.length === 0) {
+      const scopedNotification = await this.getScopedNotificationRow(req.user, notificationId);
+      if (!scopedNotification) {
         return res.status(404).json({
           success: false,
           message: 'Notification not found',
           error: { code: 'NOT_FOUND' },
         });
       }
+
+      await query(
+        `
+          DELETE FROM notifications
+          WHERE id = $1 AND user_id = $2
+        `,
+        [notificationId, userId]
+      );
 
       res.json({
         success: true,
@@ -252,18 +344,23 @@ export class NotificationController {
         });
       }
 
-      const deleteQuery = `
-        DELETE FROM notifications
-        WHERE user_id = $1
-        RETURNING id
-      `;
+      const scopedRows = await this.getScopedNotificationRows(req.user);
+      const idsToDelete = scopedRows.map(row => row.id);
 
-      const result = await query(deleteQuery, [userId]);
+      if (idsToDelete.length > 0) {
+        await query(
+          `
+            DELETE FROM notifications
+            WHERE user_id = $1 AND id = ANY($2::uuid[])
+          `,
+          [userId, idsToDelete]
+        );
+      }
 
       res.json({
         success: true,
-        data: { deletedCount: result.rows.length },
-        message: `${result.rows.length} notifications cleared`,
+        data: { deletedCount: idsToDelete.length },
+        message: `${idsToDelete.length} notifications cleared`,
       });
     } catch (error) {
       logger.error('Clear all notifications error:', error);
@@ -589,9 +686,11 @@ export class NotificationController {
       const upsertQuery = `
         INSERT INTO notification_tokens (user_id, device_id, platform, push_token, last_used_at)
         VALUES ($1, $2, $3, $4, NOW())
-        ON CONFLICT (user_id, platform)
+        ON CONFLICT (device_id, platform)
         DO UPDATE SET 
           user_id = EXCLUDED.user_id,
+          device_id = EXCLUDED.device_id,
+          platform = EXCLUDED.platform,
           push_token = EXCLUDED.push_token,
           is_active = true,
           last_used_at = NOW(),

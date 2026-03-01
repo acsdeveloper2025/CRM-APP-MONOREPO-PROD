@@ -65,6 +65,11 @@ const RBACAdminPage = React.lazy(() =>
 const UnauthorizedPage = React.lazy(() =>
   import('@/pages/UnauthorizedPage').then((module) => ({ default: module.UnauthorizedPage }))
 );
+const NotificationHistoryPage = React.lazy(() =>
+  import('@/pages/NotificationHistoryPage').then((module) => ({
+    default: module.NotificationHistoryPage,
+  }))
+);
 const ReportsPage = React.lazy(() =>
   import('@/pages/ReportsPage').then((module) => ({ default: module.ReportsPage }))
 );
@@ -204,6 +209,14 @@ export const AppRoutes: React.FC = () => {
         {/* ... rest of the routes remain same but lazy loaded components need Suspense up the tree or here ... */}
         {/* Protected routes with persistent layout */}
         <Route element={<AuthenticatedLayout />}>
+          <Route
+            path="/notifications"
+            element={
+              <ProtectedRoute>
+                <NotificationHistoryPage />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/dashboard"
             element={

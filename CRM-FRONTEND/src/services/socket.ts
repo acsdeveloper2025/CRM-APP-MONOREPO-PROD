@@ -6,6 +6,21 @@ type PermissionUpdatedPayload = {
   timestamp?: string;
 };
 
+type NotificationPayload = {
+  id: string;
+  title: string;
+  message: string;
+  type?: string;
+  caseId?: string;
+  caseNumber?: string;
+  taskId?: string;
+  taskNumber?: string;
+  actionUrl?: string;
+  actionType?: string;
+  priority?: string;
+  timestamp?: string;
+};
+
 class FrontendSocketService {
   private socket: Socket | null = null;
   private currentToken: string | null = null;
@@ -57,7 +72,14 @@ class FrontendSocketService {
       this.socket?.off('permissions_updated', handler);
     };
   }
+
+  onNotification(handler: (payload: NotificationPayload) => void): (() => void) | null {
+    if (!this.socket) {return null;}
+    this.socket.on('notification', handler);
+    return () => {
+      this.socket?.off('notification', handler);
+    };
+  }
 }
 
 export const frontendSocketService = new FrontendSocketService();
-

@@ -3,6 +3,7 @@ import type { QueryParams } from '@/types/database';
 import { logger } from '@/config/logger';
 import { getSocketIO } from '@/websocket/server';
 import { PushNotificationService } from './PushNotificationService';
+import { canTargetUserAccessNotificationObject } from '@/security/notificationScope';
 
 export interface NotificationData {
   userId: string;
@@ -62,7 +63,7 @@ export interface NotificationToken {
   id: string;
   userId: string;
   deviceId?: string;
-  platform: 'IOS' | 'ANDROID' | 'WEB';
+  platform: 'IOS' | 'ANDROID' | 'WEB' | 'ios' | 'android' | 'web';
   pushToken: string;
   isActive: boolean;
 }
@@ -75,6 +76,21 @@ export class NotificationService {
    */
   static async sendNotification(notificationData: NotificationData): Promise<string> {
     try {
+      const scopedTarget = await canTargetUserAccessNotificationObject(notificationData.userId, {
+        caseId: notificationData.caseId,
+        taskId: notificationData.taskId,
+      });
+
+      if (!scopedTarget.allowed) {
+        logger.warn('Skipping notification because target user no longer has object access', {
+          userId: notificationData.userId,
+          caseId: notificationData.caseId,
+          taskId: notificationData.taskId,
+          type: notificationData.type,
+        });
+        return '';
+      }
+
       // Get user preferences
       const preferences = await this.getUserPreferences(notificationData.userId);
 
@@ -92,24 +108,41 @@ export class NotificationService {
         return '';
       }
 
+      const normalizedNotification = {
+        ...notificationData,
+        actionUrl: scopedTarget.actionUrl || notificationData.actionUrl || '/dashboard',
+      };
+
       // Create notification record
-      const notificationId = await this.createNotificationRecord(notificationData);
+      const notificationId = await this.createNotificationRecord(normalizedNotification);
 
-      // Send via enabled delivery methods
-      const deliveryPromises: Promise<void>[] = [];
+      const deliveryResults = await Promise.allSettled([
+        this.shouldSendViaWebSocket(notificationData.type, preferences)
+          ? this.sendWebSocketNotification(notificationId, normalizedNotification)
+          : Promise.resolve(false),
+        this.shouldSendViaPush(notificationData.type, preferences)
+          ? this.sendPushNotification(notificationId, normalizedNotification)
+          : Promise.resolve(false),
+      ]);
 
-      // WebSocket delivery
-      if (this.shouldSendViaWebSocket(notificationData.type, preferences)) {
-        deliveryPromises.push(this.sendWebSocketNotification(notificationId, notificationData));
+      const wasDelivered = deliveryResults.some(
+        result => result.status === 'fulfilled' && result.value === true
+      );
+      const hadError = deliveryResults.some(result => result.status === 'rejected');
+
+      if (wasDelivered) {
+        await this.updateNotificationDeliveryStatus(
+          notificationId,
+          'DELIVERED',
+          notificationData.type === 'CASE_ASSIGNED' ? 'delivered via user channel' : undefined
+        );
+      } else if (hadError) {
+        await this.updateNotificationDeliveryStatus(
+          notificationId,
+          'FAILED',
+          'notification delivery failed'
+        );
       }
-
-      // Push notification delivery
-      if (this.shouldSendViaPush(notificationData.type, preferences)) {
-        deliveryPromises.push(this.sendPushNotification(notificationId, notificationData));
-      }
-
-      // Execute all delivery methods
-      await Promise.allSettled(deliveryPromises);
 
       logger.info(`Notification sent successfully`, {
         notificationId,
@@ -198,7 +231,7 @@ export class NotificationService {
   private static async sendWebSocketNotification(
     notificationId: string,
     data: NotificationData
-  ): Promise<void> {
+  ): Promise<boolean> {
     try {
       const io = getSocketIO();
       if (!io) {
@@ -224,17 +257,19 @@ export class NotificationService {
 
       // Log delivery attempt
       await this.logDeliveryAttempt(notificationId, 'WEBSOCKET', 'SENT');
+      await this.updateNotificationDeliveryStatus(notificationId, 'SENT');
 
       logger.info(`WebSocket notification sent`, {
         notificationId,
         userId: data.userId,
         type: data.type,
       });
+      return true;
     } catch (error) {
       await this.logDeliveryAttempt(notificationId, 'WEBSOCKET', 'FAILED', {
         errorMessage: error instanceof Error ? error.message : 'Unknown error',
       });
-      throw error;
+      return false;
     }
   }
 
@@ -244,23 +279,23 @@ export class NotificationService {
   private static async sendPushNotification(
     notificationId: string,
     data: NotificationData
-  ): Promise<void> {
+  ): Promise<boolean> {
     try {
       // Get user's active push tokens
       const tokens = await this.getUserPushTokens(data.userId);
 
       if (tokens.length === 0) {
         logger.info(`No push tokens found for user ${data.userId}`);
-        return;
+        return false;
       }
 
       // Send to each device
       const pushPromises = tokens.map(token => this.sendPushToDevice(notificationId, data, token));
-
-      await Promise.allSettled(pushPromises);
+      const pushResults = await Promise.allSettled(pushPromises);
+      return pushResults.some(result => result.status === 'fulfilled' && result.value === true);
     } catch (error) {
       logger.error('Failed to send push notification:', error);
-      throw error;
+      return false;
     }
   }
 
@@ -271,7 +306,7 @@ export class NotificationService {
     notificationId: string,
     data: NotificationData,
     token: NotificationToken
-  ): Promise<void> {
+  ): Promise<boolean> {
     try {
       const pushPayload = {
         title: data.title,
@@ -293,7 +328,19 @@ export class NotificationService {
       };
 
       // Send actual push notification
-      const result = await this.pushService.sendPushNotification([token.userId], pushPayload);
+      const result = await this.pushService.sendPushToTokens(
+        [
+          {
+            id: token.id,
+            userId: token.userId,
+            deviceId: token.deviceId,
+            platform: token.platform.toLowerCase() as 'ios' | 'android' | 'web',
+            pushToken: token.pushToken,
+            isActive: token.isActive,
+          },
+        ],
+        pushPayload
+      );
 
       if (result.success > 0) {
         logger.info(`Push notification sent successfully to ${token.platform} device`, {
@@ -305,15 +352,19 @@ export class NotificationService {
 
         // Log successful delivery attempt
         await this.logDeliveryAttempt(notificationId, 'PUSH', 'SENT', {
+          deviceId: token.deviceId,
           platform: token.platform,
-          pushTokenUsed: `${token.pushToken.substring(0, 20)}...`,
+          pushTokenUsed: token.pushToken,
         });
+        await this.updateNotificationDeliveryStatus(notificationId, 'SENT');
+        return true;
       } else {
         // Log failed delivery attempt
         await this.logDeliveryAttempt(notificationId, 'PUSH', 'FAILED', {
+          deviceId: token.deviceId,
           platform: token.platform,
           errors: result.errors,
-          pushTokenUsed: `${token.pushToken.substring(0, 20)}...`,
+          pushTokenUsed: token.pushToken,
         });
 
         logger.warn(`Push notification failed for ${token.platform} device`, {
@@ -323,13 +374,16 @@ export class NotificationService {
           userId: token.userId,
           errors: result.errors,
         });
+        return false;
       }
     } catch (error) {
       await this.logDeliveryAttempt(notificationId, 'PUSH', 'FAILED', {
+        deviceId: token.deviceId,
         platform: token.platform,
+        pushTokenUsed: token.pushToken,
         errorMessage: error instanceof Error ? error.message : 'Unknown error',
       });
-      throw error;
+      return false;
     }
   }
 
@@ -393,6 +447,7 @@ export class NotificationService {
     const selectQuery = `
       SELECT 
         id, user_id as "userId",
+        device_id as "deviceId",
         platform, push_token as "pushToken", is_active as "isActive"
       FROM notification_tokens 
       WHERE user_id = $1 AND is_active = true
@@ -423,6 +478,7 @@ export class NotificationService {
         notificationId,
         deliveryMethod,
         deliveryStatus,
+        additionalData?.deviceId || null,
         additionalData?.platform || null,
         additionalData?.pushTokenUsed || null,
         additionalData?.errorCode || null,
@@ -434,6 +490,31 @@ export class NotificationService {
     } catch (error) {
       logger.error('Failed to log delivery attempt:', error);
     }
+  }
+
+  private static async updateNotificationDeliveryStatus(
+    notificationId: string,
+    status: 'PENDING' | 'SENT' | 'DELIVERED' | 'FAILED',
+    failureReason?: string
+  ): Promise<void> {
+    const setDeliveredAt = status === 'DELIVERED' ? 'NOW()' : 'delivered_at';
+    const setSentAt =
+      status === 'SENT' || status === 'DELIVERED' ? 'COALESCE(sent_at, NOW())' : 'sent_at';
+
+    await query(
+      `UPDATE notifications
+       SET delivery_status = $2,
+           sent_at = ${setSentAt},
+           delivered_at = ${setDeliveredAt},
+           acknowledged_at = acknowledged_at,
+           updated_at = NOW(),
+           data = CASE
+             WHEN $3::text IS NULL THEN data
+             ELSE COALESCE(data, '{}'::jsonb) || jsonb_build_object('deliveryNote', $3::text)
+           END
+       WHERE id = $1`,
+      [notificationId, status, failureReason]
+    );
   }
 
   /**

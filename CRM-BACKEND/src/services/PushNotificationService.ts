@@ -21,6 +21,7 @@ interface PushNotificationPayload {
 interface NotificationToken {
   id: string;
   userId: string;
+  deviceId?: string;
   platform: 'ios' | 'android' | 'web';
   pushToken: string;
   isActive: boolean;
@@ -191,6 +192,55 @@ export class PushNotificationService {
       results.errors.push(error as Error);
       return results;
     }
+  }
+
+  /**
+   * Send push notification to an explicit set of device tokens without refetching by user.
+   */
+  public async sendPushToTokens(
+    tokens: NotificationToken[],
+    payload: PushNotificationPayload
+  ): Promise<{ success: number; failed: number; errors: PushServiceError[] }> {
+    if (!this.initialized) {
+      this.initialize();
+    }
+
+    const results = {
+      success: 0,
+      failed: 0,
+      errors: [] as PushServiceError[],
+    };
+
+    if (tokens.length === 0) {
+      return results;
+    }
+
+    const androidTokens = tokens.filter(t => t.platform === 'android');
+    const iosTokens = tokens.filter(t => t.platform === 'ios');
+    const webTokens = tokens.filter(t => t.platform === 'web');
+
+    if (androidTokens.length > 0) {
+      const androidResult = await this.sendFCMNotification(androidTokens, payload);
+      results.success += androidResult.success;
+      results.failed += androidResult.failed;
+      results.errors.push(...androidResult.errors);
+    }
+
+    if (iosTokens.length > 0) {
+      const iosResult = await this.sendAPNSNotification(iosTokens, payload);
+      results.success += iosResult.success;
+      results.failed += iosResult.failed;
+      results.errors.push(...iosResult.errors);
+    }
+
+    if (webTokens.length > 0) {
+      const webResult = await this.sendFCMNotification(webTokens, payload);
+      results.success += webResult.success;
+      results.failed += webResult.failed;
+      results.errors.push(...webResult.errors);
+    }
+
+    return results;
   }
 
   /**
