@@ -28,6 +28,92 @@ export function NotificationHistoryPage() {
     staleTime: 15000,
   });
 
+  const markNotificationReadInCache = (notificationId: string) => {
+    queryClient.setQueriesData<
+      | {
+          items: AppNotification[];
+          unreadCount: number;
+          pagination: {
+            total: number;
+            limit: number;
+            offset: number;
+            hasMore: boolean;
+          };
+        }
+      | undefined
+    >({ queryKey: ['notifications'] }, (current) => {
+      if (!current) {
+        return current;
+      }
+
+      let changed = false;
+      const items = current.items.map((notification) => {
+        if (notification.id !== notificationId || notification.isRead) {
+          return notification;
+        }
+
+        changed = true;
+        return {
+          ...notification,
+          isRead: true,
+          readAt: new Date().toISOString(),
+        };
+      });
+
+      if (!changed) {
+        return current;
+      }
+
+      return {
+        ...current,
+        items,
+        unreadCount: Math.max(0, current.unreadCount - 1),
+      };
+    });
+
+    queryClient.setQueryData<
+      | {
+          items: AppNotification[];
+          unreadCount: number;
+          pagination: {
+            total: number;
+            limit: number;
+            offset: number;
+            hasMore: boolean;
+          };
+        }
+      | undefined
+    >(['notifications-history'], (current) => {
+      if (!current) {
+        return current;
+      }
+
+      let changed = false;
+      const items = current.items.map((notification) => {
+        if (notification.id !== notificationId || notification.isRead) {
+          return notification;
+        }
+
+        changed = true;
+        return {
+          ...notification,
+          isRead: true,
+          readAt: new Date().toISOString(),
+        };
+      });
+
+      if (!changed) {
+        return current;
+      }
+
+      return {
+        ...current,
+        items,
+        unreadCount: Math.max(0, current.unreadCount - 1),
+      };
+    });
+  };
+
   const refreshLists = async () => {
     setSelectedIds(new Set());
     await Promise.all([
@@ -131,6 +217,7 @@ export function NotificationHistoryPage() {
     try {
       if (!notification.isRead) {
         await notificationService.markRead(notification.id);
+        markNotificationReadInCache(notification.id);
       }
 
       const target = await notificationService.validateNavigationTarget(notification);
