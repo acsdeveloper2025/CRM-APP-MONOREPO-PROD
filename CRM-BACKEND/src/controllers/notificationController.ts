@@ -17,6 +17,18 @@ interface AuthenticatedRequest extends Request {
 }
 
 export class NotificationController {
+  private static getSingleParam(value: string | string[] | undefined): string | null {
+    if (typeof value === 'string') {
+      return value;
+    }
+
+    if (Array.isArray(value)) {
+      return value[0] ?? null;
+    }
+
+    return null;
+  }
+
   private static async getScopedNotificationRows(user: NonNullable<AuthenticatedRequest['user']>) {
     const result = await query<{
       id: string;
@@ -148,13 +160,21 @@ export class NotificationController {
   static async markNotificationAsRead(req: AuthenticatedRequest, res: Response) {
     try {
       const userId = req.user?.id;
-      const { notificationId } = req.params;
+      const notificationId = this.getSingleParam(req.params.notificationId);
 
       if (!userId) {
         return res.status(401).json({
           success: false,
           message: 'User not authenticated',
           error: { code: 'UNAUTHORIZED' },
+        });
+      }
+
+      if (!notificationId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Notification ID is required',
+          error: { code: 'INVALID_REQUEST' },
         });
       }
 
@@ -196,13 +216,21 @@ export class NotificationController {
   static async markNotificationAsUnread(req: AuthenticatedRequest, res: Response) {
     try {
       const userId = req.user?.id;
-      const { notificationId } = req.params;
+      const notificationId = this.getSingleParam(req.params.notificationId);
 
       if (!userId) {
         return res.status(401).json({
           success: false,
           message: 'User not authenticated',
           error: { code: 'UNAUTHORIZED' },
+        });
+      }
+
+      if (!notificationId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Notification ID is required',
+          error: { code: 'INVALID_REQUEST' },
         });
       }
 
@@ -288,13 +316,21 @@ export class NotificationController {
   static async deleteNotification(req: AuthenticatedRequest, res: Response) {
     try {
       const userId = req.user?.id;
-      const { notificationId } = req.params;
+      const notificationId = this.getSingleParam(req.params.notificationId);
 
       if (!userId) {
         return res.status(401).json({
           success: false,
           message: 'User not authenticated',
           error: { code: 'UNAUTHORIZED' },
+        });
+      }
+
+      if (!notificationId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Notification ID is required',
+          error: { code: 'INVALID_REQUEST' },
         });
       }
 
