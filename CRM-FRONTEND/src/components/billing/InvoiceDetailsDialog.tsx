@@ -1,4 +1,4 @@
-import { Download, CheckCircle, Receipt, Building, Calendar } from 'lucide-react';
+import { Download, FileSpreadsheet, Receipt, Building, Calendar } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -36,11 +36,25 @@ export function InvoiceDetailsDialog({ invoice, open, onOpenChange }: InvoiceDet
     }
   };
 
+  const handleDownloadExcel = async () => {
+    try {
+      const blob = await billingService.downloadInvoiceExcel(invoice.id);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `invoice_${invoice.invoiceNumber}.xlsx`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+      toast.success('Invoice Excel downloaded successfully');
+    } catch (_error) {
+      toast.error('Failed to download invoice excel');
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     const statusConfig = {
       DRAFT: { variant: 'secondary' as const, label: 'Draft' },
       SENT: { variant: 'outline' as const, label: 'Sent' },
-      PAID: { variant: 'default' as const, label: 'Paid' },
       OVERDUE: { variant: 'destructive' as const, label: 'Overdue' },
       CANCELLED: { variant: 'secondary' as const, label: 'Cancelled' },
     };
@@ -63,6 +77,10 @@ export function InvoiceDetailsDialog({ invoice, open, onOpenChange }: InvoiceDet
               <Button variant="outline" size="sm" onClick={handleDownloadPDF}>
                 <Download className="h-4 w-4 mr-2" />
                 Download PDF
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleDownloadExcel}>
+                <FileSpreadsheet className="h-4 w-4 mr-2" />
+                Download Excel
               </Button>
             </div>
           </DialogTitle>
@@ -174,28 +192,6 @@ export function InvoiceDetailsDialog({ invoice, open, onOpenChange }: InvoiceDet
               </div>
             </CardContent>
           </Card>
-
-          {/* Payment Information */}
-          {invoice.status === 'PAID' && invoice.paidAt && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center space-x-2">
-                  <CheckCircle className="h-4 w-4 text-green-600" />
-                  <span>Payment Information</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">Paid On:</span>
-                  <span className="text-sm">{new Date(invoice.paidAt).toLocaleDateString()}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">Amount Paid:</span>
-                  <span className="text-sm font-medium">₹{invoice.totalAmount.toLocaleString()}</span>
-                </div>
-              </CardContent>
-            </Card>
-          )}
 
           {/* Notes */}
           {invoice.notes && (

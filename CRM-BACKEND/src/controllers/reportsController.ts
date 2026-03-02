@@ -2105,3 +2105,315 @@ export const exportMISData = async (req: AuthenticatedRequest, res: Response) =>
     });
   }
 };
+
+type InvoiceReportQueryInput = {
+  search?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  clientId?: string | number;
+  productId?: string | number;
+  status?: string;
+  page?: string | number;
+  limit?: string | number;
+};
+
+const getInvoiceReportInput = (req: AuthenticatedRequest): InvoiceReportQueryInput => {
+  const source =
+    req.method === 'POST' && req.body && typeof req.body === 'object'
+      ? (req.body as Record<string, unknown>)
+      : (req.query as Record<string, unknown>);
+
+  return {
+    search: typeof source.search === 'string' ? source.search : undefined,
+    dateFrom: typeof source.dateFrom === 'string' ? source.dateFrom : undefined,
+    dateTo: typeof source.dateTo === 'string' ? source.dateTo : undefined,
+    clientId:
+      typeof source.clientId === 'string' || typeof source.clientId === 'number'
+        ? source.clientId
+        : undefined,
+    productId:
+      typeof source.productId === 'string' || typeof source.productId === 'number'
+        ? source.productId
+        : undefined,
+    status: typeof source.status === 'string' ? source.status : undefined,
+    page:
+      typeof source.page === 'string' || typeof source.page === 'number' ? source.page : undefined,
+    limit:
+      typeof source.limit === 'string' || typeof source.limit === 'number'
+        ? source.limit
+        : undefined,
+  };
+};
+
+const buildInvoiceReportScope = async (req: AuthenticatedRequest) => {
+  const backendScope = await getBackendUserReportScope(req);
+  const conditions: string[] = [];
+  const params: QueryParams = [];
+  let paramIndex = 1;
+
+  if (backendScope.scopedUserIds) {
+    conditions.push(`EXISTS (
+      SELECT 1
+      FROM invoice_item_tasks iit_scope
+      JOIN verification_tasks vt_scope ON vt_scope.id = iit_scope.verification_task_id
+      JOIN invoice_items ii_scope ON ii_scope.id = iit_scope.invoice_item_id
+      WHERE ii_scope.invoice_id = i.id
+        AND vt_scope.assigned_to = ANY($${paramIndex}::uuid[])
+    )`);
+    params.push(backendScope.scopedUserIds);
+    paramIndex++;
+  }
+
+  if (backendScope.clientIds) {
+    conditions.push(`i.client_id = ANY($${paramIndex}::int[])`);
+    params.push(backendScope.clientIds);
+    paramIndex++;
+  }
+
+  if (backendScope.productIds) {
+    conditions.push(`(i.product_id IS NULL OR i.product_id = ANY($${paramIndex}::int[]))`);
+    params.push(backendScope.productIds);
+    paramIndex++;
+  }
+
+  return { conditions, params, paramIndex };
+};
+
+const buildInvoiceReportQuery = async (req: AuthenticatedRequest, includePagination: boolean) => {
+  const input = getInvoiceReportInput(req);
+  const { conditions, params, paramIndex: initialParamIndex } = await buildInvoiceReportScope(req);
+  let paramIndex = initialParamIndex;
+
+  if (input.clientId) {
+    conditions.push(`i.client_id = $${paramIndex}`);
+    params.push(Number(input.clientId));
+    paramIndex++;
+  }
+
+  if (input.productId) {
+    conditions.push(`i.product_id = $${paramIndex}`);
+    params.push(Number(input.productId));
+    paramIndex++;
+  }
+
+  if (input.status) {
+    conditions.push(`i.status = $${paramIndex}`);
+    params.push(String(input.status).toUpperCase());
+    paramIndex++;
+  }
+
+  if (input.dateFrom) {
+    conditions.push(`i.issue_date >= $${paramIndex}`);
+    params.push(input.dateFrom);
+    paramIndex++;
+  }
+
+  if (input.dateTo) {
+    conditions.push(`i.issue_date <= $${paramIndex}`);
+    params.push(input.dateTo);
+    paramIndex++;
+  }
+
+  if (input.search && input.search.trim()) {
+    conditions.push(`(
+      i.invoice_number ILIKE $${paramIndex} OR
+      i.client_name ILIKE $${paramIndex} OR
+      COALESCE(i.notes, '') ILIKE $${paramIndex}
+    )`);
+    params.push(`%${input.search.trim()}%`);
+    paramIndex++;
+  }
+
+  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+  const page = Math.max(1, Number(input.page || 1));
+  const limit = Math.max(1, Math.min(100, Number(input.limit || 20)));
+  const offset = (page - 1) * limit;
+
+  const countQuery = `SELECT COUNT(*)::text as total FROM invoices i ${whereClause}`;
+
+  const dataParams = [...params];
+  let paginationClause = '';
+  if (includePagination) {
+    dataParams.push(limit, offset);
+    paginationClause = `LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+  }
+
+  const dataQuery = `
+    SELECT
+      i.id,
+      i.invoice_number,
+      i.client_id,
+      i.product_id,
+      i.client_name,
+      i.status,
+      i.currency,
+      i.issue_date::text,
+      i.due_date::text,
+      i.paid_date::text,
+      i.subtotal_amount::text,
+      i.tax_amount::text,
+      i.total_amount::text,
+      i.notes,
+      i.created_at::text,
+      i.updated_at::text,
+      c.code as client_code,
+      p.name as product_name,
+      COALESCE(COUNT(ii.id), 0)::int as item_count,
+      COALESCE(SUM(ii.quantity), 0)::int as total_quantity
+    FROM invoices i
+    LEFT JOIN clients c ON c.id = i.client_id
+    LEFT JOIN products p ON p.id = i.product_id
+    LEFT JOIN invoice_items ii ON ii.invoice_id = i.id
+    ${whereClause}
+    GROUP BY i.id, c.code, p.name
+    ORDER BY i.issue_date DESC, i.id DESC
+    ${paginationClause}
+  `;
+
+  return {
+    countQuery,
+    dataQuery,
+    params,
+    dataParams,
+    page,
+    limit,
+  };
+};
+
+export const getInvoicesReport = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const reportQuery = await buildInvoiceReportQuery(req, true);
+    const [countResult, dataResult] = await Promise.all([
+      pool.query<{ total: string }>(reportQuery.countQuery, reportQuery.params),
+      pool.query<{
+        id: number;
+        invoice_number: string;
+        client_id: number;
+        product_id: number | null;
+        client_name: string;
+        status: string;
+        currency: string;
+        issue_date: string;
+        due_date: string;
+        paid_date: string | null;
+        subtotal_amount: string;
+        tax_amount: string;
+        total_amount: string;
+        notes: string | null;
+        created_at: string;
+        updated_at: string;
+        client_code: string | null;
+        product_name: string | null;
+        item_count: number;
+        total_quantity: number;
+      }>(reportQuery.dataQuery, reportQuery.dataParams),
+    ]);
+
+    const total = Number(countResult.rows[0]?.total || 0);
+
+    res.json({
+      success: true,
+      data: dataResult.rows.map(row => ({
+        id: row.id,
+        invoiceNumber: row.invoice_number,
+        clientId: row.client_id,
+        productId: row.product_id,
+        clientName: row.client_name,
+        clientCode: row.client_code,
+        productName: row.product_name,
+        status: row.status,
+        currency: row.currency,
+        issueDate: row.issue_date,
+        dueDate: row.due_date,
+        paidDate: row.paid_date,
+        subtotalAmount: Number(row.subtotal_amount || 0),
+        taxAmount: Number(row.tax_amount || 0),
+        totalAmount: Number(row.total_amount || 0),
+        notes: row.notes || '',
+        itemCount: row.item_count,
+        totalQuantity: row.total_quantity,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+      })),
+      pagination: {
+        page: reportQuery.page,
+        limit: reportQuery.limit,
+        total,
+        totalPages: Math.ceil(total / reportQuery.limit),
+      },
+    });
+  } catch (error) {
+    logger.error('Error retrieving invoice report:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to retrieve invoice report',
+      error: { code: 'INTERNAL_ERROR' },
+    });
+  }
+};
+
+export const downloadInvoicesReport = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const reportQuery = await buildInvoiceReportQuery(req, false);
+    const result = await pool.query<{
+      invoice_number: string;
+      client_name: string;
+      product_name: string | null;
+      status: string;
+      issue_date: string;
+      due_date: string;
+      paid_date: string | null;
+      subtotal_amount: string;
+      tax_amount: string;
+      total_amount: string;
+      currency: string;
+    }>(reportQuery.dataQuery, reportQuery.dataParams);
+
+    const headers = [
+      'Invoice Number',
+      'Client Name',
+      'Product Name',
+      'Status',
+      'Issue Date',
+      'Due Date',
+      'Paid Date',
+      'Subtotal Amount',
+      'Tax Amount',
+      'Total Amount',
+      'Currency',
+    ];
+
+    const csvRows = [headers.join(',')];
+    result.rows.forEach(row => {
+      csvRows.push(
+        [
+          row.invoice_number,
+          `"${row.client_name || ''}"`,
+          `"${row.product_name || ''}"`,
+          row.status,
+          row.issue_date || '',
+          row.due_date || '',
+          row.paid_date || '',
+          row.subtotal_amount || '0',
+          row.tax_amount || '0',
+          row.total_amount || '0',
+          row.currency || 'INR',
+        ].join(',')
+      );
+    });
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename=Invoice_Report_${new Date().toISOString().split('T')[0]}.csv`
+    );
+    res.send(csvRows.join('\n'));
+  } catch (error) {
+    logger.error('Error exporting invoice report:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to export invoice report',
+      error: { code: 'INTERNAL_ERROR' },
+    });
+  }
+};

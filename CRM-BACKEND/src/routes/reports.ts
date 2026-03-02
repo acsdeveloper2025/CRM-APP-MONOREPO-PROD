@@ -17,6 +17,8 @@ import {
   getCaseTimeline,
   getAgentPerformance,
   getAgentProductivity,
+  getInvoicesReport,
+  downloadInvoicesReport,
   // MIS Dashboard APIs
   getMISData,
   exportMISData,
@@ -176,6 +178,53 @@ router.get('/cases', listRateLimit, casesReportValidation, validate, getCasesRep
 router.get('/users', usersReportValidation, validate, getUserPerformanceReport);
 
 router.get('/clients', clientsReportValidation, validate, getClientReport);
+
+router.get(
+  '/invoices',
+  [
+    ...dateRangeValidation,
+    query('clientId').optional().trim().notEmpty().withMessage('Client ID must not be empty'),
+    query('productId').optional().trim().notEmpty().withMessage('Product ID must not be empty'),
+    query('status')
+      .optional()
+      .isIn(['DRAFT', 'SENT', 'CANCELLED', 'OVERDUE'])
+      .withMessage('Invalid status'),
+    query('search')
+      .optional()
+      .trim()
+      .isLength({ max: 100 })
+      .withMessage('Search term must be less than 100 characters'),
+    query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
+    query('limit')
+      .optional()
+      .isInt({ min: 1, max: 100 })
+      .withMessage('Limit must be between 1 and 100'),
+  ],
+  validate,
+  getInvoicesReport
+);
+
+router.get(
+  '/invoices/download',
+  [
+    ...dateRangeValidation,
+    query('clientId').optional().trim().notEmpty().withMessage('Client ID must not be empty'),
+    query('productId').optional().trim().notEmpty().withMessage('Product ID must not be empty'),
+    query('status')
+      .optional()
+      .isIn(['DRAFT', 'SENT', 'CANCELLED', 'OVERDUE'])
+      .withMessage('Invalid status'),
+    query('search')
+      .optional()
+      .trim()
+      .isLength({ max: 100 })
+      .withMessage('Search term must be less than 100 characters'),
+  ],
+  validate,
+  downloadInvoicesReport
+);
+
+router.post('/invoices/download', downloadInvoicesReport);
 
 // ===== PHASE 1: NEW DATA VISUALIZATION & REPORTING ROUTES =====
 

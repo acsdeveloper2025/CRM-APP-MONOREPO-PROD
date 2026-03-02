@@ -92,8 +92,10 @@ export function BillingPage() {
       invoices: {
         total: invoices.length,
         totalAmount: invoices.reduce((sum, inv) => sum + inv.totalAmount, 0),
-        paid: invoices.filter(inv => inv.status === 'PAID').length,
-        paidAmount: invoices.filter(inv => inv.status === 'PAID').reduce((sum, inv) => sum + inv.totalAmount, 0),
+        draft: invoices.filter(inv => inv.status === 'DRAFT').length,
+        draftAmount: invoices
+          .filter(inv => inv.status === 'DRAFT')
+          .reduce((sum, inv) => sum + inv.totalAmount, 0),
         overdue: invoices.filter(inv => inv.status === 'OVERDUE').length,
       },
       commissions: {
@@ -136,11 +138,11 @@ export function BillingPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Paid Invoices</CardTitle>
+            <CardTitle className="text-sm font-medium">Draft Invoices</CardTitle>
             <DollarSign className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{stats.invoices.paid}</div>
+            <div className="text-2xl font-bold text-green-600">{stats.invoices.draft}</div>
             <p className="text-xs text-gray-600">
               {stats.invoices.overdue} overdue
             </p>
@@ -180,10 +182,10 @@ export function BillingPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-600">
-              ₹{((stats.invoices.totalAmount || 0) - (stats.invoices.paidAmount || 0)).toLocaleString()}
+              ₹{(stats.invoices.draftAmount || 0).toLocaleString()}
             </div>
             <p className="text-xs text-gray-600">
-              Pending payment
+              Draft invoice value
             </p>
           </CardContent>
         </Card>
