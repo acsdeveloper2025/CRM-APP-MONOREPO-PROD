@@ -17,7 +17,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
-  MoreHorizontal,
+  ChevronDown,
   UserCheck,
   CheckCircle,
   Play,
@@ -239,8 +239,9 @@ export const VerificationTasksList: React.FC<VerificationTasksListProps> = ({
               <TableCell>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm">
-                      <MoreHorizontal className="h-4 w-4" />
+                    <Button variant="outline" size="sm" className="gap-1">
+                      Actions
+                      <ChevronDown className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">

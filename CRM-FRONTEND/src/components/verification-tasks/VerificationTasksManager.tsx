@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useVerificationTasks } from '@/hooks/useVerificationTasks';
+import { VerificationTasksService } from '@/services/verificationTasks';
 import { VerificationTasksList } from './VerificationTasksList';
 import { CreateTaskModal } from './CreateTaskModal';
 import { TaskAssignmentModal } from './TaskAssignmentModal';
@@ -15,6 +16,8 @@ import {
   RefreshCw,
   AlertCircle
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 
 interface VerificationTasksManagerProps {
   caseId: string;
@@ -29,6 +32,7 @@ export const VerificationTasksManager: React.FC<VerificationTasksManagerProps> =
   customerName,
   readonly = false
 }) => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<string>('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState(false);
@@ -57,9 +61,11 @@ export const VerificationTasksManager: React.FC<VerificationTasksManagerProps> =
 
   // Calculate summary
   const summary = {
-    totalTasks: tasks.length,
-    completedTasks: completedTasks.length,
-    completionPercentage: tasks.length > 0 ? Math.round((completedTasks.length / tasks.length) * 100) : 0,
+    totalTasks: data?.totalTasks ?? tasks.length,
+    completedTasks: data?.completedTasks ?? completedTasks.length,
+    completionPercentage:
+      data?.completionPercentage ??
+      (tasks.length > 0 ? Math.round((completedTasks.length / tasks.length) * 100) : 0),
   };
 
   // Selection handlers
@@ -104,6 +110,30 @@ export const VerificationTasksManager: React.FC<VerificationTasksManagerProps> =
   const handleBulkAssign = async (_assignedTo: string, _reason?: string) => {
     // TODO: Implement bulk assign
     clearSelection();
+  };
+
+  const handleStartTask = async (taskId: string) => {
+    try {
+      await VerificationTasksService.startTask(taskId);
+      toast.success('Task moved to In Progress');
+      refetch();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to start task');
+    }
+  };
+
+  const handleCancelTask = async (taskId: string) => {
+    try {
+      await VerificationTasksService.cancelTask(taskId, 'Revoked from case view');
+      toast.success('Task revoked successfully');
+      refetch();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to revoke task');
+    }
+  };
+
+  const handleViewTask = (taskId: string) => {
+    navigate(`/tasks/${taskId}`);
   };
 
   const handleRefresh = () => {
@@ -261,6 +291,9 @@ export const VerificationTasksManager: React.FC<VerificationTasksManagerProps> =
               setSelectedTaskId(taskId);
               setShowCompleteModal(true);
             }}
+            onStartTask={handleStartTask}
+            onCancelTask={handleCancelTask}
+            onViewTask={handleViewTask}
           />
         </CardContent>
       </Card>
