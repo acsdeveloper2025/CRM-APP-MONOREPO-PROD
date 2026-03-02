@@ -39,6 +39,7 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
 
   // Mutation for assigning task
   const { mutateAsync: assignTask, isPending: isAssigning } = useAssignVerificationTask();
+  const requiresRevokeFirst = task?.status === 'IN_PROGRESS';
 
   // Synchronize local priority with task priority when task data is loaded
   useEffect(() => {
@@ -66,6 +67,11 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
   };
 
   const handleSubmit = async () => {
+    if (requiresRevokeFirst) {
+      setSubmitError('This task is already in progress. Revoke it first, then reassign it.');
+      return;
+    }
+
     if (!validateForm()) {
       return;
     }
@@ -87,6 +93,18 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
       }
     } catch (error) {
       console.error('Failed to assign task:', error);
+      const apiCode =
+        typeof error === 'object' &&
+        error !== null &&
+        'response' in error &&
+        typeof (error as { response?: unknown }).response === 'object' &&
+        (error as { response?: { data?: { error?: { code?: string } } } }).response?.data?.error?.code;
+
+      if (apiCode === 'MUST_REVOKE_TASK_FIRST') {
+        setSubmitError('This task is already in progress. Revoke it first, then reassign it.');
+        return;
+      }
+
       setSubmitError('Failed to assign task. Please try again.');
     }
   };
@@ -149,6 +167,12 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
             </div>
           )}
 
+          {requiresRevokeFirst && (
+            <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded text-sm">
+              This task is already in progress. Revoke it from the task actions menu before assigning it to a different field executive.
+            </div>
+          )}
+
           {/* Assignment Form */}
           <div className="space-y-4">
             {/* Field User Selection */}
@@ -167,7 +191,7 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
                   setAssignedTo(value);
                   clearError('assignedTo');
                 }}
-                disabled={loadingUsers || !task || isAssigning}
+                disabled={loadingUsers || !task || isAssigning || requiresRevokeFirst}
               >
                 <SelectTrigger className={errors.assignedTo ? 'border-red-500' : ''}>
                   <SelectValue placeholder={loadingUsers ? "Loading field users..." : "Select a field user"}>
@@ -230,7 +254,7 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
               <Select
                 value={priority}
                 onValueChange={(value: TaskPriority) => setPriority(value)}
-                disabled={isAssigning}
+                disabled={isAssigning || requiresRevokeFirst}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -267,7 +291,7 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
                 placeholder="Explain why this task is being assigned to this user..."
                 rows={3}
                 className={errors.assignmentReason ? 'border-red-500' : ''}
-                disabled={isAssigning}
+                disabled={isAssigning || requiresRevokeFirst}
               />
               {errors.assignmentReason && (
                 <p className="text-sm text-red-600 flex items-center space-x-1">
@@ -315,14 +339,14 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
             </Button>
             <Button 
               onClick={handleSubmit} 
-              disabled={isAssigning || !assignedTo}
+              disabled={isAssigning || !assignedTo || requiresRevokeFirst}
             >
               {isAssigning ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />
                   Assigning...
                 </>
-              ) : 'Assign Task'}
+              ) : requiresRevokeFirst ? 'Revoke First' : 'Assign Task'}
             </Button>
           </div>
         </div>

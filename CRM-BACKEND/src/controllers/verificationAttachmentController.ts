@@ -247,7 +247,7 @@ export class VerificationAttachmentController {
       logger.info(`📸 Processing strict dual-write upload for Task ID: ${taskId}`);
 
       const taskResult = await query(
-        `SELECT vt.id, vt.case_id, vty.name as verification_type, c."caseId" as case_number 
+        `SELECT vt.id, vt.case_id, vt.status, vt.assigned_to, vty.name as verification_type, c."caseId" as case_number 
          FROM verification_tasks vt
          JOIN cases c ON vt.case_id = c.id
          LEFT JOIN "verificationTypes" vty ON vt.verification_type_id = vty.id
@@ -264,6 +264,15 @@ export class VerificationAttachmentController {
       }
 
       const task = taskResult.rows[0];
+      if (task.status === 'REVOKED') {
+        await Promise.all((files || []).map(file => fs.unlink(file.path).catch(() => {})));
+        return res.status(403).json({
+          success: false,
+          message: 'Task has been revoked',
+          error: { code: 'TASK_REVOKED' },
+        });
+      }
+
       const targetTaskId = task.id;
       const targetCaseId = task.case_id; // Auto-derived from task
       const targetCaseNumber = task.case_number; // Auto-derived from task

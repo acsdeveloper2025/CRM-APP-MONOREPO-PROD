@@ -200,8 +200,19 @@ export class MobileFormController {
 
       const task = taskQuery.rows[0];
 
-      // CRITICAL: Block submission if task is superseded or revoked
-      if (task.status === 'REVOKED' || task.status === 'COMPLETED') {
+      if (task.status === 'REVOKED') {
+        return {
+          success: false,
+          error: {
+            status: 403,
+            message: 'Task has been revoked',
+            code: 'TASK_REVOKED',
+          },
+        };
+      }
+
+      // CRITICAL: Block submission if task is superseded or completed
+      if (task.status === 'COMPLETED') {
         return {
           success: false,
           error: {
@@ -355,8 +366,19 @@ export class MobileFormController {
 
       const task = taskQuery.rows[0];
 
-      // Step 2: Block superseded/revoked/completed tasks
-      if (task.status === 'REVOKED' || task.status === 'COMPLETED') {
+      if (task.status === 'REVOKED') {
+        return {
+          success: false,
+          error: {
+            status: 403,
+            message: 'Task has been revoked',
+            code: 'TASK_REVOKED',
+          },
+        };
+      }
+
+      // Step 2: Block superseded/completed tasks
+      if (task.status === 'COMPLETED') {
         return {
           success: false,
           error: {

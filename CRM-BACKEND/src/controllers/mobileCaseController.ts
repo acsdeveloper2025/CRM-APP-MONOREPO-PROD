@@ -19,6 +19,7 @@ import { CaseStatusSyncService } from '../services/caseStatusSyncService';
 import { logger } from '../utils/logger';
 import { isFieldExecutionActor } from '../security/rbacAccess';
 import { requireControllerPermission } from '@/security/controllerAuthorization';
+import { TaskRevocationService } from '@/services/taskRevocationService';
 
 // Type guards and interfaces for WhereClause usage
 interface DateRangeFilter {
@@ -385,6 +386,9 @@ export class MobileCaseController {
         syncStatus: 'SYNCED',
       }));
 
+      const revokedAssignmentIds =
+        await TaskRevocationService.getRevokedAssignmentIdsForUser(userId);
+
       const totalPages = Math.ceil(totalCount / take);
       const hasMore = Number(page) < totalPages;
 
@@ -394,6 +398,7 @@ export class MobileCaseController {
         data: {
           cases: mobileCases,
           tasks: mobileCases, // Alias for cases to support mobile app calling /tasks
+          revoked_assignment_ids: revokedAssignmentIds,
           pagination: {
             page: Number(page),
             limit: take,
@@ -1623,8 +1628,16 @@ export class MobileCaseController {
 
       const task = taskQuery.rows[0];
 
-      // Block superseded or revoked tasks
-      if (task.status === 'REVOKED' || task.status === 'COMPLETED') {
+      if (task.status === 'REVOKED') {
+        return res.status(403).json({
+          success: false,
+          message: 'Task has been revoked',
+          error: { code: 'TASK_REVOKED' },
+        });
+      }
+
+      // Block superseded or completed tasks
+      if (task.status === 'COMPLETED') {
         return res.status(409).json({
           success: false,
           message: 'Task is superseded or revoked. Submission is not allowed.',
@@ -1815,7 +1828,19 @@ export class MobileCaseController {
         });
       }
 
-      // Update task status to revoked
+      await TaskRevocationService.recordRevocation(
+        { query },
+        {
+          taskId,
+          revokedByUserId: userId,
+          revokedByRole: 'FE',
+          revokedFromUserId: taskData.assigned_to,
+          revokeReason: reason,
+          previousStatus: taskData.status,
+        }
+      );
+
+      // Update task status to revoked and detach assignment
       await query(
         `
         UPDATE verification_tasks
@@ -1823,6 +1848,8 @@ export class MobileCaseController {
             revoked_at = CURRENT_TIMESTAMP,
             revoked_by = $1,
             revocation_reason = $2,
+            assigned_to = NULL,
+            current_assigned_at = NULL,
             updated_at = CURRENT_TIMESTAMP
         WHERE id = $3
       `,

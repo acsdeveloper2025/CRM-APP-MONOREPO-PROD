@@ -13,6 +13,7 @@ import { validateTaskRecordAccess } from '../middleware/taskAuthorization';
 import { pool } from '../config/db';
 import { authorize } from '@/middleware/authorize';
 import { isScopedOperationsUser } from '@/security/rbacAccess';
+import { EnterpriseCache, CacheInvalidationPatterns } from '@/middleware/enterpriseCache';
 
 const router = express.Router();
 
@@ -94,9 +95,18 @@ router.post(
   '/verification-tasks/:taskId/assign',
   authenticateToken,
   authorize('case.reassign'),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.assignmentUpdate, { synchronous: true }),
   validateTaskRecordAccess,
   validateTaskAssignment,
   VerificationTasksController.assignTask.bind(VerificationTasksController)
+);
+
+router.post(
+  '/verification-tasks/:taskId/revoke',
+  authenticateToken,
+  authorize('task.revoke'),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.assignmentUpdate, { synchronous: true }),
+  VerificationTasksController.revokeTask.bind(VerificationTasksController)
 );
 
 /**

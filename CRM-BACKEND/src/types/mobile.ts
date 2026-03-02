@@ -389,6 +389,7 @@ export interface MobileSyncUploadRequest {
 export interface MobileSyncDownloadResponse {
   cases: MobileCaseResponse[];
   deletedCaseIds: string[];
+  revokedAssignmentIds: string[];
   conflicts: {
     caseId: string;
     localVersion: Record<string, unknown>;
