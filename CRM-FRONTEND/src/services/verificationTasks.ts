@@ -220,8 +220,8 @@ export class VerificationTasksService {
     taskId: string, 
     cancellationReason?: string
   ): Promise<VerificationTaskResponse> {
-    const response = await apiService.post(`/verification-tasks/${taskId}/cancel`, {
-      cancellation_reason: cancellationReason
+    const response = await apiService.post(`/verification-tasks/${taskId}/revoke`, {
+      revoke_reason: cancellationReason
     });
     return response.data as unknown as VerificationTaskResponse;
   }

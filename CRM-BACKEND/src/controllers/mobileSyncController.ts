@@ -57,6 +57,7 @@ import { logger } from '../utils/logger';
 import { EnterpriseMobileSyncService } from '../services/enterpriseMobileSyncService';
 import { isFieldExecutionActor } from '@/security/rbacAccess';
 import { CaseStatusSyncService } from '../services/caseStatusSyncService';
+import { TaskRevocationService } from '../services/taskRevocationService';
 
 export class MobileSyncController {
   /**
@@ -320,6 +321,10 @@ export class MobileSyncController {
       throw new Error('Access denied. Task is not assigned to user.');
     }
 
+    if (task.status === 'REVOKED') {
+      throw new Error('TASK_REVOKED');
+    }
+
     if (requestedStatus === 'IN_PROGRESS') {
       await query(
         `
@@ -465,12 +470,15 @@ export class MobileSyncController {
       }));
 
       const deletedCaseIds = deletedCases;
+      const revokedAssignmentIds =
+        await TaskRevocationService.getRevokedAssignmentIdsForUser(userId);
       const hasMore = updatedCases.length === Number(limit);
       const newSyncTimestamp = new Date().toISOString();
 
       const response: MobileSyncDownloadResponse = {
         cases: mobileCases,
         deletedCaseIds,
+        revokedAssignmentIds,
         conflicts: [], // Would be populated if conflicts are detected
         syncTimestamp: newSyncTimestamp,
         hasMore,

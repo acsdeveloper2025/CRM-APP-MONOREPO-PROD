@@ -14,6 +14,28 @@ import { getAssignedProductIds } from '@/middleware/productAccess';
 import { isFieldExecutionActor, isScopedOperationsUser } from '@/security/rbacAccess';
 import { getScopedOperationalUserIds } from '@/security/userScope';
 import { requireControllerPermission } from '@/security/controllerAuthorization';
+import { resolveDataScope, valueAllowedByScope } from '@/security/dataScope';
+import { TaskRevocationService } from '@/services/taskRevocationService';
+
+type ReassignableTaskRecord = {
+  id: string;
+  case_id: string;
+  verification_type_id: number;
+  task_title: string | null;
+  task_description: string | null;
+  priority: string | null;
+  rate_type_id: number | null;
+  estimated_amount: number | null;
+  address: string | null;
+  pincode: string | null;
+  service_zone_id: number | null;
+  area_id: number | null;
+  document_type: string | null;
+  document_number: string | null;
+  document_details: string | null;
+  task_type: string | null;
+  assigned_to: string | null;
+};
 
 // Database connection (assuming it's imported from your existing setup)
 import { pool } from '../config/database';
@@ -24,6 +46,153 @@ import {
 } from '../services/verificationTaskCreationService';
 
 export class VerificationTasksController {
+  private static async ensureTaskRevokeAccess(
+    req: AuthenticatedRequest,
+    task: { assigned_to: string | null; case_id: string }
+  ): Promise<boolean> {
+    const scope = await resolveDataScope(req);
+
+    if (!scope.restricted) {
+      return true;
+    }
+
+    const caseScopeResult = await pool.query(
+      `SELECT "clientId" as client_id, "productId" as product_id FROM cases WHERE id = $1`,
+      [task.case_id]
+    );
+
+    if (caseScopeResult.rows.length === 0) {
+      return false;
+    }
+
+    const caseScope = caseScopeResult.rows[0];
+
+    return valueAllowedByScope(
+      {
+        userId: task.assigned_to,
+        clientId: Number(caseScope.client_id),
+        productId: Number(caseScope.product_id),
+      },
+      scope
+    );
+  }
+
+  private static async createReplacementTask(
+    client: PoolClient,
+    currentTask: ReassignableTaskRecord,
+    taskCaseScopeResult: { clientId: number; productId: number },
+    assignedTo: string,
+    assignedBy: string,
+    assignmentReason?: string,
+    priority?: string
+  ) {
+    const recreatedTerritory =
+      await VerificationTaskCreationService.validateTerritoryAndFinancialConfig(client, {
+        clientId: Number(taskCaseScopeResult.clientId),
+        productId: Number(taskCaseScopeResult.productId),
+        verificationTypeId: Number(currentTask.verification_type_id),
+        pincode: currentTask.pincode,
+        areaId: currentTask.area_id,
+      });
+
+    if (
+      currentTask.service_zone_id !== null &&
+      Number(currentTask.service_zone_id) !== recreatedTerritory.serviceZoneId
+    ) {
+      throw new VerificationTaskCreationError(422, {
+        success: false,
+        message: 'Current task territory configuration is inconsistent for reassign',
+        error: {
+          code: 'PARENT_TASK_TERRITORY_INVALID',
+          details: {
+            taskId: currentTask.id,
+            parentServiceZoneId: currentTask.service_zone_id,
+            resolvedServiceZoneId: recreatedTerritory.serviceZoneId,
+          },
+        },
+      });
+    }
+
+    const newTaskResult = await client.query(
+      `
+      INSERT INTO verification_tasks (
+        case_id, verification_type_id, task_title, task_description,
+        priority, rate_type_id, estimated_amount, address, pincode,
+        service_zone_id, area_id,
+        document_type, document_number, document_details,
+        assigned_to, assigned_by, assigned_at, current_assigned_at,
+        status, created_by, parent_task_id, task_type,
+        first_assigned_at
+      ) VALUES (
+        $1, $2, $3, $4,
+        $5, $6, $7, $8, $9,
+        $10, $11,
+        $12, $13, $14,
+        $15, $16, NOW(), NOW(),
+        'ASSIGNED', $17, $18, $19,
+        NOW()
+      ) RETURNING *
+    `,
+      [
+        currentTask.case_id,
+        currentTask.verification_type_id,
+        currentTask.task_title,
+        currentTask.task_description,
+        priority || currentTask.priority,
+        currentTask.rate_type_id,
+        currentTask.estimated_amount,
+        currentTask.address,
+        currentTask.pincode,
+        recreatedTerritory.serviceZoneId,
+        recreatedTerritory.areaId,
+        currentTask.document_type,
+        currentTask.document_number,
+        currentTask.document_details,
+        assignedTo,
+        assignedBy,
+        assignedBy,
+        currentTask.id,
+        currentTask.task_type,
+      ]
+    );
+
+    const finalTask = newTaskResult.rows[0];
+
+    await client.query(
+      `
+      INSERT INTO task_assignment_history (
+        verification_task_id, case_id, assigned_from, assigned_to,
+        assigned_by, assignment_reason, task_status_before, task_status_after
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+    `,
+      [
+        finalTask.id,
+        finalTask.case_id,
+        currentTask.assigned_to,
+        assignedTo,
+        assignedBy,
+        assignmentReason || 'Reassigned after revoke',
+        'PENDING',
+        'ASSIGNED',
+      ]
+    );
+
+    await client.query(
+      `
+      UPDATE cases
+      SET
+        total_tasks_count = (SELECT COUNT(*) FROM verification_tasks WHERE case_id = $1),
+        "updatedAt" = NOW()
+      WHERE id = $1
+      `,
+      [currentTask.case_id]
+    );
+
+    await TaskRevocationService.markReassigned(client, currentTask.id, assignedTo);
+
+    return finalTask;
+  }
+
   /**
    * Create multiple verification tasks for a case
    * POST /api/cases/:caseId/verification-tasks
@@ -1383,19 +1552,26 @@ export class VerificationTasksController {
       const previousAssignee = currentTask.assigned_to;
       const previousStatus = currentTask.status;
 
-      // Smart Re-assignment Logic
-      // Rule 1: Reassign BEFORE start -> Update existing
-      // Rule 2: Reassign AFTER start -> Revoke & Recreate
-
-      const isStarted =
-        previousStatus === 'IN_PROGRESS' ||
-        previousStatus === 'COMPLETED' ||
-        currentTask.started_at !== null;
+      const isRevoked = previousStatus === 'REVOKED';
+      const mustRevokeFirst =
+        !isRevoked &&
+        (previousStatus === 'IN_PROGRESS' ||
+          (currentTask.started_at !== null && previousStatus !== 'COMPLETED'));
 
       let finalTask;
       let actionType = 'assignment';
 
-      if (!isStarted) {
+      if (mustRevokeFirst) {
+        await client.query('ROLLBACK');
+        res.status(409).json({
+          success: false,
+          message: 'Task is already in progress. Revoke the task before reassignment.',
+          error: { code: 'MUST_REVOKE_TASK_FIRST' },
+        });
+        return;
+      }
+
+      if (!isRevoked) {
         // Mode A: Update existing task (Standard Reassignment)
         actionType = previousAssignee ? 'reassignment' : 'assignment';
 
@@ -1439,143 +1615,30 @@ export class VerificationTasksController {
           ]
         );
       } else {
-        // Mode B: Revoke & Recreate (Operational Reattempt)
-        // 1. Revoke current task
-        actionType = 'reassignment_revoke';
-
-        await client.query(
-          `
-          UPDATE verification_tasks
-          SET
-            status = 'REVOKED',
-            revocation_reason = $1,
-            revoked_by = $2,
-            revoked_at = NOW(),
-            updated_at = NOW()
-          WHERE id = $3
-        `,
-          [assignmentReason, userId, taskId]
-        );
-
-        // 2. Create NEW task
-        // Copy critical fields, reset operational fields
-        const recreatedTerritory =
-          await VerificationTaskCreationService.validateTerritoryAndFinancialConfig(client, {
-            clientId: Number(taskCaseScopeResult.rows[0].clientId),
-            productId: Number(taskCaseScopeResult.rows[0].productId),
-            verificationTypeId: Number(currentTask.verification_type_id),
-            pincode: currentTask.pincode,
-            areaId: currentTask.area_id,
-          });
-
-        if (
-          currentTask.service_zone_id !== null &&
-          Number(currentTask.service_zone_id) !== recreatedTerritory.serviceZoneId
-        ) {
-          throw new VerificationTaskCreationError(422, {
-            success: false,
-            message: 'Current task territory configuration is inconsistent for reassign',
-            error: {
-              code: 'PARENT_TASK_TERRITORY_INVALID',
-              details: {
-                taskId,
-                parentServiceZoneId: currentTask.service_zone_id,
-                resolvedServiceZoneId: recreatedTerritory.serviceZoneId,
-              },
-            },
-          });
-        }
-
-        const newTaskResult = await client.query(
-          `
-          INSERT INTO verification_tasks (
-            case_id, verification_type_id, task_title, task_description,
-            priority, rate_type_id, estimated_amount, address, pincode,
-            service_zone_id, area_id,
-            document_type, document_number, document_details,
-            assigned_to, assigned_by, assigned_at, current_assigned_at,
-            status, created_by, parent_task_id, task_type,
-            first_assigned_at
-          ) VALUES (
-            $1, $2, $3, $4,
-            $5, $6, $7, $8, $9,
-            $10, $11,
-            $12, $13, $14,
-            $15, $16, NOW(), NOW(),
-            'ASSIGNED', $17, $18, $19,
-            NOW()
-          ) RETURNING *
-        `,
-          [
-            currentTask.case_id,
-            currentTask.verification_type_id,
-            currentTask.task_title,
-            currentTask.task_description,
-            priority || currentTask.priority,
-            currentTask.rate_type_id,
-            currentTask.estimated_amount,
-            currentTask.address,
-            currentTask.pincode,
-            recreatedTerritory.serviceZoneId,
-            recreatedTerritory.areaId,
-            currentTask.document_type,
-            currentTask.document_number,
-            currentTask.document_details,
-            assignedTo,
-            userId,
-            userId, // created_by
-            taskId, // parent_task_id -> Link to old task
-            currentTask.task_type,
-          ]
-        );
-
-        finalTask = newTaskResult.rows[0];
-
-        // Create assignment history for NEW task
-        await client.query(
-          `
-          INSERT INTO task_assignment_history (
-            verification_task_id, case_id, assigned_from, assigned_to,
-            assigned_by, assignment_reason, task_status_before, task_status_after
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-        `,
-          [
-            finalTask.id,
-            finalTask.case_id,
-            previousAssignee, // Show flow from old agent
-            assignedTo,
-            userId,
-            `Re-attempt initiated by revoke: ${assignmentReason}`,
-            'PENDING', // New task technically starts as pending before assignment
-            'ASSIGNED',
-          ]
-        );
-
-        // Update Case Total Task Count (since we added a new one)
-        await client.query(
-          `
-          UPDATE cases
-          SET
-            total_tasks_count = (SELECT COUNT(*) FROM verification_tasks WHERE case_id = $1),
-            "updatedAt" = NOW()
-          WHERE id = $1
-          `,
-          [currentTask.case_id]
+        actionType = 'reassignment_after_revoke';
+        finalTask = await VerificationTasksController.createReplacementTask(
+          client,
+          currentTask,
+          taskCaseScopeResult.rows[0],
+          assignedTo,
+          userId,
+          assignmentReason,
+          priority
         );
       }
 
       // Create audit log
       await createAuditLog({
         userId,
-        action: isStarted ? 'REVOKE_AND_REASSIGN_TASK' : 'ASSIGN_VERIFICATION_TASK',
+        action: isRevoked ? 'REASSIGN_REVOKED_TASK' : 'ASSIGN_VERIFICATION_TASK',
         entityType: 'VERIFICATION_TASK',
         entityId: finalTask.id,
         details: {
-          previousTaskId: isStarted ? taskId : undefined,
+          previousTaskId: isRevoked ? taskId : undefined,
           previousAssignee,
           newAssignee: assignedTo,
           assignmentReason,
-          actionType: isStarted ? 'revoke_recreate' : 'update',
+          actionType: isRevoked ? 'revoke_recreate' : 'update',
         },
       });
 
@@ -1624,7 +1687,7 @@ export class VerificationTasksController {
       res.json({
         success: true,
         data: finalTask,
-        message: isStarted
+        message: isRevoked
           ? 'Task revoked and new verification attempt created successfully'
           : 'Verification task assigned successfully',
       });
@@ -1640,6 +1703,169 @@ export class VerificationTasksController {
         success: false,
         message: 'Failed to assign verification task',
         error: { code: 'INTERNAL_ERROR' },
+      });
+    } finally {
+      client.release();
+    }
+  }
+
+  static async revokeTask(req: AuthenticatedRequest, res: Response): Promise<void> {
+    if (!requireControllerPermission(req, res, 'task.revoke')) {
+      return;
+    }
+
+    const taskId = String(req.params.taskId || '');
+    const reason = String(req.body.revoke_reason || req.body.reason || '').trim();
+    const userId = req.user?.id;
+
+    if (!taskId) {
+      res.status(400).json({
+        success: false,
+        message: 'Task ID is required',
+        error: { code: 'INVALID_REQUEST' },
+      });
+      return;
+    }
+
+    if (!reason) {
+      res.status(400).json({
+        success: false,
+        message: 'Revocation reason is required',
+        error: { code: 'REASON_REQUIRED' },
+      });
+      return;
+    }
+
+    const client = await pool.connect();
+
+    try {
+      await client.query('BEGIN');
+
+      const taskResult = await client.query(
+        `
+          SELECT
+            vt.*,
+            c."caseId" as case_number,
+            c."clientId" as client_id,
+            c."productId" as product_id
+          FROM verification_tasks vt
+          JOIN cases c ON c.id = vt.case_id
+          WHERE vt.id = $1
+          FOR UPDATE
+        `,
+        [taskId]
+      );
+
+      if (taskResult.rows.length === 0) {
+        await client.query('ROLLBACK');
+        res.status(404).json({
+          success: false,
+          message: 'Verification task not found',
+          error: { code: 'TASK_NOT_FOUND' },
+        });
+        return;
+      }
+
+      const task = taskResult.rows[0];
+
+      const hasScopeAccess = await VerificationTasksController.ensureTaskRevokeAccess(req, task);
+      if (!hasScopeAccess) {
+        await client.query('ROLLBACK');
+        res.status(403).json({
+          success: false,
+          message: 'Access denied',
+          error: { code: 'TASK_SCOPE_ACCESS_DENIED' },
+        });
+        return;
+      }
+
+      if (task.status === 'COMPLETED') {
+        await client.query('ROLLBACK');
+        res.status(400).json({
+          success: false,
+          message: 'Cannot revoke a completed task',
+          error: { code: 'TASK_ALREADY_COMPLETED' },
+        });
+        return;
+      }
+
+      if (task.status === 'REVOKED') {
+        await client.query('ROLLBACK');
+        res.status(200).json({
+          success: true,
+          message: 'Task already revoked',
+          data: {
+            taskId: task.id,
+            taskNumber: task.task_number,
+            status: 'REVOKED',
+            revokedAt: task.revoked_at,
+            reason: task.revocation_reason,
+          },
+        });
+        return;
+      }
+
+      await TaskRevocationService.recordRevocation(client, {
+        taskId,
+        revokedByUserId: userId,
+        revokedByRole: 'ADMIN',
+        revokedFromUserId: task.assigned_to,
+        revokeReason: reason,
+        previousStatus: task.status,
+      });
+
+      await client.query(
+        `
+          UPDATE verification_tasks
+          SET
+            status = 'REVOKED',
+            revoked_at = NOW(),
+            revoked_by = $1,
+            revocation_reason = $2,
+            assigned_to = NULL,
+            assigned_by = $1,
+            current_assigned_at = NULL,
+            updated_at = NOW()
+          WHERE id = $3
+        `,
+        [userId, reason, taskId]
+      );
+
+      await createAuditLog({
+        userId,
+        action: 'ADMIN_TASK_REVOKED',
+        entityType: 'VERIFICATION_TASK',
+        entityId: taskId,
+        details: {
+          taskNumber: task.task_number,
+          previousStatus: task.status,
+          revokedFromUserId: task.assigned_to,
+          revokeReason: reason,
+        },
+      });
+
+      await client.query('COMMIT');
+
+      await CaseStatusSyncService.recalculateCaseStatus(task.case_id);
+
+      res.json({
+        success: true,
+        message: 'Task revoked successfully',
+        data: {
+          taskId: task.id,
+          taskNumber: task.task_number,
+          status: 'REVOKED',
+          revokedAt: new Date().toISOString(),
+          reason,
+        },
+      });
+    } catch (error) {
+      await client.query('ROLLBACK');
+      logger.error('Error revoking verification task:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to revoke task',
+        error: { code: 'TASK_REVOCATION_FAILED' },
       });
     } finally {
       client.release();

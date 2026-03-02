@@ -195,6 +195,25 @@ export class MobileAttachmentController {
 
       const actualCaseId = existingCase.id; // Use the actual UUID from the database
 
+      if (paramTaskId) {
+        const taskStatusResult = await query(
+          `SELECT status FROM verification_tasks WHERE id = $1 LIMIT 1`,
+          [paramTaskId]
+        );
+
+        if (taskStatusResult.rows[0]?.status === 'REVOKED') {
+          await Promise.all(files.map(file => fs.unlink(file.path).catch(() => {})));
+          return res.status(403).json({
+            success: false,
+            message: 'Task has been revoked',
+            error: {
+              code: 'TASK_REVOKED',
+              timestamp: new Date().toISOString(),
+            },
+          });
+        }
+      }
+
       // Check file count limit
       const countRes = await query(
         `SELECT COUNT(*)::int as count FROM attachments WHERE case_id = $1`,

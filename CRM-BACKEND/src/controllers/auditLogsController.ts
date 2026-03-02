@@ -1,6 +1,7 @@
 import type { Response } from 'express';
 import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
+import { query as dbQuery } from '@/config/database';
 
 interface AuditLog {
   id: string;
@@ -17,6 +18,16 @@ interface AuditLog {
   category: string;
   [key: string]: unknown;
 }
+
+const getSingleQueryValue = (value: unknown): string | null => {
+  if (typeof value === 'string') {
+    return value;
+  }
+  if (Array.isArray(value) && typeof value[0] === 'string') {
+    return value[0];
+  }
+  return null;
+};
 
 // Mock data for demonstration (replace with actual database operations)
 let auditLogs: AuditLog[] = [
@@ -113,130 +124,199 @@ let auditLogs: AuditLog[] = [
 
 // GET /api/audit-logs - List audit logs with pagination and filters
 export const getAuditLogs = (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const {
-      page = 1,
-      limit = 20,
-      userId,
-      action,
-      resource,
-      category,
-      severity,
-      dateFrom,
-      dateTo,
-      search,
-      sortBy = 'timestamp',
-      sortOrder = 'desc',
-    } = req.query;
+  void (async () => {
+    try {
+      const {
+        page = 1,
+        limit = 20,
+        userId,
+        action,
+        resource,
+        category,
+        severity: _severity,
+        dateFrom,
+        dateTo,
+        search,
+        sortBy = 'timestamp',
+        sortOrder = 'desc',
+      } = req.query;
 
-    let filteredLogs = [...auditLogs];
+      const conditions: string[] = [];
+      const params: Array<string | number | Date> = [];
 
-    // Apply filters
-    if (userId) {
-      filteredLogs = filteredLogs.filter(log => log.userId === userId);
-    }
-    if (action) {
-      filteredLogs = filteredLogs.filter(log => log.action === action);
-    }
-    if (resource) {
-      filteredLogs = filteredLogs.filter(log => log.resource === resource);
-    }
-    if (category) {
-      filteredLogs = filteredLogs.filter(log => log.category === category);
-    }
-    if (severity) {
-      filteredLogs = filteredLogs.filter(log => log.severity === severity);
-    }
-    if (search) {
-      const searchTerm = (search as string).toLowerCase();
-      filteredLogs = filteredLogs.filter(
-        log =>
-          log.userName.toLowerCase().includes(searchTerm) ||
-          log.action.toLowerCase().includes(searchTerm) ||
-          log.resource.toLowerCase().includes(searchTerm) ||
-          JSON.stringify(log.details).toLowerCase().includes(searchTerm)
-      );
-    }
-    if (dateFrom) {
-      filteredLogs = filteredLogs.filter(
-        log => new Date(log.timestamp) >= new Date(dateFrom as string)
-      );
-    }
-    if (dateTo) {
-      filteredLogs = filteredLogs.filter(
-        log => new Date(log.timestamp) <= new Date(dateTo as string)
-      );
-    }
+      const userIdFilter = getSingleQueryValue(userId);
+      const actionFilter = getSingleQueryValue(action);
+      const resourceFilter = getSingleQueryValue(resource);
+      const dateFromFilter = getSingleQueryValue(dateFrom);
+      const dateToFilter = getSingleQueryValue(dateTo);
+      const searchFilter = getSingleQueryValue(search);
 
-    // Apply sorting
-    filteredLogs.sort((a, b) => {
-      const aValue = a[sortBy as string];
-      const bValue = b[sortBy as string];
-      if (sortOrder === 'desc') {
-        return bValue > aValue ? 1 : -1;
+      if (userIdFilter) {
+        params.push(userIdFilter);
+        conditions.push(`al."userId" = $${params.length}`);
       }
-      return aValue > bValue ? 1 : -1;
-    });
+      if (actionFilter) {
+        params.push(actionFilter);
+        conditions.push(`al.action = $${params.length}`);
+      }
+      if (resourceFilter) {
+        params.push(resourceFilter);
+        conditions.push(`al."entityType" = $${params.length}`);
+      }
+      if (dateFromFilter) {
+        params.push(new Date(dateFromFilter));
+        conditions.push(`al."createdAt" >= $${params.length}`);
+      }
+      if (dateToFilter) {
+        params.push(new Date(dateToFilter));
+        conditions.push(`al."createdAt" <= $${params.length}`);
+      }
+      if (searchFilter) {
+        params.push(`%${searchFilter}%`);
+        conditions.push(
+          `(COALESCE(u.name, '') ILIKE $${params.length} OR al.action ILIKE $${params.length} OR al."entityType" ILIKE $${params.length} OR CAST(al.details AS TEXT) ILIKE $${params.length})`
+        );
+      }
 
-    // Apply pagination
-    const startIndex = ((page as number) - 1) * (limit as number);
-    const endIndex = startIndex + (limit as number);
-    const paginatedLogs = filteredLogs.slice(startIndex, endIndex);
+      const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+      const safeSortBy = sortBy === 'timestamp' ? 'al."createdAt"' : 'al."createdAt"';
+      const safeSortOrder = sortOrder === 'asc' ? 'ASC' : 'DESC';
 
-    logger.info(`Retrieved ${paginatedLogs.length} audit logs`, {
-      userId: req.user?.id,
-      filters: { userId, action, resource, category, search },
-      pagination: { page, limit },
-    });
+      const countResult = await dbQuery<{ total: string }>(
+        `SELECT COUNT(*)::text as total FROM "auditLogs" al ${whereClause}`,
+        params
+      );
 
-    res.json({
-      success: true,
-      data: paginatedLogs,
-      pagination: {
-        page: Number(page),
-        limit: Number(limit),
-        total: filteredLogs.length,
-        totalPages: Math.ceil(filteredLogs.length / (limit as number)),
-      },
-    });
-  } catch (error) {
-    logger.error('Error retrieving audit logs:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to retrieve audit logs',
-      error: { code: 'INTERNAL_ERROR' },
-    });
-  }
+      const total = Number(countResult.rows[0]?.total || 0);
+      const normalizedPage = Number(page);
+      const normalizedLimit = Number(limit);
+      const offset = (normalizedPage - 1) * normalizedLimit;
+
+      params.push(normalizedLimit);
+      params.push(offset);
+
+      const result = await dbQuery<AuditLog>(
+        `
+        SELECT
+          al.id::text,
+          COALESCE(al."userId", '') as "userId",
+          COALESCE(u.name, 'System') as "userName",
+          al.action,
+          COALESCE(al."entityType", 'SYSTEM') as resource,
+          al."entityId" as "resourceId",
+          COALESCE(al.details, '{}'::jsonb) as details,
+          COALESCE(al."ipAddress", '') as "ipAddress",
+          COALESCE(al."userAgent", '') as "userAgent",
+          al."createdAt"::text as timestamp,
+          CASE
+            WHEN al.action LIKE '%FAILED%' OR al.action LIKE '%REJECTED%' THEN 'ERROR'
+            WHEN al.action LIKE '%REVOKED%' THEN 'WARN'
+            ELSE 'INFO'
+          END as severity,
+          CASE
+            WHEN al."entityType" IN ('VERIFICATION_TASK', 'CASE') THEN 'CASE_MANAGEMENT'
+            WHEN al."entityType" = 'USER' THEN 'USER_MANAGEMENT'
+            WHEN al."entityType" = 'ATTACHMENT' THEN 'FILE_MANAGEMENT'
+            ELSE 'SYSTEM'
+          END as category
+        FROM "auditLogs" al
+        LEFT JOIN users u ON u.id = al."userId"
+        ${whereClause}
+        ORDER BY ${safeSortBy} ${safeSortOrder}
+        LIMIT $${params.length - 1} OFFSET $${params.length}
+      `,
+        params
+      );
+
+      logger.info(`Retrieved ${result.rows.length} audit logs`, {
+        userId: req.user?.id,
+        filters: { userId, action, resource, category, search },
+        pagination: { page, limit },
+      });
+
+      res.json({
+        success: true,
+        data: result.rows,
+        pagination: {
+          page: normalizedPage,
+          limit: normalizedLimit,
+          total,
+          totalPages: Math.ceil(total / normalizedLimit),
+        },
+      });
+    } catch (error) {
+      logger.error('Error retrieving audit logs:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to retrieve audit logs',
+        error: { code: 'INTERNAL_ERROR' },
+      });
+    }
+  })();
 };
 
 // GET /api/audit-logs/:id - Get audit log by ID
 export const getAuditLogById = (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const { id } = req.params;
-    const auditLog = auditLogs.find(log => log.id === id);
+  void (async () => {
+    try {
+      const { id } = req.params;
+      const result = await dbQuery<AuditLog>(
+        `
+        SELECT
+          al.id::text,
+          COALESCE(al."userId", '') as "userId",
+          COALESCE(u.name, 'System') as "userName",
+          al.action,
+          COALESCE(al."entityType", 'SYSTEM') as resource,
+          al."entityId" as "resourceId",
+          COALESCE(al.details, '{}'::jsonb) as details,
+          COALESCE(al."ipAddress", '') as "ipAddress",
+          COALESCE(al."userAgent", '') as "userAgent",
+          al."createdAt"::text as timestamp,
+          CASE
+            WHEN al.action LIKE '%FAILED%' OR al.action LIKE '%REJECTED%' THEN 'ERROR'
+            WHEN al.action LIKE '%REVOKED%' THEN 'WARN'
+            ELSE 'INFO'
+          END as severity,
+          CASE
+            WHEN al."entityType" IN ('VERIFICATION_TASK', 'CASE') THEN 'CASE_MANAGEMENT'
+            WHEN al."entityType" = 'USER' THEN 'USER_MANAGEMENT'
+            WHEN al."entityType" = 'ATTACHMENT' THEN 'FILE_MANAGEMENT'
+            ELSE 'SYSTEM'
+          END as category
+        FROM "auditLogs" al
+        LEFT JOIN users u ON u.id = al."userId"
+        WHERE al.id::text = $1
+        LIMIT 1
+      `,
+        [id]
+      );
 
-    if (!auditLog) {
-      return res.status(404).json({
+      const auditLog = result.rows[0];
+
+      if (!auditLog) {
+        return res.status(404).json({
+          success: false,
+          message: 'Audit log not found',
+          error: { code: 'NOT_FOUND' },
+        });
+      }
+
+      logger.info(`Retrieved audit log ${id}`, { userId: req.user?.id });
+
+      res.json({
+        success: true,
+        data: auditLog,
+      });
+    } catch (error) {
+      logger.error('Error retrieving audit log:', error);
+      res.status(500).json({
         success: false,
-        message: 'Audit log not found',
-        error: { code: 'NOT_FOUND' },
+        message: 'Failed to retrieve audit log',
+        error: { code: 'INTERNAL_ERROR' },
       });
     }
-
-    logger.info(`Retrieved audit log ${id}`, { userId: req.user?.id });
-
-    res.json({
-      success: true,
-      data: auditLog,
-    });
-  } catch (error) {
-    logger.error('Error retrieving audit log:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to retrieve audit log',
-      error: { code: 'INTERNAL_ERROR' },
-    });
-  }
+  })();
 };
 
 // POST /api/mobile/audit/logs - Create mobile audit log batch
