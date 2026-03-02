@@ -1,13 +1,11 @@
 import { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { MoreHorizontal, Download, Send, CheckCircle, Eye, Receipt } from 'lucide-react';
+import { MoreHorizontal, Download, FileSpreadsheet, Eye, Receipt } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
@@ -34,32 +32,6 @@ export function InvoicesTable({ data, isLoading }: InvoicesTableProps) {
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
 
-  const queryClient = useQueryClient();
-
-  const sendInvoiceMutation = useMutation({
-    mutationFn: (id: string) => billingService.sendInvoice(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['invoices'] });
-      toast.success('Invoice sent successfully');
-    },
-    onError: (error: unknown) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      toast.error((error as any).response?.data?.message || 'Failed to send invoice');
-    },
-  });
-
-  const markPaidMutation = useMutation({
-    mutationFn: (id: string) => billingService.markInvoicePaid(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['invoices'] });
-      toast.success('Invoice marked as paid');
-    },
-    onError: (error: unknown) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      toast.error((error as any).response?.data?.message || 'Failed to mark invoice as paid');
-    },
-  });
-
   const handleDownloadPDF = async (invoice: Invoice) => {
     try {
       const blob = await billingService.downloadInvoicePDF(invoice.id);
@@ -75,6 +47,21 @@ export function InvoicesTable({ data, isLoading }: InvoicesTableProps) {
     }
   };
 
+  const handleDownloadExcel = async (invoice: Invoice) => {
+    try {
+      const blob = await billingService.downloadInvoiceExcel(invoice.id);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `invoice_${invoice.invoiceNumber}.xlsx`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+      toast.success('Invoice Excel downloaded successfully');
+    } catch (_error) {
+      toast.error('Failed to download invoice excel');
+    }
+  };
+
   const handleViewDetails = (invoice: Invoice) => {
     setSelectedInvoice(invoice);
     setShowDetailsDialog(true);
@@ -84,7 +71,6 @@ export function InvoicesTable({ data, isLoading }: InvoicesTableProps) {
     const statusConfig = {
       DRAFT: { variant: 'secondary' as const, label: 'Draft' },
       SENT: { variant: 'outline' as const, label: 'Sent' },
-      PAID: { variant: 'default' as const, label: 'Paid' },
       OVERDUE: { variant: 'destructive' as const, label: 'Overdue' },
       CANCELLED: { variant: 'secondary' as const, label: 'Cancelled' },
     };
@@ -180,25 +166,10 @@ export function InvoicesTable({ data, isLoading }: InvoicesTableProps) {
                         <Download className="mr-2 h-4 w-4" />
                         Download PDF
                       </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      {invoice.status === 'DRAFT' && (
-                        <DropdownMenuItem 
-                          onClick={() => sendInvoiceMutation.mutate(invoice.id)}
-                          disabled={sendInvoiceMutation.isPending}
-                        >
-                          <Send className="mr-2 h-4 w-4" />
-                          Send Invoice
-                        </DropdownMenuItem>
-                      )}
-                      {(invoice.status === 'SENT' || invoice.status === 'OVERDUE') && (
-                        <DropdownMenuItem 
-                          onClick={() => markPaidMutation.mutate(invoice.id)}
-                          disabled={markPaidMutation.isPending}
-                        >
-                          <CheckCircle className="mr-2 h-4 w-4" />
-                          Mark as Paid
-                        </DropdownMenuItem>
-                      )}
+                      <DropdownMenuItem onClick={() => handleDownloadExcel(invoice)}>
+                        <FileSpreadsheet className="mr-2 h-4 w-4" />
+                        Download Excel
+                      </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>

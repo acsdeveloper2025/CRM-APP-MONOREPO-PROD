@@ -51,12 +51,16 @@ export class BillingService {
     return apiService.post(`/invoices/${id}/send`);
   }
 
-  async markInvoicePaid(id: string, paidDate?: string): Promise<ApiResponse<Invoice>> {
-    return apiService.post(`/invoices/${id}/mark-paid`, { paidDate });
+  async downloadInvoiceFile(id: string, format: 'PDF' | 'EXCEL' = 'PDF'): Promise<Blob> {
+    return apiService.getBlob(`/invoices/${id}/download`, { format });
   }
 
   async downloadInvoicePDF(id: string): Promise<Blob> {
-    return apiService.getBlob(`/invoices/${id}/download`);
+    return this.downloadInvoiceFile(id, 'PDF');
+  }
+
+  async downloadInvoiceExcel(id: string): Promise<Blob> {
+    return this.downloadInvoiceFile(id, 'EXCEL');
   }
 
   async getInvoicesByClient(clientId: string): Promise<ApiResponse<Invoice[]>> {

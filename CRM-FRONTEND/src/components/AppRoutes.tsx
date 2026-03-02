@@ -448,6 +448,14 @@ export const AppRoutes: React.FC = () => {
             }
           />
           <Route
+            path="/invoices"
+            element={
+              <ProtectedRoute permission="page.billing">
+                <BillingPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/commissions"
             element={
               <ProtectedRoute permission="page.billing">
