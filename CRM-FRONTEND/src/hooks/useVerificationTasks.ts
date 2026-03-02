@@ -42,8 +42,8 @@ const normalizeTaskForUi = (task: Record<string, unknown>): VerificationTask => 
     caseNumber:
       typeof task.caseNumber === 'string'
         ? task.caseNumber
-        : typeof task.case_number === 'string'
-          ? task.case_number
+        : typeof task.case_number === 'string' || typeof task.case_number === 'number'
+          ? String(task.case_number)
           : undefined,
     customerName:
       typeof task.customerName === 'string'
@@ -207,7 +207,9 @@ export const useVerificationTasks = (caseId: string) => {
         caseId:
           typeof response.data.case_id === 'string' ? response.data.case_id : caseId,
         caseNumber:
-          typeof response.data.case_number === 'string' ? response.data.case_number : '',
+          typeof response.data.case_number === 'string' || typeof response.data.case_number === 'number'
+            ? String(response.data.case_number)
+            : '',
         customerName:
           typeof response.data.customer_name === 'string' ? response.data.customer_name : '',
         totalTasks:
