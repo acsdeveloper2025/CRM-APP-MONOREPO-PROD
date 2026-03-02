@@ -1,40 +1,3 @@
-export interface BankBill {
-  id: string;
-  billNumber: string;
-  clientId: string;
-  bankName: string;
-  billDate: string;
-  dueDate: string;
-  totalAmount: number;
-  paidAmount: number;
-  pendingAmount: number;
-  status: 'PENDING' | 'PARTIALLY_PAID' | 'PAID' | 'OVERDUE';
-  caseCount: number;
-  createdAt: string;
-  updatedAt: string;
-  client: {
-    id: string;
-    name: string;
-    code: string;
-  };
-  cases: BankBillCase[];
-}
-
-export interface BankBillCase {
-  id: string;
-  caseId: string;
-  billId: string;
-  amount: number;
-  verificationFee: number;
-  case: {
-    id: string;
-    title: string;
-    customerName: string;
-    status: string;
-    completedAt?: string;
-  };
-}
-
 export interface MISReport {
   id: string;
   reportType: 'TURNAROUND_TIME' | 'COMPLETION_RATE' | 'PRODUCTIVITY' | 'QUALITY' | 'FINANCIAL';
@@ -204,36 +167,12 @@ export interface ReportSummary {
   }[];
 }
 
-export interface CreateBankBillData {
-  clientId: string;
-  bankName: string;
-  billDate: string;
-  dueDate: string;
-  caseIds: string[];
-}
-
-export interface UpdateBankBillData {
-  status?: string;
-  paidAmount?: number;
-  paymentDate?: string;
-}
-
 export interface GenerateReportData {
   reportType: string;
   title: string;
   description?: string;
   filters: ReportFilters;
   format?: 'PDF' | 'EXCEL' | 'CSV';
-}
-
-export interface BankBillQuery {
-  page?: number;
-  limit?: number;
-  search?: string;
-  status?: string;
-  clientId?: string;
-  dateFrom?: string;
-  dateTo?: string;
 }
 
 export interface ReportQuery {

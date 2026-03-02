@@ -27,6 +27,8 @@ export type FieldMonitoringRosterQuery = {
 export type FieldMonitoringRosterItem = {
   id: string;
   name: string;
+  username: string;
+  employeeId: string | null;
   phone: string | null;
   liveStatus: FieldMonitoringLiveStatus;
   lastHeartbeatAt: string | null;

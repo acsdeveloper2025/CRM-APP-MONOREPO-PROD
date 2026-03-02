@@ -179,6 +179,8 @@ export type MonitoringRosterParams = {
 export type MonitoringRosterItem = {
   id: string;
   name: string;
+  username: string;
+  employeeId: string | null;
   phone: string | null;
   liveStatus: FieldUserLiveStatus;
   lastHeartbeatAt: NullableDate;
@@ -418,6 +420,8 @@ export class FieldMonitoringService {
       return {
         id: user.id,
         name: user.name,
+        username: user.username,
+        employeeId: user.employeeId,
         phone: user.phone,
         liveStatus,
         lastHeartbeatAt: activity.lastHeartbeatAt,

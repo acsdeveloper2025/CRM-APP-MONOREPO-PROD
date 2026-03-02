@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   Activity,
+  ArrowLeft,
   Eye,
   Navigation,
   Radio,
@@ -9,6 +10,7 @@ import {
   UserCheck,
 } from 'lucide-react';
 import { format } from 'date-fns';
+import { useNavigate, useParams } from 'react-router-dom';
 import { StatsCard } from '@/components/dashboard/StatsCard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -34,13 +36,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useUnifiedSearch, useUnifiedFilters } from '@/hooks/useUnifiedSearch';
 import { useAreas } from '@/hooks/useAreas';
@@ -97,6 +92,22 @@ const formatTimestamp = (value: string | null | undefined): string => {
   }
 };
 
+const getMobileDisplay = (user: Pick<FieldMonitoringRosterItem, 'phone' | 'employeeId' | 'username'>): string => {
+  if (user.phone?.trim()) {
+    return user.phone;
+  }
+
+  if (user.employeeId?.trim()) {
+    return `Employee ID: ${user.employeeId}`;
+  }
+
+  return user.username || 'Not available';
+};
+
+const getLastLocationDisplayTime = (
+  user: Pick<FieldMonitoringRosterItem, 'lastLocation' | 'lastHeartbeatAt'>
+): string => formatTimestamp(user.lastLocation?.time || user.lastHeartbeatAt);
+
 const escapeHtml = (value: string): string =>
   value
     .replaceAll('&', '&amp;')
@@ -107,11 +118,11 @@ const escapeHtml = (value: string): string =>
 
 const createMarkerInfoWindowContent = (user: FieldMonitoringRosterItem): string => {
   const infoRows = [
-    ['Mobile', user.phone || '-'],
+    ['Mobile', getMobileDisplay(user)],
     ['Live Status', user.liveStatus],
     ['Operating Pincode', user.operatingPincode || '-'],
     ['Last Activity', formatTimestamp(user.lastActivityAt)],
-    ['Last Location', formatTimestamp(user.lastLocation?.time)],
+    ['Last Location', getLastLocationDisplayTime(user)],
   ]
     .map(
       ([label, value]) =>
@@ -130,10 +141,175 @@ const createMarkerInfoWindowContent = (user: FieldMonitoringRosterItem): string 
   `;
 };
 
-export function FieldMonitoringPage() {
+function FieldMonitoringDetailView({ userId }: { userId: string }) {
+  const navigate = useNavigate();
+
+  const { data: detailResponse, isLoading: detailLoading } = useQuery({
+    queryKey: ['field-monitoring', 'user-detail', userId],
+    queryFn: () => fieldMonitoringService.getUserMonitoringDetail(userId),
+    staleTime: REFRESH_INTERVAL,
+    refetchInterval: REFRESH_INTERVAL,
+  });
+
+  const detail = detailResponse?.data;
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            onClick={() => navigate('/operations/field-monitoring')}
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back
+          </Button>
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Field Executive Detail</h1>
+            <p className="text-gray-600">Current operational snapshot and recent field activity</p>
+          </div>
+        </div>
+      </div>
+
+      {detailLoading ? (
+        <div className="flex min-h-[320px] items-center justify-center">
+          <LoadingState message="Loading executive details..." size="lg" />
+        </div>
+      ) : !detail ? (
+        <Card>
+          <CardContent className="flex min-h-[240px] items-center justify-center">
+            <p className="text-sm text-gray-600">No monitoring detail available for this user.</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <>
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900">{detail.user.name}</h2>
+                  <p className="text-sm text-gray-600">
+                    {getMobileDisplay({
+                      phone: detail.user.phone,
+                      employeeId: detail.user.employeeId,
+                      username: detail.user.username,
+                    })}{' '}
+                    · {detail.user.email || detail.user.username}
+                  </p>
+                </div>
+                <Badge variant="outline" className={statusBadgeClassNames[detail.liveStatus]}>
+                  {detail.liveStatus}
+                </Badge>
+              </div>
+            </CardContent>
+          </Card>
+
+          <div className="grid gap-6 xl:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Last Known Location</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm text-gray-700">
+                <p>Latitude: {detail.lastKnownLocation?.lat ?? '-'}</p>
+                <p>Longitude: {detail.lastKnownLocation?.lng ?? '-'}</p>
+                <p>
+                  Recorded At:{' '}
+                  {formatTimestamp(detail.lastKnownLocation?.recordedAt || detail.activity.lastHeartbeatAt)}
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Activity Timeline</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm text-gray-700">
+                <p>Last Heartbeat: {formatTimestamp(detail.activity.lastHeartbeatAt)}</p>
+                <p>Last Task Activity: {formatTimestamp(detail.activity.lastTaskActivityAt)}</p>
+                <p>
+                  Last Location:{' '}
+                  {formatTimestamp(detail.activity.lastLocationAt || detail.activity.lastHeartbeatAt)}
+                </p>
+                <p>Last Submission: {formatTimestamp(detail.activity.lastSubmissionAt)}</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Operating Territory</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm text-gray-700">
+                <p>Current Area: {detail.operatingTerritory.currentArea.name || '-'}</p>
+                <p>Current Pincode: {detail.operatingTerritory.currentOperatingPincode || '-'}</p>
+                <p>
+                  Assigned Areas:{' '}
+                  {detail.operatingTerritory.assignedTerritory.areas.length > 0
+                    ? detail.operatingTerritory.assignedTerritory.areas
+                        .map(area => `${area.areaName} (${area.pincodeCode})`)
+                        .join(', ')
+                    : '-'}
+                </p>
+                <p>
+                  Assigned Pincodes:{' '}
+                  {detail.operatingTerritory.assignedTerritory.pincodes.length > 0
+                    ? detail.operatingTerritory.assignedTerritory.pincodes
+                        .map(pincode => pincode.pincodeCode)
+                        .join(', ')
+                    : '-'}
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Open Assignments</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {detail.openAssignments.length === 0 ? (
+                  <p className="text-sm text-gray-600">No open assignments.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {detail.openAssignments.map(assignment => (
+                      <div
+                        key={assignment.task.id}
+                        className="rounded-lg border border-gray-200 p-3"
+                      >
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                          <div>
+                            <p className="font-medium text-gray-900">
+                              Task {assignment.task.taskNumber}
+                            </p>
+                            <p className="text-sm text-gray-600">
+                              Case #{assignment.case.caseNumber} · {assignment.case.customerName}
+                            </p>
+                          </div>
+                          <Badge variant="outline">{assignment.task.status}</Badge>
+                        </div>
+                        <div className="mt-2 grid gap-2 text-sm text-gray-700 sm:grid-cols-2">
+                          <p>Priority: {assignment.task.priority || '-'}</p>
+                          <p>Pincode: {assignment.task.pincode || '-'}</p>
+                          <p>Assigned At: {formatTimestamp(assignment.task.assignedAt)}</p>
+                          <p>Started At: {formatTimestamp(assignment.task.startedAt)}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function FieldMonitoringRosterView() {
+  const navigate = useNavigate();
   const [page, setPage] = useState(1);
   const [activeView, setActiveView] = useState<'table' | 'map'>('table');
-  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const search = useUnifiedSearch({
     debounceDelay: 500,
     syncWithUrl: true,
@@ -207,14 +383,6 @@ export function FieldMonitoringPage() {
     enabled: activeView === 'map',
   });
 
-  const { data: detailResponse, isLoading: detailLoading } = useQuery({
-    queryKey: ['field-monitoring', 'user-detail', selectedUserId],
-    queryFn: () => fieldMonitoringService.getUserMonitoringDetail(selectedUserId as string),
-    enabled: !!selectedUserId,
-    staleTime: REFRESH_INTERVAL,
-    refetchInterval: selectedUserId ? REFRESH_INTERVAL : false,
-  });
-
   const stats = statsResponse?.data || {
     totalFieldUsers: 0,
     activeToday: 0,
@@ -230,19 +398,17 @@ export function FieldMonitoringPage() {
     total: 0,
     totalPages: 0,
   };
-  const mapRoster = useMemo(
-    () => mapRosterResponse?.data?.data || [],
-    [mapRosterResponse]
-  );
+
+  const mapRoster = useMemo(() => mapRosterResponse?.data?.data || [], [mapRosterResponse]);
   const mapMarkers = useMemo<GoogleMarkerMapItem[]>(
     () =>
       mapRoster
         .filter(
-          (user) =>
+          user =>
             typeof user.lastLocation?.lat === 'number' &&
             typeof user.lastLocation?.lng === 'number'
         )
-        .map((user) => ({
+        .map(user => ({
           id: user.id,
           title: user.name,
           lat: user.lastLocation?.lat as number,
@@ -255,7 +421,6 @@ export function FieldMonitoringPage() {
 
   const pincodeOptions = pincodesResponse?.data || [];
   const areaOptions = areasResponse?.data || [];
-  const detail = detailResponse?.data;
 
   const activeFilterCount = [
     filters.filters.pincode,
@@ -463,7 +628,7 @@ export function FieldMonitoringPage() {
                                 )}
                               </div>
                             </TableCell>
-                            <TableCell>{user.phone || '-'}</TableCell>
+                            <TableCell>{getMobileDisplay(user)}</TableCell>
                             <TableCell>
                               <Badge
                                 variant="outline"
@@ -475,14 +640,14 @@ export function FieldMonitoringPage() {
                             <TableCell>{user.operatingArea || '-'}</TableCell>
                             <TableCell>{user.operatingPincode || '-'}</TableCell>
                             <TableCell>{formatTimestamp(user.lastActivityAt)}</TableCell>
-                            <TableCell>{formatTimestamp(user.lastLocation?.time)}</TableCell>
+                            <TableCell>{getLastLocationDisplayTime(user)}</TableCell>
                             <TableCell>{user.activeAssignmentCount}</TableCell>
                             <TableCell className="text-right">
                               <Button
                                 variant="outline"
                                 size="sm"
                                 className="gap-2"
-                                onClick={() => setSelectedUserId(user.id)}
+                                onClick={() => navigate(`/operations/field-monitoring/${user.id}`)}
                               >
                                 <Eye className="h-4 w-4" />
                                 View
@@ -542,142 +707,6 @@ export function FieldMonitoringPage() {
         </CardContent>
       </Card>
 
-      <Dialog
-        open={Boolean(selectedUserId)}
-        onOpenChange={open => {
-          if (!open) {
-            setSelectedUserId(null);
-          }
-        }}
-      >
-        <DialogContent className="left-auto right-0 top-0 h-full max-w-2xl translate-x-0 translate-y-0 overflow-y-auto rounded-none border-l border-gray-200 p-0 data-[state=closed]:slide-out-to-right-0 data-[state=open]:slide-in-from-right-0 sm:rounded-none">
-          <div className="p-6">
-            <DialogHeader>
-              <DialogTitle>Field Executive Detail</DialogTitle>
-              <DialogDescription>
-                Current operational snapshot and recent field activity
-              </DialogDescription>
-            </DialogHeader>
-
-            {detailLoading ? (
-              <div className="flex min-h-[320px] items-center justify-center">
-                <LoadingState message="Loading executive details..." size="lg" />
-              </div>
-            ) : !detail ? (
-              <div className="flex min-h-[240px] items-center justify-center">
-                <p className="text-sm text-gray-600">
-                  No monitoring detail available for this user.
-                </p>
-              </div>
-            ) : (
-              <div className="mt-6 space-y-6">
-                <div className="flex flex-col gap-3 rounded-lg border border-gray-200 p-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <h2 className="text-lg font-semibold text-gray-900">{detail.user.name}</h2>
-                    <p className="text-sm text-gray-600">
-                      {detail.user.phone || '-'} · {detail.user.employeeId || detail.user.username}
-                    </p>
-                  </div>
-                  <Badge variant="outline" className={statusBadgeClassNames[detail.liveStatus]}>
-                    {detail.liveStatus}
-                  </Badge>
-                </div>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base">Last Known Location</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2 text-sm text-gray-700">
-                    <p>Latitude: {detail.lastKnownLocation?.lat ?? '-'}</p>
-                    <p>Longitude: {detail.lastKnownLocation?.lng ?? '-'}</p>
-                    <p>Recorded At: {formatTimestamp(detail.lastKnownLocation?.recordedAt)}</p>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base">Activity Timeline</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2 text-sm text-gray-700">
-                    <p>Last Heartbeat: {formatTimestamp(detail.activity.lastHeartbeatAt)}</p>
-                    <p>Last Task Activity: {formatTimestamp(detail.activity.lastTaskActivityAt)}</p>
-                    <p>Last Location: {formatTimestamp(detail.activity.lastLocationAt)}</p>
-                    <p>Last Submission: {formatTimestamp(detail.activity.lastSubmissionAt)}</p>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base">Operating Territory</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2 text-sm text-gray-700">
-                    <p>Current Area: {detail.operatingTerritory.currentArea.name || '-'}</p>
-                    <p>
-                      Current Pincode: {detail.operatingTerritory.currentOperatingPincode || '-'}
-                    </p>
-                    <p>
-                      Assigned Areas:{' '}
-                      {detail.operatingTerritory.assignedTerritory.areas.length > 0
-                        ? detail.operatingTerritory.assignedTerritory.areas
-                            .map(area => `${area.areaName} (${area.pincodeCode})`)
-                            .join(', ')
-                        : '-'}
-                    </p>
-                    <p>
-                      Assigned Pincodes:{' '}
-                      {detail.operatingTerritory.assignedTerritory.pincodes.length > 0
-                        ? detail.operatingTerritory.assignedTerritory.pincodes
-                            .map(pincode => pincode.pincodeCode)
-                            .join(', ')
-                        : '-'}
-                    </p>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base">Open Assignments</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {detail.openAssignments.length === 0 ? (
-                      <p className="text-sm text-gray-600">No open assignments.</p>
-                    ) : (
-                      <div className="space-y-3">
-                        {detail.openAssignments.map(assignment => (
-                          <div
-                            key={assignment.task.id}
-                            className="rounded-lg border border-gray-200 p-3"
-                          >
-                            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                              <div>
-                                <p className="font-medium text-gray-900">
-                                  Task {assignment.task.taskNumber}
-                                </p>
-                                <p className="text-sm text-gray-600">
-                                  Case #{assignment.case.caseNumber} ·{' '}
-                                  {assignment.case.customerName}
-                                </p>
-                              </div>
-                              <Badge variant="outline">{assignment.task.status}</Badge>
-                            </div>
-                            <div className="mt-2 grid gap-2 text-sm text-gray-700 sm:grid-cols-2">
-                              <p>Priority: {assignment.task.priority || '-'}</p>
-                              <p>Pincode: {assignment.task.pincode || '-'}</p>
-                              <p>Assigned At: {formatTimestamp(assignment.task.assignedAt)}</p>
-                              <p>Started At: {formatTimestamp(assignment.task.startedAt)}</p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
-
       {statsLoading && !statsResponse && (
         <div className="sr-only" aria-live="polite">
           Loading field monitoring stats
@@ -685,4 +714,14 @@ export function FieldMonitoringPage() {
       )}
     </div>
   );
+}
+
+export function FieldMonitoringPage() {
+  const { userId } = useParams<{ userId?: string }>();
+
+  if (userId) {
+    return <FieldMonitoringDetailView userId={userId} />;
+  }
+
+  return <FieldMonitoringRosterView />;
 }

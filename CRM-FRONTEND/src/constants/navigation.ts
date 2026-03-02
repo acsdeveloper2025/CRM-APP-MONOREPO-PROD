@@ -295,14 +295,6 @@ export const navigationItems: NavigationItem[] = [
         permission: { resource: 'analytics', action: 'read' },
       },
       {
-        id: 'bank-bills',
-        label: 'Bank Bills',
-        href: '/reports/bank-bills',
-        icon: Receipt,
-        permissionCode: 'page.reports',
-        permission: { resource: 'reports', action: 'read' },
-      },
-      {
         id: 'mis-dashboard',
         label: 'MIS Dashboard',
         href: '/reports/mis',

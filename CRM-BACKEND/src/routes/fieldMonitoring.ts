@@ -26,7 +26,7 @@ router.get(
   authorize('page.field_monitoring'),
   [
     query('page').optional().isInt({ min: 1 }).withMessage('page must be a positive integer'),
-    query('limit').optional().isInt({ min: 1, max: 200 }).withMessage('limit must be 1-200'),
+    query('limit').optional().isInt({ min: 1, max: 500 }).withMessage('limit must be 1-500'),
     query('search').optional().isString().withMessage('search must be a string'),
     query('pincode').optional().isString().withMessage('pincode must be a string'),
     query('areaId').optional().isInt({ min: 1 }).withMessage('areaId must be a positive integer'),

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { MapPin } from 'lucide-react';
 
 const GOOGLE_MAPS_SCRIPT_ID = 'crm-google-maps-script';
+const getGoogleMapsApiKey = (): string => import.meta.env.VITE_GOOGLE_MAPS_API_KEY?.trim() || '';
 
 type GoogleMapsWindow = Window & {
   google?: {
@@ -75,7 +76,7 @@ const loadGoogleMapsScript = async (): Promise<void> => {
     return mapsWindow.__crmGoogleMapsPromise;
   }
 
-  const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+  const apiKey = getGoogleMapsApiKey();
   if (!apiKey) {
     throw new Error('Google Maps API key not configured');
   }
@@ -246,7 +247,7 @@ export function GoogleMarkerMap({
     map.fitBounds(bounds);
   }, [defaultCenter, defaultZoom, normalizedItems]);
 
-  if (!import.meta.env.VITE_GOOGLE_MAPS_API_KEY) {
+  if (!getGoogleMapsApiKey()) {
     return (
       <div className="flex min-h-[520px] items-center justify-center rounded-lg border border-dashed border-gray-300 bg-gray-50">
         <div className="text-center">
