@@ -505,6 +505,14 @@ export const AppRoutes: React.FC = () => {
             }
           />
           <Route
+            path="/operations/field-monitoring/:userId"
+            element={
+              <ProtectedRoute permission="page.field_monitoring">
+                <FieldMonitoringPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/admin/rbac"
             element={
               <ProtectedRoute permission="page.rbac">

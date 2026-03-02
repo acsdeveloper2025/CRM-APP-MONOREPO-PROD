@@ -1,6 +1,5 @@
 import { apiService } from './api';
 import type {
-  BankBill,
   MISReport,
   TurnaroundTimeReport,
   CompletionRateReport,
@@ -8,24 +7,12 @@ import type {
   QualityReport,
   FinancialReport,
   ReportSummary,
-  CreateBankBillData,
-  UpdateBankBillData,
   GenerateReportData,
   ReportFilters
 } from '@/types/reports';
 import type { ApiResponse, PaginationQuery } from '@/types/api';
 import type { MISFilters, MISDataResponse, ExportFormat } from '@/types/mis';
 import type { ScheduledReport, ScheduledReportData } from '@/types/dto/report.dto';
-
-
-
-export interface BankBillQuery extends PaginationQuery {
-  clientId?: string;
-  status?: string;
-  bankName?: string;
-  dateFrom?: string;
-  dateTo?: string;
-}
 
 export interface ReportQuery extends PaginationQuery {
   reportType?: string;
@@ -35,35 +22,6 @@ export interface ReportQuery extends PaginationQuery {
 }
 
 export class ReportsService {
-  // Bank Bills Management
-  async getBankBills(query: BankBillQuery = {}): Promise<ApiResponse<BankBill[]>> {
-    return apiService.get('/bank-bills', query);
-  }
-
-  async getBankBillById(id: string): Promise<ApiResponse<BankBill>> {
-    return apiService.get(`/bank-bills/${id}`);
-  }
-
-  async createBankBill(data: CreateBankBillData): Promise<ApiResponse<BankBill>> {
-    return apiService.post('/bank-bills', data);
-  }
-
-  async updateBankBill(id: string, data: UpdateBankBillData): Promise<ApiResponse<BankBill>> {
-    return apiService.put(`/bank-bills/${id}`, data);
-  }
-
-  async deleteBankBill(id: string): Promise<ApiResponse<void>> {
-    return apiService.delete(`/bank-bills/${id}`);
-  }
-
-  async downloadBankBillPDF(id: string): Promise<Blob> {
-    return apiService.getBlob(`/bank-bills/${id}/download`);
-  }
-
-  async markBankBillPaid(id: string, paidAmount: number): Promise<ApiResponse<BankBill>> {
-    return apiService.post(`/bank-bills/${id}/mark-paid`, { paidAmount });
-  }
-
   // MIS Reports Management
   async getMISReports(query: ReportQuery = {}): Promise<ApiResponse<MISReport[]>> {
     return apiService.get('/mis-reports', query);
@@ -130,18 +88,6 @@ export class ReportsService {
   // Dashboard Data for Reports
   async getReportsDashboardData(filters: ReportFilters = {}): Promise<ApiResponse<unknown>> {
     return apiService.get('/reports/dashboard', filters);
-  }
-
-  async getBankBillsSummary(filters: ReportFilters = {}): Promise<ApiResponse<unknown>> {
-    return apiService.get('/bank-bills/summary', filters);
-  }
-
-  // Export Functions
-  async exportBankBills(query: BankBillQuery = {}, format: 'PDF' | 'EXCEL' | 'CSV' = 'EXCEL'): Promise<Blob> {
-    const response = await apiService.postRaw<Blob>(`/bank-bills/export?format=${format}`, query, {
-        responseType: 'blob'
-    });
-    return response.data;
   }
 
   async exportMISReports(query: ReportQuery = {}, format: 'PDF' | 'EXCEL' | 'CSV' = 'EXCEL'): Promise<Blob> {

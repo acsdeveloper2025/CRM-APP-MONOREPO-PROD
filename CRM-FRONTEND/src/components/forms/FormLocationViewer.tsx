@@ -10,6 +10,8 @@ interface FormLocationViewerProps {
   readonly?: boolean;
 }
 
+const getGoogleMapsApiKey = (): string => import.meta.env.VITE_GOOGLE_MAPS_API_KEY?.trim() || '';
+
 export function FormLocationViewer({ location, readonly: _readonly = true }: FormLocationViewerProps) {
   const getAccuracyBadge = (accuracy: number) => {
     if (accuracy <= 5) {
@@ -97,7 +99,7 @@ export function FormLocationViewer({ location, readonly: _readonly = true }: For
             <h4 className="font-medium text-sm mb-2">Map Preview</h4>
             <div className="relative bg-slate-100 dark:bg-slate-800/60 rounded-lg overflow-hidden">
               <iframe
-                src={`https://www.google.com/maps/embed/v1/place?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}&q=${location.latitude},${location.longitude}&zoom=16`}
+                src={`https://www.google.com/maps/embed/v1/place?key=${getGoogleMapsApiKey()}&q=${location.latitude},${location.longitude}&zoom=16`}
                 width="100%"
                 height="200"
                 style={{ border: 0 }}
@@ -106,7 +108,7 @@ export function FormLocationViewer({ location, readonly: _readonly = true }: For
                 referrerPolicy="no-referrer-when-downgrade"
                 className="w-full"
               />
-              {!import.meta.env.VITE_GOOGLE_MAPS_API_KEY && (
+              {!getGoogleMapsApiKey() && (
                 <div className="absolute inset-0 flex items-center justify-center bg-slate-100 dark:bg-slate-800/60">
                   <div className="text-center">
                     <MapPin className="h-8 w-8 mx-auto text-gray-600 mb-2" />
