@@ -22,6 +22,21 @@ interface AuthenticatedRequest extends Request {
   };
 }
 
+type VerificationImageRecord = {
+  id: string;
+  filename: string;
+  url: string;
+  thumbnailUrl: string;
+  uploadedAt: string;
+  photoType: string;
+  geoLocation?: {
+    latitude: number;
+    longitude: number;
+    accuracy?: number;
+    timestamp?: string;
+  };
+};
+
 import { createAuditLog } from '../utils/auditLogger';
 import {
   detectResidenceFormType,
@@ -77,6 +92,7 @@ import {
 } from '../utils/businessFormFieldMapping';
 import {
   createComprehensiveFormSections,
+  getFormFieldDefinitions,
   // getFormTypeLabel,
   // getVerificationTableName,
 } from '../utils/comprehensiveFormFieldMapping';
@@ -252,10 +268,14 @@ export class MobileFormController {
       }
 
       // 3. Location Existence Check & 90-Minute Rule
-      // Schema update: locations table uses "case_id" (UUID) and "recordedAt"
+      // Require a task-specific location so one case visit cannot satisfy another task.
       const locQuery = await query(
-        `SELECT id, "recordedAt" FROM locations WHERE case_id = $1 ORDER BY "recordedAt" DESC LIMIT 1`,
-        [task.case_id]
+        `SELECT id, "recordedAt"
+         FROM locations
+         WHERE verification_task_id = $1
+         ORDER BY "recordedAt" DESC
+         LIMIT 1`,
+        [taskId]
       );
 
       if (locQuery.rows.length === 0) {
@@ -497,6 +517,59 @@ export class MobileFormController {
   /**
    * Process and store verification images separately from case attachments
    */
+  private static countSubmissionPhotos(
+    photos: Array<{ geoLocation?: { latitude?: number; longitude?: number } }> = [],
+    images: Array<{ dataUrl: string }> = [],
+    attachmentIds: string[] = []
+  ): number {
+    if (images.length > 0) {
+      return images.length;
+    }
+
+    if (attachmentIds.length > 0) {
+      return attachmentIds.length;
+    }
+
+    return photos.length;
+  }
+
+  private static async getReferencedVerificationImages(
+    attachmentIds: string[] = []
+  ): Promise<VerificationImageRecord[]> {
+    if (!attachmentIds.length) {
+      return [];
+    }
+
+    const attachmentResult = await query(
+      `SELECT id, filename, "filePath", "thumbnailPath", "createdAt", "photoType", "geoLocation"
+       FROM verification_attachments
+       WHERE id = ANY($1::uuid[])
+       ORDER BY "createdAt" ASC`,
+      [attachmentIds]
+    );
+
+    return attachmentResult.rows.map(row => {
+      let geoLocation = row.geoLocation;
+      if (typeof geoLocation === 'string') {
+        try {
+          geoLocation = JSON.parse(geoLocation);
+        } catch {
+          geoLocation = undefined;
+        }
+      }
+
+      return {
+        id: row.id,
+        filename: row.filename,
+        url: row.filePath,
+        thumbnailUrl: row.thumbnailPath,
+        uploadedAt: row.createdAt.toISOString(),
+        photoType: row.photoType,
+        geoLocation,
+      };
+    });
+  }
+
   private static async processVerificationImages(
     images: Array<{
       dataUrl: string;
@@ -512,40 +585,13 @@ export class MobileFormController {
     verificationType: string,
     submissionId: string,
     userId: string,
-    verificationTaskId?: string // ✅ Optional for backward compatibility
-  ): Promise<
-    {
-      id: string;
-      filename: string;
-      url: string;
-      thumbnailUrl: string;
-      uploadedAt: string;
-      photoType: string;
-      geoLocation?: {
-        latitude: number;
-        longitude: number;
-        accuracy?: number;
-        timestamp?: string;
-      };
-    }[]
-  > {
-    const uploadedImages: Array<{
-      id: string;
-      filename: string;
-      url: string;
-      thumbnailUrl: string;
-      uploadedAt: string;
-      photoType: string;
-      geoLocation?: {
-        latitude: number;
-        longitude: number;
-        accuracy?: number;
-        timestamp?: string;
-      };
-    }> = [];
+    verificationTaskId?: string, // ✅ Optional for backward compatibility
+    attachmentIds: string[] = []
+  ): Promise<VerificationImageRecord[]> {
+    const uploadedImages: VerificationImageRecord[] = [];
 
     if (!images || images.length === 0) {
-      return uploadedImages;
+      return MobileFormController.getReferencedVerificationImages(attachmentIds);
     }
 
     // Create upload directory for verification images
@@ -2536,7 +2582,7 @@ export class MobileFormController {
       const {
         verificationTaskId,
         formData,
-        attachmentIds: _attachmentIds,
+        attachmentIds,
         geoLocation,
         photos,
         images,
@@ -2660,7 +2706,11 @@ export class MobileFormController {
 
       // Validate minimum photo requirement (≥5 geo-tagged photos)
       // Use images array for new submission format
-      const photoCount = images?.length || photos?.length || 0;
+      const photoCount = MobileFormController.countSubmissionPhotos(
+        photos || [],
+        images || [],
+        attachmentIds || []
+      );
       if (photoCount < 5) {
         return res.status(400).json({
           success: false,
@@ -2707,7 +2757,8 @@ export class MobileFormController {
         'RESIDENCE',
         submissionId,
         userId,
-        verificationTaskId // ✅ Link images to verification task
+        verificationTaskId, // ✅ Link images to verification task
+        attachmentIds || []
       );
 
       logger.info(
@@ -2917,6 +2968,7 @@ export class MobileFormController {
       const {
         verificationTaskId,
         formData,
+        attachmentIds,
         geoLocation,
         photos,
         images,
@@ -3049,7 +3101,11 @@ export class MobileFormController {
 
       // Validate minimum photo requirement (≥5 geo-tagged photos)
       // Use images array for new submission format
-      const photoCount = images?.length || photos?.length || 0;
+      const photoCount = MobileFormController.countSubmissionPhotos(
+        photos || [],
+        images || [],
+        attachmentIds || []
+      );
       if (photoCount < 5) {
         return res.status(400).json({
           success: false,
@@ -3096,7 +3152,8 @@ export class MobileFormController {
         'OFFICE',
         submissionId,
         userId,
-        verificationTaskId
+        verificationTaskId,
+        attachmentIds || []
       );
 
       logger.info(
@@ -3285,6 +3342,7 @@ export class MobileFormController {
       const {
         verificationTaskId,
         formData,
+        attachmentIds,
         geoLocation,
         photos,
         images,
@@ -3428,7 +3486,11 @@ export class MobileFormController {
 
       // Validate minimum photo requirement (≥5 geo-tagged photos)
       // Use images array for new submission format
-      const photoCount = images?.length || photos?.length || 0;
+      const photoCount = MobileFormController.countSubmissionPhotos(
+        photos || [],
+        images || [],
+        attachmentIds || []
+      );
       if (photoCount < 5) {
         return res.status(400).json({
           success: false,
@@ -3475,7 +3537,8 @@ export class MobileFormController {
         'BUSINESS',
         submissionId,
         userId,
-        verificationTaskId
+        verificationTaskId,
+        attachmentIds || []
       );
 
       logger.info(
@@ -3691,6 +3754,7 @@ export class MobileFormController {
       const {
         verificationTaskId,
         formData,
+        attachmentIds,
         geoLocation,
         photos,
         images,
@@ -3798,7 +3862,11 @@ export class MobileFormController {
 
       // Validate minimum photo requirement (≥5 geo-tagged photos)
       // Use images array for new submission format
-      const photoCount = images?.length || photos?.length || 0;
+      const photoCount = MobileFormController.countSubmissionPhotos(
+        photos || [],
+        images || [],
+        attachmentIds || []
+      );
       if (photoCount < 5) {
         return res.status(400).json({
           success: false,
@@ -3845,7 +3913,8 @@ export class MobileFormController {
         'BUILDER',
         submissionId,
         userId,
-        verificationTaskId
+        verificationTaskId,
+        attachmentIds || []
       );
 
       logger.info(
@@ -4141,7 +4210,8 @@ export class MobileFormController {
         'RESIDENCE_CUM_OFFICE',
         submissionId,
         userId,
-        taskId
+        taskId,
+        submissionData.attachmentIds || []
       );
 
       await query(
@@ -4207,6 +4277,7 @@ export class MobileFormController {
       const {
         verificationTaskId,
         formData,
+        attachmentIds,
         geoLocation,
         photos,
         images,
@@ -4332,7 +4403,11 @@ export class MobileFormController {
 
       // Validate minimum photo requirement (≥5 geo-tagged photos)
       // Use images array for new submission format
-      const photoCount = images?.length || photos?.length || 0;
+      const photoCount = MobileFormController.countSubmissionPhotos(
+        photos || [],
+        images || [],
+        attachmentIds || []
+      );
       if (photoCount < 5) {
         return res.status(400).json({
           success: false,
@@ -4379,7 +4454,8 @@ export class MobileFormController {
         'DSA_CONNECTOR',
         submissionId,
         userId,
-        verificationTaskId
+        verificationTaskId,
+        attachmentIds || []
       );
 
       logger.info(
@@ -4678,7 +4754,8 @@ export class MobileFormController {
         'PROPERTY_INDIVIDUAL',
         submissionId,
         userId,
-        taskId
+        taskId,
+        submissionData.attachmentIds || []
       );
 
       await query(
@@ -4739,6 +4816,7 @@ export class MobileFormController {
       const {
         verificationTaskId,
         formData,
+        attachmentIds,
         geoLocation,
         photos,
         images,
@@ -4864,7 +4942,11 @@ export class MobileFormController {
 
       // Validate minimum photo requirement (≥5 geo-tagged photos)
       // Use images array for new submission format
-      const photoCount = images?.length || photos?.length || 0;
+      const photoCount = MobileFormController.countSubmissionPhotos(
+        photos || [],
+        images || [],
+        attachmentIds || []
+      );
       if (photoCount < 5) {
         return res.status(400).json({
           success: false,
@@ -4911,7 +4993,8 @@ export class MobileFormController {
         'PROPERTY_APF',
         submissionId,
         userId,
-        verificationTaskId
+        verificationTaskId,
+        attachmentIds || []
       );
 
       logger.info(
@@ -5124,6 +5207,7 @@ export class MobileFormController {
       const {
         verificationTaskId,
         formData,
+        attachmentIds,
         geoLocation,
         photos,
         images,
@@ -5239,7 +5323,11 @@ export class MobileFormController {
 
       // Validate minimum photo requirement (≥5 geo-tagged photos)
       // Use images array for new submission format
-      const photoCount = images?.length || photos?.length || 0;
+      const photoCount = MobileFormController.countSubmissionPhotos(
+        photos || [],
+        images || [],
+        attachmentIds || []
+      );
       if (photoCount < 5) {
         return res.status(400).json({
           success: false,
@@ -5286,7 +5374,8 @@ export class MobileFormController {
         'NOC',
         submissionId,
         userId,
-        verificationTaskId
+        verificationTaskId,
+        attachmentIds || []
       );
 
       logger.info(
@@ -5495,20 +5584,44 @@ export class MobileFormController {
   static getFormTemplate(this: void, req: Request, res: Response) {
     try {
       const formType = String(req.params.formType || '');
+      const outcomeQuery = req.query.outcome;
+      const outcomeParam = typeof outcomeQuery === 'string' ? outcomeQuery : 'POSITIVE';
+      const normalizedFormType = formType.toUpperCase();
+      const allowedFormTypes = new Set([
+        'RESIDENCE',
+        'OFFICE',
+        'BUSINESS',
+        'BUILDER',
+        'RESIDENCE_CUM_OFFICE',
+        'DSA_CONNECTOR',
+        'PROPERTY_INDIVIDUAL',
+        'PROPERTY_APF',
+        'NOC',
+      ]);
 
-      if (
-        ![
-          'RESIDENCE',
-          'OFFICE',
-          'BUSINESS',
-          'BUILDER',
-          'RESIDENCE_CUM_OFFICE',
-          'DSA_CONNECTOR',
-          'PROPERTY_INDIVIDUAL',
-          'PROPERTY_APF',
-          'NOC',
-        ].includes(formType.toUpperCase())
-      ) {
+      const normalizeOutcome = (rawOutcome: string): string => {
+        const value = rawOutcome.trim().toUpperCase();
+        if (value.includes('SHIFTED')) {
+          return 'SHIFTED';
+        }
+        if (value.includes('NSP') || value.includes('PERSON NOT MET')) {
+          return 'NSP';
+        }
+        if (value.includes('ENTRY') || value.includes('RESTRICT')) {
+          return 'ENTRY_RESTRICTED';
+        }
+        if (value.includes('UNTRACEABLE') || value.includes('NOT FOUND')) {
+          return 'UNTRACEABLE';
+        }
+        if (value.includes('NEGATIVE') || value.includes('NOT VERIFIED')) {
+          return 'NEGATIVE';
+        }
+        return 'POSITIVE';
+      };
+
+      const normalizedOutcome = normalizeOutcome(outcomeParam);
+
+      if (!allowedFormTypes.has(normalizedFormType)) {
         return res.status(400).json({
           success: false,
           message: 'Invalid form type',
@@ -5519,303 +5632,143 @@ export class MobileFormController {
         });
       }
 
-      // Return form template based on type
-      const templates = {
-        RESIDENCE: {
-          fields: [
-            { name: 'applicantName', type: 'text', required: true, label: 'Applicant Name' },
-            {
-              name: 'addressConfirmed',
-              type: 'boolean',
-              required: true,
-              label: 'Address Confirmed',
-            },
-            {
-              name: 'residenceType',
-              type: 'select',
-              required: true,
-              label: 'Residence Type',
-              options: ['OWNED', 'RENTED', 'FAMILY'],
-            },
-            { name: 'familyMembers', type: 'number', required: false, label: 'Family Members' },
-            {
-              name: 'neighborVerification',
-              type: 'boolean',
-              required: true,
-              label: 'Neighbor Verification',
-            },
-            { name: 'remarks', type: 'textarea', required: false, label: 'Remarks' },
-            {
-              name: 'outcome',
-              type: 'select',
-              required: true,
-              label: 'Verification Outcome',
-              options: ['VERIFIED', 'NOT_VERIFIED', 'PARTIAL'],
-            },
-          ],
-          requiredPhotos: 5,
-          photoTypes: [
-            'BUILDING_EXTERIOR',
-            'BUILDING_INTERIOR',
-            'NAMEPLATE',
-            'SURROUNDINGS',
-            'APPLICANT',
-          ],
-        },
-        OFFICE: {
-          fields: [
-            { name: 'companyName', type: 'text', required: true, label: 'Company Name' },
-            { name: 'designation', type: 'text', required: true, label: 'Designation' },
-            { name: 'employeeId', type: 'text', required: false, label: 'Employee ID' },
-            { name: 'workingHours', type: 'text', required: true, label: 'Working Hours' },
-            { name: 'hrVerification', type: 'boolean', required: true, label: 'HR Verification' },
-            {
-              name: 'salaryConfirmed',
-              type: 'boolean',
-              required: false,
-              label: 'Salary Confirmed',
-            },
-            { name: 'remarks', type: 'textarea', required: false, label: 'Remarks' },
-            {
-              name: 'outcome',
-              type: 'select',
-              required: true,
-              label: 'Verification Outcome',
-              options: ['VERIFIED', 'NOT_VERIFIED', 'PARTIAL'],
-            },
-          ],
-          requiredPhotos: 5,
-          photoTypes: [
-            'OFFICE_EXTERIOR',
-            'OFFICE_INTERIOR',
-            'RECEPTION',
-            'EMPLOYEE_DESK',
-            'ID_CARD',
-          ],
-        },
-        BUSINESS: {
-          fields: [
-            { name: 'businessName', type: 'text', required: true, label: 'Business Name' },
-            { name: 'businessType', type: 'text', required: true, label: 'Business Type' },
-            { name: 'ownerName', type: 'text', required: true, label: 'Owner Name' },
-            { name: 'businessAddress', type: 'text', required: true, label: 'Business Address' },
-            { name: 'operatingHours', type: 'text', required: true, label: 'Operating Hours' },
-            { name: 'employeeCount', type: 'number', required: false, label: 'Employee Count' },
-            { name: 'remarks', type: 'textarea', required: false, label: 'Remarks' },
-            {
-              name: 'outcome',
-              type: 'select',
-              required: true,
-              label: 'Verification Outcome',
-              options: ['VERIFIED', 'NOT_VERIFIED', 'PARTIAL'],
-            },
-          ],
-          requiredPhotos: 5,
-          photoTypes: [
-            'BUSINESS_EXTERIOR',
-            'BUSINESS_INTERIOR',
-            'SIGNBOARD',
-            'OWNER_PHOTO',
-            'BUSINESS_ACTIVITY',
-          ],
-        },
-        BUILDER: {
-          fields: [
-            { name: 'builderName', type: 'text', required: true, label: 'Builder Name' },
-            { name: 'projectName', type: 'text', required: true, label: 'Project Name' },
-            { name: 'projectAddress', type: 'text', required: true, label: 'Project Address' },
-            {
-              name: 'constructionStatus',
-              type: 'select',
-              required: true,
-              label: 'Construction Status',
-              options: ['UNDER_CONSTRUCTION', 'COMPLETED', 'PLANNED'],
-            },
-            { name: 'approvals', type: 'text', required: false, label: 'Approvals' },
-            { name: 'remarks', type: 'textarea', required: false, label: 'Remarks' },
-            {
-              name: 'outcome',
-              type: 'select',
-              required: true,
-              label: 'Verification Outcome',
-              options: ['VERIFIED', 'NOT_VERIFIED', 'PARTIAL'],
-            },
-          ],
-          requiredPhotos: 5,
-          photoTypes: [
-            'PROJECT_EXTERIOR',
-            'CONSTRUCTION_SITE',
-            'APPROVAL_BOARD',
-            'BUILDER_OFFICE',
-            'PROGRESS_PHOTO',
-          ],
-        },
-        RESIDENCE_CUM_OFFICE: {
-          fields: [
-            { name: 'applicantName', type: 'text', required: true, label: 'Applicant Name' },
-            {
-              name: 'residenceConfirmed',
-              type: 'boolean',
-              required: true,
-              label: 'Residence Confirmed',
-            },
-            { name: 'officeConfirmed', type: 'boolean', required: true, label: 'Office Confirmed' },
-            { name: 'businessType', type: 'text', required: false, label: 'Business Type' },
-            { name: 'workingHours', type: 'text', required: false, label: 'Working Hours' },
-            { name: 'remarks', type: 'textarea', required: false, label: 'Remarks' },
-            {
-              name: 'outcome',
-              type: 'select',
-              required: true,
-              label: 'Verification Outcome',
-              options: ['VERIFIED', 'NOT_VERIFIED', 'PARTIAL'],
-            },
-          ],
-          requiredPhotos: 5,
-          photoTypes: [
-            'BUILDING_EXTERIOR',
-            'RESIDENCE_AREA',
-            'OFFICE_AREA',
-            'NAMEPLATE',
-            'APPLICANT',
-          ],
-        },
-        DSA_CONNECTOR: {
-          fields: [
-            { name: 'connectorName', type: 'text', required: true, label: 'Connector Name' },
-            {
-              name: 'connectorType',
-              type: 'select',
-              required: true,
-              label: 'Connector Type',
-              options: ['DSA', 'DST'],
-            },
-            { name: 'officeAddress', type: 'text', required: true, label: 'Office Address' },
-            { name: 'contactPerson', type: 'text', required: true, label: 'Contact Person' },
-            { name: 'businessVolume', type: 'text', required: false, label: 'Business Volume' },
-            { name: 'remarks', type: 'textarea', required: false, label: 'Remarks' },
-            {
-              name: 'outcome',
-              type: 'select',
-              required: true,
-              label: 'Verification Outcome',
-              options: ['VERIFIED', 'NOT_VERIFIED', 'PARTIAL'],
-            },
-          ],
-          requiredPhotos: 5,
-          photoTypes: [
-            'OFFICE_EXTERIOR',
-            'OFFICE_INTERIOR',
-            'SIGNBOARD',
-            'CONTACT_PERSON',
-            'DOCUMENTS',
-          ],
-        },
-        PROPERTY_INDIVIDUAL: {
-          fields: [
-            { name: 'propertyOwner', type: 'text', required: true, label: 'Property Owner' },
-            {
-              name: 'propertyType',
-              type: 'select',
-              required: true,
-              label: 'Property Type',
-              options: ['RESIDENTIAL', 'COMMERCIAL', 'INDUSTRIAL'],
-            },
-            { name: 'propertyAddress', type: 'text', required: true, label: 'Property Address' },
-            { name: 'propertyValue', type: 'number', required: false, label: 'Property Value' },
-            {
-              name: 'ownershipStatus',
-              type: 'select',
-              required: true,
-              label: 'Ownership Status',
-              options: ['OWNED', 'LEASED', 'RENTED'],
-            },
-            { name: 'remarks', type: 'textarea', required: false, label: 'Remarks' },
-            {
-              name: 'outcome',
-              type: 'select',
-              required: true,
-              label: 'Verification Outcome',
-              options: ['VERIFIED', 'NOT_VERIFIED', 'PARTIAL'],
-            },
-          ],
-          requiredPhotos: 5,
-          photoTypes: [
-            'PROPERTY_EXTERIOR',
-            'PROPERTY_INTERIOR',
-            'OWNERSHIP_DOCS',
-            'OWNER_PHOTO',
-            'SURROUNDINGS',
-          ],
-        },
-        PROPERTY_APF: {
-          fields: [
-            { name: 'projectName', type: 'text', required: true, label: 'Project Name' },
-            { name: 'developerName', type: 'text', required: true, label: 'Developer Name' },
-            { name: 'projectAddress', type: 'text', required: true, label: 'Project Address' },
-            {
-              name: 'projectStatus',
-              type: 'select',
-              required: true,
-              label: 'Project Status',
-              options: ['UNDER_CONSTRUCTION', 'COMPLETED', 'PLANNED'],
-            },
-            { name: 'approvalStatus', type: 'text', required: false, label: 'Approval Status' },
-            { name: 'remarks', type: 'textarea', required: false, label: 'Remarks' },
-            {
-              name: 'outcome',
-              type: 'select',
-              required: true,
-              label: 'Verification Outcome',
-              options: ['VERIFIED', 'NOT_VERIFIED', 'PARTIAL'],
-            },
-          ],
-          requiredPhotos: 5,
-          photoTypes: [
-            'PROJECT_EXTERIOR',
-            'CONSTRUCTION_SITE',
-            'APPROVAL_BOARD',
-            'DEVELOPER_OFFICE',
-            'PROGRESS_PHOTO',
-          ],
-        },
-        NOC: {
-          fields: [
-            { name: 'applicantName', type: 'text', required: true, label: 'Applicant Name' },
-            { name: 'nocType', type: 'text', required: true, label: 'NOC Type' },
-            { name: 'propertyAddress', type: 'text', required: true, label: 'Property Address' },
-            {
-              name: 'nocStatus',
-              type: 'select',
-              required: true,
-              label: 'NOC Status',
-              options: ['VERIFIED', 'NOT_VERIFIED', 'PENDING'],
-            },
-            { name: 'issuingAuthority', type: 'text', required: false, label: 'Issuing Authority' },
-            { name: 'remarks', type: 'textarea', required: false, label: 'Remarks' },
-            {
-              name: 'outcome',
-              type: 'select',
-              required: true,
-              label: 'Verification Outcome',
-              options: ['VERIFIED', 'NOT_VERIFIED', 'PARTIAL'],
-            },
-          ],
-          requiredPhotos: 5,
-          photoTypes: [
-            'PROPERTY_EXTERIOR',
-            'NOC_DOCUMENT',
-            'APPLICANT_PHOTO',
-            'AUTHORITY_OFFICE',
-            'SUPPORTING_DOCS',
-          ],
-        },
+      const photoTypesByVerificationType: Record<string, string[]> = {
+        RESIDENCE: [
+          'BUILDING_EXTERIOR',
+          'BUILDING_INTERIOR',
+          'NAMEPLATE',
+          'SURROUNDINGS',
+          'APPLICANT',
+        ],
+        OFFICE: ['OFFICE_EXTERIOR', 'OFFICE_INTERIOR', 'RECEPTION', 'EMPLOYEE_DESK', 'ID_CARD'],
+        BUSINESS: [
+          'BUSINESS_EXTERIOR',
+          'BUSINESS_INTERIOR',
+          'SIGNBOARD',
+          'OWNER_PHOTO',
+          'BUSINESS_ACTIVITY',
+        ],
+        BUILDER: [
+          'PROJECT_EXTERIOR',
+          'CONSTRUCTION_SITE',
+          'APPROVAL_BOARD',
+          'BUILDER_OFFICE',
+          'PROGRESS_PHOTO',
+        ],
+        RESIDENCE_CUM_OFFICE: [
+          'BUILDING_EXTERIOR',
+          'RESIDENCE_AREA',
+          'OFFICE_AREA',
+          'NAMEPLATE',
+          'APPLICANT',
+        ],
+        DSA_CONNECTOR: [
+          'OFFICE_EXTERIOR',
+          'OFFICE_INTERIOR',
+          'SIGNBOARD',
+          'CONTACT_PERSON',
+          'DOCUMENTS',
+        ],
+        PROPERTY_INDIVIDUAL: [
+          'PROPERTY_EXTERIOR',
+          'PROPERTY_INTERIOR',
+          'OWNERSHIP_DOCS',
+          'OWNER_PHOTO',
+          'SURROUNDINGS',
+        ],
+        PROPERTY_APF: [
+          'PROJECT_EXTERIOR',
+          'CONSTRUCTION_SITE',
+          'APPROVAL_BOARD',
+          'DEVELOPER_OFFICE',
+          'PROGRESS_PHOTO',
+        ],
+        NOC: [
+          'PROPERTY_EXTERIOR',
+          'NOC_DOCUMENT',
+          'APPLICANT_PHOTO',
+          'AUTHORITY_OFFICE',
+          'SUPPORTING_DOCS',
+        ],
       };
+
+      const selectOptionsByField: Record<string, string[]> = {
+        addressLocatable: ['LOCATABLE', 'NOT_LOCATABLE'],
+        addressRating: ['EXCELLENT', 'GOOD', 'AVERAGE', 'POOR'],
+        houseStatus: ['OPENED', 'LOCKED', 'CLOSED'],
+        roomStatus: ['OPENED', 'LOCKED', 'CLOSED'],
+        metPersonRelation: ['SELF', 'FATHER', 'MOTHER', 'SPOUSE', 'BROTHER', 'SISTER', 'OTHER'],
+        metPersonStatus: ['CONFIRMED', 'DENIED', 'UNKNOWN'],
+        workingStatus: ['EMPLOYED', 'SELF_EMPLOYED', 'HOUSE_WIFE', 'STUDENT', 'UNEMPLOYED'],
+        stayingStatus: ['STAYING', 'SHIFTED', 'TEMPORARY'],
+        documentShownStatus: ['SHOWN', 'NOT_SHOWN'],
+        documentType: [
+          'AADHAAR',
+          'PAN',
+          'VOTER_ID',
+          'DRIVING_LICENSE',
+          'PASSPORT',
+          'UTILITY_BILL',
+          'OTHER',
+        ],
+        doorNamePlateStatus: ['SIGHTED', 'NOT_SIGHTED'],
+        societyNamePlateStatus: ['SIGHTED', 'NOT_SIGHTED'],
+        premisesStatus: ['OCCUPIED', 'LOCKED', 'VACANT', 'CLOSED'],
+        officeStatus: ['ACTIVE', 'INACTIVE', 'CLOSED'],
+        businessStatus: ['ACTIVE', 'INACTIVE', 'CLOSED'],
+        propertyType: ['RESIDENTIAL', 'COMMERCIAL', 'INDUSTRIAL'],
+        ownershipStatus: ['OWNED', 'LEASED', 'RENTED'],
+        constructionStatus: ['UNDER_CONSTRUCTION', 'COMPLETED', 'PLANNED'],
+        projectStatus: ['UNDER_CONSTRUCTION', 'COMPLETED', 'PLANNED'],
+        connectorType: ['DSA', 'DST'],
+        nocStatus: ['VERIFIED', 'NOT_VERIFIED', 'PENDING'],
+      };
+
+      const fallbackFields = [
+        { name: 'remarks', type: 'textarea', required: true, label: 'Remarks' },
+        { name: 'callRemark', type: 'text', required: false, label: 'Call Remark' },
+      ];
+
+      const mappedFieldsFromSchema = getFormFieldDefinitions(normalizedFormType, normalizedOutcome)
+        .filter(field => field.name !== 'outcome')
+        .map((field, index) => {
+          const options = selectOptionsByField[field.name];
+          const isSelect = field.type === 'select' || field.type === 'multiselect';
+          const fieldType =
+            field.type === 'boolean'
+              ? 'boolean'
+              : field.type === 'number'
+                ? 'number'
+                : field.type === 'textarea'
+                  ? 'textarea'
+                  : isSelect && options?.length
+                    ? 'select'
+                    : 'text';
+
+          return {
+            name: field.name,
+            type: fieldType,
+            required: Boolean(field.isRequired),
+            label: field.label || field.name,
+            options: options || undefined,
+            order: index + 1,
+          };
+        });
+
+      const fields = mappedFieldsFromSchema.length > 0 ? mappedFieldsFromSchema : fallbackFields;
 
       res.json({
         success: true,
         message: 'Form template retrieved successfully',
-        data: templates[formType.toUpperCase() as keyof typeof templates],
+        data: {
+          verificationType: normalizedFormType,
+          outcome: normalizedOutcome,
+          fields,
+          requiredPhotos: 5,
+          photoTypes:
+            photoTypesByVerificationType[normalizedFormType] ||
+            photoTypesByVerificationType.RESIDENCE,
+        },
       });
     } catch (error) {
       console.error('Get form template error:', error);

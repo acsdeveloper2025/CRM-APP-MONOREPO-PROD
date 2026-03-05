@@ -117,8 +117,8 @@ export const config = {
   // Mobile App Configuration
   mobile: {
     apiVersion: process.env.MOBILE_API_VERSION || '4.0.0',
-    minSupportedVersion: process.env.MOBILE_MIN_SUPPORTED_VERSION || '0.0.0',
-    forceUpdateVersion: process.env.MOBILE_FORCE_UPDATE_VERSION || '0.0.0',
+    minSupportedVersion: process.env.MOBILE_MIN_SUPPORTED_VERSION || '4.0.0',
+    forceUpdateVersion: process.env.MOBILE_FORCE_UPDATE_VERSION || '4.0.0',
 
     // Mobile Authentication
     jwtExpiresIn: process.env.MOBILE_JWT_EXPIRES_IN || '24h',
