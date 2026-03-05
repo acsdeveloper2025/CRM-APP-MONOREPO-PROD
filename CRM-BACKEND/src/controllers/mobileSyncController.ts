@@ -4,7 +4,7 @@ import type {
   MobileSyncDownloadResponse,
   MobileCaseResponse,
 } from '../types/mobile';
-import type { QueryParams, WhereClause } from '../types/database';
+import type { QueryParams } from '../types/database';
 
 interface SyncConflict {
   caseId: string;
@@ -39,14 +39,6 @@ interface MobileQueuedAction {
 interface SyncControllerError extends Error {
   status?: number;
   errorCode?: string;
-}
-
-// Type guards and interfaces for WhereClause usage
-interface DateRangeFilter {
-  gte?: Date;
-  lte?: Date;
-  gt?: Date;
-  lt?: Date;
 }
 
 import { AuthenticatedRequest } from '../middleware/auth';
@@ -361,90 +353,142 @@ export class MobileSyncController {
       const userId = req.user?.id;
       const isExecutionActor = isFieldExecutionActor(req.user);
       const lastSyncTimestamp = (req.query.lastSyncTimestamp as unknown as string) || '';
-      const limit = Number(req.query.limit) || config.mobile.syncBatchSize;
+      const limit = Math.max(1, Number(req.query.limit) || config.mobile.syncBatchSize);
+      const offset = Math.max(0, Number(req.query.offset) || 0);
+      const queryLimit = limit + 1;
 
       const syncTimestamp = lastSyncTimestamp
         ? new Date(lastSyncTimestamp)
         : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000); // 30 days ago
 
-      // Get updated cases
-      const where: WhereClause = {
-        updatedAt: { gt: syncTimestamp },
-      };
-
-      // Role-based filtering
-      if (isExecutionActor) {
-        where.hasAssignedTask = userId;
-      }
-
       const vals: QueryParams = [];
-      const wh: string[] = [];
-      if (where.hasAssignedTask) {
-        vals.push(where.hasAssignedTask as string);
-        wh.push(`EXISTS (
-          SELECT 1 FROM verification_tasks vt
-          WHERE vt.case_id = c.id
-          AND vt.assigned_to = $${vals.length}
-        )`);
-      }
-      if (where.updatedAt && typeof where.updatedAt === 'object') {
-        const updatedAtFilter = where.updatedAt as DateRangeFilter;
-        if (updatedAtFilter.gt) {
-          vals.push(updatedAtFilter.gt);
-          wh.push(`c."updatedAt" > $${vals.length}`);
-        }
-      }
-      const whereSql = wh.length ? `WHERE ${wh.join(' AND ')}` : '';
-      vals.push(Number(limit));
+      const userIdParamIndex = vals.length + 1;
+      vals.push(isExecutionActor ? userId : null);
+      const syncTimestampParamIndex = vals.length + 1;
+      vals.push(syncTimestamp);
+      const limitParamIndex = vals.length + 1;
+      vals.push(queryLimit);
+      const offsetParamIndex = vals.length + 1;
+      vals.push(offset);
 
       const casesRes = await query(
         `SELECT c.*,
                 cl.id as "clientId", cl.name as "clientName", cl.code as "clientCode",
                 p.id as "productId", p.name as "productName", p.code as "productCode",
-                vt.id as "verificationTypeId", vt.name as "verificationTypeName", vt.code as "verificationTypeCode", c."verificationData"
+                vtype.id as "verificationTypeId", vtype.name as "verificationTypeName", vtype.code as "verificationTypeCode",
+                c."verificationData",
+                COALESCE(cu.name, cu.username) as "createdByUserName",
+                vtask.id as "verificationTaskId",
+                vtask.task_number as "verificationTaskNumber",
+                vtask.address as "taskAddress",
+                vtask.trigger as "taskTrigger",
+                vtask.priority as "taskPriority",
+                vtask.applicant_type as "taskApplicantType",
+                vtask.assigned_to as "taskAssignedTo",
+                vtask.assigned_user_name,
+                vtask.task_status,
+                vtask.task_completed_at,
+                vtask.assigned_at,
+                vtask.task_created_at,
+                vtask.started_at,
+                vtask.saved_at,
+                vtask.is_saved,
+                vtask.revoked_at,
+                vtask.revoked_by,
+                vtask.revoked_by_name,
+                vtask.revocation_reason,
+                vtask.task_updated_at,
+                COALESCE(att_count.attachment_count, 0) as "attachmentCount"
          FROM cases c
          LEFT JOIN clients cl ON cl.id = c."clientId"
          LEFT JOIN products p ON p.id = c."productId"
-         LEFT JOIN "verificationTypes" vt ON vt.id = c."verificationTypeId"
-         ${whereSql}
-         ORDER BY c."updatedAt" ASC
-         LIMIT $${vals.length}`,
+         LEFT JOIN "verificationTypes" vtype ON vtype.id = c."verificationTypeId"
+         LEFT JOIN users cu ON cu.id = c."createdByBackendUser"
+         LEFT JOIN LATERAL (
+           SELECT vt.id, vt.task_number, vt.address, vt.trigger, vt.priority, vt.applicant_type,
+                  vt.assigned_to, vt.assigned_at, vt.created_at as task_created_at, vt.updated_at as task_updated_at,
+                  vt.status as task_status, vt.completed_at as task_completed_at,
+                  vt.started_at, vt.saved_at, vt.is_saved,
+                  vt.revoked_at, vt.revoked_by, vt.revocation_reason,
+                  COALESCE(u.name, u.username) as assigned_user_name,
+                  revoked_user.name as revoked_by_name
+           FROM verification_tasks vt
+           LEFT JOIN users u ON u.id = vt.assigned_to
+           LEFT JOIN users revoked_user ON revoked_user.id = vt.revoked_by
+           WHERE vt.case_id = c.id
+             AND (
+               $${userIdParamIndex}::uuid IS NULL
+               OR vt.assigned_to = $${userIdParamIndex}::uuid
+             )
+           ORDER BY
+             CASE WHEN vt.assigned_to = $${userIdParamIndex}::uuid THEN 0 ELSE 1 END,
+             CASE WHEN vt.status IN ('PENDING', 'ASSIGNED', 'IN_PROGRESS') THEN 0 ELSE 1 END,
+             vt.created_at DESC
+           LIMIT 1
+         ) vtask ON true
+         LEFT JOIN (
+           SELECT "caseId", COUNT(*) as attachment_count
+           FROM attachments
+           GROUP BY "caseId"
+         ) att_count ON att_count."caseId" = c."caseId"
+         WHERE vtask.id IS NOT NULL
+           AND (
+             c."updatedAt" > $${syncTimestampParamIndex}
+             OR COALESCE(vtask.task_updated_at, c."updatedAt") > $${syncTimestampParamIndex}
+           )
+         ORDER BY COALESCE(vtask.task_updated_at, c."updatedAt") ASC
+         LIMIT $${limitParamIndex}
+         OFFSET $${offsetParamIndex}`,
         vals
       );
-      const updatedCases = casesRes.rows;
+      const hasMore = casesRes.rows.length > limit;
+      const updatedCases = hasMore ? casesRes.rows.slice(0, limit) : casesRes.rows;
       const deletedCases: string[] = [];
 
-      // Transform cases for mobile response with all required assignment fields
+      // Transform cases for mobile response with task-centric IDs and lifecycle fields
       const mobileCases: MobileCaseResponse[] = updatedCases.map(caseItem => ({
-        id: caseItem.id,
+        id: caseItem.verificationTaskId || caseItem.id,
         caseId: caseItem.caseId, // User-friendly auto-incrementing case ID
-        title: caseItem.customerName || 'Verification Case',
+        title: caseItem.verificationTaskNumber || caseItem.customerName || 'Verification Case',
         description: `${caseItem.verificationTypeName || 'Verification'} for ${caseItem.customerName}`,
         customerName: caseItem.customerName || caseItem.applicantName, // Customer Name
         customerCallingCode: caseItem.customerCallingCode, // Customer Calling Code
         customerPhone: caseItem.customerPhone,
         customerEmail: caseItem.customerEmail,
-        // Fix address mapping - use single address field from database
-        addressStreet: caseItem.address || '',
+        addressStreet: caseItem.taskAddress || caseItem.address || '',
         addressCity: '',
         addressState: '',
         addressPincode: caseItem.pincode || '',
         latitude: caseItem.latitude,
         longitude: caseItem.longitude,
-        status: caseItem.status ? caseItem.status.toUpperCase().replace(/\s+/g, '_') : 'ASSIGNED',
-        priority: caseItem.priority || 2, // Priority
-        assignedAt: new Date(caseItem.createdAt).toISOString(),
-        updatedAt: new Date(caseItem.updatedAt).toISOString(),
-        completedAt: caseItem.completedAt
-          ? new Date(caseItem.completedAt).toISOString()
+        status: caseItem.task_status
+          ? caseItem.task_status.toUpperCase().replace(/\s+/g, '_')
+          : 'ASSIGNED',
+        priority: caseItem.taskPriority || caseItem.priority || 'MEDIUM',
+        assignedAt: caseItem.assigned_at
+          ? new Date(caseItem.assigned_at).toISOString()
+          : new Date(caseItem.task_created_at || caseItem.createdAt).toISOString(),
+        updatedAt: new Date(caseItem.task_updated_at || caseItem.updatedAt).toISOString(),
+        completedAt: caseItem.task_completed_at
+          ? new Date(caseItem.task_completed_at).toISOString()
           : undefined,
-        notes: caseItem.trigger, // TRIGGER field
+        notes: caseItem.taskTrigger || caseItem.trigger || '',
         verificationType: caseItem.verificationTypeName || caseItem.verificationType,
         verificationOutcome: caseItem.verificationOutcome,
-        applicantType: caseItem.applicantType, // Applicant Type
+        applicantType: caseItem.taskApplicantType || caseItem.applicantType,
         backendContactNumber: caseItem.backendContactNumber, // Backend Contact Number
-        createdByBackendUser: caseItem.createdByUserName, // Created By Backend User
-        assignedToFieldUser: '', // Task-level assignment - would need LATERAL JOIN to get this
+        createdByBackendUser: caseItem.createdByUserName || caseItem.createdByBackendUser || '',
+        assignedToFieldUser: caseItem.assigned_user_name || caseItem.taskAssignedTo || '',
+        verificationTaskId: caseItem.verificationTaskId,
+        verificationTaskNumber: caseItem.verificationTaskNumber,
+        isRevoked: caseItem.task_status === 'REVOKED',
+        revokedAt: caseItem.revoked_at ? new Date(caseItem.revoked_at).toISOString() : undefined,
+        revokedBy: caseItem.revoked_by || undefined,
+        revokedByName: caseItem.revoked_by_name || undefined,
+        revokeReason: caseItem.revocation_reason || undefined,
+        inProgressAt: caseItem.started_at ? new Date(caseItem.started_at).toISOString() : undefined,
+        savedAt: caseItem.saved_at ? new Date(caseItem.saved_at).toISOString() : undefined,
+        isSaved: Boolean(caseItem.is_saved || caseItem.task_status === 'SAVED'),
         client: {
           id: caseItem.clientId || 0, // Use number instead of string
           name: caseItem.clientName || '', // Client
@@ -464,20 +508,22 @@ export class MobileSyncController {
               code: caseItem.verificationTypeCode || '',
             }
           : undefined,
-        attachments: [], // Will be populated separately if needed
+        attachments: [],
+        attachmentCount: Number(caseItem.attachmentCount) || 0,
         formData: caseItem.verificationData,
         syncStatus: 'SYNCED',
       }));
 
       const deletedCaseIds = deletedCases;
+      const deletedTaskIds: string[] = [];
       const revokedAssignmentIds =
         await TaskRevocationService.getRevokedAssignmentIdsForUser(userId);
-      const hasMore = updatedCases.length === Number(limit);
       const newSyncTimestamp = new Date().toISOString();
 
       const response: MobileSyncDownloadResponse = {
         cases: mobileCases,
         deletedCaseIds,
+        deletedTaskIds,
         revokedAssignmentIds,
         conflicts: [], // Would be populated if conflicts are detected
         syncTimestamp: newSyncTimestamp,
@@ -491,8 +537,11 @@ export class MobileSyncController {
         userId,
         details: {
           lastSyncTimestamp,
+          offset,
+          limit,
           casesCount: mobileCases.length,
           deletedCasesCount: deletedCaseIds.length,
+          deletedTasksCount: deletedTaskIds.length,
           hasMore,
         },
         ipAddress: req.ip,
@@ -704,6 +753,7 @@ export class MobileSyncController {
         timestamp: string;
         source?: string;
         caseId?: string;
+        taskId?: string;
         activityType?: string;
       };
       timestamp: string;
@@ -712,18 +762,85 @@ export class MobileSyncController {
     syncResults: SyncResults
   ) {
     const { id, data, timestamp } = locationChange;
+    const normalizedTaskId = typeof data.taskId === 'string' ? data.taskId.trim() : '';
+    const normalizedCaseToken = typeof data.caseId === 'string' ? data.caseId.trim() : '';
+
+    let targetTaskId: string | null = null;
+    let targetCaseId: string | null = null;
+    let targetCaseNumber: string | null = null;
+    let assignedTo: string | null = null;
+
+    if (normalizedTaskId) {
+      const taskRes = await query(
+        `SELECT vt.id, vt.case_id, vt.assigned_to, c."caseId"::text as "caseNumber"
+         FROM verification_tasks vt
+         JOIN cases c ON c.id = vt.case_id
+         WHERE vt.id = $1
+         LIMIT 1`,
+        [normalizedTaskId]
+      );
+
+      if (taskRes.rows.length === 0) {
+        throw new Error('Verification task not found for location sync');
+      }
+
+      targetTaskId = taskRes.rows[0].id as string;
+      targetCaseId = taskRes.rows[0].case_id as string;
+      targetCaseNumber = taskRes.rows[0].caseNumber as string;
+      assignedTo = (taskRes.rows[0].assigned_to as string | null) || null;
+    } else if (normalizedCaseToken) {
+      const isNumericCaseNumber = /^\d+$/.test(normalizedCaseToken);
+      const caseFilter = isNumericCaseNumber ? `c."caseId" = $1::int` : `c.id = $1::uuid`;
+
+      const taskRes = await query(
+        `SELECT vt.id, vt.case_id, vt.assigned_to, c."caseId"::text as "caseNumber"
+         FROM verification_tasks vt
+         JOIN cases c ON c.id = vt.case_id
+         WHERE ${caseFilter}
+         ORDER BY vt.updated_at DESC
+         LIMIT 1`,
+        [normalizedCaseToken]
+      );
+
+      if (taskRes.rows.length === 0) {
+        throw new Error('No verification task found for location sync case');
+      }
+
+      targetTaskId = taskRes.rows[0].id as string;
+      targetCaseId = taskRes.rows[0].case_id as string;
+      targetCaseNumber = taskRes.rows[0].caseNumber as string;
+      assignedTo = (taskRes.rows[0].assigned_to as string | null) || null;
+    } else {
+      throw new Error('taskId or caseId is required for location sync');
+    }
+
+    if (assignedTo && assignedTo !== userId) {
+      throw new Error('Task not assigned to user for location sync');
+    }
+
+    const duplicateRes = await query(
+      `SELECT id FROM locations WHERE verification_task_id = $1 LIMIT 1`,
+      [targetTaskId]
+    );
+    if (duplicateRes.rows.length > 0) {
+      syncResults.processedLocations++;
+      return;
+    }
 
     await query(
-      `INSERT INTO locations (id, "caseId", latitude, longitude, accuracy, timestamp, source)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      `INSERT INTO locations
+        (id, "caseId", case_id, verification_task_id, latitude, longitude, accuracy, "recordedAt", "recordedBy")
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
       [
         id,
-        data.caseId,
+        targetCaseNumber,
+        targetCaseId,
+        targetTaskId,
         data.latitude,
         data.longitude,
-        data.accuracy,
-        new Date(timestamp),
-        data.source || 'GPS',
+        data.accuracy ?? null,
+        new Date(data.timestamp || timestamp),
+        userId,
       ]
     );
 

@@ -293,6 +293,8 @@ export class MobileAuthController {
         message: 'Token refreshed successfully',
         data: {
           accessToken: newAccessToken,
+          refreshToken,
+          expiresIn: 86400,
         },
       });
     } catch (error) {
@@ -507,6 +509,20 @@ export class MobileAuthController {
       }
 
       const normalizedPlatform = platform.toLowerCase();
+      const normalizedPushToken =
+        typeof pushToken === 'string' && pushToken.trim().length > 0 ? pushToken.trim() : null;
+      const isEnabled = Boolean(enabled) && Boolean(normalizedPushToken);
+
+      if (Boolean(enabled) && !normalizedPushToken) {
+        return res.status(400).json({
+          success: false,
+          message: 'Push token is required when enabling notifications',
+          error: {
+            code: 'PUSH_TOKEN_REQUIRED',
+            timestamp: new Date().toISOString(),
+          },
+        });
+      }
 
       const result = await query(
         `INSERT INTO notification_tokens (user_id, device_id, platform, push_token, is_active, last_used_at)
@@ -519,7 +535,7 @@ export class MobileAuthController {
            last_used_at = NOW(),
            updated_at = NOW()
          RETURNING id, device_id as "deviceId", platform, is_active as "isActive"`,
-        [userId, deviceId, normalizedPlatform, pushToken || null, Boolean(enabled)]
+        [userId, deviceId, normalizedPlatform, normalizedPushToken, isEnabled]
       );
 
       void createAuditLog({
@@ -530,7 +546,8 @@ export class MobileAuthController {
         details: {
           deviceId,
           platform: normalizedPlatform,
-          enabled: Boolean(enabled),
+          enabled: isEnabled,
+          hasPushToken: Boolean(normalizedPushToken),
         },
         ipAddress: req.ip,
         userAgent: req.get('User-Agent'),
@@ -538,7 +555,7 @@ export class MobileAuthController {
 
       return res.json({
         success: true,
-        message: enabled
+        message: isEnabled
           ? 'Notification registration successful'
           : 'Notification token deactivated successfully',
         data: result.rows[0],
