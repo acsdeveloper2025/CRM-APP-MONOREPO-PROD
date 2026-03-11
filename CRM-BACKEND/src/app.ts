@@ -108,6 +108,7 @@ app.use(
       'X-Forwarded-For',
       'X-Real-IP',
       'X-Forwarded-Proto',
+      'Idempotency-Key',
     ],
     exposedHeaders: ['Content-Disposition', 'Content-Type', 'Content-Length'],
   })

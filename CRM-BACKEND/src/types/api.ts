@@ -4,6 +4,7 @@ export interface ApiResponse<T = unknown> {
   data?: T;
   error?: {
     code: string;
+    timestamp?: string;
     details?: unknown;
   };
   pagination?: {
@@ -36,6 +37,7 @@ export interface ErrorResponse {
   message: string;
   error: {
     code: string;
+    timestamp?: string;
     details?: unknown;
   };
 }

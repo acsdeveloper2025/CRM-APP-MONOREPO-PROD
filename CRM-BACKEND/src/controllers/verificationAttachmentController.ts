@@ -14,6 +14,8 @@ import { getAssignedClientIds } from '@/middleware/clientAccess';
 import { getAssignedProductIds } from '@/middleware/productAccess';
 import { isFieldExecutionActor, isScopedOperationsUser } from '@/security/rbacAccess';
 import { getScopedOperationalUserIds } from '@/security/userScope';
+import { MobileOperationService } from '@/services/mobileOperationService';
+import { MobileTelemetryService } from '@/services/mobileTelemetryService';
 
 // Configure storage for verification attachments
 const storage = multer.diskStorage({
@@ -95,11 +97,22 @@ export const verificationUpload = multer({
   fileFilter,
   limits: {
     fileSize: config.mobile.maxFileSize,
-    files: 10, // Reasonable limit for verification photos
+    files: config.mobile.maxAttachmentUploadCount,
   },
 });
 
 export class VerificationAttachmentController {
+  private static getOperationId(req: Request): string | null {
+    const bodyValue =
+      typeof req.body?.operation_id === 'string' ? req.body.operation_id.trim() : '';
+    if (bodyValue) {
+      return bodyValue;
+    }
+
+    const headerValue = req.header('Idempotency-Key')?.trim();
+    return headerValue || null;
+  }
+
   private static async verifyCaseLevelAccess(
     req: Request,
     caseId: string
@@ -217,6 +230,7 @@ export class VerificationAttachmentController {
    * Upload verification images during form submission
    */
   static async uploadVerificationImages(this: void, req: Request, res: Response) {
+    const startedAt = Date.now();
     try {
       const taskId = String(req.params.taskId || '');
       const { verificationType, submissionId, geoLocation, photoType = 'verification' } = req.body;
@@ -264,6 +278,63 @@ export class VerificationAttachmentController {
       }
 
       const task = taskResult.rows[0];
+      const operationId = VerificationAttachmentController.getOperationId(req);
+      if (!operationId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Idempotency-Key header is required',
+          error: {
+            code: 'IDEMPOTENCY_KEY_REQUIRED',
+            timestamp: new Date().toISOString(),
+          },
+        });
+      }
+
+      const existingByOperation = await query(
+        `SELECT id, filename, "originalName", "mimeType", "fileSize", "filePath", 
+                "thumbnailPath", "createdAt", "photoType"
+         FROM verification_attachments
+         WHERE split_part(operation_id, ':', 1) = $1
+         ORDER BY "createdAt" ASC`,
+        [operationId]
+      );
+
+      if (existingByOperation.rows.length > 0) {
+        void MobileTelemetryService.increment('idempotent_replay_count', 1, {
+          endpoint: 'attachments_upload',
+          source: 'attachment_controller',
+        });
+        void MobileTelemetryService.increment(
+          'attachment_upload_rate',
+          existingByOperation.rows.length,
+          {
+            mode: 'replay',
+          }
+        );
+        return res.json({
+          success: true,
+          message: `${existingByOperation.rows.length} verification images uploaded successfully`,
+          data: {
+            attachments: existingByOperation.rows.map(attachment => ({
+              id: attachment.id,
+              filename: attachment.filename,
+              originalName: attachment.originalName,
+              mimeType: attachment.mimeType,
+              size: attachment.fileSize,
+              url: attachment.filePath,
+              thumbnailUrl: attachment.thumbnailPath,
+              uploadedAt: attachment.createdAt.toISOString(),
+              photoType: attachment.photoType,
+              geoLocation,
+            })),
+            caseId: task.case_id,
+            verificationType: verificationType || task.verification_type,
+            submissionId,
+            taskId,
+          },
+        });
+      }
+
       if (task.status === 'REVOKED') {
         await Promise.all((files || []).map(file => fs.unlink(file.path).catch(() => {})));
         return res.status(403).json({
@@ -281,13 +352,30 @@ export class VerificationAttachmentController {
       logger.info(
         `🔗 Linked Attachment to Task: ${targetTaskId}, Case: ${targetCaseId}, File: ${files[0]?.originalname}`
       );
+      await MobileOperationService.recordOperation({
+        operationId,
+        type: 'PHOTO_CAPTURED',
+        entityType: 'ATTACHMENT',
+        entityId: targetTaskId,
+        payload: {
+          taskId: targetTaskId,
+          caseId: targetCaseId,
+          type: req.body?.type || 'PHOTO',
+          fileCount: files.length,
+          submissionId,
+          photoType,
+        },
+        retryCount: Number(req.body?.retry_count || 0),
+      });
 
       const uploadedAttachments: Record<string, unknown>[] = [];
 
       // Process each uploaded file
-      for (const file of files) {
+      for (let fileIndex = 0; fileIndex < files.length; fileIndex++) {
+        const file = files[fileIndex];
         try {
           let thumbnailPath: string | null = null;
+          const fileOperationId = operationId ? `${operationId}:${fileIndex}` : null;
 
           // Generate thumbnail for images
           if (file.mimetype.startsWith('image/')) {
@@ -310,8 +398,10 @@ export class VerificationAttachmentController {
             `INSERT INTO verification_attachments (
               case_id, "caseId", verification_type, filename, "originalName", 
               "mimeType", "fileSize", "filePath", "thumbnailPath", "uploadedBy", 
-              "geoLocation", "photoType", "submissionId", verification_task_id
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+              "geoLocation", "photoType", "submissionId", verification_task_id, operation_id
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+            ON CONFLICT (operation_id)
+            DO UPDATE SET operation_id = EXCLUDED.operation_id
             RETURNING id, filename, "originalName", "mimeType", "fileSize", "filePath", 
                      "thumbnailPath", "createdAt", "photoType", verification_task_id`,
             [
@@ -331,6 +421,7 @@ export class VerificationAttachmentController {
               photoType,
               submissionId,
               targetTaskId, // Dual-write: Task ID or NULL
+              fileOperationId,
             ]
           );
 
@@ -386,8 +477,41 @@ export class VerificationAttachmentController {
           taskId,
         },
       });
+      const retryCount = Number(req.body?.retry_count || req.body?.retryCount || 0);
+      if (retryCount > 0) {
+        void MobileTelemetryService.increment('retry_count', retryCount, {
+          endpoint: 'attachments_upload',
+        });
+      }
+      void MobileTelemetryService.increment('attachment_upload_rate', uploadedAttachments.length, {
+        mode: 'fresh',
+      });
+      void MobileTelemetryService.observeDuration(
+        'attachment_upload_duration',
+        Date.now() - startedAt,
+        {
+          status: 'success',
+        }
+      );
     } catch (error) {
       console.error('Upload verification images error:', error);
+      const retryCount = Number(req.body?.retry_count || req.body?.retryCount || 0);
+      if (retryCount > 0) {
+        void MobileTelemetryService.increment('retry_count', retryCount, {
+          endpoint: 'attachments_upload',
+          status: 'error',
+        });
+      }
+      void MobileTelemetryService.increment('upload_failures', 1, {
+        endpoint: 'attachments_upload',
+      });
+      void MobileTelemetryService.observeDuration(
+        'attachment_upload_duration',
+        Date.now() - startedAt,
+        {
+          status: 'error',
+        }
+      );
       res.status(500).json({
         success: false,
         message: 'Internal server error',

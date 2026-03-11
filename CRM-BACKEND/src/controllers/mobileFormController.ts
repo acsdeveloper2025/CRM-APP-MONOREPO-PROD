@@ -133,9 +133,43 @@ import sharp from 'sharp';
 import { queueCaseCompletionNotification } from '../queues/notificationQueue';
 import { logger } from '../utils/logger';
 import { CaseStatusSyncService } from '../services/caseStatusSyncService';
+import { MobileOperationService } from '@/services/mobileOperationService';
 // Enhanced services temporarily disabled for debugging
 
 export class MobileFormController {
+  private static getOperationId(req: Request): string | null {
+    const headerValue = req.header('Idempotency-Key');
+    if (!headerValue) {
+      return null;
+    }
+    const trimmed = headerValue.trim();
+    return trimmed.length > 0 ? trimmed : null;
+  }
+
+  private static async recordFormOperation(
+    req: Request,
+    taskId: string,
+    formType: string,
+    payload: unknown
+  ): Promise<void> {
+    const operationId = MobileFormController.getOperationId(req);
+    if (!operationId) {
+      return;
+    }
+
+    await MobileOperationService.recordOperation({
+      operationId,
+      type: 'FORM_SUBMITTED',
+      entityType: 'FORM',
+      entityId: taskId,
+      payload: {
+        formType,
+        data: payload,
+      },
+      retryCount: Number((req.body as { retry_count?: number })?.retry_count || 0),
+    });
+  }
+
   /**
    * Enforce assignment ownership for execution actors only.
    * Supervisory users keep existing behavior.
@@ -2572,6 +2606,77 @@ export class MobileFormController {
     verificationOutcome: string;
   } {
     return detectResidenceFormType(formData);
+  }
+
+  static async submitVerificationForm(this: void, req: AuthenticatedRequest, res: Response) {
+    const taskId = String(req.params.taskId || '');
+    const formType = String(req.body?.formType || '')
+      .trim()
+      .toUpperCase();
+    const data = req.body?.data;
+
+    if (!taskId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Task ID is required for form submission',
+        error: { code: 'TASK_ID_REQUIRED' },
+      });
+    }
+
+    if (!formType) {
+      return res.status(400).json({
+        success: false,
+        message: 'formType is required',
+        error: { code: 'FORM_TYPE_REQUIRED' },
+      });
+    }
+
+    if (!data || typeof data !== 'object') {
+      return res.status(400).json({
+        success: false,
+        message: 'data payload is required',
+        error: { code: 'FORM_DATA_REQUIRED' },
+      });
+    }
+
+    req.body = {
+      ...req.body,
+      ...(data as Record<string, unknown>),
+      formData:
+        (data as { formData?: unknown }).formData &&
+        typeof (data as { formData?: unknown }).formData === 'object'
+          ? (data as { formData: unknown }).formData
+          : data,
+    };
+
+    await MobileFormController.recordFormOperation(req, taskId, formType, data);
+
+    switch (formType) {
+      case 'RESIDENCE':
+        return MobileFormController.submitResidenceVerification(req, res);
+      case 'OFFICE':
+        return MobileFormController.submitOfficeVerification(req, res);
+      case 'BUSINESS':
+        return MobileFormController.submitBusinessVerification(req, res);
+      case 'BUILDER':
+        return MobileFormController.submitBuilderVerification(req, res);
+      case 'RESIDENCE_CUM_OFFICE':
+        return MobileFormController.submitResidenceCumOfficeVerification(req, res);
+      case 'DSA_CONNECTOR':
+        return MobileFormController.submitDsaConnectorVerification(req, res);
+      case 'PROPERTY_INDIVIDUAL':
+        return MobileFormController.submitPropertyIndividualVerification(req, res);
+      case 'PROPERTY_APF':
+        return MobileFormController.submitPropertyApfVerification(req, res);
+      case 'NOC':
+        return MobileFormController.submitNocVerification(req, res);
+      default:
+        return res.status(400).json({
+          success: false,
+          message: `Unsupported form type: ${formType}`,
+          error: { code: 'UNSUPPORTED_FORM_TYPE' },
+        });
+    }
   }
 
   // Submit residence verification form

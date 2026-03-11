@@ -10,8 +10,20 @@ import { config } from '../config';
 import type { AuthenticatedRequest } from '../middleware/auth';
 import type { QueryParams } from '../types/database';
 import { isFieldExecutionActor } from '@/security/rbacAccess';
+import { MobileOperationService } from '@/services/mobileOperationService';
 
 export class MobileLocationController {
+  private static getOperationId(req: AuthenticatedRequest): string | null {
+    const bodyValue =
+      typeof req.body?.operation_id === 'string' ? req.body.operation_id.trim() : '';
+    if (bodyValue) {
+      return bodyValue;
+    }
+
+    const headerValue = req.header('Idempotency-Key')?.trim();
+    return headerValue || null;
+  }
+
   // Capture GPS location
   static async captureLocation(this: void, req: AuthenticatedRequest, res: Response) {
     try {
@@ -89,6 +101,58 @@ export class MobileLocationController {
       const targetCaseId = task.case_id;
       const targetCaseNumber = task.case_number;
 
+      const operationId = MobileLocationController.getOperationId(req);
+      if (!operationId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Idempotency-Key header is required',
+          error: {
+            code: 'IDEMPOTENCY_KEY_REQUIRED',
+            timestamp: new Date().toISOString(),
+          },
+        });
+      }
+
+      const existingByOperation = await query(
+        `SELECT id, "recordedAt" as timestamp, accuracy
+         FROM locations
+         WHERE operation_id = $1
+         LIMIT 1`,
+        [operationId]
+      );
+
+      if (existingByOperation.rows.length > 0) {
+        const existing = existingByOperation.rows[0];
+        return res.json({
+          success: true,
+          message: 'Location captured successfully',
+          data: {
+            id: existing.id,
+            timestamp: new Date(existing.timestamp).toISOString(),
+            accuracy: existing.accuracy,
+          },
+        });
+      }
+
+      if (operationId) {
+        await MobileOperationService.recordOperation({
+          operationId,
+          type: 'LOCATION_CAPTURED',
+          entityType: 'LOCATION',
+          entityId: targetTaskId,
+          payload: {
+            taskId: targetTaskId,
+            caseId: targetCaseId,
+            latitude,
+            longitude,
+            accuracy,
+            source,
+            activityType,
+          },
+          retryCount: Number(req.body?.retry_count || 0),
+        });
+      }
+
       // Authorization Check
       if (userId && task.assigned_to !== userId) {
         return res.status(403).json({
@@ -116,12 +180,14 @@ export class MobileLocationController {
       const locRes = await query(
         `INSERT INTO locations (
            "caseId", case_id, verification_task_id, 
-           latitude, longitude, accuracy, "recordedAt", "recordedBy"
+           latitude, longitude, accuracy, "recordedAt", "recordedBy", operation_id
          )
          VALUES (
            $1, $2, $3, 
-           $4, $5, $6, $7, $8
+           $4, $5, $6, $7, $8, $9
          )
+         ON CONFLICT (operation_id)
+         DO UPDATE SET operation_id = EXCLUDED.operation_id
          RETURNING id, "recordedAt" as timestamp`,
         [
           targetCaseNumber,
@@ -132,6 +198,7 @@ export class MobileLocationController {
           accuracy,
           new Date(timestamp),
           userId, // recordedBy
+          operationId,
         ]
       );
       const locationRecord = locRes.rows[0];

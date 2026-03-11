@@ -27,7 +27,7 @@ export const errorHandler = (
   let statusCode = error.statusCode || 500;
   let message = error.message || 'Internal server error';
   let code = error.code || 'INTERNAL_ERROR';
-  const details = error.details;
+  let details = error.details;
 
   // Handle JWT errors
   if (error.name === 'JsonWebTokenError') {
@@ -45,20 +45,24 @@ export const errorHandler = (
   // Handle multer errors (file upload)
   if (error.name === 'MulterError') {
     statusCode = 400;
-    code = 'FILE_UPLOAD_ERROR';
+    code = error.code || 'FILE_UPLOAD_ERROR';
 
     switch (error.code) {
       case 'LIMIT_FILE_SIZE':
         message = 'File too large';
+        details = { limitType: 'LIMIT_FILE_SIZE' };
         break;
       case 'LIMIT_FILE_COUNT':
         message = 'Too many files';
+        details = { limitType: 'LIMIT_FILE_COUNT' };
         break;
       case 'LIMIT_UNEXPECTED_FILE':
         message = 'Unexpected file field';
+        details = { limitType: 'LIMIT_UNEXPECTED_FILE' };
         break;
       default:
         message = 'File upload error';
+        details = { limitType: error.code || 'UNKNOWN' };
     }
   }
 
@@ -67,6 +71,7 @@ export const errorHandler = (
     message,
     error: {
       code,
+      timestamp: new Date().toISOString(),
       details,
     },
   };
@@ -76,6 +81,7 @@ export const errorHandler = (
     response.message = 'Internal server error';
     response.error = {
       code: 'INTERNAL_ERROR',
+      timestamp: new Date().toISOString(),
     };
   }
 
@@ -88,6 +94,7 @@ export const notFoundHandler = (req: Request, res: Response): void => {
     message: `Route ${req.originalUrl} not found`,
     error: {
       code: 'NOT_FOUND',
+      timestamp: new Date().toISOString(),
     },
   };
 

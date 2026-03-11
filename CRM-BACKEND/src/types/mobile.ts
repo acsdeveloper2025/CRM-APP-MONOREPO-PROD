@@ -388,6 +388,7 @@ export interface MobileSyncUploadRequest {
 
 export interface MobileSyncDownloadResponse {
   cases: MobileCaseResponse[];
+  attachmentChanges?: MobileAttachmentDeltaChange[];
   deletedCaseIds: string[];
   deletedTaskIds?: string[];
   revokedAssignmentIds: string[];
@@ -399,6 +400,28 @@ export interface MobileSyncDownloadResponse {
   }[];
   syncTimestamp: string;
   hasMore: boolean;
+}
+
+export interface MobileAttachmentDeltaPayload {
+  attachment_id: string;
+  task_id: string;
+  type: string;
+  file_name: string;
+  file_size: number;
+  mime_type: string;
+  captured_at: string;
+  latitude: number | null;
+  longitude: number | null;
+  address: string | null;
+  uploaded: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MobileAttachmentDeltaChange {
+  entity: 'attachment';
+  id: string;
+  changes: MobileAttachmentDeltaPayload;
 }
 
 export interface MobileNotificationRegistrationRequest {
