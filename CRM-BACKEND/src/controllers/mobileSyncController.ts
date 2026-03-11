@@ -3,6 +3,7 @@ import type {
   MobileSyncUploadRequest,
   MobileSyncDownloadResponse,
   MobileCaseResponse,
+  MobileAttachmentDeltaChange,
 } from '../types/mobile';
 import type { QueryParams } from '../types/database';
 
@@ -50,8 +51,57 @@ import { EnterpriseMobileSyncService } from '../services/enterpriseMobileSyncSer
 import { isFieldExecutionActor } from '@/security/rbacAccess';
 import { CaseStatusSyncService } from '../services/caseStatusSyncService';
 import { TaskRevocationService } from '../services/taskRevocationService';
+import { MobileTelemetryService } from '@/services/mobileTelemetryService';
 
 export class MobileSyncController {
+  private static readonly MAX_SYNC_PAGE_SIZE = 200;
+
+  static async downloadChanges(this: void, req: AuthenticatedRequest, res: Response) {
+    const since = (req.query.since as string) || '';
+    const cursor = (req.query.cursor as string) || '';
+    const limit = req.query.limit;
+
+    if (since && !req.query.lastSyncTimestamp) {
+      req.query.lastSyncTimestamp = since;
+    }
+
+    if (typeof limit !== 'undefined' && !req.query.limit) {
+      req.query.limit = limit;
+    }
+
+    if (cursor && !req.query.offset) {
+      const parsedCursor = Number(cursor);
+      req.query.offset = Number.isFinite(parsedCursor) ? String(parsedCursor) : '0';
+    }
+
+    return MobileSyncController.downloadSync(req, res);
+  }
+
+  static async getSyncHealth(this: void, req: AuthenticatedRequest, res: Response) {
+    try {
+      const health = await query('SELECT 1 as ok');
+      return res.json({
+        success: true,
+        message: 'Sync health check successful',
+        data: {
+          status: health.rows[0]?.ok === 1 ? 'OK' : 'DEGRADED',
+          service: 'mobile-sync',
+          timestamp: new Date().toISOString(),
+        },
+      });
+    } catch (error) {
+      return res.status(503).json({
+        success: false,
+        message: 'Sync health check failed',
+        error: {
+          code: 'SYNC_HEALTH_FAILED',
+          timestamp: new Date().toISOString(),
+          details: error instanceof Error ? error.message : 'Unknown error',
+        },
+      });
+    }
+  }
+
   /**
    * Enterprise-scale mobile synchronization for 500+ field agents
    * Optimized for high-concurrency case assignment operations
@@ -98,6 +148,7 @@ export class MobileSyncController {
 
   // Upload offline changes from mobile app
   static async uploadSync(this: void, req: AuthenticatedRequest, res: Response) {
+    const startedAt = Date.now();
     try {
       const {
         localChanges,
@@ -107,6 +158,14 @@ export class MobileSyncController {
       }: MobileSyncUploadRequest & { actions?: MobileQueuedAction[] } = req.body;
       const userId = req.user?.id;
       const isExecutionActor = isFieldExecutionActor(req.user);
+      void MobileTelemetryService.increment('sync_request_rate', 1, { direction: 'upload' });
+
+      const retryCount = MobileSyncController.extractRetryCount(req.body);
+      if (retryCount > 0) {
+        void MobileTelemetryService.increment('retry_count', retryCount, {
+          endpoint: 'sync_upload',
+        });
+      }
 
       if (!localChanges && (!Array.isArray(actions) || actions.length === 0)) {
         return res.status(400).json({
@@ -250,8 +309,17 @@ export class MobileSyncController {
           results: syncResults,
         },
       });
+      void MobileTelemetryService.observeDuration('sync_upload_duration', Date.now() - startedAt, {
+        status: 'success',
+      });
     } catch (error) {
       logger.error('Sync upload error:', error);
+      void MobileTelemetryService.increment('sync_failures', 1, {
+        endpoint: 'sync_upload',
+      });
+      void MobileTelemetryService.observeDuration('sync_upload_duration', Date.now() - startedAt, {
+        status: 'error',
+      });
       res.status(500).json({
         success: false,
         message: 'Internal server error',
@@ -349,13 +417,16 @@ export class MobileSyncController {
 
   // Download changes from server for mobile app
   static async downloadSync(this: void, req: AuthenticatedRequest, res: Response) {
+    const startedAt = Date.now();
     try {
       const userId = req.user?.id;
       const isExecutionActor = isFieldExecutionActor(req.user);
       const lastSyncTimestamp = (req.query.lastSyncTimestamp as unknown as string) || '';
-      const limit = Math.max(1, Number(req.query.limit) || config.mobile.syncBatchSize);
+      const requestedLimit = Number(req.query.limit) || config.mobile.syncBatchSize;
+      const limit = Math.min(Math.max(1, requestedLimit), MobileSyncController.MAX_SYNC_PAGE_SIZE);
       const offset = Math.max(0, Number(req.query.offset) || 0);
       const queryLimit = limit + 1;
+      void MobileTelemetryService.increment('sync_request_rate', 1, { direction: 'download' });
 
       const syncTimestamp = lastSyncTimestamp
         ? new Date(lastSyncTimestamp)
@@ -445,6 +516,68 @@ export class MobileSyncController {
       const updatedCases = hasMore ? casesRes.rows.slice(0, limit) : casesRes.rows;
       const deletedCases: string[] = [];
 
+      const attachmentRes = await query(
+        `SELECT
+           va.id as attachment_id,
+           va.verification_task_id as task_id,
+           COALESCE(va."photoType", 'verification') as type,
+           va.filename as file_name,
+           COALESCE(va.file_size_bytes, va."fileSize", 0) as file_size,
+           va."mimeType" as mime_type,
+           COALESCE(va.capture_time, va."createdAt") as captured_at,
+           COALESCE(va.gps_latitude::double precision, NULLIF(va."geoLocation"->>'latitude', '')::double precision) as latitude,
+           COALESCE(va.gps_longitude::double precision, NULLIF(va."geoLocation"->>'longitude', '')::double precision) as longitude,
+           NULLIF(COALESCE(va."geoLocation"->>'address', va."geoLocation"->>'formattedAddress', ''), '') as address,
+           (va.deleted_at IS NULL) as uploaded,
+           va."createdAt" as created_at,
+           COALESCE(va."updatedAt", va."createdAt") as updated_at
+         FROM verification_attachments va
+         INNER JOIN verification_tasks vt ON vt.id = va.verification_task_id
+         WHERE (
+           $${userIdParamIndex}::uuid IS NULL
+           OR vt.assigned_to = $${userIdParamIndex}::uuid
+         )
+           AND COALESCE(va."updatedAt", va."createdAt") > $${syncTimestampParamIndex}
+         ORDER BY COALESCE(va."updatedAt", va."createdAt") ASC, va.id ASC
+         LIMIT $${limitParamIndex}
+         OFFSET $${offsetParamIndex}`,
+        vals
+      );
+      const attachmentHasMore = attachmentRes.rows.length > limit;
+      const changedAttachments = attachmentHasMore
+        ? attachmentRes.rows.slice(0, limit)
+        : attachmentRes.rows;
+      const attachmentChanges: MobileAttachmentDeltaChange[] = changedAttachments.map(
+        attachment => ({
+          entity: 'attachment',
+          id: String(attachment.attachment_id),
+          changes: {
+            attachment_id: String(attachment.attachment_id),
+            task_id: String(attachment.task_id),
+            type: String(attachment.type || 'verification'),
+            file_name: String(attachment.file_name || ''),
+            file_size: Number(attachment.file_size || 0),
+            mime_type: String(attachment.mime_type || ''),
+            captured_at: new Date(attachment.captured_at).toISOString(),
+            latitude:
+              attachment.latitude === null || typeof attachment.latitude === 'undefined'
+                ? null
+                : Number(attachment.latitude),
+            longitude:
+              attachment.longitude === null || typeof attachment.longitude === 'undefined'
+                ? null
+                : Number(attachment.longitude),
+            address:
+              typeof attachment.address === 'string' && attachment.address.length > 0
+                ? attachment.address
+                : null,
+            uploaded: Boolean(attachment.uploaded),
+            created_at: new Date(attachment.created_at).toISOString(),
+            updated_at: new Date(attachment.updated_at).toISOString(),
+          },
+        })
+      );
+
       // Transform cases for mobile response with task-centric IDs and lifecycle fields
       const mobileCases: MobileCaseResponse[] = updatedCases.map(caseItem => ({
         id: caseItem.verificationTaskId || caseItem.id,
@@ -522,13 +655,15 @@ export class MobileSyncController {
 
       const response: MobileSyncDownloadResponse = {
         cases: mobileCases,
+        attachmentChanges,
         deletedCaseIds,
         deletedTaskIds,
         revokedAssignmentIds,
         conflicts: [], // Would be populated if conflicts are detected
         syncTimestamp: newSyncTimestamp,
-        hasMore,
+        hasMore: hasMore || attachmentHasMore,
       };
+      const nextCursor = hasMore || attachmentHasMore ? String(offset + limit) : null;
 
       await createAuditLog({
         action: 'MOBILE_SYNC_DOWNLOAD',
@@ -538,11 +673,13 @@ export class MobileSyncController {
         details: {
           lastSyncTimestamp,
           offset,
+          requestedLimit,
           limit,
           casesCount: mobileCases.length,
+          attachmentChangesCount: attachmentChanges.length,
           deletedCasesCount: deletedCaseIds.length,
           deletedTasksCount: deletedTaskIds.length,
-          hasMore,
+          hasMore: response.hasMore,
         },
         ipAddress: req.ip,
         userAgent: req.get('User-Agent'),
@@ -551,8 +688,21 @@ export class MobileSyncController {
       res.json({
         success: true,
         message: 'Sync download completed',
-        data: response,
+        data: {
+          ...response,
+          changes: mobileCases,
+          attachmentChanges,
+          nextCursor,
+          hasMore: response.hasMore,
+        },
       });
+      void MobileTelemetryService.observeDuration(
+        'sync_download_duration',
+        Date.now() - startedAt,
+        {
+          status: 'success',
+        }
+      );
     } catch (error) {
       logger.error('❌ Sync download error:', error);
       logger.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
@@ -561,6 +711,16 @@ export class MobileSyncController {
         userId: req.user?.id,
         executionActor: isFieldExecutionActor(req.user),
       });
+      void MobileTelemetryService.increment('sync_failures', 1, {
+        endpoint: 'sync_download',
+      });
+      void MobileTelemetryService.observeDuration(
+        'sync_download_duration',
+        Date.now() - startedAt,
+        {
+          status: 'error',
+        }
+      );
 
       res.status(500).json({
         success: false,
@@ -572,6 +732,45 @@ export class MobileSyncController {
         },
       });
     }
+  }
+
+  private static extractRetryCount(payload: unknown): number {
+    if (!payload || typeof payload !== 'object') {
+      return 0;
+    }
+
+    let totalRetryCount = 0;
+    const stack: unknown[] = [payload];
+
+    while (stack.length > 0) {
+      const current = stack.pop();
+      if (!current || typeof current !== 'object') {
+        continue;
+      }
+
+      if (Array.isArray(current)) {
+        stack.push(...current);
+        continue;
+      }
+
+      const record = current as Record<string, unknown>;
+      const retryCandidate = record.retry_count ?? record.retryCount;
+      if (
+        typeof retryCandidate === 'number' &&
+        Number.isFinite(retryCandidate) &&
+        retryCandidate > 0
+      ) {
+        totalRetryCount += retryCandidate;
+      }
+
+      for (const value of Object.values(record)) {
+        if (value && typeof value === 'object') {
+          stack.push(value);
+        }
+      }
+    }
+
+    return totalRetryCount;
   }
 
   // Get sync status for device

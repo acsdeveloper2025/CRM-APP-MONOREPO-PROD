@@ -20,6 +20,10 @@ import { logger } from '../utils/logger';
 import { isFieldExecutionActor } from '../security/rbacAccess';
 import { requireControllerPermission } from '@/security/controllerAuthorization';
 import { TaskRevocationService } from '@/services/taskRevocationService';
+import {
+  MobileOperationService,
+  type MobileOperationType,
+} from '@/services/mobileOperationService';
 
 // Type guards and interfaces for WhereClause usage
 interface DateRangeFilter {
@@ -55,6 +59,121 @@ function getApiBaseUrl(req: Request): string {
 }
 
 export class MobileCaseController {
+  private static getOperationId(req: Request): string | null {
+    const headerValue = req.header('Idempotency-Key');
+    if (!headerValue) {
+      return null;
+    }
+    const trimmed = headerValue.trim();
+    return trimmed.length > 0 ? trimmed : null;
+  }
+
+  private static async recordTaskOperation(
+    req: Request,
+    taskId: string,
+    operation: MobileOperationType,
+    payload: unknown = {}
+  ): Promise<void> {
+    const operationId = MobileCaseController.getOperationId(req);
+    if (!operationId) {
+      return;
+    }
+
+    await MobileOperationService.recordOperation({
+      operationId,
+      type: operation,
+      entityType: 'TASK',
+      entityId: taskId,
+      payload,
+      retryCount: Number((req.body as { retry_count?: number })?.retry_count || 0),
+    });
+  }
+
+  static async executeTaskOperation(this: void, req: AuthenticatedRequest, res: Response) {
+    const taskId = String(req.params.taskId || '');
+    const operation = String(req.body?.operation || '')
+      .trim()
+      .toUpperCase();
+    const payload =
+      req.body && typeof req.body.payload === 'object' && req.body.payload !== null
+        ? req.body.payload
+        : {};
+
+    if (!taskId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Task ID is required',
+        error: { code: 'TASK_ID_REQUIRED' },
+      });
+    }
+
+    if (!operation) {
+      return res.status(400).json({
+        success: false,
+        message: 'Operation is required',
+        error: { code: 'OPERATION_REQUIRED' },
+      });
+    }
+
+    try {
+      switch (operation) {
+        case 'TASK_STARTED': {
+          await MobileCaseController.recordTaskOperation(req, taskId, 'TASK_STARTED', payload);
+          return MobileCaseController.startTask(req, res);
+        }
+        case 'TASK_COMPLETED': {
+          const completionPayload = payload as {
+            verificationOutcome?: string;
+            actualAmount?: number;
+          };
+          req.body = {
+            ...req.body,
+            ...completionPayload,
+            verificationOutcome:
+              completionPayload.verificationOutcome ?? req.body?.verificationOutcome,
+            actualAmount: completionPayload.actualAmount ?? req.body?.actualAmount,
+          };
+          await MobileCaseController.recordTaskOperation(req, taskId, 'TASK_COMPLETED', payload);
+          return MobileCaseController.completeTask(req, res);
+        }
+        case 'TASK_REVOKED': {
+          const revokePayload = payload as { reason?: string };
+          req.body = {
+            ...req.body,
+            reason: revokePayload.reason ?? req.body?.reason,
+          };
+          await MobileCaseController.recordTaskOperation(req, taskId, 'TASK_REVOKED', payload);
+          return MobileCaseController.revokeTask(req, res);
+        }
+        case 'PRIORITY_UPDATED': {
+          const priorityPayload = payload as { priority?: number | string };
+          req.body = {
+            ...req.body,
+            priority: priorityPayload.priority ?? req.body?.priority,
+          };
+          await MobileCaseController.recordTaskOperation(req, taskId, 'PRIORITY_UPDATED', payload);
+          return MobileCaseController.updateCasePriority(req, res);
+        }
+        default:
+          return res.status(400).json({
+            success: false,
+            message: `Unsupported operation: ${operation}`,
+            error: { code: 'UNSUPPORTED_TASK_OPERATION' },
+          });
+      }
+    } catch (error) {
+      logger.error('Execute task operation error:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to execute task operation',
+        error: {
+          code: 'TASK_OPERATION_FAILED',
+          timestamp: new Date().toISOString(),
+        },
+      });
+    }
+  }
+
   // Get cases for mobile app with optimized response
   static async getMobileCases(this: void, req: AuthenticatedRequest, res: Response) {
     try {
@@ -1380,125 +1499,6 @@ export class MobileCaseController {
   }
 
   /**
-   * Update verification task status (for mobile app)
-   * PUT /api/mobile/verification-tasks/:taskId/status
-   */
-  static async updateTaskStatus(this: void, req: AuthenticatedRequest, res: Response) {
-    try {
-      const taskId = String(req.params.taskId || '');
-      const { status } = req.body;
-      const userId = req.user?.id;
-
-      if (!status) {
-        return res.status(400).json({
-          success: false,
-          message: 'Status is required',
-          error: { code: 'INVALID_INPUT' },
-        });
-      }
-
-      // Validate status
-      const validStatuses = [
-        'PENDING',
-        'ASSIGNED',
-        'IN_PROGRESS',
-        'COMPLETED',
-        'REVOKED',
-        'ON_HOLD',
-        'SAVED',
-      ];
-      if (!validStatuses.includes(status)) {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid status',
-          error: { code: 'INVALID_STATUS' },
-        });
-      }
-
-      // ✅ VALIDATE STATUS UPDATE
-      const { TaskCompletionValidator } = await import('../services/taskCompletionValidator');
-      const validation = await TaskCompletionValidator.validateStatusUpdate(taskId, status);
-
-      if (!validation.isValid) {
-        logger.info(`❌ Task status update validation failed:`, validation.errors);
-        return res.status(400).json({
-          success: false,
-          message: 'Status update not allowed',
-          errors: validation.errors,
-          warnings: validation.warnings,
-          error: { code: 'VALIDATION_FAILED' },
-        });
-      }
-
-      // Update task status
-      const updateFields: string[] = ['status = $1', 'updated_at = NOW()'];
-      const queryParams: QueryParams = [status];
-      const paramIndex = 2;
-
-      // Set started_at when status changes to IN_PROGRESS
-      if (status === 'IN_PROGRESS') {
-        updateFields.push(`started_at = COALESCE(started_at, NOW())`);
-      }
-
-      // Set completed_at when status changes to COMPLETED
-      if (status === 'COMPLETED') {
-        updateFields.push(`completed_at = NOW()`);
-      }
-
-      queryParams.push(taskId);
-
-      const updateQuery = `
-        UPDATE verification_tasks
-        SET ${updateFields.join(', ')}
-        WHERE id = $${paramIndex}
-        RETURNING *
-      `;
-
-      const result = await query(updateQuery, queryParams);
-
-      if (result.rows.length === 0) {
-        return res.status(404).json({
-          success: false,
-          message: 'Verification task not found',
-          error: { code: 'TASK_NOT_FOUND' },
-        });
-      }
-
-      const updatedTask = result.rows[0];
-
-      // Create audit log
-      await createAuditLog({
-        userId,
-        action: 'UPDATE_TASK_STATUS',
-        entityType: 'VERIFICATION_TASK',
-        entityId: taskId,
-        details: { status, previousStatus: updatedTask.status },
-      });
-
-      logger.info(`✅ Task ${updatedTask.task_number} status updated to ${status}`);
-
-      // Sync case status
-      await CaseStatusSyncService.recalculateCaseStatus(updatedTask.case_id);
-
-      res.json({
-        success: true,
-        message: 'Task status updated successfully',
-        data: updatedTask,
-      });
-    } catch (error) {
-      console.error('Update task status error:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Internal server error',
-        error: {
-          code: 'TASK_STATUS_UPDATE_FAILED',
-          timestamp: new Date().toISOString(),
-        },
-      });
-    }
-  }
-
-  /**
    * Start working on a verification task (for mobile app)
    * POST /api/mobile/verification-tasks/:taskId/start
    */
@@ -1513,7 +1513,7 @@ export class MobileCaseController {
 
       const taskQuery = await query(
         `
-        SELECT id, assigned_to
+        SELECT id, assigned_to, status
         FROM verification_tasks
         WHERE id = $1
       `,
@@ -1535,6 +1535,39 @@ export class MobileCaseController {
           success: false,
           message: 'Task not assigned to user',
           error: { code: 'TASK_NOT_ASSIGNED_TO_USER' },
+        });
+      }
+
+      if (task.status === 'IN_PROGRESS') {
+        return res.status(409).json({
+          success: false,
+          message: 'Task is already in progress',
+          error: {
+            code: 'TASK_ALREADY_IN_PROGRESS',
+            timestamp: new Date().toISOString(),
+          },
+        });
+      }
+
+      if (task.status === 'COMPLETED') {
+        return res.status(409).json({
+          success: false,
+          message: 'Task is already completed',
+          error: {
+            code: 'TASK_ALREADY_COMPLETED',
+            timestamp: new Date().toISOString(),
+          },
+        });
+      }
+
+      if (task.status === 'REVOKED') {
+        return res.status(409).json({
+          success: false,
+          message: 'Task has been revoked',
+          error: {
+            code: 'TASK_REVOKED',
+            timestamp: new Date().toISOString(),
+          },
         });
       }
 

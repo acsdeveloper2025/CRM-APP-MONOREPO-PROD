@@ -1,5 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import { config } from '../config';
+import { redisClient } from '@/config/redis';
+import { logger } from '@/config/logger';
 
 // Validate mobile app version
 export const validateMobileVersion = (req: Request, res: Response, next: NextFunction) => {
@@ -90,29 +92,65 @@ export const validateMobileVersion = (req: Request, res: Response, next: NextFun
 
 // Rate limiting for mobile endpoints
 export const mobileRateLimit = (maxRequests = 100, windowMs: number = 15 * 60 * 1000) => {
-  const requests = new Map<string, { count: number; resetTime: number }>();
+  const fallbackRequests = new Map<string, { count: number; resetTime: number }>();
 
-  return (req: Request, res: Response, next: NextFunction) => {
+  return async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const identifier = req.ip; // Use IP address instead of device ID
+      const identifier = req.ip || 'unknown'; // Use IP address instead of device ID
       const now = Date.now();
-      const windowStart = now - windowMs;
+      const windowSeconds = Math.max(1, Math.ceil(windowMs / 1000));
+      const resetAt = now + windowMs;
+      const windowBucket = Math.floor(now / windowMs);
 
-      // Clean up old entries
-      for (const [key, value] of requests.entries()) {
+      if (redisClient.isOpen) {
+        const key = `mobile:rate-limit:${identifier}:${windowBucket}`;
+        let currentCount = 0;
+
+        const pipeline = redisClient.multi();
+        pipeline.incr(key);
+        pipeline.expire(key, windowSeconds);
+        const redisResult = await pipeline.exec();
+        const incrementResult = redisResult?.[0];
+
+        if (typeof incrementResult === 'number') {
+          currentCount = incrementResult;
+        } else if (Array.isArray(incrementResult) && typeof incrementResult[1] === 'number') {
+          currentCount = incrementResult[1];
+        }
+
+        if (currentCount > maxRequests) {
+          return res.status(429).json({
+            success: false,
+            message: 'Too many requests',
+            error: {
+              code: 'RATE_LIMIT_EXCEEDED',
+              timestamp: new Date().toISOString(),
+            },
+            retryAfter: windowSeconds,
+          });
+        }
+
+        // Add rate limit headers
+        res.setHeader('X-RateLimit-Limit', maxRequests);
+        res.setHeader('X-RateLimit-Remaining', Math.max(0, maxRequests - currentCount));
+        res.setHeader('X-RateLimit-Reset', Math.ceil(resetAt / 1000));
+        return next();
+      }
+
+      // Fallback for scenarios where redis is unavailable
+      const windowStart = now - windowMs;
+      for (const [key, value] of fallbackRequests.entries()) {
         if (value.resetTime < windowStart) {
-          requests.delete(key);
+          fallbackRequests.delete(key);
         }
       }
 
-      // Get or create request count for this identifier
-      let requestInfo = requests.get(identifier);
+      let requestInfo = fallbackRequests.get(identifier);
       if (!requestInfo || requestInfo.resetTime < windowStart) {
-        requestInfo = { count: 0, resetTime: now + windowMs };
-        requests.set(identifier, requestInfo);
+        requestInfo = { count: 0, resetTime: resetAt };
+        fallbackRequests.set(identifier, requestInfo);
       }
 
-      // Check rate limit
       if (requestInfo.count >= maxRequests) {
         return res.status(429).json({
           success: false,
@@ -125,7 +163,6 @@ export const mobileRateLimit = (maxRequests = 100, windowMs: number = 15 * 60 * 
         });
       }
 
-      // Increment request count
       requestInfo.count++;
 
       // Add rate limit headers
@@ -135,7 +172,9 @@ export const mobileRateLimit = (maxRequests = 100, windowMs: number = 15 * 60 * 
 
       next();
     } catch (error) {
-      console.error('Rate limit error:', error);
+      logger.error('Mobile rate limit error', {
+        error: error instanceof Error ? error.message : String(error),
+      });
       next(); // Continue on error to avoid blocking requests
     }
   };

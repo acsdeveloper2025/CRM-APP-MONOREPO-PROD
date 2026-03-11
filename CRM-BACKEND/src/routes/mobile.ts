@@ -14,7 +14,9 @@ import { authorize } from '../middleware/authorize';
 import { validateMobileVersion, mobileRateLimit } from '../middleware/mobileValidation';
 import { geoRateLimit, uploadRateLimit } from '../middleware/rateLimiter';
 import { createMobileAuditLogs } from '../controllers/auditLogsController';
+import { idempotencyMiddleware } from '../middleware/idempotency';
 import { body } from 'express-validator';
+import { config } from '@/config';
 import {
   EnterpriseCache,
   EnterpriseCacheConfigs,
@@ -22,6 +24,7 @@ import {
 } from '../middleware/enterpriseCache';
 
 const router = Router();
+const MAX_ATTACHMENT_UPLOAD_COUNT = config.mobile.maxAttachmentUploadCount;
 const invalidateFieldMonitoring = EnterpriseCache.invalidate(
   CacheInvalidationPatterns.fieldMonitoringUpdate,
   { synchronous: true }
@@ -32,12 +35,18 @@ router.use(mobileRateLimit(10000, 15 * 60 * 1000)); // 10,000 requests per 15 mi
 
 // Mobile Health Check Route
 router.get('/health', (req, res) => {
-  res.json({
+  const payload = {
     status: 'OK',
     service: 'mobile-api',
     timestamp: new Date().toISOString(),
     version: '4.0.1',
     environment: process.env.NODE_ENV || 'development',
+  };
+
+  res.json({
+    success: true,
+    message: 'Mobile API health check successful',
+    data: payload,
   });
 });
 
@@ -99,25 +108,12 @@ router.get(
   validateMobileVersion,
   MobileCaseController.getTaskStatus
 );
-router.put(
-  '/verification-tasks/:taskId/status',
-  authenticateToken,
-  authorize('visit.start', { ownership: 'task' }),
-  validateMobileVersion,
-  EnterpriseCache.invalidate(CacheInvalidationPatterns.assignmentUpdate, { synchronous: true }),
-  (_req, res) =>
-    res.status(410).json({
-      success: false,
-      message:
-        'Generic task status update endpoint is disabled. Use secured start/complete/revoke APIs.',
-      error: { code: 'TASK_STATUS_ENDPOINT_DISABLED' },
-    })
-);
 router.post(
   '/verification-tasks/:taskId/start',
   authenticateToken,
   authorize('visit.start', { ownership: 'task' }),
   validateMobileVersion,
+  idempotencyMiddleware({ required: false, scope: 'mobile.task.start' }),
   EnterpriseCache.invalidate(CacheInvalidationPatterns.assignmentUpdate, { synchronous: true }),
   MobileCaseController.startTask
 );
@@ -126,6 +122,7 @@ router.post(
   authenticateToken,
   authorize('visit.submit', { ownership: 'task' }),
   validateMobileVersion,
+  idempotencyMiddleware({ required: false, scope: 'mobile.task.complete' }),
   EnterpriseCache.invalidate(CacheInvalidationPatterns.assignmentUpdate, { synchronous: true }),
   MobileCaseController.completeTask
 );
@@ -134,8 +131,18 @@ router.post(
   authenticateToken,
   authorize('visit.revoke', { ownership: 'task' }),
   validateMobileVersion,
+  idempotencyMiddleware({ required: false, scope: 'mobile.task.revoke' }),
   EnterpriseCache.invalidate(CacheInvalidationPatterns.assignmentUpdate, { synchronous: true }),
   MobileCaseController.revokeTask
+);
+router.post(
+  '/verification-tasks/:taskId/operations',
+  authenticateToken,
+  authorize('visit.start', { ownership: 'task' }),
+  validateMobileVersion,
+  idempotencyMiddleware({ required: true, scope: 'mobile.task.operations' }),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.assignmentUpdate, { synchronous: true }),
+  MobileCaseController.executeTaskOperation
 );
 
 // Mobile Auto-save Routes (CACHED)
@@ -170,8 +177,9 @@ router.post(
   authenticateToken,
   authorize('visit.upload', { ownership: 'task' }),
   validateMobileVersion,
+  idempotencyMiddleware({ required: true, scope: 'mobile.attachments.upload' }),
   uploadRateLimit,
-  verificationUpload.array('files', 15),
+  verificationUpload.array('files', MAX_ATTACHMENT_UPLOAD_COUNT),
   VerificationAttachmentController.uploadVerificationImages
 );
 router.get(
@@ -214,10 +222,21 @@ router.get(
 
 // Mobile Form Submission Routes - STRICT TASK ID ONLY
 router.post(
+  '/verification-tasks/:taskId/forms',
+  authenticateToken,
+  authorize('visit.submit', { ownership: 'task' }),
+  validateMobileVersion,
+  idempotencyMiddleware({ required: true, scope: 'mobile.forms.submit' }),
+  invalidateFieldMonitoring,
+  MobileFormController.submitVerificationForm
+);
+
+router.post(
   '/verification-tasks/:taskId/verification/residence',
   authenticateToken,
   authorize('visit.submit', { ownership: 'task' }),
   validateMobileVersion,
+  idempotencyMiddleware({ required: false, scope: 'mobile.forms.residence' }),
   invalidateFieldMonitoring,
   MobileFormController.submitResidenceVerification
 );
@@ -226,6 +245,7 @@ router.post(
   authenticateToken,
   authorize('visit.submit', { ownership: 'task' }),
   validateMobileVersion,
+  idempotencyMiddleware({ required: false, scope: 'mobile.forms.office' }),
   invalidateFieldMonitoring,
   MobileFormController.submitOfficeVerification
 );
@@ -234,6 +254,7 @@ router.post(
   authenticateToken,
   authorize('visit.submit', { ownership: 'task' }),
   validateMobileVersion,
+  idempotencyMiddleware({ required: false, scope: 'mobile.forms.business' }),
   invalidateFieldMonitoring,
   MobileFormController.submitBusinessVerification
 );
@@ -242,6 +263,7 @@ router.post(
   authenticateToken,
   authorize('visit.submit', { ownership: 'task' }),
   validateMobileVersion,
+  idempotencyMiddleware({ required: false, scope: 'mobile.forms.builder' }),
   invalidateFieldMonitoring,
   MobileFormController.submitBuilderVerification
 );
@@ -250,6 +272,7 @@ router.post(
   authenticateToken,
   authorize('visit.submit', { ownership: 'task' }),
   validateMobileVersion,
+  idempotencyMiddleware({ required: false, scope: 'mobile.forms.residence-cum-office' }),
   invalidateFieldMonitoring,
   MobileFormController.submitResidenceCumOfficeVerification
 );
@@ -258,6 +281,7 @@ router.post(
   authenticateToken,
   authorize('visit.submit', { ownership: 'task' }),
   validateMobileVersion,
+  idempotencyMiddleware({ required: false, scope: 'mobile.forms.dsa-connector' }),
   invalidateFieldMonitoring,
   MobileFormController.submitDsaConnectorVerification
 );
@@ -266,6 +290,7 @@ router.post(
   authenticateToken,
   authorize('visit.submit', { ownership: 'task' }),
   validateMobileVersion,
+  idempotencyMiddleware({ required: false, scope: 'mobile.forms.property-individual' }),
   invalidateFieldMonitoring,
   MobileFormController.submitPropertyIndividualVerification
 );
@@ -274,6 +299,7 @@ router.post(
   authenticateToken,
   authorize('visit.submit', { ownership: 'task' }),
   validateMobileVersion,
+  idempotencyMiddleware({ required: false, scope: 'mobile.forms.property-apf' }),
   invalidateFieldMonitoring,
   MobileFormController.submitPropertyApfVerification
 );
@@ -282,6 +308,7 @@ router.post(
   authenticateToken,
   authorize('visit.submit', { ownership: 'task' }),
   validateMobileVersion,
+  idempotencyMiddleware({ required: false, scope: 'mobile.forms.noc' }),
   invalidateFieldMonitoring,
   MobileFormController.submitNocVerification
 );
@@ -317,6 +344,7 @@ router.post(
   authenticateToken,
   authorize('visit.start'),
   validateMobileVersion,
+  idempotencyMiddleware({ required: true, scope: 'mobile.location.capture' }),
   geoRateLimit,
   invalidateFieldMonitoring,
   MobileLocationController.captureLocation
@@ -376,11 +404,25 @@ router.get(
   MobileSyncController.downloadSync
 );
 router.get(
+  '/sync/changes',
+  authenticateToken,
+  authorize('visit.start'),
+  validateMobileVersion,
+  MobileSyncController.downloadChanges
+);
+router.get(
   '/sync/status',
   authenticateToken,
   authorize('visit.start'),
   validateMobileVersion,
   MobileSyncController.getSyncStatus
+);
+router.get(
+  '/sync/health',
+  authenticateToken,
+  authorize('visit.start'),
+  validateMobileVersion,
+  MobileSyncController.getSyncHealth
 );
 
 // Mobile Audit Routes
@@ -429,7 +471,4 @@ router.post(
 );
 
 // Mobile Version Management Routes
-router.post('/version/check', authenticateToken, MobileAuthController.checkVersion);
-router.get('/version/config', authenticateToken, MobileAuthController.getAppConfig);
-
 export default router;

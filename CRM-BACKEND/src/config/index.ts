@@ -128,6 +128,7 @@ export const config = {
     // Mobile File Upload
     maxFileSize: parseInt(process.env.MOBILE_MAX_FILE_SIZE || '52428800', 10), // 50MB (increased for forms with multiple high-res images)
     maxFilesPerCase: parseInt(process.env.MOBILE_MAX_FILES_PER_CASE || '20', 10), // Increased to 20 files
+    maxAttachmentUploadCount: parseInt(process.env.MOBILE_MAX_ATTACHMENT_UPLOAD_COUNT || '10', 10),
     allowedImageTypes: process.env.MOBILE_ALLOWED_IMAGE_TYPES?.split(',') || [
       'image/jpeg',
       'image/png',

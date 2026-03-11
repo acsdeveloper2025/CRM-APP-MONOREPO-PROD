@@ -46,7 +46,31 @@ router.get('/health', (req, res) => {
     environment: process.env.NODE_ENV || 'development',
   };
 
-  res.json(healthCheck);
+  res.json({
+    success: true,
+    message: 'Health check successful',
+    data: healthCheck,
+  });
+});
+
+/**
+ * Sync health check endpoint
+ * GET /api/sync/health
+ */
+router.get('/sync/health', (req, res) => {
+  const healthCheck: HealthCheckResult = {
+    status: 'OK',
+    timestamp: new Date().toISOString(),
+    uptime: Math.floor(process.uptime()),
+    version: process.env.npm_package_version || '1.0.0',
+    environment: process.env.NODE_ENV || 'development',
+  };
+
+  res.json({
+    success: true,
+    message: 'Sync health check successful',
+    data: healthCheck,
+  });
 });
 
 /**
