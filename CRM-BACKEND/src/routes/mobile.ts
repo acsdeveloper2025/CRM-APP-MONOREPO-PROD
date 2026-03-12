@@ -9,6 +9,7 @@ import {
 import { MobileFormController } from '../controllers/mobileFormController';
 import { MobileLocationController } from '../controllers/mobileLocationController';
 import { MobileSyncController } from '../controllers/mobileSyncController';
+import { MobileTelemetryController } from '../controllers/mobileTelemetryController';
 import { authenticateToken } from '../middleware/auth';
 import { authorize } from '../middleware/authorize';
 import { validateMobileVersion, mobileRateLimit } from '../middleware/mobileValidation';
@@ -423,6 +424,15 @@ router.get(
   authorize('visit.start'),
   validateMobileVersion,
   MobileSyncController.getSyncHealth
+);
+
+// Mobile telemetry ingest endpoint (optional, non-blocking client pipeline)
+router.post(
+  '/telemetry/mobile/ingest',
+  authenticateToken,
+  authorize('visit.start'),
+  validateMobileVersion,
+  MobileTelemetryController.ingest
 );
 
 // Mobile Audit Routes
