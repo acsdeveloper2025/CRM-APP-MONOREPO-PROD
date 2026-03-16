@@ -379,9 +379,9 @@ install_dependencies() {
 
             # Install dependencies from committed lockfile
             if [ -f "package-lock.json" ]; then
-                HUSKY=0 npm ci --no-audit --no-fund
+                HUSKY=0 npm ci --include=dev --ignore-scripts --no-audit --no-fund
             else
-                HUSKY=0 npm install --no-audit --no-fund --production=false
+                HUSKY=0 npm install --include=dev --ignore-scripts --no-audit --no-fund --production=false
             fi
 
             print_status "$component dependencies installed"
