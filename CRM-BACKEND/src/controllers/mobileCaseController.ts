@@ -24,6 +24,7 @@ import {
   MobileOperationService,
   type MobileOperationType,
 } from '@/services/mobileOperationService';
+import { getApiBaseUrl } from '@/utils/publicUrl';
 
 // Type guards and interfaces for WhereClause usage
 interface DateRangeFilter {
@@ -31,31 +32,6 @@ interface DateRangeFilter {
   lte?: Date;
   gt?: Date;
   lt?: Date;
-}
-
-/**
- * Get the appropriate API base URL based on request headers
- */
-function getApiBaseUrl(req: Request): string {
-  const host = req.get('host');
-  const _protocol = req.get('x-forwarded-proto') || (req.secure ? 'https' : 'http');
-
-  // Check if request is coming from domain
-  if (
-    host &&
-    (host.includes('example.com') || host.includes('www.example.com'))
-  ) {
-    return 'https://example.com/api';
-  }
-
-  // Check if request is coming from static IP (configurable)
-  const staticIP = process.env.STATIC_IP;
-  if (staticIP && host && host.includes(staticIP)) {
-    return `http://${staticIP}:3000/api`;
-  }
-
-  // Default to localhost or environment variable
-  return process.env.API_BASE_URL || 'http://localhost:3000/api';
 }
 
 export class MobileCaseController {
