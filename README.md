@@ -99,7 +99,7 @@ npm install
 cp .env.example .env
 
 # Configure your .env file:
-# DATABASE_URL="postgresql://example_db_user:example_db_password@localhost:5432/acs_db"
+# DATABASE_URL="postgresql://DB_USER:DB_PASSWORD@DB_HOST:5432/acs_db"
 # REDIS_URL="redis://localhost:6379"
 
 npm run dev
@@ -134,12 +134,11 @@ After successful setup, access the applications at:
 - **Frontend Web App**: http://YOUR_IP:5173
 - **Backend API**: http://YOUR_IP:3000
 
-## 🔐 Default Admin Credentials
+## 🔐 Admin Account Setup
 
-- **Username**: `admin`
-- **Password**: `CHANGE_ME_PASSWORD`
-- **Role**: `SUPER_ADMIN`
-- **Email**: `admin@example.com`
+- Create a local admin account through your seed or bootstrap workflow.
+- Keep credentials in local environment variables or a private password manager.
+- Do not commit usernames, passwords, or seeded production-like accounts to the repository.
 
 ## 📊 Database Information
 

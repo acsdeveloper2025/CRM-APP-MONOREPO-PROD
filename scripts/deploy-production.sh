@@ -73,6 +73,21 @@ BACKUP_DIR="$CRM_ROOT/shared/backups"
 LOG_DIR="/var/log/crm-app"
 LOG_FILE="$LOG_DIR/deployment.log"
 
+# Deployment configuration must come from the environment.
+DB_HOST="${DB_HOST:-localhost}"
+DB_PORT="${DB_PORT:-5432}"
+DB_NAME="${DB_NAME:-acs_db}"
+DB_USER="${DB_USER:-example_db_user}"
+DB_PASSWORD="${DB_PASSWORD:-example_db_password}"
+REDIS_URL="${REDIS_URL:-redis://localhost:6379}"
+PUBLIC_BASE_URL="${PUBLIC_BASE_URL:-https://example.com}"
+PUBLIC_WS_URL="${PUBLIC_WS_URL:-wss://example.com}"
+CORS_ORIGIN="${CORS_ORIGIN:-$PUBLIC_BASE_URL}"
+GOOGLE_MAPS_API_KEY="${GOOGLE_MAPS_API_KEY:-}"
+JWT_SECRET="${JWT_SECRET:-}"
+JWT_REFRESH_SECRET="${JWT_REFRESH_SECRET:-}"
+GEMINI_API_KEY="${GEMINI_API_KEY:-}"
+
 # Check if running as authorized production user
 if [ "$USER" = "root" ]; then
     print_success "Running as root user"
@@ -170,7 +185,7 @@ create_backup() {
     
     # Backup database
     print_info "Creating database backup..."
-    PGPASSWORD=example_db_password pg_dump -h localhost -U example_db_user -d acs_db > "$backup_path/database.sql"
+    PGPASSWORD="$DB_PASSWORD" pg_dump -h "$DB_HOST" -U "$DB_USER" -d "$DB_NAME" > "$backup_path/database.sql"
     print_status "Database backup created"
     
     # Store backup info
@@ -362,7 +377,7 @@ run_database_migrations() {
         print_error "Database backup available at: $(cat /tmp/current_backup_path 2>/dev/null || echo 'Unknown')"
         print_error ""
         print_error "To rollback:"
-        print_error "  1. Restore database: PGPASSWORD=example_db_password psql -h localhost -U example_db_user -d acs_db < BACKUP_PATH/database.sql"
+        print_error "  1. Restore database: PGPASSWORD=\$DB_PASSWORD psql -h \$DB_HOST -U \$DB_USER -d \$DB_NAME < BACKUP_PATH/database.sql"
         print_error "  2. Restore code: cp -r BACKUP_PATH/code/* $PROJECT_ROOT/"
         print_error "  3. Restart services: cd $PROJECT_ROOT && ./start-production.sh"
         exit 1
@@ -395,7 +410,7 @@ restore_database_from_dump() {
     
     # 1. Clear database schema to ensure a blank slate
     print_info "Clearing database schema (public)..."
-    if PGPASSWORD=example_db_password psql -h localhost -U example_db_user -d acs_db -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;" > /dev/null; then
+    if PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -U "$DB_USER" -d "$DB_NAME" -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;" > /dev/null; then
         print_success "Database schema cleared"
     else
         print_error "Failed to clear database schema"
@@ -403,7 +418,7 @@ restore_database_from_dump() {
     fi
 
     # 2. Import the dump with strict error handling
-    if PGPASSWORD=example_db_password psql -v ON_ERROR_STOP=1 -h localhost -U example_db_user -d acs_db < "$dump_file" > /dev/null; then
+    if PGPASSWORD="$DB_PASSWORD" psql -v ON_ERROR_STOP=1 -h "$DB_HOST" -U "$DB_USER" -d "$DB_NAME" < "$dump_file" > /dev/null; then
         print_success "Database restored successfully from dump"
     else
         print_error "Database restoration failed"
@@ -418,19 +433,19 @@ setup_environment_files() {
     # Backend environment
     if [ ! -f "$PROJECT_ROOT/CRM-BACKEND/.env" ]; then
         print_info "Creating backend .env file..."
-        cat > "$PROJECT_ROOT/CRM-BACKEND/.env" << 'EOF'
+        cat > "$PROJECT_ROOT/CRM-BACKEND/.env" << EOF
 NODE_ENV=production
 PORT=3000
-DATABASE_URL=postgresql://example_db_user:example_db_password@localhost:5432/acs_db
-JWT_SECRET=your-super-secret-jwt-key-here-change-in-production
+DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}
+JWT_SECRET=${JWT_SECRET}
 JWT_EXPIRES_IN=7d
-JWT_REFRESH_SECRET=your-refresh-secret-key-here-change-in-production
+JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
 JWT_REFRESH_EXPIRES_IN=30d
-CORS_ORIGIN=https://example.com
+CORS_ORIGIN=${CORS_ORIGIN}
 LOG_LEVEL=info
-REDIS_URL=redis://localhost:6379
-GOOGLE_MAPS_API_KEY=YOUR_GOOGLE_MAPS_KEY
-GEMINI_API_KEY=your-gemini-api-key-here
+REDIS_URL=${REDIS_URL}
+GOOGLE_MAPS_API_KEY=${GOOGLE_MAPS_API_KEY}
+GEMINI_API_KEY=${GEMINI_API_KEY}
 EOF
         print_status "Backend .env file created"
     else
@@ -440,9 +455,9 @@ EOF
     # Frontend environment
     if [ ! -f "$PROJECT_ROOT/CRM-FRONTEND/.env" ]; then
         print_info "Creating frontend .env file..."
-        cat > "$PROJECT_ROOT/CRM-FRONTEND/.env" << 'EOF'
-VITE_API_BASE_URL=https://example.com/api
-VITE_GOOGLE_MAPS_API_KEY=YOUR_GOOGLE_MAPS_KEY
+        cat > "$PROJECT_ROOT/CRM-FRONTEND/.env" << EOF
+VITE_API_BASE_URL=${PUBLIC_BASE_URL}/api
+VITE_GOOGLE_MAPS_API_KEY=${GOOGLE_MAPS_API_KEY}
 NODE_ENV=production
 EOF
         print_status "Frontend .env file created"
