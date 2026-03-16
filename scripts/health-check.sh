@@ -17,11 +17,66 @@ NC='\033[0m' # No Color
 PROJECT_ROOT="/opt/crm-app/current"
 LOG_DIR="/var/log/crm-app"
 LOG_FILE="$LOG_DIR/health-check.log"
+BACKEND_ENV_FILE="$PROJECT_ROOT/CRM-BACKEND/.env"
 
 # Ensure log directory exists
 mkdir -p "$LOG_DIR"
 TIMEOUT=30
 MAX_RETRIES=5
+DB_HOST="${DB_HOST:-}"
+DB_PORT="${DB_PORT:-}"
+DB_NAME="${DB_NAME:-}"
+DB_USER="${DB_USER:-}"
+DB_PASSWORD="${DB_PASSWORD:-}"
+PUBLIC_BASE_URL="${PUBLIC_BASE_URL:-}"
+
+load_existing_backend_env() {
+    if [ ! -f "$BACKEND_ENV_FILE" ]; then
+        return 0
+    fi
+
+    set -a
+    # shellcheck disable=SC1090
+    . "$BACKEND_ENV_FILE"
+    set +a
+
+    if [ -n "${DATABASE_URL:-}" ]; then
+        eval "$(
+            python3 - <<'PY'
+import os
+import shlex
+from urllib.parse import urlparse, unquote
+
+database_url = os.environ.get("DATABASE_URL", "")
+if database_url:
+    parsed = urlparse(database_url)
+    values = {
+        "PARSED_DB_HOST": parsed.hostname or "",
+        "PARSED_DB_PORT": str(parsed.port or ""),
+        "PARSED_DB_NAME": parsed.path.lstrip("/") or "",
+        "PARSED_DB_USER": unquote(parsed.username or ""),
+        "PARSED_DB_PASSWORD": unquote(parsed.password or ""),
+    }
+    for key, value in values.items():
+        print(f"{key}={shlex.quote(value)}")
+PY
+        )"
+    fi
+
+    DB_HOST="${DB_HOST:-${PARSED_DB_HOST:-localhost}}"
+    DB_PORT="${DB_PORT:-${PARSED_DB_PORT:-5432}}"
+    DB_NAME="${DB_NAME:-${PARSED_DB_NAME:-acs_db}}"
+    DB_USER="${DB_USER:-${PARSED_DB_USER:-}}"
+    DB_PASSWORD="${DB_PASSWORD:-${PARSED_DB_PASSWORD:-}}"
+
+    if [ -z "$PUBLIC_BASE_URL" ] && [ -n "${CORS_ORIGIN:-}" ]; then
+        PUBLIC_BASE_URL=$(printf '%s' "$CORS_ORIGIN" | cut -d',' -f1)
+    fi
+
+    PUBLIC_BASE_URL="${PUBLIC_BASE_URL:-https://example.com}"
+}
+
+load_existing_backend_env
 
 # Utility functions
 print_header() {
@@ -117,11 +172,11 @@ check_endpoint() {
 check_database() {
     print_info "Checking database connectivity..."
     
-    if PGPASSWORD=example_db_password psql -h localhost -U example_db_user -d acs_db -c "SELECT 1;" >/dev/null 2>&1; then
+    if PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c "SELECT 1;" >/dev/null 2>&1; then
         print_status "Database connection successful"
         
         # Check if we can query users table
-        local user_count=$(PGPASSWORD=example_db_password psql -h localhost -U example_db_user -d acs_db -t -c "SELECT COUNT(*) FROM users;" 2>/dev/null | xargs)
+        local user_count=$(PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -t -c "SELECT COUNT(*) FROM users;" 2>/dev/null | xargs)
         if [ -n "$user_count" ] && [ "$user_count" -gt 0 ]; then
             print_status "Database contains $user_count users"
         else
@@ -205,15 +260,15 @@ check_http_endpoints() {
     sleep 10
     
     # Check main endpoints
-    if ! check_endpoint "https://example.com/health" 200 "Health Check Endpoint"; then
+    if ! check_endpoint "${PUBLIC_BASE_URL}/health" 200 "Health Check Endpoint"; then
         endpoints_ok=false
     fi
     # Check frontend endpoint
-    if ! check_endpoint "https://example.com" 200 "Frontend Application"; then
+    if ! check_endpoint "$PUBLIC_BASE_URL" 200 "Frontend Application"; then
         print_error "Frontend health check failed"
         return 1
     fi
-    if ! check_endpoint "https://example.com/api/health" 200 "Backend API Health"; then
+    if ! check_endpoint "${PUBLIC_BASE_URL}/api/health" 200 "Backend API Health"; then
         endpoints_ok=false
     fi
     
@@ -222,7 +277,7 @@ check_http_endpoints() {
         -X POST \
         -H "Content-Type: application/json" \
         -d '{"username":"invalid","password":"invalid"}' \
-        "https://example.com/api/auth/login" 2>/dev/null || echo "000")
+        "${PUBLIC_BASE_URL}/api/auth/login" 2>/dev/null || echo "000")
     
     if [ "$auth_response" = "401" ] || [ "$auth_response" = "400" ]; then
         print_status "API authentication endpoint is responding correctly (HTTP $auth_response)"
@@ -243,7 +298,8 @@ check_ssl_certificate() {
     print_header "🔒 Checking SSL Certificate"
     
     if command -v openssl >/dev/null 2>&1; then
-        local cert_info=$(echo | openssl s_client -servername example.com -connect example.com:443 2>/dev/null | openssl x509 -noout -dates 2>/dev/null)
+        local server_host=$(printf '%s' "$PUBLIC_BASE_URL" | sed -E 's#^https?://##; s#/.*$##')
+        local cert_info=$(echo | openssl s_client -servername "$server_host" -connect "${server_host}:443" 2>/dev/null | openssl x509 -noout -dates 2>/dev/null)
         
         if [ -n "$cert_info" ]; then
             local not_after=$(echo "$cert_info" | grep "notAfter" | cut -d= -f2)
@@ -308,15 +364,15 @@ generate_health_report() {
     "checks": {
         "system_services": "$(systemctl is-active nginx postgresql redis-server | tr '\n' ',' | sed 's/,$//')",
         "application_processes": "$([ -f "$PROJECT_ROOT/logs/backend.pid" ] && echo "backend:running" || echo "backend:stopped"),$([ -f "$PROJECT_ROOT/logs/frontend.pid" ] && echo "frontend:running" || echo "frontend:stopped")",
-        "database": "$(PGPASSWORD=example_db_password psql -h localhost -U example_db_user -d acs_db -c "SELECT 1;" >/dev/null 2>&1 && echo "connected" || echo "failed")",
+        "database": "$(PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c "SELECT 1;" >/dev/null 2>&1 && echo "connected" || echo "failed")",
         "redis": "$(redis-cli ping >/dev/null 2>&1 && echo "connected" || echo "failed")",
         "disk_usage": "$(df -h / | awk 'NR==2 {print $5}')",
         "memory_usage": "$(free -m | awk 'NR==2{printf "%.1f%%", $3*100/$2}')"
     },
     "urls": {
-        "frontend": "https://example.com/",
-        "api": "https://example.com/api/health",
-        "health": "https://example.com/health"
+        "frontend": "${PUBLIC_BASE_URL}/",
+        "api": "${PUBLIC_BASE_URL}/api/health",
+        "health": "${PUBLIC_BASE_URL}/health"
     }
 }
 EOF
