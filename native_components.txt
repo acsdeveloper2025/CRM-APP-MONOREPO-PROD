@@ -1,0 +1,13 @@
+src/components/forms/DynamicFieldRenderer.tsx
+src/components/forms/DynamicFormBuilder.tsx
+src/components/media/CameraCaptureScreen.tsx
+src/components/media/PhotoGallery.tsx
+src/components/media/WatermarkPreviewScreen.tsx
+src/components/profile/DataCleanupManager.tsx
+src/components/profile/DigitalIdCard.tsx
+src/components/tasks/TaskCard.tsx
+src/components/tasks/TaskInfoModal.tsx
+src/components/tasks/TaskRevokeModal.tsx
+src/components/tasks/TaskTimeline.tsx
+src/components/ui/NotificationCenter.tsx
+src/components/ui/Skeleton.tsx
