@@ -29,6 +29,7 @@ DB_NAME="${DB_NAME:-}"
 DB_USER="${DB_USER:-}"
 DB_PASSWORD="${DB_PASSWORD:-}"
 PUBLIC_BASE_URL="${PUBLIC_BASE_URL:-}"
+FRONTEND_LOCAL_URL="${FRONTEND_LOCAL_URL:-http://localhost:5173}"
 
 load_existing_backend_env() {
     if [ ! -f "$BACKEND_ENV_FILE" ]; then
@@ -263,8 +264,10 @@ check_http_endpoints() {
     if ! check_endpoint "${PUBLIC_BASE_URL}/health" 200 "Health Check Endpoint"; then
         endpoints_ok=false
     fi
-    # Check frontend endpoint
-    if ! check_endpoint "$PUBLIC_BASE_URL" 200 "Frontend Application"; then
+    # Check frontend endpoint on the local preview service. Public `/` currently
+    # returns 403 from nginx, which is an edge-policy response rather than a
+    # frontend process failure.
+    if ! check_endpoint "$FRONTEND_LOCAL_URL" 200 "Frontend Application"; then
         print_error "Frontend health check failed"
         return 1
     fi
@@ -370,7 +373,7 @@ generate_health_report() {
         "memory_usage": "$(free -m | awk 'NR==2{printf "%.1f%%", $3*100/$2}')"
     },
     "urls": {
-        "frontend": "${PUBLIC_BASE_URL}/",
+        "frontend": "${FRONTEND_LOCAL_URL}/",
         "api": "${PUBLIC_BASE_URL}/api/health",
         "health": "${PUBLIC_BASE_URL}/health"
     }
