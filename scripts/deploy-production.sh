@@ -72,21 +72,87 @@ RELEASES_DIR="$CRM_ROOT/releases"
 BACKUP_DIR="$CRM_ROOT/shared/backups"
 LOG_DIR="/var/log/crm-app"
 LOG_FILE="$LOG_DIR/deployment.log"
+BACKEND_ENV_FILE="$PROJECT_ROOT/CRM-BACKEND/.env"
 
-# Deployment configuration must come from the environment.
-DB_HOST="${DB_HOST:-localhost}"
-DB_PORT="${DB_PORT:-5432}"
-DB_NAME="${DB_NAME:-acs_db}"
-DB_USER="${DB_USER:-example_db_user}"
-DB_PASSWORD="${DB_PASSWORD:-example_db_password}"
-REDIS_URL="${REDIS_URL:-redis://localhost:6379}"
-PUBLIC_BASE_URL="${PUBLIC_BASE_URL:-https://example.com}"
-PUBLIC_WS_URL="${PUBLIC_WS_URL:-wss://example.com}"
-CORS_ORIGIN="${CORS_ORIGIN:-$PUBLIC_BASE_URL}"
+# Deployment configuration comes from explicit env vars first, then the
+# existing backend .env on the server, then safe non-secret defaults.
+DB_HOST="${DB_HOST:-}"
+DB_PORT="${DB_PORT:-}"
+DB_NAME="${DB_NAME:-}"
+DB_USER="${DB_USER:-}"
+DB_PASSWORD="${DB_PASSWORD:-}"
+REDIS_URL="${REDIS_URL:-}"
+PUBLIC_BASE_URL="${PUBLIC_BASE_URL:-}"
+PUBLIC_WS_URL="${PUBLIC_WS_URL:-}"
+CORS_ORIGIN="${CORS_ORIGIN:-}"
 GOOGLE_MAPS_API_KEY="${GOOGLE_MAPS_API_KEY:-}"
 JWT_SECRET="${JWT_SECRET:-}"
 JWT_REFRESH_SECRET="${JWT_REFRESH_SECRET:-}"
 GEMINI_API_KEY="${GEMINI_API_KEY:-}"
+
+load_existing_backend_env() {
+    if [ ! -f "$BACKEND_ENV_FILE" ]; then
+        return 0
+    fi
+
+    print_info "Loading deployment defaults from existing backend .env..."
+
+    set -a
+    # shellcheck disable=SC1090
+    . "$BACKEND_ENV_FILE"
+    set +a
+
+    if [ -n "${DATABASE_URL:-}" ]; then
+        eval "$(
+            python3 - <<'PY'
+import os
+import shlex
+from urllib.parse import urlparse, unquote
+
+database_url = os.environ.get("DATABASE_URL", "")
+if database_url:
+    parsed = urlparse(database_url)
+    values = {
+        "PARSED_DB_HOST": parsed.hostname or "",
+        "PARSED_DB_PORT": str(parsed.port or ""),
+        "PARSED_DB_NAME": parsed.path.lstrip("/") or "",
+        "PARSED_DB_USER": unquote(parsed.username or ""),
+        "PARSED_DB_PASSWORD": unquote(parsed.password or ""),
+    }
+    for key, value in values.items():
+        print(f"{key}={shlex.quote(value)}")
+PY
+        )"
+    fi
+
+    DB_HOST="${DB_HOST:-${PARSED_DB_HOST:-localhost}}"
+    DB_PORT="${DB_PORT:-${PARSED_DB_PORT:-5432}}"
+    DB_NAME="${DB_NAME:-${PARSED_DB_NAME:-acs_db}}"
+    DB_USER="${DB_USER:-${PARSED_DB_USER:-}}"
+    DB_PASSWORD="${DB_PASSWORD:-${PARSED_DB_PASSWORD:-}}"
+    REDIS_URL="${REDIS_URL:-${REDIS_URL:-redis://localhost:6379}}"
+
+    if [ -n "${CORS_ORIGIN:-}" ]; then
+        local first_origin
+        first_origin=$(printf '%s' "$CORS_ORIGIN" | cut -d',' -f1)
+        PUBLIC_BASE_URL="${PUBLIC_BASE_URL:-$first_origin}"
+    fi
+
+    PUBLIC_BASE_URL="${PUBLIC_BASE_URL:-https://example.com}"
+    PUBLIC_WS_URL="${PUBLIC_WS_URL:-wss://$(printf '%s' "$PUBLIC_BASE_URL" | sed -E 's#^https?://##')}"
+    CORS_ORIGIN="${CORS_ORIGIN:-$PUBLIC_BASE_URL}"
+    REDIS_URL="${REDIS_URL:-redis://localhost:6379}"
+}
+
+require_deployment_secret() {
+    local key="$1"
+    local value="$2"
+
+    if [ -z "$value" ]; then
+        print_error "Required deployment value '$key' is not available from env vars or $BACKEND_ENV_FILE"
+        exit 1
+    fi
+}
 
 # Check if running as authorized production user
 if [ "$USER" = "root" ]; then
@@ -114,6 +180,13 @@ if [ "$USER" = "admin1" ]; then
     $SUDO_CMD chown -R admin1:admin1 "$CRM_ROOT" 2>/dev/null || true
     $SUDO_CMD chown -R admin1:admin1 "$LOG_DIR" 2>/dev/null || true
 fi
+
+load_existing_backend_env
+
+require_deployment_secret "DB_USER" "$DB_USER"
+require_deployment_secret "DB_PASSWORD" "$DB_PASSWORD"
+require_deployment_secret "JWT_SECRET" "$JWT_SECRET"
+require_deployment_secret "JWT_REFRESH_SECRET" "$JWT_REFRESH_SECRET"
 
 
 
