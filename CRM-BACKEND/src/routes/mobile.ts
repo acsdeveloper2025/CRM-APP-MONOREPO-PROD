@@ -46,6 +46,11 @@ router.get('/health', (req, res) => {
 
   res.json({
     success: true,
+    status: payload.status,
+    service: payload.service,
+    timestamp: payload.timestamp,
+    version: payload.version,
+    environment: payload.environment,
     message: 'Mobile API health check successful',
     data: payload,
   });

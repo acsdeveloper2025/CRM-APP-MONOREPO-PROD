@@ -15,6 +15,7 @@ import { createAuditLog } from '../utils/auditLogger';
 import { logger } from '../utils/logger';
 import { AuthenticatedRequest, JwtPayload } from '../types/auth';
 import { getPrimaryRoleNameFromRbac, isFieldExecutionActor } from '@/security/rbacAccess';
+import { getApiBaseUrl, getWsUrl } from '@/utils/publicUrl';
 
 interface UserQueryResult {
   id: string;
@@ -456,8 +457,8 @@ export class MobileAuthController {
           syncBatchSize: config.mobile.syncBatchSize,
         },
         endpoints: {
-          apiBaseUrl: `${req.protocol}://${req.get('host')}/api`,
-          wsUrl: `ws://${req.get('host')}:${config.wsPort}`,
+          apiBaseUrl: getApiBaseUrl(req, { mobile: true }),
+          wsUrl: getWsUrl(req),
         },
       };
 
