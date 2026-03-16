@@ -44,6 +44,8 @@ export const config = {
 
   // Firebase Cloud Messaging (FCM)
   firebase: {
+    serviceAccountJson: process.env.FIREBASE_SERVICE_ACCOUNT_JSON,
+    serviceAccountBase64: process.env.FIREBASE_SERVICE_ACCOUNT_BASE64,
     serviceAccountPath: process.env.FIREBASE_SERVICE_ACCOUNT_PATH,
     projectId: process.env.FIREBASE_PROJECT_ID,
   },
