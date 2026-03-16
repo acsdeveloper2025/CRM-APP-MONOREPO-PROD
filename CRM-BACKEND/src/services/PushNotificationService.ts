@@ -65,31 +65,56 @@ export class PushNotificationService {
    */
   private initializeFCM(): void {
     try {
-      if (config.firebase?.serviceAccountPath) {
-        const serviceAccount = JSON.parse(
-          fs.readFileSync(config.firebase.serviceAccountPath, 'utf8')
-        );
+      const serviceAccount = this.getFirebaseServiceAccount();
+
+      if (serviceAccount) {
+        const serviceAccountProjectId =
+          typeof (serviceAccount as admin.ServiceAccount & { project_id?: string }).project_id ===
+          'string'
+            ? (serviceAccount as admin.ServiceAccount & { project_id?: string }).project_id
+            : serviceAccount.projectId;
+        const projectId = config.firebase.projectId || serviceAccountProjectId;
 
         this.fcmApp = admin.initializeApp(
           {
             credential: admin.credential.cert(serviceAccount),
-            projectId: config.firebase.projectId,
+            projectId,
           },
           'fcm-app'
         );
 
         logger.info('FCM initialized successfully', {
-          projectId: config.firebase.projectId,
+          projectId,
         });
       } else {
         logger.warn(
-          'FCM service account not configured, push notifications for Android will not work'
+          'FCM service account not configured via environment or file path, push notifications for Android will not work'
         );
       }
     } catch (error) {
       logger.error('Failed to initialize FCM:', error);
       // Don't throw error, allow service to continue without FCM
     }
+  }
+
+  private getFirebaseServiceAccount(): admin.ServiceAccount | null {
+    const serviceAccountJson = config.firebase?.serviceAccountJson?.trim();
+    if (serviceAccountJson) {
+      return JSON.parse(serviceAccountJson) as admin.ServiceAccount;
+    }
+
+    const serviceAccountBase64 = config.firebase?.serviceAccountBase64?.trim();
+    if (serviceAccountBase64) {
+      const decoded = Buffer.from(serviceAccountBase64, 'base64').toString('utf8');
+      return JSON.parse(decoded) as admin.ServiceAccount;
+    }
+
+    const serviceAccountPath = config.firebase?.serviceAccountPath?.trim();
+    if (serviceAccountPath) {
+      return JSON.parse(fs.readFileSync(serviceAccountPath, 'utf8')) as admin.ServiceAccount;
+    }
+
+    return null;
   }
 
   /**
