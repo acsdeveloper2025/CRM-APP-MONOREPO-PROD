@@ -21,8 +21,6 @@ const router = express.Router();
 
 // Apply authentication
 router.use(authenticateToken);
-router.use(authorize('settings.manage'));
-
 // Validation schemas
 const createPincodeValidation = [
   body('code')
@@ -222,9 +220,14 @@ router.get('/', listPincodesValidation, validate, getPincodes);
 
 router.get('/search', searchValidation, validate, searchPincodes);
 
-router.post('/', createPincodeValidation, validate, createPincode);
+router.post('/', authorize('settings.manage'), createPincodeValidation, validate, createPincode);
 
-router.post('/bulk-import', upload.single('file'), bulkImportPincodes);
+router.post(
+  '/bulk-import',
+  authorize('settings.manage'),
+  upload.single('file'),
+  bulkImportPincodes
+);
 
 router.get(
   '/:id',
@@ -235,6 +238,7 @@ router.get(
 
 router.put(
   '/:id',
+  authorize('settings.manage'),
   [param('id').trim().notEmpty().withMessage('Pincode ID is required')],
   updatePincodeValidation,
   validate,
@@ -243,6 +247,7 @@ router.put(
 
 router.delete(
   '/:id',
+  authorize('settings.manage'),
   [param('id').trim().notEmpty().withMessage('Pincode ID is required')],
   validate,
   deletePincode
@@ -266,11 +271,18 @@ router.get(
 );
 
 // POST /api/pincodes/:id/areas - Add areas to a pincode
-router.post('/:id/areas', addAreasValidation, validate, addPincodeAreas);
+router.post(
+  '/:id/areas',
+  authorize('settings.manage'),
+  addAreasValidation,
+  validate,
+  addPincodeAreas
+);
 
 // DELETE /api/pincodes/:id/areas/:areaId - Remove area from pincode
 router.delete(
   '/:id/areas/:areaId',
+  authorize('settings.manage'),
   [
     param('id').trim().notEmpty().withMessage('Pincode ID is required'),
     param('areaId').isInt({ min: 1 }).withMessage('Area ID must be a valid positive integer'),

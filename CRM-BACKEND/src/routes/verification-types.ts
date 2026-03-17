@@ -21,8 +21,6 @@ const router = express.Router();
 
 // Apply authentication
 router.use(authenticateToken);
-router.use(authorize('settings.manage'));
-
 // Validation schemas
 const createVerificationTypeValidation = [
   body('name')
@@ -116,6 +114,7 @@ router.get(
 
 router.post(
   '/',
+  authorize('settings.manage'),
   EnterpriseCache.invalidate(CacheInvalidationPatterns.verificationTypeUpdate),
   createVerificationTypeValidation,
   handleValidationErrors,
@@ -123,7 +122,9 @@ router.post(
 );
 
 // TODO: Implement bulk import endpoint
-// router.post('/bulk-import',
+// router.post(
+//   '/bulk-import',
+//   authorize('settings.manage'),
 //   bulkImportValidation,
 //   validate,
 //   bulkImportVerificationTypes
@@ -139,6 +140,7 @@ router.get(
 
 router.put(
   '/:id',
+  authorize('settings.manage'),
   EnterpriseCache.invalidate(CacheInvalidationPatterns.verificationTypeUpdate),
   [param('id').isInt({ min: 1 }).withMessage('Verification type ID must be a positive integer')],
   updateVerificationTypeValidation,
@@ -148,6 +150,7 @@ router.put(
 
 router.delete(
   '/:id',
+  authorize('settings.manage'),
   EnterpriseCache.invalidate(CacheInvalidationPatterns.verificationTypeUpdate),
   [param('id').isInt({ min: 1 }).withMessage('Verification type ID must be a positive integer')],
   handleValidationErrors,

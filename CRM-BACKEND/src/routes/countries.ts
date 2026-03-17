@@ -18,8 +18,6 @@ const router = express.Router();
 
 // Apply authentication
 router.use(authenticateToken);
-router.use(authorize('settings.manage'));
-
 // Validation schemas
 const listCountriesValidation = [
   query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
@@ -106,9 +104,20 @@ router.get('/', listCountriesValidation, handleValidationErrors, getCountries);
 
 router.get('/stats', getCountriesStats);
 
-router.post('/', createCountryValidation, handleValidationErrors, createCountry);
+router.post(
+  '/',
+  authorize('settings.manage'),
+  createCountryValidation,
+  handleValidationErrors,
+  createCountry
+);
 
-router.post('/bulk-import', upload.single('file'), bulkImportCountries);
+router.post(
+  '/bulk-import',
+  authorize('settings.manage'),
+  upload.single('file'),
+  bulkImportCountries
+);
 
 router.get(
   '/:id',
@@ -119,6 +128,7 @@ router.get(
 
 router.put(
   '/:id',
+  authorize('settings.manage'),
   [param('id').trim().notEmpty().withMessage('Country ID is required')],
   updateCountryValidation,
   handleValidationErrors,
@@ -127,6 +137,7 @@ router.put(
 
 router.delete(
   '/:id',
+  authorize('settings.manage'),
   [param('id').trim().notEmpty().withMessage('Country ID is required')],
   handleValidationErrors,
   deleteCountry

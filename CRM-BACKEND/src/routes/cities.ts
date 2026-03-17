@@ -19,8 +19,6 @@ const router = express.Router();
 
 // Apply authentication
 router.use(authenticateToken);
-router.use(authorize('settings.manage'));
-
 // Validation schemas
 const createCityValidation = [
   body('name')
@@ -89,9 +87,9 @@ router.get('/', listCitiesValidation, validate, getCities);
 
 router.get('/stats', getCitiesStats);
 
-router.post('/', createCityValidation, validate, createCity);
+router.post('/', authorize('settings.manage'), createCityValidation, validate, createCity);
 
-router.post('/bulk-import', upload.single('file'), bulkImportCities);
+router.post('/bulk-import', authorize('settings.manage'), upload.single('file'), bulkImportCities);
 
 router.get(
   '/:id',
@@ -102,6 +100,7 @@ router.get(
 
 router.put(
   '/:id',
+  authorize('settings.manage'),
   [param('id').trim().notEmpty().withMessage('City ID is required')],
   updateCityValidation,
   validate,
@@ -110,6 +109,7 @@ router.put(
 
 router.delete(
   '/:id',
+  authorize('settings.manage'),
   [param('id').trim().notEmpty().withMessage('City ID is required')],
   validate,
   deleteCity

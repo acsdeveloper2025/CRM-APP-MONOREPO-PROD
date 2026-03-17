@@ -15,8 +15,6 @@ const router = express.Router();
 
 // Apply authentication
 router.use(authenticateToken);
-router.use(authorize('settings.manage'));
-
 // Validation schemas
 const listRatesValidation = [
   query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
@@ -99,10 +97,17 @@ router.get(
 
 router.get('/stats', getRateStats);
 
-router.post('/', createOrUpdateRateValidation, handleValidationErrors, createOrUpdateRate);
+router.post(
+  '/',
+  authorize('settings.manage'),
+  createOrUpdateRateValidation,
+  handleValidationErrors,
+  createOrUpdateRate
+);
 
 router.delete(
   '/:id',
+  authorize('settings.manage'),
   [param('id').isInt({ min: 1 }).withMessage('Rate ID must be a valid integer')],
   handleValidationErrors,
   deleteRate

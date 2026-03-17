@@ -23,8 +23,6 @@ const router = express.Router();
 
 // Apply authentication
 router.use(authenticateToken);
-router.use(authorize('settings.manage'));
-
 // Validation schemas
 const createProductValidation = [
   body('name')
@@ -160,6 +158,7 @@ router.get(
 
 router.post(
   '/',
+  authorize('settings.manage'),
   authenticateToken,
   EnterpriseCache.invalidate(CacheInvalidationPatterns.productUpdate),
   createProductValidation,
@@ -168,7 +167,9 @@ router.post(
 );
 
 // TODO: Implement bulk import endpoint
-// router.post('/bulk-import',
+// router.post(
+//   '/bulk-import',
+//   authorize('settings.manage'),
 //   authenticateToken,
 //   bulkImportValidation,
 //   validate,
@@ -187,6 +188,7 @@ router.get(
 
 router.put(
   '/:id',
+  authorize('settings.manage'),
   authenticateToken,
   EnterpriseCache.invalidate(CacheInvalidationPatterns.productUpdate),
   [param('id').isInt({ min: 1 }).withMessage('Product ID must be a positive integer')],
@@ -197,6 +199,7 @@ router.put(
 
 router.delete(
   '/:id',
+  authorize('settings.manage'),
   authenticateToken,
   EnterpriseCache.invalidate(CacheInvalidationPatterns.productUpdate),
   [param('id').isInt({ min: 1 }).withMessage('Product ID must be a positive integer')],

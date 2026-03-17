@@ -17,8 +17,6 @@ const router = express.Router();
 
 // Apply authentication
 router.use(authenticateToken);
-router.use(authorize('settings.manage'));
-
 // Validation schemas
 const createRateTypeValidation = [
   body('name')
@@ -97,7 +95,13 @@ router.get(
   getAvailableRateTypesForCase
 );
 
-router.post('/', createRateTypeValidation, handleValidationErrors, createRateType);
+router.post(
+  '/',
+  authorize('settings.manage'),
+  createRateTypeValidation,
+  handleValidationErrors,
+  createRateType
+);
 
 router.get(
   '/:id',
@@ -108,6 +112,7 @@ router.get(
 
 router.put(
   '/:id',
+  authorize('settings.manage'),
   [param('id').trim().notEmpty().withMessage('Rate type ID is required')],
   updateRateTypeValidation,
   handleValidationErrors,
@@ -116,6 +121,7 @@ router.put(
 
 router.delete(
   '/:id',
+  authorize('settings.manage'),
   [param('id').trim().notEmpty().withMessage('Rate type ID is required')],
   handleValidationErrors,
   deleteRateType

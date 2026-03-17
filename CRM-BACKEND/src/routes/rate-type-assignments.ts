@@ -15,8 +15,6 @@ const router = express.Router();
 
 // Apply authentication
 router.use(authenticateToken);
-router.use(authorize('settings.manage'));
-
 // Validation schemas
 const listAssignmentsValidation = [
   query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
@@ -75,12 +73,25 @@ router.get(
   getAssignmentsByCombination
 );
 
-router.post('/bulk-assign', bulkAssignValidation, handleValidationErrors, bulkAssignRateTypes);
+router.post(
+  '/bulk-assign',
+  authorize('settings.manage'),
+  bulkAssignValidation,
+  handleValidationErrors,
+  bulkAssignRateTypes
+);
 
-router.post('/', createAssignmentValidation, handleValidationErrors, createRateTypeAssignment);
+router.post(
+  '/',
+  authorize('settings.manage'),
+  createAssignmentValidation,
+  handleValidationErrors,
+  createRateTypeAssignment
+);
 
 router.delete(
   '/:id',
+  authorize('settings.manage'),
   [param('id').isInt({ min: 1 }).withMessage('Assignment ID must be a valid integer')],
   handleValidationErrors,
   deleteRateTypeAssignment

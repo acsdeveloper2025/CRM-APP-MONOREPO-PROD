@@ -14,8 +14,6 @@ const router = express.Router();
 
 // Apply authentication
 router.use(authenticateToken);
-router.use(authorize('settings.manage'));
-
 // Validation schemas
 const listDocumentTypeRatesValidation = [
   query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
@@ -77,6 +75,7 @@ router.get('/', listDocumentTypeRatesValidation, handleValidationErrors, getDocu
 // POST /api/document-type-rates - Create or update document type rate
 router.post(
   '/',
+  authorize('settings.manage'),
   createOrUpdateDocumentTypeRateValidation,
   handleValidationErrors,
   createOrUpdateDocumentTypeRate
@@ -85,6 +84,7 @@ router.post(
 // DELETE /api/document-type-rates/:id - Delete document type rate
 router.delete(
   '/:id',
+  authorize('settings.manage'),
   deleteDocumentTypeRateValidation,
   handleValidationErrors,
   deleteDocumentTypeRate

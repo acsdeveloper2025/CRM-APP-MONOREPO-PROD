@@ -17,8 +17,6 @@ const router = express.Router();
 
 // Apply authentication
 router.use(authenticateToken);
-router.use(authorize('settings.manage'));
-
 // Validation schemas
 const createAreaValidation = [
   body('name')
@@ -77,7 +75,7 @@ router.get('/by-pincodes', getAreasByPincodes);
 // Core CRUD routes
 router.get('/', listAreasValidation, validate, getAreas);
 
-router.post('/', createAreaValidation, validate, createArea);
+router.post('/', authorize('settings.manage'), createAreaValidation, validate, createArea);
 
 router.get(
   '/:id',
@@ -86,10 +84,11 @@ router.get(
   getAreaById
 );
 
-router.put('/:id', updateAreaValidation, validate, updateArea);
+router.put('/:id', authorize('settings.manage'), updateAreaValidation, validate, updateArea);
 
 router.delete(
   '/:id',
+  authorize('settings.manage'),
   [param('id').trim().notEmpty().withMessage('Area ID is required')],
   validate,
   deleteArea

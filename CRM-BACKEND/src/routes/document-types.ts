@@ -17,8 +17,6 @@ const router = express.Router();
 
 // Apply authentication
 router.use(authenticateToken);
-router.use(authorize('settings.manage'));
-
 // Validation schemas
 const createDocumentTypeValidation = [
   body('name')
@@ -72,7 +70,13 @@ router.get('/', listDocumentTypesValidation, handleValidationErrors, getDocument
 router.get('/stats', getDocumentTypeStats);
 router.get('/categories', getDocumentTypeCategories);
 
-router.post('/', createDocumentTypeValidation, handleValidationErrors, createDocumentType);
+router.post(
+  '/',
+  authorize('settings.manage'),
+  createDocumentTypeValidation,
+  handleValidationErrors,
+  createDocumentType
+);
 
 router.get(
   '/:id',
@@ -83,6 +87,7 @@ router.get(
 
 router.put(
   '/:id',
+  authorize('settings.manage'),
   [param('id').isInt({ min: 1 }).withMessage('Document type ID must be a positive integer')],
   updateDocumentTypeValidation,
   handleValidationErrors,
@@ -91,6 +96,7 @@ router.put(
 
 router.delete(
   '/:id',
+  authorize('settings.manage'),
   [param('id').isInt({ min: 1 }).withMessage('Document type ID must be a positive integer')],
   handleValidationErrors,
   deleteDocumentType
