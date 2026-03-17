@@ -29,7 +29,7 @@ DB_NAME="${DB_NAME:-}"
 DB_USER="${DB_USER:-}"
 DB_PASSWORD="${DB_PASSWORD:-}"
 PUBLIC_BASE_URL="${PUBLIC_BASE_URL:-}"
-FRONTEND_LOCAL_URL="${FRONTEND_LOCAL_URL:-http://localhost:5173}"
+FRONTEND_LOCAL_URL="${FRONTEND_LOCAL_URL:-${PUBLIC_BASE_URL}}"
 
 load_existing_backend_env() {
     if [ ! -f "$BACKEND_ENV_FILE" ]; then
@@ -234,7 +234,7 @@ check_system_services() {
 check_application_processes() {
     print_header "🔍 Checking Application Processes"
     
-    local services=("backend" "frontend")
+    local services=("backend")
     local all_processes_ok=true
     
     for service in "${services[@]}"; do
@@ -264,9 +264,7 @@ check_http_endpoints() {
     if ! check_endpoint "${PUBLIC_BASE_URL}/health" 200 "Health Check Endpoint"; then
         endpoints_ok=false
     fi
-    # Check frontend endpoint on the local preview service. Public `/` currently
-    # returns 403 from nginx, which is an edge-policy response rather than a
-    # frontend process failure.
+    # Frontend is served statically by nginx, so validate the public app URL.
     if ! check_endpoint "$FRONTEND_LOCAL_URL" 200 "Frontend Application"; then
         print_error "Frontend health check failed"
         return 1
@@ -366,7 +364,7 @@ generate_health_report() {
     "overall_status": "$overall_status",
     "checks": {
         "system_services": "$(systemctl is-active nginx postgresql redis-server | tr '\n' ',' | sed 's/,$//')",
-        "application_processes": "$([ -f "$PROJECT_ROOT/logs/backend.pid" ] && echo "backend:running" || echo "backend:stopped"),$([ -f "$PROJECT_ROOT/logs/frontend.pid" ] && echo "frontend:running" || echo "frontend:stopped")",
+        "application_processes": "$([ -f "$PROJECT_ROOT/logs/backend.pid" ] && echo "backend:running" || echo "backend:stopped"),frontend:served-by-nginx",
         "database": "$(PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c "SELECT 1;" >/dev/null 2>&1 && echo "connected" || echo "failed")",
         "redis": "$(redis-cli ping >/dev/null 2>&1 && echo "connected" || echo "failed")",
         "disk_usage": "$(df -h / | awk 'NR==2 {print $5}')",
