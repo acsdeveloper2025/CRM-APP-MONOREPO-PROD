@@ -684,16 +684,37 @@ update_code() {
     cd "$PROJECT_ROOT"
 
     if [ -d ".git" ]; then
-        if [ -n "$(git status --porcelain)" ]; then
-            print_error "Remote git worktree is dirty. Deployment aborted to avoid mixing server-side edits with repository code."
-            print_error "Clean or discard server changes in: $PROJECT_ROOT"
-            print_error "Current modified files:"
-            git status --short | tee -a "$LOG_FILE"
-            exit 1
-        fi
-
         print_info "Fetching latest changes from repository..."
         git fetch origin
+
+        if [ -n "$(git status --porcelain)" ]; then
+            print_info "Remote worktree has local changes. Checking whether they already match target commit $COMMIT_SHA..."
+
+            while IFS= read -r status_line; do
+                [ -z "$status_line" ] && continue
+
+                local status_code="${status_line:0:2}"
+                local file_path="${status_line:3}"
+
+                # Never auto-clean untracked or otherwise unknown local files.
+                if [[ "$status_code" == "??" ]]; then
+                    continue
+                fi
+
+                if git diff --quiet "$COMMIT_SHA" -- "$file_path"; then
+                    print_info "Auto-restoring tracked file already matching target commit: $file_path"
+                    git restore -- "$file_path"
+                fi
+            done < <(git status --porcelain)
+
+            if [ -n "$(git status --porcelain)" ]; then
+                print_error "Remote git worktree is dirty. Deployment aborted to avoid mixing server-side edits with repository code."
+                print_error "Clean or discard server changes in: $PROJECT_ROOT"
+                print_error "Current modified files:"
+                git status --short | tee -a "$LOG_FILE"
+                exit 1
+            fi
+        fi
 
         print_info "Checking out commit: $COMMIT_SHA"
         git checkout "$COMMIT_SHA"
