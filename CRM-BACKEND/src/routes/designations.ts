@@ -14,8 +14,6 @@ import {
 
 const router = Router();
 router.use(auth);
-router.use(authorize('settings.manage'));
-
 // Validation schemas
 const createDesignationValidation = [
   body('name')
@@ -95,12 +93,30 @@ router.get(
 router.get('/:id', designationIdValidation, validate, getDesignationById);
 
 // POST /api/designations - Create new designation
-router.post('/', createDesignationValidation, validate, createDesignation);
+router.post(
+  '/',
+  authorize('settings.manage'),
+  createDesignationValidation,
+  validate,
+  createDesignation
+);
 
 // PUT /api/designations/:id - Update designation
-router.put('/:id', updateDesignationValidation, validate, updateDesignation);
+router.put(
+  '/:id',
+  authorize('settings.manage'),
+  updateDesignationValidation,
+  validate,
+  updateDesignation
+);
 
 // DELETE /api/designations/:id - Delete designation
-router.delete('/:id', designationIdValidation, validate, deleteDesignation);
+router.delete(
+  '/:id',
+  authorize('settings.manage'),
+  designationIdValidation,
+  validate,
+  deleteDesignation
+);
 
 export default router;

@@ -18,8 +18,6 @@ const router = express.Router();
 
 // Apply authentication
 router.use(authenticateToken);
-router.use(authorize('settings.manage'));
-
 // Validation schemas
 const listStatesValidation = [
   query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
@@ -102,9 +100,15 @@ router.get('/', listStatesValidation, handleValidationErrors, getStates);
 
 router.get('/stats', getStatesStats);
 
-router.post('/', createStateValidation, handleValidationErrors, createState);
+router.post(
+  '/',
+  authorize('settings.manage'),
+  createStateValidation,
+  handleValidationErrors,
+  createState
+);
 
-router.post('/bulk-import', upload.single('file'), bulkImportStates);
+router.post('/bulk-import', authorize('settings.manage'), upload.single('file'), bulkImportStates);
 
 router.get(
   '/:id',
@@ -115,6 +119,7 @@ router.get(
 
 router.put(
   '/:id',
+  authorize('settings.manage'),
   [param('id').trim().notEmpty().withMessage('State ID is required')],
   updateStateValidation,
   handleValidationErrors,
@@ -123,6 +128,7 @@ router.put(
 
 router.delete(
   '/:id',
+  authorize('settings.manage'),
   [param('id').trim().notEmpty().withMessage('State ID is required')],
   handleValidationErrors,
   deleteState

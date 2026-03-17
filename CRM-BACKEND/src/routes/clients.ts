@@ -22,7 +22,6 @@ import {
 const router = express.Router();
 
 router.use(authenticateToken);
-router.use(authorize('settings.manage'));
 // Validation rules
 const createClientValidation = [
   body('name')
@@ -137,6 +136,7 @@ router.get(
 // POST /api/clients - Create new client (INVALIDATES CACHE)
 router.post(
   '/',
+  authorize('settings.manage'),
   authenticateToken,
   EnterpriseCache.invalidate(CacheInvalidationPatterns.clientUpdate),
   validate(createClientValidation),
@@ -146,6 +146,7 @@ router.post(
 // PUT /api/clients/:id - Update client (INVALIDATES CACHE)
 router.put(
   '/:id',
+  authorize('settings.manage'),
   authenticateToken,
   EnterpriseCache.invalidate(CacheInvalidationPatterns.clientUpdate),
   validate([
@@ -158,6 +159,7 @@ router.put(
 // DELETE /api/clients/:id - Delete client (INVALIDATES CACHE)
 router.delete(
   '/:id',
+  authorize('settings.manage'),
   authenticateToken,
   EnterpriseCache.invalidate(CacheInvalidationPatterns.clientUpdate),
   validate([param('id').isInt({ min: 1 }).withMessage('Client ID must be a positive integer')]),

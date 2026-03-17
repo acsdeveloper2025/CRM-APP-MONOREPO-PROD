@@ -13,8 +13,6 @@ const router = express.Router();
 
 // All department routes require authentication
 router.use(auth);
-router.use(authorize('settings.manage'));
-
 // GET /api/departments - Get all departments
 router.get('/', getDepartments);
 
@@ -22,12 +20,12 @@ router.get('/', getDepartments);
 router.get('/:id', getDepartmentById);
 
 // POST /api/departments - Create new department
-router.post('/', createDepartment);
+router.post('/', authorize('settings.manage'), createDepartment);
 
 // PUT /api/departments/:id - Update department
-router.put('/:id', updateDepartment);
+router.put('/:id', authorize('settings.manage'), updateDepartment);
 
 // DELETE /api/departments/:id - Delete department
-router.delete('/:id', deleteDepartment);
+router.delete('/:id', authorize('settings.manage'), deleteDepartment);
 
 export default router;

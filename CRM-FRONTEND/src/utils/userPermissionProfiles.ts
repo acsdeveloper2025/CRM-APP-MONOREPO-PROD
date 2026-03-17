@@ -30,10 +30,25 @@ export const isSupervisoryUser = (user?: User | null): boolean =>
   userHasPermissionCode(user, 'page.analytics') &&
   !userHasPermissionCode(user, 'visit.start');
 
-export const isFieldAgentUser = (user?: User | null): boolean =>
-  !isAdminLikeUser(user) &&
-  userHasPermissionCode(user, 'visit.start') &&
-  userHasPermissionCode(user, 'visit.submit');
+const getNormalizedUserRoles = (user?: User | null): Array<ReturnType<typeof normalizeUserRole>> => {
+  if (!user) {return [];}
+  const rawRoles = [
+    user.role,
+    user.roleName,
+    ...(Array.isArray(user.roles) ? user.roles : []),
+  ].filter((role): role is string => typeof role === 'string' && role.trim().length > 0);
+
+  return rawRoles
+    .map(role => normalizeUserRole(role))
+    .filter((role): role is NonNullable<ReturnType<typeof normalizeUserRole>> => Boolean(role));
+};
+
+export const isFieldAgentUser = (user?: User | null): boolean => {
+  if (!user || isAdminLikeUser(user)) {return false;}
+
+  const normalizedRoles = getNormalizedUserRoles(user);
+  return normalizedRoles.includes('FIELD_AGENT');
+};
 
 export const canViewAdminUserOps = (user?: User | null): boolean =>
   isAdminLikeUser(user);
