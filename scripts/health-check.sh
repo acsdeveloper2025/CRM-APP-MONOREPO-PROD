@@ -29,7 +29,7 @@ DB_NAME="${DB_NAME:-}"
 DB_USER="${DB_USER:-}"
 DB_PASSWORD="${DB_PASSWORD:-}"
 PUBLIC_BASE_URL="${PUBLIC_BASE_URL:-}"
-FRONTEND_LOCAL_URL="${FRONTEND_LOCAL_URL:-${PUBLIC_BASE_URL}}"
+FRONTEND_LOCAL_URL="${FRONTEND_LOCAL_URL:-}"
 
 load_existing_backend_env() {
     if [ ! -f "$BACKEND_ENV_FILE" ]; then
@@ -77,7 +77,18 @@ PY
     PUBLIC_BASE_URL="${PUBLIC_BASE_URL:-https://example.com}"
 }
 
+normalize_urls() {
+    PUBLIC_BASE_URL="${PUBLIC_BASE_URL%/}"
+
+    if [ -z "$FRONTEND_LOCAL_URL" ]; then
+        FRONTEND_LOCAL_URL="$PUBLIC_BASE_URL"
+    fi
+
+    FRONTEND_LOCAL_URL="${FRONTEND_LOCAL_URL%/}"
+}
+
 load_existing_backend_env
+normalize_urls
 
 # Utility functions
 print_header() {
