@@ -526,17 +526,13 @@ EOF
     fi
 
     # Frontend environment
-    if [ ! -f "$PROJECT_ROOT/CRM-FRONTEND/.env" ]; then
-        print_info "Creating frontend .env file..."
-        cat > "$PROJECT_ROOT/CRM-FRONTEND/.env" << EOF
+    print_info "Writing frontend production .env file..."
+    cat > "$PROJECT_ROOT/CRM-FRONTEND/.env" << EOF
 VITE_API_BASE_URL=${PUBLIC_BASE_URL}/api
 VITE_GOOGLE_MAPS_API_KEY=${GOOGLE_MAPS_API_KEY}
 NODE_ENV=production
 EOF
-        print_status "Frontend .env file created"
-    else
-        print_info "Frontend .env file already exists"
-    fi
+    print_status "Frontend .env file updated"
 
     print_status "Environment files setup completed"
 }

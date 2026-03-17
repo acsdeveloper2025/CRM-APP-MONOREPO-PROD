@@ -100,19 +100,45 @@ class ApiService {
   }
 
   private getOptimalApiUrl(): string {
-    const baseURL = import.meta.env.VITE_API_BASE_URL;
+    const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim();
 
-    if (!baseURL) {
-      const errorMsg = '❌ CRITICAL ERROR: VITE_API_BASE_URL is not defined in environment variables!';
-      console.error(errorMsg);
-      // In development, we might want to alert, in production this is a fatal config error
-      if (import.meta.env.DEV) {
-          // alert(errorMsg); // Disabled to fix ESLint no-alert
+    if (configuredBaseUrl) {
+      try {
+        const parsed = new URL(configuredBaseUrl, window.location.origin);
+        const isLocalhostTarget = ['localhost', '127.0.0.1'].includes(parsed.hostname);
+
+        if (!import.meta.env.DEV && isLocalhostTarget) {
+          const sameOriginFallback = `${window.location.origin}/api`;
+          console.warn(
+            '⚠️ Ignoring localhost API base URL in production build. Falling back to same-origin API:',
+            sameOriginFallback,
+          );
+          return sameOriginFallback;
+        }
+
+        return parsed.toString().replace(/\/$/, '');
+      } catch {
+        if (!import.meta.env.DEV) {
+          const sameOriginFallback = `${window.location.origin}/api`;
+          console.warn(
+            '⚠️ Invalid VITE_API_BASE_URL in production build. Falling back to same-origin API:',
+            sameOriginFallback,
+          );
+          return sameOriginFallback;
+        }
       }
-      throw new Error(errorMsg);
     }
 
-    return baseURL;
+    if (!import.meta.env.DEV) {
+      const sameOriginFallback = `${window.location.origin}/api`;
+      console.warn(
+        '⚠️ VITE_API_BASE_URL is missing in production build. Falling back to same-origin API:',
+        sameOriginFallback,
+      );
+      return sameOriginFallback;
+    }
+
+    throw new Error('❌ CRITICAL ERROR: VITE_API_BASE_URL is not defined in environment variables!');
   }
 
   private setupInterceptors() {
