@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Production Service Startup Script
-# Starts backend and frontend services using PM2 with ecosystem config
+# Starts backend services using PM2; frontend is served statically by nginx
 
 set -e
 
@@ -29,7 +29,7 @@ pm2 start ecosystem.config.js
 # Save PM2 process list
 pm2 save
 
-echo -e "${GREEN}✅ All services started successfully${NC}"
+echo -e "${GREEN}✅ Backend services started successfully${NC}"
 echo ""
 echo "Service Status:"
 pm2 list

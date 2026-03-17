@@ -288,7 +288,7 @@ stop_services() {
     if command -v pm2 >/dev/null 2>&1; then
         print_info "Using PM2 to stop services..."
 
-        local services=("crm-backend" "crm-frontend")
+        local services=("crm-backend")
 
         for service in "${services[@]}"; do
             # Check if process exists in PM2
@@ -545,25 +545,70 @@ EOF
 configure_nginx() {
     print_header "🌐 Configuring Nginx"
 
-    # Fix mobile app proxy configuration to prevent redirect loop
-    print_info "Ensuring mobile app nginx configuration is correct..."
+    print_info "Ensuring nginx serves the built frontend directly and keeps backend/mobile proxy routes..."
 
-    # Check if the mobile proxy configuration needs fixing
-    if grep -q "proxy_pass http://crm_mobile/;" /etc/nginx/sites-enabled/* 2>/dev/null; then
-        print_info "Fixing mobile app proxy configuration..."
-        sed -i 's|proxy_pass http://crm_mobile/;|proxy_pass http://crm_mobile/mobile/;|' /etc/nginx/sites-enabled/*
+    python3 <<'PY'
+from pathlib import Path
+import re
 
-        # Test nginx configuration
-        if nginx -t; then
-            print_info "Reloading nginx configuration..."
-            systemctl reload nginx
-            print_status "Nginx configuration updated successfully"
-        else
-            print_error "Nginx configuration test failed!"
-            return 1
-        fi
+config_path = Path("/etc/nginx/sites-enabled/crm.allcheckservices.com")
+if not config_path.exists():
+    raise SystemExit("nginx site config not found: /etc/nginx/sites-enabled/crm.allcheckservices.com")
+
+text = config_path.read_text()
+
+if "root /opt/crm-app/current/CRM-FRONTEND/dist;" not in text:
+    marker = "    # Mobile app routes - FIXED: Now properly routes to mobile app\n"
+    insert = """    # Mobile app routes - FIXED: Now properly routes to mobile app
+
+    # Frontend static build served directly by nginx
+    root /opt/crm-app/current/CRM-FRONTEND/dist;
+    index index.html;
+
+    location /assets/ {
+        try_files $uri =404;
+        access_log off;
+        expires 1y;
+        add_header Cache-Control 'public, immutable' always;
+    }
+
+    location = /vite.svg {
+        try_files $uri =404;
+        access_log off;
+        expires 7d;
+    }
+
+    location = /manifest.json {
+        try_files $uri =404;
+    }
+
+    location = /sw.js {
+        try_files $uri =404;
+        add_header Cache-Control 'no-cache' always;
+    }
+"""
+    text = text.replace(marker, insert, 1)
+
+text = re.sub(
+    r"\n\s*# Frontend \(default route\)\n\s*location / \{.*?\n\s*\}\n",
+    "\n    # Frontend SPA fallback\n    location / {\n        try_files $uri $uri/ /index.html;\n    }\n",
+    text,
+    count=1,
+    flags=re.S,
+)
+
+text = text.replace("proxy_pass http://crm_mobile/;", "proxy_pass http://crm_mobile/mobile/;")
+
+config_path.write_text(text)
+PY
+
+    if nginx -t; then
+        print_info "Reloading nginx configuration..."
+        systemctl reload nginx
+        print_status "Nginx configuration updated successfully"
     else
-        print_info "Mobile app nginx configuration is already correct"
+        print_error "Nginx configuration test failed!"
+        return 1
     fi
 }
 
