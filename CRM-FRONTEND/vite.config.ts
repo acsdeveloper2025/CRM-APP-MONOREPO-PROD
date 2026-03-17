@@ -2,6 +2,15 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
 
+const allowedHosts = [
+  'localhost',
+  '127.0.0.1',
+  'crm.allcheckservices.com',
+  process.env.VITE_STATIC_IP || 'PUBLIC_STATIC_IP',
+  'example.com',
+  'www.example.com',
+]
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
@@ -15,13 +24,7 @@ export default defineConfig({
     strictPort: true, // Fail if port 5173 is not available instead of trying other ports
     host: '0.0.0.0', // Bind to all network interfaces for both localhost and network access
     cors: true, // Enable CORS for cross-origin requests
-    allowedHosts: [
-      'localhost',
-      '127.0.0.1',
-      process.env.VITE_STATIC_IP || 'PUBLIC_STATIC_IP',
-      'example.com',
-      'www.example.com'
-    ],
+    allowedHosts,
     proxy: {
       '/api': {
          target: 'http://localhost:3000', // Default local backend
@@ -29,6 +32,12 @@ export default defineConfig({
          secure: false,
       }
     }
+  },
+  preview: {
+    host: '0.0.0.0',
+    port: 5173,
+    strictPort: true,
+    allowedHosts,
   },
   build: {
     rollupOptions: {
