@@ -3,7 +3,7 @@ import { query } from '@/config/database';
 export interface AuditLogData {
   action: string;
   entityType: string;
-  entityId: string;
+  entityId?: string;
   userId?: string;
   details?: Record<string, unknown>;
   ipAddress?: string;
