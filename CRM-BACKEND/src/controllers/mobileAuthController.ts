@@ -70,8 +70,7 @@ export class MobileAuthController {
         await createAuditLog({
           action: 'MOBILE_LOGIN_FAILED',
           entityType: 'USER',
-          entityId: username,
-          details: { reason: 'User not found' },
+          details: { reason: 'User not found', attemptedUsername: username },
           ipAddress: req.ip,
           userAgent: req.get('User-Agent'),
         });

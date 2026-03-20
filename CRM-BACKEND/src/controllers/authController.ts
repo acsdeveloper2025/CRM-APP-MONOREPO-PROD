@@ -34,8 +34,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       await createAuditLog({
         action: 'WEB_LOGIN_FAILED',
         entityType: 'USER',
-        entityId: username,
-        details: { reason: 'USER_NOT_FOUND' },
+        details: { reason: 'USER_NOT_FOUND', attemptedUsername: username },
         ipAddress: req.ip,
         userAgent: req.get('User-Agent') || undefined,
       });
