@@ -4,12 +4,12 @@ import { BarChart3, Download, FileText, MoreHorizontal, Trash2 } from 'lucide-re
 import { toast } from 'sonner';
 import { reportsService } from '@/services/reports';
 import { MISReport } from '@/types/reports';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/ui/components/alert-dialog';
-import { Badge } from '@/ui/components/badge';
-import { Button } from '@/ui/components/button';
-import { Card, CardContent } from '@/ui/components/card';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/ui/components/dropdown-menu';
-import { LoadingState } from '@/ui/components/loading';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/ui/components/AlertDialog';
+import { Badge } from '@/ui/components/Badge';
+import { Button } from '@/ui/components/Button';
+import { Card, CardContent } from '@/ui/components/Card';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/ui/components/DropdownMenu';
+import { LoadingState } from '@/ui/components/Loading';
 import { Box } from '@/ui/primitives/Box';
 import { Stack } from '@/ui/primitives/Stack';
 import { Text } from '@/ui/primitives/Text';

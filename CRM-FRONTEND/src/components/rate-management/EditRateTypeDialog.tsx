@@ -10,7 +10,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/ui/components/dialog';
+} from '@/ui/components/Dialog';
 import {
   Form,
   FormControl,
@@ -20,10 +20,10 @@ import {
   FormLabel,
   FormMessage,
 } from '@/ui/components/form';
-import { Input } from '@/ui/components/input';
-import { Textarea } from '@/ui/components/textarea';
-import { Switch } from '@/ui/components/switch';
-import { Button } from '@/ui/components/button';
+import { Input } from '@/ui/components/Input';
+import { Textarea } from '@/ui/components/Textarea';
+import { Switch } from '@/ui/components/Switch';
+import { Button } from '@/ui/components/Button';
 import { rateTypesService, type RateType, type UpdateRateTypeData } from '@/services/rateTypes';
 
 const updateRateTypeSchema = z.object({

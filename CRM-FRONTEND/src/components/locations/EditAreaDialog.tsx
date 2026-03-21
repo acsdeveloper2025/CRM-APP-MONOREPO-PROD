@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Button } from '@/ui/components/button';
+import { Button } from '@/ui/components/Button';
 import { useMutationWithInvalidation } from '@/hooks/useStandardizedMutation';
 import {
   Dialog,
@@ -8,8 +8,8 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/ui/components/dialog';
-import { Input } from '@/ui/components/input';
+} from '@/ui/components/Dialog';
+import { Input } from '@/ui/components/Input';
 import { Stack } from '@/ui/primitives/Stack';
 import { Text } from '@/ui/primitives/Text';
 import { locationsService } from '@/services/locations';

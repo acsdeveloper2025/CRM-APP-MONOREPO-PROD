@@ -2,12 +2,12 @@ import React from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { rbacAdminService, type RbacRole } from '@/services/rbacAdmin';
 import { RBAC_PERMISSION_MODULES, ROUTE_ACCESS_OPTIONS } from '@/constants/rbac';
-import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/card';
-import { Button } from '@/ui/components/button';
-import { Input } from '@/ui/components/input';
-import { Textarea } from '@/ui/components/textarea';
-import { Label } from '@/ui/components/label';
-import { Checkbox } from '@/ui/components/checkbox';
+import { Card, CardContent, CardHeader } from '@/ui/components/Card';
+import { Button } from '@/ui/components/Button';
+import { Input } from '@/ui/components/Input';
+import { Textarea } from '@/ui/components/Textarea';
+import { Label } from '@/ui/components/Label';
+import { Checkbox } from '@/ui/components/Checkbox';
 import {
   Dialog,
   DialogContent,
@@ -15,15 +15,12 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from '@/ui/components/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/ui/components/select';
-import { Badge } from '@/ui/components/badge';
+} from '@/ui/components/Dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/ui/components/Select';
+import { Badge } from '@/ui/components/Badge';
 import { toast } from 'sonner';
 import { Plus, Save, Trash2, Pencil } from 'lucide-react';
 import { MetricCardGrid } from '@/components/shared/MetricCardGrid';
-import { Badge as UiBadge } from '@/ui/components/Badge';
-import { Button as UiButton } from '@/ui/components/Button';
-import { Card as UiCard } from '@/ui/components/Card';
 import { Page } from '@/ui/layout/Page';
 import { Section } from '@/ui/layout/Section';
 import { Stack } from '@/ui/primitives/Stack';
@@ -231,14 +228,14 @@ export default function RolePermissionsAdminPage() {
       subtitle="Configure RBAC permissions, route access, and role hierarchy."
       shell
       actions={
-        <UiButton icon={<Plus size={16} />} onClick={() => setShowCreate(true)}>
-          Create Role
-        </UiButton>
+        <Button onClick={() => setShowCreate(true)}>
+          <Plus className="h-4 w-4 mr-1" /> Create Role
+        </Button>
       }
     >
       <Section>
         <Stack gap={3}>
-          <UiBadge variant="accent">Access Control</UiBadge>
+          <Badge variant="accent">Access Control</Badge>
           <Text as="h2" variant="headline">Keep roles, permissions, and route access visible in one operational surface.</Text>
         </Stack>
       </Section>
@@ -277,19 +274,21 @@ export default function RolePermissionsAdminPage() {
       <Section>
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
         <Card className="xl:col-span-3">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0">
-            <CardTitle>Roles</CardTitle>
-            <Button size="sm" onClick={() => setShowCreate(true)}>
-              <Plus className="h-4 w-4 mr-1" /> Create
-            </Button>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {roles.map(role => (
-              <div
-                key={role.id}
-                className={`rounded border p-3 cursor-pointer ${selectedRoleId === role.id ? 'border-green-500 bg-green-50' : 'border-gray-200'}`}
-                onClick={() => setSelectedRoleId(role.id)}
-              >
+            <CardHeader>
+              <Stack direction="horizontal" justify="space-between" align="center">
+                <Text variant="headline">Roles</Text>
+                <Button onClick={() => setShowCreate(true)}>
+                  <Plus className="h-4 w-4 mr-1" /> Create
+                </Button>
+              </Stack>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {roles.map(role => (
+                <div
+                  key={role.id}
+                  className={`rounded-lg border p-3 cursor-pointer transition-colors ${selectedRoleId === role.id ? 'border-green-500 bg-green-50/50' : 'border-gray-200 hover:bg-gray-50/50'}`}
+                  onClick={() => setSelectedRoleId(role.id)}
+                >
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <div className="font-medium">{role.name}</div>
@@ -300,11 +299,10 @@ export default function RolePermissionsAdminPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-1">
-                    <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); setEditingRole(role); }}>
+                    <Button variant="ghost" onClick={(e) => { e.stopPropagation(); setEditingRole(role); }}>
                       <Pencil className="h-4 w-4" />
                     </Button>
                     <Button
-                      size="icon"
                       variant="ghost"
                       disabled={!!role.isSystem}
                       onClick={(e) => {
@@ -323,17 +321,18 @@ export default function RolePermissionsAdminPage() {
         </Card>
 
         <Card className="xl:col-span-5">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0">
-            <CardTitle>Permission Matrix</CardTitle>
-            <Button
-              size="sm"
-              onClick={() => savePermissionsMutation.mutate()}
-              disabled={!selectedRoleId || savePermissionsMutation.isPending}
-            >
-              <Save className="h-4 w-4 mr-1" /> Save
-            </Button>
-          </CardHeader>
-          <CardContent className="space-y-6">
+            <CardHeader>
+              <Stack direction="horizontal" justify="space-between" align="center">
+                <Text variant="headline">Permission Matrix</Text>
+                <Button
+                  onClick={() => savePermissionsMutation.mutate()}
+                  disabled={!selectedRoleId || savePermissionsMutation.isPending}
+                >
+                  <Save className="h-4 w-4 mr-1" /> Save
+                </Button>
+              </Stack>
+            </CardHeader>
+            <CardContent className="space-y-6">
             {Object.entries(RBAC_PERMISSION_MODULES).map(([moduleName, codes]) => (
               <div key={moduleName} className="space-y-2">
                 <h3 className="font-semibold text-sm text-gray-700">{moduleName}</h3>
@@ -342,7 +341,7 @@ export default function RolePermissionsAdminPage() {
                     const meta = groupedPermissions.find(p => p.code === code);
                     const checked = selectedPermissionCodes.includes(code);
                     return (
-                      <label key={code} className="flex items-start gap-2 rounded border p-2 hover:bg-gray-50">
+                      <label key={code} className="flex items-start gap-2 rounded-lg border p-2 hover:bg-gray-50/50 transition-colors cursor-pointer">
                         <Checkbox
                           checked={checked}
                           onCheckedChange={value => togglePermission(code, value === true)}
@@ -361,19 +360,20 @@ export default function RolePermissionsAdminPage() {
         </Card>
 
         <Card className="xl:col-span-4">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0">
-            <CardTitle>Route Access</CardTitle>
-            <Button
-              size="sm"
-              onClick={() => saveRoutesMutation.mutate()}
-              disabled={!selectedRoleId || saveRoutesMutation.isPending}
-            >
-              <Save className="h-4 w-4 mr-1" /> Save
-            </Button>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {ROUTE_ACCESS_OPTIONS.map(route => (
-              <label key={route.key} className="flex items-center justify-between rounded border p-3 hover:bg-gray-50">
+            <CardHeader>
+              <Stack direction="horizontal" justify="space-between" align="center">
+                <Text variant="headline">Route Access</Text>
+                <Button
+                  onClick={() => saveRoutesMutation.mutate()}
+                  disabled={!selectedRoleId || saveRoutesMutation.isPending}
+                >
+                  <Save className="h-4 w-4 mr-1" /> Save
+                </Button>
+              </Stack>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {ROUTE_ACCESS_OPTIONS.map(route => (
+                <label key={route.key} className="flex items-center justify-between rounded-lg border p-3 hover:bg-gray-50/50 transition-colors cursor-pointer">
                 <div>
                   <div className="text-sm font-medium">{route.label}</div>
                   <div className="text-xs text-gray-500">{route.key}</div>

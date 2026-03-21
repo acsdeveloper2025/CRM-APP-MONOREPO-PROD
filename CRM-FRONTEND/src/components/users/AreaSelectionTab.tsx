@@ -1,9 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import { Search, CheckSquare, Square, AlertCircle, Save } from 'lucide-react';
-import { Input } from '@/ui/components/input';
-import { Button } from '@/ui/components/button';
-import { Checkbox } from '@/ui/components/checkbox';
-import { Badge } from '@/ui/components/badge';
+import { Input } from '@/ui/components/Input';
+import { Button } from '@/ui/components/Button';
+import { Checkbox } from '@/ui/components/Checkbox';
+import { Badge } from '@/ui/components/Badge';
 import type { PincodeWithCity, Area } from '@/types/territoryAssignment';
 
 interface AreaSelectionTabProps {

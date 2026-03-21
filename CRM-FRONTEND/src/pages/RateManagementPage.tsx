@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useStandardizedQuery } from '@/hooks/useStandardizedQuery';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/components/tabs';
-import { Badge } from '@/ui/components/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/components/Tabs';
+import { Badge } from '@/ui/components/Badge';
 import { rateManagementService } from '@/services/rateManagement';
 import { RateTypesTab } from '@/components/rate-management/RateTypesTab';
 import { RateTypeAssignmentTab } from '@/components/rate-management/RateTypeAssignmentTab';
@@ -9,7 +9,6 @@ import { RateAssignmentTab } from '@/components/rate-management/RateAssignmentTa
 import { RateViewReportTab } from '@/components/rate-management/RateViewReportTab';
 import { DocumentTypeRatesTab } from '@/components/rate-management/DocumentTypeRatesTab';
 import { MetricCardGrid } from '@/components/shared/MetricCardGrid';
-import { Badge as UiBadge } from '@/ui/components/Badge';
 import { Card } from '@/ui/components/Card';
 import { Page } from '@/ui/layout/Page';
 import { Section } from '@/ui/layout/Section';
@@ -40,7 +39,7 @@ export function RateManagementPage() {
     >
       <Section>
         <Stack gap={3}>
-          <UiBadge variant="accent">Pricing System</UiBadge>
+          <Badge variant="accent">Pricing System</Badge>
           <Text as="h2" variant="headline">Keep the rate workflow visible while preserving the existing pricing logic.</Text>
           <Text variant="body-sm" tone="muted">
             This page now follows the shared shell and section rhythm without changing any of the tab-level rate management behavior.

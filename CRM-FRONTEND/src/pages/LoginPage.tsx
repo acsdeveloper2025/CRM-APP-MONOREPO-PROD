@@ -6,7 +6,7 @@ import { z } from 'zod';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import type { LoginRequest } from '@/types/auth';
-import { LoadingPage } from '@/ui/components/loading';
+import { LoadingPage } from '@/ui/components/Loading';
 import { Button } from '@/ui/components/Button';
 import { Card } from '@/ui/components/Card';
 import { Input } from '@/ui/components/Input';

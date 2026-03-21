@@ -11,7 +11,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/ui/components/dialog';
+} from '@/ui/components/Dialog';
 import {
   Form,
   FormControl,
@@ -27,11 +27,11 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/ui/components/select';
-import { Input } from '@/ui/components/input';
-import { Textarea } from '@/ui/components/textarea';
-import { Button } from '@/ui/components/button';
-import { Switch } from '@/ui/components/switch';
+} from '@/ui/components/Select';
+import { Input } from '@/ui/components/Input';
+import { Textarea } from '@/ui/components/Textarea';
+import { Button } from '@/ui/components/Button';
+import { Switch } from '@/ui/components/Switch';
 import { toast } from 'sonner';
 import { departmentsService } from '@/services/departments';
 import { usersService } from '@/services/users';

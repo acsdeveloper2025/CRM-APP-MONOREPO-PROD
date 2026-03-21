@@ -1,7 +1,7 @@
 import { User, Clock, FileText, CheckCircle, AlertCircle, Eye } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
-import { Badge } from '@/ui/components/badge';
-import { Separator } from '@/ui/components/separator';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/Card';
+import { Badge } from '@/ui/components/Badge';
+import { Separator } from '@/ui/components/Separator';
 import { FormSubmission } from '@/types/form';
 import { Box } from '@/ui/primitives/Box';
 import { Stack } from '@/ui/primitives/Stack';

@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { MoreHorizontal, CheckCircle, DollarSign, TrendingUp, User } from 'lucide-react';
-import { Button } from '@/ui/components/button';
+import { Button } from '@/ui/components/Button';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuTrigger,
-} from '@/ui/components/dropdown-menu';
+} from '@/ui/components/DropdownMenu';
 import {
   Table,
   TableBody,
@@ -16,10 +16,10 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/ui/components/table';
-import { Badge } from '@/ui/components/badge';
-import { LoadingState } from '@/ui/components/loading';
-import { Checkbox } from '@/ui/components/checkbox';
+} from '@/ui/components/Table';
+import { Badge } from '@/ui/components/Badge';
+import { LoadingState } from '@/ui/components/Loading';
+import { Checkbox } from '@/ui/components/Checkbox';
 import { toast } from 'sonner';
 import { baseBadgeStyle, formatBadgeLabel } from '@/lib/badgeStyles';
 import { billingService } from '@/services/billing';

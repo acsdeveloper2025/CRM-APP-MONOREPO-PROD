@@ -5,7 +5,7 @@ import { documentTypesService } from '@/services/documentTypes';
 import { DocumentTypesTable } from '@/components/document-types/DocumentTypesTable';
 import { CreateDocumentTypeDialog } from '@/components/document-types/CreateDocumentTypeDialog';
 import { useUnifiedSearch } from '@/hooks/useUnifiedSearch';
-import { UnifiedSearchFilterLayout } from '@/ui/components/unified-search-filter-layout';
+import { UnifiedSearchFilterLayout } from '@/ui/components/UnifiedSearchFilterLayout';
 import { MetricCardGrid } from '@/components/shared/MetricCardGrid';
 import { PaginationStatusCard } from '@/components/shared/PaginationStatusCard';
 import { Badge } from '@/ui/components/Badge';

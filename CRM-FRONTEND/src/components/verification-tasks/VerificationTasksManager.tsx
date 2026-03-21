@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader } from '@/ui/components/card';
-import { Button } from '@/ui/components/button';
-import { Tabs, TabsList, TabsTrigger } from '@/ui/components/tabs';
+import { Card, CardContent, CardHeader } from '@/ui/components/Card';
+import { Button } from '@/ui/components/Button';
+import { Tabs, TabsList, TabsTrigger } from '@/ui/components/Tabs';
 import { useVerificationTasks } from '@/hooks/useVerificationTasks';
 import { VerificationTasksService } from '@/services/verificationTasks';
 import { VerificationTasksList } from './VerificationTasksList';

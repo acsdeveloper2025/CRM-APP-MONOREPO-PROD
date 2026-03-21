@@ -1,7 +1,7 @@
 import { ApiErrorResponse } from '@/types/api';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Monitor, Smartphone, Tablet, X, Clock } from 'lucide-react';
-import { Button } from '@/ui/components/button';
+import { Button } from '@/ui/components/Button';
 import {
   Table,
   TableBody,
@@ -9,9 +9,9 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/ui/components/table';
-import { Badge } from '@/ui/components/badge';
-import { LoadingState } from '@/ui/components/loading';
+} from '@/ui/components/Table';
+import { Badge } from '@/ui/components/Badge';
+import { LoadingState } from '@/ui/components/Loading';
 import { Avatar, AvatarFallback } from '@/ui/components/avatar';
 import { toast } from 'sonner';
 import { usersService } from '@/services/users';

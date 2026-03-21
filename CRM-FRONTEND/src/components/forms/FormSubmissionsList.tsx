@@ -1,9 +1,9 @@
 import React, { useState, useMemo } from 'react';
-import { Card, CardContent } from '@/ui/components/card';
-import { Input } from '@/ui/components/input';
-import { Button } from '@/ui/components/button';
-import { Badge } from '@/ui/components/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/ui/components/select';
+import { Card, CardContent } from '@/ui/components/Card';
+import { Input } from '@/ui/components/Input';
+import { Button } from '@/ui/components/Button';
+import { Badge } from '@/ui/components/Badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/ui/components/Select';
 import { FormSubmission } from '@/types/form';
 import { Search, FileText, Clock, User, MapPin, Camera, Eye } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';

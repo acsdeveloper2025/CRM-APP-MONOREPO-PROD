@@ -2,17 +2,17 @@ import React from 'react';
 import type { Role } from '@/types/auth';
 import { USER_ROLE_OPTIONS } from '@/types/constants';
 import { Download, Plus, Upload } from 'lucide-react';
-import { Button } from '@/ui/components/button';
+import { Button } from '@/ui/components/Button';
 import { UsersTable } from '@/components/users/UsersTable';
-import { UnifiedSearchFilterLayout, FilterGrid } from '@/ui/components/unified-search-filter-layout';
-import { Label } from '@/ui/components/label';
+import { UnifiedSearchFilterLayout, FilterGrid } from '@/ui/components/UnifiedSearchFilterLayout';
+import { Label } from '@/ui/components/Label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/ui/components/select';
+} from '@/ui/components/Select';
 
 interface UsersUsersTabPanelProps {
   userSearch: {

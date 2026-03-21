@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Key, RefreshCw, Copy, Eye, EyeOff, Mail, CheckCircle } from 'lucide-react';
 import { useMutationWithInvalidation } from '@/hooks/useStandardizedMutation';
-import { Button } from '@/ui/components/button';
+import { Button } from '@/ui/components/Button';
 import {
   Dialog,
   DialogContent,
@@ -9,10 +9,10 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/ui/components/dialog';
-import { Input } from '@/ui/components/input';
-import { Label } from '@/ui/components/label';
-import { Alert, AlertDescription } from '@/ui/components/alert';
+} from '@/ui/components/Dialog';
+import { Input } from '@/ui/components/Input';
+import { Label } from '@/ui/components/Label';
+import { Alert, AlertDescription } from '@/ui/components/Alert';
 import { toast } from 'sonner';
 import { usersService } from '@/services/users';
 import { User } from '@/types/user';

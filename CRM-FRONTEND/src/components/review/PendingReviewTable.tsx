@@ -7,9 +7,9 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/ui/components/table';
-import { Badge } from '@/ui/components/badge';
-import { Button } from '@/ui/components/button';
+} from '@/ui/components/Table';
+import { Badge } from '@/ui/components/Badge';
+import { Button } from '@/ui/components/Button';
 import { Eye, Clock, User, Building2 } from 'lucide-react';
 import { format } from 'date-fns';
 import type { Case } from '@/types/case';

@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Plus, Download, Receipt, DollarSign, TrendingUp, Calendar, AlertTriangle } from 'lucide-react';
-import { Button } from '@/ui/components/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
-import { Badge } from '@/ui/components/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/components/tabs';
+import { Button } from '@/ui/components/Button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/Card';
+import { Badge } from '@/ui/components/Badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/components/Tabs';
 import { billingService } from '@/services/billing';
 import { InvoicesTable } from '@/components/billing/InvoicesTable';
 import { CommissionsTable } from '@/components/billing/CommissionsTable';
@@ -13,13 +13,9 @@ import { CommissionSummaryCard } from '@/components/billing/CommissionSummaryCar
 import { useUnifiedSearch } from '@/hooks/useUnifiedSearch';
 import { MetricCardGrid } from '@/components/shared/MetricCardGrid';
 import { PaginationStatusCard } from '@/components/shared/PaginationStatusCard';
-import { Button as UiButton } from '@/ui/components/Button';
-import { Badge as UiBadge } from '@/ui/components/Badge';
-import { Card as UiCard } from '@/ui/components/Card';
 import { Page } from '@/ui/layout/Page';
 import { Section } from '@/ui/layout/Section';
 import { Stack } from '@/ui/primitives/Stack';
-import { Text } from '@/ui/primitives/Text';
 
 export function BillingPage() {
   const [activeTab, setActiveTab] = useState('invoices');
@@ -125,13 +121,15 @@ export function BillingPage() {
       shell
       actions={
         <Stack direction="horizontal" gap={2} wrap="wrap">
-          <UiButton variant="secondary" icon={<Download size={16} />} onClick={handleDownloadReport}>
+          <Button variant="secondary" onClick={handleDownloadReport}>
+            <Download className="mr-2 h-4 w-4" />
             Download report
-          </UiButton>
+          </Button>
           {activeTab === 'invoices' ? (
-            <UiButton icon={<Plus size={16} />} onClick={() => setShowCreateInvoice(true)}>
+            <Button onClick={() => setShowCreateInvoice(true)}>
+              <Plus className="mr-2 h-4 w-4" />
               Create invoice
-            </UiButton>
+            </Button>
           ) : null}
         </Stack>
       }
@@ -182,7 +180,7 @@ export function BillingPage() {
                 </TabsTrigger>
               </TabsList>
 
-              <UiBadge variant="neutral">{activeTab}</UiBadge>
+              <Badge variant="neutral">{activeTab}</Badge>
             </div>
 
 

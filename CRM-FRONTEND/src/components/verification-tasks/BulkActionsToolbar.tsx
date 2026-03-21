@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { Card, CardContent } from '@/ui/components/card';
-import { Button } from '@/ui/components/button';
-import { Badge } from '@/ui/components/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/ui/components/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/ui/components/dialog';
-import { Label } from '@/ui/components/label';
-import { Textarea } from '@/ui/components/textarea';
+import { Card, CardContent } from '@/ui/components/Card';
+import { Button } from '@/ui/components/Button';
+import { Badge } from '@/ui/components/Badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/ui/components/Select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/ui/components/Dialog';
+import { Label } from '@/ui/components/Label';
+import { Textarea } from '@/ui/components/Textarea';
 import { 
   Users,
   X,

@@ -6,9 +6,9 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/ui/components/table';
-import { Badge, BadgeProps } from '@/ui/components/badge';
-import { LoadingState } from '@/ui/components/loading';
+} from '@/ui/components/Table';
+import { Badge, BadgeProps } from '@/ui/components/Badge';
+import { LoadingState } from '@/ui/components/Loading';
 import { Avatar, AvatarFallback } from '@/ui/components/avatar';
 import { UserActivity } from '@/types/user';
 

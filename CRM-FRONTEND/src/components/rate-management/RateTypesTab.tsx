@@ -2,11 +2,11 @@ import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Plus, Edit, Trash2, Search } from 'lucide-react';
 import { useMutationWithInvalidation } from '@/hooks/useStandardizedMutation';
-import { Button } from '@/ui/components/button';
-import { Input } from '@/ui/components/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/card';
-import { Badge } from '@/ui/components/badge';
-import { Switch } from '@/ui/components/switch';
+import { Button } from '@/ui/components/Button';
+import { Input } from '@/ui/components/Input';
+import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/Card';
+import { Badge } from '@/ui/components/Badge';
+import { Switch } from '@/ui/components/Switch';
 import {
   Table,
   TableBody,
@@ -14,7 +14,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/ui/components/table';
+} from '@/ui/components/Table';
 import { rateTypesService, type RateType } from '@/services/rateTypes';
 import { CreateRateTypeDialog } from './CreateRateTypeDialog';
 import { EditRateTypeDialog } from './EditRateTypeDialog';

@@ -1,18 +1,18 @@
 import { useState, useEffect } from 'react';
 import { useStandardizedQuery } from '@/hooks/useStandardizedQuery';
 import { useMutationWithInvalidation } from '@/hooks/useStandardizedMutation';
-import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/card';
-import { Button } from '@/ui/components/button';
-import { Label } from '@/ui/components/label';
-import { Checkbox } from '@/ui/components/checkbox';
-import { Badge } from '@/ui/components/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/Card';
+import { Button } from '@/ui/components/Button';
+import { Label } from '@/ui/components/Label';
+import { Checkbox } from '@/ui/components/Checkbox';
+import { Badge } from '@/ui/components/Badge';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/ui/components/select';
+} from '@/ui/components/Select';
 import { clientsService } from '@/services/clients';
 import { productsService } from '@/services/products';
 import { verificationTypesService } from '@/services/verificationTypes';

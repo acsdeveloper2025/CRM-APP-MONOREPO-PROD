@@ -7,19 +7,19 @@ import { GoogleMarkerMap, type GoogleMarkerMapItem } from '@/components/maps/Goo
 import { FieldMonitoringDetailCards } from '@/components/operations/FieldMonitoringDetailCards';
 import { FieldMonitoringRosterTable } from '@/components/operations/FieldMonitoringRosterTable';
 import { FieldMonitoringSummaryCards } from '@/components/operations/FieldMonitoringSummaryCards';
-import { LoadingState } from '@/ui/components/loading';
+import { LoadingState } from '@/ui/components/Loading';
 import {
   UnifiedSearchFilterLayout,
   FilterGrid,
-} from '@/ui/components/unified-search-filter-layout';
-import { Label } from '@/ui/components/label';
+} from '@/ui/components/UnifiedSearchFilterLayout';
+import { Label } from '@/ui/components/Label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/ui/components/select';
+} from '@/ui/components/Select';
 import { useUnifiedFilters, useUnifiedSearch } from '@/hooks/useUnifiedSearch';
 import { useAreas } from '@/hooks/useAreas';
 import { usePincodes } from '@/hooks/useLocations';

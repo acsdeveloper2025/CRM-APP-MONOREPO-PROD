@@ -1,9 +1,9 @@
 import React, { useState, useRef } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/card';
-import { Button } from '@/ui/components/button';
-import { Badge } from '@/ui/components/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/ui/components/dialog';
-import { Alert, AlertDescription } from '@/ui/components/alert';
+import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/Card';
+import { Button } from '@/ui/components/Button';
+import { Badge } from '@/ui/components/Badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/ui/components/Dialog';
+import { Alert, AlertDescription } from '@/ui/components/Alert';
 import {
   Upload,
   FileText,

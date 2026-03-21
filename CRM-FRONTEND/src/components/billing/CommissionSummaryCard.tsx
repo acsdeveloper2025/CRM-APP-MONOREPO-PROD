@@ -1,5 +1,5 @@
 import { TrendingUp, DollarSign, Clock, CheckCircle } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/Card';
 import { CommissionSummary } from '@/types/billing';
 
 interface CommissionSummaryCardProps {

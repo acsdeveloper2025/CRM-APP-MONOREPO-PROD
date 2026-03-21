@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
-import { Badge } from '@/ui/components/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, } from '@/ui/components/select';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/Card';
+import { Badge } from '@/ui/components/Badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, } from '@/ui/components/Select';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area, BarChart, Bar } from 'recharts';
 import { useFormValidationStatus } from '@/hooks/useAnalytics';
 import { CheckCircle, Clock, XCircle, TrendingUp, Filter, FileText } from 'lucide-react';

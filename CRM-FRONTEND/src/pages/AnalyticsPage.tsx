@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/components/tabs';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/components/Tabs';
 import { CasesAnalytics } from '@/components/analytics/CasesAnalytics';
 import { TasksAnalytics } from '@/components/analytics/TasksAnalytics';
 import { AgentPerformanceCharts } from '@/components/analytics/AgentPerformanceCharts';

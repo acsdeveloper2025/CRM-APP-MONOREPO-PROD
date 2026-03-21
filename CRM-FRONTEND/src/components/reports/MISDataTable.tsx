@@ -1,6 +1,6 @@
 import { format } from 'date-fns';
-import { Badge } from '@/ui/components/badge';
-import { Button } from '@/ui/components/button';
+import { Badge } from '@/ui/components/Badge';
+import { Button } from '@/ui/components/Button';
 import { Box } from '@/ui/primitives/Box';
 import { Stack } from '@/ui/primitives/Stack';
 import { Text } from '@/ui/primitives/Text';

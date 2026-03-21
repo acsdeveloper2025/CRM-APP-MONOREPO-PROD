@@ -1,10 +1,10 @@
 import { Check, X, FileText, Calendar, Hash, Type, List, MessageSquare } from 'lucide-react';
-import { Input } from '@/ui/components/input';
-import { Textarea } from '@/ui/components/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/ui/components/select';
-import { Checkbox } from '@/ui/components/checkbox';
-import { Badge } from '@/ui/components/badge';
-import { Label } from '@/ui/components/label';
+import { Input } from '@/ui/components/Input';
+import { Textarea } from '@/ui/components/Textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/ui/components/Select';
+import { Checkbox } from '@/ui/components/Checkbox';
+import { Badge } from '@/ui/components/Badge';
+import { Label } from '@/ui/components/Label';
 import { FormField } from '@/types/form';
 import { Box } from '@/ui/primitives/Box';
 import { Stack } from '@/ui/primitives/Stack';

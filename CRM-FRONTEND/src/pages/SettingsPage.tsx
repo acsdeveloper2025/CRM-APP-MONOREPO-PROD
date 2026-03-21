@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
-import { Button } from '@/ui/components/button';
-import { Input } from '@/ui/components/input';
-import { Label } from '@/ui/components/label';
-import { Switch } from '@/ui/components/switch';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/ui/components/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/components/tabs';
-import { Separator } from '@/ui/components/separator';
-import { Badge } from '@/ui/components/badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/Card';
+import { Button } from '@/ui/components/Button';
+import { Input } from '@/ui/components/Input';
+import { Label } from '@/ui/components/Label';
+import { Switch } from '@/ui/components/Switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/ui/components/Select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/components/Tabs';
+import { Separator } from '@/ui/components/Separator';
+import { Badge } from '@/ui/components/Badge';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
 import { toast } from 'sonner';
@@ -23,8 +23,6 @@ import {
   FiSettings
 } from 'react-icons/fi';
 import { MetricCardGrid } from '@/components/shared/MetricCardGrid';
-import { Button as UiButton } from '@/ui/components/Button';
-import { Badge as UiBadge } from '@/ui/components/Badge';
 import { Page } from '@/ui/layout/Page';
 import { Section } from '@/ui/layout/Section';
 import { Stack } from '@/ui/primitives/Stack';
@@ -133,9 +131,9 @@ export const SettingsPage: React.FC = () => {
       subtitle="Manage account controls, notification behavior, and workspace preferences."
       shell
       actions={
-        <UiButton onClick={handleSaveSettings} disabled={isLoading} icon={isLoading ? <FiRefreshCw className="h-4 w-4 animate-spin" /> : <FiSave className="h-4 w-4" />}>
+        <Button onClick={handleSaveSettings} disabled={isLoading} icon={isLoading ? <FiRefreshCw className="h-4 w-4 animate-spin" /> : <FiSave className="h-4 w-4" />}>
           Save changes
-        </UiButton>
+        </Button>
       }
     >
       <Section>

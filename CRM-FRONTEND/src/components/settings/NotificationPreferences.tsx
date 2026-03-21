@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Bell, Clock, Smartphone, Monitor, AlertCircle, CheckCircle, Save } from 'lucide-react';
-import { Button } from '@/ui/components/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
-import { Switch } from '@/ui/components/switch';
-import { Label } from '@/ui/components/label';
-import { Input } from '@/ui/components/input';
-import { Separator } from '@/ui/components/separator';
-import { Badge } from '@/ui/components/badge';
+import { Button } from '@/ui/components/Button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/Card';
+import { Switch } from '@/ui/components/Switch';
+import { Label } from '@/ui/components/Label';
+import { Input } from '@/ui/components/Input';
+import { Separator } from '@/ui/components/Separator';
+import { Badge } from '@/ui/components/Badge';
 import { toast } from 'sonner';
 import { apiService } from '@/services/api';
 interface NotificationPreferences {

@@ -1,7 +1,7 @@
 import React from 'react';
-import { Button } from '@/ui/components/button';
-import { Badge } from '@/ui/components/badge';
-import { Checkbox } from '@/ui/components/checkbox';
+import { Button } from '@/ui/components/Button';
+import { Badge } from '@/ui/components/Badge';
+import { Checkbox } from '@/ui/components/Checkbox';
 import {
   Table,
   TableBody,
@@ -9,13 +9,13 @@ import {
   TableHead,
   TableHeader,
   TableRow
-} from '@/ui/components/table';
+} from '@/ui/components/Table';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/ui/components/dropdown-menu';
+} from '@/ui/components/DropdownMenu';
 import {
   ChevronDown,
   UserCheck,

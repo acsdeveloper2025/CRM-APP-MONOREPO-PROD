@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { MapPin } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/components/tabs';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/Card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/components/Tabs';
 import { Atom } from 'react-loading-indicators';
 import { usePincodes } from '@/hooks/useLocations';
 import {

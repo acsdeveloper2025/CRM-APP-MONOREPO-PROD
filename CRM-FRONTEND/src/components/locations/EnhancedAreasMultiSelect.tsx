@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { locationsService } from '@/services/locations';
-import { MultiSelectDropdown, MultiSelectOption } from '@/ui/components/multi-select-dropdown';
+import { MultiSelectDropdown, MultiSelectOption } from '@/ui/components/MultiSelectDropdown';
 import { Box } from '@/ui/primitives/Box';
 import { Stack } from '@/ui/primitives/Stack';
 import { Text } from '@/ui/primitives/Text';

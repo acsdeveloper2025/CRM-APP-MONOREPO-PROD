@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/Card';
 import { BarChart3, TrendingUp, Users, DollarSign, Calendar, Download } from 'lucide-react';
 import { commissionManagementApi } from '../../services/commissionManagementApi';
 import { CommissionStats } from '../../types/commission';

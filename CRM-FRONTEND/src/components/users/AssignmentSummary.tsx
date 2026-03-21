@@ -1,6 +1,6 @@
 import React from 'react';
 import { MapPin, Info } from 'lucide-react';
-import { Badge } from '@/ui/components/badge';
+import { Badge } from '@/ui/components/Badge';
 import type { PincodeAssignment } from '@/types/territoryAssignment';
 
 interface AssignmentSummaryProps {

@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/card';
-import { Button } from '@/ui/components/button';
-import { Badge } from '@/ui/components/badge';
-import { Separator } from '@/ui/components/separator';
+import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/Card';
+import { Button } from '@/ui/components/Button';
+import { Badge } from '@/ui/components/Badge';
+import { Separator } from '@/ui/components/Separator';
 import { Brain, FileText, CheckCircle, Clock, Download, RefreshCw, TrendingUp, Shield, Target } from 'lucide-react';
 import { toast } from 'sonner';
 import { aiReportsService } from '@/services/aiReports';

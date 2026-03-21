@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/ui/components/dialog';
-import { Badge } from '@/ui/components/badge';
-import { Button } from '@/ui/components/button';
-import { Card, CardContent } from '@/ui/components/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/ui/components/Dialog';
+import { Badge } from '@/ui/components/Badge';
+import { Button } from '@/ui/components/Button';
+import { Card, CardContent } from '@/ui/components/Card';
 import { MapPin, Download, Eye, Camera, User } from 'lucide-react';
 import { FormPhoto } from '@/types/form';
 import { formatDistanceToNow } from 'date-fns';

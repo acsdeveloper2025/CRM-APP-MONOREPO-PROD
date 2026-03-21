@@ -79,7 +79,7 @@ function App() {
               <LayoutProvider>
                 <SessionHandler />
                 <Router>
-                  <div className="min-h-screen bg-[#FAFAFA]">
+                  <div className="min-h-screen ui-root">
                     <AppRoutes />
                   </div>
                 </Router>

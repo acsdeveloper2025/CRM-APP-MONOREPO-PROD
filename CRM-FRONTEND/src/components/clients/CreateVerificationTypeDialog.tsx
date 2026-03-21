@@ -10,7 +10,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/ui/components/dialog';
+} from '@/ui/components/Dialog';
 import {
   Form,
   FormControl,
@@ -20,7 +20,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/ui/components/form';
-import { Input } from '@/ui/components/input';
+import { Input } from '@/ui/components/Input';
 import { Stack } from '@/ui/primitives/Stack';
 import { verificationTypesService } from '@/services/verificationTypes';
 

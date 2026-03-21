@@ -9,7 +9,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/ui/components/dialog';
+} from '@/ui/components/Dialog';
 import {
   Form,
   FormControl,
@@ -19,8 +19,8 @@ import {
   FormLabel,
   FormMessage,
 } from '@/ui/components/form';
-import { Input } from '@/ui/components/input';
-import { Button } from '@/ui/components/button';
+import { Input } from '@/ui/components/Input';
+import { Button } from '@/ui/components/Button';
 import { Stack } from '@/ui/primitives/Stack';
 import { Loader2 } from 'lucide-react';
 import { locationsService } from '@/services/locations';

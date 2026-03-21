@@ -7,7 +7,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/ui/components/table';
+} from '@/ui/components/Table';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,7 +15,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/ui/components/dropdown-menu';
+} from '@/ui/components/DropdownMenu';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,9 +25,9 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/ui/components/alert-dialog';
-import { Button } from '@/ui/components/button';
-import { Badge } from '@/ui/components/badge';
+} from '@/ui/components/AlertDialog';
+import { Button } from '@/ui/components/Button';
+import { Badge } from '@/ui/components/Badge';
 import { MoreHorizontal, Edit, Trash2, Users, Building, Crown, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';

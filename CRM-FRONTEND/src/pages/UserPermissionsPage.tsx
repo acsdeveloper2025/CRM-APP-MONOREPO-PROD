@@ -1,7 +1,7 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, User, Shield, Building2, Package } from 'lucide-react';
-import { Alert, AlertDescription } from '@/ui/components/alert';
+import { Alert, AlertDescription } from '@/ui/components/Alert';
 import { usersService } from '@/services/users';
 import { ClientAssignmentSection } from '@/components/users/ClientAssignmentSection';
 import { ProductAssignmentSection } from '@/components/users/ProductAssignmentSection';
@@ -17,6 +17,7 @@ import { MetricCardGrid } from '@/components/shared/MetricCardGrid';
 import { Badge } from '@/ui/components/Badge';
 import { Button } from '@/ui/components/Button';
 import { Card } from '@/ui/components/Card';
+import { LoadingSkeleton } from '@/ui/components/Loading';
 import { Page } from '@/ui/layout/Page';
 import { Section } from '@/ui/layout/Section';
 import { Stack } from '@/ui/primitives/Stack';
@@ -63,11 +64,7 @@ export function UserPermissionsPage() {
           <Card tone="strong" staticCard>
             <Stack gap={3}>
               <Text as="h2" variant="headline">Loading User Permissions...</Text>
-            <div className="animate-pulse space-y-4">
-              <div className="h-4 bg-slate-100 dark:bg-slate-800/60 rounded w-3/4" />
-              <div className="h-4 bg-slate-100 dark:bg-slate-800/60 rounded w-1/2" />
-              <div className="h-4 bg-slate-100 dark:bg-slate-800/60 rounded w-2/3" />
-            </div>
+              <LoadingSkeleton variant="text" lines={3} />
             </Stack>
           </Card>
         </Section>

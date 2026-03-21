@@ -1,20 +1,20 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Edit, Trash2, Download } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/ui/components/dialog';
-import { Button } from '@/ui/components/button';
-import { Input } from '@/ui/components/input';
-import { Label } from '@/ui/components/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/ui/components/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/ui/components/table';
+import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/Card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/ui/components/Dialog';
+import { Button } from '@/ui/components/Button';
+import { Input } from '@/ui/components/Input';
+import { Label } from '@/ui/components/Label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/ui/components/Select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/ui/components/Table';
 import {
   MobileTableCard,
   MobileTableField,
-} from '@/ui/components/responsive-table';
-import { Badge } from '@/ui/components/badge';
-import { SearchableSelect } from '@/ui/components/searchable-select';
-import { UnifiedSearchInput } from '@/ui/components/unified-search-input';
-import { UnifiedFilterPanel, FilterGrid } from '@/ui/components/unified-filter-panel';
+} from '@/ui/components/ResponsiveTable';
+import { Badge } from '@/ui/components/Badge';
+import { SearchableSelect } from '@/ui/components/SearchableSelect';
+import { UnifiedSearchInput } from '@/ui/components/UnifiedSearchInput';
+import { UnifiedFilterPanel, FilterGrid } from '@/ui/components/UnifiedFilterPanel';
 import { useUnifiedSearch, useUnifiedFilters } from '@/hooks/useUnifiedSearch';
 import { commissionManagementApi } from '../../services/commissionManagementApi';
 import { FieldUserCommissionAssignment, CreateFieldUserCommissionAssignmentData } from '../../types/commission';

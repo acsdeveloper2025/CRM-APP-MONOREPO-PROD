@@ -3,9 +3,9 @@ import { useQuery } from '@tanstack/react-query';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import type { Role } from '@/types/auth';
 import { Plus, Upload, Download } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
-import { Badge } from '@/ui/components/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/components/tabs';
+import { Card, CardContent, CardHeader } from '@/ui/components/Card';
+import { Badge } from '@/ui/components/Badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/components/Tabs';
 import { usersService } from '@/services/users';
 import { CreateUserDialog } from '@/components/users/CreateUserDialog';
 import { BulkImportUsersDialog } from '@/components/users/BulkImportUsersDialog';
@@ -14,7 +14,7 @@ import { UsersActivitiesTabPanel } from '@/components/users/UsersActivitiesTabPa
 import { UsersSessionsTabPanel } from '@/components/users/UsersSessionsTabPanel';
 import { UsersUsersTabPanel } from '@/components/users/UsersUsersTabPanel';
 import { useUnifiedSearch, useUnifiedFilters } from '@/hooks/useUnifiedSearch';
-import { LoadingState } from '@/ui/components/loading';
+import { LoadingState } from '@/ui/components/Loading';
 import { useUserActivities } from '@/hooks/useUserActivities';
 import { useUserSessions } from '@/hooks/useUserSessions';
 import { usePermissionContext } from '@/contexts/PermissionContext';
@@ -22,6 +22,8 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/ui/components/Button';
 import { Page } from '@/ui/layout/Page';
 import { Section } from '@/ui/layout/Section';
+import { Stack } from '@/ui/primitives/Stack';
+import { Text } from '@/ui/primitives/Text';
 
 interface UserFilters extends Record<string, unknown> {
   role?: Role;
@@ -46,9 +48,9 @@ export function UsersPage() {
 
   const queryTab = searchParams.get('tab');
   const rawTab = tabParam || queryTab || 'users';
-  const activeTab: UserTab = validTabs.includes(rawTab as (typeof validTabs)[number])
-    ? (rawTab as UserTab)
-    : 'users';
+  const activeTab: UserTab = (validTabs.includes(rawTab as any)
+    ? rawTab
+    : 'users') as UserTab;
 
   useEffect(() => {
     if (!tabParam) {
@@ -229,7 +231,7 @@ export function UsersPage() {
       <Button variant="secondary" icon={<Download size={16} />} onClick={() => handleExportUsers('EXCEL')}>
         Export
       </Button>
-      <Button variant="primary" icon={<Plus size={16} />} onClick={() => setShowCreateUser(true)}>
+      <Button variant="secondary" icon={<Plus size={16} />} onClick={() => setShowCreateUser(true)}>
         Add User
       </Button>
     </>
@@ -249,16 +251,14 @@ export function UsersPage() {
             <UserStatsCards stats={resolvedUserStats} />
           )}
 
-          <Card>
+          <Card className="ui-stagger">
             <CardHeader>
-              <div {...{ className: "flex items-center justify-between" }}>
-                <div>
-                  <CardTitle>User Management System</CardTitle>
-                  <CardDescription>
-                    Comprehensive user administration and access control
-                  </CardDescription>
-                </div>
-              </div>
+              <Stack gap={2}>
+                <Text variant="headline">User Management System</Text>
+                <Text variant="body-sm" tone="muted">
+                  Comprehensive user administration and access control
+                </Text>
+              </Stack>
             </CardHeader>
             <CardContent {...{ className: "p-4 sm:p-6" }}>
               <Tabs value={activeTab} onValueChange={handleTabChange} {...{ className: "space-y-4" }}>

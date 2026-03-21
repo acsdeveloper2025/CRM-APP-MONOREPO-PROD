@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Check, ChevronsUpDown, Search, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Button } from '@/ui/components/button';
-import { Label } from '@/ui/components/label';
-import { Badge } from '@/ui/components/badge';
+import { Button } from '@/ui/components/Button';
+import { Label } from '@/ui/components/Label';
+import { Badge } from '@/ui/components/Badge';
 import {
   Command,
   CommandEmpty,

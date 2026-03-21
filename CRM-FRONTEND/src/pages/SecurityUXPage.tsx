@@ -1,18 +1,17 @@
 import { useState } from 'react';
 import { Shield, Monitor, Palette, AlertTriangle, RefreshCw, Eye, EyeOff } from 'lucide-react';
-import { Card as LegacyCard, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
-import { Button as LegacyButton } from '@/ui/components/button';
-import { Input } from '@/ui/components/input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/components/tabs';
-import { Badge as LegacyBadge } from '@/ui/components/badge';
+import { Card, CardContent, CardDescription, CardHeader } from '@/ui/components/Card';
+import { Button } from '@/ui/components/Button';
+import { Input } from '@/ui/components/Input';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/components/Tabs';
+import { Badge } from '@/ui/components/Badge';
 import { useTheme } from '@/hooks/useTheme';
 import { useResponsive } from '@/hooks/useResponsive';
 import { useErrorHandling } from '@/hooks/useErrorHandling';
-import { LoadingSpinner, LoadingOverlay, LoadingCard, LoadingSkeleton, LoadingButton } from '@/ui/components/loading';
+import { LoadingSpinner, LoadingOverlay, LoadingCard, LoadingSkeleton, LoadingButton } from '@/ui/components/Loading';
 import { SecurityUtils } from '@/utils/security';
 import { toast } from 'sonner';
 import { MetricCardGrid } from '@/components/shared/MetricCardGrid';
-import { Badge } from '@/ui/components/Badge';
 import { Page } from '@/ui/layout/Page';
 import { Section } from '@/ui/layout/Section';
 import { Stack } from '@/ui/primitives/Stack';
@@ -100,8 +99,8 @@ export function SecurityUXPage() {
         </Stack>
       </Section>
 
-      <Section>
-        <LegacyCard>
+      <Section className="ui-stagger">
+        <Card>
           <CardContent className="pt-6">
             <Tabs defaultValue="theme" className="space-y-4">
               <TabsList className="grid w-full grid-cols-5">
@@ -114,88 +113,81 @@ export function SecurityUXPage() {
 
               <TabsContent value="theme" className="space-y-4">
                 <div className="grid gap-4 md:grid-cols-2">
-                  <LegacyCard>
+                  <Card>
                     <CardHeader>
-                      <CardTitle>Theme Controls</CardTitle>
-                      <CardDescription>Manage application theme and appearance</CardDescription>
+                      <Text variant="headline">Theme Controls</Text>
+                      <Text variant="body-sm" tone="muted">Manage application theme and appearance</Text>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <span>Current Theme:</span>
-                        <LegacyBadge variant="outline">{theme}</LegacyBadge>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span>Actual Theme:</span>
-                        <LegacyBadge variant={actualTheme === 'dark' ? 'default' : 'secondary'}>{actualTheme}</LegacyBadge>
-                      </div>
-                      <div className="space-y-2">
-                        <LegacyButton onClick={() => setTheme('light')} variant="outline" className="w-full">Light Theme</LegacyButton>
-                        <LegacyButton onClick={() => setTheme('dark')} variant="outline" className="w-full">Dark Theme</LegacyButton>
-                        <LegacyButton onClick={() => setTheme('system')} variant="outline" className="w-full">System Theme</LegacyButton>
-                        <LegacyButton onClick={toggleTheme} className="w-full">Toggle Theme</LegacyButton>
-                      </div>
+                      <Stack direction="horizontal" justify="space-between" align="center">
+                        <Text variant="body-sm">Current Theme:</Text>
+                        <Badge variant="outline">{theme}</Badge>
+                      </Stack>
+                      <Stack direction="horizontal" justify="space-between" align="center">
+                        <Text variant="body-sm">Actual Theme:</Text>
+                        <Badge variant={actualTheme === 'dark' ? 'accent' : 'secondary'}>{actualTheme}</Badge>
+                      </Stack>
+                      <Stack gap={2}>
+                        <Button onClick={() => setTheme('light')} variant="outline">Light Theme</Button>
+                        <Button onClick={() => setTheme('dark')} variant="outline">Dark Theme</Button>
+                        <Button onClick={() => setTheme('system')} variant="outline">System Theme</Button>
+                        <Button onClick={toggleTheme}>Toggle Theme</Button>
+                      </Stack>
                     </CardContent>
-                  </LegacyCard>
-
-                  <LegacyCard>
-                    <CardHeader>
-                      <CardTitle>Theme Preview</CardTitle>
-                      <CardDescription>See how different components look in current theme</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="p-4 border rounded-lg">
-                        <h4 className="font-medium mb-2">Sample Content</h4>
-                        <p className="text-gray-600 mb-3">This is how text appears in the current theme.</p>
-                        <div className="flex space-x-2">
-                          <LegacyButton size="sm">Primary</LegacyButton>
-                          <LegacyButton size="sm" variant="outline">Outline</LegacyButton>
-                          <LegacyButton size="sm" variant="secondary">Secondary</LegacyButton>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </LegacyCard>
+                  </Card>
                 </div>
               </TabsContent>
-
-              <TabsContent value="responsive" className="space-y-4">
+               <TabsContent value="responsive" className="space-y-4">
                 <div className="grid gap-4 md:grid-cols-2">
-                  <LegacyCard>
+                  <Card>
                     <CardHeader>
-                      <CardTitle>Responsive Information</CardTitle>
-                      <CardDescription>Current device and breakpoint information</CardDescription>
+                      <Text variant="headline">Responsive Information</Text>
+                      <Text variant="body-sm" tone="muted">Current device and breakpoint information</Text>
                     </CardHeader>
                     <CardContent className="space-y-3">
                       <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div><span className="text-gray-600">Breakpoint:</span><LegacyBadge variant="outline" className="ml-2">{currentBreakpoint}</LegacyBadge></div>
-                        <div><span className="text-gray-600">Device:</span><LegacyBadge variant="outline" className="ml-2">{isMobile ? 'Mobile' : isTablet ? 'Tablet' : 'Desktop'}</LegacyBadge></div>
-                        <div><span className="text-gray-600">Width:</span><span className="ml-2 font-mono">{windowSize.width}px</span></div>
-                        <div><span className="text-gray-600">Height:</span><span className="ml-2 font-mono">{windowSize.height}px</span></div>
+                        <Stack direction="horizontal" gap={2} align="center">
+                          <Text variant="body-sm" tone="muted">Breakpoint:</Text>
+                          <Badge variant="outline">{currentBreakpoint}</Badge>
+                        </Stack>
+                        <Stack direction="horizontal" gap={2} align="center">
+                          <Text variant="body-sm" tone="muted">Device:</Text>
+                          <Badge variant="outline">{isMobile ? 'Mobile' : isTablet ? 'Tablet' : 'Desktop'}</Badge>
+                        </Stack>
+                        <Stack direction="horizontal" gap={2} align="center">
+                          <Text variant="body-sm" tone="muted">Width:</Text>
+                          <Text variant="body-sm" className="font-mono">{windowSize.width}px</Text>
+                        </Stack>
+                        <Stack direction="horizontal" gap={2} align="center">
+                          <Text variant="body-sm" tone="muted">Height:</Text>
+                          <Text variant="body-sm" className="font-mono">{windowSize.height}px</Text>
+                        </Stack>
                       </div>
                     </CardContent>
-                  </LegacyCard>
+                  </Card>
 
-                  <LegacyCard>
+                  <Card>
                     <CardHeader>
-                      <CardTitle>Responsive Grid</CardTitle>
-                      <CardDescription>Grid that adapts to screen size</CardDescription>
+                      <Text variant="headline">Responsive Grid</Text>
+                      <Text variant="body-sm" tone="muted">Grid that adapts to screen size</Text>
                     </CardHeader>
                     <CardContent>
                       <div className="grid gap-2 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
                         {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-                          <div key={i} className="h-16 bg-slate-100 dark:bg-slate-800/60 rounded-lg flex items-center justify-center">{i}</div>
+                          <div key={i} className="h-16 bg-content-accent/5 rounded-lg flex items-center justify-center font-medium border border-content-accent/10">{i}</div>
                         ))}
                       </div>
                     </CardContent>
-                  </LegacyCard>
+                  </Card>
                 </div>
               </TabsContent>
 
               <TabsContent value="loading" className="space-y-4">
                 <div className="grid gap-4 md:grid-cols-2">
-                  <LegacyCard>
+                  <Card>
                     <CardHeader>
-                      <CardTitle>Loading Components</CardTitle>
-                      <CardDescription>Various loading states and spinners</CardDescription>
+                      <Text variant="headline">Loading Components</Text>
+                      <Text variant="body-sm" tone="muted">Various loading states and spinners</Text>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <div className="space-y-3">
@@ -207,12 +199,12 @@ export function SecurityUXPage() {
                         Start Loading Demo
                       </LoadingButton>
                     </CardContent>
-                  </LegacyCard>
+                  </Card>
 
-                  <LegacyCard>
+                  <Card>
                     <CardHeader>
-                      <CardTitle>Loading Skeletons</CardTitle>
-                      <CardDescription>Skeleton loaders for better UX</CardDescription>
+                      <Text variant="headline">Loading Skeletons</Text>
+                      <Text variant="body-sm" tone="muted">Skeleton loaders for better UX</Text>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <LoadingSkeleton variant="text" lines={3} />
@@ -222,7 +214,7 @@ export function SecurityUXPage() {
                       </div>
                       <LoadingSkeleton variant="rectangular" height="100px" />
                     </CardContent>
-                  </LegacyCard>
+                  </Card>
                 </div>
 
                 <LoadingOverlay isLoading={demoLoading} loadingText="Demo in progress...">
@@ -232,26 +224,26 @@ export function SecurityUXPage() {
 
               <TabsContent value="errors" className="space-y-4">
                 <div className="grid gap-4 md:grid-cols-2">
-                  <LegacyCard>
+                  <Card>
                     <CardHeader>
-                      <CardTitle>Error Simulation</CardTitle>
-                      <CardDescription>Test error handling and display</CardDescription>
+                      <Text variant="headline">Error Simulation</Text>
+                      <Text variant="body-sm" tone="muted">Test error handling and display</Text>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                      <LegacyButton onClick={simulateError} variant="destructive" className="w-full">Simulate Error</LegacyButton>
-                      <LegacyButton onClick={simulateAsyncOperation} variant="outline" className="w-full">Simulate Async Error</LegacyButton>
-                      <LegacyButton onClick={clearErrors} variant="secondary" className="w-full">Clear Errors</LegacyButton>
+                      <Button onClick={simulateError} variant="destructive" className="w-full">Simulate Error</Button>
+                      <Button onClick={simulateAsyncOperation} variant="outline" className="w-full">Simulate Async Error</Button>
+                      <Button onClick={clearErrors} variant="secondary" className="w-full">Clear Errors</Button>
                     </CardContent>
-                  </LegacyCard>
+                  </Card>
 
-                  <LegacyCard>
+                  <Card>
                     <CardHeader>
-                      <CardTitle>Recent Errors</CardTitle>
-                      <CardDescription>{errors.length} error(s) logged</CardDescription>
+                      <Text variant="headline">Recent Errors</Text>
+                      <Text variant="body-sm" tone="muted">{errors.length} error(s) logged</Text>
                     </CardHeader>
                     <CardContent>
                       {errors.length === 0 ? (
-                        <p className="text-gray-600 text-sm">No errors logged</p>
+                        <Text variant="body-sm" tone="muted">No errors logged</Text>
                       ) : (
                         <div className="space-y-2 max-h-40 overflow-y-auto">
                           {errors.slice(0, 3).map((error) => (
@@ -263,16 +255,17 @@ export function SecurityUXPage() {
                         </div>
                       )}
                     </CardContent>
-                  </LegacyCard>
+                  </Card>
                 </div>
               </TabsContent>
 
+
               <TabsContent value="security" className="space-y-4">
                 <div className="grid gap-4 md:grid-cols-2">
-                  <LegacyCard>
+                  <Card>
                     <CardHeader>
-                      <CardTitle>Input Validation</CardTitle>
-                      <CardDescription>Test security validation features</CardDescription>
+                      <Text variant="headline">Input Validation</Text>
+                      <Text variant="body-sm" tone="muted">Test security validation features</Text>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <div className="space-y-2">
@@ -281,7 +274,7 @@ export function SecurityUXPage() {
                           value={testInput}
                           onChange={(e) => setTestInput(e.target.value)}
                         />
-                        <LegacyButton onClick={testSecurity} className="w-full">Test Security Validation</LegacyButton>
+                        <Button onClick={testSecurity} className="w-full">Test Security Validation</Button>
                       </div>
 
                       <div className="space-y-2">
@@ -292,43 +285,42 @@ export function SecurityUXPage() {
                             value={passwordInput}
                             onChange={(e) => setPasswordInput(e.target.value)}
                           />
-                          <LegacyButton
-                            variant="ghost"
-                            size="sm"
-                            className="absolute right-0 top-0 h-full px-3"
+                          <button
+                            type="button"
+                            className="absolute right-0 top-0 h-full px-3 flex items-center justify-center opacity-70 hover:opacity-100 transition-opacity"
                             onClick={() => setShowPassword(!showPassword)}
                           >
                             {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                          </LegacyButton>
+                          </button>
                         </div>
-                        <LegacyButton onClick={testPasswordStrength} className="w-full">Test Password Strength</LegacyButton>
+                        <Button onClick={testPasswordStrength} className="w-full">Test Password Strength</Button>
                       </div>
                     </CardContent>
-                  </LegacyCard>
+                  </Card>
 
-                  <LegacyCard>
+                  <Card>
                     <CardHeader>
-                      <CardTitle>Browser Security</CardTitle>
-                      <CardDescription>Current browser security capabilities</CardDescription>
+                      <Text variant="headline">Browser Security</Text>
+                      <Text variant="body-sm" tone="muted">Current browser security capabilities</Text>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-2 text-sm">
                         {Object.entries(browserSecurity).map(([key, value]) => (
                           <div key={key} className="flex items-center justify-between">
                             <span className="capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}:</span>
-                            <LegacyBadge variant={value ? 'default' : 'destructive'}>
+                            <Badge variant={value ? 'default' : 'destructive'}>
                               {value ? 'Yes' : 'No'}
-                            </LegacyBadge>
+                            </Badge>
                           </div>
                         ))}
                       </div>
                     </CardContent>
-                  </LegacyCard>
+                  </Card>
                 </div>
               </TabsContent>
             </Tabs>
           </CardContent>
-        </LegacyCard>
+        </Card>
       </Section>
     </Page>
   );

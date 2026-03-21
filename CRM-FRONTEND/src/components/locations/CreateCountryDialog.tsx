@@ -10,7 +10,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/ui/components/dialog';
+} from '@/ui/components/Dialog';
 import {
   Form,
   FormControl,
@@ -25,8 +25,8 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/ui/components/select';
-import { Input } from '@/ui/components/input';
+} from '@/ui/components/Select';
+import { Input } from '@/ui/components/Input';
 import { Stack } from '@/ui/primitives/Stack';
 import { locationsService } from '@/services/locations';
 import type { CreateCountryData } from '@/types/location';

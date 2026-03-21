@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { Upload, Download, FileText, AlertCircle, CheckCircle } from 'lucide-react';
 import { useMutationWithInvalidation } from '@/hooks/useStandardizedMutation';
-import { Button } from '@/ui/components/button';
+import { Button } from '@/ui/components/Button';
 import {
   Dialog,
   DialogContent,
@@ -9,8 +9,8 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/ui/components/dialog';
-import { Alert, AlertDescription } from '@/ui/components/alert';
+} from '@/ui/components/Dialog';
+import { Alert, AlertDescription } from '@/ui/components/Alert';
 import { Progress } from '@/ui/components/progress';
 import { toast } from 'sonner';
 import { usersService } from '@/services/users';
