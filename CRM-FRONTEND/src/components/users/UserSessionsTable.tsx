@@ -1,7 +1,7 @@
 import { ApiErrorResponse } from '@/types/api';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Monitor, Smartphone, Tablet, X, Clock } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/ui/components/button';
 import {
   Table,
   TableBody,
@@ -9,10 +9,10 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { LoadingState } from '@/components/ui/loading';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+} from '@/ui/components/table';
+import { Badge } from '@/ui/components/badge';
+import { LoadingState } from '@/ui/components/loading';
+import { Avatar, AvatarFallback } from '@/ui/components/avatar';
 import { toast } from 'sonner';
 import { usersService } from '@/services/users';
 import { UserSession } from '@/types/user';
@@ -40,11 +40,11 @@ export function UserSessionsTable({ data, isLoading }: UserSessionsTableProps) {
   const getDeviceIcon = (userAgent: string) => {
     const ua = userAgent.toLowerCase();
     if (ua.includes('mobile') || ua.includes('android') || ua.includes('iphone')) {
-      return <Smartphone className="h-4 w-4" />;
+      return <Smartphone {...{ className: "h-4 w-4" }} />;
     } else if (ua.includes('tablet') || ua.includes('ipad')) {
-      return <Tablet className="h-4 w-4" />;
+      return <Tablet {...{ className: "h-4 w-4" }} />;
     } else {
-      return <Monitor className="h-4 w-4" />;
+      return <Monitor {...{ className: "h-4 w-4" }} />;
     }
   };
 
@@ -63,10 +63,10 @@ export function UserSessionsTable({ data, isLoading }: UserSessionsTableProps) {
 
   if (!data || data.length === 0) {
     return (
-      <div className="text-center py-12">
-        <Monitor className="mx-auto h-12 w-12 text-gray-600" />
-        <h3 className="mt-4 text-lg font-semibold">No active sessions</h3>
-        <p className="text-gray-600">
+      <div {...{ className: "text-center py-12" }}>
+        <Monitor {...{ className: "mx-auto h-12 w-12 text-gray-600" }} />
+        <h3 {...{ className: "mt-4 text-lg font-semibold" }}>No active sessions</h3>
+        <p {...{ className: "text-gray-600" }}>
           User sessions will appear here when users are logged in.
         </p>
       </div>
@@ -74,7 +74,7 @@ export function UserSessionsTable({ data, isLoading }: UserSessionsTableProps) {
   }
 
   return (
-    <div className="rounded-md border overflow-auto">
+    <div {...{ className: "rounded-md border overflow-auto" }}>
       <Table>
         <TableHeader>
           <TableRow>
@@ -84,33 +84,33 @@ export function UserSessionsTable({ data, isLoading }: UserSessionsTableProps) {
             <TableHead>Status</TableHead>
             <TableHead>Login Time</TableHead>
             <TableHead>Expiry Time</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
+            <TableHead {...{ className: "text-right" }}>Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {data.map((session) => (
             <TableRow key={session.id}>
               <TableCell>
-                <div className="flex items-center space-x-3">
-                  <Avatar className="h-8 w-8">
+                <div {...{ className: "flex items-center space-x-3" }}>
+                  <Avatar {...{ className: "h-8 w-8" }}>
                     <AvatarFallback>
                       {(session.userName || 'U').split(' ').map(n => n[0]).join('').toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   <div>
-                    <div className="font-medium">{session.userName || 'Unknown User'}</div>
-                    <div className="text-sm text-gray-600">{session.username}</div>
+                    <div {...{ className: "font-medium" }}>{session.userName || 'Unknown User'}</div>
+                    <div {...{ className: "text-sm text-gray-600" }}>{session.username}</div>
                   </div>
                 </div>
               </TableCell>
               <TableCell>
-                <div className="flex items-center space-x-2">
+                <div {...{ className: "flex items-center space-x-2" }}>
                   {getDeviceIcon(session.userAgent || '')}
-                  <span className="text-sm">{getDeviceInfo(session.userAgent || '')}</span>
+                  <span {...{ className: "text-sm" }}>{getDeviceInfo(session.userAgent || '')}</span>
                 </div>
               </TableCell>
               <TableCell>
-                <span className="text-sm font-mono">{session.ipAddress || 'N/A'}</span>
+                <span {...{ className: "text-sm font-mono" }}>{session.ipAddress || 'N/A'}</span>
               </TableCell>
               <TableCell>
                 <Badge variant={session.isActive ? 'default' : 'secondary'}>
@@ -118,19 +118,19 @@ export function UserSessionsTable({ data, isLoading }: UserSessionsTableProps) {
                 </Badge>
               </TableCell>
               <TableCell>
-                <div className="flex items-center space-x-1">
-                  <Clock className="h-3 w-3 text-gray-600" />
-                  <span className="text-sm">
+                <div {...{ className: "flex items-center space-x-1" }}>
+                  <Clock {...{ className: "h-3 w-3 text-gray-600" }} />
+                  <span {...{ className: "text-sm" }}>
                     {new Date(session.createdAt).toLocaleString()}
                   </span>
                 </div>
               </TableCell>
               <TableCell>
-                <span className="text-sm">
+                <span {...{ className: "text-sm" }}>
                   {session.expiresAt ? new Date(session.expiresAt).toLocaleString() : 'N/A'}
                 </span>
               </TableCell>
-              <TableCell className="text-right">
+              <TableCell {...{ className: "text-right" }}>
                 {session.isActive && (
                   <Button
                     variant="outline"
@@ -138,7 +138,7 @@ export function UserSessionsTable({ data, isLoading }: UserSessionsTableProps) {
                     onClick={() => terminateSessionMutation.mutate(session.id)}
                     disabled={terminateSessionMutation.isPending}
                   >
-                    <X className="h-4 w-4 mr-1" />
+                    <X {...{ className: "h-4 w-4 mr-1" }} />
                     Terminate
                   </Button>
                 )}

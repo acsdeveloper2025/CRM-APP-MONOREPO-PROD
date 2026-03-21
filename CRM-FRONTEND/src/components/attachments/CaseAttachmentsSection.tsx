@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/ui/components/button';
+import { Badge } from '@/ui/components/badge';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/ui/components/dialog';
 import { useCaseAttachments } from '@/hooks/useCases';
 import type { Attachment } from '@/services/attachments';
 import { authenticatedFetch } from '@/services/api';

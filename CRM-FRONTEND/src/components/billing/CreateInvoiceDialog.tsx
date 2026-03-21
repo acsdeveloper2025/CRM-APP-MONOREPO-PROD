@@ -3,7 +3,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 import { Plus, Trash2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/ui/components/button';
 import {
   Dialog,
   DialogContent,
@@ -11,7 +11,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
+} from '@/ui/components/dialog';
 import {
   Form,
   FormControl,
@@ -19,15 +19,15 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form';
+} from '@/ui/components/form';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
+} from '@/ui/components/select';
+import { Input } from '@/ui/components/input';
 import { toast } from 'sonner';
 import { billingService } from '@/services/billing';
 import { clientsService } from '@/services/clients';
@@ -83,7 +83,7 @@ export function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoiceDialogP
       onOpenChange(false);
     },
     onError: (error: unknown) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       toast.error((error as any).response?.data?.message || 'Failed to create invoice');
     },
   });
@@ -111,7 +111,7 @@ export function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoiceDialogP
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] sm:max-w-[600px] max-h-[90vh] sm:max-h-[80vh] overflow-y-auto">
+      <DialogContent {...{ className: "max-w-[95vw] sm:max-w-[600px] max-h-[90vh] sm:max-h-[80vh] overflow-y-auto" }}>
         <DialogHeader>
           <DialogTitle>Create New Invoice</DialogTitle>
           <DialogDescription>
@@ -120,7 +120,7 @@ export function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoiceDialogP
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} {...{ className: "space-y-4" }}>
             <FormField
               control={form.control}
               name="clientId"
@@ -136,9 +136,9 @@ export function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoiceDialogP
                     <SelectContent>
                       {clients.map((client) => (
                         <SelectItem key={client.id} value={client.id.toString()}>
-                          <div className="flex flex-col">
+                          <div {...{ className: "flex flex-col" }}>
                             <span>{client.name}</span>
-                            <span className="text-xs text-gray-600">
+                            <span {...{ className: "text-xs text-gray-600" }}>
                               {client.code}
                             </span>
                           </div>
@@ -165,24 +165,24 @@ export function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoiceDialogP
               )}
             />
 
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
+            <div {...{ className: "space-y-4" }}>
+              <div {...{ className: "flex items-center justify-between" }}>
                 <FormLabel>Invoice Items</FormLabel>
                 <Button type="button" variant="outline" size="sm" onClick={addItem}>
-                  <Plus className="h-4 w-4 mr-2" />
+                  <Plus {...{ className: "h-4 w-4 mr-2" }} />
                   Add Item
                 </Button>
               </div>
 
               {fields.map((field, index) => (
-                <div key={field.id} className="grid grid-cols-12 gap-2 items-end">
-                  <div className="col-span-5">
+                <div key={field.id} {...{ className: "grid grid-cols-12 gap-2 items-end" }}>
+                  <div {...{ className: "col-span-5" }}>
                     <FormField
                       control={form.control}
                       name={`items.${index}.description`}
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-xs">Description</FormLabel>
+                          <FormLabel {...{ className: "text-xs" }}>Description</FormLabel>
                           <FormControl>
                             <Input placeholder="Item description" {...field} />
                           </FormControl>
@@ -191,13 +191,13 @@ export function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoiceDialogP
                       )}
                     />
                   </div>
-                  <div className="col-span-2">
+                  <div {...{ className: "col-span-2" }}>
                     <FormField
                       control={form.control}
                       name={`items.${index}.quantity`}
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-xs">Qty</FormLabel>
+                          <FormLabel {...{ className: "text-xs" }}>Qty</FormLabel>
                           <FormControl>
                             <Input 
                               type="number" 
@@ -211,13 +211,13 @@ export function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoiceDialogP
                       )}
                     />
                   </div>
-                  <div className="col-span-3">
+                  <div {...{ className: "col-span-3" }}>
                     <FormField
                       control={form.control}
                       name={`items.${index}.unitPrice`}
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-xs">Unit Price</FormLabel>
+                          <FormLabel {...{ className: "text-xs" }}>Unit Price</FormLabel>
                           <FormControl>
                             <Input 
                               type="number" 
@@ -232,7 +232,7 @@ export function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoiceDialogP
                       )}
                     />
                   </div>
-                  <div className="col-span-2">
+                  <div {...{ className: "col-span-2" }}>
                     <Button
                       type="button"
                       variant="outline"
@@ -240,25 +240,25 @@ export function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoiceDialogP
                       onClick={() => removeItem(index)}
                       disabled={fields.length === 1}
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 {...{ className: "h-4 w-4" }} />
                     </Button>
                   </div>
                 </div>
               ))}
 
-              <div className="text-right">
-                <div className="text-lg font-semibold">
+              <div {...{ className: "text-right" }}>
+                <div {...{ className: "text-lg font-semibold" }}>
                   Total: ₹{calculateTotal().toLocaleString()}
                 </div>
               </div>
             </div>
 
-            <DialogFooter className="flex-col sm:flex-row gap-2">
+            <DialogFooter {...{ className: "flex-col sm:flex-row gap-2" }}>
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
-                className="w-full sm:w-auto"
+                {...{ className: "w-full sm:w-auto" }}
                 disabled={createMutation.isPending}
               >
                 Cancel
@@ -266,7 +266,7 @@ export function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoiceDialogP
               <Button
                 type="submit"
                 disabled={createMutation.isPending}
-               className="w-full sm:w-auto">
+               {...{ className: "w-full sm:w-auto" }}>
                 {createMutation.isPending ? 'Creating...' : 'Create Invoice'}
               </Button>
             </DialogFooter>

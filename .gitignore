@@ -281,6 +281,7 @@ docs/.vuepress/dist/
 # CRM-MOBILE is maintained in a separate repository
 # and should not be pushed to this monorepo
 CRM-MOBILE/
+crm-mobile-native/
 
 
 # =====================================================
@@ -318,3 +319,12 @@ scripts/db-migration/.latest_backup
 .kiro/steering/byterover-rules.md
 .qoder/rules/byterover-rules.md
 .augment/rules/byterover-rules.md
+
+# Local audit and migration reports
+REPOSITORY_SECURITY_AUDIT.md
+SECRET_ENV_MIGRATION_REPORT.md
+CRM_FRONTEND_PERFORMANCE_AUDIT_REPORT.md
+skills-lock.json
+
+# Local agent skill files
+.agents/

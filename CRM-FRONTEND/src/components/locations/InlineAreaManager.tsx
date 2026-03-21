@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, X, AlertCircle } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Badge } from '@/ui/components/badge';
+import { Button } from '@/ui/components/button';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from '@/components/ui/popover';
+} from '@/ui/components/popover';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,10 +17,13 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+} from '@/ui/components/alert-dialog';
 import { toast } from 'sonner';
 import { locationsService } from '@/services/locations';
 import { AreasMultiSelect } from './AreasMultiSelect';
+import { Box } from '@/ui/primitives/Box';
+import { Stack } from '@/ui/primitives/Stack';
+import { Text } from '@/ui/primitives/Text';
 import type { Pincode, PincodeArea } from '@/types/location';
 
 interface InlineAreaManagerProps {
@@ -94,7 +97,7 @@ export function InlineAreaManager({ pincode, className }: InlineAreaManagerProps
   // Get current area IDs to filter out from selection
 
   return (
-    <div className={`flex flex-wrap gap-1 items-center ${className}`}>
+    <Box style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem', alignItems: 'center' }}>
       {/* Display current areas */}
       {pincode.areas && pincode.areas.length > 0 ? (
         pincode.areas
@@ -103,23 +106,23 @@ export function InlineAreaManager({ pincode, className }: InlineAreaManagerProps
             <Badge 
               key={area.id} 
               variant="outline" 
-              className="text-xs group hover:bg-destructive/10 transition-colors"
+              style={className ? undefined : { fontSize: '0.75rem' }}
             >
               {area.name}
               <button
                 type="button"
-                className="ml-1 opacity-0 group-hover:opacity-100 hover:text-destructive transition-all"
+                style={{ marginLeft: '0.25rem', color: 'var(--ui-danger)' }}
                 onClick={() => handleRemoveArea(area)}
                 disabled={removeAreaMutation.isPending}
               >
-                <X className="h-3 w-3" />
+                <X size={12} />
               </button>
             </Badge>
           ))
       ) : (
         // Fallback for backward compatibility
         pincode.area && (
-          <Badge variant="outline" className="text-xs">
+          <Badge variant="outline">
             {pincode.area}
           </Badge>
         )
@@ -130,21 +133,20 @@ export function InlineAreaManager({ pincode, className }: InlineAreaManagerProps
         <PopoverTrigger asChild>
           <Button
             variant="ghost"
-            size="sm"
-            className="h-6 w-6 p-0 text-gray-600 hover:text-primary"
             disabled={addAreasMutation.isPending}
+            style={{ padding: 0, minWidth: '1.5rem', minHeight: '1.5rem', color: 'var(--ui-text-muted)' }}
           >
-            <Plus className="h-3 w-3" />
+            <Plus size={12} />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-80" align="start">
-          <div className="space-y-4">
-            <div>
-              <h4 className="font-medium">Add Areas</h4>
-              <p className="text-sm text-gray-600">
+        <PopoverContent align="start" style={{ width: '20rem' }}>
+          <Stack gap={4}>
+            <Stack gap={2}>
+              <Text as="h4" variant="label">Add Areas</Text>
+              <Text variant="body-sm" tone="muted">
                 Select additional areas for pincode {pincode.code}
-              </p>
-            </div>
+              </Text>
+            </Stack>
             
             <AreasMultiSelect
               selectedAreaIds={selectedAreaIds}
@@ -152,24 +154,22 @@ export function InlineAreaManager({ pincode, className }: InlineAreaManagerProps
               disabled={addAreasMutation.isPending}
             />
 
-            <div className="flex justify-end space-x-2">
+            <Box style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
               <Button
                 variant="outline"
-                size="sm"
                 onClick={() => setShowAddPopover(false)}
                 disabled={addAreasMutation.isPending}
               >
                 Cancel
               </Button>
               <Button
-                size="sm"
                 onClick={handleAddAreas}
                 disabled={addAreasMutation.isPending || selectedAreaIds.length === 0}
               >
                 {addAreasMutation.isPending ? 'Adding...' : 'Add Areas'}
               </Button>
-            </div>
-          </div>
+            </Box>
+          </Stack>
         </PopoverContent>
       </Popover>
 
@@ -177,17 +177,19 @@ export function InlineAreaManager({ pincode, className }: InlineAreaManagerProps
       <AlertDialog open={showRemoveDialog} onOpenChange={setShowRemoveDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              <AlertCircle className="h-5 w-5 text-destructive" />
-              Remove Area
+            <AlertDialogTitle>
+              <Stack direction="horizontal" gap={2} align="center">
+                <AlertCircle size={20} style={{ color: 'var(--ui-danger)' }} />
+                <span>Remove Area</span>
+              </Stack>
             </AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to remove &quot;{areaToRemove?.name}&quot; from pincode {pincode.code}?
               {pincode.areas && pincode.areas.length <= 1 && (
-                <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded text-amber-800 text-sm">
+                <Box style={{ marginTop: '0.5rem', padding: '0.5rem', border: '1px solid var(--ui-warning)', borderRadius: 'var(--ui-radius-md)', color: 'var(--ui-warning)' }}>
                   <strong>Warning:</strong> This is the last area for this pincode. 
                   Removing it may cause issues.
-                </div>
+                </Box>
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -198,13 +200,13 @@ export function InlineAreaManager({ pincode, className }: InlineAreaManagerProps
             <AlertDialogAction
               onClick={confirmRemoveArea}
               disabled={removeAreaMutation.isPending}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              style={{ background: 'var(--ui-danger)', color: '#fff' }}
             >
               {removeAreaMutation.isPending ? 'Removing...' : 'Remove Area'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </Box>
   );
 }

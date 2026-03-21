@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Bell, Clock, Smartphone, Monitor, AlertCircle, CheckCircle, Save } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Separator } from '@/components/ui/separator';
-import { Badge } from '@/components/ui/badge';
+import { Button } from '@/ui/components/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
+import { Switch } from '@/ui/components/switch';
+import { Label } from '@/ui/components/label';
+import { Input } from '@/ui/components/input';
+import { Separator } from '@/ui/components/separator';
+import { Badge } from '@/ui/components/badge';
 import { toast } from 'sonner';
 import { apiService } from '@/services/api';
 

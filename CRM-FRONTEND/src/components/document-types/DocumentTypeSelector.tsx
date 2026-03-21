@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Check, ChevronsUpDown, Search, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
+import { Button } from '@/ui/components/button';
+import { Label } from '@/ui/components/label';
+import { Badge } from '@/ui/components/badge';
 import {
   Command,
   CommandEmpty,
@@ -12,12 +12,12 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from '@/components/ui/command';
+} from '@/ui/components/command';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from '@/components/ui/popover';
+} from '@/ui/components/popover';
 import { documentTypesService } from '@/services/documentTypes';
 import { type DocumentType, type DocumentCategory } from '@/types/documentType';
 

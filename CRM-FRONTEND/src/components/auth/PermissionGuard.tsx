@@ -1,6 +1,6 @@
 import React from 'react';
 import { usePermissions } from '@/hooks/usePermissions';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertDescription } from '@/ui/components/alert';
 import { AlertTriangle } from 'lucide-react';
 
 interface PermissionGuardProps {

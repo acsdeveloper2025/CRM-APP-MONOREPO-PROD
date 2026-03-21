@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Separator } from '@/components/ui/separator';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
+import { Button } from '@/ui/components/button';
+import { Input } from '@/ui/components/input';
+import { Label } from '@/ui/components/label';
+import { Switch } from '@/ui/components/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/ui/components/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/components/tabs';
+import { Separator } from '@/ui/components/separator';
+import { Badge } from '@/ui/components/badge';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
 import { toast } from 'sonner';
@@ -22,6 +22,13 @@ import {
   FiRefreshCw,
   FiSettings
 } from 'react-icons/fi';
+import { MetricCardGrid } from '@/components/shared/MetricCardGrid';
+import { Button as UiButton } from '@/ui/components/Button';
+import { Badge as UiBadge } from '@/ui/components/Badge';
+import { Page } from '@/ui/layout/Page';
+import { Section } from '@/ui/layout/Section';
+import { Stack } from '@/ui/primitives/Stack';
+import { Text } from '@/ui/primitives/Text';
 
 interface UserSettings {
   profile: {
@@ -121,24 +128,29 @@ export const SettingsPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-          <p className="text-sm text-gray-600 mt-1">
-            Manage your account settings and preferences
-          </p>
-        </div>
-        <Button onClick={handleSaveSettings} disabled={isLoading}>
-          {isLoading ? (
-            <FiRefreshCw className="mr-2 h-4 w-4 animate-spin" />
-          ) : (
-            <FiSave className="mr-2 h-4 w-4" />
-          )}
-          Save Changes
-        </Button>
-      </div>
+    <Page
+      title="Settings"
+      subtitle="Manage account controls, notification behavior, and workspace preferences."
+      shell
+      actions={
+        <UiButton onClick={handleSaveSettings} disabled={isLoading} icon={isLoading ? <FiRefreshCw className="h-4 w-4 animate-spin" /> : <FiSave className="h-4 w-4" />}>
+          Save changes
+        </UiButton>
+      }
+    >
+      <Section>
+        <MetricCardGrid
+          items={[
+            { title: 'Profile', value: `${settings.profile.firstName || 'User'} ${settings.profile.lastName || ''}`.trim(), detail: settings.profile.email || 'No email configured', icon: FiUser, tone: 'accent' },
+            { title: 'Theme', value: settings.preferences.theme, detail: 'Current workspace theme', icon: FiMonitor, tone: 'neutral' },
+            { title: 'Notifications', value: Object.values(settings.notifications).filter(Boolean).length, detail: 'Enabled notification channels', icon: FiBell, tone: 'warning' },
+            { title: 'Auto Refresh', value: settings.preferences.autoRefresh ? 'Enabled' : 'Disabled', detail: 'Live workspace behavior', icon: FiRefreshCw, tone: 'positive' },
+          ]}
+          min={220}
+        />
+      </Section>
 
+      <Section>
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="profile" className="flex items-center space-x-2">
@@ -416,6 +428,7 @@ export const SettingsPage: React.FC = () => {
           </Card>
         </TabsContent>
       </Tabs>
-    </div>
+      </Section>
+    </Page>
   );
 };

@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { MoreHorizontal, Edit, Trash2, Eye, MapPin } from 'lucide-react';
 import { useMutationWithInvalidation } from '@/hooks/useStandardizedMutation';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/ui/components/Button';
+import { Badge } from '@/ui/components/Badge';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,7 +10,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from '@/ui/components/dropdown-menu';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,7 +20,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+} from '@/ui/components/alert-dialog';
 import {
   Table,
   TableBody,
@@ -27,10 +28,12 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { LoadingState } from '@/components/ui/loading';
-import { baseBadgeStyle, formatBadgeLabel } from '@/lib/badgeStyles';
+} from '@/ui/components/table';
+import { LoadingState } from '@/ui/components/loading';
+import { formatBadgeLabel } from '@/lib/badgeStyles';
+import { Box } from '@/ui/primitives/Box';
+import { Stack } from '@/ui/primitives/Stack';
+import { Text } from '@/ui/primitives/Text';
 import { locationsService } from '@/services/locations';
 import { EditStateDialog } from './EditStateDialog';
 import { StateDetailsDialog } from './StateDetailsDialog';
@@ -87,19 +90,19 @@ export function StatesTable({ data, isLoading }: StatesTableProps) {
 
   if (!data.length) {
     return (
-      <div className="text-center py-8">
-        <MapPin className="mx-auto h-12 w-12 text-gray-600" />
-        <h3 className="mt-2 text-sm font-medium text-gray-900">No states found</h3>
-        <p className="mt-1 text-sm text-gray-600">
+      <Stack gap={3} align="center" style={{ paddingBlock: '2rem', textAlign: 'center' }}>
+        <MapPin size={48} style={{ color: 'var(--ui-text-soft)', opacity: 0.75 }} />
+        <Text as="h3" variant="title">No states found</Text>
+        <Text tone="muted">
           Get started by creating a new state.
-        </p>
-      </div>
+        </Text>
+      </Stack>
     );
   }
 
   return (
     <>
-      <div className="rounded-md border overflow-auto">
+      <Box style={{ overflowX: 'auto', border: '1px solid var(--ui-border)', borderRadius: 'var(--ui-radius-lg)' }}>
         <Table>
           <TableHeader>
             <TableRow>
@@ -108,49 +111,54 @@ export function StatesTable({ data, isLoading }: StatesTableProps) {
               <TableHead>Country</TableHead>
               <TableHead>Cities</TableHead>
               <TableHead>Created</TableHead>
-              <TableHead className="w-[70px]">Actions</TableHead>
+              <TableHead style={{ textAlign: 'right' }}>Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {data.map((state) => (
               <TableRow key={state.id}>
-                <TableCell className="font-medium">{state.name}</TableCell>
-                <TableCell>
-                  <Badge className={baseBadgeStyle}>{formatBadgeLabel(state.code)}</Badge>
+                <TableCell style={{ fontWeight: 600 }}>
+                  <Text as="span" variant="label">{state.name}</Text>
                 </TableCell>
-                <TableCell>{state.country}</TableCell>
                 <TableCell>
-                  <Badge className={baseBadgeStyle}>
+                  <Badge variant="outline">{formatBadgeLabel(state.code)}</Badge>
+                </TableCell>
+                <TableCell>
+                  <Text as="span" variant="body-sm">{state.country}</Text>
+                </TableCell>
+                <TableCell>
+                  <Badge variant="accent">
                     {state.cityCount || 0} CITIES
                   </Badge>
                 </TableCell>
                 <TableCell>
-                  {new Date(state.createdAt).toLocaleDateString()}
+                  <Text as="span" variant="body-sm" tone="muted">
+                    {new Date(state.createdAt).toLocaleDateString()}
+                  </Text>
                 </TableCell>
-                <TableCell>
+                <TableCell style={{ textAlign: 'right' }}>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" className="h-8 w-8 p-0">
-                        <span className="sr-only">Open menu</span>
-                        <MoreHorizontal className="h-4 w-4" />
+                      <Button variant="ghost" aria-label="Open actions menu">
+                        <MoreHorizontal size={16} />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
                       <DropdownMenuItem onClick={() => handleView(state)}>
-                        <Eye className="mr-2 h-4 w-4" />
+                        <Eye size={16} style={{ marginRight: '0.5rem' }} />
                         View Details
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => handleEdit(state)}>
-                        <Edit className="mr-2 h-4 w-4" />
+                        <Edit size={16} style={{ marginRight: '0.5rem' }} />
                         Edit
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
                         onClick={() => handleDelete(state)}
-                        className="text-red-600"
+                        style={{ color: 'var(--ui-danger)' }}
                       >
-                        <Trash2 className="mr-2 h-4 w-4" />
+                        <Trash2 size={16} style={{ marginRight: '0.5rem' }} />
                         Delete
                       </DropdownMenuItem>
                     </DropdownMenuContent>
@@ -160,7 +168,7 @@ export function StatesTable({ data, isLoading }: StatesTableProps) {
             ))}
           </TableBody>
         </Table>
-      </div>
+      </Box>
 
       {/* Dialogs */}
       {selectedState && (
@@ -192,7 +200,7 @@ export function StatesTable({ data, isLoading }: StatesTableProps) {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              style={{ background: 'var(--ui-danger)', color: 'white' }}
               disabled={deleteStateMutation.isPending}
             >
               {deleteStateMutation.isPending ? 'Deleting...' : 'Delete'}

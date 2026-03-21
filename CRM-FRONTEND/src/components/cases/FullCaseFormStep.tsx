@@ -2,10 +2,10 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/ui/components/Button';
+import { Input } from '@/ui/components/Input';
+import { Textarea } from '@/ui/components/Textarea';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/Card';
 import {
   Form,
   FormControl,
@@ -13,14 +13,14 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form';
+} from '@/ui/components/Form';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from '@/ui/components/Select';
 import { ArrowLeft, Send, Loader2, User, Building, Settings } from 'lucide-react';
 import { useFieldUsers } from '@/hooks/useUsers';
 import type { User as UserType } from '@/types/user';
@@ -283,45 +283,45 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      <div className="text-center space-y-2">
-        <h2 className="text-2xl font-bold tracking-tight">Case Details</h2>
-        <p className="text-gray-600">
+    <div {...{ className: "max-w-4xl mx-auto space-y-6" }}>
+      <div {...{ className: "text-center space-y-2" }}>
+        <h2 {...{ className: "text-2xl font-bold tracking-tight" }}>Case Details</h2>
+        <p {...{ className: "text-gray-600" }}>
           Complete the case information and assignment details
         </p>
       </div>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+        <form onSubmit={form.handleSubmit(handleSubmit)} {...{ className: "space-y-6" }}>
 
           {/* Customer Information Card */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <User className="h-5 w-5" />
+              <CardTitle {...{ className: "flex items-center gap-2" }}>
+                <User {...{ className: "h-5 w-5" }} />
                 Customer Information
               </CardTitle>
               <CardDescription>
                 Customer details and additional information
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent {...{ className: "space-y-4" }}>
               {/* Read-only customer details from previous step */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-slate-100/70 dark:bg-slate-800/50 rounded-lg">
+              <div {...{ className: "grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-slate-100/70 dark:bg-slate-800/50 rounded-lg" }}>
                 <div>
-                  <label className="text-sm font-medium text-gray-600">Customer Name *</label>
-                  <p className="text-base font-medium">{customerInfo.customerName}</p>
+                  <label {...{ className: "text-sm font-medium text-gray-600" }}>Customer Name *</label>
+                  <p {...{ className: "text-base font-medium" }}>{customerInfo.customerName}</p>
                 </div>
                 {customerInfo.panNumber && (
                   <div>
-                    <label className="text-sm font-medium text-gray-600">PAN</label>
-                    <p className="text-base font-mono">{customerInfo.panNumber}</p>
+                    <label {...{ className: "text-sm font-medium text-gray-600" }}>PAN</label>
+                    <p {...{ className: "text-base font-mono" }}>{customerInfo.panNumber}</p>
                   </div>
                 )}
                 {customerInfo.mobileNumber && (
                   <div>
-                    <label className="text-sm font-medium text-gray-600">Mobile Number</label>
-                    <p className="text-base">{customerInfo.mobileNumber}</p>
+                    <label {...{ className: "text-sm font-medium text-gray-600" }}>Mobile Number</label>
+                    <p {...{ className: "text-base" }}>{customerInfo.mobileNumber}</p>
                   </div>
                 )}
               </div>
@@ -401,16 +401,16 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
           {/* Client Information Card */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Building className="h-5 w-5" />
+              <CardTitle {...{ className: "flex items-center gap-2" }}>
+                <Building {...{ className: "h-5 w-5" }} />
                 Client Information
               </CardTitle>
               <CardDescription>
                 Select client, product, and verification type
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <CardContent {...{ className: "space-y-4" }}>
+              <div {...{ className: "grid grid-cols-1 md:grid-cols-3 gap-4" }}>
                 {/* Client Name */}
                 <FormField
                   control={form.control}
@@ -511,16 +511,16 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
           {/* Assignment Card */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Settings className="h-5 w-5" />
+              <CardTitle {...{ className: "flex items-center gap-2" }}>
+                <Settings {...{ className: "h-5 w-5" }} />
                 Assignment
               </CardTitle>
               <CardDescription>
                 Assignment details and location information
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <CardContent {...{ className: "space-y-4" }}>
+              <div {...{ className: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" }}>
                 {/* Created By Backend User */}
                 <FormField
                   control={form.control}
@@ -533,7 +533,7 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
                           {...field}
                           placeholder="Backend user name"
                           disabled={true}
-                          className="bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-200"
+                          {...{ className: "bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-200" }}
                         />
                       </FormControl>
                       <FormMessage />
@@ -577,7 +577,7 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
                             <SelectValue placeholder="Select pincode" />
                           </SelectTrigger>
                         </FormControl>
-                        <SelectContent position="popper" className="max-h-[300px] overflow-y-auto">
+                        <SelectContent position="popper" {...{ className: "max-h-[300px] overflow-y-auto" }}>
                           {pincodes?.map((pincode) => (
                             <SelectItem key={pincode.id} value={pincode.id.toString()}>
                               {pincode.code}
@@ -642,10 +642,10 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
                               {field.value && availableRateTypes && (() => {
                                 const selectedRateType = availableRateTypes.find(rt => rt.id.toString() === field.value);
                                 return selectedRateType ? (
-                                  <div className="flex items-center justify-between w-full">
-                                    <span className="font-medium">{selectedRateType.name}</span>
+                                  <div {...{ className: "flex items-center justify-between w-full" }}>
+                                    <span {...{ className: "font-medium" }}>{selectedRateType.name}</span>
                                     {selectedRateType.hasRate && selectedRateType.amount && (
-                                      <span className="text-sm font-semibold text-green-600 ml-2">
+                                      <span {...{ className: "text-sm font-semibold text-green-600 ml-2" }}>
                                         ₹{selectedRateType.amount}
                                       </span>
                                     )}
@@ -658,15 +658,15 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
                         <SelectContent>
                           {availableRateTypes?.map((rateType) => (
                             <SelectItem key={rateType.id} value={rateType.id.toString()}>
-                              <div className="flex items-center justify-between w-full py-2">
-                                <div className="flex flex-col">
-                                  <span className="font-medium text-gray-900">{rateType.name}</span>
+                              <div {...{ className: "flex items-center justify-between w-full py-2" }}>
+                                <div {...{ className: "flex flex-col" }}>
+                                  <span {...{ className: "font-medium text-gray-900" }}>{rateType.name}</span>
                                   {rateType.description && (
-                                    <span className="text-xs text-gray-600 mt-1">{rateType.description}</span>
+                                    <span {...{ className: "text-xs text-gray-600 mt-1" }}>{rateType.description}</span>
                                   )}
                                 </div>
                                 {rateType.hasRate && rateType.amount && (
-                                  <span className="text-sm font-semibold text-green-600 ml-4">
+                                  <span {...{ className: "text-sm font-semibold text-green-600 ml-4" }}>
                                     ₹{rateType.amount}
                                   </span>
                                 )}
@@ -677,7 +677,7 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
                       </Select>
                       <FormMessage />
                       {selectedClientId && selectedProductId && selectedVerificationTypeId && availableRateTypes.length === 0 && !loadingRateTypes && (
-                        <p className="text-sm text-amber-600">
+                        <p {...{ className: "text-sm text-amber-600" }}>
                           No rate types are configured for this client/product/verification type combination.
                         </p>
                       )}
@@ -687,26 +687,26 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
 
                 {/* Rate Calculation Display */}
                 {selectedRateType && selectedRateType.hasRate && selectedRateType.amount && (
-                  <div className="col-span-full">
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                      <div className="flex items-center justify-between">
+                  <div {...{ className: "col-span-full" }}>
+                    <div {...{ className: "bg-green-50 border border-green-200 rounded-lg p-4" }}>
+                      <div {...{ className: "flex items-center justify-between" }}>
                         <div>
-                          <h4 className="text-sm font-medium text-green-900">Rate Information</h4>
-                          <p className="text-sm text-green-700">
-                            Selected Rate Type: <span className="font-medium">{selectedRateType.name}</span>
+                          <h4 {...{ className: "text-sm font-medium text-green-900" }}>Rate Information</h4>
+                          <p {...{ className: "text-sm text-green-700" }}>
+                            Selected Rate Type: <span {...{ className: "font-medium" }}>{selectedRateType.name}</span>
                           </p>
                         </div>
-                        <div className="text-right">
-                          <div className="text-2xl font-bold text-green-700">
+                        <div {...{ className: "text-right" }}>
+                          <div {...{ className: "text-2xl font-bold text-green-700" }}>
                             ₹{selectedRateType.amount}
                           </div>
-                          <div className="text-sm text-green-600">
+                          <div {...{ className: "text-sm text-green-600" }}>
                             {selectedRateType.currency || 'INR'}
                           </div>
                         </div>
                       </div>
                       {selectedRateType.description && (
-                        <p className="text-sm text-green-600 mt-2">
+                        <p {...{ className: "text-sm text-green-600 mt-2" }}>
                           {selectedRateType.description}
                         </p>
                       )}
@@ -716,17 +716,17 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
 
                 {/* No Rate Warning */}
                 {selectedRateType && !selectedRateType.hasRate && (
-                  <div className="col-span-full">
-                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                      <div className="flex items-center">
-                        <div className="text-amber-600">
-                          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <div {...{ className: "col-span-full" }}>
+                    <div {...{ className: "bg-amber-50 border border-amber-200 rounded-lg p-4" }}>
+                      <div {...{ className: "flex items-center" }}>
+                        <div {...{ className: "text-amber-600" }}>
+                          <svg {...{ className: "w-5 h-5" }} fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                           </svg>
                         </div>
-                        <div className="ml-3">
-                          <h4 className="text-sm font-medium text-amber-900">Rate Not Configured</h4>
-                          <p className="text-sm text-amber-700">
+                        <div {...{ className: "ml-3" }}>
+                          <h4 {...{ className: "text-sm font-medium text-amber-900" }}>Rate Not Configured</h4>
+                          <p {...{ className: "text-sm text-amber-700" }}>
                             The selected rate type &quot;{selectedRateType.name}&quot; does not have a rate amount configured. Please contact your administrator to set up the rate.
                           </p>
                         </div>
@@ -774,7 +774,7 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
                       </Select>
                       <FormMessage />
                       {selectedPincodeId && selectedAreaId && filteredFieldUsers.length === 0 && !loadingUsers && (
-                        <p className="text-sm text-amber-600 mt-1">
+                        <p {...{ className: "text-sm text-amber-600 mt-1" }}>
                           No field users have access to the selected pincode and area
                         </p>
                       )}
@@ -818,10 +818,10 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
           />
 
           {/* Form Actions */}
-          <div className={`flex items-center ${onBack ? 'justify-between' : 'justify-end'} pt-6 border-t`}>
+          <div {...{ className: `flex items-center ${onBack ? 'justify-between' : 'justify-end'} pt-6 border-t` }}>
             {onBack && (
               <Button type="button" variant="outline" onClick={onBack} disabled={isSubmitting}>
-                <ArrowLeft className="h-4 w-4 mr-2" />
+                <ArrowLeft {...{ className: "h-4 w-4 mr-2" }} />
                 Back to Customer Info
               </Button>
             )}
@@ -829,21 +829,21 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
             <Button
               type="submit"
               disabled={isSubmitting || hasAttachmentValidationErrors}
-              className={hasAttachmentValidationErrors ? 'opacity-50' : ''}
+              {...{ className: hasAttachmentValidationErrors ? 'opacity-50' : '' }}
             >
               {isSubmitting ? (
                 <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <Loader2 {...{ className: "h-4 w-4 mr-2 animate-spin" }} />
                   {editMode ? 'Updating Case...' : 'Creating Case...'}
                 </>
               ) : hasAttachmentValidationErrors ? (
                 <>
-                  <Send className="h-4 w-4 mr-2" />
+                  <Send {...{ className: "h-4 w-4 mr-2" }} />
                   Add Files First
                 </>
               ) : (
                 <>
-                  <Send className="h-4 w-4 mr-2" />
+                  <Send {...{ className: "h-4 w-4 mr-2" }} />
                   {editMode ? 'Update Case' : 'Create & Assign Case'}
                 </>
               )}

@@ -146,9 +146,9 @@ export const UnifiedSearchFilterLayout: React.FC<UnifiedSearchFilterLayoutProps>
     return (
       <div className={cn('space-y-4', className)}>
         {/* Search and Actions Row */}
-        <div className="flex flex-col sm:flex-row gap-4">
+        <div className="flex flex-col gap-4 lg:flex-row">
           {/* Search Input */}
-          <div className="flex-1">
+          <div className="min-w-0 flex-1">
             <UnifiedSearchInput
               value={searchValue}
               onChange={onSearchChange}
@@ -159,7 +159,7 @@ export const UnifiedSearchFilterLayout: React.FC<UnifiedSearchFilterLayoutProps>
           </div>
 
           {/* Filter Toggle and Actions */}
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {filterContent && showFilters && (
               <Button
                 variant={hasActiveFilters ? 'default' : 'outline'}
@@ -178,7 +178,7 @@ export const UnifiedSearchFilterLayout: React.FC<UnifiedSearchFilterLayoutProps>
             )}
             
             {actions && (
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 {actions}
               </div>
             )}
@@ -205,9 +205,9 @@ export const UnifiedSearchFilterLayout: React.FC<UnifiedSearchFilterLayoutProps>
   return (
     <div className={cn('space-y-4', className)}>
       {/* Search and Actions Row */}
-      <div className="flex flex-col sm:flex-row gap-4">
+      <div className="flex flex-col gap-4 lg:flex-row">
         {/* Search Input */}
-        <div className="flex-1">
+        <div className="min-w-0 flex-1">
           <UnifiedSearchInput
             value={searchValue}
             onChange={onSearchChange}

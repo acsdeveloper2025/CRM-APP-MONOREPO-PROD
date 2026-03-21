@@ -4,13 +4,13 @@ import { Plus, Pencil, Trash2, Save, Shield } from 'lucide-react';
 import { toast } from 'sonner';
 import { rbacAdminService, type RbacRole } from '@/services/rbacAdmin';
 import { PAGE_PERMISSION_GUIDE, RBAC_PERMISSION_MODULES } from '@/constants/rbac';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
+import { Button } from '@/ui/components/button';
+import { Badge } from '@/ui/components/badge';
+import { Checkbox } from '@/ui/components/checkbox';
+import { Input } from '@/ui/components/input';
+import { Textarea } from '@/ui/components/textarea';
+import { Label } from '@/ui/components/label';
 import {
   Dialog,
   DialogContent,
@@ -18,8 +18,16 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+} from '@/ui/components/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/ui/components/select';
+import { MetricCardGrid } from '@/components/shared/MetricCardGrid';
+import { Button as UiButton } from '@/ui/components/Button';
+import { Badge as UiBadge } from '@/ui/components/Badge';
+import { Card as UiCard } from '@/ui/components/Card';
+import { Page } from '@/ui/layout/Page';
+import { Section } from '@/ui/layout/Section';
+import { Stack } from '@/ui/primitives/Stack';
+import { Text } from '@/ui/primitives/Text';
 
 type RoleFormState = {
   name: string;
@@ -248,64 +256,37 @@ export function RBACAdminPage() {
   }, [roles, permissionMeta, selectedPermissionCodes]);
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">RBAC Administration</h1>
-        <p className="text-gray-600">
-          Manage roles and permission assignments for the system.
-        </p>
-      </div>
+    <Page
+      title="RBAC Administration"
+      subtitle="Manage roles, permission assignments, and page access mapping."
+      shell
+      actions={
+        <UiButton variant="secondary" icon={<Plus size={16} />} onClick={() => setShowCreate(true)}>
+          Create role
+        </UiButton>
+      }
+    >
+      <Section>
+        <Stack gap={3}>
+          <UiBadge variant="neutral">Security Controls</UiBadge>
+          <Text as="h2" variant="headline">Keep authorization structure visible and operable.</Text>
+          <Text variant="body-sm" tone="muted">Role selection, permission editing, and access guidance now sit under the shared shell rather than an isolated admin page.</Text>
+        </Stack>
+      </Section>
 
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Roles</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalRoles}</div>
-            <p className="text-xs text-gray-600">Configured roles</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">System Roles</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.systemRoles}</div>
-            <p className="text-xs text-gray-600">Protected defaults</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Custom Roles</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.customRoles}</div>
-            <p className="text-xs text-gray-600">User-defined roles</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Mapped Users</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalAssignedUsers}</div>
-            <p className="text-xs text-gray-600">Users across roles</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Permissions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalPermissions}</div>
-            <p className="text-xs text-gray-600">
-              {selectedRole ? `${stats.selectedRolePermissions} selected for ${selectedRole.name}` : 'Catalog size'}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      <Section>
+        <MetricCardGrid
+          items={[
+            { title: 'Total Roles', value: stats.totalRoles, detail: 'Configured roles', tone: 'accent' },
+            { title: 'System Roles', value: stats.systemRoles, detail: 'Protected defaults', tone: 'neutral' },
+            { title: 'Custom Roles', value: stats.customRoles, detail: 'User-defined roles', tone: 'positive' },
+            { title: 'Mapped Users', value: stats.totalAssignedUsers, detail: 'Users across roles', tone: 'warning' },
+            { title: 'Permissions', value: stats.totalPermissions, detail: selectedRole ? `${stats.selectedRolePermissions} selected for ${selectedRole.name}` : 'Catalog size', tone: 'danger' },
+          ]}
+        />
+      </Section>
 
+      <Section>
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -480,7 +461,8 @@ export function RBACAdminPage() {
           updateRoleMutation.mutate({ id: editingRole.id, data: payload });
         }}
       />
-    </div>
+      </Section>
+    </Page>
   );
 }
 

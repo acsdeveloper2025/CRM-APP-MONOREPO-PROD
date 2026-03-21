@@ -2,16 +2,16 @@ import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/ui/components/Button';
+import { Input } from '@/ui/components/Input';
+import { Textarea } from '@/ui/components/Textarea';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from '@/ui/components/Select';
 import {
   Form,
   FormControl,
@@ -20,7 +20,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form';
+} from '@/ui/components/Form';
 import { useFieldUsers } from '@/hooks/useUsers';
 import { useClients } from '@/hooks/useClients';
 import { Send, Loader2 } from 'lucide-react';
@@ -104,12 +104,12 @@ export const NewCaseForm: React.FC<NewCaseFormProps> = ({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(handleSubmit)} {...{ className: "space-y-6" }}>
         {/* Case Information */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-medium text-gray-900">Case Information</h3>
+        <div {...{ className: "space-y-4" }}>
+          <h3 {...{ className: "text-lg font-medium text-gray-900" }}>Case Information</h3>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div {...{ className: "grid grid-cols-1 md:grid-cols-2 gap-4" }}>
             <FormField
               control={form.control}
               name="title"
@@ -159,7 +159,7 @@ export const NewCaseForm: React.FC<NewCaseFormProps> = ({
                 <FormControl>
                   <Textarea 
                     placeholder="Enter case description and requirements"
-                    className="min-h-[100px]"
+                    {...{ className: "min-h-[100px]" }}
                     {...field} 
                   />
                 </FormControl>
@@ -173,10 +173,10 @@ export const NewCaseForm: React.FC<NewCaseFormProps> = ({
         </div>
 
         {/* Customer Information */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-medium text-gray-900">Customer Information</h3>
+        <div {...{ className: "space-y-4" }}>
+          <h3 {...{ className: "text-lg font-medium text-gray-900" }}>Customer Information</h3>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div {...{ className: "grid grid-cols-1 md:grid-cols-3 gap-4" }}>
             <FormField
               control={form.control}
               name="customerName"
@@ -222,8 +222,8 @@ export const NewCaseForm: React.FC<NewCaseFormProps> = ({
         </div>
 
         {/* Address Information */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-medium text-gray-900">Address Information</h3>
+        <div {...{ className: "space-y-4" }}>
+          <h3 {...{ className: "text-lg font-medium text-gray-900" }}>Address Information</h3>
           
           <FormField
             control={form.control}
@@ -239,7 +239,7 @@ export const NewCaseForm: React.FC<NewCaseFormProps> = ({
             )}
           />
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div {...{ className: "grid grid-cols-1 md:grid-cols-3 gap-4" }}>
             <FormField
               control={form.control}
               name="addressCity"
@@ -285,10 +285,10 @@ export const NewCaseForm: React.FC<NewCaseFormProps> = ({
         </div>
 
         {/* Assignment Information */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-medium text-gray-900">Assignment Information</h3>
+        <div {...{ className: "space-y-4" }}>
+          <h3 {...{ className: "text-lg font-medium text-gray-900" }}>Assignment Information</h3>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div {...{ className: "grid grid-cols-1 md:grid-cols-3 gap-4" }}>
             <FormField
               control={form.control}
               name="assignedToId"
@@ -382,7 +382,7 @@ export const NewCaseForm: React.FC<NewCaseFormProps> = ({
                 <FormControl>
                   <Textarea
                     placeholder="Enter any special instructions or notes for the field user"
-                    className="min-h-20"
+                    {...{ className: "min-h-20" }}
                     {...field}
                   />
                 </FormControl>
@@ -396,19 +396,19 @@ export const NewCaseForm: React.FC<NewCaseFormProps> = ({
         </div>
 
         {/* Form Actions */}
-        <div className="flex items-center justify-end space-x-4 pt-6 border-t">
+        <div {...{ className: "flex items-center justify-end space-x-4 pt-6 border-t" }}>
           <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
             Cancel
           </Button>
           <Button type="submit" disabled={isSubmitting}>
             {isSubmitting ? (
               <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                <Loader2 {...{ className: "h-4 w-4 mr-2 animate-spin" }} />
                 Creating Case...
               </>
             ) : (
               <>
-                <Send className="h-4 w-4 mr-2" />
+                <Send {...{ className: "h-4 w-4 mr-2" }} />
                 Create & Assign Case
               </>
             )}

@@ -4,12 +4,21 @@ import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/card';
+import { Button } from '@/ui/components/button';
+import { Input } from '@/ui/components/input';
+import { Badge } from '@/ui/components/badge';
+import { Checkbox } from '@/ui/components/checkbox';
 import { notificationService, type AppNotification } from '@/services/notifications';
+import { MetricCardGrid } from '@/components/shared/MetricCardGrid';
+import { PaginationStatusCard } from '@/components/shared/PaginationStatusCard';
+import { Badge as UiBadge } from '@/ui/components/Badge';
+import { Card as UiCard } from '@/ui/components/Card';
+import { Button as UiButton } from '@/ui/components/Button';
+import { Page } from '@/ui/layout/Page';
+import { Section } from '@/ui/layout/Section';
+import { Stack } from '@/ui/primitives/Stack';
+import { Text } from '@/ui/primitives/Text';
 
 const PAGE_SIZE = 20;
 
@@ -265,43 +274,41 @@ export function NotificationHistoryPage() {
     markAllReadMutation.isPending ||
     clearAllMutation.isPending;
 
-  return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Notifications</h1>
-          <p className="text-gray-600">
-            Unified inbox backed by the CRM notification service.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            onClick={() => void notificationsQuery.refetch()}
-            disabled={isBusy}
-          >
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Refresh
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => void markAllReadMutation.mutateAsync()}
-            disabled={isBusy}
-          >
-            <Eye className="mr-2 h-4 w-4" />
-            Mark All Read
-          </Button>
-          <Button
-            variant="destructive"
-            onClick={() => void clearAllMutation.mutateAsync()}
-            disabled={isBusy}
-          >
-            <Trash2 className="mr-2 h-4 w-4" />
-            Clear All
-          </Button>
-        </div>
-      </div>
+  const notificationItems = notificationsQuery.data?.items || [];
+  const unreadCount = notificationsQuery.data?.unreadCount || 0;
 
+  return (
+    <Page
+      title="Notifications"
+      subtitle="Unified inbox backed by the CRM notification service."
+      shell
+      actions={
+        <Stack direction="horizontal" gap={2} wrap="wrap">
+          <UiButton variant="secondary" icon={<RefreshCw size={16} />} onClick={() => void notificationsQuery.refetch()} disabled={isBusy}>
+            Refresh
+          </UiButton>
+          <UiButton variant="secondary" icon={<Eye size={16} />} onClick={() => void markAllReadMutation.mutateAsync()} disabled={isBusy}>
+            Mark all read
+          </UiButton>
+          <UiButton variant="danger" icon={<Trash2 size={16} />} onClick={() => void clearAllMutation.mutateAsync()} disabled={isBusy}>
+            Clear all
+          </UiButton>
+        </Stack>
+      }
+    >
+      <Section>
+        <MetricCardGrid
+          items={[
+            { title: 'Total Notifications', value: notificationItems.length, detail: 'Messages in inbox', icon: Bell, tone: 'accent' },
+            { title: 'Unread', value: unreadCount, detail: 'Need attention', icon: Eye, tone: 'warning' },
+            { title: 'Selected', value: selectedIds.size, detail: 'Current page selection', icon: EyeOff, tone: 'neutral' },
+            { title: 'Filtered Results', value: filteredNotifications.length, detail: 'Matching current filters', icon: Search, tone: 'positive' },
+          ]}
+          min={220}
+        />
+      </Section>
+
+      <Section>
       <Card>
         <CardHeader>
           <CardTitle>Filters</CardTitle>
@@ -354,11 +361,13 @@ export function NotificationHistoryPage() {
           </div>
         </CardContent>
       </Card>
+      </Section>
 
       {selectedIds.size > 0 && (
-        <Card>
-          <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-6">
-            <span className="text-sm text-gray-600">{selectedIds.size} selected</span>
+        <Section>
+        <UiCard tone="strong">
+          <Stack direction="horizontal" justify="space-between" align="center" gap={3} wrap="wrap">
+            <Text variant="body-sm" tone="muted">{selectedIds.size} selected</Text>
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"
@@ -385,10 +394,12 @@ export function NotificationHistoryPage() {
                 Delete
               </Button>
             </div>
-          </CardContent>
-        </Card>
+          </Stack>
+        </UiCard>
+        </Section>
       )}
 
+      <Section>
       <Card>
         <CardHeader>
           <CardTitle>History</CardTitle>
@@ -450,31 +461,20 @@ export function NotificationHistoryPage() {
             </>
           )}
 
-          <div className="flex items-center justify-between pt-2">
-            <span className="text-sm text-gray-600">
-              Page {currentPage} of {totalPages}
-            </span>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPage(previous => Math.max(1, previous - 1))}
-                disabled={currentPage === 1}
-              >
-                Previous
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPage(previous => Math.min(totalPages, previous + 1))}
-                disabled={currentPage === totalPages}
-              >
-                Next
-              </Button>
-            </div>
-          </div>
         </CardContent>
       </Card>
-    </div>
+      </Section>
+
+      <Section>
+        <PaginationStatusCard
+          page={currentPage}
+          limit={PAGE_SIZE}
+          total={filteredNotifications.length}
+          totalPages={totalPages}
+          onPrevious={() => setPage(previous => Math.max(1, previous - 1))}
+          onNext={() => setPage(previous => Math.min(totalPages, previous + 1))}
+        />
+      </Section>
+    </Page>
   );
 }

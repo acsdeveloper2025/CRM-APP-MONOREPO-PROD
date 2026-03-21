@@ -3,6 +3,7 @@ import { Routes, Route, Navigate, Outlet, useParams } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { Layout } from '@/components/layout/Layout';
+import { PageLoadingFallback } from '@/ui/components/PageLoadingFallback';
 
 // Import all page components using React.lazy for code splitting
 const LoginPage = React.lazy(() =>
@@ -150,11 +151,7 @@ const DefaultRoute: React.FC = () => {
   const { isAuthenticated, isLoading, user } = useAuth();
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary" />
-      </div>
-    );
+    return <PageLoadingFallback />;
   }
 
   if (!isAuthenticated) {
@@ -194,11 +191,7 @@ const LegacyCaseEditRedirect: React.FC = () => {
 export const AppRoutes: React.FC = () => {
   return (
     <React.Suspense
-      fallback={
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary" />
-        </div>
-      }
+      fallback={<PageLoadingFallback />}
     >
       <Routes>
         {/* ... routes ... */}

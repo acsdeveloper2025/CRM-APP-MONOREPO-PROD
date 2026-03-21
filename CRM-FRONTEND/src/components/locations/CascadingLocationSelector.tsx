@@ -7,16 +7,18 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form';
+} from '@/ui/components/form';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
+} from '@/ui/components/select';
+import { Input } from '@/ui/components/input';
 import { Loader2 } from 'lucide-react';
+import { Stack } from '@/ui/primitives/Stack';
+import { Text } from '@/ui/primitives/Text';
 import { locationsService } from '@/services/locations';
 import { EnhancedAreasMultiSelect } from './EnhancedAreasMultiSelect';
 import { ApiResponse } from '@/types/api';
@@ -25,7 +27,7 @@ import { UseFormReturn } from 'react-hook-form';
 
 interface CascadingLocationSelectorProps {
   // Form control
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   form: UseFormReturn<any>;
   
   // Field names
@@ -179,7 +181,7 @@ export function CascadingLocationSelector({
   }, [selectedCountryId, selectedStateId, selectedCityId, selectedPincodeCode, selectedAreas, onLocationChange]);
 
   return (
-    <div className="space-y-4">
+    <Stack gap={4}>
       {/* Country Selection */}
       <FormField
         control={form.control}
@@ -192,12 +194,12 @@ export function CascadingLocationSelector({
               value={field.value || ''}
               disabled={disabled || countriesLoading}
             >
-              <FormControl>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a country" />
-                  {countriesLoading && <Loader2 className="h-4 w-4 animate-spin" />}
-                </SelectTrigger>
-              </FormControl>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a country" />
+                  {countriesLoading && <Loader2 size={16} />}
+                  </SelectTrigger>
+                </FormControl>
               <SelectContent>
                 {countries.map((country: Country) => (
                   <SelectItem key={country.id} value={String(country.id)}>
@@ -226,12 +228,12 @@ export function CascadingLocationSelector({
               value={field.value || ''}
               disabled={disabled || !selectedCountryId || statesLoading}
             >
-              <FormControl>
-                <SelectTrigger>
-                  <SelectValue placeholder={selectedCountryId ? "Select a state" : "Select country first"} />
-                  {statesLoading && <Loader2 className="h-4 w-4 animate-spin" />}
-                </SelectTrigger>
-              </FormControl>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder={selectedCountryId ? "Select a state" : "Select country first"} />
+                  {statesLoading && <Loader2 size={16} />}
+                  </SelectTrigger>
+                </FormControl>
               <SelectContent>
                 {states.map((state: State) => (
                   <SelectItem key={state.id} value={String(state.id)}>
@@ -260,12 +262,12 @@ export function CascadingLocationSelector({
               value={field.value || ''}
               disabled={disabled || !selectedStateId || citiesLoading}
             >
-              <FormControl>
-                <SelectTrigger>
-                  <SelectValue placeholder={selectedStateId ? "Select a city" : "Select state first"} />
-                  {citiesLoading && <Loader2 className="h-4 w-4 animate-spin" />}
-                </SelectTrigger>
-              </FormControl>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder={selectedStateId ? "Select a city" : "Select state first"} />
+                  {citiesLoading && <Loader2 size={16} />}
+                  </SelectTrigger>
+                </FormControl>
               <SelectContent>
                 {cities.map((city: City) => (
                   <SelectItem key={city.id} value={String(city.id)}>
@@ -298,7 +300,7 @@ export function CascadingLocationSelector({
                     placeholder="Enter 6-digit pincode"
                     value={field.value || ''}
                     onChange={(e) => handlePincodeChange(e.target.value)}
-                    className="font-mono"
+                    style={{ fontFamily: 'var(--font-mono, ui-monospace, SFMono-Regular, monospace)' }}
                     maxLength={6}
                     disabled={disabled || !selectedCityId}
                   />
@@ -312,18 +314,23 @@ export function CascadingLocationSelector({
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder={selectedCityId ? "Select a pincode" : "Select city first"} />
-                      {pincodesLoading && <Loader2 className="h-4 w-4 animate-spin" />}
+                      {pincodesLoading && <Loader2 size={16} />}
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
                     {pincodes.map((pincode: Pincode) => (
                       <SelectItem key={String(pincode.id)} value={String(pincode.code)}>
-                        <div className="flex flex-col">
-                          <span className="font-mono">{String(pincode.code)}</span>
-                          <span className="text-xs text-gray-600">
+                        <Stack gap={1}>
+                          <Text
+                            as="span"
+                            style={{ fontFamily: 'var(--font-mono, ui-monospace, SFMono-Regular, monospace)' }}
+                          >
+                            {String(pincode.code)}
+                          </Text>
+                          <Text as="span" variant="caption" tone="muted">
                             {pincode.areas?.length || 0} areas
-                          </span>
-                        </div>
+                          </Text>
+                        </Stack>
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -370,6 +377,6 @@ export function CascadingLocationSelector({
           )}
         />
       )}
-    </div>
+    </Stack>
   );
 }

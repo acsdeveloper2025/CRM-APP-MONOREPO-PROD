@@ -1,12 +1,18 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { CompletedCaseTable } from '@/components/cases/CompletedCaseTable';
 import { CasePagination } from '@/components/cases/CasePagination';
 import { useCases, useRefreshCases } from '@/hooks/useCases';
 import { useUnifiedSearch, useUnifiedFilters } from '@/hooks/useUnifiedSearch';
-import { Download, RefreshCw, CheckCircle } from 'lucide-react';
+import { Download, RefreshCw, CheckCircle, Calendar, Star, Users, Timer } from 'lucide-react';
 import { casesService, type CaseListQuery } from '@/services/cases';
+import { MetricCardGrid } from '@/components/shared/MetricCardGrid';
+import { Badge } from '@/ui/components/Badge';
+import { Button } from '@/ui/components/Button';
+import { Card } from '@/ui/components/Card';
+import { Page } from '@/ui/layout/Page';
+import { Section } from '@/ui/layout/Section';
+import { Stack } from '@/ui/primitives/Stack';
+import { Text } from '@/ui/primitives/Text';
 
 interface CompletedCaseFilters {
   [key: string]: unknown;
@@ -79,135 +85,95 @@ export const CompletedCasesPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Completed Cases</h1>
-          <p className="mt-2 text-muted-foreground">
-            View and manage all completed verification cases
-          </p>
-        </div>
-        <div className="flex items-center space-x-2">
-          <Button variant="outline" onClick={async () => {
-            await refreshCases({
-              clearCache: true,
-              preserveFilters: true,
-              showToast: true
-            });
-          }} disabled={isLoading}>
-            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+    <Page
+      title="Completed Cases"
+      subtitle="Review completed verification cases and export finished work."
+      shell
+      actions={(
+        <Stack direction="horizontal" gap={2} wrap="wrap">
+          <Button
+            variant="secondary"
+            icon={<RefreshCw size={16} />}
+            onClick={async () => {
+              await refreshCases({
+                clearCache: true,
+                preserveFilters: true,
+                showToast: true
+              });
+            }}
+            disabled={isLoading}
+          >
             Refresh
           </Button>
-          <Button variant="outline" onClick={handleExport}>
-            <Download className="h-4 w-4 mr-2" />
+          <Button variant="secondary" icon={<Download size={16} />} onClick={handleExport}>
             Export
           </Button>
-        </div>
-      </div>
+        </Stack>
+      )}
+    >
+      <Section>
+        <Stack gap={3}>
+          <Badge variant="status-completed">Completed Queue</Badge>
+          <Text as="h2" variant="headline">Keep finished cases exportable and easy to review without changing the existing list behavior.</Text>
+          <Text variant="body-sm" tone="muted">
+            This page now shares the same operational shell and summary rhythm as the rest of the case workflow.
+          </Text>
+        </Stack>
+      </Section>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <CheckCircle className="h-8 w-8 text-green-600" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-muted-foreground">Total Completed</p>
-                <p className="text-2xl font-bold text-foreground">{statistics?.completed || 0}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <div className="h-8 w-8 bg-green-100 rounded-full flex items-center justify-center">
-                <span className="text-green-600 font-semibold">📅</span>
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">This Month</p>
-                <p className="text-2xl font-bold text-foreground">
-                  {statistics?.completedThisMonth || 0}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <div className="h-8 w-8 bg-green-100 rounded-full flex items-center justify-center">
-                <span className="text-green-600 font-semibold">⭐</span>
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-muted-foreground">High Priority</p>
-                <p className="text-2xl font-bold text-foreground">
-                  {statistics?.highPriority || 0}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <div className="h-8 w-8 bg-green-100 rounded-full flex items-center justify-center">
-                <span className="text-green-600 font-semibold">👥</span>
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Field Users</p>
-                <p className="text-2xl font-bold text-foreground">
-                  {statistics?.activeAgentsCompleted || 0}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <div className="h-8 w-8 bg-purple-100 rounded-full flex items-center justify-center">
-                <span className="text-purple-600 font-semibold">⏱️</span>
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Avg TAT</p>
-                <p className="text-2xl font-bold text-foreground">
-                  {Math.round(statistics?.avgTATDays || 0)} days
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <Section>
+        <MetricCardGrid
+          items={[
+            {
+              title: 'Total Completed',
+              value: statistics?.completed || 0,
+              detail: 'Finished verification cases',
+              icon: CheckCircle,
+              tone: 'positive',
+            },
+            {
+              title: 'This Month',
+              value: statistics?.completedThisMonth || 0,
+              detail: 'Completed in the current month',
+              icon: Calendar,
+              tone: 'accent',
+            },
+            {
+              title: 'High Priority',
+              value: statistics?.highPriority || 0,
+              detail: 'Completed urgent cases',
+              icon: Star,
+              tone: 'warning',
+            },
+            {
+              title: 'Field Users',
+              value: statistics?.activeAgentsCompleted || 0,
+              detail: 'Agents with completed work',
+              icon: Users,
+              tone: 'neutral',
+            },
+            {
+              title: 'Avg TAT',
+              value: `${Math.round(statistics?.avgTATDays || 0)} days`,
+              detail: 'Average turnaround',
+              icon: Timer,
+              tone: 'accent',
+            },
+          ]}
+        />
+      </Section>
 
-
-
-      {/* Cases Table */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Completed Cases</CardTitle>
-              <CardDescription>
-                {paginationData.total > 0 
-                  ? `Showing ${paginationData.total} completed case${paginationData.total === 1 ? '' : 's'}`
-                  : 'No completed cases found'
-                }
-              </CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="p-0">
+      <Section>
+        <Card tone="strong" staticCard bodyClassName="p-0">
           <CompletedCaseTable
             cases={cases}
             isLoading={isLoading}
           />
-        </CardContent>
-      </Card>
+        </Card>
+      </Section>
 
-      {/* Pagination */}
-      {paginationData.total > 0 && (
+      {paginationData.total > 0 ? (
+        <Section>
         <CasePagination
           currentPage={paginationData.page}
           totalPages={paginationData.totalPages}
@@ -217,7 +183,8 @@ export const CompletedCasesPage: React.FC = () => {
           onItemsPerPageChange={handleItemsPerPageChange}
           isLoading={isLoading}
         />
-      )}
-    </div>
+        </Section>
+      ) : null}
+    </Page>
   );
 };

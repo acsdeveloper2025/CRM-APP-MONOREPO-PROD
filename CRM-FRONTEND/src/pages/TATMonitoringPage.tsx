@@ -1,31 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { Button } from '@/ui/components/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/components/tabs';
 import { useOverdueTasks, useTATStats } from '@/hooks/useDashboard';
 import { useUnifiedSearch, useUnifiedFilters } from '@/hooks/useUnifiedSearch';
-import { UnifiedSearchFilterLayout, FilterGrid } from '@/components/ui/unified-search-filter-layout';
-import { Label } from '@/components/ui/label';
+import { UnifiedSearchFilterLayout, FilterGrid } from '@/ui/components/unified-search-filter-layout';
+import { Label } from '@/ui/components/label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Clock, AlertTriangle, User, ArrowUpDown, ChevronLeft, ChevronRight, CheckCircle, TrendingUp, RefreshCw } from 'lucide-react';
+} from '@/ui/components/select';
+import { AlertTriangle, Clock, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { OverdueTask, OverdueTasksResponse } from '@/types/dto/dashboard.dto';
+import { TATMonitoringSummaryCards, TATMonitoringTable } from '@/components/tat/TATMonitoringPanels';
+import { Button as UiButton } from '@/ui/components/Button';
+import { Card } from '@/ui/components/Card';
+import { Badge } from '@/ui/components/Badge';
+import { Page } from '@/ui/layout/Page';
+import { Section } from '@/ui/layout/Section';
+import { Stack } from '@/ui/primitives/Stack';
+import { Text } from '@/ui/primitives/Text';
 
 interface TATMonitoringFilters {
   priority?: string;
@@ -117,334 +114,100 @@ export const TATMonitoringPage: React.FC = () => {
     }
   };
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'URGENT':
-        return 'bg-red-100 text-red-800 border-red-300';
-      case 'HIGH':
-        return 'bg-yellow-100 text-orange-800 border-orange-300';
-      case 'MEDIUM':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-300';
-      case 'LOW':
-        return 'bg-green-100 text-green-800 border-green-300';
-      default:
-        return 'bg-gray-100 text-gray-800 border-gray-300';
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'PENDING':
-        return 'bg-gray-100 text-gray-800 border-gray-300';
-      case 'ASSIGNED':
-        return 'bg-green-100 text-green-800 border-blue-300';
-      case 'IN_PROGRESS':
-        return 'bg-green-100 text-green-800 border-purple-300';
-      default:
-        return 'bg-gray-100 text-gray-800 border-gray-300';
-    }
-  };
-
-  const getDaysOverdueColor = (days: number) => {
-    if (days > 3) {return 'text-red-600 font-bold';}
-    if (days > 1) {return 'text-yellow-600 font-semibold';}
-    return 'text-yellow-600';
-  };
-  
-  const renderTaskTable = (tasks: OverdueTask[], isLoading: boolean, pagination: OverdueTasksResponse['pagination'], onPageChange: (page: number) => void) => {
-    if (isLoading) {
-      return (
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-        </div>
-      );
-    }
-
-    if (tasks.length === 0) {
-      return (
-        <div className="flex flex-col items-center justify-center h-64 text-gray-600">
-          <Clock className="h-12 w-12 mb-4 opacity-50" />
-          <p className="text-lg font-medium">No overdue tasks found</p>
-          <p className="text-sm">All tasks are within TAT!</p>
-        </div>
-      );
-    }
-
-    return (
-      <>
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="cursor-pointer" onClick={() => handleSort('task_number')}>
-                  <div className="flex items-center space-x-1">
-                    <span>Task Number</span>
-                    <ArrowUpDown className="h-4 w-4" />
-                  </div>
-                </TableHead>
-                <TableHead>Case Number</TableHead>
-                <TableHead className="cursor-pointer" onClick={() => handleSort('customer_name')}>
-                  <div className="flex items-center space-x-1">
-                    <span>Customer</span>
-                    <ArrowUpDown className="h-4 w-4" />
-                  </div>
-                </TableHead>
-                <TableHead>Verification Type</TableHead>
-                <TableHead>Assigned To</TableHead>
-                <TableHead className="cursor-pointer" onClick={() => handleSort('days_overdue')}>
-                  <div className="flex items-center space-x-1">
-                    <span>Days Overdue</span>
-                    <ArrowUpDown className="h-4 w-4" />
-                  </div>
-                </TableHead>
-                <TableHead className="cursor-pointer" onClick={() => handleSort('status')}>
-                  <div className="flex items-center space-x-1">
-                    <span>Status</span>
-                    <ArrowUpDown className="h-4 w-4" />
-                  </div>
-                </TableHead>
-                <TableHead className="cursor-pointer" onClick={() => handleSort('priority')}>
-                  <div className="flex items-center space-x-1">
-                    <span>Priority</span>
-                    <ArrowUpDown className="h-4 w-4" />
-                  </div>
-                </TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {tasks.map((task) => (
-                <TableRow key={task.id} className="hover:bg-slate-100/70 dark:hover:bg-slate-800/50">
-                  <TableCell className="font-medium">{task.taskNumber}</TableCell>
-                  <TableCell>
-                    <Button
-                      variant="link"
-                      className="p-0 h-auto font-normal"
-                      onClick={() => navigate(`/cases/${task.caseId}`)}
-                    >
-                      {task.caseNumber}
-                    </Button>
-                  </TableCell>
-                  <TableCell>{task.customerName}</TableCell>
-                  <TableCell className="text-sm">{task.verificationTypeName}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center space-x-2">
-                      <User className="h-4 w-4 text-gray-600" />
-                      <span className="text-sm">{task.assignedToName || 'Unassigned'}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <span className={cn('font-semibold', getDaysOverdueColor(task.daysOverdue))}>
-                      {task.daysOverdue} {task.daysOverdue === 1 ? 'day' : 'days'}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className={getStatusColor(task.status)}>
-                      {task.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className={getPriorityColor(task.priority)}>
-                      {task.priority}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => navigate(`/verification-tasks/${task.id}`)}
-                    >
-                      View Details
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-
-        {/* Pagination */}
-        {pagination.totalPages > 1 && (
-          <div className="flex items-center justify-between px-4 py-4 border-t">
-            <div className="text-sm text-gray-600">
-              Showing {((pagination.page - 1) * 20) + 1} to {Math.min(pagination.page * 20, pagination.totalCount)} of {pagination.totalCount} tasks
-            </div>
-            <div className="flex items-center space-x-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => onPageChange(pagination.page - 1)}
-                disabled={pagination.page === 1}
-              >
-                <ChevronLeft className="h-4 w-4" />
-                Previous
-              </Button>
-              <div className="text-sm">
-                Page {pagination.page} of {pagination.totalPages}
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => onPageChange(pagination.page + 1)}
-                disabled={pagination.page === pagination.totalPages}
-              >
-                Next
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        )}
-      </>
-    );
-  };
-
   const activeFilterCount = Object.values(activeFilters).filter(Boolean).length;
 
   return (
-    <div className="container mx-auto p-4 sm:p-6 space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">TAT Monitoring</h1>
-          <p className="text-gray-600 mt-1">
-            Track and manage overdue verification tasks
-          </p>
-        </div>
-      </div>
+    <Page
+      title="TAT Monitoring"
+      subtitle="Track overdue operational work before SLA breaches spread across the queue."
+      shell
+      actions={
+        <UiButton variant="secondary" icon={<RefreshCw size={16} />} onClick={handleRefresh} disabled={criticalLoading || allLoading}>
+          Refresh
+        </UiButton>
+      }
+    >
+      <Section>
+        <Stack gap={3}>
+          <Badge variant="danger">SLA Command</Badge>
+          <Text as="h2" variant="headline">See the pressure points before they become operational fire drills.</Text>
+          <Text variant="body-sm" tone="muted">Critical overdue items stay separated from the broader backlog so intervention is immediate.</Text>
+        </Stack>
+      </Section>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Critical Overdue</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-red-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">{criticalPagination.totalCount}</div>
-            <p className="text-xs text-gray-600">More than 3 days</p>
-          </CardContent>
+      <Section>
+        <TATMonitoringSummaryCards
+          criticalCount={criticalPagination.totalCount}
+          totalCount={allPagination.totalCount}
+          onTrack={tatStats?.onTrack || 0}
+          avgOverdueDays={tatStats?.avgOverdueDays || 0}
+          completedToday={tatStats?.completedToday || 0}
+        />
+      </Section>
+
+      <Section>
+        <Card tone="strong" className="ui-filter-bar" staticCard>
+          <UnifiedSearchFilterLayout
+            searchValue={searchValue}
+            onSearchChange={setSearchValue}
+            onSearchClear={clearSearch}
+            isSearchLoading={isDebouncing}
+            searchPlaceholder="Search task number, case number, customer..."
+            hasActiveFilters={hasActiveFilters}
+            activeFilterCount={activeFilterCount}
+            onClearFilters={clearFilters}
+            filterContent={
+              <FilterGrid columns={2}>
+                <div className="space-y-2">
+                  <Label htmlFor="priority">Priority</Label>
+                  <Select
+                    value={activeFilters.priority || 'all'}
+                    onValueChange={(value) => setFilter('priority', value === 'all' ? undefined : value)}
+                  >
+                    <SelectTrigger id="priority">
+                      <SelectValue placeholder="All priorities" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Priorities</SelectItem>
+                      <SelectItem value="URGENT">Urgent</SelectItem>
+                      <SelectItem value="HIGH">High</SelectItem>
+                      <SelectItem value="MEDIUM">Medium</SelectItem>
+                      <SelectItem value="LOW">Low</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="status">Status</Label>
+                  <Select
+                    value={activeFilters.status || 'all'}
+                    onValueChange={(value) => setFilter('status', value === 'all' ? undefined : value)}
+                  >
+                    <SelectTrigger id="status">
+                      <SelectValue placeholder="All statuses" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Statuses</SelectItem>
+                      <SelectItem value="PENDING">Pending</SelectItem>
+                      <SelectItem value="ASSIGNED">Assigned</SelectItem>
+                      <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </FilterGrid>
+            }
+            actions={
+              <Button variant="outline" onClick={handleRefresh} disabled={criticalLoading || allLoading}>
+                <RefreshCw className={cn("h-4 w-4 mr-2", (criticalLoading || allLoading) && "animate-spin")} />
+                Refresh
+              </Button>
+            }
+          />
         </Card>
+      </Section>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Overdue</CardTitle>
-            <Clock className="h-4 w-4 text-yellow-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">{allPagination.totalCount}</div>
-            <p className="text-xs text-gray-600">More than 1 day</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">On Track</CardTitle>
-            <CheckCircle className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              {tatStats?.onTrack || 0}
-            </div>
-            <p className="text-xs text-gray-600">Within TAT</p>
-          </CardContent>
-        </Card>
- 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg TAT</CardTitle>
-            <TrendingUp className="h-4 w-4 text-blue-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {tatStats?.avgOverdueDays || 0} days
-            </div>
-            <p className="text-xs text-gray-600">Average overdue</p>
-          </CardContent>
-        </Card>
- 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Completed Today</CardTitle>
-            <CheckCircle className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {tatStats?.completedToday || 0}
-            </div>
-            <p className="text-xs text-gray-600">Tasks completed</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <UnifiedSearchFilterLayout
-        searchValue={searchValue}
-        onSearchChange={setSearchValue}
-        onSearchClear={clearSearch}
-        isSearchLoading={isDebouncing}
-        searchPlaceholder="Search task number, case number, customer..."
-        hasActiveFilters={hasActiveFilters}
-        activeFilterCount={activeFilterCount}
-        onClearFilters={clearFilters}
-        filterContent={
-          <FilterGrid columns={2}>
-            {/* Priority Filter */}
-            <div className="space-y-2">
-              <Label htmlFor="priority">Priority</Label>
-              <Select
-                value={activeFilters.priority || 'all'}
-                onValueChange={(value) => setFilter('priority', value === 'all' ? undefined : value)}
-              >
-                <SelectTrigger id="priority">
-                  <SelectValue placeholder="All priorities" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Priorities</SelectItem>
-                  <SelectItem value="URGENT">Urgent</SelectItem>
-                  <SelectItem value="HIGH">High</SelectItem>
-                  <SelectItem value="MEDIUM">Medium</SelectItem>
-                  <SelectItem value="LOW">Low</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Status Filter */}
-            <div className="space-y-2">
-              <Label htmlFor="status">Status</Label>
-              <Select
-                value={activeFilters.status || 'all'}
-                onValueChange={(value) => setFilter('status', value === 'all' ? undefined : value)}
-              >
-                <SelectTrigger id="status">
-                  <SelectValue placeholder="All statuses" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="PENDING">Pending</SelectItem>
-                  <SelectItem value="ASSIGNED">Assigned</SelectItem>
-                  <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </FilterGrid>
-        }
-        actions={
-          <Button
-            variant="outline"
-            onClick={handleRefresh}
-            disabled={criticalLoading || allLoading}
-          >
-            <RefreshCw className={cn("h-4 w-4 mr-2", (criticalLoading || allLoading) && "animate-spin")} />
-            Refresh
-          </Button>
-        }
-      />
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Overdue Tasks</CardTitle>
-          <CardDescription>View and manage tasks that have exceeded their turnaround time</CardDescription>
-        </CardHeader>
-        <CardContent>
+      <Section>
+        <Card tone="strong" staticCard>
           <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'critical' | 'all')}>
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="critical" className="flex items-center space-x-2">
@@ -457,14 +220,32 @@ export const TATMonitoringPage: React.FC = () => {
               </TabsTrigger>
             </TabsList>
             <TabsContent value="critical" className="mt-6">
-              {renderTaskTable(criticalTasks, criticalLoading, criticalPagination, setCriticalPage)}
+              <TATMonitoringTable
+                tasks={criticalTasks}
+                isLoading={criticalLoading}
+                pagination={criticalPagination}
+                sortBy={sortBy}
+                onSort={handleSort}
+                onPageChange={setCriticalPage}
+                onViewCase={(caseId) => navigate(`/cases/${caseId}`)}
+                onViewTask={(taskId) => navigate(`/verification-tasks/${taskId}`)}
+              />
             </TabsContent>
             <TabsContent value="all" className="mt-6">
-              {renderTaskTable(allTasks, allLoading, allPagination, setAllPage)}
+              <TATMonitoringTable
+                tasks={allTasks}
+                isLoading={allLoading}
+                pagination={allPagination}
+                sortBy={sortBy}
+                onSort={handleSort}
+                onPageChange={setAllPage}
+                onViewCase={(caseId) => navigate(`/cases/${caseId}`)}
+                onViewTask={(taskId) => navigate(`/verification-tasks/${taskId}`)}
+              />
             </TabsContent>
           </Tabs>
-        </CardContent>
-      </Card>
-    </div>
+        </Card>
+      </Section>
+    </Page>
   );
 };

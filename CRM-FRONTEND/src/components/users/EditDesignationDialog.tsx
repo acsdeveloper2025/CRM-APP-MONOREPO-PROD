@@ -10,7 +10,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
+} from '@/ui/components/dialog';
 import {
   Form,
   FormControl,
@@ -19,18 +19,18 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form';
+} from '@/ui/components/form';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
+} from '@/ui/components/select';
+import { Input } from '@/ui/components/input';
+import { Textarea } from '@/ui/components/textarea';
+import { Button } from '@/ui/components/button';
+import { Switch } from '@/ui/components/switch';
 import { toast } from 'sonner';
 import { designationsService } from '@/services/designations';
 import { departmentsService } from '@/services/departments';
@@ -115,7 +115,7 @@ export function EditDesignationDialog({ open, onOpenChange, designation }: EditD
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent {...{ className: "max-w-2xl" }}>
         <DialogHeader>
           <DialogTitle>Edit Designation: {designation.name}</DialogTitle>
           <DialogDescription>
@@ -124,8 +124,8 @@ export function EditDesignationDialog({ open, onOpenChange, designation }: EditD
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} {...{ className: "space-y-6" }}>
+            <div {...{ className: "grid grid-cols-1 md:grid-cols-2 gap-4" }}>
               <FormField
                 control={form.control}
                 name="name"
@@ -179,7 +179,7 @@ export function EditDesignationDialog({ open, onOpenChange, designation }: EditD
                   <FormControl>
                     <Textarea 
                       placeholder="Brief description of this designation's responsibilities and role..."
-                      className="resize-none"
+                      {...{ className: "resize-none" }}
                       rows={3}
                       {...field}
                     />
@@ -196,10 +196,10 @@ export function EditDesignationDialog({ open, onOpenChange, designation }: EditD
               control={form.control}
               name="isActive"
               render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                  <div className="space-y-0.5">
-                    <FormLabel className="text-base">Active Status</FormLabel>
-                    <div className="text-sm text-gray-600">
+                <FormItem {...{ className: "flex flex-row items-center justify-between rounded-lg border p-4" }}>
+                  <div {...{ className: "space-y-0.5" }}>
+                    <FormLabel {...{ className: "text-base" }}>Active Status</FormLabel>
+                    <div {...{ className: "text-sm text-gray-600" }}>
                       Enable or disable this designation
                     </div>
                   </div>
@@ -213,17 +213,17 @@ export function EditDesignationDialog({ open, onOpenChange, designation }: EditD
               )}
             />
 
-            <DialogFooter className="flex-col sm:flex-row gap-2">
+            <DialogFooter {...{ className: "flex-col sm:flex-row gap-2" }}>
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
-                className="w-full sm:w-auto"
+                {...{ className: "w-full sm:w-auto" }}
                 disabled={updateMutation.isPending}
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={updateMutation.isPending} className="w-full sm:w-auto">
+              <Button type="submit" disabled={updateMutation.isPending} {...{ className: "w-full sm:w-auto" }}>
                 {updateMutation.isPending ? 'Updating...' : 'Update Designation'}
               </Button>
             </DialogFooter>

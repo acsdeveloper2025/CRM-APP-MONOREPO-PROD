@@ -1,6 +1,6 @@
 import React from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
 
 interface MonthlyTrendData {
   month: string;
@@ -72,8 +72,8 @@ export const MonthlyTrendsChart: React.FC<MonthlyTrendsChartProps> = ({ data, is
         <CardDescription>Cases and revenue trends over time</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="h-[300px]">
-          <ResponsiveContainer width="100%" height="100%">
+        <div className="h-[300px] min-w-0">
+          <ResponsiveContainer width="100%" height={300}>
             <LineChart data={safeData}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="month" />

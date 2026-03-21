@@ -10,7 +10,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
+} from '@/ui/components/dialog';
 import {
   Form,
   FormControl,
@@ -19,17 +19,17 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form';
+} from '@/ui/components/form';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Button } from '@/components/ui/button';
+} from '@/ui/components/select';
+import { Input } from '@/ui/components/input';
+import { Textarea } from '@/ui/components/textarea';
+import { Button } from '@/ui/components/button';
 import { toast } from 'sonner';
 import { departmentsService } from '@/services/departments';
 import { usersService } from '@/services/users';
@@ -141,7 +141,7 @@ export function CreateDepartmentDialog({ open, onOpenChange }: CreateDepartmentD
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent {...{ className: "max-w-2xl" }}>
         <DialogHeader>
           <DialogTitle>Create New Department</DialogTitle>
           <DialogDescription>
@@ -150,8 +150,8 @@ export function CreateDepartmentDialog({ open, onOpenChange }: CreateDepartmentD
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} {...{ className: "space-y-6" }}>
+            <div {...{ className: "grid grid-cols-1 md:grid-cols-2 gap-4" }}>
               <FormField
                 control={form.control}
                 name="name"
@@ -181,7 +181,7 @@ export function CreateDepartmentDialog({ open, onOpenChange }: CreateDepartmentD
                   <FormControl>
                     <Textarea 
                       placeholder="Brief description of this department's responsibilities..."
-                      className="resize-none"
+                      {...{ className: "resize-none" }}
                       rows={3}
                       {...field}
                     />
@@ -220,17 +220,17 @@ export function CreateDepartmentDialog({ open, onOpenChange }: CreateDepartmentD
               )}
             />
 
-            <DialogFooter className="flex-col sm:flex-row gap-2">
+            <DialogFooter {...{ className: "flex-col sm:flex-row gap-2" }}>
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
-                className="w-full sm:w-auto"
+                {...{ className: "w-full sm:w-auto" }}
                 disabled={createMutation.isPending}
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={createMutation.isPending} className="w-full sm:w-auto">
+              <Button type="submit" disabled={createMutation.isPending} {...{ className: "w-full sm:w-auto" }}>
                 {createMutation.isPending ? 'Creating...' : 'Create Department'}
               </Button>
             </DialogFooter>

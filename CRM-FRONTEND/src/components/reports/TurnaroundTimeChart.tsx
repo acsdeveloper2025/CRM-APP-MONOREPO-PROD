@@ -1,6 +1,9 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Clock, TrendingUp, TrendingDown } from 'lucide-react';
+import { Clock, TrendingDown, TrendingUp } from 'lucide-react';
+import { Badge } from '@/ui/components/badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
+import { Box } from '@/ui/primitives/Box';
+import { Stack } from '@/ui/primitives/Stack';
+import { Text } from '@/ui/primitives/Text';
 import { TurnaroundTimeReport } from '@/types/reports';
 
 interface TurnaroundTimeChartProps {
@@ -12,109 +15,124 @@ export function TurnaroundTimeChart({ data }: TurnaroundTimeChartProps) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Clock className="h-5 w-5" />
-            <span>Turnaround Time Analysis</span>
+          <CardTitle>
+            <Stack direction="horizontal" gap={2} align="center">
+              <Clock size={18} />
+              <span>Turnaround Time Analysis</span>
+            </Stack>
           </CardTitle>
-          <CardDescription>
-            Average case completion times and performance metrics
-          </CardDescription>
+          <CardDescription>Average case completion times and performance metrics</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-8">
-            <Clock className="mx-auto h-12 w-12 text-gray-600" />
-            <h3 className="mt-4 text-lg font-semibold">No data available</h3>
-            <p className="text-gray-600">
-              Turnaround time data will appear here once cases are completed.
-            </p>
-          </div>
+          <Stack gap={2} align="center" style={{ textAlign: 'center', padding: '2rem 0' }}>
+            <Clock size={48} style={{ color: 'var(--ui-text-muted)' }} />
+            <Text as="h3" variant="title">No data available</Text>
+            <Text tone="muted">Turnaround time data will appear here once cases are completed.</Text>
+          </Stack>
         </CardContent>
       </Card>
     );
   }
 
-  const performanceColor = data.performancePercentage >= 80 ? 'text-green-600' : 
-                          data.performancePercentage >= 60 ? 'text-yellow-600' : 'text-red-600';
-
-  const performanceIcon = data.performancePercentage >= data.targetTurnaroundTime ? 
-                         <TrendingUp className="h-4 w-4 text-green-600" /> : 
-                         <TrendingDown className="h-4 w-4 text-red-600" />;
+  const performanceTone = data.performancePercentage >= 80 ? 'positive' : data.performancePercentage >= 60 ? 'warning' : 'danger';
+  const performanceIcon = data.performancePercentage >= data.targetTurnaroundTime
+    ? <TrendingUp size={14} style={{ color: 'var(--ui-success)' }} />
+    : <TrendingDown size={14} style={{ color: 'var(--ui-danger)' }} />;
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center space-x-2">
-          <Clock className="h-5 w-5" />
-          <span>Turnaround Time Analysis</span>
+        <CardTitle>
+          <Stack direction="horizontal" gap={2} align="center">
+            <Clock size={18} />
+            <span>Turnaround Time Analysis</span>
+          </Stack>
         </CardTitle>
-        <CardDescription>
-          Average case completion times and performance metrics
-        </CardDescription>
+        <CardDescription>Average case completion times and performance metrics</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Key Metrics */}
-        <div className="grid grid-cols-3 gap-4">
-          <div className="text-center">
-            <div className="text-2xl font-bold">{data.averageTurnaroundTime}h</div>
-            <div className="text-sm text-gray-600">Average Time</div>
-          </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold">{data.targetTurnaroundTime}h</div>
-            <div className="text-sm text-gray-600">Target Time</div>
-          </div>
-          <div className="text-center">
-            <div className={`text-2xl font-bold flex items-center justify-center space-x-1 ${performanceColor}`}>
-              {performanceIcon}
-              <span>{data.performancePercentage}%</span>
-            </div>
-            <div className="text-sm text-gray-600">Performance</div>
-          </div>
-        </div>
+      <CardContent>
+        <Stack gap={6}>
+          <Box style={{ display: 'grid', gap: '1rem', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))' }}>
+            <Stack gap={1} align="center" style={{ textAlign: 'center' }}>
+              <Text variant="headline">{data.averageTurnaroundTime}h</Text>
+              <Text variant="caption" tone="muted">Average Time</Text>
+            </Stack>
+            <Stack gap={1} align="center" style={{ textAlign: 'center' }}>
+              <Text variant="headline">{data.targetTurnaroundTime}h</Text>
+              <Text variant="caption" tone="muted">Target Time</Text>
+            </Stack>
+            <Stack gap={1} align="center" style={{ textAlign: 'center' }}>
+              <Stack direction="horizontal" gap={1} align="center">
+                {performanceIcon}
+                <Text variant="headline" tone={performanceTone}>{data.performancePercentage}%</Text>
+              </Stack>
+              <Text variant="caption" tone="muted">Performance</Text>
+            </Stack>
+          </Box>
 
-        {/* Turnaround Time Distribution */}
-        <div>
-          <h4 className="font-medium mb-3">Time Distribution</h4>
-          <div className="space-y-2">
-            {data.casesByTurnaroundTime.map((range, index) => (
-              <div key={index} className="flex items-center justify-between">
-                <span className="text-sm">{range.range}</span>
-                <div className="flex items-center space-x-2">
-                  <div className="w-32 bg-slate-100 dark:bg-slate-800/60 rounded-full h-2">
-                    <div 
-                      className="bg-primary h-2 rounded-full" 
-                      style={{ width: `${range.percentage}%` }}
-                    />
-                  </div>
-                  <span className="text-sm font-medium w-12">{range.count}</span>
-                  <Badge variant="outline" className="text-xs">
-                    {range.percentage}%
-                  </Badge>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+          <Stack gap={3}>
+            <Text as="h4" variant="label">Time Distribution</Text>
+            <Stack gap={2}>
+              {data.casesByTurnaroundTime.map((range, index) => (
+                <Box key={index} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                  <Text variant="body-sm">{range.range}</Text>
+                  <Stack direction="horizontal" gap={2} align="center">
+                    <Box style={{ width: '8rem', height: '0.55rem', borderRadius: '999px', background: 'var(--ui-surface-muted)', overflow: 'hidden' }}>
+                      <Box style={{ width: `${range.percentage}%`, height: '100%', borderRadius: '999px', background: 'var(--ui-accent)' }} />
+                    </Box>
+                    <Text variant="body-sm" style={{ minWidth: '2.5rem', textAlign: 'right' }}>{range.count}</Text>
+                    <Badge variant="outline">{range.percentage}%</Badge>
+                  </Stack>
+                </Box>
+              ))}
+            </Stack>
+          </Stack>
 
-        {/* Top Performers */}
-        <div>
-          <h4 className="font-medium mb-3">Top Performing Users</h4>
-          <div className="space-y-2">
-            {data.userWisePerformance.slice(0, 5).map((user, index) => (
-              <div key={user.userId} className="flex items-center justify-between p-2 rounded-lg bg-slate-100/70 dark:bg-slate-800/50">
-                <div className="flex items-center space-x-2">
-                  <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium">
-                    {index + 1}
-                  </div>
-                  <span className="text-sm font-medium">{user.userName}</span>
-                </div>
-                <div className="text-right">
-                  <div className="text-sm font-medium">{user.averageTurnaroundTime}h</div>
-                  <div className="text-xs text-gray-600">{user.caseCount} cases</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+          <Stack gap={3}>
+            <Text as="h4" variant="label">Top Performing Users</Text>
+            <Stack gap={2}>
+              {data.userWisePerformance.slice(0, 5).map((user, index) => (
+                <Box
+                  key={user.userId}
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    gap: '1rem',
+                    flexWrap: 'wrap',
+                    padding: '0.75rem',
+                    borderRadius: 'var(--ui-radius-lg)',
+                    background: 'var(--ui-surface-muted)',
+                  }}
+                >
+                  <Stack direction="horizontal" gap={2} align="center">
+                    <Box
+                      style={{
+                        width: '1.5rem',
+                        height: '1.5rem',
+                        borderRadius: '999px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        background: 'rgba(17, 116, 110, 0.12)',
+                        color: 'var(--ui-accent)',
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                      }}
+                    >
+                      {index + 1}
+                    </Box>
+                    <Text variant="body-sm">{user.userName}</Text>
+                  </Stack>
+                  <Stack gap={0} align="flex-end">
+                    <Text variant="body-sm">{user.averageTurnaroundTime}h</Text>
+                    <Text variant="caption" tone="muted">{user.caseCount} cases</Text>
+                  </Stack>
+                </Box>
+              ))}
+            </Stack>
+          </Stack>
+        </Stack>
       </CardContent>
     </Card>
   );

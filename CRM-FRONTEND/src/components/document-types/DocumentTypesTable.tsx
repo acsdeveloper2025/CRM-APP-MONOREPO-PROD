@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { MoreHorizontal, Edit, Trash2, Eye, FileText } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { Button } from '@/ui/components/button';
+import { Badge } from '@/ui/components/badge';
 import { baseBadgeStyle, formatBadgeLabel } from '@/lib/badgeStyles';
 import {
   Table,
@@ -11,7 +11,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
+} from '@/ui/components/table';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,7 +19,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from '@/ui/components/dropdown-menu';
 import { documentTypesService } from '@/services/documentTypes';
 import { EditDocumentTypeDialog } from './EditDocumentTypeDialog';
 import { ViewDocumentTypeDialog } from './ViewDocumentTypeDialog';

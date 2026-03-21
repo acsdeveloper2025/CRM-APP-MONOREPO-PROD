@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/ui/components/dialog';
 import { useCaseFormSubmissions } from '@/hooks/useForms';
 import { FormViewer } from '@/components/forms/FormViewer';
 import { FormSubmission } from '@/types/form';
+import { MetricCardGrid } from '@/components/shared/MetricCardGrid';
 import {
   Camera,
   Clock,
@@ -16,7 +15,13 @@ import {
   CheckCircle2
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
-import { LoadingState } from '@/components/ui/loading';
+import { LoadingState } from '@/ui/components/loading';
+import { Badge } from '@/ui/components/Badge';
+import { Card } from '@/ui/components/Card';
+import { Page } from '@/ui/layout/Page';
+import { Section } from '@/ui/layout/Section';
+import { Stack } from '@/ui/primitives/Stack';
+import { Text } from '@/ui/primitives/Text';
 
 export const FormSubmissionsPage: React.FC = () => {
   const { caseId } = useParams<{ caseId: string }>();
@@ -36,147 +41,167 @@ export const FormSubmissionsPage: React.FC = () => {
     setIsViewerOpen(false);
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusVariant = (status: string) => {
     switch (status.toLowerCase()) {
       case 'completed':
       case 'approved':
-        return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300';
+        return 'status-completed' as const;
       case 'pending':
       case 'under_review':
-        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300';
+        return 'status-pending' as const;
       case 'failed':
       case 'rejected':
-        return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300';
+        return 'danger' as const;
       default:
-        return 'bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-200';
+        return 'neutral' as const;
     }
   };
 
-  const getValidationColor = (status: string) => {
+  const getValidationVariant = (status: string) => {
     switch (status.toLowerCase()) {
       case 'valid':
-        return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300';
+        return 'positive' as const;
       case 'invalid':
       case 'flagged':
-        return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300';
+        return 'danger' as const;
       case 'warning':
       case 'pending':
-        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300';
+        return 'warning' as const;
       default:
-        return 'bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-200';
+        return 'neutral' as const;
     }
   };
 
   if (isLoading) {
-    return <LoadingState message="Fetching form submissions..." size="lg" className="min-h-[400px]" />;
+    return (
+      <Page
+        title="Form Submissions"
+        subtitle={`Case #${caseId}`}
+        shell
+      >
+        <Section>
+          <LoadingState message="Fetching form submissions..." size="lg" className="min-h-[400px]" />
+        </Section>
+      </Page>
+    );
   }
 
   if (error) {
     return (
-      <div className="text-center py-12">
-        <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-        <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">Error Loading Form Submissions</h2>
-        <p className="text-gray-600">There was an error loading the form submissions for this case.</p>
-      </div>
+      <Page
+        title="Form Submissions"
+        subtitle={`Case #${caseId}`}
+        shell
+      >
+        <Section>
+          <Stack gap={3} style={{ textAlign: 'center', padding: '3rem 0' }}>
+            <AlertCircle size={48} style={{ color: 'var(--ui-danger)' }} />
+            <Text as="h2" variant="headline">Error Loading Form Submissions</Text>
+            <Text tone="muted">There was an error loading the form submissions for this case.</Text>
+          </Stack>
+        </Section>
+      </Page>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Form Submissions</h1>
-          <p className="mt-2 text-gray-600">Case #{caseId}</p>
-        </div>
-        <Badge variant="outline" className="text-lg px-3 py-1">
-          {submissions.length} Submissions
-        </Badge>
-      </div>
+    <Page
+      title="Form Submissions"
+      subtitle={`Case #${caseId}`}
+      shell
+      actions={<Badge variant="neutral">{submissions.length} submissions</Badge>}
+    >
+      <Section>
+        <MetricCardGrid
+          min={220}
+          items={[
+            { title: 'Submissions', value: submissions.length, detail: 'Captured for this case', icon: FileText, tone: 'accent' },
+            { title: 'Completed', value: submissions.filter((s) => ['completed', 'approved'].includes(s.status.toLowerCase())).length, detail: 'Approved or completed', icon: CheckCircle2, tone: 'positive' },
+            { title: 'Photos', value: submissions.reduce((total, submission) => total + (submission.photos?.length || 0), 0), detail: 'Captured images', icon: Camera, tone: 'warning' },
+          ]}
+        />
+      </Section>
 
-      {/* Form Submissions by Agent Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <Section>
         {submissions.length === 0 ? (
-          <div className="col-span-full text-center py-12">
-            <FileText className="h-12 w-12 text-gray-600 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No Form Submissions</h3>
-            <p className="text-gray-600">No form submissions found for this case.</p>
-          </div>
+          <Card tone="strong" staticCard>
+            <Stack gap={3} style={{ textAlign: 'center', padding: '2rem 0' }}>
+              <FileText size={48} style={{ color: 'var(--ui-muted)' }} />
+              <Text as="h3" variant="title">No Form Submissions</Text>
+              <Text tone="muted">No form submissions found for this case.</Text>
+            </Stack>
+          </Card>
         ) : (
-          submissions.map((submission) => (
-            <Card
-              key={submission.id}
-              className="hover:shadow-lg transition-shadow cursor-pointer border-l-4 border-l-blue-500"
-              onClick={() => handleSubmissionSelect(submission)}
-            >
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className="p-2 bg-green-100 rounded-lg">
-                      <User className="h-5 w-5 text-green-600" />
-                    </div>
-                    <div>
-                      <CardTitle className="text-lg">{submission.submittedByName}</CardTitle>
-                      <p className="text-sm text-gray-600">Field Agent</p>
-                    </div>
-                  </div>
-                  <div className="flex flex-col items-end space-y-1">
-                    <Badge className={getStatusColor(submission.status)}>
-                      {submission.status.replace('_', ' ')}
-                    </Badge>
-                    <Badge className={getValidationColor(submission.validationStatus)}>
-                      {submission.validationStatus}
-                    </Badge>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <div className="space-y-3">
-                  {/* NEW: Task Information */}
-                  {submission.verificationTaskNumber && (
-                    <div className="flex items-center space-x-2 text-sm">
-                      <CheckCircle2 className="h-4 w-4 text-green-600" />
-                      <span className="font-medium text-green-600">
-                        Task {submission.verificationTaskNumber}
-                      </span>
-                      {submission.verificationTypeName && (
-                        <Badge variant="outline" className="text-xs">
-                          {submission.verificationTypeName}
-                        </Badge>
-                      )}
-                    </div>
-                  )}
-                  <div className="flex items-center space-x-2 text-sm text-gray-600">
-                    <Clock className="h-4 w-4" />
-                    <span>
-                      {formatDistanceToNow(new Date(submission.submittedAt), { addSuffix: true })}
-                    </span>
-                  </div>
-                  <div className="flex items-center space-x-2 text-sm text-gray-600">
-                    <FileText className="h-4 w-4" />
-                    <span>{submission.formType} Form</span>
-                  </div>
-                  <div className="flex items-center space-x-2 text-sm text-gray-600">
-                    <Camera className="h-4 w-4" />
-                    <span>{submission.photos?.length || 0} photos captured</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))
-        )}
-      </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {submissions.map((submission) => (
+              <Card
+                key={submission.id}
+                tone="strong"
+                onClick={() => handleSubmissionSelect(submission)}
+                style={{ cursor: 'pointer' }}
+              >
+                <Stack gap={3}>
+                  <Stack direction="horizontal" justify="space-between" align="flex-start" gap={3}>
+                    <Stack direction="horizontal" gap={3} align="center">
+                      <div className="ui-stat-card" style={{ padding: '0.7rem' }}>
+                        <User size={18} />
+                      </div>
+                      <Stack gap={1}>
+                        <Text as="h3" variant="title">{submission.submittedByName}</Text>
+                        <Text variant="body-sm" tone="muted">Field Agent</Text>
+                      </Stack>
+                    </Stack>
+                    <Stack gap={1} align="flex-end">
+                      <Badge variant={getStatusVariant(submission.status)}>
+                        {submission.status.replace('_', ' ')}
+                      </Badge>
+                      <Badge variant={getValidationVariant(submission.validationStatus)}>
+                        {submission.validationStatus}
+                      </Badge>
+                    </Stack>
+                  </Stack>
 
-      {/* Image Cards Section */}
-      {submissions.some(s => s.photos && s.photos.length > 0) && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Camera className="h-5 w-5" />
-              <span>Captured Images</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+                  {submission.verificationTaskNumber ? (
+                    <Stack direction="horizontal" gap={2} align="center" wrap="wrap">
+                      <CheckCircle2 size={16} style={{ color: 'var(--ui-positive)' }} />
+                      <Text variant="body-sm" tone="positive">Task {submission.verificationTaskNumber}</Text>
+                      {submission.verificationTypeName ? (
+                        <Badge variant="neutral">{submission.verificationTypeName}</Badge>
+                      ) : null}
+                    </Stack>
+                  ) : null}
+
+                  <Stack gap={2}>
+                    <Stack direction="horizontal" gap={2} align="center">
+                      <Clock size={16} />
+                      <Text variant="body-sm" tone="muted">
+                        {formatDistanceToNow(new Date(submission.submittedAt), { addSuffix: true })}
+                      </Text>
+                    </Stack>
+                    <Stack direction="horizontal" gap={2} align="center">
+                      <FileText size={16} />
+                      <Text variant="body-sm" tone="muted">{submission.formType} Form</Text>
+                    </Stack>
+                    <Stack direction="horizontal" gap={2} align="center">
+                      <Camera size={16} />
+                      <Text variant="body-sm" tone="muted">{submission.photos?.length || 0} photos captured</Text>
+                    </Stack>
+                  </Stack>
+                </Stack>
+              </Card>
+            ))}
+          </div>
+        )}
+      </Section>
+
+      {submissions.some(s => s.photos && s.photos.length > 0) ? (
+        <Section>
+          <Card tone="strong" staticCard>
+            <Stack gap={4}>
+              <Stack direction="horizontal" gap={2} align="center">
+                <Camera size={18} />
+                <Text as="h3" variant="title">Captured Images</Text>
+              </Stack>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
               {submissions.flatMap(submission =>
                 (submission.photos || []).map(photo => (
@@ -209,11 +234,11 @@ export const FormSubmissionsPage: React.FC = () => {
                 ))
               )}
             </div>
-          </CardContent>
-        </Card>
-      )}
+            </Stack>
+          </Card>
+        </Section>
+      ) : null}
 
-      {/* Form Viewer Modal */}
       {selectedSubmission && (
         <Dialog open={isViewerOpen} onOpenChange={handleCloseViewer}>
           <DialogContent className="max-w-6xl max-h-[90vh] overflow-auto">
@@ -231,6 +256,6 @@ export const FormSubmissionsPage: React.FC = () => {
           </DialogContent>
         </Dialog>
       )}
-    </div>
+    </Page>
   );
 };

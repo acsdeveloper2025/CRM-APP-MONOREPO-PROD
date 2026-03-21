@@ -26,6 +26,7 @@ export interface NavigationItem {
   label: string;
   href: string;
   icon: LucideIcon;
+  section?: 'primary' | 'workspace' | 'tools';
   roles?: Role[]; // Made optional for backward compatibility
   permissionCode?: string;
   permission?: {
@@ -41,6 +42,7 @@ export const navigationItems: NavigationItem[] = [
     label: 'Dashboard',
     href: '/dashboard',
     icon: LayoutDashboard,
+    section: 'workspace',
     permissionCode: 'page.dashboard',
     permission: { resource: 'cases', action: 'read' }, // Using cases permission for dashboard access
   },
@@ -49,6 +51,7 @@ export const navigationItems: NavigationItem[] = [
     label: 'Case Management',
     href: '/cases',
     icon: FileText,
+    section: 'primary',
     permissionCode: 'page.cases',
     permission: { resource: 'cases', action: 'read' },
     children: [
@@ -83,6 +86,7 @@ export const navigationItems: NavigationItem[] = [
     label: 'Task Management',
     href: '/tasks',
     icon: CheckSquare,
+    section: 'primary',
     permissionCode: 'page.tasks',
     permission: { resource: 'tasks', action: 'read' },
     children: [
@@ -145,10 +149,73 @@ export const navigationItems: NavigationItem[] = [
     ],
   },
   {
+    id: 'reports',
+    label: 'Reports & MIS',
+    href: '/reports',
+    icon: BarChart3,
+    section: 'primary',
+    permissionCode: 'page.reports',
+    permission: { resource: 'reports', action: 'read' },
+    children: [
+      {
+        id: 'analytics',
+        label: 'Analytics Dashboard',
+        href: '/analytics',
+        icon: BarChart3,
+        permissionCode: 'page.analytics',
+        permission: { resource: 'analytics', action: 'read' },
+      },
+      {
+        id: 'mis-dashboard',
+        label: 'MIS Dashboard',
+        href: '/reports/mis',
+        icon: BarChart3,
+        permissionCode: 'page.analytics',
+        permission: { resource: 'analytics', action: 'read' },
+      },
+    ],
+  },
+  {
+    id: 'billing',
+    label: 'Billing & Commission',
+    href: '/billing',
+    icon: Receipt,
+    section: 'primary',
+    permissionCode: 'page.billing',
+    permission: { resource: 'billing', action: 'read' },
+    children: [
+      {
+        id: 'invoices',
+        label: 'Invoices',
+        href: '/invoices',
+        icon: Receipt,
+        permissionCode: 'page.billing',
+        permission: { resource: 'billing', action: 'read' },
+      },
+      {
+        id: 'commissions',
+        label: 'Commissions',
+        href: '/commissions',
+        icon: BarChart3,
+        permissionCode: 'page.billing',
+        permission: { resource: 'commissions', action: 'read' },
+      },
+      {
+        id: 'commission-management',
+        label: 'Commission Management',
+        href: '/commission-management',
+        icon: DollarSign,
+        permissionCode: 'page.billing',
+        permission: { resource: 'commissions', action: 'read' },
+      },
+    ],
+  },
+  {
     id: 'clients',
     label: 'Client Management',
     href: '/clients',
     icon: Building2,
+    section: 'primary',
     permissionCode: 'page.masterdata',
     permission: { resource: 'clients', action: 'read' },
     children: [
@@ -199,6 +266,7 @@ export const navigationItems: NavigationItem[] = [
     label: 'Location Management',
     href: '/locations',
     icon: MapPin,
+    section: 'primary',
     permissionCode: 'page.masterdata',
     permission: { resource: 'locations', action: 'read' },
     children: [
@@ -245,70 +313,11 @@ export const navigationItems: NavigationItem[] = [
     ],
   },
   {
-    id: 'billing',
-    label: 'Billing & Commission',
-    href: '/billing',
-    icon: Receipt,
-    permissionCode: 'page.billing',
-    permission: { resource: 'billing', action: 'read' },
-    children: [
-      {
-        id: 'invoices',
-        label: 'Invoices',
-        href: '/invoices',
-        icon: Receipt,
-        permissionCode: 'page.billing',
-        permission: { resource: 'billing', action: 'read' },
-      },
-      {
-        id: 'commissions',
-        label: 'Commissions',
-        href: '/commissions',
-        icon: BarChart3,
-        permissionCode: 'page.billing',
-        permission: { resource: 'commissions', action: 'read' },
-      },
-      {
-        id: 'commission-management',
-        label: 'Commission Management',
-        href: '/commission-management',
-        icon: DollarSign,
-        permissionCode: 'page.billing',
-        permission: { resource: 'commissions', action: 'read' },
-      },
-    ],
-  },
-  {
-    id: 'reports',
-    label: 'Reports & MIS',
-    href: '/reports',
-    icon: BarChart3,
-    permissionCode: 'page.reports',
-    permission: { resource: 'reports', action: 'read' },
-    children: [
-      {
-        id: 'analytics',
-        label: 'Analytics Dashboard',
-        href: '/analytics',
-        icon: BarChart3,
-        permissionCode: 'page.analytics',
-        permission: { resource: 'analytics', action: 'read' },
-      },
-      {
-        id: 'mis-dashboard',
-        label: 'MIS Dashboard',
-        href: '/reports/mis',
-        icon: BarChart3,
-        permissionCode: 'page.analytics',
-        permission: { resource: 'analytics', action: 'read' },
-      },
-    ],
-  },
-  {
     id: 'user-management',
     label: 'User Management',
-    href: '#',
+    href: '/users',
     icon: UserCog,
+    section: 'primary',
     permissionCode: 'page.users',
     permission: { resource: 'users', action: 'read' },
     children: [
@@ -357,6 +366,7 @@ export const navigationItems: NavigationItem[] = [
     label: 'Form Viewer',
     href: '/forms',
     icon: FileText,
+    section: 'tools',
     permissionCode: 'page.tasks',
     permission: { resource: 'forms', action: 'read' },
   },
@@ -365,6 +375,7 @@ export const navigationItems: NavigationItem[] = [
     label: 'Security & UX',
     href: '/security-ux',
     icon: Shield,
+    section: 'tools',
     permissionCode: 'page.settings',
     permission: { resource: 'settings', action: 'read' },
   },

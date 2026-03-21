@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
 import { Camera, FileText, PenTool, Download, Eye, Clock } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
+import { Badge } from '@/ui/components/badge';
+import { Button } from '@/ui/components/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/ui/components/dialog';
 import { FormAttachment } from '@/types/form';
+import { Box } from '@/ui/primitives/Box';
+import { Stack } from '@/ui/primitives/Stack';
+import { Text } from '@/ui/primitives/Text';
 
 interface FormAttachmentsViewerProps {
   attachments: FormAttachment[];
@@ -18,13 +21,13 @@ export function FormAttachmentsViewer({ attachments, readonly: _readonly = true 
   const getAttachmentIcon = (category: FormAttachment['category']) => {
     switch (category) {
       case 'PHOTO':
-        return <Camera className="h-4 w-4" />;
+        return <Camera size={16} />;
       case 'DOCUMENT':
-        return <FileText className="h-4 w-4" />;
+        return <FileText size={16} />;
       case 'OTHER':
-        return <PenTool className="h-4 w-4" />;
+        return <PenTool size={16} />;
       default:
-        return <FileText className="h-4 w-4" />;
+        return <FileText size={16} />;
     }
   };
 
@@ -34,7 +37,6 @@ export function FormAttachmentsViewer({ attachments, readonly: _readonly = true 
       DOCUMENT: { variant: 'secondary' as const, label: 'Document' },
       OTHER: { variant: 'outline' as const, label: 'Other' },
     };
-    
     const config = typeConfig[category] || typeConfig.DOCUMENT;
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
@@ -44,12 +46,10 @@ export function FormAttachmentsViewer({ attachments, readonly: _readonly = true 
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))  } ${  sizes[i]}`;
+    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
   };
 
-  const isImageFile = (mimeType: string) => {
-    return mimeType.startsWith('image/');
-  };
+  const isImageFile = (mimeType: string) => mimeType.startsWith('image/');
 
   const handlePreview = (attachment: FormAttachment) => {
     setSelectedAttachment(attachment);
@@ -57,7 +57,6 @@ export function FormAttachmentsViewer({ attachments, readonly: _readonly = true 
   };
 
   const handleDownload = (attachment: FormAttachment) => {
-    // Create a temporary link to download the file
     const link = document.createElement('a');
     link.href = attachment.url;
     link.download = attachment.originalName;
@@ -79,162 +78,134 @@ export function FormAttachmentsViewer({ attachments, readonly: _readonly = true 
     <>
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Camera className="h-5 w-5" />
-            <span>Attachments</span>
-            <Badge variant="outline">{attachments.length}</Badge>
+          <CardTitle>
+            <Stack direction="horizontal" gap={2} align="center">
+              <Camera size={20} />
+              <span>Attachments</span>
+              <Badge variant="outline">{attachments.length}</Badge>
+            </Stack>
           </CardTitle>
-          <CardDescription>
-            Photos, documents, and signatures captured during verification
-          </CardDescription>
+          <CardDescription>Photos, documents, and signatures captured during verification</CardDescription>
         </CardHeader>
         <CardContent>
           {attachments.length === 0 ? (
-            <div className="text-center py-8">
-              <FileText className="h-12 w-12 mx-auto text-gray-600 mb-2" />
-              <p className="text-sm text-gray-600">No attachments found</p>
-            </div>
+            <Stack gap={2} align="center" style={{ textAlign: 'center', paddingBlock: '2rem' }}>
+              <FileText size={48} style={{ color: 'var(--ui-text-muted)' }} />
+              <Text variant="body-sm" tone="muted">No attachments found</Text>
+            </Stack>
           ) : (
-            <div className="space-y-6">
+            <Stack gap={6}>
               {Object.entries(groupedAttachments).map(([category, categoryAttachments]) => (
-                <div key={category}>
-                  <div className="flex items-center space-x-2 mb-3">
+                <Stack key={category} gap={3}>
+                  <Stack direction="horizontal" gap={2} align="center">
                     {getAttachmentIcon(category as FormAttachment['category'])}
-                    <h4 className="font-medium capitalize">{category.toLowerCase()}s</h4>
-                    <Badge variant="outline" className="text-xs">
-                      {categoryAttachments.length}
-                    </Badge>
-                  </div>
-                  
-                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    <Text as="h4" variant="label" style={{ textTransform: 'capitalize' }}>{category.toLowerCase()}s</Text>
+                    <Badge variant="outline">{categoryAttachments.length}</Badge>
+                  </Stack>
+
+                  <Box style={{ display: 'grid', gap: '1rem', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
                     {categoryAttachments.map((attachment) => (
-                      <div
+                      <Box
                         key={attachment.id}
-                        className="border rounded-lg p-4 hover:bg-slate-100/70 dark:hover:bg-slate-800/50 transition-colors"
+                        style={{ border: '1px solid var(--ui-border)', borderRadius: 'var(--ui-radius-lg)', padding: '1rem' }}
                       >
-                        <div className="flex items-start justify-between mb-3">
-                          <div className="flex items-center space-x-2">
-                            {getAttachmentIcon(attachment.category)}
-                            <span className="text-sm font-medium truncate">
-                              {attachment.originalName}
-                            </span>
-                          </div>
-                          {getAttachmentTypeBadge(attachment.category)}
-                        </div>
+                        <Stack gap={3}>
+                          <Box style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem' }}>
+                            <Stack direction="horizontal" gap={2} align="center">
+                              {getAttachmentIcon(attachment.category)}
+                              <Text as="span" variant="body-sm" style={{ fontWeight: 600 }}>{attachment.originalName}</Text>
+                            </Stack>
+                            {getAttachmentTypeBadge(attachment.category)}
+                          </Box>
 
-                        {/* Image Preview */}
-                        {isImageFile(attachment.mimeType) && (
-                          <div className="mb-3">
-                            <img
-                              src={attachment.url}
-                              alt={attachment.originalName}
-                              className="w-full h-32 object-cover rounded-md cursor-pointer hover:opacity-80 transition-opacity"
-                              onClick={() => handlePreview(attachment)}
-                            />
-                          </div>
-                        )}
+                          {isImageFile(attachment.mimeType) ? (
+                            <Box style={{ marginBottom: '0.25rem' }}>
+                              <img
+                                src={attachment.url}
+                                alt={attachment.originalName}
+                                style={{ width: '100%', height: '8rem', objectFit: 'cover', borderRadius: 'var(--ui-radius-md)', cursor: 'pointer' }}
+                                onClick={() => handlePreview(attachment)}
+                              />
+                            </Box>
+                          ) : null}
 
-                        {/* File Info */}
-                        <div className="space-y-2 text-xs text-gray-600">
-                          <div className="flex items-center justify-between">
-                            <span>Size:</span>
-                            <span>{formatFileSize(attachment.size)}</span>
-                          </div>
-                          
-                          <div className="flex items-center space-x-1">
-                            <Clock className="h-3 w-3" />
-                            <span>{new Date(attachment.uploadedAt).toLocaleString()}</span>
-                          </div>
+                          <Stack gap={2}>
+                            <Box style={{ display: 'flex', justifyContent: 'space-between' }}>
+                              <Text as="span" variant="caption" tone="muted">Size:</Text>
+                              <Text as="span" variant="caption" tone="muted">{formatFileSize(attachment.size)}</Text>
+                            </Box>
+                            <Stack direction="horizontal" gap={1} align="center">
+                              <Clock size={12} />
+                              <Text as="span" variant="caption" tone="muted">{new Date(attachment.uploadedAt).toLocaleString()}</Text>
+                            </Stack>
+                            <Text variant="caption" tone="muted">
+                              <strong>Filename:</strong> {attachment.filename}
+                            </Text>
+                          </Stack>
 
-                          <div className="text-xs">
-                            <span className="font-medium">Filename:</span> {attachment.filename}
-                          </div>
-                        </div>
-
-                        {/* Actions */}
-                        <div className="flex items-center space-x-2 mt-3">
-                          {isImageFile(attachment.mimeType) && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handlePreview(attachment)}
-                              className="flex-1"
-                            >
-                              <Eye className="h-3 w-3 mr-1" />
-                              View
+                          <Stack direction="horizontal" gap={2}>
+                            {isImageFile(attachment.mimeType) ? (
+                              <Button variant="outline" onClick={() => handlePreview(attachment)} fullWidth icon={<Eye size={12} />}>
+                                View
+                              </Button>
+                            ) : null}
+                            <Button variant="outline" onClick={() => handleDownload(attachment)} fullWidth icon={<Download size={12} />}>
+                              Download
                             </Button>
-                          )}
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleDownload(attachment)}
-                            className="flex-1"
-                          >
-                            <Download className="h-3 w-3 mr-1" />
-                            Download
-                          </Button>
-                        </div>
-                      </div>
+                          </Stack>
+                        </Stack>
+                      </Box>
                     ))}
-                  </div>
-                </div>
+                  </Box>
+                </Stack>
               ))}
-            </div>
+            </Stack>
           )}
         </CardContent>
       </Card>
 
-      {/* Image Preview Dialog */}
       <Dialog open={showPreview} onOpenChange={setShowPreview}>
-        <DialogContent className="max-w-4xl max-h-[90vh]">
+        <DialogContent style={{ width: 'min(92vw, 64rem)', maxHeight: '90vh' }}>
           <DialogHeader>
-            <DialogTitle className="flex items-center space-x-2">
-              <Camera className="h-5 w-5" />
-              <span>{selectedAttachment?.originalName}</span>
-              {selectedAttachment && getAttachmentTypeBadge(selectedAttachment.category)}
+            <DialogTitle>
+              <Stack direction="horizontal" gap={2} align="center" wrap="wrap">
+                <Camera size={20} />
+                <span>{selectedAttachment?.originalName}</span>
+                {selectedAttachment ? getAttachmentTypeBadge(selectedAttachment.category) : null}
+              </Stack>
             </DialogTitle>
           </DialogHeader>
-          
-          {selectedAttachment && (
-            <div className="space-y-4">
-              {/* Image */}
-              {isImageFile(selectedAttachment.mimeType) && (
-                <div className="flex justify-center">
+
+          {selectedAttachment ? (
+            <Stack gap={4}>
+              {isImageFile(selectedAttachment.mimeType) ? (
+                <Box style={{ display: 'flex', justifyContent: 'center' }}>
                   <img
                     src={selectedAttachment.url}
                     alt={selectedAttachment.originalName}
-                    className="max-w-full max-h-[60vh] object-contain rounded-lg"
+                    style={{ maxWidth: '100%', maxHeight: '60vh', objectFit: 'contain', borderRadius: 'var(--ui-radius-lg)' }}
                   />
-                </div>
-              )}
+                </Box>
+              ) : null}
 
-              {/* Metadata */}
-              <div className="grid gap-4 md:grid-cols-2 text-sm">
-                <div>
-                  <h4 className="font-medium mb-2">File Information</h4>
-                  <div className="space-y-1 text-gray-600">
-                    <div>Size: {formatFileSize(selectedAttachment.size)}</div>
-                    <div>Type: {selectedAttachment.mimeType}</div>
-                    <div>Uploaded: {new Date(selectedAttachment.uploadedAt).toLocaleString()}</div>
-                    <div>Filename: {selectedAttachment.filename}</div>
-                    <div>Original Name: {selectedAttachment.originalName}</div>
-                  </div>
-                </div>
-              </div>
+              <Box style={{ display: 'grid', gap: '1rem', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
+                <Stack gap={1}>
+                  <Text as="h4" variant="label">File Information</Text>
+                  <Text variant="body-sm" tone="muted">Size: {formatFileSize(selectedAttachment.size)}</Text>
+                  <Text variant="body-sm" tone="muted">Type: {selectedAttachment.mimeType}</Text>
+                  <Text variant="body-sm" tone="muted">Uploaded: {new Date(selectedAttachment.uploadedAt).toLocaleString()}</Text>
+                  <Text variant="body-sm" tone="muted">Filename: {selectedAttachment.filename}</Text>
+                  <Text variant="body-sm" tone="muted">Original Name: {selectedAttachment.originalName}</Text>
+                </Stack>
+              </Box>
 
-
-              {/* Actions */}
-              <div className="flex justify-end space-x-2">
-                <Button
-                  variant="outline"
-                  onClick={() => handleDownload(selectedAttachment)}
-                >
-                  <Download className="h-4 w-4 mr-2" />
+              <Stack direction="horizontal" justify="flex-end" gap={2}>
+                <Button variant="outline" onClick={() => handleDownload(selectedAttachment)} icon={<Download size={16} />}>
                   Download
                 </Button>
-              </div>
-            </div>
-          )}
+              </Stack>
+            </Stack>
+          ) : null}
         </DialogContent>
       </Dialog>
     </>

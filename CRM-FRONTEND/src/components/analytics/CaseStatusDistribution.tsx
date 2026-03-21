@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
+import { Badge } from '@/ui/components/badge';
 import { 
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from '@/ui/components/select';
 import {
   PieChart,
   Pie,
@@ -166,18 +166,18 @@ export const CaseStatusDistribution: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div {...{ className: "space-y-6" }}>
       {/* Header with Controls */}
-      <div className="flex items-center justify-between">
+      <div {...{ className: "flex items-center justify-between" }}>
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Case Status Distribution</h2>
-          <p className="mt-1 text-gray-600">
+          <h2 {...{ className: "text-2xl font-bold text-gray-900" }}>Case Status Distribution</h2>
+          <p {...{ className: "mt-1 text-gray-600" }}>
             Monitor case progress and identify bottlenecks in the workflow
           </p>
         </div>
-        <div className="flex items-center space-x-4">
+        <div {...{ className: "flex items-center space-x-4" }}>
           <Select value={viewType} onValueChange={(value) => setViewType(value as 'distribution' | 'trends' | 'flow')}>
-            <SelectTrigger className="w-40">
+            <SelectTrigger {...{ className: "w-40" }}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -187,7 +187,7 @@ export const CaseStatusDistribution: React.FC = () => {
             </SelectContent>
           </Select>
           <Select value={timeRange} onValueChange={setTimeRange}>
-            <SelectTrigger className="w-32">
+            <SelectTrigger {...{ className: "w-32" }}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -200,76 +200,76 @@ export const CaseStatusDistribution: React.FC = () => {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-5">
+      <div {...{ className: "grid gap-4 md:grid-cols-5" }}>
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Cases</CardTitle>
-            <BarChart3 className="h-4 w-4 text-gray-600" />
+          <CardHeader {...{ className: "flex flex-row items-center justify-between space-y-0 pb-2" }}>
+            <CardTitle {...{ className: "text-sm font-medium" }}>Total Cases</CardTitle>
+            <BarChart3 {...{ className: "h-4 w-4 text-gray-600" }} />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{summary?.totalCases || 0}</div>
-            <p className="text-xs text-gray-600">All statuses</p>
+            <div {...{ className: "text-2xl font-bold" }}>{summary?.totalCases || 0}</div>
+            <p {...{ className: "text-xs text-gray-600" }}>All statuses</p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">In Progress</CardTitle>
-            <PlayCircle className="h-4 w-4 text-yellow-600" />
+          <CardHeader {...{ className: "flex flex-row items-center justify-between space-y-0 pb-2" }}>
+            <CardTitle {...{ className: "text-sm font-medium" }}>In Progress</CardTitle>
+            <PlayCircle {...{ className: "h-4 w-4 text-yellow-600" }} />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">
+            <div {...{ className: "text-2xl font-bold text-yellow-600" }}>
               {statusDistribution.IN_PROGRESS || 0}
             </div>
-            <p className="text-xs text-gray-600">Active cases</p>
+            <p {...{ className: "text-xs text-gray-600" }}>Active cases</p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Completed</CardTitle>
-            <CheckCircle className="h-4 w-4 text-green-600" />
+          <CardHeader {...{ className: "flex flex-row items-center justify-between space-y-0 pb-2" }}>
+            <CardTitle {...{ className: "text-sm font-medium" }}>Completed</CardTitle>
+            <CheckCircle {...{ className: "h-4 w-4 text-green-600" }} />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">
+            <div {...{ className: "text-2xl font-bold text-green-600" }}>
               {summary?.completedCases || 0}
             </div>
-            <p className="text-xs text-gray-600">
+            <p {...{ className: "text-xs text-gray-600" }}>
               {summary?.completionRate ? `${summary.completionRate.toFixed(1)}% rate` : 'No data'}
             </p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending</CardTitle>
-            <Clock className="h-4 w-4 text-gray-600" />
+          <CardHeader {...{ className: "flex flex-row items-center justify-between space-y-0 pb-2" }}>
+            <CardTitle {...{ className: "text-sm font-medium" }}>Pending</CardTitle>
+            <Clock {...{ className: "h-4 w-4 text-gray-600" }} />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-gray-600">
+            <div {...{ className: "text-2xl font-bold text-gray-600" }}>
               {statusDistribution.PENDING || 0}
             </div>
-            <p className="text-xs text-gray-600">Awaiting assignment</p>
+            <p {...{ className: "text-xs text-gray-600" }}>Awaiting assignment</p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg Completion</CardTitle>
-            <TrendingUp className="h-4 w-4 text-green-600" />
+          <CardHeader {...{ className: "flex flex-row items-center justify-between space-y-0 pb-2" }}>
+            <CardTitle {...{ className: "text-sm font-medium" }}>Avg Completion</CardTitle>
+            <TrendingUp {...{ className: "h-4 w-4 text-green-600" }} />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">
+            <div {...{ className: "text-2xl font-bold text-green-600" }}>
               {summary?.avgCompletionDays ? `${summary.avgCompletionDays.toFixed(1)}d` : 'N/A'}
             </div>
-            <p className="text-xs text-gray-600">Days to complete</p>
+            <p {...{ className: "text-xs text-gray-600" }}>Days to complete</p>
           </CardContent>
         </Card>
       </div>
 
       {/* Main Visualization */}
       {viewType === 'distribution' && (
-        <div className="grid gap-6 md:grid-cols-2">
+        <div {...{ className: "grid gap-6 md:grid-cols-2" }}>
           {/* Pie Chart */}
           <Card>
             <CardHeader>
@@ -391,20 +391,20 @@ export const CaseStatusDistribution: React.FC = () => {
             <CardDescription>Case transitions between statuses</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
+            <div {...{ className: "space-y-4" }}>
               {flowData.map((flow, index) => (
-                <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-center space-x-4">
+                <div key={index} {...{ className: "flex items-center justify-between p-4 border rounded-lg" }}>
+                  <div {...{ className: "flex items-center space-x-4" }}>
                     <Badge style={{ backgroundColor: getStatusColor(flow.from), color: 'white' }}>
                       {flow.from.replace('_', ' ')}
                     </Badge>
-                    <span className="text-gray-600">→</span>
+                    <span {...{ className: "text-gray-600" }}>→</span>
                     <Badge style={{ backgroundColor: getStatusColor(flow.to), color: 'white' }}>
                       {flow.to.replace('_', ' ')}
                     </Badge>
                   </div>
-                  <div className="flex items-center space-x-4">
-                    <span className="text-sm text-gray-600">{flow.count} cases</span>
+                  <div {...{ className: "flex items-center space-x-4" }}>
+                    <span {...{ className: "text-sm text-gray-600" }}>{flow.count} cases</span>
                     <Badge variant="outline">{flow.percentage}%</Badge>
                   </div>
                 </div>
@@ -421,30 +421,30 @@ export const CaseStatusDistribution: React.FC = () => {
           <CardDescription>Comprehensive breakdown with statistics</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-4">
+          <div {...{ className: "grid gap-4 md:grid-cols-3 lg:grid-cols-4" }}>
             {distributionData.map((status) => {
               const IconComponent = getStatusIcon(status.name);
               
               return (
-                <div key={status.name} className="p-4 border rounded-lg">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center space-x-2">
-                      <IconComponent className="h-5 w-5" style={{ color: status.color }} />
-                      <h4 className="font-medium">{status.name}</h4>
+                <div key={status.name} {...{ className: "p-4 border rounded-lg" }}>
+                  <div {...{ className: "flex items-center justify-between mb-3" }}>
+                    <div {...{ className: "flex items-center space-x-2" }}>
+                      <IconComponent {...{ className: "h-5 w-5" }} style={{ color: status.color }} />
+                      <h4 {...{ className: "font-medium" }}>{status.name}</h4>
                     </div>
                     <Badge style={{ backgroundColor: status.color, color: 'white' }}>
                       {status.percentage}%
                     </Badge>
                   </div>
                   
-                  <div className="space-y-1 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Count:</span>
-                      <span className="font-medium">{status.value}</span>
+                  <div {...{ className: "space-y-1 text-sm" }}>
+                    <div {...{ className: "flex justify-between" }}>
+                      <span {...{ className: "text-gray-600" }}>Count:</span>
+                      <span {...{ className: "font-medium" }}>{status.value}</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Percentage:</span>
-                      <span className="font-medium">{status.percentage}%</span>
+                    <div {...{ className: "flex justify-between" }}>
+                      <span {...{ className: "text-gray-600" }}>Percentage:</span>
+                      <span {...{ className: "font-medium" }}>{status.percentage}%</span>
                     </div>
                   </div>
                 </div>

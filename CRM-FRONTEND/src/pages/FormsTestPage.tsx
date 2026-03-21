@@ -1,14 +1,18 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import { useCaseFormSubmissions } from '@/hooks/useForms';
 import { FormViewer } from '@/components/forms/FormViewer';
 import { FormSubmissionsList } from '@/components/forms/FormSubmissionsList';
 import { FormsDebug } from '@/components/debug/FormsDebug';
 import { FileText, TestTube, AlertCircle, CheckCircle } from 'lucide-react';
-import { LoadingSpinner } from '@/components/ui/loading';
+import { LoadingSpinner } from '@/ui/components/loading';
+import { Badge } from '@/ui/components/Badge';
+import { Button } from '@/ui/components/Button';
+import { Card } from '@/ui/components/Card';
+import { Input } from '@/ui/components/Input';
+import { Page } from '@/ui/layout/Page';
+import { Section } from '@/ui/layout/Section';
+import { Stack } from '@/ui/primitives/Stack';
+import { Text } from '@/ui/primitives/Text';
 
 export const FormsTestPage: React.FC = () => {
   const [testCaseId, setTestCaseId] = useState('22'); // One of our newly created cases
@@ -31,95 +35,89 @@ export const FormsTestPage: React.FC = () => {
   ];
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 flex items-center space-x-2">
-            <TestTube className="h-8 w-8 text-green-600" />
-            <span>Forms System Test Page</span>
-          </h1>
-          <p className="mt-2 text-gray-600">Test the comprehensive form data display system</p>
-        </div>
-        <Badge variant="outline" className="text-lg px-3 py-1">
-          Test Environment
-        </Badge>
-      </div>
+    <Page
+      title="Forms System Test"
+      subtitle="Validate form submission display, viewer behavior, and API responses."
+      shell
+      actions={<Badge variant="warning">Test Environment</Badge>}
+    >
+      <Section>
+        <Stack gap={3}>
+          <Badge variant="accent">QA Surface</Badge>
+          <Text as="h2" variant="headline">Keep form-debugging, viewer validation, and submission testing in one place.</Text>
+        </Stack>
+      </Section>
 
-      {/* Test Case Selector */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Test Case Selection</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center space-x-4">
+      <Section>
+        <Card tone="strong" staticCard>
+          <Stack gap={4}>
+            <Text as="h3" variant="title">Test Case Selection</Text>
+            <Stack direction="horizontal" gap={4} align="center" wrap="wrap">
             <Input
               placeholder="Enter Case ID"
               value={testCaseId}
               onChange={(e) => setTestCaseId(e.target.value)}
-              className="w-48"
+              style={{ width: '12rem' }}
             />
-            <span className="text-gray-600">or select from test cases:</span>
-          </div>
+              <Text tone="muted">or select from test cases:</Text>
+            </Stack>
           
           <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
             {testCases.map((testCase) => (
               <Button
                 key={testCase.id}
-                variant={testCaseId === testCase.id ? "default" : "outline"}
-                size="sm"
+                variant={testCaseId === testCase.id ? 'primary' : 'secondary'}
                 onClick={() => setTestCaseId(testCase.id)}
-                className="justify-start"
+                style={{ justifyContent: 'flex-start' }}
+                icon={<FileText size={16} />}
               >
-                <FileText className="h-4 w-4 mr-2" />
                 {testCase.name}
               </Button>
             ))}
           </div>
-        </CardContent>
-      </Card>
+          </Stack>
+        </Card>
+      </Section>
 
-      {/* API Status */}
-      <Card>
-        <CardHeader>
-          <CardTitle>API Status</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center space-x-4">
+      <Section>
+        <Card tone="strong" staticCard>
+          <Stack gap={3}>
+            <Text as="h3" variant="title">API Status</Text>
+            <Stack direction="horizontal" gap={4} align="center" wrap="wrap">
             {isLoading && (
-              <div className="flex items-center space-x-2">
+              <Stack direction="horizontal" gap={2} align="center">
                 <LoadingSpinner size="sm" />
-                <span className="text-sm text-gray-600">Loading...</span>
-              </div>
+                <Text variant="body-sm" tone="muted">Loading...</Text>
+              </Stack>
             )}
             
             {error && (
-              <div className="flex items-center space-x-2 text-red-600">
-                <AlertCircle className="h-4 w-4" />
-                <span>Error: {error.message}</span>
-              </div>
+              <Stack direction="horizontal" gap={2} align="center">
+                <AlertCircle size={16} style={{ color: 'var(--ui-danger)' }} />
+                <Text variant="body-sm" tone="danger">Error: {error.message}</Text>
+              </Stack>
             )}
             
             {!isLoading && !error && (
-              <div className="flex items-center space-x-2 text-green-600">
-                <CheckCircle className="h-4 w-4" />
-                <span>API Connected - {submissions.length} submissions found</span>
-              </div>
+              <Stack direction="horizontal" gap={2} align="center">
+                <CheckCircle size={16} style={{ color: 'var(--ui-positive)' }} />
+                <Text variant="body-sm" tone="positive">API Connected - {submissions.length} submissions found</Text>
+              </Stack>
             )}
-          </div>
-        </CardContent>
-      </Card>
+            </Stack>
+          </Stack>
+        </Card>
+      </Section>
 
-      {/* Debug Panel */}
+      <Section>
       <FormsDebug caseId={testCaseId} />
+      </Section>
 
-      {/* Form Submissions List */}
       {submissions.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Form Submissions List Component Test</CardTitle>
-          </CardHeader>
-          <CardContent>
+        <Section>
+          <Card tone="strong" staticCard>
+            <Stack gap={4}>
+              <Text as="h3" variant="title">Form Submissions List Component Test</Text>
             <FormSubmissionsList
               submissions={submissions}
               isLoading={isLoading}
@@ -128,17 +126,16 @@ export const FormsTestPage: React.FC = () => {
               showFilters={true}
               showSorting={true}
             />
-          </CardContent>
-        </Card>
+            </Stack>
+          </Card>
+        </Section>
       )}
 
-      {/* Form Viewer */}
       {selectedSubmission && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Form Viewer Component Test</CardTitle>
-          </CardHeader>
-          <CardContent>
+        <Section>
+          <Card tone="strong" staticCard>
+            <Stack gap={4}>
+              <Text as="h3" variant="title">Form Viewer Component Test</Text>
             <FormViewer
               submission={selectedSubmission}
               readonly={true}
@@ -147,40 +144,41 @@ export const FormsTestPage: React.FC = () => {
               showLocation={true}
               showMetadata={true}
             />
-          </CardContent>
-        </Card>
+            </Stack>
+          </Card>
+        </Section>
       )}
 
-      {/* No Data State */}
       {!isLoading && !error && submissions.length === 0 && (
-        <Card>
-          <CardContent className="p-6 text-center">
-            <FileText className="h-12 w-12 text-gray-600 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No Form Submissions</h3>
-            <p className="text-gray-600 mb-4">
+        <Section>
+          <Card tone="strong" staticCard>
+            <Stack gap={3} style={{ textAlign: 'center', padding: '2rem 0' }}>
+            <FileText size={48} style={{ color: 'var(--ui-muted)' }} />
+              <Text as="h3" variant="title">No Form Submissions</Text>
+              <Text tone="muted">
               No form submissions found for case ID: {testCaseId}
-            </p>
-            <p className="text-sm text-gray-600">
+              </Text>
+              <Text variant="body-sm" tone="muted">
               Try selecting one of the test cases above, or ensure the case has form submissions.
-            </p>
-          </CardContent>
-        </Card>
+              </Text>
+            </Stack>
+          </Card>
+        </Section>
       )}
 
-      {/* Instructions */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Testing Instructions</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2 text-sm">
-          <p><strong>1.</strong> Select a test case ID from the buttons above</p>
-          <p><strong>2.</strong> Check the API Status to ensure connection is working</p>
-          <p><strong>3.</strong> Review the Debug Panel for detailed API responses</p>
-          <p><strong>4.</strong> Test the Form Submissions List component functionality</p>
-          <p><strong>5.</strong> Click on a submission to test the Form Viewer component</p>
-          <p><strong>6.</strong> Test search, filtering, and sorting features</p>
-        </CardContent>
-      </Card>
-    </div>
+      <Section>
+        <Card tone="strong" staticCard>
+          <Stack gap={2}>
+            <Text as="h3" variant="title">Testing Instructions</Text>
+            <Text variant="body-sm"><strong>1.</strong> Select a test case ID from the buttons above</Text>
+            <Text variant="body-sm"><strong>2.</strong> Check the API Status to ensure connection is working</Text>
+            <Text variant="body-sm"><strong>3.</strong> Review the Debug Panel for detailed API responses</Text>
+            <Text variant="body-sm"><strong>4.</strong> Test the Form Submissions List component functionality</Text>
+            <Text variant="body-sm"><strong>5.</strong> Click on a submission to test the Form Viewer component</Text>
+            <Text variant="body-sm"><strong>6.</strong> Test search, filtering, and sorting features</Text>
+          </Stack>
+        </Card>
+      </Section>
+    </Page>
   );
 };

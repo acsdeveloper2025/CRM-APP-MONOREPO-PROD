@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
+import { Button } from '@/ui/components/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/card';
+import { Badge } from '@/ui/components/badge';
+import { Separator } from '@/ui/components/separator';
 import { 
   clearBrowserStorage, 
   clearReactQueryCache, 

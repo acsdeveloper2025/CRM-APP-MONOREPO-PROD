@@ -1,12 +1,9 @@
 import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { StatsCard } from '@/components/dashboard/StatsCard';
 import { CaseStatusChart } from '@/components/dashboard/CaseStatusChart';
 import { MonthlyTrendsChart } from '@/components/dashboard/MonthlyTrendsChart';
 import { RecentActivities } from '@/components/dashboard/RecentActivities';
 import { useDashboardKPI } from '@/hooks/useDashboardKPI';
-import { 
+import {
   Users,
   XCircle,
   CheckSquare,
@@ -14,9 +11,20 @@ import {
   CheckCircle,
   FileText,
   Download,
-  AlertTriangle
+  AlertTriangle,
+  ArrowUpRight,
+  Sparkles
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
+import { Badge } from '@/ui/components/Badge';
+import { Button } from '@/ui/components/Button';
+import { Card } from '@/ui/components/Card';
+import { Grid } from '@/ui/layout/Grid';
+import { Page } from '@/ui/layout/Page';
+import { Section } from '@/ui/layout/Section';
+import { Box } from '@/ui/primitives/Box';
+import { Stack } from '@/ui/primitives/Stack';
+import { Text } from '@/ui/primitives/Text';
 
 export const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
@@ -42,6 +50,11 @@ export const DashboardPage: React.FC = () => {
   const activitiesLoading = isLoading;
   const distributionLoading = isLoading;
   const trendsLoading = isLoading;
+
+  const formatTrendLabel = (trend?: { value: number; isPositive: boolean }) => {
+    if (!trend) {return null;}
+    return `${trend.isPositive ? '+' : '-'}${trend.value}% vs previous period`;
+  };
 
   // Mock data fallback for development
 
@@ -99,7 +112,6 @@ export const DashboardPage: React.FC = () => {
       href: '/cases/new',
       icon: Plus,
       count: null,
-      color: 'bg-green-500',
     },
     {
       title: 'Completed Cases',
@@ -107,7 +119,6 @@ export const DashboardPage: React.FC = () => {
       href: '/cases/completed',
       icon: CheckCircle,
       count: stats.completedCases,
-      color: 'bg-green-500',
     },
     {
       title: 'Pending Reviews',
@@ -115,7 +126,6 @@ export const DashboardPage: React.FC = () => {
       href: '/tasks/pending',
       icon: CheckSquare,
       count: stats.pendingReviewCases,
-      color: 'bg-yellow-500',
     },
     {
       title: 'All Cases',
@@ -123,198 +133,275 @@ export const DashboardPage: React.FC = () => {
       href: '/cases',
       icon: FileText,
       count: stats.totalCases,
-      color: 'bg-green-500',
+    },
+  ];
+
+  const metricCards = [
+    {
+      title: 'Total Cases',
+      value: stats.totalCases,
+      description: 'Active book of work',
+      icon: FileText,
+      tone: 'accent' as const,
+      onClick: () => navigate('/cases'),
+    },
+    {
+      title: 'TAT Overdue',
+      value: tatStats.criticalOverdue,
+      description: `${tatStats.totalOverdue} total overdue`,
+      icon: AlertTriangle,
+      tone: 'danger' as const,
+      onClick: () => navigate('/tasks/tat-monitoring'),
+    },
+    {
+      title: 'Revoked Tasks',
+      value: stats.revokedTasks || 0,
+      description: 'Returned by field teams',
+      icon: XCircle,
+      tone: 'warning' as const,
+      onClick: () => navigate('/tasks/revoked'),
+    },
+    {
+      title: 'In Progress',
+      value: stats.inProgressCases,
+      description: 'Currently underway',
+      icon: CheckSquare,
+      tone: 'neutral' as const,
+      onClick: () => navigate('/tasks/in-progress'),
+    },
+    {
+      title: 'Completed',
+      value: stats.completedCases,
+      description: 'Delivered successfully',
+      icon: CheckCircle,
+      tone: 'positive' as const,
+      onClick: () => navigate('/tasks/completed'),
+    },
+    {
+      title: 'Total Clients',
+      value: stats.totalClients || 0,
+      description: 'Accounts under management',
+      icon: Users,
+      tone: 'accent' as const,
+      onClick: () => navigate('/clients'),
     },
   ];
 
   return (
-    <div className="space-y-4 sm:space-y-6 animate-fade-in">
-      {/* Page Header */}
-      <div className="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0 flex-1">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 truncate">Dashboard</h1>
-          <p className="mt-1 sm:mt-2 text-sm sm:text-base text-gray-600">
-            Welcome back! Here&apos;s what&apos;s happening with your cases today.
-          </p>
-        </div>
-        <Button variant="outline" size="sm" className="flex items-center space-x-2 hover:shadow-md transition-all duration-200 w-full sm:w-auto">
-          <Download className="h-4 w-4" />
-          <span>Export Report</span>
-        </Button>
-      </div>
+    <Page
+      className="ui-dashboard"
+      title="Dashboard"
+      subtitle="A high-clarity view of case volume, turnaround pressure, and operational momentum."
+      shell
+      actions={<Button variant="secondary" icon={<Download size={16} />}>Export report</Button>}
+    >
+      <Section>
+        <Grid min={320} style={{ gridTemplateColumns: 'minmax(0, 1.45fr) minmax(320px, 0.85fr)' }}>
+          <Card tone="highlight" className="ui-kpi-dominant">
+            <Stack gap={5} style={{ height: '100%', justifyContent: 'space-between' }}>
+              <Stack gap={3}>
+                <Badge variant="accent">Executive Overview</Badge>
+                <Text as="h2" variant="display">Move faster with a calmer control surface.</Text>
+                <Text variant="body" tone="muted">
+                  Track portfolio health, isolate pressure points, and jump directly into the queues that need intervention.
+                </Text>
+              </Stack>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-6">
-        <StatsCard
-          title="Total Cases"
-          value={stats.totalCases}
-          description="from last month"
-          icon={FileText}
-          trend={cardTrends?.totalCases}
-          color="text-green-600"
-          onClick={() => navigate('/cases')}
-          className="cursor-pointer"
-        />
-        <StatsCard
-          title="TAT Overdue"
-          value={tatStats.criticalOverdue}
-          description={`${tatStats.totalOverdue} total overdue`}
-          icon={AlertTriangle}
-          color="text-red-600"
-          onClick={() => navigate('/tasks/tat-monitoring')}
-          className="cursor-pointer"
-        />
-        <StatsCard
-          title="Revoked Tasks"
-          value={stats.revokedTasks || 0}
-          description="Tasks revoked by field agents"
-          icon={XCircle}
-          trend={cardTrends?.revokedTasks}
-          color="text-red-600"
-          onClick={() => navigate('/tasks/revoked')}
-          className="cursor-pointer"
-        />
-        <StatsCard
-          title="In Progress"
-          value={stats.inProgressCases}
-          description="from last month"
-          icon={CheckSquare}
-          trend={cardTrends?.inProgress}
-          color="text-yellow-600"
-          onClick={() => navigate('/tasks/in-progress')}
-          className="cursor-pointer"
-        />
-        <StatsCard
-          title="Completed"
-          value={stats.completedCases}
-          description="from last month"
-          icon={CheckSquare}
-          trend={cardTrends?.completed}
-          color="text-green-600"
-          onClick={() => navigate('/tasks/completed')}
-          className="cursor-pointer"
-        />
-        <StatsCard
-          title="Total Clients"
-          value={stats.totalClients || 0}
-          description="from last month" // This description might need update if not actually diffing from last month
-          icon={Users}
-          trend={cardTrends?.totalClients}
-          color="text-green-600"
-          onClick={() => navigate('/clients')}
-          className="cursor-pointer"
-        />
-      </div>
+              <Grid min={180} style={{ gridTemplateColumns: 'minmax(0, 1.2fr) minmax(160px, 0.8fr)' }}>
+                <Stack gap={2}>
+                  <Text variant="label" tone="soft">Dominant KPI</Text>
+                  <Text variant="display">{stats.totalCases}</Text>
+                  <Text variant="body-sm" tone="muted">Total active cases under management</Text>
+                  <Stack direction="horizontal" gap={2} align="center">
+                    <Badge variant="status-progress">Live portfolio</Badge>
+                    {cardTrends?.totalCases ? (
+                      <Text
+                        variant="caption"
+                        tone={cardTrends.totalCases.isPositive ? 'positive' : 'warning'}
+                      >
+                        {formatTrendLabel(cardTrends.totalCases)}
+                      </Text>
+                    ) : null}
+                  </Stack>
+                </Stack>
 
-      {/* Charts Section */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <CaseStatusChart
-          data={caseDistributionData?.data || mockCaseDistribution}
-          isLoading={distributionLoading}
-        />
-        <MonthlyTrendsChart
-          data={trendsData?.data || mockTrends}
-          isLoading={trendsLoading}
-        />
-      </div>
-
-      {/* Quick Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
-          <CardDescription>
-            Common tasks and shortcuts
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {quickActions.map((action, index) => (
-              <Link key={index} to={action.href}>
-                <div className="group relative overflow-hidden rounded-lg border p-4 hover:shadow-md transition-shadow">
-                  <div className="flex items-center space-x-3">
-                    <div className={`p-2 rounded-lg ${action.color} text-white`}>
-                      <action.icon className="h-5 w-5" />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-medium text-gray-900 group-hover:text-green-600">
-                        {action.title}
-                      </h3>
-                      <p className="text-sm text-gray-600">
-                      {action.description}
-                      </p>
-                      {action.count !== null && (
-                        <p className="text-lg font-bold text-gray-900 mt-1">
-                          {action.count}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Recent Activities and Additional Stats */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <RecentActivities
-            activities={activitiesData?.data || []}
-            isLoading={activitiesLoading}
-          />
-        </div>
-
-        <div className="space-y-6">
-          {/* Additional KPIs */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Financial Overview</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Monthly Revenue</span>
-                <span className="font-bold text-green-600">
-                  ${stats.monthlyRevenue?.toLocaleString() || '0'}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Total Invoices</span>
-                <span className="font-bold text-gray-900">{stats.totalInvoices || 0}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Pending Commissions</span>
-                <span className="font-bold text-yellow-600">{stats.pendingCommissions || 0}</span>
-              </div>
-            </CardContent>
+                <Card tone="strong">
+                  <Stack gap={2}>
+                    <Badge variant="status-pending">Pressure Point</Badge>
+                    <Text variant="headline">{tatStats.criticalOverdue}</Text>
+                    <Text variant="body-sm" tone="muted">Critical overdue tasks requiring intervention</Text>
+                    <Button variant="primary" icon={<ArrowUpRight size={16} />} onClick={() => navigate('/tasks/tat-monitoring')}>
+                      Open TAT queue
+                    </Button>
+                  </Stack>
+                </Card>
+              </Grid>
+            </Stack>
           </Card>
 
-          {/* Performance Metrics */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Performance</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Avg. Completion Time</span>
-                <span className="font-bold text-gray-900">
-                  {stats.avgTurnaroundDays ? `${stats.avgTurnaroundDays.toFixed(1)} days` : 'N/A'}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Success Rate</span>
-                <span className="font-bold text-green-600">
-                  {stats.completionRate ? `${stats.completionRate.toFixed(1)}%` : 'N/A'}
-                </span>
-              </div>
-              <div className="flex items-center justify-between" title="Based on completed tasks">
-                <span className="text-sm text-gray-600">Operations Health</span>
-                <span className="font-bold text-green-600">Stable</span>
-              </div>
-            </CardContent>
+          <Card tone="strong" className="ui-hero-panel">
+            <Stack gap={4} style={{ height: '100%', justifyContent: 'space-between' }}>
+              <Stack gap={3}>
+                <Badge variant="info">System Signal</Badge>
+                <Text as="h3" variant="headline">Operations pulse</Text>
+                <Text variant="body-sm" tone="muted">
+                  A fast reading of execution quality, throughput, and client coverage.
+                </Text>
+              </Stack>
+              <Stack gap={3}>
+                <Stack direction="horizontal" justify="space-between" align="center" gap={3}>
+                  <Text variant="body-sm" tone="muted">Completed today bias</Text>
+                  <Text variant="title" tone="positive">{stats.completedCases}</Text>
+                </Stack>
+                <Stack direction="horizontal" justify="space-between" align="center" gap={3}>
+                  <Text variant="body-sm" tone="muted">Pending reviews</Text>
+                  <Text variant="title" tone="warning">{stats.pendingReviewCases}</Text>
+                </Stack>
+                <Stack direction="horizontal" justify="space-between" align="center" gap={3}>
+                  <Text variant="body-sm" tone="muted">Client footprint</Text>
+                  <Text variant="title" tone="accent">{stats.totalClients || 0}</Text>
+                </Stack>
+              </Stack>
+              <Button variant="secondary" icon={<Sparkles size={16} />} onClick={() => navigate('/tasks/pending')}>
+                Review pending approvals
+              </Button>
+            </Stack>
           </Card>
-        </div>
-      </div>
-    </div>
+        </Grid>
+      </Section>
+
+      <Section>
+        <Grid min={210}>
+          {metricCards.map((metric) => {
+            const Icon = metric.icon;
+            return (
+              <Card key={metric.title} className="ui-stat-card" onClick={metric.onClick} role="button">
+                <Stack gap={3}>
+                  <Stack direction="horizontal" align="center" justify="space-between" gap={3}>
+                    <Badge variant={metric.tone}>{metric.title}</Badge>
+                    <Icon size={18} />
+                  </Stack>
+                  <Stack gap={1}>
+                    <Text variant="headline">{metric.value}</Text>
+                    <Text variant="body-sm" tone="muted">{metric.description}</Text>
+                    {cardTrends && metric.title === 'Total Cases' && cardTrends.totalCases ? (
+                      <Text
+                        variant="caption"
+                        tone={cardTrends.totalCases.isPositive ? 'positive' : 'warning'}
+                      >
+                        {formatTrendLabel(cardTrends.totalCases)}
+                      </Text>
+                    ) : null}
+                  </Stack>
+                </Stack>
+              </Card>
+            );
+          })}
+        </Grid>
+      </Section>
+
+      <Section>
+        <Grid min={300} style={{ gridTemplateColumns: 'minmax(0, 1.25fr) minmax(320px, 0.75fr)' }}>
+          <Card tone="strong" staticCard>
+            <Stack gap={4}>
+              <Stack gap={1}>
+                <Text as="h3" variant="headline">Recent activity</Text>
+                <Text variant="body-sm" tone="muted">Latest execution signals, completions, and workflow events.</Text>
+              </Stack>
+              <RecentActivities
+                activities={activitiesData?.data || []}
+                isLoading={activitiesLoading}
+              />
+            </Stack>
+          </Card>
+
+          <Card tone="strong">
+            <Stack gap={4}>
+              <Stack gap={1}>
+                <Text as="h3" variant="headline">Work focus</Text>
+                <Text variant="body-sm" tone="muted">Direct jumps into the operational queues that matter most.</Text>
+              </Stack>
+              <Stack gap={3}>
+                {quickActions.map((action) => (
+                  <Link key={action.href} to={action.href} style={{ textDecoration: 'none' }}>
+                    <Card tone="muted">
+                      <Stack direction="horizontal" align="center" justify="space-between" gap={3}>
+                        <Stack gap={1}>
+                          <Badge variant="accent">
+                            <action.icon size={14} />
+                            {action.title}
+                          </Badge>
+                          <Text variant="body-sm" tone="muted">{action.description}</Text>
+                        </Stack>
+                        {action.count !== null ? <Text variant="headline">{action.count}</Text> : <ArrowUpRight size={18} />}
+                      </Stack>
+                    </Card>
+                  </Link>
+                ))}
+              </Stack>
+            </Stack>
+          </Card>
+        </Grid>
+      </Section>
+
+      <Section>
+        <Grid min={420}>
+          <Card tone="strong" staticCard>
+            <CaseStatusChart
+              data={caseDistributionData?.data || mockCaseDistribution}
+              isLoading={distributionLoading}
+            />
+          </Card>
+          <Card tone="strong" staticCard>
+            <MonthlyTrendsChart
+              data={trendsData?.data || mockTrends}
+              isLoading={trendsLoading}
+            />
+          </Card>
+        </Grid>
+      </Section>
+
+      <Section>
+        <Grid min={300} style={{ gridTemplateColumns: 'minmax(0, 1fr) minmax(320px, 0.95fr)' }}>
+          <Box>
+            <Card tone="strong">
+              <Stack gap={3}>
+                <Text as="h3" variant="title">Financial overview</Text>
+                <Stack direction="horizontal" justify="space-between" align="center" gap={3}>
+                  <Text variant="body-sm" tone="muted">Monthly Revenue</Text>
+                  <Text variant="title" tone="accent">${stats.monthlyRevenue?.toLocaleString() || '0'}</Text>
+                </Stack>
+                <Stack direction="horizontal" justify="space-between" align="center" gap={3}>
+                  <Text variant="body-sm" tone="muted">Total Invoices</Text>
+                  <Text variant="title">{stats.totalInvoices || 0}</Text>
+                </Stack>
+                <Stack direction="horizontal" justify="space-between" align="center" gap={3}>
+                  <Text variant="body-sm" tone="muted">Pending Commissions</Text>
+                  <Text variant="title" tone="warning">{stats.pendingCommissions || 0}</Text>
+                </Stack>
+              </Stack>
+            </Card>
+          </Box>
+
+          <Card tone="strong">
+              <Stack gap={3}>
+                <Text as="h3" variant="title">Performance</Text>
+                <Stack direction="horizontal" justify="space-between" align="center" gap={3}>
+                  <Text variant="body-sm" tone="muted">Avg. Completion Time</Text>
+                  <Text variant="title">{stats.avgTurnaroundDays ? `${stats.avgTurnaroundDays.toFixed(1)} days` : 'N/A'}</Text>
+                </Stack>
+                <Stack direction="horizontal" justify="space-between" align="center" gap={3}>
+                  <Text variant="body-sm" tone="muted">Success Rate</Text>
+                  <Text variant="title" tone="positive">{stats.completionRate ? `${stats.completionRate.toFixed(1)}%` : 'N/A'}</Text>
+                </Stack>
+                <Stack direction="horizontal" justify="space-between" align="center" gap={3}>
+                  <Text variant="body-sm" tone="muted">Operations Health</Text>
+                  <Text variant="title" tone="positive">Stable</Text>
+                </Stack>
+              </Stack>
+          </Card>
+        </Grid>
+      </Section>
+    </Page>
   );
 };

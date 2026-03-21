@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useCRUDMutation } from '@/hooks/useStandardizedMutation';
 import { useStandardizedQuery } from '@/hooks/useStandardizedQuery';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/ui/components/button';
 import {
   Dialog,
   DialogContent,
@@ -12,7 +12,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
+} from '@/ui/components/dialog';
 import {
   Form,
   FormControl,
@@ -20,16 +20,16 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form';
+} from '@/ui/components/form';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
-import { Switch } from '@/components/ui/switch';
+} from '@/ui/components/select';
+import { Input } from '@/ui/components/input';
+import { Switch } from '@/ui/components/switch';
 import { usersService } from '@/services/users';
 import { rolesService } from '@/services/roles';
 import { departmentsService } from '@/services/departments';
@@ -193,7 +193,7 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
+      <DialogContent {...{ className: "max-w-[95vw] sm:max-w-[800px] max-h-[90vh] overflow-y-auto" }}>
         <DialogHeader>
           <DialogTitle>Edit User</DialogTitle>
           <DialogDescription>
@@ -202,7 +202,7 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} {...{ className: "space-y-4" }}>
             <FormField
               control={form.control}
               name="name"
@@ -231,7 +231,7 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
               )}
             />
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div {...{ className: "grid grid-cols-1 sm:grid-cols-2 gap-4" }}>
               <FormField
                 control={form.control}
                 name="roleId"
@@ -272,7 +272,7 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
               />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div {...{ className: "grid grid-cols-1 sm:grid-cols-2 gap-4" }}>
               <FormField
                 control={form.control}
                 name="designationId"
@@ -324,14 +324,14 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
               />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div {...{ className: "grid grid-cols-1 sm:grid-cols-2 gap-4" }}>
               <FormField
                 control={form.control}
                 name="teamLeaderId"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>
-                      Team Leader {requiresTeamLeader ? <span className="text-red-500">*</span> : null}
+                      Team Leader {requiresTeamLeader ? <span {...{ className: "text-red-500" }}>*</span> : null}
                     </FormLabel>
                     <Select onValueChange={field.onChange} value={field.value} disabled={disableTeamLeader}>
                       <FormControl>
@@ -366,7 +366,7 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>
-                      Manager {requiresManager ? <span className="text-red-500">*</span> : null}
+                      Manager {requiresManager ? <span {...{ className: "text-red-500" }}>*</span> : null}
                     </FormLabel>
                     <Select onValueChange={field.onChange} value={field.value} disabled={disableManager}>
                       <FormControl>
@@ -402,10 +402,10 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
               control={form.control}
               name="isActive"
               render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                  <div className="space-y-0.5">
-                    <FormLabel className="text-base">Active Status</FormLabel>
-                    <div className="text-sm text-gray-600">
+                <FormItem {...{ className: "flex flex-row items-center justify-between rounded-lg border p-4" }}>
+                  <div {...{ className: "space-y-0.5" }}>
+                    <FormLabel {...{ className: "text-base" }}>Active Status</FormLabel>
+                    <div {...{ className: "text-sm text-gray-600" }}>
                       Enable or disable user access to the system
                     </div>
                   </div>
@@ -419,17 +419,17 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
               )}
             />
 
-            <DialogFooter className="flex-col sm:flex-row gap-2">
+            <DialogFooter {...{ className: "flex-col sm:flex-row gap-2" }}>
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
-                className="w-full sm:w-auto"
+                {...{ className: "w-full sm:w-auto" }}
                 disabled={updateMutation.isPending}
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={updateMutation.isPending} className="w-full sm:w-auto">
+              <Button type="submit" disabled={updateMutation.isPending} {...{ className: "w-full sm:w-auto" }}>
                 {updateMutation.isPending ? 'Updating...' : 'Update User'}
               </Button>
             </DialogFooter>

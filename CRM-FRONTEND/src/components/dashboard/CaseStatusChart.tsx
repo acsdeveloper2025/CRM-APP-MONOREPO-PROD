@@ -1,6 +1,6 @@
 import React from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
 
 interface CaseStatusData {
   status: string;
@@ -85,8 +85,8 @@ export const CaseStatusChart: React.FC<CaseStatusChartProps> = ({ data, isLoadin
         <CardDescription>Current status breakdown of all cases</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="h-[300px]">
-          <ResponsiveContainer width="100%" height="100%">
+        <div className="h-[300px] min-w-0">
+          <ResponsiveContainer width="100%" height={300}>
             <PieChart>
               <Pie
                 data={chartData}

@@ -6,11 +6,15 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { LoadingSpinner } from '@/components/ui/loading';
+} from '@/ui/components/dialog';
+import { Badge } from '@/ui/components/Badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/Card';
+import { Separator } from '@/ui/components/separator';
+import { LoadingSpinner } from '@/ui/components/loading';
+import { Grid } from '@/ui/layout/Grid';
+import { Box } from '@/ui/primitives/Box';
+import { Stack } from '@/ui/primitives/Stack';
+import { Text } from '@/ui/primitives/Text';
 import { clientsService } from '@/services/clients';
 import { Client, VerificationType } from '@/types/client';
 
@@ -39,214 +43,198 @@ export function ClientDetailsDialog({ client, open, onOpenChange }: ClientDetail
   const verificationTypes = clientData.verificationTypes || [];
   const documentTypes = clientData.documentTypes || [];
 
+  const details = [
+    { icon: Building2, label: 'Client Name', value: clientData.name },
+    { icon: Code, label: 'Client Code', value: <Badge variant="outline">{clientData.code}</Badge> },
+    {
+      icon: Calendar,
+      label: 'Created Date',
+      value: new Date(clientData.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
+    },
+    { icon: CheckCircle, label: 'Status', value: <Badge variant="positive">Active</Badge> },
+  ];
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] sm:max-w-[600px] max-h-[90vh] sm:max-h-[80vh] overflow-y-auto">
+      <DialogContent style={{ width: 'min(95vw, 600px)', maxHeight: '80vh', overflowY: 'auto' }}>
         <DialogHeader>
-          <DialogTitle className="flex items-center space-x-2">
-            <Building2 className="h-5 w-5" />
-            <span>Client Details</span>
-          </DialogTitle>
+          <Stack direction="horizontal" gap={2} align="center">
+            <Building2 size={20} />
+            <DialogTitle>Client Details</DialogTitle>
+          </Stack>
           <DialogDescription>
             Comprehensive information about {clientData.name}
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6">
-          {/* Basic Information */}
+        <Stack gap={5}>
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Basic Information</CardTitle>
+              <CardTitle>Basic Information</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent>
               {isLoading ? (
-                <div className="flex items-center justify-center py-8">
+                <Stack align="center" justify="center" style={{ minHeight: '8rem' }}>
                   <LoadingSpinner size="md" />
-                </div>
+                </Stack>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <div className="flex items-center space-x-2 text-sm text-gray-600">
-                      <Building2 className="h-4 w-4" />
-                      <span>Client Name</span>
-                    </div>
-                    <p className="font-medium">{clientData.name}</p>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <div className="flex items-center space-x-2 text-sm text-gray-600">
-                      <Code className="h-4 w-4" />
-                      <span>Client Code</span>
-                    </div>
-                    <Badge variant="outline" className="font-mono">
-                      {clientData.code}
-                    </Badge>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <div className="flex items-center space-x-2 text-sm text-gray-600">
-                      <Calendar className="h-4 w-4" />
-                      <span>Created Date</span>
-                    </div>
-                    <p className="text-sm">
-                      {new Date(clientData.createdAt).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric',
-                      })}
-                    </p>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <div className="flex items-center space-x-2 text-sm text-gray-600">
-                      <CheckCircle className="h-4 w-4" />
-                      <span>Status</span>
-                    </div>
-                    <Badge variant="default">Active</Badge>
-                  </div>
-                </div>
+                <Grid min={220}>
+                  {details.map((item) => (
+                    <Card key={item.label} tone="muted" staticCard>
+                      <Stack gap={2}>
+                        <Stack direction="horizontal" gap={2} align="center">
+                          <item.icon size={16} style={{ color: 'var(--ui-text-soft)' }} />
+                          <Text variant="label" tone="muted">{item.label}</Text>
+                        </Stack>
+                        {typeof item.value === 'string' ? (
+                          <Text variant="body">{item.value}</Text>
+                        ) : (
+                          item.value
+                        )}
+                      </Stack>
+                    </Card>
+                  ))}
+                </Grid>
               )}
             </CardContent>
           </Card>
 
-          {/* Products */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg flex items-center space-x-2">
-                <Package className="h-5 w-5" />
-                <span>Products</span>
+              <Stack direction="horizontal" gap={2} align="center">
+                <Package size={20} />
+                <CardTitle>Products</CardTitle>
                 <Badge variant="secondary">{products.length}</Badge>
-              </CardTitle>
+              </Stack>
               <CardDescription>
                 Products associated with this client
               </CardDescription>
             </CardHeader>
             <CardContent>
               {products.length === 0 ? (
-                <div className="text-center py-8 text-gray-600">
-                  <Package className="mx-auto h-12 w-12 mb-4 opacity-50" />
-                  <p>No products found for this client</p>
-                </div>
+                <Stack gap={3} align="center" style={{ paddingBlock: '2rem', textAlign: 'center' }}>
+                  <Package size={48} style={{ color: 'var(--ui-text-soft)', opacity: 0.5 }} />
+                  <Text tone="muted">No products found for this client</Text>
+                </Stack>
               ) : (
-                <div className="space-y-3">
+                <Stack gap={3}>
                   {products.map((product, index) => (
-                    <div key={product.id}>
-                      <div className="flex items-center justify-between p-3 rounded-lg border">
-                        <div className="space-y-1">
-                          <p className="font-medium">{product.name}</p>
-                          <p className="text-sm text-gray-600">
-                            {product.verificationTypes?.length || 0} verification types
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-sm text-gray-600">
+                    <Box key={product.id}>
+                      <Card tone="muted" staticCard>
+                        <Stack direction="horizontal" justify="space-between" align="center" gap={3} wrap="wrap">
+                          <Stack gap={1}>
+                            <Text variant="label">{product.name}</Text>
+                            <Text variant="body-sm" tone="muted">
+                              {product.verificationTypes?.length || 0} verification types
+                            </Text>
+                          </Stack>
+                          <Text variant="body-sm" tone="muted">
                             Created {new Date(product.createdAt).toLocaleDateString()}
-                          </p>
-                        </div>
-                      </div>
-                      {index < products.length - 1 && <Separator className="my-2" />}
-                    </div>
+                          </Text>
+                        </Stack>
+                      </Card>
+                      {index < products.length - 1 && <Separator style={{ marginBlock: '0.5rem' }} />}
+                    </Box>
                   ))}
-                </div>
+                </Stack>
               )}
             </CardContent>
           </Card>
 
-          {/* Verification Types */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg flex items-center space-x-2">
-                <Shield className="h-5 w-5" />
-                <span>Verification Types</span>
+              <Stack direction="horizontal" gap={2} align="center">
+                <Shield size={20} />
+                <CardTitle>Verification Types</CardTitle>
                 <Badge variant="secondary">{verificationTypes.length}</Badge>
-              </CardTitle>
+              </Stack>
               <CardDescription>
                 Verification types available through this client&apos;s products
               </CardDescription>
             </CardHeader>
             <CardContent>
               {verificationTypes.length === 0 ? (
-                <div className="text-center py-8 text-gray-600">
-                  <Shield className="mx-auto h-12 w-12 mb-4 opacity-50" />
-                  <p>No verification types found for this client</p>
-                </div>
+                <Stack gap={3} align="center" style={{ paddingBlock: '2rem', textAlign: 'center' }}>
+                  <Shield size={48} style={{ color: 'var(--ui-text-soft)', opacity: 0.5 }} />
+                  <Text tone="muted">No verification types found for this client</Text>
+                </Stack>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <Grid min={220}>
                   {verificationTypes.map((vt: VerificationType) => (
-                    <div key={vt.id} className="flex items-center justify-between p-3 rounded-lg border">
-                      <div className="space-y-1">
-                        <p className="font-medium">{vt.name}</p>
-                        <Badge variant="outline" className="text-xs">
+                    <Card key={vt.id} tone="muted" staticCard>
+                      <Stack direction="horizontal" justify="space-between" align="center" gap={3}>
+                        <Stack gap={1}>
+                          <Text variant="label">{vt.name}</Text>
+                          <Badge variant="outline">
                           {vt.code}
-                        </Badge>
-                      </div>
-                    </div>
+                          </Badge>
+                        </Stack>
+                      </Stack>
+                    </Card>
                   ))}
-                </div>
+                </Grid>
               )}
             </CardContent>
           </Card>
 
-          {/* Document Types */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg flex items-center space-x-2">
-                <FileText className="h-5 w-5" />
-                <span>Document Types</span>
+              <Stack direction="horizontal" gap={2} align="center">
+                <FileText size={20} />
+                <CardTitle>Document Types</CardTitle>
                 <Badge variant="secondary">{documentTypes.length}</Badge>
-              </CardTitle>
+              </Stack>
               <CardDescription>
                 Document types assigned to this client
               </CardDescription>
             </CardHeader>
             <CardContent>
               {documentTypes.length === 0 ? (
-                <div className="text-center py-8 text-gray-600">
-                  <FileText className="mx-auto h-12 w-12 mb-4 opacity-50" />
-                  <p>No document types assigned to this client</p>
-                </div>
+                <Stack gap={3} align="center" style={{ paddingBlock: '2rem', textAlign: 'center' }}>
+                  <FileText size={48} style={{ color: 'var(--ui-text-soft)', opacity: 0.5 }} />
+                  <Text tone="muted">No document types assigned to this client</Text>
+                </Stack>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <Grid min={220}>
                   {documentTypes.map((dt) => (
-                    <div key={dt.id} className="flex items-center justify-between p-3 rounded-lg border">
-                      <div className="space-y-1">
-                        <p className="font-medium">{dt.name}</p>
-                        <div className="flex items-center space-x-2">
-                          <Badge variant="outline" className="text-xs">
+                    <Card key={dt.id} tone="muted" staticCard>
+                      <Stack gap={1}>
+                        <Text variant="label">{dt.name}</Text>
+                        <Stack direction="horizontal" gap={2} wrap="wrap">
+                          <Badge variant="outline">
                             {dt.code}
                           </Badge>
-                        </div>
-                      </div>
-                    </div>
+                        </Stack>
+                      </Stack>
+                    </Card>
                   ))}
-                </div>
+                </Grid>
               )}
             </CardContent>
           </Card>
 
-          {/* Statistics */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Statistics</CardTitle>
+              <CardTitle>Statistics</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-center">
-                <div className="space-y-2">
-                  <p className="text-2xl font-bold text-primary">{products.length}</p>
-                  <p className="text-sm text-gray-600">Products</p>
-                </div>
-                <div className="space-y-2">
-                  <p className="text-2xl font-bold text-primary">{verificationTypes.length}</p>
-                  <p className="text-sm text-gray-600">Verification Types</p>
-                </div>
-                <div className="space-y-2">
-                  <p className="text-2xl font-bold text-primary">{documentTypes.length}</p>
-                  <p className="text-sm text-gray-600">Document Types</p>
-                </div>
-              </div>
+              <Grid min={160}>
+                {[
+                  ['Products', products.length],
+                  ['Verification Types', verificationTypes.length],
+                  ['Document Types', documentTypes.length],
+                ].map(([label, value]) => (
+                  <Card key={label} tone="highlight" staticCard>
+                    <Stack gap={1} align="center" style={{ textAlign: 'center' }}>
+                      <Text variant="headline" tone="accent">{value}</Text>
+                      <Text variant="body-sm" tone="muted">{label}</Text>
+                    </Stack>
+                  </Card>
+                ))}
+              </Grid>
             </CardContent>
           </Card>
-        </div>
+        </Stack>
       </DialogContent>
     </Dialog>
   );

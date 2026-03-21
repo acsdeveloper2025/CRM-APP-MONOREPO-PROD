@@ -2,9 +2,9 @@ import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/ui/components/Button';
+import { Input } from '@/ui/components/Input';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/Card';
 import {
   Form,
   FormControl,
@@ -12,7 +12,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form';
+} from '@/ui/components/Form';
 import { Search, ArrowRight, User, CreditCard, Phone, Hash } from 'lucide-react';
 
 // Function to generate unique customer calling code
@@ -105,18 +105,18 @@ export const CustomerInfoStep: React.FC<CustomerInfoStepProps> = ({
   const hasMinimumData = watchedValues.customerName?.trim().length > 0;
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      <div className="text-center space-y-2">
-        <h2 className="text-2xl font-bold tracking-tight">Customer Information</h2>
-        <p className="text-gray-600">
+    <div {...{ className: "max-w-2xl mx-auto space-y-6" }}>
+      <div {...{ className: "text-center space-y-2" }}>
+        <h2 {...{ className: "text-2xl font-bold tracking-tight" }}>Customer Information</h2>
+        <p {...{ className: "text-gray-600" }}>
           Enter customer details to search for existing cases or create a new one
         </p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <User className="h-5 w-5" />
+          <CardTitle {...{ className: "flex items-center gap-2" }}>
+            <User {...{ className: "h-5 w-5" }} />
             Customer Details
           </CardTitle>
           <CardDescription>
@@ -125,22 +125,22 @@ export const CustomerInfoStep: React.FC<CustomerInfoStepProps> = ({
         </CardHeader>
         <CardContent>
           <Form {...form}>
-            <div className="space-y-6">
+            <div {...{ className: "space-y-6" }}>
               {/* Customer Name - Required */}
               <FormField
                 control={form.control}
                 name="customerName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="flex items-center gap-2">
-                      <User className="h-4 w-4" />
+                    <FormLabel {...{ className: "flex items-center gap-2" }}>
+                      <User {...{ className: "h-4 w-4" }} />
                       Customer Name *
                     </FormLabel>
                     <FormControl>
                       <Input
                         placeholder="Enter customer full name"
                         {...field}
-                        className="text-base"
+                        {...{ className: "text-base" }}
                       />
                     </FormControl>
                     <FormMessage />
@@ -154,21 +154,21 @@ export const CustomerInfoStep: React.FC<CustomerInfoStepProps> = ({
                 name="customerCallingCode"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="flex items-center gap-2">
-                      <Hash className="h-4 w-4" />
+                    <FormLabel {...{ className: "flex items-center gap-2" }}>
+                      <Hash {...{ className: "h-4 w-4" }} />
                       Customer Calling Code *
-                      <span className="text-sm text-gray-600">(Auto-generated)</span>
+                      <span {...{ className: "text-sm text-gray-600" }}>(Auto-generated)</span>
                     </FormLabel>
                     <FormControl>
                       <Input
                         {...field}
                         readOnly
-                        className="text-base font-mono bg-slate-100 dark:bg-slate-800/60"
+                        {...{ className: "text-base font-mono bg-slate-100 dark:bg-slate-800/60" }}
                         placeholder="Auto-generated calling code"
                       />
                     </FormControl>
                     <FormMessage />
-                    <p className="text-xs text-gray-600">
+                    <p {...{ className: "text-xs text-gray-600" }}>
                       This unique code will be used for automatic call routing from the mobile app
                     </p>
                   </FormItem>
@@ -181,10 +181,10 @@ export const CustomerInfoStep: React.FC<CustomerInfoStepProps> = ({
                 name="panNumber"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="flex items-center gap-2">
-                      <CreditCard className="h-4 w-4" />
+                    <FormLabel {...{ className: "flex items-center gap-2" }}>
+                      <CreditCard {...{ className: "h-4 w-4" }} />
                       PAN Number
-                      <span className="text-sm text-gray-600">(Optional)</span>
+                      <span {...{ className: "text-sm text-gray-600" }}>(Optional)</span>
                     </FormLabel>
                     <FormControl>
                       <Input 
@@ -192,7 +192,7 @@ export const CustomerInfoStep: React.FC<CustomerInfoStepProps> = ({
                         {...field} 
                         onChange={(e) => field.onChange(e.target.value.toUpperCase())}
                         maxLength={10}
-                        className="text-base font-mono"
+                        {...{ className: "text-base font-mono" }}
                       />
                     </FormControl>
                     <FormMessage />
@@ -206,10 +206,10 @@ export const CustomerInfoStep: React.FC<CustomerInfoStepProps> = ({
                 name="mobileNumber"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="flex items-center gap-2">
-                      <Phone className="h-4 w-4" />
+                    <FormLabel {...{ className: "flex items-center gap-2" }}>
+                      <Phone {...{ className: "h-4 w-4" }} />
                       Mobile Number
-                      <span className="text-sm text-gray-600">(Optional)</span>
+                      <span {...{ className: "text-sm text-gray-600" }}>(Optional)</span>
                     </FormLabel>
                     <FormControl>
                       <Input 
@@ -220,7 +220,7 @@ export const CustomerInfoStep: React.FC<CustomerInfoStepProps> = ({
                           field.onChange(value);
                         }}
                         maxLength={15}
-                        className="text-base"
+                        {...{ className: "text-base" }}
                       />
                     </FormControl>
                     <FormMessage />
@@ -229,22 +229,22 @@ export const CustomerInfoStep: React.FC<CustomerInfoStepProps> = ({
               />
 
               {/* Action Buttons */}
-              <div className="flex flex-col sm:flex-row gap-3 pt-4">
+              <div {...{ className: "flex flex-col sm:flex-row gap-3 pt-4" }}>
                 <Button
                   type="button"
                   variant="outline"
                   onClick={form.handleSubmit(handleSearchExisting)}
                   disabled={!hasMinimumData || isSearching}
-                  className="flex-1"
+                  {...{ className: "flex-1" }}
                 >
                   {isSearching ? (
                     <>
-                      <Search className="h-4 w-4 mr-2 animate-spin" />
+                      <Search {...{ className: "h-4 w-4 mr-2 animate-spin" }} />
                       Searching...
                     </>
                   ) : (
                     <>
-                      <Search className="h-4 w-4 mr-2" />
+                      <Search {...{ className: "h-4 w-4 mr-2" }} />
                       Search for Existing Cases
                     </>
                   )}
@@ -254,33 +254,33 @@ export const CustomerInfoStep: React.FC<CustomerInfoStepProps> = ({
                   type="button"
                   onClick={form.handleSubmit(handleCreateNew)}
                   disabled={!hasMinimumData || isSearching || !deduplicationCompleted}
-                  className="flex-1"
+                  {...{ className: "flex-1" }}
                   title={!deduplicationCompleted ? "Please search for existing cases first" : ""}
                 >
-                  <ArrowRight className="h-4 w-4 mr-2" />
+                  <ArrowRight {...{ className: "h-4 w-4 mr-2" }} />
                   Create New Case
                   {!deduplicationCompleted && (
-                    <span className="ml-2 text-xs opacity-60">(Search Required)</span>
+                    <span {...{ className: "ml-2 text-xs opacity-60" }}>(Search Required)</span>
                   )}
                 </Button>
               </div>
 
               {/* Help Text */}
-              <div className="text-sm text-gray-600 bg-slate-100/70 dark:bg-slate-800/50 p-4 rounded-lg">
-                <p className="font-medium mb-2">Mandatory Deduplication Process</p>
-                <ul className="space-y-1 text-xs">
+              <div {...{ className: "text-sm text-gray-600 bg-slate-100/70 dark:bg-slate-800/50 p-4 rounded-lg" }}>
+                <p {...{ className: "font-medium mb-2" }}>Mandatory Deduplication Process</p>
+                <ul {...{ className: "space-y-1 text-xs" }}>
                   <li>• <strong>Step 1:</strong> Search for existing cases to prevent duplicates</li>
                   <li>• <strong>Step 2:</strong> Review any potential duplicates found</li>
                   <li>• <strong>Step 3:</strong> Create new case only after deduplication check</li>
                 </ul>
                 {!deduplicationCompleted && (
-                  <div className="mt-3 p-2 bg-amber-50 border border-amber-200 rounded text-amber-800">
-                    <p className="text-xs font-medium">⚠️ Deduplication search is required before creating a new case</p>
+                  <div {...{ className: "mt-3 p-2 bg-amber-50 border border-amber-200 rounded text-amber-800" }}>
+                    <p {...{ className: "text-xs font-medium" }}>⚠️ Deduplication search is required before creating a new case</p>
                   </div>
                 )}
                 {deduplicationCompleted && (
-                  <div className="mt-3 p-2 bg-green-50 border border-green-200 rounded text-green-800">
-                    <p className="text-xs font-medium">✅ Deduplication check completed. You can now create a new case.</p>
+                  <div {...{ className: "mt-3 p-2 bg-green-50 border border-green-200 rounded text-green-800" }}>
+                    <p {...{ className: "text-xs font-medium" }}>✅ Deduplication check completed. You can now create a new case.</p>
                   </div>
                 )}
               </div>

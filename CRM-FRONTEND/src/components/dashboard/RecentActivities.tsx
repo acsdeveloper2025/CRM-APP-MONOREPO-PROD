@@ -1,6 +1,6 @@
 import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
+import { Badge } from '@/ui/components/badge';
 import { format } from 'date-fns';
 import { FileText, CheckSquare, Receipt, UserCheck } from 'lucide-react';
 import { baseBadgeStyle, formatBadgeLabel } from '@/lib/badgeStyles';

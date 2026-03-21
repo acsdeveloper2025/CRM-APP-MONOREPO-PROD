@@ -1,10 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Plus, X, ChevronUp, ChevronDown } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
+import { Button } from '@/ui/components/button';
+import { Input } from '@/ui/components/input';
+import { Badge } from '@/ui/components/badge';
+import { FormItem, FormLabel, FormMessage, FormDescription } from '@/ui/components/form';
 import { cn } from '@/lib/utils';
+import { Box } from '@/ui/primitives/Box';
+import { Stack } from '@/ui/primitives/Stack';
+import { Text } from '@/ui/primitives/Text';
 
 export interface AreaItem {
   id: string;
@@ -166,48 +169,51 @@ export function MultiAreaInput({
   };
 
   return (
-    <FormItem className={className}>
+    <FormItem>
       <FormLabel>
         Areas ({areas.length}/{maxAreas})
       </FormLabel>
-      
-      <div className="space-y-2">
+
+      <Stack gap={2} style={className ? undefined : undefined}>
         {areas.map((area, index) => (
-          <div
+          <Box
             key={area.id}
-            className={cn(
-              "flex items-center gap-2 p-2 border rounded-md",
-              editingId === area.id ? "border-green-500 bg-green-50" : "border-border"
-            )}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              padding: '0.5rem',
+              border: `1px solid ${editingId === area.id ? 'var(--ui-success)' : 'var(--ui-border)'}`,
+              borderRadius: 'var(--ui-radius-md)',
+              background: editingId === area.id ? 'color-mix(in srgb, var(--ui-success) 8%, transparent)' : undefined,
+            }}
           >
             {/* Reorder buttons */}
-            <div className="flex flex-col">
+            <Stack gap={1}>
               <Button
                 type="button"
                 variant="ghost"
-                size="sm"
-                className="h-4 w-4 p-0"
                 onClick={() => moveArea(area.id, 'up')}
                 disabled={disabled || index === 0}
+                style={{ padding: 0, minWidth: '1rem', minHeight: '1rem' }}
               >
-                <ChevronUp className="h-3 w-3" />
+                <ChevronUp size={12} />
               </Button>
               <Button
                 type="button"
                 variant="ghost"
-                size="sm"
-                className="h-4 w-4 p-0"
                 onClick={() => moveArea(area.id, 'down')}
                 disabled={disabled || index === areas.length - 1}
+                style={{ padding: 0, minWidth: '1rem', minHeight: '1rem' }}
               >
-                <ChevronDown className="h-3 w-3" />
+                <ChevronDown size={12} />
               </Button>
-            </div>
+            </Stack>
 
             {/* Area content */}
-            <div className="flex-1">
+            <Box style={{ flex: 1 }}>
               {editingId === area.id ? (
-                <div className="space-y-1">
+                <Stack gap={1}>
                   <Input
                     ref={inputRef}
                     value={editingValue}
@@ -215,43 +221,49 @@ export function MultiAreaInput({
                     onKeyDown={handleKeyDown}
                     onBlur={saveEdit}
                     placeholder="Enter area name"
-                    className={cn(
-                      "text-sm",
-                      getValidationError() ? "border-red-500" : ""
-                    )}
+                    style={{
+                      fontSize: '0.875rem',
+                      borderColor: getValidationError() ? 'var(--ui-danger)' : undefined,
+                    }}
                     maxLength={100}
                   />
                   {getValidationError() && (
-                    <p className="text-xs text-red-500">{getValidationError()}</p>
+                    <Text variant="caption" tone="danger">{getValidationError()}</Text>
                   )}
-                </div>
+                </Stack>
               ) : (
-                <div
-                  className="flex items-center justify-between cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800/60 p-1 rounded"
+                <Box
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    cursor: disabled ? 'default' : 'pointer',
+                    padding: '0.25rem',
+                    borderRadius: 'var(--ui-radius-sm)',
+                  }}
                   onClick={() => !disabled && startEditing(area)}
                 >
-                  <div className="flex items-center gap-2">
-                    <Badge variant="secondary" className="text-xs">
+                  <Stack direction="horizontal" gap={2} align="center">
+                    <Badge variant="secondary">
                       {index + 1}
                     </Badge>
-                    <span className="text-sm font-medium">{area.name || 'Unnamed Area'}</span>
-                  </div>
-                </div>
+                    <Text as="span" variant="body-sm" style={{ fontWeight: 600 }}>{area.name || 'Unnamed Area'}</Text>
+                  </Stack>
+                </Box>
               )}
-            </div>
+            </Box>
 
             {/* Remove button */}
             <Button
               type="button"
               variant="ghost"
-              size="sm"
-              className="h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
               onClick={() => removeArea(area.id)}
               disabled={disabled || areas.length <= minAreas}
+              style={{ padding: 0, minWidth: '1.5rem', minHeight: '1.5rem', color: 'var(--ui-danger)' }}
             >
-              <X className="h-3 w-3" />
+              <X size={12} />
             </Button>
-          </div>
+          </Box>
         ))}
 
         {/* Add area button */}
@@ -259,21 +271,20 @@ export function MultiAreaInput({
           <Button
             type="button"
             variant="outline"
-            size="sm"
-            className="w-full"
+            fullWidth
             onClick={addArea}
             disabled={disabled}
+            icon={<Plus size={16} />}
           >
-            <Plus className="h-4 w-4 mr-2" />
             Add Area
           </Button>
         )}
-      </div>
+      </Stack>
 
       <FormDescription>
         Add multiple areas/localities for this pincode. Click on an area to edit it.
         {areas.length >= maxAreas && (
-          <span className="text-amber-600"> Maximum {maxAreas} areas allowed.</span>
+          <Text as="span" variant="body-sm" tone="warning"> Maximum {maxAreas} areas allowed.</Text>
         )}
       </FormDescription>
       

@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useStandardizedMutation } from '@/hooks/useStandardizedMutation';
 import { MoreHorizontal, Edit, Trash2, CheckCircle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/ui/components/Button';
+import { Badge } from '@/ui/components/Badge';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,7 +10,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from '@/ui/components/dropdown-menu';
 import {
   Table,
   TableBody,
@@ -17,9 +18,11 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { LoadingState } from '@/components/ui/loading';
+} from '@/ui/components/table';
+import { LoadingState } from '@/ui/components/loading';
+import { Box } from '@/ui/primitives/Box';
+import { Stack } from '@/ui/primitives/Stack';
+import { Text } from '@/ui/primitives/Text';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,7 +32,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+} from '@/ui/components/alert-dialog';
 import { clientsService } from '@/services/clients';
 import { VerificationType } from '@/types/client';
 import { EditVerificationTypeDialog } from './EditVerificationTypeDialog';
@@ -82,66 +85,65 @@ export function VerificationTypesTable({ data, isLoading }: VerificationTypesTab
 
   if (!data || data.length === 0) {
     return (
-      <div className="text-center py-12">
-        <CheckCircle className="mx-auto h-12 w-12 text-gray-600" />
-        <h3 className="mt-4 text-lg font-semibold">No verification types found</h3>
-        <p className="text-gray-600">
+      <Stack gap={3} align="center" style={{ paddingBlock: '3rem', textAlign: 'center' }}>
+        <CheckCircle size={48} style={{ color: 'var(--ui-text-soft)', opacity: 0.75 }} />
+        <Text as="h3" variant="title">No verification types found</Text>
+        <Text tone="muted">
           Get started by creating your first verification type.
-        </p>
-      </div>
+        </Text>
+      </Stack>
     );
   }
 
   return (
     <>
-      <div className="rounded-md border overflow-auto">
+      <Box style={{ overflowX: 'auto', border: '1px solid var(--ui-border)', borderRadius: 'var(--ui-radius-lg)' }}>
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Type Name</TableHead>
               <TableHead>Created Date</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead style={{ textAlign: 'right' }}>Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {data.map((type) => (
               <TableRow key={type.id}>
-                <TableCell className="font-medium">
-                  <div className="flex items-center space-x-2">
-                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                      <CheckCircle className="h-4 w-4 text-primary" />
-                    </div>
-                    <span>{type.name}</span>
-                  </div>
+                <TableCell style={{ fontWeight: 600 }}>
+                  <Stack direction="horizontal" gap={2} align="center">
+                    <Box style={{ width: '2rem', height: '2rem', borderRadius: '999px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'color-mix(in srgb, var(--ui-accent) 12%, transparent)', color: 'var(--ui-accent)' }}>
+                      <CheckCircle size={16} />
+                    </Box>
+                    <Text as="span" variant="label">{type.name}</Text>
+                  </Stack>
                 </TableCell>
 
                 <TableCell>
-                  {new Date(type.createdAt).toLocaleDateString()}
+                  <Text as="span" variant="body-sm" tone="muted">{new Date(type.createdAt).toLocaleDateString()}</Text>
                 </TableCell>
                 <TableCell>
-                  <Badge variant="default">Active</Badge>
+                  <Badge variant="positive">Active</Badge>
                 </TableCell>
-                <TableCell className="text-right">
+                <TableCell style={{ textAlign: 'right' }}>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" className="h-8 w-8 p-0">
-                        <span className="sr-only">Open menu</span>
-                        <MoreHorizontal className="h-4 w-4" />
+                      <Button variant="ghost" aria-label="Open actions menu">
+                        <MoreHorizontal size={16} />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
                       <DropdownMenuItem onClick={() => handleEdit(type)}>
-                        <Edit className="mr-2 h-4 w-4" />
+                        <Edit size={16} style={{ marginRight: '0.5rem' }} />
                         Edit Type
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
                         onClick={() => handleDelete(type)}
-                        className="text-destructive"
+                        style={{ color: 'var(--ui-danger)' }}
                       >
-                        <Trash2 className="mr-2 h-4 w-4" />
+                        <Trash2 size={16} style={{ marginRight: '0.5rem' }} />
                         Delete Type
                       </DropdownMenuItem>
                     </DropdownMenuContent>
@@ -151,7 +153,7 @@ export function VerificationTypesTable({ data, isLoading }: VerificationTypesTab
             ))}
           </TableBody>
         </Table>
-      </div>
+      </Box>
 
       {/* Edit Dialog */}
       {selectedType && (
@@ -176,7 +178,7 @@ export function VerificationTypesTable({ data, isLoading }: VerificationTypesTab
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              style={{ background: 'var(--ui-danger)', color: 'white' }}
               disabled={deleteMutation.isPending}
             >
               {deleteMutation.isPending ? 'Deleting...' : 'Delete'}

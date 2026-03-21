@@ -1,7 +1,7 @@
 import React from 'react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Button } from '@/ui/components/button';
+import { Badge } from '@/ui/components/badge';
+import { Checkbox } from '@/ui/components/checkbox';
 import {
   Table,
   TableBody,
@@ -9,13 +9,13 @@ import {
   TableHead,
   TableHeader,
   TableRow
-} from '@/components/ui/table';
+} from '@/ui/components/table';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from '@/ui/components/dropdown-menu';
 import {
   ChevronDown,
   UserCheck,
@@ -91,18 +91,18 @@ export const VerificationTasksList: React.FC<VerificationTasksListProps> = ({
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-        <span className="ml-2">Loading tasks...</span>
+      <div {...{ className: "flex items-center justify-center py-8" }}>
+        <div {...{ className: "animate-spin rounded-full h-8 w-8 border-b-2 border-primary" }} />
+        <span {...{ className: "ml-2" }}>Loading tasks...</span>
       </div>
     );
   }
 
   if (tasks.length === 0) {
     return (
-      <div className="text-center py-8">
-        <div className="mb-2">No verification tasks found</div>
-        <p className="text-sm text-gray-600">
+      <div {...{ className: "text-center py-8" }}>
+        <div {...{ className: "mb-2" }}>No verification tasks found</div>
+        <p {...{ className: "text-sm text-gray-600" }}>
           Create new tasks to get started with verification workflows
         </p>
       </div>
@@ -110,12 +110,12 @@ export const VerificationTasksList: React.FC<VerificationTasksListProps> = ({
   }
 
   return (
-    <div className="space-y-4">
+    <div {...{ className: "space-y-4" }}>
       <Table>
         <TableHeader>
           <TableRow>
             {!readonly && (
-              <TableHead className="w-12">
+              <TableHead {...{ className: "w-12" }}>
                 <Checkbox
                   checked={allSelected}
                   {...(someSelected ? { indeterminate: true } : {})}
@@ -135,12 +135,12 @@ export const VerificationTasksList: React.FC<VerificationTasksListProps> = ({
             <TableHead>Priority</TableHead>
             <TableHead>Assigned To</TableHead>
             <TableHead>Created</TableHead>
-            <TableHead className="w-12">Actions</TableHead>
+            <TableHead {...{ className: "w-12" }}>Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {tasks.map((task) => (
-            <TableRow key={task.id} className="hover:bg-slate-100/70 dark:hover:bg-slate-800/50">
+            <TableRow key={task.id} {...{ className: "hover:bg-slate-100/70 dark:hover:bg-slate-800/50" }}>
               {!readonly && (
                 <TableCell>
                   <Checkbox
@@ -152,33 +152,33 @@ export const VerificationTasksList: React.FC<VerificationTasksListProps> = ({
               
               {/* Task Number */}
               <TableCell>
-                <div className="font-medium">
+                <div {...{ className: "font-medium" }}>
                   #{task.taskNumber}
                 </div>
               </TableCell>
 
               {/* Case Number */}
               <TableCell>
-                <div className="font-medium">
+                <div {...{ className: "font-medium" }}>
                   {task.caseNumber ? `#${task.caseNumber}` : '-'}
                 </div>
               </TableCell>
 
               {/* Customer Name */}
-              <TableCell className="font-medium">
+              <TableCell {...{ className: "font-medium" }}>
                 {task.customerName || '-'}
               </TableCell>
 
               {/* Verification Type */}
               <TableCell>
-                <span className="text-sm text-gray-600">
+                <span {...{ className: "text-sm text-gray-600" }}>
                   {task.verificationTypeName || '-'}
                 </span>
               </TableCell>
 
               {/* Trigger */}
               <TableCell>
-                <div className="max-w-xs truncate text-sm text-gray-600" title={task.trigger}>
+                <div {...{ className: "max-w-xs truncate text-sm text-gray-600" }} title={task.trigger}>
                   {task.trigger || '-'}
                 </div>
               </TableCell>
@@ -190,27 +190,27 @@ export const VerificationTasksList: React.FC<VerificationTasksListProps> = ({
 
               {/* Address */}
               <TableCell>
-                <div className="max-w-xs truncate text-sm text-gray-600" title={task.address}>
+                <div {...{ className: "max-w-xs truncate text-sm text-gray-600" }} title={task.address}>
                   {task.address || '-'}
                 </div>
               </TableCell>
 
               {/* Rate Type */}
               <TableCell>
-                <span className="text-sm text-gray-600">
+                <span {...{ className: "text-sm text-gray-600" }}>
                   {task.rateTypeName || '-'}
                 </span>
               </TableCell>
 
               <TableCell>
-                <Badge className={getTaskStatusBadgeStyle(task.status)}>
+                <Badge {...{ className: getTaskStatusBadgeStyle(task.status) }}>
                   {React.createElement(getStatusIcon(task.status), { className: 'h-3 w-3 mr-1 inline' })}
                   {getStatusLabel(task.status)}
                 </Badge>
               </TableCell>
 
               <TableCell>
-                <Badge className={getTaskPriorityBadgeStyle(task.priority)}>
+                <Badge {...{ className: getTaskPriorityBadgeStyle(task.priority) }}>
                   {task.priority}
                 </Badge>
               </TableCell>
@@ -220,10 +220,10 @@ export const VerificationTasksList: React.FC<VerificationTasksListProps> = ({
                   {task.assignedToName ? (
                     <span>{task.assignedToName}</span>
                   ) : (
-                    <span className="text-gray-600 italic">Unassigned</span>
+                    <span {...{ className: "text-gray-600 italic" }}>Unassigned</span>
                   )}
                   {task.assignedAt && (
-                    <div className="text-xs text-gray-600 mt-1">
+                    <div {...{ className: "text-xs text-gray-600 mt-1" }}>
                       {formatDate(task.assignedAt)}
                     </div>
                   )}
@@ -231,7 +231,7 @@ export const VerificationTasksList: React.FC<VerificationTasksListProps> = ({
               </TableCell>
 
               <TableCell>
-                <span className="text-sm text-gray-600">
+                <span {...{ className: "text-sm text-gray-600" }}>
                   {formatDate(task.createdAt)}
                 </span>
               </TableCell>
@@ -239,15 +239,15 @@ export const VerificationTasksList: React.FC<VerificationTasksListProps> = ({
               <TableCell>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm" className="gap-1">
+                    <Button variant="outline" size="sm" {...{ className: "gap-1" }}>
                       Actions
-                      <ChevronDown className="h-4 w-4" />
+                      <ChevronDown {...{ className: "h-4 w-4" }} />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     {onViewTask && (
                       <DropdownMenuItem onClick={() => onViewTask(task.id)}>
-                        <Eye className="h-4 w-4 mr-2" />
+                        <Eye {...{ className: "h-4 w-4 mr-2" }} />
                         View Details
                       </DropdownMenuItem>
                     )}
@@ -256,21 +256,21 @@ export const VerificationTasksList: React.FC<VerificationTasksListProps> = ({
                       <>
                         {task.status === 'PENDING' && (
                           <DropdownMenuItem onClick={() => onAssignTask(task.id)}>
-                            <UserCheck className="h-4 w-4 mr-2" />
+                            <UserCheck {...{ className: "h-4 w-4 mr-2" }} />
                             Assign Task
                           </DropdownMenuItem>
                         )}
                         
                         {task.status === 'ASSIGNED' && onStartTask && (
                           <DropdownMenuItem onClick={() => onStartTask(task.id)}>
-                            <Play className="h-4 w-4 mr-2" />
+                            <Play {...{ className: "h-4 w-4 mr-2" }} />
                             Start Task
                           </DropdownMenuItem>
                         )}
                         
                         {(task.status === 'IN_PROGRESS' || task.status === 'ASSIGNED') && (
                           <DropdownMenuItem onClick={() => onCompleteTask(task.id)}>
-                            <CheckCircle className="h-4 w-4 mr-2" />
+                            <CheckCircle {...{ className: "h-4 w-4 mr-2" }} />
                             Complete Task
                           </DropdownMenuItem>
                         )}
@@ -278,9 +278,9 @@ export const VerificationTasksList: React.FC<VerificationTasksListProps> = ({
                         {task.status !== 'COMPLETED' && task.status !== 'REVOKED' && onCancelTask && (
                           <DropdownMenuItem 
                             onClick={() => onCancelTask(task.id)}
-                            className="text-red-600"
+                            {...{ className: "text-red-600" }}
                           >
-                            <X className="h-4 w-4 mr-2" />
+                            <X {...{ className: "h-4 w-4 mr-2" }} />
                             Revoke Task
                           </DropdownMenuItem>
                         )}

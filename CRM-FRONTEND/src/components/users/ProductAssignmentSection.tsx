@@ -1,15 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Package, Save } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Button } from '@/ui/components/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
+import { Checkbox } from '@/ui/components/checkbox';
 import { usersService } from '@/services/users';
 import { productsService } from '@/services/products';
 import { toast } from 'sonner';
 import type { User } from '@/types/user';
 import type { Product } from '@/types/product';
-import { LoadingSpinner } from '@/components/ui/loading';
+import { LoadingSpinner } from '@/ui/components/loading';
 import { isBackendScopedUser } from '@/utils/userPermissionProfiles';
 
 interface ProductAssignmentSectionProps {
@@ -79,24 +79,24 @@ export function ProductAssignmentSection({ user }: ProductAssignmentSectionProps
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Package className="h-5 w-5" />
+        <CardTitle {...{ className: "flex items-center gap-2" }}>
+          <Package {...{ className: "h-5 w-5" }} />
           Product Assignments
         </CardTitle>
         <CardDescription>
           Select which products this user can access
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent {...{ className: "space-y-4" }}>
         {isLoading ? (
-          <div className="flex items-center justify-center py-8">
+          <div {...{ className: "flex items-center justify-center py-8" }}>
             <LoadingSpinner size="md" />
           </div>
         ) : (
           <>
-            <div className="space-y-2 max-h-60 overflow-y-auto">
+            <div {...{ className: "space-y-2 max-h-60 overflow-y-auto" }}>
               {products.map((product: Product) => (
-                <div key={product.id} className="flex items-center space-x-2">
+                <div key={product.id} {...{ className: "flex items-center space-x-2" }}>
                   <Checkbox
                     id={`product-${product.id}`}
                     checked={selectedProductIds.includes(product.id)}
@@ -104,7 +104,7 @@ export function ProductAssignmentSection({ user }: ProductAssignmentSectionProps
                   />
                   <label
                     htmlFor={`product-${product.id}`}
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    {...{ className: "text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70" }}
                   >
                     {product.name}
                   </label>
@@ -114,9 +114,9 @@ export function ProductAssignmentSection({ user }: ProductAssignmentSectionProps
             <Button 
               onClick={handleSaveAssignments}
               disabled={saveAssignmentsMutation.isPending}
-              className="w-full"
+              {...{ className: "w-full" }}
             >
-              <Save className="h-4 w-4 mr-2" />
+              <Save {...{ className: "h-4 w-4 mr-2" }} />
               Save Product Assignments
             </Button>
           </>

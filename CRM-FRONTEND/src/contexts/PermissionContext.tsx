@@ -14,7 +14,7 @@ export const PermissionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     () => ({
       hasPermissionCode: (code: string) => {
         if (!user) {return false;}
-        const codes = Array.isArray(user.permissions) ? (user.permissions as string[]) : [];
+        const codes = user.permissionCodes || (Array.isArray(user.permissions) ? (user.permissions as string[]) : []);
         return codes.includes('*') || codes.includes(code);
       },
     }),
@@ -24,7 +24,7 @@ export const PermissionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   return <PermissionContext.Provider value={value}>{children}</PermissionContext.Provider>;
 };
 
-// eslint-disable-next-line react-refresh/only-export-components
+ 
 export const usePermissionContext = (): PermissionContextValue => {
   const ctx = useContext(PermissionContext);
   if (!ctx) {

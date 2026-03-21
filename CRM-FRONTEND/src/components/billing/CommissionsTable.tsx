@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { MoreHorizontal, CheckCircle, DollarSign, TrendingUp, User } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/ui/components/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from '@/ui/components/dropdown-menu';
 import {
   Table,
   TableBody,
@@ -16,10 +16,10 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { LoadingState } from '@/components/ui/loading';
-import { Checkbox } from '@/components/ui/checkbox';
+} from '@/ui/components/table';
+import { Badge } from '@/ui/components/badge';
+import { LoadingState } from '@/ui/components/loading';
+import { Checkbox } from '@/ui/components/checkbox';
 import { toast } from 'sonner';
 import { baseBadgeStyle, formatBadgeLabel } from '@/lib/badgeStyles';
 import { billingService } from '@/services/billing';
@@ -45,7 +45,7 @@ export function CommissionsTable({ data, isLoading }: CommissionsTableProps) {
       toast.success('Commission approved successfully');
     },
     onError: (error: unknown) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       toast.error((error as any).response?.data?.message || 'Failed to approve commission');
     },
   });
@@ -60,7 +60,7 @@ export function CommissionsTable({ data, isLoading }: CommissionsTableProps) {
       toast.success('Commission marked as paid');
     },
     onError: (error: unknown) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       toast.error((error as any).response?.data?.message || 'Failed to mark commission as paid');
     },
   });
@@ -76,7 +76,7 @@ export function CommissionsTable({ data, isLoading }: CommissionsTableProps) {
       setSelectedCommissions([]);
     },
     onError: (error: unknown) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       toast.error((error as any).response?.data?.message || 'Failed to approve commissions');
     },
   });
@@ -92,7 +92,7 @@ export function CommissionsTable({ data, isLoading }: CommissionsTableProps) {
       setSelectedCommissions([]);
     },
     onError: (error: unknown) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       toast.error((error as any).response?.data?.message || 'Failed to mark commissions as paid');
     },
   });
@@ -121,10 +121,10 @@ export function CommissionsTable({ data, isLoading }: CommissionsTableProps) {
 
   if (!data || data.length === 0) {
     return (
-      <div className="text-center py-12">
-        <TrendingUp className="mx-auto h-12 w-12 text-gray-600" />
-        <h3 className="mt-4 text-lg font-semibold">No commissions found</h3>
-        <p className="text-gray-600">
+      <div {...{ className: "text-center py-12" }}>
+        <TrendingUp {...{ className: "mx-auto h-12 w-12 text-gray-600" }} />
+        <h3 {...{ className: "mt-4 text-lg font-semibold" }}>No commissions found</h3>
+        <p {...{ className: "text-gray-600" }}>
           Commissions will appear here once cases are completed.
         </p>
       </div>
@@ -142,21 +142,21 @@ export function CommissionsTable({ data, isLoading }: CommissionsTableProps) {
   });
 
   return (
-    <div className="space-y-4">
+    <div {...{ className: "space-y-4" }}>
       {/* Bulk Actions */}
       {selectedCommissions.length > 0 && (
-        <div className="flex items-center justify-between p-4 bg-slate-100 dark:bg-slate-800/60 rounded-lg">
-          <span className="text-sm font-medium">
+        <div {...{ className: "flex items-center justify-between p-4 bg-slate-100 dark:bg-slate-800/60 rounded-lg" }}>
+          <span {...{ className: "text-sm font-medium" }}>
             {selectedCommissions.length} commission(s) selected
           </span>
-          <div className="flex items-center space-x-2">
+          <div {...{ className: "flex items-center space-x-2" }}>
             {pendingCommissions.length > 0 && (
               <Button
                 size="sm"
                 onClick={() => bulkApproveMutation.mutate(pendingCommissions)}
                 disabled={bulkApproveMutation.isPending}
               >
-                <CheckCircle className="h-4 w-4 mr-2" />
+                <CheckCircle {...{ className: "h-4 w-4 mr-2" }} />
                 Approve ({pendingCommissions.length})
               </Button>
             )}
@@ -166,7 +166,7 @@ export function CommissionsTable({ data, isLoading }: CommissionsTableProps) {
                 onClick={() => bulkMarkPaidMutation.mutate(approvedCommissions)}
                 disabled={bulkMarkPaidMutation.isPending}
               >
-                <DollarSign className="h-4 w-4 mr-2" />
+                <DollarSign {...{ className: "h-4 w-4 mr-2" }} />
                 Mark Paid ({approvedCommissions.length})
               </Button>
             )}
@@ -174,11 +174,11 @@ export function CommissionsTable({ data, isLoading }: CommissionsTableProps) {
         </div>
       )}
 
-      <div className="rounded-md border overflow-auto">
+      <div {...{ className: "rounded-md border overflow-auto" }}>
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-12">
+              <TableHead {...{ className: "w-12" }}>
                 <Checkbox
                   checked={selectedCommissions.length === data.length}
                   onCheckedChange={handleSelectAll}
@@ -191,7 +191,7 @@ export function CommissionsTable({ data, isLoading }: CommissionsTableProps) {
               <TableHead>Percentage</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Calculated Date</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead {...{ className: "text-right" }}>Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -206,13 +206,13 @@ export function CommissionsTable({ data, isLoading }: CommissionsTableProps) {
                   />
                 </TableCell>
                 <TableCell>
-                  <div className="flex items-center space-x-2">
-                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                      <User className="h-4 w-4 text-primary" />
+                  <div {...{ className: "flex items-center space-x-2" }}>
+                    <div {...{ className: "h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center" }}>
+                      <User {...{ className: "h-4 w-4 text-primary" }} />
                     </div>
                     <div>
-                      <div className="font-medium">{commission.user.name}</div>
-                      <div className="text-sm text-gray-600">
+                      <div {...{ className: "font-medium" }}>{commission.user.name}</div>
+                      <div {...{ className: "text-sm text-gray-600" }}>
                         {commission.user.employeeId}
                       </div>
                     </div>
@@ -220,38 +220,38 @@ export function CommissionsTable({ data, isLoading }: CommissionsTableProps) {
                 </TableCell>
                 <TableCell>
                   <div>
-                    <div className="font-medium">{commission.case.title}</div>
-                    <div className="text-sm text-gray-600">
+                    <div {...{ className: "font-medium" }}>{commission.case.title}</div>
+                    <div {...{ className: "text-sm text-gray-600" }}>
                       {commission.case.customerName}
                     </div>
                   </div>
                 </TableCell>
                 <TableCell>
                   <div>
-                    <div className="font-medium">{commission.client.name}</div>
-                    <div className="text-sm text-gray-600">
+                    <div {...{ className: "font-medium" }}>{commission.client.name}</div>
+                    <div {...{ className: "text-sm text-gray-600" }}>
                       {commission.client.code}
                     </div>
                   </div>
                 </TableCell>
                 <TableCell>
-                  <div className="font-medium">₹{commission.amount.toLocaleString()}</div>
+                  <div {...{ className: "font-medium" }}>₹{commission.amount.toLocaleString()}</div>
                 </TableCell>
                 <TableCell>
-                  <Badge className={baseBadgeStyle}>{commission.percentage}%</Badge>
+                  <Badge {...{ className: baseBadgeStyle }}>{commission.percentage}%</Badge>
                 </TableCell>
                 <TableCell>
-                  <Badge className={baseBadgeStyle}>{formatBadgeLabel(commission.status)}</Badge>
+                  <Badge {...{ className: baseBadgeStyle }}>{formatBadgeLabel(commission.status)}</Badge>
                 </TableCell>
                 <TableCell>
                   {new Date(commission.calculatedAt).toLocaleDateString()}
                 </TableCell>
-                <TableCell className="text-right">
+                <TableCell {...{ className: "text-right" }}>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" className="h-8 w-8 p-0">
-                        <span className="sr-only">Open menu</span>
-                        <MoreHorizontal className="h-4 w-4" />
+                      <Button variant="ghost" {...{ className: "h-8 w-8 p-0" }}>
+                        <span {...{ className: "sr-only" }}>Open menu</span>
+                        <MoreHorizontal {...{ className: "h-4 w-4" }} />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
@@ -261,7 +261,7 @@ export function CommissionsTable({ data, isLoading }: CommissionsTableProps) {
                           onClick={() => approveCommissionMutation.mutate(commission.id)}
                           disabled={approveCommissionMutation.isPending}
                         >
-                          <CheckCircle className="mr-2 h-4 w-4" />
+                          <CheckCircle {...{ className: "mr-2 h-4 w-4" }} />
                           Approve Commission
                         </DropdownMenuItem>
                       )}
@@ -270,7 +270,7 @@ export function CommissionsTable({ data, isLoading }: CommissionsTableProps) {
                           onClick={() => markPaidMutation.mutate(commission.id)}
                           disabled={markPaidMutation.isPending}
                         >
-                          <DollarSign className="mr-2 h-4 w-4" />
+                          <DollarSign {...{ className: "mr-2 h-4 w-4" }} />
                           Mark as Paid
                         </DropdownMenuItem>
                       )}

@@ -152,6 +152,7 @@ export const UnifiedSearchInput = React.forwardRef<HTMLInputElement, UnifiedSear
         {/* Input Field */}
         <Input
           ref={combinedRef}
+          data-ui-search-input="true"
           type="text"
           value={value}
           onChange={(e) => onChange(e.target.value)}
@@ -201,4 +202,3 @@ export const UnifiedSearchInput = React.forwardRef<HTMLInputElement, UnifiedSear
 );
 
 UnifiedSearchInput.displayName = 'UnifiedSearchInput';
-
