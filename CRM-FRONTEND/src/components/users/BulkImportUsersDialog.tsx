@@ -11,7 +11,7 @@ import {
   DialogTitle,
 } from '@/ui/components/Dialog';
 import { Alert, AlertDescription } from '@/ui/components/Alert';
-import { Progress } from '@/ui/components/progress';
+import { Progress } from '@/ui/components/Progress';
 import { toast } from 'sonner';
 import { usersService } from '@/services/users';
 import type { ApiResponse } from '@/types/api';

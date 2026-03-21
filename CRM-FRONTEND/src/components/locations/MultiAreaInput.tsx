@@ -3,7 +3,7 @@ import { Plus, X, ChevronUp, ChevronDown } from 'lucide-react';
 import { Button } from '@/ui/components/Button';
 import { Input } from '@/ui/components/Input';
 import { Badge } from '@/ui/components/Badge';
-import { FormItem, FormLabel, FormMessage, FormDescription } from '@/ui/components/form';
+import { FormItem, FormLabel, FormMessage, FormDescription } from '@/ui/components/Form';
 import { cn } from '@/lib/utils';
 import { Box } from '@/ui/primitives/Box';
 import { Stack } from '@/ui/primitives/Stack';

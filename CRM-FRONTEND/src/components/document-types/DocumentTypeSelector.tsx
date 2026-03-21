@@ -12,8 +12,8 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from '@/ui/components/command';
-import { Popover, PopoverContent, PopoverTrigger } from '@/ui/components/popover';
+} from '@/ui/components/Command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/ui/components/Popover';
 import { documentTypesService } from '@/services/documentTypes';
 import { type DocumentType, type DocumentCategory } from '@/types/documentType';
 interface DocumentTypeSelectorProps {

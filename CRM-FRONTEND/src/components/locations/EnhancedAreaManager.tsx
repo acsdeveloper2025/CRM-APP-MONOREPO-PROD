@@ -7,7 +7,7 @@ import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from '@/ui/components/popover';
+} from '@/ui/components/Popover';
 import {
   AlertDialog,
   AlertDialogAction,

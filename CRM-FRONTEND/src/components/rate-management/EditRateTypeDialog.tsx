@@ -19,7 +19,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/ui/components/form';
+} from '@/ui/components/Form';
 import { Input } from '@/ui/components/Input';
 import { Textarea } from '@/ui/components/Textarea';
 import { Switch } from '@/ui/components/Switch';

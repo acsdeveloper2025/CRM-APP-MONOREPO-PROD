@@ -11,7 +11,7 @@ import {
   DialogTitle,
 } from '@/ui/components/Dialog';
 import { Alert, AlertDescription } from '@/ui/components/Alert';
-import { Progress } from '@/ui/components/progress';
+import { Progress } from '@/ui/components/Progress';
 import { Box } from '@/ui/primitives/Box';
 import { Stack } from '@/ui/primitives/Stack';
 import { Text } from '@/ui/primitives/Text';

@@ -20,7 +20,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/ui/components/form';
+} from '@/ui/components/Form';
 import { Input } from '@/ui/components/Input';
 import { Checkbox } from '@/ui/components/Checkbox';
 import { ScrollArea } from '@/ui/components/ScrollArea';

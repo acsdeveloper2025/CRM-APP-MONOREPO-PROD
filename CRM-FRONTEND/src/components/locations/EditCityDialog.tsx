@@ -20,7 +20,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/ui/components/form';
+} from '@/ui/components/Form';
 import {
   Select,
   SelectContent,

@@ -1,6 +1,6 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { AlertTriangle, RefreshCw, Home, Bug } from 'lucide-react';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/ui/components/collapsible';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/ui/components/Collapsible';
 import { Badge } from '@/ui/components/Badge';
 import { Button } from '@/ui/components/Button';
 import { Card } from '@/ui/components/Card';

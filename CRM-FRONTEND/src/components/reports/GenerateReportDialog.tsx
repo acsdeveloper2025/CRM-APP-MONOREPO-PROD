@@ -11,7 +11,7 @@ import { reportsService } from '@/services/reports';
 import { Button } from '@/ui/components/Button';
 import { DatePickerWithRange } from '@/ui/components/DateRangePicker';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/ui/components/Dialog';
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/ui/components/form';
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/ui/components/Form';
 import { Input } from '@/ui/components/Input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/ui/components/Select';
 import { Textarea } from '@/ui/components/Textarea';

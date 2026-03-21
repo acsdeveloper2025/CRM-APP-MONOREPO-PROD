@@ -27,7 +27,7 @@ import {
 import { Badge } from '@/ui/components/Badge';
 import { LoadingState } from '@/ui/components/Loading';
 import { Checkbox } from '@/ui/components/Checkbox';
-import { Avatar, AvatarFallback, AvatarImage } from '@/ui/components/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/ui/components/Avatar';
 import {
   AlertDialog,
   AlertDialogAction,

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/Card';
-import { Progress } from '@/ui/components/progress';
+import { Progress } from '@/ui/components/Progress';
 import {
   CheckCircle,
   Clock,

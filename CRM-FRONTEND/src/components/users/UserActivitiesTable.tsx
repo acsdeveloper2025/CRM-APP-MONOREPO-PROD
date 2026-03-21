@@ -9,7 +9,7 @@ import {
 } from '@/ui/components/Table';
 import { Badge, BadgeProps } from '@/ui/components/Badge';
 import { LoadingState } from '@/ui/components/Loading';
-import { Avatar, AvatarFallback } from '@/ui/components/avatar';
+import { Avatar, AvatarFallback } from '@/ui/components/Avatar';
 import { UserActivity } from '@/types/user';
 
 interface UserActivitiesTableProps {
