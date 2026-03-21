@@ -2,12 +2,12 @@ import React from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { rbacAdminService, type RbacRole } from '@/services/rbacAdmin';
 import { RBAC_PERMISSION_MODULES, ROUTE_ACCESS_OPTIONS } from '@/constants/rbac';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/card';
+import { Button } from '@/ui/components/button';
+import { Input } from '@/ui/components/input';
+import { Textarea } from '@/ui/components/textarea';
+import { Label } from '@/ui/components/label';
+import { Checkbox } from '@/ui/components/checkbox';
 import {
   Dialog,
   DialogContent,
@@ -15,11 +15,19 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
+} from '@/ui/components/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/ui/components/select';
+import { Badge } from '@/ui/components/badge';
 import { toast } from 'sonner';
 import { Plus, Save, Trash2, Pencil } from 'lucide-react';
+import { MetricCardGrid } from '@/components/shared/MetricCardGrid';
+import { Badge as UiBadge } from '@/ui/components/Badge';
+import { Button as UiButton } from '@/ui/components/Button';
+import { Card as UiCard } from '@/ui/components/Card';
+import { Page } from '@/ui/layout/Page';
+import { Section } from '@/ui/layout/Section';
+import { Stack } from '@/ui/primitives/Stack';
+import { Text } from '@/ui/primitives/Text';
 
 type RoleFormState = { name: string; description: string; parentRoleId: string };
 
@@ -218,12 +226,55 @@ export default function RolePermissionsAdminPage() {
   const groupedPermissions = permissionsQuery.data?.data || [];
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Role & Permissions</h1>
-        <p className="text-gray-600">Configure RBAC permissions, route access, and role hierarchy.</p>
-      </div>
+    <Page
+      title="Role & Permissions"
+      subtitle="Configure RBAC permissions, route access, and role hierarchy."
+      shell
+      actions={
+        <UiButton icon={<Plus size={16} />} onClick={() => setShowCreate(true)}>
+          Create Role
+        </UiButton>
+      }
+    >
+      <Section>
+        <Stack gap={3}>
+          <UiBadge variant="accent">Access Control</UiBadge>
+          <Text as="h2" variant="headline">Keep roles, permissions, and route access visible in one operational surface.</Text>
+        </Stack>
+      </Section>
 
+      <Section>
+        <MetricCardGrid
+          items={[
+            {
+              title: 'Roles',
+              value: roles.length,
+              detail: 'Configured RBAC roles',
+              tone: 'accent',
+            },
+            {
+              title: 'Permissions',
+              value: groupedPermissions.length,
+              detail: 'Available permission codes',
+              tone: 'warning',
+            },
+            {
+              title: 'Selected Role',
+              value: roles.find((role) => role.id === selectedRoleId)?.name || 'None',
+              detail: 'Current editing context',
+              tone: 'neutral',
+            },
+            {
+              title: 'Routes',
+              value: ROUTE_ACCESS_OPTIONS.length,
+              detail: 'Route access toggles',
+              tone: 'positive',
+            },
+          ]}
+        />
+      </Section>
+
+      <Section>
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
         <Card className="xl:col-span-3">
           <CardHeader className="flex flex-row items-center justify-between space-y-0">
@@ -338,6 +389,7 @@ export default function RolePermissionsAdminPage() {
           </CardContent>
         </Card>
       </div>
+      </Section>
 
       <RoleFormDialog
         open={showCreate}
@@ -353,6 +405,6 @@ export default function RolePermissionsAdminPage() {
         initialRole={editingRole}
         onSubmit={data => editingRole && updateRoleMutation.mutate({ id: editingRole.id, data })}
       />
-    </div>
+    </Page>
   );
 }

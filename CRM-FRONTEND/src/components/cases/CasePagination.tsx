@@ -7,14 +7,14 @@ import {
   PaginationLink,
   PaginationNext,
   PaginationPrevious,
-} from '@/components/ui/pagination';
+} from '@/ui/components/Pagination';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from '@/ui/components/Select';
 
 interface CasePaginationProps {
   currentPage: number;
@@ -75,16 +75,16 @@ export const CasePagination: React.FC<CasePaginationProps> = ({
   const pageNumbers = generatePageNumbers();
 
   return (
-    <div className="flex items-center justify-between px-2">
-      <div className="flex items-center space-x-6 lg:space-x-8">
-        <div className="flex items-center space-x-2">
-          <p className="text-sm font-medium">Rows per page</p>
+    <div {...{ className: "flex items-center justify-between px-2" }}>
+      <div {...{ className: "flex items-center space-x-6 lg:space-x-8" }}>
+        <div {...{ className: "flex items-center space-x-2" }}>
+          <p {...{ className: "text-sm font-medium" }}>Rows per page</p>
           <Select
             value={itemsPerPage.toString()}
             onValueChange={(value) => onItemsPerPageChange(parseInt(value))}
             disabled={isLoading}
           >
-            <SelectTrigger className="h-8 w-[70px]">
+            <SelectTrigger {...{ className: "h-8 w-[70px]" }}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent side="top">
@@ -96,7 +96,7 @@ export const CasePagination: React.FC<CasePaginationProps> = ({
             </SelectContent>
           </Select>
         </div>
-        <div className="flex w-[100px] items-center justify-center text-sm font-medium">
+        <div {...{ className: "flex w-[100px] items-center justify-center text-sm font-medium" }}>
           {totalItems > 0 ? `${startItem}-${endItem} of ${totalItems}` : '0 of 0'}
         </div>
       </div>
@@ -106,11 +106,12 @@ export const CasePagination: React.FC<CasePaginationProps> = ({
           <PaginationItem>
             <PaginationPrevious
               onClick={() => onPageChange(currentPage - 1)}
-              className={
-                currentPage <= 1 || isLoading
-                  ? 'pointer-events-none opacity-50'
-                  : 'cursor-pointer'
-              }
+              {...{
+                className:
+                  currentPage <= 1 || isLoading
+                    ? 'pointer-events-none opacity-50'
+                    : 'cursor-pointer',
+              }}
             />
           </PaginationItem>
           
@@ -122,7 +123,7 @@ export const CasePagination: React.FC<CasePaginationProps> = ({
                 <PaginationLink
                   onClick={() => onPageChange(page as number)}
                   isActive={currentPage === page}
-                  className={isLoading ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                  {...{ className: isLoading ? 'pointer-events-none opacity-50' : 'cursor-pointer' }}
                 >
                   {page}
                 </PaginationLink>
@@ -133,11 +134,12 @@ export const CasePagination: React.FC<CasePaginationProps> = ({
           <PaginationItem>
             <PaginationNext
               onClick={() => onPageChange(currentPage + 1)}
-              className={
-                currentPage >= totalPages || isLoading
-                  ? 'pointer-events-none opacity-50'
-                  : 'cursor-pointer'
-              }
+              {...{
+                className:
+                  currentPage >= totalPages || isLoading
+                    ? 'pointer-events-none opacity-50'
+                    : 'cursor-pointer',
+              }}
             />
           </PaginationItem>
         </PaginationContent>

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Upload, Download, FileText, AlertCircle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/ui/components/Button';
 import {
   Dialog,
   DialogContent,
@@ -9,11 +9,14 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Progress } from '@/components/ui/progress';
+} from '@/ui/components/dialog';
+import { Input } from '@/ui/components/input';
+import { Label } from '@/ui/components/label';
+import { Alert, AlertDescription } from '@/ui/components/alert';
+import { Progress } from '@/ui/components/progress';
+import { Box } from '@/ui/primitives/Box';
+import { Stack } from '@/ui/primitives/Stack';
+import { Text } from '@/ui/primitives/Text';
 import { toast } from 'sonner';
 import { clientsService } from '@/services/clients';
 
@@ -92,32 +95,31 @@ export function BulkImportDialog({ open, onOpenChange, type }: BulkImportDialogP
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] sm:max-w-[500px]">
+      <DialogContent style={{ width: 'min(95vw, 500px)' }}>
         <DialogHeader>
-          <DialogTitle className="flex items-center space-x-2">
-            <Upload className="h-5 w-5" />
-            <span>Bulk Import {type === 'clients' ? 'Clients' : 'Products'}</span>
-          </DialogTitle>
+          <Stack direction="horizontal" gap={2} align="center">
+            <Upload size={20} />
+            <DialogTitle>Bulk Import {type === 'clients' ? 'Clients' : 'Products'}</DialogTitle>
+          </Stack>
           <DialogDescription>
             Import multiple {type} from a CSV file. Download the template to see the required format.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
-          {/* Template Download */}
-          <div className="flex items-center justify-between p-4 border rounded-lg">
-            <div className="flex items-center space-x-2">
-              <FileText className="h-4 w-4 text-gray-600" />
-              <span className="text-sm">Download CSV template</span>
-            </div>
-            <Button variant="outline" size="sm" onClick={downloadTemplate}>
-              <Download className="h-4 w-4 mr-2" />
+        <Stack gap={4}>
+          <CardLike>
+            <Stack direction="horizontal" align="center" justify="space-between" gap={3} wrap="wrap">
+              <Stack direction="horizontal" gap={2} align="center">
+                <FileText size={16} style={{ color: 'var(--ui-text-soft)' }} />
+                <Text variant="body-sm">Download CSV template</Text>
+              </Stack>
+              <Button variant="outline" onClick={downloadTemplate} icon={<Download size={16} />}>
               Template
-            </Button>
-          </div>
+              </Button>
+            </Stack>
+          </CardLike>
 
-          {/* File Upload */}
-          <div className="space-y-2">
+          <Stack gap={2}>
             <Label htmlFor="csv-file">Select CSV File</Label>
             <Input
               id="csv-file"
@@ -127,25 +129,23 @@ export function BulkImportDialog({ open, onOpenChange, type }: BulkImportDialogP
               disabled={importMutation.isPending}
             />
             {file && (
-              <p className="text-sm text-gray-600">
+              <Text variant="body-sm" tone="muted">
                 Selected: {file.name} ({(file.size / 1024).toFixed(1)} KB)
-              </p>
+              </Text>
             )}
-          </div>
+          </Stack>
 
-          {/* Progress */}
           {importMutation.isPending && (
-            <div className="space-y-2">
-              <Progress value={uploadProgress} className="w-full" />
-              <p className="text-sm text-gray-600 text-center">
+            <Stack gap={2}>
+              <Progress value={uploadProgress} />
+              <Text variant="body-sm" tone="muted" style={{ textAlign: 'center' }}>
                 Importing {type}...
-              </p>
-            </div>
+              </Text>
+            </Stack>
           )}
 
-          {/* Instructions */}
           <Alert>
-            <AlertCircle className="h-4 w-4" />
+            <AlertCircle size={16} />
             <AlertDescription>
               {type === 'clients' 
                 ? 'CSV should contain columns: name, code. Client codes must be unique.'
@@ -153,13 +153,13 @@ export function BulkImportDialog({ open, onOpenChange, type }: BulkImportDialogP
               }
             </AlertDescription>
           </Alert>
-        </div>
+        </Stack>
 
-        <DialogFooter className="flex-col sm:flex-row gap-2">
+        <DialogFooter style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
-                className="w-full sm:w-auto"
+            fullWidth
             disabled={importMutation.isPending}
           >
             Cancel
@@ -167,11 +167,25 @@ export function BulkImportDialog({ open, onOpenChange, type }: BulkImportDialogP
           <Button
             onClick={handleImport}
             disabled={!file || importMutation.isPending}
-           className="w-full sm:w-auto">
+            fullWidth>
             {importMutation.isPending ? 'Importing...' : 'Import'}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function CardLike({ children }: { children: React.ReactNode }) {
+  return (
+    <Box
+      style={{
+        padding: '1rem',
+        border: '1px solid var(--ui-border)',
+        borderRadius: 'var(--ui-radius-lg)',
+      }}
+    >
+      {children}
+    </Box>
   );
 }

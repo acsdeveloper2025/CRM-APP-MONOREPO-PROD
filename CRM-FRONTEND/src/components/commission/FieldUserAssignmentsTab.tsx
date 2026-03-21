@@ -1,20 +1,20 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Edit, Trash2, Download } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/ui/components/dialog';
+import { Button } from '@/ui/components/button';
+import { Input } from '@/ui/components/input';
+import { Label } from '@/ui/components/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/ui/components/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/ui/components/table';
 import {
   MobileTableCard,
   MobileTableField,
-} from '@/components/ui/responsive-table';
-import { Badge } from '@/components/ui/badge';
-import { SearchableSelect } from '@/components/ui/searchable-select';
-import { UnifiedSearchInput } from '@/components/ui/unified-search-input';
-import { UnifiedFilterPanel, FilterGrid } from '@/components/ui/unified-filter-panel';
+} from '@/ui/components/responsive-table';
+import { Badge } from '@/ui/components/badge';
+import { SearchableSelect } from '@/ui/components/searchable-select';
+import { UnifiedSearchInput } from '@/ui/components/unified-search-input';
+import { UnifiedFilterPanel, FilterGrid } from '@/ui/components/unified-filter-panel';
 import { useUnifiedSearch, useUnifiedFilters } from '@/hooks/useUnifiedSearch';
 import { commissionManagementApi } from '../../services/commissionManagementApi';
 import { FieldUserCommissionAssignment, CreateFieldUserCommissionAssignmentData } from '../../types/commission';
@@ -205,27 +205,27 @@ export const FieldUserAssignmentsTab: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600" />
+      <div {...{ className: "flex items-center justify-center h-64" }}>
+        <div {...{ className: "animate-spin rounded-full h-8 w-8 border-b-2 border-green-600" }} />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div {...{ className: "space-y-6" }}>
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Plus className="h-5 w-5" />
+          <CardTitle {...{ className: "flex items-center gap-2" }}>
+            <Plus {...{ className: "h-5 w-5" }} />
             Commission Rate Assignments
           </CardTitle>
-          <p className="text-sm text-gray-600 mt-2">
+          <p {...{ className: "text-sm text-gray-600 mt-2" }}>
             Configure commission rates for field users by rate type and client (not for case assignments)
           </p>
         </CardHeader>
-        <CardContent className="p-6">
+        <CardContent {...{ className: "p-6" }}>
           {/* Search Section */}
-          <div className="mb-6">
+          <div {...{ className: "mb-6" }}>
             <UnifiedSearchInput
               value={searchValue}
               onChange={setSearchValue}
@@ -241,7 +241,7 @@ export const FieldUserAssignmentsTab: React.FC = () => {
             activeFilterCount={activeFilterCount}
           >
             <FilterGrid columns={{ sm: 1, md: 2 }}>
-              <div className="space-y-2">
+              <div {...{ className: "space-y-2" }}>
                 <Label>Field User</Label>
                 <SearchableSelect
                   options={[
@@ -259,7 +259,7 @@ export const FieldUserAssignmentsTab: React.FC = () => {
                 />
               </div>
 
-              <div className="space-y-2">
+              <div {...{ className: "space-y-2" }}>
                 <Label>Rate Type</Label>
                 <SearchableSelect
                   options={[
@@ -280,13 +280,13 @@ export const FieldUserAssignmentsTab: React.FC = () => {
           </UnifiedFilterPanel>
 
           {/* Action Buttons */}
-          <div className="flex flex-col sm:flex-row gap-2 mb-6">
+          <div {...{ className: "flex flex-col sm:flex-row gap-2 mb-6" }}>
             <Button
               onClick={exportData}
               variant="outline"
-              className="flex items-center gap-2 w-full sm:w-auto"
+              {...{ className: "flex items-center gap-2 w-full sm:w-auto" }}
             >
-              <Download className="h-4 w-4" />
+              <Download {...{ className: "h-4 w-4" }} />
               Export
             </Button>
             <Button
@@ -295,24 +295,24 @@ export const FieldUserAssignmentsTab: React.FC = () => {
                 setEditingAssignment(null);
                 resetForm();
               }}
-              className="flex items-center gap-2 w-full sm:w-auto"
+              {...{ className: "flex items-center gap-2 w-full sm:w-auto" }}
             >
-              <Plus className="h-4 w-4" />
+              <Plus {...{ className: "h-4 w-4" }} />
               Add Rate Assignment
             </Button>
           </div>
 
           {/* Desktop Table */}
-          <div className="hidden md:block border rounded-lg overflow-auto">
+          <div {...{ className: "hidden md:block border rounded-lg overflow-auto" }}>
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>User</TableHead>
                   <TableHead>Rate Type</TableHead>
-                  <TableHead className="hidden lg:table-cell">Commission</TableHead>
-                  <TableHead className="hidden xl:table-cell">Effective Period</TableHead>
+                  <TableHead {...{ className: "hidden lg:table-cell" }}>Commission</TableHead>
+                  <TableHead {...{ className: "hidden xl:table-cell" }}>Effective Period</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead className="w-[120px]">Actions</TableHead>
+                  <TableHead {...{ className: "w-[120px]" }}>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -320,18 +320,18 @@ export const FieldUserAssignmentsTab: React.FC = () => {
                   <TableRow key={assignment.id}>
                     <TableCell>
                       <div>
-                        <div className="font-medium">{assignment.user_name}</div>
-                        <div className="text-sm text-gray-600">{assignment.user_email}</div>
+                        <div {...{ className: "font-medium" }}>{assignment.user_name}</div>
+                        <div {...{ className: "text-sm text-gray-600" }}>{assignment.user_email}</div>
                       </div>
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline">{assignment.rate_type_name}</Badge>
                     </TableCell>
-                    <TableCell className="hidden lg:table-cell font-medium">
+                    <TableCell {...{ className: "hidden lg:table-cell font-medium" }}>
                       {assignment.currency} {assignment.commission_amount}
                     </TableCell>
-                    <TableCell className="hidden xl:table-cell">
-                      <div className="text-sm">
+                    <TableCell {...{ className: "hidden xl:table-cell" }}>
+                      <div {...{ className: "text-sm" }}>
                         <div>From: {assignment.effective_from ? new Date(assignment.effective_from).toLocaleDateString() : 'N/A'}</div>
                         <div>To: {assignment.effective_to ? new Date(assignment.effective_to).toLocaleDateString() : 'Ongoing'}</div>
                       </div>
@@ -342,22 +342,22 @@ export const FieldUserAssignmentsTab: React.FC = () => {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <div className="flex gap-1">
+                      <div {...{ className: "flex gap-1" }}>
                         <Button
                           variant="ghost"
                           size="icon"
                           onClick={() => handleEdit(assignment)}
-                          className="h-8 w-8"
+                          {...{ className: "h-8 w-8" }}
                         >
-                          <Edit className="h-4 w-4" />
+                          <Edit {...{ className: "h-4 w-4" }} />
                         </Button>
                         <Button
                           variant="ghost"
                           size="icon"
                           onClick={() => handleDelete(String(assignment.id))}
-                          className="h-8 w-8 text-destructive hover:text-destructive"
+                          {...{ className: "h-8 w-8 text-destructive hover:text-destructive" }}
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 {...{ className: "h-4 w-4" }} />
                         </Button>
                       </div>
                     </TableCell>
@@ -368,33 +368,33 @@ export const FieldUserAssignmentsTab: React.FC = () => {
           </div>
 
           {/* Mobile Card Layout */}
-          <div className="md:hidden space-y-3">
+          <div {...{ className: "md:hidden space-y-3" }}>
             {assignments.map((assignment) => (
               <MobileTableCard key={assignment.id}>
-                <div className="flex justify-between items-start mb-3">
+                <div {...{ className: "flex justify-between items-start mb-3" }}>
                   <div>
-                    <div className="font-semibold text-base">{assignment.user_name}</div>
-                    <div className="text-sm text-gray-600">{assignment.user_email}</div>
+                    <div {...{ className: "font-semibold text-base" }}>{assignment.user_name}</div>
+                    <div {...{ className: "text-sm text-gray-600" }}>{assignment.user_email}</div>
                   </div>
-                  <div className="flex items-center space-x-2">
+                  <div {...{ className: "flex items-center space-x-2" }}>
                     <Badge variant={assignment.is_active ? "default" : "secondary"}>
                       {assignment.is_active ? 'Active' : 'Inactive'}
                     </Badge>
-                    <div className="flex gap-1">
+                    <div {...{ className: "flex gap-1" }}>
                       <Button
                         variant="ghost"
                         size="icon-sm"
                         onClick={() => handleEdit(assignment)}
                       >
-                        <Edit className="h-4 w-4" />
+                        <Edit {...{ className: "h-4 w-4" }} />
                       </Button>
                       <Button
                         variant="ghost"
                         size="icon-sm"
                         onClick={() => handleDelete(String(assignment.id))}
-                        className="text-destructive hover:text-destructive"
+                        {...{ className: "text-destructive hover:text-destructive" }}
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 {...{ className: "h-4 w-4" }} />
                       </Button>
                     </div>
                   </div>
@@ -422,11 +422,11 @@ export const FieldUserAssignmentsTab: React.FC = () => {
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex justify-between items-center mt-6">
-              <div className="text-sm text-gray-600">
+            <div {...{ className: "flex justify-between items-center mt-6" }}>
+              <div {...{ className: "text-sm text-gray-600" }}>
                 Page {currentPage} of {totalPages}
               </div>
-              <div className="flex gap-2">
+              <div {...{ className: "flex gap-2" }}>
                 <Button
                   variant="outline"
                   size="sm"
@@ -451,7 +451,7 @@ export const FieldUserAssignmentsTab: React.FC = () => {
 
       {/* Assignment Form Dialog */}
       <Dialog open={showForm} onOpenChange={setShowForm}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent {...{ className: "sm:max-w-lg" }}>
           <DialogHeader>
             <DialogTitle>
               {editingAssignment ? 'Edit Commission Rate Assignment' : 'Create Commission Rate Assignment'}
@@ -464,9 +464,9 @@ export const FieldUserAssignmentsTab: React.FC = () => {
             </DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid gap-4">
-              <div className="space-y-2">
+          <form onSubmit={handleSubmit} {...{ className: "space-y-6" }}>
+            <div {...{ className: "grid gap-4" }}>
+              <div {...{ className: "space-y-2" }}>
                 <Label htmlFor="userId">Field User *</Label>
                 <SearchableSelect
                   options={(users || []).map(user => ({
@@ -482,7 +482,7 @@ export const FieldUserAssignmentsTab: React.FC = () => {
                 />
               </div>
 
-              <div className="space-y-2">
+              <div {...{ className: "space-y-2" }}>
                 <Label htmlFor="rateTypeId">Rate Type *</Label>
                 <SearchableSelect
                   options={(rateTypes || []).map(rateType => ({
@@ -498,8 +498,8 @@ export const FieldUserAssignmentsTab: React.FC = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
+              <div {...{ className: "grid grid-cols-2 gap-4" }}>
+                <div {...{ className: "space-y-2" }}>
                   <Label htmlFor="currency">Currency *</Label>
                   <Select
                     value={formData.currency}
@@ -516,7 +516,7 @@ export const FieldUserAssignmentsTab: React.FC = () => {
                   </Select>
                 </div>
 
-                <div className="space-y-2">
+                <div {...{ className: "space-y-2" }}>
                   <Label htmlFor="commissionAmount">Commission Amount *</Label>
                   <Input
                     id="commissionAmount"
@@ -532,7 +532,7 @@ export const FieldUserAssignmentsTab: React.FC = () => {
               </div>
             </div>
 
-            <DialogFooter className="gap-2">
+            <DialogFooter {...{ className: "gap-2" }}>
               <Button
                 type="button"
                 variant="outline"

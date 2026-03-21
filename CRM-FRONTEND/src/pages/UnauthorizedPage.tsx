@@ -1,16 +1,29 @@
 import React from 'react';
 import { ShieldAlert } from 'lucide-react';
+import { Badge } from '@/ui/components/Badge';
+import { Card } from '@/ui/components/Card';
+import { Page } from '@/ui/layout/Page';
+import { Section } from '@/ui/layout/Section';
+import { Stack } from '@/ui/primitives/Stack';
+import { Text } from '@/ui/primitives/Text';
 
 export function UnauthorizedPage() {
   return (
-    <div className="min-h-[70vh] flex items-center justify-center p-6">
-      <div className="max-w-md w-full rounded-xl border bg-white p-8 text-center shadow-sm">
-        <ShieldAlert className="h-10 w-10 mx-auto text-red-600 mb-3" />
-        <h1 className="text-2xl font-bold">Access Denied</h1>
-        <p className="text-gray-600 mt-2">
-          Access Denied - You do not have permission to access this module.
-        </p>
-      </div>
-    </div>
+    <Page>
+      <Section>
+        <Card tone="strong" staticCard style={{ maxWidth: '34rem', margin: '12vh auto 0' }}>
+          <Stack gap={3} style={{ textAlign: 'center', padding: '2rem 0' }}>
+            <div>
+              <Badge variant="danger">Access Denied</Badge>
+            </div>
+            <ShieldAlert size={40} style={{ color: 'var(--ui-danger)', margin: '0 auto' }} />
+            <Text as="h1" variant="headline">You do not have access to this module</Text>
+            <Text tone="muted">
+              Your current role does not include permission to open this area of the CRM.
+            </Text>
+          </Stack>
+        </Card>
+      </Section>
+    </Page>
   );
 }

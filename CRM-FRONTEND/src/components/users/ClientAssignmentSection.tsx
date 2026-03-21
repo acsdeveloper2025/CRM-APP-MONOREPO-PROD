@@ -1,15 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Building2, Save } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Button } from '@/ui/components/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
+import { Checkbox } from '@/ui/components/checkbox';
 import { usersService } from '@/services/users';
 import { clientsService } from '@/services/clients';
 import { toast } from 'sonner';
 import type { User } from '@/types/user';
 import type { Client } from '@/types/client';
-import { LoadingSpinner } from '@/components/ui/loading';
+import { LoadingSpinner } from '@/ui/components/loading';
 import { isBackendScopedUser } from '@/utils/userPermissionProfiles';
 
 interface ClientAssignmentSectionProps {
@@ -79,24 +79,24 @@ export function ClientAssignmentSection({ user }: ClientAssignmentSectionProps) 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Building2 className="h-5 w-5" />
+        <CardTitle {...{ className: "flex items-center gap-2" }}>
+          <Building2 {...{ className: "h-5 w-5" }} />
           Client Assignments
         </CardTitle>
         <CardDescription>
           Select which clients this user can access
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent {...{ className: "space-y-4" }}>
         {isLoading ? (
-          <div className="flex items-center justify-center py-8">
+          <div {...{ className: "flex items-center justify-center py-8" }}>
             <LoadingSpinner size="md" />
           </div>
         ) : (
           <>
-            <div className="space-y-2 max-h-60 overflow-y-auto">
+            <div {...{ className: "space-y-2 max-h-60 overflow-y-auto" }}>
               {clients.map((client: Client) => (
-                <div key={client.id} className="flex items-center space-x-2">
+                <div key={client.id} {...{ className: "flex items-center space-x-2" }}>
                   <Checkbox
                     id={`client-${client.id}`}
                     checked={selectedClientIds.includes(client.id)}
@@ -104,7 +104,7 @@ export function ClientAssignmentSection({ user }: ClientAssignmentSectionProps) 
                   />
                   <label
                     htmlFor={`client-${client.id}`}
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    {...{ className: "text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70" }}
                   >
                     {client.name}
                   </label>
@@ -114,9 +114,9 @@ export function ClientAssignmentSection({ user }: ClientAssignmentSectionProps) 
             <Button 
               onClick={handleSaveAssignments}
               disabled={saveAssignmentsMutation.isPending}
-              className="w-full"
+              {...{ className: "w-full" }}
             >
-              <Save className="h-4 w-4 mr-2" />
+              <Save {...{ className: "h-4 w-4 mr-2" }} />
               Save Client Assignments
             </Button>
           </>

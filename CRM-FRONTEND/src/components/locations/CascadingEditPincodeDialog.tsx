@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/ui/components/button';
 import {
   Dialog,
   DialogContent,
@@ -11,8 +11,9 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Form } from '@/components/ui/form';
+} from '@/ui/components/dialog';
+import { Form } from '@/ui/components/form';
+import { Stack } from '@/ui/primitives/Stack';
 import { toast } from 'sonner';
 import { locationsService } from '@/services/locations';
 import { Pincode, City, State, Country } from '@/types/location';
@@ -126,8 +127,7 @@ export function CascadingEditPincodeDialog({ pincode, open, onOpenChange }: Casc
       onOpenChange(false);
     },
     onError: (error: unknown) => {
-      console.error('Update pincode error:', error);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       const errorMessage = (error as any)?.response?.data?.message || 'Failed to update pincode';
       toast.error(errorMessage);
     },
@@ -161,7 +161,7 @@ export function CascadingEditPincodeDialog({ pincode, open, onOpenChange }: Casc
 
   return (
     <Dialog open={open} onOpenChange={handleDialogClose}>
-      <DialogContent className="max-w-[95vw] sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+      <DialogContent style={{ width: 'min(95vw, 500px)', maxHeight: '90vh', overflowY: 'auto' }}>
         <DialogHeader>
           <DialogTitle>Edit Pincode</DialogTitle>
           <DialogDescription>
@@ -170,37 +170,40 @@ export function CascadingEditPincodeDialog({ pincode, open, onOpenChange }: Casc
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <CascadingLocationSelector
-              form={form}
-              mode="edit"
-              showPincodeInput={true}
-              showAreasSelect={true}
-              disabled={updateMutation.isPending}
-              countryField="countryId"
-              stateField="stateId"
-              cityField="cityId"
-              pincodeField="pincodeCode"
-              areasField="areas"
-            />
+          <form onSubmit={form.handleSubmit(onSubmit)}>
+            <Stack gap={5}>
+              <CascadingLocationSelector
+                form={form}
+                mode="edit"
+                showPincodeInput={true}
+                showAreasSelect={true}
+                disabled={updateMutation.isPending}
+                countryField="countryId"
+                stateField="stateId"
+                cityField="cityId"
+                pincodeField="pincodeCode"
+                areasField="areas"
+              />
 
-            <DialogFooter className="flex-col sm:flex-row gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => handleDialogClose(false)}
-                className="w-full sm:w-auto"
-                disabled={updateMutation.isPending}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                disabled={updateMutation.isPending}
-               className="w-full sm:w-auto">
-                {updateMutation.isPending ? 'Updating...' : 'Update Pincode'}
-              </Button>
-            </DialogFooter>
+              <DialogFooter style={{ display: 'flex', gap: 'var(--ui-gap-2)', flexWrap: 'wrap' }}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => handleDialogClose(false)}
+                  fullWidth
+                  disabled={updateMutation.isPending}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  fullWidth
+                  disabled={updateMutation.isPending}
+                >
+                  {updateMutation.isPending ? 'Updating...' : 'Update Pincode'}
+                </Button>
+              </DialogFooter>
+            </Stack>
           </form>
         </Form>
       </DialogContent>

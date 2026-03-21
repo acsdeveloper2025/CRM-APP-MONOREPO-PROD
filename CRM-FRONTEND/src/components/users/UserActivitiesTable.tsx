@@ -6,10 +6,10 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { Badge, BadgeProps } from '@/components/ui/badge';
-import { LoadingState } from '@/components/ui/loading';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+} from '@/ui/components/table';
+import { Badge, BadgeProps } from '@/ui/components/badge';
+import { LoadingState } from '@/ui/components/loading';
+import { Avatar, AvatarFallback } from '@/ui/components/avatar';
 import { UserActivity } from '@/types/user';
 
 interface UserActivitiesTableProps {
@@ -24,10 +24,10 @@ export function UserActivitiesTable({ data, isLoading }: UserActivitiesTableProp
 
   if (!data || data.length === 0) {
     return (
-      <div className="text-center py-12">
-        <Activity className="mx-auto h-12 w-12 text-gray-600" />
-        <h3 className="mt-4 text-lg font-semibold">No activities found</h3>
-        <p className="text-gray-600">
+      <div {...{ className: "text-center py-12" }}>
+        <Activity {...{ className: "mx-auto h-12 w-12 text-gray-600" }} />
+        <h3 {...{ className: "mt-4 text-lg font-semibold" }}>No activities found</h3>
+        <p {...{ className: "text-gray-600" }}>
           User activities will appear here as they interact with the system.
         </p>
       </div>
@@ -49,7 +49,7 @@ export function UserActivitiesTable({ data, isLoading }: UserActivitiesTableProp
   };
 
   return (
-    <div className="rounded-md border overflow-auto">
+    <div {...{ className: "rounded-md border overflow-auto" }}>
       <Table>
         <TableHeader>
           <TableRow>
@@ -64,15 +64,15 @@ export function UserActivitiesTable({ data, isLoading }: UserActivitiesTableProp
           {data.map((activity) => (
             <TableRow key={activity.id}>
               <TableCell>
-                <div className="flex items-center space-x-3">
-                  <Avatar className="h-8 w-8">
+                <div {...{ className: "flex items-center space-x-3" }}>
+                  <Avatar {...{ className: "h-8 w-8" }}>
                     <AvatarFallback>
                       {(activity.userName || 'U').split(' ').map(n => n[0]).join('').toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   <div>
-                    <div className="font-medium">{activity.userName || 'Unknown User'}</div>
-                    <div className="text-sm text-gray-600">{activity.userId}</div>
+                    <div {...{ className: "font-medium" }}>{activity.userName || 'Unknown User'}</div>
+                    <div {...{ className: "text-sm text-gray-600" }}>{activity.userId}</div>
                   </div>
                 </div>
               </TableCell>
@@ -80,17 +80,17 @@ export function UserActivitiesTable({ data, isLoading }: UserActivitiesTableProp
                 {getActionBadge(activity.action)}
               </TableCell>
               <TableCell>
-                <code className="text-[10px] bg-gray-100 p-1 rounded block max-w-[200px] truncate">
+                <code {...{ className: "text-[10px] bg-gray-100 p-1 rounded block max-w-[200px] truncate" }}>
                   {JSON.stringify(activity.details || {})}
                 </code>
               </TableCell>
               <TableCell>
-                <span className="text-sm font-mono">{activity.ipAddress || 'N/A'}</span>
+                <span {...{ className: "text-sm font-mono" }}>{activity.ipAddress || 'N/A'}</span>
               </TableCell>
               <TableCell>
-                <div className="flex items-center space-x-1 whitespace-nowrap">
-                  <Clock className="h-3 w-3 text-gray-600" />
-                  <span className="text-sm">
+                <div {...{ className: "flex items-center space-x-1 whitespace-nowrap" }}>
+                  <Clock {...{ className: "h-3 w-3 text-gray-600" }} />
+                  <span {...{ className: "text-sm" }}>
                     {new Date(activity.createdAt).toLocaleString()}
                   </span>
                 </div>

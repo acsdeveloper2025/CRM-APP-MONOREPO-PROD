@@ -5,12 +5,18 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import type { LoginRequest } from '@/types/auth';
-import { LoadingPage } from '@/components/ui/loading';
+import { LoadingPage } from '@/ui/components/loading';
+import { Button } from '@/ui/components/Button';
+import { Card } from '@/ui/components/Card';
+import { Input } from '@/ui/components/Input';
+import { Badge } from '@/ui/components/Badge';
+import { Page } from '@/ui/layout/Page';
+import { Grid } from '@/ui/layout/Grid';
+import { Section } from '@/ui/layout/Section';
+import { Box } from '@/ui/primitives/Box';
+import { Stack } from '@/ui/primitives/Stack';
+import { Text } from '@/ui/primitives/Text';
 
 const loginSchema = z.object({
   username: z.string().min(1, 'Username is required'),
@@ -67,71 +73,98 @@ export const LoginPage: React.FC = () => {
     return <LoadingPage title="Authenticating" description="Verifying your credentials..." />;
   }
 
-
-
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#FAFAFA] py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div className="text-center">
-          <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
-            CRM Admin Dashboard
-          </h2>
-          <p className="mt-2 text-sm text-gray-600">
-            Sign in to your account
-          </p>
-        </div>
-        
-        <Card>
-          <CardHeader>
-            <CardTitle>Sign In</CardTitle>
-            <CardDescription>
-              Enter your credentials to access the admin dashboard
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="username">Username</Label>
-                <Input
-                  id="username"
-                  type="text"
-                  placeholder="Enter your username"
-                  {...register('username')}
-                  className={errors.username ? 'border-red-500' : ''}
-                />
-                {errors.username && (
-                  <p className="text-sm text-red-500">{errors.username.message}</p>
-                )}
-              </div>
+    <Page>
+      <Box className="ui-login-page">
+        <Box className="ui-login-grid ui-stagger">
+          <Card tone="highlight" className="ui-hero-panel">
+            <Stack gap={5} style={{ height: '100%', justifyContent: 'space-between' }}>
+              <Stack gap={5}>
+              <Badge variant="accent">Premium Operations SaaS</Badge>
+              <Stack gap={3}>
+                <Text as="h1" variant="display">
+                  CRM that feels executive, not utilitarian.
+                </Text>
+                <Text variant="body" tone="muted">
+                  Review case flow, assign field work, and control turnaround with a single disciplined command surface.
+                </Text>
+              </Stack>
+              <Grid min={180}>
+                <Card tone="strong">
+                  <Stack gap={2}>
+                    <Text variant="label" tone="soft">Case velocity</Text>
+                    <Text variant="headline">Unified task flow</Text>
+                    <Text variant="body-sm" tone="muted">Assignment, review, and completion on one surface.</Text>
+                  </Stack>
+                </Card>
+                <Card tone="strong">
+                  <Stack gap={2}>
+                    <Text variant="label" tone="soft">Operator clarity</Text>
+                    <Text variant="headline">Tighter signals</Text>
+                    <Text variant="body-sm" tone="muted">Priorities, status, and action areas stay visually consistent.</Text>
+                  </Stack>
+                </Card>
+              </Grid>
+              </Stack>
+              <Card tone="strong">
+                <Stack gap={2}>
+                  <Text variant="label" tone="soft">Brand promise</Text>
+                  <Text variant="headline">Clarity under operational pressure.</Text>
+                  <Text variant="body-sm" tone="muted">
+                    A premium admin workspace with stronger hierarchy, calmer decisions, and tighter execution flow.
+                  </Text>
+                </Stack>
+              </Card>
+            </Stack>
+          </Card>
 
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="Enter your password"
-                  {...register('password')}
-                  className={errors.password ? 'border-red-500' : ''}
-                />
-                {errors.password && (
-                  <p className="text-sm text-red-500">{errors.password.message}</p>
-                )}
-              </div>
+          <Card tone="strong">
+            <Section>
+              <Stack gap={4}>
+                <Badge variant="neutral">Access portal</Badge>
+                <Stack gap={2}>
+                  <Text as="h2" variant="headline">Sign in</Text>
+                  <Text variant="body-sm" tone="muted">
+                    Enter your credentials to access the admin workspace.
+                  </Text>
+                </Stack>
+              </Stack>
+            </Section>
 
+            <form onSubmit={handleSubmit(onSubmit)}>
+              <Stack gap={4}>
+                <Stack gap={2}>
+                  <Text as="label" htmlFor="username" variant="label" tone="soft">Username</Text>
+                  <Input
+                    id="username"
+                    type="text"
+                    placeholder="Enter your username"
+                    {...register('username')}
+                    invalid={Boolean(errors.username)}
+                  />
+                  {errors.username ? <Text variant="caption" tone="danger">{errors.username.message}</Text> : null}
+                </Stack>
 
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? 'Signing in...' : 'Sign In'}
-              </Button>
+                <Stack gap={2}>
+                  <Text as="label" htmlFor="password" variant="label" tone="soft">Password</Text>
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="Enter your password"
+                    {...register('password')}
+                    invalid={Boolean(errors.password)}
+                  />
+                  {errors.password ? <Text variant="caption" tone="danger">{errors.password.message}</Text> : null}
+                </Stack>
+
+                <Button type="submit" fullWidth disabled={isSubmitting}>
+                  {isSubmitting ? 'Signing in...' : 'Enter workspace'}
+                </Button>
+              </Stack>
             </form>
-          </CardContent>
-        </Card>
-
-
-      </div>
-    </div>
+          </Card>
+        </Box>
+      </Box>
+    </Page>
   );
 };

@@ -6,10 +6,13 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { LoadingSpinner } from '@/components/ui/loading';
+} from '@/ui/components/dialog';
+import { Badge } from '@/ui/components/Badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/Card';
+import { LoadingSpinner } from '@/ui/components/loading';
+import { Grid } from '@/ui/layout/Grid';
+import { Stack } from '@/ui/primitives/Stack';
+import { Text } from '@/ui/primitives/Text';
 import { clientsService } from '@/services/clients';
 import { Product } from '@/types/client';
 
@@ -32,112 +35,99 @@ export function ProductDetailsDialog({ product, open, onOpenChange }: ProductDet
   const productData = productDetails?.data || product;
   const types = verificationTypes.data || [];
 
+  const details = [
+    { icon: Package, label: 'Product Name', value: productData.name },
+    { icon: Building2, label: 'Verification Types', value: 'Types vary per client-product mapping' },
+    {
+      icon: Calendar,
+      label: 'Created Date',
+      value: new Date(productData.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
+    },
+    { icon: CheckCircle, label: 'Status', value: <Badge variant="positive">Active</Badge> },
+  ];
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] sm:max-w-[600px] max-h-[90vh] sm:max-h-[80vh] overflow-y-auto">
+      <DialogContent style={{ width: 'min(95vw, 600px)', maxHeight: '80vh', overflowY: 'auto' }}>
         <DialogHeader>
-          <DialogTitle className="flex items-center space-x-2">
-            <Package className="h-5 w-5" />
-            <span>Product Details</span>
-          </DialogTitle>
+          <Stack direction="horizontal" gap={2} align="center">
+            <Package size={20} />
+            <DialogTitle>Product Details</DialogTitle>
+          </Stack>
           <DialogDescription>
             Comprehensive information about {productData.name}
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6">
-          {/* Basic Information */}
+        <Stack gap={5}>
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Basic Information</CardTitle>
+              <CardTitle>Basic Information</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent>
               {isLoading ? (
-                <div className="flex items-center justify-center py-8">
+                <Stack align="center" justify="center" style={{ minHeight: '8rem' }}>
                   <LoadingSpinner size="md" />
-                </div>
+                </Stack>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <div className="flex items-center space-x-2 text-sm text-gray-600">
-                      <Package className="h-4 w-4" />
-                      <span>Product Name</span>
-                    </div>
-                    <p className="font-medium">{productData.name}</p>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <div className="flex items-center space-x-2 text-sm text-gray-600">
-                      <Building2 className="h-4 w-4" />
-                      <span>Verification Types</span>
-                    </div>
-                    <p className="text-sm text-gray-600">
-                      Types vary per client-product mapping
-                    </p>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <div className="flex items-center space-x-2 text-sm text-gray-600">
-                      <Calendar className="h-4 w-4" />
-                      <span>Created Date</span>
-                    </div>
-                    <p className="text-sm">
-                      {new Date(productData.createdAt).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric',
-                      })}
-                    </p>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <div className="flex items-center space-x-2 text-sm text-gray-600">
-                      <CheckCircle className="h-4 w-4" />
-                      <span>Status</span>
-                    </div>
-                    <Badge variant="default">Active</Badge>
-                  </div>
-                </div>
+                <Grid min={220}>
+                  {details.map((item) => (
+                    <Card key={item.label} tone="muted" staticCard>
+                      <Stack gap={2}>
+                        <Stack direction="horizontal" gap={2} align="center">
+                          <item.icon size={16} style={{ color: 'var(--ui-text-soft)' }} />
+                          <Text variant="label" tone="muted">{item.label}</Text>
+                        </Stack>
+                        {typeof item.value === 'string' ? (
+                          <Text variant="body">{item.value}</Text>
+                        ) : (
+                          item.value
+                        )}
+                      </Stack>
+                    </Card>
+                  ))}
+                </Grid>
               )}
             </CardContent>
           </Card>
 
-          {/* Verification Types */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg flex items-center space-x-2">
-                <CheckCircle className="h-5 w-5" />
-                <span>Verification Types</span>
+              <Stack direction="horizontal" gap={2} align="center">
+                <CheckCircle size={20} />
+                <CardTitle>Verification Types</CardTitle>
                 <Badge variant="secondary">{types.length}</Badge>
-              </CardTitle>
+              </Stack>
               <CardDescription>
                 Verification types available for this product
               </CardDescription>
             </CardHeader>
             <CardContent>
               {types.length === 0 ? (
-                <div className="text-center py-8 text-gray-600">
-                  <CheckCircle className="mx-auto h-12 w-12 mb-4 opacity-50" />
-                  <p>No verification types found for this product</p>
-                </div>
+                <Stack gap={3} align="center" style={{ paddingBlock: '2rem', textAlign: 'center' }}>
+                  <CheckCircle size={48} style={{ color: 'var(--ui-text-soft)', opacity: 0.5 }} />
+                  <Text tone="muted">No verification types found for this product</Text>
+                </Stack>
               ) : (
-                <div className="grid gap-2">
+                <Stack gap={2}>
                   {types.map((type) => (
-                    <div key={type.id} className="flex items-center justify-between p-3 rounded-lg border">
-                      <div className="space-y-1">
-                        <p className="font-medium">{type.name}</p>
-                        <p className="text-sm text-gray-600">
+                    <Card key={type.id} tone="muted" staticCard>
+                      <Stack direction="horizontal" justify="space-between" align="center" gap={3} wrap="wrap">
+                        <Stack gap={1}>
+                          <Text variant="label">{type.name}</Text>
+                          <Text variant="body-sm" tone="muted">
                           Created {new Date(type.createdAt).toLocaleDateString()}
-                        </p>
-                      </div>
-                      <Badge variant="outline">Active</Badge>
-                    </div>
+                          </Text>
+                        </Stack>
+                        <Badge variant="positive">Active</Badge>
+                      </Stack>
+                    </Card>
                   ))}
-                </div>
+                </Stack>
               )}
             </CardContent>
           </Card>
-        </div>
+        </Stack>
       </DialogContent>
     </Dialog>
   );

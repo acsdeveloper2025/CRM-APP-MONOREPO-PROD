@@ -3,7 +3,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useCRUDMutation } from '@/hooks/useStandardizedMutation';
 import { useStandardizedQuery } from '@/hooks/useStandardizedQuery';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/ui/components/Button';
 import {
   Dialog,
   DialogContent,
@@ -11,7 +11,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
+} from '@/ui/components/dialog';
 import {
   Form,
   FormControl,
@@ -20,12 +20,14 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Checkbox } from '@/components/ui/checkbox';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+} from '@/ui/components/form';
+import { Input } from '@/ui/components/input';
+import { Checkbox } from '@/ui/components/checkbox';
+import { ScrollArea } from '@/ui/components/scroll-area';
+import { Badge } from '@/ui/components/Badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/components/Tabs';
+import { Stack } from '@/ui/primitives/Stack';
+import { Text } from '@/ui/primitives/Text';
 import { clientsService } from '@/services/clients';
 import { productsService } from '@/services/products';
 import { verificationTypesService } from '@/services/verificationTypes';
@@ -117,10 +119,17 @@ export function CreateClientDialog({ open, onOpenChange }: CreateClientDialogPro
     const formattedCode = value.toUpperCase().replace(/\s+/g, '_');
     form.setValue('code', formattedCode);
   };
+  const selectionAreaStyle = {
+    height: '12rem',
+    width: '100%',
+    border: '1px solid var(--ui-border)',
+    borderRadius: 'var(--ui-radius-md)',
+    padding: '0.75rem',
+  } as const;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] sm:max-w-[600px] max-h-[90vh] sm:max-h-[80vh] overflow-y-auto">
+      <DialogContent style={{ width: 'min(95vw, 600px)', maxHeight: '80vh', overflowY: 'auto' }}>
         <DialogHeader>
           <DialogTitle>Create New Client</DialogTitle>
           <DialogDescription>
@@ -129,16 +138,18 @@ export function CreateClientDialog({ open, onOpenChange }: CreateClientDialogPro
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <Tabs defaultValue="basic" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 gap-1">
-                <TabsTrigger value="basic" className="text-xs sm:text-sm">Basic Info</TabsTrigger>
-                <TabsTrigger value="products" className="text-xs sm:text-sm">Products</TabsTrigger>
-                <TabsTrigger value="verification-types" className="text-xs sm:text-sm">Verification</TabsTrigger>
-                <TabsTrigger value="document-types" className="text-xs sm:text-sm">Documents</TabsTrigger>
+          <form onSubmit={form.handleSubmit(onSubmit)}>
+            <Stack gap={4}>
+            <Tabs defaultValue="basic" style={{ width: '100%' }}>
+              <TabsList style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '0.25rem' }}>
+                <TabsTrigger value="basic">Basic Info</TabsTrigger>
+                <TabsTrigger value="products">Products</TabsTrigger>
+                <TabsTrigger value="verification-types">Verification</TabsTrigger>
+                <TabsTrigger value="document-types">Documents</TabsTrigger>
               </TabsList>
 
-              <TabsContent value="basic" className="space-y-4">
+              <TabsContent value="basic">
+                <Stack gap={4}>
                 <FormField
                   control={form.control}
                   name="name"
@@ -182,7 +193,7 @@ export function CreateClientDialog({ open, onOpenChange }: CreateClientDialogPro
                           placeholder="Enter client code"
                           {...field}
                           onChange={(e) => handleCodeChange(e.target.value)}
-                          className="font-mono"
+                          style={{ fontFamily: 'ui-monospace, SFMono-Regular, monospace' }}
                         />
                       </FormControl>
                       <FormDescription>
@@ -192,9 +203,10 @@ export function CreateClientDialog({ open, onOpenChange }: CreateClientDialogPro
                     </FormItem>
                   )}
                 />
+                </Stack>
               </TabsContent>
 
-              <TabsContent value="products" className="space-y-4">
+              <TabsContent value="products">
                 <FormField
                   control={form.control}
                   name="productIds"
@@ -204,11 +216,11 @@ export function CreateClientDialog({ open, onOpenChange }: CreateClientDialogPro
                       <FormDescription>
                         Select products to assign to this client
                       </FormDescription>
-                      <ScrollArea className="h-48 w-full border rounded-md p-3">
+                      <ScrollArea style={selectionAreaStyle}>
                     {productsData?.data?.length ? (
-                      <div className="space-y-2">
+                      <Stack gap={2}>
                         {productsData.data.map((product) => (
-                          <div key={product.id} className="flex items-center space-x-2">
+                          <Stack key={product.id} direction="horizontal" gap={2} align="center">
                             <Checkbox
                               id={`product-${product.id}`}
                               checked={field.value?.includes(String(product.id)) || false}
@@ -224,20 +236,20 @@ export function CreateClientDialog({ open, onOpenChange }: CreateClientDialogPro
                             />
                             <label
                               htmlFor={`product-${product.id}`}
-                              className="text-sm font-medium leading-none text-gray-900 peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                              style={{ cursor: 'pointer', fontSize: '0.875rem', fontWeight: 600 }}
                             >
                               {product.name}
-                              <Badge variant="outline" className="ml-2 text-xs">
+                              <Badge variant="outline" style={{ marginInlineStart: '0.5rem' }}>
                                 {product.code}
                               </Badge>
                             </label>
-                          </div>
+                          </Stack>
                         ))}
-                      </div>
+                      </Stack>
                     ) : (
-                      <div className="text-sm text-gray-600">
+                      <Text variant="body-sm" tone="muted">
                         No products available. Create products first.
-                      </div>
+                      </Text>
                     )}
                   </ScrollArea>
                   <FormMessage />
@@ -246,7 +258,7 @@ export function CreateClientDialog({ open, onOpenChange }: CreateClientDialogPro
             />
               </TabsContent>
 
-              <TabsContent value="verification-types" className="space-y-4">
+              <TabsContent value="verification-types">
                 <FormField
                   control={form.control}
                   name="verificationTypeIds"
@@ -256,11 +268,11 @@ export function CreateClientDialog({ open, onOpenChange }: CreateClientDialogPro
                       <FormDescription>
                         Select verification types to assign to this client
                       </FormDescription>
-                      <ScrollArea className="h-48 w-full border rounded-md p-3">
+                      <ScrollArea style={selectionAreaStyle}>
                     {verificationTypesData?.data?.length ? (
-                      <div className="space-y-2">
+                      <Stack gap={2}>
                         {verificationTypesData.data.map((verificationType) => (
-                          <div key={verificationType.id} className="flex items-center space-x-2">
+                          <Stack key={verificationType.id} direction="horizontal" gap={2} align="center">
                             <Checkbox
                               id={`vtype-${verificationType.id}`}
                               checked={field.value?.includes(verificationType.id) || false}
@@ -275,22 +287,22 @@ export function CreateClientDialog({ open, onOpenChange }: CreateClientDialogPro
                             />
                             <label
                               htmlFor={`vtype-${verificationType.id}`}
-                              className="text-sm font-medium leading-none text-gray-900 peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                              style={{ cursor: 'pointer', fontSize: '0.875rem', fontWeight: 600 }}
                             >
                               {verificationType.name}
                               {verificationType.code && (
-                                <Badge variant="outline" className="ml-2 text-xs">
+                                <Badge variant="outline" style={{ marginInlineStart: '0.5rem' }}>
                                   {verificationType.code}
                                 </Badge>
                               )}
                             </label>
-                          </div>
+                          </Stack>
                         ))}
-                      </div>
+                      </Stack>
                     ) : (
-                      <div className="text-sm text-gray-600">
+                      <Text variant="body-sm" tone="muted">
                         No verification types available. Create verification types first.
-                      </div>
+                      </Text>
                     )}
                   </ScrollArea>
                   <FormMessage />
@@ -299,7 +311,7 @@ export function CreateClientDialog({ open, onOpenChange }: CreateClientDialogPro
             />
               </TabsContent>
 
-              <TabsContent value="document-types" className="space-y-4">
+              <TabsContent value="document-types">
                 <FormField
                   control={form.control}
                   name="documentTypeIds"
@@ -309,11 +321,11 @@ export function CreateClientDialog({ open, onOpenChange }: CreateClientDialogPro
                       <FormDescription>
                         Select document types to assign to this client
                       </FormDescription>
-                      <ScrollArea className="h-48 w-full border rounded-md p-3">
+                      <ScrollArea style={selectionAreaStyle}>
                     {documentTypesData?.data?.length ? (
-                      <div className="space-y-2">
+                      <Stack gap={2}>
                         {documentTypesData.data.map((documentType) => (
-                          <div key={documentType.id} className="flex items-center space-x-2">
+                          <Stack key={documentType.id} direction="horizontal" gap={2} align="center">
                             <Checkbox
                               id={`dtype-${documentType.id}`}
                               checked={field.value?.includes(documentType.id) || false}
@@ -328,20 +340,20 @@ export function CreateClientDialog({ open, onOpenChange }: CreateClientDialogPro
                             />
                             <label
                               htmlFor={`dtype-${documentType.id}`}
-                              className="text-sm font-medium leading-none text-gray-900 peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                              style={{ cursor: 'pointer', fontSize: '0.875rem', fontWeight: 600 }}
                             >
                               {documentType.name}
-                              <Badge variant="outline" className="ml-2 text-xs">
+                              <Badge variant="outline" style={{ marginInlineStart: '0.5rem' }}>
                                 {documentType.code}
                               </Badge>
                             </label>
-                          </div>
+                          </Stack>
                         ))}
-                      </div>
+                      </Stack>
                     ) : (
-                      <div className="text-sm text-gray-600">
+                      <Text variant="body-sm" tone="muted">
                         No document types available. Create document types first.
-                      </div>
+                      </Text>
                     )}
                   </ScrollArea>
                   <FormMessage />
@@ -351,24 +363,25 @@ export function CreateClientDialog({ open, onOpenChange }: CreateClientDialogPro
               </TabsContent>
             </Tabs>
 
-            <DialogFooter className="flex-col sm:flex-row gap-2">
+            <DialogFooter style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
                 disabled={createMutation.isPending}
-                className="w-full sm:w-auto"
+                fullWidth
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
                 disabled={createMutation.isPending}
-                className="w-full sm:w-auto"
+                fullWidth
               >
                 {createMutation.isPending ? 'Creating...' : 'Create Client'}
               </Button>
             </DialogFooter>
+            </Stack>
           </form>
         </Form>
       </DialogContent>

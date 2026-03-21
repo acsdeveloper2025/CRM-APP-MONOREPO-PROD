@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useCRUDMutation } from '@/hooks/useStandardizedMutation';
 import { useStandardizedQuery } from '@/hooks/useStandardizedQuery';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/ui/components/Button';
 import {
   Dialog,
   DialogContent,
@@ -12,7 +12,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
+} from '@/ui/components/dialog';
 import {
   Form,
   FormControl,
@@ -20,15 +20,16 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form';
+} from '@/ui/components/form';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
+} from '@/ui/components/select';
+import { Input } from '@/ui/components/input';
+import { Stack } from '@/ui/primitives/Stack';
 import { locationsService } from '@/services/locations';
 import { City } from '@/types/location';
 
@@ -101,7 +102,7 @@ export function EditCityDialog({ city, open, onOpenChange }: EditCityDialogProps
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] sm:max-w-[425px]">
+      <DialogContent style={{ width: 'min(95vw, 425px)' }}>
         <DialogHeader>
           <DialogTitle>Edit City</DialogTitle>
           <DialogDescription>
@@ -110,7 +111,8 @@ export function EditCityDialog({ city, open, onOpenChange }: EditCityDialogProps
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit)}>
+            <Stack gap={4}>
             <FormField
               control={form.control}
               name="name"
@@ -175,20 +177,21 @@ export function EditCityDialog({ city, open, onOpenChange }: EditCityDialogProps
               )}
             />
 
-            <DialogFooter className="flex-col sm:flex-row gap-2">
+            <DialogFooter style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
-                className="w-full sm:w-auto"
+                fullWidth
                 disabled={updateMutation.isPending}
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={updateMutation.isPending} className="w-full sm:w-auto">
+              <Button type="submit" disabled={updateMutation.isPending} fullWidth>
                 {updateMutation.isPending ? 'Updating...' : 'Update City'}
               </Button>
             </DialogFooter>
+            </Stack>
           </form>
         </Form>
       </DialogContent>

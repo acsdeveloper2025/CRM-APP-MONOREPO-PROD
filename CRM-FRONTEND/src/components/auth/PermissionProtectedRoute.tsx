@@ -2,7 +2,7 @@ import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { usePermissions } from '@/hooks/usePermissions';
 import { usePermissionContext } from '@/contexts/PermissionContext';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertDescription } from '@/ui/components/alert';
 import { AlertTriangle } from 'lucide-react';
 
 interface PermissionProtectedRouteProps {

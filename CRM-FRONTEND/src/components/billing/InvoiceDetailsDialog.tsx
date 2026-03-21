@@ -5,11 +5,11 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
+} from '@/ui/components/dialog';
+import { Button } from '@/ui/components/button';
+import { Badge } from '@/ui/components/badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
+import { Separator } from '@/ui/components/separator';
 import { Invoice } from '@/types/billing';
 import { billingService } from '@/services/billing';
 import { toast } from 'sonner';
@@ -65,21 +65,21 @@ export function InvoiceDetailsDialog({ invoice, open, onOpenChange }: InvoiceDet
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] sm:max-w-[700px] max-h-[90vh] sm:max-h-[80vh] overflow-y-auto">
+      <DialogContent {...{ className: "max-w-[95vw] sm:max-w-[700px] max-h-[90vh] sm:max-h-[80vh] overflow-y-auto" }}>
         <DialogHeader>
-          <DialogTitle className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <Receipt className="h-5 w-5" />
+          <DialogTitle {...{ className: "flex items-center justify-between" }}>
+            <div {...{ className: "flex items-center space-x-2" }}>
+              <Receipt {...{ className: "h-5 w-5" }} />
               <span>Invoice {invoice.invoiceNumber}</span>
             </div>
-            <div className="flex items-center space-x-2">
+            <div {...{ className: "flex items-center space-x-2" }}>
               {getStatusBadge(invoice.status)}
               <Button variant="outline" size="sm" onClick={handleDownloadPDF}>
-                <Download className="h-4 w-4 mr-2" />
+                <Download {...{ className: "h-4 w-4 mr-2" }} />
                 Download PDF
               </Button>
               <Button variant="outline" size="sm" onClick={handleDownloadExcel}>
-                <FileSpreadsheet className="h-4 w-4 mr-2" />
+                <FileSpreadsheet {...{ className: "h-4 w-4 mr-2" }} />
                 Download Excel
               </Button>
             </div>
@@ -89,52 +89,52 @@ export function InvoiceDetailsDialog({ invoice, open, onOpenChange }: InvoiceDet
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6">
+        <div {...{ className: "space-y-6" }}>
           {/* Invoice Header */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <div {...{ className: "grid grid-cols-1 sm:grid-cols-2 gap-6" }}>
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg flex items-center space-x-2">
-                  <Building className="h-4 w-4" />
+                <CardTitle {...{ className: "text-lg flex items-center space-x-2" }}>
+                  <Building {...{ className: "h-4 w-4" }} />
                   <span>Client Information</span>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-2">
+              <CardContent {...{ className: "space-y-2" }}>
                 <div>
-                  <div className="font-semibold">{invoice.client.name}</div>
-                  <div className="text-sm text-gray-600">{invoice.client.code}</div>
+                  <div {...{ className: "font-semibold" }}>{invoice.client.name}</div>
+                  <div {...{ className: "text-sm text-gray-600" }}>{invoice.client.code}</div>
                 </div>
                 {invoice.client.email && (
-                  <div className="text-sm">{invoice.client.email}</div>
+                  <div {...{ className: "text-sm" }}>{invoice.client.email}</div>
                 )}
                 {invoice.client.phone && (
-                  <div className="text-sm">{invoice.client.phone}</div>
+                  <div {...{ className: "text-sm" }}>{invoice.client.phone}</div>
                 )}
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg flex items-center space-x-2">
-                  <Calendar className="h-4 w-4" />
+                <CardTitle {...{ className: "text-lg flex items-center space-x-2" }}>
+                  <Calendar {...{ className: "h-4 w-4" }} />
                   <span>Invoice Details</span>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">Issue Date:</span>
-                  <span className="text-sm">{new Date(invoice.issueDate).toLocaleDateString()}</span>
+              <CardContent {...{ className: "space-y-2" }}>
+                <div {...{ className: "flex justify-between" }}>
+                  <span {...{ className: "text-sm text-gray-600" }}>Issue Date:</span>
+                  <span {...{ className: "text-sm" }}>{new Date(invoice.issueDate).toLocaleDateString()}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">Due Date:</span>
-                  <span className={`text-sm ${
+                <div {...{ className: "flex justify-between" }}>
+                  <span {...{ className: "text-sm text-gray-600" }}>Due Date:</span>
+                  <span {...{ className: `text-sm ${
                     invoice.status === 'OVERDUE' ? 'text-red-600 font-medium' : ''
-                  }`}>
+                  }` }}>
                     {new Date(invoice.dueDate).toLocaleDateString()}
                   </span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">Status:</span>
+                <div {...{ className: "flex justify-between" }}>
+                  <span {...{ className: "text-sm text-gray-600" }}>Status:</span>
                   {getStatusBadge(invoice.status)}
                 </div>
               </CardContent>
@@ -152,19 +152,19 @@ export function InvoiceDetailsDialog({ invoice, open, onOpenChange }: InvoiceDet
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
+              <div {...{ className: "space-y-4" }}>
                 {invoice.items.map((item, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                    <div className="flex-1">
-                      <div className="font-medium">{item.description}</div>
+                  <div key={index} {...{ className: "flex items-center justify-between p-3 border rounded-lg" }}>
+                    <div {...{ className: "flex-1" }}>
+                      <div {...{ className: "font-medium" }}>{item.description}</div>
                       {item.case && (
-                        <div className="text-sm text-gray-600">
+                        <div {...{ className: "text-sm text-gray-600" }}>
                           Case: {item.case.title} - {item.case.customerName}
                         </div>
                       )}
                     </div>
-                    <div className="text-right">
-                      <div className="font-medium">
+                    <div {...{ className: "text-right" }}>
+                      <div {...{ className: "font-medium" }}>
                         {item.quantity} × ₹{item.unitPrice.toLocaleString()} = ₹{item.totalPrice.toLocaleString()}
                       </div>
                     </div>
@@ -172,20 +172,20 @@ export function InvoiceDetailsDialog({ invoice, open, onOpenChange }: InvoiceDet
                 ))}
               </div>
 
-              <Separator className="my-4" />
+              <Separator {...{ className: "my-4" }} />
 
               {/* Totals */}
-              <div className="space-y-2">
-                <div className="flex justify-between">
+              <div {...{ className: "space-y-2" }}>
+                <div {...{ className: "flex justify-between" }}>
                   <span>Subtotal:</span>
                   <span>₹{invoice.subtotalAmount.toLocaleString()}</span>
                 </div>
-                <div className="flex justify-between">
+                <div {...{ className: "flex justify-between" }}>
                   <span>Tax ({invoice.taxPercentage}%):</span>
                   <span>₹{invoice.taxAmount.toLocaleString()}</span>
                 </div>
                 <Separator />
-                <div className="flex justify-between text-lg font-semibold">
+                <div {...{ className: "flex justify-between text-lg font-semibold" }}>
                   <span>Total:</span>
                   <span>₹{invoice.totalAmount.toLocaleString()}</span>
                 </div>
@@ -200,7 +200,7 @@ export function InvoiceDetailsDialog({ invoice, open, onOpenChange }: InvoiceDet
                 <CardTitle>Notes</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm">{invoice.notes}</p>
+                <p {...{ className: "text-sm" }}>{invoice.notes}</p>
               </CardContent>
             </Card>
           )}

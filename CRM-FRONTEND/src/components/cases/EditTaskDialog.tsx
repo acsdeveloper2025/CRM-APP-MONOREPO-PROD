@@ -9,7 +9,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
+} from '@/ui/components/Dialog';
 import {
   Form,
   FormControl,
@@ -17,17 +17,17 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
+} from '@/ui/components/Form';
+import { Input } from '@/ui/components/Input';
+import { Button } from '@/ui/components/Button';
+import { Textarea } from '@/ui/components/Textarea';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from '@/ui/components/Select';
 import { VerificationTask, TaskPriority } from '@/types/verificationTask';
 import { User } from '@/types/user';
 import { useUpdateVerificationTask } from '@/hooks/useVerificationTasks';
@@ -182,7 +182,7 @@ export const EditTaskDialog: React.FC<EditTaskDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent {...{ className: "sm:max-w-[600px]" }}>
         <DialogHeader>
           <DialogTitle>Edit Verification Task</DialogTitle>
           <DialogDescription>
@@ -191,7 +191,7 @@ export const EditTaskDialog: React.FC<EditTaskDialogProps> = ({
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(handleSubmit)} {...{ className: "space-y-4" }}>
             <FormField
               control={form.control}
               name="taskTitle"
@@ -206,7 +206,7 @@ export const EditTaskDialog: React.FC<EditTaskDialogProps> = ({
               )}
             />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div {...{ className: "grid grid-cols-1 md:grid-cols-2 gap-4" }}>
               <FormField
                 control={form.control}
                 name="priority"
@@ -255,7 +255,7 @@ export const EditTaskDialog: React.FC<EditTaskDialogProps> = ({
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div {...{ className: "grid grid-cols-1 md:grid-cols-2 gap-4" }}>
               <FormField
                 control={form.control}
                 name="rateTypeId"

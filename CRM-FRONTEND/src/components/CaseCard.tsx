@@ -1,6 +1,6 @@
 import React from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/ui/components/card';
+import { Badge } from '@/ui/components/badge';
 import { 
   getStatusBadgeStyle, 
   getPriorityBadgeStyle, 

@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useStandardizedMutation } from '@/hooks/useStandardizedMutation';
 import { MoreHorizontal, Edit, Trash2, Eye, Building2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/ui/components/Button';
+import { Badge } from '@/ui/components/Badge';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,7 +10,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from '@/ui/components/dropdown-menu';
 import {
   Table,
   TableBody,
@@ -17,9 +18,8 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { LoadingState } from '@/components/ui/loading';
+} from '@/ui/components/table';
+import { LoadingState } from '@/ui/components/loading';
 import { baseBadgeStyle, formatBadgeLabel } from '@/lib/badgeStyles';
 import {
   AlertDialog,
@@ -30,7 +30,10 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+} from '@/ui/components/alert-dialog';
+import { Box } from '@/ui/primitives/Box';
+import { Stack } from '@/ui/primitives/Stack';
+import { Text } from '@/ui/primitives/Text';
 import { clientsService } from '@/services/clients';
 import { Client } from '@/types/client';
 import { EditClientDialog } from './EditClientDialog';
@@ -90,22 +93,19 @@ export function ClientsTable({ data, isLoading }: ClientsTableProps) {
 
   if (!data || data.length === 0) {
     return (
-      <div className="text-center py-12">
-        <Building2 className="mx-auto h-12 w-12 text-gray-600" />
-        <h3 className="mt-4 text-lg font-semibold">No clients found</h3>
-        <p className="text-gray-600">
+      <Stack gap={3} align="center" style={{ paddingBlock: '3rem', textAlign: 'center' }}>
+        <Building2 size={48} style={{ color: 'var(--ui-text-soft)', opacity: 0.75 }} />
+        <Text as="h3" variant="title">No clients found</Text>
+        <Text tone="muted">
           Get started by creating your first client.
-        </p>
-
-      </div>
+        </Text>
+      </Stack>
     );
   }
 
   return (
     <>
-
-
-      <div className="rounded-md border overflow-auto">
+      <Box style={{ overflowX: 'auto', border: '1px solid var(--ui-border)', borderRadius: 'var(--ui-radius-lg)' }}>
         <Table>
           <TableHeader>
             <TableRow>
@@ -116,113 +116,128 @@ export function ClientsTable({ data, isLoading }: ClientsTableProps) {
               <TableHead>Document Types</TableHead>
               <TableHead>Created Date</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead style={{ textAlign: 'right' }}>Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {data.map((client) => (
               <TableRow key={client.id}>
-                <TableCell className="font-medium">
-                  <div className="flex items-center space-x-2">
-                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                      <Building2 className="h-4 w-4 text-primary" />
-                    </div>
-                    <span>{client.name}</span>
-                  </div>
+                <TableCell style={{ fontWeight: 600 }}>
+                  <Stack direction="horizontal" gap={2} align="center">
+                    <Box
+                      style={{
+                        width: '2rem',
+                        height: '2rem',
+                        borderRadius: '999px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        background: 'color-mix(in srgb, var(--ui-accent) 12%, transparent)',
+                        color: 'var(--ui-accent)',
+                      }}
+                    >
+                      <Building2 size={16} />
+                    </Box>
+                    <Text as="span" variant="label">{client.name}</Text>
+                  </Stack>
                 </TableCell>
                 <TableCell>
-                  <Badge className={baseBadgeStyle}>{formatBadgeLabel(client.code)}</Badge>
+                  <Badge
+                    variant="outline"
+                    style={{ fontFamily: 'ui-monospace, SFMono-Regular, monospace' }}
+                  >
+                    {formatBadgeLabel(client.code)}
+                  </Badge>
                 </TableCell>
                 <TableCell>
-                  <div className="flex flex-wrap gap-1">
+                  <Stack direction="horizontal" gap={1} wrap="wrap">
                     {client.products && client.products.length > 0 ? (
                       <>
                         {client.products.slice(0, 2).map((p) => (
-                          <Badge key={p.id} variant="outline" className="text-xs">
+                          <Badge key={p.id} variant="outline">
                             {p.code}
                           </Badge>
                         ))}
                         {client.products.length > 2 && (
-                          <Badge variant="secondary" className="text-xs">
+                          <Badge variant="secondary">
                             +{client.products.length - 2}
                           </Badge>
                         )}
                       </>
                     ) : (
-                      <span className="text-sm text-gray-400">-</span>
+                      <Text as="span" variant="body-sm" tone="soft">-</Text>
                     )}
-                  </div>
+                  </Stack>
                 </TableCell>
                 <TableCell>
-                  <div className="flex flex-wrap gap-1">
+                  <Stack direction="horizontal" gap={1} wrap="wrap">
                     {client.verificationTypes && client.verificationTypes.length > 0 ? (
                       <>
                         {client.verificationTypes.slice(0, 2).map((vt) => (
-                          <Badge key={vt.id} variant="outline" className="text-xs">
+                          <Badge key={vt.id} variant="outline">
                             {vt.code}
                           </Badge>
                         ))}
                         {client.verificationTypes.length > 2 && (
-                          <Badge variant="secondary" className="text-xs">
+                          <Badge variant="secondary">
                             +{client.verificationTypes.length - 2}
                           </Badge>
                         )}
                       </>
                     ) : (
-                      <span className="text-sm text-gray-400">-</span>
+                      <Text as="span" variant="body-sm" tone="soft">-</Text>
                     )}
-                  </div>
+                  </Stack>
                 </TableCell>
                 <TableCell>
-                  <div className="flex flex-wrap gap-1">
+                  <Stack direction="horizontal" gap={1} wrap="wrap">
                     {client.documentTypes && client.documentTypes.length > 0 ? (
                       <>
                         {client.documentTypes.slice(0, 2).map((dt) => (
-                          <Badge key={dt.id} variant="outline" className="text-xs">
+                          <Badge key={dt.id} variant="outline">
                             {dt.code}
                           </Badge>
                         ))}
                         {client.documentTypes.length > 2 && (
-                          <Badge variant="secondary" className="text-xs">
+                          <Badge variant="secondary">
                             +{client.documentTypes.length - 2}
                           </Badge>
                         )}
                       </>
                     ) : (
-                      <span className="text-sm text-gray-400">-</span>
+                      <Text as="span" variant="body-sm" tone="soft">-</Text>
                     )}
-                  </div>
+                  </Stack>
                 </TableCell>
                 <TableCell>
                   {new Date(client.createdAt).toLocaleDateString()}
                 </TableCell>
                 <TableCell>
-                  <Badge className={baseBadgeStyle}>ACTIVE</Badge>
+                  <Badge variant="positive">Active</Badge>
                 </TableCell>
-                <TableCell className="text-right">
+                <TableCell style={{ textAlign: 'right' }}>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" className="h-8 w-8 p-0">
-                        <span className="sr-only">Open menu</span>
-                        <MoreHorizontal className="h-4 w-4" />
+                      <Button variant="ghost" aria-label="Open actions menu">
+                        <MoreHorizontal size={16} />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
                       <DropdownMenuItem onClick={() => handleViewDetails(client)}>
-                        <Eye className="mr-2 h-4 w-4" />
+                        <Eye size={16} style={{ marginRight: '0.5rem' }} />
                         View Details
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => handleEdit(client)}>
-                        <Edit className="mr-2 h-4 w-4" />
+                        <Edit size={16} style={{ marginRight: '0.5rem' }} />
                         Edit Client
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
                         onClick={() => handleDelete(client)}
-                        className="text-destructive"
+                        style={{ color: 'var(--ui-danger)' }}
                       >
-                        <Trash2 className="mr-2 h-4 w-4" />
+                        <Trash2 size={16} style={{ marginRight: '0.5rem' }} />
                         Delete Client
                       </DropdownMenuItem>
                     </DropdownMenuContent>
@@ -232,7 +247,7 @@ export function ClientsTable({ data, isLoading }: ClientsTableProps) {
             ))}
           </TableBody>
         </Table>
-      </div>
+      </Box>
 
       {/* Edit Dialog */}
       {selectedClient && (
@@ -266,7 +281,7 @@ export function ClientsTable({ data, isLoading }: ClientsTableProps) {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              style={{ background: 'var(--ui-danger)', color: 'white' }}
               disabled={deleteMutation.isPending}
             >
               {deleteMutation.isPending ? 'Deleting...' : 'Delete'}

@@ -1,14 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { 
-  FileText, 
-  Download, 
-  RefreshCw, 
-  Clock, 
-  CheckCircle, 
-  AlertCircle,
-  Loader2
-} from 'lucide-react';
+import { FileText, Download, RefreshCw, Clock, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { apiService } from '@/services/api';
+import { Card, CardContent } from '@/ui/components/card';
+import { Button } from '@/ui/components/button';
+import { Badge } from '@/ui/components/badge';
+import { Box } from '@/ui/primitives/Box';
+import { Stack } from '@/ui/primitives/Stack';
+import { Text } from '@/ui/primitives/Text';
 
 interface TemplateReport {
   id: string;
@@ -44,11 +42,9 @@ export const TemplateReportCard: React.FC<TemplateReportCardProps> = ({
     try {
       setLoading(true);
       setError(null);
-
-      const response = await apiService.getRaw<{ success: boolean; report: TemplateReport }> (
+      const response = await apiService.getRaw<{ success: boolean; report: TemplateReport }>(
         `/template-reports/cases/${caseId}/submissions/${submissionId}`
       );
-
       if (response.status === 200 && response.data.success) {
         setReport(response.data.report);
       } else if (response.status === 404) {
@@ -57,11 +53,10 @@ export const TemplateReportCard: React.FC<TemplateReportCardProps> = ({
         throw new Error(`Failed to load template report: ${response.status}`);
       }
     } catch (err: unknown) {
-      const error = err as { response?: { status: number } };
-      if (error.response?.status === 404) {
+      const errorObj = err as { response?: { status: number } };
+      if (errorObj.response?.status === 404) {
         setReport(null);
       } else {
-        console.error('Error loading template report:', err);
         setError('Failed to load existing template report. You can still generate a new one.');
       }
     } finally {
@@ -69,7 +64,6 @@ export const TemplateReportCard: React.FC<TemplateReportCardProps> = ({
     }
   }, [caseId, submissionId]);
 
-  // Load existing report on component mount
   useEffect(() => {
     loadExistingReport();
   }, [loadExistingReport]);
@@ -78,7 +72,6 @@ export const TemplateReportCard: React.FC<TemplateReportCardProps> = ({
     try {
       setGenerating(true);
       setError(null);
-
       const response = await apiService.post<{
         success: boolean;
         reportId: string;
@@ -92,15 +85,14 @@ export const TemplateReportCard: React.FC<TemplateReportCardProps> = ({
           id: response.data.reportId,
           content: response.data.report,
           metadata: response.data.metadata,
-          createdAt: new Date().toISOString()
+          createdAt: new Date().toISOString(),
         });
       } else {
         throw new Error(response.message || 'Failed to generate report');
       }
     } catch (err: unknown) {
-      const error = err as Error;
-      console.error('Error generating template report:', error);
-      setError(error.message || 'Failed to generate report');
+      const errorObj = err as Error;
+      setError(errorObj.message || 'Failed to generate report');
     } finally {
       setGenerating(false);
     }
@@ -108,15 +100,7 @@ export const TemplateReportCard: React.FC<TemplateReportCardProps> = ({
 
   const downloadReport = () => {
     if (!report) {return;}
-
-    const content = `VERIFICATION REPORT
-Generated: ${new Date(report.createdAt).toLocaleString()}
-Verification Type: ${report.metadata.verificationType}
-Outcome: ${report.metadata.outcome}
-Template Used: ${report.metadata.templateUsed}
-
-${report.content}`;
-
+    const content = `VERIFICATION REPORT\nGenerated: ${new Date(report.createdAt).toLocaleString()}\nVerification Type: ${report.metadata.verificationType}\nOutcome: ${report.metadata.outcome}\nTemplate Used: ${report.metadata.templateUsed}\n\n${report.content}`;
     const blob = new Blob([content], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -128,157 +112,105 @@ ${report.content}`;
     URL.revokeObjectURL(url);
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString('en-US', {
+  const formatDate = (dateString: string) =>
+    new Date(dateString).toLocaleString('en-US', {
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
       hour: '2-digit',
       minute: '2-digit',
-      second: '2-digit'
+      second: '2-digit',
     });
-  };
 
   if (loading) {
     return (
-      <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
-        <div className="flex items-center justify-center py-8">
-          <Loader2 className="h-6 w-6 animate-spin text-green-600" />
-          <span className="ml-2 text-slate-600 dark:text-slate-300">Loading template report...</span>
-        </div>
-      </div>
+      <Card>
+        <CardContent style={{ padding: '1.5rem' }}>
+          <Stack direction="horizontal" gap={2} align="center" justify="center">
+            <Loader2 size={24} style={{ color: 'var(--ui-accent)' }} />
+            <Text tone="muted">Loading template report...</Text>
+          </Stack>
+        </CardContent>
+      </Card>
     );
   }
 
   return (
-    <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center space-x-3">
-          <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
-            <FileText className="h-5 w-5 text-green-600 dark:text-green-400" />
-          </div>
-          <div>
-            <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
-              Template Verification Report
-            </h3>
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              Structured report based on predefined templates
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center space-x-2 text-sm text-slate-500 dark:text-slate-400">
-          <CheckCircle className="h-4 w-4 text-green-500" />
-          <span>Template-Based</span>
-        </div>
-      </div>
+    <Card>
+      <CardContent style={{ padding: '1.5rem' }}>
+        <Stack gap={6}>
+          <Box style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+            <Stack direction="horizontal" gap={3} align="center">
+              <Box style={{ padding: '0.5rem', background: 'color-mix(in srgb, var(--ui-accent) 12%, transparent)', borderRadius: 'var(--ui-radius-lg)' }}>
+                <FileText size={20} style={{ color: 'var(--ui-accent)' }} />
+              </Box>
+              <Stack gap={1}>
+                <Text as="h3" variant="title">Template Verification Report</Text>
+                <Text variant="body-sm" tone="muted">Structured report based on predefined templates</Text>
+              </Stack>
+            </Stack>
+            <Stack direction="horizontal" gap={2} align="center">
+              <CheckCircle size={16} style={{ color: 'var(--ui-success)' }} />
+              <Text variant="body-sm" tone="muted">Template-Based</Text>
+            </Stack>
+          </Box>
 
-      {/* Error State */}
-      {error && (
-        <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-          <div className="flex items-center">
-            <AlertCircle className="h-5 w-5 text-red-500 mr-2" />
-            <span className="text-red-700 dark:text-red-300">{error}</span>
-          </div>
-        </div>
-      )}
+          {error ? (
+            <Box style={{ padding: '1rem', border: '1px solid var(--ui-danger)', borderRadius: 'var(--ui-radius-lg)', background: 'color-mix(in srgb, var(--ui-danger) 8%, transparent)' }}>
+              <Stack direction="horizontal" gap={2} align="center">
+                <AlertCircle size={20} style={{ color: 'var(--ui-danger)' }} />
+                <Text tone="danger">{error}</Text>
+              </Stack>
+            </Box>
+          ) : null}
 
-      {/* Report Content */}
-      {report ? (
-        <div className="space-y-6">
-          {/* Report Content */}
-          <div className="bg-slate-50 dark:bg-slate-900/50 rounded-lg p-4">
-            <h4 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">
-              Report Content
-            </h4>
-            <div className="text-sm text-slate-600 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">
-              {report.content}
-            </div>
-          </div>
+          {report ? (
+            <Stack gap={6}>
+              <Box style={{ background: 'var(--ui-surface-muted)', borderRadius: 'var(--ui-radius-lg)', padding: '1rem' }}>
+                <Stack gap={3}>
+                  <Text as="h4" variant="label">Report Content</Text>
+                  <Text style={{ whiteSpace: 'pre-wrap', lineHeight: 1.7 }}>{report.content}</Text>
+                </Stack>
+              </Box>
 
-          {/* Report Details */}
-          <div className="bg-slate-50 dark:bg-slate-900/50 rounded-lg p-4">
-            <div className="flex items-center mb-3">
-              <Clock className="h-4 w-4 text-slate-500 mr-2" />
-              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                Report Details
-              </span>
-            </div>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <span className="text-slate-500 dark:text-slate-400">Generated:</span>
-                <span className="ml-2 text-slate-700 dark:text-slate-300">
-                  {formatDate(report.createdAt)}
-                </span>
-              </div>
-              <div>
-                <span className="text-slate-500 dark:text-slate-400">Type:</span>
-                <span className="ml-2 text-slate-700 dark:text-slate-300">
-                  {report.metadata.verificationType}
-                </span>
-              </div>
-              <div>
-                <span className="text-slate-500 dark:text-slate-400">Outcome:</span>
-                <span className="ml-2 text-slate-700 dark:text-slate-300">
-                  {report.metadata.outcome}
-                </span>
-              </div>
-              <div>
-                <span className="text-slate-500 dark:text-slate-400">Template:</span>
-                <span className="ml-2 text-slate-700 dark:text-slate-300">
-                  {report.metadata.templateUsed}
-                </span>
-              </div>
-            </div>
-          </div>
+              <Box style={{ background: 'var(--ui-surface-muted)', borderRadius: 'var(--ui-radius-lg)', padding: '1rem' }}>
+                <Stack gap={3}>
+                  <Text as="h4" variant="label">
+                    <Stack direction="horizontal" gap={2} align="center">
+                      <Clock size={16} style={{ color: 'var(--ui-text-muted)' }} />
+                      <span>Report Details</span>
+                    </Stack>
+                  </Text>
+                  <Box style={{ display: 'grid', gap: '1rem', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}>
+                    <Text variant="body-sm" tone="muted"><strong>Generated:</strong> {formatDate(report.createdAt)}</Text>
+                    <Text variant="body-sm" tone="muted"><strong>Type:</strong> {report.metadata.verificationType}</Text>
+                    <Text variant="body-sm" tone="muted"><strong>Outcome:</strong> {report.metadata.outcome}</Text>
+                    <Text variant="body-sm" tone="muted"><strong>Template:</strong> {report.metadata.templateUsed}</Text>
+                  </Box>
+                </Stack>
+              </Box>
 
-          {/* Action Buttons */}
-          <div className="flex space-x-3">
-            <button
-              onClick={generateReport}
-              disabled={generating}
-              className="flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-lg transition-colors"
-            >
-              {generating ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              ) : (
-                <RefreshCw className="h-4 w-4 mr-2" />
-              )}
-              {generating ? 'Regenerating...' : 'Regenerate Report'}
-            </button>
-            <button
-              onClick={downloadReport}
-              className="flex items-center px-4 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-lg transition-colors"
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Download Report
-            </button>
-          </div>
-        </div>
-      ) : (
-        /* No Report State */
-        <div className="text-center py-8">
-          <FileText className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-          <h4 className="text-lg font-medium text-slate-700 dark:text-slate-300 mb-2">
-            No Template Report Generated
-          </h4>
-          <p className="text-slate-500 dark:text-slate-400 mb-6">
-            Generate a structured verification report using predefined templates
-          </p>
-          <button
-            onClick={generateReport}
-            disabled={generating}
-            className="flex items-center px-6 py-3 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white rounded-lg transition-colors mx-auto"
-          >
-            {generating ? (
-              <Loader2 className="h-5 w-5 animate-spin mr-2" />
-            ) : (
-              <FileText className="h-5 w-5 mr-2" />
-            )}
-            {generating ? 'Generating Report...' : 'Generate Template Report'}
-          </button>
-        </div>
-      )}
-    </div>
+              <Stack direction="horizontal" gap={3} wrap="wrap">
+                <Button onClick={generateReport} disabled={generating} icon={generating ? <Loader2 size={16} /> : <RefreshCw size={16} />}>
+                  {generating ? 'Regenerating...' : 'Regenerate Report'}
+                </Button>
+                <Button variant="secondary" onClick={downloadReport} icon={<Download size={16} />}>
+                  Download Report
+                </Button>
+              </Stack>
+            </Stack>
+          ) : (
+            <Stack gap={4} align="center" style={{ textAlign: 'center', paddingBlock: '1.5rem' }}>
+              <FileText size={48} style={{ color: 'var(--ui-text-soft)' }} />
+              <Text as="h4" variant="title">No Template Report Generated</Text>
+              <Text tone="muted">Generate a structured verification report using predefined templates</Text>
+              <Button onClick={generateReport} disabled={generating} icon={generating ? <Loader2 size={20} /> : <FileText size={20} />}>
+                {generating ? 'Generating Report...' : 'Generate Template Report'}
+              </Button>
+            </Stack>
+          )}
+        </Stack>
+      </CardContent>
+    </Card>
   );
 };

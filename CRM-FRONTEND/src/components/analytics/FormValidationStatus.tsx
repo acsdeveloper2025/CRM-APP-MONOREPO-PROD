@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
+import { Badge } from '@/ui/components/badge';
 import { 
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from '@/ui/components/select';
 import { 
   LineChart, 
   Line, 
@@ -117,15 +117,15 @@ export const FormValidationStatus: React.FC = () => {
   // Loading state
   if (isLoading) {
     return (
-      <div className="space-y-4 sm:space-y-6">
-        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+      <div {...{ className: "space-y-4 sm:space-y-6" }}>
+        <div {...{ className: "grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4" }}>
           {Array.from({ length: 4 }).map((_, i) => (
             <Card key={i}>
-              <CardHeader className="pb-2">
-                <div className="h-4 bg-slate-100 dark:bg-slate-800/60 animate-pulse rounded w-24" />
+              <CardHeader {...{ className: "pb-2" }}>
+                <div {...{ className: "h-4 bg-slate-100 dark:bg-slate-800/60 animate-pulse rounded w-24" }} />
               </CardHeader>
               <CardContent>
-                <div className="h-8 bg-slate-100 dark:bg-slate-800/60 animate-pulse rounded w-16" />
+                <div {...{ className: "h-8 bg-slate-100 dark:bg-slate-800/60 animate-pulse rounded w-16" }} />
               </CardContent>
             </Card>
           ))}
@@ -137,12 +137,12 @@ export const FormValidationStatus: React.FC = () => {
   // Error state
   if (error) {
     return (
-      <div className="space-y-4 sm:space-y-6">
+      <div {...{ className: "space-y-4 sm:space-y-6" }}>
         <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <XCircle className="h-12 w-12 text-red-500 mb-4" />
-            <h3 className="text-lg font-semibold mb-2">Failed to Load Validation Data</h3>
-            <p className="text-gray-600 text-center">
+          <CardContent {...{ className: "flex flex-col items-center justify-center py-12" }}>
+            <XCircle {...{ className: "h-12 w-12 text-red-500 mb-4" }} />
+            <h3 {...{ className: "text-lg font-semibold mb-2" }}>Failed to Load Validation Data</h3>
+            <p {...{ className: "text-gray-600 text-center" }}>
               There was an error loading the validation status. Please try again later.
             </p>
           </CardContent>
@@ -155,18 +155,18 @@ export const FormValidationStatus: React.FC = () => {
   const hasData = summary && summary.totalForms > 0;
 
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <div {...{ className: "space-y-4 sm:space-y-6" }}>
       {/* Header with Controls */}
-      <div className="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0 flex-1">
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">Form Validation Status</h2>
-          <p className="mt-1 text-sm sm:text-base text-gray-600">
+      <div {...{ className: "flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between" }}>
+        <div {...{ className: "min-w-0 flex-1" }}>
+          <h2 {...{ className: "text-xl sm:text-2xl font-bold text-gray-900 truncate" }}>Form Validation Status</h2>
+          <p {...{ className: "mt-1 text-sm sm:text-base text-gray-600" }}>
             {hasData ? 'Track validation performance and identify quality trends' : 'No form submissions data available yet'}
           </p>
         </div>
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4">
+        <div {...{ className: "flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4" }}>
           <Select value={timeRange} onValueChange={setTimeRange}>
-            <SelectTrigger className="w-full sm:w-32">
+            <SelectTrigger {...{ className: "w-full sm:w-32" }}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -176,7 +176,7 @@ export const FormValidationStatus: React.FC = () => {
             </SelectContent>
           </Select>
           <Select value={selectedFormType} onValueChange={setSelectedFormType}>
-            <SelectTrigger className="w-full sm:w-40">
+            <SelectTrigger {...{ className: "w-full sm:w-40" }}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -190,56 +190,56 @@ export const FormValidationStatus: React.FC = () => {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+      <div {...{ className: "grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4" }}>
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Forms</CardTitle>
-            <Filter className="h-4 w-4 text-gray-600" />
+          <CardHeader {...{ className: "flex flex-row items-center justify-between space-y-0 pb-2" }}>
+            <CardTitle {...{ className: "text-sm font-medium" }}>Total Forms</CardTitle>
+            <Filter {...{ className: "h-4 w-4 text-gray-600" }} />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{summary?.totalForms || 0}</div>
-            <p className="text-xs text-gray-600">
+            <div {...{ className: "text-2xl font-bold" }}>{summary?.totalForms || 0}</div>
+            <p {...{ className: "text-xs text-gray-600" }}>
               Submitted for validation
             </p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Validated</CardTitle>
-            <CheckCircle className="h-4 w-4 text-green-600" />
+          <CardHeader {...{ className: "flex flex-row items-center justify-between space-y-0 pb-2" }}>
+            <CardTitle {...{ className: "text-sm font-medium" }}>Validated</CardTitle>
+            <CheckCircle {...{ className: "h-4 w-4 text-green-600" }} />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{summary?.validatedForms || 0}</div>
-            <p className="text-xs text-gray-600">
+            <div {...{ className: "text-2xl font-bold text-green-600" }}>{summary?.validatedForms || 0}</div>
+            <p {...{ className: "text-xs text-gray-600" }}>
               Successfully validated
             </p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending</CardTitle>
-            <Clock className="h-4 w-4 text-yellow-600" />
+          <CardHeader {...{ className: "flex flex-row items-center justify-between space-y-0 pb-2" }}>
+            <CardTitle {...{ className: "text-sm font-medium" }}>Pending</CardTitle>
+            <Clock {...{ className: "h-4 w-4 text-yellow-600" }} />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">{summary?.pendingForms || 0}</div>
-            <p className="text-xs text-gray-600">
+            <div {...{ className: "text-2xl font-bold text-yellow-600" }}>{summary?.pendingForms || 0}</div>
+            <p {...{ className: "text-xs text-gray-600" }}>
               Awaiting review
             </p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Validation Rate</CardTitle>
-            <TrendingUp className="h-4 w-4 text-gray-600" />
+          <CardHeader {...{ className: "flex flex-row items-center justify-between space-y-0 pb-2" }}>
+            <CardTitle {...{ className: "text-sm font-medium" }}>Validation Rate</CardTitle>
+            <TrendingUp {...{ className: "h-4 w-4 text-gray-600" }} />
           </CardHeader>
           <CardContent>
             <div className={`text-2xl font-bold ${getValidationRateColor(summary?.validationRate || 0)}`}>
               {summary?.validationRate ? `${summary.validationRate.toFixed(1)}%` : '0%'}
             </div>
-            <p className="text-xs text-gray-600">
+            <p {...{ className: "text-xs text-gray-600" }}>
               Overall success rate
             </p>
           </CardContent>
@@ -249,10 +249,10 @@ export const FormValidationStatus: React.FC = () => {
       {/* Empty State */}
       {!hasData && (
         <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <FileText className="h-16 w-16 text-gray-600 mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No Form Submissions Yet</h3>
-            <p className="text-gray-600 text-center max-w-md">
+          <CardContent {...{ className: "flex flex-col items-center justify-center py-12" }}>
+            <FileText {...{ className: "h-16 w-16 text-gray-600 mb-4" }} />
+            <h3 {...{ className: "text-lg font-semibold mb-2" }}>No Form Submissions Yet</h3>
+            <p {...{ className: "text-gray-600 text-center max-w-md" }}>
               Form validation data will appear here once field agents start submitting verification forms through the mobile app.
             </p>
           </CardContent>
@@ -263,11 +263,11 @@ export const FormValidationStatus: React.FC = () => {
       {hasData && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base sm:text-lg">Validation Trends</CardTitle>
+            <CardTitle {...{ className: "text-base sm:text-lg" }}>Validation Trends</CardTitle>
             <CardDescription>Daily validation performance over time (simulated data)</CardDescription>
           </CardHeader>
           <CardContent>
-          <ResponsiveContainer width="100%" height={300} className="sm:h-[400px]">
+          <ResponsiveContainer width="100%" height={300} {...{ className: "sm:h-[400px]" }}>
             <AreaChart data={trendData}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="date" />
@@ -314,11 +314,11 @@ export const FormValidationStatus: React.FC = () => {
       {hasData && (
       <Card>
         <CardHeader>
-          <CardTitle className="text-base sm:text-lg">Validation Rate Trend</CardTitle>
+          <CardTitle {...{ className: "text-base sm:text-lg" }}>Validation Rate Trend</CardTitle>
           <CardDescription>Success rate percentage over time (simulated data)</CardDescription>
         </CardHeader>
         <CardContent>
-          <ResponsiveContainer width="100%" height={250} className="sm:h-[300px]">
+          <ResponsiveContainer width="100%" height={250} {...{ className: "sm:h-[300px]" }}>
             <LineChart data={trendData}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="date" />
@@ -348,7 +348,7 @@ export const FormValidationStatus: React.FC = () => {
         </CardHeader>
         <CardContent>
           {byFormType.length > 0 ? (
-            <div className="space-y-4">
+            <div {...{ className: "space-y-4" }}>
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={byFormType}>
                   <CartesianGrid strokeDasharray="3 3" />
@@ -361,21 +361,21 @@ export const FormValidationStatus: React.FC = () => {
                 </BarChart>
               </ResponsiveContainer>
               
-              <div className="grid gap-4 md:grid-cols-3">
+              <div {...{ className: "grid gap-4 md:grid-cols-3" }}>
                 {byFormType.map((formType) => {
                   const validationRate = formType.total_forms > 0 
                     ? (formType.validated_forms / formType.total_forms) * 100 
                     : 0;
                   
                   return (
-                    <div key={formType.form_type} className="p-4 border rounded-lg">
-                      <div className="flex items-center justify-between mb-2">
-                        <h4 className="font-semibold">{formType.form_type}</h4>
-                        <Badge className={getValidationRateBadge(validationRate)}>
+                    <div key={formType.form_type} {...{ className: "p-4 border rounded-lg" }}>
+                      <div {...{ className: "flex items-center justify-between mb-2" }}>
+                        <h4 {...{ className: "font-semibold" }}>{formType.form_type}</h4>
+                        <Badge {...{ className: getValidationRateBadge(validationRate) }}>
                           {validationRate.toFixed(1)}%
                         </Badge>
                       </div>
-                      <div className="space-y-1 text-sm text-gray-600">
+                      <div {...{ className: "space-y-1 text-sm text-gray-600" }}>
                         <div>Total: {formType.total_forms}</div>
                         <div>Validated: {formType.validated_forms}</div>
                         <div>Pending: {formType.pending_forms}</div>
@@ -387,10 +387,10 @@ export const FormValidationStatus: React.FC = () => {
               </div>
             </div>
           ) : (
-            <div className="text-center py-8">
-              <XCircle className="mx-auto h-12 w-12 text-gray-600" />
-              <h3 className="mt-4 text-lg font-semibold">No validation data</h3>
-              <p className="text-gray-600">
+            <div {...{ className: "text-center py-8" }}>
+              <XCircle {...{ className: "mx-auto h-12 w-12 text-gray-600" }} />
+              <h3 {...{ className: "mt-4 text-lg font-semibold" }}>No validation data</h3>
+              <p {...{ className: "text-gray-600" }}>
                 Form validation data will appear here once forms are submitted.
               </p>
             </div>

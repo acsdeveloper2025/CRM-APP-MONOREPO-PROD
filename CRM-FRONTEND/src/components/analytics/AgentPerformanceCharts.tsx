@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
+import { Badge } from '@/ui/components/badge';
 import { 
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from '@/ui/components/select';
 import { 
   BarChart, 
   Bar, 
@@ -174,12 +174,12 @@ export const AgentPerformanceCharts: React.FC = () => {
   // Error state
   if (error) {
     return (
-      <div className="space-y-4 sm:space-y-6">
+      <div {...{ className: "space-y-4 sm:space-y-6" }}>
         <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <XCircle className="h-12 w-12 text-red-500 mb-4" />
-            <h3 className="text-lg font-semibold mb-2">Failed to Load Performance Data</h3>
-            <p className="text-gray-600 text-center">
+          <CardContent {...{ className: "flex flex-col items-center justify-center py-12" }}>
+            <XCircle {...{ className: "h-12 w-12 text-red-500 mb-4" }} />
+            <h3 {...{ className: "text-lg font-semibold mb-2" }}>Failed to Load Performance Data</h3>
+            <p {...{ className: "text-gray-600 text-center" }}>
               There was an error loading agent performance data. Please try again later.
             </p>
           </CardContent>
@@ -189,18 +189,18 @@ export const AgentPerformanceCharts: React.FC = () => {
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <div {...{ className: "space-y-4 sm:space-y-6" }}>
       {/* Header with Controls */}
-      <div className="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0 flex-1">
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">Agent Performance Analytics</h2>
-          <p className="mt-1 text-sm sm:text-base text-gray-600">
+      <div {...{ className: "flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between" }}>
+        <div {...{ className: "min-w-0 flex-1" }}>
+          <h2 {...{ className: "text-xl sm:text-2xl font-bold text-gray-900 truncate" }}>Agent Performance Analytics</h2>
+          <p {...{ className: "mt-1 text-sm sm:text-base text-gray-600" }}>
             Comprehensive performance metrics and productivity analysis
           </p>
         </div>
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4">
+        <div {...{ className: "flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4" }}>
           <Select value={viewType} onValueChange={(value) => setViewType(value as 'overview' | 'individual' | 'comparison' | 'trends')}>
-            <SelectTrigger className="w-full sm:w-40">
+            <SelectTrigger {...{ className: "w-full sm:w-40" }}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -212,7 +212,7 @@ export const AgentPerformanceCharts: React.FC = () => {
           </Select>
           {viewType === 'individual' && (
             <Select value={selectedAgent} onValueChange={setSelectedAgent}>
-              <SelectTrigger className="w-full sm:w-48">
+              <SelectTrigger {...{ className: "w-full sm:w-48" }}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -226,7 +226,7 @@ export const AgentPerformanceCharts: React.FC = () => {
             </Select>
           )}
           <Select value={timeRange} onValueChange={setTimeRange}>
-            <SelectTrigger className="w-full sm:w-32">
+            <SelectTrigger {...{ className: "w-full sm:w-32" }}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -239,70 +239,70 @@ export const AgentPerformanceCharts: React.FC = () => {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
+      <div {...{ className: "grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-5" }}>
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Agents</CardTitle>
-            <Users className="h-4 w-4 text-gray-600" />
+          <CardHeader {...{ className: "flex flex-row items-center justify-between space-y-0 pb-2" }}>
+            <CardTitle {...{ className: "text-sm font-medium" }}>Total Agents</CardTitle>
+            <Users {...{ className: "h-4 w-4 text-gray-600" }} />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{summary?.totalAgents || 0}</div>
-            <p className="text-xs text-gray-600">Active agents</p>
+            <div {...{ className: "text-2xl font-bold" }}>{summary?.totalAgents || 0}</div>
+            <p {...{ className: "text-xs text-gray-600" }}>Active agents</p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg Cases</CardTitle>
-            <Target className="h-4 w-4 text-green-600" />
+          <CardHeader {...{ className: "flex flex-row items-center justify-between space-y-0 pb-2" }}>
+            <CardTitle {...{ className: "text-sm font-medium" }}>Avg Cases</CardTitle>
+            <Target {...{ className: "h-4 w-4 text-green-600" }} />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">
+            <div {...{ className: "text-2xl font-bold text-green-600" }}>
               {summary?.avgCasesPerAgent ? summary.avgCasesPerAgent.toFixed(1) : '0'}
             </div>
-            <p className="text-xs text-gray-600">Per agent</p>
+            <p {...{ className: "text-xs text-gray-600" }}>Per agent</p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Completion Rate</CardTitle>
-            <TrendingUp className="h-4 w-4 text-green-600" />
+          <CardHeader {...{ className: "flex flex-row items-center justify-between space-y-0 pb-2" }}>
+            <CardTitle {...{ className: "text-sm font-medium" }}>Completion Rate</CardTitle>
+            <TrendingUp {...{ className: "h-4 w-4 text-green-600" }} />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">
+            <div {...{ className: "text-2xl font-bold text-green-600" }}>
               {summary?.avgCompletionRate ? `${summary.avgCompletionRate.toFixed(1)}%` : '0%'}
             </div>
-            <p className="text-xs text-gray-600">Average rate</p>
+            <p {...{ className: "text-xs text-gray-600" }}>Average rate</p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Top Performers</CardTitle>
-            <Star className="h-4 w-4 text-yellow-600" />
+          <CardHeader {...{ className: "flex flex-row items-center justify-between space-y-0 pb-2" }}>
+            <CardTitle {...{ className: "text-sm font-medium" }}>Top Performers</CardTitle>
+            <Star {...{ className: "h-4 w-4 text-yellow-600" }} />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">{topPerformers.length}</div>
-            <p className="text-xs text-gray-600">High achievers</p>
+            <div {...{ className: "text-2xl font-bold text-yellow-600" }}>{topPerformers.length}</div>
+            <p {...{ className: "text-xs text-gray-600" }}>High achievers</p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Agents</CardTitle>
-            <Activity className="h-4 w-4 text-green-600" />
+          <CardHeader {...{ className: "flex flex-row items-center justify-between space-y-0 pb-2" }}>
+            <CardTitle {...{ className: "text-sm font-medium" }}>Active Agents</CardTitle>
+            <Activity {...{ className: "h-4 w-4 text-green-600" }} />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{summary?.activeAgents || 0}</div>
-            <p className="text-xs text-gray-600">Currently working</p>
+            <div {...{ className: "text-2xl font-bold text-green-600" }}>{summary?.activeAgents || 0}</div>
+            <p {...{ className: "text-xs text-gray-600" }}>Currently working</p>
           </CardContent>
         </Card>
       </div>
 
       {/* Main Visualization */}
       {viewType === 'overview' && (
-        <div className="grid gap-6 md:grid-cols-2">
+        <div {...{ className: "grid gap-6 md:grid-cols-2" }}>
           {/* Performance Distribution */}
           <Card>
             <CardHeader>
@@ -356,7 +356,7 @@ export const AgentPerformanceCharts: React.FC = () => {
       )}
 
       {viewType === 'individual' && (
-        <div className="grid gap-6 md:grid-cols-2">
+        <div {...{ className: "grid gap-6 md:grid-cols-2" }}>
           {/* Radar Chart */}
           <Card>
             <CardHeader>
@@ -403,55 +403,55 @@ export const AgentPerformanceCharts: React.FC = () => {
                   const completionRate = agent.totalCasesAssigned > 0 ? (agent.casesCompleted / agent.totalCasesAssigned) * 100 : 0;
                   
                   return (
-                    <div className="space-y-4">
-                      <div className="grid gap-4 md:grid-cols-2">
-                        <div className="p-4 border rounded-lg">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-sm text-gray-600">Cases Assigned</span>
-                            <span className="font-bold">{agent.totalCasesAssigned}</span>
+                    <div {...{ className: "space-y-4" }}>
+                      <div {...{ className: "grid gap-4 md:grid-cols-2" }}>
+                        <div {...{ className: "p-4 border rounded-lg" }}>
+                          <div {...{ className: "flex items-center justify-between mb-2" }}>
+                            <span {...{ className: "text-sm text-gray-600" }}>Cases Assigned</span>
+                            <span {...{ className: "font-bold" }}>{agent.totalCasesAssigned}</span>
                           </div>
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-sm text-gray-600">Cases Completed</span>
-                            <span className="font-bold text-green-600">{agent.casesCompleted}</span>
+                          <div {...{ className: "flex items-center justify-between mb-2" }}>
+                            <span {...{ className: "text-sm text-gray-600" }}>Cases Completed</span>
+                            <span {...{ className: "font-bold text-green-600" }}>{agent.casesCompleted}</span>
                           </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm text-gray-600">Completion Rate</span>
-                            <Badge className={getPerformanceBadge(getPerformanceLevel(agent.formQualityScore, completionRate))}>
+                          <div {...{ className: "flex items-center justify-between" }}>
+                            <span {...{ className: "text-sm text-gray-600" }}>Completion Rate</span>
+                            <Badge {...{ className: getPerformanceBadge(getPerformanceLevel(agent.formQualityScore, completionRate)) }}>
                               {completionRate.toFixed(1)}%
                             </Badge>
                           </div>
                         </div>
                         
-                        <div className="p-4 border rounded-lg">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-sm text-gray-600">Quality Score</span>
-                            <span className="font-bold">{agent.formQualityScore.toFixed(1)}</span>
+                        <div {...{ className: "p-4 border rounded-lg" }}>
+                          <div {...{ className: "flex items-center justify-between mb-2" }}>
+                            <span {...{ className: "text-sm text-gray-600" }}>Quality Score</span>
+                            <span {...{ className: "font-bold" }}>{agent.formQualityScore.toFixed(1)}</span>
                           </div>
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-sm text-gray-600">Avg Completion</span>
-                            <span className="font-bold">{agent.avgCompletionDays ? `${agent.avgCompletionDays.toFixed(1)}d` : 'N/A'}</span>
+                          <div {...{ className: "flex items-center justify-between mb-2" }}>
+                            <span {...{ className: "text-sm text-gray-600" }}>Avg Completion</span>
+                            <span {...{ className: "font-bold" }}>{agent.avgCompletionDays ? `${agent.avgCompletionDays.toFixed(1)}d` : 'N/A'}</span>
                           </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm text-gray-600">Forms Submitted</span>
-                            <span className="font-bold">{agent.residenceFormsSubmitted + agent.officeFormsSubmitted}</span>
+                          <div {...{ className: "flex items-center justify-between" }}>
+                            <span {...{ className: "text-sm text-gray-600" }}>Forms Submitted</span>
+                            <span {...{ className: "font-bold" }}>{agent.residenceFormsSubmitted + agent.officeFormsSubmitted}</span>
                           </div>
                         </div>
                       </div>
                       
-                      <div className="p-4 border rounded-lg">
-                        <h4 className="font-semibold mb-3">Form Breakdown</h4>
-                        <div className="space-y-2">
-                          <div className="flex justify-between">
-                            <span className="text-sm">Residence Forms:</span>
-                            <span className="font-medium">{agent.residenceFormsSubmitted}</span>
+                      <div {...{ className: "p-4 border rounded-lg" }}>
+                        <h4 {...{ className: "font-semibold mb-3" }}>Form Breakdown</h4>
+                        <div {...{ className: "space-y-2" }}>
+                          <div {...{ className: "flex justify-between" }}>
+                            <span {...{ className: "text-sm" }}>Residence Forms:</span>
+                            <span {...{ className: "font-medium" }}>{agent.residenceFormsSubmitted}</span>
                           </div>
-                          <div className="flex justify-between">
-                            <span className="text-sm">Office Forms:</span>
-                            <span className="font-medium">{agent.officeFormsSubmitted}</span>
+                          <div {...{ className: "flex justify-between" }}>
+                            <span {...{ className: "text-sm" }}>Office Forms:</span>
+                            <span {...{ className: "font-medium" }}>{agent.officeFormsSubmitted}</span>
                           </div>
-                          <div className="flex justify-between">
-                            <span className="text-sm">Attachments:</span>
-                            <span className="font-medium">{agent.attachmentsUploaded}</span>
+                          <div {...{ className: "flex justify-between" }}>
+                            <span {...{ className: "text-sm" }}>Attachments:</span>
+                            <span {...{ className: "font-medium" }}>{agent.attachmentsUploaded}</span>
                           </div>
                         </div>
                       </div>
@@ -459,10 +459,10 @@ export const AgentPerformanceCharts: React.FC = () => {
                   );
                 })()
               ) : (
-                <div className="text-center py-8">
-                  <Users className="mx-auto h-12 w-12 text-gray-600" />
-                  <h3 className="mt-4 text-lg font-semibold">Select an Agent</h3>
-                  <p className="text-gray-600">Choose an agent to view detailed metrics</p>
+                <div {...{ className: "text-center py-8" }}>
+                  <Users {...{ className: "mx-auto h-12 w-12 text-gray-600" }} />
+                  <h3 {...{ className: "mt-4 text-lg font-semibold" }}>Select an Agent</h3>
+                  <p {...{ className: "text-gray-600" }}>Choose an agent to view detailed metrics</p>
                 </div>
               )}
             </CardContent>

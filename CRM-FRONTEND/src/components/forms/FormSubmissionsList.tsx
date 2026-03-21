@@ -1,12 +1,15 @@
 import React, { useState, useMemo } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Card, CardContent } from '@/ui/components/card';
+import { Input } from '@/ui/components/input';
+import { Button } from '@/ui/components/button';
+import { Badge } from '@/ui/components/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/ui/components/select';
 import { FormSubmission } from '@/types/form';
 import { Search, FileText, Clock, User, MapPin, Camera, Eye } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { Box } from '@/ui/primitives/Box';
+import { Stack } from '@/ui/primitives/Stack';
+import { Text } from '@/ui/primitives/Text';
 
 interface FormSubmissionsListProps {
   submissions: FormSubmission[];
@@ -34,282 +37,200 @@ export const FormSubmissionsList: React.FC<FormSubmissionsListProps> = ({
   const [sortField, setSortField] = useState<SortField>('submittedAt');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
 
-  // Get unique form types and statuses for filters
-  const formTypes = useMemo(() => {
-    const types = [...new Set(submissions.map(s => s.formType))];
-    return types.sort();
-  }, [submissions]);
+  const formTypes = useMemo(() => [...new Set(submissions.map((s) => s.formType))].sort(), [submissions]);
+  const statuses = useMemo(() => [...new Set(submissions.map((s) => s.status))].sort(), [submissions]);
 
-  const statuses = useMemo(() => {
-    const statusList = [...new Set(submissions.map(s => s.status))];
-    return statusList.sort();
-  }, [submissions]);
-
-  // Filter and sort submissions
   const filteredAndSortedSubmissions = useMemo(() => {
     let filtered = submissions;
-
-    // Apply search filter
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(submission =>
+      filtered = filtered.filter((submission) =>
         submission.formType.toLowerCase().includes(query) ||
         submission.submittedByName.toLowerCase().includes(query) ||
         submission.outcome.toLowerCase().includes(query) ||
         submission.caseId.toLowerCase().includes(query)
       );
     }
-
-    // Apply status filter
     if (statusFilter !== 'all') {
-      filtered = filtered.filter(submission => submission.status === statusFilter);
+      filtered = filtered.filter((submission) => submission.status === statusFilter);
     }
-
-    // Apply form type filter
     if (formTypeFilter !== 'all') {
-      filtered = filtered.filter(submission => submission.formType === formTypeFilter);
+      filtered = filtered.filter((submission) => submission.formType === formTypeFilter);
     }
-
-    // Apply sorting
     filtered.sort((a, b) => {
       const aValue = a[sortField];
       const bValue = b[sortField];
-
       if (sortField === 'submittedAt') {
         const aTime = new Date(aValue as string).getTime();
         const bTime = new Date(bValue as string).getTime();
         return sortDirection === 'asc' ? aTime - bTime : bTime - aTime;
       }
-
       if (typeof aValue === 'string' && typeof bValue === 'string') {
-        const aStr = aValue.toLowerCase();
-        const bStr = bValue.toLowerCase();
-        if (aStr === bStr) {
-          return 0;
-        }
-        const result = aStr > bStr ? 1 : -1;
+        const result = aValue.toLowerCase() > bValue.toLowerCase() ? 1 : -1;
         return sortDirection === 'asc' ? result : -result;
       }
-
       return 0;
     });
-
     return filtered;
   }, [submissions, searchQuery, statusFilter, formTypeFilter, sortField, sortDirection]);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'COMPLETED':
-        return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300';
-      case 'DRAFT':
-        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300';
-      default:
-        return 'bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-200';
-    }
-  };
-
-  const getValidationColor = (status: string) => {
-    switch (status) {
-      case 'VALID':
-        return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300';
-      case 'INVALID':
-        return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300';
-      case 'WARNING':
-        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300';
-      default:
-        return 'bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-200';
-    }
-  };
-
-  const getFormTypeLabel = (formType: string) => {
-    return formType
-      .split(/[-_]/)
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
-  };
-
+  const getStatusVariant = (status: string) =>
+    status === 'COMPLETED' ? 'status-completed' : status === 'DRAFT' ? 'warning' : 'neutral';
+  const getValidationVariant = (status: string) =>
+    status === 'VALID' ? 'positive' : status === 'INVALID' ? 'danger' : status === 'WARNING' ? 'warning' : 'neutral';
+  const getFormTypeLabel = (formType: string) =>
+    formType.split(/[-_]/).map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
 
   if (isLoading) {
     return (
       <Card>
-        <CardContent className="p-6">
-          <div className="flex items-center justify-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600" />
-            <span className="ml-2">Loading form submissions...</span>
-          </div>
+        <CardContent style={{ padding: '1.5rem' }}>
+          <Stack direction="horizontal" gap={2} align="center" justify="center">
+            <Box style={{ width: '2rem', height: '2rem', borderRadius: '999px', border: '2px solid var(--ui-accent)', borderTopColor: 'transparent', animation: 'spin 1s linear infinite' }} />
+            <Text>Loading form submissions...</Text>
+          </Stack>
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <div className="space-y-4">
-      {/* Search and Filters */}
-      {(showSearch || showFilters || showSorting) && (
+    <Stack gap={4}>
+      {(showSearch || showFilters || showSorting) ? (
         <Card>
-          <CardContent className="p-4">
-            <div className="flex flex-col space-y-4 md:flex-row md:space-y-0 md:space-x-4">
-              {/* Search */}
-              {showSearch && (
-                <div className="flex-1">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-600" />
+          <CardContent style={{ padding: '1rem' }}>
+            <Stack gap={4}>
+              <Box style={{ display: 'grid', gap: '1rem', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}>
+                {showSearch ? (
+                  <Box style={{ position: 'relative', minWidth: 0 }}>
+                    <Search size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--ui-text-muted)' }} />
                     <Input
                       placeholder="Search submissions..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-10"
+                      style={{ paddingLeft: '2.5rem' }}
                     />
-                  </div>
-                </div>
-              )}
+                  </Box>
+                ) : null}
 
-              {/* Filters */}
-              {showFilters && (
-                <>
-                  <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger className="w-full md:w-40">
-                      <SelectValue placeholder="Status" />
+                {showFilters ? (
+                  <>
+                    <Select value={statusFilter} onValueChange={setStatusFilter}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Statuses</SelectItem>
+                        {statuses.map((status) => <SelectItem key={status} value={status}>{status.replace('_', ' ')}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+
+                    <Select value={formTypeFilter} onValueChange={setFormTypeFilter}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Form Type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Types</SelectItem>
+                        {formTypes.map((type) => <SelectItem key={type} value={type}>{getFormTypeLabel(type)}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </>
+                ) : null}
+
+                {showSorting ? (
+                  <Select value={`${sortField}-${sortDirection}`} onValueChange={(value) => {
+                    const [field, direction] = value.split('-') as [SortField, SortDirection];
+                    setSortField(field);
+                    setSortDirection(direction);
+                  }}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sort by" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Statuses</SelectItem>
-                      {statuses.map(status => (
-                        <SelectItem key={status} value={status}>
-                          {status.replace('_', ' ')}
-                        </SelectItem>
-                      ))}
+                      <SelectItem value="submittedAt-desc">Latest First</SelectItem>
+                      <SelectItem value="submittedAt-asc">Oldest First</SelectItem>
+                      <SelectItem value="formType-asc">Form Type A-Z</SelectItem>
+                      <SelectItem value="formType-desc">Form Type Z-A</SelectItem>
+                      <SelectItem value="status-asc">Status A-Z</SelectItem>
+                      <SelectItem value="status-desc">Status Z-A</SelectItem>
+                      <SelectItem value="submittedByName-asc">Submitter A-Z</SelectItem>
+                      <SelectItem value="submittedByName-desc">Submitter Z-A</SelectItem>
                     </SelectContent>
                   </Select>
+                ) : null}
+              </Box>
 
-                  <Select value={formTypeFilter} onValueChange={setFormTypeFilter}>
-                    <SelectTrigger className="w-full md:w-40">
-                      <SelectValue placeholder="Form Type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Types</SelectItem>
-                      {formTypes.map(type => (
-                        <SelectItem key={type} value={type}>
-                          {getFormTypeLabel(type)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </>
-              )}
-
-              {/* Sort */}
-              {showSorting && (
-                <Select value={`${sortField}-${sortDirection}`} onValueChange={(value) => {
-                  const [field, direction] = value.split('-') as [SortField, SortDirection];
-                  setSortField(field);
-                  setSortDirection(direction);
-                }}>
-                  <SelectTrigger className="w-full md:w-48">
-                    <SelectValue placeholder="Sort by" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="submittedAt-desc">Latest First</SelectItem>
-                    <SelectItem value="submittedAt-asc">Oldest First</SelectItem>
-                    <SelectItem value="formType-asc">Form Type A-Z</SelectItem>
-                    <SelectItem value="formType-desc">Form Type Z-A</SelectItem>
-                    <SelectItem value="status-asc">Status A-Z</SelectItem>
-                    <SelectItem value="status-desc">Status Z-A</SelectItem>
-                    <SelectItem value="submittedByName-asc">Submitter A-Z</SelectItem>
-                    <SelectItem value="submittedByName-desc">Submitter Z-A</SelectItem>
-                  </SelectContent>
-                </Select>
-              )}
-            </div>
-
-            {/* Results count */}
-            <div className="mt-4 text-sm text-gray-600">
-              Showing {filteredAndSortedSubmissions.length} of {submissions.length} submissions
-            </div>
+              <Text variant="body-sm" tone="muted">
+                Showing {filteredAndSortedSubmissions.length} of {submissions.length} submissions
+              </Text>
+            </Stack>
           </CardContent>
         </Card>
-      )}
+      ) : null}
 
-      {/* Submissions List */}
-      <div className="space-y-4">
-        {filteredAndSortedSubmissions.length > 0 ? (
-          filteredAndSortedSubmissions.map((submission) => (
-            <Card key={submission.id} className="hover:shadow-md transition-shadow">
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1 space-y-2">
-                    {/* Header */}
-                    <div className="flex items-center space-x-3">
-                      <FileText className="h-5 w-5 text-green-600" />
-                      <h3 className="font-medium text-lg">
-                        {getFormTypeLabel(submission.formType)} Form
-                      </h3>
-                      <Badge className={getStatusColor(submission.status)}>
-                        {submission.status.replace('_', ' ')}
-                      </Badge>
-                      <Badge className={getValidationColor(submission.validationStatus)}>
-                        {submission.validationStatus}
-                      </Badge>
-                    </div>
+      <Stack gap={4}>
+        {filteredAndSortedSubmissions.length > 0 ? filteredAndSortedSubmissions.map((submission) => (
+          <Card key={submission.id}>
+            <CardContent style={{ padding: '1rem' }}>
+              <Box style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                <Stack gap={2} style={{ flex: 1, minWidth: '260px' }}>
+                  <Stack direction="horizontal" gap={3} align="center" wrap="wrap">
+                    <FileText size={20} style={{ color: 'var(--ui-accent)' }} />
+                    <Text as="h3" variant="title">{getFormTypeLabel(submission.formType)} Form</Text>
+                    <Badge variant={getStatusVariant(submission.status)}>{submission.status.replace('_', ' ')}</Badge>
+                    <Badge variant={getValidationVariant(submission.validationStatus)}>{submission.validationStatus}</Badge>
+                  </Stack>
 
-                    {/* Details */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm text-gray-600">
-                      <div className="flex items-center space-x-2">
-                        <User className="h-4 w-4" />
-                        <span>{submission.submittedByName}</span>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Clock className="h-4 w-4" />
-                        <span>{formatDistanceToNow(new Date(submission.submittedAt), { addSuffix: true })}</span>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <MapPin className="h-4 w-4" />
-                        <span>{submission.geoLocation.address || 'Location captured'}</span>
-                      </div>
-                      {submission.photos && submission.photos.length > 0 && (
-                        <div className="flex items-center space-x-2">
-                          <Camera className="h-4 w-4" />
-                          <span>{submission.photos.length} photos</span>
-                        </div>
-                      )}
-                    </div>
+                  <Box style={{ display: 'grid', gap: '1rem', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))' }}>
+                    <Stack direction="horizontal" gap={2} align="center">
+                      <User size={16} />
+                      <Text variant="body-sm" tone="muted">{submission.submittedByName}</Text>
+                    </Stack>
+                    <Stack direction="horizontal" gap={2} align="center">
+                      <Clock size={16} />
+                      <Text variant="body-sm" tone="muted">{formatDistanceToNow(new Date(submission.submittedAt), { addSuffix: true })}</Text>
+                    </Stack>
+                    <Stack direction="horizontal" gap={2} align="center">
+                      <MapPin size={16} />
+                      <Text variant="body-sm" tone="muted">{submission.geoLocation.address || 'Location captured'}</Text>
+                    </Stack>
+                    {submission.photos && submission.photos.length > 0 ? (
+                      <Stack direction="horizontal" gap={2} align="center">
+                        <Camera size={16} />
+                        <Text variant="body-sm" tone="muted">{submission.photos.length} photos</Text>
+                      </Stack>
+                    ) : null}
+                  </Box>
 
-                    {/* Outcome */}
-                    <div className="text-sm">
-                      <span className="font-medium">Outcome:</span> {submission.outcome}
-                    </div>
-                  </div>
+                  <Text variant="body-sm"><strong>Outcome:</strong> {submission.outcome}</Text>
+                </Stack>
 
-                  {/* Actions */}
-                  <div className="flex items-center space-x-2">
-                    {onSubmissionSelect && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => onSubmissionSelect(submission)}
-                      >
-                        <Eye className="h-4 w-4 mr-1" />
-                        View
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))
-        ) : (
+                {onSubmissionSelect ? (
+                  <Stack direction="horizontal" gap={2} align="center">
+                    <Button variant="outline" onClick={() => onSubmissionSelect(submission)} icon={<Eye size={16} />}>
+                      View
+                    </Button>
+                  </Stack>
+                ) : null}
+              </Box>
+            </CardContent>
+          </Card>
+        )) : (
           <Card>
-            <CardContent className="p-6 text-center">
-              <FileText className="h-12 w-12 text-gray-600 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No Submissions Found</h3>
-              <p className="text-gray-600">
-                {submissions.length === 0
-                  ? 'No form submissions have been made for this case yet.'
-                  : 'No submissions match your current filters. Try adjusting your search criteria.'}
-              </p>
+            <CardContent style={{ padding: '1.5rem' }}>
+              <Stack gap={2} align="center" style={{ textAlign: 'center' }}>
+                <FileText size={48} style={{ color: 'var(--ui-text-muted)' }} />
+                <Text as="h3" variant="title">No Submissions Found</Text>
+                <Text tone="muted">
+                  {submissions.length === 0
+                    ? 'No form submissions have been made for this case yet.'
+                    : 'No submissions match your current filters. Try adjusting your search criteria.'}
+                </Text>
+              </Stack>
             </CardContent>
           </Card>
         )}
-      </div>
-    </div>
+      </Stack>
+    </Stack>
   );
 };

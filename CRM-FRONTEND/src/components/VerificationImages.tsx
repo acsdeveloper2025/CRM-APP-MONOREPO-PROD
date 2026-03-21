@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { LoadingSpinner } from '@/components/ui/loading';
+import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/card';
+import { Badge } from '@/ui/components/badge';
+import { Button } from '@/ui/components/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/ui/components/dialog';
+import { LoadingSpinner } from '@/ui/components/loading';
 import { useVerificationImages, useVerificationImagesBySubmission } from '@/hooks/useVerificationImages';
 import { verificationImagesService, type VerificationImage } from '@/services/verificationImages';
 import { Camera, MapPin, Download, Eye, Image as ImageIcon, ExternalLink, Clock, Home } from 'lucide-react';

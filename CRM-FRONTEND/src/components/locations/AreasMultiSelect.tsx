@@ -2,7 +2,7 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Check, ChevronsUpDown, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/ui/components/button';
 import {
   Command,
   CommandEmpty,
@@ -10,13 +10,16 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from '@/components/ui/command';
+} from '@/ui/components/command';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from '@/components/ui/popover';
-import { Badge } from '@/components/ui/badge';
+} from '@/ui/components/popover';
+import { Badge } from '@/ui/components/badge';
+import { Box } from '@/ui/primitives/Box';
+import { Stack } from '@/ui/primitives/Stack';
+import { Text } from '@/ui/primitives/Text';
 import { locationsService } from '@/services/locations';
 
 // interface Area {
@@ -60,13 +63,6 @@ export function AreasMultiSelect({
 
   const selectedAreas = allAreas.filter(area => selectedAreaIds.includes(area.id));
 
-  // Debug logging (reduced)
-  React.useEffect(() => {
-    if (queryError) {
-      console.error('AreasMultiSelect Error:', queryError);
-    }
-  }, [queryError]);
-
   const handleSelect = (areaId: string) => {
     if (selectedAreaIds.includes(areaId)) {
       // Remove area
@@ -87,56 +83,60 @@ export function AreasMultiSelect({
   };
 
   return (
-    <div className="space-y-2">
+    <Stack gap={2}>
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button
             variant="outline"
             role="combobox"
             aria-expanded={open}
-            className={cn(
-              "w-full justify-between",
-              selectedAreaIds.length === 0 && "text-gray-600",
-              error && "border-red-500"
-            )}
+            fullWidth
             disabled={disabled}
+            style={{
+              justifyContent: 'space-between',
+              color: selectedAreaIds.length === 0 ? 'var(--ui-text-muted)' : undefined,
+              borderColor: error ? 'var(--ui-danger)' : undefined,
+            }}
           >
             {selectedAreaIds.length === 0
               ? "Select areas..."
               : `${selectedAreaIds.length} area${selectedAreaIds.length === 1 ? '' : 's'} selected${selectedAreaIds.length >= 15 ? ' (max)' : ''}`
             }
-            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            <ChevronsUpDown size={16} style={{ marginLeft: '0.5rem', opacity: 0.5, flexShrink: 0 }} />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-full p-0" align="start">
+        <PopoverContent align="start" style={{ width: 'var(--radix-popover-trigger-width)', padding: 0 }}>
           <Command shouldFilter={false}>
-            <div className="flex items-center border-b px-3">
+            <Box style={{ display: 'flex', alignItems: 'center', borderBottom: '1px solid var(--ui-border)', paddingInline: '0.75rem' }}>
               <CommandInput
                 placeholder="Search areas..."
                 value={searchValue}
                 onValueChange={setSearchValue}
-                className="flex-1"
+                style={{ flex: 1 }}
               />
               {searchValue && (
                 <Button
                   variant="ghost"
-                  size="sm"
-                  className="h-6 w-6 p-0 hover:bg-transparent"
                   onClick={() => setSearchValue('')}
+                  style={{ padding: 0, minWidth: '1.5rem', minHeight: '1.5rem', background: 'transparent' }}
                 >
-                  <X className="h-4 w-4" />
+                  <X size={16} />
                 </Button>
               )}
-            </div>
-            <CommandList className="max-h-64">
+            </Box>
+            <CommandList style={{ maxHeight: '16rem' }}>
               <CommandEmpty>
                 {isLoading ? "Loading areas..." : queryError ? `Error: ${queryError.message}` : searchValue ? `No areas found matching "${searchValue}"` : "No areas found"}
               </CommandEmpty>
               <CommandGroup>
                 {!isLoading && areas.length > 0 && (
-                  <div className="text-xs text-gray-600 px-2 py-1 border-b">
+                  <Text
+                    variant="caption"
+                    tone="muted"
+                    style={{ display: 'block', padding: '0.25rem 0.5rem', borderBottom: '1px solid var(--ui-border)' }}
+                  >
                     {areas.length} area{areas.length === 1 ? '' : 's'} {searchValue ? `matching "${searchValue}"` : 'available'}
-                  </div>
+                  </Text>
                 )}
                 {areas.map((area) => {
                   const isSelected = selectedAreaIds.includes(area.id);
@@ -144,17 +144,15 @@ export function AreasMultiSelect({
                     <CommandItem
                       key={area.id}
                       value={area.name}
-                      className="cursor-pointer"
+                      style={{ cursor: 'pointer' }}
                       onSelect={() => {
                         handleSelect(area.id);
                         // Keep the popover open for multi-selection
                       }}
                     >
                       <Check
-                        className={cn(
-                          "mr-2 h-4 w-4",
-                          isSelected ? "opacity-100" : "opacity-0"
-                        )}
+                        size={16}
+                        style={{ marginRight: '0.5rem', opacity: isSelected ? 1 : 0 }}
                       />
                       {area.name}
                     </CommandItem>
@@ -168,18 +166,17 @@ export function AreasMultiSelect({
 
       {/* Selected areas display */}
       {selectedAreas.length > 0 && (
-        <div className="flex flex-wrap gap-1">
+        <Box style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem' }}>
           {selectedAreas.map((area) => (
             <Badge
               key={area.id}
               variant="secondary"
-              className="text-xs"
             >
               {area.name}
               {!disabled && (
                 <button
                   type="button"
-                  className="ml-1 ring-offset-background rounded-full outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                  style={{ marginLeft: '0.25rem', borderRadius: '999px', outline: 'none' }}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
                       handleRemove(area.id);
@@ -191,21 +188,21 @@ export function AreasMultiSelect({
                   }}
                   onClick={() => handleRemove(area.id)}
                 >
-                  <X className="h-3 w-3 text-gray-600 hover:text-gray-900" />
+                  <X size={12} style={{ color: 'var(--ui-text-muted)' }} />
                 </button>
               )}
             </Badge>
           ))}
-        </div>
+        </Box>
       )}
 
       {error && (
-        <p className="text-sm text-red-500">{error}</p>
+        <Text variant="body-sm" tone="danger">{error}</Text>
       )}
 
-      <p className="text-xs text-gray-600">
+      <Text variant="caption" tone="muted">
         Select areas from the available list. Areas must be created in the Areas management tab first.
-      </p>
-    </div>
+      </Text>
+    </Stack>
   );
 }

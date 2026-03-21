@@ -2,10 +2,10 @@ import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus, Search, Edit, Trash2, Settings } from 'lucide-react';
 import { useMutationWithInvalidation } from '@/hooks/useStandardizedMutation';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/card';
+import { Button } from '@/ui/components/button';
+import { Input } from '@/ui/components/input';
+import { Badge } from '@/ui/components/badge';
 import { baseBadgeStyle, formatBadgeLabel } from '@/lib/badgeStyles';
 import {
   Table,
@@ -14,7 +14,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
+} from '@/ui/components/table';
 import {
   Dialog,
   DialogContent,
@@ -22,7 +22,7 @@ import {
   DialogTitle,
   DialogDescription,
   DialogTrigger,
-} from '@/components/ui/dialog';
+} from '@/ui/components/dialog';
 import { commissionManagementService } from '@/services/commissionManagement';
 import { CommissionRateTypeForm } from './CommissionRateTypeForm';
 import type { CommissionRateType } from '@/types/commission';
@@ -71,23 +71,23 @@ export const CommissionRateTypesTab: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div {...{ className: "space-y-6" }}>
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div {...{ className: "flex items-center justify-between" }}>
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Commission Rate Types</h2>
-          <p className="text-gray-600">
+          <h2 {...{ className: "text-2xl font-bold text-gray-900" }}>Commission Rate Types</h2>
+          <p {...{ className: "text-gray-600" }}>
             Configure commission templates for different rate types
           </p>
         </div>
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
             <Button>
-              <Plus className="h-4 w-4 mr-2" />
+              <Plus {...{ className: "h-4 w-4 mr-2" }} />
               Add Rate Type
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-md">
+          <DialogContent {...{ className: "max-w-md" }}>
             <DialogHeader>
               <DialogTitle>Create Commission Rate Type</DialogTitle>
               <DialogDescription>
@@ -104,15 +104,15 @@ export const CommissionRateTypesTab: React.FC = () => {
 
       {/* Search and Filters */}
       <Card>
-        <CardContent className="p-4">
-          <div className="flex items-center gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600 h-4 w-4" />
+        <CardContent {...{ className: "p-4" }}>
+          <div {...{ className: "flex items-center gap-4" }}>
+            <div {...{ className: "relative flex-1" }}>
+              <Search {...{ className: "absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600 h-4 w-4" }} />
               <Input
                 placeholder="Search rate types..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
+                {...{ className: "pl-10" }}
               />
             </div>
           </div>
@@ -122,25 +122,25 @@ export const CommissionRateTypesTab: React.FC = () => {
       {/* Rate Types Table */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Settings className="h-5 w-5" />
+          <CardTitle {...{ className: "flex items-center gap-2" }}>
+            <Settings {...{ className: "h-5 w-5" }} />
             Commission Rate Types ({rateTypes.length})
           </CardTitle>
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+            <div {...{ className: "flex items-center justify-center py-8" }}>
+              <div {...{ className: "animate-spin rounded-full h-8 w-8 border-b-2 border-primary" }} />
             </div>
           ) : rateTypes.length === 0 ? (
-            <div className="text-center py-8">
-              <Settings className="h-12 w-12 text-gray-600 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">No Commission Rate Types</h3>
-              <p className="text-gray-600 mb-4">
+            <div {...{ className: "text-center py-8" }}>
+              <Settings {...{ className: "h-12 w-12 text-gray-600 mx-auto mb-4" }} />
+              <h3 {...{ className: "text-lg font-semibold text-gray-900 mb-2" }}>No Commission Rate Types</h3>
+              <p {...{ className: "text-gray-600 mb-4" }}>
                 Create your first commission rate type to get started.
               </p>
               <Button onClick={() => setIsCreateDialogOpen(true)}>
-                <Plus className="h-4 w-4 mr-2" />
+                <Plus {...{ className: "h-4 w-4 mr-2" }} />
                 Add Rate Type
               </Button>
             </div>
@@ -153,7 +153,7 @@ export const CommissionRateTypesTab: React.FC = () => {
                   <TableHead>Currency</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Created</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead {...{ className: "text-right" }}>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -161,51 +161,51 @@ export const CommissionRateTypesTab: React.FC = () => {
                   <TableRow key={rateType.id}>
                     <TableCell>
                       <div>
-                        <div className="font-medium text-gray-900">
+                        <div {...{ className: "font-medium text-gray-900" }}>
                           {rateType.rateTypeName}
                         </div>
-                        <div className="text-sm text-gray-600">
+                        <div {...{ className: "text-sm text-gray-600" }}>
                           ID: {rateType.rateTypeId}
                         </div>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="font-medium">
+                      <div {...{ className: "font-medium" }}>
                         {rateType.commissionAmount ? (
-                          <span className="text-green-600">
+                          <span {...{ className: "text-green-600" }}>
                             {rateType.currency} {rateType.commissionAmount.toLocaleString()}
                           </span>
                         ) : (
-                          <span className="text-green-600">
+                          <span {...{ className: "text-green-600" }}>
                             {rateType.commissionPercentage}%
                           </span>
                         )}
                       </div>
-                      <div className="text-sm text-gray-600">
+                      <div {...{ className: "text-sm text-gray-600" }}>
                         {rateType.commissionAmount ? 'Fixed Amount' : 'Percentage'}
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge className={baseBadgeStyle}>{formatBadgeLabel(rateType.currency)}</Badge>
+                      <Badge {...{ className: baseBadgeStyle }}>{formatBadgeLabel(rateType.currency)}</Badge>
                     </TableCell>
                     <TableCell>
-                      <Badge className={baseBadgeStyle}>
+                      <Badge {...{ className: baseBadgeStyle }}>
                         {rateType.isActive ? 'ACTIVE' : 'INACTIVE'}
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <div className="text-sm">
+                      <div {...{ className: "text-sm" }}>
                         {new Date(rateType.createdAt).toLocaleDateString()}
                       </div>
                     </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-2">
+                    <TableCell {...{ className: "text-right" }}>
+                      <div {...{ className: "flex items-center justify-end gap-2" }}>
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => handleEdit(rateType)}
                         >
-                          <Edit className="h-4 w-4" />
+                          <Edit {...{ className: "h-4 w-4" }} />
                         </Button>
                         <Button
                           variant="ghost"
@@ -213,7 +213,7 @@ export const CommissionRateTypesTab: React.FC = () => {
                           onClick={() => handleDelete(rateType)}
                           disabled={deleteMutation.isPending}
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 {...{ className: "h-4 w-4" }} />
                         </Button>
                       </div>
                     </TableCell>
@@ -227,7 +227,7 @@ export const CommissionRateTypesTab: React.FC = () => {
 
       {/* Edit Dialog */}
       <Dialog open={!!editingRateType} onOpenChange={() => setEditingRateType(null)}>
-        <DialogContent className="max-w-md">
+        <DialogContent {...{ className: "max-w-md" }}>
           <DialogHeader>
             <DialogTitle>Edit Commission Rate Type</DialogTitle>
             <DialogDescription>
@@ -245,15 +245,15 @@ export const CommissionRateTypesTab: React.FC = () => {
       </Dialog>
 
       {/* Info Card */}
-      <Card className="bg-slate-100/70 dark:bg-slate-800/50">
-        <CardContent className="p-4">
-          <div className="flex items-start gap-3">
-            <div className="p-2 bg-green-100 rounded-lg">
-              <Settings className="h-5 w-5 text-green-600" />
+      <Card {...{ className: "bg-slate-100/70 dark:bg-slate-800/50" }}>
+        <CardContent {...{ className: "p-4" }}>
+          <div {...{ className: "flex items-start gap-3" }}>
+            <div {...{ className: "p-2 bg-green-100 rounded-lg" }}>
+              <Settings {...{ className: "h-5 w-5 text-green-600" }} />
             </div>
             <div>
-              <h3 className="font-semibold text-gray-900 mb-2">About Commission Rate Types</h3>
-              <div className="space-y-1 text-sm text-gray-600">
+              <h3 {...{ className: "font-semibold text-gray-900 mb-2" }}>About Commission Rate Types</h3>
+              <div {...{ className: "space-y-1 text-sm text-gray-600" }}>
                 <p>• Commission rate types serve as templates for field user assignments</p>
                 <p>• You can set either a fixed amount or percentage-based commission</p>
                 <p>• Rate types are linked to existing rate types from the rate management system</p>

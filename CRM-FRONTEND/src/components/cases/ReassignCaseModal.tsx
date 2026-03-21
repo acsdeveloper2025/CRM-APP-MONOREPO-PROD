@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Loader2, User } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -6,20 +7,21 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
+} from '@/ui/components/Dialog';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+} from '@/ui/components/Select';
 import { useFieldUsers } from '@/hooks/useUsers';
-import { Loader2, User } from 'lucide-react';
 import type { Case } from '@/types/case';
+import { Button } from '@/ui/components/Button';
+import { Textarea } from '@/ui/components/Textarea';
+import { Card } from '@/ui/components/Card';
+import { Stack } from '@/ui/primitives/Stack';
+import { Text } from '@/ui/primitives/Text';
 
 interface ReassignCaseModalProps {
   isOpen: boolean;
@@ -61,10 +63,10 @@ export const ReassignCaseModal: React.FC<ReassignCaseModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent style={{ maxWidth: 540 }}>
         <DialogHeader>
-          <DialogTitle className="flex items-center space-x-2">
-            <User className="h-5 w-5" />
+          <DialogTitle style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <User size={18} />
             <span>Reassign Case</span>
           </DialogTitle>
           <DialogDescription>
@@ -72,21 +74,21 @@ export const ReassignCaseModal: React.FC<ReassignCaseModalProps> = ({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
-          {/* Current Assignment Info */}
-          <div className="bg-slate-100 dark:bg-slate-800/60 p-3 rounded-lg">
-            <div className="text-sm">
-              <span className="font-medium">Currently assigned to:</span>{' '}
-              <span className="text-green-600">{currentAssignee}</span>
-            </div>
-            <div className="text-sm text-gray-600 mt-1">
-              Case: {caseItem.applicantName} - {caseItem.address}
-            </div>
-          </div>
+        <Stack gap={4} style={{ paddingTop: 8, paddingBottom: 8 }}>
+          <Card tone="muted" staticCard>
+            <Stack gap={1}>
+              <Text variant="label" tone="soft">Currently assigned</Text>
+              <Text variant="body" tone="accent">{currentAssignee}</Text>
+              <Text variant="body-sm" tone="muted">
+                Case: {caseItem.applicantName} - {caseItem.address}
+              </Text>
+            </Stack>
+          </Card>
 
-          {/* Field Agent Selection */}
-          <div className="space-y-2">
-            <Label htmlFor="assignedTo">Reassign to Field Agent *</Label>
+          <Stack gap={2}>
+            <Text as="label" htmlFor="assignedTo" variant="label" tone="soft">
+              Reassign to Field Agent *
+            </Text>
             <Select 
               value={selectedUserId} 
               onValueChange={setSelectedUserId}
@@ -98,8 +100,8 @@ export const ReassignCaseModal: React.FC<ReassignCaseModalProps> = ({
               <SelectContent>
                 {loadingUsers ? (
                   <SelectItem value="loading" disabled>
-                    <div className="flex items-center space-x-2">
-                      <Loader2 className="h-4 w-4 animate-spin" />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <Loader2 size={16} {...{ className: "animate-spin" }} />
                       <span>Loading field agents...</span>
                     </div>
                   </SelectItem>
@@ -112,8 +114,8 @@ export const ReassignCaseModal: React.FC<ReassignCaseModalProps> = ({
                     .filter(user => user.id !== caseItem.assignedToId) // Exclude current assignee (using legacy field)
                     .map((user) => (
                       <SelectItem key={user.id} value={user.id}>
-                        <div className="flex items-center space-x-2">
-                          <User className="h-4 w-4" />
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <User size={16} />
                           <span>{user.name} ({user.email})</span>
                         </div>
                       </SelectItem>
@@ -121,11 +123,12 @@ export const ReassignCaseModal: React.FC<ReassignCaseModalProps> = ({
                 )}
               </SelectContent>
             </Select>
-          </div>
+          </Stack>
 
-          {/* Reassignment Reason */}
-          <div className="space-y-2">
-            <Label htmlFor="reason">Reason for Reassignment *</Label>
+          <Stack gap={2}>
+            <Text as="label" htmlFor="reason" variant="label" tone="soft">
+              Reason for Reassignment *
+            </Text>
             <Textarea
               id="reason"
               placeholder="Please provide a reason for this reassignment..."
@@ -134,37 +137,29 @@ export const ReassignCaseModal: React.FC<ReassignCaseModalProps> = ({
               disabled={isLoading}
               rows={3}
             />
-          </div>
+          </Stack>
 
-          {/* Selected User Preview */}
           {selectedUser && (
-            <div className="bg-green-50 p-3 rounded-lg">
-              <div className="text-sm">
-                <span className="font-medium">Will be assigned to:</span>{' '}
-                <span className="text-green-600">{selectedUser.name}</span>
-              </div>
-              <div className="text-sm text-gray-600 mt-1">
+            <Card tone="highlight" staticCard>
+              <Stack gap={1}>
+                <Text variant="label" tone="soft">Will be assigned to</Text>
+                <Text variant="body" tone="accent">{selectedUser.name}</Text>
+                <Text variant="body-sm" tone="muted">
                 Email: {selectedUser.email}
-              </div>
-            </div>
+                </Text>
+              </Stack>
+            </Card>
           )}
-        </div>
+        </Stack>
 
         <DialogFooter>
-          <Button 
-            variant="outline" 
-            onClick={handleClose}
-            disabled={isLoading}
-          >
+          <Button variant="secondary" onClick={handleClose} disabled={isLoading}>
             Cancel
           </Button>
-          <Button 
-            onClick={handleSubmit}
-            disabled={!selectedUserId || !reason.trim() || isLoading}
-          >
+          <Button onClick={handleSubmit} disabled={!selectedUserId || !reason.trim() || isLoading}>
             {isLoading ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <Loader2 size={16} {...{ className: "animate-spin" }} />
                 Reassigning...
               </>
             ) : (

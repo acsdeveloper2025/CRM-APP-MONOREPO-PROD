@@ -7,10 +7,14 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { LoadingSpinner } from '@/components/ui/loading';
+} from '@/ui/components/dialog';
+import { Badge } from '@/ui/components/Badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/Card';
+import { LoadingSpinner } from '@/ui/components/loading';
+import { Grid } from '@/ui/layout/Grid';
+import { Box } from '@/ui/primitives/Box';
+import { Stack } from '@/ui/primitives/Stack';
+import { Text } from '@/ui/primitives/Text';
 import { locationsService } from '@/services/locations';
 import type { Country } from '@/types/location';
 
@@ -29,160 +33,124 @@ export function CountryDetailsDialog({ country, open, onOpenChange }: CountryDet
   });
 
   const states = statesData?.data || [];
-
-  const getContinentColor = (continent: string) => {
-    const colors: Record<string, string> = {
-      'Asia': 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300',
-      'Europe': 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300',
-      'North America': 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300',
-      'South America': 'bg-yellow-100 text-orange-800 dark:bg-yellow-900/20 dark:text-yellow-300',
-      'Africa': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300',
-      'Oceania': 'bg-green-100 text-cyan-800 dark:bg-green-900/20 dark:text-green-300',
-      'Antarctica': 'bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-200',
-    };
-    return colors[continent] || 'bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-200';
-  };
+  const stats = [
+    ['States', states.length],
+    ['Cities', states.reduce((acc, state) => acc + (state.cities?.length || 0), 0)],
+    ['Continent', country.continent],
+  ];
+  const details = [
+    { icon: Globe, label: 'Country Name', value: country.name },
+    { icon: Hash, label: 'Country Code', value: <Badge variant="outline">{country.code}</Badge> },
+    { icon: MapPin, label: 'Continent', value: <Badge variant="accent">{country.continent}</Badge> },
+    {
+      icon: Calendar,
+      label: 'Created',
+      value: new Date(country.createdAt).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      }),
+    },
+  ];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] sm:max-w-[600px] max-h-[90vh] sm:max-h-[80vh] overflow-y-auto">
+      <DialogContent style={{ width: 'min(95vw, 600px)', maxHeight: '80vh', overflowY: 'auto' }}>
         <DialogHeader>
-          <DialogTitle className="flex items-center space-x-2">
-            <Globe className="h-5 w-5" />
-            <span>{country.name}</span>
-          </DialogTitle>
+          <Stack direction="horizontal" gap={2} align="center">
+            <Globe size={20} />
+            <DialogTitle>{country.name}</DialogTitle>
+          </Stack>
           <DialogDescription>
             Country details and associated states
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6">
-          {/* Basic Information */}
+        <Stack gap={5}>
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Basic Information</CardTitle>
+              <CardTitle>Basic Information</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <div className="flex items-center space-x-2 text-sm text-gray-600">
-                    <Globe className="h-4 w-4" />
-                    <span>Country Name</span>
-                  </div>
-                  <p className="font-medium">{country.name}</p>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex items-center space-x-2 text-sm text-gray-600">
-                    <Hash className="h-4 w-4" />
-                    <span>Country Code</span>
-                  </div>
-                  <Badge variant="outline" className="font-mono">
-                    {country.code}
-                  </Badge>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex items-center space-x-2 text-sm text-gray-600">
-                    <MapPin className="h-4 w-4" />
-                    <span>Continent</span>
-                  </div>
-                  <Badge className={getContinentColor(country.continent)}>
-                    {country.continent}
-                  </Badge>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex items-center space-x-2 text-sm text-gray-600">
-                    <Calendar className="h-4 w-4" />
-                    <span>Created</span>
-                  </div>
-                  <p className="text-sm">
-                    {new Date(country.createdAt).toLocaleDateString('en-US', {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric',
-                    })}
-                  </p>
-                </div>
-              </div>
+            <CardContent>
+              <Grid min={220}>
+                {details.map((item) => (
+                  <Card key={item.label} tone="muted" staticCard>
+                    <Stack gap={2}>
+                      <Stack direction="horizontal" gap={2} align="center">
+                        <item.icon size={16} style={{ color: 'var(--ui-text-soft)' }} />
+                        <Text variant="label" tone="muted">{item.label}</Text>
+                      </Stack>
+                      {typeof item.value === 'string' ? <Text>{item.value}</Text> : item.value}
+                    </Stack>
+                  </Card>
+                ))}
+              </Grid>
             </CardContent>
           </Card>
 
-          {/* States Information */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg flex items-center space-x-2">
-                <Building className="h-5 w-5" />
-                <span>Associated States</span>
+              <Stack direction="horizontal" gap={2} align="center">
+                <Building size={20} />
+                <CardTitle>Associated States</CardTitle>
                 <Badge variant="secondary">{states.length}</Badge>
-              </CardTitle>
+              </Stack>
               <CardDescription>
                 States and territories within this country
               </CardDescription>
             </CardHeader>
             <CardContent>
               {statesLoading ? (
-                <div className="flex items-center justify-center py-8">
+                <Stack align="center" justify="center" style={{ minHeight: '8rem' }}>
                   <LoadingSpinner size="md" />
-                </div>
+                </Stack>
               ) : states.length > 0 ? (
-                <div className="space-y-2">
+                <Stack gap={2}>
                   {states.map((state) => (
-                    <div
-                      key={state.id}
-                      className="flex items-center justify-between p-3 border rounded-lg"
-                    >
-                      <div className="flex items-center space-x-3">
-                        <MapPin className="h-4 w-4 text-gray-600" />
-                        <div>
-                          <p className="font-medium">{state.name}</p>
-                          <p className="text-sm text-gray-600">Code: {state.code}</p>
-                        </div>
-                      </div>
-                      <div className="text-sm text-gray-600">
-                        {new Date(state.createdAt).toLocaleDateString()}
-                      </div>
-                    </div>
+                    <Card key={state.id} tone="muted" staticCard>
+                      <Stack direction="horizontal" justify="space-between" align="center" gap={3} wrap="wrap">
+                        <Stack direction="horizontal" gap={2} align="center">
+                          <MapPin size={16} style={{ color: 'var(--ui-text-soft)' }} />
+                          <Stack gap={1}>
+                            <Text variant="label">{state.name}</Text>
+                            <Text variant="body-sm" tone="muted">Code: {state.code}</Text>
+                          </Stack>
+                        </Stack>
+                        <Text variant="body-sm" tone="muted">
+                          {new Date(state.createdAt).toLocaleDateString()}
+                        </Text>
+                      </Stack>
+                    </Card>
                   ))}
-                </div>
+                </Stack>
               ) : (
-                <div className="text-center py-6 text-gray-600">
-                  <Building className="mx-auto h-8 w-8 text-gray-600 mb-2" />
-                  <p>No states found for this country</p>
-                  <p className="text-sm">States will appear here when created</p>
-                </div>
+                <Stack gap={2} align="center" style={{ paddingBlock: '1.5rem', textAlign: 'center' }}>
+                  <Building size={32} style={{ color: 'var(--ui-text-soft)', opacity: 0.6 }} />
+                  <Text tone="muted">No states found for this country</Text>
+                  <Text variant="body-sm" tone="soft">States will appear here when created</Text>
+                </Stack>
               )}
             </CardContent>
           </Card>
 
-          {/* Statistics */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Statistics</CardTitle>
+              <CardTitle>Statistics</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-center">
-                <div className="space-y-1">
-                  <p className="text-2xl font-bold text-green-600">{states.length}</p>
-                  <p className="text-sm text-gray-600">States</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-2xl font-bold text-green-600">
-                    {states.reduce((acc, state) => acc + (state.cities?.length || 0), 0)}
-                  </p>
-                  <p className="text-sm text-gray-600">Cities</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-2xl font-bold text-green-600">
-                    {country.continent}
-                  </p>
-                  <p className="text-sm text-gray-600">Continent</p>
-                </div>
-              </div>
+              <Grid min={160}>
+                {stats.map(([label, value]) => (
+                  <Card key={label} tone="highlight" staticCard>
+                    <Stack gap={1} align="center" style={{ textAlign: 'center' }}>
+                      <Text variant="headline" tone="accent">{value}</Text>
+                      <Text variant="body-sm" tone="muted">{label}</Text>
+                    </Stack>
+                  </Card>
+                ))}
+              </Grid>
             </CardContent>
           </Card>
-        </div>
+        </Stack>
       </DialogContent>
     </Dialog>
   );

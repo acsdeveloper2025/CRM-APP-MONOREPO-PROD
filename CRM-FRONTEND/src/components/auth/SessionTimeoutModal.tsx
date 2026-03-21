@@ -7,8 +7,8 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { Button } from '@/components/ui/button';
+} from '@/ui/components/alert-dialog';
+import { Button } from '@/ui/components/button';
 import { sessionManager } from '@/services/sessionManager';
 
 interface SessionTimeoutModalProps {

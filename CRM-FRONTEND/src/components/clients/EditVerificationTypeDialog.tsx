@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useCRUDMutation } from '@/hooks/useStandardizedMutation';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/ui/components/Button';
 import {
   Dialog,
   DialogContent,
@@ -11,7 +11,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
+} from '@/ui/components/dialog';
 import {
   Form,
   FormControl,
@@ -20,8 +20,9 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
+} from '@/ui/components/form';
+import { Input } from '@/ui/components/input';
+import { Stack } from '@/ui/primitives/Stack';
 import { clientsService } from '@/services/clients';
 import { VerificationType } from '@/types/client';
 
@@ -74,7 +75,7 @@ export function EditVerificationTypeDialog({ verificationType, open, onOpenChang
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] sm:max-w-[425px]">
+      <DialogContent style={{ width: 'min(95vw, 425px)' }}>
         <DialogHeader>
           <DialogTitle>Edit Verification Type</DialogTitle>
           <DialogDescription>
@@ -83,7 +84,8 @@ export function EditVerificationTypeDialog({ verificationType, open, onOpenChang
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit)}>
+            <Stack gap={4}>
             <FormField
               control={form.control}
               name="code"
@@ -124,12 +126,12 @@ export function EditVerificationTypeDialog({ verificationType, open, onOpenChang
               )}
             />
 
-            <DialogFooter className="flex-col sm:flex-row gap-2">
+            <DialogFooter style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
-                className="w-full sm:w-auto"
+                fullWidth
                 disabled={updateMutation.isPending}
               >
                 Cancel
@@ -137,10 +139,11 @@ export function EditVerificationTypeDialog({ verificationType, open, onOpenChang
               <Button
                 type="submit"
                 disabled={updateMutation.isPending}
-               className="w-full sm:w-auto">
+                fullWidth>
                 {updateMutation.isPending ? 'Updating...' : 'Update Type'}
               </Button>
             </DialogFooter>
+            </Stack>
           </form>
         </Form>
       </DialogContent>

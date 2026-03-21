@@ -9,11 +9,11 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
+} from '@/ui/components/dialog';
+import { Button } from '@/ui/components/button';
+import { Label } from '@/ui/components/label';
+import { Textarea } from '@/ui/components/textarea';
+import { Badge } from '@/ui/components/badge';
 import { CheckCircle, XCircle, RotateCcw } from 'lucide-react';
 import type { Case } from '@/types/case';
 
@@ -21,6 +21,7 @@ interface ReviewDialogProps {
   isOpen: boolean;
   onClose: () => void;
   case: Case | null;
+  initialAction?: ReviewAction | null;
   onApprove: (caseId: string, feedback?: string) => Promise<void>;
   onReject: (caseId: string, reason: string) => Promise<void>;
   onRequestRework: (caseId: string, feedback: string) => Promise<void>;
@@ -45,12 +46,13 @@ export const ReviewDialog: React.FC<ReviewDialogProps> = ({
   isOpen,
   onClose,
   case: caseItem,
+  initialAction = null,
   onApprove,
   onReject,
   onRequestRework,
   isLoading,
 }) => {
-  const [action, setAction] = useState<ReviewAction | null>(null);
+  const [action, setAction] = useState<ReviewAction | null>(initialAction);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const {
@@ -67,10 +69,16 @@ export const ReviewDialog: React.FC<ReviewDialogProps> = ({
   const reason = watch('reason');
 
   const handleClose = () => {
-    setAction(null);
+    setAction(initialAction);
     reset();
     onClose();
   };
+
+  React.useEffect(() => {
+    if (isOpen) {
+      setAction(initialAction);
+    }
+  }, [initialAction, isOpen]);
 
   const onSubmit = async (data: ReviewFormData) => {
     if (!caseItem || !action) {return;}

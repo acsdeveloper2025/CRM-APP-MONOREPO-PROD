@@ -7,7 +7,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+} from '@/ui/components/alert-dialog';
 
 interface DeleteConfirmationDialogProps {
   open: boolean;
@@ -42,7 +42,7 @@ export function DeleteConfirmationDialog({
           <AlertDialogAction
             onClick={onConfirm}
             disabled={isLoading}
-            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            {...{ className: "bg-destructive text-destructive-foreground hover:bg-destructive/90" }}
           >
             {isLoading ? 'Deleting...' : confirmText}
           </AlertDialogAction>

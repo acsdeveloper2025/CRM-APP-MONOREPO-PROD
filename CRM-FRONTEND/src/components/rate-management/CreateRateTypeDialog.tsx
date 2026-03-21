@@ -9,7 +9,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
+} from '@/ui/components/dialog';
 import {
   Form,
   FormControl,
@@ -18,11 +18,11 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
-import { Button } from '@/components/ui/button';
+} from '@/ui/components/form';
+import { Input } from '@/ui/components/input';
+import { Textarea } from '@/ui/components/textarea';
+import { Switch } from '@/ui/components/switch';
+import { Button } from '@/ui/components/button';
 import { rateTypesService, type CreateRateTypeData } from '@/services/rateTypes';
 
 const createRateTypeSchema = z.object({
@@ -89,7 +89,7 @@ export function CreateRateTypeDialog({ open, onOpenChange }: CreateRateTypeDialo
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-[95vw] sm:max-w-[600px]">
+      <DialogContent {...{ className: "max-w-[95vw] sm:max-w-[600px]" }}>
         <DialogHeader>
           <DialogTitle>Create Rate Type</DialogTitle>
           <DialogDescription>
@@ -98,11 +98,11 @@ export function CreateRateTypeDialog({ open, onOpenChange }: CreateRateTypeDialo
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit(onSubmit)} {...{ className: "space-y-6" }}>
             {/* Predefined Rate Types */}
-            <div className="space-y-3">
+            <div {...{ className: "space-y-3" }}>
               <FormLabel>Quick Select (Predefined Rate Types)</FormLabel>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div {...{ className: "grid grid-cols-1 sm:grid-cols-2 gap-2" }}>
                 {predefinedRateTypes.map((rateType) => (
                   <Button
                     key={rateType.name}
@@ -110,11 +110,11 @@ export function CreateRateTypeDialog({ open, onOpenChange }: CreateRateTypeDialo
                     variant="outline"
                     size="sm"
                     onClick={() => fillPredefinedRateType(rateType)}
-                    className="justify-start text-left h-auto p-3"
+                    {...{ className: "justify-start text-left h-auto p-3" }}
                   >
                     <div>
-                      <div className="font-medium">{rateType.name}</div>
-                      <div className="text-xs text-gray-600">{rateType.description}</div>
+                      <div {...{ className: "font-medium" }}>{rateType.name}</div>
+                      <div {...{ className: "text-xs text-gray-600" }}>{rateType.description}</div>
                     </div>
                   </Button>
                 ))}
@@ -148,7 +148,7 @@ export function CreateRateTypeDialog({ open, onOpenChange }: CreateRateTypeDialo
                   <FormControl>
                     <Textarea
                       placeholder="Enter description for this rate type"
-                      className="resize-none"
+                      {...{ className: "resize-none" }}
                       rows={3}
                       {...field}
                     />
@@ -165,9 +165,9 @@ export function CreateRateTypeDialog({ open, onOpenChange }: CreateRateTypeDialo
               control={form.control}
               name="isActive"
               render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                  <div className="space-y-0.5">
-                    <FormLabel className="text-base">Active Status</FormLabel>
+                <FormItem {...{ className: "flex flex-row items-center justify-between rounded-lg border p-4" }}>
+                  <div {...{ className: "space-y-0.5" }}>
+                    <FormLabel {...{ className: "text-base" }}>Active Status</FormLabel>
                     <FormDescription>
                       Enable this rate type for use in assignments and rate setting
                     </FormDescription>
@@ -182,17 +182,17 @@ export function CreateRateTypeDialog({ open, onOpenChange }: CreateRateTypeDialo
               )}
             />
 
-            <DialogFooter className="flex-col sm:flex-row gap-2">
+            <DialogFooter {...{ className: "flex-col sm:flex-row gap-2" }}>
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => handleOpenChange(false)}
-                className="w-full sm:w-auto"
+                {...{ className: "w-full sm:w-auto" }}
                 disabled={createMutation.isPending}
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={createMutation.isPending} className="w-full sm:w-auto">
+              <Button type="submit" disabled={createMutation.isPending} {...{ className: "w-full sm:w-auto" }}>
                 {createMutation.isPending ? 'Creating...' : 'Create Rate Type'}
               </Button>
             </DialogFooter>

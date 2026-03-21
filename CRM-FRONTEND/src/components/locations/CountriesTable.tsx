@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { MoreHorizontal, Edit, Trash2, Eye, Globe } from 'lucide-react';
 import { useMutationWithInvalidation } from '@/hooks/useStandardizedMutation';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/ui/components/Button';
+import { Badge } from '@/ui/components/Badge';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,7 +10,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from '@/ui/components/dropdown-menu';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,7 +20,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+} from '@/ui/components/alert-dialog';
 import {
   Table,
   TableBody,
@@ -27,10 +28,12 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { LoadingState } from '@/components/ui/loading';
-import { baseBadgeStyle, formatBadgeLabel } from '@/lib/badgeStyles';
+} from '@/ui/components/table';
+import { LoadingState } from '@/ui/components/loading';
+import { formatBadgeLabel } from '@/lib/badgeStyles';
+import { Box } from '@/ui/primitives/Box';
+import { Stack } from '@/ui/primitives/Stack';
+import { Text } from '@/ui/primitives/Text';
 import { locationsService } from '@/services/locations';
 import { EditCountryDialog } from './EditCountryDialog';
 import { CountryDetailsDialog } from './CountryDetailsDialog';
@@ -87,13 +90,13 @@ export function CountriesTable({ data, isLoading }: CountriesTableProps) {
 
   if (!data.length) {
     return (
-      <div className="text-center py-8">
-        <Globe className="mx-auto h-12 w-12 text-gray-600" />
-        <h3 className="mt-2 text-sm font-medium text-gray-900">No countries found</h3>
-        <p className="mt-1 text-sm text-gray-600">
+      <Stack gap={3} align="center" style={{ paddingBlock: '2rem', textAlign: 'center' }}>
+        <Globe size={48} style={{ color: 'var(--ui-text-soft)', opacity: 0.75 }} />
+        <Text as="h3" variant="title">No countries found</Text>
+        <Text tone="muted">
           Get started by creating a new country.
-        </p>
-      </div>
+        </Text>
+      </Stack>
     );
   }
 
@@ -101,7 +104,7 @@ export function CountriesTable({ data, isLoading }: CountriesTableProps) {
 
   return (
     <>
-      <div className="rounded-md border overflow-auto">
+      <Box style={{ overflowX: 'auto', border: '1px solid var(--ui-border)', borderRadius: 'var(--ui-radius-lg)' }}>
         <Table>
           <TableHeader>
             <TableRow>
@@ -109,51 +112,52 @@ export function CountriesTable({ data, isLoading }: CountriesTableProps) {
               <TableHead>Code</TableHead>
               <TableHead>Continent</TableHead>
               <TableHead>Created</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead style={{ textAlign: 'right' }}>Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {data.map((country) => (
               <TableRow key={country.id}>
-                <TableCell className="font-medium">
-                  <div className="flex items-center space-x-2">
-                    <Globe className="h-4 w-4 text-gray-600" />
-                    <span>{country.name}</span>
-                  </div>
+                <TableCell style={{ fontWeight: 600 }}>
+                  <Stack direction="horizontal" gap={2} align="center">
+                    <Globe size={16} style={{ color: 'var(--ui-text-soft)' }} />
+                    <Text as="span" variant="label">{country.name}</Text>
+                  </Stack>
                 </TableCell>
                 <TableCell>
-                  <Badge className={baseBadgeStyle}>{formatBadgeLabel(country.code)}</Badge>
+                  <Badge variant="outline">{formatBadgeLabel(country.code)}</Badge>
                 </TableCell>
                 <TableCell>
-                  <Badge className={baseBadgeStyle}>{formatBadgeLabel(country.continent)}</Badge>
+                  <Badge variant="outline">{formatBadgeLabel(country.continent)}</Badge>
                 </TableCell>
-                <TableCell className="text-gray-600">
+                <TableCell>
+                  <Text as="span" variant="body-sm" tone="muted">
                   {new Date(country.createdAt).toLocaleDateString()}
+                  </Text>
                 </TableCell>
-                <TableCell className="text-right">
+                <TableCell style={{ textAlign: 'right' }}>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" className="h-8 w-8 p-0">
-                        <span className="sr-only">Open menu</span>
-                        <MoreHorizontal className="h-4 w-4" />
+                      <Button variant="ghost" aria-label="Open actions menu">
+                        <MoreHorizontal size={16} />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
                       <DropdownMenuItem onClick={() => handleView(country)}>
-                        <Eye className="mr-2 h-4 w-4" />
+                        <Eye size={16} style={{ marginRight: '0.5rem' }} />
                         View Details
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => handleEdit(country)}>
-                        <Edit className="mr-2 h-4 w-4" />
+                        <Edit size={16} style={{ marginRight: '0.5rem' }} />
                         Edit
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
                         onClick={() => handleDelete(country)}
-                        className="text-red-600"
+                        style={{ color: 'var(--ui-danger)' }}
                       >
-                        <Trash2 className="mr-2 h-4 w-4" />
+                        <Trash2 size={16} style={{ marginRight: '0.5rem' }} />
                         Delete
                       </DropdownMenuItem>
                     </DropdownMenuContent>
@@ -163,7 +167,7 @@ export function CountriesTable({ data, isLoading }: CountriesTableProps) {
             ))}
           </TableBody>
         </Table>
-      </div>
+      </Box>
 
       {/* Dialogs */}
       {selectedCountry && (
@@ -195,7 +199,7 @@ export function CountriesTable({ data, isLoading }: CountriesTableProps) {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              style={{ background: 'var(--ui-danger)', color: 'white' }}
               disabled={deleteCountryMutation.isPending}
             >
               {deleteCountryMutation.isPending ? 'Deleting...' : 'Delete'}

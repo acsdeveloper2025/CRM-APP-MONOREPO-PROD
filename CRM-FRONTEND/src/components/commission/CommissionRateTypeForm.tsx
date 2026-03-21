@@ -1,17 +1,17 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useMutationWithInvalidation } from '@/hooks/useStandardizedMutation';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Button } from '@/ui/components/button';
+import { Input } from '@/ui/components/input';
+import { Label } from '@/ui/components/label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
+} from '@/ui/components/select';
+import { Switch } from '@/ui/components/switch';
 
 import { commissionManagementService } from '@/services/commissionManagement';
 import { rateTypesService } from '@/services/rateTypes';
@@ -104,9 +104,9 @@ export const CommissionRateTypeForm: React.FC<CommissionRateTypeFormProps> = ({
 
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} {...{ className: "space-y-4" }}>
       {/* Rate Type Selection */}
-      <div className="space-y-2">
+      <div {...{ className: "space-y-2" }}>
         <Label htmlFor="rateTypeId">Rate Type *</Label>
         <Select
           value={formData.rateTypeId.toString()}
@@ -121,26 +121,26 @@ export const CommissionRateTypeForm: React.FC<CommissionRateTypeFormProps> = ({
               <SelectItem key={rateType.id} value={rateType.id.toString()}>
                 {rateType.name}
                 {rateType.description && (
-                  <span className="text-gray-600 ml-2">- {rateType.description}</span>
+                  <span {...{ className: "text-gray-600 ml-2" }}>- {rateType.description}</span>
                 )}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
         {errors.rateTypeId && (
-          <p className="text-sm text-destructive">{errors.rateTypeId}</p>
+          <p {...{ className: "text-sm text-destructive" }}>{errors.rateTypeId}</p>
         )}
       </div>
 
       {/* Commission Amount */}
-        <div className="space-y-2">
+        <div {...{ className: "space-y-2" }}>
           <Label htmlFor="commissionAmount">Commission Amount *</Label>
-          <div className="flex gap-2">
+          <div {...{ className: "flex gap-2" }}>
             <Select
               value={formData.currency}
               onValueChange={(value) => setFormData(prev => ({ ...prev, currency: value }))}
             >
-              <SelectTrigger className="w-24">
+              <SelectTrigger {...{ className: "w-24" }}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -160,16 +160,16 @@ export const CommissionRateTypeForm: React.FC<CommissionRateTypeFormProps> = ({
                 ...prev,
                 commissionAmount: e.target.value ? Number(e.target.value) : 0
               }))}
-              className="flex-1"
+              {...{ className: "flex-1" }}
             />
           </div>
           {errors.commissionAmount && (
-            <p className="text-sm text-destructive">{errors.commissionAmount}</p>
+            <p {...{ className: "text-sm text-destructive" }}>{errors.commissionAmount}</p>
           )}
         </div>
 
       {/* Active Status */}
-      <div className="flex items-center space-x-2">
+      <div {...{ className: "flex items-center space-x-2" }}>
         <Switch
           id="isActive"
           checked={formData.isActive}
@@ -179,7 +179,7 @@ export const CommissionRateTypeForm: React.FC<CommissionRateTypeFormProps> = ({
       </div>
 
       {/* Form Actions */}
-      <div className="flex justify-end gap-2 pt-4">
+      <div {...{ className: "flex justify-end gap-2 pt-4" }}>
         <Button type="button" variant="outline" onClick={onCancel}>
           Cancel
         </Button>

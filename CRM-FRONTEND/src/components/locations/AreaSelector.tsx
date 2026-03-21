@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Check, ChevronsUpDown, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/ui/components/button';
 import {
   Command,
   CommandEmpty,
@@ -10,14 +10,17 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from '@/components/ui/command';
+} from '@/ui/components/command';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from '@/components/ui/popover';
-import { Badge } from '@/components/ui/badge';
-import { FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
+} from '@/ui/components/popover';
+import { Badge } from '@/ui/components/badge';
+import { FormItem, FormLabel, FormMessage, FormDescription } from '@/ui/components/form';
+import { Box } from '@/ui/primitives/Box';
+import { Stack } from '@/ui/primitives/Stack';
+import { Text } from '@/ui/primitives/Text';
 import { locationsService } from '@/services/locations';
 
 interface AreaSelectorProps {
@@ -79,36 +82,47 @@ export function AreaSelector({
 
 
   return (
-    <FormItem className={className}>
+    <FormItem>
       <FormLabel>
         Areas ({selectedAreas.length}/{maxAreas})
       </FormLabel>
-      
-      <div className="space-y-2">
+
+      <Stack gap={2} style={className ? undefined : undefined}>
         {/* Selected Areas */}
         {selectedAreas.length > 0 && (
-          <div className="flex flex-wrap gap-2 p-2 border rounded-md bg-slate-100 dark:bg-slate-800/60">
+          <Box
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: '0.5rem',
+              padding: '0.5rem',
+              border: '1px solid var(--ui-border)',
+              borderRadius: 'var(--ui-radius-md)',
+              background: 'color-mix(in srgb, var(--ui-surface) 80%, white)',
+            }}
+          >
             {selectedAreas.map((areaName, index) => (
               <Badge
                 key={`${areaName}-${index}`}
                 variant="secondary"
-                className="flex items-center gap-1"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
               >
-                <span className="text-xs font-medium">{index + 1}.</span>
-                <span>{areaName}</span>
+                <Text as="span" variant="caption" style={{ fontWeight: 600 }}>
+                  {index + 1}.
+                </Text>
+                <Text as="span" variant="body-sm">{areaName}</Text>
                 <Button
                   type="button"
                   variant="ghost"
-                  size="sm"
-                  className="h-4 w-4 p-0 hover:bg-red-100"
                   onClick={() => removeArea(areaName)}
                   disabled={disabled || selectedAreas.length <= minAreas}
+                  style={{ padding: 0, minWidth: '1rem', minHeight: '1rem' }}
                 >
-                  <X className="h-3 w-3" />
+                  <X size={12} />
                 </Button>
               </Badge>
             ))}
-          </div>
+          </Box>
         )}
 
         {/* Area Selector */}
@@ -119,14 +133,15 @@ export function AreaSelector({
                 variant="outline"
                 role="combobox"
                 aria-expanded={open}
-                className="w-full justify-between"
+                fullWidth
                 disabled={disabled}
+                style={{ justifyContent: 'space-between' }}
               >
                 Select or add areas...
-                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                <ChevronsUpDown size={16} style={{ marginLeft: '0.5rem', opacity: 0.5, flexShrink: 0 }} />
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-full p-0" align="start">
+            <PopoverContent align="start" style={{ width: 'var(--radix-popover-trigger-width)', padding: 0 }}>
               <Command>
                 <CommandInput
                   placeholder="Search areas or type new area name..."
@@ -138,11 +153,11 @@ export function AreaSelector({
                     {isLoading ? (
                       "Loading areas..."
                     ) : searchValue.trim().length >= 2 ? (
-                      <div className="p-2">
-                        <p className="text-sm text-gray-600">
+                      <Box style={{ padding: '0.5rem' }}>
+                        <Text variant="body-sm" tone="muted">
                           No existing areas found. Please select from available areas only.
-                        </p>
-                      </div>
+                        </Text>
+                      </Box>
                     ) : (
                       "Type at least 2 characters to search areas"
                     )}
@@ -151,7 +166,6 @@ export function AreaSelector({
                   {uniqueAreaNames.length > 0 && (
                     <CommandGroup heading="Existing Areas">
                       {uniqueAreaNames.map((areaName) => {
-                        console.warn('AreaSelector - Rendering area:', areaName);
                         const isSelected = selectedAreas.includes(areaName);
                         const areaUsageCount = availableAreas.filter(
                           area => area.name === areaName
@@ -168,21 +182,21 @@ export function AreaSelector({
                               }
                             }}
                             disabled={isSelected}
-                            className={cn(
-                              "flex items-center justify-between",
-                              isSelected && "opacity-50"
-                            )}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              opacity: isSelected ? 0.5 : 1,
+                            }}
                           >
-                            <div className="flex items-center">
+                            <Stack direction="horizontal" gap={2} align="center">
                               <Check
-                                className={cn(
-                                  "mr-2 h-4 w-4",
-                                  isSelected ? "opacity-100" : "opacity-0"
-                                )}
+                                size={16}
+                                style={{ opacity: isSelected ? 1 : 0 }}
                               />
-                              <span>{areaName}</span>
-                            </div>
-                            <Badge variant="outline" className="text-xs">
+                              <Text as="span" variant="body-sm">{areaName}</Text>
+                            </Stack>
+                            <Badge variant="outline">
                               {areaUsageCount} pincode{areaUsageCount !== 1 ? 's' : ''}
                             </Badge>
                           </CommandItem>
@@ -197,15 +211,15 @@ export function AreaSelector({
             </PopoverContent>
           </Popover>
         )}
-      </div>
+      </Stack>
 
       <FormDescription>
         Select from existing areas or type to add new ones. 
         {selectedAreas.length >= maxAreas && (
-          <span className="text-amber-600"> Maximum {maxAreas} areas reached.</span>
+          <Text as="span" variant="body-sm" tone="warning"> Maximum {maxAreas} areas reached.</Text>
         )}
         {cityId && (
-          <span className="text-gray-600"> Showing areas for selected city.</span>
+          <Text as="span" variant="body-sm" tone="muted"> Showing areas for selected city.</Text>
         )}
       </FormDescription>
       

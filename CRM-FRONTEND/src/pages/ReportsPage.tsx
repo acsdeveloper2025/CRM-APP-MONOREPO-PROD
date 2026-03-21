@@ -1,17 +1,24 @@
 import React, { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Plus, Download, BarChart3, TrendingUp } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { reportsService } from '@/services/reports';
+import { BarChart3, Download, Plus, TrendingUp } from 'lucide-react';
+import { CompletionRateChart } from '@/components/reports/CompletionRateChart';
+import { GenerateReportDialog } from '@/components/reports/GenerateReportDialog';
+import { MISDashboard } from '@/components/reports/MISDashboard';
 import { MISReportsTable } from '@/components/reports/MISReportsTable';
 import { ReportSummaryCards } from '@/components/reports/ReportSummaryCards';
-import { GenerateReportDialog } from '@/components/reports/GenerateReportDialog';
 import { TurnaroundTimeChart } from '@/components/reports/TurnaroundTimeChart';
-import { CompletionRateChart } from '@/components/reports/CompletionRateChart';
-import { MISDashboard } from '@/components/reports/MISDashboard';
+import { MetricCardGrid } from '@/components/shared/MetricCardGrid';
+import { PaginationStatusCard } from '@/components/shared/PaginationStatusCard';
+import { reportsService } from '@/services/reports';
+import { Badge } from '@/ui/components/Badge';
+import { Button } from '@/ui/components/Button';
+import { Card } from '@/ui/components/Card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/components/Tabs';
+import { Page } from '@/ui/layout/Page';
+import { Section } from '@/ui/layout/Section';
+import { Box } from '@/ui/primitives/Box';
+import { Stack } from '@/ui/primitives/Stack';
+import { Text } from '@/ui/primitives/Text';
 
 export function ReportsPage() {
   const [activeTab, setActiveTab] = useState('overview');
@@ -19,17 +26,13 @@ export function ReportsPage() {
   const [misReportsPage, setMisReportsPage] = useState(1);
   const pageSize = 20;
 
-  // Reset to page 1 when search or tab changes
   React.useEffect(() => {
     setMisReportsPage(1);
   }, [activeTab]);
 
   const { data: misReportsData, isLoading: misReportsLoading } = useQuery({
     queryKey: ['mis-reports', misReportsPage, pageSize],
-    queryFn: () => reportsService.getMISReports({
-      page: misReportsPage,
-      limit: pageSize,
-    }),
+    queryFn: () => reportsService.getMISReports({ page: misReportsPage, limit: pageSize }),
     enabled: activeTab === 'mis-reports',
   });
 
@@ -61,12 +64,11 @@ export function ReportsPage() {
     try {
       const blob = await reportsService.exportMISReports({}, format);
       const filename = `mis_reports_${format.toLowerCase()}_${new Date().toISOString().split('T')[0]}.${format === 'EXCEL' ? 'xlsx' : format.toLowerCase()}`;
-
       const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      a.click();
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = filename;
+      anchor.click();
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Failed to export data:', error);
@@ -77,207 +79,131 @@ export function ReportsPage() {
     const misReports = misReportsData?.data || [];
     const weekAgo = new Date();
     weekAgo.setDate(weekAgo.getDate() - 7);
-
     return {
       misReports: {
         total: misReports.length,
-        recent: misReports.filter(report => new Date(report.generatedAt) >= weekAgo).length,
+        recent: misReports.filter((report) => new Date(report.generatedAt) >= weekAgo).length,
       },
     };
   }, [misReportsData]);
 
+  const overviewCards = [
+    {
+      title: 'Generated Reports',
+      value: dashboardData?.data?.totalReports || 0,
+      detail: `${dashboardData?.data?.recentReports || 0} this week`,
+      icon: BarChart3,
+      tone: 'accent' as const,
+    },
+    {
+      title: 'MIS Reports',
+      value: stats.misReports.total,
+      detail: `${stats.misReports.recent} generated in the last 7 days`,
+      icon: TrendingUp,
+      tone: 'neutral' as const,
+    },
+    {
+      title: 'Avg Turnaround',
+      value: `${dashboardData?.data?.averageTurnaround || 0}h`,
+      detail: 'Target: 24h',
+      icon: TrendingUp,
+      tone: 'warning' as const,
+    },
+    {
+      title: 'Completion Rate',
+      value: `${completionData?.data?.completionRate || 0}%`,
+      detail: `${completionData?.data?.completedCases || 0} completed cases`,
+      icon: BarChart3,
+      tone: 'positive' as const,
+    },
+  ];
+
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">MIS Reports</h1>
-          <p className="text-gray-600">
-            Generate MIS reports and analyze operational performance metrics
-          </p>
-        </div>
-      </div>
+    <Page
+      title="MIS Reports"
+      subtitle="Generate MIS reports and analyze operational performance metrics."
+      shell
+      actions={
+        activeTab === 'mis-reports' ? (
+          <Stack direction="horizontal" gap={2} wrap="wrap">
+            <Button variant="secondary" icon={<Download size={16} />} onClick={() => handleExportData('EXCEL')}>
+              Export
+            </Button>
+            <Button icon={<Plus size={16} />} onClick={() => setShowGenerateReport(true)}>
+              Generate Report
+            </Button>
+          </Stack>
+        ) : undefined
+      }
+    >
+      <Section>
+        <Stack gap={3}>
+          <Badge variant="secondary">Reporting Hub</Badge>
+          <Text as="h2" variant="headline">Keep reporting, analytics, and MIS dashboards in one operational surface.</Text>
+          <Text variant="body-sm" tone="muted">
+            The page now follows the shared shell while preserving existing tables, charts, and report-generation behavior.
+          </Text>
+        </Stack>
+      </Section>
 
-      {/* Main Content */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Reports & Analytics</CardTitle>
-              <CardDescription>
-                Comprehensive reporting dashboard for financial and operational insights
-              </CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-            <div className="flex items-center justify-between">
-              <TabsList>
-                <TabsTrigger value="overview">
-                  Overview
-                </TabsTrigger>
-                <TabsTrigger value="mis-reports">
-                  MIS Reports
-                  {stats.misReports.total > 0 && (
-                    <Badge variant="secondary" className="ml-2">
-                      {stats.misReports.total}
-                    </Badge>
-                  )}
-                </TabsTrigger>
-                <TabsTrigger value="mis-dashboard">
-                  MIS Dashboard
-                </TabsTrigger>
-                <TabsTrigger value="analytics">
-                  Analytics
-                </TabsTrigger>
-              </TabsList>
+      <Section>
+        <Card tone="strong" staticCard>
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <Stack gap={4}>
+              <Box style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                <TabsList>
+                  <TabsTrigger value="overview">Overview</TabsTrigger>
+                  <TabsTrigger value="mis-reports">
+                    <Stack direction="horizontal" gap={2} align="center">
+                      <span>MIS Reports</span>
+                      {stats.misReports.total > 0 ? <Badge variant="secondary">{stats.misReports.total}</Badge> : null}
+                    </Stack>
+                  </TabsTrigger>
+                  <TabsTrigger value="mis-dashboard">MIS Dashboard</TabsTrigger>
+                  <TabsTrigger value="analytics">Analytics</TabsTrigger>
+                </TabsList>
+                <Badge variant="neutral">{activeTab.replace('-', ' ')}</Badge>
+              </Box>
 
-              {/* Actions */}
-              <div className="flex items-center space-x-2">
-                {activeTab === 'mis-reports' && (
-                  <>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleExportData('EXCEL')}
-                    >
-                      <Download className="h-4 w-4 mr-2" />
-                      Export
-                    </Button>
-                    <Button
-                      size="sm"
-                      onClick={() => setShowGenerateReport(true)}
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Generate Report
-                    </Button>
-                  </>
-                )}
-              </div>
-            </div>
+              <TabsContent value="overview">
+                <Stack gap={4}>
+                  <ReportSummaryCards summaries={reportSummariesData?.data || []} />
+                  <MetricCardGrid items={overviewCards} min={220} />
+                </Stack>
+              </TabsContent>
 
+              <TabsContent value="mis-reports">
+                <Stack gap={4}>
+                  <MISReportsTable data={misReportsData?.data || []} isLoading={misReportsLoading} />
+                  {misReportsData?.pagination ? (
+                    <PaginationStatusCard
+                      page={misReportsPage}
+                      limit={pageSize}
+                      total={misReportsData.pagination.total}
+                      totalPages={misReportsData.pagination.totalPages || 1}
+                      onPrevious={() => setMisReportsPage((prev) => Math.max(1, prev - 1))}
+                      onNext={() => setMisReportsPage((prev) => prev + 1)}
+                    />
+                  ) : null}
+                </Stack>
+              </TabsContent>
 
+              <TabsContent value="mis-dashboard">
+                <MISDashboard />
+              </TabsContent>
 
-            <TabsContent value="overview" className="space-y-4">
-              <ReportSummaryCards summaries={reportSummariesData?.data || []} />
-              
-              {/* Quick Stats */}
-              <div className="grid gap-4 md:grid-cols-4">
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Generated Reports</CardTitle>
-                    <BarChart3 className="h-4 w-4 text-gray-600" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{dashboardData?.data?.totalReports || 0}</div>
-                    <p className="text-xs text-gray-600">
-                      {dashboardData?.data?.recentReports || 0} this week
-                    </p>
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">MIS Reports</CardTitle>
-                    <TrendingUp className="h-4 w-4 text-blue-600" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-blue-600">
-                      {stats.misReports.total}
-                    </div>
-                    <p className="text-xs text-gray-600">
-                      {stats.misReports.recent} generated in the last 7 days
-                    </p>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Avg Turnaround</CardTitle>
-                    <TrendingUp className="h-4 w-4 text-gray-600" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
-                      {dashboardData?.data?.averageTurnaround || 0}h
-                    </div>
-                    <p className="text-xs text-gray-600">
-                      Target: 24h
-                    </p>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Completion Rate</CardTitle>
-                    <BarChart3 className="h-4 w-4 text-gray-600" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
-                      {completionData?.data?.completionRate || 0}%
-                    </div>
-                    <p className="text-xs text-gray-600">
-                      {completionData?.data?.completedCases || 0} completed cases
-                    </p>
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="mis-reports" className="space-y-4">
-              <MISReportsTable
-                data={misReportsData?.data || []}
-                isLoading={misReportsLoading}
-              />
-              {misReportsData?.pagination && (
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
-                  <div className="text-sm text-gray-600">
-                    Showing {misReportsData.data?.length || 0} of {misReportsData.pagination.total} MIS reports
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setMisReportsPage(prev => Math.max(1, prev - 1))}
-                      disabled={misReportsPage === 1}
-                    >
-                      Previous
-                    </Button>
-                    <div className="text-sm">
-                      Page {misReportsPage} of {misReportsData.pagination.totalPages || 1}
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setMisReportsPage(prev => prev + 1)}
-                      disabled={misReportsPage >= (misReportsData.pagination.totalPages || 1)}
-                    >
-                      Next
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </TabsContent>
-
-            <TabsContent value="mis-dashboard" className="space-y-4">
-              <MISDashboard />
-            </TabsContent>
-
-            <TabsContent value="analytics" className="space-y-4">
-              <div className="grid gap-6 md:grid-cols-2">
-                <TurnaroundTimeChart data={turnaroundData?.data} />
-                <CompletionRateChart data={completionData?.data} />
-              </div>
-            </TabsContent>
+              <TabsContent value="analytics">
+                <Box style={{ display: 'grid', gap: '1.5rem', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))' }}>
+                  <TurnaroundTimeChart data={turnaroundData?.data} />
+                  <CompletionRateChart data={completionData?.data} />
+                </Box>
+              </TabsContent>
+            </Stack>
           </Tabs>
-        </CardContent>
-      </Card>
+        </Card>
+      </Section>
 
-      {/* Dialogs */}
-      <GenerateReportDialog
-        open={showGenerateReport}
-        onOpenChange={setShowGenerateReport}
-      />
-    </div>
+      <GenerateReportDialog open={showGenerateReport} onOpenChange={setShowGenerateReport} />
+    </Page>
   );
 }

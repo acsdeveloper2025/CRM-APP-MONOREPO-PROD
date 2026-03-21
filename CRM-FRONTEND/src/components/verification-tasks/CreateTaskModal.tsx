@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/ui/components/dialog';
+import { Button } from '@/ui/components/button';
+import { Input } from '@/ui/components/input';
+import { Label } from '@/ui/components/label';
+import { Textarea } from '@/ui/components/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/ui/components/select';
+import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/card';
+import { Badge } from '@/ui/components/badge';
 import { Plus, Trash2, AlertCircle, Settings } from 'lucide-react';
 import { CreateVerificationTaskRequest, TaskPriority } from '@/types/verificationTask';
 import { useVerificationTypes } from '@/hooks/useClients';
@@ -52,14 +52,14 @@ const TaskAreaSelect: React.FC<TaskAreaSelectProps> = ({ taskId, pincodeId, valu
   const areas = areasData?.data || [];
 
   return (
-    <div className="space-y-2">
+    <div {...{ className: "space-y-2" }}>
       <Label htmlFor={`area-${taskId}`}>Area *</Label>
       <Select
         value={value || ''}
         onValueChange={(value) => onChange(value || undefined)}
         disabled={!pincodeId}
       >
-        <SelectTrigger className={error ? 'border-red-500' : ''}>
+        <SelectTrigger {...{ className: error ? 'border-red-500' : '' }}>
           <SelectValue placeholder={pincodeId ? "Select area" : "Select pincode first"} />
         </SelectTrigger>
         <SelectContent>
@@ -71,8 +71,8 @@ const TaskAreaSelect: React.FC<TaskAreaSelectProps> = ({ taskId, pincodeId, valu
         </SelectContent>
       </Select>
       {error && (
-        <div className="flex items-center gap-1 text-sm text-red-600">
-          <AlertCircle className="h-4 w-4" />
+        <div {...{ className: "flex items-center gap-1 text-sm text-red-600" }}>
+          <AlertCircle {...{ className: "h-4 w-4" }} />
           {error}
         </div>
       )}
@@ -251,22 +251,22 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
 
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent {...{ className: "max-w-4xl max-h-[90vh] overflow-y-auto" }}>
         <DialogHeader>
-          <DialogTitle className="flex items-center space-x-2">
-            <Plus className="h-5 w-5" />
+          <DialogTitle {...{ className: "flex items-center space-x-2" }}>
+            <Plus {...{ className: "h-5 w-5" }} />
             <span>Create Verification Tasks</span>
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6">
+        <div {...{ className: "space-y-6" }}>
           {/* Tasks List */}
-          <div className="space-y-4">
+          <div {...{ className: "space-y-4" }}>
             {tasks.map((task, index) => (
-              <Card key={task.id} className="border-gray-200">
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg">
+              <Card key={task.id} {...{ className: "border-gray-200" }}>
+                <CardHeader {...{ className: "pb-3" }}>
+                  <div {...{ className: "flex items-center justify-between" }}>
+                    <CardTitle {...{ className: "text-lg" }}>
                       Task {index + 1}
                     </CardTitle>
                     {tasks.length > 1 && (
@@ -274,46 +274,46 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                         onClick={() => removeTask(task.id)}
                         variant="ghost"
                         size="sm"
-                        className="text-red-600 hover:text-red-700"
+                        {...{ className: "text-red-600 hover:text-red-700" }}
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 {...{ className: "h-4 w-4" }} />
                       </Button>
                     )}
                   </div>
                 </CardHeader>
                 
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <CardContent {...{ className: "space-y-4" }}>
+                  <div {...{ className: "grid grid-cols-1 md:grid-cols-2 gap-4" }}>
                     {/* Task Title */}
-                    <div className="space-y-2">
+                    <div {...{ className: "space-y-2" }}>
                       <Label htmlFor={`title-${task.id}`}>
-                        Task Title <span className="text-red-500">*</span>
+                        Task Title <span {...{ className: "text-red-500" }}>*</span>
                       </Label>
                       <Input
                         id={`title-${task.id}`}
                         value={task.taskTitle}
                         onChange={(e) => updateTask(task.id, 'taskTitle', e.target.value)}
                         placeholder="Enter task title"
-                        className={getFieldError(task.id, 'taskTitle') ? 'border-red-500' : ''}
+                        {...{ className: getFieldError(task.id, 'taskTitle') ? 'border-red-500' : '' }}
                       />
                       {getFieldError(task.id, 'taskTitle') && (
-                        <p className="text-sm text-red-600 flex items-center space-x-1">
-                          <AlertCircle className="h-4 w-4" />
+                        <p {...{ className: "text-sm text-red-600 flex items-center space-x-1" }}>
+                          <AlertCircle {...{ className: "h-4 w-4" }} />
                           <span>{getFieldError(task.id, 'taskTitle')}</span>
                         </p>
                       )}
                     </div>
 
                     {/* Verification Type */}
-                    <div className="space-y-2">
+                    <div {...{ className: "space-y-2" }}>
                       <Label htmlFor={`type-${task.id}`}>
-                        Verification Type <span className="text-red-500">*</span>
+                        Verification Type <span {...{ className: "text-red-500" }}>*</span>
                       </Label>
                       <Select
                         value={task.verificationTypeId?.toString() || ''}
                         onValueChange={(value) => updateTask(task.id, 'verificationTypeId', parseInt(value))}
                       >
-                        <SelectTrigger className={getFieldError(task.id, 'verificationTypeId') ? 'border-red-500' : ''}>
+                        <SelectTrigger {...{ className: getFieldError(task.id, 'verificationTypeId') ? 'border-red-500' : '' }}>
                           <SelectValue placeholder="Select verification type" />
                         </SelectTrigger>
                         <SelectContent>
@@ -325,15 +325,15 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                         </SelectContent>
                       </Select>
                       {getFieldError(task.id, 'verificationTypeId') && (
-                        <p className="text-sm text-red-600 flex items-center space-x-1">
-                          <AlertCircle className="h-4 w-4" />
+                        <p {...{ className: "text-sm text-red-600 flex items-center space-x-1" }}>
+                          <AlertCircle {...{ className: "h-4 w-4" }} />
                           <span>{getFieldError(task.id, 'verificationTypeId')}</span>
                         </p>
                       )}
                     </div>
 
                     {/* Priority */}
-                    <div className="space-y-2">
+                    <div {...{ className: "space-y-2" }}>
                       <Label htmlFor={`priority-${task.id}`}>Priority</Label>
                       <Select
                         value={task.priority}
@@ -352,7 +352,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                     </div>
 
                     {/* Assigned To */}
-                    <div className="space-y-2">
+                    <div {...{ className: "space-y-2" }}>
                       <Label htmlFor={`assignee-${task.id}`}>Assign To (Optional)</Label>
                       <Select
                         value={task.assignedTo || ''}
@@ -373,7 +373,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                     </div>
 
                     {/* Rate Type */}
-                    <div className="space-y-2">
+                    <div {...{ className: "space-y-2" }}>
                       <Label htmlFor={`ratetype-${task.id}`}>Rate Type *</Label>
                       <Select
                         value={task.rateTypeId || ''}
@@ -392,15 +392,15 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                         <SelectContent>
                           {availableRateTypes.map((rateType) => (
                             <SelectItem key={rateType.id} value={rateType.id.toString()}>
-                              <div className="flex items-center justify-between w-full py-2">
-                                <div className="flex flex-col">
-                                  <span className="font-medium text-gray-900">{rateType.name}</span>
+                              <div {...{ className: "flex items-center justify-between w-full py-2" }}>
+                                <div {...{ className: "flex flex-col" }}>
+                                  <span {...{ className: "font-medium text-gray-900" }}>{rateType.name}</span>
                                   {rateType.description && (
-                                    <span className="text-xs text-gray-600 mt-1">{rateType.description}</span>
+                                    <span {...{ className: "text-xs text-gray-600 mt-1" }}>{rateType.description}</span>
                                   )}
                                 </div>
                                 {rateType.hasRate && rateType.amount && (
-                                  <span className="text-sm font-semibold text-green-600 ml-4">
+                                  <span {...{ className: "text-sm font-semibold text-green-600 ml-4" }}>
                                     ₹{rateType.amount}
                                   </span>
                                 )}
@@ -412,18 +412,18 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                       {task.rateTypeId && (() => {
                         const selectedRateType = availableRateTypes.find(rt => rt.id.toString() === task.rateTypeId);
                         return selectedRateType && selectedRateType.hasRate && selectedRateType.amount ? (
-                          <div className="text-sm text-green-600 font-medium">
+                          <div {...{ className: "text-sm text-green-600 font-medium" }}>
                             Rate: ₹{selectedRateType.amount} {selectedRateType.currency || 'INR'}
                           </div>
                         ) : selectedRateType && !selectedRateType.hasRate ? (
-                          <div className="text-sm text-amber-600">
+                          <div {...{ className: "text-sm text-amber-600" }}>
                             Rate not configured for this type
                           </div>
                         ) : null;
                       })()}
                       {getFieldError(task.id, 'rateTypeId') && (
-                        <p className="text-sm text-red-600 flex items-center space-x-1">
-                          <AlertCircle className="h-4 w-4" />
+                        <p {...{ className: "text-sm text-red-600 flex items-center space-x-1" }}>
+                          <AlertCircle {...{ className: "h-4 w-4" }} />
                           <span>{getFieldError(task.id, 'rateTypeId')}</span>
                         </p>
                       )}
@@ -431,7 +431,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                   </div>
 
                   {/* Task Description */}
-                  <div className="space-y-2">
+                  <div {...{ className: "space-y-2" }}>
                     <Label htmlFor={`description-${task.id}`}>Description *</Label>
                     <Textarea
                       id={`description-${task.id}`}
@@ -439,11 +439,11 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                       onChange={(e) => updateTask(task.id, 'taskDescription', e.target.value)}
                       placeholder="Enter task description..."
                       rows={3}
-                      className={getFieldError(task.id, 'taskDescription') ? 'border-red-500' : ''}
+                      {...{ className: getFieldError(task.id, 'taskDescription') ? 'border-red-500' : '' }}
                     />
                     {getFieldError(task.id, 'taskDescription') && (
-                      <p className="text-sm text-red-600 flex items-center space-x-1">
-                        <AlertCircle className="h-4 w-4" />
+                      <p {...{ className: "text-sm text-red-600 flex items-center space-x-1" }}>
+                        <AlertCircle {...{ className: "h-4 w-4" }} />
                         <span>{getFieldError(task.id, 'taskDescription')}</span>
                       </p>
                     )}
@@ -451,14 +451,14 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
 
 
                   {/* Assignment & Location Section */}
-                  <div className="border-t pt-4 mt-4">
-                    <h4 className="text-sm font-medium text-gray-900 mb-4 flex items-center gap-2">
-                      <Settings className="h-4 w-4" />
+                  <div {...{ className: "border-t pt-4 mt-4" }}>
+                    <h4 {...{ className: "text-sm font-medium text-gray-900 mb-4 flex items-center gap-2" }}>
+                      <Settings {...{ className: "h-4 w-4" }} />
                       Assignment & Location
                     </h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div {...{ className: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" }}>
                     {/* Pincode */}
-                    <div className="space-y-2">
+                    <div {...{ className: "space-y-2" }}>
                       <Label htmlFor={`pincode-${task.id}`}>Pincode *</Label>
                       <Select
                         value={task.pincode || ''}
@@ -473,7 +473,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                           ));
                         }}
                       >
-                        <SelectTrigger className={getFieldError(task.id, 'pincode') ? 'border-red-500' : ''}>
+                        <SelectTrigger {...{ className: getFieldError(task.id, 'pincode') ? 'border-red-500' : '' }}>
                           <SelectValue placeholder="Select pincode" />
                         </SelectTrigger>
                         <SelectContent>
@@ -485,8 +485,8 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                         </SelectContent>
                       </Select>
                       {getFieldError(task.id, 'pincode') && (
-                        <p className="text-sm text-red-600 flex items-center space-x-1">
-                          <AlertCircle className="h-4 w-4" />
+                        <p {...{ className: "text-sm text-red-600 flex items-center space-x-1" }}>
+                          <AlertCircle {...{ className: "h-4 w-4" }} />
                           <span>{getFieldError(task.id, 'pincode')}</span>
                         </p>
                       )}
@@ -502,7 +502,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                     />
 
                     {/* Assign to Field User */}
-                    <div className="space-y-2">
+                    <div {...{ className: "space-y-2" }}>
                       <Label htmlFor={`assignee-${task.id}`}>Assign to Field User</Label>
                       <Select
                         value={task.assignedTo || ''}
@@ -523,43 +523,43 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                     </div>
 
                     {/* Address */}
-                    <div className="space-y-2">
+                    <div {...{ className: "space-y-2" }}>
                       <Label htmlFor={`address-${task.id}`}>Address *</Label>
                       <Input
                         id={`address-${task.id}`}
                         value={task.address || ''}
                         onChange={(e) => updateTask(task.id, 'address', e.target.value || undefined)}
                         placeholder="Verification address"
-                        className={getFieldError(task.id, 'address') ? 'border-red-500' : ''}
+                        {...{ className: getFieldError(task.id, 'address') ? 'border-red-500' : '' }}
                       />
                       {getFieldError(task.id, 'address') && (
-                        <p className="text-sm text-red-600 flex items-center space-x-1">
-                          <AlertCircle className="h-4 w-4" />
+                        <p {...{ className: "text-sm text-red-600 flex items-center space-x-1" }}>
+                          <AlertCircle {...{ className: "h-4 w-4" }} />
                           <span>{getFieldError(task.id, 'address')}</span>
                         </p>
                       )}
                     </div>
 
                     {/* Document Type */}
-                    <div className="space-y-2">
+                    <div {...{ className: "space-y-2" }}>
                       <Label htmlFor={`doctype-${task.id}`}>Document Type *</Label>
                       <Input
                         id={`doctype-${task.id}`}
                         value={task.documentType || ''}
                         onChange={(e) => updateTask(task.id, 'documentType', e.target.value || undefined)}
                         placeholder="e.g., Aadhaar, PAN"
-                        className={getFieldError(task.id, 'documentType') ? 'border-red-500' : ''}
+                        {...{ className: getFieldError(task.id, 'documentType') ? 'border-red-500' : '' }}
                       />
                       {getFieldError(task.id, 'documentType') && (
-                        <p className="text-sm text-red-600 flex items-center space-x-1">
-                          <AlertCircle className="h-4 w-4" />
+                        <p {...{ className: "text-sm text-red-600 flex items-center space-x-1" }}>
+                          <AlertCircle {...{ className: "h-4 w-4" }} />
                           <span>{getFieldError(task.id, 'documentType')}</span>
                         </p>
                       )}
                     </div>
 
                     {/* Document Number */}
-                    <div className="space-y-2">
+                    <div {...{ className: "space-y-2" }}>
                       <Label htmlFor={`docnumber-${task.id}`}>Document Number</Label>
                       <Input
                         id={`docnumber-${task.id}`}
@@ -579,21 +579,21 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
           <Button
             onClick={addTask}
             variant="outline"
-            className="w-full"
+            {...{ className: "w-full" }}
           >
-            <Plus className="h-4 w-4 mr-2" />
+            <Plus {...{ className: "h-4 w-4 mr-2" }} />
             Add Another Task
           </Button>
 
           {/* Summary */}
-          <Card className="bg-green-50 border-green-200">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
+          <Card {...{ className: "bg-green-50 border-green-200" }}>
+            <CardContent {...{ className: "p-4" }}>
+              <div {...{ className: "flex items-center justify-between" }}>
                 <div>
-                  <p className="font-medium text-green-900">
+                  <p {...{ className: "font-medium text-green-900" }}>
                     Creating {tasks.length} verification task{tasks.length !== 1 ? 's' : ''}
                   </p>
-                  <p className="text-sm text-green-700">
+                  <p {...{ className: "text-sm text-green-700" }}>
                     Total estimated amount: ₹{tasks.reduce((sum, task) => {
                       if (task.rateTypeId) {
                         const selectedRateType = availableRateTypes.find(rt => rt.id.toString() === task.rateTypeId);
@@ -603,7 +603,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                     }, 0).toLocaleString('en-IN')}
                   </p>
                 </div>
-                <Badge variant="secondary" className="bg-green-100 text-green-800">
+                <Badge variant="secondary" {...{ className: "bg-green-100 text-green-800" }}>
                   {tasks.length} Task{tasks.length !== 1 ? 's' : ''}
                 </Badge>
               </div>
@@ -611,7 +611,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
           </Card>
 
           {/* Actions */}
-          <div className="flex justify-end space-x-3">
+          <div {...{ className: "flex justify-end space-x-3" }}>
             <Button onClick={onClose} variant="outline">
               Cancel
             </Button>

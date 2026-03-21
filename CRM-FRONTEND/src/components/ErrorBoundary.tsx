@@ -1,9 +1,13 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { AlertTriangle, RefreshCw, Home, Bug } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/ui/components/collapsible';
+import { Badge } from '@/ui/components/Badge';
+import { Button } from '@/ui/components/Button';
+import { Card } from '@/ui/components/Card';
+import { Page } from '@/ui/layout/Page';
+import { Section } from '@/ui/layout/Section';
+import { Stack } from '@/ui/primitives/Stack';
+import { Text } from '@/ui/primitives/Text';
 
 interface Props {
   children: ReactNode;
@@ -109,80 +113,71 @@ export class ErrorBoundary extends Component<Props, State> {
       }
 
       return (
-        <div className="min-h-screen bg-background flex items-center justify-center p-4">
-          <Card className="w-full max-w-2xl">
-            <CardHeader className="text-center">
-              <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-destructive/10 flex items-center justify-center">
-                <AlertTriangle className="h-8 w-8 text-destructive" />
+        <Page>
+          <Section>
+            <Card tone="strong" staticCard style={{ maxWidth: '48rem', margin: '8vh auto 0' }}>
+              <Stack gap={6} style={{ textAlign: 'center' }}>
+              <div style={{ display: 'flex', justifyContent: 'center' }}>
+                <div className="ui-stat-card" style={{ width: '4rem', height: '4rem', borderRadius: '999px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <AlertTriangle size={32} style={{ color: 'var(--ui-danger)' }} />
+                </div>
               </div>
-              <CardTitle className="text-2xl">Something went wrong</CardTitle>
-              <CardDescription>
+              <Text as="h1" variant="headline">Something went wrong</Text>
+              <Text tone="muted">
                 We&apos;re sorry, but something unexpected happened. Our team has been notified.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Error ID */}
-              <div className="text-center">
-                <Badge variant="outline" className="font-mono">
+              </Text>
+
+              <div>
+                <Badge variant="danger" className="font-mono">
                   Error ID: {this.state.errorId}
                 </Badge>
               </div>
 
-              {/* Error Message */}
               <div className="bg-slate-100/70 dark:bg-slate-800/50 rounded-lg p-4">
-                <h4 className="font-medium mb-2">Error Details</h4>
-                <p className="text-sm text-gray-600">
+                <Text as="h4" variant="title" className="mb-2">Error Details</Text>
+                <Text variant="body-sm" tone="muted">
                   {this.state.error?.message || 'An unexpected error occurred'}
-                </p>
+                </Text>
               </div>
 
-              {/* Actions */}
-              <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                <Button onClick={this.handleRetry} className="flex items-center space-x-2">
-                  <RefreshCw className="h-4 w-4" />
-                  <span>Try Again</span>
+              <Stack direction="horizontal" gap={3} justify="center" wrap="wrap">
+                <Button onClick={this.handleRetry} icon={<RefreshCw size={16} />}>
+                  Try Again
                 </Button>
-                <Button variant="outline" onClick={this.handleReload} className="flex items-center space-x-2">
-                  <RefreshCw className="h-4 w-4" />
-                  <span>Reload Page</span>
+                <Button variant="secondary" onClick={this.handleReload} icon={<RefreshCw size={16} />}>
+                  Reload Page
                 </Button>
-                <Button variant="outline" onClick={this.handleGoHome} className="flex items-center space-x-2">
-                  <Home className="h-4 w-4" />
-                  <span>Go Home</span>
+                <Button variant="secondary" onClick={this.handleGoHome} icon={<Home size={16} />}>
+                  Go Home
                 </Button>
-              </div>
+              </Stack>
 
-              {/* Technical Details (Collapsible) */}
               <Collapsible open={this.state.showDetails} onOpenChange={this.toggleDetails}>
                 <CollapsibleTrigger asChild>
-                  <Button variant="ghost" size="sm" className="w-full">
-                    <Bug className="h-4 w-4 mr-2" />
+                  <Button variant="ghost" className="w-full" icon={<Bug size={16} />}>
                     {this.state.showDetails ? 'Hide' : 'Show'} Technical Details
                   </Button>
                 </CollapsibleTrigger>
                 <CollapsibleContent>
                   <div className="mt-4 space-y-4">
-                    {/* Error Stack */}
                     <div>
-                      <h5 className="font-medium text-sm mb-2">Error Stack</h5>
+                      <Text as="h5" variant="label" className="mb-2">Error Stack</Text>
                       <pre className="bg-slate-100 dark:bg-slate-800/60 p-3 rounded text-xs overflow-auto max-h-32">
                         {this.state.error?.stack}
                       </pre>
                     </div>
 
-                    {/* Component Stack */}
                     {this.state.errorInfo?.componentStack && (
                       <div>
-                        <h5 className="font-medium text-sm mb-2">Component Stack</h5>
+                        <Text as="h5" variant="label" className="mb-2">Component Stack</Text>
                         <pre className="bg-slate-100 dark:bg-slate-800/60 p-3 rounded text-xs overflow-auto max-h-32">
                           {this.state.errorInfo.componentStack}
                         </pre>
                       </div>
                     )}
 
-                    {/* Environment Info */}
                     <div>
-                      <h5 className="font-medium text-sm mb-2">Environment</h5>
+                      <Text as="h5" variant="label" className="mb-2">Environment</Text>
                       <div className="bg-slate-100 dark:bg-slate-800/60 p-3 rounded text-xs space-y-1">
                         <div>URL: {window.location.href}</div>
                         <div>User Agent: {navigator.userAgent}</div>
@@ -193,15 +188,15 @@ export class ErrorBoundary extends Component<Props, State> {
                 </CollapsibleContent>
               </Collapsible>
 
-              {/* Help Text */}
-              <div className="text-center text-sm text-gray-600">
-                <p>
+              <div>
+                <Text variant="body-sm" tone="muted">
                   If this problem persists, please contact support with the Error ID above.
-                </p>
+                </Text>
               </div>
-            </CardContent>
-          </Card>
-        </div>
+              </Stack>
+            </Card>
+          </Section>
+        </Page>
       );
     }
 

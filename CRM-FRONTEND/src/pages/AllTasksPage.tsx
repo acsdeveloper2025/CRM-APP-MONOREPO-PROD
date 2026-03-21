@@ -1,19 +1,18 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
+import { Button } from '@/ui/components/button';
+import { Label } from '@/ui/components/label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from '@/ui/components/select';
 import { TasksListFlat } from '@/components/verification-tasks/TasksListFlat';
 import { TaskAssignmentModal } from '@/components/verification-tasks/TaskAssignmentModal';
 import { useAllVerificationTasks } from '@/hooks/useVerificationTasks';
 import { useUnifiedSearch, useUnifiedFilters } from '@/hooks/useUnifiedSearch';
-import { UnifiedSearchFilterLayout, FilterGrid } from '@/components/ui/unified-search-filter-layout';
+import { UnifiedSearchFilterLayout, FilterGrid } from '@/ui/components/unified-search-filter-layout';
 import {
   ListTodo,
   Clock,
@@ -24,6 +23,15 @@ import {
   Download
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { MetricCardGrid } from '@/components/shared/MetricCardGrid';
+import { PaginationStatusCard } from '@/components/shared/PaginationStatusCard';
+import { Button as UiButton } from '@/ui/components/Button';
+import { Card } from '@/ui/components/Card';
+import { Badge } from '@/ui/components/Badge';
+import { Page } from '@/ui/layout/Page';
+import { Section } from '@/ui/layout/Section';
+import { Stack } from '@/ui/primitives/Stack';
+import { Text } from '@/ui/primitives/Text';
 
 interface TaskFilters {
   status?: string;
@@ -105,219 +113,172 @@ export const AllTasksPage: React.FC = () => {
     }
   };
 
+  const summaryCards = [
+    {
+      title: 'Total Tasks',
+      value: pagination.total,
+      detail: 'All active and historical tasks',
+      icon: ListTodo,
+      tone: 'accent' as const,
+    },
+    {
+      title: 'Pending',
+      value: statistics.pending + statistics.assigned,
+      detail: 'Awaiting action',
+      icon: Clock,
+      tone: 'warning' as const,
+    },
+    {
+      title: 'In Progress',
+      value: statistics.inProgress,
+      detail: 'Currently under execution',
+      icon: Users,
+      tone: 'neutral' as const,
+    },
+    {
+      title: 'Completed',
+      value: statistics.completed,
+      detail: 'Successfully closed',
+      icon: CheckCircle2,
+      tone: 'positive' as const,
+    },
+    {
+      title: 'High Priority',
+      value: (statistics.urgent || 0) + (statistics.highPriority || 0),
+      detail: 'Urgent + high priority',
+      icon: AlertTriangle,
+      tone: 'danger' as const,
+    },
+  ];
+
   return (
-    <div className="container mx-auto py-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">All Verification Tasks</h1>
-          <p className="text-gray-600 mt-1">
-            Comprehensive task management with advanced filtering and bulk actions
-          </p>
-        </div>
-      </div>
+    <Page
+      title="All Verification Tasks"
+      subtitle="Unified operational view across every verification queue."
+      shell
+      actions={
+        <Stack direction="horizontal" gap={2} wrap="wrap">
+          <UiButton variant="secondary">
+            Export
+          </UiButton>
+          <UiButton variant="secondary" icon={<RefreshCw size={16} />} onClick={() => refreshTasks()} disabled={loading}>
+            Refresh
+          </UiButton>
+        </Stack>
+      }
+    >
+      <Section>
+        <Stack gap={3}>
+          <Badge variant="accent">Task Operations</Badge>
+          <Text as="h2" variant="headline">Manage the full verification workload from one queue.</Text>
+          <Text variant="body-sm" tone="muted">
+            Search broadly, narrow by status or priority, and move into task or case detail from the same surface.
+          </Text>
+        </Stack>
+      </Section>
 
-      {/* Unified Search and Filter Layout */}
-      <UnifiedSearchFilterLayout
-        searchValue={searchValue}
-        onSearchChange={setSearchValue}
-        onSearchClear={clearSearch}
-        isSearchLoading={isDebouncing}
-        searchPlaceholder="Search tasks by ID, case ID, or description..."
-        hasActiveFilters={hasActiveFilters}
-        activeFilterCount={activeFilterCount}
-        onClearFilters={clearFilters}
-        filterContent={
-          <FilterGrid columns={2}>
-            {/* Status Filter */}
-            <div className="space-y-2">
-              <Label htmlFor="status">Status</Label>
-              <Select
-                value={activeFilters.status || 'all'}
-                onValueChange={(value) => setFilter('status', value === 'all' ? undefined : value)}
-              >
-                <SelectTrigger id="status">
-                  <SelectValue placeholder="All statuses" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="PENDING">Pending</SelectItem>
-                  <SelectItem value="ASSIGNED">Assigned</SelectItem>
-                  <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
-                  <SelectItem value="COMPLETED">Completed</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+      <Section>
+        <MetricCardGrid items={summaryCards} />
+      </Section>
 
-            {/* Priority Filter */}
-            <div className="space-y-2">
-              <Label htmlFor="priority">Priority</Label>
-              <Select
-                value={activeFilters.priority || 'all'}
-                onValueChange={(value) => setFilter('priority', value === 'all' ? undefined : value)}
-              >
-                <SelectTrigger id="priority">
-                  <SelectValue placeholder="All priorities" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Priorities</SelectItem>
-                  <SelectItem value="1">Low</SelectItem>
-                  <SelectItem value="2">Medium</SelectItem>
-                  <SelectItem value="3">High</SelectItem>
-                  <SelectItem value="4">Urgent</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </FilterGrid>
-        }
-        actions={
-          <>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {/* TODO: Export functionality */}}
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Export
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => refreshTasks()}
-              disabled={loading}
-            >
-              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-              Refresh
-            </Button>
-          </>
-        }
-      />
-
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Tasks</CardTitle>
-            <ListTodo className="h-4 w-4 text-gray-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{pagination.total}</div>
-            <p className="text-xs text-gray-600">
-              All tasks
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending</CardTitle>
-            <Clock className="h-4 w-4 text-yellow-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{statistics.pending + statistics.assigned}</div>
-            <p className="text-xs text-gray-600">
-              Awaiting action
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">In Progress</CardTitle>
-            <Users className="h-4 w-4 text-blue-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{statistics.inProgress}</div>
-            <p className="text-xs text-gray-600">
-              Being worked on
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Completed</CardTitle>
-            <CheckCircle2 className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{statistics.completed}</div>
-            <p className="text-xs text-gray-600">
-              Successfully done
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">High Priority</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-red-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{(statistics.urgent || 0) + (statistics.highPriority || 0)}</div>
-            <p className="text-xs text-gray-600">
-              Urgent + High
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-
-
-      {/* Tasks List */}
-      {error && (
-        <Card className="border-red-200 bg-red-50">
-          <CardContent className="py-4">
-            <p className="text-red-600">Error loading tasks: {error}</p>
-          </CardContent>
-        </Card>
-      )}
-
-      <TasksListFlat
-        tasks={tasks}
-        loading={loading}
-        onAssignTask={handleAssignTask}
-        onViewTask={handleViewTask}
-        onViewCase={handleViewCase}
-        onEditCase={handleEditCase}
-      />
-
-      {/* Pagination - Always show for better UX */}
-      {pagination.total > 0 && (
-        <Card>
-          <CardContent className="py-4">
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-gray-600">
-                Showing {((pagination.page - 1) * pagination.limit) + 1} to {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} tasks
-              </p>
-              {pagination.totalPages > 1 && (
-                <div className="flex items-center space-x-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleFilterChange('page', pagination.page - 1)}
-                    disabled={pagination.page === 1}
+      <Section>
+        <Card tone="strong" {...{ className: "ui-filter-bar" }} staticCard>
+          <UnifiedSearchFilterLayout
+            searchValue={searchValue}
+            onSearchChange={setSearchValue}
+            onSearchClear={clearSearch}
+            isSearchLoading={isDebouncing}
+            searchPlaceholder="Search tasks by ID, case ID, or description..."
+            hasActiveFilters={hasActiveFilters}
+            activeFilterCount={activeFilterCount}
+            onClearFilters={clearFilters}
+            filterContent={
+              <FilterGrid columns={2}>
+                <div {...{ className: "space-y-2" }}>
+                  <Label htmlFor="status">Status</Label>
+                  <Select
+                    value={activeFilters.status || 'all'}
+                    onValueChange={(value) => setFilter('status', value === 'all' ? undefined : value)}
                   >
-                    Previous
-                  </Button>
-                  <span className="text-sm">
-                    Page {pagination.page} of {pagination.totalPages}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleFilterChange('page', pagination.page + 1)}
-                    disabled={pagination.page === pagination.totalPages}
-                  >
-                    Next
-                  </Button>
+                    <SelectTrigger id="status">
+                      <SelectValue placeholder="All statuses" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Statuses</SelectItem>
+                      <SelectItem value="PENDING">Pending</SelectItem>
+                      <SelectItem value="ASSIGNED">Assigned</SelectItem>
+                      <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
+                      <SelectItem value="COMPLETED">Completed</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
-      {/* Task Assignment Modal */}
+                <div {...{ className: "space-y-2" }}>
+                  <Label htmlFor="priority">Priority</Label>
+                  <Select
+                    value={activeFilters.priority || 'all'}
+                    onValueChange={(value) => setFilter('priority', value === 'all' ? undefined : value)}
+                  >
+                    <SelectTrigger id="priority">
+                      <SelectValue placeholder="All priorities" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Priorities</SelectItem>
+                      <SelectItem value="1">Low</SelectItem>
+                      <SelectItem value="2">Medium</SelectItem>
+                      <SelectItem value="3">High</SelectItem>
+                      <SelectItem value="4">Urgent</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </FilterGrid>
+            }
+            actions={
+              <Stack direction="horizontal" gap={2} wrap="wrap">
+                <Button variant="outline" size="sm">
+                  <Download {...{ className: "h-4 w-4 mr-2" }} />
+                  Export
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => refreshTasks()} disabled={loading}>
+                  <RefreshCw {...{ className: `h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}` }} />
+                  Refresh
+                </Button>
+              </Stack>
+            }
+          />
+        </Card>
+      </Section>
+
+      {error ? (
+        <Section>
+          <Card>
+            <Text variant="body-sm" tone="danger">Error loading tasks: {error}</Text>
+          </Card>
+        </Section>
+      ) : null}
+
+      <Section>
+        <TasksListFlat
+          tasks={tasks}
+          loading={loading}
+          onAssignTask={handleAssignTask}
+          onViewTask={handleViewTask}
+          onViewCase={handleViewCase}
+          onEditCase={handleEditCase}
+        />
+      </Section>
+
+      <Section>
+        <PaginationStatusCard
+          page={pagination.page}
+          limit={pagination.limit}
+          total={pagination.total}
+          totalPages={pagination.totalPages}
+          onPrevious={() => handleFilterChange('page', pagination.page - 1)}
+          onNext={() => handleFilterChange('page', pagination.page + 1)}
+        />
+      </Section>
+
       {selectedTaskId && (
         <TaskAssignmentModal
           taskId={selectedTaskId}
@@ -329,6 +290,6 @@ export const AllTasksPage: React.FC = () => {
           }}
         />
       )}
-    </div>
+    </Page>
   );
 };

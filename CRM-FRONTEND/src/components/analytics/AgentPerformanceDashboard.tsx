@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
+import { Button } from '@/ui/components/button';
+import { Badge } from '@/ui/components/badge';
 import { 
   Table, 
   TableBody, 
@@ -9,16 +9,16 @@ import {
   TableHead, 
   TableHeader, 
   TableRow 
-} from '@/components/ui/table';
+} from '@/ui/components/table';
 import { 
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+} from '@/ui/components/select';
+import { Input } from '@/ui/components/input';
+import { Label } from '@/ui/components/label';
 import { useAgentPerformance } from '@/hooks/useAnalytics';
 import { useQuery } from '@tanstack/react-query';
 import { departmentsService } from '@/services/departments';
@@ -67,74 +67,74 @@ export const AgentPerformanceDashboard: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div {...{ className: "space-y-6" }}>
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div {...{ className: "flex items-center justify-between" }}>
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Agent Performance</h1>
-          <p className="mt-2 text-gray-600">
+          <h1 {...{ className: "text-3xl font-bold text-gray-900" }}>Agent Performance</h1>
+          <p {...{ className: "mt-2 text-gray-600" }}>
             Track field agent productivity and performance metrics
           </p>
         </div>
         <Button variant="outline">
-          <Download className="h-4 w-4 mr-2" />
+          <Download {...{ className: "h-4 w-4 mr-2" }} />
           Export Report
         </Button>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div {...{ className: "grid gap-4 md:grid-cols-4" }}>
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Agents</CardTitle>
-            <Users className="h-4 w-4 text-gray-600" />
+          <CardHeader {...{ className: "flex flex-row items-center justify-between space-y-0 pb-2" }}>
+            <CardTitle {...{ className: "text-sm font-medium" }}>Total Agents</CardTitle>
+            <Users {...{ className: "h-4 w-4 text-gray-600" }} />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{summary?.totalAgents || 0}</div>
-            <p className="text-xs text-gray-600">
+            <div {...{ className: "text-2xl font-bold" }}>{summary?.totalAgents || 0}</div>
+            <p {...{ className: "text-xs text-gray-600" }}>
               Field agents in system
             </p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Agents</CardTitle>
-            <TrendingUp className="h-4 w-4 text-green-600" />
+          <CardHeader {...{ className: "flex flex-row items-center justify-between space-y-0 pb-2" }}>
+            <CardTitle {...{ className: "text-sm font-medium" }}>Active Agents</CardTitle>
+            <TrendingUp {...{ className: "h-4 w-4 text-green-600" }} />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{summary?.activeAgents || 0}</div>
-            <p className="text-xs text-gray-600">
+            <div {...{ className: "text-2xl font-bold text-green-600" }}>{summary?.activeAgents || 0}</div>
+            <p {...{ className: "text-xs text-gray-600" }}>
               Currently working on cases
             </p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg Cases/Agent</CardTitle>
-            <Target className="h-4 w-4 text-green-600" />
+          <CardHeader {...{ className: "flex flex-row items-center justify-between space-y-0 pb-2" }}>
+            <CardTitle {...{ className: "text-sm font-medium" }}>Avg Cases/Agent</CardTitle>
+            <Target {...{ className: "h-4 w-4 text-green-600" }} />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">
+            <div {...{ className: "text-2xl font-bold text-green-600" }}>
               {summary?.avgCasesPerAgent ? summary.avgCasesPerAgent.toFixed(1) : '0'}
             </div>
-            <p className="text-xs text-gray-600">
+            <p {...{ className: "text-xs text-gray-600" }}>
               Average workload
             </p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg Completion Rate</CardTitle>
-            <Award className="h-4 w-4 text-green-600" />
+          <CardHeader {...{ className: "flex flex-row items-center justify-between space-y-0 pb-2" }}>
+            <CardTitle {...{ className: "text-sm font-medium" }}>Avg Completion Rate</CardTitle>
+            <Award {...{ className: "h-4 w-4 text-green-600" }} />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">
+            <div {...{ className: "text-2xl font-bold text-green-600" }}>
               {summary?.avgCompletionRate ? `${summary.avgCompletionRate.toFixed(1)}%` : 'N/A'}
             </div>
-            <p className="text-xs text-gray-600">
+            <p {...{ className: "text-xs text-gray-600" }}>
               Overall completion rate
             </p>
           </CardContent>
@@ -145,34 +145,34 @@ export const AgentPerformanceDashboard: React.FC = () => {
       {topPerformers.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Star className="h-5 w-5 text-yellow-500" />
+            <CardTitle {...{ className: "flex items-center space-x-2" }}>
+              <Star {...{ className: "h-5 w-5 text-yellow-500" }} />
               <span>Top Performers</span>
             </CardTitle>
             <CardDescription>Highest performing agents this period</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-4 md:grid-cols-5">
+            <div {...{ className: "grid gap-4 md:grid-cols-5" }}>
               {topPerformers.slice(0, 5).map((agent, index) => {
                 const completionRate = agent.totalCasesAssigned > 0 
                   ? (agent.casesCompleted / agent.totalCasesAssigned) * 100 
                   : 0;
                 
                 return (
-                  <div key={agent.id} className="text-center p-4 border rounded-lg">
-                    <div className="flex items-center justify-center space-x-1 mb-2">
-                      <span className="text-2xl font-bold">#{index + 1}</span>
-                      {index === 0 && <Star className="h-5 w-5 text-yellow-500 fill-current" />}
+                  <div key={agent.id} {...{ className: "text-center p-4 border rounded-lg" }}>
+                    <div {...{ className: "flex items-center justify-center space-x-1 mb-2" }}>
+                      <span {...{ className: "text-2xl font-bold" }}>#{index + 1}</span>
+                      {index === 0 && <Star {...{ className: "h-5 w-5 text-yellow-500 fill-current" }} />}
                     </div>
-                    <div className="font-medium">{agent.name}</div>
-                    <div className="text-sm text-gray-600">{agent.employeeId}</div>
-                    <div className="mt-2">
-                      <Badge className={getCompletionRateColor(completionRate)}>
+                    <div {...{ className: "font-medium" }}>{agent.name}</div>
+                    <div {...{ className: "text-sm text-gray-600" }}>{agent.employeeId}</div>
+                    <div {...{ className: "mt-2" }}>
+                      <Badge {...{ className: getCompletionRateColor(completionRate) }}>
                         {completionRate.toFixed(1)}% completion
                       </Badge>
                     </div>
-                    <div className="text-sm mt-1">
-                      Quality: <span className={getPerformanceColor(agent.formQualityScore)}>
+                    <div {...{ className: "text-sm mt-1" }}>
+                      Quality: <span {...{ className: getPerformanceColor(agent.formQualityScore) }}>
                         {agent.formQualityScore.toFixed(1)}%
                       </span>
                     </div>
@@ -187,14 +187,14 @@ export const AgentPerformanceDashboard: React.FC = () => {
       {/* Filters */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Filter className="h-5 w-5" />
+          <CardTitle {...{ className: "flex items-center space-x-2" }}>
+            <Filter {...{ className: "h-5 w-5" }} />
             <span>Filters</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 md:grid-cols-4">
-            <div className="space-y-2">
+          <div {...{ className: "grid gap-4 md:grid-cols-4" }}>
+            <div {...{ className: "space-y-2" }}>
               <Label htmlFor="departmentId">Department</Label>
               <Select 
                 value={filters.departmentId?.toString() || ''} 
@@ -214,7 +214,7 @@ export const AgentPerformanceDashboard: React.FC = () => {
               </Select>
             </div>
 
-            <div className="space-y-2">
+            <div {...{ className: "space-y-2" }}>
               <Label htmlFor="dateFrom">From Date</Label>
               <Input
                 id="dateFrom"
@@ -224,7 +224,7 @@ export const AgentPerformanceDashboard: React.FC = () => {
               />
             </div>
 
-            <div className="space-y-2">
+            <div {...{ className: "space-y-2" }}>
               <Label htmlFor="dateTo">To Date</Label>
               <Input
                 id="dateTo"
@@ -234,7 +234,7 @@ export const AgentPerformanceDashboard: React.FC = () => {
               />
             </div>
 
-            <div className="space-y-2">
+            <div {...{ className: "space-y-2" }}>
               <Label htmlFor="agentId">Specific Agent</Label>
               <Select 
                 value={filters.agentId || ''} 
@@ -268,8 +268,8 @@ export const AgentPerformanceDashboard: React.FC = () => {
             }
           </CardDescription>
         </CardHeader>
-        <CardContent className="p-0">
-          <div className="border rounded-lg">
+        <CardContent {...{ className: "p-0" }}>
+          <div {...{ className: "border rounded-lg" }}>
             <Table>
               <TableHeader>
                 <TableRow>
@@ -290,17 +290,17 @@ export const AgentPerformanceDashboard: React.FC = () => {
                     <TableRow key={index}>
                       {Array.from({ length: 8 }).map((_, cellIndex) => (
                         <TableCell key={cellIndex}>
-                          <div className="h-4 bg-slate-100 dark:bg-slate-800/60 rounded animate-pulse" />
+                          <div {...{ className: "h-4 bg-slate-100 dark:bg-slate-800/60 rounded animate-pulse" }} />
                         </TableCell>
                       ))}
                     </TableRow>
                   ))
                 ) : agents.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8">
-                      <Users className="mx-auto h-12 w-12 text-gray-600" />
-                      <h3 className="mt-4 text-lg font-semibold">No agents found</h3>
-                      <p className="text-gray-600">
+                    <TableCell colSpan={8} {...{ className: "text-center py-8" }}>
+                      <Users {...{ className: "mx-auto h-12 w-12 text-gray-600" }} />
+                      <h3 {...{ className: "mt-4 text-lg font-semibold" }}>No agents found</h3>
+                      <p {...{ className: "text-gray-600" }}>
                         Try adjusting your filters or check back later.
                       </p>
                     </TableCell>
@@ -315,26 +315,26 @@ export const AgentPerformanceDashboard: React.FC = () => {
                       <TableRow key={agent.id}>
                         <TableCell>
                           <div>
-                            <div className="font-medium">{agent.name}</div>
-                            <div className="text-sm text-gray-600">{agent.employeeId}</div>
+                            <div {...{ className: "font-medium" }}>{agent.name}</div>
+                            <div {...{ className: "text-sm text-gray-600" }}>{agent.employeeId}</div>
                           </div>
                         </TableCell>
                         <TableCell>
-                          <div className="text-sm">{agent.departmentName || 'N/A'}</div>
+                          <div {...{ className: "text-sm" }}>{agent.departmentName || 'N/A'}</div>
                         </TableCell>
                         <TableCell>
-                          <div className="text-center font-medium">{agent.totalCasesAssigned}</div>
+                          <div {...{ className: "text-center font-medium" }}>{agent.totalCasesAssigned}</div>
                         </TableCell>
                         <TableCell>
-                          <div className="text-center font-medium text-green-600">{agent.casesCompleted}</div>
+                          <div {...{ className: "text-center font-medium text-green-600" }}>{agent.casesCompleted}</div>
                         </TableCell>
                         <TableCell>
-                          <Badge className={getCompletionRateColor(completionRate)}>
+                          <Badge {...{ className: getCompletionRateColor(completionRate) }}>
                             {completionRate.toFixed(1)}%
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <div className="text-sm">
+                          <div {...{ className: "text-sm" }}>
                             {agent.residenceFormsSubmitted}R + {agent.officeFormsSubmitted}O
                           </div>
                         </TableCell>
@@ -344,7 +344,7 @@ export const AgentPerformanceDashboard: React.FC = () => {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <div className="text-sm">
+                          <div {...{ className: "text-sm" }}>
                             {agent.avgCompletionDays ? `${agent.avgCompletionDays.toFixed(1)}d` : 'N/A'}
                           </div>
                         </TableCell>

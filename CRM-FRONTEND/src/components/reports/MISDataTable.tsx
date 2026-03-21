@@ -1,7 +1,10 @@
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import type { MISTaskRowData, MISPagination } from '@/types/mis';
 import { format } from 'date-fns';
+import { Badge } from '@/ui/components/badge';
+import { Button } from '@/ui/components/button';
+import { Box } from '@/ui/primitives/Box';
+import { Stack } from '@/ui/primitives/Stack';
+import { Text } from '@/ui/primitives/Text';
+import type { MISPagination, MISTaskRowData } from '@/types/mis';
 
 interface MISDataTableProps {
   data: MISTaskRowData[];
@@ -10,8 +13,13 @@ interface MISDataTableProps {
   isLoading?: boolean;
 }
 
-export function MISDataTable({ data, pagination, onPageChange, isLoading: _isLoading }: MISDataTableProps) {
+const cellStyle = {
+  padding: '0.85rem 1rem',
+  borderBottom: '1px solid var(--ui-border)',
+  verticalAlign: 'top' as const,
+};
 
+export function MISDataTable({ data, pagination, onPageChange }: MISDataTableProps) {
   const formatDate = (dateString: string | null) => {
     if (!dateString) {return '-';}
     try {
@@ -22,274 +30,139 @@ export function MISDataTable({ data, pagination, onPageChange, isLoading: _isLoa
   };
 
   const getStatusBadge = (status: string) => {
-    const statusColors: Record<string, string> = {
-      COMPLETED: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400',
-      PENDING: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400',
-      ASSIGNED: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400',
-      REVOKED: 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400',
-      ON_HOLD: 'bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400',
-    };
-
-    return (
-      <Badge variant="outline" className={statusColors[status] || 'bg-gray-100 text-gray-800'}>
-        {status}
-      </Badge>
-    );
+    if (status === 'COMPLETED') {return <Badge variant="status-completed">{status}</Badge>;}
+    if (status === 'PENDING') {return <Badge variant="status-pending">{status}</Badge>;}
+    if (status === 'ASSIGNED' || status === 'IN_PROGRESS') {return <Badge variant="status-progress">{status}</Badge>;}
+    if (status === 'REVOKED') {return <Badge variant="status-revoked">{status}</Badge>;}
+    if (status === 'ON_HOLD') {return <Badge variant="warning">{status}</Badge>;}
+    return <Badge variant="neutral">{status}</Badge>;
   };
 
   const getPriorityBadge = (priority: string) => {
-    const priorityColors: Record<string, string> = {
-      URGENT: 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400',
-      HIGH: 'bg-yellow-100 text-orange-800 dark:bg-yellow-900/20 dark:text-orange-400',
-      MEDIUM: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400',
-      LOW: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400',
-    };
-
-    return (
-      <Badge variant="outline" className={priorityColors[priority] || 'bg-gray-100 text-gray-800'}>
-        {priority}
-      </Badge>
-    );
+    if (priority === 'URGENT') {return <Badge variant="danger">{priority}</Badge>;}
+    if (priority === 'HIGH') {return <Badge variant="warning">{priority}</Badge>;}
+    if (priority === 'MEDIUM') {return <Badge variant="info">{priority}</Badge>;}
+    if (priority === 'LOW') {return <Badge variant="positive">{priority}</Badge>;}
+    return <Badge variant="neutral">{priority}</Badge>;
   };
 
   return (
-    <div className="space-y-4">
-      {/* Data Table - TASK-CENTRIC */}
-      <div className="border rounded-lg overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-border">
-          <thead className="bg-gray-50 border-b border-gray-200">
-            <tr>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                Verification Task
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                Case ID
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                Customer Name
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                Pincode
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                Area
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                Address
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                Client
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                Product
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                Verification Type
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                Backend User
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                Field User
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                Rate Type
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                Trigger
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                Report
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                Status
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                Created
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                Completed At
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {data.map((taskRow) => (
-              <tr key={taskRow.task_id} className="hover:bg-green-50 transition-colors">
-                {/* 1. Verification Task Column */}
-                <td className="px-4 py-4 whitespace-nowrap">
-                  <div className="text-sm font-medium text-gray-900">
-                    {taskRow.task_number}
-                  </div>
-                </td>
-
-                {/* 2. Case ID Column */}
-                <td className="px-4 py-4 whitespace-nowrap">
-                  <div className="text-sm font-medium text-gray-900">
-                    #{taskRow.case_number}
-                  </div>
-                </td>
-
-                {/* 3. Customer Name Column */}
-                <td className="px-4 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">
-                    {taskRow.customerName}
-                  </div>
-                </td>
-
-                {/* 4. Pincode Column */}
-                <td className="px-4 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">
-                    {taskRow.pincode || '-'}
-                  </div>
-                </td>
-
-                {/* 5. Area Column */}
-                <td className="px-4 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-600">
-                    {taskRow.area_name || '-'}
-                  </div>
-                </td>
-
-                {/* 6. Address Column */}
-                <td className="px-4 py-4">
-                  <div className="text-sm text-gray-900 max-w-[200px] truncate">
-                    {taskRow.address || '-'}
-                  </div>
-                </td>
-
-                {/* 7. Client Column */}
-                <td className="px-4 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">
-                    {taskRow.client_name}
-                  </div>
-                  <div className="text-xs text-gray-600">
-                    {taskRow.client_code}
-                  </div>
-                </td>
-
-                {/* 8. Product Column */}
-                <td className="px-4 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">
-                    {taskRow.product_name}
-                  </div>
-                </td>
-
-                {/* 9. Verification Type Column */}
-                <td className="px-4 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">
-                    {taskRow.verification_type_name}
-                  </div>
-                </td>
-
-                {/* 10. Backend User Column */}
-                <td className="px-4 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">
-                    {taskRow.backend_user_name || '-'}
-                  </div>
-                  <div className="text-xs text-gray-600">
-                    {taskRow.backend_user_employee_id || '-'}
-                  </div>
-                </td>
-
-                {/* 11. Field User Column */}
-                <td className="px-4 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">
-                    {taskRow.assigned_field_user || '-'}
-                  </div>
-                  <div className="text-xs text-gray-600">
-                    {taskRow.field_user_employee_id || '-'}
-                  </div>
-                </td>
-
-                {/* 12. Rate Type Column */}
-                <td className="px-4 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">
-                    {taskRow.rate_type || '-'}
-                  </div>
-                </td>
-
-                {/* 13. Trigger Column */}
-                <td className="px-4 py-4">
-                  <div className="text-sm text-gray-900 max-w-[150px] truncate">
-                    {taskRow.trigger || '-'}
-                  </div>
-                </td>
-
-                {/* 14. Report Column */}
-                <td className="px-4 py-4 whitespace-nowrap">
-                  {taskRow.form_submission_id ? (
-                    <div className="text-sm">
-                      <Badge variant="outline" className="bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400">
-                        {taskRow.form_type || 'Submitted'}
-                      </Badge>
-                      {taskRow.form_validation_status && (
-                        <div className="text-xs text-gray-600 mt-1">
-                          {taskRow.form_validation_status}
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="text-sm text-gray-600">-</div>
-                  )}
-                </td>
-
-                {/* 15. Status Column */}
-                <td className="px-4 py-4 whitespace-nowrap">
-                  <div className="space-y-1">
-                    {getStatusBadge(taskRow.task_status)}
-                    {getPriorityBadge(taskRow.task_priority)}
-                  </div>
-                </td>
-
-                {/* 16. Created Column */}
-                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
-                  {formatDate(taskRow.task_created_date)}
-                </td>
-
-                {/* 17. Completed At Column */}
-                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
-                  {taskRow.task_completion_date ? formatDate(taskRow.task_completion_date) : '-'}
-                </td>
+    <Stack gap={4}>
+      <Box style={{ border: '1px solid var(--ui-border)', borderRadius: 'var(--ui-radius-lg)', overflow: 'hidden' }}>
+        <Box style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', minWidth: '1800px', borderCollapse: 'collapse', background: 'var(--ui-surface)' }}>
+            <thead style={{ background: 'var(--ui-surface-muted)' }}>
+              <tr>
+                {[
+                  'Verification Task',
+                  'Case ID',
+                  'Customer Name',
+                  'Pincode',
+                  'Area',
+                  'Address',
+                  'Client',
+                  'Product',
+                  'Verification Type',
+                  'Backend User',
+                  'Field User',
+                  'Rate Type',
+                  'Trigger',
+                  'Report',
+                  'Status',
+                  'Created',
+                  'Completed At',
+                ].map((header) => (
+                  <th
+                    key={header}
+                    style={{
+                      ...cellStyle,
+                      textAlign: 'left',
+                      fontSize: '0.75rem',
+                      letterSpacing: '0.08em',
+                      textTransform: 'uppercase',
+                      color: 'var(--ui-text-muted)',
+                      fontWeight: 700,
+                    }}
+                  >
+                    {header}
+                  </th>
+                ))}
               </tr>
-            ))}
+            </thead>
+            <tbody>
+              {data.map((taskRow) => (
+                <tr key={taskRow.task_id}>
+                  <td style={cellStyle}><Text variant="body-sm">{taskRow.task_number}</Text></td>
+                  <td style={cellStyle}><Text variant="body-sm">#{taskRow.case_number}</Text></td>
+                  <td style={cellStyle}><Text variant="body-sm">{taskRow.customerName}</Text></td>
+                  <td style={cellStyle}><Text variant="body-sm">{taskRow.pincode || '-'}</Text></td>
+                  <td style={cellStyle}><Text variant="body-sm" tone="muted">{taskRow.area_name || '-'}</Text></td>
+                  <td style={cellStyle}><Text variant="body-sm">{taskRow.address || '-'}</Text></td>
+                  <td style={cellStyle}>
+                    <Stack gap={0}>
+                      <Text variant="body-sm">{taskRow.client_name}</Text>
+                      <Text variant="caption" tone="muted">{taskRow.client_code}</Text>
+                    </Stack>
+                  </td>
+                  <td style={cellStyle}><Text variant="body-sm">{taskRow.product_name}</Text></td>
+                  <td style={cellStyle}><Text variant="body-sm">{taskRow.verification_type_name}</Text></td>
+                  <td style={cellStyle}>
+                    <Stack gap={0}>
+                      <Text variant="body-sm">{taskRow.backend_user_name || '-'}</Text>
+                      <Text variant="caption" tone="muted">{taskRow.backend_user_employee_id || '-'}</Text>
+                    </Stack>
+                  </td>
+                  <td style={cellStyle}>
+                    <Stack gap={0}>
+                      <Text variant="body-sm">{taskRow.assigned_field_user || '-'}</Text>
+                      <Text variant="caption" tone="muted">{taskRow.field_user_employee_id || '-'}</Text>
+                    </Stack>
+                  </td>
+                  <td style={cellStyle}><Text variant="body-sm">{taskRow.rate_type || '-'}</Text></td>
+                  <td style={cellStyle}><Text variant="body-sm">{taskRow.trigger || '-'}</Text></td>
+                  <td style={cellStyle}>
+                    {taskRow.form_submission_id ? (
+                      <Stack gap={1}>
+                        <Badge variant="positive">{taskRow.form_type || 'Submitted'}</Badge>
+                        {taskRow.form_validation_status ? (
+                          <Text variant="caption" tone="muted">{taskRow.form_validation_status}</Text>
+                        ) : null}
+                      </Stack>
+                    ) : (
+                      <Text variant="body-sm" tone="muted">-</Text>
+                    )}
+                  </td>
+                  <td style={cellStyle}>
+                    <Stack gap={1}>
+                      {getStatusBadge(taskRow.task_status)}
+                      {getPriorityBadge(taskRow.task_priority)}
+                    </Stack>
+                  </td>
+                  <td style={cellStyle}><Text variant="body-sm" tone="muted">{formatDate(taskRow.task_created_date)}</Text></td>
+                  <td style={cellStyle}><Text variant="body-sm" tone="muted">{taskRow.task_completion_date ? formatDate(taskRow.task_completion_date) : '-'}</Text></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Box>
+      </Box>
 
-          </tbody>
-        </table>
-        </div>
-      </div>
-
-      {/* Pagination */}
-      <div className="flex items-center justify-between px-2">
-        <div className="text-sm text-gray-600">
-          Showing <span className="font-medium">{(pagination.page - 1) * pagination.limit + 1}</span> to{' '}
-          <span className="font-medium">
-            {Math.min(pagination.page * pagination.limit, pagination.total)}
-          </span>{' '}
-          of <span className="font-medium">{pagination.total}</span> tasks
-        </div>
-        <div className="flex gap-2">
-          <Button
-            onClick={() => onPageChange(pagination.page - 1)}
-            disabled={pagination.page === 1}
-            variant="outline"
-            size="sm"
-          >
+      <Box style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap', paddingInline: '0.25rem' }}>
+        <Text variant="body-sm" tone="muted">
+          Showing <strong>{(pagination.page - 1) * pagination.limit + 1}</strong> to{' '}
+          <strong>{Math.min(pagination.page * pagination.limit, pagination.total)}</strong> of{' '}
+          <strong>{pagination.total}</strong> tasks
+        </Text>
+        <Stack direction="horizontal" gap={2} align="center" wrap="wrap">
+          <Button onClick={() => onPageChange(pagination.page - 1)} disabled={pagination.page === 1} variant="outline">
             Previous
           </Button>
-          <span className="px-3 py-2 text-sm text-gray-600">
-            Page {pagination.page} of {pagination.totalPages}
-          </span>
-          <Button
-            onClick={() => onPageChange(pagination.page + 1)}
-            disabled={pagination.page >= pagination.totalPages}
-            variant="outline"
-            size="sm"
-          >
+          <Text variant="body-sm" tone="muted">Page {pagination.page} of {pagination.totalPages}</Text>
+          <Button onClick={() => onPageChange(pagination.page + 1)} disabled={pagination.page >= pagination.totalPages} variant="outline">
             Next
           </Button>
-        </div>
-      </div>
-    </div>
+        </Stack>
+      </Box>
+    </Stack>
   );
 }

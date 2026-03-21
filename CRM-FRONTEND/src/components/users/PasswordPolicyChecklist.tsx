@@ -19,21 +19,20 @@ export function PasswordPolicyChecklist({ password, className }: PasswordPolicyC
   ];
 
   return (
-    <div className={cn('rounded-md border border-green-100 bg-green-50 p-3', className)}>
-      <p className="text-xs font-medium text-green-800 mb-2">Password requirements</p>
-      <div className="space-y-1.5">
+    <div {...{ className: cn('rounded-md border border-green-100 bg-green-50 p-3', className) }}>
+      <p {...{ className: "text-xs font-medium text-green-800 mb-2" }}>Password requirements</p>
+      <div {...{ className: "space-y-1.5" }}>
         {rules.map((rule) => (
-          <div key={rule.key} className="flex items-center gap-2 text-xs">
+          <div key={rule.key} {...{ className: "flex items-center gap-2 text-xs" }}>
             {rule.valid ? (
-              <CheckCircle2 className="h-3.5 w-3.5 text-green-600" />
+              <CheckCircle2 {...{ className: "h-3.5 w-3.5 text-green-600" }} />
             ) : (
-              <Circle className="h-3.5 w-3.5 text-gray-400" />
+              <Circle {...{ className: "h-3.5 w-3.5 text-gray-400" }} />
             )}
-            <span className={rule.valid ? 'text-green-700' : 'text-gray-600'}>{rule.label}</span>
+            <span {...{ className: rule.valid ? 'text-green-700' : 'text-gray-600' }}>{rule.label}</span>
           </div>
         ))}
       </div>
     </div>
   );
 }
-

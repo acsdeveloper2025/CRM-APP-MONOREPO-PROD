@@ -10,7 +10,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
+} from '@/ui/components/dialog';
 import {
   Form,
   FormControl,
@@ -19,11 +19,11 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
-import { Button } from '@/components/ui/button';
+} from '@/ui/components/form';
+import { Input } from '@/ui/components/input';
+import { Textarea } from '@/ui/components/textarea';
+import { Switch } from '@/ui/components/switch';
+import { Button } from '@/ui/components/button';
 import { rateTypesService, type RateType, type UpdateRateTypeData } from '@/services/rateTypes';
 
 const updateRateTypeSchema = z.object({
@@ -83,7 +83,7 @@ export function EditRateTypeDialog({ rateType, open, onOpenChange }: EditRateTyp
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-[95vw] sm:max-w-[500px]">
+      <DialogContent {...{ className: "max-w-[95vw] sm:max-w-[500px]" }}>
         <DialogHeader>
           <DialogTitle>Edit Rate Type</DialogTitle>
           <DialogDescription>
@@ -92,7 +92,7 @@ export function EditRateTypeDialog({ rateType, open, onOpenChange }: EditRateTyp
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit(onSubmit)} {...{ className: "space-y-6" }}>
             <FormField
               control={form.control}
               name="name"
@@ -119,7 +119,7 @@ export function EditRateTypeDialog({ rateType, open, onOpenChange }: EditRateTyp
                   <FormControl>
                     <Textarea
                       placeholder="Enter description for this rate type"
-                      className="resize-none"
+                      {...{ className: "resize-none" }}
                       rows={3}
                       {...field}
                     />
@@ -136,9 +136,9 @@ export function EditRateTypeDialog({ rateType, open, onOpenChange }: EditRateTyp
               control={form.control}
               name="isActive"
               render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                  <div className="space-y-0.5">
-                    <FormLabel className="text-base">Active Status</FormLabel>
+                <FormItem {...{ className: "flex flex-row items-center justify-between rounded-lg border p-4" }}>
+                  <div {...{ className: "space-y-0.5" }}>
+                    <FormLabel {...{ className: "text-base" }}>Active Status</FormLabel>
                     <FormDescription>
                       Enable this rate type for use in assignments and rate setting
                     </FormDescription>
@@ -153,17 +153,17 @@ export function EditRateTypeDialog({ rateType, open, onOpenChange }: EditRateTyp
               )}
             />
 
-            <DialogFooter className="flex-col sm:flex-row gap-2">
+            <DialogFooter {...{ className: "flex-col sm:flex-row gap-2" }}>
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => handleOpenChange(false)}
-                className="w-full sm:w-auto"
+                {...{ className: "w-full sm:w-auto" }}
                 disabled={updateMutation.isPending}
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={updateMutation.isPending} className="w-full sm:w-auto">
+              <Button type="submit" disabled={updateMutation.isPending} {...{ className: "w-full sm:w-auto" }}>
                 {updateMutation.isPending ? 'Updating...' : 'Update Rate Type'}
               </Button>
             </DialogFooter>

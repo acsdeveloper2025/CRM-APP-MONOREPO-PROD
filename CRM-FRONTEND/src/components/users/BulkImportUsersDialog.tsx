@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { Upload, Download, FileText, AlertCircle, CheckCircle } from 'lucide-react';
 import { useMutationWithInvalidation } from '@/hooks/useStandardizedMutation';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/ui/components/button';
 import {
   Dialog,
   DialogContent,
@@ -9,9 +9,9 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Progress } from '@/components/ui/progress';
+} from '@/ui/components/dialog';
+import { Alert, AlertDescription } from '@/ui/components/alert';
+import { Progress } from '@/ui/components/progress';
 import { toast } from 'sonner';
 import { usersService } from '@/services/users';
 import type { ApiResponse } from '@/types/api';
@@ -89,10 +89,10 @@ export function BulkImportUsersDialog({ open, onOpenChange }: BulkImportUsersDia
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-[95vw] sm:max-w-[500px]">
+      <DialogContent {...{ className: "max-w-[95vw] sm:max-w-[500px]" }}>
         <DialogHeader>
-          <DialogTitle className="flex items-center space-x-2">
-            <Upload className="h-5 w-5" />
+          <DialogTitle {...{ className: "flex items-center space-x-2" }}>
+            <Upload {...{ className: "h-5 w-5" }} />
             <span>Bulk Import Users</span>
           </DialogTitle>
           <DialogDescription>
@@ -100,21 +100,21 @@ export function BulkImportUsersDialog({ open, onOpenChange }: BulkImportUsersDia
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div {...{ className: "space-y-4" }}>
           {/* Instructions */}
           <Alert>
-            <FileText className="h-4 w-4" />
+            <FileText {...{ className: "h-4 w-4" }} />
             <AlertDescription>
-              <div className="space-y-2">
+              <div {...{ className: "space-y-2" }}>
                 <p><strong>Required columns:</strong> name, username, email, role, employeeId, designation, department</p>
                 <p><strong>Optional columns:</strong> password (will be auto-generated if not provided)</p>
                 <Button
                   variant="link"
                   size="sm"
                   onClick={handleDownloadTemplate}
-                  className="p-0 h-auto"
+                  {...{ className: "p-0 h-auto" }}
                 >
-                  <Download className="h-3 w-3 mr-1" />
+                  <Download {...{ className: "h-3 w-3 mr-1" }} />
                   Download template
                 </Button>
               </div>
@@ -122,20 +122,20 @@ export function BulkImportUsersDialog({ open, onOpenChange }: BulkImportUsersDia
           </Alert>
 
           {/* File Selection */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Select File</label>
-            <div className="flex items-center space-x-2">
+          <div {...{ className: "space-y-2" }}>
+            <label {...{ className: "text-sm font-medium" }}>Select File</label>
+            <div {...{ className: "flex items-center space-x-2" }}>
               <input
                 ref={fileInputRef}
                 type="file"
                 accept=".csv,.xlsx"
                 onChange={handleFileSelect}
-                className="flex-1 text-sm"
+                {...{ className: "flex-1 text-sm" }}
                 disabled={importMutation.isPending}
               />
             </div>
             {selectedFile && (
-              <p className="text-sm text-gray-600">
+              <p {...{ className: "text-sm text-gray-600" }}>
                 Selected: {selectedFile.name} ({(selectedFile.size / 1024).toFixed(1)} KB)
               </p>
             )}
@@ -143,8 +143,8 @@ export function BulkImportUsersDialog({ open, onOpenChange }: BulkImportUsersDia
 
           {/* Progress */}
           {importMutation.isPending && (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-sm">
+            <div {...{ className: "space-y-2" }}>
+              <div {...{ className: "flex items-center justify-between text-sm" }}>
                 <span>Importing users...</span>
               </div>
               <Progress value={undefined} />
@@ -153,15 +153,15 @@ export function BulkImportUsersDialog({ open, onOpenChange }: BulkImportUsersDia
 
           {/* Results */}
           {importResult && (
-            <Alert className={importResult.imported > 0 ? 'border-green-200' : 'border-red-200'}>
+            <Alert {...{ className: importResult.imported > 0 ? 'border-green-200' : 'border-red-200' }}>
               {importResult.imported > 0 ? (
-                <CheckCircle className="h-4 w-4 text-green-600" />
+                <CheckCircle {...{ className: "h-4 w-4 text-green-600" }} />
               ) : (
-                <AlertCircle className="h-4 w-4 text-red-600" />
+                <AlertCircle {...{ className: "h-4 w-4 text-red-600" }} />
               )}
               <AlertDescription>
-                <div className="space-y-1">
-                  <p className="font-medium">
+                <div {...{ className: "space-y-1" }}>
+                  <p {...{ className: "font-medium" }}>
                     Import {importResult.imported > 0 ? 'Completed' : 'Failed'}
                   </p>
                   {importResult.imported > 0 && (
@@ -171,9 +171,9 @@ export function BulkImportUsersDialog({ open, onOpenChange }: BulkImportUsersDia
                     <p>Failed to import: {importResult.failed} users</p>
                   )}
                   {importResult.errors && importResult.errors.length > 0 && (
-                    <div className="mt-2">
-                      <p className="text-sm font-medium">Errors:</p>
-                      <ul className="text-sm list-disc list-inside">
+                    <div {...{ className: "mt-2" }}>
+                      <p {...{ className: "text-sm font-medium" }}>Errors:</p>
+                      <ul {...{ className: "text-sm list-disc list-inside" }}>
                         {importResult.errors.slice(0, 5).map((error: string, index: number) => (
                           <li key={index}>{error}</li>
                         ))}
@@ -189,15 +189,15 @@ export function BulkImportUsersDialog({ open, onOpenChange }: BulkImportUsersDia
           )}
         </div>
 
-        <DialogFooter className="flex-col sm:flex-row gap-2">
-          <Button variant="outline" onClick={handleClose} className="w-full sm:w-auto">
+        <DialogFooter {...{ className: "flex-col sm:flex-row gap-2" }}>
+          <Button variant="outline" onClick={handleClose} {...{ className: "w-full sm:w-auto" }}>
             {importResult ? 'Close' : 'Cancel'}
           </Button>
           {!importResult && (
             <Button
               onClick={handleImport}
               disabled={!selectedFile || importMutation.isPending}
-             className="w-full sm:w-auto">
+             {...{ className: "w-full sm:w-auto" }}>
               {importMutation.isPending ? 'Importing...' : 'Import Users'}
             </Button>
           )}

@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useCRUDMutation } from '@/hooks/useStandardizedMutation';
 import { useStandardizedQuery } from '@/hooks/useStandardizedQuery';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/ui/components/button';
 import {
   Dialog,
   DialogContent,
@@ -12,7 +12,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
+} from '@/ui/components/dialog';
 import {
   Form,
   FormControl,
@@ -21,15 +21,17 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form';
+} from '@/ui/components/form';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
+} from '@/ui/components/select';
+import { Input } from '@/ui/components/input';
+import { Stack } from '@/ui/primitives/Stack';
+import { Text } from '@/ui/primitives/Text';
 import { locationsService } from '@/services/locations';
 import { Pincode } from '@/types/location';
 import { EnhancedAreasMultiSelect } from './EnhancedAreasMultiSelect';
@@ -98,7 +100,7 @@ export function EditPincodeDialog({ pincode, open, onOpenChange }: EditPincodeDi
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] sm:max-w-[425px]">
+      <DialogContent style={{ width: 'min(95vw, 425px)' }}>
         <DialogHeader>
           <DialogTitle>Edit Pincode</DialogTitle>
           <DialogDescription>
@@ -107,91 +109,98 @@ export function EditPincodeDialog({ pincode, open, onOpenChange }: EditPincodeDi
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="code"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Pincode</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="Enter 6-digit pincode"
-                      {...field}
-                      className="font-mono"
-                      maxLength={6}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    6-digit postal code (numbers only)
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="areas"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Areas</FormLabel>
-                  <FormControl>
-                    <EnhancedAreasMultiSelect
-                      selectedAreaIds={field.value}
-                      onAreasChange={field.onChange}
-                      disabled={updateMutation.isPending}
-                      placeholder="Select areas for this pincode..."
-                      maxAreas={15}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    Select one or more areas for this pincode (max 15)
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="cityId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>City</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+          <form onSubmit={form.handleSubmit(onSubmit)}>
+            <Stack gap={4}>
+              <FormField
+                control={form.control}
+                name="code"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Pincode</FormLabel>
                     <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a city" />
-                      </SelectTrigger>
+                      <Input
+                        placeholder="Enter 6-digit pincode"
+                        {...field}
+                        style={{ fontFamily: 'var(--font-mono, ui-monospace, SFMono-Regular, monospace)' }}
+                        maxLength={6}
+                      />
                     </FormControl>
-                    <SelectContent>
-                      {cities.map((city) => (
-                        <SelectItem key={city.id} value={String(city.id)}>
-                          {city.name} ({city.state}, {city.country})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                    <FormDescription>
+                      6-digit postal code (numbers only)
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <DialogFooter className="flex-col sm:flex-row gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-                className="w-full sm:w-auto"
-                disabled={updateMutation.isPending}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={updateMutation.isPending} className="w-full sm:w-auto">
-                {updateMutation.isPending ? 'Updating...' : 'Update Pincode'}
-              </Button>
-            </DialogFooter>
+              <FormField
+                control={form.control}
+                name="areas"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Areas</FormLabel>
+                    <FormControl>
+                      <EnhancedAreasMultiSelect
+                        selectedAreaIds={field.value}
+                        onAreasChange={field.onChange}
+                        disabled={updateMutation.isPending}
+                        placeholder="Select areas for this pincode..."
+                        maxAreas={15}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Select one or more areas for this pincode (max 15)
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="cityId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>City</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a city" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {cities.map((city) => (
+                          <SelectItem key={city.id} value={String(city.id)}>
+                            <Stack gap={1}>
+                              <Text as="span">{city.name}</Text>
+                              <Text as="span" variant="caption" tone="muted">
+                                {city.state}, {city.country}
+                              </Text>
+                            </Stack>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <DialogFooter style={{ display: 'flex', gap: 'var(--ui-gap-2)', flexWrap: 'wrap' }}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => onOpenChange(false)}
+                  fullWidth
+                  disabled={updateMutation.isPending}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" fullWidth disabled={updateMutation.isPending}>
+                  {updateMutation.isPending ? 'Updating...' : 'Update Pincode'}
+                </Button>
+              </DialogFooter>
+            </Stack>
           </form>
         </Form>
       </DialogContent>

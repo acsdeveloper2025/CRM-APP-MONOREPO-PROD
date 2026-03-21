@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { MoreHorizontal, Edit, Trash2, Eye, Building } from 'lucide-react';
 import { useMutationWithInvalidation } from '@/hooks/useStandardizedMutation';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/ui/components/Button';
+import { Badge } from '@/ui/components/Badge';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,7 +10,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from '@/ui/components/dropdown-menu';
 import {
   Table,
   TableBody,
@@ -17,10 +18,9 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { LoadingState } from '@/components/ui/loading';
-import { baseBadgeStyle, formatBadgeLabel } from '@/lib/badgeStyles';
+} from '@/ui/components/table';
+import { LoadingState } from '@/ui/components/loading';
+import { formatBadgeLabel } from '@/lib/badgeStyles';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,7 +30,10 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+} from '@/ui/components/alert-dialog';
+import { Box } from '@/ui/primitives/Box';
+import { Stack } from '@/ui/primitives/Stack';
+import { Text } from '@/ui/primitives/Text';
 import { locationsService } from '@/services/locations';
 import { City } from '@/types/location';
 import { EditCityDialog } from './EditCityDialog';
@@ -87,19 +90,19 @@ export function CitiesTable({ data, isLoading }: CitiesTableProps) {
 
   if (!data || data.length === 0) {
     return (
-      <div className="text-center py-12">
-        <Building className="mx-auto h-12 w-12 text-gray-600" />
-        <h3 className="mt-4 text-lg font-semibold">No cities found</h3>
-        <p className="text-gray-600">
+      <Stack gap={3} align="center" style={{ paddingBlock: '3rem', textAlign: 'center' }}>
+        <Building size={48} style={{ color: 'var(--ui-text-soft)', opacity: 0.75 }} />
+        <Text as="h3" variant="title">No cities found</Text>
+        <Text tone="muted">
           Get started by adding your first city.
-        </p>
-      </div>
+        </Text>
+      </Stack>
     );
   }
 
   return (
     <>
-      <div className="rounded-md border overflow-auto">
+      <Box style={{ overflowX: 'auto', border: '1px solid var(--ui-border)', borderRadius: 'var(--ui-radius-lg)' }}>
         <Table>
           <TableHeader>
             <TableRow>
@@ -107,53 +110,65 @@ export function CitiesTable({ data, isLoading }: CitiesTableProps) {
               <TableHead>State</TableHead>
               <TableHead>Country</TableHead>
               <TableHead>Created Date</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead style={{ textAlign: 'right' }}>Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {data.map((city) => (
               <TableRow key={city.id}>
-                <TableCell className="font-medium">
-                  <div className="flex items-center space-x-2">
-                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                      <Building className="h-4 w-4 text-primary" />
-                    </div>
-                    <span>{city.name}</span>
-                  </div>
+                <TableCell style={{ fontWeight: 600 }}>
+                  <Stack direction="horizontal" gap={2} align="center">
+                    <Box
+                      style={{
+                        width: '2rem',
+                        height: '2rem',
+                        borderRadius: '999px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        background: 'color-mix(in srgb, var(--ui-accent) 12%, transparent)',
+                        color: 'var(--ui-accent)',
+                      }}
+                    >
+                      <Building size={16} />
+                    </Box>
+                    <Text as="span" variant="label">{city.name}</Text>
+                  </Stack>
                 </TableCell>
                 <TableCell>
-                  <Badge className={baseBadgeStyle}>{formatBadgeLabel(city.state)}</Badge>
+                  <Badge variant="outline">{formatBadgeLabel(city.state)}</Badge>
                 </TableCell>
                 <TableCell>
-                  <Badge className={baseBadgeStyle}>{formatBadgeLabel(city.country)}</Badge>
+                  <Badge variant="outline">{formatBadgeLabel(city.country)}</Badge>
                 </TableCell>
                 <TableCell>
-                  {new Date(city.createdAt).toLocaleDateString()}
+                  <Text as="span" variant="body-sm" tone="muted">
+                    {new Date(city.createdAt).toLocaleDateString()}
+                  </Text>
                 </TableCell>
-                <TableCell className="text-right">
+                <TableCell style={{ textAlign: 'right' }}>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" className="h-8 w-8 p-0">
-                        <span className="sr-only">Open menu</span>
-                        <MoreHorizontal className="h-4 w-4" />
+                      <Button variant="ghost" aria-label="Open actions menu">
+                        <MoreHorizontal size={16} />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
                       <DropdownMenuItem onClick={() => handleViewDetails(city)}>
-                        <Eye className="mr-2 h-4 w-4" />
+                        <Eye size={16} style={{ marginRight: '0.5rem' }} />
                         View Details
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => handleEdit(city)}>
-                        <Edit className="mr-2 h-4 w-4" />
+                        <Edit size={16} style={{ marginRight: '0.5rem' }} />
                         Edit City
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
                         onClick={() => handleDelete(city)}
-                        className="text-destructive"
+                        style={{ color: 'var(--ui-danger)' }}
                       >
-                        <Trash2 className="mr-2 h-4 w-4" />
+                        <Trash2 size={16} style={{ marginRight: '0.5rem' }} />
                         Delete City
                       </DropdownMenuItem>
                     </DropdownMenuContent>
@@ -163,7 +178,7 @@ export function CitiesTable({ data, isLoading }: CitiesTableProps) {
             ))}
           </TableBody>
         </Table>
-      </div>
+      </Box>
 
       {/* Edit Dialog */}
       {selectedCity && (
@@ -197,7 +212,7 @@ export function CitiesTable({ data, isLoading }: CitiesTableProps) {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              style={{ background: 'var(--ui-danger)', color: 'white' }}
               disabled={deleteMutation.isPending}
             >
               {deleteMutation.isPending ? 'Deleting...' : 'Delete'}

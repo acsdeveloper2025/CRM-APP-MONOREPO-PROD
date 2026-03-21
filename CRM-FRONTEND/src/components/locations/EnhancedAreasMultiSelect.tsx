@@ -1,7 +1,10 @@
 import React, { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { locationsService } from '@/services/locations';
-import { MultiSelectDropdown, MultiSelectOption } from '@/components/ui/multi-select-dropdown';
+import { MultiSelectDropdown, MultiSelectOption } from '@/ui/components/multi-select-dropdown';
+import { Box } from '@/ui/primitives/Box';
+import { Stack } from '@/ui/primitives/Stack';
+import { Text } from '@/ui/primitives/Text';
 
 // interface Area {
 //   id: string;
@@ -49,7 +52,6 @@ export function EnhancedAreasMultiSelect({
       .map(area => ({
         id: area.id,
         label: area.name,
-        className: "text-gray-900" // Ensure text is visible
       }));
   }, [allAreas, searchQuery]);
 
@@ -65,53 +67,40 @@ export function EnhancedAreasMultiSelect({
     onAreasChange(stringValues);
   };
 
-  // Debug logging for development
-  React.useEffect(() => {
-    if (queryError) {
-      console.error('EnhancedAreasMultiSelect Error:', queryError);
-    }
-    if (allAreas.length > 0) {
-      console.warn('🔍 Areas data:', allAreas);
-      console.warn('🔍 Processed options:', areaOptions);
-    }
-  }, [queryError, allAreas, areaOptions]);
-
   return (
-    <div className="space-y-2">
-      <MultiSelectDropdown
-        options={areaOptions}
-        selectedValues={selectedAreaIds}
-        onSelectionChange={handleSelectionChange}
-        placeholder={placeholder}
-        searchPlaceholder="Search areas..."
-        onSearch={setSearchQuery}
-        searchQuery={searchQuery}
-        isLoading={isLoading}
-        disabled={disabled}
-        maxDisplayItems={50}
-        emptyMessage="No areas found matching your search"
-        className={error ? "border-red-500" : ""}
-      />
-      
-      {/* Error message */}
+    <Stack gap={2}>
+      <Box style={error ? { border: '1px solid var(--ui-danger)', borderRadius: 'var(--ui-radius-md)' } : undefined}>
+        <MultiSelectDropdown
+          options={areaOptions}
+          selectedValues={selectedAreaIds}
+          onSelectionChange={handleSelectionChange}
+          placeholder={placeholder}
+          searchPlaceholder="Search areas..."
+          onSearch={setSearchQuery}
+          searchQuery={searchQuery}
+          isLoading={isLoading}
+          disabled={disabled}
+          maxDisplayItems={50}
+          emptyMessage="No areas found matching your search"
+        />
+      </Box>
+
       {error && (
-        <p className="text-sm text-red-500">{error}</p>
+        <Text variant="body-sm" tone="danger">{error}</Text>
       )}
-      
-      {/* Selection info */}
+
       {selectedAreaIds.length > 0 && (
-        <p className="text-xs text-gray-600">
+        <Text variant="caption" tone="muted">
           {selectedAreaIds.length} of {maxAreas} areas selected
-          {selectedAreaIds.length >= maxAreas && " (maximum reached)"}
-        </p>
+          {selectedAreaIds.length >= maxAreas && ' (maximum reached)'}
+        </Text>
       )}
-      
-      {/* Query error display */}
+
       {queryError && (
-        <p className="text-sm text-red-500">
+        <Text variant="body-sm" tone="danger">
           Failed to load areas. Please try again.
-        </p>
+        </Text>
       )}
-    </div>
+    </Stack>
   );
 }

@@ -1,16 +1,25 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Plus, Download, Receipt, DollarSign, TrendingUp, Calendar, AlertTriangle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/ui/components/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
+import { Badge } from '@/ui/components/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/components/tabs';
 import { billingService } from '@/services/billing';
 import { InvoicesTable } from '@/components/billing/InvoicesTable';
 import { CommissionsTable } from '@/components/billing/CommissionsTable';
 import { CreateInvoiceDialog } from '@/components/billing/CreateInvoiceDialog';
 import { CommissionSummaryCard } from '@/components/billing/CommissionSummaryCard';
 import { useUnifiedSearch } from '@/hooks/useUnifiedSearch';
+import { MetricCardGrid } from '@/components/shared/MetricCardGrid';
+import { PaginationStatusCard } from '@/components/shared/PaginationStatusCard';
+import { Button as UiButton } from '@/ui/components/Button';
+import { Badge as UiBadge } from '@/ui/components/Badge';
+import { Card as UiCard } from '@/ui/components/Card';
+import { Page } from '@/ui/layout/Page';
+import { Section } from '@/ui/layout/Section';
+import { Stack } from '@/ui/primitives/Stack';
+import { Text } from '@/ui/primitives/Text';
 
 export function BillingPage() {
   const [activeTab, setActiveTab] = useState('invoices');
@@ -110,91 +119,39 @@ export function BillingPage() {
   const stats = getTabStats();
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Billing & Commission</h1>
-          <p className="text-gray-600">
-            Manage invoices, track payments, and monitor commission payouts
-          </p>
-        </div>
-      </div>
+    <Page
+      title="Billing & Commission"
+      subtitle="Manage invoices, payouts, and financial reporting from one workspace."
+      shell
+      actions={
+        <Stack direction="horizontal" gap={2} wrap="wrap">
+          <UiButton variant="secondary" icon={<Download size={16} />} onClick={handleDownloadReport}>
+            Download report
+          </UiButton>
+          {activeTab === 'invoices' ? (
+            <UiButton icon={<Plus size={16} />} onClick={() => setShowCreateInvoice(true)}>
+              Create invoice
+            </UiButton>
+          ) : null}
+        </Stack>
+      }
+    >
+      <Section>
+        <MetricCardGrid
+          items={[
+            { title: 'Total Invoices', value: stats.invoices.total, detail: `₹${stats.invoices.totalAmount.toLocaleString()}`, icon: Receipt, tone: 'accent' },
+            { title: 'Draft Invoices', value: stats.invoices.draft, detail: `${stats.invoices.overdue} overdue`, icon: DollarSign, tone: 'warning' },
+            { title: 'Total Commissions', value: stats.commissions.total, detail: `₹${stats.commissions.totalAmount.toLocaleString()}`, icon: TrendingUp, tone: 'neutral' },
+            { title: 'Pending Commissions', value: stats.commissions.pending, detail: `${stats.commissions.paid} paid`, icon: Calendar, tone: 'positive' },
+            { title: 'Overdue Amount', value: `₹${(stats.invoices.draftAmount || 0).toLocaleString()}`, detail: 'Draft invoice value', icon: AlertTriangle, tone: 'danger' },
+          ]}
+        />
+      </Section>
 
-      {/* Stats Cards */}
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Invoices</CardTitle>
-            <Receipt className="h-4 w-4 text-gray-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.invoices.total}</div>
-            <p className="text-xs text-gray-600">
-              ₹{stats.invoices.totalAmount.toLocaleString()}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Draft Invoices</CardTitle>
-            <DollarSign className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">{stats.invoices.draft}</div>
-            <p className="text-xs text-gray-600">
-              {stats.invoices.overdue} overdue
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Commissions</CardTitle>
-            <TrendingUp className="h-4 w-4 text-blue-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.commissions.total}</div>
-            <p className="text-xs text-gray-600">
-              ₹{stats.commissions.totalAmount.toLocaleString()}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending Commissions</CardTitle>
-            <Calendar className="h-4 w-4 text-yellow-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">{stats.commissions.pending}</div>
-            <p className="text-xs text-gray-600">
-              {stats.commissions.paid} paid
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Overdue Amount</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-red-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">
-              ₹{(stats.invoices.draftAmount || 0).toLocaleString()}
-            </div>
-            <p className="text-xs text-gray-600">
-              Draft invoice value
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Main Content */}
+      <Section>
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div {...{ className: "flex items-center justify-between" }}>
             <div>
               <CardTitle>Financial Management</CardTitle>
               <CardDescription>
@@ -204,13 +161,13 @@ export function BillingPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-            <div className="flex items-center justify-between">
+          <Tabs value={activeTab} onValueChange={setActiveTab} {...{ className: "space-y-4" }}>
+            <div {...{ className: "flex items-center justify-between" }}>
               <TabsList>
                 <TabsTrigger value="invoices">
                   Invoices
                   {stats.invoices.total > 0 && (
-                    <Badge variant="secondary" className="ml-2">
+                    <Badge variant="secondary" {...{ className: "ml-2" }}>
                       {stats.invoices.total}
                     </Badge>
                   )}
@@ -218,74 +175,36 @@ export function BillingPage() {
                 <TabsTrigger value="commissions">
                   Commissions
                   {stats.commissions.total > 0 && (
-                    <Badge variant="secondary" className="ml-2">
+                    <Badge variant="secondary" {...{ className: "ml-2" }}>
                       {stats.commissions.total}
                     </Badge>
                   )}
                 </TabsTrigger>
               </TabsList>
 
-              {/* Actions */}
-              <div className="flex items-center space-x-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleDownloadReport}
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  Download Report
-                </Button>
-                
-                {activeTab === 'invoices' && (
-                  <Button
-                    size="sm"
-                    onClick={() => setShowCreateInvoice(true)}
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create Invoice
-                  </Button>
-                )}
-              </div>
+              <UiBadge variant="neutral">{activeTab}</UiBadge>
             </div>
 
 
 
-            <TabsContent value="invoices" className="space-y-4">
+            <TabsContent value="invoices" {...{ className: "space-y-4" }}>
               <InvoicesTable
                 data={invoicesData?.data || []}
                 isLoading={invoicesLoading}
               />
-              {invoicesData?.pagination && (
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
-                  <div className="text-sm text-gray-600">
-                    Showing {invoicesData.data?.length || 0} of {invoicesData.pagination.total} invoices
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                      disabled={currentPage === 1}
-                    >
-                      Previous
-                    </Button>
-                    <div className="text-sm">
-                      Page {currentPage} of {invoicesData.pagination.totalPages || 1}
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage(prev => prev + 1)}
-                      disabled={currentPage >= (invoicesData.pagination.totalPages || 1)}
-                    >
-                      Next
-                    </Button>
-                  </div>
-                </div>
-              )}
+              {invoicesData?.pagination ? (
+                <PaginationStatusCard
+                  page={currentPage}
+                  limit={pageSize}
+                  total={invoicesData.pagination.total}
+                  totalPages={invoicesData.pagination.totalPages || 1}
+                  onPrevious={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  onNext={() => setCurrentPage(prev => prev + 1)}
+                />
+              ) : null}
             </TabsContent>
 
-            <TabsContent value="commissions" className="space-y-4">
+            <TabsContent value="commissions" {...{ className: "space-y-4" }}>
               {commissionSummaryData?.data && (
                 <CommissionSummaryCard summary={commissionSummaryData.data} />
               )}
@@ -293,44 +212,27 @@ export function BillingPage() {
                 data={commissionsData?.data || []}
                 isLoading={commissionsLoading}
               />
-              {commissionsData?.pagination && (
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
-                  <div className="text-sm text-gray-600">
-                    Showing {commissionsData.data?.length || 0} of {commissionsData.pagination.total} commissions
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                      disabled={currentPage === 1}
-                    >
-                      Previous
-                    </Button>
-                    <div className="text-sm">
-                      Page {currentPage} of {commissionsData.pagination.totalPages || 1}
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage(prev => prev + 1)}
-                      disabled={currentPage >= (commissionsData.pagination.totalPages || 1)}
-                    >
-                      Next
-                    </Button>
-                  </div>
-                </div>
-              )}
+              {commissionsData?.pagination ? (
+                <PaginationStatusCard
+                  page={currentPage}
+                  limit={pageSize}
+                  total={commissionsData.pagination.total}
+                  totalPages={commissionsData.pagination.totalPages || 1}
+                  onPrevious={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  onNext={() => setCurrentPage(prev => prev + 1)}
+                />
+              ) : null}
             </TabsContent>
           </Tabs>
         </CardContent>
       </Card>
+      </Section>
 
       {/* Dialogs */}
       <CreateInvoiceDialog
         open={showCreateInvoice}
         onOpenChange={setShowCreateInvoice}
       />
-    </div>
+    </Page>
   );
 }
