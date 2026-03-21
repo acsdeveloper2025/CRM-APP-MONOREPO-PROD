@@ -12,7 +12,7 @@ import {
 } from '@/ui/components/Table';
 import { Badge } from '@/ui/components/Badge';
 import { LoadingState } from '@/ui/components/Loading';
-import { Avatar, AvatarFallback } from '@/ui/components/avatar';
+import { Avatar, AvatarFallback } from '@/ui/components/Avatar';
 import { toast } from 'sonner';
 import { usersService } from '@/services/users';
 import { UserSession } from '@/types/user';

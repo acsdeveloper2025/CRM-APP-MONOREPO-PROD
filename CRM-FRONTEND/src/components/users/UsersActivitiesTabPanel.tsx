@@ -5,8 +5,8 @@ import { UserActivitiesTable } from '@/components/users/UserActivitiesTable';
 import { UnifiedSearchFilterLayout, FilterGrid } from '@/ui/components/UnifiedSearchFilterLayout';
 import { Label } from '@/ui/components/Label';
 import { Button } from '@/ui/components/Button';
-import { Calendar } from '@/ui/components/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/ui/components/popover';
+import { Calendar } from '@/ui/components/Calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/ui/components/Popover';
 import { cn } from '@/lib/utils';
 
 interface UsersActivitiesTabPanelProps {

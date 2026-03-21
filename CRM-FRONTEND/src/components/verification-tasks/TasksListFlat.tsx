@@ -19,7 +19,7 @@ import { Button } from '@/ui/components/Button';
 import { Badge } from '@/ui/components/Badge';
 import { Stack } from '@/ui/primitives/Stack';
 import { Text } from '@/ui/primitives/Text';
-import { Skeleton } from '@/ui/components/skeleton';
+import { Skeleton } from '@/ui/components/Skeleton';
 
 interface TasksListFlatProps {
   tasks: VerificationTask[];

@@ -18,7 +18,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/ui/components/form';
+} from '@/ui/components/Form';
 import { Input } from '@/ui/components/Input';
 import { Button } from '@/ui/components/Button';
 import { Stack } from '@/ui/primitives/Stack';

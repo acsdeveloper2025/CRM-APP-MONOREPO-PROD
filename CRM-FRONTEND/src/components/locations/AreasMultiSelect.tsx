@@ -10,12 +10,12 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from '@/ui/components/command';
+} from '@/ui/components/Command';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from '@/ui/components/popover';
+} from '@/ui/components/Popover';
 import { Badge } from '@/ui/components/Badge';
 import { Box } from '@/ui/primitives/Box';
 import { Stack } from '@/ui/primitives/Stack';

@@ -12,7 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/ui/components/Dialog';
-import { Form } from '@/ui/components/form';
+import { Form } from '@/ui/components/Form';
 import { Stack } from '@/ui/primitives/Stack';
 import { toast } from 'sonner';
 import { locationsService } from '@/services/locations';

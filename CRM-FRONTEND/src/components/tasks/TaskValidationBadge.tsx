@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Badge } from '@/ui/components/Badge';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/ui/components/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/ui/components/Tooltip';
 import { AlertCircle, CheckCircle, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { apiService } from '@/services/api';

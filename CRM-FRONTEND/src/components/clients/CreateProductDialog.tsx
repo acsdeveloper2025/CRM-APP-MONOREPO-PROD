@@ -19,7 +19,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/ui/components/form';
+} from '@/ui/components/Form';
 import { Input } from '@/ui/components/Input';
 import { Stack } from '@/ui/primitives/Stack';
 import { productsService } from '@/services/products';

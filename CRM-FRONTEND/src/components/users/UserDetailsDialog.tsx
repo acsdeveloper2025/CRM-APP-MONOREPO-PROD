@@ -10,7 +10,7 @@ import {
 import { Badge } from '@/ui/components/Badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/Card';
 import { Separator } from '@/ui/components/Separator';
-import { Avatar, AvatarFallback, AvatarImage } from '@/ui/components/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/ui/components/Avatar';
 import { usersService } from '@/services/users';
 import { User as UserType } from '@/types/user';
 import { getRoleBadge } from '@/utils/roleUtils';

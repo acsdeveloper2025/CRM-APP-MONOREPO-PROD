@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/Card';
 import { Button } from '@/ui/components/Button';
 import { Badge } from '@/ui/components/Badge';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/ui/components/collapsible';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/ui/components/Collapsible';
 import {
   ChevronDown,
   ChevronRight,
