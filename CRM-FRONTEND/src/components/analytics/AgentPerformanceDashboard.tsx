@@ -2,72 +2,51 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
 import { Button } from '@/ui/components/button';
 import { Badge } from '@/ui/components/badge';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from '@/ui/components/table';
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/ui/components/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/ui/components/table';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, } from '@/ui/components/select';
 import { Input } from '@/ui/components/input';
 import { Label } from '@/ui/components/label';
 import { useAgentPerformance } from '@/hooks/useAnalytics';
 import { useQuery } from '@tanstack/react-query';
 import { departmentsService } from '@/services/departments';
-import {
-  Users,
-  TrendingUp,
-  Award,
-  Download,
-  Filter,
-  Star,
-  Target
-} from 'lucide-react';
+import { Users, TrendingUp, Award, Download, Filter, Star, Target } from 'lucide-react';
 import type { AgentPerformanceQuery } from '@/services/analytics';
-
 export const AgentPerformanceDashboard: React.FC = () => {
-  const [filters, setFilters] = useState<AgentPerformanceQuery>({});
-
-  const { data: performanceData, isLoading: performanceLoading } = useAgentPerformance(filters);
-  const { data: departmentsData } = useQuery({
-    queryKey: ['departments', 'active'],
-    queryFn: () => departmentsService.getActiveDepartments(),
-  });
-
-  const agents = performanceData?.data?.agents || [];
-  const summary = performanceData?.data?.summary;
-  const topPerformers = performanceData?.data?.topPerformers || [];
-  const departments = departmentsData?.data || [];
-
-  const handleFilterChange = (key: keyof AgentPerformanceQuery, value: string) => {
-    setFilters(prev => ({
-      ...prev,
-      [key]: value || undefined,
-    }));
-  };
-
-  const getPerformanceColor = (score: number) => {
-    if (score >= 80) {return 'text-green-600 dark:text-green-400';}
-    if (score >= 60) {return 'text-yellow-600 dark:text-yellow-400';}
-    return 'text-red-600 dark:text-red-400';
-  };
-
-  const getCompletionRateColor = (rate: number) => {
-    if (rate >= 90) {return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300';}
-    if (rate >= 70) {return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300';}
-    return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300';
-  };
-
-  return (
-    <div {...{ className: "space-y-6" }}>
+    const [filters, setFilters] = useState<AgentPerformanceQuery>({});
+    const { data: performanceData, isLoading: performanceLoading } = useAgentPerformance(filters);
+    const { data: departmentsData } = useQuery({
+        queryKey: ['departments', 'active'],
+        queryFn: () => departmentsService.getActiveDepartments(),
+    });
+    const agents = performanceData?.data?.agents || [];
+    const summary = performanceData?.data?.summary;
+    const topPerformers = performanceData?.data?.topPerformers || [];
+    const departments = departmentsData?.data || [];
+    const handleFilterChange = (key: keyof AgentPerformanceQuery, value: string) => {
+        setFilters(prev => ({
+            ...prev,
+            [key]: value || undefined,
+        }));
+    };
+    const getPerformanceColor = (score: number) => {
+        if (score >= 80) {
+            return 'text-green-600 dark:text-green-400';
+        }
+        if (score >= 60) {
+            return 'text-yellow-600 dark:text-yellow-400';
+        }
+        return 'text-red-600 dark:text-red-400';
+    };
+    const getCompletionRateColor = (rate: number) => {
+        if (rate >= 90) {
+            return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300';
+        }
+        if (rate >= 70) {
+            return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300';
+        }
+        return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300';
+    };
+    return (<div {...{ className: "space-y-6" }}>
       {/* Header */}
       <div {...{ className: "flex items-center justify-between" }}>
         <div>
@@ -77,7 +56,7 @@ export const AgentPerformanceDashboard: React.FC = () => {
           </p>
         </div>
         <Button variant="outline">
-          <Download {...{ className: "h-4 w-4 mr-2" }} />
+          <Download {...{ className: "h-4 w-4 mr-2" }}/>
           Export Report
         </Button>
       </div>
@@ -87,7 +66,7 @@ export const AgentPerformanceDashboard: React.FC = () => {
         <Card>
           <CardHeader {...{ className: "flex flex-row items-center justify-between space-y-0 pb-2" }}>
             <CardTitle {...{ className: "text-sm font-medium" }}>Total Agents</CardTitle>
-            <Users {...{ className: "h-4 w-4 text-gray-600" }} />
+            <Users {...{ className: "h-4 w-4 text-gray-600" }}/>
           </CardHeader>
           <CardContent>
             <div {...{ className: "text-2xl font-bold" }}>{summary?.totalAgents || 0}</div>
@@ -100,7 +79,7 @@ export const AgentPerformanceDashboard: React.FC = () => {
         <Card>
           <CardHeader {...{ className: "flex flex-row items-center justify-between space-y-0 pb-2" }}>
             <CardTitle {...{ className: "text-sm font-medium" }}>Active Agents</CardTitle>
-            <TrendingUp {...{ className: "h-4 w-4 text-green-600" }} />
+            <TrendingUp {...{ className: "h-4 w-4 text-green-600" }}/>
           </CardHeader>
           <CardContent>
             <div {...{ className: "text-2xl font-bold text-green-600" }}>{summary?.activeAgents || 0}</div>
@@ -113,7 +92,7 @@ export const AgentPerformanceDashboard: React.FC = () => {
         <Card>
           <CardHeader {...{ className: "flex flex-row items-center justify-between space-y-0 pb-2" }}>
             <CardTitle {...{ className: "text-sm font-medium" }}>Avg Cases/Agent</CardTitle>
-            <Target {...{ className: "h-4 w-4 text-green-600" }} />
+            <Target {...{ className: "h-4 w-4 text-green-600" }}/>
           </CardHeader>
           <CardContent>
             <div {...{ className: "text-2xl font-bold text-green-600" }}>
@@ -128,7 +107,7 @@ export const AgentPerformanceDashboard: React.FC = () => {
         <Card>
           <CardHeader {...{ className: "flex flex-row items-center justify-between space-y-0 pb-2" }}>
             <CardTitle {...{ className: "text-sm font-medium" }}>Avg Completion Rate</CardTitle>
-            <Award {...{ className: "h-4 w-4 text-green-600" }} />
+            <Award {...{ className: "h-4 w-4 text-green-600" }}/>
           </CardHeader>
           <CardContent>
             <div {...{ className: "text-2xl font-bold text-green-600" }}>
@@ -142,11 +121,10 @@ export const AgentPerformanceDashboard: React.FC = () => {
       </div>
 
       {/* Top Performers */}
-      {topPerformers.length > 0 && (
-        <Card>
+      {topPerformers.length > 0 && (<Card>
           <CardHeader>
             <CardTitle {...{ className: "flex items-center space-x-2" }}>
-              <Star {...{ className: "h-5 w-5 text-yellow-500" }} />
+              <Star {...{ className: "h-5 w-5 text-yellow-500" }}/>
               <span>Top Performers</span>
             </CardTitle>
             <CardDescription>Highest performing agents this period</CardDescription>
@@ -154,15 +132,13 @@ export const AgentPerformanceDashboard: React.FC = () => {
           <CardContent>
             <div {...{ className: "grid gap-4 md:grid-cols-5" }}>
               {topPerformers.slice(0, 5).map((agent, index) => {
-                const completionRate = agent.totalCasesAssigned > 0 
-                  ? (agent.casesCompleted / agent.totalCasesAssigned) * 100 
-                  : 0;
-                
-                return (
-                  <div key={agent.id} {...{ className: "text-center p-4 border rounded-lg" }}>
+                const completionRate = agent.totalCasesAssigned > 0
+                    ? (agent.casesCompleted / agent.totalCasesAssigned) * 100
+                    : 0;
+                return (<div key={agent.id} {...{ className: "text-center p-4 border rounded-lg" }}>
                     <div {...{ className: "flex items-center justify-center space-x-1 mb-2" }}>
                       <span {...{ className: "text-2xl font-bold" }}>#{index + 1}</span>
-                      {index === 0 && <Star {...{ className: "h-5 w-5 text-yellow-500 fill-current" }} />}
+                      {index === 0 && <Star {...{ className: "h-5 w-5 text-yellow-500 fill-current" }}/>}
                     </div>
                     <div {...{ className: "font-medium" }}>{agent.name}</div>
                     <div {...{ className: "text-sm text-gray-600" }}>{agent.employeeId}</div>
@@ -176,19 +152,17 @@ export const AgentPerformanceDashboard: React.FC = () => {
                         {agent.formQualityScore.toFixed(1)}%
                       </span>
                     </div>
-                  </div>
-                );
-              })}
+                  </div>);
+            })}
             </div>
           </CardContent>
-        </Card>
-      )}
+        </Card>)}
 
       {/* Filters */}
       <Card>
         <CardHeader>
           <CardTitle {...{ className: "flex items-center space-x-2" }}>
-            <Filter {...{ className: "h-5 w-5" }} />
+            <Filter {...{ className: "h-5 w-5" }}/>
             <span>Filters</span>
           </CardTitle>
         </CardHeader>
@@ -196,60 +170,40 @@ export const AgentPerformanceDashboard: React.FC = () => {
           <div {...{ className: "grid gap-4 md:grid-cols-4" }}>
             <div {...{ className: "space-y-2" }}>
               <Label htmlFor="departmentId">Department</Label>
-              <Select 
-                value={filters.departmentId?.toString() || ''} 
-                onValueChange={(value) => handleFilterChange('departmentId', value)}
-              >
+              <Select value={filters.departmentId?.toString() || ''} onValueChange={(value) => handleFilterChange('departmentId', value)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="All departments" />
+                  <SelectValue placeholder="All departments"/>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="">All departments</SelectItem>
-                  {departments.map((dept) => (
-                    <SelectItem key={dept.id} value={dept.id.toString()}>
+                  {departments.map((dept) => (<SelectItem key={dept.id} value={dept.id.toString()}>
                       {dept.name}
-                    </SelectItem>
-                  ))}
+                    </SelectItem>))}
                 </SelectContent>
               </Select>
             </div>
 
             <div {...{ className: "space-y-2" }}>
               <Label htmlFor="dateFrom">From Date</Label>
-              <Input
-                id="dateFrom"
-                type="date"
-                value={filters.dateFrom || ''}
-                onChange={(e) => handleFilterChange('dateFrom', e.target.value)}
-              />
+              <Input id="dateFrom" type="date" value={filters.dateFrom || ''} onChange={(e) => handleFilterChange('dateFrom', e.target.value)}/>
             </div>
 
             <div {...{ className: "space-y-2" }}>
               <Label htmlFor="dateTo">To Date</Label>
-              <Input
-                id="dateTo"
-                type="date"
-                value={filters.dateTo || ''}
-                onChange={(e) => handleFilterChange('dateTo', e.target.value)}
-              />
+              <Input id="dateTo" type="date" value={filters.dateTo || ''} onChange={(e) => handleFilterChange('dateTo', e.target.value)}/>
             </div>
 
             <div {...{ className: "space-y-2" }}>
               <Label htmlFor="agentId">Specific Agent</Label>
-              <Select 
-                value={filters.agentId || ''} 
-                onValueChange={(value) => handleFilterChange('agentId', value)}
-              >
+              <Select value={filters.agentId || ''} onValueChange={(value) => handleFilterChange('agentId', value)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="All agents" />
+                  <SelectValue placeholder="All agents"/>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="">All agents</SelectItem>
-                  {agents.map((agent) => (
-                    <SelectItem key={agent.id} value={agent.id}>
+                  {agents.map((agent) => (<SelectItem key={agent.id} value={agent.id}>
                       {agent.name} ({agent.employeeId})
-                    </SelectItem>
-                  ))}
+                    </SelectItem>))}
                 </SelectContent>
               </Select>
             </div>
@@ -262,10 +216,9 @@ export const AgentPerformanceDashboard: React.FC = () => {
         <CardHeader>
           <CardTitle>Agent Performance Details</CardTitle>
           <CardDescription>
-            {agents.length > 0 
-              ? `Showing ${agents.length} agent${agents.length === 1 ? '' : 's'}`
-              : 'No agents found'
-            }
+            {agents.length > 0
+            ? `Showing ${agents.length} agent${agents.length === 1 ? '' : 's'}`
+            : 'No agents found'}
           </CardDescription>
         </CardHeader>
         <CardContent {...{ className: "p-0" }}>
@@ -285,34 +238,24 @@ export const AgentPerformanceDashboard: React.FC = () => {
               </TableHeader>
               <TableBody>
                 {performanceLoading ? (
-                  // Loading skeleton
-                  Array.from({ length: 5 }).map((_, index) => (
-                    <TableRow key={index}>
-                      {Array.from({ length: 8 }).map((_, cellIndex) => (
-                        <TableCell key={cellIndex}>
-                          <div {...{ className: "h-4 bg-slate-100 dark:bg-slate-800/60 rounded animate-pulse" }} />
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                  ))
-                ) : agents.length === 0 ? (
-                  <TableRow>
+        // Loading skeleton
+        Array.from({ length: 5 }).map((_, index) => (<TableRow key={index}>
+                      {Array.from({ length: 8 }).map((_, cellIndex) => (<TableCell key={cellIndex}>
+                          <div {...{ className: "h-4 bg-slate-100 dark:bg-slate-800/60 rounded animate-pulse" }}/>
+                        </TableCell>))}
+                    </TableRow>))) : agents.length === 0 ? (<TableRow>
                     <TableCell colSpan={8} {...{ className: "text-center py-8" }}>
-                      <Users {...{ className: "mx-auto h-12 w-12 text-gray-600" }} />
+                      <Users {...{ className: "mx-auto h-12 w-12 text-gray-600" }}/>
                       <h3 {...{ className: "mt-4 text-lg font-semibold" }}>No agents found</h3>
                       <p {...{ className: "text-gray-600" }}>
                         Try adjusting your filters or check back later.
                       </p>
                     </TableCell>
-                  </TableRow>
-                ) : (
-                  agents.map((agent) => {
-                    const completionRate = agent.totalCasesAssigned > 0 
-                      ? (agent.casesCompleted / agent.totalCasesAssigned) * 100 
-                      : 0;
-                    
-                    return (
-                      <TableRow key={agent.id}>
+                  </TableRow>) : (agents.map((agent) => {
+            const completionRate = agent.totalCasesAssigned > 0
+                ? (agent.casesCompleted / agent.totalCasesAssigned) * 100
+                : 0;
+            return (<TableRow key={agent.id}>
                         <TableCell>
                           <div>
                             <div {...{ className: "font-medium" }}>{agent.name}</div>
@@ -339,7 +282,7 @@ export const AgentPerformanceDashboard: React.FC = () => {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <div className={`font-medium ${getPerformanceColor(agent.formQualityScore)}`}>
+                          <div {...{ className: `font-medium ${getPerformanceColor(agent.formQualityScore)}` }}>
                             {agent.formQualityScore.toFixed(1)}%
                           </div>
                         </TableCell>
@@ -348,15 +291,12 @@ export const AgentPerformanceDashboard: React.FC = () => {
                             {agent.avgCompletionDays ? `${agent.avgCompletionDays.toFixed(1)}d` : 'N/A'}
                           </div>
                         </TableCell>
-                      </TableRow>
-                    );
-                  })
-                )}
+                      </TableRow>);
+        }))}
               </TableBody>
             </Table>
           </div>
         </CardContent>
       </Card>
-    </div>
-  );
+    </div>);
 };

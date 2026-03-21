@@ -1,106 +1,76 @@
 import React from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
-
 interface MonthlyTrendData {
-  month: string;
-  totalCases: number;
-  revenue?: number;
-  completionRate: number;
+    month: string;
+    totalCases: number;
+    revenue?: number;
+    completionRate: number;
 }
-
 interface MonthlyTrendsChartProps {
-  data: MonthlyTrendData[];
-  isLoading?: boolean;
+    data: MonthlyTrendData[];
+    isLoading?: boolean;
 }
-
 export const MonthlyTrendsChart: React.FC<MonthlyTrendsChartProps> = ({ data, isLoading }) => {
-  if (isLoading) {
-    return (
-      <Card>
+    if (isLoading) {
+        return (<Card>
         <CardHeader>
           <CardTitle>Monthly Trends</CardTitle>
           <CardDescription>Cases and revenue trends over time</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="h-[300px] flex items-center justify-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+          <div {...{ className: "h-[300px] flex items-center justify-center" }}>
+            <div {...{ className: "animate-spin rounded-full h-8 w-8 border-b-2 border-primary" }}/>
           </div>
         </CardContent>
-      </Card>
-    );
-  }
-
-  // Custom Tooltip Types
-  interface TooltipPayload {
-    name: string;
-    value: number;
-    color: string;
-    payload: MonthlyTrendData;
-  }
-
-  interface CustomTooltipProps {
-    active?: boolean;
-    payload?: TooltipPayload[];
-    label?: string;
-  }
-
-  const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-white p-3 border rounded-lg shadow-lg">
-          <p className="font-medium">{label}</p>
-          {payload.map((entry, index) => (
-            <p key={index} className="text-sm" style={{ color: entry.color }}>
+      </Card>);
+    }
+    // Custom Tooltip Types
+    interface TooltipPayload {
+        name: string;
+        value: number;
+        color: string;
+        payload: MonthlyTrendData;
+    }
+    interface CustomTooltipProps {
+        active?: boolean;
+        payload?: TooltipPayload[];
+        label?: string;
+    }
+    const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
+        if (active && payload && payload.length) {
+            return (<div {...{ className: "bg-white p-3 border rounded-lg shadow-lg" }}>
+          <p {...{ className: "font-medium" }}>{label}</p>
+          {payload.map((entry, index) => (<p key={index} {...{ className: "text-sm" }} style={{ color: entry.color }}>
               {entry.name}: {entry.name === 'Revenue' && entry.value ? `$${entry.value.toLocaleString()}` : entry.value}
               {entry.name === 'Completion Rate' ? '%' : ''}
-            </p>
-          ))}
-        </div>
-      );
-    }
-    return null;
-  };
-
-  // Ensure data is an array
-  const safeData = Array.isArray(data) ? data : [];
-
-  return (
-    <Card>
+            </p>))}
+        </div>);
+        }
+        return null;
+    };
+    // Ensure data is an array
+    const safeData = Array.isArray(data) ? data : [];
+    return (<Card>
       <CardHeader>
         <CardTitle>Monthly Trends</CardTitle>
         <CardDescription>Cases and revenue trends over time</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="h-[300px] min-w-0">
+        <div {...{ className: "h-[300px] min-w-0" }}>
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={safeData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="month" />
-              <YAxis yAxisId="left" />
-              <YAxis yAxisId="right" orientation="right" />
-              <Tooltip content={<CustomTooltip />} />
+              <CartesianGrid strokeDasharray="3 3"/>
+              <XAxis dataKey="month"/>
+              <YAxis yAxisId="left"/>
+              <YAxis yAxisId="right" orientation="right"/>
+              <Tooltip content={<CustomTooltip />}/>
               <Legend />
-              <Line
-                yAxisId="left"
-                type="monotone"
-                dataKey="totalCases"
-                stroke="#3b82f6"
-                strokeWidth={2}
-                name="Cases"
-              />
-              <Line
-                yAxisId="right"
-                type="monotone"
-                dataKey="completionRate"
-                stroke="#10b981"
-                strokeWidth={2}
-                name="Completion Rate"
-              />
+              <Line yAxisId="left" type="monotone" dataKey="totalCases" stroke="#3b82f6" strokeWidth={2} name="Cases"/>
+              <Line yAxisId="right" type="monotone" dataKey="completionRate" stroke="#10b981" strokeWidth={2} name="Completion Rate"/>
             </LineChart>
           </ResponsiveContainer>
         </div>
       </CardContent>
-    </Card>
-  );
+    </Card>);
 };

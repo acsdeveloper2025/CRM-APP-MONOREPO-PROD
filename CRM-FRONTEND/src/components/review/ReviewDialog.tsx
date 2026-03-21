@@ -16,7 +16,6 @@ import { Textarea } from '@/ui/components/textarea';
 import { Badge } from '@/ui/components/badge';
 import { CheckCircle, XCircle, RotateCcw } from 'lucide-react';
 import type { Case } from '@/types/case';
-
 interface ReviewDialogProps {
   isOpen: boolean;
   onClose: () => void;
@@ -27,21 +26,22 @@ interface ReviewDialogProps {
   onRequestRework: (caseId: string, feedback: string) => Promise<void>;
   isLoading?: boolean;
 }
-
 type ReviewAction = 'approve' | 'reject' | 'rework';
-
-const reviewSchema = z.object({
-  feedback: z.string().optional(),
-  reason: z.string().optional(),
-}).refine(() => {
-  // If rejecting or requesting rework, reason/feedback is required
-  return true; // We'll handle validation in the component
-}, {
-  message: "Feedback is required for rejection or rework requests"
-});
-
+const reviewSchema = z
+  .object({
+    feedback: z.string().optional(),
+    reason: z.string().optional(),
+  })
+  .refine(
+    () => {
+      // If rejecting or requesting rework, reason/feedback is required
+      return true; // We'll handle validation in the component
+    },
+    {
+      message: 'Feedback is required for rejection or rework requests',
+    }
+  );
 type ReviewFormData = z.infer<typeof reviewSchema>;
-
 export const ReviewDialog: React.FC<ReviewDialogProps> = ({
   isOpen,
   onClose,
@@ -54,7 +54,6 @@ export const ReviewDialog: React.FC<ReviewDialogProps> = ({
 }) => {
   const [action, setAction] = useState<ReviewAction | null>(initialAction);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
   const {
     register,
     handleSubmit,
@@ -64,25 +63,22 @@ export const ReviewDialog: React.FC<ReviewDialogProps> = ({
   } = useForm<ReviewFormData>({
     resolver: zodResolver(reviewSchema),
   });
-
   const feedback = watch('feedback');
   const reason = watch('reason');
-
   const handleClose = () => {
     setAction(initialAction);
     reset();
     onClose();
   };
-
   React.useEffect(() => {
     if (isOpen) {
       setAction(initialAction);
     }
   }, [initialAction, isOpen]);
-
   const onSubmit = async (data: ReviewFormData) => {
-    if (!caseItem || !action) {return;}
-
+    if (!caseItem || !action) {
+      return;
+    }
     setIsSubmitting(true);
     try {
       switch (action) {
@@ -113,9 +109,9 @@ export const ReviewDialog: React.FC<ReviewDialogProps> = ({
       setIsSubmitting(false);
     }
   };
-
-  if (!caseItem) {return null;}
-
+  if (!caseItem) {
+    return null;
+  }
   const getActionColor = (actionType: ReviewAction) => {
     switch (actionType) {
       case 'approve':
@@ -128,96 +124,94 @@ export const ReviewDialog: React.FC<ReviewDialogProps> = ({
         return 'bg-slate-100 text-slate-900 dark:bg-slate-800/60 dark:text-slate-100 border-border';
     }
   };
-
   const getActionIcon = (actionType: ReviewAction) => {
     switch (actionType) {
       case 'approve':
-        return <CheckCircle className="h-4 w-4" />;
+        return <CheckCircle {...{ className: 'h-4 w-4' }} />;
       case 'reject':
-        return <XCircle className="h-4 w-4" />;
+        return <XCircle {...{ className: 'h-4 w-4' }} />;
       case 'rework':
-        return <RotateCcw className="h-4 w-4" />;
+        return <RotateCcw {...{ className: 'h-4 w-4' }} />;
     }
   };
-
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent {...{ className: 'max-w-2xl' }}>
         <DialogHeader>
           <DialogTitle>Review Case #{caseItem.id.slice(-8)}</DialogTitle>
-          <DialogDescription>
-            Review the completed case and provide your decision
-          </DialogDescription>
+          <DialogDescription>Review the completed case and provide your decision</DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div {...{ className: 'space-y-4' }}>
           {/* Case Summary */}
-          <div className="p-4 bg-slate-100 dark:bg-slate-800/60 rounded-lg">
-            <h4 className="font-medium text-gray-900 mb-2">Case Summary</h4>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+          <div {...{ className: 'p-4 bg-slate-100 dark:bg-slate-800/60 rounded-lg' }}>
+            <h4 {...{ className: 'font-medium text-gray-900 mb-2' }}>Case Summary</h4>
+            <div {...{ className: 'grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm' }}>
               <div>
-                <span className="text-gray-600">Customer:</span>
-                <span className="ml-2 font-medium">{caseItem.customerName}</span>
+                <span {...{ className: 'text-gray-600' }}>Customer:</span>
+                <span {...{ className: 'ml-2 font-medium' }}>{caseItem.customerName}</span>
               </div>
               <div>
-                <span className="text-gray-600">Client:</span>
-                <span className="ml-2 font-medium">{caseItem.client?.name}</span>
+                <span {...{ className: 'text-gray-600' }}>Client:</span>
+                <span {...{ className: 'ml-2 font-medium' }}>{caseItem.client?.name}</span>
               </div>
               <div>
-                <span className="text-gray-600">Type:</span>
-                <span className="ml-2 font-medium">{caseItem.verificationType || 'N/A'}</span>
+                <span {...{ className: 'text-gray-600' }}>Type:</span>
+                <span {...{ className: 'ml-2 font-medium' }}>
+                  {caseItem.verificationType || 'N/A'}
+                </span>
               </div>
               <div>
-                <span className="text-gray-600">Assigned To:</span>
-                <span className="ml-2 font-medium">{caseItem.assignedToId ?? 'N/A'}</span>
+                <span {...{ className: 'text-gray-600' }}>Assigned To:</span>
+                <span {...{ className: 'ml-2 font-medium' }}>{caseItem.assignedToId ?? 'N/A'}</span>
               </div>
             </div>
-            <div className="mt-2">
-              <span className="text-gray-600">Description:</span>
-              <p className="mt-1 text-sm">{caseItem.description}</p>
+            <div {...{ className: 'mt-2' }}>
+              <span {...{ className: 'text-gray-600' }}>Description:</span>
+              <p {...{ className: 'mt-1 text-sm' }}>{caseItem.description}</p>
             </div>
           </div>
 
           {/* Action Selection */}
           {!action && (
-            <div className="space-y-3">
-              <h4 className="font-medium text-gray-900">Choose Action</h4>
-              <div className="grid grid-cols-1 gap-2">
+            <div {...{ className: 'space-y-3' }}>
+              <h4 {...{ className: 'font-medium text-gray-900' }}>Choose Action</h4>
+              <div {...{ className: 'grid grid-cols-1 gap-2' }}>
                 <Button
                   variant="outline"
-                  className="justify-start h-auto p-4 text-left"
+                  {...{ className: 'justify-start h-auto p-4 text-left' }}
                   onClick={() => setAction('approve')}
                 >
-                  <CheckCircle className="h-5 w-5 mr-3 text-green-600" />
+                  <CheckCircle {...{ className: 'h-5 w-5 mr-3 text-green-600' }} />
                   <div>
-                    <div className="font-medium">Approve Case</div>
-                    <div className="text-sm text-gray-600">
+                    <div {...{ className: 'font-medium' }}>Approve Case</div>
+                    <div {...{ className: 'text-sm text-gray-600' }}>
                       Mark this case as approved and complete
                     </div>
                   </div>
                 </Button>
                 <Button
                   variant="outline"
-                  className="justify-start h-auto p-4 text-left"
+                  {...{ className: 'justify-start h-auto p-4 text-left' }}
                   onClick={() => setAction('rework')}
                 >
-                  <RotateCcw className="h-5 w-5 mr-3 text-yellow-600" />
+                  <RotateCcw {...{ className: 'h-5 w-5 mr-3 text-yellow-600' }} />
                   <div>
-                    <div className="font-medium">Request Rework</div>
-                    <div className="text-sm text-gray-600">
+                    <div {...{ className: 'font-medium' }}>Request Rework</div>
+                    <div {...{ className: 'text-sm text-gray-600' }}>
                       Send back for additional work or corrections
                     </div>
                   </div>
                 </Button>
                 <Button
                   variant="outline"
-                  className="justify-start h-auto p-4 text-left"
+                  {...{ className: 'justify-start h-auto p-4 text-left' }}
                   onClick={() => setAction('reject')}
                 >
-                  <XCircle className="h-5 w-5 mr-3 text-red-600" />
+                  <XCircle {...{ className: 'h-5 w-5 mr-3 text-red-600' }} />
                   <div>
-                    <div className="font-medium">Reject Case</div>
-                    <div className="text-sm text-gray-600">
+                    <div {...{ className: 'font-medium' }}>Reject Case</div>
+                    <div {...{ className: 'text-sm text-gray-600' }}>
                       Reject this case submission
                     </div>
                   </div>
@@ -228,64 +222,73 @@ export const ReviewDialog: React.FC<ReviewDialogProps> = ({
 
           {/* Action Form */}
           {action && (
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-              <div className="flex items-center space-x-2">
-                <Badge className={`border ${getActionColor(action)}`}>
+            <form onSubmit={handleSubmit(onSubmit)} {...{ className: 'space-y-4' }}>
+              <div {...{ className: 'flex items-center space-x-2' }}>
+                <Badge {...{ className: `border ${getActionColor(action)}` }}>
                   {getActionIcon(action)}
-                  <span className="ml-1 capitalize">{action}</span>
+                  <span {...{ className: 'ml-1 capitalize' }}>{action}</span>
                 </Badge>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setAction(null)}
-                >
+                <Button type="button" variant="ghost" size="sm" onClick={() => setAction(null)}>
                   Change
                 </Button>
               </div>
 
-              <div className="space-y-2">
+              <div {...{ className: 'space-y-2' }}>
                 <Label htmlFor={action === 'reject' ? 'reason' : 'feedback'}>
-                  {action === 'reject' ? 'Rejection Reason *' : 
-                   action === 'rework' ? 'Rework Feedback *' : 
-                   'Approval Comments (Optional)'}
+                  {action === 'reject'
+                    ? 'Rejection Reason *'
+                    : action === 'rework'
+                      ? 'Rework Feedback *'
+                      : 'Approval Comments (Optional)'}
                 </Label>
                 <Textarea
                   id={action === 'reject' ? 'reason' : 'feedback'}
                   placeholder={
-                    action === 'reject' ? 'Please provide a reason for rejection...' :
-                    action === 'rework' ? 'Please provide specific feedback for rework...' :
-                    'Add any additional comments...'
+                    action === 'reject'
+                      ? 'Please provide a reason for rejection...'
+                      : action === 'rework'
+                        ? 'Please provide specific feedback for rework...'
+                        : 'Add any additional comments...'
                   }
                   {...register(action === 'reject' ? 'reason' : 'feedback')}
-                  className={errors.reason || errors.feedback ? 'border-red-500' : ''}
+                  {...{ className: errors.reason || errors.feedback ? 'border-red-500' : '' }}
                 />
                 {(errors.reason || errors.feedback) && (
-                  <p className="text-sm text-red-500">
+                  <p {...{ className: 'text-sm text-red-500' }}>
                     {errors.reason?.message || errors.feedback?.message}
                   </p>
                 )}
               </div>
 
-              <DialogFooter className="flex-col sm:flex-row gap-2">
-                <Button type="button" variant="outline" onClick={handleClose} className="w-full sm:w-auto">
+              <DialogFooter {...{ className: 'flex-col sm:flex-row gap-2' }}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleClose}
+                  {...{ className: 'w-full sm:w-auto' }}
+                >
                   Cancel
                 </Button>
                 <Button
                   type="submit"
                   disabled={
-                    isSubmitting || 
-                    isLoading || 
+                    isSubmitting ||
+                    isLoading ||
                     (action === 'reject' && !reason?.trim()) ||
                     (action === 'rework' && !feedback?.trim())
                   }
-                  className={
-                    action === 'approve' ? 'bg-green-600 hover:bg-green-700' :
-                    action === 'reject' ? 'bg-red-600 hover:bg-red-700' :
-                    'bg-yellow-600 hover:bg-yellow-700'
-                  }
+                  {...{
+                    className:
+                      action === 'approve'
+                        ? 'bg-green-600 hover:bg-green-700'
+                        : action === 'reject'
+                          ? 'bg-red-600 hover:bg-red-700'
+                          : 'bg-yellow-600 hover:bg-yellow-700',
+                  }}
                 >
-                  {isSubmitting ? 'Processing...' : `${action.charAt(0).toUpperCase() + action.slice(1)} Case`}
+                  {isSubmitting
+                    ? 'Processing...'
+                    : `${action.charAt(0).toUpperCase() + action.slice(1)} Case`}
                 </Button>
               </DialogFooter>
             </form>
