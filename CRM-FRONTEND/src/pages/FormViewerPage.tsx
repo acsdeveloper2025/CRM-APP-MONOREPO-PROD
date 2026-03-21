@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { FileText, Eye, Download, Share2 } from 'lucide-react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/components/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/ui/components/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/components/Tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/ui/components/Select';
 import { FormViewer } from '@/components/forms/FormViewer';
 import { FormSubmission } from '@/types/form';
 import { Badge } from '@/ui/components/Badge';

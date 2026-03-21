@@ -1,8 +1,8 @@
 import React from 'react';
 import { FileText } from 'lucide-react';
-import { Button } from '@/ui/components/button';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, } from '@/ui/components/dialog';
-import { Separator } from '@/ui/components/separator';
+import { Button } from '@/ui/components/Button';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, } from '@/ui/components/Dialog';
+import { Separator } from '@/ui/components/Separator';
 import type { DocumentType } from '@/types/documentType';
 interface ViewDocumentTypeDialogProps {
     documentType: DocumentType | null;

@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/card';
-import { Badge } from '@/ui/components/badge';
-import { Button } from '@/ui/components/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/ui/components/dialog';
-import { LoadingSpinner } from '@/ui/components/loading';
+import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/Card';
+import { Badge } from '@/ui/components/Badge';
+import { Button } from '@/ui/components/Button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/ui/components/Dialog';
+import { LoadingSpinner } from '@/ui/components/Loading';
 import {
   useVerificationImages,
   useVerificationImagesBySubmission,

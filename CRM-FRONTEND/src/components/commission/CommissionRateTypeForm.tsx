@@ -1,17 +1,17 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useMutationWithInvalidation } from '@/hooks/useStandardizedMutation';
-import { Button } from '@/ui/components/button';
-import { Input } from '@/ui/components/input';
-import { Label } from '@/ui/components/label';
+import { Button } from '@/ui/components/Button';
+import { Input } from '@/ui/components/Input';
+import { Label } from '@/ui/components/Label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/ui/components/select';
-import { Switch } from '@/ui/components/switch';
+} from '@/ui/components/Select';
+import { Switch } from '@/ui/components/Switch';
 
 import { commissionManagementService } from '@/services/commissionManagement';
 import { rateTypesService } from '@/services/rateTypes';

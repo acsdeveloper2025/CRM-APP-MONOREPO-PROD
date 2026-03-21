@@ -6,11 +6,11 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from '@/ui/components/dialog';
+} from '@/ui/components/Dialog';
 import { Badge } from '@/ui/components/Badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/Card';
-import { Separator } from '@/ui/components/separator';
-import { LoadingSpinner } from '@/ui/components/loading';
+import { Separator } from '@/ui/components/Separator';
+import { LoadingSpinner } from '@/ui/components/Loading';
 import { Grid } from '@/ui/layout/Grid';
 import { Box } from '@/ui/primitives/Box';
 import { Stack } from '@/ui/primitives/Stack';

@@ -4,7 +4,7 @@ import { FormViewer } from '@/components/forms/FormViewer';
 import { FormSubmissionsList } from '@/components/forms/FormSubmissionsList';
 import { FormsDebug } from '@/components/debug/FormsDebug';
 import { FileText, TestTube, AlertCircle, CheckCircle } from 'lucide-react';
-import { LoadingSpinner } from '@/ui/components/loading';
+import { LoadingSpinner } from '@/ui/components/Loading';
 import { Badge } from '@/ui/components/Badge';
 import { Button } from '@/ui/components/Button';
 import { Card } from '@/ui/components/Card';

@@ -1,19 +1,19 @@
 import { useState, useEffect } from 'react';
 import { Send, Activity, BarChart3, Wifi, WifiOff, TestTube } from 'lucide-react';
-import { Button } from '@/ui/components/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
-import { Input } from '@/ui/components/input';
-import { Label } from '@/ui/components/label';
-import { Textarea } from '@/ui/components/textarea';
+import { Button } from '@/ui/components/Button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/Card';
+import { Input } from '@/ui/components/Input';
+import { Label } from '@/ui/components/Label';
+import { Textarea } from '@/ui/components/Textarea';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/ui/components/select';
-import { Badge } from '@/ui/components/badge';
-import { Separator } from '@/ui/components/separator';
+} from '@/ui/components/Select';
+import { Badge } from '@/ui/components/Badge';
+import { Separator } from '@/ui/components/Separator';
 import { toast } from 'sonner';
 import { apiService } from '@/services/api';
 interface ConnectivityStatus {

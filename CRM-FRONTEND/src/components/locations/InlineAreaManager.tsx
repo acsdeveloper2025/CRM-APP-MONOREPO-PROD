@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, X, AlertCircle } from 'lucide-react';
-import { Badge } from '@/ui/components/badge';
-import { Button } from '@/ui/components/button';
+import { Badge } from '@/ui/components/Badge';
+import { Button } from '@/ui/components/Button';
 import {
   Popover,
   PopoverContent,
@@ -17,7 +17,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/ui/components/alert-dialog';
+} from '@/ui/components/AlertDialog';
 import { toast } from 'sonner';
 import { locationsService } from '@/services/locations';
 import { AreasMultiSelect } from './AreasMultiSelect';

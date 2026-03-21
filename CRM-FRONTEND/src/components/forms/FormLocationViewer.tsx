@@ -1,7 +1,7 @@
 import { MapPin, Navigation, Clock, ExternalLink } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
-import { Button } from '@/ui/components/button';
-import { Badge } from '@/ui/components/badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/Card';
+import { Button } from '@/ui/components/Button';
+import { Badge } from '@/ui/components/Badge';
 import { FormGeoLocation } from '@/types/form';
 import { Box } from '@/ui/primitives/Box';
 import { Stack } from '@/ui/primitives/Stack';

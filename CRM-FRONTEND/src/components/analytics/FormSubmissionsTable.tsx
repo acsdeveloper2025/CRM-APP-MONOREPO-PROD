@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
-import { Button } from '@/ui/components/button';
-import { Badge } from '@/ui/components/badge';
-import { Input } from '@/ui/components/input';
-import { Label } from '@/ui/components/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/Card';
+import { Button } from '@/ui/components/Button';
+import { Badge } from '@/ui/components/Badge';
+import { Input } from '@/ui/components/Input';
+import { Label } from '@/ui/components/Label';
 import {
   Table,
   TableBody,
@@ -11,7 +11,7 @@ import {
   TableHead,
   TableHeader,
   TableRow
-} from '@/ui/components/table';
+} from '@/ui/components/Table';
 import {
   BarChart,
   Bar,

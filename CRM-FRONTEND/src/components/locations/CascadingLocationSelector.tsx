@@ -14,8 +14,8 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/ui/components/select';
-import { Input } from '@/ui/components/input';
+} from '@/ui/components/Select';
+import { Input } from '@/ui/components/Input';
 import { Loader2 } from 'lucide-react';
 import { Stack } from '@/ui/primitives/Stack';
 import { Text } from '@/ui/primitives/Text';

@@ -5,7 +5,7 @@ import { productsService } from '@/services/products';
 import { ProductsTable } from '@/components/clients/ProductsTable';
 import { CreateProductDialog } from '@/components/clients/CreateProductDialog';
 import { useUnifiedSearch } from '@/hooks/useUnifiedSearch';
-import { UnifiedSearchFilterLayout } from '@/ui/components/unified-search-filter-layout';
+import { UnifiedSearchFilterLayout } from '@/ui/components/UnifiedSearchFilterLayout';
 import { MetricCardGrid } from '@/components/shared/MetricCardGrid';
 import { PaginationStatusCard } from '@/components/shared/PaginationStatusCard';
 import { Badge } from '@/ui/components/Badge';

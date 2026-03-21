@@ -3,17 +3,17 @@ import { useStandardizedQuery } from '@/hooks/useStandardizedQuery';
 import { Search, Download, Filter, Trash2 } from 'lucide-react';
 import { useMutationWithInvalidation } from '@/hooks/useStandardizedMutation';
 import { toast } from 'sonner';
-import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/card';
-import { Button } from '@/ui/components/button';
-import { Input } from '@/ui/components/input';
-import { Badge } from '@/ui/components/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/Card';
+import { Button } from '@/ui/components/Button';
+import { Input } from '@/ui/components/Input';
+import { Badge } from '@/ui/components/Badge';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/ui/components/select';
+} from '@/ui/components/Select';
 import {
   Table,
   TableBody,
@@ -21,7 +21,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/ui/components/table';
+} from '@/ui/components/Table';
 import { ratesService, type Rate } from '@/services/rates';
 import { clientsService } from '@/services/clients';
 import { productsService } from '@/services/products';

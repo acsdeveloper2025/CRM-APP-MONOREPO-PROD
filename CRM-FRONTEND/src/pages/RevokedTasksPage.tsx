@@ -1,17 +1,17 @@
 import React, { useState } from 'react';
-import { Button } from '@/ui/components/button';
-import { Label } from '@/ui/components/label';
+import { Button } from '@/ui/components/Button';
+import { Label } from '@/ui/components/Label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/ui/components/select';
+} from '@/ui/components/Select';
 import { TasksListFlat } from '@/components/verification-tasks/TasksListFlat';
 import { useAllVerificationTasks } from '@/hooks/useVerificationTasks';
 import { useUnifiedSearch, useUnifiedFilters } from '@/hooks/useUnifiedSearch';
-import { UnifiedSearchFilterLayout, FilterGrid } from '@/ui/components/unified-search-filter-layout';
+import { UnifiedSearchFilterLayout, FilterGrid } from '@/ui/components/UnifiedSearchFilterLayout';
 import {
   XCircle,
   AlertTriangle,
@@ -23,7 +23,6 @@ import { useNavigate } from 'react-router-dom';
 import { VerificationTask } from '@/types/verificationTask';
 import { MetricCardGrid } from '@/components/shared/MetricCardGrid';
 import { PaginationStatusCard } from '@/components/shared/PaginationStatusCard';
-import { Button as UiButton } from '@/ui/components/Button';
 import { Card } from '@/ui/components/Card';
 import { Badge } from '@/ui/components/Badge';
 import { Page } from '@/ui/layout/Page';
@@ -115,9 +114,9 @@ export const RevokedTasksPage: React.FC = () => {
       subtitle="Work that was rejected or revoked in the field and needs operational review."
       shell
       actions={
-        <UiButton variant="secondary" icon={<RefreshCw size={16} />} onClick={() => refreshTasks()} disabled={loading}>
+        <Button variant="secondary" icon={<RefreshCw size={16} />} onClick={() => refreshTasks()} disabled={loading}>
           Refresh
-        </UiButton>
+        </Button>
       }
     >
       <Section>

@@ -5,11 +5,11 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from '@/ui/components/dialog';
-import { Button } from '@/ui/components/button';
-import { Badge } from '@/ui/components/badge';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
-import { Separator } from '@/ui/components/separator';
+} from '@/ui/components/Dialog';
+import { Button } from '@/ui/components/Button';
+import { Badge } from '@/ui/components/Badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/Card';
+import { Separator } from '@/ui/components/Separator';
 import { Invoice } from '@/types/billing';
 import { billingService } from '@/services/billing';
 import { toast } from 'sonner';

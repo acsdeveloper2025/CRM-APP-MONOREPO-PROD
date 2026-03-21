@@ -1,17 +1,17 @@
 import React, { useState } from 'react';
-import { Label } from '@/ui/components/label';
+import { Label } from '@/ui/components/Label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/ui/components/select';
+} from '@/ui/components/Select';
 import { CaseTable } from '@/components/cases/CaseTable';
 import { CasePagination } from '@/components/cases/CasePagination';
 import { useCases, useRefreshCases } from '@/hooks/useCases';
 import { useUnifiedSearch, useUnifiedFilters } from '@/hooks/useUnifiedSearch';
-import { UnifiedSearchFilterLayout, FilterGrid } from '@/ui/components/unified-search-filter-layout';
+import { UnifiedSearchFilterLayout, FilterGrid } from '@/ui/components/UnifiedSearchFilterLayout';
 import { Download, RefreshCw, PlayCircle, Timer, Zap, Users, BarChart3 } from 'lucide-react';
 import { casesService, type CaseListQuery } from '@/services/cases';
 import { MetricCardGrid } from '@/components/shared/MetricCardGrid';

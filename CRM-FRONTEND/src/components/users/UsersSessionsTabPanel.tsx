@@ -1,6 +1,6 @@
 import React from 'react';
 import { UserSessionsTable } from '@/components/users/UserSessionsTable';
-import { UnifiedSearchFilterLayout } from '@/ui/components/unified-search-filter-layout';
+import { UnifiedSearchFilterLayout } from '@/ui/components/UnifiedSearchFilterLayout';
 
 interface UsersSessionsTabPanelProps {
   sessSearch: {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/ui/components/card';
-import { Button } from '@/ui/components/button';
-import { Badge } from '@/ui/components/badge';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/ui/components/Card';
+import { Button } from '@/ui/components/Button';
+import { Badge } from '@/ui/components/Badge';
 import { baseBadgeStyle, formatBadgeLabel } from '@/lib/badgeStyles';
 import {
   Table,
@@ -10,9 +10,9 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/ui/components/table';
+} from '@/ui/components/Table';
 import { Calculator, Download, Calendar } from 'lucide-react';
-import { UnifiedSearchInput } from '@/ui/components/unified-search-input';
+import { UnifiedSearchInput } from '@/ui/components/UnifiedSearchInput';
 import { useUnifiedSearch } from '@/hooks/useUnifiedSearch';
 import { commissionManagementApi } from '../../services/commissionManagementApi';
 import { CommissionCalculation } from '../../types/commission';

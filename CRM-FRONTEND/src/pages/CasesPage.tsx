@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Page } from '@/ui/layout/Page';
 import { Badge } from '@/ui/components/Badge';
-import { Button as UiButton } from '@/ui/components/Button';
+import { Button as Button } from '@/ui/components/Button';
 import { Card } from '@/ui/components/Card';
 import { Section } from '@/ui/layout/Section';
 import { Stack } from '@/ui/primitives/Stack';
@@ -160,15 +160,15 @@ export const CasesPage: React.FC = () => {
       subtitle="Manage and track all verification cases."
       actions={
         <>
-          <UiButton variant="secondary" onClick={handleRefresh} disabled={isLoading} icon={<RefreshCw size={16} />}>
+          <Button variant="secondary" onClick={handleRefresh} disabled={isLoading} icon={<RefreshCw size={16} />}>
             Refresh
-          </UiButton>
-          <UiButton variant="secondary" onClick={handleExport} icon={<Download size={16} />}>
+          </Button>
+          <Button variant="secondary" onClick={handleExport} icon={<Download size={16} />}>
             Export
-          </UiButton>
-          <UiButton variant="primary" onClick={handleNewCase} icon={<Plus size={16} />}>
+          </Button>
+          <Button variant="primary" onClick={handleNewCase} icon={<Plus size={16} />}>
             New Case
-          </UiButton>
+          </Button>
         </>
       }
     >

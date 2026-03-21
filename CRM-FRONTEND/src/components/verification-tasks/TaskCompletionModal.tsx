@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/ui/components/dialog';
-import { Button } from '@/ui/components/button';
-import { Input } from '@/ui/components/input';
-import { Label } from '@/ui/components/label';
-import { Textarea } from '@/ui/components/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/ui/components/select';
-import { Card, CardContent } from '@/ui/components/card';
-import { Badge } from '@/ui/components/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/ui/components/Dialog';
+import { Button } from '@/ui/components/Button';
+import { Input } from '@/ui/components/Input';
+import { Label } from '@/ui/components/Label';
+import { Textarea } from '@/ui/components/Textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/ui/components/Select';
+import { Card, CardContent } from '@/ui/components/Card';
+import { Badge } from '@/ui/components/Badge';
 import { CheckCircle, AlertCircle, DollarSign } from 'lucide-react';
 import { CompleteVerificationTaskRequest } from '@/types/verificationTask';
 

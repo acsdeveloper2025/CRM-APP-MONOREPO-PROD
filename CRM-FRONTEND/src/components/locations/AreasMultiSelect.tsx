@@ -2,7 +2,7 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Check, ChevronsUpDown, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Button } from '@/ui/components/button';
+import { Button } from '@/ui/components/Button';
 import {
   Command,
   CommandEmpty,
@@ -16,7 +16,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/ui/components/popover';
-import { Badge } from '@/ui/components/badge';
+import { Badge } from '@/ui/components/Badge';
 import { Box } from '@/ui/primitives/Box';
 import { Stack } from '@/ui/primitives/Stack';
 import { Text } from '@/ui/primitives/Text';

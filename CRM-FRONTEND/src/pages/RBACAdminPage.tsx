@@ -4,13 +4,13 @@ import { Plus, Pencil, Trash2, Save, Shield } from 'lucide-react';
 import { toast } from 'sonner';
 import { rbacAdminService, type RbacRole } from '@/services/rbacAdmin';
 import { PAGE_PERMISSION_GUIDE, RBAC_PERMISSION_MODULES } from '@/constants/rbac';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
-import { Button } from '@/ui/components/button';
-import { Badge } from '@/ui/components/badge';
-import { Checkbox } from '@/ui/components/checkbox';
-import { Input } from '@/ui/components/input';
-import { Textarea } from '@/ui/components/textarea';
-import { Label } from '@/ui/components/label';
+import { Badge } from '@/ui/components/Badge';
+import { Button } from '@/ui/components/Button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/Card';
+import { Checkbox } from '@/ui/components/Checkbox';
+import { Input } from '@/ui/components/Input';
+import { Textarea } from '@/ui/components/Textarea';
+import { Label } from '@/ui/components/Label';
 import {
   Dialog,
   DialogContent,
@@ -18,12 +18,9 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/ui/components/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/ui/components/select';
+} from '@/ui/components/Dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/ui/components/Select';
 import { MetricCardGrid } from '@/components/shared/MetricCardGrid';
-import { Button as UiButton } from '@/ui/components/Button';
-import { Badge as UiBadge } from '@/ui/components/Badge';
-import { Card as UiCard } from '@/ui/components/Card';
 import { Page } from '@/ui/layout/Page';
 import { Section } from '@/ui/layout/Section';
 import { Stack } from '@/ui/primitives/Stack';
@@ -261,15 +258,15 @@ export function RBACAdminPage() {
       subtitle="Manage roles, permission assignments, and page access mapping."
       shell
       actions={
-        <UiButton variant="secondary" icon={<Plus size={16} />} onClick={() => setShowCreate(true)}>
+        <Button variant="secondary" icon={<Plus size={16} />} onClick={() => setShowCreate(true)}>
           Create role
-        </UiButton>
+        </Button>
       }
     >
-      <Section>
+      <Section className="ui-stagger">
         <Stack gap={3}>
-          <UiBadge variant="neutral">Security Controls</UiBadge>
-          <Text as="h2" variant="headline">Keep authorization structure visible and operable.</Text>
+          <Badge variant="neutral">Security Controls</Badge>
+          <Text as="h2" variant="display">Keep authorization structure visible and operable.</Text>
           <Text variant="body-sm" tone="muted">Role selection, permission editing, and access guidance now sit under the shared shell rather than an isolated admin page.</Text>
         </Stack>
       </Section>
@@ -303,10 +300,10 @@ export function RBACAdminPage() {
             <Card className="xl:col-span-4">
               <CardHeader className="flex flex-row items-center justify-between space-y-0">
                 <CardTitle>Role List</CardTitle>
-                <Button size="sm" onClick={() => setShowCreate(true)}>
-                  <Plus className="h-4 w-4 mr-1" />
-                  Create Role
-                </Button>
+              <Button onClick={() => setShowCreate(true)}>
+                <Plus className="h-4 w-4 mr-1" />
+                Create Role
+              </Button>
               </CardHeader>
               <CardContent className="space-y-3">
                 {roles.map(role => (
@@ -327,20 +324,18 @@ export function RBACAdminPage() {
                         </div>
                       </div>
                       <div className="flex items-center gap-1 shrink-0">
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={e => {
+                <Button
+                  variant="ghost"
+                  onClick={e => {
                             e.stopPropagation();
                             setEditingRole(role);
                           }}
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          disabled={!!role.isSystem}
+                <Button
+                  variant="ghost"
+                  disabled={!!role.isSystem}
                           onClick={e => {
                             e.stopPropagation();
                             // eslint-disable-next-line no-alert
@@ -370,7 +365,6 @@ export function RBACAdminPage() {
                   </div>
                 </div>
                 <Button
-                  size="sm"
                   onClick={() => savePermissionsMutation.mutate()}
                   disabled={!selectedRoleId || savePermissionsMutation.isPending}
                 >

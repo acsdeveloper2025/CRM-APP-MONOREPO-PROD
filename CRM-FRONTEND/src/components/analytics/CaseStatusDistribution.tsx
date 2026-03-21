@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
-import { Badge } from '@/ui/components/badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/Card';
+import { Badge } from '@/ui/components/Badge';
 import { 
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/ui/components/select';
+} from '@/ui/components/Select';
 import {
   PieChart,
   Pie,

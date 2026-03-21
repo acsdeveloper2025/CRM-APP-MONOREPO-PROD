@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { FileText, Download, RefreshCw, Clock, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { apiService } from '@/services/api';
-import { Card, CardContent } from '@/ui/components/card';
-import { Button } from '@/ui/components/button';
-import { Badge } from '@/ui/components/badge';
+import { Card, CardContent } from '@/ui/components/Card';
+import { Button } from '@/ui/components/Button';
+import { Badge } from '@/ui/components/Badge';
 import { Box } from '@/ui/primitives/Box';
 import { Stack } from '@/ui/primitives/Stack';
 import { Text } from '@/ui/primitives/Text';

@@ -1,6 +1,6 @@
 import { Clock, TrendingDown, TrendingUp } from 'lucide-react';
-import { Badge } from '@/ui/components/badge';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
+import { Badge } from '@/ui/components/Badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/Card';
 import { Box } from '@/ui/primitives/Box';
 import { Stack } from '@/ui/primitives/Stack';
 import { Text } from '@/ui/primitives/Text';

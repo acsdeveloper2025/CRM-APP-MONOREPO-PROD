@@ -195,7 +195,7 @@ export const DashboardPage: React.FC = () => {
       shell
       actions={<Button variant="secondary" icon={<Download size={16} />}>Export report</Button>}
     >
-      <Section>
+      <Section className="ui-stagger">
         <Grid min={320} style={{ gridTemplateColumns: 'minmax(0, 1.45fr) minmax(320px, 0.85fr)' }}>
           <Card tone="highlight" className="ui-kpi-dominant">
             <Stack gap={5} style={{ height: '100%', justifyContent: 'space-between' }}>

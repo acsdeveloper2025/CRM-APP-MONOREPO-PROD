@@ -1,13 +1,13 @@
 import React, { useState, useRef } from 'react';
-import { Button } from '@/ui/components/button';
-import { Badge } from '@/ui/components/badge';
+import { Button } from '@/ui/components/Button';
+import { Badge } from '@/ui/components/Badge';
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from '@/ui/components/dialog';
+} from '@/ui/components/Dialog';
 import { useCaseAttachments } from '@/hooks/useCases';
 import type { Attachment } from '@/services/attachments';
 import { authenticatedFetch } from '@/services/api';

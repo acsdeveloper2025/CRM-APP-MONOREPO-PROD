@@ -1,18 +1,18 @@
 import React, { useState } from 'react';
-import { Button } from '@/ui/components/button';
-import { Label } from '@/ui/components/label';
+import { Button } from '@/ui/components/Button';
+import { Label } from '@/ui/components/Label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/ui/components/select';
+} from '@/ui/components/Select';
 import { TasksListFlat } from '@/components/verification-tasks/TasksListFlat';
 import { TaskAssignmentModal } from '@/components/verification-tasks/TaskAssignmentModal';
 import { useAllVerificationTasks } from '@/hooks/useVerificationTasks';
 import { useUnifiedSearch, useUnifiedFilters } from '@/hooks/useUnifiedSearch';
-import { UnifiedSearchFilterLayout, FilterGrid } from '@/ui/components/unified-search-filter-layout';
+import { UnifiedSearchFilterLayout, FilterGrid } from '@/ui/components/UnifiedSearchFilterLayout';
 import {
   ListTodo,
   Clock,
@@ -25,7 +25,6 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { MetricCardGrid } from '@/components/shared/MetricCardGrid';
 import { PaginationStatusCard } from '@/components/shared/PaginationStatusCard';
-import { Button as UiButton } from '@/ui/components/Button';
 import { Card } from '@/ui/components/Card';
 import { Badge } from '@/ui/components/Badge';
 import { Page } from '@/ui/layout/Page';
@@ -158,12 +157,12 @@ export const AllTasksPage: React.FC = () => {
       shell
       actions={
         <Stack direction="horizontal" gap={2} wrap="wrap">
-          <UiButton variant="secondary">
+          <Button variant="secondary">
             Export
-          </UiButton>
-          <UiButton variant="secondary" icon={<RefreshCw size={16} />} onClick={() => refreshTasks()} disabled={loading}>
+          </Button>
+          <Button variant="secondary" icon={<RefreshCw size={16} />} onClick={() => refreshTasks()} disabled={loading}>
             Refresh
-          </UiButton>
+          </Button>
         </Stack>
       }
     >
@@ -257,7 +256,7 @@ export const AllTasksPage: React.FC = () => {
         </Section>
       ) : null}
 
-      <Section>
+      <Section className="ui-stagger">
         <TasksListFlat
           tasks={tasks}
           loading={loading}

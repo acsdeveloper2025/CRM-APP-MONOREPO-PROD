@@ -9,11 +9,11 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/ui/components/dialog';
-import { Button } from '@/ui/components/button';
-import { Label } from '@/ui/components/label';
-import { Textarea } from '@/ui/components/textarea';
-import { Badge } from '@/ui/components/badge';
+} from '@/ui/components/Dialog';
+import { Button } from '@/ui/components/Button';
+import { Label } from '@/ui/components/Label';
+import { Textarea } from '@/ui/components/Textarea';
+import { Badge } from '@/ui/components/Badge';
 import { CheckCircle, XCircle, RotateCcw } from 'lucide-react';
 import type { Case } from '@/types/case';
 interface ReviewDialogProps {

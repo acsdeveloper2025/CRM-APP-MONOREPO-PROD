@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/ui/components/dialog';
-import { Button } from '@/ui/components/button';
-import { Label } from '@/ui/components/label';
-import { Textarea } from '@/ui/components/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/ui/components/select';
-import { Card, CardContent } from '@/ui/components/card';
-import { Badge } from '@/ui/components/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/ui/components/Dialog';
+import { Button } from '@/ui/components/Button';
+import { Label } from '@/ui/components/Label';
+import { Textarea } from '@/ui/components/Textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/ui/components/Select';
+import { Card, CardContent } from '@/ui/components/Card';
+import { Badge } from '@/ui/components/Badge';
 import { UserCheck, AlertCircle, User, Loader2 } from 'lucide-react';
 import { AssignVerificationTaskRequest, TaskPriority, VerificationTask } from '@/types/verificationTask';
 import { useFieldUsersByPincode } from '@/hooks/useUsers';

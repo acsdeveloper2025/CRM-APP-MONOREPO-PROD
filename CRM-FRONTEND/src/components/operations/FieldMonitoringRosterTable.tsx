@@ -1,8 +1,8 @@
 import React from 'react';
 import { Eye } from 'lucide-react';
-import { Button } from '@/ui/components/button';
-import { Badge } from '@/ui/components/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, } from '@/ui/components/table';
+import { Button } from '@/ui/components/Button';
+import { Badge } from '@/ui/components/Badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, } from '@/ui/components/Table';
 import type { FieldMonitoringLiveStatus, FieldMonitoringRosterItem } from '@/services/fieldMonitoring';
 interface FieldMonitoringRosterTableProps {
     roster: FieldMonitoringRosterItem[];

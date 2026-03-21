@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/ui/components/dialog';
-import { Button } from '@/ui/components/button';
-import { Input } from '@/ui/components/input';
-import { Label } from '@/ui/components/label';
-import { Textarea } from '@/ui/components/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/ui/components/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/ui/components/Dialog';
+import { Button } from '@/ui/components/Button';
+import { Input } from '@/ui/components/Input';
+import { Label } from '@/ui/components/Label';
+import { Textarea } from '@/ui/components/Textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/ui/components/Select';
 import { AlertCircle, Edit } from 'lucide-react';
 import { TaskPriority, UpdateVerificationTaskRequest } from '@/types/verificationTask';
 

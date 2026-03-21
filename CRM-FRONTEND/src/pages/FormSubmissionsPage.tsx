@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/ui/components/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/ui/components/Dialog';
 import { useCaseFormSubmissions } from '@/hooks/useForms';
 import { FormViewer } from '@/components/forms/FormViewer';
 import { FormSubmission } from '@/types/form';
@@ -15,7 +15,7 @@ import {
   CheckCircle2
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
-import { LoadingState } from '@/ui/components/loading';
+import { LoadingState } from '@/ui/components/Loading';
 import { Badge } from '@/ui/components/Badge';
 import { Card } from '@/ui/components/Card';
 import { Page } from '@/ui/layout/Page';

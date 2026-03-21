@@ -1,7 +1,7 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Card as LegacyCard, CardContent, CardHeader, CardTitle } from '@/ui/components/card';
-import { Button as LegacyButton } from '@/ui/components/button';
+import { Card as LegacyCard, CardContent, CardHeader, CardTitle } from '@/ui/components/Card';
+import { Button as LegacyButton } from '@/ui/components/Button';
 import {
   Users,
   FileText,

@@ -1,6 +1,6 @@
 import React from 'react';
-import { Badge } from '@/ui/components/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/card';
+import { Badge } from '@/ui/components/Badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/Card';
 import type { FieldMonitoringLiveStatus, FieldMonitoringUserDetail } from '@/services/fieldMonitoring';
 interface FieldMonitoringDetailCardsProps {
     detail: FieldMonitoringUserDetail;

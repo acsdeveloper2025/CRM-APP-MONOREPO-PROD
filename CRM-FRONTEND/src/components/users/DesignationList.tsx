@@ -13,8 +13,8 @@ import {
   XCircle,
   RefreshCw
 } from 'lucide-react';
-import { Button } from '@/ui/components/button';
-import { Input } from '@/ui/components/input';
+import { Button } from '@/ui/components/Button';
+import { Input } from '@/ui/components/Input';
 import {
   Table,
   TableBody,
@@ -22,16 +22,16 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/ui/components/table';
+} from '@/ui/components/Table';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/ui/components/select';
-import { Badge } from '@/ui/components/badge';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
+} from '@/ui/components/Select';
+import { Badge } from '@/ui/components/Badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/Card';
 import { toast } from 'sonner';
 import {
   AlertDialog,
@@ -42,7 +42,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/ui/components/alert-dialog';
+} from '@/ui/components/AlertDialog';
 import { designationsService } from '@/services/designations';
 import { departmentsService } from '@/services/departments';
 import { Designation } from '@/types/user';

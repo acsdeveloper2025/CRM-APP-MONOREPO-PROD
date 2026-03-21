@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Upload, Download, FileText, AlertCircle, CheckCircle } from 'lucide-react';
-import { Button } from '@/ui/components/button';
+import { Button } from '@/ui/components/Button';
 import {
   Dialog,
   DialogContent,
@@ -9,8 +9,8 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/ui/components/dialog';
-import { Alert, AlertDescription } from '@/ui/components/alert';
+} from '@/ui/components/Dialog';
+import { Alert, AlertDescription } from '@/ui/components/Alert';
 import { Progress } from '@/ui/components/progress';
 import { Box } from '@/ui/primitives/Box';
 import { Stack } from '@/ui/primitives/Stack';

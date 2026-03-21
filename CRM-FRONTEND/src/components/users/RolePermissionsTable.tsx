@@ -6,10 +6,10 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/ui/components/table';
-import { Badge } from '@/ui/components/badge';
-import { LoadingState } from '@/ui/components/loading';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
+} from '@/ui/components/Table';
+import { Badge } from '@/ui/components/Badge';
+import { LoadingState } from '@/ui/components/Loading';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/Card';
 import { RolePermission, UserPermission } from '@/types/user';
 import { getRoleBadge, getRoleIcon } from '@/utils/roleUtils';
 

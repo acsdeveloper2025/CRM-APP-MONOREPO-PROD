@@ -1,6 +1,6 @@
 import React from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/Card';
 interface CaseStatusData {
     status: string;
     count: number;

@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { Button } from '@/ui/components/button';
+import { Button } from '@/ui/components/Button';
 import { TasksListFlat } from '@/components/verification-tasks/TasksListFlat';
 import { useAllVerificationTasks } from '@/hooks/useVerificationTasks';
 import { useUnifiedSearch, useUnifiedFilters } from '@/hooks/useUnifiedSearch';
-import { UnifiedSearchFilterLayout, FilterGrid } from '@/ui/components/unified-search-filter-layout';
-import { Label } from '@/ui/components/label';
+import { UnifiedSearchFilterLayout, FilterGrid } from '@/ui/components/UnifiedSearchFilterLayout';
+import { Label } from '@/ui/components/Label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/ui/components/select';
+} from '@/ui/components/Select';
 import {
   RefreshCw,
   Copy,
@@ -23,7 +23,6 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { MetricCardGrid } from '@/components/shared/MetricCardGrid';
 import { PaginationStatusCard } from '@/components/shared/PaginationStatusCard';
-import { Button as UiButton } from '@/ui/components/Button';
 import { Card } from '@/ui/components/Card';
 import { Badge } from '@/ui/components/Badge';
 import { Page } from '@/ui/layout/Page';
@@ -140,9 +139,9 @@ export const RevisitTasksPage: React.FC = () => {
       subtitle="Re-verification work cloned from completed or reopened cases."
       shell
       actions={
-        <UiButton variant="secondary" icon={<RefreshCw size={16} />} onClick={() => refreshTasks()} disabled={loading}>
+        <Button variant="secondary" icon={<RefreshCw size={16} />} onClick={() => refreshTasks()} disabled={loading}>
           Refresh
-        </UiButton>
+        </Button>
       }
     >
       <Section>

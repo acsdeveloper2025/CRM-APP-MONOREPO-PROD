@@ -11,7 +11,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/ui/components/dialog';
+} from '@/ui/components/Dialog';
 import {
   Form,
   FormControl,
@@ -20,14 +20,14 @@ import {
   FormLabel,
   FormMessage,
 } from '@/ui/components/form';
-import { Input } from '@/ui/components/input';
+import { Input } from '@/ui/components/Input';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/ui/components/select';
+} from '@/ui/components/Select';
 import { locationsService } from '@/services/locations';
 import { Box } from '@/ui/primitives/Box';
 import { Stack } from '@/ui/primitives/Stack';

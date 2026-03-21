@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { apiService } from '@/services/api';
-import { LoadingSkeleton } from '@/ui/components/loading';
+import { LoadingSkeleton } from '@/ui/components/Loading';
 import { EditTaskDetailsModal } from '@/components/verification-tasks/EditTaskDetailsModal';
 import {
   TaskAssignmentHistoryCard,

@@ -6,7 +6,7 @@ import {
   Server,
   MapPin,
 } from 'lucide-react';
-import { Badge } from '@/ui/components/badge';
+import { Badge } from '@/ui/components/Badge';
 import { normalizeUserRole } from '@/types/constants';
 
 export interface RoleConfig {

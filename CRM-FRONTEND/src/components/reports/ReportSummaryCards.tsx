@@ -1,6 +1,6 @@
 import { BarChart3, CheckCircle, Clock, DollarSign, Minus, TrendingDown, TrendingUp } from 'lucide-react';
-import { LoadingSpinner } from '@/ui/components/loading';
-import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/card';
+import { LoadingSpinner } from '@/ui/components/Loading';
+import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/Card';
 import { Box } from '@/ui/primitives/Box';
 import { Stack } from '@/ui/primitives/Stack';
 import { Text } from '@/ui/primitives/Text';

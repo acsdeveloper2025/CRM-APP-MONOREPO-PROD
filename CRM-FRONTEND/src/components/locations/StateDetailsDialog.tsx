@@ -6,10 +6,10 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from '@/ui/components/dialog';
+} from '@/ui/components/Dialog';
 import { Badge } from '@/ui/components/Badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/Card';
-import { LoadingSpinner } from '@/ui/components/loading';
+import { LoadingSpinner } from '@/ui/components/Loading';
 import { Grid } from '@/ui/layout/Grid';
 import { Stack } from '@/ui/primitives/Stack';
 import { Text } from '@/ui/primitives/Text';

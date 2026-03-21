@@ -2,10 +2,10 @@ import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus, Search, Edit, Trash2, Settings } from 'lucide-react';
 import { useMutationWithInvalidation } from '@/hooks/useStandardizedMutation';
-import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/card';
-import { Button } from '@/ui/components/button';
-import { Input } from '@/ui/components/input';
-import { Badge } from '@/ui/components/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/Card';
+import { Button } from '@/ui/components/Button';
+import { Input } from '@/ui/components/Input';
+import { Badge } from '@/ui/components/Badge';
 import { baseBadgeStyle, formatBadgeLabel } from '@/lib/badgeStyles';
 import {
   Table,
@@ -14,7 +14,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/ui/components/table';
+} from '@/ui/components/Table';
 import {
   Dialog,
   DialogContent,
@@ -22,7 +22,7 @@ import {
   DialogTitle,
   DialogDescription,
   DialogTrigger,
-} from '@/ui/components/dialog';
+} from '@/ui/components/Dialog';
 import { commissionManagementService } from '@/services/commissionManagement';
 import { CommissionRateTypeForm } from './CommissionRateTypeForm';
 import type { CommissionRateType } from '@/types/commission';

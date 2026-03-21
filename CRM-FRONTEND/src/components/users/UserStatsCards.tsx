@@ -1,5 +1,5 @@
 import { Users, UserCheck, UserX, Shield, UserPlus } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/Card';
 import { UserStats } from '@/types/user';
 
 interface UserStatsCardsProps {

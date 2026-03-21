@@ -1,15 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Building2, Save } from 'lucide-react';
-import { Button } from '@/ui/components/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
-import { Checkbox } from '@/ui/components/checkbox';
+import { Button } from '@/ui/components/Button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/Card';
+import { Checkbox } from '@/ui/components/Checkbox';
 import { usersService } from '@/services/users';
 import { clientsService } from '@/services/clients';
 import { toast } from 'sonner';
 import type { User } from '@/types/user';
 import type { Client } from '@/types/client';
-import { LoadingSpinner } from '@/ui/components/loading';
+import { LoadingSpinner } from '@/ui/components/Loading';
 import { isBackendScopedUser } from '@/utils/userPermissionProfiles';
 
 interface ClientAssignmentSectionProps {

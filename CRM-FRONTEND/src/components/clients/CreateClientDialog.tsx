@@ -11,7 +11,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/ui/components/dialog';
+} from '@/ui/components/Dialog';
 import {
   Form,
   FormControl,
@@ -21,9 +21,9 @@ import {
   FormLabel,
   FormMessage,
 } from '@/ui/components/form';
-import { Input } from '@/ui/components/input';
-import { Checkbox } from '@/ui/components/checkbox';
-import { ScrollArea } from '@/ui/components/scroll-area';
+import { Input } from '@/ui/components/Input';
+import { Checkbox } from '@/ui/components/Checkbox';
+import { ScrollArea } from '@/ui/components/ScrollArea';
 import { Badge } from '@/ui/components/Badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/components/Tabs';
 import { Stack } from '@/ui/primitives/Stack';

@@ -22,7 +22,7 @@ import { CascadingCreatePincodeDialog } from '@/components/locations/CascadingCr
 import { CreateAreaDialog } from '@/components/locations/CreateAreaDialog';
 import { BulkImportLocationDialog } from '@/components/locations/BulkImportLocationDialog';
 import { useUnifiedSearch } from '@/hooks/useUnifiedSearch';
-import { UnifiedSearchInput } from '@/ui/components/unified-search-input';
+import { UnifiedSearchInput } from '@/ui/components/UnifiedSearchInput';
 import { PincodeArea } from '@/types/location';
 import { Page } from '@/ui/layout/Page';
 import { Section } from '@/ui/layout/Section';

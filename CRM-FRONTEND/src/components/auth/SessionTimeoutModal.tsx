@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, } from '@/ui/components/alert-dialog';
-import { Button } from '@/ui/components/button';
+import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, } from '@/ui/components/AlertDialog';
+import { Button } from '@/ui/components/Button';
 import { sessionManager } from '@/services/sessionManager';
 interface SessionTimeoutModalProps {
     isOpen: boolean;

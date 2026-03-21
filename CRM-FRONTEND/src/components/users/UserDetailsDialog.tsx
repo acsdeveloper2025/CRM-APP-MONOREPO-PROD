@@ -6,10 +6,10 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from '@/ui/components/dialog';
-import { Badge } from '@/ui/components/badge';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
-import { Separator } from '@/ui/components/separator';
+} from '@/ui/components/Dialog';
+import { Badge } from '@/ui/components/Badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/Card';
+import { Separator } from '@/ui/components/Separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/ui/components/avatar';
 import { usersService } from '@/services/users';
 import { User as UserType } from '@/types/user';

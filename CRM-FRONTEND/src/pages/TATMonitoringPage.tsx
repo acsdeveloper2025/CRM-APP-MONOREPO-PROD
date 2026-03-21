@@ -1,22 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button } from '@/ui/components/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/components/tabs';
+import { Button } from '@/ui/components/Button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/components/Tabs';
 import { useOverdueTasks, useTATStats } from '@/hooks/useDashboard';
 import { useUnifiedSearch, useUnifiedFilters } from '@/hooks/useUnifiedSearch';
-import { UnifiedSearchFilterLayout, FilterGrid } from '@/ui/components/unified-search-filter-layout';
-import { Label } from '@/ui/components/label';
+import { UnifiedSearchFilterLayout, FilterGrid } from '@/ui/components/UnifiedSearchFilterLayout';
+import { Label } from '@/ui/components/Label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/ui/components/select';
+} from '@/ui/components/Select';
 import { AlertTriangle, Clock, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { TATMonitoringSummaryCards, TATMonitoringTable } from '@/components/tat/TATMonitoringPanels';
-import { Button as UiButton } from '@/ui/components/Button';
 import { Card } from '@/ui/components/Card';
 import { Badge } from '@/ui/components/Badge';
 import { Page } from '@/ui/layout/Page';
@@ -122,9 +121,9 @@ export const TATMonitoringPage: React.FC = () => {
       subtitle="Track overdue operational work before SLA breaches spread across the queue."
       shell
       actions={
-        <UiButton variant="secondary" icon={<RefreshCw size={16} />} onClick={handleRefresh} disabled={criticalLoading || allLoading}>
+        <Button variant="secondary" icon={<RefreshCw size={16} />} onClick={handleRefresh} disabled={criticalLoading || allLoading}>
           Refresh
-        </UiButton>
+        </Button>
       }
     >
       <Section>

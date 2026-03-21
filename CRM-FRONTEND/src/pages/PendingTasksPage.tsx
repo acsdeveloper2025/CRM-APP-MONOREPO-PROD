@@ -4,15 +4,15 @@ import { TasksListFlat } from '@/components/verification-tasks/TasksListFlat';
 import { TaskAssignmentModal } from '@/components/verification-tasks/TaskAssignmentModal';
 import { useAllVerificationTasks } from '@/hooks/useVerificationTasks';
 import { useUnifiedSearch, useUnifiedFilters } from '@/hooks/useUnifiedSearch';
-import { UnifiedSearchFilterLayout, FilterGrid } from '@/ui/components/unified-search-filter-layout';
-import { Label } from '@/ui/components/label';
+import { UnifiedSearchFilterLayout, FilterGrid } from '@/ui/components/UnifiedSearchFilterLayout';
+import { Label } from '@/ui/components/Label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/ui/components/select';
+} from '@/ui/components/Select';
 import {
   Clock,
   AlertTriangle,

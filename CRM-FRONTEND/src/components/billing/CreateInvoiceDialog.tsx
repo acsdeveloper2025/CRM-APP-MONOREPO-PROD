@@ -3,7 +3,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 import { Plus, Trash2 } from 'lucide-react';
-import { Button } from '@/ui/components/button';
+import { Button } from '@/ui/components/Button';
 import {
   Dialog,
   DialogContent,
@@ -11,7 +11,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/ui/components/dialog';
+} from '@/ui/components/Dialog';
 import {
   Form,
   FormControl,
@@ -26,8 +26,8 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/ui/components/select';
-import { Input } from '@/ui/components/input';
+} from '@/ui/components/Select';
+import { Input } from '@/ui/components/Input';
 import { toast } from 'sonner';
 import { billingService } from '@/services/billing';
 import { clientsService } from '@/services/clients';

@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
-import { Button } from '@/ui/components/button';
-import { Badge } from '@/ui/components/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/ui/components/table';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, } from '@/ui/components/select';
-import { Input } from '@/ui/components/input';
-import { Label } from '@/ui/components/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/Card';
+import { Button } from '@/ui/components/Button';
+import { Badge } from '@/ui/components/Badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/ui/components/Table';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, } from '@/ui/components/Select';
+import { Input } from '@/ui/components/Input';
+import { Label } from '@/ui/components/Label';
 import { useAgentPerformance } from '@/hooks/useAnalytics';
 import { useQuery } from '@tanstack/react-query';
 import { departmentsService } from '@/services/departments';

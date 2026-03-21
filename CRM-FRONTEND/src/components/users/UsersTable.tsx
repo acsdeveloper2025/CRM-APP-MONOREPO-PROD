@@ -3,7 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useStandardizedMutation } from '@/hooks/useStandardizedMutation';
 import { MoreHorizontal, Edit, Trash2, UserCheck, UserX, Eye, Shield, Key, RefreshCw } from 'lucide-react';
-import { Button } from '@/ui/components/button';
+import { Button } from '@/ui/components/Button';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,7 +11,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/ui/components/dropdown-menu';
+} from '@/ui/components/DropdownMenu';
 import {
   Table,
   TableBody,
@@ -19,14 +19,14 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/ui/components/table';
+} from '@/ui/components/Table';
 import {
   MobileTableCard,
   MobileTableField,
-} from '@/ui/components/responsive-table';
-import { Badge } from '@/ui/components/badge';
-import { LoadingState } from '@/ui/components/loading';
-import { Checkbox } from '@/ui/components/checkbox';
+} from '@/ui/components/ResponsiveTable';
+import { Badge } from '@/ui/components/Badge';
+import { LoadingState } from '@/ui/components/Loading';
+import { Checkbox } from '@/ui/components/Checkbox';
 import { Avatar, AvatarFallback, AvatarImage } from '@/ui/components/avatar';
 import {
   AlertDialog,
@@ -37,7 +37,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/ui/components/alert-dialog';
+} from '@/ui/components/AlertDialog';
 import { toast } from 'sonner';
 import { usersService } from '@/services/users';
 import { authService } from '@/services/auth';

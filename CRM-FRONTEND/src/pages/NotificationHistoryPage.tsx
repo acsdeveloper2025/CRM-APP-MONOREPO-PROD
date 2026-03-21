@@ -4,17 +4,14 @@ import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
-import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/card';
-import { Button } from '@/ui/components/button';
-import { Input } from '@/ui/components/input';
-import { Badge } from '@/ui/components/badge';
-import { Checkbox } from '@/ui/components/checkbox';
+import { Badge } from '@/ui/components/Badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/Card';
+import { Button } from '@/ui/components/Button';
+import { Input } from '@/ui/components/Input';
+import { Checkbox } from '@/ui/components/Checkbox';
 import { notificationService, type AppNotification } from '@/services/notifications';
 import { MetricCardGrid } from '@/components/shared/MetricCardGrid';
 import { PaginationStatusCard } from '@/components/shared/PaginationStatusCard';
-import { Badge as UiBadge } from '@/ui/components/Badge';
-import { Card as UiCard } from '@/ui/components/Card';
-import { Button as UiButton } from '@/ui/components/Button';
 import { Page } from '@/ui/layout/Page';
 import { Section } from '@/ui/layout/Section';
 import { Stack } from '@/ui/primitives/Stack';
@@ -284,15 +281,15 @@ export function NotificationHistoryPage() {
       shell
       actions={
         <Stack direction="horizontal" gap={2} wrap="wrap">
-          <UiButton variant="secondary" icon={<RefreshCw size={16} />} onClick={() => void notificationsQuery.refetch()} disabled={isBusy}>
+          <Button variant="secondary" icon={<RefreshCw size={16} />} onClick={() => void notificationsQuery.refetch()} disabled={isBusy}>
             Refresh
-          </UiButton>
-          <UiButton variant="secondary" icon={<Eye size={16} />} onClick={() => void markAllReadMutation.mutateAsync()} disabled={isBusy}>
+          </Button>
+          <Button variant="secondary" icon={<Eye size={16} />} onClick={() => void markAllReadMutation.mutateAsync()} disabled={isBusy}>
             Mark all read
-          </UiButton>
-          <UiButton variant="danger" icon={<Trash2 size={16} />} onClick={() => void clearAllMutation.mutateAsync()} disabled={isBusy}>
+          </Button>
+          <Button variant="danger" icon={<Trash2 size={16} />} onClick={() => void clearAllMutation.mutateAsync()} disabled={isBusy}>
             Clear all
-          </UiButton>
+          </Button>
         </Stack>
       }
     >
@@ -365,13 +362,12 @@ export function NotificationHistoryPage() {
 
       {selectedIds.size > 0 && (
         <Section>
-        <UiCard tone="strong">
+        <Card tone="strong">
           <Stack direction="horizontal" justify="space-between" align="center" gap={3} wrap="wrap">
             <Text variant="body-sm" tone="muted">{selectedIds.size} selected</Text>
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"
-                size="sm"
                 onClick={() => void markReadMutation.mutateAsync(Array.from(selectedIds))}
               >
                 <Eye className="mr-2 h-4 w-4" />
@@ -379,7 +375,6 @@ export function NotificationHistoryPage() {
               </Button>
               <Button
                 variant="outline"
-                size="sm"
                 onClick={() => void markUnreadMutation.mutateAsync(Array.from(selectedIds))}
               >
                 <EyeOff className="mr-2 h-4 w-4" />
@@ -387,7 +382,6 @@ export function NotificationHistoryPage() {
               </Button>
               <Button
                 variant="destructive"
-                size="sm"
                 onClick={() => void deleteMutation.mutateAsync(Array.from(selectedIds))}
               >
                 <Trash2 className="mr-2 h-4 w-4" />
@@ -395,7 +389,7 @@ export function NotificationHistoryPage() {
               </Button>
             </div>
           </Stack>
-        </UiCard>
+        </Card>
         </Section>
       )}
 
@@ -418,19 +412,15 @@ export function NotificationHistoryPage() {
                 />
                 <span className="text-sm text-gray-600">Select page</span>
               </div>
-              <div className="space-y-3">
+              <div className="space-y-3 ui-stagger">
                 {pagedNotifications.map((notification) => (
-                  <button
+                  <Card
                     key={notification.id}
-                    type="button"
+                    tone={notification.isRead ? 'default' : 'muted'}
                     onClick={() => void handleOpenNotification(notification)}
-                    className={`w-full rounded-xl border p-4 text-left transition ${
-                      notification.isRead
-                        ? 'border-gray-200 bg-white'
-                        : 'border-green-200 bg-green-50'
-                    }`}
+                    className="p-4 cursor-pointer hover:bg-gray-50 transition-colors"
                   >
-                    <div className="mb-2 flex items-start justify-between gap-3">
+                    <div className="flex items-start justify-between gap-3">
                       <div className="flex items-center gap-3">
                         <Checkbox
                           checked={selectedIds.has(notification.id)}
@@ -449,13 +439,13 @@ export function NotificationHistoryPage() {
                       </div>
                       <Badge variant="outline">{notification.priority}</Badge>
                     </div>
-                    <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500">
+                    <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-secondary">
                       {notification.caseNumber && <span>Case: {notification.caseNumber}</span>}
                       {notification.taskNumber && <span>Task: {notification.taskNumber}</span>}
                       <span>{formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}</span>
                       {notification.deliveryStatus && <span>{notification.deliveryStatus}</span>}
                     </div>
-                  </button>
+                  </Card>
                 ))}
               </div>
             </>

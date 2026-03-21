@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Plus, Upload } from 'lucide-react';
 import { Badge } from '@/ui/components/Badge';
 import { Button } from '@/ui/components/Button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/Card';
+import { Card, CardContent, CardHeader } from '@/ui/components/Card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/components/Tabs';
 import { ClientManagementSummaryCards } from '@/components/clients/ClientManagementSummaryCards';
 import { ClientManagementTabPanel } from '@/components/clients/ClientManagementTabPanel';
@@ -129,7 +129,7 @@ export function ClientsPage() {
         <Button variant="secondary" icon={<Upload size={16} />} onClick={() => handleBulkImport('clients')}>
           Import
         </Button>
-        <Button variant="primary" icon={<Plus size={16} />} onClick={() => setShowCreateClient(true)}>
+        <Button variant="secondary" icon={<Plus size={16} />} onClick={() => setShowCreateClient(true)}>
           Add Client
         </Button>
       </>
@@ -139,14 +139,14 @@ export function ClientsPage() {
         <Button variant="secondary" icon={<Upload size={16} />} onClick={() => handleBulkImport('products')}>
           Import
         </Button>
-        <Button variant="primary" icon={<Plus size={16} />} onClick={() => setShowCreateProduct(true)}>
+        <Button variant="outline" icon={<Plus size={16} />} onClick={() => setShowCreateProduct(true)}>
           Add Product
         </Button>
       </>
     ),
     'verification-types': (
-      <Button variant="primary" icon={<Plus size={16} />} onClick={() => setShowCreateVerificationType(true)}>
-        Add Type
+      <Button variant="outline" icon={<Plus size={16} />} onClick={() => setShowCreateVerificationType(true)}>
+        Add Verification Type
       </Button>
     ),
     'document-types': (
@@ -163,17 +163,17 @@ export function ClientsPage() {
       subtitle="Manage clients, products, verification types, and their relationships."
       actions={pageActions[activeTab]}
     >
-      <Section>
+      <Section className="ui-stagger">
         <Stack gap={5}>
           <ClientManagementSummaryCards stats={stats} />
 
-          <Card>
+          <Card className="ui-stagger">
             <CardHeader>
               <Stack gap={2}>
-                <CardTitle>Management Console</CardTitle>
-                <CardDescription>
+                <Text variant="headline">Management Console</Text>
+                <Text variant="body-sm" tone="muted">
                   Create, edit, and manage clients, products, verification types, and documents.
-                </CardDescription>
+                </Text>
               </Stack>
             </CardHeader>
             <CardContent>
@@ -219,10 +219,10 @@ export function ClientsPage() {
                     searchPlaceholder="Search clients by name, email or code..."
                     actions={
                       <Stack direction="horizontal" gap={2} wrap="wrap">
-                        <Button variant="outline" size="sm" icon={<Upload size={16} />} onClick={() => handleBulkImport('clients')}>
+                        <Button variant="outline" icon={<Upload size={16} />} onClick={() => handleBulkImport('clients')}>
                           Import
                         </Button>
-                        <Button size="sm" icon={<Plus size={16} />} onClick={() => setShowCreateClient(true)}>
+                        <Button icon={<Plus size={16} />} onClick={() => setShowCreateClient(true)}>
                           Add Client
                         </Button>
                       </Stack>
@@ -247,11 +247,11 @@ export function ClientsPage() {
                     searchPlaceholder="Search products by name, code or category..."
                     actions={
                       <Stack direction="horizontal" gap={2} wrap="wrap">
-                        <Button variant="outline" size="sm" icon={<Upload size={16} />} onClick={() => handleBulkImport('products')}>
+                        <Button variant="outline" icon={<Upload size={16} />} onClick={() => handleBulkImport('products')}>
                           Import
                         </Button>
-                        <Button size="sm" icon={<Plus size={16} />} onClick={() => setShowCreateProduct(true)}>
-                          Add Product
+                        <Button onClick={() => setShowCreateProduct(true)}>
+                          <Plus className="h-4 w-4" /> Add Product
                         </Button>
                       </Stack>
                     }
@@ -274,8 +274,8 @@ export function ClientsPage() {
                     isSearchLoading={isDebouncing}
                     searchPlaceholder="Search verification types by name, code or category..."
                     actions={
-                      <Button size="sm" icon={<Plus size={16} />} onClick={() => setShowCreateVerificationType(true)}>
-                        Add Type
+                      <Button icon={<Plus size={16} />} onClick={() => setShowCreateVerificationType(true)}>
+                        Add Verification Type
                       </Button>
                     }
                     minWidth={600}

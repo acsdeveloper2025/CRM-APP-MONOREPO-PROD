@@ -1,24 +1,16 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card as LegacyCard, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/card';
-import { Button as LegacyButton } from '@/ui/components/button';
-import { Input } from '@/ui/components/input';
-import { Label } from '@/ui/components/label';
-import { Badge as LegacyBadge } from '@/ui/components/badge';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/ui/components/table';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/Card';
+import { Button } from '@/ui/components/Button';
+import { Input } from '@/ui/components/Input';
+import { Label } from '@/ui/components/Label';
+import { Badge } from '@/ui/components/Badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/ui/components/Table';
 import { Search, ExternalLink, Eye, Loader2 } from 'lucide-react';
 import { deduplicationService } from '@/services/deduplication';
 import { toast } from 'sonner';
 import { MetricCardGrid } from '@/components/shared/MetricCardGrid';
 import { PaginationStatusCard } from '@/components/shared/PaginationStatusCard';
-import { Badge } from '@/ui/components/Badge';
 import { Page } from '@/ui/layout/Page';
 import { Section } from '@/ui/layout/Section';
 import { Stack } from '@/ui/primitives/Stack';
@@ -179,7 +171,7 @@ export const DedupePage: React.FC = () => {
       </Section>
 
       <Section>
-        <LegacyCard>
+        <Card>
           <CardHeader>
             <CardTitle>Search Criteria</CardTitle>
             <CardDescription>
@@ -235,7 +227,7 @@ export const DedupePage: React.FC = () => {
             </div>
 
             <div className="flex gap-2 mt-6">
-              <LegacyButton onClick={() => handleSearch(1)} disabled={isLoading}>
+              <Button onClick={() => handleSearch(1)} disabled={isLoading}>
                 {isLoading ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -247,129 +239,127 @@ export const DedupePage: React.FC = () => {
                     Search
                   </>
                 )}
-              </LegacyButton>
-              <LegacyButton variant="outline" onClick={handleClear} disabled={isLoading}>
+              </Button>
+              <Button variant="outline" onClick={handleClear} disabled={isLoading}>
                 Clear
-              </LegacyButton>
+              </Button>
             </div>
           </CardContent>
-        </LegacyCard>
+        </Card>
       </Section>
 
       {hasSearched ? (
         <Section>
-          <LegacyCard>
-            <CardHeader>
-              <CardTitle>Search Results</CardTitle>
-              <CardDescription>
-                {pagination.total > 0
-                  ? `Showing ${results.length} of ${pagination.total} matching case${pagination.total === 1 ? '' : 's'}`
-                  : 'No cases found'}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-0">
-              {isLoading ? (
-                <div className="flex items-center justify-center py-12">
-                  <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
-                </div>
-              ) : results.length > 0 ? (
-                <>
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Case ID</TableHead>
-                          <TableHead>Name</TableHead>
-                          <TableHead>Mobile</TableHead>
-                          <TableHead>PAN</TableHead>
-                          <TableHead>Client</TableHead>
-                          <TableHead>Product</TableHead>
-                          <TableHead>Address</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead>Match</TableHead>
-                          <TableHead>Created</TableHead>
-                          <TableHead className="text-right">Actions</TableHead>
+        <Card>
+          <CardHeader>
+            <CardTitle>Search Results</CardTitle>
+            <CardDescription>
+              {pagination.total > 0
+                ? `Showing ${results.length} of ${pagination.total} matching case${pagination.total === 1 ? '' : 's'}`
+                : 'No cases found'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-0">
+            {isLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+              </div>
+            ) : results.length > 0 ? (
+              <>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Case ID</TableHead>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Mobile</TableHead>
+                        <TableHead>PAN</TableHead>
+                        <TableHead>Client</TableHead>
+                        <TableHead>Product</TableHead>
+                        <TableHead>Address</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Match</TableHead>
+                        <TableHead>Created</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {results.map((result) => (
+                        <TableRow key={result.id}>
+                          <TableCell className="font-medium">{result.caseNumber || result.caseId}</TableCell>
+                          <TableCell>{result.name || '-'}</TableCell>
+                          <TableCell>{result.mobile || '-'}</TableCell>
+                          <TableCell>{result.pan || '-'}</TableCell>
+                          <TableCell>{result.client || '-'}</TableCell>
+                          <TableCell>{result.product || '-'}</TableCell>
+                          <TableCell className="max-w-xs truncate" title={result.address}>
+                            {result.address || '-'}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={getStatusBadgeVariant(result.status)}>
+                              {result.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex flex-col gap-1">
+                              <div className="flex gap-1 flex-wrap">
+                                {result.matchTypes.map((type) => (
+                                  <Badge key={type} variant="secondary" className="text-xs">
+                                    {type}
+                                  </Badge>
+                                ))}
+                              </div>
+                              <span className="text-xs text-gray-500">
+                                Score: {result.matchScore}
+                              </span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-sm text-gray-600">
+                            {formatDate(result.createdAt)}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex gap-2 justify-end">
+                              <Button
+                                variant="ghost"
+                                onClick={() => handleViewCase(result.caseId)}
+                                title="View Case Details"
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                onClick={() => window.open(`/cases/${result.caseId}`, '_blank')}
+                                title="Open in New Tab"
+                              >
+                                <ExternalLink className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
                         </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {results.map((result) => (
-                          <TableRow key={result.id}>
-                            <TableCell className="font-medium">{result.caseNumber || result.caseId}</TableCell>
-                            <TableCell>{result.name || '-'}</TableCell>
-                            <TableCell>{result.mobile || '-'}</TableCell>
-                            <TableCell>{result.pan || '-'}</TableCell>
-                            <TableCell>{result.client || '-'}</TableCell>
-                            <TableCell>{result.product || '-'}</TableCell>
-                            <TableCell className="max-w-xs truncate" title={result.address}>
-                              {result.address || '-'}
-                            </TableCell>
-                            <TableCell>
-                              <LegacyBadge variant={getStatusBadgeVariant(result.status)}>
-                                {result.status}
-                              </LegacyBadge>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex flex-col gap-1">
-                                <div className="flex gap-1 flex-wrap">
-                                  {result.matchTypes.map((type) => (
-                                    <LegacyBadge key={type} variant="secondary" className="text-xs">
-                                      {type}
-                                    </LegacyBadge>
-                                  ))}
-                                </div>
-                                <span className="text-xs text-gray-500">
-                                  Score: {result.matchScore}
-                                </span>
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-sm text-gray-600">
-                              {formatDate(result.createdAt)}
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <div className="flex gap-2 justify-end">
-                                <LegacyButton
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleViewCase(result.caseId)}
-                                  title="View Case Details"
-                                >
-                                  <Eye className="h-4 w-4" />
-                                </LegacyButton>
-                                <LegacyButton
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => window.open(`/cases/${result.caseId}`, '_blank')}
-                                  title="Open in New Tab"
-                                >
-                                  <ExternalLink className="h-4 w-4" />
-                                </LegacyButton>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                  <div className="px-6 py-4">
-                    <PaginationStatusCard
-                      page={pagination.page}
-                      limit={pagination.limit}
-                      total={pagination.total}
-                      totalPages={pagination.totalPages}
-                      onPrevious={() => handleSearch(pagination.page - 1)}
-                      onNext={() => handleSearch(pagination.page + 1)}
-                    />
-                  </div>
-                </>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <Search className="h-12 w-12 text-gray-300 mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-1">No cases found</h3>
-                  <p className="text-sm text-gray-600">Try adjusting your search criteria</p>
+                      ))}
+                    </TableBody>
+                  </Table>
                 </div>
-              )}
-            </CardContent>
-          </LegacyCard>
+                <div className="px-6 py-4">
+                  <PaginationStatusCard
+                    page={pagination.page}
+                    limit={pagination.limit}
+                    total={pagination.total}
+                    totalPages={pagination.totalPages}
+                    onPrevious={() => handleSearch(pagination.page - 1)}
+                    onNext={() => handleSearch(pagination.page + 1)}
+                  />
+                </div>
+              </>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <Search className="h-12 w-12 text-gray-300 mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-1">No cases found</h3>
+                <p className="text-sm text-gray-600">Try adjusting your search criteria</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
         </Section>
       ) : null}
     </Page>

@@ -9,10 +9,10 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/ui/components/dialog';
-import { Input } from '@/ui/components/input';
-import { Label } from '@/ui/components/label';
-import { Alert, AlertDescription } from '@/ui/components/alert';
+} from '@/ui/components/Dialog';
+import { Input } from '@/ui/components/Input';
+import { Label } from '@/ui/components/Label';
+import { Alert, AlertDescription } from '@/ui/components/Alert';
 import { Progress } from '@/ui/components/progress';
 import { Box } from '@/ui/primitives/Box';
 import { Stack } from '@/ui/primitives/Stack';

@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useCRUDMutation } from '@/hooks/useStandardizedMutation';
 import { useStandardizedQuery } from '@/hooks/useStandardizedQuery';
-import { Button } from '@/ui/components/button';
+import { Button } from '@/ui/components/Button';
 import {
   Dialog,
   DialogContent,
@@ -12,7 +12,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/ui/components/dialog';
+} from '@/ui/components/Dialog';
 import {
   Form,
   FormControl,
@@ -27,9 +27,9 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/ui/components/select';
-import { Input } from '@/ui/components/input';
-import { Switch } from '@/ui/components/switch';
+} from '@/ui/components/Select';
+import { Input } from '@/ui/components/Input';
+import { Switch } from '@/ui/components/Switch';
 import { usersService } from '@/services/users';
 import { rolesService } from '@/services/roles';
 import { departmentsService } from '@/services/departments';
