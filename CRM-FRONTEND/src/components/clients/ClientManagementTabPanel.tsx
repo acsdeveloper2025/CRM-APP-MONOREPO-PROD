@@ -30,7 +30,7 @@ export const ClientManagementTabPanel = React.memo(function ClientManagementTabP
   isSearchLoading,
   searchPlaceholder,
   actions,
-  minWidthClassName = 'min-w-[800px] lg:min-w-0',
+  minWidth,
   pagination,
   currentPage,
   onPrev,
