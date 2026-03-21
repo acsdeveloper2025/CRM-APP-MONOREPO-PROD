@@ -15,11 +15,10 @@ import {
   Paperclip,
   ArrowRight,
   CheckCircle,
-  Clock
+  Clock,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-
 export interface CaseFormAttachment {
   id: string;
   file: File;
@@ -29,7 +28,6 @@ export interface CaseFormAttachment {
   mimeType: string;
   preview?: string;
 }
-
 interface CaseFormAttachmentsSectionProps {
   attachments: CaseFormAttachment[];
   onAttachmentsChange: (attachments: CaseFormAttachment[]) => void;
@@ -37,7 +35,6 @@ interface CaseFormAttachmentsSectionProps {
   maxFileSize?: number;
   onValidationChange?: (hasValidationErrors: boolean) => void;
 }
-
 const MAX_FILES = 10;
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_TYPES = [
@@ -47,28 +44,25 @@ const ALLOWED_TYPES = [
   'image/png',
   'image/gif',
   'application/msword',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
 ];
-
 export const CaseFormAttachmentsSection: React.FC<CaseFormAttachmentsSectionProps> = ({
   attachments,
   onAttachmentsChange,
   maxFiles = MAX_FILES,
   maxFileSize = MAX_FILE_SIZE,
-  onValidationChange
+  onValidationChange,
 }) => {
   const [dragOver, setDragOver] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [previewAttachment, setPreviewAttachment] = useState<CaseFormAttachment | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
   // Notify parent about validation state
   React.useEffect(() => {
     const hasValidationErrors = selectedFiles.length > 0;
     onValidationChange?.(hasValidationErrors);
   }, [selectedFiles.length, onValidationChange]);
-
   const validateFile = (file: File): string | null => {
     if (!ALLOWED_TYPES.includes(file.type)) {
       return `${file.name}: Only PDF, image files (JPG, PNG, GIF), and Word documents (DOC, DOCX) are allowed`;
@@ -78,22 +72,20 @@ export const CaseFormAttachmentsSection: React.FC<CaseFormAttachmentsSectionProp
     }
     return null;
   };
-
   const handleFileSelect = (files: FileList | null) => {
-    if (!files) {return;}
-
+    if (!files) {
+      return;
+    }
     const fileArray = Array.from(files);
     const errors: string[] = [];
     const validFiles: File[] = [];
-
     // Check total file count
     if (attachments.length + fileArray.length > maxFiles) {
       toast.error(`Maximum ${maxFiles} files allowed`);
       return;
     }
-
     // Validate each file
-    fileArray.forEach(file => {
+    fileArray.forEach((file) => {
       const error = validateFile(file);
       if (error) {
         errors.push(error);
@@ -101,43 +93,38 @@ export const CaseFormAttachmentsSection: React.FC<CaseFormAttachmentsSectionProp
         validFiles.push(file);
       }
     });
-
     if (errors.length > 0) {
       toast.error(errors.join('\n'));
     }
-
     if (validFiles.length > 0) {
-      setSelectedFiles(prev => [...prev, ...validFiles]);
+      setSelectedFiles((prev) => [...prev, ...validFiles]);
     }
   };
-
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setDragOver(false);
     handleFileSelect(e.dataTransfer.files);
   };
-
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     setDragOver(true);
   };
-
   const handleDragLeave = (e: React.DragEvent) => {
     e.preventDefault();
     setDragOver(false);
   };
-
   const addFiles = async () => {
-    if (selectedFiles.length === 0) {return;}
-
+    if (selectedFiles.length === 0) {
+      return;
+    }
     const newAttachments: CaseFormAttachment[] = [];
-
     for (const file of selectedFiles) {
       const getFileType = (mimeType: string): 'pdf' | 'image' => {
-        if (mimeType.startsWith('image/')) {return 'image';}
+        if (mimeType.startsWith('image/')) {
+          return 'image';
+        }
         return 'pdf'; // Treat PDF and Word documents as 'pdf' type for UI purposes
       };
-
       const attachment: CaseFormAttachment = {
         id: `temp-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
         file,
@@ -146,7 +133,6 @@ export const CaseFormAttachmentsSection: React.FC<CaseFormAttachmentsSectionProp
         type: getFileType(file.type),
         mimeType: file.type,
       };
-
       // Generate preview for images
       if (file.type.startsWith('image/')) {
         try {
@@ -161,25 +147,20 @@ export const CaseFormAttachmentsSection: React.FC<CaseFormAttachmentsSectionProp
           console.error('Failed to generate preview:', error);
         }
       }
-
       newAttachments.push(attachment);
     }
-
     onAttachmentsChange([...attachments, ...newAttachments]);
     setSelectedFiles([]);
     toast.success(`${newAttachments.length} file(s) added`);
   };
-
   const removeAttachment = (id: string) => {
-    const updatedAttachments = attachments.filter(att => att.id !== id);
+    const updatedAttachments = attachments.filter((att) => att.id !== id);
     onAttachmentsChange(updatedAttachments);
     toast.success('File removed');
   };
-
   const removeSelectedFile = (index: number) => {
-    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+    setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
   };
-
   const previewAttachmentHandler = (attachment: CaseFormAttachment) => {
     if (attachment.type === 'image' && attachment.preview) {
       setPreviewAttachment(attachment);
@@ -188,51 +169,53 @@ export const CaseFormAttachmentsSection: React.FC<CaseFormAttachmentsSectionProp
       toast('Preview not available for this file type');
     }
   };
-
   const formatFileSize = (bytes: number): string => {
-    if (bytes === 0) {return '0 Bytes';}
+    if (bytes === 0) {
+      return '0 Bytes';
+    }
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))  } ${  sizes[i]}`;
+    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
   };
-
   const getFileIcon = (type: string) => {
     if (type === 'image') {
-      return <Image className="h-4 w-4 text-green-500" />;
+      return <Image {...{ className: 'h-4 w-4 text-green-500' }} />;
     }
-    return <FileText className="h-4 w-4 text-red-500" />;
+    return <FileText {...{ className: 'h-4 w-4 text-red-500' }} />;
   };
-
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center space-x-2">
-          <Paperclip className="h-5 w-5" />
+        <CardTitle {...{ className: 'flex items-center space-x-2' }}>
+          <Paperclip {...{ className: 'h-5 w-5' }} />
           <span>Attachments</span>
           <Badge variant="secondary">{attachments.length}</Badge>
           {selectedFiles.length > 0 && (
-            <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
-              <Clock className="h-3 w-3 mr-1" />
+            <Badge
+              variant="outline"
+              {...{ className: 'bg-yellow-50 text-yellow-700 border-yellow-200' }}
+            >
+              <Clock {...{ className: 'h-3 w-3 mr-1' }} />
               {selectedFiles.length} pending
             </Badge>
           )}
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent {...{ className: 'space-y-4' }}>
         {/* Two-Step Process Indicator */}
         {selectedFiles.length > 0 && (
-          <Alert className="border-yellow-200 bg-yellow-50">
-            <AlertCircle className="h-4 w-4 text-yellow-600" />
-            <AlertDescription className="text-yellow-800">
-              <div className="flex items-center space-x-2">
-                <span className="font-medium">Step 1:</span>
+          <Alert {...{ className: 'border-yellow-200 bg-yellow-50' }}>
+            <AlertCircle {...{ className: 'h-4 w-4 text-yellow-600' }} />
+            <AlertDescription {...{ className: 'text-yellow-800' }}>
+              <div {...{ className: 'flex items-center space-x-2' }}>
+                <span {...{ className: 'font-medium' }}>Step 1:</span>
                 <span>Files selected</span>
-                <ArrowRight className="h-4 w-4" />
-                <span className="font-medium">Step 2:</span>
+                <ArrowRight {...{ className: 'h-4 w-4' }} />
+                <span {...{ className: 'font-medium' }}>Step 2:</span>
                 <span>Click &quot;Add Files&quot; to attach them</span>
               </div>
-              <div className="mt-2 text-sm">
+              <div {...{ className: 'mt-2 text-sm' }}>
                 ⚠️ Files must be added before submitting the form
               </div>
             </AlertDescription>
@@ -240,29 +223,34 @@ export const CaseFormAttachmentsSection: React.FC<CaseFormAttachmentsSectionProp
         )}
         {/* File Upload Area */}
         <div
-          className={cn(
-            "border-2 border-dashed rounded-lg p-6 text-center transition-colors",
-            dragOver ? "border-green-500 bg-green-50" : "border-border",
-            attachments.length >= maxFiles ? "opacity-50 pointer-events-none" : "hover:border-border"
-          )}
+          {...{
+            className: cn(
+              'border-2 border-dashed rounded-lg p-6 text-center transition-colors',
+              dragOver ? 'border-green-500 bg-green-50' : 'border-border',
+              attachments.length >= maxFiles
+                ? 'opacity-50 pointer-events-none'
+                : 'hover:border-border'
+            ),
+          }}
           onDrop={handleDrop}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
         >
-          <Upload className="h-8 w-8 text-gray-600 mx-auto mb-2" />
-          <p className="text-sm text-gray-600 mb-2">
+          <Upload {...{ className: 'h-8 w-8 text-gray-600 mx-auto mb-2' }} />
+          <p {...{ className: 'text-sm text-gray-600 mb-2' }}>
             Drag and drop files here, or{' '}
             <button
               type="button"
-              className="text-green-600 hover:text-green-700 underline"
+              {...{ className: 'text-green-600 hover:text-green-700 underline' }}
               onClick={() => fileInputRef.current?.click()}
               disabled={attachments.length >= maxFiles}
             >
               browse
             </button>
           </p>
-          <p className="text-xs text-gray-600">
-            PDF, image files (JPG, PNG, GIF), and Word documents (DOC, DOCX) only. Max {Math.round(maxFileSize / 1024 / 1024)}MB per file, {maxFiles} files total.
+          <p {...{ className: 'text-xs text-gray-600' }}>
+            PDF, image files (JPG, PNG, GIF), and Word documents (DOC, DOCX) only. Max{' '}
+            {Math.round(maxFileSize / 1024 / 1024)}MB per file, {maxFiles} files total.
           </p>
           <input
             ref={fileInputRef}
@@ -270,29 +258,34 @@ export const CaseFormAttachmentsSection: React.FC<CaseFormAttachmentsSectionProp
             multiple
             accept=".pdf,.jpg,.jpeg,.png,.gif,.doc,.docx"
             onChange={(e) => handleFileSelect(e.target.files)}
-            className="hidden"
+            {...{ className: 'hidden' }}
             disabled={attachments.length >= maxFiles}
           />
         </div>
 
         {/* Selected Files (pending upload) */}
         {selectedFiles.length > 0 && (
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <h4 className="font-medium text-sm text-yellow-700">📋 Selected Files (Step 1)</h4>
-                <Badge variant="outline" className="bg-yellow-100 text-yellow-700 border-yellow-300">
+          <div {...{ className: 'space-y-2' }}>
+            <div {...{ className: 'flex items-center justify-between' }}>
+              <div {...{ className: 'flex items-center space-x-2' }}>
+                <h4 {...{ className: 'font-medium text-sm text-yellow-700' }}>
+                  📋 Selected Files (Step 1)
+                </h4>
+                <Badge
+                  variant="outline"
+                  {...{ className: 'bg-yellow-100 text-yellow-700 border-yellow-300' }}
+                >
                   {selectedFiles.length} pending
                 </Badge>
               </div>
-              <div className="space-x-2">
+              <div {...{ className: 'space-x-2' }}>
                 <Button
                   type="button"
                   size="sm"
                   onClick={addFiles}
-                  className="h-8 bg-green-600 hover:bg-green-700 text-white animate-pulse"
+                  {...{ className: 'h-8 bg-green-600 hover:bg-green-700 text-white animate-pulse' }}
                 >
-                  <Plus className="h-4 w-4 mr-1" />
+                  <Plus {...{ className: 'h-4 w-4 mr-1' }} />
                   Add Files (Step 2)
                 </Button>
                 <Button
@@ -300,29 +293,37 @@ export const CaseFormAttachmentsSection: React.FC<CaseFormAttachmentsSectionProp
                   variant="outline"
                   size="sm"
                   onClick={() => setSelectedFiles([])}
-                  className="h-8"
+                  {...{ className: 'h-8' }}
                 >
                   Clear
                 </Button>
               </div>
             </div>
-            <div className="space-y-2">
+            <div {...{ className: 'space-y-2' }}>
               {selectedFiles.map((file, index) => (
-                <div key={index} className="flex items-center space-x-3 p-3 border-2 border-dashed border-yellow-300 rounded-lg bg-yellow-50">
-                  <Clock className="h-4 w-4 text-yellow-600" />
+                <div
+                  key={index}
+                  {...{
+                    className:
+                      'flex items-center space-x-3 p-3 border-2 border-dashed border-yellow-300 rounded-lg bg-yellow-50',
+                  }}
+                >
+                  <Clock {...{ className: 'h-4 w-4 text-yellow-600' }} />
                   {getFileIcon(file.type.startsWith('image/') ? 'image' : 'pdf')}
-                  <div className="flex-1">
-                    <div className="font-medium text-sm text-yellow-800">{file.name}</div>
-                    <div className="text-xs text-yellow-600">{formatFileSize(file.size)} • Waiting to be added</div>
+                  <div {...{ className: 'flex-1' }}>
+                    <div {...{ className: 'font-medium text-sm text-yellow-800' }}>{file.name}</div>
+                    <div {...{ className: 'text-xs text-yellow-600' }}>
+                      {formatFileSize(file.size)} • Waiting to be added
+                    </div>
                   </div>
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
                     onClick={() => removeSelectedFile(index)}
-                    className="h-8 w-8 p-0 text-red-500 hover:text-red-700"
+                    {...{ className: 'h-8 w-8 p-0 text-red-500 hover:text-red-700' }}
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <Trash2 {...{ className: 'h-4 w-4' }} />
                   </Button>
                 </div>
               ))}
@@ -332,33 +333,48 @@ export const CaseFormAttachmentsSection: React.FC<CaseFormAttachmentsSectionProp
 
         {/* Attached Files */}
         {attachments.length > 0 && (
-          <div className="space-y-2">
-            <div className="flex items-center space-x-2">
-              <h4 className="font-medium text-sm text-green-700">✅ Attached Files (Ready for Submission)</h4>
-              <Badge variant="outline" className="bg-green-100 text-green-700 border-green-300">
-                <CheckCircle className="h-3 w-3 mr-1" />
+          <div {...{ className: 'space-y-2' }}>
+            <div {...{ className: 'flex items-center space-x-2' }}>
+              <h4 {...{ className: 'font-medium text-sm text-green-700' }}>
+                ✅ Attached Files (Ready for Submission)
+              </h4>
+              <Badge
+                variant="outline"
+                {...{ className: 'bg-green-100 text-green-700 border-green-300' }}
+              >
+                <CheckCircle {...{ className: 'h-3 w-3 mr-1' }} />
                 {attachments.length} attached
               </Badge>
             </div>
-            <div className="space-y-2">
+            <div {...{ className: 'space-y-2' }}>
               {attachments.map((attachment) => (
-                <div key={attachment.id} className="flex items-center space-x-3 p-3 border-2 border-green-200 rounded-lg bg-green-50">
-                  <CheckCircle className="h-4 w-4 text-green-600" />
+                <div
+                  key={attachment.id}
+                  {...{
+                    className:
+                      'flex items-center space-x-3 p-3 border-2 border-green-200 rounded-lg bg-green-50',
+                  }}
+                >
+                  <CheckCircle {...{ className: 'h-4 w-4 text-green-600' }} />
                   {getFileIcon(attachment.type)}
-                  <div className="flex-1">
-                    <div className="font-medium text-sm text-green-800">{attachment.name}</div>
-                    <div className="text-xs text-green-600">{formatFileSize(attachment.size)} • Ready for submission</div>
+                  <div {...{ className: 'flex-1' }}>
+                    <div {...{ className: 'font-medium text-sm text-green-800' }}>
+                      {attachment.name}
+                    </div>
+                    <div {...{ className: 'text-xs text-green-600' }}>
+                      {formatFileSize(attachment.size)} • Ready for submission
+                    </div>
                   </div>
-                  <div className="flex space-x-1">
+                  <div {...{ className: 'flex space-x-1' }}>
                     {attachment.type === 'image' && attachment.preview && (
                       <Button
                         type="button"
                         variant="ghost"
                         size="sm"
                         onClick={() => previewAttachmentHandler(attachment)}
-                        className="h-8 w-8 p-0"
+                        {...{ className: 'h-8 w-8 p-0' }}
                       >
-                        <Eye className="h-4 w-4" />
+                        <Eye {...{ className: 'h-4 w-4' }} />
                       </Button>
                     )}
                     <Button
@@ -366,9 +382,9 @@ export const CaseFormAttachmentsSection: React.FC<CaseFormAttachmentsSectionProp
                       variant="ghost"
                       size="sm"
                       onClick={() => removeAttachment(attachment.id)}
-                      className="h-8 w-8 p-0 text-red-500 hover:text-red-700"
+                      {...{ className: 'h-8 w-8 p-0 text-red-500 hover:text-red-700' }}
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 {...{ className: 'h-4 w-4' }} />
                     </Button>
                   </div>
                 </div>
@@ -379,16 +395,16 @@ export const CaseFormAttachmentsSection: React.FC<CaseFormAttachmentsSectionProp
 
         {/* Preview Dialog */}
         <Dialog open={showPreview} onOpenChange={setShowPreview}>
-          <DialogContent className="max-w-4xl max-h-[90vh]">
+          <DialogContent {...{ className: 'max-w-4xl max-h-[90vh]' }}>
             <DialogHeader>
               <DialogTitle>{previewAttachment?.name}</DialogTitle>
             </DialogHeader>
             {previewAttachment?.preview && (
-              <div className="flex justify-center">
+              <div {...{ className: 'flex justify-center' }}>
                 <img
                   src={previewAttachment.preview}
                   alt={previewAttachment.name}
-                  className="max-w-full max-h-[70vh] object-contain"
+                  {...{ className: 'max-w-full max-h-[70vh] object-contain' }}
                 />
               </div>
             )}

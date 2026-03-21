@@ -9,7 +9,6 @@ import { Separator } from '@/ui/components/separator';
 import { Badge } from '@/ui/components/badge';
 import { toast } from 'sonner';
 import { apiService } from '@/services/api';
-
 interface NotificationPreferences {
   userId: string;
   caseAssignmentEnabled: boolean;
@@ -33,17 +32,14 @@ interface NotificationPreferences {
   createdAt: string;
   updatedAt: string;
 }
-
 export function NotificationPreferences() {
   const [preferences, setPreferences] = useState<NotificationPreferences | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
-
   useEffect(() => {
     loadPreferences();
   }, []);
-
   const loadPreferences = async () => {
     try {
       setLoading(true);
@@ -60,20 +56,24 @@ export function NotificationPreferences() {
       setLoading(false);
     }
   };
-
   const updatePreference = (key: keyof NotificationPreferences, value: boolean | string) => {
-    if (!preferences) {return;}
-    
-    setPreferences(prev => prev ? ({
-      ...prev,
-      [key]: value,
-    }) : null);
+    if (!preferences) {
+      return;
+    }
+    setPreferences((prev) =>
+      prev
+        ? {
+            ...prev,
+            [key]: value,
+          }
+        : null
+    );
     setHasChanges(true);
   };
-
   const savePreferences = async () => {
-    if (!preferences || !hasChanges) {return;}
-
+    if (!preferences || !hasChanges) {
+      return;
+    }
     try {
       setSaving(true);
       const response = await apiService.put('/notifications/preferences', preferences);
@@ -90,91 +90,88 @@ export function NotificationPreferences() {
       setSaving(false);
     }
   };
-
   const resetToDefaults = () => {
-    if (!preferences) {return;}
-    
-    setPreferences(prev => (prev ? {
-      ...prev,
-      caseAssignmentEnabled: true,
-      caseAssignmentPush: true,
-      caseAssignmentWebsocket: true,
-      caseReassignmentEnabled: true,
-      caseReassignmentPush: true,
-      caseReassignmentWebsocket: true,
-      caseCompletionEnabled: true,
-      caseCompletionPush: false,
-      caseCompletionWebsocket: true,
-      caseRevocationEnabled: true,
-      caseRevocationPush: true,
-      caseRevocationWebsocket: true,
-      systemNotificationsEnabled: true,
-      systemNotificationsPush: false,
-      systemNotificationsWebsocket: true,
-      quietHoursEnabled: false,
-      quietHoursStart: '22:00',
-      quietHoursEnd: '08:00',
-    } : null));
+    if (!preferences) {
+      return;
+    }
+    setPreferences((prev) =>
+      prev
+        ? {
+            ...prev,
+            caseAssignmentEnabled: true,
+            caseAssignmentPush: true,
+            caseAssignmentWebsocket: true,
+            caseReassignmentEnabled: true,
+            caseReassignmentPush: true,
+            caseReassignmentWebsocket: true,
+            caseCompletionEnabled: true,
+            caseCompletionPush: false,
+            caseCompletionWebsocket: true,
+            caseRevocationEnabled: true,
+            caseRevocationPush: true,
+            caseRevocationWebsocket: true,
+            systemNotificationsEnabled: true,
+            systemNotificationsPush: false,
+            systemNotificationsWebsocket: true,
+            quietHoursEnabled: false,
+            quietHoursStart: '22:00',
+            quietHoursEnd: '08:00',
+          }
+        : null
+    );
     setHasChanges(true);
   };
-
   if (loading) {
     return (
-      <div className="flex items-center justify-center p-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600" />
+      <div {...{ className: 'flex items-center justify-center p-8' }}>
+        <div {...{ className: 'animate-spin rounded-full h-8 w-8 border-b-2 border-green-600' }} />
       </div>
     );
   }
-
   if (!preferences) {
     return (
-      <div className="flex items-center justify-center p-8">
-        <div className="text-center">
-          <AlertCircle className="h-8 w-8 text-red-500 mx-auto mb-2" />
-          <p className="text-gray-600">Failed to load notification preferences</p>
-          <Button onClick={loadPreferences} className="mt-2">
+      <div {...{ className: 'flex items-center justify-center p-8' }}>
+        <div {...{ className: 'text-center' }}>
+          <AlertCircle {...{ className: 'h-8 w-8 text-red-500 mx-auto mb-2' }} />
+          <p {...{ className: 'text-gray-600' }}>Failed to load notification preferences</p>
+          <Button onClick={loadPreferences} {...{ className: 'mt-2' }}>
             Try Again
           </Button>
         </div>
       </div>
     );
   }
-
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div {...{ className: 'space-y-6' }}>
+      <div {...{ className: 'flex items-center justify-between' }}>
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Notification Preferences</h2>
-          <p className="text-gray-600">
+          <h2 {...{ className: 'text-2xl font-bold tracking-tight' }}>Notification Preferences</h2>
+          <p {...{ className: 'text-gray-600' }}>
             Customize how and when you receive notifications
           </p>
         </div>
-        <div className="flex items-center space-x-2">
+        <div {...{ className: 'flex items-center space-x-2' }}>
           {hasChanges && (
-            <Badge variant="secondary" className="bg-yellow-100 text-orange-800">
+            <Badge variant="secondary" {...{ className: 'bg-yellow-100 text-orange-800' }}>
               Unsaved Changes
             </Badge>
           )}
-          <Button
-            onClick={resetToDefaults}
-            variant="outline"
-            size="sm"
-          >
+          <Button onClick={resetToDefaults} variant="outline" size="sm">
             Reset to Defaults
           </Button>
-          <Button
-            onClick={savePreferences}
-            disabled={!hasChanges || saving}
-            size="sm"
-          >
+          <Button onClick={savePreferences} disabled={!hasChanges || saving} size="sm">
             {saving ? (
               <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                <div
+                  {...{
+                    className: 'animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2',
+                  }}
+                />
                 Saving...
               </>
             ) : (
               <>
-                <Save className="h-4 w-4 mr-2" />
+                <Save {...{ className: 'h-4 w-4 mr-2' }} />
                 Save Changes
               </>
             )}
@@ -185,17 +182,17 @@ export function NotificationPreferences() {
       {/* Case Assignment Notifications */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center">
-            <Bell className="h-5 w-5 mr-2 text-green-600" />
+          <CardTitle {...{ className: 'flex items-center' }}>
+            <Bell {...{ className: 'h-5 w-5 mr-2 text-green-600' }} />
             Case Assignment Notifications
           </CardTitle>
           <CardDescription>
             Receive notifications when cases are assigned or reassigned to you
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="case-assignment-enabled" className="text-sm font-medium">
+        <CardContent {...{ className: 'space-y-4' }}>
+          <div {...{ className: 'flex items-center justify-between' }}>
+            <Label htmlFor="case-assignment-enabled" {...{ className: 'text-sm font-medium' }}>
               Enable case assignment notifications
             </Label>
             <Switch
@@ -204,12 +201,12 @@ export function NotificationPreferences() {
               onCheckedChange={(checked) => updatePreference('caseAssignmentEnabled', checked)}
             />
           </div>
-          
+
           {preferences.caseAssignmentEnabled && (
-            <div className="ml-4 space-y-3 border-l-2 border-border pl-4">
-              <div className="flex items-center justify-between">
-                <Label className="text-sm flex items-center">
-                  <Smartphone className="h-4 w-4 mr-2" />
+            <div {...{ className: 'ml-4 space-y-3 border-l-2 border-border pl-4' }}>
+              <div {...{ className: 'flex items-center justify-between' }}>
+                <Label {...{ className: 'text-sm flex items-center' }}>
+                  <Smartphone {...{ className: 'h-4 w-4 mr-2' }} />
                   Push notifications
                 </Label>
                 <Switch
@@ -217,14 +214,16 @@ export function NotificationPreferences() {
                   onCheckedChange={(checked) => updatePreference('caseAssignmentPush', checked)}
                 />
               </div>
-              <div className="flex items-center justify-between">
-                <Label className="text-sm flex items-center">
-                  <Monitor className="h-4 w-4 mr-2" />
+              <div {...{ className: 'flex items-center justify-between' }}>
+                <Label {...{ className: 'text-sm flex items-center' }}>
+                  <Monitor {...{ className: 'h-4 w-4 mr-2' }} />
                   Real-time web notifications
                 </Label>
                 <Switch
                   checked={preferences.caseAssignmentWebsocket}
-                  onCheckedChange={(checked) => updatePreference('caseAssignmentWebsocket', checked)}
+                  onCheckedChange={(checked) =>
+                    updatePreference('caseAssignmentWebsocket', checked)
+                  }
                 />
               </div>
             </div>
@@ -232,8 +231,8 @@ export function NotificationPreferences() {
 
           <Separator />
 
-          <div className="flex items-center justify-between">
-            <Label htmlFor="case-reassignment-enabled" className="text-sm font-medium">
+          <div {...{ className: 'flex items-center justify-between' }}>
+            <Label htmlFor="case-reassignment-enabled" {...{ className: 'text-sm font-medium' }}>
               Enable case reassignment notifications
             </Label>
             <Switch
@@ -242,12 +241,12 @@ export function NotificationPreferences() {
               onCheckedChange={(checked) => updatePreference('caseReassignmentEnabled', checked)}
             />
           </div>
-          
+
           {preferences.caseReassignmentEnabled && (
-            <div className="ml-4 space-y-3 border-l-2 border-border pl-4">
-              <div className="flex items-center justify-between">
-                <Label className="text-sm flex items-center">
-                  <Smartphone className="h-4 w-4 mr-2" />
+            <div {...{ className: 'ml-4 space-y-3 border-l-2 border-border pl-4' }}>
+              <div {...{ className: 'flex items-center justify-between' }}>
+                <Label {...{ className: 'text-sm flex items-center' }}>
+                  <Smartphone {...{ className: 'h-4 w-4 mr-2' }} />
                   Push notifications
                 </Label>
                 <Switch
@@ -255,14 +254,16 @@ export function NotificationPreferences() {
                   onCheckedChange={(checked) => updatePreference('caseReassignmentPush', checked)}
                 />
               </div>
-              <div className="flex items-center justify-between">
-                <Label className="text-sm flex items-center">
-                  <Monitor className="h-4 w-4 mr-2" />
+              <div {...{ className: 'flex items-center justify-between' }}>
+                <Label {...{ className: 'text-sm flex items-center' }}>
+                  <Monitor {...{ className: 'h-4 w-4 mr-2' }} />
                   Real-time web notifications
                 </Label>
                 <Switch
                   checked={preferences.caseReassignmentWebsocket}
-                  onCheckedChange={(checked) => updatePreference('caseReassignmentWebsocket', checked)}
+                  onCheckedChange={(checked) =>
+                    updatePreference('caseReassignmentWebsocket', checked)
+                  }
                 />
               </div>
             </div>
@@ -273,17 +274,17 @@ export function NotificationPreferences() {
       {/* Case Status Notifications */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center">
-            <CheckCircle className="h-5 w-5 mr-2 text-green-600" />
+          <CardTitle {...{ className: 'flex items-center' }}>
+            <CheckCircle {...{ className: 'h-5 w-5 mr-2 text-green-600' }} />
             Case Status Notifications
           </CardTitle>
           <CardDescription>
             Receive notifications about case completions and revocations
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="case-completion-enabled" className="text-sm font-medium">
+        <CardContent {...{ className: 'space-y-4' }}>
+          <div {...{ className: 'flex items-center justify-between' }}>
+            <Label htmlFor="case-completion-enabled" {...{ className: 'text-sm font-medium' }}>
               Enable case completion notifications
             </Label>
             <Switch
@@ -292,12 +293,12 @@ export function NotificationPreferences() {
               onCheckedChange={(checked) => updatePreference('caseCompletionEnabled', checked)}
             />
           </div>
-          
+
           {preferences.caseCompletionEnabled && (
-            <div className="ml-4 space-y-3 border-l-2 border-border pl-4">
-              <div className="flex items-center justify-between">
-                <Label className="text-sm flex items-center">
-                  <Smartphone className="h-4 w-4 mr-2" />
+            <div {...{ className: 'ml-4 space-y-3 border-l-2 border-border pl-4' }}>
+              <div {...{ className: 'flex items-center justify-between' }}>
+                <Label {...{ className: 'text-sm flex items-center' }}>
+                  <Smartphone {...{ className: 'h-4 w-4 mr-2' }} />
                   Push notifications
                 </Label>
                 <Switch
@@ -305,14 +306,16 @@ export function NotificationPreferences() {
                   onCheckedChange={(checked) => updatePreference('caseCompletionPush', checked)}
                 />
               </div>
-              <div className="flex items-center justify-between">
-                <Label className="text-sm flex items-center">
-                  <Monitor className="h-4 w-4 mr-2" />
+              <div {...{ className: 'flex items-center justify-between' }}>
+                <Label {...{ className: 'text-sm flex items-center' }}>
+                  <Monitor {...{ className: 'h-4 w-4 mr-2' }} />
                   Real-time web notifications
                 </Label>
                 <Switch
                   checked={preferences.caseCompletionWebsocket}
-                  onCheckedChange={(checked) => updatePreference('caseCompletionWebsocket', checked)}
+                  onCheckedChange={(checked) =>
+                    updatePreference('caseCompletionWebsocket', checked)
+                  }
                 />
               </div>
             </div>
@@ -320,8 +323,8 @@ export function NotificationPreferences() {
 
           <Separator />
 
-          <div className="flex items-center justify-between">
-            <Label htmlFor="case-revocation-enabled" className="text-sm font-medium">
+          <div {...{ className: 'flex items-center justify-between' }}>
+            <Label htmlFor="case-revocation-enabled" {...{ className: 'text-sm font-medium' }}>
               Enable case revocation notifications
             </Label>
             <Switch
@@ -330,12 +333,12 @@ export function NotificationPreferences() {
               onCheckedChange={(checked) => updatePreference('caseRevocationEnabled', checked)}
             />
           </div>
-          
+
           {preferences.caseRevocationEnabled && (
-            <div className="ml-4 space-y-3 border-l-2 border-border pl-4">
-              <div className="flex items-center justify-between">
-                <Label className="text-sm flex items-center">
-                  <Smartphone className="h-4 w-4 mr-2" />
+            <div {...{ className: 'ml-4 space-y-3 border-l-2 border-border pl-4' }}>
+              <div {...{ className: 'flex items-center justify-between' }}>
+                <Label {...{ className: 'text-sm flex items-center' }}>
+                  <Smartphone {...{ className: 'h-4 w-4 mr-2' }} />
                   Push notifications
                 </Label>
                 <Switch
@@ -343,14 +346,16 @@ export function NotificationPreferences() {
                   onCheckedChange={(checked) => updatePreference('caseRevocationPush', checked)}
                 />
               </div>
-              <div className="flex items-center justify-between">
-                <Label className="text-sm flex items-center">
-                  <Monitor className="h-4 w-4 mr-2" />
+              <div {...{ className: 'flex items-center justify-between' }}>
+                <Label {...{ className: 'text-sm flex items-center' }}>
+                  <Monitor {...{ className: 'h-4 w-4 mr-2' }} />
                   Real-time web notifications
                 </Label>
                 <Switch
                   checked={preferences.caseRevocationWebsocket}
-                  onCheckedChange={(checked) => updatePreference('caseRevocationWebsocket', checked)}
+                  onCheckedChange={(checked) =>
+                    updatePreference('caseRevocationWebsocket', checked)
+                  }
                 />
               </div>
             </div>
@@ -361,17 +366,17 @@ export function NotificationPreferences() {
       {/* System Notifications */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center">
-            <AlertCircle className="h-5 w-5 mr-2 text-yellow-600" />
+          <CardTitle {...{ className: 'flex items-center' }}>
+            <AlertCircle {...{ className: 'h-5 w-5 mr-2 text-yellow-600' }} />
             System Notifications
           </CardTitle>
           <CardDescription>
             Receive notifications about system updates and maintenance
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="system-notifications-enabled" className="text-sm font-medium">
+        <CardContent {...{ className: 'space-y-4' }}>
+          <div {...{ className: 'flex items-center justify-between' }}>
+            <Label htmlFor="system-notifications-enabled" {...{ className: 'text-sm font-medium' }}>
               Enable system notifications
             </Label>
             <Switch
@@ -380,27 +385,31 @@ export function NotificationPreferences() {
               onCheckedChange={(checked) => updatePreference('systemNotificationsEnabled', checked)}
             />
           </div>
-          
+
           {preferences.systemNotificationsEnabled && (
-            <div className="ml-4 space-y-3 border-l-2 border-border pl-4">
-              <div className="flex items-center justify-between">
-                <Label className="text-sm flex items-center">
-                  <Smartphone className="h-4 w-4 mr-2" />
+            <div {...{ className: 'ml-4 space-y-3 border-l-2 border-border pl-4' }}>
+              <div {...{ className: 'flex items-center justify-between' }}>
+                <Label {...{ className: 'text-sm flex items-center' }}>
+                  <Smartphone {...{ className: 'h-4 w-4 mr-2' }} />
                   Push notifications
                 </Label>
                 <Switch
                   checked={preferences.systemNotificationsPush}
-                  onCheckedChange={(checked) => updatePreference('systemNotificationsPush', checked)}
+                  onCheckedChange={(checked) =>
+                    updatePreference('systemNotificationsPush', checked)
+                  }
                 />
               </div>
-              <div className="flex items-center justify-between">
-                <Label className="text-sm flex items-center">
-                  <Monitor className="h-4 w-4 mr-2" />
+              <div {...{ className: 'flex items-center justify-between' }}>
+                <Label {...{ className: 'text-sm flex items-center' }}>
+                  <Monitor {...{ className: 'h-4 w-4 mr-2' }} />
                   Real-time web notifications
                 </Label>
                 <Switch
                   checked={preferences.systemNotificationsWebsocket}
-                  onCheckedChange={(checked) => updatePreference('systemNotificationsWebsocket', checked)}
+                  onCheckedChange={(checked) =>
+                    updatePreference('systemNotificationsWebsocket', checked)
+                  }
                 />
               </div>
             </div>
@@ -411,17 +420,17 @@ export function NotificationPreferences() {
       {/* Quiet Hours */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center">
-            <Clock className="h-5 w-5 mr-2 text-green-600" />
+          <CardTitle {...{ className: 'flex items-center' }}>
+            <Clock {...{ className: 'h-5 w-5 mr-2 text-green-600' }} />
             Quiet Hours
           </CardTitle>
           <CardDescription>
             Set quiet hours to avoid receiving notifications during specific times
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="quiet-hours-enabled" className="text-sm font-medium">
+        <CardContent {...{ className: 'space-y-4' }}>
+          <div {...{ className: 'flex items-center justify-between' }}>
+            <Label htmlFor="quiet-hours-enabled" {...{ className: 'text-sm font-medium' }}>
               Enable quiet hours
             </Label>
             <Switch
@@ -430,12 +439,12 @@ export function NotificationPreferences() {
               onCheckedChange={(checked) => updatePreference('quietHoursEnabled', checked)}
             />
           </div>
-          
+
           {preferences.quietHoursEnabled && (
-            <div className="ml-4 space-y-3 border-l-2 border-border pl-4">
-              <div className="grid grid-cols-2 gap-4">
+            <div {...{ className: 'ml-4 space-y-3 border-l-2 border-border pl-4' }}>
+              <div {...{ className: 'grid grid-cols-2 gap-4' }}>
                 <div>
-                  <Label htmlFor="quiet-hours-start" className="text-sm">
+                  <Label htmlFor="quiet-hours-start" {...{ className: 'text-sm' }}>
                     Start time
                   </Label>
                   <Input
@@ -443,11 +452,11 @@ export function NotificationPreferences() {
                     type="time"
                     value={preferences.quietHoursStart}
                     onChange={(e) => updatePreference('quietHoursStart', e.target.value)}
-                    className="mt-1"
+                    {...{ className: 'mt-1' }}
                   />
                 </div>
                 <div>
-                  <Label htmlFor="quiet-hours-end" className="text-sm">
+                  <Label htmlFor="quiet-hours-end" {...{ className: 'text-sm' }}>
                     End time
                   </Label>
                   <Input
@@ -455,11 +464,11 @@ export function NotificationPreferences() {
                     type="time"
                     value={preferences.quietHoursEnd}
                     onChange={(e) => updatePreference('quietHoursEnd', e.target.value)}
-                    className="mt-1"
+                    {...{ className: 'mt-1' }}
                   />
                 </div>
               </div>
-              <p className="text-xs text-gray-600">
+              <p {...{ className: 'text-xs text-gray-600' }}>
                 During quiet hours, you&apos;ll only receive urgent notifications
               </p>
             </div>
