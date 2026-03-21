@@ -1589,7 +1589,7 @@ export const getMISData = async (req: AuthenticatedRequest, res: Response) => {
         vt.completed_at as task_completion_date,
         vt.first_assigned_at as bank_sla_start,
         vt.current_assigned_at as agent_sla_start,
-        COALESCE(NULLIF(vt.trigger, ''), NULLIF(vt.task_type, '')) as trigger,
+        COALESCE(NULLIF(vt.trigger::TEXT, ''), NULLIF(vt.task_type::TEXT, '')) as trigger,
         vt.applicant_type,
         CASE
           WHEN vt.completed_at IS NOT NULL AND vt.first_assigned_at IS NOT NULL
