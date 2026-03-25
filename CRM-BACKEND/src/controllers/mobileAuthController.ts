@@ -23,7 +23,6 @@ interface UserQueryResult {
   username: string;
   email: string;
   passwordHash: string;
-  roleId: number | null;
   employeeId: string;
   designation: string;
   department: string;
@@ -59,7 +58,7 @@ export class MobileAuthController {
 
       // Find user
       const userRes = await query<UserQueryResult>(
-        `SELECT u.id, u.name, u.username, u.email, u."passwordHash", u."roleId", u."employeeId", u.designation, u.department, u."profilePhotoUrl"
+        `SELECT u.id, u.name, u.username, u.email, u."passwordHash", u."employeeId", u.designation, u.department, u."profilePhotoUrl"
          FROM users u
          WHERE u.username = $1`,
         [username]

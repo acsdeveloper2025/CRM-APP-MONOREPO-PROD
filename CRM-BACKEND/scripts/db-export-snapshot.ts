@@ -8,7 +8,7 @@ function buildTableArgs(tables: string[]): string[] {
 }
 
 function buildHeader(): string {
-  return `-- Generated from local main database snapshot\nBEGIN;\nSET session_replication_role = replica;\nTRUNCATE TABLE\n  ${destructiveTables.join(',\n  ')}\nRESTART IDENTITY CASCADE;\nDELETE FROM user_roles;\nDELETE FROM role_permissions;\nDELETE FROM roles_v2;\nDELETE FROM users;\nDELETE FROM roles;\nDELETE FROM departments;\nDELETE FROM permissions;\nDELETE FROM "rateTypes";\nDELETE FROM "verificationTypes";\nDELETE FROM "documentTypes";\nDELETE FROM "pincodeAreas";\nDELETE FROM pincodes;\nDELETE FROM areas;\nDELETE FROM cities;\nDELETE FROM states;\nDELETE FROM countries;\n`;
+  return `-- Generated from local main database snapshot\nBEGIN;\nSET session_replication_role = replica;\nTRUNCATE TABLE\n  ${destructiveTables.join(',\n  ')}\nRESTART IDENTITY CASCADE;\nDELETE FROM user_roles;\nDELETE FROM role_permissions;\nDELETE FROM roles_v2;\nDELETE FROM users;\nDELETE FROM departments;\nDELETE FROM permissions;\nDELETE FROM "rateTypes";\nDELETE FROM "verificationTypes";\nDELETE FROM "documentTypes";\nDELETE FROM "pincodeAreas";\nDELETE FROM pincodes;\nDELETE FROM areas;\nDELETE FROM cities;\nDELETE FROM states;\nDELETE FROM countries;\n`;
 }
 
 function buildFooter(): string {

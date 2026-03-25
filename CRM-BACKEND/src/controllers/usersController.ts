@@ -17,6 +17,31 @@ const STRONG_PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9])
 
 const isStrongPassword = (password: string): boolean => STRONG_PASSWORD_REGEX.test(password);
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const PRIMARY_RBAC_ROLE_NAME_SQL = `
+  COALESCE(
+    (SELECT rv.name FROM user_roles ur JOIN roles_v2 rv ON rv.id = ur.role_id WHERE ur.user_id = u.id ORDER BY rv.name LIMIT 1),
+    'UNASSIGNED'
+  )
+`;
+const PRIMARY_RBAC_ROLE_ID_SQL = `
+  (
+    SELECT ur.role_id
+    FROM user_roles ur
+    JOIN roles_v2 rv ON rv.id = ur.role_id
+    WHERE ur.user_id = u.id
+    ORDER BY rv.name
+    LIMIT 1
+  )
+`;
+const USER_PERMISSION_CODES_SQL = `
+  COALESCE((
+    SELECT ARRAY_AGG(DISTINCT p.code ORDER BY p.code)
+    FROM user_roles ur
+    JOIN role_permissions rp ON rp.role_id = ur.role_id AND rp.allowed = true
+    JOIN permissions p ON p.id = rp.permission_id
+    WHERE ur.user_id = u.id
+  ), ARRAY[]::text[])
+`;
 type DbExecutor = {
   query: <T = unknown>(text: string, params?: unknown[]) => Promise<{ rows: T[] }>;
 };
@@ -324,12 +349,8 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
         u.username,
         u.email,
         u.phone,
-        COALESCE(
-          (SELECT rv.name FROM user_roles ur JOIN roles_v2 rv ON rv.id = ur.role_id WHERE ur.user_id = u.id ORDER BY rv.name LIMIT 1),
-          r.name,
-          'UNASSIGNED'
-        ) as role,
-        u."roleId",
+        ${PRIMARY_RBAC_ROLE_NAME_SQL} as role,
+        ${PRIMARY_RBAC_ROLE_ID_SQL} as "roleId",
         u."departmentId",
         u."designationId",
         u."employeeId",
@@ -344,17 +365,8 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
           JOIN roles_v2 rv ON rv.id = ur.role_id
           WHERE ur.user_id = u.id
         ), ARRAY[]::text[]) as roles,
-        COALESCE((
-          SELECT ARRAY_AGG(DISTINCT p.code ORDER BY p.code)
-          FROM user_roles ur
-          JOIN role_permissions rp ON rp.role_id = ur.role_id AND rp.allowed = true
-          JOIN permissions p ON p.id = rp.permission_id
-          WHERE ur.user_id = u.id
-        ), ARRAY[]::text[]) as "permissionCodes",
-        COALESCE(
-          (SELECT rv.name FROM user_roles ur JOIN roles_v2 rv ON rv.id = ur.role_id WHERE ur.user_id = u.id ORDER BY rv.name LIMIT 1),
-          r.name
-        ) as "roleName",
+        ${USER_PERMISSION_CODES_SQL} as "permissionCodes",
+        ${PRIMARY_RBAC_ROLE_NAME_SQL} as "roleName",
         d.name as "departmentName",
         des.name as "designationName",
         u.team_leader_id as "teamLeaderId",
@@ -378,7 +390,6 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
         COALESCE(pincode_arrays.ids, ARRAY[]::int[]) as "assignedPincodes",
         COALESCE(area_arrays.ids, ARRAY[]::int[]) as "assignedAreas"
       FROM users u
-      LEFT JOIN roles r ON u."roleId" = r.id
       LEFT JOIN departments d ON u."departmentId" = d.id
       LEFT JOIN designations des ON u."designationId" = des.id
       LEFT JOIN users tl ON tl.id = u.team_leader_id
@@ -496,12 +507,8 @@ export const getUserById = async (req: AuthenticatedRequest, res: Response) => {
         u.username,
         u.email,
         u.phone,
-        COALESCE(
-          (SELECT rv.name FROM user_roles ur JOIN roles_v2 rv ON rv.id = ur.role_id WHERE ur.user_id = u.id ORDER BY rv.name LIMIT 1),
-          r.name,
-          'UNASSIGNED'
-        ) as role,
-        u."roleId",
+        ${PRIMARY_RBAC_ROLE_NAME_SQL} as role,
+        ${PRIMARY_RBAC_ROLE_ID_SQL} as "roleId",
         u."departmentId",
         u."designationId",
         u."employeeId",
@@ -516,20 +523,17 @@ export const getUserById = async (req: AuthenticatedRequest, res: Response) => {
           JOIN roles_v2 rv ON rv.id = ur.role_id
           WHERE ur.user_id = u.id
         ), ARRAY[]::text[]) as roles,
-        COALESCE((
-          SELECT ARRAY_AGG(DISTINCT p.code ORDER BY p.code)
+        ${USER_PERMISSION_CODES_SQL} as "permissionCodes",
+        ${PRIMARY_RBAC_ROLE_NAME_SQL} as "roleName",
+        (
+          SELECT rv.description
           FROM user_roles ur
-          JOIN role_permissions rp ON rp.role_id = ur.role_id AND rp.allowed = true
-          JOIN permissions p ON p.id = rp.permission_id
+          JOIN roles_v2 rv ON rv.id = ur.role_id
           WHERE ur.user_id = u.id
-        ), ARRAY[]::text[]) as "permissionCodes",
-
-        COALESCE(
-          (SELECT rv.name FROM user_roles ur JOIN roles_v2 rv ON rv.id = ur.role_id WHERE ur.user_id = u.id ORDER BY rv.name LIMIT 1),
-          r.name
-        ) as "roleName",
-        r.description as "roleDescription",
-        r.permissions as "rolePermissions",
+          ORDER BY rv.name
+          LIMIT 1
+        ) as "roleDescription",
+        ${USER_PERMISSION_CODES_SQL} as "rolePermissions",
         d.name as "departmentName",
         d.description as "departmentDescription",
         des.name as "designationName",
@@ -554,7 +558,6 @@ export const getUserById = async (req: AuthenticatedRequest, res: Response) => {
         COALESCE(pincode_arrays.ids, ARRAY[]::int[]) as "assignedPincodes",
         COALESCE(area_arrays.ids, ARRAY[]::int[]) as "assignedAreas"
       FROM users u
-      LEFT JOIN roles r ON u."roleId" = r.id
       LEFT JOIN departments d ON u."departmentId" = d.id
       LEFT JOIN designations des ON u."designationId" = des.id
       LEFT JOIN users tl ON tl.id = u.team_leader_id
@@ -714,9 +717,8 @@ export const createUser = async (req: AuthenticatedRequest, res: Response) => {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Determine role using RBAC role UUID first, then legacy roles table / role string fallback
+    // Determine role using RBAC role UUID or canonical role name
     let finalRole: string | null = null;
-    let legacyRoleId: number | null = null;
     let rbacRoleId: string | null = null;
 
     if (cleanRoleId && typeof cleanRoleId === 'string' && UUID_REGEX.test(cleanRoleId)) {
@@ -727,27 +729,8 @@ export const createUser = async (req: AuthenticatedRequest, res: Response) => {
         finalRole = roleResult.rows[0].name;
         rbacRoleId = cleanRoleId;
       }
-    } else if (cleanRoleId) {
-      const roleResult = await query<{ id: number; name: string }>(
-        'SELECT id, name FROM roles WHERE id = $1',
-        [cleanRoleId]
-      );
-      if (roleResult.rows.length > 0) {
-        finalRole = roleResult.rows[0].name;
-        legacyRoleId = roleResult.rows[0].id;
-      }
     } else if (role) {
       finalRole = role;
-    }
-
-    if (finalRole && legacyRoleId === null) {
-      const legacyRoleResult = await query<{ id: number }>(
-        'SELECT id FROM roles WHERE name = $1 LIMIT 1',
-        [finalRole]
-      );
-      if (legacyRoleResult.rows.length > 0) {
-        legacyRoleId = legacyRoleResult.rows[0].id;
-      }
     }
 
     if (finalRole && !rbacRoleId) {
@@ -796,10 +779,10 @@ export const createUser = async (req: AuthenticatedRequest, res: Response) => {
 
       const createUserQuery = `
         INSERT INTO users (
-          name, username, email, password, "passwordHash", role, "roleId", "departmentId", "designationId",
+          name, username, email, password, "passwordHash", role, "departmentId", "designationId",
           "employeeId", designation, phone, team_leader_id, manager_id, "isActive", "createdAt", "updatedAt"
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
-        RETURNING id, name, username, email, role, "roleId", "departmentId", "designationId",
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+        RETURNING id, name, username, email, role, "departmentId", "designationId",
                   "employeeId", designation, phone, team_leader_id as "teamLeaderId",
                   manager_id as "managerId", "isActive", "createdAt", "updatedAt"
       `;
@@ -811,7 +794,6 @@ export const createUser = async (req: AuthenticatedRequest, res: Response) => {
         hashedPassword,
         hashedPassword,
         finalRole,
-        legacyRoleId,
         cleanDepartmentId,
         cleanDesignationId,
         employeeId || null,
@@ -837,7 +819,10 @@ export const createUser = async (req: AuthenticatedRequest, res: Response) => {
       return insertRes;
     });
 
-    const newUser = result.rows[0];
+    const newUser = {
+      ...result.rows[0],
+      roleId: rbacRoleId,
+    };
 
     logger.info(`Created new user: ${newUser.id}`, {
       userId: req.user?.id,
@@ -914,7 +899,7 @@ export const updateUser = async (req: AuthenticatedRequest, res: Response) => {
 
     // Device management is handled separately through device management endpoints
 
-    // RBAC role resolution (UUID roles_v2 -> users.role + user_roles sync)
+    // RBAC role resolution (UUID roles_v2 only)
     let rbacRoleId: string | null = null;
     if (
       updateData.roleId &&
@@ -933,11 +918,6 @@ export const updateUser = async (req: AuthenticatedRequest, res: Response) => {
       }
       updateData.role = rbacRoleRes.rows[0].name;
       rbacRoleId = updateData.roleId;
-      const legacyRoleRes = await query<{ id: number }>(
-        'SELECT id FROM roles WHERE name = $1 LIMIT 1',
-        [updateData.role]
-      );
-      updateData.roleId = legacyRoleRes.rows[0]?.id ?? null;
     }
 
     if (!rbacRoleId && updateData.role && typeof updateData.role === 'string') {
@@ -946,13 +926,6 @@ export const updateUser = async (req: AuthenticatedRequest, res: Response) => {
         [updateData.role]
       );
       rbacRoleId = rbacRoleRes.rows[0]?.id || null;
-      const legacyRoleRes = await query<{ id: number }>(
-        'SELECT id FROM roles WHERE name = $1 LIMIT 1',
-        [updateData.role]
-      );
-      if (legacyRoleRes.rows.length > 0) {
-        updateData.roleId = legacyRoleRes.rows[0].id;
-      }
     }
 
     const cleanTeamLeaderId = normalizeOptionalUuid(updateData.teamLeaderId);
@@ -1003,7 +976,6 @@ export const updateUser = async (req: AuthenticatedRequest, res: Response) => {
       'email',
       'phone',
       'role',
-      'roleId',
       'departmentId',
       'employeeId',
       'designation',
@@ -1014,7 +986,6 @@ export const updateUser = async (req: AuthenticatedRequest, res: Response) => {
 
     const fieldColumnMap: Record<string, string> = {
       employeeId: '"employeeId"',
-      roleId: '"roleId"',
       departmentId: '"departmentId"',
       teamLeaderId: 'team_leader_id',
       managerId: 'manager_id',
@@ -1044,7 +1015,7 @@ export const updateUser = async (req: AuthenticatedRequest, res: Response) => {
       UPDATE users
       SET ${updateFields.join(', ')}
       WHERE id = $${paramIndex}
-      RETURNING id, name, username, email, role, "roleId", "departmentId",
+      RETURNING id, name, username, email, role, "departmentId",
                 "employeeId", designation, phone, team_leader_id as "teamLeaderId",
                 manager_id as "managerId", "isActive", "createdAt", "updatedAt"
     `;
@@ -1060,7 +1031,10 @@ export const updateUser = async (req: AuthenticatedRequest, res: Response) => {
       }
       return updateRes;
     });
-    const updatedUser = result.rows[0];
+    const updatedUser = {
+      ...result.rows[0],
+      ...(rbacRoleId ? { roleId: rbacRoleId } : {}),
+    };
 
     logger.info(`Updated user: ${id}`, {
       userId: req.user?.id,
@@ -1279,11 +1253,7 @@ export const searchUsers = async (req: AuthenticatedRequest, res: Response) => {
         u.name,
         u.username,
         u.email,
-        COALESCE(
-          (SELECT rv.name FROM user_roles ur JOIN roles_v2 rv ON rv.id = ur.role_id WHERE ur.user_id = u.id ORDER BY rv.name LIMIT 1),
-          r.name,
-          'UNASSIGNED'
-        ) as role,
+        ${PRIMARY_RBAC_ROLE_NAME_SQL} as role,
         d.name as "departmentName",
         u.designation,
         u."isActive"
@@ -1344,20 +1314,11 @@ export const getUserStats = async (req: AuthenticatedRequest, res: Response) => 
     // Get users by role
     const roleStatsQuery = `
       SELECT
-        COALESCE(
-          (SELECT rv.name FROM user_roles ur JOIN roles_v2 rv ON rv.id = ur.role_id WHERE ur.user_id = u.id ORDER BY rv.name LIMIT 1),
-          r.name,
-          'UNASSIGNED'
-        ) as role,
+        ${PRIMARY_RBAC_ROLE_NAME_SQL} as role,
         COUNT(*) as count
       FROM users u
-      LEFT JOIN roles r ON u."roleId" = r.id
       WHERE u."deletedAt" IS NULL
-      GROUP BY COALESCE(
-        (SELECT rv.name FROM user_roles ur JOIN roles_v2 rv ON rv.id = ur.role_id WHERE ur.user_id = u.id ORDER BY rv.name LIMIT 1),
-        r.name,
-        'UNASSIGNED'
-      )
+      GROUP BY ${PRIMARY_RBAC_ROLE_NAME_SQL}
       ORDER BY count DESC
     `;
     const roleStats = await query(roleStatsQuery);
@@ -2498,25 +2459,16 @@ export const exportUsers = async (req: AuthenticatedRequest, res: Response) => {
         u.username,
         u.email,
         u.phone,
-        COALESCE(
-          (SELECT rv.name FROM user_roles ur JOIN roles_v2 rv ON rv.id = ur.role_id WHERE ur.user_id = u.id ORDER BY rv.name LIMIT 1),
-          r.name,
-          'UNASSIGNED'
-        ) as role,
+        ${PRIMARY_RBAC_ROLE_NAME_SQL} as role,
         u."employeeId",
         u.designation,
         u."isActive",
         u."lastLogin",
         u."createdAt",
         u."updatedAt",
-        COALESCE(
-          (SELECT rv.name FROM user_roles ur JOIN roles_v2 rv ON rv.id = ur.role_id WHERE ur.user_id = u.id ORDER BY rv.name LIMIT 1),
-          r.name,
-          'UNASSIGNED'
-        ) as "roleName",
+        ${PRIMARY_RBAC_ROLE_NAME_SQL} as "roleName",
         d.name as "departmentName"
       FROM users u
-      LEFT JOIN roles r ON u."roleId" = r.id
       LEFT JOIN departments d ON u."departmentId" = d.id
       ${whereClause}
       ORDER BY ${safeSortColumn} ${safeSortOrder}

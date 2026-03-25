@@ -61,19 +61,17 @@ const createUserValidation = [
     .withMessage('Password must be at least 8 characters')
     .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).+$/)
     .withMessage('Password must include uppercase, lowercase, number, and special character'),
-  // Support both new roleId and legacy role fields
+  // Support RBAC roleId UUID or canonical role name
   body('roleId')
     .optional()
     .custom(value => {
       if (value && value.toString().trim() !== '') {
         const stringValue = String(value).trim();
-        const intValue = parseInt(stringValue, 10);
-        const isUuid =
-          /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-            stringValue
-          );
-        if (!isUuid && (isNaN(intValue) || intValue < 1)) {
-          throw new Error('Role ID must be a valid positive integer or UUID');
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+          stringValue
+        );
+        if (!isUuid) {
+          throw new Error('Role ID must be a valid RBAC role UUID');
         }
       }
       return true;
@@ -191,13 +189,11 @@ const updateUserValidation = [
     .custom(value => {
       if (value && value.toString().trim() !== '') {
         const stringValue = String(value).trim();
-        const intValue = parseInt(stringValue, 10);
-        const isUuid =
-          /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-            stringValue
-          );
-        if (!isUuid && (isNaN(intValue) || intValue < 1)) {
-          throw new Error('Role ID must be a valid positive integer or UUID');
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+          stringValue
+        );
+        if (!isUuid) {
+          throw new Error('Role ID must be a valid RBAC role UUID');
         }
       }
       return true;

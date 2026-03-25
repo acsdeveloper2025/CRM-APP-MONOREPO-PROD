@@ -82,7 +82,7 @@ export interface UserRow {
   email: string;
   passwordHash: string;
   role: string;
-  roleId?: number;
+  roleId?: string;
   employeeId?: string;
   designation?: string;
   department?: string;

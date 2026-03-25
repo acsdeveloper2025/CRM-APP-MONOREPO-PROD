@@ -15,6 +15,7 @@ This backend now includes a repeatable local-main database workflow instead of a
   - `verificationTypes`
   - `rateTypes`
 - Preserve only the canonical Admin auth state.
+- Use `roles_v2` as the only role source of truth.
 - Remove operational, client, product, and non-rate-type pricing data.
 - Normalize preserved numeric IDs to contiguous `1..N`.
 - Realign sequences to the latest valid ID.
@@ -59,6 +60,7 @@ It is intentionally destructive:
 
 - truncates operational and pricing data
 - replaces role/auth/master snapshot tables with the canonical local snapshot
+- assumes legacy `roles` / `users.roleId` have been removed by migration
 
 Do not run it on an environment unless replacing its data with the local-main snapshot is intended.
 
@@ -70,4 +72,3 @@ Always take a backup before running destructive resets or deploying a snapshot:
 cd CRM-BACKEND
 npm run db:backup
 ```
-
