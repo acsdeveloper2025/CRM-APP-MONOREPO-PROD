@@ -90,14 +90,23 @@ export class QueryOptimizationService {
         u.id, u.name, u.username, u.email, u.phone,
         COALESCE(
           (SELECT rv.name FROM user_roles ur JOIN roles_v2 rv ON rv.id = ur.role_id WHERE ur.user_id = u.id ORDER BY rv.name LIMIT 1),
-          r.name
+          'UNASSIGNED'
         ) as role,
         u."employeeId", u."isActive", u."lastLogin", u."createdAt", u."updatedAt",
-        r.name as "roleName", r.permissions as "rolePermissions",
+        COALESCE(
+          (SELECT rv.name FROM user_roles ur JOIN roles_v2 rv ON rv.id = ur.role_id WHERE ur.user_id = u.id ORDER BY rv.name LIMIT 1),
+          'UNASSIGNED'
+        ) as "roleName",
+        COALESCE((
+          SELECT ARRAY_AGG(DISTINCT p.code ORDER BY p.code)
+          FROM user_roles ur
+          JOIN role_permissions rp ON rp.role_id = ur.role_id AND rp.allowed = true
+          JOIN permissions p ON p.id = rp.permission_id
+          WHERE ur.user_id = u.id
+        ), ARRAY[]::text[]) as "rolePermissions",
         d.name as "departmentName", d.description as "departmentDescription",
         des.name as "designationName"
       FROM users u
-      LEFT JOIN roles r ON u."roleId" = r.id
       LEFT JOIN departments d ON u."departmentId" = d.id  
       LEFT JOIN designations des ON u."designationId" = des.id
       WHERE ($1::text IS NULL OR u.name ILIKE $1 OR u.username ILIKE $1 OR u.email ILIKE $1)

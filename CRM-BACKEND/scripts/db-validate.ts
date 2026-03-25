@@ -1,6 +1,6 @@
 #!/usr/bin/env ts-node
 
-import { adminRoleId, adminRoleV2Id, adminUserId, createPool, logger } from './lib/dbAdmin';
+import { adminRoleV2Id, adminUserId, createPool, logger } from './lib/dbAdmin';
 
 type Check = {
   name: string;
@@ -59,13 +59,6 @@ async function main(): Promise<void> {
       details: `count=${userCount}`
     });
 
-    const legacyRoleCount = await singleValue(pool, 'SELECT COUNT(*) AS count FROM roles');
-    checks.push({
-      name: 'Legacy roles reduced to Admin only',
-      ok: legacyRoleCount === '1',
-      details: `count=${legacyRoleCount}`
-    });
-
     const rbacRoleCount = await singleValue(pool, 'SELECT COUNT(*) AS count FROM roles_v2');
     checks.push({
       name: 'RBAC roles reduced to Admin only',
@@ -78,7 +71,7 @@ async function main(): Promise<void> {
       `SELECT COUNT(*) AS count
        FROM users u
        JOIN user_roles ur ON ur.user_id = u.id
-       WHERE u.id = '${adminUserId}' AND u."roleId" = ${adminRoleId} AND ur.role_id = '${adminRoleV2Id}'`
+       WHERE u.id = '${adminUserId}' AND ur.role_id = '${adminRoleV2Id}'`
     );
     checks.push({
       name: 'Admin user role mapping is intact',
@@ -120,8 +113,6 @@ async function main(): Promise<void> {
       SELECT 'verificationTypes', MIN(id), MAX(id), COUNT(*), COUNT(DISTINCT id), (MAX(id) - MIN(id) + 1 - COUNT(*)) FROM "verificationTypes"
       UNION ALL
       SELECT 'rateTypes', MIN(id), MAX(id), COUNT(*), COUNT(DISTINCT id), (MAX(id) - MIN(id) + 1 - COUNT(*)) FROM "rateTypes"
-      UNION ALL
-      SELECT 'roles', MIN(id), MAX(id), COUNT(*), COUNT(DISTINCT id), (MAX(id) - MIN(id) + 1 - COUNT(*)) FROM roles
     `);
 
     for (const row of gapResult.rows) {
@@ -173,8 +164,7 @@ async function main(): Promise<void> {
           'pincodeAreas_temp_id_seq',
           'documentTypes_id_seq',
           'verificationTypes_temp_id_seq',
-          'rateTypes_temp_id_seq',
-          'roles_temp_id_seq'
+          'rateTypes_temp_id_seq'
         )
       ORDER BY sequencename
     `);
@@ -188,8 +178,7 @@ async function main(): Promise<void> {
       ['pincodeAreas_temp_id_seq', 880],
       ['documentTypes_id_seq', 11],
       ['verificationTypes_temp_id_seq', 9],
-      ['rateTypes_temp_id_seq', 8],
-      ['roles_temp_id_seq', 1]
+      ['rateTypes_temp_id_seq', 8]
     ]);
 
     for (const row of seqResult.rows) {
@@ -222,4 +211,3 @@ main().catch(error => {
   logger.error(error instanceof Error ? error.message : String(error));
   process.exit(1);
 });
-

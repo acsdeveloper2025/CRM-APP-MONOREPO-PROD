@@ -23,7 +23,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 
     // Find user by username
     const userRes = await query(
-      `SELECT u.id, u.name, u.username, u.email, u."passwordHash", u."roleId", u."employeeId", u.designation, u.department, u."profilePhotoUrl"
+      `SELECT u.id, u.name, u.username, u.email, u."passwordHash", u."employeeId", u.designation, u.department, u."profilePhotoUrl"
        FROM users u
        WHERE u.username = $1`,
       [username]
@@ -236,7 +236,7 @@ export const preloginInfo = async (req: Request, res: Response): Promise<void> =
     }
 
     const userRes = await query(
-      `SELECT u.id, u."roleId"
+      `SELECT u.id
        FROM users u
        WHERE u.username = $1
        LIMIT 1`,
@@ -290,7 +290,6 @@ export const getCurrentUser = async (req: AuthenticatedRequest, res: Response): 
         u.name,
         u.username,
         u.email,
-        u."roleId",
         u."departmentId",
         u."employeeId",
         u.designation,
@@ -319,8 +318,16 @@ export const getCurrentUser = async (req: AuthenticatedRequest, res: Response): 
     const userData = result.rows[0];
     let rbacRoles: string[] = [];
     let rbacPermissionCodes: string[] = [];
-    const rbacRes = await query<{ roles: string[] | null; permissions: string[] | null }>(
+    const rbacRes = await query<{ roleId: string | null; roles: string[] | null; permissions: string[] | null }>(
       `SELECT
+         (
+           SELECT ur.role_id
+           FROM user_roles ur
+           JOIN roles_v2 rv2 ON rv2.id = ur.role_id
+           WHERE ur.user_id = u.id
+           ORDER BY rv2.name
+           LIMIT 1
+         ) as "roleId",
          COALESCE((
            SELECT array_agg(DISTINCT rv2.name)
            FROM user_roles ur
@@ -338,6 +345,7 @@ export const getCurrentUser = async (req: AuthenticatedRequest, res: Response): 
        WHERE u.id = $1`,
       [userData.id]
     );
+    const primaryRoleId = rbacRes.rows[0]?.roleId || null;
     rbacRoles = rbacRes.rows[0]?.roles || [];
     rbacPermissionCodes = rbacRes.rows[0]?.permissions || [];
     const derivedRole = getPrimaryRoleNameFromRbac(rbacRoles) || null;
@@ -390,7 +398,7 @@ export const getCurrentUser = async (req: AuthenticatedRequest, res: Response): 
         username: userData.username,
         email: userData.email,
         role: derivedRole,
-        roleId: userData.roleId,
+        roleId: primaryRoleId,
         roleName: derivedRole,
         roles: rbacRoles,
         permissions: rbacPermissionCodes,

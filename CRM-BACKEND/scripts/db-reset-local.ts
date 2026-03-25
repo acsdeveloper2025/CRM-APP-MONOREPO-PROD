@@ -1,6 +1,6 @@
 #!/usr/bin/env ts-node
 
-import { adminRoleId, adminRoleV2Id, adminUserId, createPool, destructiveTables, logger } from './lib/dbAdmin';
+import { adminRoleV2Id, adminUserId, createPool, destructiveTables, logger } from './lib/dbAdmin';
 
 const resetSql = `
 BEGIN;
@@ -10,11 +10,6 @@ SET created_by = '${adminUserId}',
     updated_by = '${adminUserId}'
 WHERE created_by IS DISTINCT FROM '${adminUserId}'
    OR updated_by IS DISTINCT FROM '${adminUserId}';
-
-UPDATE roles
-SET "createdBy" = '${adminUserId}',
-    "updatedBy" = '${adminUserId}'
-WHERE id = ${adminRoleId};
 
 TRUNCATE TABLE
   ${destructiveTables.join(',\n  ')}
@@ -37,16 +32,12 @@ SET manager_id = NULL,
     team_leader_id = NULL,
     "departmentId" = 2,
     "designationId" = NULL,
-    "roleId" = ${adminRoleId},
     role = 'SUPER_ADMIN',
     "isActive" = TRUE
 WHERE id = '${adminUserId}';
 
 DELETE FROM users
 WHERE id <> '${adminUserId}';
-
-DELETE FROM roles
-WHERE id <> ${adminRoleId};
 
 DO $$
 DECLARE
@@ -135,22 +126,12 @@ SET id = -(SELECT new_id FROM pincode_area_map WHERE old_id = "pincodeAreas".id)
     "pincodeId" = -(SELECT new_id FROM pincode_map WHERE old_id = "pincodeAreas"."pincodeId"),
     "areaId" = -(SELECT new_id FROM area_map WHERE old_id = "pincodeAreas"."areaId");
 
-UPDATE roles
-SET id = -1
-WHERE id = ${adminRoleId};
-
-UPDATE users
-SET "roleId" = -1
-WHERE "roleId" = ${adminRoleId};
-
 UPDATE countries SET id = -id;
 UPDATE states SET id = -id, "countryId" = -"countryId";
 UPDATE cities SET id = -id, "stateId" = -"stateId", "countryId" = -"countryId";
 UPDATE areas SET id = -id;
 UPDATE pincodes SET id = -id, "cityId" = -"cityId";
 UPDATE "pincodeAreas" SET id = -id, "pincodeId" = -"pincodeId", "areaId" = -"areaId";
-UPDATE roles SET id = ${adminRoleId} WHERE id = -1;
-UPDATE users SET "roleId" = ${adminRoleId} WHERE "roleId" = -1;
 
 SET session_replication_role = origin;
 
@@ -160,7 +141,6 @@ SELECT setval('cities_temp_id_seq', COALESCE((SELECT MAX(id) FROM cities), 1), t
 SELECT setval('areas_temp_id_seq', COALESCE((SELECT MAX(id) FROM areas), 1), true);
 SELECT setval('pincodes_temp_id_seq', COALESCE((SELECT MAX(id) FROM pincodes), 1), true);
 SELECT setval('"pincodeAreas_temp_id_seq"', COALESCE((SELECT MAX(id) FROM "pincodeAreas"), 1), true);
-SELECT setval('roles_temp_id_seq', COALESCE((SELECT MAX(id) FROM roles), 1), true);
 
 COMMIT;
 `;
@@ -181,4 +161,3 @@ main().catch(error => {
   logger.error(error instanceof Error ? error.message : String(error));
   process.exit(1);
 });
-

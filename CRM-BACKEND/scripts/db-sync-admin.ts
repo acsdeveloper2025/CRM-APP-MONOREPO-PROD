@@ -1,24 +1,12 @@
 #!/usr/bin/env ts-node
 
-import { adminRoleId, adminRoleV2Id, adminUserId, createPool, logger } from './lib/dbAdmin';
+import { adminRoleV2Id, adminUserId, createPool, logger } from './lib/dbAdmin';
 
 const syncSql = `
 BEGIN;
 
-UPDATE roles
-SET id = ${adminRoleId},
-    name = 'SUPER_ADMIN',
-    description = 'Emergency access with bypass of device/MAC checks',
-    "isSystemRole" = TRUE,
-    "isActive" = TRUE,
-    permissions = '{}'::jsonb,
-    "createdBy" = '${adminUserId}',
-    "updatedBy" = '${adminUserId}'
-WHERE id = ${adminRoleId};
-
 UPDATE users
 SET role = 'SUPER_ADMIN',
-    "roleId" = ${adminRoleId},
     "isActive" = TRUE,
     manager_id = NULL,
     team_leader_id = NULL
@@ -67,4 +55,3 @@ main().catch(error => {
   logger.error(error instanceof Error ? error.message : String(error));
   process.exit(1);
 });
-

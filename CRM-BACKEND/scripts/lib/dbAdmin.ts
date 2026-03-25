@@ -8,7 +8,6 @@ const backendRoot = path.resolve(__dirname, '..', '..');
 dotenv.config({ path: path.join(backendRoot, '.env') });
 
 export const adminUserId = '70dcf247-759c-405d-a8fb-4c78b7b77747';
-export const adminRoleId = 1;
 export const adminRoleV2Id = '688a9754-30ec-41fc-9c93-58e33fa7bf1e';
 
 export const preservedDataTables = [
@@ -22,7 +21,6 @@ export const preservedDataTables = [
   '"verificationTypes"',
   '"rateTypes"',
   'departments',
-  'roles',
   'roles_v2',
   'permissions',
   'role_permissions',
@@ -78,7 +76,6 @@ export const snapshotTables = [
   '"verificationTypes"',
   '"rateTypes"',
   'departments',
-  'roles',
   'roles_v2',
   'permissions',
   'role_permissions',
@@ -149,4 +146,3 @@ export function runProcess(command: string, args: string[]): string {
 export function backendPath(...parts: string[]): string {
   return path.join(backendRoot, ...parts);
 }
-
