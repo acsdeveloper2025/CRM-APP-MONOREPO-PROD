@@ -61,7 +61,7 @@ export function ServiceZoneRulesTab() {
   });
   const { data: clientsResponse } = useQuery({
     queryKey: ['clients', 'service-zone-rules'],
-    queryFn: () => clientsService.getClients({ limit: 1000 }),
+    queryFn: () => clientsService.getClients({ limit: 100 }),
   });
   const { data: productsResponse } = useQuery({
     queryKey: ['service-zone-products', formState.clientId],

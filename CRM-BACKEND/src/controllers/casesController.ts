@@ -2115,7 +2115,10 @@ export const validateCaseConfiguration = async (req: AuthenticatedRequest, res: 
     }
 
     const areaValidation = await pool.query(
-      `SELECT id FROM areas WHERE id = $1 AND pincode_id = $2 LIMIT 1`,
+      `SELECT 1
+       FROM "pincodeAreas"
+       WHERE "areaId" = $1 AND "pincodeId" = $2
+       LIMIT 1`,
       [areaId, resolvedPincodeId]
     );
 
