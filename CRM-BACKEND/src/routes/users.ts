@@ -1,7 +1,7 @@
 import express, { Request, Response, NextFunction } from 'express';
 import { body, query, param } from 'express-validator';
 import { authenticateToken } from '@/middleware/auth';
-import { authorize } from '@/middleware/authorize';
+import { authorize, authorizeAny } from '@/middleware/authorize';
 import { validate } from '@/middleware/validation';
 import { CANONICAL_RBAC_ROLE_NAMES } from '@/constants/rbacRoles';
 import {
@@ -382,7 +382,7 @@ router.get('/import-template', authenticateToken, authorize('user.view'), downlo
 router.get(
   '/field-agents/available',
   authenticateToken,
-  authorize('user.view'),
+  authorizeAny(['user.view', 'case.create', 'case.assign', 'case.reassign']),
   getAvailableFieldAgents
 );
 

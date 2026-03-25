@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -23,7 +24,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { ArrowLeft, Send, Loader2, Building, Settings, Plus, Trash2, AlertCircle, Paperclip, Upload, FileText, Image } from 'lucide-react';
-import { useFieldUsers } from '@/hooks/useUsers';
+import { useAvailableFieldUsers } from '@/hooks/useUsers';
 import { useClients, useVerificationTypes, useProductsByClient } from '@/hooks/useClients';
 import { usePincodes } from '@/hooks/useLocations';
 import { useAreasByPincode } from '@/hooks/useAreas';
@@ -32,12 +33,13 @@ import { isBackendScopedUser } from '@/utils/userPermissionProfiles';
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import type { CustomerInfoData } from './CustomerInfoStep';
 import { rateTypesService } from '@/services/rateTypes';
+import { casesService } from '@/services/cases';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import type { CaseFormAttachment } from '@/components/attachments/CaseFormAttachmentsSection';
 import { VerificationType } from '@/types/client';
 import { Pincode } from '@/types/location';
-import { User } from '@/types/user';
+import type { CaseConfigValidationResult } from '@/types/rateManagement';
 
 // Case-level schema (fields filled once)
 const caseLevelSchema = z.object({
@@ -76,6 +78,13 @@ interface TaskCaseCreationFormProps {
     tasks?: TaskFormData[];
   };
   editMode?: boolean;
+}
+
+interface TaskValidationState {
+  isReady: boolean;
+  isLoading: boolean;
+  isValid: boolean;
+  message?: string;
 }
 
 export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
@@ -117,6 +126,7 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
       attachments: [],
     },
   ]);
+  const [taskValidationState, setTaskValidationState] = useState<Record<string, TaskValidationState>>({});
 
   // Populate form with initial data
   useEffect(() => {
@@ -149,7 +159,6 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
   }, [initialData, form]);
 
   // Fetch data
-  const { data: fieldUsers } = useFieldUsers();
   const { data: clientsResponse } = useClients();
   const { data: verificationTypesResponse } = useVerificationTypes();
   // Fetch all pincodes for dropdown (high limit to get all)
@@ -221,6 +230,11 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
       return;
     }
     setTasks(tasks.filter(t => t.id !== taskId));
+    setTaskValidationState((prev) => {
+      const next = { ...prev };
+      delete next[taskId];
+      return next;
+    });
   };
 
   // Update task field
@@ -231,6 +245,18 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
       )
     );
   };
+
+  const updateTaskValidationState = (taskId: string, nextState: TaskValidationState) => {
+    setTaskValidationState((prev) => ({
+      ...prev,
+      [taskId]: nextState,
+    }));
+  };
+
+  const hasBlockingConfigurationState = tasks.some((task) => {
+    const state = taskValidationState[task.id];
+    return state?.isReady && (state.isLoading || !state.isValid);
+  });
 
   // Handle form submission
   const handleSubmit = (caseLevelData: CaseLevelFormData) => {
@@ -248,6 +274,15 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
 
     if (invalidTasks.length > 0) {
       toast.error(`Please fill all required fields for all ${tasks.length} tasks`);
+      return;
+    }
+
+    const firstConfigError = tasks
+      .map((task) => taskValidationState[task.id])
+      .find((state) => state?.isReady && !state.isValid);
+
+    if (firstConfigError) {
+      toast.error(firstConfigError.message || 'Complete pricing configuration for all tasks before submitting');
       return;
     }
 
@@ -426,16 +461,24 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
                 task={task}
                 index={index}
                 updateTask={updateTask}
+                onValidationStateChange={updateTaskValidationState}
                 removeTask={removeTask}
                 canRemove={tasks.length > 1}
                 clientId={selectedClientId}
                 productId={form.watch('productId')}
                 verificationTypes={verificationTypes}
                 pincodes={pincodes}
-                fieldUsers={fieldUsers || []}
               />
             ))}
           </div>
+
+          {hasBlockingConfigurationState && (
+            <Alert variant="destructive">
+              <AlertDescription>
+                Resolve service zone or billing configuration errors in the task cards before creating the case.
+              </AlertDescription>
+            </Alert>
+          )}
 
           {/* Form Actions */}
           <div className={`flex items-center ${onBack ? 'justify-between' : 'justify-end'} pt-6 border-t`}>
@@ -446,11 +489,16 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
               </Button>
             )}
 
-            <Button type="submit" disabled={isSubmitting}>
+            <Button type="submit" disabled={isSubmitting || hasBlockingConfigurationState}>
               {isSubmitting ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   Creating Case...
+                </>
+              ) : hasBlockingConfigurationState ? (
+                <>
+                  <Send className="h-4 w-4 mr-2" />
+                  Fix Configuration
                 </>
               ) : (
                 <>
@@ -471,44 +519,33 @@ interface TaskCardProps {
   task: TaskFormData;
   index: number;
   updateTask: (taskId: string, field: keyof TaskFormData, value: unknown) => void;
+  onValidationStateChange: (taskId: string, state: TaskValidationState) => void;
   removeTask: (taskId: string) => void;
   canRemove: boolean;
   clientId: string;
   productId: string;
   verificationTypes: VerificationType[];
   pincodes: Pincode[];
-  fieldUsers: User[];
 }
 
 const TaskCard: React.FC<TaskCardProps> = ({
   task,
   index,
   updateTask,
+  onValidationStateChange,
   removeTask,
   canRemove,
   clientId,
   productId,
   verificationTypes,
   pincodes,
-  fieldUsers,
 }) => {
-  // Filter field users based on pincode and area access
-  const filteredFieldUsers = useMemo(() => {
-    if (!task.pincodeId || !task.areaId) {
-      return fieldUsers; // Show all if no pincode/area selected
-    }
-
-    const selectedPincodeId = parseInt(task.pincodeId, 10);
-    const selectedAreaId = parseInt(task.areaId, 10);
-
-    const filtered = fieldUsers.filter((user: User) => {
-      const hasPincodeAccess = (user.assignedPincodes || []).includes(selectedPincodeId);
-      const hasAreaAccess = (user.assignedAreas || []).includes(selectedAreaId);
-      return hasPincodeAccess && hasAreaAccess;
-    });
-
-    return filtered;
-  }, [fieldUsers, task.pincodeId, task.areaId]);
+  const selectedPincodeNumber = task.pincodeId ? parseInt(task.pincodeId, 10) : undefined;
+  const selectedAreaNumber = task.areaId ? parseInt(task.areaId, 10) : undefined;
+  const { data: availableFieldUsers = [], isLoading: loadingFieldUsers } = useAvailableFieldUsers(
+    selectedPincodeNumber,
+    selectedAreaNumber
+  );
   // Fetch areas based on selected pincode
   const { data: areasResponse } = useAreasByPincode(task.pincodeId ? parseInt(task.pincodeId) : undefined);
   const areas = useMemo(() => areasResponse?.data || [], [areasResponse?.data]);
@@ -549,6 +586,64 @@ const TaskCard: React.FC<TaskCardProps> = ({
     enabled: !!(clientId && productId && task.verificationTypeId),
   });
   const rateTypes = rateTypesResponse?.data || [];
+  const shouldValidateConfiguration = Boolean(
+    clientId &&
+      productId &&
+      task.verificationTypeId &&
+      task.pincodeId &&
+      task.areaId
+  );
+  const {
+    data: configValidationResponse,
+    isLoading: validatingConfiguration,
+  } = useQuery({
+    queryKey: [
+      'task-case-config-validation',
+      task.id,
+      clientId,
+      productId,
+      task.verificationTypeId,
+      task.pincodeId,
+      task.areaId,
+      task.rateTypeId,
+    ],
+    queryFn: () =>
+      casesService.validateConfiguration({
+        clientId: Number(clientId),
+        productId: Number(productId),
+        verificationTypeId: Number(task.verificationTypeId),
+        pincodeId: Number(task.pincodeId),
+        areaId: Number(task.areaId),
+        rateTypeId: task.rateTypeId ? Number(task.rateTypeId) : undefined,
+      }),
+    enabled: shouldValidateConfiguration,
+  });
+  const configValidation: CaseConfigValidationResult | undefined = configValidationResponse?.data;
+
+  useEffect(() => {
+    if (!shouldValidateConfiguration) {
+      onValidationStateChange(task.id, {
+        isReady: false,
+        isLoading: false,
+        isValid: true,
+      });
+      return;
+    }
+
+    onValidationStateChange(task.id, {
+      isReady: true,
+      isLoading: validatingConfiguration,
+      isValid: configValidation?.isValid ?? false,
+      message: configValidation?.errorMessage,
+    });
+  }, [
+    configValidation?.errorMessage,
+    configValidation?.isValid,
+    onValidationStateChange,
+    shouldValidateConfiguration,
+    task.id,
+    validatingConfiguration,
+  ]);
 
   // Note: We removed the auto-reset logic for rateTypeId and areaId
   // because it was clearing pre-filled values from Revisit tasks.
@@ -678,6 +773,24 @@ const TaskCard: React.FC<TaskCardProps> = ({
           )}
         </div>
 
+        {shouldValidateConfiguration && (
+          <Alert
+            variant={configValidation?.isValid === false ? 'destructive' : 'default'}
+            className={configValidation?.isValid ? 'border-green-200 bg-green-50 text-green-900' : undefined}
+          >
+            <AlertDescription>
+              {validatingConfiguration
+                ? 'Checking service zone, billing rule, and amount configuration...'
+                : configValidation?.isValid === false
+                  ? configValidation.errorMessage
+                  : configValidation?.resolved.amount !== null &&
+                      configValidation?.resolved.amount !== undefined
+                    ? `Configuration ready. Amount available for this task: ₹${Number(configValidation.resolved.amount).toFixed(2)}`
+                    : 'Configuration ready for this task.'}
+            </AlertDescription>
+          </Alert>
+        )}
+
         {/* Row 3: Pincode & Area */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
@@ -801,20 +914,24 @@ const TaskCard: React.FC<TaskCardProps> = ({
                 <SelectValue placeholder={
                   !task.pincodeId || !task.areaId
                     ? "Select pincode and area first"
-                    : filteredFieldUsers.length === 0
+                    : availableFieldUsers.length === 0
                       ? "No field users available"
                       : "Select field user"
                 } />
               </SelectTrigger>
               <SelectContent>
-                {filteredFieldUsers.length === 0 ? (
+                {loadingFieldUsers ? (
+                  <SelectItem value="loading" disabled>
+                    Loading users...
+                  </SelectItem>
+                ) : availableFieldUsers.length === 0 ? (
                   <SelectItem value="no-users" disabled>
                     {!task.pincodeId || !task.areaId
                       ? "Please select pincode and area first"
                       : "No field users have access to this pincode and area"}
                   </SelectItem>
                 ) : (
-                  filteredFieldUsers.map((user) => (
+                  availableFieldUsers.map((user) => (
                     <SelectItem key={user.id} value={user.id}>
                       {user.name} ({user.email})
                     </SelectItem>
@@ -828,12 +945,15 @@ const TaskCard: React.FC<TaskCardProps> = ({
                 Field user assignment is required
               </p>
             )}
-            {task.pincodeId && task.areaId && filteredFieldUsers.length === 0 && (
+            {task.pincodeId &&
+              task.areaId &&
+              availableFieldUsers.length === 0 &&
+              !loadingFieldUsers && (
               <p className="text-sm text-amber-600 mt-1">
                 <AlertCircle className="h-3 w-3 inline mr-1" />
                 No field users have access to the selected pincode and area
               </p>
-            )}
+              )}
           </div>
         </div>
 

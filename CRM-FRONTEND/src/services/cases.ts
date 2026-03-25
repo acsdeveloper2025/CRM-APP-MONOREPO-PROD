@@ -8,6 +8,7 @@ import type {
   CreateCaseWithMultipleTasksPayload,
   CreateCaseWithMultipleTasksResponse
 } from '@/types/dto/case.dto';
+import type { CaseConfigValidationResult } from '@/types/rateManagement';
 
 export interface CaseListQuery extends PaginationQuery {
   status?: string;
@@ -56,6 +57,16 @@ export interface CreateCaseData {
   deduplicationRationale?: string;
 }
 
+export interface CaseConfigValidationPayload {
+  clientId: number;
+  productId: number;
+  verificationTypeId: number;
+  areaId: number;
+  pincodeId?: number;
+  pincode?: string;
+  rateTypeId?: number;
+}
+
 export class CasesService extends BaseApiService {
   constructor() {
     super('/cases');
@@ -72,6 +83,12 @@ export class CasesService extends BaseApiService {
   async createCaseWithMultipleTasks(payload: CreateCaseWithMultipleTasksPayload): Promise<ApiResponse<CreateCaseWithMultipleTasksResponse>> {
     // Payload is already in unified format from CaseWithTasksCreationForm
     return this.post('/create', payload);
+  }
+
+  async validateConfiguration(
+    payload: CaseConfigValidationPayload
+  ): Promise<ApiResponse<CaseConfigValidationResult>> {
+    return this.post('/config-validation', payload);
   }
 
   async updateCaseDetails(id: string, data: CreateCaseData): Promise<ApiResponse<Case>> {

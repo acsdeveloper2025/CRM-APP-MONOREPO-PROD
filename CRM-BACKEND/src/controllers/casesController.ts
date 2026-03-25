@@ -12,6 +12,10 @@ import {
   VerificationTaskCreationError,
   VerificationTaskCreationService,
 } from '../services/verificationTaskCreationService';
+import {
+  financialConfigurationValidator,
+  FinancialConfigErrorCode,
+} from '@/services/financialConfigurationValidator';
 import { isFieldExecutionActor, isScopedOperationsUser } from '@/security/rbacAccess';
 import { getScopedOperationalUserIds } from '@/security/userScope';
 import { requireControllerPermission } from '@/security/controllerAuthorization';
@@ -2052,6 +2056,157 @@ export const getCaseSummaryWithTasks = async (req: AuthenticatedRequest, res: Re
 // ============================================================================
 // UNIFIED CASE CREATION ENDPOINT - PRODUCTION READY
 // ============================================================================
+
+export const validateCaseConfiguration = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (!requireControllerPermission(req, res, 'case.create')) {
+      return;
+    }
+
+    const clientId = Number(req.body.clientId);
+    const productId = Number(req.body.productId);
+    const verificationTypeId = Number(req.body.verificationTypeId);
+    const areaId = Number(req.body.areaId);
+    const preferredRateTypeId = req.body.rateTypeId ? Number(req.body.rateTypeId) : null;
+
+    let resolvedPincodeId = req.body.pincodeId ? Number(req.body.pincodeId) : null;
+    let resolvedPincodeCode =
+      typeof req.body.pincode === 'string' && req.body.pincode.trim().length > 0
+        ? req.body.pincode.trim()
+        : null;
+
+    if (!resolvedPincodeId && !resolvedPincodeCode) {
+      return res.status(400).json({
+        success: false,
+        message: 'Pincode is required',
+        error: { code: 'PINCODE_REQUIRED' },
+      });
+    }
+
+    if (!resolvedPincodeId && resolvedPincodeCode) {
+      const pincodeLookup = await pool.query(`SELECT id, code FROM pincodes WHERE code = $1 LIMIT 1`, [
+        resolvedPincodeCode,
+      ]);
+
+      if (!pincodeLookup.rows[0]) {
+        return res.status(400).json({
+          success: false,
+          message: 'Selected pincode not found',
+          error: { code: 'PINCODE_NOT_FOUND' },
+        });
+      }
+
+      resolvedPincodeId = Number(pincodeLookup.rows[0].id);
+      resolvedPincodeCode = pincodeLookup.rows[0].code;
+    } else if (resolvedPincodeId && !resolvedPincodeCode) {
+      const pincodeLookup = await pool.query(`SELECT id, code FROM pincodes WHERE id = $1 LIMIT 1`, [
+        resolvedPincodeId,
+      ]);
+
+      if (!pincodeLookup.rows[0]) {
+        return res.status(400).json({
+          success: false,
+          message: 'Selected pincode not found',
+          error: { code: 'PINCODE_NOT_FOUND' },
+        });
+      }
+
+      resolvedPincodeCode = pincodeLookup.rows[0].code;
+    }
+
+    const areaValidation = await pool.query(
+      `SELECT id FROM areas WHERE id = $1 AND pincode_id = $2 LIMIT 1`,
+      [areaId, resolvedPincodeId]
+    );
+
+    if (!areaValidation.rows[0]) {
+      return res.status(400).json({
+        success: false,
+        message: 'Selected area is not mapped to the selected pincode',
+        error: { code: 'AREA_PINCODE_MISMATCH' },
+      });
+    }
+
+    const serviceZoneRuleResult = await pool.query(
+      `SELECT service_zone_id
+       FROM service_zone_rules
+       WHERE client_id = $1
+         AND product_id = $2
+         AND pincode_id = $3
+         AND area_id = $4
+         AND is_active = true
+       LIMIT 1`,
+      [clientId, productId, resolvedPincodeId, areaId]
+    );
+
+    const serviceZoneId = serviceZoneRuleResult.rows[0]?.service_zone_id
+      ? Number(serviceZoneRuleResult.rows[0].service_zone_id)
+      : null;
+
+    const rateMappingResult = serviceZoneId
+      ? await pool.query(
+          `SELECT rate_type_id
+           FROM zone_rate_type_mapping
+           WHERE client_id = $1
+             AND product_id = $2
+             AND verification_type_id = $3
+             AND service_zone_id = $4
+             AND is_active = true
+           LIMIT 1`,
+          [clientId, productId, verificationTypeId, serviceZoneId]
+        )
+      : { rows: [] };
+
+    const mappedRateTypeId = rateMappingResult.rows[0]?.rate_type_id
+      ? Number(rateMappingResult.rows[0].rate_type_id)
+      : null;
+
+    const validationResult = await financialConfigurationValidator.validateTaskConfiguration(
+      clientId,
+      productId,
+      verificationTypeId,
+      resolvedPincodeId!,
+      areaId,
+      preferredRateTypeId
+    );
+
+    const effectiveRateTypeId = validationResult.rateTypeId ?? mappedRateTypeId ?? preferredRateTypeId;
+
+    res.json({
+      success: true,
+      message: validationResult.isValid
+        ? 'Configuration validation succeeded'
+        : 'Configuration validation failed',
+      data: {
+        isValid: validationResult.isValid,
+        serviceZoneRuleFound: Boolean(serviceZoneId),
+        rateMappingFound: Boolean(mappedRateTypeId),
+        rateAmountFound:
+          validationResult.isValid ||
+          validationResult.errorCode === FinancialConfigErrorCode.CONFIG_RATE_AMOUNT_MISSING
+            ? validationResult.amount !== undefined && validationResult.amount !== null
+            : false,
+        errorCode: validationResult.errorCode,
+        errorMessage: validationResult.errorMessage,
+        resolved: {
+          pincodeId: resolvedPincodeId,
+          pincode: resolvedPincodeCode,
+          areaId,
+          serviceZoneId,
+          rateTypeId: effectiveRateTypeId,
+          amount: validationResult.amount ?? null,
+        },
+      },
+    });
+  } catch (error) {
+    logger.error('Error validating case configuration:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to validate case configuration',
+      error: { code: 'INTERNAL_ERROR' },
+    });
+  }
+};
 
 /**
  * POST /api/cases/create - Unified case creation endpoint

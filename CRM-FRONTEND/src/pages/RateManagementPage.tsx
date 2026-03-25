@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { rateManagementService } from '@/services/rateManagement';
 import { RateTypesTab } from '@/components/rate-management/RateTypesTab';
+import { ServiceZoneRulesTab } from '@/components/rate-management/ServiceZoneRulesTab';
 import { RateTypeAssignmentTab } from '@/components/rate-management/RateTypeAssignmentTab';
 import { RateAssignmentTab } from '@/components/rate-management/RateAssignmentTab';
 import { RateViewReportTab } from '@/components/rate-management/RateViewReportTab';
@@ -126,26 +127,29 @@ export function RateManagementPage() {
         <CardHeader>
           <CardTitle>Rate Management System</CardTitle>
           <CardDescription>
-            Configure rate types, assign them to client-product combinations, set rates, and view comprehensive reports
+            Configure service zones, assign rate types, set rates, and view comprehensive reports
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-5">
+            <TabsList className="grid w-full grid-cols-6">
               <TabsTrigger value="rate-types" className="text-sm">
                 1. Create Rate Types
               </TabsTrigger>
+              <TabsTrigger value="service-zone-rules" className="text-sm">
+                2. Service Zone Rules
+              </TabsTrigger>
               <TabsTrigger value="rate-type-assignment" className="text-sm">
-                2. Rate Type Assignment
+                3. Rate Type Assignment
               </TabsTrigger>
               <TabsTrigger value="rate-assignment" className="text-sm">
-                3. Rate Assignment
+                4. Rate Assignment
               </TabsTrigger>
               <TabsTrigger value="rate-view-report" className="text-sm">
-                4. Rate View/Report
+                5. Rate View/Report
               </TabsTrigger>
               <TabsTrigger value="document-type-rates" className="text-sm">
-                5. Document Type Rates
+                6. Document Type Rates
               </TabsTrigger>
             </TabsList>
 
@@ -157,6 +161,16 @@ export function RateManagementPage() {
                     Create and manage rate types: Local, Local1, Local2, OGL, OGL1, OGL2, Outstation
                   </p>
                   <RateTypesTab />
+                </div>
+              </TabsContent>
+
+              <TabsContent value="service-zone-rules" className="space-y-4">
+                <div className="border rounded-lg p-4">
+                  <h3 className="text-lg font-semibold mb-2">Service Zone Rules</h3>
+                  <p className="text-sm text-gray-600 mb-4">
+                    Map client, product, pincode, and area combinations to a service zone before pricing is applied
+                  </p>
+                  <ServiceZoneRulesTab />
                 </div>
               </TabsContent>
 
@@ -211,7 +225,7 @@ export function RateManagementPage() {
           <CardDescription>Follow these steps to set up rates for verification services</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 md:grid-cols-5">
+          <div className="grid gap-4 md:grid-cols-6">
             <div className="flex items-start gap-3">
               <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">
                 1
@@ -229,6 +243,18 @@ export function RateManagementPage() {
                 2
               </div>
               <div>
+                <h4 className="font-semibold">Map Service Zones</h4>
+                <p className="text-sm text-gray-600">
+                  Link territory combinations to the pricing zone they belong to
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">
+                3
+              </div>
+              <div>
                 <h4 className="font-semibold">Assign Rate Types</h4>
                 <p className="text-sm text-gray-600">
                   Map rate types to client-product-verification combinations
@@ -238,7 +264,7 @@ export function RateManagementPage() {
 
             <div className="flex items-start gap-3">
               <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">
-                3
+                4
               </div>
               <div>
                 <h4 className="font-semibold">Set Rate Amounts</h4>
@@ -250,12 +276,24 @@ export function RateManagementPage() {
 
             <div className="flex items-start gap-3">
               <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">
-                4
+                5
               </div>
               <div>
                 <h4 className="font-semibold">View & Manage</h4>
                 <p className="text-sm text-gray-600">
                   Monitor and update rates with comprehensive reporting
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">
+                6
+              </div>
+              <div>
+                <h4 className="font-semibold">Document Rates</h4>
+                <p className="text-sm text-gray-600">
+                  Maintain separate pricing for document verification workflows
                 </p>
               </div>
             </div>
