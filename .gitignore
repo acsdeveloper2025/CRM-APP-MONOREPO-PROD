@@ -315,7 +315,6 @@ scripts/db-migration/.latest_backup
 .kilocode/rules/byterover-rules.md
 .roo/rules/byterover-rules.md
 .windsurf/rules/byterover-rules.md
-.cursor/rules/byterover-rules.mdc
 .kiro/steering/byterover-rules.md
 .qoder/rules/byterover-rules.md
 .augment/rules/byterover-rules.md
@@ -324,7 +323,3 @@ scripts/db-migration/.latest_backup
 REPOSITORY_SECURITY_AUDIT.md
 SECRET_ENV_MIGRATION_REPORT.md
 CRM_FRONTEND_PERFORMANCE_AUDIT_REPORT.md
-skills-lock.json
-
-# Local agent skill files
-.agents/
