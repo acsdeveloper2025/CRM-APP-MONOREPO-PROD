@@ -67,9 +67,10 @@ const createUserValidation = [
     .custom(value => {
       if (value && value.toString().trim() !== '') {
         const stringValue = String(value).trim();
-        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-          stringValue
-        );
+        const isUuid =
+          /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+            stringValue
+          );
         if (!isUuid) {
           throw new Error('Role ID must be a valid RBAC role UUID');
         }
@@ -189,9 +190,10 @@ const updateUserValidation = [
     .custom(value => {
       if (value && value.toString().trim() !== '') {
         const stringValue = String(value).trim();
-        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-          stringValue
-        );
+        const isUuid =
+          /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+            stringValue
+          );
         if (!isUuid) {
           throw new Error('Role ID must be a valid RBAC role UUID');
         }

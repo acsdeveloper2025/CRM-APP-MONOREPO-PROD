@@ -318,7 +318,11 @@ export const getCurrentUser = async (req: AuthenticatedRequest, res: Response): 
     const userData = result.rows[0];
     let rbacRoles: string[] = [];
     let rbacPermissionCodes: string[] = [];
-    const rbacRes = await query<{ roleId: string | null; roles: string[] | null; permissions: string[] | null }>(
+    const rbacRes = await query<{
+      roleId: string | null;
+      roles: string[] | null;
+      permissions: string[] | null;
+    }>(
       `SELECT
          (
            SELECT ur.role_id
