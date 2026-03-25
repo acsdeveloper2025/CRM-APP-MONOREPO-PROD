@@ -3,8 +3,8 @@ import { STORAGE_KEYS, SYNC_KEYS } from '@/types/constants';
 import { apiService } from './api';
 
 // Timeouts in seconds
-const WARNING_TIMEOUT = 240; // 4 minutes
-const LOGOUT_TIMEOUT = 300; // 5 minutes
+const WARNING_TIMEOUT = 540; // 9 minutes
+const LOGOUT_TIMEOUT = 600; // 10 minutes
 const CHECK_INTERVAL = 1000; // 1 second
 
 type TimeoutCallback = (remainingSeconds: number) => void;
@@ -14,6 +14,7 @@ class SessionManager {
   private warningCallback: TimeoutCallback | null = null;
   private intervalId: NodeJS.Timeout | null = null;
   private eventListenersAttached = false;
+  private storageListenerAttached = false;
 
   private events = [
     'mousemove',
@@ -31,15 +32,13 @@ class SessionManager {
     if (storedActivity) {
       this.lastActivityTime = parseInt(storedActivity, 10);
     }
-    
-    // Listen for storage events (logout in other tabs)
-    window.addEventListener('storage', this.handleStorageEvent);
   }
 
   public init(onWarning: TimeoutCallback) {
     if (this.intervalId) {return;} // Already running
 
     this.warningCallback = onWarning;
+    this.startStorageListener();
     this.startActivityListeners();
     this.startPolling();
     this.updateLastActivity(); // Reset on init
@@ -48,8 +47,8 @@ class SessionManager {
   public destroy() {
     this.stopPolling();
     this.stopActivityListeners();
+    this.stopStorageListener();
     this.warningCallback = null;
-    window.removeEventListener('storage', this.handleStorageEvent);
   }
 
   public resetTimer() {
@@ -94,6 +93,20 @@ class SessionManager {
       window.removeEventListener(event, this.handleUserActivity);
     });
     this.eventListenersAttached = false;
+  }
+
+  private startStorageListener() {
+    if (this.storageListenerAttached) {return;}
+
+    window.addEventListener('storage', this.handleStorageEvent);
+    this.storageListenerAttached = true;
+  }
+
+  private stopStorageListener() {
+    if (!this.storageListenerAttached) {return;}
+
+    window.removeEventListener('storage', this.handleStorageEvent);
+    this.storageListenerAttached = false;
   }
 
   // Throttle activity updates to once per second to avoid storage trashing
