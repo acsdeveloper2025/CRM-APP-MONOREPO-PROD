@@ -92,6 +92,8 @@ out/
 # EDITOR & IDE FILES
 # =====================================================
 .vscode/
+.cursor/
+**/.cursor/
 !.vscode/settings.json
 !.vscode/tasks.json
 !.vscode/launch.json
