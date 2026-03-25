@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Upload, Download, FileText, AlertCircle, CheckCircle } from 'lucide-react';
-import { Button } from '@/ui/components/Button';
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -9,12 +9,9 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/ui/components/Dialog';
-import { Alert, AlertDescription } from '@/ui/components/Alert';
-import { Progress } from '@/ui/components/Progress';
-import { Box } from '@/ui/primitives/Box';
-import { Stack } from '@/ui/primitives/Stack';
-import { Text } from '@/ui/primitives/Text';
+} from '@/components/ui/dialog';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Progress } from '@/components/ui/progress';
 import { toast } from 'sonner';
 import { locationsService } from '@/services/locations';
 import { ApiErrorResponse } from '@/types/api';
@@ -134,117 +131,116 @@ export function BulkImportLocationDialog({ open, onOpenChange, type }: BulkImpor
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent style={{ width: 'min(95vw, 500px)' }}>
+      <DialogContent className="max-w-[95vw] sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>
-            <Stack direction="horizontal" gap={2} align="center">
-              <Upload size={20} />
-              <Text as="span" variant="title">{instructions.title}</Text>
-            </Stack>
+          <DialogTitle className="flex items-center space-x-2">
+            <Upload className="h-5 w-5" />
+            <span>{instructions.title}</span>
           </DialogTitle>
           <DialogDescription>
             {instructions.description}
           </DialogDescription>
         </DialogHeader>
 
-        <Stack gap={4}>
+        <div className="space-y-4">
           {/* Instructions */}
           <Alert>
-            <FileText size={16} />
+            <FileText className="h-4 w-4" />
             <AlertDescription>
-              <Stack gap={2}>
-                <Text><strong>Format:</strong> {instructions.format}</Text>
-                <Text><strong>Example:</strong> {instructions.example}</Text>
+              <div className="space-y-2">
+                <p><strong>Format:</strong> {instructions.format}</p>
+                <p><strong>Example:</strong> {instructions.example}</p>
                 <Button
-                  variant="ghost"
+                  variant="link"
+                  size="sm"
                   onClick={handleDownloadTemplate}
-                  icon={<Download size={14} />}
-                  style={{ padding: 0, justifyContent: 'flex-start' }}
+                  className="p-0 h-auto"
                 >
+                  <Download className="h-3 w-3 mr-1" />
                   Download template
                 </Button>
-              </Stack>
+              </div>
             </AlertDescription>
           </Alert>
 
           {/* File Selection */}
-          <Stack gap={2}>
-            <Text as="label" variant="label">Select CSV File</Text>
-            <Box style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Select CSV File</label>
+            <div className="flex items-center space-x-2">
               <input
                 ref={fileInputRef}
                 type="file"
                 accept=".csv"
                 onChange={handleFileSelect}
-                style={{ flex: 1, fontSize: '0.875rem' }}
+                className="flex-1 text-sm"
                 disabled={importMutation.isPending}
               />
-            </Box>
+            </div>
             {selectedFile && (
-              <Text variant="body-sm" tone="muted">
+              <p className="text-sm text-gray-600">
                 Selected: {selectedFile.name} ({(selectedFile.size / 1024).toFixed(1)} KB)
-              </Text>
+              </p>
             )}
-          </Stack>
+          </div>
 
           {/* Progress */}
           {importMutation.isPending && (
-            <Stack gap={2}>
-              <Box style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.875rem' }}>
-                <Text as="span" variant="body-sm">Importing {type}...</Text>
-                <Text as="span" variant="body-sm">{uploadProgress}%</Text>
-              </Box>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span>Importing {type}...</span>
+                <span>{uploadProgress}%</span>
+              </div>
               <Progress value={uploadProgress} />
-            </Stack>
+            </div>
           )}
 
           {/* Results */}
           {importResult && (
-            <Alert style={{ borderColor: importResult.success ? 'var(--ui-success)' : 'var(--ui-danger)' }}>
+            <Alert className={importResult.success ? 'border-green-200' : 'border-red-200'}>
               {importResult.success ? (
-                <CheckCircle size={16} style={{ color: 'var(--ui-success)' }} />
+                <CheckCircle className="h-4 w-4 text-green-600" />
               ) : (
-                <AlertCircle size={16} style={{ color: 'var(--ui-danger)' }} />
+                <AlertCircle className="h-4 w-4 text-red-600" />
               )}
               <AlertDescription>
-                <Stack gap={1}>
-                  <Text style={{ fontWeight: 600 }}>
+                <div className="space-y-1">
+                  <p className="font-medium">
                     {importResult.success ? 'Import Successful' : 'Import Failed'}
-                  </Text>
+                  </p>
                   {importResult.imported && (
-                    <Text>Successfully imported: {importResult.imported} {type}</Text>
+                    <p>Successfully imported: {importResult.imported} {type}</p>
                   )}
                   {importResult.failed && (
-                    <Text>Failed to import: {importResult.failed} {type}</Text>
+                    <p>Failed to import: {importResult.failed} {type}</p>
                   )}
                   {importResult.errors && importResult.errors.length > 0 && (
-                    <Stack gap={1} style={{ marginTop: '0.5rem' }}>
-                      <Text variant="body-sm" style={{ fontWeight: 600 }}>Errors:</Text>
-                      <Box as="ul" style={{ fontSize: '0.875rem', paddingLeft: '1.25rem', margin: 0 }}>
+                    <div className="mt-2">
+                      <p className="text-sm font-medium">Errors:</p>
+                      <ul className="text-sm list-disc list-inside">
                         {importResult.errors.slice(0, 5).map((error: string, index: number) => (
                           <li key={index}>{error}</li>
                         ))}
                         {importResult.errors.length > 5 && (
                           <li>... and {importResult.errors.length - 5} more errors</li>
                         )}
-                      </Box>
-                    </Stack>
+                      </ul>
+                    </div>
                   )}
-                </Stack>
+                </div>
               </AlertDescription>
             </Alert>
           )}
-        </Stack>
+        </div>
 
-        <DialogFooter style={{ display: 'flex', gap: 'var(--ui-gap-2)', flexWrap: 'wrap' }}>
-          <Button variant="outline" onClick={handleClose} fullWidth>
+        <DialogFooter className="flex-col sm:flex-row gap-2">
+          <Button variant="outline" onClick={handleClose} className="w-full sm:w-auto">
             {importResult ? 'Close' : 'Cancel'}
           </Button>
           {!importResult && (
             <Button
               onClick={handleImport}
               disabled={!selectedFile || importMutation.isPending}
-              fullWidth>
+             className="w-full sm:w-auto">
               {importMutation.isPending ? 'Importing...' : `Import ${type}`}
             </Button>
           )}

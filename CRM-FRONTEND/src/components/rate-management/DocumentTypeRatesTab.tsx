@@ -2,18 +2,18 @@ import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
 import { useMutationWithInvalidation } from '@/hooks/useStandardizedMutation';
-import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/Card';
-import { Button } from '@/ui/components/Button';
-import { Input } from '@/ui/components/Input';
-import { Label } from '@/ui/components/Label';
-import { Badge } from '@/ui/components/Badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/ui/components/Select';
+} from '@/components/ui/select';
 import {
   Table,
   TableBody,
@@ -21,7 +21,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/ui/components/Table';
+} from '@/components/ui/table';
 import { clientsService } from '@/services/clients';
 import { productsService } from '@/services/products';
 import { documentTypeRatesService } from '@/services/documentTypeRates';
@@ -169,19 +169,19 @@ export function DocumentTypeRatesTab() {
   const canSave = selectedClientId && selectedProductId && selectedDocumentTypeId && amount;
 
   return (
-    <div {...{ className: "space-y-6" }}>
+    <div className="space-y-6">
       {/* Rate Configuration Form */}
       <Card>
         <CardHeader>
-          <CardTitle {...{ className: "flex items-center gap-2" }}>
-            <Plus {...{ className: "h-5 w-5" }} />
+          <CardTitle className="flex items-center gap-2">
+            <Plus className="h-5 w-5" />
             {editingRateId ? 'Edit Document Type Rate' : 'Add Document Type Rate'}
           </CardTitle>
         </CardHeader>
-        <CardContent {...{ className: "space-y-4" }}>
-          <div {...{ className: "grid grid-cols-1 md:grid-cols-3 gap-4" }}>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Client Selection */}
-            <div {...{ className: "space-y-2" }}>
+            <div className="space-y-2">
               <Label htmlFor="client-select">Client *</Label>
               <Select value={selectedClientId ? String(selectedClientId) : ""} onValueChange={handleClientChange}>
                 <SelectTrigger>
@@ -198,7 +198,7 @@ export function DocumentTypeRatesTab() {
             </div>
 
             {/* Product Selection */}
-            <div {...{ className: "space-y-2" }}>
+            <div className="space-y-2">
               <Label htmlFor="product-select">Product *</Label>
               <Select
                 value={selectedProductId ? String(selectedProductId) : ""}
@@ -219,7 +219,7 @@ export function DocumentTypeRatesTab() {
             </div>
 
             {/* Document Type Selection */}
-            <div {...{ className: "space-y-2" }}>
+            <div className="space-y-2">
               <Label htmlFor="document-type-select">Document Type *</Label>
               <Select
                 value={selectedDocumentTypeId ? String(selectedDocumentTypeId) : ""}
@@ -240,12 +240,12 @@ export function DocumentTypeRatesTab() {
             </div>
           </div>
 
-          <div {...{ className: "grid grid-cols-1 md:grid-cols-3 gap-4" }}>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Amount Input */}
-            <div {...{ className: "space-y-2" }}>
+            <div className="space-y-2">
               <Label htmlFor="amount-input">Amount *</Label>
-              <div {...{ className: "relative" }}>
-                <IndianRupee {...{ className: "absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" }} />
+              <div className="relative">
+                <IndianRupee className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
                 <Input
                   id="amount-input"
                   type="number"
@@ -254,14 +254,14 @@ export function DocumentTypeRatesTab() {
                   placeholder="0.00"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
-                  {...{ className: "pl-10" }}
+                  className="pl-10"
                   disabled={!selectedDocumentTypeId}
                 />
               </div>
             </div>
 
             {/* Currency Selection */}
-            <div {...{ className: "space-y-2" }}>
+            <div className="space-y-2">
               <Label htmlFor="currency-select">Currency</Label>
               <Select value={currency} onValueChange={setCurrency}>
                 <SelectTrigger>
@@ -276,13 +276,13 @@ export function DocumentTypeRatesTab() {
             </div>
 
             {/* Action Buttons */}
-            <div {...{ className: "space-y-2" }}>
+            <div className="space-y-2">
               <Label>&nbsp;</Label>
-              <div {...{ className: "flex gap-2" }}>
+              <div className="flex gap-2">
                 <Button
                   onClick={handleSaveRate}
                   disabled={!canSave || saveRateMutation.isPending}
-                  {...{ className: "flex-1" }}
+                  className="flex-1"
                 >
                   {saveRateMutation.isPending ? 'Saving...' : editingRateId ? 'Update Rate' : 'Save Rate'}
                 </Button>
@@ -304,9 +304,9 @@ export function DocumentTypeRatesTab() {
         </CardHeader>
         <CardContent>
           {ratesLoading ? (
-            <div {...{ className: "text-center py-8 text-gray-500" }}>Loading rates...</div>
+            <div className="text-center py-8 text-gray-500">Loading rates...</div>
           ) : rates.length === 0 ? (
-            <div {...{ className: "text-center py-8 text-gray-500" }}>
+            <div className="text-center py-8 text-gray-500">
               No document type rates configured yet. Add your first rate above.
             </div>
           ) : (
@@ -316,18 +316,18 @@ export function DocumentTypeRatesTab() {
                   <TableHead>Client</TableHead>
                   <TableHead>Product</TableHead>
                   <TableHead>Document Type</TableHead>
-                  <TableHead {...{ className: "text-right" }}>Rate</TableHead>
+                  <TableHead className="text-right">Rate</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead {...{ className: "text-right" }}>Actions</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {rates.map((rate) => (
                   <TableRow key={rate.id}>
-                    <TableCell {...{ className: "font-medium" }}>{rate.clientName}</TableCell>
+                    <TableCell className="font-medium">{rate.clientName}</TableCell>
                     <TableCell>{rate.productName}</TableCell>
                     <TableCell>{rate.documentTypeName}</TableCell>
-                    <TableCell {...{ className: "text-right font-mono" }}>
+                    <TableCell className="text-right font-mono">
                       {rate.currency} {Number(rate.amount).toFixed(2)}
                     </TableCell>
                     <TableCell>
@@ -335,14 +335,14 @@ export function DocumentTypeRatesTab() {
                         {rate.isActive ? 'Active' : 'Inactive'}
                       </Badge>
                     </TableCell>
-                    <TableCell {...{ className: "text-right" }}>
-                      <div {...{ className: "flex justify-end gap-2" }}>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => handleEditRate(rate)}
                         >
-                          <Edit {...{ className: "h-4 w-4" }} />
+                          <Edit className="h-4 w-4" />
                         </Button>
                         <Button
                           variant="ghost"
@@ -350,7 +350,7 @@ export function DocumentTypeRatesTab() {
                           onClick={() => handleDeleteRate(rate.id)}
                           disabled={deleteRateMutation.isPending}
                         >
-                          <Trash2 {...{ className: "h-4 w-4 text-red-500" }} />
+                          <Trash2 className="h-4 w-4 text-red-500" />
                         </Button>
                       </div>
                     </TableCell>
@@ -362,11 +362,11 @@ export function DocumentTypeRatesTab() {
 
           {/* Pagination Controls */}
           {ratesData?.pagination && (
-            <div {...{ className: "flex flex-col sm:flex-row items-center justify-between gap-4 pt-4" }}>
-              <div {...{ className: "text-sm text-gray-600" }}>
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
+              <div className="text-sm text-gray-600">
                 Showing {rates.length} of {ratesData.pagination.total} document type rates
               </div>
-              <div {...{ className: "flex items-center gap-2" }}>
+              <div className="flex items-center gap-2">
                 <Button
                   variant="outline"
                   size="sm"
@@ -375,7 +375,7 @@ export function DocumentTypeRatesTab() {
                 >
                   Previous
                 </Button>
-                <div {...{ className: "text-sm" }}>
+                <div className="text-sm">
                   Page {currentPage} of {ratesData.pagination.totalPages || 1}
                 </div>
                 <Button

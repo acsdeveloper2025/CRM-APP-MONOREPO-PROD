@@ -11,7 +11,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/ui/components/Dialog';
+} from '@/components/ui/dialog';
 import {
   Form,
   FormControl,
@@ -20,18 +20,18 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/ui/components/Form';
+} from '@/components/ui/form';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/ui/components/Select';
-import { Input } from '@/ui/components/Input';
-import { Textarea } from '@/ui/components/Textarea';
-import { Button } from '@/ui/components/Button';
-import { Switch } from '@/ui/components/Switch';
+} from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { departmentsService } from '@/services/departments';
 import { usersService } from '@/services/users';
@@ -124,7 +124,7 @@ export function EditDepartmentDialog({ open, onOpenChange, department }: EditDep
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent {...{ className: "max-w-2xl" }}>
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Edit Department: {department.name}</DialogTitle>
           <DialogDescription>
@@ -133,8 +133,8 @@ export function EditDepartmentDialog({ open, onOpenChange, department }: EditDep
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} {...{ className: "space-y-6" }}>
-            <div {...{ className: "grid grid-cols-1 md:grid-cols-2 gap-4" }}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="name"
@@ -160,7 +160,7 @@ export function EditDepartmentDialog({ open, onOpenChange, department }: EditDep
                   <FormControl>
                     <Textarea 
                       placeholder="Brief description of this department's responsibilities..."
-                      {...{ className: "resize-none" }}
+                      className="resize-none"
                       rows={3}
                       {...field}
                     />
@@ -203,10 +203,10 @@ export function EditDepartmentDialog({ open, onOpenChange, department }: EditDep
               control={form.control}
               name="isActive"
               render={({ field }) => (
-                <FormItem {...{ className: "flex flex-row items-center justify-between rounded-lg border p-4" }}>
-                  <div {...{ className: "space-y-0.5" }}>
-                    <FormLabel {...{ className: "text-base" }}>Active Status</FormLabel>
-                    <div {...{ className: "text-sm text-gray-600" }}>
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                  <div className="space-y-0.5">
+                    <FormLabel className="text-base">Active Status</FormLabel>
+                    <div className="text-sm text-gray-600">
                       Enable or disable this department
                     </div>
                   </div>
@@ -220,17 +220,17 @@ export function EditDepartmentDialog({ open, onOpenChange, department }: EditDep
               )}
             />
 
-            <DialogFooter {...{ className: "flex-col sm:flex-row gap-2" }}>
+            <DialogFooter className="flex-col sm:flex-row gap-2">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
-                {...{ className: "w-full sm:w-auto" }}
+                className="w-full sm:w-auto"
                 disabled={updateMutation.isPending}
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={updateMutation.isPending} {...{ className: "w-full sm:w-auto" }}>
+              <Button type="submit" disabled={updateMutation.isPending} className="w-full sm:w-auto">
                 {updateMutation.isPending ? 'Updating...' : 'Update Department'}
               </Button>
             </DialogFooter>

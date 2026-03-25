@@ -1,9 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import { Search, CheckSquare, Square, AlertCircle, Save } from 'lucide-react';
-import { Input } from '@/ui/components/Input';
-import { Button } from '@/ui/components/Button';
-import { Checkbox } from '@/ui/components/Checkbox';
-import { Badge } from '@/ui/components/Badge';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
 import type { PincodeWithCity, Area } from '@/types/territoryAssignment';
 
 interface AreaSelectionTabProps {
@@ -78,10 +78,10 @@ export const AreaSelectionTab: React.FC<AreaSelectionTabProps> = ({
 
   if (selectedPincodes.length === 0) {
     return (
-      <div {...{ className: "flex flex-col items-center justify-center p-12 text-center" }}>
-        <AlertCircle {...{ className: "h-12 w-12 text-gray-400 mb-4" }} />
-        <h3 {...{ className: "text-lg font-medium text-gray-900 mb-2" }}>No Pincodes Selected</h3>
-        <p {...{ className: "text-gray-600 max-w-md" }}>
+      <div className="flex flex-col items-center justify-center p-12 text-center">
+        <AlertCircle className="h-12 w-12 text-gray-400 mb-4" />
+        <h3 className="text-lg font-medium text-gray-900 mb-2">No Pincodes Selected</h3>
+        <p className="text-gray-600 max-w-md">
           Please select pincodes from the &quot;Select Pincodes&quot; tab first. Then you can select areas for
           each pincode here.
         </p>
@@ -90,29 +90,29 @@ export const AreaSelectionTab: React.FC<AreaSelectionTabProps> = ({
   }
 
   return (
-    <div {...{ className: "space-y-4" }}>
+    <div className="space-y-4">
       {/* Header with search */}
-      <div {...{ className: "flex items-center justify-between gap-4" }}>
-        <div {...{ className: "relative flex-1 max-w-md" }}>
-          <Search {...{ className: "absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" }} />
+      <div className="flex items-center justify-between gap-4">
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input
             type="text"
             placeholder="Search areas..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            {...{ className: "pl-10" }}
+            className="pl-10"
           />
         </div>
 
-        <Badge variant="secondary" {...{ className: "bg-emerald-50 text-emerald-700 border-emerald-200" }}>
+        <Badge variant="secondary" className="bg-emerald-50 text-emerald-700 border-emerald-200">
           {totalSelectedAreas} {totalSelectedAreas === 1 ? 'area' : 'areas'} selected
         </Badge>
       </div>
 
       {/* Areas grouped by pincode */}
-      <div {...{ className: "space-y-4 max-h-[500px] overflow-y-auto" }}>
+      <div className="space-y-4 max-h-[500px] overflow-y-auto">
         {filteredPincodes.length === 0 ? (
-          <div {...{ className: "p-8 text-center text-gray-500" }}>No areas found matching your search</div>
+          <div className="p-8 text-center text-gray-500">No areas found matching your search</div>
         ) : (
           filteredPincodes.map((pincode) => {
             // Convert pincode.id to number for lookup (API returns string IDs)
@@ -127,18 +127,18 @@ export const AreaSelectionTab: React.FC<AreaSelectionTabProps> = ({
             });
 
             return (
-              <div key={pincode.id} {...{ className: "border rounded-lg overflow-hidden" }}>
+              <div key={pincode.id} className="border rounded-lg overflow-hidden">
                 {/* Pincode header */}
-                <div {...{ className: "bg-gray-50 px-4 py-3 border-b flex items-center justify-between" }}>
-                  <div {...{ className: "flex items-center gap-2" }}>
-                    <span {...{ className: "font-medium text-gray-900" }}>{pincode.code}</span>
-                    <span {...{ className: "text-gray-500" }}>-</span>
-                    <span {...{ className: "text-gray-700" }}>{pincode.cityName}</span>
-                    <span {...{ className: "text-gray-400 text-sm" }}>({pincode.stateName})</span>
+                <div className="bg-gray-50 px-4 py-3 border-b flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-gray-900">{pincode.code}</span>
+                    <span className="text-gray-500">-</span>
+                    <span className="text-gray-700">{pincode.cityName}</span>
+                    <span className="text-gray-400 text-sm">({pincode.stateName})</span>
                   </div>
 
-                  <div {...{ className: "flex items-center gap-2" }}>
-                    <Badge variant="outline" {...{ className: "text-xs" }}>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="text-xs">
                       {selectedAreas.size} / {areas.length} selected
                     </Badge>
                     <Button
@@ -147,7 +147,7 @@ export const AreaSelectionTab: React.FC<AreaSelectionTabProps> = ({
                       onClick={() => handleSelectAllForPincode(pincodeIdNum)}
                       disabled={allSelected}
                     >
-                      <CheckSquare {...{ className: "h-4 w-4 mr-1" }} />
+                      <CheckSquare className="h-4 w-4 mr-1" />
                       Select All
                     </Button>
                     <Button
@@ -156,16 +156,16 @@ export const AreaSelectionTab: React.FC<AreaSelectionTabProps> = ({
                       onClick={() => handleClearAllForPincode(pincodeIdNum)}
                       disabled={selectedAreas.size === 0}
                     >
-                      <Square {...{ className: "h-4 w-4 mr-1" }} />
+                      <Square className="h-4 w-4 mr-1" />
                       Clear
                     </Button>
                   </div>
                 </div>
 
                 {/* Area list */}
-                <div {...{ className: "divide-y" }}>
+                <div className="divide-y">
                   {areas.length === 0 ? (
-                    <div {...{ className: "p-4 text-center text-gray-500 text-sm" }}>
+                    <div className="p-4 text-center text-gray-500 text-sm">
                       No areas available for this pincode
                     </div>
                   ) : (
@@ -177,18 +177,16 @@ export const AreaSelectionTab: React.FC<AreaSelectionTabProps> = ({
                       return (
                         <div
                           key={area.id}
-                          {...{
-                            className: `flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer transition-colors ${
-                              isSelected ? 'bg-emerald-50' : ''
-                            }`,
-                          }}
+                          className={`flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer transition-colors ${
+                            isSelected ? 'bg-emerald-50' : ''
+                          }`}
                           onClick={() => onAreaToggle(pincodeIdNum, areaIdNum)}
                         >
                           <Checkbox
                             checked={isSelected}
                             onCheckedChange={() => onAreaToggle(pincodeIdNum, areaIdNum)}
                           />
-                          <span {...{ className: "text-gray-900" }}>{area.name}</span>
+                          <span className="text-gray-900">{area.name}</span>
                         </div>
                       );
                     })
@@ -202,13 +200,13 @@ export const AreaSelectionTab: React.FC<AreaSelectionTabProps> = ({
 
       {/* Save button */}
       {selectedPincodes.length > 0 && (
-        <div {...{ className: "flex justify-end pt-4 border-t" }}>
+        <div className="flex justify-end pt-4 border-t">
           <Button
             onClick={onSave}
             disabled={isSaving || selectedPincodes.length === 0}
-            {...{ className: "bg-emerald-600 hover:bg-emerald-700 text-white" }}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white"
           >
-            <Save {...{ className: "h-4 w-4 mr-2" }} />
+            <Save className="h-4 w-4 mr-2" />
             {isSaving ? 'Saving...' : 'Save All Assignments'}
           </Button>
         </div>
@@ -216,3 +214,4 @@ export const AreaSelectionTab: React.FC<AreaSelectionTabProps> = ({
     </div>
   );
 };
+

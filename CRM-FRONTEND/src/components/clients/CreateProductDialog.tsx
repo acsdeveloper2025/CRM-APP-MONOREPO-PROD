@@ -2,7 +2,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useCRUDMutation } from '@/hooks/useStandardizedMutation';
-import { Button } from '@/ui/components/Button';
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -10,7 +10,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/ui/components/Dialog';
+} from '@/components/ui/dialog';
 import {
   Form,
   FormControl,
@@ -19,9 +19,8 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/ui/components/Form';
-import { Input } from '@/ui/components/Input';
-import { Stack } from '@/ui/primitives/Stack';
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
 import { productsService } from '@/services/products';
 
 const createProductSchema = z.object({
@@ -66,7 +65,7 @@ export function CreateProductDialog({ open, onOpenChange }: CreateProductDialogP
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent style={{ width: 'min(95vw, 425px)' }}>
+      <DialogContent className="max-w-[95vw] sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Create New Product</DialogTitle>
           <DialogDescription>
@@ -75,8 +74,7 @@ export function CreateProductDialog({ open, onOpenChange }: CreateProductDialogP
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)}>
-            <Stack gap={4}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
               control={form.control}
               name="code"
@@ -114,25 +112,24 @@ export function CreateProductDialog({ open, onOpenChange }: CreateProductDialogP
               )}
             />
 
-            <DialogFooter style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
+            <DialogFooter className="flex-col sm:flex-row gap-2">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
                 disabled={createMutation.isPending}
-                fullWidth
+                className="w-full sm:w-auto"
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
                 disabled={createMutation.isPending}
-                fullWidth
+                className="w-full sm:w-auto"
               >
                 {createMutation.isPending ? 'Creating...' : 'Create Product'}
               </Button>
             </DialogFooter>
-            </Stack>
           </form>
         </Form>
       </DialogContent>

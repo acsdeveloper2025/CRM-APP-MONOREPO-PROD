@@ -2,11 +2,11 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Button } from '@/ui/components/Button';
-import { Input } from '@/ui/components/Input';
-import { Textarea } from '@/ui/components/Textarea';
-import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/Card';
-import { Badge } from '@/ui/components/Badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import {
   Form,
   FormControl,
@@ -14,14 +14,14 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/ui/components/Form';
+} from '@/components/ui/form';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/ui/components/Select';
+} from '@/components/ui/select';
 import { ArrowLeft, Send, Loader2, Building, Settings, Plus, Trash2, AlertCircle, Paperclip, Upload, FileText, Image } from 'lucide-react';
 import { useFieldUsers } from '@/hooks/useUsers';
 import { useClients, useVerificationTypes, useProductsByClient } from '@/hooks/useClients';
@@ -29,7 +29,7 @@ import { usePincodes } from '@/hooks/useLocations';
 import { useAreasByPincode } from '@/hooks/useAreas';
 import { useAuth } from '@/hooks/useAuth';
 import { isBackendScopedUser } from '@/utils/userPermissionProfiles';
-import { SearchableSelect } from '@/ui/components/SearchableSelect';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 import type { CustomerInfoData } from './CustomerInfoStep';
 import { rateTypesService } from '@/services/rateTypes';
 import { useQuery } from '@tanstack/react-query';
@@ -255,45 +255,45 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
   };
 
   return (
-    <div {...{ className: "max-w-6xl mx-auto space-y-6" }}>
-      <div {...{ className: "text-center space-y-2" }}>
-        <h2 {...{ className: "text-2xl font-bold tracking-tight" }}>Create Case with Tasks</h2>
-        <p {...{ className: "text-gray-600" }}>
+    <div className="max-w-6xl mx-auto space-y-6">
+      <div className="text-center space-y-2">
+        <h2 className="text-2xl font-bold tracking-tight">Create Case with Tasks</h2>
+        <p className="text-gray-600">
           {editMode ? 'Update case details and verification tasks' : 'Fill in case details once, then configure verification tasks'}
         </p>
       </div>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleSubmit)} {...{ className: "space-y-6" }}>
+        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
           
           {/* CASE-LEVEL SECTION */}
-          <div {...{ className: "space-y-4" }}>
-            <div {...{ className: "flex items-center gap-2 pb-2 border-b" }}>
-              <Building {...{ className: "h-5 w-5 text-primary" }} />
-              <h3 {...{ className: "text-lg font-semibold" }}>Case Information (Shared Across All Tasks)</h3>
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 pb-2 border-b">
+              <Building className="h-5 w-5 text-primary" />
+              <h3 className="text-lg font-semibold">Case Information (Shared Across All Tasks)</h3>
             </div>
 
             {/* Customer Info Summary */}
             <Card>
               <CardHeader>
-                <CardTitle {...{ className: "text-base" }}>Customer Details</CardTitle>
+                <CardTitle className="text-base">Customer Details</CardTitle>
               </CardHeader>
               <CardContent>
-                <div {...{ className: "grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-slate-100/70 dark:bg-slate-800/50 rounded-lg" }}>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-slate-100/70 dark:bg-slate-800/50 rounded-lg">
                   <div>
-                    <label {...{ className: "text-sm font-medium text-gray-600" }}>Customer Name</label>
-                    <p {...{ className: "text-base font-medium" }}>{customerInfo.customerName}</p>
+                    <label className="text-sm font-medium text-gray-600">Customer Name</label>
+                    <p className="text-base font-medium">{customerInfo.customerName}</p>
                   </div>
                   {customerInfo.panNumber && (
                     <div>
-                      <label {...{ className: "text-sm font-medium text-gray-600" }}>PAN</label>
-                      <p {...{ className: "text-base font-mono" }}>{customerInfo.panNumber}</p>
+                      <label className="text-sm font-medium text-gray-600">PAN</label>
+                      <p className="text-base font-mono">{customerInfo.panNumber}</p>
                     </div>
                   )}
                   {customerInfo.mobileNumber && (
                     <div>
-                      <label {...{ className: "text-sm font-medium text-gray-600" }}>Mobile</label>
-                      <p {...{ className: "text-base" }}>{customerInfo.mobileNumber}</p>
+                      <label className="text-sm font-medium text-gray-600">Mobile</label>
+                      <p className="text-base">{customerInfo.mobileNumber}</p>
                     </div>
                   )}
                 </div>
@@ -303,10 +303,10 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
             {/* Client & Product Selection */}
             <Card>
               <CardHeader>
-                <CardTitle {...{ className: "text-base" }}>Client & Product</CardTitle>
+                <CardTitle className="text-base">Client & Product</CardTitle>
               </CardHeader>
-              <CardContent {...{ className: "space-y-4" }}>
-                <div {...{ className: "grid grid-cols-1 md:grid-cols-2 gap-4" }}>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
                     name="clientId"
@@ -373,7 +373,7 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
                   />
                 </div>
 
-                <div {...{ className: "grid grid-cols-1 md:grid-cols-2 gap-4" }}>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
                     name="createdByBackendUser"
@@ -381,7 +381,7 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
                       <FormItem>
                         <FormLabel>Created By *</FormLabel>
                         <FormControl>
-                          <Input {...field} disabled {...{ className: "bg-slate-100 dark:bg-slate-800/60 text-black dark:text-slate-100" }} />
+                          <Input {...field} disabled className="bg-slate-100 dark:bg-slate-800/60 text-black dark:text-slate-100" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -407,14 +407,14 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
           </div>
 
           {/* TASK-LEVEL SECTION */}
-          <div {...{ className: "space-y-4" }}>
-            <div {...{ className: "flex items-center justify-between pb-2 border-b" }}>
-              <div {...{ className: "flex items-center gap-2" }}>
-                <Settings {...{ className: "h-5 w-5 text-primary" }} />
-                <h3 {...{ className: "text-lg font-semibold" }}>Verification Tasks</h3>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b">
+              <div className="flex items-center gap-2">
+                <Settings className="h-5 w-5 text-primary" />
+                <h3 className="text-lg font-semibold">Verification Tasks</h3>
               </div>
               <Button type="button" onClick={addTask} variant="outline" size="sm">
-                <Plus {...{ className: "h-4 w-4 mr-2" }} />
+                <Plus className="h-4 w-4 mr-2" />
                 Add Task
               </Button>
             </div>
@@ -438,10 +438,10 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
           </div>
 
           {/* Form Actions */}
-          <div {...{ className: `flex items-center ${onBack ? 'justify-between' : 'justify-end'} pt-6 border-t` }}>
+          <div className={`flex items-center ${onBack ? 'justify-between' : 'justify-end'} pt-6 border-t`}>
             {onBack && (
               <Button type="button" variant="outline" onClick={onBack} disabled={isSubmitting}>
-                <ArrowLeft {...{ className: "h-4 w-4 mr-2" }} />
+                <ArrowLeft className="h-4 w-4 mr-2" />
                 Back
               </Button>
             )}
@@ -449,12 +449,12 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
             <Button type="submit" disabled={isSubmitting}>
               {isSubmitting ? (
                 <>
-                  <Loader2 {...{ className: "h-4 w-4 mr-2 animate-spin" }} />
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   Creating Case...
                 </>
               ) : (
                 <>
-                  <Send {...{ className: "h-4 w-4 mr-2" }} />
+                  <Send className="h-4 w-4 mr-2" />
                   {editMode ? 'Update Case' : `Create Case with ${tasks.length} ${tasks.length === 1 ? 'Task' : 'Tasks'}`}
                 </>
               )}
@@ -565,27 +565,27 @@ const TaskCard: React.FC<TaskCardProps> = ({
   });
 
   return (
-    <Card {...{ className: "relative" }}>
-      <CardHeader {...{ className: "pb-3" }}>
-        <div {...{ className: "flex items-center justify-between" }}>
-          <CardTitle {...{ className: "text-base" }}>Task {index + 1}</CardTitle>
+    <Card className="relative">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-base">Task {index + 1}</CardTitle>
           <Button
             type="button"
             variant="ghost"
             size="sm"
             onClick={() => removeTask(task.id)}
-            {...{ className: "text-destructive hover:text-destructive" }}
+            className="text-destructive hover:text-destructive"
             disabled={!canRemove}
           >
-            <Trash2 {...{ className: "h-4 w-4" }} />
+            <Trash2 className="h-4 w-4" />
           </Button>
         </div>
       </CardHeader>
-      <CardContent {...{ className: "space-y-4" }}>
+      <CardContent className="space-y-4">
         {/* Row 1: Applicant Type & Verification Type */}
-        <div {...{ className: "grid grid-cols-1 md:grid-cols-2 gap-4" }}>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label {...{ className: "text-sm font-medium" }}>Applicant Type *</label>
+            <label className="text-sm font-medium">Applicant Type *</label>
             <Select
               value={task.applicantType}
               onValueChange={(value) => updateTask(task.id, 'applicantType', value)}
@@ -608,15 +608,15 @@ const TaskCard: React.FC<TaskCardProps> = ({
               </SelectContent>
             </Select>
             {!task.applicantType && (
-              <p {...{ className: "text-sm text-red-600 mt-1" }}>
-                <AlertCircle {...{ className: "h-3 w-3 inline mr-1" }} />
+              <p className="text-sm text-red-600 mt-1">
+                <AlertCircle className="h-3 w-3 inline mr-1" />
                 Applicant type is required
               </p>
             )}
           </div>
 
           <div>
-            <label {...{ className: "text-sm font-medium" }}>Verification Type *</label>
+            <label className="text-sm font-medium">Verification Type *</label>
             <Select
               value={task.verificationTypeId?.toString() || ''}
               onValueChange={(value) => updateTask(task.id, 'verificationTypeId', parseInt(value))}
@@ -633,8 +633,8 @@ const TaskCard: React.FC<TaskCardProps> = ({
               </SelectContent>
             </Select>
             {!task.verificationTypeId && (
-              <p {...{ className: "text-sm text-red-600 mt-1" }}>
-                <AlertCircle {...{ className: "h-3 w-3 inline mr-1" }} />
+              <p className="text-sm text-red-600 mt-1">
+                <AlertCircle className="h-3 w-3 inline mr-1" />
                 Verification type is required
               </p>
             )}
@@ -643,7 +643,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
 
         {/* Row 2: Rate Type */}
         <div>
-          <label {...{ className: "text-sm font-medium" }}>Rate Type *</label>
+          <label className="text-sm font-medium">Rate Type *</label>
           <Select
             value={task.rateTypeId}
             onValueChange={(value) => updateTask(task.id, 'rateTypeId', value)}
@@ -667,21 +667,21 @@ const TaskCard: React.FC<TaskCardProps> = ({
             </SelectContent>
           </Select>
           {task.rateTypeId && rateTypes.length > 0 ? (
-            <p {...{ className: "text-sm text-green-600 mt-1" }}>
+            <p className="text-sm text-green-600 mt-1">
               Rate: ₹{rateTypes.find(rt => rt.id.toString() === task.rateTypeId)?.amount || '0.00'} INR
             </p>
           ) : (
-            <p {...{ className: "text-sm text-red-600 mt-1" }}>
-              <AlertCircle {...{ className: "h-3 w-3 inline mr-1" }} />
+            <p className="text-sm text-red-600 mt-1">
+              <AlertCircle className="h-3 w-3 inline mr-1" />
               Rate type is required
             </p>
           )}
         </div>
 
         {/* Row 3: Pincode & Area */}
-        <div {...{ className: "grid grid-cols-1 md:grid-cols-2 gap-4" }}>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label {...{ className: "text-sm font-medium" }}>Pincode *</label>
+            <label className="text-sm font-medium">Pincode *</label>
             <SearchableSelect
                 options={pincodes.map((pincode) => ({
                 value: pincode.id.toString(),
@@ -695,15 +695,15 @@ const TaskCard: React.FC<TaskCardProps> = ({
               emptyMessage="No pincodes found"
             />
             {!task.pincodeId && (
-              <p {...{ className: "text-sm text-red-600 mt-1" }}>
-                <AlertCircle {...{ className: "h-3 w-3 inline mr-1" }} />
+              <p className="text-sm text-red-600 mt-1">
+                <AlertCircle className="h-3 w-3 inline mr-1" />
                 Pincode is required
               </p>
             )}
           </div>
 
           <div>
-            <label {...{ className: "text-sm font-medium" }}>Area *</label>
+            <label className="text-sm font-medium">Area *</label>
             <Select
               value={task.areaId}
               onValueChange={(value) => updateTask(task.id, 'areaId', value)}
@@ -729,8 +729,8 @@ const TaskCard: React.FC<TaskCardProps> = ({
               </SelectContent>
             </Select>
             {!task.areaId && (
-              <p {...{ className: "text-sm text-red-600 mt-1" }}>
-                <AlertCircle {...{ className: "h-3 w-3 inline mr-1" }} />
+              <p className="text-sm text-red-600 mt-1">
+                <AlertCircle className="h-3 w-3 inline mr-1" />
                 Area is required
               </p>
             )}
@@ -739,7 +739,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
 
         {/* Row 4: Address */}
         <div>
-          <label {...{ className: "text-sm font-medium" }}>Address *</label>
+          <label className="text-sm font-medium">Address *</label>
           <Textarea
             value={task.address}
             onChange={(e) => updateTask(task.id, 'address', e.target.value)}
@@ -747,8 +747,8 @@ const TaskCard: React.FC<TaskCardProps> = ({
             rows={2}
           />
           {!task.address && (
-            <p {...{ className: "text-sm text-red-600 mt-1" }}>
-              <AlertCircle {...{ className: "h-3 w-3 inline mr-1" }} />
+            <p className="text-sm text-red-600 mt-1">
+              <AlertCircle className="h-3 w-3 inline mr-1" />
               Address is required
             </p>
           )}
@@ -756,7 +756,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
 
         {/* Row 5: Trigger */}
         <div>
-          <label {...{ className: "text-sm font-medium" }}>TRIGGER *</label>
+          <label className="text-sm font-medium">TRIGGER *</label>
           <Textarea
             value={task.trigger}
             onChange={(e) => updateTask(task.id, 'trigger', e.target.value)}
@@ -764,17 +764,17 @@ const TaskCard: React.FC<TaskCardProps> = ({
             rows={2}
           />
           {!task.trigger && (
-            <p {...{ className: "text-sm text-red-600 mt-1" }}>
-              <AlertCircle {...{ className: "h-3 w-3 inline mr-1" }} />
+            <p className="text-sm text-red-600 mt-1">
+              <AlertCircle className="h-3 w-3 inline mr-1" />
               Trigger is required
             </p>
           )}
         </div>
 
         {/* Row 6: Priority & Assign To */}
-        <div {...{ className: "grid grid-cols-1 md:grid-cols-2 gap-4" }}>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label {...{ className: "text-sm font-medium" }}>Priority *</label>
+            <label className="text-sm font-medium">Priority *</label>
             <Select
               value={task.priority}
               onValueChange={(value: unknown) => updateTask(task.id, 'priority', value)}
@@ -792,7 +792,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
           </div>
 
           <div>
-            <label {...{ className: "text-sm font-medium" }}>Assign To *</label>
+            <label className="text-sm font-medium">Assign To *</label>
             <Select
               value={task.assignedTo}
               onValueChange={(value) => updateTask(task.id, 'assignedTo', value)}
@@ -823,14 +823,14 @@ const TaskCard: React.FC<TaskCardProps> = ({
               </SelectContent>
             </Select>
             {!task.assignedTo && (
-              <p {...{ className: "text-sm text-red-600 mt-1" }}>
-                <AlertCircle {...{ className: "h-3 w-3 inline mr-1" }} />
+              <p className="text-sm text-red-600 mt-1">
+                <AlertCircle className="h-3 w-3 inline mr-1" />
                 Field user assignment is required
               </p>
             )}
             {task.pincodeId && task.areaId && filteredFieldUsers.length === 0 && (
-              <p {...{ className: "text-sm text-amber-600 mt-1" }}>
-                <AlertCircle {...{ className: "h-3 w-3 inline mr-1" }} />
+              <p className="text-sm text-amber-600 mt-1">
+                <AlertCircle className="h-3 w-3 inline mr-1" />
                 No field users have access to the selected pincode and area
               </p>
             )}
@@ -838,9 +838,9 @@ const TaskCard: React.FC<TaskCardProps> = ({
         </div>
 
         {/* Row 7: Document Type & Number */}
-        <div {...{ className: "grid grid-cols-1 md:grid-cols-2 gap-4" }}>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label {...{ className: "text-sm font-medium" }}>Document Type</label>
+            <label className="text-sm font-medium">Document Type</label>
             <Input
               value={task.documentType}
               onChange={(e) => updateTask(task.id, 'documentType', e.target.value)}
@@ -849,7 +849,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
           </div>
 
           <div>
-            <label {...{ className: "text-sm font-medium" }}>Document Number</label>
+            <label className="text-sm font-medium">Document Number</label>
             <Input
               value={task.documentNumber}
               onChange={(e) => updateTask(task.id, 'documentNumber', e.target.value)}
@@ -859,7 +859,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
         </div>
 
         {/* Row 8: Attachments */}
-        <div {...{ className: "border-t pt-4" }}>
+        <div className="border-t pt-4">
           <TaskAttachmentsSection
             taskId={task.id}
             attachments={task.attachments}
@@ -1001,9 +1001,9 @@ const TaskAttachmentsSection: React.FC<TaskAttachmentsSectionProps> = ({
 
   const getFileIcon = (type: string) => {
     if (type === 'image') {
-      return <Image {...{ className: "h-4 w-4 text-green-500" }} />;
+      return <Image className="h-4 w-4 text-green-500" />;
     }
-    return <FileText {...{ className: "h-4 w-4 text-red-500" }} />;
+    return <FileText className="h-4 w-4 text-red-500" />;
   };
 
   const handleDragEnter = (e: React.DragEvent) => {
@@ -1039,34 +1039,32 @@ const TaskAttachmentsSection: React.FC<TaskAttachmentsSectionProps> = ({
   };
 
   return (
-    <div {...{ className: "space-y-3" }}>
-      <div {...{ className: "flex items-center justify-between" }}>
-        <label {...{ className: "text-sm font-medium flex items-center gap-2" }}>
-          <Paperclip {...{ className: "h-4 w-4" }} />
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <label className="text-sm font-medium flex items-center gap-2">
+          <Paperclip className="h-4 w-4" />
           Task Attachments
           {attachments.length > 0 && (
-            <Badge variant="secondary" {...{ className: "text-xs" }}>{attachments.length}</Badge>
+            <Badge variant="secondary" className="text-xs">{attachments.length}</Badge>
           )}
         </label>
       </div>
 
       {/* File Upload Area */}
       <div
-        {...{
-          className: `border-2 border-dashed rounded-lg p-4 text-center transition-colors ${
-            isDragging ? 'border-green-500 bg-green-50' : 'border-gray-300'
-          }`,
-        }}
+        className={`border-2 border-dashed rounded-lg p-4 text-center transition-colors ${
+          isDragging ? 'border-green-500 bg-green-50' : 'border-gray-300'
+        }`}
         onDragEnter={handleDragEnter}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
       >
-        <Upload {...{ className: "h-6 w-6 text-gray-600 mx-auto mb-2" }} />
-        <p {...{ className: "text-xs text-gray-600 mb-1" }}>
+        <Upload className="h-6 w-6 text-gray-600 mx-auto mb-2" />
+        <p className="text-xs text-gray-600 mb-1">
           <button
             type="button"
-            {...{ className: "text-green-600 hover:text-green-700 underline cursor-pointer" }}
+            className="text-green-600 hover:text-green-700 underline cursor-pointer"
             onClick={handleBrowseClick}
             disabled={attachments.length >= MAX_FILES}
           >
@@ -1074,7 +1072,7 @@ const TaskAttachmentsSection: React.FC<TaskAttachmentsSectionProps> = ({
           </button>
           {' '}or drag and drop
         </p>
-        <p {...{ className: "text-xs text-gray-600" }}>
+        <p className="text-xs text-gray-600">
           PDF, images, Word docs • Max 10MB • {MAX_FILES} files total
         </p>
         <input
@@ -1087,24 +1085,24 @@ const TaskAttachmentsSection: React.FC<TaskAttachmentsSectionProps> = ({
             // Reset the input value to allow selecting the same file again
             e.target.value = '';
           }}
-          {...{ className: "hidden" }}
+          className="hidden"
           disabled={attachments.length >= MAX_FILES}
         />
       </div>
 
       {/* Selected Files (pending) */}
       {selectedFiles.length > 0 && (
-        <div {...{ className: "space-y-2" }}>
-          <div {...{ className: "flex items-center justify-between" }}>
-            <span {...{ className: "text-xs font-medium text-yellow-700" }}>Selected ({selectedFiles.length})</span>
-            <div {...{ className: "space-x-2" }}>
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-yellow-700">Selected ({selectedFiles.length})</span>
+            <div className="space-x-2">
               <Button
                 type="button"
                 size="sm"
                 onClick={addFiles}
-                {...{ className: "h-7 text-xs bg-green-600 hover:bg-green-700" }}
+                className="h-7 text-xs bg-green-600 hover:bg-green-700"
               >
-                <Plus {...{ className: "h-3 w-3 mr-1" }} />
+                <Plus className="h-3 w-3 mr-1" />
                 Add Files
               </Button>
               <Button
@@ -1112,27 +1110,27 @@ const TaskAttachmentsSection: React.FC<TaskAttachmentsSectionProps> = ({
                 variant="outline"
                 size="sm"
                 onClick={() => setSelectedFiles([])}
-                {...{ className: "h-7 text-xs" }}
+                className="h-7 text-xs"
               >
                 Clear
               </Button>
             </div>
           </div>
           {selectedFiles.map((file, index) => (
-            <div key={index} {...{ className: "flex items-center gap-2 p-2 border border-yellow-300 rounded bg-yellow-50 text-xs" }}>
+            <div key={index} className="flex items-center gap-2 p-2 border border-yellow-300 rounded bg-yellow-50 text-xs">
               {getFileIcon(file.type.startsWith('image/') ? 'image' : 'pdf')}
-              <div {...{ className: "flex-1 min-w-0" }}>
-                <div {...{ className: "font-medium truncate" }}>{file.name}</div>
-                <div {...{ className: "text-yellow-600" }}>{formatFileSize(file.size)}</div>
+              <div className="flex-1 min-w-0">
+                <div className="font-medium truncate">{file.name}</div>
+                <div className="text-yellow-600">{formatFileSize(file.size)}</div>
               </div>
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
                 onClick={() => removeSelectedFile(index)}
-                {...{ className: "h-6 w-6 p-0 text-red-500" }}
+                className="h-6 w-6 p-0 text-red-500"
               >
-                <Trash2 {...{ className: "h-3 w-3" }} />
+                <Trash2 className="h-3 w-3" />
               </Button>
             </div>
           ))}
@@ -1141,23 +1139,23 @@ const TaskAttachmentsSection: React.FC<TaskAttachmentsSectionProps> = ({
 
       {/* Attached Files */}
       {attachments.length > 0 && (
-        <div {...{ className: "space-y-2" }}>
-          <span {...{ className: "text-xs font-medium text-green-700" }}>Attached ({attachments.length})</span>
+        <div className="space-y-2">
+          <span className="text-xs font-medium text-green-700">Attached ({attachments.length})</span>
           {attachments.map((attachment) => (
-            <div key={attachment.id} {...{ className: "flex items-center gap-2 p-2 border border-green-200 rounded bg-green-50 text-xs" }}>
+            <div key={attachment.id} className="flex items-center gap-2 p-2 border border-green-200 rounded bg-green-50 text-xs">
               {getFileIcon(attachment.type)}
-              <div {...{ className: "flex-1 min-w-0" }}>
-                <div {...{ className: "font-medium truncate" }}>{attachment.name}</div>
-                <div {...{ className: "text-green-600" }}>{formatFileSize(attachment.size)}</div>
+              <div className="flex-1 min-w-0">
+                <div className="font-medium truncate">{attachment.name}</div>
+                <div className="text-green-600">{formatFileSize(attachment.size)}</div>
               </div>
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
                 onClick={() => removeAttachment(attachment.id)}
-                {...{ className: "h-6 w-6 p-0 text-red-500" }}
+                className="h-6 w-6 p-0 text-red-500"
               >
-                <Trash2 {...{ className: "h-3 w-3" }} />
+                <Trash2 className="h-3 w-3" />
               </Button>
             </div>
           ))}

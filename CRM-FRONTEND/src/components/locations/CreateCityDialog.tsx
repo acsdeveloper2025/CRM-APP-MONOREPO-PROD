@@ -3,7 +3,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useCRUDMutation } from '@/hooks/useStandardizedMutation';
 import { useStandardizedQuery } from '@/hooks/useStandardizedQuery';
-import { Button } from '@/ui/components/Button';
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -11,7 +11,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/ui/components/Dialog';
+} from '@/components/ui/dialog';
 import {
   Form,
   FormControl,
@@ -20,16 +20,15 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/ui/components/Form';
+} from '@/components/ui/form';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/ui/components/Select';
-import { Input } from '@/ui/components/Input';
-import { Stack } from '@/ui/primitives/Stack';
+} from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
 import { locationsService } from '@/services/locations';
 
 const createCitySchema = z.object({
@@ -92,7 +91,7 @@ export function CreateCityDialog({ open, onOpenChange }: CreateCityDialogProps) 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent style={{ width: 'min(95vw, 425px)' }}>
+      <DialogContent className="max-w-[95vw] sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Create New City</DialogTitle>
           <DialogDescription>
@@ -101,8 +100,7 @@ export function CreateCityDialog({ open, onOpenChange }: CreateCityDialogProps) 
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)}>
-            <Stack gap={4}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
               control={form.control}
               name="name"
@@ -179,12 +177,12 @@ export function CreateCityDialog({ open, onOpenChange }: CreateCityDialogProps) 
               )}
             />
 
-            <DialogFooter style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
+            <DialogFooter className="flex-col sm:flex-row gap-2">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
-                fullWidth
+                className="w-full sm:w-auto"
                 disabled={createMutation.isPending}
               >
                 Cancel
@@ -192,11 +190,10 @@ export function CreateCityDialog({ open, onOpenChange }: CreateCityDialogProps) 
               <Button
                 type="submit"
                 disabled={createMutation.isPending}
-                fullWidth>
+               className="w-full sm:w-auto">
                 {createMutation.isPending ? 'Creating...' : 'Create City'}
               </Button>
             </DialogFooter>
-            </Stack>
           </form>
         </Form>
       </DialogContent>

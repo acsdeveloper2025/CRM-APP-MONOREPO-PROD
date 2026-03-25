@@ -9,7 +9,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/ui/components/Dialog';
+} from '@/components/ui/dialog';
 import {
   Form,
   FormControl,
@@ -17,17 +17,17 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/ui/components/Form';
-import { Input } from '@/ui/components/Input';
-import { Button } from '@/ui/components/Button';
-import { Textarea } from '@/ui/components/Textarea';
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/ui/components/Select';
+} from '@/components/ui/select';
 import { useCreateVerificationTasks } from '@/hooks/useVerificationTasks';
 import { useVerificationTypes } from '@/hooks/useClients';
 import { toast } from 'sonner';
@@ -95,7 +95,7 @@ export const AddTaskDialog: React.FC<AddTaskDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent {...{ className: "sm:max-w-[600px]" }}>
+      <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>Add New Verification Task</DialogTitle>
           <DialogDescription>
@@ -104,7 +104,7 @@ export const AddTaskDialog: React.FC<AddTaskDialogProps> = ({
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} {...{ className: "space-y-4" }}>
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
             <FormField
               control={form.control}
               name="verification_type_id"
@@ -144,7 +144,7 @@ export const AddTaskDialog: React.FC<AddTaskDialogProps> = ({
               )}
             />
 
-            <div {...{ className: "grid grid-cols-1 md:grid-cols-2 gap-4" }}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="priority"

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/Card';
-import { Button } from '@/ui/components/Button';
-import { Badge } from '@/ui/components/Badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { 
   Table, 
   TableBody, 
@@ -9,16 +9,16 @@ import {
   TableHead, 
   TableHeader, 
   TableRow 
-} from '@/ui/components/Table';
+} from '@/components/ui/table';
 import { 
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/ui/components/Select';
-import { Input } from '@/ui/components/Input';
-import { Label } from '@/ui/components/Label';
+} from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { useFormSubmissions, useFormValidationStatus } from '@/hooks/useAnalytics';
 import { FileText, CheckCircle, Clock, AlertCircle, Download, Filter } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
@@ -75,72 +75,72 @@ export const FormSubmissionsDashboard: React.FC = () => {
   };
 
   return (
-    <div {...{ className: "space-y-6" }}>
+    <div className="space-y-6">
       {/* Header */}
-      <div {...{ className: "flex items-center justify-between" }}>
+      <div className="flex items-center justify-between">
         <div>
-          <h1 {...{ className: "text-3xl font-bold text-gray-900" }}>Form Submissions</h1>
-          <p {...{ className: "mt-2 text-gray-600" }}>
+          <h1 className="text-3xl font-bold text-gray-900">Form Submissions</h1>
+          <p className="mt-2 text-gray-600">
             Track and analyze all form submissions with validation status
           </p>
         </div>
         <Button variant="outline">
-          <Download {...{ className: "h-4 w-4 mr-2" }} />
+          <Download className="h-4 w-4 mr-2" />
           Export Data
         </Button>
       </div>
 
       {/* Summary Cards */}
-      <div {...{ className: "grid gap-4 md:grid-cols-4" }}>
+      <div className="grid gap-4 md:grid-cols-4">
         <Card>
-          <CardHeader {...{ className: "flex flex-row items-center justify-between space-y-0 pb-2" }}>
-            <CardTitle {...{ className: "text-sm font-medium" }}>Total Submissions</CardTitle>
-            <FileText {...{ className: "h-4 w-4 text-gray-600" }} />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Submissions</CardTitle>
+            <FileText className="h-4 w-4 text-gray-600" />
           </CardHeader>
           <CardContent>
-            <div {...{ className: "text-2xl font-bold" }}>{summary?.totalSubmissions || 0}</div>
-            <p {...{ className: "text-xs text-gray-600" }}>
+            <div className="text-2xl font-bold">{summary?.totalSubmissions || 0}</div>
+            <p className="text-xs text-gray-600">
               All form submissions
             </p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader {...{ className: "flex flex-row items-center justify-between space-y-0 pb-2" }}>
-            <CardTitle {...{ className: "text-sm font-medium" }}>Valid Submissions</CardTitle>
-            <CheckCircle {...{ className: "h-4 w-4 text-green-600" }} />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Valid Submissions</CardTitle>
+            <CheckCircle className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div {...{ className: "text-2xl font-bold text-green-600" }}>{summary?.validSubmissions || 0}</div>
-            <p {...{ className: "text-xs text-gray-600" }}>
+            <div className="text-2xl font-bold text-green-600">{summary?.validSubmissions || 0}</div>
+            <p className="text-xs text-gray-600">
               {summary?.validationRate ? `${summary.validationRate.toFixed(1)}% validation rate` : 'No data'}
             </p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader {...{ className: "flex flex-row items-center justify-between space-y-0 pb-2" }}>
-            <CardTitle {...{ className: "text-sm font-medium" }}>Pending Review</CardTitle>
-            <Clock {...{ className: "h-4 w-4 text-yellow-600" }} />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Pending Review</CardTitle>
+            <Clock className="h-4 w-4 text-yellow-600" />
           </CardHeader>
           <CardContent>
-            <div {...{ className: "text-2xl font-bold text-yellow-600" }}>{summary?.pendingSubmissions || 0}</div>
-            <p {...{ className: "text-xs text-gray-600" }}>
+            <div className="text-2xl font-bold text-yellow-600">{summary?.pendingSubmissions || 0}</div>
+            <p className="text-xs text-gray-600">
               Awaiting validation
             </p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader {...{ className: "flex flex-row items-center justify-between space-y-0 pb-2" }}>
-            <CardTitle {...{ className: "text-sm font-medium" }}>Form Types</CardTitle>
-            <AlertCircle {...{ className: "h-4 w-4 text-gray-600" }} />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Form Types</CardTitle>
+            <AlertCircle className="h-4 w-4 text-gray-600" />
           </CardHeader>
           <CardContent>
-            <div {...{ className: "text-2xl font-bold" }}>
+            <div className="text-2xl font-bold">
               {(summary?.residenceForms || 0) + (summary?.officeForms || 0)}
             </div>
-            <p {...{ className: "text-xs text-gray-600" }}>
+            <p className="text-xs text-gray-600">
               {summary?.residenceForms || 0} residence, {summary?.officeForms || 0} office
             </p>
           </CardContent>
@@ -150,14 +150,14 @@ export const FormSubmissionsDashboard: React.FC = () => {
       {/* Filters */}
       <Card>
         <CardHeader>
-          <CardTitle {...{ className: "flex items-center space-x-2" }}>
-            <Filter {...{ className: "h-5 w-5" }} />
+          <CardTitle className="flex items-center space-x-2">
+            <Filter className="h-5 w-5" />
             <span>Filters</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div {...{ className: "grid gap-4 md:grid-cols-5" }}>
-            <div {...{ className: "space-y-2" }}>
+          <div className="grid gap-4 md:grid-cols-5">
+            <div className="space-y-2">
               <Label htmlFor="formType">Form Type</Label>
               <Select 
                 value={filters.formType || ''} 
@@ -175,7 +175,7 @@ export const FormSubmissionsDashboard: React.FC = () => {
               </Select>
             </div>
 
-            <div {...{ className: "space-y-2" }}>
+            <div className="space-y-2">
               <Label htmlFor="validationStatus">Status</Label>
               <Select 
                 value={filters.validationStatus || ''} 
@@ -193,7 +193,7 @@ export const FormSubmissionsDashboard: React.FC = () => {
               </Select>
             </div>
 
-            <div {...{ className: "space-y-2" }}>
+            <div className="space-y-2">
               <Label htmlFor="dateFrom">From Date</Label>
               <Input
                 id="dateFrom"
@@ -203,7 +203,7 @@ export const FormSubmissionsDashboard: React.FC = () => {
               />
             </div>
 
-            <div {...{ className: "space-y-2" }}>
+            <div className="space-y-2">
               <Label htmlFor="dateTo">To Date</Label>
               <Input
                 id="dateTo"
@@ -213,7 +213,7 @@ export const FormSubmissionsDashboard: React.FC = () => {
               />
             </div>
 
-            <div {...{ className: "space-y-2" }}>
+            <div className="space-y-2">
               <Label htmlFor="caseId">Case ID</Label>
               <Input
                 id="caseId"
@@ -237,8 +237,8 @@ export const FormSubmissionsDashboard: React.FC = () => {
             }
           </CardDescription>
         </CardHeader>
-        <CardContent {...{ className: "p-0" }}>
-          <div {...{ className: "border rounded-lg" }}>
+        <CardContent className="p-0">
+          <div className="border rounded-lg">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -257,17 +257,17 @@ export const FormSubmissionsDashboard: React.FC = () => {
                     <TableRow key={index}>
                       {Array.from({ length: 6 }).map((_, cellIndex) => (
                         <TableCell key={cellIndex}>
-                          <div {...{ className: "h-4 bg-slate-100 dark:bg-slate-800/60 rounded animate-pulse" }} />
+                          <div className="h-4 bg-slate-100 dark:bg-slate-800/60 rounded animate-pulse" />
                         </TableCell>
                       ))}
                     </TableRow>
                   ))
                 ) : submissions.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} {...{ className: "text-center py-8" }}>
-                      <FileText {...{ className: "mx-auto h-12 w-12 text-gray-600" }} />
-                      <h3 {...{ className: "mt-4 text-lg font-semibold" }}>No submissions found</h3>
-                      <p {...{ className: "text-gray-600" }}>
+                    <TableCell colSpan={6} className="text-center py-8">
+                      <FileText className="mx-auto h-12 w-12 text-gray-600" />
+                      <h3 className="mt-4 text-lg font-semibold">No submissions found</h3>
+                      <p className="text-gray-600">
                         Try adjusting your filters or check back later.
                       </p>
                     </TableCell>
@@ -276,34 +276,34 @@ export const FormSubmissionsDashboard: React.FC = () => {
                   submissions.map((submission, index) => (
                     <TableRow key={`${submission.case_id}-${index}`}>
                       <TableCell>
-                        <Badge {...{ className: getFormTypeColor(submission.form_type) }}>
+                        <Badge className={getFormTypeColor(submission.form_type)}>
                           {submission.form_type}
                         </Badge>
                       </TableCell>
                       <TableCell>
                         <div>
-                          <div {...{ className: "font-medium" }}>#{submission.caseNumber || 'N/A'}</div>
-                          <div {...{ className: "text-sm text-gray-600" }}>{submission.customerName}</div>
+                          <div className="font-medium">#{submission.caseNumber || 'N/A'}</div>
+                          <div className="text-sm text-gray-600">{submission.customerName}</div>
                         </div>
                       </TableCell>
                       <TableCell>
                         <div>
-                          <div {...{ className: "font-medium" }}>{submission.agentName || 'Unknown'}</div>
-                          <div {...{ className: "text-sm text-gray-600" }}>{submission.employeeId}</div>
+                          <div className="font-medium">{submission.agentName || 'Unknown'}</div>
+                          <div className="text-sm text-gray-600">{submission.employeeId}</div>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge {...{ className: getValidationStatusColor(submission.validation_status) }}>
+                        <Badge className={getValidationStatusColor(submission.validation_status)}>
                           {submission.validation_status}
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <div {...{ className: "text-sm" }}>
+                        <div className="text-sm">
                           {formatDistanceToNow(new Date(submission.submitted_at), { addSuffix: true })}
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div {...{ className: "text-sm" }}>
+                        <div className="text-sm">
                           {submission.attachmentCount || 0} files
                         </div>
                       </TableCell>

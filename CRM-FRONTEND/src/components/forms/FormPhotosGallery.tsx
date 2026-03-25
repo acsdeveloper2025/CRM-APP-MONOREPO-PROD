@@ -1,14 +1,11 @@
 import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/ui/components/Dialog';
-import { Badge } from '@/ui/components/Badge';
-import { Button } from '@/ui/components/Button';
-import { Card, CardContent } from '@/ui/components/Card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { MapPin, Download, Eye, Camera, User } from 'lucide-react';
 import { FormPhoto } from '@/types/form';
 import { formatDistanceToNow } from 'date-fns';
-import { Box } from '@/ui/primitives/Box';
-import { Stack } from '@/ui/primitives/Stack';
-import { Text } from '@/ui/primitives/Text';
 
 interface FormPhotosGalleryProps {
   photos: FormPhoto[];
@@ -26,77 +23,95 @@ const PhotoViewer: React.FC<PhotoViewerProps> = ({ photo, isOpen, onClose }) => 
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
+    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))  } ${  sizes[i]}`;
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent style={{ width: 'min(92vw, 64rem)', maxHeight: '90vh', overflow: 'auto' }}>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto">
         <DialogHeader>
-          <DialogTitle>
-            <Stack direction="horizontal" gap={2} align="center" wrap="wrap">
-              <Camera size={20} />
-              <span>{photo.type === 'selfie' ? 'Verification Selfie' : 'Verification Photo'}</span>
-              <Badge variant={photo.type === 'selfie' ? 'secondary' : 'default'}>{photo.type}</Badge>
-            </Stack>
+          <DialogTitle className="flex items-center space-x-2">
+            <Camera className="h-5 w-5" />
+            <span>{photo.type === 'selfie' ? 'Verification Selfie' : 'Verification Photo'}</span>
+            <Badge variant={photo.type === 'selfie' ? 'secondary' : 'default'}>
+              {photo.type}
+            </Badge>
           </DialogTitle>
         </DialogHeader>
-
-        <Stack gap={4}>
-          <Box style={{ display: 'flex', justifyContent: 'center' }}>
+        
+        <div className="space-y-4">
+          {/* Photo */}
+          <div className="flex justify-center">
             <img
               src={photo.url}
               alt={`${photo.type} photo`}
-              style={{ maxWidth: '100%', maxHeight: '24rem', objectFit: 'contain', borderRadius: 'var(--ui-radius-lg)', border: '1px solid var(--ui-border)' }}
+              className="max-w-full max-h-96 object-contain rounded-lg border"
             />
-          </Box>
-
-          <Box style={{ display: 'grid', gap: '1rem', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
+          </div>
+          
+          {/* Photo Details */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Location Information */}
             <Card>
-              <CardContent style={{ padding: '1rem' }}>
-                <Stack gap={3}>
-                  <Text as="h4" variant="label">
-                    <Stack direction="horizontal" gap={2} align="center">
-                      <MapPin size={16} />
-                      <span>Location Details</span>
-                    </Stack>
-                  </Text>
-                  <Stack gap={2}>
-                    <Text variant="body-sm"><strong>Coordinates:</strong> {photo.geoLocation.latitude.toFixed(6)}, {photo.geoLocation.longitude.toFixed(6)}</Text>
-                    <Text variant="body-sm"><strong>Accuracy:</strong> ±{photo.geoLocation.accuracy}m</Text>
-                    {photo.geoLocation.address ? <Text variant="body-sm"><strong>Address:</strong> {photo.geoLocation.address}</Text> : null}
-                    <Text variant="body-sm"><strong>Captured:</strong> {formatDistanceToNow(new Date(photo.geoLocation.timestamp), { addSuffix: true })}</Text>
-                  </Stack>
-                </Stack>
+              <CardContent className="p-4">
+                <h4 className="font-medium flex items-center space-x-2 mb-3">
+                  <MapPin className="h-4 w-4" />
+                  <span>Location Details</span>
+                </h4>
+                <div className="space-y-2 text-sm">
+                  <div>
+                    <span className="font-medium">Coordinates:</span> {photo.geoLocation.latitude.toFixed(6)}, {photo.geoLocation.longitude.toFixed(6)}
+                  </div>
+                  <div>
+                    <span className="font-medium">Accuracy:</span> ±{photo.geoLocation.accuracy}m
+                  </div>
+                  {photo.geoLocation.address && (
+                    <div>
+                      <span className="font-medium">Address:</span> {photo.geoLocation.address}
+                    </div>
+                  )}
+                  <div>
+                    <span className="font-medium">Captured:</span> {formatDistanceToNow(new Date(photo.geoLocation.timestamp), { addSuffix: true })}
+                  </div>
+                </div>
               </CardContent>
             </Card>
-
+            
+            {/* Photo Metadata */}
             <Card>
-              <CardContent style={{ padding: '1rem' }}>
-                <Stack gap={3}>
-                  <Text as="h4" variant="label">
-                    <Stack direction="horizontal" gap={2} align="center">
-                      <Camera size={16} />
-                      <span>Photo Details</span>
-                    </Stack>
-                  </Text>
-                  <Stack gap={2}>
-                    <Text variant="body-sm"><strong>File Size:</strong> {formatFileSize(photo.metadata.fileSize)}</Text>
-                    <Text variant="body-sm"><strong>Dimensions:</strong> {photo.metadata.dimensions.width} × {photo.metadata.dimensions.height}</Text>
-                    <Text variant="body-sm"><strong>Captured At:</strong> {formatDistanceToNow(new Date(photo.metadata.capturedAt), { addSuffix: true })}</Text>
-                    {photo.metadata.deviceInfo ? <Text variant="body-sm"><strong>Device:</strong> {photo.metadata.deviceInfo}</Text> : null}
-                  </Stack>
-                </Stack>
+              <CardContent className="p-4">
+                <h4 className="font-medium flex items-center space-x-2 mb-3">
+                  <Camera className="h-4 w-4" />
+                  <span>Photo Details</span>
+                </h4>
+                <div className="space-y-2 text-sm">
+                  <div>
+                    <span className="font-medium">File Size:</span> {formatFileSize(photo.metadata.fileSize)}
+                  </div>
+                  <div>
+                    <span className="font-medium">Dimensions:</span> {photo.metadata.dimensions.width} × {photo.metadata.dimensions.height}
+                  </div>
+                  <div>
+                    <span className="font-medium">Captured At:</span> {formatDistanceToNow(new Date(photo.metadata.capturedAt), { addSuffix: true })}
+                  </div>
+                  {photo.metadata.deviceInfo && (
+                    <div>
+                      <span className="font-medium">Device:</span> {photo.metadata.deviceInfo}
+                    </div>
+                  )}
+                </div>
               </CardContent>
             </Card>
-          </Box>
-
-          <Stack direction="horizontal" justify="flex-end" gap={2}>
-            <Button variant="outline" onClick={() => window.open(photo.url, '_blank')} icon={<Download size={16} />}>
+          </div>
+          
+          {/* Actions */}
+          <div className="flex justify-end space-x-2">
+            <Button variant="outline" onClick={() => window.open(photo.url, '_blank')}>
+              <Download className="h-4 w-4 mr-2" />
               Download
             </Button>
-          </Stack>
-        </Stack>
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   );
@@ -104,55 +119,85 @@ const PhotoViewer: React.FC<PhotoViewerProps> = ({ photo, isOpen, onClose }) => 
 
 export const FormPhotosGallery: React.FC<FormPhotosGalleryProps> = ({ photos }) => {
   const [selectedPhoto, setSelectedPhoto] = useState<FormPhoto | null>(null);
-  const verificationPhotos = photos.filter((photo) => photo.type === 'verification');
-  const selfiePhotos = photos.filter((photo) => photo.type === 'selfie');
 
-  const renderPhotoGrid = (items: FormPhoto[], label: string, icon: React.ReactNode, selfie = false) => (
-    <Stack gap={3}>
-      <Text as="h4" variant="label">
-        <Stack direction="horizontal" gap={2} align="center">
-          {icon}
-          <span>{label}</span>
-        </Stack>
-      </Text>
-      <Box style={{ display: 'grid', gap: '1rem', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))' }}>
-        {items.map((photo) => (
-          <Box
-            key={photo.id}
-            style={{ position: 'relative', cursor: 'pointer' }}
-            onClick={() => setSelectedPhoto(photo)}
-          >
-            <img
-              src={photo.thumbnailUrl || photo.url}
-              alt={selfie ? 'Verification selfie' : 'Verification photo'}
-              style={{ width: '100%', height: '8rem', objectFit: 'cover', borderRadius: 'var(--ui-radius-lg)', border: '1px solid var(--ui-border)' }}
-            />
-            <Box style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Eye size={20} style={{ color: '#fff' }} />
-            </Box>
-            {selfie ? (
-              <Box style={{ position: 'absolute', top: '0.5rem', right: '0.5rem' }}>
-                <Badge>Selfie</Badge>
-              </Box>
-            ) : (
-              <Box style={{ position: 'absolute', left: '0.5rem', right: '0.5rem', bottom: '0.5rem' }}>
-                <Box style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem', color: '#fff', background: 'rgba(0,0,0,0.55)', borderRadius: '0.5rem', padding: '0.25rem 0.5rem' }}>
-                  <MapPin size={12} />
-                  <span>±{photo.geoLocation.accuracy}m</span>
-                </Box>
-              </Box>
-            )}
-          </Box>
-        ))}
-      </Box>
-    </Stack>
-  );
+  const verificationPhotos = photos.filter(photo => photo.type === 'verification');
+  const selfiePhotos = photos.filter(photo => photo.type === 'selfie');
 
   return (
-    <Stack gap={6}>
-      {verificationPhotos.length > 0 ? renderPhotoGrid(verificationPhotos, `Verification Photos (${verificationPhotos.length})`, <Camera size={16} />) : null}
-      {selfiePhotos.length > 0 ? renderPhotoGrid(selfiePhotos, `Verification Selfies (${selfiePhotos.length})`, <User size={16} />, true) : null}
-      {selectedPhoto ? <PhotoViewer photo={selectedPhoto} isOpen={!!selectedPhoto} onClose={() => setSelectedPhoto(null)} /> : null}
-    </Stack>
+    <div className="space-y-6">
+      {/* Verification Photos */}
+      {verificationPhotos.length > 0 && (
+        <div>
+          <h4 className="font-medium mb-3 flex items-center space-x-2">
+            <Camera className="h-4 w-4" />
+            <span>Verification Photos ({verificationPhotos.length})</span>
+          </h4>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {verificationPhotos.map((photo) => (
+              <div
+                key={photo.id}
+                className="relative group cursor-pointer"
+                onClick={() => setSelectedPhoto(photo)}
+              >
+                <img
+                  src={photo.thumbnailUrl || photo.url}
+                  alt="Verification photo"
+                  className="w-full h-32 object-cover rounded-lg border transition-transform group-hover:scale-105"
+                />
+                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-opacity rounded-lg flex items-center justify-center">
+                  <Eye className="h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+                <div className="absolute bottom-2 left-2 right-2">
+                  <div className="flex items-center space-x-1 text-xs text-white bg-black bg-opacity-50 rounded px-2 py-1">
+                    <MapPin className="h-3 w-3" />
+                    <span>±{photo.geoLocation.accuracy}m</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Selfie Photos */}
+      {selfiePhotos.length > 0 && (
+        <div>
+          <h4 className="font-medium mb-3 flex items-center space-x-2">
+            <User className="h-4 w-4" />
+            <span>Verification Selfies ({selfiePhotos.length})</span>
+          </h4>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {selfiePhotos.map((photo) => (
+              <div
+                key={photo.id}
+                className="relative group cursor-pointer"
+                onClick={() => setSelectedPhoto(photo)}
+              >
+                <img
+                  src={photo.thumbnailUrl || photo.url}
+                  alt="Verification selfie"
+                  className="w-full h-32 object-cover rounded-lg border transition-transform group-hover:scale-105"
+                />
+                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-opacity rounded-lg flex items-center justify-center">
+                  <Eye className="h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+                <Badge className="absolute top-2 right-2 text-xs">
+                  Selfie
+                </Badge>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Photo Viewer Modal */}
+      {selectedPhoto && (
+        <PhotoViewer
+          photo={selectedPhoto}
+          isOpen={!!selectedPhoto}
+          onClose={() => setSelectedPhoto(null)}
+        />
+      )}
+    </div>
   );
 };

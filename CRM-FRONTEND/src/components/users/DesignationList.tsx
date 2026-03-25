@@ -13,8 +13,8 @@ import {
   XCircle,
   RefreshCw
 } from 'lucide-react';
-import { Button } from '@/ui/components/Button';
-import { Input } from '@/ui/components/Input';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   Table,
   TableBody,
@@ -22,16 +22,16 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/ui/components/Table';
+} from '@/components/ui/table';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/ui/components/Select';
-import { Badge } from '@/ui/components/Badge';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/Card';
+} from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import {
   AlertDialog,
@@ -42,7 +42,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/ui/components/AlertDialog';
+} from '@/components/ui/alert-dialog';
 import { designationsService } from '@/services/designations';
 import { departmentsService } from '@/services/departments';
 import { Designation } from '@/types/user';
@@ -109,9 +109,9 @@ export function DesignationList({ onEdit }: DesignationListProps) {
   if (isLoading) {
     return (
       <Card>
-        <CardContent {...{ className: "p-6" }}>
-          <div {...{ className: "flex items-center justify-center" }}>
-            <div {...{ className: "animate-spin rounded-full h-8 w-8 border-b-2 border-primary" }} />
+        <CardContent className="p-6">
+          <div className="flex items-center justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
           </div>
         </CardContent>
       </Card>
@@ -119,28 +119,28 @@ export function DesignationList({ onEdit }: DesignationListProps) {
   }
 
   return (
-    <div {...{ className: "space-y-4" }}>
+    <div className="space-y-4">
       {/* Filters */}
       <Card>
         <CardHeader>
-          <CardTitle {...{ className: "flex items-center gap-2" }}>
-            <Filter {...{ className: "h-5 w-5" }} />
+          <CardTitle className="flex items-center gap-2">
+            <Filter className="h-5 w-5" />
             Filters
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div {...{ className: "grid grid-cols-1 md:grid-cols-3 gap-4" }}>
-            <div {...{ className: "relative" }}>
-              <Search {...{ className: "absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600 h-4 w-4" }} />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600 h-4 w-4" />
               <Input
                 placeholder="Search designations..."
                 value={searchValue}
                 onChange={(e) => setSearchValue(e.target.value)}
-                {...{ className: "pl-10" }}
+                className="pl-10"
               />
               {isSearching && (
-                <div {...{ className: "absolute right-3 top-1/2 transform -translate-y-1/2" }}>
-                  <RefreshCw {...{ className: "h-4 w-4 animate-spin text-gray-600" }} />
+                <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                  <RefreshCw className="h-4 w-4 animate-spin text-gray-600" />
                 </div>
               )}
             </div>
@@ -184,81 +184,81 @@ export function DesignationList({ onEdit }: DesignationListProps) {
         </CardHeader>
         <CardContent>
           {designations.length === 0 ? (
-            <div {...{ className: "text-center py-8" }}>
-              <Users {...{ className: "mx-auto h-12 w-12 text-gray-600" }} />
-              <h3 {...{ className: "mt-2 text-sm font-semibold text-gray-600" }}>No designations found</h3>
-              <p {...{ className: "mt-1 text-sm text-gray-600" }}>
+            <div className="text-center py-8">
+              <Users className="mx-auto h-12 w-12 text-gray-600" />
+              <h3 className="mt-2 text-sm font-semibold text-gray-600">No designations found</h3>
+              <p className="mt-1 text-sm text-gray-600">
                 {debouncedSearchValue || departmentFilter || statusFilter
                   ? 'Try adjusting your filters'
                   : 'Get started by creating a new designation'}
               </p>
             </div>
           ) : (
-            <div {...{ className: "border rounded-lg overflow-hidden" }}>
+            <div className="border rounded-lg overflow-hidden">
               <Table>
-                <TableHeader {...{ className: "bg-gray-50 border-b border-gray-200" }}>
+                <TableHeader className="bg-gray-50 border-b border-gray-200">
                   <TableRow>
-                    <TableHead {...{ className: "px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider" }}>Name</TableHead>
-                    <TableHead {...{ className: "px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider" }}>Description</TableHead>
-                    <TableHead {...{ className: "px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider" }}>Department</TableHead>
-                    <TableHead {...{ className: "px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider" }}>Status</TableHead>
-                    <TableHead {...{ className: "px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider" }}>Created</TableHead>
-                    <TableHead {...{ className: "px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider" }}>Actions</TableHead>
+                    <TableHead className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Name</TableHead>
+                    <TableHead className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Description</TableHead>
+                    <TableHead className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Department</TableHead>
+                    <TableHead className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Status</TableHead>
+                    <TableHead className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Created</TableHead>
+                    <TableHead className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
-                <TableBody {...{ className: "bg-white divide-y divide-gray-200" }}>
+                <TableBody className="bg-white divide-y divide-gray-200">
                   {designations.map((designation) => (
-                    <TableRow key={designation.id} {...{ className: "hover:bg-green-50 transition-colors" }}>
-                      <TableCell {...{ className: "font-medium" }}>
+                    <TableRow key={designation.id} className="hover:bg-green-50 transition-colors">
+                      <TableCell className="font-medium">
                         {designation.name}
                       </TableCell>
-                      <TableCell {...{ className: "max-w-xs" }}>
-                        <div {...{ className: "truncate" }} title={designation.description}>
+                      <TableCell className="max-w-xs">
+                        <div className="truncate" title={designation.description}>
                           {designation.description || '-'}
                         </div>
                       </TableCell>
                       <TableCell>
                         {designation.departmentName ? (
-                          <div {...{ className: "flex items-center gap-1" }}>
-                            <Building2 {...{ className: "h-4 w-4 text-gray-600" }} />
+                          <div className="flex items-center gap-1">
+                            <Building2 className="h-4 w-4 text-gray-600" />
                             {designation.departmentName}
                           </div>
                         ) : (
-                          <span {...{ className: "text-gray-600" }}>All departments</span>
+                          <span className="text-gray-600">All departments</span>
                         )}
                       </TableCell>
                       <TableCell>
                         <Badge variant={designation.isActive ? 'default' : 'secondary'}>
                           {designation.isActive ? (
-                            <CheckCircle {...{ className: "h-3 w-3 mr-1" }} />
+                            <CheckCircle className="h-3 w-3 mr-1" />
                           ) : (
-                            <XCircle {...{ className: "h-3 w-3 mr-1" }} />
+                            <XCircle className="h-3 w-3 mr-1" />
                           )}
                           {designation.isActive ? 'Active' : 'Inactive'}
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <div {...{ className: "flex items-center gap-1 text-sm text-gray-600" }}>
-                          <Calendar {...{ className: "h-4 w-4" }} />
+                        <div className="flex items-center gap-1 text-sm text-gray-600">
+                          <Calendar className="h-4 w-4" />
                           {formatDate(designation.createdAt)}
                         </div>
                       </TableCell>
-                      <TableCell {...{ className: "text-right" }}>
-                        <div {...{ className: "flex items-center justify-end gap-2" }}>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-2">
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => onEdit(designation)}
                           >
-                            <Edit {...{ className: "h-4 w-4" }} />
+                            <Edit className="h-4 w-4" />
                           </Button>
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => handleDelete(designation)}
-                            {...{ className: "text-destructive hover:text-destructive" }}
+                            className="text-destructive hover:text-destructive"
                           >
-                            <Trash2 {...{ className: "h-4 w-4" }} />
+                            <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
                       </TableCell>
@@ -271,11 +271,11 @@ export function DesignationList({ onEdit }: DesignationListProps) {
 
           {/* Pagination Controls */}
           {designationsData?.pagination && (
-            <div {...{ className: "flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 px-6" }}>
-              <div {...{ className: "text-sm text-gray-600" }}>
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 px-6">
+              <div className="text-sm text-gray-600">
                 Showing {designationsData.data?.length || 0} of {designationsData.pagination.total} designations
               </div>
-              <div {...{ className: "flex items-center gap-2" }}>
+              <div className="flex items-center gap-2">
                 <Button
                   variant="outline"
                   size="sm"
@@ -284,7 +284,7 @@ export function DesignationList({ onEdit }: DesignationListProps) {
                 >
                   Previous
                 </Button>
-                <div {...{ className: "text-sm" }}>
+                <div className="text-sm">
                   Page {currentPage} of {designationsData.pagination.totalPages || 1}
                 </div>
                 <Button
@@ -315,7 +315,7 @@ export function DesignationList({ onEdit }: DesignationListProps) {
             <AlertDialogAction
               onClick={confirmDelete}
               disabled={deleteMutation.isPending}
-              {...{ className: "bg-destructive text-destructive-foreground hover:bg-destructive/90" }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
             </AlertDialogAction>

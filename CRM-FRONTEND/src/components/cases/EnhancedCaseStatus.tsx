@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/Card';
-import { Badge } from '@/ui/components/Badge';
-import { Button } from '@/ui/components/Button';
-import { Progress } from '@/ui/components/Progress';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/components/Tabs';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   CheckCircle,
   AlertCircle,
@@ -106,13 +106,13 @@ export const EnhancedCaseStatus: React.FC<EnhancedCaseStatusProps> = ({
   const getStepIcon = (status: string) => {
     switch (status) {
       case 'COMPLETED':
-        return <CheckCircle {...{ className: "h-4 w-4 text-green-500" }} />;
+        return <CheckCircle className="h-4 w-4 text-green-500" />;
       case 'FAILED':
-        return <AlertCircle {...{ className: "h-4 w-4 text-red-500" }} />;
+        return <AlertCircle className="h-4 w-4 text-red-500" />;
       case 'IN_PROGRESS':
-        return <div {...{ className: "h-4 w-4 border-2 border-green-500 border-t-transparent rounded-full animate-spin" }} />;
+        return <div className="h-4 w-4 border-2 border-green-500 border-t-transparent rounded-full animate-spin" />;
       default:
-        return <Clock {...{ className: "h-4 w-4 text-gray-600" }} />;
+        return <Clock className="h-4 w-4 text-gray-600" />;
     }
   };
 
@@ -134,30 +134,30 @@ export const EnhancedCaseStatus: React.FC<EnhancedCaseStatusProps> = ({
   return (
     <Card>
       <CardHeader>
-        <div {...{ className: "flex items-center justify-between" }}>
+        <div className="flex items-center justify-between">
           <div>
-            <CardTitle {...{ className: "flex items-center gap-2" }}>
-              <Activity {...{ className: "h-5 w-5" }} />
+            <CardTitle className="flex items-center gap-2">
+              <Activity className="h-5 w-5" />
               Case Status & Progress
             </CardTitle>
             <CardDescription>Real-time submission status and progress tracking</CardDescription>
           </div>
-          <div {...{ className: "flex items-center gap-2" }}>
-            <Badge {...{ className: getStatusColor(currentStatus) }}>
+          <div className="flex items-center gap-2">
+            <Badge className={getStatusColor(currentStatus)}>
               {currentStatus.replace('_', ' ')}
             </Badge>
             {isOnline ? (
-              <Wifi {...{ className: "h-4 w-4 text-green-500" }} />
+              <Wifi className="h-4 w-4 text-green-500" />
             ) : (
-              <WifiOff {...{ className: "h-4 w-4 text-red-500" }} />
+              <WifiOff className="h-4 w-4 text-red-500" />
             )}
           </div>
         </div>
       </CardHeader>
 
       <CardContent>
-        <Tabs defaultValue="status" {...{ className: "w-full" }}>
-          <TabsList {...{ className: "grid w-full grid-cols-4" }}>
+        <Tabs defaultValue="status" className="w-full">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="status">Status</TabsTrigger>
             <TabsTrigger value="progress">Progress</TabsTrigger>
             <TabsTrigger value="retry">Retry Queue</TabsTrigger>
@@ -165,26 +165,26 @@ export const EnhancedCaseStatus: React.FC<EnhancedCaseStatusProps> = ({
           </TabsList>
 
           {/* Status Tab */}
-          <TabsContent value="status" {...{ className: "space-y-4" }}>
-            <div {...{ className: "grid grid-cols-2 gap-4" }}>
-              <div {...{ className: "space-y-2" }}>
-                <h4 {...{ className: "text-sm font-medium" }}>Current Status</h4>
-                <Badge {...{ className: getStatusColor(currentStatus) }}>
+          <TabsContent value="status" className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <h4 className="text-sm font-medium">Current Status</h4>
+                <Badge className={getStatusColor(currentStatus)}>
                   {currentStatus.replace('_', ' ')}
                 </Badge>
               </div>
-              <div {...{ className: "space-y-2" }}>
-                <h4 {...{ className: "text-sm font-medium" }}>Network Status</h4>
-                <div {...{ className: "flex items-center gap-2" }}>
+              <div className="space-y-2">
+                <h4 className="text-sm font-medium">Network Status</h4>
+                <div className="flex items-center gap-2">
                   {isOnline ? (
                     <>
-                      <Wifi {...{ className: "h-4 w-4 text-green-500" }} />
-                      <span {...{ className: "text-sm text-green-600" }}>Online</span>
+                      <Wifi className="h-4 w-4 text-green-500" />
+                      <span className="text-sm text-green-600">Online</span>
                     </>
                   ) : (
                     <>
-                      <WifiOff {...{ className: "h-4 w-4 text-red-500" }} />
-                      <span {...{ className: "text-sm text-red-600" }}>Offline</span>
+                      <WifiOff className="h-4 w-4 text-red-500" />
+                      <span className="text-sm text-red-600">Offline</span>
                     </>
                   )}
                 </div>
@@ -193,43 +193,43 @@ export const EnhancedCaseStatus: React.FC<EnhancedCaseStatusProps> = ({
           </TabsContent>
 
           {/* Progress Tab */}
-          <TabsContent value="progress" {...{ className: "space-y-4" }}>
+          <TabsContent value="progress" className="space-y-4">
             {submissionProgress ? (
               <>
-                <div {...{ className: "space-y-2" }}>
-                  <div {...{ className: "flex items-center justify-between" }}>
-                    <h4 {...{ className: "text-sm font-medium" }}>Submission Progress</h4>
-                    <span {...{ className: "text-sm text-gray-600" }}>{submissionProgress.overallProgress}%</span>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-medium">Submission Progress</h4>
+                    <span className="text-sm text-gray-600">{submissionProgress.overallProgress}%</span>
                   </div>
-                  <Progress value={submissionProgress.overallProgress} {...{ className: "w-full" }} />
-                  <p {...{ className: "text-xs text-gray-600" }}>
+                  <Progress value={submissionProgress.overallProgress} className="w-full" />
+                  <p className="text-xs text-gray-600">
                     {submissionProgress.verificationType} verification for Case #{caseId}
                   </p>
                 </div>
 
                 {submissionProgress.estimatedTimeRemaining && (
-                  <div {...{ className: "text-sm text-gray-600" }}>
+                  <div className="text-sm text-gray-600">
                     Estimated time remaining: {formatTime(submissionProgress.estimatedTimeRemaining)}
                   </div>
                 )}
 
-                <div {...{ className: "space-y-3" }}>
-                  <h5 {...{ className: "text-sm font-medium" }}>Steps</h5>
+                <div className="space-y-3">
+                  <h5 className="text-sm font-medium">Steps</h5>
                   {submissionProgress.steps.map((step) => (
-                    <div key={step.id} {...{ className: "flex items-center gap-3" }}>
+                    <div key={step.id} className="flex items-center gap-3">
                       {getStepIcon(step.status)}
-                      <div {...{ className: "flex-1" }}>
-                        <div {...{ className: "flex items-center justify-between" }}>
-                          <span {...{ className: "text-sm" }}>{step.name}</span>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm">{step.name}</span>
                           {step.status === 'IN_PROGRESS' && (
-                            <span {...{ className: "text-xs text-gray-600" }}>{step.progress}%</span>
+                            <span className="text-xs text-gray-600">{step.progress}%</span>
                           )}
                         </div>
                         {step.status === 'IN_PROGRESS' && (
-                          <Progress value={step.progress} {...{ className: "w-full h-1 mt-1" }} />
+                          <Progress value={step.progress} className="w-full h-1 mt-1" />
                         )}
                         {step.error && (
-                          <p {...{ className: "text-xs text-red-600 mt-1" }}>{step.error}</p>
+                          <p className="text-xs text-red-600 mt-1">{step.error}</p>
                         )}
                       </div>
                     </div>
@@ -237,39 +237,39 @@ export const EnhancedCaseStatus: React.FC<EnhancedCaseStatusProps> = ({
                 </div>
               </>
             ) : (
-              <div {...{ className: "text-center py-8 text-gray-600" }}>
-                <FileText {...{ className: "h-8 w-8 mx-auto mb-2 opacity-50" }} />
+              <div className="text-center py-8 text-gray-600">
+                <FileText className="h-8 w-8 mx-auto mb-2 opacity-50" />
                 <p>No active submission progress</p>
               </div>
             )}
           </TabsContent>
 
           {/* Retry Queue Tab */}
-          <TabsContent value="retry" {...{ className: "space-y-4" }}>
+          <TabsContent value="retry" className="space-y-4">
             {retryQueueStatus && retryQueueStatus.totalRequests > 0 ? (
               <>
-                <div {...{ className: "grid grid-cols-3 gap-4 text-center" }}>
-                  <div {...{ className: "space-y-1" }}>
-                    <p {...{ className: "text-2xl font-bold text-yellow-600" }}>{retryQueueStatus.pending}</p>
-                    <p {...{ className: "text-xs text-gray-600" }}>Pending</p>
+                <div className="grid grid-cols-3 gap-4 text-center">
+                  <div className="space-y-1">
+                    <p className="text-2xl font-bold text-yellow-600">{retryQueueStatus.pending}</p>
+                    <p className="text-xs text-gray-600">Pending</p>
                   </div>
-                  <div {...{ className: "space-y-1" }}>
-                    <p {...{ className: "text-2xl font-bold text-green-600" }}>{retryQueueStatus.retrying}</p>
-                    <p {...{ className: "text-xs text-gray-600" }}>Retrying</p>
+                  <div className="space-y-1">
+                    <p className="text-2xl font-bold text-green-600">{retryQueueStatus.retrying}</p>
+                    <p className="text-xs text-gray-600">Retrying</p>
                   </div>
-                  <div {...{ className: "space-y-1" }}>
-                    <p {...{ className: "text-2xl font-bold text-red-600" }}>{retryQueueStatus.failed}</p>
-                    <p {...{ className: "text-xs text-gray-600" }}>Failed</p>
+                  <div className="space-y-1">
+                    <p className="text-2xl font-bold text-red-600">{retryQueueStatus.failed}</p>
+                    <p className="text-xs text-gray-600">Failed</p>
                   </div>
                 </div>
 
                 {submissionProgress?.retryInfo && (
-                  <div {...{ className: "bg-yellow-50 p-3 rounded-lg" }}>
-                    <div {...{ className: "flex items-center gap-2 mb-2" }}>
-                      <RotateCcw {...{ className: "h-4 w-4 text-yellow-600" }} />
-                      <span {...{ className: "text-sm font-medium text-orange-800" }}>Retry Information</span>
+                  <div className="bg-yellow-50 p-3 rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                      <RotateCcw className="h-4 w-4 text-yellow-600" />
+                      <span className="text-sm font-medium text-orange-800">Retry Information</span>
                     </div>
-                    <div {...{ className: "text-sm text-orange-700 space-y-1" }}>
+                    <div className="text-sm text-orange-700 space-y-1">
                       <p>Attempt {submissionProgress.retryInfo.attempts} of {submissionProgress.retryInfo.maxAttempts}</p>
                       {submissionProgress.retryInfo.nextRetryIn && (
                         <p>Next retry in: {formatTime(submissionProgress.retryInfo.nextRetryIn)}</p>
@@ -278,10 +278,10 @@ export const EnhancedCaseStatus: React.FC<EnhancedCaseStatusProps> = ({
                   </div>
                 )}
 
-                <div {...{ className: "flex gap-2" }}>
+                <div className="flex gap-2">
                   {onRetrySubmission && (
                     <Button onClick={onRetrySubmission} size="sm" variant="outline">
-                      <RotateCcw {...{ className: "h-4 w-4 mr-2" }} />
+                      <RotateCcw className="h-4 w-4 mr-2" />
                       Retry Now
                     </Button>
                   )}
@@ -293,53 +293,53 @@ export const EnhancedCaseStatus: React.FC<EnhancedCaseStatusProps> = ({
                 </div>
               </>
             ) : (
-              <div {...{ className: "text-center py-8 text-gray-600" }}>
-                <RotateCcw {...{ className: "h-8 w-8 mx-auto mb-2 opacity-50" }} />
+              <div className="text-center py-8 text-gray-600">
+                <RotateCcw className="h-8 w-8 mx-auto mb-2 opacity-50" />
                 <p>No pending retries</p>
               </div>
             )}
           </TabsContent>
 
           {/* Stats Tab */}
-          <TabsContent value="stats" {...{ className: "space-y-4" }}>
+          <TabsContent value="stats" className="space-y-4">
             {submissionProgress?.compressionStats ? (
-              <div {...{ className: "space-y-4" }}>
-                <div {...{ className: "grid grid-cols-2 gap-4" }}>
-                  <div {...{ className: "space-y-2" }}>
-                    <h4 {...{ className: "text-sm font-medium flex items-center gap-2" }}>
-                      <Zap {...{ className: "h-4 w-4" }} />
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-medium flex items-center gap-2">
+                      <Zap className="h-4 w-4" />
                       Data Compression
                     </h4>
-                    <div {...{ className: "space-y-1 text-sm" }}>
-                      <div {...{ className: "flex justify-between" }}>
+                    <div className="space-y-1 text-sm">
+                      <div className="flex justify-between">
                         <span>Original:</span>
                         <span>{formatBytes(submissionProgress.compressionStats.originalSize)}</span>
                       </div>
-                      <div {...{ className: "flex justify-between" }}>
+                      <div className="flex justify-between">
                         <span>Compressed:</span>
                         <span>{formatBytes(submissionProgress.compressionStats.compressedSize)}</span>
                       </div>
-                      <div {...{ className: "flex justify-between font-medium" }}>
+                      <div className="flex justify-between font-medium">
                         <span>Saved:</span>
-                        <span {...{ className: "text-green-600" }}>
+                        <span className="text-green-600">
                           {Math.round((1 - submissionProgress.compressionStats.compressionRatio) * 100)}%
                         </span>
                       </div>
                     </div>
                   </div>
 
-                  <div {...{ className: "space-y-2" }}>
-                    <h4 {...{ className: "text-sm font-medium flex items-center gap-2" }}>
-                      <TrendingUp {...{ className: "h-4 w-4" }} />
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-medium flex items-center gap-2">
+                      <TrendingUp className="h-4 w-4" />
                       Performance
                     </h4>
-                    <div {...{ className: "space-y-1 text-sm" }}>
-                      <div {...{ className: "flex justify-between" }}>
+                    <div className="space-y-1 text-sm">
+                      <div className="flex justify-between">
                         <span>Started:</span>
                         <span>{formatDistanceToNow(new Date(submissionProgress.startTime), { addSuffix: true })}</span>
                       </div>
                       {submissionProgress.endTime && (
-                        <div {...{ className: "flex justify-between" }}>
+                        <div className="flex justify-between">
                           <span>Completed:</span>
                           <span>{formatDistanceToNow(new Date(submissionProgress.endTime), { addSuffix: true })}</span>
                         </div>
@@ -349,8 +349,8 @@ export const EnhancedCaseStatus: React.FC<EnhancedCaseStatusProps> = ({
                 </div>
               </div>
             ) : (
-              <div {...{ className: "text-center py-8 text-gray-600" }}>
-                <Database {...{ className: "h-8 w-8 mx-auto mb-2 opacity-50" }} />
+              <div className="text-center py-8 text-gray-600">
+                <Database className="h-8 w-8 mx-auto mb-2 opacity-50" />
                 <p>No compression statistics available</p>
               </div>
             )}

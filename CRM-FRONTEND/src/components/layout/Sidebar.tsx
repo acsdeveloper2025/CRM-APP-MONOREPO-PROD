@@ -1,11 +1,163 @@
 import React from 'react';
-import { AppSidebar } from '@/ui/navigation/AppSidebar';
+import { Link, useLocation } from 'react-router-dom';
+import { ChevronDown, ChevronRight } from 'lucide-react';
+import { usePermissionContext } from '@/contexts/PermissionContext';
+import { navigationItems, type NavigationItem } from '@/constants/navigation';
+import { cn } from '@/lib/utils';
+import { useLayout } from '@/contexts/LayoutContextDefinition';
 
 interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = () => {
-  return <AppSidebar />;
+export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
+  const { hasPermissionCode } = usePermissionContext();
+  const { expandedMenus: expandedItems, toggleMenu: toggleExpanded, setExpandedMenus } = useLayout();
+  const location = useLocation();
+  
+  // Handle initial expansion on mount based on active route
+  React.useEffect(() => {
+    const initialExpanded: string[] = [];
+    navigationItems.forEach(item => {
+      // If parent has active children and isn't already expanded, add to list
+      if (item.children && item.children.some(child => isItemActive(child))) {
+        if (!expandedItems.includes(item.id)) {
+          initialExpanded.push(item.id);
+        }
+      }
+    });
+
+    if (initialExpanded.length > 0) {
+      setExpandedMenus([...expandedItems, ...initialExpanded]);
+    }
+    // Only run on mount to respect subsequent manual user toggles
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  
+
+
+  const isItemVisible = (item: NavigationItem): boolean => {
+    // For parent items with children, show parent when any child is visible
+    // (even if parent-level legacy permission differs from child-specific RBAC config).
+    if (item.children && item.children.length > 0) {
+      const anyChildVisible = item.children.some(child => isItemVisible(child));
+      if (anyChildVisible) {
+        return true;
+      }
+    }
+
+    if (item.permissionCode) {
+      return hasPermissionCode(item.permissionCode);
+    }
+
+    return true;
+  };
+
+  const isItemActive = (item: NavigationItem): boolean => {
+    // Direct match
+    if (location.pathname === item.href || location.pathname.startsWith(`${item.href  }/`)) {
+      return true;
+    }
+
+    // Check if any child is active (for parent items)
+    if (item.children && item.children.length > 0) {
+      return item.children.some(child =>
+        location.pathname === child.href || location.pathname.startsWith(`${child.href  }/`)
+      );
+    }
+
+    return false;
+  };
+
+  const renderNavigationItem = (item: NavigationItem, level = 0) => {
+    if (!isItemVisible(item)) {return null;}
+
+    const hasChildren = item.children && item.children.length > 0;
+    const isActive = isItemActive(item);
+
+    const isExpanded = expandedItems.includes(item.id);
+
+    return (
+      <div key={item.id}>
+        <div
+          className={cn(
+            'flex items-center px-3 sm:px-4 py-2.5 sm:py-2 text-sm font-medium rounded-lg transition-all duration-200 min-h-[44px] sm:min-h-[40px]',
+            level > 0 && 'ml-4 sm:ml-6 mr-2 border-l-2 border-gray-200 pl-3 sm:pl-4',
+            isActive
+              ? 'bg-green-100 text-green-800 border-l-4 border-green-600 shadow-sm'
+              : 'text-gray-700 hover:bg-green-50 hover:text-green-700 hover:shadow-sm'
+          )}
+        >
+          {hasChildren ? (
+            <button
+              onClick={() => toggleExpanded(item.id)}
+              className="flex items-center w-full text-left"
+            >
+              <item.icon className="mr-2 sm:mr-3 h-5 w-5 shrink-0" />
+              <span className="flex-1 truncate">{item.label}</span>
+              {isExpanded ? (
+                <ChevronDown className="h-4 w-4 shrink-0" />
+              ) : (
+                <ChevronRight className="h-4 w-4 shrink-0" />
+              )}
+            </button>
+          ) : (
+            <Link
+              to={item.href}
+              className="flex items-center w-full"
+              onClick={onClose}
+            >
+              <item.icon className="mr-2 sm:mr-3 h-5 w-5 shrink-0" />
+              <span className="truncate">{item.label}</span>
+            </Link>
+          )}
+        </div>
+
+        {hasChildren && isExpanded && (
+          <div className="mt-1 space-y-1">
+            {item.children?.map(child => renderNavigationItem(child, level + 1))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <>
+      {/* Mobile overlay */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm lg:hidden transition-opacity duration-300"
+          onClick={onClose}
+        />
+      )}
+
+      {/* Sidebar */}
+      <div
+        className={cn(
+          'fixed inset-y-0 left-0 z-50 w-64 sm:w-72 lg:w-64 bg-white shadow-lg border-r border-gray-200 transform transition-all duration-300 ease-in-out lg:translate-x-0',
+          isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+        )}
+      >
+        <div className="flex flex-col h-full">
+          {/* Logo */}
+          <div className="flex items-center justify-center h-16 px-4 border-b border-gray-200 bg-green-50">
+            <Link
+              to="/dashboard"
+              className="text-xl font-bold text-gray-900 hover:text-green-600 transition-colors duration-200"
+              onClick={onClose}
+            >
+              CRM Admin
+            </Link>
+          </div>
+
+          {/* Navigation */}
+          <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto bg-[#FAFAFA]">
+            {navigationItems.map(item => renderNavigationItem(item))}
+          </nav>
+        </div>
+      </div>
+    </>
+  );
 };

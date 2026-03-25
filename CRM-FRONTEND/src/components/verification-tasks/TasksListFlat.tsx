@@ -1,4 +1,7 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import {
   UserCheck,
   CheckCircle,
@@ -12,14 +15,22 @@ import {
   Copy,
   Edit
 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { format } from 'date-fns';
 import { VerificationTask, TaskStatus } from '@/types/verificationTask';
-import { Card } from '@/ui/components/Card';
-import { Button } from '@/ui/components/Button';
-import { Badge } from '@/ui/components/Badge';
-import { Stack } from '@/ui/primitives/Stack';
-import { Text } from '@/ui/primitives/Text';
-import { Skeleton } from '@/ui/components/Skeleton';
+import {
+  getTaskStatusBadgeStyle,
+  getTaskPriorityBadgeStyle,
+  getStatusLabel,
+} from '@/lib/badgeStyles';
+import { LoadingState } from '@/components/ui/loading';
 
 interface TasksListFlatProps {
   tasks: VerificationTask[];
@@ -40,8 +51,6 @@ export const TasksListFlat: React.FC<TasksListFlatProps> = ({
   onRevisitTask,
   onEditCase
 }) => {
-  const [density, setDensity] = useState<'comfortable' | 'compact'>('comfortable');
-
   const getStatusIcon = (status: TaskStatus) => {
     const icons = {
       PENDING: Clock,
@@ -55,72 +64,20 @@ export const TasksListFlat: React.FC<TasksListFlatProps> = ({
     return icons[status] || Clock;
   };
 
-  const getStatusVariant = (status: TaskStatus) => {
-    switch (status) {
-      case 'COMPLETED':
-        return 'status-completed' as const;
-      case 'IN_PROGRESS':
-        return 'status-progress' as const;
-      case 'REVOKED':
-        return 'status-revoked' as const;
-      default:
-        return 'status-pending' as const;
-    }
-  };
-
-  const getStatusDot = (status: TaskStatus) => {
-    switch (status) {
-      case 'COMPLETED':
-        return 'completed';
-      case 'IN_PROGRESS':
-        return 'progress';
-      case 'REVOKED':
-        return 'danger';
-      default:
-        return 'pending';
-    }
-  };
-
-  const getPriorityVariant = (priority: string) => {
-    switch (priority) {
-      case 'URGENT':
-        return 'danger' as const;
-      case 'HIGH':
-        return 'warning' as const;
-      case 'MEDIUM':
-        return 'accent' as const;
-      default:
-        return 'neutral' as const;
-    }
-  };
-
   if (loading) {
-    return (
-      <Card staticCard>
-        <Stack gap={3}>
-          {Array.from({ length: 6 }).map((_, index) => (
-            <Stack key={index} direction="horizontal" gap={3} align="center">
-              <Skeleton style={{ width: 120, height: 18, borderRadius: 999 }} />
-              <Skeleton style={{ width: '100%', height: 18, borderRadius: 12 }} />
-              <Skeleton style={{ width: 90, height: 18, borderRadius: 999 }} />
-            </Stack>
-          ))}
-        </Stack>
-      </Card>
-    );
+    return <LoadingState message="Fetching your tasks..." size="lg" />;
   }
 
   if (tasks.length === 0) {
     return (
-      <Card staticCard>
-        <div {...{ className: "ui-empty-state" }}>
-          <Clock size={36} />
-          <Text variant="headline">No tasks found</Text>
-          <Text variant="body-sm" tone="muted">
-            Try adjusting filters or search terms to surface the work you need.
-          </Text>
-          {onViewCase ? <Button variant="secondary">Refresh queue context</Button> : null}
-        </div>
+      <Card>
+        <CardContent className="py-12 text-center">
+          <Clock className="h-12 w-12 text-gray-600 mx-auto mb-4" />
+          <p className="text-lg font-medium text-gray-600">No tasks found</p>
+          <p className="text-sm text-gray-600 mt-1">
+            Try adjusting your filters or search criteria
+          </p>
+        </CardContent>
       </Card>
     );
   }
@@ -144,144 +101,210 @@ export const TasksListFlat: React.FC<TasksListFlatProps> = ({
   };
 
   return (
-    <div {...{ className: "ui-operational-table" }} data-density={density}>
-      <div {...{ className: "ui-operational-table__toolbar" }}>
-        <Stack gap={1}>
-          <Text as="h3" variant="title">Task queue</Text>
-          <Text variant="body-sm" tone="muted">Open details with one click and use row actions only when needed.</Text>
-        </Stack>
-        <Stack direction="horizontal" gap={2} align="center">
-          <Badge variant="neutral">{tasks.length} tasks</Badge>
-          <Button
-            variant={density === 'compact' ? 'primary' : 'secondary'}
-            onClick={() => setDensity((current) => (current === 'comfortable' ? 'compact' : 'comfortable'))}
-          >
-            {density === 'comfortable' ? 'Compact density' : 'Comfortable density'}
-          </Button>
-        </Stack>
-      </div>
-
-      <div {...{ className: "ui-operational-table__scroll" }}>
-        <table>
-          <thead>
+    <div className="space-y-4">
+      {/* Data Table */}
+      <div className="border rounded-lg overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-border">
+            <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
-                <th>Task</th>
-                <th>Case</th>
-                <th>Customer</th>
-                <th>Verification</th>
-                <th>Status</th>
-                <th>Priority</th>
-                <th>Assignment</th>
-                <th>Date</th>
-                <th>Actions</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  Task #
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  Case #
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  Customer
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  Task Title
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  Verification Type
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  Address
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  Status
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  Priority
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  Assigned To
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  Assigned By
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  Date
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  Time
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  Actions
+                </th>
               </tr>
-          </thead>
-          <tbody>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
               {tasks.map((task, _index) => {
                 const StatusIcon = getStatusIcon(task.status);
-                const highRisk = task.priority === 'URGENT' || task.status === 'REVOKED';
 
                 return (
-                  <tr
-                    key={task.id}
-                    {...{ className: "ui-operational-row" }}
-                    data-risk={highRisk}
-                    onClick={() => onViewTask?.(task.id)}
-                  >
-                    <td>
-                      <Stack gap={1}>
-                        <Badge variant="accent">
-                          <span {...{ className: "ui-status-dot" }} data-variant={getStatusDot(task.status)} data-pulse={task.priority === 'URGENT'} />
-                          {task.taskNumber}
-                        </Badge>
-                        <Text variant="body-sm">{task.taskTitle}</Text>
-                        {task.taskDescription ? <Text variant="caption" tone="muted">{task.taskDescription}</Text> : null}
-                      </Stack>
-                    </td>
-
-                    <td>
-                      <Stack gap={1}>
-                        <Text variant="body-sm">{task.caseNumber}</Text>
-                        <Text variant="caption" tone="muted">{task.address || '-'}</Text>
-                      </Stack>
-                    </td>
-
-                    <td>
-                      <Stack gap={1}>
-                        <Text variant="body-sm">{task.customerName}</Text>
-                        <Text variant="caption" tone="muted">{task.applicantType || 'Standard case'}</Text>
-                      </Stack>
-                    </td>
-
-                    <td>
-                      <Stack gap={1}>
-                        <Text variant="body-sm">{task.verificationTypeName || '-'}</Text>
-                        <Text variant="caption" tone="muted">{task.rateTypeName || 'Default rate'}</Text>
-                      </Stack>
-                    </td>
-
-                    <td>
-                      <Badge variant={getStatusVariant(task.status)}>
-                        <StatusIcon size={12} />
-                        {task.status.replace('_', ' ')}
+                  <tr key={task.id} className="hover:bg-green-50 transition-colors">
+                    {/* Task Number */}
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      <Badge className="bg-green-600 text-white hover:bg-green-700 uppercase font-medium text-xs">
+                        {task.taskNumber}
                       </Badge>
                     </td>
 
-                    <td>
-                      <Badge variant={getPriorityVariant(task.priority)}>
+                    {/* Case Number */}
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      <Button
+                        variant="link"
+                        size="sm"
+                        className="h-auto p-0 text-primary hover:underline font-medium"
+                        onClick={() => onViewCase?.(task.caseId)}
+                      >
+                        {task.caseNumber}
+                      </Button>
+                    </td>
+
+                    {/* Customer Name */}
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">
+                        {task.customerName}
+                      </div>
+                    </td>
+
+                    {/* Task Title */}
+                    <td className="px-4 py-4">
+                      <div className="max-w-[200px]">
+                        <div className="text-sm font-medium text-gray-900 truncate" title={task.taskTitle}>
+                          {task.taskTitle}
+                        </div>
+                        {task.taskDescription && (
+                          <div className="text-xs text-gray-600 truncate mt-1" title={task.taskDescription}>
+                            {task.taskDescription}
+                          </div>
+                        )}
+                      </div>
+                    </td>
+
+                    {/* Verification Type */}
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">
+                        {task.verificationTypeName || '-'}
+                      </div>
+                    </td>
+
+                    {/* Address */}
+                    <td className="px-4 py-4">
+                      <div className="text-sm text-gray-900 max-w-[200px] truncate" title={task.address}>
+                        {task.address || '-'}
+                      </div>
+                    </td>
+
+                    {/* Status */}
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      <Badge className={getTaskStatusBadgeStyle(task.status)}>
+                        <StatusIcon className="h-3 w-3 mr-1" />
+                        {getStatusLabel(task.status)}
+                      </Badge>
+                    </td>
+
+                    {/* Priority */}
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      <Badge className={getTaskPriorityBadgeStyle(task.priority)}>
                         {task.priority}
                       </Badge>
                     </td>
 
-                    <td>
-                      <Stack gap={1}>
-                        <Text variant="body-sm">{task.assignedToName || 'Unassigned'}</Text>
-                        <Text variant="caption" tone="muted">{task.assignedByName || 'System'}</Text>
-                      </Stack>
+                    {/* Assigned To */}
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      {task.assignedToName ? (
+                        <div className="text-sm text-gray-900">
+                          {task.assignedToName}
+                          {/* Employee ID not currently available in flattened response */}
+                        </div>
+                      ) : (
+                        <span className="text-sm text-yellow-600 font-medium">Unassigned</span>
+                      )}
                     </td>
 
-                    <td>
-                      <Stack gap={1}>
-                        <Text variant="body-sm">{task.assignedAt ? formatDate(task.assignedAt) : formatDate(task.createdAt)}</Text>
-                        <Text variant="caption" tone="muted">{task.assignedAt ? formatTime(task.assignedAt) : formatTime(task.createdAt)}</Text>
-                      </Stack>
-                    </td>
-
-                    <td onClick={(event) => event.stopPropagation()}>
-                      <div {...{ className: "ui-row-actions" }}>
-                        {onViewTask ? (
-                          <Button variant="secondary" icon={<Eye size={14} />} onClick={() => onViewTask(task.id)}>
-                            View
-                          </Button>
-                        ) : null}
-                        {onViewCase ? (
-                          <Button variant="ghost" icon={<ExternalLink size={14} />} onClick={() => onViewCase(task.caseId)}>
-                            Case
-                          </Button>
-                        ) : null}
-                        {!task.assignedTo && task.status === 'PENDING' ? (
-                          <Button variant="primary" icon={<UserCheck size={14} />} onClick={() => onAssignTask(task.id)}>
-                            Assign
-                          </Button>
-                        ) : null}
-                        {onEditCase ? (
-                          <Button variant="ghost" icon={<Edit size={14} />} onClick={() => onEditCase(task.caseId, task.id)}>
-                            Edit
-                          </Button>
-                        ) : null}
-                        {onRevisitTask && task.status === 'COMPLETED' ? (
-                          <Button variant="ghost" icon={<Copy size={14} />} onClick={() => onRevisitTask(task.id)}>
-                            Revisit
-                          </Button>
-                        ) : null}
+                    {/* Assigned By */}
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">
+                        {task.assignedByName || '-'}
                       </div>
+                    </td>
+
+                    {/* Date */}
+                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
+                      {task.assignedAt ? formatDate(task.assignedAt) : formatDate(task.createdAt)}
+                    </td>
+
+                    {/* Time */}
+                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
+                      {task.assignedAt ? formatTime(task.assignedAt) : formatTime(task.createdAt)}
+                    </td>
+
+                    {/* Actions */}
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          <DropdownMenuSeparator />
+                          {!task.assignedTo && task.status === 'PENDING' && (
+                            <DropdownMenuItem onClick={() => onAssignTask(task.id)}>
+                              <UserCheck className="h-4 w-4 mr-2" />
+                              Assign Task
+                            </DropdownMenuItem>
+                          )}
+                          {onViewTask && (
+                            <DropdownMenuItem onClick={() => onViewTask(task.id)}>
+                              <Eye className="h-4 w-4 mr-2" />
+                              View Details
+                            </DropdownMenuItem>
+                          )}
+                          {onViewCase && (
+                            <DropdownMenuItem onClick={() => onViewCase(task.caseId)}>
+                              <ExternalLink className="h-4 w-4 mr-2" />
+                              View Case
+                            </DropdownMenuItem>
+                          )}
+                          {onRevisitTask && task.status === 'COMPLETED' && (
+                            <DropdownMenuItem onClick={() => onRevisitTask(task.id)}>
+                              <Copy className="h-4 w-4 mr-2" />
+                              Revisit Task
+                            </DropdownMenuItem>
+                          )}
+                          {onEditCase && (
+                            <DropdownMenuItem onClick={() => onEditCase(task.caseId, task.id)}>
+                              <Edit className="mr-2 h-4 w-4" />
+                              Edit
+                            </DropdownMenuItem>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </td>
                   </tr>
                 );
               })}
-          </tbody>
-        </table>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
 };
+

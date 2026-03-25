@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Check, ChevronsUpDown, Search, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Button } from '@/ui/components/Button';
-import { Label } from '@/ui/components/Label';
-import { Badge } from '@/ui/components/Badge';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import {
   Command,
   CommandEmpty,
@@ -12,10 +12,15 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from '@/ui/components/Command';
-import { Popover, PopoverContent, PopoverTrigger } from '@/ui/components/Popover';
+} from '@/components/ui/command';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import { documentTypesService } from '@/services/documentTypes';
 import { type DocumentType, type DocumentCategory } from '@/types/documentType';
+
 interface DocumentTypeSelectorProps {
   selectedDocumentTypes: DocumentType[];
   onDocumentTypesChange: (documentTypes: DocumentType[]) => void;
@@ -27,6 +32,7 @@ interface DocumentTypeSelectorProps {
   required?: boolean;
   className?: string;
 }
+
 export const DocumentTypeSelector: React.FC<DocumentTypeSelectorProps> = ({
   selectedDocumentTypes,
   onDocumentTypesChange,
@@ -40,29 +46,31 @@ export const DocumentTypeSelector: React.FC<DocumentTypeSelectorProps> = ({
 }) => {
   const [open, setOpen] = useState(false);
   const [searchValue, setSearchValue] = useState('');
+
   // Fetch document types
   const { data: documentTypesResponse, isLoading } = useQuery({
     queryKey: ['document-types', { category }],
-    queryFn: () =>
-      documentTypesService.getDocumentTypes({
-        category,
-        limit: 100,
-        sortBy: 'name',
-        sortOrder: 'asc',
-      }),
+    queryFn: () => documentTypesService.getDocumentTypes({ 
+      category, 
+      limit: 100,
+      sortBy: 'name',
+      sortOrder: 'asc'
+    }),
   });
+
   const documentTypes = documentTypesResponse?.data || [];
+
   // Filter document types based on search
-  const filteredDocumentTypes = documentTypes.filter(
-    (dt) =>
-      dt.name.toLowerCase().includes(searchValue.toLowerCase()) ||
-      dt.code.toLowerCase().includes(searchValue.toLowerCase())
+  const filteredDocumentTypes = documentTypes.filter(dt =>
+    dt.name.toLowerCase().includes(searchValue.toLowerCase()) ||
+    dt.code.toLowerCase().includes(searchValue.toLowerCase())
   );
+
   const handleSelect = (documentType: DocumentType) => {
     if (multiple) {
-      const isSelected = selectedDocumentTypes.some((dt) => dt.id === documentType.id);
+      const isSelected = selectedDocumentTypes.some(dt => dt.id === documentType.id);
       if (isSelected) {
-        onDocumentTypesChange(selectedDocumentTypes.filter((dt) => dt.id !== documentType.id));
+        onDocumentTypesChange(selectedDocumentTypes.filter(dt => dt.id !== documentType.id));
       } else {
         onDocumentTypesChange([...selectedDocumentTypes, documentType]);
       }
@@ -71,12 +79,15 @@ export const DocumentTypeSelector: React.FC<DocumentTypeSelectorProps> = ({
       setOpen(false);
     }
   };
+
   const handleRemove = (documentTypeId: number) => {
-    onDocumentTypesChange(selectedDocumentTypes.filter((dt) => dt.id !== documentTypeId));
+    onDocumentTypesChange(selectedDocumentTypes.filter(dt => dt.id !== documentTypeId));
   };
+
   const isSelected = (documentType: DocumentType) => {
-    return selectedDocumentTypes.some((dt) => dt.id === documentType.id);
+    return selectedDocumentTypes.some(dt => dt.id === documentType.id);
   };
+
   const getDisplayValue = () => {
     if (selectedDocumentTypes.length === 0) {
       return placeholder;
@@ -86,32 +97,33 @@ export const DocumentTypeSelector: React.FC<DocumentTypeSelectorProps> = ({
     }
     return selectedDocumentTypes[0]?.name || placeholder;
   };
+
   return (
-    <div {...{ className: cn('space-y-2', className) }}>
+    <div className={cn('space-y-2', className)}>
       {label && (
-        <Label {...{ className: 'text-sm font-medium' }}>
+        <Label className="text-sm font-medium">
           {label}
-          {required && <span {...{ className: 'text-red-500 ml-1' }}>*</span>}
+          {required && <span className="text-red-500 ml-1">*</span>}
         </Label>
       )}
 
       {/* Selected Document Types Display */}
       {multiple && selectedDocumentTypes.length > 0 && (
-        <div {...{ className: 'flex flex-wrap gap-2 p-2 border rounded-md bg-gray-50' }}>
+        <div className="flex flex-wrap gap-2 p-2 border rounded-md bg-gray-50">
           {selectedDocumentTypes.map((dt) => (
             <Badge
               key={dt.id}
               variant="secondary"
-              {...{ className: 'flex items-center gap-1 px-2 py-1' }}
+              className="flex items-center gap-1 px-2 py-1"
             >
-              <span {...{ className: 'text-xs' }}>{dt.name}</span>
+              <span className="text-xs">{dt.name}</span>
               {!disabled && (
                 <button
                   type="button"
                   onClick={() => handleRemove(dt.id)}
-                  {...{ className: 'ml-1 hover:bg-gray-200 rounded-full p-0.5' }}
+                  className="ml-1 hover:bg-gray-200 rounded-full p-0.5"
                 >
-                  <X {...{ className: 'h-3 w-3' }} />
+                  <X className="h-3 w-3" />
                 </button>
               )}
             </Badge>
@@ -126,35 +138,30 @@ export const DocumentTypeSelector: React.FC<DocumentTypeSelectorProps> = ({
             variant="outline"
             role="combobox"
             aria-expanded={open}
-            {...{
-              className: cn(
-                'w-full justify-between',
-                !selectedDocumentTypes.length && 'text-gray-600'
-              ),
-            }}
+            className={cn(
+              'w-full justify-between',
+              !selectedDocumentTypes.length && 'text-gray-600'
+            )}
             disabled={disabled}
           >
             {getDisplayValue()}
-            <ChevronsUpDown {...{ className: 'ml-2 h-4 w-4 shrink-0 opacity-50' }} />
+            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent {...{ className: 'w-full p-0' }} align="start">
+        <PopoverContent className="w-full p-0" align="start">
           <Command>
-            <div {...{ className: 'flex items-center border-b px-3' }}>
-              <Search {...{ className: 'mr-2 h-4 w-4 shrink-0 opacity-50' }} />
+            <div className="flex items-center border-b px-3">
+              <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
               <CommandInput
                 placeholder="Search document types..."
                 value={searchValue}
                 onValueChange={setSearchValue}
-                {...{
-                  className:
-                    'flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-gray-600 disabled:cursor-not-allowed disabled:opacity-50',
-                }}
+                className="flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-gray-600 disabled:cursor-not-allowed disabled:opacity-50"
               />
             </div>
-            <CommandList {...{ className: 'max-h-[300px] overflow-y-auto' }}>
+            <CommandList className="max-h-[300px] overflow-y-auto">
               {isLoading ? (
-                <div {...{ className: 'p-4 text-center text-sm text-gray-600' }}>
+                <div className="p-4 text-center text-sm text-gray-600">
                   Loading document types...
                 </div>
               ) : filteredDocumentTypes.length === 0 ? (
@@ -162,32 +169,28 @@ export const DocumentTypeSelector: React.FC<DocumentTypeSelectorProps> = ({
               ) : (
                 <CommandGroup heading="Document Types">
                   {filteredDocumentTypes.map((documentType) => (
-                    <CommandItem
-                      key={documentType.id}
-                      value={`${documentType.name} ${documentType.code}`}
-                      onSelect={() => handleSelect(documentType)}
-                      {...{ className: 'flex items-center justify-between' }}
-                    >
-                      <div {...{ className: 'flex items-center space-x-2' }}>
-                        <div {...{ className: 'flex items-center space-x-2' }}>
-                          <Check
-                            {...{
-                              className: cn(
+                      <CommandItem
+                        key={documentType.id}
+                        value={`${documentType.name} ${documentType.code}`}
+                        onSelect={() => handleSelect(documentType)}
+                        className="flex items-center justify-between"
+                      >
+                        <div className="flex items-center space-x-2">
+                          <div className="flex items-center space-x-2">
+                            <Check
+                              className={cn(
                                 'mr-2 h-4 w-4',
                                 isSelected(documentType) ? 'opacity-100' : 'opacity-0'
-                              ),
-                            }}
-                          />
-                          <div>
-                            <div {...{ className: 'font-medium' }}>{documentType.name}</div>
-                            <div {...{ className: 'text-xs text-gray-600' }}>
-                              {documentType.code}
+                              )}
+                            />
+                            <div>
+                              <div className="font-medium">{documentType.name}</div>
+                              <div className="text-xs text-gray-600">{documentType.code}</div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                    </CommandItem>
-                  ))}
+                      </CommandItem>
+                    ))}
                 </CommandGroup>
               )}
             </CommandList>
@@ -197,11 +200,12 @@ export const DocumentTypeSelector: React.FC<DocumentTypeSelectorProps> = ({
 
       {/* Help Text */}
       {multiple && (
-        <p {...{ className: 'text-xs text-gray-600' }}>
+        <p className="text-xs text-gray-600">
           Select multiple document types that are applicable for this client.
         </p>
       )}
     </div>
   );
 };
+
 export default DocumentTypeSelector;

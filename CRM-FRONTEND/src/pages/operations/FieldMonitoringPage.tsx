@@ -1,39 +1,51 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import { ArrowLeft, MapPin, RefreshCw, Table2 } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import {
+  Activity,
+  ArrowLeft,
+  Eye,
+  Navigation,
+  Radio,
+  RefreshCw,
+  UserCheck,
+} from 'lucide-react';
 import { format } from 'date-fns';
 import { useNavigate, useParams } from 'react-router-dom';
-import { GoogleMarkerMap, type GoogleMarkerMapItem } from '@/components/maps/GoogleMarkerMap';
-import { FieldMonitoringDetailCards } from '@/components/operations/FieldMonitoringDetailCards';
-import { FieldMonitoringRosterTable } from '@/components/operations/FieldMonitoringRosterTable';
-import { FieldMonitoringSummaryCards } from '@/components/operations/FieldMonitoringSummaryCards';
-import { LoadingState } from '@/ui/components/Loading';
+import { StatsCard } from '@/components/dashboard/StatsCard';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { LoadingState } from '@/components/ui/loading';
 import {
   UnifiedSearchFilterLayout,
   FilterGrid,
-} from '@/ui/components/UnifiedSearchFilterLayout';
-import { Label } from '@/ui/components/Label';
+} from '@/components/ui/unified-search-filter-layout';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/ui/components/Select';
-import { useUnifiedFilters, useUnifiedSearch } from '@/hooks/useUnifiedSearch';
+} from '@/components/ui/select';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useUnifiedSearch, useUnifiedFilters } from '@/hooks/useUnifiedSearch';
 import { useAreas } from '@/hooks/useAreas';
 import { usePincodes } from '@/hooks/useLocations';
+import { GoogleMarkerMap, type GoogleMarkerMapItem } from '@/components/maps/GoogleMarkerMap';
 import {
   fieldMonitoringService,
   type FieldMonitoringLiveStatus,
   type FieldMonitoringRosterItem,
 } from '@/services/fieldMonitoring';
-import { Button } from '@/ui/components/Button';
-import { Card } from '@/ui/components/Card';
-import { Page } from '@/ui/layout/Page';
-import { Section } from '@/ui/layout/Section';
-import { Stack } from '@/ui/primitives/Stack';
-import { Text } from '@/ui/primitives/Text';
 
 const REFRESH_INTERVAL = 30_000;
 const PAGE_SIZE = 20;
@@ -129,33 +141,6 @@ const createMarkerInfoWindowContent = (user: FieldMonitoringRosterItem): string 
   `;
 };
 
-function ViewToggle({
-  activeView,
-  onChange,
-}: {
-  activeView: 'table' | 'map';
-  onChange: (value: 'table' | 'map') => void;
-}) {
-  return (
-    <Stack direction="horizontal" gap={2}>
-      <Button
-        variant={activeView === 'table' ? 'primary' : 'secondary'}
-        icon={<Table2 size={16} />}
-        onClick={() => onChange('table')}
-      >
-        Table View
-      </Button>
-      <Button
-        variant={activeView === 'map' ? 'primary' : 'secondary'}
-        icon={<MapPin size={16} />}
-        onClick={() => onChange('map')}
-      >
-        Map View
-      </Button>
-    </Stack>
-  );
-}
-
 function FieldMonitoringDetailView({ userId }: { userId: string }) {
   const navigate = useNavigate();
 
@@ -169,37 +154,155 @@ function FieldMonitoringDetailView({ userId }: { userId: string }) {
   const detail = detailResponse?.data;
 
   return (
-    <Page
-      shell
-      title="Field Executive Detail"
-      subtitle="Current operational snapshot and recent field activity."
-      actions={
-        <Button variant="secondary" icon={<ArrowLeft size={16} />} onClick={() => navigate('/operations/field-monitoring')}>
-          Back
-        </Button>
-      }
-    >
-      <Section>
-        {detailLoading ? (
-          <div className="flex min-h-[320px] items-center justify-center">
-            <LoadingState message="Loading executive details..." size="lg" />
+    <div className="space-y-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            onClick={() => navigate('/operations/field-monitoring')}
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back
+          </Button>
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Field Executive Detail</h1>
+            <p className="text-gray-600">Current operational snapshot and recent field activity</p>
           </div>
-        ) : !detail ? (
-          <Card staticCard>
-            <div className="flex min-h-[240px] items-center justify-center">
-              <Text variant="body-sm" tone="muted">No monitoring detail available for this user.</Text>
-            </div>
+        </div>
+      </div>
+
+      {detailLoading ? (
+        <div className="flex min-h-[320px] items-center justify-center">
+          <LoadingState message="Loading executive details..." size="lg" />
+        </div>
+      ) : !detail ? (
+        <Card>
+          <CardContent className="flex min-h-[240px] items-center justify-center">
+            <p className="text-sm text-gray-600">No monitoring detail available for this user.</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <>
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900">{detail.user.name}</h2>
+                  <p className="text-sm text-gray-600">
+                    {getMobileDisplay({
+                      phone: detail.user.phone,
+                      employeeId: detail.user.employeeId,
+                      username: detail.user.username,
+                    })}{' '}
+                    · {detail.user.email || detail.user.username}
+                  </p>
+                </div>
+                <Badge variant="outline" className={statusBadgeClassNames[detail.liveStatus]}>
+                  {detail.liveStatus}
+                </Badge>
+              </div>
+            </CardContent>
           </Card>
-        ) : (
-          <FieldMonitoringDetailCards
-            detail={detail}
-            formatTimestamp={formatTimestamp}
-            getMobileDisplay={getMobileDisplay}
-            statusBadgeClassNames={statusBadgeClassNames}
-          />
-        )}
-      </Section>
-    </Page>
+
+          <div className="grid gap-6 xl:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Last Known Location</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm text-gray-700">
+                <p>Latitude: {detail.lastKnownLocation?.lat ?? '-'}</p>
+                <p>Longitude: {detail.lastKnownLocation?.lng ?? '-'}</p>
+                <p>
+                  Recorded At:{' '}
+                  {formatTimestamp(detail.lastKnownLocation?.recordedAt || detail.activity.lastHeartbeatAt)}
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Activity Timeline</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm text-gray-700">
+                <p>Last Heartbeat: {formatTimestamp(detail.activity.lastHeartbeatAt)}</p>
+                <p>Last Task Activity: {formatTimestamp(detail.activity.lastTaskActivityAt)}</p>
+                <p>
+                  Last Location:{' '}
+                  {formatTimestamp(detail.activity.lastLocationAt || detail.activity.lastHeartbeatAt)}
+                </p>
+                <p>Last Submission: {formatTimestamp(detail.activity.lastSubmissionAt)}</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Operating Territory</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm text-gray-700">
+                <p>Current Area: {detail.operatingTerritory.currentArea.name || '-'}</p>
+                <p>Current Pincode: {detail.operatingTerritory.currentOperatingPincode || '-'}</p>
+                <p>
+                  Assigned Areas:{' '}
+                  {detail.operatingTerritory.assignedTerritory.areas.length > 0
+                    ? detail.operatingTerritory.assignedTerritory.areas
+                        .map(area => `${area.areaName} (${area.pincodeCode})`)
+                        .join(', ')
+                    : '-'}
+                </p>
+                <p>
+                  Assigned Pincodes:{' '}
+                  {detail.operatingTerritory.assignedTerritory.pincodes.length > 0
+                    ? detail.operatingTerritory.assignedTerritory.pincodes
+                        .map(pincode => pincode.pincodeCode)
+                        .join(', ')
+                    : '-'}
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Open Assignments</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {detail.openAssignments.length === 0 ? (
+                  <p className="text-sm text-gray-600">No open assignments.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {detail.openAssignments.map(assignment => (
+                      <div
+                        key={assignment.task.id}
+                        className="rounded-lg border border-gray-200 p-3"
+                      >
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                          <div>
+                            <p className="font-medium text-gray-900">
+                              Task {assignment.task.taskNumber}
+                            </p>
+                            <p className="text-sm text-gray-600">
+                              Case #{assignment.case.caseNumber} · {assignment.case.customerName}
+                            </p>
+                          </div>
+                          <Badge variant="outline">{assignment.task.status}</Badge>
+                        </div>
+                        <div className="mt-2 grid gap-2 text-sm text-gray-700 sm:grid-cols-2">
+                          <p>Priority: {assignment.task.priority || '-'}</p>
+                          <p>Pincode: {assignment.task.pincode || '-'}</p>
+                          <p>Assigned At: {formatTimestamp(assignment.task.assignedAt)}</p>
+                          <p>Started At: {formatTimestamp(assignment.task.startedAt)}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </>
+      )}
+    </div>
   );
 }
 
@@ -207,7 +310,6 @@ function FieldMonitoringRosterView() {
   const navigate = useNavigate();
   const [page, setPage] = useState(1);
   const [activeView, setActiveView] = useState<'table' | 'map'>('table');
-
   const search = useUnifiedSearch({
     debounceDelay: 500,
     syncWithUrl: true,
@@ -219,7 +321,12 @@ function FieldMonitoringRosterView() {
 
   useEffect(() => {
     setPage(1);
-  }, [search.debouncedSearchValue, filters.filters.pincode, filters.filters.areaId, filters.filters.status]);
+  }, [
+    search.debouncedSearchValue,
+    filters.filters.pincode,
+    filters.filters.areaId,
+    filters.filters.status,
+  ]);
 
   const {
     data: statsResponse,
@@ -230,21 +337,17 @@ function FieldMonitoringRosterView() {
     queryFn: () => fieldMonitoringService.getMonitoringStats(),
     staleTime: REFRESH_INTERVAL,
     refetchInterval: REFRESH_INTERVAL,
-    placeholderData: keepPreviousData,
   });
 
   const { data: pincodesResponse } = usePincodes({ limit: 500 });
   const { data: areasResponse } = useAreas();
 
-  const commonRosterFilters = useMemo(
-    () => ({
-      search: search.debouncedSearchValue || undefined,
-      pincode: filters.filters.pincode || undefined,
-      areaId: filters.filters.areaId ? Number(filters.filters.areaId) : undefined,
-      status: filters.filters.status || undefined,
-    }),
-    [filters.filters.areaId, filters.filters.pincode, filters.filters.status, search.debouncedSearchValue]
-  );
+  const commonRosterFilters = {
+    search: search.debouncedSearchValue || undefined,
+    pincode: filters.filters.pincode || undefined,
+    areaId: filters.filters.areaId ? Number(filters.filters.areaId) : undefined,
+    status: filters.filters.status || undefined,
+  };
 
   const {
     data: rosterResponse,
@@ -259,9 +362,8 @@ function FieldMonitoringRosterView() {
         ...commonRosterFilters,
       }),
     staleTime: REFRESH_INTERVAL,
-    refetchInterval: activeView === 'table' ? REFRESH_INTERVAL : false,
+    refetchInterval: REFRESH_INTERVAL,
     enabled: activeView === 'table',
-    placeholderData: keepPreviousData,
   });
 
   const {
@@ -279,7 +381,6 @@ function FieldMonitoringRosterView() {
     staleTime: REFRESH_INTERVAL,
     refetchInterval: activeView === 'map' ? REFRESH_INTERVAL : false,
     enabled: activeView === 'map',
-    placeholderData: keepPreviousData,
   });
 
   const stats = statsResponse?.data || {
@@ -303,11 +404,11 @@ function FieldMonitoringRosterView() {
     () =>
       mapRoster
         .filter(
-          (user) =>
+          user =>
             typeof user.lastLocation?.lat === 'number' &&
             typeof user.lastLocation?.lng === 'number'
         )
-        .map((user) => ({
+        .map(user => ({
           id: user.id,
           title: user.name,
           lat: user.lastLocation?.lat as number,
@@ -321,7 +422,11 @@ function FieldMonitoringRosterView() {
   const pincodeOptions = pincodesResponse?.data || [];
   const areaOptions = areasResponse?.data || [];
 
-  const activeFilterCount = [filters.filters.pincode, filters.filters.areaId, filters.filters.status].filter(Boolean).length;
+  const activeFilterCount = [
+    filters.filters.pincode,
+    filters.filters.areaId,
+    filters.filters.status,
+  ].filter(Boolean).length;
 
   const handleRefresh = () => {
     void refetchStats();
@@ -333,179 +438,281 @@ function FieldMonitoringRosterView() {
   };
 
   return (
-    <Page
-      shell
-      title="Field Executive Monitoring"
-      subtitle="Monitor field activity, territory coverage, and live operational status."
-      actions={
-        <Button variant="secondary" icon={<RefreshCw size={16} />} onClick={handleRefresh}>
+    <div className="space-y-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+            Field Executive Monitoring
+          </h1>
+          <p className="text-gray-600">
+            Monitor field activity, territory coverage, and live operational status
+          </p>
+        </div>
+        <Button variant="outline" className="gap-2" onClick={handleRefresh}>
+          <RefreshCw className="h-4 w-4" />
           Refresh
         </Button>
-      }
-    >
-      <Section>
-        <FieldMonitoringSummaryCards stats={stats} />
-      </Section>
+      </div>
 
-      <Section>
-        <Card tone="strong" staticCard>
-          <Stack gap={4}>
-            <Stack gap={1}>
-              <Text as="h2" variant="headline">Field executive roster</Text>
-              <Text variant="body-sm" tone="muted">
-                Search field executives, filter by territory, and review live work status.
-              </Text>
-            </Stack>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatsCard
+          title="Total Field Users"
+          value={stats.totalFieldUsers}
+          description="Eligible field executives"
+          icon={UserCheck}
+          color="text-green-600"
+        />
+        <StatsCard
+          title="Active Today"
+          value={stats.activeToday}
+          description="Operational activity today"
+          icon={Activity}
+          color="text-blue-600"
+        />
+        <StatsCard
+          title="Active Now"
+          value={stats.activeNow}
+          description="Fresh activity in last 15 minutes"
+          icon={Radio}
+          color="text-amber-600"
+        />
+        <StatsCard
+          title="Offline"
+          value={stats.offlineCount}
+          description="No recent heartbeat"
+          icon={Navigation}
+          color="text-red-600"
+        />
+      </div>
 
-            <UnifiedSearchFilterLayout
-              searchValue={search.searchValue}
-              onSearchChange={search.setSearchValue}
-              onSearchClear={search.clearSearch}
-              isSearchLoading={search.isDebouncing}
-              searchPlaceholder="Search by executive name or mobile number..."
-              hasActiveFilters={activeFilterCount > 0}
-              activeFilterCount={activeFilterCount}
-              onClearFilters={filters.clearFilters}
-              filterContent={
-                <FilterGrid columns={3}>
-                  <div className="space-y-2">
-                    <Label htmlFor="field-monitoring-pincode">Pincode</Label>
-                    <Select
-                      value={filters.filters.pincode || 'all'}
-                      onValueChange={(value) => {
-                        filters.setFilter('pincode', value === 'all' ? undefined : value);
-                      }}
-                    >
-                      <SelectTrigger id="field-monitoring-pincode">
-                        <SelectValue placeholder="All pincodes" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All pincodes</SelectItem>
-                        {pincodeOptions.map((pincode) => (
-                          <SelectItem key={String(pincode.id)} value={pincode.code}>
-                            {pincode.code}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Field Executive Roster</CardTitle>
+          <CardDescription>
+            Search field executives, filter by territory, and review live work status
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4 p-4 sm:p-6">
+          <UnifiedSearchFilterLayout
+            searchValue={search.searchValue}
+            onSearchChange={search.setSearchValue}
+            onSearchClear={search.clearSearch}
+            isSearchLoading={search.isDebouncing}
+            searchPlaceholder="Search by executive name or mobile number..."
+            hasActiveFilters={activeFilterCount > 0}
+            activeFilterCount={activeFilterCount}
+            onClearFilters={filters.clearFilters}
+            filterContent={
+              <FilterGrid columns={3}>
+                <div className="space-y-2">
+                  <Label htmlFor="field-monitoring-pincode">Pincode</Label>
+                  <Select
+                    value={filters.filters.pincode || 'all'}
+                    onValueChange={value => {
+                      filters.setFilter('pincode', value === 'all' ? undefined : value);
+                    }}
+                  >
+                    <SelectTrigger id="field-monitoring-pincode">
+                      <SelectValue placeholder="All pincodes" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All pincodes</SelectItem>
+                      {pincodeOptions.map(pincode => (
+                        <SelectItem key={String(pincode.id)} value={pincode.code}>
+                          {pincode.code}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="field-monitoring-area">Area</Label>
-                    <Select
-                      value={filters.filters.areaId || 'all'}
-                      onValueChange={(value) => {
-                        filters.setFilter('areaId', value === 'all' ? undefined : value);
-                      }}
-                    >
-                      <SelectTrigger id="field-monitoring-area">
-                        <SelectValue placeholder="All areas" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All areas</SelectItem>
-                        {areaOptions.map((area) => (
-                          <SelectItem key={String(area.id)} value={String(area.id)}>
-                            {area.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="field-monitoring-area">Area</Label>
+                  <Select
+                    value={filters.filters.areaId || 'all'}
+                    onValueChange={value => {
+                      filters.setFilter('areaId', value === 'all' ? undefined : value);
+                    }}
+                  >
+                    <SelectTrigger id="field-monitoring-area">
+                      <SelectValue placeholder="All areas" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All areas</SelectItem>
+                      {areaOptions.map(area => (
+                        <SelectItem key={String(area.id)} value={String(area.id)}>
+                          {area.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="field-monitoring-status">Status</Label>
-                    <Select
-                      value={filters.filters.status || 'all'}
-                      onValueChange={(value) => {
-                        filters.setFilter('status', value === 'all' ? undefined : (value as FieldMonitoringLiveStatus));
-                      }}
-                    >
-                      <SelectTrigger id="field-monitoring-status">
-                        <SelectValue placeholder="All statuses" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All statuses</SelectItem>
-                        {STATUS_OPTIONS.map((status) => (
-                          <SelectItem key={status} value={status}>
-                            {status}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </FilterGrid>
-              }
-              actions={<ViewToggle activeView={activeView} onChange={setActiveView} />}
-            />
+                <div className="space-y-2">
+                  <Label htmlFor="field-monitoring-status">Status</Label>
+                  <Select
+                    value={filters.filters.status || 'all'}
+                    onValueChange={value => {
+                      filters.setFilter(
+                        'status',
+                        value === 'all' ? undefined : (value as FieldMonitoringLiveStatus)
+                      );
+                    }}
+                  >
+                    <SelectTrigger id="field-monitoring-status">
+                      <SelectValue placeholder="All statuses" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All statuses</SelectItem>
+                      {STATUS_OPTIONS.map(status => (
+                        <SelectItem key={status} value={status}>
+                          {status}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </FilterGrid>
+            }
+          />
 
-            {activeView === 'table' ? (
-              rosterLoading && !rosterResponse ? (
+          <Tabs
+            value={activeView}
+            onValueChange={value => setActiveView(value as 'table' | 'map')}
+            className="space-y-4"
+          >
+            <TabsList className="grid w-full max-w-sm grid-cols-2">
+              <TabsTrigger value="table">Table View</TabsTrigger>
+              <TabsTrigger value="map">Map View</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="table" className="space-y-4">
+              {rosterLoading && !rosterResponse ? (
                 <div className="flex min-h-[320px] items-center justify-center">
                   <LoadingState message="Loading field monitoring roster..." size="lg" />
                 </div>
               ) : roster.length === 0 ? (
                 <div className="flex min-h-[240px] items-center justify-center rounded-lg border border-dashed border-gray-300 bg-gray-50">
-                  <p className="text-sm text-gray-600">No field executives matched the current filters.</p>
+                  <p className="text-sm text-gray-600">
+                    No field executives matched the current filters.
+                  </p>
                 </div>
               ) : (
-                <Stack gap={4}>
-                  <FieldMonitoringRosterTable
-                    roster={roster}
-                    onView={(userId) => navigate(`/operations/field-monitoring/${userId}`)}
-                    formatTimestamp={formatTimestamp}
-                    getLastLocationDisplayTime={getLastLocationDisplayTime}
-                    getMobileDisplay={getMobileDisplay}
-                    statusBadgeClassNames={statusBadgeClassNames}
-                  />
+                <>
+                  <div className="rounded-lg border border-gray-200">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Mobile</TableHead>
+                          <TableHead>Live Status</TableHead>
+                          <TableHead>Operating Area</TableHead>
+                          <TableHead>Operating Pincode</TableHead>
+                          <TableHead>Last Activity Time</TableHead>
+                          <TableHead>Last Location Time</TableHead>
+                          <TableHead>Active Assignments</TableHead>
+                          <TableHead className="text-right">Action</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {roster.map(user => (
+                          <TableRow key={user.id}>
+                            <TableCell>
+                              <div className="space-y-1">
+                                <div className="font-medium">{user.name}</div>
+                                {user.currentCaseSummary && (
+                                  <div className="text-xs text-gray-500">
+                                    Case #{user.currentCaseSummary.caseNumber} ·{' '}
+                                    {user.currentCaseSummary.customerName}
+                                  </div>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell>{getMobileDisplay(user)}</TableCell>
+                            <TableCell>
+                              <Badge
+                                variant="outline"
+                                className={statusBadgeClassNames[user.liveStatus]}
+                              >
+                                {user.liveStatus}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>{user.operatingArea || '-'}</TableCell>
+                            <TableCell>{user.operatingPincode || '-'}</TableCell>
+                            <TableCell>{formatTimestamp(user.lastActivityAt)}</TableCell>
+                            <TableCell>{getLastLocationDisplayTime(user)}</TableCell>
+                            <TableCell>{user.activeAssignmentCount}</TableCell>
+                            <TableCell className="text-right">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="gap-2"
+                                onClick={() => navigate(`/operations/field-monitoring/${user.id}`)}
+                              >
+                                <Eye className="h-4 w-4" />
+                                View
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
 
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <Text variant="body-sm" tone="muted">
+                    <p className="text-sm text-gray-600">
                       Showing {roster.length} of {pagination.total} field executives
-                    </Text>
-                    <Stack direction="horizontal" gap={2} align="center">
+                    </p>
+                    <div className="flex items-center gap-2">
                       <Button
-                        variant="secondary"
-                        onClick={() => setPage((current) => Math.max(1, current - 1))}
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPage(current => Math.max(1, current - 1))}
                         disabled={page <= 1}
                       >
                         Previous
                       </Button>
-                      <Text variant="body-sm" tone="muted">
+                      <span className="text-sm text-gray-600">
                         Page {pagination.page} of {Math.max(pagination.totalPages, 1)}
-                      </Text>
+                      </span>
                       <Button
-                        variant="secondary"
-                        onClick={() => setPage((current) => current + 1)}
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPage(current => current + 1)}
                         disabled={page >= pagination.totalPages}
                       >
                         Next
                       </Button>
-                    </Stack>
+                    </div>
                   </div>
-                </Stack>
-              )
-            ) : mapRosterLoading && !mapRosterResponse ? (
-              <div className="flex min-h-[520px] items-center justify-center">
-                <LoadingState message="Loading field locations..." size="lg" />
-              </div>
-            ) : (
-              <GoogleMarkerMap
-                items={mapMarkers}
-                emptyTitle="No mappable field executives"
-                emptyDescription="No valid last known coordinates available for the current filters."
-                markerSummary={`Showing ${mapMarkers.length} field executives with valid last known coordinates.`}
-              />
-            )}
-          </Stack>
-        </Card>
-      </Section>
+                </>
+              )}
+            </TabsContent>
 
-      {statsLoading && !statsResponse ? (
+            <TabsContent value="map" className="space-y-4">
+              {mapRosterLoading && !mapRosterResponse ? (
+                <div className="flex min-h-[520px] items-center justify-center">
+                  <LoadingState message="Loading field locations..." size="lg" />
+                </div>
+              ) : (
+                <GoogleMarkerMap
+                  items={mapMarkers}
+                  emptyTitle="No mappable field executives"
+                  emptyDescription="No valid last known coordinates available for the current filters."
+                  markerSummary={`Showing ${mapMarkers.length} field executives with valid last known coordinates.`}
+                />
+              )}
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
+
+      {statsLoading && !statsResponse && (
         <div className="sr-only" aria-live="polite">
           Loading field monitoring stats
         </div>
-      ) : null}
-    </Page>
+      )}
+    </div>
   );
 }
 

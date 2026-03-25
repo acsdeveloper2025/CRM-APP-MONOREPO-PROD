@@ -1,3 +1,4 @@
+
 import { useQuery } from '@tanstack/react-query';
 import { Building, MapPin, Calendar, Globe } from 'lucide-react';
 import {
@@ -6,15 +7,11 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from '@/ui/components/Dialog';
-import { Badge } from '@/ui/components/Badge';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/Card';
-import { Separator } from '@/ui/components/Separator';
-import { LoadingSpinner } from '@/ui/components/Loading';
-import { Grid } from '@/ui/layout/Grid';
-import { Box } from '@/ui/primitives/Box';
-import { Stack } from '@/ui/primitives/Stack';
-import { Text } from '@/ui/primitives/Text';
+} from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import { LoadingSpinner } from '@/components/ui/loading';
 import { locationsService } from '@/services/locations';
 import { City } from '@/types/location';
 
@@ -32,113 +29,119 @@ export function CityDetailsDialog({ city, open, onOpenChange }: CityDetailsDialo
   });
 
   const pincodes = pincodesData?.data || [];
-  const details = [
-    { icon: Building, label: 'City Name', value: city.name },
-    { icon: MapPin, label: 'State', value: <Badge variant="outline">{city.state}</Badge> },
-    { icon: Globe, label: 'Country', value: city.country },
-    { icon: Calendar, label: 'Created', value: new Date(city.createdAt).toLocaleDateString() },
-  ];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent style={{ width: 'min(95vw, 600px)' }}>
+      <DialogContent className="max-w-[95vw] sm:max-w-[600px]">
         <DialogHeader>
-          <Stack direction="horizontal" gap={2} align="center">
-            <Building size={20} />
-            <DialogTitle>{city.name}</DialogTitle>
-          </Stack>
+          <DialogTitle className="flex items-center space-x-2">
+            <Building className="h-5 w-5" />
+            <span>{city.name}</span>
+          </DialogTitle>
           <DialogDescription>
             Detailed information about this city and its pincodes
           </DialogDescription>
         </DialogHeader>
 
-        <Stack gap={5}>
+        <div className="space-y-6">
+          {/* City Information */}
           <Card>
             <CardHeader>
-              <CardTitle>City Information</CardTitle>
+              <CardTitle className="text-lg">City Information</CardTitle>
             </CardHeader>
-            <CardContent>
-              <Grid min={220}>
-                {details.map((item) => (
-                  <Card key={item.label} tone="muted" staticCard>
-                    <Stack gap={2}>
-                      <Stack direction="horizontal" gap={2} align="center">
-                        <item.icon size={16} style={{ color: 'var(--ui-text-soft)' }} />
-                        <Text variant="label" tone="muted">{item.label}</Text>
-                      </Stack>
-                      {typeof item.value === 'string' ? <Text>{item.value}</Text> : item.value}
-                    </Stack>
-                  </Card>
-                ))}
-              </Grid>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <div className="flex items-center space-x-2">
+                    <Building className="h-4 w-4 text-gray-600" />
+                    <span className="text-sm font-medium">City Name</span>
+                  </div>
+                  <p className="text-lg font-semibold">{city.name}</p>
+                </div>
+                
+                <div className="space-y-2">
+                  <div className="flex items-center space-x-2">
+                    <MapPin className="h-4 w-4 text-gray-600" />
+                    <span className="text-sm font-medium">State</span>
+                  </div>
+                  <Badge variant="outline">{city.state}</Badge>
+                </div>
+                
+                <div className="space-y-2">
+                  <div className="flex items-center space-x-2">
+                    <Globe className="h-4 w-4 text-gray-600" />
+                    <span className="text-sm font-medium">Country</span>
+                  </div>
+                  <p>{city.country}</p>
+                </div>
+                
+                <div className="space-y-2">
+                  <div className="flex items-center space-x-2">
+                    <Calendar className="h-4 w-4 text-gray-600" />
+                    <span className="text-sm font-medium">Created</span>
+                  </div>
+                  <p>{new Date(city.createdAt).toLocaleDateString()}</p>
+                </div>
+              </div>
             </CardContent>
           </Card>
 
-          <Separator style={{ marginBlock: '0.25rem' }} />
+          <Separator />
 
+          {/* Pincodes Section */}
           <Card>
             <CardHeader>
-              <Stack direction="horizontal" align="center" justify="space-between" gap={3} wrap="wrap">
-                <CardTitle>Associated Pincodes</CardTitle>
+              <CardTitle className="text-lg flex items-center justify-between">
+                <span>Associated Pincodes</span>
                 <Badge variant="secondary">{pincodes.length} pincodes</Badge>
-              </Stack>
+              </CardTitle>
               <CardDescription>
                 All postal codes associated with this city
               </CardDescription>
             </CardHeader>
             <CardContent>
               {isLoading ? (
-                <Stack align="center" justify="center" style={{ minHeight: '8rem' }}>
+                <div className="flex items-center justify-center py-8">
                   <LoadingSpinner size="md" />
-                </Stack>
+                </div>
               ) : pincodes.length > 0 ? (
-                <Stack gap={3}>
+                <div className="grid gap-3">
                   {pincodes.map((pincode) => (
-                    <Card key={pincode.id} tone="muted" staticCard>
-                      <Stack direction="horizontal" gap={3} align="center" justify="space-between" wrap="wrap">
-                        <Stack direction="horizontal" gap={3} align="center">
-                          <Box
-                            style={{
-                              width: '2rem',
-                              height: '2rem',
-                              borderRadius: '999px',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              background: 'color-mix(in srgb, var(--ui-accent) 12%, transparent)',
-                              color: 'var(--ui-accent)',
-                            }}
-                          >
-                            <MapPin size={16} />
-                          </Box>
-                          <Stack gap={1}>
-                            <Stack direction="horizontal" gap={2} align="center" wrap="wrap">
-                            <Badge variant="outline" style={{ fontFamily: 'ui-monospace, SFMono-Regular, monospace' }}>
+                    <div
+                      key={pincode.id}
+                      className="flex items-center justify-between p-3 border rounded-lg"
+                    >
+                      <div className="flex items-center space-x-3">
+                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                          <MapPin className="h-4 w-4 text-primary" />
+                        </div>
+                        <div>
+                          <div className="flex items-center space-x-2">
+                            <Badge variant="outline" className="font-mono">
                               {pincode.code}
                             </Badge>
-                            <Text variant="label">{pincode.area}</Text>
-                          </Stack>
-                          <Text variant="body-sm" tone="muted">
+                            <span className="font-medium">{pincode.area}</span>
+                          </div>
+                          <p className="text-sm text-gray-600">
                             Created {new Date(pincode.createdAt).toLocaleDateString()}
-                          </Text>
-                          </Stack>
-                        </Stack>
-                      </Stack>
-                    </Card>
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   ))}
-                </Stack>
+                </div>
               ) : (
-                <Stack gap={3} align="center" style={{ paddingBlock: '2rem', textAlign: 'center' }}>
-                  <MapPin size={48} style={{ color: 'var(--ui-text-soft)', opacity: 0.6 }} />
-                  <Text variant="title">No pincodes found</Text>
-                  <Text tone="muted">
+                <div className="text-center py-8">
+                  <MapPin className="mx-auto h-12 w-12 text-gray-600" />
+                  <h3 className="mt-4 text-lg font-semibold">No pincodes found</h3>
+                  <p className="text-gray-600">
                     This city doesn&apos;t have any pincodes assigned yet.
-                  </Text>
-                </Stack>
+                  </p>
+                </div>
               )}
             </CardContent>
           </Card>
-        </Stack>
+        </div>
       </DialogContent>
     </Dialog>
   );

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/Card';
-import { Button } from '@/ui/components/Button';
-import { Badge } from '@/ui/components/Badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { 
   Table, 
   TableBody, 
@@ -9,16 +9,16 @@ import {
   TableHead, 
   TableHeader, 
   TableRow 
-} from '@/ui/components/Table';
+} from '@/components/ui/table';
 import { 
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/ui/components/Select';
-import { Input } from '@/ui/components/Input';
-import { Label } from '@/ui/components/Label';
+} from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { useCaseAnalytics } from '@/hooks/useAnalytics';
 import { useClients } from '@/hooks/useClients';
 import { useFieldUsers } from '@/hooks/useUsers';
@@ -82,74 +82,74 @@ export const CaseAnalyticsDashboard: React.FC = () => {
   };
 
   return (
-    <div {...{ className: "space-y-6" }}>
+    <div className="space-y-6">
       {/* Header */}
-      <div {...{ className: "flex items-center justify-between" }}>
+      <div className="flex items-center justify-between">
         <div>
-          <h1 {...{ className: "text-3xl font-bold text-gray-900" }}>Case Analytics</h1>
-          <p {...{ className: "mt-2 text-gray-600" }}>
+          <h1 className="text-3xl font-bold text-gray-900">Case Analytics</h1>
+          <p className="mt-2 text-gray-600">
             Comprehensive case performance and completion metrics
           </p>
         </div>
         <Button variant="outline">
-          <Download {...{ className: "h-4 w-4 mr-2" }} />
+          <Download className="h-4 w-4 mr-2" />
           Export Report
         </Button>
       </div>
 
       {/* Summary Cards */}
-      <div {...{ className: "grid gap-4 md:grid-cols-4" }}>
+      <div className="grid gap-4 md:grid-cols-4">
         <Card>
-          <CardHeader {...{ className: "flex flex-row items-center justify-between space-y-0 pb-2" }}>
-            <CardTitle {...{ className: "text-sm font-medium" }}>Total Cases</CardTitle>
-            <BarChart3 {...{ className: "h-4 w-4 text-gray-600" }} />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Cases</CardTitle>
+            <BarChart3 className="h-4 w-4 text-gray-600" />
           </CardHeader>
           <CardContent>
-            <div {...{ className: "text-2xl font-bold" }}>{summary?.totalCases || 0}</div>
-            <p {...{ className: "text-xs text-gray-600" }}>
+            <div className="text-2xl font-bold">{summary?.totalCases || 0}</div>
+            <p className="text-xs text-gray-600">
               All cases in system
             </p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader {...{ className: "flex flex-row items-center justify-between space-y-0 pb-2" }}>
-            <CardTitle {...{ className: "text-sm font-medium" }}>Completed Cases</CardTitle>
-            <CheckCircle {...{ className: "h-4 w-4 text-green-600" }} />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Completed Cases</CardTitle>
+            <CheckCircle className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div {...{ className: "text-2xl font-bold text-green-600" }}>{summary?.completedCases || 0}</div>
-            <p {...{ className: "text-xs text-gray-600" }}>
+            <div className="text-2xl font-bold text-green-600">{summary?.completedCases || 0}</div>
+            <p className="text-xs text-gray-600">
               {summary?.completionRate ? `${summary.completionRate.toFixed(1)}% completion rate` : 'No data'}
             </p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader {...{ className: "flex flex-row items-center justify-between space-y-0 pb-2" }}>
-            <CardTitle {...{ className: "text-sm font-medium" }}>Avg Completion Time</CardTitle>
-            <Clock {...{ className: "h-4 w-4 text-green-600" }} />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Avg Completion Time</CardTitle>
+            <Clock className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div {...{ className: "text-2xl font-bold text-green-600" }}>
+            <div className="text-2xl font-bold text-green-600">
               {summary?.avgCompletionDays ? `${summary.avgCompletionDays.toFixed(1)}d` : 'N/A'}
             </div>
-            <p {...{ className: "text-xs text-gray-600" }}>
+            <p className="text-xs text-gray-600">
               Average days to complete
             </p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader {...{ className: "flex flex-row items-center justify-between space-y-0 pb-2" }}>
-            <CardTitle {...{ className: "text-sm font-medium" }}>Form Completion</CardTitle>
-            <FileText {...{ className: "h-4 w-4 text-green-600" }} />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Form Completion</CardTitle>
+            <FileText className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div {...{ className: "text-2xl font-bold text-green-600" }}>
+            <div className="text-2xl font-bold text-green-600">
               {summary?.avgFormCompletion ? `${summary.avgFormCompletion.toFixed(1)}%` : 'N/A'}
             </div>
-            <p {...{ className: "text-xs text-gray-600" }}>
+            <p className="text-xs text-gray-600">
               Average form completion
             </p>
           </CardContent>
@@ -164,11 +164,11 @@ export const CaseAnalyticsDashboard: React.FC = () => {
             <CardDescription>Current case status breakdown</CardDescription>
           </CardHeader>
           <CardContent>
-            <div {...{ className: "grid gap-4 md:grid-cols-4" }}>
+            <div className="grid gap-4 md:grid-cols-4">
               {Object.entries(summary.statusDistribution).map(([status, count]) => (
-                <div key={status} {...{ className: "text-center" }}>
-                  <div {...{ className: "text-2xl font-bold" }}>{count}</div>
-                  <Badge {...{ className: getStatusColor(status) }} variant="outline">
+                <div key={status} className="text-center">
+                  <div className="text-2xl font-bold">{count}</div>
+                  <Badge className={getStatusColor(status)} variant="outline">
                     {status.replace('_', ' ')}
                   </Badge>
                 </div>
@@ -181,14 +181,14 @@ export const CaseAnalyticsDashboard: React.FC = () => {
       {/* Filters */}
       <Card>
         <CardHeader>
-          <CardTitle {...{ className: "flex items-center space-x-2" }}>
-            <Filter {...{ className: "h-5 w-5" }} />
+          <CardTitle className="flex items-center space-x-2">
+            <Filter className="h-5 w-5" />
             <span>Filters</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div {...{ className: "grid gap-4 md:grid-cols-5" }}>
-            <div {...{ className: "space-y-2" }}>
+          <div className="grid gap-4 md:grid-cols-5">
+            <div className="space-y-2">
               <Label htmlFor="clientId">Client</Label>
               <Select 
                 value={filters.clientId?.toString() || ''} 
@@ -208,7 +208,7 @@ export const CaseAnalyticsDashboard: React.FC = () => {
               </Select>
             </div>
 
-            <div {...{ className: "space-y-2" }}>
+            <div className="space-y-2">
               <Label htmlFor="agentId">Agent</Label>
               <Select 
                 value={filters.agentId || ''} 
@@ -228,7 +228,7 @@ export const CaseAnalyticsDashboard: React.FC = () => {
               </Select>
             </div>
 
-            <div {...{ className: "space-y-2" }}>
+            <div className="space-y-2">
               <Label htmlFor="status">Status</Label>
               <Select 
                 value={filters.status || ''} 
@@ -247,7 +247,7 @@ export const CaseAnalyticsDashboard: React.FC = () => {
               </Select>
             </div>
 
-            <div {...{ className: "space-y-2" }}>
+            <div className="space-y-2">
               <Label htmlFor="dateFrom">From Date</Label>
               <Input
                 id="dateFrom"
@@ -257,7 +257,7 @@ export const CaseAnalyticsDashboard: React.FC = () => {
               />
             </div>
 
-            <div {...{ className: "space-y-2" }}>
+            <div className="space-y-2">
               <Label htmlFor="dateTo">To Date</Label>
               <Input
                 id="dateTo"
@@ -281,8 +281,8 @@ export const CaseAnalyticsDashboard: React.FC = () => {
             }
           </CardDescription>
         </CardHeader>
-        <CardContent {...{ className: "p-0" }}>
-          <div {...{ className: "border rounded-lg" }}>
+        <CardContent className="p-0">
+          <div className="border rounded-lg">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -303,17 +303,17 @@ export const CaseAnalyticsDashboard: React.FC = () => {
                     <TableRow key={index}>
                       {Array.from({ length: 8 }).map((_, cellIndex) => (
                         <TableCell key={cellIndex}>
-                          <div {...{ className: "h-4 bg-slate-100 dark:bg-slate-800/60 rounded animate-pulse" }} />
+                          <div className="h-4 bg-slate-100 dark:bg-slate-800/60 rounded animate-pulse" />
                         </TableCell>
                       ))}
                     </TableRow>
                   ))
                 ) : cases.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} {...{ className: "text-center py-8" }}>
-                      <BarChart3 {...{ className: "mx-auto h-12 w-12 text-gray-600" }} />
-                      <h3 {...{ className: "mt-4 text-lg font-semibold" }}>No cases found</h3>
-                      <p {...{ className: "text-gray-600" }}>
+                    <TableCell colSpan={8} className="text-center py-8">
+                      <BarChart3 className="mx-auto h-12 w-12 text-gray-600" />
+                      <h3 className="mt-4 text-lg font-semibold">No cases found</h3>
+                      <p className="text-gray-600">
                         Try adjusting your filters or check back later.
                       </p>
                     </TableCell>
@@ -321,56 +321,56 @@ export const CaseAnalyticsDashboard: React.FC = () => {
                 ) : (
                   cases.map((caseItem) => (
                     <TableRow key={caseItem.id}>
-                      <TableCell {...{ className: "font-medium" }}>
+                      <TableCell className="font-medium">
                         <Link
                           to={`/cases/${caseItem.id}`}
-                          {...{ className: "text-primary hover:underline" }}
+                          className="text-primary hover:underline"
                         >
                           #{caseItem.caseId}
                         </Link>
                       </TableCell>
                       <TableCell>
                         <div>
-                          <div {...{ className: "font-medium" }}>{caseItem.customerName}</div>
-                          <div {...{ className: "text-sm text-gray-600" }}>{caseItem.clientName}</div>
+                          <div className="font-medium">{caseItem.customerName}</div>
+                          <div className="text-sm text-gray-600">{caseItem.clientName}</div>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge {...{ className: getStatusColor(caseItem.status) }}>
+                        <Badge className={getStatusColor(caseItem.status)}>
                           {caseItem.status.replace('_', ' ')}
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <Badge {...{ className: getPriorityColor(caseItem.priority) }} variant="outline">
+                        <Badge className={getPriorityColor(caseItem.priority)} variant="outline">
                           {caseItem.priority}
                         </Badge>
                       </TableCell>
                       <TableCell>
                         <div>
-                          <div {...{ className: "font-medium" }}>{caseItem.agentName || 'Unassigned'}</div>
-                          <div {...{ className: "text-sm text-gray-600" }}>{caseItem.employeeId}</div>
+                          <div className="font-medium">{caseItem.agentName || 'Unassigned'}</div>
+                          <div className="text-sm text-gray-600">{caseItem.employeeId}</div>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div {...{ className: "text-sm" }}>
+                        <div className="text-sm">
                           {caseItem.residenceReports}R + {caseItem.officeReports}O
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div {...{ className: "flex items-center space-x-2" }}>
-                          <div {...{ className: "text-sm font-medium" }}>
+                        <div className="flex items-center space-x-2">
+                          <div className="text-sm font-medium">
                             {caseItem.formCompletionPercentage}%
                           </div>
-                          <div {...{ className: "w-16 bg-slate-100 dark:bg-slate-800/60 rounded-full h-2" }}>
+                          <div className="w-16 bg-slate-100 dark:bg-slate-800/60 rounded-full h-2">
                             <div 
-                              {...{ className: "bg-blue-600 h-2 rounded-full" }} 
+                              className="bg-blue-600 h-2 rounded-full" 
                               style={{ width: `${caseItem.formCompletionPercentage}%` }}
                              />
                           </div>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div {...{ className: "text-sm" }}>
+                        <div className="text-sm">
                           {formatDistanceToNow(new Date(caseItem.updatedAt), { addSuffix: true })}
                         </div>
                       </TableCell>

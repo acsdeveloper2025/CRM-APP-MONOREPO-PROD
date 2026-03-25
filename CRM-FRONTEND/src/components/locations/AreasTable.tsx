@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { MoreHorizontal, Edit, Trash2, MapPin, Hash } from 'lucide-react';
 import { useMutationWithInvalidation } from '@/hooks/useStandardizedMutation';
-import { Button } from '@/ui/components/Button';
-import { Badge } from '@/ui/components/Badge';
+import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,7 +9,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/ui/components/DropdownMenu';
+} from '@/components/ui/dropdown-menu';
 import {
   Table,
   TableBody,
@@ -18,7 +17,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/ui/components/Table';
+} from '@/components/ui/table';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,11 +27,9 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/ui/components/AlertDialog';
-import { LoadingState } from '@/ui/components/Loading';
-import { Box } from '@/ui/primitives/Box';
-import { Stack } from '@/ui/primitives/Stack';
-import { Text } from '@/ui/primitives/Text';
+} from '@/components/ui/alert-dialog';
+import { Badge } from '@/components/ui/badge';
+import { LoadingState } from '@/components/ui/loading';
 import { locationsService } from '@/services/locations';
 import { EditAreaDialog } from './EditAreaDialog';
 import { PincodeArea } from '@/types/location';
@@ -84,40 +81,38 @@ export function AreasTable({ data, isLoading }: AreasTableProps) {
 
   if (!data || data.length === 0) {
     return (
-      <Box style={{ overflowX: 'auto', border: '1px solid var(--ui-border)', borderRadius: 'var(--ui-radius-lg)' }}>
+      <div className="rounded-md border overflow-auto">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Area Name</TableHead>
               <TableHead>Usage Count</TableHead>
               <TableHead>Created Date</TableHead>
-              <TableHead style={{ textAlign: 'right' }}>Actions</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             <TableRow>
-              <TableCell colSpan={4} style={{ textAlign: 'center', paddingBlock: '2rem' }}>
-                <Text tone="muted">
-                  No areas found. Areas will appear here when pincodes are created with area information.
-                </Text>
+              <TableCell colSpan={4} className="text-center py-8 text-gray-600">
+                No areas found. Areas will appear here when pincodes are created with area information.
               </TableCell>
             </TableRow>
           </TableBody>
         </Table>
-      </Box>
+      </div>
     );
   }
 
   return (
     <>
-      <Box style={{ overflowX: 'auto', border: '1px solid var(--ui-border)', borderRadius: 'var(--ui-radius-lg)' }}>
+      <div className="rounded-md border overflow-auto">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Area Name</TableHead>
               <TableHead>Usage Count</TableHead>
               <TableHead>Created Date</TableHead>
-              <TableHead style={{ textAlign: 'right' }}>Actions</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -126,48 +121,49 @@ export function AreasTable({ data, isLoading }: AreasTableProps) {
               return (
                 <TableRow key={area.id}>
                   <TableCell>
-                    <Stack direction="horizontal" gap={2} align="center" wrap="wrap">
-                      <MapPin size={16} style={{ color: 'var(--ui-text-soft)' }} />
-                      <Text as="span" variant="label">{area.name}</Text>
-                      <Badge variant="outline">
+                    <div className="flex items-center space-x-2">
+                      <MapPin className="h-4 w-4 text-gray-600" />
+                      <span className="font-medium">{area.name}</span>
+                      <Badge variant="outline" className="text-xs">
                         #{area.displayOrder}
                       </Badge>
-                    </Stack>
+                    </div>
                   </TableCell>
                   <TableCell>
                     {areaWithDetails.usageCount !== undefined && (
-                      <Stack direction="horizontal" gap={1} align="center">
-                        <Hash size={12} style={{ color: 'var(--ui-text-soft)' }} />
-                        <Text as="span" variant="body-sm">
+                      <div className="flex items-center space-x-1">
+                        <Hash className="h-3 w-3 text-gray-600" />
+                        <span className="text-sm font-medium">
                           {areaWithDetails.usageCount}
-                        </Text>
-                      </Stack>
+                        </span>
+                      </div>
                     )}
                   </TableCell>
                   <TableCell>
-                    <Text as="span" variant="body-sm" tone="muted">
+                    <span className="text-sm text-gray-600">
                       {formatDate(area.createdAt || '')}
-                    </Text>
+                    </span>
                   </TableCell>
-                  <TableCell style={{ textAlign: 'right' }}>
+                  <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" aria-label="Open actions menu">
-                          <MoreHorizontal size={16} />
+                        <Button variant="ghost" className="h-8 w-8 p-0">
+                          <span className="sr-only">Open menu</span>
+                          <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                      <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => handleEdit(areaWithDetails)}>
-                          <Edit size={16} style={{ marginRight: '0.5rem' }} />
+                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => handleEdit(areaWithDetails)}>
+                          <Edit className="mr-2 h-4 w-4" />
                           Edit Area
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                          style={{ color: 'var(--ui-danger)' }}
+                          className="text-red-600"
                           onClick={() => handleDelete(areaWithDetails)}
                         >
-                          <Trash2 size={16} style={{ marginRight: '0.5rem' }} />
+                          <Trash2 className="mr-2 h-4 w-4" />
                           Delete Area
                         </DropdownMenuItem>
                       </DropdownMenuContent>
@@ -178,7 +174,7 @@ export function AreasTable({ data, isLoading }: AreasTableProps) {
             })}
           </TableBody>
         </Table>
-      </Box>
+      </div>
 
       {/* Edit Dialog */}
       {areaToEdit && (
@@ -203,7 +199,7 @@ export function AreasTable({ data, isLoading }: AreasTableProps) {
                 <>
                   Cannot delete area &quot;{areaToDelete?.name}&quot; because it is currently assigned to{' '}
                   <strong>{areaToDelete.usageCount}</strong> pincode(s).
-                  <span style={{ display: 'block', marginTop: '0.5rem', color: 'var(--ui-warning)', fontWeight: 600 }}>
+                  <span className="block mt-2 text-amber-600 font-medium">
                     Please remove this area from all pincodes before deleting it.
                   </span>
                 </>
@@ -222,7 +218,7 @@ export function AreasTable({ data, isLoading }: AreasTableProps) {
             {(!areaToDelete?.usageCount || areaToDelete.usageCount === 0) && (
               <AlertDialogAction
                 onClick={confirmDelete}
-                style={{ background: 'var(--ui-danger)', color: 'white' }}
+                className="bg-red-600 hover:bg-red-700"
                 disabled={deleteMutation.isPending}
               >
                 {deleteMutation.isPending ? 'Deleting...' : 'Delete Area'}

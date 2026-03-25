@@ -1,33 +1,49 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { BarChart3, Download, FileText, MoreHorizontal, Trash2 } from 'lucide-react';
+import { MoreHorizontal, Download, Trash2, BarChart3, FileText } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { LoadingState } from '@/components/ui/loading';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { reportsService } from '@/services/reports';
 import { MISReport } from '@/types/reports';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/ui/components/AlertDialog';
-import { Badge } from '@/ui/components/Badge';
-import { Button } from '@/ui/components/Button';
-import { Card, CardContent } from '@/ui/components/Card';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/ui/components/DropdownMenu';
-import { LoadingState } from '@/ui/components/Loading';
-import { Box } from '@/ui/primitives/Box';
-import { Stack } from '@/ui/primitives/Stack';
-import { Text } from '@/ui/primitives/Text';
 
 interface MISReportsTableProps {
   data: MISReport[];
   isLoading: boolean;
 }
 
-const tableCellStyle = {
-  padding: '0.85rem 1rem',
-  borderBottom: '1px solid var(--ui-border)',
-  verticalAlign: 'top' as const,
-};
-
 export function MISReportsTable({ data, isLoading }: MISReportsTableProps) {
+  const [_selectedReport, _setSelectedReport] = useState<MISReport | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [reportToDelete, setReportToDelete] = useState<MISReport | null>(null);
+
   const queryClient = useQueryClient();
 
   const deleteMutation = useMutation({
@@ -39,7 +55,8 @@ export function MISReportsTable({ data, isLoading }: MISReportsTableProps) {
       setReportToDelete(null);
     },
     onError: (error: unknown) => {
-      const message = error instanceof Error ? error.message : 'Failed to delete report';
+      const message =
+        error instanceof Error ? error.message : 'Failed to delete report';
       const axiosError = error as { response?: { data?: { message?: string } } };
       toast.error(axiosError.response?.data?.message || message);
     },
@@ -49,15 +66,20 @@ export function MISReportsTable({ data, isLoading }: MISReportsTableProps) {
     try {
       const blob = await reportsService.downloadMISReport(report.id, format);
       const url = window.URL.createObjectURL(blob);
-      const anchor = document.createElement('a');
-      anchor.href = url;
-      anchor.download = `${report.title.replace(/\s+/g, '_')}_${format.toLowerCase()}.${format === 'EXCEL' ? 'xlsx' : format.toLowerCase()}`;
-      anchor.click();
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${report.title.replace(/\s+/g, '_')}_${format.toLowerCase()}.${format === 'EXCEL' ? 'xlsx' : format.toLowerCase()}`;
+      a.click();
       window.URL.revokeObjectURL(url);
       toast.success('Report downloaded successfully');
-    } catch {
+    } catch (_error) {
       toast.error('Failed to download report');
     }
+  };
+
+  const handleDelete = (report: MISReport) => {
+    setReportToDelete(report);
+    setShowDeleteDialog(true);
   };
 
   const confirmDelete = () => {
@@ -68,13 +90,14 @@ export function MISReportsTable({ data, isLoading }: MISReportsTableProps) {
 
   const getReportTypeBadge = (type: string) => {
     const typeConfig = {
-      TURNAROUND_TIME: { variant: 'accent' as const, label: 'Turnaround Time' },
-      COMPLETION_RATE: { variant: 'warning' as const, label: 'Completion Rate' },
-      PRODUCTIVITY: { variant: 'neutral' as const, label: 'Productivity' },
-      QUALITY: { variant: 'info' as const, label: 'Quality' },
-      FINANCIAL: { variant: 'positive' as const, label: 'Financial' },
+      TURNAROUND_TIME: { variant: 'default' as const, label: 'Turnaround Time' },
+      COMPLETION_RATE: { variant: 'secondary' as const, label: 'Completion Rate' },
+      PRODUCTIVITY: { variant: 'outline' as const, label: 'Productivity' },
+      QUALITY: { variant: 'default' as const, label: 'Quality' },
+      FINANCIAL: { variant: 'secondary' as const, label: 'Financial' },
     };
-    const config = typeConfig[type as keyof typeof typeConfig] || { variant: 'neutral' as const, label: type };
+    
+    const config = typeConfig[type as keyof typeof typeConfig] || { variant: 'outline' as const, label: type };
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
@@ -84,122 +107,115 @@ export function MISReportsTable({ data, isLoading }: MISReportsTableProps) {
 
   if (!data || data.length === 0) {
     return (
-      <Stack gap={2} align="center" style={{ textAlign: 'center', padding: '3rem 0' }}>
-        <BarChart3 size={48} style={{ color: 'var(--ui-text-muted)' }} />
-        <Text as="h3" variant="title">No MIS reports found</Text>
-        <Text tone="muted">Get started by generating your first MIS report.</Text>
-      </Stack>
+      <div className="text-center py-12">
+        <BarChart3 className="mx-auto h-12 w-12 text-gray-600" />
+        <h3 className="mt-4 text-lg font-semibold">No MIS reports found</h3>
+        <p className="text-gray-600">
+          Get started by generating your first MIS report.
+        </p>
+      </div>
     );
   }
 
   return (
     <>
-      <Box style={{ border: '1px solid var(--ui-border)', borderRadius: 'var(--ui-radius-lg)', overflow: 'hidden' }}>
-        <Box style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', minWidth: '860px', borderCollapse: 'collapse', background: 'var(--ui-surface)' }}>
-            <thead style={{ background: 'var(--ui-surface-muted)' }}>
-              <tr>
-                {['Report Title', 'Type', 'Description', 'Period', 'Generated By', 'Generated At', 'Actions'].map((header) => (
-                  <th
-                    key={header}
-                    style={{
-                      ...tableCellStyle,
-                      textAlign: header === 'Actions' ? 'right' : 'left',
-                      fontSize: '0.75rem',
-                      letterSpacing: '0.08em',
-                      textTransform: 'uppercase',
-                      color: 'var(--ui-text-muted)',
-                      fontWeight: 700,
-                    }}
-                  >
-                    {header}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {data.map((report) => (
-                <tr key={report.id}>
-                  <td style={tableCellStyle}>
-                    <Stack direction="horizontal" gap={2} align="center">
-                      <Box
-                        style={{
-                          width: '2rem',
-                          height: '2rem',
-                          borderRadius: '999px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          background: 'rgba(17, 116, 110, 0.12)',
-                          color: 'var(--ui-accent)',
-                          flexShrink: 0,
-                        }}
+      <div className="rounded-md border overflow-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Report Title</TableHead>
+              <TableHead>Type</TableHead>
+              <TableHead>Description</TableHead>
+              <TableHead>Period</TableHead>
+              <TableHead>Generated By</TableHead>
+              <TableHead>Generated At</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {data.map((report) => (
+              <TableRow key={report.id}>
+                <TableCell className="font-medium">
+                  <div className="flex items-center space-x-2">
+                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                      <FileText className="h-4 w-4 text-primary" />
+                    </div>
+                    <span>{report.title}</span>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  {getReportTypeBadge(report.reportType)}
+                </TableCell>
+                <TableCell>
+                  <span className="text-sm text-gray-600">
+                    {report.description || 'No description'}
+                  </span>
+                </TableCell>
+                <TableCell>
+                  <span className="text-sm">{report.period}</span>
+                </TableCell>
+                <TableCell>
+                  <span className="text-sm">{report.generatedBy}</span>
+                </TableCell>
+                <TableCell>
+                  {new Date(report.generatedAt).toLocaleDateString()}
+                </TableCell>
+                <TableCell className="text-right">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" className="h-8 w-8 p-0">
+                        <span className="sr-only">Open menu</span>
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                      <DropdownMenuItem onClick={() => handleDownload(report, 'PDF')}>
+                        <Download className="mr-2 h-4 w-4" />
+                        Download PDF
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleDownload(report, 'EXCEL')}>
+                        <Download className="mr-2 h-4 w-4" />
+                        Download Excel
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleDownload(report, 'CSV')}>
+                        <Download className="mr-2 h-4 w-4" />
+                        Download CSV
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={() => handleDelete(report)}
+                        className="text-destructive"
                       >
-                        <FileText size={14} />
-                      </Box>
-                      <Text variant="body-sm">{report.title}</Text>
-                    </Stack>
-                  </td>
-                  <td style={tableCellStyle}>{getReportTypeBadge(report.reportType)}</td>
-                  <td style={tableCellStyle}>
-                    <Text variant="body-sm" tone="muted">{report.description || 'No description'}</Text>
-                  </td>
-                  <td style={tableCellStyle}><Text variant="body-sm">{report.period}</Text></td>
-                  <td style={tableCellStyle}><Text variant="body-sm">{report.generatedBy}</Text></td>
-                  <td style={tableCellStyle}><Text variant="body-sm">{new Date(report.generatedAt).toLocaleDateString()}</Text></td>
-                  <td style={{ ...tableCellStyle, textAlign: 'right' }}>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" style={{ paddingInline: '0.5rem' }} icon={<MoreHorizontal size={16} />} />
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem onClick={() => handleDownload(report, 'PDF')}>
-                          <Stack direction="horizontal" gap={2} align="center">
-                            <Download size={14} />
-                            <span>Download PDF</span>
-                          </Stack>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleDownload(report, 'EXCEL')}>
-                          <Stack direction="horizontal" gap={2} align="center">
-                            <Download size={14} />
-                            <span>Download Excel</span>
-                          </Stack>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleDownload(report, 'CSV')}>
-                          <Stack direction="horizontal" gap={2} align="center">
-                            <Download size={14} />
-                            <span>Download CSV</span>
-                          </Stack>
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => { setReportToDelete(report); setShowDeleteDialog(true); }}>
-                          <Stack direction="horizontal" gap={2} align="center">
-                            <Trash2 size={14} />
-                            <span>Delete Report</span>
-                          </Stack>
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </Box>
-      </Box>
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete Report
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
 
+      {/* Delete Confirmation Dialog */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the report &quot;{reportToDelete?.title}&quot;.
+              This action cannot be undone. This will permanently delete the report
+              &quot;{reportToDelete?.title}&quot;.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} disabled={deleteMutation.isPending}>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleteMutation.isPending}
+            >
               {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
             </AlertDialogAction>
           </AlertDialogFooter>

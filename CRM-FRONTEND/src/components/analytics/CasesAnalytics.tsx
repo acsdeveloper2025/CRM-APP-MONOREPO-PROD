@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/Card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/ui/components/Select';
+} from '@/components/ui/select';
 import { 
   BarChart, 
   Bar, 
@@ -107,15 +107,15 @@ export const CasesAnalytics: React.FC = () => {
   // Loading state
   if (isLoading) {
     return (
-      <div {...{ className: "space-y-4 sm:space-y-6" }}>
-        <div {...{ className: "grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4" }}>
+      <div className="space-y-4 sm:space-y-6">
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (
             <Card key={i}>
-              <CardHeader {...{ className: "pb-2" }}>
-                <div {...{ className: "h-4 bg-slate-100 dark:bg-slate-800/60 animate-pulse rounded w-24" }} />
+              <CardHeader className="pb-2">
+                <div className="h-4 bg-slate-100 dark:bg-slate-800/60 animate-pulse rounded w-24" />
               </CardHeader>
               <CardContent>
-                <div {...{ className: "h-8 bg-slate-100 dark:bg-slate-800/60 animate-pulse rounded w-16" }} />
+                <div className="h-8 bg-slate-100 dark:bg-slate-800/60 animate-pulse rounded w-16" />
               </CardContent>
             </Card>
           ))}
@@ -128,10 +128,10 @@ export const CasesAnalytics: React.FC = () => {
   if (error) {
     return (
       <Card>
-        <CardContent {...{ className: "flex flex-col items-center justify-center py-12" }}>
-          <XCircle {...{ className: "h-12 w-12 text-red-500 mb-4" }} />
-          <h3 {...{ className: "text-lg font-semibold mb-2" }}>Failed to Load Case Analytics</h3>
-          <p {...{ className: "text-gray-600 text-center" }}>
+        <CardContent className="flex flex-col items-center justify-center py-12">
+          <XCircle className="h-12 w-12 text-red-500 mb-4" />
+          <h3 className="text-lg font-semibold mb-2">Failed to Load Case Analytics</h3>
+          <p className="text-gray-600 text-center">
             There was an error loading the case analytics. Please try again later.
           </p>
         </CardContent>
@@ -140,18 +140,18 @@ export const CasesAnalytics: React.FC = () => {
   }
 
   return (
-    <div {...{ className: "space-y-4 sm:space-y-6" }}>
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
-      <div {...{ className: "flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between" }}>
-        <div {...{ className: "min-w-0 flex-1" }}>
-          <h2 {...{ className: "text-xl sm:text-2xl font-bold text-gray-900 truncate" }}>Cases Analytics</h2>
-          <p {...{ className: "mt-1 text-sm sm:text-base text-gray-600" }}>
+      <div className="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0 flex-1">
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">Cases Analytics</h2>
+          <p className="mt-1 text-sm sm:text-base text-gray-600">
             Comprehensive case metrics and distribution analysis
           </p>
         </div>
-        <div {...{ className: "flex flex-col sm:flex-row gap-2" }}>
+        <div className="flex flex-col sm:flex-row gap-2">
           <Select value={timeRange} onValueChange={setTimeRange}>
-            <SelectTrigger {...{ className: "w-full sm:w-[140px]" }}>
+            <SelectTrigger className="w-full sm:w-[140px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -164,58 +164,58 @@ export const CasesAnalytics: React.FC = () => {
       </div>
 
       {/* Summary Cards */}
-      <div {...{ className: "grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4" }}>
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
-          <CardHeader {...{ className: "flex flex-row items-center justify-between space-y-0 pb-2" }}>
-            <CardTitle {...{ className: "text-sm font-medium" }}>Total Cases</CardTitle>
-            <FileText {...{ className: "h-4 w-4 text-gray-600" }} />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Cases</CardTitle>
+            <FileText className="h-4 w-4 text-gray-600" />
           </CardHeader>
           <CardContent>
-            <div {...{ className: "text-2xl font-bold" }}>{summary?.totalCases || 0}</div>
-            <p {...{ className: "text-xs text-gray-600" }}>
+            <div className="text-2xl font-bold">{summary?.totalCases || 0}</div>
+            <p className="text-xs text-gray-600">
               All cases in selected period
             </p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader {...{ className: "flex flex-row items-center justify-between space-y-0 pb-2" }}>
-            <CardTitle {...{ className: "text-sm font-medium" }}>Completed</CardTitle>
-            <CheckCircle2 {...{ className: "h-4 w-4 text-green-600" }} />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Completed</CardTitle>
+            <CheckCircle2 className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div {...{ className: "text-2xl font-bold" }}>{summary?.completedCases || 0}</div>
-            <p {...{ className: "text-xs text-gray-600" }}>
+            <div className="text-2xl font-bold">{summary?.completedCases || 0}</div>
+            <p className="text-xs text-gray-600">
               {summary?.completionRate ? `${summary.completionRate.toFixed(1)}% completion rate` : '0% completion rate'}
             </p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader {...{ className: "flex flex-row items-center justify-between space-y-0 pb-2" }}>
-            <CardTitle {...{ className: "text-sm font-medium" }}>Avg Completion</CardTitle>
-            <Clock {...{ className: "h-4 w-4 text-gray-600" }} />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Avg Completion</CardTitle>
+            <Clock className="h-4 w-4 text-gray-600" />
           </CardHeader>
           <CardContent>
-            <div {...{ className: "text-2xl font-bold" }}>
+            <div className="text-2xl font-bold">
               {summary?.avgCompletionDays ? `${summary.avgCompletionDays.toFixed(1)}d` : 'N/A'}
             </div>
-            <p {...{ className: "text-xs text-gray-600" }}>
+            <p className="text-xs text-gray-600">
               Average days to complete
             </p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader {...{ className: "flex flex-row items-center justify-between space-y-0 pb-2" }}>
-            <CardTitle {...{ className: "text-sm font-medium" }}>Task Progress</CardTitle>
-            <TrendingUp {...{ className: "h-4 w-4 text-gray-600" }} />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Task Progress</CardTitle>
+            <TrendingUp className="h-4 w-4 text-gray-600" />
           </CardHeader>
           <CardContent>
-            <div {...{ className: "text-2xl font-bold" }}>
+            <div className="text-2xl font-bold">
               {summary?.avgFormCompletion ? `${summary.avgFormCompletion.toFixed(1)}%` : 'N/A'}
             </div>
-            <p {...{ className: "text-xs text-gray-600" }}>
+            <p className="text-xs text-gray-600">
               Average task completion
             </p>
           </CardContent>
@@ -225,13 +225,13 @@ export const CasesAnalytics: React.FC = () => {
       {/* View Type Selector */}
       <Card>
         <CardHeader>
-          <div {...{ className: "flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4" }}>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <CardTitle>Case Distribution</CardTitle>
               <CardDescription>Breakdown by different dimensions</CardDescription>
             </div>
             <Select value={viewType} onValueChange={(v) => setViewType(v as 'status' | 'client' | 'priority')}>
-              <SelectTrigger {...{ className: "w-full sm:w-[180px]" }}>
+              <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -243,9 +243,9 @@ export const CasesAnalytics: React.FC = () => {
           </div>
         </CardHeader>
         <CardContent>
-          <div {...{ className: "grid gap-6 grid-cols-1 lg:grid-cols-2" }}>
+          <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
             {/* Pie Chart */}
-            <div {...{ className: "h-[300px]" }}>
+            <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
@@ -269,7 +269,7 @@ export const CasesAnalytics: React.FC = () => {
             </div>
 
             {/* Bar Chart */}
-            <div {...{ className: "h-[300px]" }}>
+            <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={viewType === 'status' ? statusDistribution : viewType === 'priority' ? priorityData : clientData}>
                   <CartesianGrid strokeDasharray="3 3" />
@@ -295,19 +295,19 @@ export const CasesAnalytics: React.FC = () => {
           <CardDescription>Detailed view of cases by status</CardDescription>
         </CardHeader>
         <CardContent>
-          <div {...{ className: "grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" }}>
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
             {statusDistribution.map((status) => (
-              <div key={status.name} {...{ className: "flex items-center justify-between p-4 border rounded-lg" }}>
-                <div {...{ className: "flex items-center space-x-3" }}>
-                  <div {...{ className: "w-3 h-3 rounded-full" }} style={{ backgroundColor: status.color }} />
+              <div key={status.name} className="flex items-center justify-between p-4 border rounded-lg">
+                <div className="flex items-center space-x-3">
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: status.color }} />
                   <div>
-                    <p {...{ className: "font-medium" }}>{status.name}</p>
-                    <p {...{ className: "text-sm text-gray-600" }}>
+                    <p className="font-medium">{status.name}</p>
+                    <p className="text-sm text-gray-600">
                       {summary?.totalCases ? ((status.value / summary.totalCases) * 100).toFixed(1) : 0}%
                     </p>
                   </div>
                 </div>
-                <div {...{ className: "text-2xl font-bold" }}>{status.value}</div>
+                <div className="text-2xl font-bold">{status.value}</div>
               </div>
             ))}
           </div>

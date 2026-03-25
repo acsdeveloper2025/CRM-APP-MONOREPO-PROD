@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useCRUDMutation } from '@/hooks/useStandardizedMutation';
 import { useStandardizedQuery } from '@/hooks/useStandardizedQuery';
-import { Button } from '@/ui/components/Button';
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -12,7 +12,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/ui/components/Dialog';
+} from '@/components/ui/dialog';
 import {
   Form,
   FormControl,
@@ -20,19 +20,16 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/ui/components/Form';
-import { Input } from '@/ui/components/Input';
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/ui/components/Select';
+} from '@/components/ui/select';
 import { locationsService } from '@/services/locations';
-import { Box } from '@/ui/primitives/Box';
-import { Stack } from '@/ui/primitives/Stack';
-import { Text } from '@/ui/primitives/Text';
 import type { State, UpdateStateData } from '@/types/location';
 
 const updateStateSchema = z.object({
@@ -100,7 +97,7 @@ export function EditStateDialog({ state, open, onOpenChange }: EditStateDialogPr
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent style={{ width: 'min(95vw, 425px)' }}>
+      <DialogContent className="max-w-[95vw] sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Edit State</DialogTitle>
           <DialogDescription>
@@ -109,8 +106,7 @@ export function EditStateDialog({ state, open, onOpenChange }: EditStateDialogPr
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)}>
-            <Stack gap={4}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
               control={form.control}
               name="name"
@@ -161,23 +157,12 @@ export function EditStateDialog({ state, open, onOpenChange }: EditStateDialogPr
                     <SelectContent>
                       {countries.map((country) => (
                         <SelectItem key={country.id} value={country.name}>
-                          <Stack direction="horizontal" gap={2} align="center">
-                            <Box
-                              as="span"
-                              style={{
-                                fontFamily: 'ui-monospace, SFMono-Regular, monospace',
-                                fontSize: '0.75rem',
-                                paddingInline: '0.25rem',
-                                borderRadius: '0.375rem',
-                                background: 'color-mix(in srgb, var(--ui-accent) 14%, transparent)',
-                                color: 'var(--ui-accent)',
-                                border: '1px solid color-mix(in srgb, var(--ui-accent) 24%, transparent)',
-                              }}
-                            >
+                          <div className="flex items-center space-x-2">
+                            <span className="font-mono text-xs bg-green-50 text-green-700 border border-green-100 px-1 rounded">
                               {country.code}
-                            </Box>
-                            <Text as="span">{country.name}</Text>
-                          </Stack>
+                            </span>
+                            <span>{country.name}</span>
+                          </div>
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -187,23 +172,22 @@ export function EditStateDialog({ state, open, onOpenChange }: EditStateDialogPr
               )}
             />
 
-            <DialogFooter style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
+            <DialogFooter className="flex-col sm:flex-row gap-2">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
-                fullWidth
+                className="w-full sm:w-auto"
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
                 disabled={updateStateMutation.isPending}
-                fullWidth>
+               className="w-full sm:w-auto">
                 {updateStateMutation.isPending ? 'Updating...' : 'Update State'}
               </Button>
             </DialogFooter>
-            </Stack>
           </form>
         </Form>
       </DialogContent>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/ui/components/Card';
-import { Button } from '@/ui/components/Button';
-import { Badge } from '@/ui/components/Badge';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { baseBadgeStyle, formatBadgeLabel } from '@/lib/badgeStyles';
 import {
   Table,
@@ -10,9 +10,9 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/ui/components/Table';
+} from '@/components/ui/table';
 import { Calculator, Download, Calendar } from 'lucide-react';
-import { UnifiedSearchInput } from '@/ui/components/UnifiedSearchInput';
+import { UnifiedSearchInput } from '@/components/ui/unified-search-input';
 import { useUnifiedSearch } from '@/hooks/useUnifiedSearch';
 import { commissionManagementApi } from '../../services/commissionManagementApi';
 import { CommissionCalculation } from '../../types/commission';
@@ -96,32 +96,32 @@ export const CommissionCalculationsTab: React.FC = () => {
 
   if (loading) {
     return (
-      <div {...{ className: "flex items-center justify-center h-64" }}>
-        <div {...{ className: "animate-spin rounded-full h-10 w-10 border-b-2 border-green-600" }} />
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-green-600" />
       </div>
     );
   }
 
   return (
-    <div {...{ className: "space-y-6" }}>
+    <div className="space-y-6">
       {/* Monthly Summary Cards */}
       {Object.keys(monthlySummary).length > 0 && (
-        <div {...{ className: "grid grid-cols-1 md:grid-cols-3 gap-4" }}>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {Object.entries(monthlySummary).slice(0, 3).map(([month, data]) => (
             <Card key={month}>
-              <CardContent {...{ className: "p-4" }}>
-                <div {...{ className: "flex items-center justify-between" }}>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
                   <div>
-                    <p {...{ className: "text-sm font-medium text-gray-600 flex items-center gap-1" }}>
-                      <Calendar {...{ className: "h-4 w-4" }} />
+                    <p className="text-sm font-medium text-gray-600 flex items-center gap-1">
+                      <Calendar className="h-4 w-4" />
                       {month}
                     </p>
-                    <p {...{ className: "text-2xl font-bold text-gray-900 mt-1" }}>
+                    <p className="text-2xl font-bold text-gray-900 mt-1">
                       {data.currency} {data.total.toFixed(2)}
                     </p>
-                    <p {...{ className: "text-xs text-gray-600 mt-1" }}>{data.count} commissions</p>
+                    <p className="text-xs text-gray-600 mt-1">{data.count} commissions</p>
                   </div>
-                  <Calculator {...{ className: "h-10 w-10 text-gray-600" }} />
+                  <Calculator className="h-10 w-10 text-gray-600" />
                 </div>
               </CardContent>
             </Card>
@@ -131,10 +131,10 @@ export const CommissionCalculationsTab: React.FC = () => {
 
       <Card>
         <CardHeader>
-          <div {...{ className: "flex items-center justify-between" }}>
+          <div className="flex items-center justify-between">
             <div>
-              <CardTitle {...{ className: "flex items-center gap-2" }}>
-                <Calculator {...{ className: "h-5 w-5" }} />
+              <CardTitle className="flex items-center gap-2">
+                <Calculator className="h-5 w-5" />
                 Commission Calculations ({calculations.length})
               </CardTitle>
               <CardDescription>
@@ -142,14 +142,14 @@ export const CommissionCalculationsTab: React.FC = () => {
               </CardDescription>
             </div>
             <Button onClick={exportCalculations}>
-              <Download {...{ className: "h-4 w-4 mr-2" }} />
+              <Download className="h-4 w-4 mr-2" />
               Export CSV
             </Button>
           </div>
         </CardHeader>
-        <CardContent {...{ className: "p-4" }}>
+        <CardContent className="p-4">
           {/* Search Section */}
-          <div {...{ className: "mb-6" }}>
+          <div className="mb-6">
             <UnifiedSearchInput
               value={searchValue}
               onChange={setSearchValue}
@@ -168,18 +168,18 @@ export const CommissionCalculationsTab: React.FC = () => {
                 <TableHead>Client</TableHead>
                 <TableHead>Product</TableHead>
                 <TableHead>Rate Type</TableHead>
-                <TableHead {...{ className: "text-right" }}>Commission</TableHead>
+                <TableHead className="text-right">Commission</TableHead>
                 <TableHead>Month</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
                 {calculations.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} {...{ className: "h-64 text-center" }}>
-                      <div {...{ className: "flex flex-col items-center justify-center text-gray-600" }}>
-                        <Calculator {...{ className: "h-12 w-12 mb-4" }} />
-                        <p {...{ className: "text-lg font-semibold" }}>No commission calculations found</p>
-                        <p {...{ className: "text-sm mt-2" }}>Complete verification tasks to generate commissions</p>
+                    <TableCell colSpan={7} className="h-64 text-center">
+                      <div className="flex flex-col items-center justify-center text-gray-600">
+                        <Calculator className="h-12 w-12 mb-4" />
+                        <p className="text-lg font-semibold">No commission calculations found</p>
+                        <p className="text-sm mt-2">Complete verification tasks to generate commissions</p>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -188,11 +188,11 @@ export const CommissionCalculationsTab: React.FC = () => {
                     <TableRow key={calculation.id}>
                       <TableCell>
                         <div>
-                          <div {...{ className: "font-medium text-gray-900" }}>
+                          <div className="font-medium text-gray-900">
                             {calculation.task_number || 'N/A'}
                           </div>
                           {calculation.verification_type_name && (
-                            <div {...{ className: "text-sm text-gray-600" }}>
+                            <div className="text-sm text-gray-600">
                               {calculation.verification_type_name}
                             </div>
                           )}
@@ -200,16 +200,16 @@ export const CommissionCalculationsTab: React.FC = () => {
                       </TableCell>
                       <TableCell>
                         <div>
-                          <div {...{ className: "font-medium text-gray-900" }}>
+                          <div className="font-medium text-gray-900">
                             {calculation.user_name || 'N/A'}
                           </div>
-                          <div {...{ className: "text-sm text-gray-600" }}>
+                          <div className="text-sm text-gray-600">
                             {calculation.user_email || ''}
                           </div>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div {...{ className: "font-medium text-gray-900" }}>
+                        <div className="font-medium text-gray-900">
                           {calculation.client_name || 'N/A'}
                         </div>
                       </TableCell>
@@ -217,24 +217,24 @@ export const CommissionCalculationsTab: React.FC = () => {
                         {calculation.product_name || 'N/A'}
                       </TableCell>
                       <TableCell>
-                        <Badge {...{ className: baseBadgeStyle }}>{formatBadgeLabel(calculation.rate_type_name || 'N/A')}</Badge>
+                        <Badge className={baseBadgeStyle}>{formatBadgeLabel(calculation.rate_type_name || 'N/A')}</Badge>
                       </TableCell>
-                      <TableCell {...{ className: "text-right" }}>
+                      <TableCell className="text-right">
                         <div>
-                          <div {...{ className: "font-semibold" }}>
+                          <div className="font-semibold">
                             {calculation.currency} {Number(calculation.commission_amount).toFixed(2)}
                           </div>
                           {calculation.base_amount && (
-                            <div {...{ className: "text-sm text-gray-600" }}>
+                            <div className="text-sm text-gray-600">
                               Base: {calculation.currency} {Number(calculation.base_amount).toFixed(2)}
                             </div>
                           )}
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div {...{ className: "flex items-center gap-1" }}>
-                          <Calendar {...{ className: "h-3.5 w-3.5 text-gray-600" }} />
-                          <span {...{ className: "text-sm" }}>
+                        <div className="flex items-center gap-1">
+                          <Calendar className="h-3.5 w-3.5 text-gray-600" />
+                          <span className="text-sm">
                             {formatMonth(calculation.created_at)}
                           </span>
                         </div>
@@ -247,15 +247,15 @@ export const CommissionCalculationsTab: React.FC = () => {
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div {...{ className: "flex items-center justify-between mt-6 pt-4 border-t" }}>
-              <div {...{ className: "text-sm text-gray-600" }}>
-                Showing <span {...{ className: "font-medium text-gray-900" }}>{calculations.length}</span> commissions
+            <div className="flex items-center justify-between mt-6 pt-4 border-t">
+              <div className="text-sm text-gray-600">
+                Showing <span className="font-medium text-gray-900">{calculations.length}</span> commissions
               </div>
-              <div {...{ className: "flex items-center gap-2" }}>
-                <span {...{ className: "text-sm text-gray-600" }}>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-600">
                   Page {currentPage} of {totalPages}
                 </span>
-                <div {...{ className: "flex gap-2" }}>
+                <div className="flex gap-2">
                   <Button
                     variant="outline"
                     size="sm"

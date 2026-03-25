@@ -1,11 +1,8 @@
 import { User, Clock, FileText, CheckCircle, AlertCircle, Eye } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/Card';
-import { Badge } from '@/ui/components/Badge';
-import { Separator } from '@/ui/components/Separator';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 import { FormSubmission } from '@/types/form';
-import { Box } from '@/ui/primitives/Box';
-import { Stack } from '@/ui/primitives/Stack';
-import { Text } from '@/ui/primitives/Text';
 
 interface FormMetadataViewerProps {
   submission: FormSubmission;
@@ -15,13 +12,13 @@ export function FormMetadataViewer({ submission }: FormMetadataViewerProps) {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'APPROVED':
-        return <CheckCircle size={16} style={{ color: 'var(--ui-success)' }} />;
+        return <CheckCircle className="h-4 w-4 text-green-600" />;
       case 'REJECTED':
-        return <AlertCircle size={16} style={{ color: 'var(--ui-danger)' }} />;
+        return <AlertCircle className="h-4 w-4 text-red-600" />;
       case 'UNDER_REVIEW':
-        return <Eye size={16} style={{ color: 'var(--ui-accent)' }} />;
+        return <Eye className="h-4 w-4 text-green-600" />;
       default:
-        return <FileText size={16} style={{ color: 'var(--ui-text-muted)' }} />;
+        return <FileText className="h-4 w-4 text-gray-600" />;
     }
   };
 
@@ -33,170 +30,197 @@ export function FormMetadataViewer({ submission }: FormMetadataViewerProps) {
       APPROVED: { variant: 'default' as const, label: 'Approved' },
       REJECTED: { variant: 'destructive' as const, label: 'Rejected' },
     };
+    
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.DRAFT;
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
-  const getFormTypeLabel = (formType: string) =>
-    formType.split('-').map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+  const getFormTypeLabel = (formType: string) => {
+    return formType
+      .split('-')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
 
-  const getVerificationTypeLabel = (verificationType: string) =>
-    verificationType.replace(/([A-Z])/g, ' $1').trim();
+  const getVerificationTypeLabel = (verificationType: string) => {
+    return verificationType.replace(/([A-Z])/g, ' $1').trim();
+  };
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>
-          <Stack direction="horizontal" gap={2} align="center">
-            <FileText size={20} />
-            <span>Form Information</span>
-          </Stack>
+        <CardTitle className="flex items-center space-x-2">
+          <FileText className="h-5 w-5" />
+          <span>Form Information</span>
         </CardTitle>
-        <CardDescription>Submission details and verification metadata</CardDescription>
+        <CardDescription>
+          Submission details and verification metadata
+        </CardDescription>
       </CardHeader>
       <CardContent>
-        <Stack gap={6}>
-          <Box style={{ display: 'grid', gap: '1rem', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))' }}>
-            <Stack gap={2}>
-              <Text as="h4" variant="label">Form Details</Text>
-              <Stack gap={2}>
-                <Box style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Text as="span" variant="body-sm" tone="muted">Form ID:</Text>
-                  <Text as="span" variant="body-sm" style={{ fontFamily: 'ui-monospace, SFMono-Regular, monospace' }}>{submission.id}</Text>
-                </Box>
-                <Box style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Text as="span" variant="body-sm" tone="muted">Case ID:</Text>
-                  <Text as="span" variant="body-sm" style={{ fontFamily: 'ui-monospace, SFMono-Regular, monospace' }}>{submission.caseId}</Text>
-                </Box>
-                <Box style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Text as="span" variant="body-sm" tone="muted">Form Type:</Text>
-                  <Text as="span" variant="body-sm">{getFormTypeLabel(submission.formType)}</Text>
-                </Box>
-                <Box style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Text as="span" variant="body-sm" tone="muted">Verification:</Text>
-                  <Text as="span" variant="body-sm">{getVerificationTypeLabel(submission.verificationType)}</Text>
-                </Box>
-                <Box style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Text as="span" variant="body-sm" tone="muted">Outcome:</Text>
+        <div className="space-y-6">
+          {/* Basic Information */}
+          <div className="grid gap-4 md:grid-cols-2">
+            <div>
+              <h4 className="font-medium text-sm mb-3">Form Details</h4>
+              <div className="space-y-2 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600">Form ID:</span>
+                  <span className="font-mono">{submission.id}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600">Case ID:</span>
+                  <span className="font-mono">{submission.caseId}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600">Form Type:</span>
+                  <span>{getFormTypeLabel(submission.formType)}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600">Verification:</span>
+                  <span>{getVerificationTypeLabel(submission.verificationType)}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600">Outcome:</span>
                   <Badge variant="outline">{submission.outcome}</Badge>
-                </Box>
-              </Stack>
-            </Stack>
+                </div>
+              </div>
+            </div>
 
-            <Stack gap={2}>
-              <Text as="h4" variant="label">Status & Progress</Text>
-              <Stack gap={2}>
-                <Box style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Text as="span" variant="body-sm" tone="muted">Status:</Text>
-                  <Stack direction="horizontal" gap={2} align="center">
+            <div>
+              <h4 className="font-medium text-sm mb-3">Status & Progress</h4>
+              <div className="space-y-2 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600">Status:</span>
+                  <div className="flex items-center space-x-2">
                     {getStatusIcon(submission.status)}
                     {getStatusBadge(submission.status)}
-                  </Stack>
-                </Box>
-                <Box style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Text as="span" variant="body-sm" tone="muted">Sections:</Text>
-                  <Text as="span" variant="body-sm">{submission.sections.length}</Text>
-                </Box>
-                <Box style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Text as="span" variant="body-sm" tone="muted">Attachments:</Text>
-                  <Text as="span" variant="body-sm">{submission.attachments.length}</Text>
-                </Box>
-                <Box style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Text as="span" variant="body-sm" tone="muted">Location:</Text>
-                  <Text as="span" variant="body-sm">{submission.location ? 'Captured' : 'Not available'}</Text>
-                </Box>
-              </Stack>
-            </Stack>
-          </Box>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600">Sections:</span>
+                  <span>{submission.sections.length}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600">Attachments:</span>
+                  <span>{submission.attachments.length}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600">Location:</span>
+                  <span>{submission.location ? 'Captured' : 'Not available'}</span>
+                </div>
+              </div>
+            </div>
+          </div>
 
           <Separator />
 
-          <Box style={{ display: 'grid', gap: '1rem', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))' }}>
-            <Stack gap={2}>
-              <Text as="h4" variant="label">Submission Details</Text>
-              <Stack gap={2}>
-                <Stack direction="horizontal" gap={2} align="center">
-                  <User size={12} style={{ color: 'var(--ui-text-muted)' }} />
-                  <Text as="span" variant="body-sm" tone="muted">Submitted by:</Text>
-                  <Text as="span" variant="body-sm" style={{ fontWeight: 600 }}>{submission.submittedByName || submission.submittedBy || 'Unknown Agent'}</Text>
-                </Stack>
-                <Stack direction="horizontal" gap={2} align="center">
-                  <Clock size={12} style={{ color: 'var(--ui-text-muted)' }} />
-                  <Text as="span" variant="body-sm" tone="muted">Submitted at:</Text>
-                  <Text as="span" variant="body-sm">{new Date(submission.submittedAt).toLocaleString()}</Text>
-                </Stack>
-              </Stack>
-            </Stack>
+          {/* Submission Information */}
+          <div className="grid gap-4 md:grid-cols-2">
+            <div>
+              <h4 className="font-medium text-sm mb-3">Submission Details</h4>
+              <div className="space-y-2 text-sm">
+                <div className="flex items-center space-x-2">
+                  <User className="h-3 w-3 text-gray-600" />
+                  <span className="text-gray-600">Submitted by:</span>
+                  <span className="font-medium">{submission.submittedByName || submission.submittedBy || 'Unknown Agent'}</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Clock className="h-3 w-3 text-gray-600" />
+                  <span className="text-gray-600">Submitted at:</span>
+                  <span>{new Date(submission.submittedAt).toLocaleString()}</span>
+                </div>
+              </div>
+            </div>
 
-            {(submission.reviewedBy || submission.reviewedAt) ? (
-              <Stack gap={2}>
-                <Text as="h4" variant="label">Review Details</Text>
-                <Stack gap={2}>
-                  {submission.reviewedBy ? (
-                    <Stack direction="horizontal" gap={2} align="center">
-                      <User size={12} style={{ color: 'var(--ui-text-muted)' }} />
-                      <Text as="span" variant="body-sm" tone="muted">Reviewed by:</Text>
-                      <Text as="span" variant="body-sm" style={{ fontWeight: 600 }}>{submission.reviewedBy}</Text>
-                    </Stack>
-                  ) : null}
-                  {submission.reviewedAt ? (
-                    <Stack direction="horizontal" gap={2} align="center">
-                      <Clock size={12} style={{ color: 'var(--ui-text-muted)' }} />
-                      <Text as="span" variant="body-sm" tone="muted">Reviewed at:</Text>
-                      <Text as="span" variant="body-sm">{new Date(submission.reviewedAt).toLocaleString()}</Text>
-                    </Stack>
-                  ) : null}
-                </Stack>
-              </Stack>
-            ) : null}
-          </Box>
+            {/* Review Information */}
+            {(submission.reviewedBy || submission.reviewedAt) && (
+              <div>
+                <h4 className="font-medium text-sm mb-3">Review Details</h4>
+                <div className="space-y-2 text-sm">
+                  {submission.reviewedBy && (
+                    <div className="flex items-center space-x-2">
+                      <User className="h-3 w-3 text-gray-600" />
+                      <span className="text-gray-600">Reviewed by:</span>
+                      <span className="font-medium">{submission.reviewedBy}</span>
+                    </div>
+                  )}
+                  {submission.reviewedAt && (
+                    <div className="flex items-center space-x-2">
+                      <Clock className="h-3 w-3 text-gray-600" />
+                      <span className="text-gray-600">Reviewed at:</span>
+                      <span>{new Date(submission.reviewedAt).toLocaleString()}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
 
-          <Box style={{ background: 'var(--ui-surface-muted)', borderRadius: 'var(--ui-radius-lg)', padding: '1rem' }}>
-            <Text as="h4" variant="label" style={{ marginBottom: '0.75rem' }}>Form Statistics</Text>
-            <Box style={{ display: 'grid', gap: '1rem', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))' }}>
-              <Box style={{ textAlign: 'center' }}>
-                <Text variant="headline" tone="accent">{submission.sections.reduce((acc, section) => acc + section.fields.length, 0)}</Text>
-                <Text variant="caption" tone="muted">Total Fields</Text>
-              </Box>
-              <Box style={{ textAlign: 'center' }}>
-                <Text variant="headline" tone="positive">{submission.sections.reduce((acc, section) => acc + section.fields.filter((field) => field.value && field.value !== '').length, 0)}</Text>
-                <Text variant="caption" tone="muted">Completed Fields</Text>
-              </Box>
-              <Box style={{ textAlign: 'center' }}>
-                <Text variant="headline" tone="positive">{submission.attachments.length}</Text>
-                <Text variant="caption" tone="muted">Attachments</Text>
-              </Box>
-              <Box style={{ textAlign: 'center' }}>
-                <Text variant="headline" tone="positive">{submission.location ? '1' : '0'}</Text>
-                <Text variant="caption" tone="muted">GPS Location</Text>
-              </Box>
-            </Box>
-          </Box>
+          {/* Form Statistics */}
+          <div className="bg-slate-100/50 dark:bg-slate-800/40 rounded-lg p-4">
+            <h4 className="font-medium text-sm mb-3">Form Statistics</h4>
+            <div className="grid gap-4 md:grid-cols-4 text-sm">
+              <div className="text-center">
+                <div className="text-lg font-bold text-primary">
+                  {submission.sections.reduce((acc, section) => acc + section.fields.length, 0)}
+                </div>
+                <div className="text-xs text-gray-600">Total Fields</div>
+              </div>
+              <div className="text-center">
+                <div className="text-lg font-bold text-green-600">
+                  {submission.sections.reduce((acc, section) => 
+                    acc + section.fields.filter(field => field.value && field.value !== '').length, 0
+                  )}
+                </div>
+                <div className="text-xs text-gray-600">Completed Fields</div>
+              </div>
+              <div className="text-center">
+                <div className="text-lg font-bold text-green-600">
+                  {submission.attachments.length}
+                </div>
+                <div className="text-xs text-gray-600">Attachments</div>
+              </div>
+              <div className="text-center">
+                <div className="text-lg font-bold text-green-600">
+                  {submission.location ? '1' : '0'}
+                </div>
+                <div className="text-xs text-gray-600">GPS Location</div>
+              </div>
+            </div>
+          </div>
 
-          <Stack gap={2}>
-            <Text as="h4" variant="label">Completion Progress</Text>
-            <Stack gap={2}>
+          {/* Completion Progress */}
+          <div>
+            <h4 className="font-medium text-sm mb-3">Completion Progress</h4>
+            <div className="space-y-2">
               {submission.sections.map((section) => {
                 const totalFields = section.fields.length;
-                const completedFields = section.fields.filter((field) => field.value && field.value !== '').length;
+                const completedFields = section.fields.filter(field => 
+                  field.value && field.value !== ''
+                ).length;
                 const percentage = totalFields > 0 ? (completedFields / totalFields) * 100 : 0;
+
                 return (
-                  <Stack key={section.id} gap={1}>
-                    <Box style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <Text as="span" variant="body-sm">{section.title}</Text>
-                      <Text as="span" variant="body-sm" tone="muted">
+                  <div key={section.id} className="space-y-1">
+                    <div className="flex items-center justify-between text-sm">
+                      <span>{section.title}</span>
+                      <span className="text-gray-600">
                         {completedFields}/{totalFields} ({Math.round(percentage)}%)
-                      </Text>
-                    </Box>
-                    <Box style={{ width: '100%', background: 'var(--ui-surface)', borderRadius: '999px', height: '0.5rem' }}>
-                      <Box style={{ width: `${percentage}%`, background: 'var(--ui-accent)', borderRadius: '999px', height: '0.5rem', transition: 'width 300ms ease' }} />
-                    </Box>
-                  </Stack>
+                      </span>
+                    </div>
+                    <div className="w-full bg-slate-100 dark:bg-slate-800/60 rounded-full h-2">
+                      <div 
+                        className="bg-primary h-2 rounded-full transition-all duration-300" 
+                        style={{ width: `${percentage}%` }}
+                      />
+                    </div>
+                  </div>
                 );
               })}
-            </Stack>
-          </Stack>
-        </Stack>
+            </div>
+          </div>
+        </div>
       </CardContent>
     </Card>
   );

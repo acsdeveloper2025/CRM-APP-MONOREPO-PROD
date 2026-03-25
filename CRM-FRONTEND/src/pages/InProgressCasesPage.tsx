@@ -1,27 +1,21 @@
 import React, { useState } from 'react';
-import { Label } from '@/ui/components/Label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/ui/components/Select';
+} from '@/components/ui/select';
 import { CaseTable } from '@/components/cases/CaseTable';
 import { CasePagination } from '@/components/cases/CasePagination';
 import { useCases, useRefreshCases } from '@/hooks/useCases';
 import { useUnifiedSearch, useUnifiedFilters } from '@/hooks/useUnifiedSearch';
-import { UnifiedSearchFilterLayout, FilterGrid } from '@/ui/components/UnifiedSearchFilterLayout';
-import { Download, RefreshCw, PlayCircle, Timer, Zap, Users, BarChart3 } from 'lucide-react';
+import { UnifiedSearchFilterLayout, FilterGrid } from '@/components/ui/unified-search-filter-layout';
+import { Download, RefreshCw, PlayCircle } from 'lucide-react';
 import { casesService, type CaseListQuery } from '@/services/cases';
-import { MetricCardGrid } from '@/components/shared/MetricCardGrid';
-import { Badge } from '@/ui/components/Badge';
-import { Button } from '@/ui/components/Button';
-import { Card } from '@/ui/components/Card';
-import { Page } from '@/ui/layout/Page';
-import { Section } from '@/ui/layout/Section';
-import { Stack } from '@/ui/primitives/Stack';
-import { Text } from '@/ui/primitives/Text';
 
 interface InProgressCaseFilters {
   priority?: string;
@@ -104,38 +98,19 @@ export const InProgressCasesPage: React.FC = () => {
   };
 
   return (
-    <Page
-      title="In Progress Cases"
-      subtitle="Track active cases and intervene before turnaround risk increases."
-      shell
-      actions={
-        <Stack direction="horizontal" gap={2} wrap="wrap">
-          <Button
-            variant="secondary"
-            icon={<RefreshCw size={16} />}
-            onClick={async () => {
-              await refreshCases({
-                clearCache: true,
-                preserveFilters: true,
-                showToast: true
-              });
-            }}
-            disabled={isLoading}
-          >
-            Refresh
-          </Button>
-          <Button variant="secondary" icon={<Download size={16} />} onClick={handleExport}>
-            Export
-          </Button>
-        </Stack>
-      }
-    >
-      <Section>
-        <Badge variant="status-progress">Active Queue</Badge>
-      </Section>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">In Progress Cases</h1>
+          <p className="mt-2 text-muted-foreground">
+            View and manage all cases currently being worked on
+          </p>
+        </div>
+      </div>
 
-      <Section>
-        <UnifiedSearchFilterLayout
+      {/* Unified Search and Filter Layout */}
+      <UnifiedSearchFilterLayout
         searchValue={searchValue}
         onSearchChange={setSearchValue}
         onSearchClear={clearSearch}
@@ -185,46 +160,126 @@ export const InProgressCasesPage: React.FC = () => {
         }
         actions={
           <>
-            <Button variant="secondary" onClick={async () => {
+            <Button variant="outline" onClick={async () => {
               await refreshCases({
                 clearCache: true,
                 preserveFilters: true,
                 showToast: true
               });
             }} disabled={isLoading}>
+              <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
               Refresh
             </Button>
-            <Button variant="secondary" onClick={handleExport}>
+            <Button variant="outline" onClick={handleExport}>
+              <Download className="h-4 w-4 mr-2" />
               Export
             </Button>
           </>
         }
       />
-      </Section>
 
-      <Section>
-        <MetricCardGrid
-          items={[
-            { title: 'Total In Progress', value: statistics?.inProgress || 0, detail: 'Active cases', icon: PlayCircle, tone: 'accent' },
-            { title: 'Long Running', value: statistics?.overdue || 0, detail: 'Require attention', icon: Timer, tone: 'warning' },
-            { title: 'High Priority', value: statistics?.highPriority || 0, detail: 'Urgent active cases', icon: Zap, tone: 'danger' },
-            { title: 'Active Agents', value: statistics?.activeAgentsInProgress || 0, detail: 'Currently assigned', icon: Users, tone: 'neutral' },
-            { title: 'Avg Duration', value: `${Math.round(statistics?.avgDurationDaysInProgress || 0)} days`, detail: 'Average running time', icon: BarChart3, tone: 'warning' },
-          ]}
-        />
-      </Section>
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <PlayCircle className="h-8 w-8 text-green-600" />
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Total In Progress</p>
+                <p className="text-2xl font-bold text-foreground">{statistics?.inProgress || 0}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <div className="h-8 w-8 bg-yellow-100 rounded-full flex items-center justify-center">
+                <span className="text-yellow-600 font-semibold">⏱️</span>
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Long Running</p>
+                <p className="text-2xl font-bold text-foreground">
+                  {statistics?.overdue || 0}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <div className="h-8 w-8 bg-red-100 rounded-full flex items-center justify-center">
+                <span className="text-red-600 font-semibold">⚡</span>
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-muted-foreground">High Priority</p>
+                <p className="text-2xl font-bold text-foreground">
+                  {statistics?.highPriority || 0}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <div className="h-8 w-8 bg-green-100 rounded-full flex items-center justify-center">
+                <span className="text-green-600 font-semibold">👥</span>
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Active Agents</p>
+                <p className="text-2xl font-bold text-foreground">
+                  {statistics?.activeAgentsInProgress || 0}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <div className="h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center">
+                <span className="text-blue-600 font-semibold">📊</span>
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Avg Duration</p>
+                <p className="text-2xl font-bold text-foreground">
+                  {Math.round(statistics?.avgDurationDaysInProgress || 0)} days
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
-      <Section>
-        <Card tone="strong" staticCard bodyClassName="p-0">
+
+
+      {/* Cases Table */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>In Progress Cases</CardTitle>
+              <CardDescription>
+                {paginationData.total > 0
+                  ? `Showing ${paginationData.total} in progress case${paginationData.total === 1 ? '' : 's'}`
+                  : 'No in progress cases found'
+                }
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="p-0">
           <CaseTable
             cases={cases}
             isLoading={isLoading}
           />
-        </Card>
-      </Section>
+        </CardContent>
+      </Card>
 
-      {paginationData.total > 0 ? (
-        <Section>
+      {/* Pagination */}
+      {paginationData.total > 0 && (
         <CasePagination
           currentPage={paginationData.page}
           totalPages={paginationData.totalPages}
@@ -234,12 +289,7 @@ export const InProgressCasesPage: React.FC = () => {
           onItemsPerPageChange={handleItemsPerPageChange}
           isLoading={isLoading}
         />
-        </Section>
-      ) : (
-        <Section>
-          <Text variant="body-sm" tone="muted">No in progress cases found.</Text>
-        </Section>
       )}
-    </Page>
+    </div>
   );
 };

@@ -1,16 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
-function updateSearchParamsIfChanged(
-  currentParams: URLSearchParams,
-  nextParams: URLSearchParams,
-  setSearchParams: ReturnType<typeof useSearchParams>[1]
-) {
-  if (currentParams.toString() !== nextParams.toString()) {
-    setSearchParams(nextParams, { replace: true });
-  }
-}
-
 /**
  * Standardized debounce delay for all search inputs across the application
  * Increased to 800ms to reduce API calls and improve performance
@@ -124,7 +114,6 @@ export function useUnifiedSearch(options: UseUnifiedSearchOptions = {}): UseUnif
   } = options;
 
   const [searchParams, setSearchParams] = useSearchParams();
-  const searchParamsString = searchParams.toString();
   
   const searchKey = options.urlParamName || SEARCH_PARAMS.SEARCH;
   
@@ -162,14 +151,15 @@ export function useUnifiedSearch(options: UseUnifiedSearchOptions = {}): UseUnif
         } else {
           newParams.delete(searchKey);
         }
-        updateSearchParamsIfChanged(searchParams, newParams, setSearchParams);
+        setSearchParams(newParams, { replace: true });
       }
     }, debounceDelay);
 
     return () => {
       clearTimeout(timer);
+      setIsDebouncing(false);
     };
-  }, [searchValue, debounceDelay, minSearchLength, syncWithUrl, onSearchChange, searchParamsString, setSearchParams, searchKey]);
+  }, [searchValue, debounceDelay, minSearchLength, syncWithUrl, onSearchChange, searchParams, setSearchParams, searchKey]);
 
   // Update search value from URL when it changes externally
   useEffect(() => {
@@ -179,7 +169,7 @@ export function useUnifiedSearch(options: UseUnifiedSearchOptions = {}): UseUnif
         setSearchValueState(urlValue);
       }
     }
-  }, [searchParamsString, syncWithUrl, searchKey]);  
+  }, [searchParams, syncWithUrl, searchKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const setSearchValue = useCallback((value: string) => {
     setSearchValueState(value);
@@ -192,9 +182,9 @@ export function useUnifiedSearch(options: UseUnifiedSearchOptions = {}): UseUnif
     if (syncWithUrl) {
       const newParams = new URLSearchParams(searchParams);
       newParams.delete(searchKey);
-      updateSearchParamsIfChanged(searchParams, newParams, setSearchParams);
+      setSearchParams(newParams, { replace: true });
     }
-  }, [syncWithUrl, searchParamsString, setSearchParams, searchKey]);
+  }, [syncWithUrl, searchParams, setSearchParams, searchKey]);
 
   return useMemo(() => ({
     searchValue,
@@ -280,7 +270,6 @@ export function useUnifiedFilters<T extends Record<string, unknown>>(
   } = options;
 
   const [searchParams, setSearchParams] = useSearchParams();
-  const searchParamsString = searchParams.toString();
   
   // Initialize filters from URL or initial values
   const getInitialFilters = useCallback((): Partial<T> => {
@@ -305,7 +294,7 @@ export function useUnifiedFilters<T extends Record<string, unknown>>(
     });
 
     return { ...initialFilters, ...urlFilters };
-  }, [syncWithUrl, initialFilters, searchParamsString, urlParamPrefix]);
+  }, [syncWithUrl, initialFilters, searchParams, urlParamPrefix]);
 
   const [filters, setFiltersState] = useState<Partial<T>>(getInitialFilters);
 
@@ -328,7 +317,7 @@ export function useUnifiedFilters<T extends Record<string, unknown>>(
         } else {
           newParams.delete(urlKey);
         }
-        updateSearchParamsIfChanged(searchParams, newParams, setSearchParams);
+        setSearchParams(newParams, { replace: true });
       }
       
       // Call onChange callback
@@ -338,7 +327,7 @@ export function useUnifiedFilters<T extends Record<string, unknown>>(
       
       return newFilters;
     });
-  }, [syncWithUrl, searchParamsString, setSearchParams, onFiltersChange, urlParamPrefix]);
+  }, [syncWithUrl, searchParams, setSearchParams, onFiltersChange, urlParamPrefix]);
 
   const setFilters = useCallback((newFilters: Partial<T>) => {
     setFiltersState(newFilters);
@@ -367,14 +356,14 @@ export function useUnifiedFilters<T extends Record<string, unknown>>(
         }
       });
       
-      updateSearchParamsIfChanged(searchParams, newParams, setSearchParams);
+      setSearchParams(newParams, { replace: true });
     }
     
     // Call onChange callback
     if (onFiltersChange) {
       onFiltersChange(newFilters);
     }
-  }, [syncWithUrl, searchParamsString, setSearchParams, onFiltersChange, urlParamPrefix]);
+  }, [syncWithUrl, searchParams, setSearchParams, onFiltersChange, urlParamPrefix]);
 
   const clearFilters = useCallback(() => {
     setFiltersState({});
@@ -395,14 +384,14 @@ export function useUnifiedFilters<T extends Record<string, unknown>>(
         }
       });
       
-      updateSearchParamsIfChanged(searchParams, newParams, setSearchParams);
+      setSearchParams(newParams, { replace: true });
     }
     
     // Call onChange callback
     if (onFiltersChange) {
       onFiltersChange({});
     }
-  }, [syncWithUrl, searchParamsString, setSearchParams, onFiltersChange, urlParamPrefix]);
+  }, [syncWithUrl, searchParams, setSearchParams, onFiltersChange, urlParamPrefix]);
 
   const hasActiveFilters = useMemo(() => {
     return Object.keys(filters).length > 0;
@@ -416,3 +405,4 @@ export function useUnifiedFilters<T extends Record<string, unknown>>(
     hasActiveFilters,
   }), [filters, setFilter, setFilters, clearFilters, hasActiveFilters]);
 }
+

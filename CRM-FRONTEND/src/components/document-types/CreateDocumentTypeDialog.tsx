@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
-import { Button } from '@/ui/components/Button';
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -11,7 +11,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/ui/components/Dialog';
+} from '@/components/ui/dialog';
 import {
   Form,
   FormControl,
@@ -19,9 +19,10 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/ui/components/Form';
-import { Input } from '@/ui/components/Input';
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
 import { documentTypesService } from '@/services/documentTypes';
+
 const createDocumentTypeSchema = z.object({
   name: z.string().min(1, 'Name is required').max(255, 'Name too long'),
   code: z
@@ -30,16 +31,20 @@ const createDocumentTypeSchema = z.object({
     .max(50, 'Code must be at most 50 characters')
     .regex(/^[A-Z0-9_]+$/, 'Code must contain only uppercase letters, numbers, and underscores'),
 });
+
 type CreateDocumentTypeData = z.infer<typeof createDocumentTypeSchema>;
+
 interface CreateDocumentTypeDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
+
 export const CreateDocumentTypeDialog: React.FC<CreateDocumentTypeDialogProps> = ({
   open,
   onOpenChange,
 }) => {
   const queryClient = useQueryClient();
+
   const form = useForm<CreateDocumentTypeData>({
     resolver: zodResolver(createDocumentTypeSchema),
     defaultValues: {
@@ -47,6 +52,7 @@ export const CreateDocumentTypeDialog: React.FC<CreateDocumentTypeDialogProps> =
       code: '',
     },
   });
+
   const createDocumentTypeMutation = useMutation({
     mutationFn: (data: CreateDocumentTypeData) => documentTypesService.createDocumentType(data),
     onSuccess: () => {
@@ -56,6 +62,7 @@ export const CreateDocumentTypeDialog: React.FC<CreateDocumentTypeDialogProps> =
       onOpenChange(false);
     },
   });
+
   const onSubmit = async (data: CreateDocumentTypeData) => {
     try {
       await createDocumentTypeMutation.mutateAsync(data);
@@ -63,20 +70,22 @@ export const CreateDocumentTypeDialog: React.FC<CreateDocumentTypeDialogProps> =
       console.error('Failed to create document type:', error);
     }
   };
+
   const handleClose = () => {
     form.reset();
     onOpenChange(false);
   };
+
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent {...{ className: 'max-w-[95vw] sm:max-w-[425px]' }}>
+      <DialogContent className="max-w-[95vw] sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Create Document Type</DialogTitle>
           <DialogDescription>Add a document type with only name and code.</DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} {...{ className: 'space-y-4' }}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
               control={form.control}
               name="code"
@@ -87,7 +96,7 @@ export const CreateDocumentTypeDialog: React.FC<CreateDocumentTypeDialogProps> =
                     <Input
                       placeholder="e.g., AADHAAR"
                       {...field}
-                      onChange={(e) => field.onChange(e.target.value.toUpperCase())}
+                      onChange={e => field.onChange(e.target.value.toUpperCase())}
                     />
                   </FormControl>
                   <FormMessage />
@@ -109,19 +118,14 @@ export const CreateDocumentTypeDialog: React.FC<CreateDocumentTypeDialogProps> =
               )}
             />
 
-            <DialogFooter {...{ className: 'flex-col sm:flex-row gap-2' }}>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleClose}
-                {...{ className: 'w-full sm:w-auto' }}
-              >
+            <DialogFooter className="flex-col sm:flex-row gap-2">
+              <Button type="button" variant="outline" onClick={handleClose} className="w-full sm:w-auto">
                 Cancel
               </Button>
               <Button
                 type="submit"
                 disabled={createDocumentTypeMutation.isPending}
-                {...{ className: 'w-full sm:w-auto' }}
+                className="w-full sm:w-auto"
               >
                 {createDocumentTypeMutation.isPending ? 'Creating...' : 'Create Document Type'}
               </Button>

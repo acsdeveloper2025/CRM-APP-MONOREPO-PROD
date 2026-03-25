@@ -1,13 +1,13 @@
 import { useState, useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus, X, AlertCircle, Building2 } from 'lucide-react';
-import { Badge } from '@/ui/components/Badge';
-import { Button } from '@/ui/components/Button';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from '@/ui/components/Popover';
+} from '@/components/ui/popover';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,13 +17,10 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/ui/components/AlertDialog';
+} from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { locationsService } from '@/services/locations';
-import { MultiSelectDropdown, MultiSelectOption } from '@/ui/components/MultiSelectDropdown';
-import { Box } from '@/ui/primitives/Box';
-import { Stack } from '@/ui/primitives/Stack';
-import { Text } from '@/ui/primitives/Text';
+import { MultiSelectDropdown, MultiSelectOption } from '@/components/ui/multi-select-dropdown';
 import type { Pincode, PincodeArea } from '@/types/location';
 
 interface EnhancedAreaManagerProps {
@@ -133,7 +130,7 @@ export function EnhancedAreaManager({ pincode, className }: EnhancedAreaManagerP
   };
 
   return (
-    <Box style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem', alignItems: 'center' }}>
+    <div className={`flex flex-wrap gap-1 items-center ${className}`}>
       {/* Display current areas */}
       {pincode.areas && pincode.areas.length > 0 ? (
         pincode.areas
@@ -142,23 +139,23 @@ export function EnhancedAreaManager({ pincode, className }: EnhancedAreaManagerP
             <Badge 
               key={area.id} 
               variant="outline" 
-              style={className ? undefined : { fontSize: '0.75rem' }}
+              className="text-xs group hover:bg-destructive/10 transition-colors"
             >
               {area.name}
               <button
                 type="button"
-                style={{ marginLeft: '0.25rem', color: 'var(--ui-danger)' }}
+                className="ml-1 opacity-0 group-hover:opacity-100 hover:text-destructive transition-all"
                 onClick={() => handleRemoveArea(area)}
                 disabled={removeAreaMutation.isPending}
               >
-                <X size={12} />
+                <X className="h-3 w-3" />
               </button>
             </Badge>
           ))
       ) : (
         // Fallback for backward compatibility
         pincode.area && (
-          <Badge variant="outline">
+          <Badge variant="outline" className="text-xs">
             {pincode.area}
           </Badge>
         )
@@ -169,32 +166,31 @@ export function EnhancedAreaManager({ pincode, className }: EnhancedAreaManagerP
         <PopoverTrigger asChild>
           <Button
             variant="ghost"
+            size="sm"
+            className="h-6 w-6 p-0 text-gray-600 hover:text-primary"
             disabled={addAreasMutation.isPending}
-            style={{ padding: 0, minWidth: '1.5rem', minHeight: '1.5rem', color: 'var(--ui-text-muted)' }}
           >
-            <Plus size={12} />
+            <Plus className="h-3 w-3" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent align="start" style={{ width: '24rem' }}>
-          <Stack gap={4}>
-            <Stack gap={2}>
-              <Text as="h4" variant="label">
-                <Stack direction="horizontal" gap={2} align="center">
-                  <Building2 size={16} />
-                  <span>Add Areas to Pincode {pincode.code}</span>
-                </Stack>
-              </Text>
-              <Text variant="body-sm" tone="muted">
+        <PopoverContent className="w-96" align="start">
+          <div className="space-y-4">
+            <div>
+              <h4 className="font-medium flex items-center gap-2">
+                <Building2 className="h-4 w-4" />
+                Add Areas to Pincode {pincode.code}
+              </h4>
+              <p className="text-sm text-gray-600">
                 Select areas to assign to this pincode. Only unassigned areas are shown.
-              </Text>
-            </Stack>
+              </p>
+            </div>
             
             {areaOptions.length === 0 && !areasLoading ? (
-              <Stack gap={2} align="center" style={{ paddingBlock: '2rem', textAlign: 'center' }}>
-                <Building2 size={48} style={{ opacity: 0.5, color: 'var(--ui-text-muted)' }} />
-                <Text variant="body-sm" tone="muted">No available areas found</Text>
-                <Text variant="caption" tone="muted">All areas may already be assigned or none exist.</Text>
-              </Stack>
+              <div className="text-center py-8 text-gray-600">
+                <Building2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p className="text-sm">No available areas found</p>
+                <p className="text-xs">All areas may already be assigned or none exist.</p>
+              </div>
             ) : (
               <MultiSelectDropdown
                 options={areaOptions}
@@ -207,12 +203,14 @@ export function EnhancedAreaManager({ pincode, className }: EnhancedAreaManagerP
                 isLoading={areasLoading}
                 maxDisplayItems={50}
                 emptyMessage="No areas found matching your search"
+                className="w-full"
               />
             )}
 
-            <Box style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+            <div className="flex justify-end space-x-2">
               <Button
                 variant="outline"
+                size="sm"
                 onClick={() => {
                   setShowAddPopover(false);
                   setSelectedAreaIds([]);
@@ -223,13 +221,14 @@ export function EnhancedAreaManager({ pincode, className }: EnhancedAreaManagerP
                 Cancel
               </Button>
               <Button
+                size="sm"
                 onClick={handleAddAreas}
                 disabled={addAreasMutation.isPending || selectedAreaIds.length === 0}
               >
                 {addAreasMutation.isPending ? 'Adding...' : `Add ${selectedAreaIds.length} Area${selectedAreaIds.length === 1 ? '' : 's'}`}
               </Button>
-            </Box>
-          </Stack>
+            </div>
+          </div>
         </PopoverContent>
       </Popover>
 
@@ -237,19 +236,17 @@ export function EnhancedAreaManager({ pincode, className }: EnhancedAreaManagerP
       <AlertDialog open={showRemoveDialog} onOpenChange={setShowRemoveDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>
-              <Stack direction="horizontal" gap={2} align="center">
-                <AlertCircle size={20} style={{ color: 'var(--ui-danger)' }} />
-                <span>Remove Area</span>
-              </Stack>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-destructive" />
+              Remove Area
             </AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to remove &quot;{areaToRemove?.name}&quot; from pincode {pincode.code}?
               {pincode.areas && pincode.areas.length <= 1 && (
-                <Box style={{ marginTop: '0.5rem', padding: '0.5rem', border: '1px solid var(--ui-warning)', borderRadius: 'var(--ui-radius-md)', color: 'var(--ui-warning)' }}>
+                <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded text-amber-800 text-sm">
                   <strong>Warning:</strong> This is the last area for this pincode. 
                   Removing it may cause issues.
-                </Box>
+                </div>
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -260,13 +257,13 @@ export function EnhancedAreaManager({ pincode, className }: EnhancedAreaManagerP
             <AlertDialogAction
               onClick={confirmRemoveArea}
               disabled={removeAreaMutation.isPending}
-              style={{ background: 'var(--ui-danger)', color: '#fff' }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {removeAreaMutation.isPending ? 'Removing...' : 'Remove Area'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </Box>
+    </div>
   );
 }

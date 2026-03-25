@@ -6,13 +6,10 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from '@/ui/components/Dialog';
-import { Badge } from '@/ui/components/Badge';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/Card';
-import { LoadingSpinner } from '@/ui/components/Loading';
-import { Grid } from '@/ui/layout/Grid';
-import { Stack } from '@/ui/primitives/Stack';
-import { Text } from '@/ui/primitives/Text';
+} from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { LoadingSpinner } from '@/components/ui/loading';
 import { locationsService } from '@/services/locations';
 import type { State } from '@/types/location';
 
@@ -31,115 +28,132 @@ export function StateDetailsDialog({ state, open, onOpenChange }: StateDetailsDi
   });
 
   const cities = citiesData?.data || [];
-  const details = [
-    { label: 'State Name', icon: MapPin, value: state.name },
-    { label: 'State Code', icon: MapPin, value: <Badge variant="outline">{state.code}</Badge> },
-    { label: 'Country', icon: Globe, value: state.country },
-    { label: 'Created', icon: Calendar, value: new Date(state.createdAt).toLocaleDateString() },
-  ];
-  const stats = [
-    ['Cities', cities.length],
-    ['Pincodes', cities.reduce((total, city) => total + (city.pincodes?.length || 0), 0)],
-    ['Days Old', Math.round((Date.now() - new Date(state.createdAt).getTime()) / (1000 * 60 * 60 * 24))],
-  ];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent style={{ width: 'min(95vw, 600px)', maxHeight: '80vh', overflowY: 'auto' }}>
+      <DialogContent className="max-w-[95vw] sm:max-w-[600px] max-h-[90vh] sm:max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <Stack direction="horizontal" gap={2} align="center">
-            <MapPin size={20} />
-            <DialogTitle>{state.name}</DialogTitle>
-          </Stack>
+          <DialogTitle className="flex items-center gap-2">
+            <MapPin className="h-5 w-5" />
+            {state.name}
+          </DialogTitle>
           <DialogDescription>
             Detailed information about {state.name} state
           </DialogDescription>
         </DialogHeader>
 
-        <Stack gap={5}>
+        <div className="space-y-6">
+          {/* Basic Information */}
           <Card>
             <CardHeader>
-              <CardTitle>Basic Information</CardTitle>
+              <CardTitle className="text-lg">Basic Information</CardTitle>
             </CardHeader>
-            <CardContent>
-              <Grid min={220}>
-                {details.map((item) => (
-                  <Card key={item.label} tone="muted" staticCard>
-                    <Stack gap={2}>
-                      <Stack direction="horizontal" gap={2} align="center">
-                        <item.icon size={16} style={{ color: 'var(--ui-text-soft)' }} />
-                        <Text variant="label" tone="muted">{item.label}</Text>
-                      </Stack>
-                      {typeof item.value === 'string' ? <Text>{item.value}</Text> : item.value}
-                    </Stack>
-                  </Card>
-                ))}
-              </Grid>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-600">State Name</label>
+                  <p className="text-sm font-medium">{state.name}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-600">State Code</label>
+                  <Badge variant="outline" className="mt-1">
+                    {state.code}
+                  </Badge>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-600">Country</label>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Globe className="h-4 w-4 text-gray-600" />
+                    <span className="text-sm">{state.country}</span>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-600">Created</label>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Calendar className="h-4 w-4 text-gray-600" />
+                    <span className="text-sm">
+                      {new Date(state.createdAt).toLocaleDateString()}
+                    </span>
+                  </div>
+                </div>
+              </div>
             </CardContent>
           </Card>
 
+          {/* Cities in this State */}
           <Card>
             <CardHeader>
-              <Stack direction="horizontal" gap={2} align="center">
-                <Building size={20} />
-                <CardTitle>Cities</CardTitle>
-                <Badge variant="secondary">{cities.length}</Badge>
-              </Stack>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Building className="h-5 w-5" />
+                Cities ({cities.length})
+              </CardTitle>
               <CardDescription>
                 Cities located in {state.name}
               </CardDescription>
             </CardHeader>
             <CardContent>
               {citiesLoading ? (
-                <Stack align="center" justify="center" style={{ minHeight: '8rem' }}>
+                <div className="flex items-center justify-center py-8">
                   <LoadingSpinner size="md" />
-                </Stack>
+                </div>
               ) : cities.length > 0 ? (
-                <Stack gap={2}>
+                <div className="space-y-2">
                   {cities.map((city) => (
-                    <Card key={city.id} tone="muted" staticCard>
-                      <Stack direction="horizontal" justify="space-between" align="center" gap={3} wrap="wrap">
-                        <Stack gap={1}>
-                          <Text variant="label">{city.name}</Text>
-                          <Text variant="body-sm" tone="muted">
+                    <div
+                      key={city.id}
+                      className="flex items-center justify-between p-3 border rounded-lg"
+                    >
+                      <div>
+                        <p className="font-medium">{city.name}</p>
+                        <p className="text-sm text-gray-600">
                           {city.pincodes?.length || 0} pincodes
-                          </Text>
-                        </Stack>
-                        <Badge variant="secondary">{new Date(city.createdAt).toLocaleDateString()}</Badge>
-                      </Stack>
-                    </Card>
+                        </p>
+                      </div>
+                      <Badge variant="secondary">
+                        {new Date(city.createdAt).toLocaleDateString()}
+                      </Badge>
+                    </div>
                   ))}
-                </Stack>
+                </div>
               ) : (
-                <Stack gap={2} align="center" style={{ paddingBlock: '2rem', textAlign: 'center' }}>
-                  <Building size={48} style={{ color: 'var(--ui-text-soft)', opacity: 0.6 }} />
-                  <Text variant="label">No cities found</Text>
-                  <Text variant="body-sm" tone="muted">
+                <div className="text-center py-8">
+                  <Building className="mx-auto h-12 w-12 text-gray-600" />
+                  <h3 className="mt-2 text-sm font-medium text-gray-900">No cities found</h3>
+                  <p className="mt-1 text-sm text-gray-600">
                     No cities have been added to this state yet.
-                  </Text>
-                </Stack>
+                  </p>
+                </div>
               )}
             </CardContent>
           </Card>
 
+          {/* Statistics */}
           <Card>
             <CardHeader>
-              <CardTitle>Statistics</CardTitle>
+              <CardTitle className="text-lg">Statistics</CardTitle>
             </CardHeader>
             <CardContent>
-              <Grid min={160}>
-                {stats.map(([label, value]) => (
-                  <Card key={label} tone="highlight" staticCard>
-                    <Stack gap={1} align="center" style={{ textAlign: 'center' }}>
-                      <Text variant="headline" tone="accent">{value}</Text>
-                      <Text variant="body-sm" tone="muted">{label}</Text>
-                    </Stack>
-                  </Card>
-                ))}
-              </Grid>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-center">
+                <div>
+                  <p className="text-2xl font-bold">{cities.length}</p>
+                  <p className="text-sm text-gray-600">Cities</p>
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">
+                    {cities.reduce((total, city) => total + (city.pincodes?.length || 0), 0)}
+                  </p>
+                  <p className="text-sm text-gray-600">Pincodes</p>
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">
+                    {Math.round((Date.now() - new Date(state.createdAt).getTime()) / (1000 * 60 * 60 * 24))}
+                  </p>
+                  <p className="text-sm text-gray-600">Days Old</p>
+                </div>
+              </div>
             </CardContent>
           </Card>
-        </Stack>
+        </div>
       </DialogContent>
     </Dialog>
   );

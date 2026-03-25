@@ -1,24 +1,20 @@
 import { useState } from 'react';
 import { useStandardizedQuery } from '@/hooks/useStandardizedQuery';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/components/Tabs';
-import { Badge } from '@/ui/components/Badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
 import { rateManagementService } from '@/services/rateManagement';
 import { RateTypesTab } from '@/components/rate-management/RateTypesTab';
 import { RateTypeAssignmentTab } from '@/components/rate-management/RateTypeAssignmentTab';
 import { RateAssignmentTab } from '@/components/rate-management/RateAssignmentTab';
 import { RateViewReportTab } from '@/components/rate-management/RateViewReportTab';
 import { DocumentTypeRatesTab } from '@/components/rate-management/DocumentTypeRatesTab';
-import { MetricCardGrid } from '@/components/shared/MetricCardGrid';
-import { Card } from '@/ui/components/Card';
-import { Page } from '@/ui/layout/Page';
-import { Section } from '@/ui/layout/Section';
-import { Stack } from '@/ui/primitives/Stack';
-import { Text } from '@/ui/primitives/Text';
 
 export function RateManagementPage() {
   const [activeTab, setActiveTab] = useState('rate-types');
 
-  const { data: statsData } = useStandardizedQuery({
+  // Fetch rate management statistics
+  const { data: statsData, isLoading: _statsLoading } = useStandardizedQuery({
     queryKey: ['rate-management-stats'],
     queryFn: () => rateManagementService.getRateManagementStats(),
     errorContext: 'Loading Rate Management Statistics',
@@ -32,114 +28,172 @@ export function RateManagementPage() {
   };
 
   return (
-    <Page
-      title="Rate Management"
-      subtitle="Manage rate types, assignments, and pricing for verification services."
-      shell
-    >
-      <Section>
-        <Stack gap={3}>
-          <Badge variant="accent">Pricing System</Badge>
-          <Text as="h2" variant="headline">Keep the rate workflow visible while preserving the existing pricing logic.</Text>
-          <Text variant="body-sm" tone="muted">
-            This page now follows the shared shell and section rhythm without changing any of the tab-level rate management behavior.
-          </Text>
-        </Stack>
-      </Section>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Rate Management</h1>
+          <p className="text-gray-600">
+            Manage rate types, assignments, and pricing for verification services
+          </p>
+        </div>
+      </div>
 
-      <Section>
-        <MetricCardGrid
-          items={[
-            {
-              title: 'Rate Types',
-              value: stats.rateTypes.total,
-              detail: `${stats.rateTypes.active} active${stats.rateTypes.inactive > 0 ? ` • ${stats.rateTypes.inactive} inactive` : ''}`,
-              tone: 'accent',
-            },
-            {
-              title: 'Verification Rates',
-              value: stats.rates.total,
-              detail: `${stats.rates.active} active${stats.rates.inactive > 0 ? ` • ${stats.rates.inactive} inactive` : ''}`,
-              tone: 'neutral',
-            },
-            {
-              title: 'Document Rates',
-              value: stats.documentTypeRates?.totalRates || 0,
-              detail: `${stats.documentTypeRates?.totalDocumentTypes || 0} document types`,
-              tone: 'warning',
-            },
-            {
-              title: 'Average Rate',
-              value: `₹${stats.rates.averageAmount?.toFixed(0) || '0'}`,
-              detail: 'Verification services',
-              tone: 'positive',
-            },
-            {
-              title: 'System Status',
-              value: 'Operational',
-              detail: 'All systems running',
-              tone: 'accent',
-            },
-          ]}
-        />
-      </Section>
+      {/* Stats Cards */}
+      <div className="grid gap-4 md:grid-cols-5">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Rate Types</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.rateTypes.total}</div>
+            <div className="flex flex-col sm:flex-row gap-2 mt-2">
+              <Badge variant="secondary" className="text-xs">
+                {stats.rateTypes.active} Active
+              </Badge>
+              {stats.rateTypes.inactive > 0 && (
+                <Badge variant="outline" className="text-xs">
+                  {stats.rateTypes.inactive} Inactive
+                </Badge>
+              )}
+            </div>
+          </CardContent>
+        </Card>
 
-      <Section>
-        <Card tone="strong" staticCard>
-          <Tabs value={activeTab} onValueChange={setActiveTab} {...{ className: "w-full" }}>
-            <TabsList {...{ className: "grid w-full grid-cols-5" }}>
-              <TabsTrigger value="rate-types" {...{ className: "text-sm" }}>1. Create Rate Types</TabsTrigger>
-              <TabsTrigger value="rate-type-assignment" {...{ className: "text-sm" }}>2. Rate Type Assignment</TabsTrigger>
-              <TabsTrigger value="rate-assignment" {...{ className: "text-sm" }}>3. Rate Assignment</TabsTrigger>
-              <TabsTrigger value="rate-view-report" {...{ className: "text-sm" }}>4. Rate View/Report</TabsTrigger>
-              <TabsTrigger value="document-type-rates" {...{ className: "text-sm" }}>5. Document Type Rates</TabsTrigger>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Verification Rates</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.rates.total}</div>
+            <div className="flex flex-col sm:flex-row gap-2 mt-2">
+              <Badge variant="secondary" className="text-xs">
+                {stats.rates.active} Active
+              </Badge>
+              {stats.rates.inactive > 0 && (
+                <Badge variant="outline" className="text-xs">
+                  {stats.rates.inactive} Inactive
+                </Badge>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Document Rates</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.documentTypeRates?.totalRates || 0}</div>
+            <p className="text-xs text-gray-600 mt-2">
+              {stats.documentTypeRates?.totalDocumentTypes || 0} document types
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Average Rate</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              ₹{stats.rates.averageAmount?.toFixed(0) || '0'}
+            </div>
+            <p className="text-xs text-gray-600 mt-2">
+              Verification services
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">System Status</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-green-500 rounded-full" />
+              <span className="text-sm font-medium">Operational</span>
+            </div>
+            <p className="text-xs text-gray-600 mt-2">
+              All systems running
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Main Tabs */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Rate Management System</CardTitle>
+          <CardDescription>
+            Configure rate types, assign them to client-product combinations, set rates, and view comprehensive reports
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-5">
+              <TabsTrigger value="rate-types" className="text-sm">
+                1. Create Rate Types
+              </TabsTrigger>
+              <TabsTrigger value="rate-type-assignment" className="text-sm">
+                2. Rate Type Assignment
+              </TabsTrigger>
+              <TabsTrigger value="rate-assignment" className="text-sm">
+                3. Rate Assignment
+              </TabsTrigger>
+              <TabsTrigger value="rate-view-report" className="text-sm">
+                4. Rate View/Report
+              </TabsTrigger>
+              <TabsTrigger value="document-type-rates" className="text-sm">
+                5. Document Type Rates
+              </TabsTrigger>
             </TabsList>
 
-            <div {...{ className: "mt-6" }}>
-              <TabsContent value="rate-types" {...{ className: "space-y-4" }}>
-                <div {...{ className: "border rounded-lg p-4" }}>
-                  <h3 {...{ className: "text-lg font-semibold mb-2" }}>Rate Types Management</h3>
-                  <p {...{ className: "text-sm text-gray-600 mb-4" }}>
+            <div className="mt-6">
+              <TabsContent value="rate-types" className="space-y-4">
+                <div className="border rounded-lg p-4">
+                  <h3 className="text-lg font-semibold mb-2">Rate Types Management</h3>
+                  <p className="text-sm text-gray-600 mb-4">
                     Create and manage rate types: Local, Local1, Local2, OGL, OGL1, OGL2, Outstation
                   </p>
                   <RateTypesTab />
                 </div>
               </TabsContent>
 
-              <TabsContent value="rate-type-assignment" {...{ className: "space-y-4" }}>
-                <div {...{ className: "border rounded-lg p-4" }}>
-                  <h3 {...{ className: "text-lg font-semibold mb-2" }}>Rate Type Assignment</h3>
-                  <p {...{ className: "text-sm text-gray-600 mb-4" }}>
+              <TabsContent value="rate-type-assignment" className="space-y-4">
+                <div className="border rounded-lg p-4">
+                  <h3 className="text-lg font-semibold mb-2">Rate Type Assignment</h3>
+                  <p className="text-sm text-gray-600 mb-4">
                     Assign rate types to Client → Product → Verification Type combinations
                   </p>
                   <RateTypeAssignmentTab />
                 </div>
               </TabsContent>
 
-              <TabsContent value="rate-assignment" {...{ className: "space-y-4" }}>
-                <div {...{ className: "border rounded-lg p-4" }}>
-                  <h3 {...{ className: "text-lg font-semibold mb-2" }}>Rate Assignment</h3>
-                  <p {...{ className: "text-sm text-gray-600 mb-4" }}>
+              <TabsContent value="rate-assignment" className="space-y-4">
+                <div className="border rounded-lg p-4">
+                  <h3 className="text-lg font-semibold mb-2">Rate Assignment</h3>
+                  <p className="text-sm text-gray-600 mb-4">
                     Set actual rate amounts for assigned rate types
                   </p>
                   <RateAssignmentTab />
                 </div>
               </TabsContent>
 
-              <TabsContent value="rate-view-report" {...{ className: "space-y-4" }}>
-                <div {...{ className: "border rounded-lg p-4" }}>
-                  <h3 {...{ className: "text-lg font-semibold mb-2" }}>Rate View & Reports</h3>
-                  <p {...{ className: "text-sm text-gray-600 mb-4" }}>
+              <TabsContent value="rate-view-report" className="space-y-4">
+                <div className="border rounded-lg p-4">
+                  <h3 className="text-lg font-semibold mb-2">Rate View & Reports</h3>
+                  <p className="text-sm text-gray-600 mb-4">
                     View and manage all configured rates with comprehensive filtering and reporting
                   </p>
                   <RateViewReportTab />
                 </div>
               </TabsContent>
 
-              <TabsContent value="document-type-rates" {...{ className: "space-y-4" }}>
-                <div {...{ className: "border rounded-lg p-4" }}>
-                  <h3 {...{ className: "text-lg font-semibold mb-2" }}>Document Type Rates</h3>
-                  <p {...{ className: "text-sm text-gray-600 mb-4" }}>
+              <TabsContent value="document-type-rates" className="space-y-4">
+                <div className="border rounded-lg p-4">
+                  <h3 className="text-lg font-semibold mb-2">Document Type Rates</h3>
+                  <p className="text-sm text-gray-600 mb-4">
                     Configure pricing for document verification services (independent of rate types)
                   </p>
                   <DocumentTypeRatesTab />
@@ -147,56 +201,79 @@ export function RateManagementPage() {
               </TabsContent>
             </div>
           </Tabs>
-        </Card>
-      </Section>
+        </CardContent>
+      </Card>
 
-      <Section>
-        <Card tone="strong" staticCard>
-          <Stack gap={4}>
-            <Stack gap={1}>
-              <Text as="h3" variant="headline">Rate Management Workflow</Text>
-              <Text variant="body-sm" tone="muted">Follow these steps to set up rates for verification services.</Text>
-            </Stack>
-            <div {...{ className: "grid gap-4 md:grid-cols-5" }}>
-              <div {...{ className: "flex items-start gap-3" }}>
-                <div {...{ className: "w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold" }}>1</div>
-                <div>
-                  <h4 {...{ className: "font-semibold" }}>Create Rate Types</h4>
-                  <p {...{ className: "text-sm text-gray-600" }}>Define rate categories like Local, OGL, Outstation</p>
-                </div>
+      {/* Workflow Guide */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Rate Management Workflow</CardTitle>
+          <CardDescription>Follow these steps to set up rates for verification services</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 md:grid-cols-5">
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">
+                1
               </div>
-              <div {...{ className: "flex items-start gap-3" }}>
-                <div {...{ className: "w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold" }}>2</div>
-                <div>
-                  <h4 {...{ className: "font-semibold" }}>Assign Rate Types</h4>
-                  <p {...{ className: "text-sm text-gray-600" }}>Map rate types to client-product-verification combinations</p>
-                </div>
-              </div>
-              <div {...{ className: "flex items-start gap-3" }}>
-                <div {...{ className: "w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold" }}>3</div>
-                <div>
-                  <h4 {...{ className: "font-semibold" }}>Set Rate Amounts</h4>
-                  <p {...{ className: "text-sm text-gray-600" }}>Configure actual pricing for each assigned rate type</p>
-                </div>
-              </div>
-              <div {...{ className: "flex items-start gap-3" }}>
-                <div {...{ className: "w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold" }}>4</div>
-                <div>
-                  <h4 {...{ className: "font-semibold" }}>View & Manage</h4>
-                  <p {...{ className: "text-sm text-gray-600" }}>Monitor and update rates with comprehensive reporting</p>
-                </div>
-              </div>
-              <div {...{ className: "flex items-start gap-3" }}>
-                <div {...{ className: "w-8 h-8 bg-green-500 text-white rounded-full flex items-center justify-center text-sm font-bold" }}>5</div>
-                <div>
-                  <h4 {...{ className: "font-semibold" }}>Document Type Rates</h4>
-                  <p {...{ className: "text-sm text-gray-600" }}>Set pricing for document verification without rate types</p>
-                </div>
+              <div>
+                <h4 className="font-semibold">Create Rate Types</h4>
+                <p className="text-sm text-gray-600">
+                  Define rate categories like Local, OGL, Outstation
+                </p>
               </div>
             </div>
-          </Stack>
-        </Card>
-      </Section>
-    </Page>
+
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">
+                2
+              </div>
+              <div>
+                <h4 className="font-semibold">Assign Rate Types</h4>
+                <p className="text-sm text-gray-600">
+                  Map rate types to client-product-verification combinations
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">
+                3
+              </div>
+              <div>
+                <h4 className="font-semibold">Set Rate Amounts</h4>
+                <p className="text-sm text-gray-600">
+                  Configure actual pricing for each assigned rate type
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">
+                4
+              </div>
+              <div>
+                <h4 className="font-semibold">View & Manage</h4>
+                <p className="text-sm text-gray-600">
+                  Monitor and update rates with comprehensive reporting
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 bg-green-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
+                5
+              </div>
+              <div>
+                <h4 className="font-semibold">Document Type Rates</h4>
+                <p className="text-sm text-gray-600">
+                  Set pricing for document verification (simpler, no rate types)
+                </p>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/Card';
-import { Button } from '@/ui/components/Button';
-import { Badge } from '@/ui/components/Badge';
-import { Input } from '@/ui/components/Input';
-import { Label } from '@/ui/components/Label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Table,
   TableBody,
@@ -11,7 +11,7 @@ import {
   TableHead,
   TableHeader,
   TableRow
-} from '@/ui/components/Table';
+} from '@/components/ui/table';
 import {
   BarChart,
   Bar,
@@ -89,17 +89,17 @@ export const FormSubmissionsTable: React.FC = () => {
   };
 
   return (
-    <div {...{ className: "space-y-4 sm:space-y-6" }}>
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
-      <div {...{ className: "flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between" }}>
-        <div {...{ className: "min-w-0 flex-1" }}>
-          <h2 {...{ className: "text-xl sm:text-2xl font-bold text-gray-900 truncate" }}>Form Submissions Analysis</h2>
-          <p {...{ className: "mt-1 text-sm sm:text-base text-gray-600" }}>
+      <div className="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0 flex-1">
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">Form Submissions Analysis</h2>
+          <p className="mt-1 text-sm sm:text-base text-gray-600">
             Comprehensive view of all form submissions with validation status and trends
           </p>
         </div>
-        <Button variant="outline" {...{ className: "w-full sm:w-auto" }}>
-          <Download {...{ className: "h-4 w-4 mr-2" }} />
+        <Button variant="outline" className="w-full sm:w-auto">
+          <Download className="h-4 w-4 mr-2" />
           Export Data
         </Button>
       </div>
@@ -107,42 +107,42 @@ export const FormSubmissionsTable: React.FC = () => {
       {/* Date Range Filters */}
       <Card>
         <CardHeader>
-          <CardTitle {...{ className: "text-base sm:text-lg" }}>Filter by Date Range</CardTitle>
+          <CardTitle className="text-base sm:text-lg">Filter by Date Range</CardTitle>
           <CardDescription>Select a date range to filter submissions</CardDescription>
         </CardHeader>
         <CardContent>
-          <div {...{ className: "grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4" }}>
-            <div {...{ className: "space-y-2" }}>
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="space-y-2">
               <Label htmlFor="date-from">From Date</Label>
-              <div {...{ className: "relative" }}>
-                <Calendar {...{ className: "absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-600 pointer-events-none" }} />
+              <div className="relative">
+                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-600 pointer-events-none" />
                 <Input
                   id="date-from"
                   type="date"
                   value={dateRange.from}
                   onChange={(e) => setDateRange(prev => ({ ...prev, from: e.target.value }))}
-                  {...{ className: "pl-10" }}
+                  className="pl-10"
                 />
               </div>
             </div>
-            <div {...{ className: "space-y-2" }}>
+            <div className="space-y-2">
               <Label htmlFor="date-to">To Date</Label>
-              <div {...{ className: "relative" }}>
-                <Calendar {...{ className: "absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-600 pointer-events-none" }} />
+              <div className="relative">
+                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-600 pointer-events-none" />
                 <Input
                   id="date-to"
                   type="date"
                   value={dateRange.to}
                   onChange={(e) => setDateRange(prev => ({ ...prev, to: e.target.value }))}
-                  {...{ className: "pl-10" }}
+                  className="pl-10"
                 />
               </div>
             </div>
-            <div {...{ className: "flex items-end" }}>
+            <div className="flex items-end">
               <Button
                 variant="outline"
                 onClick={() => setDateRange({ from: '', to: '' })}
-                {...{ className: "w-full" }}
+                className="w-full"
               >
                 Clear Filters
               </Button>
@@ -152,50 +152,50 @@ export const FormSubmissionsTable: React.FC = () => {
       </Card>
 
       {/* Summary Cards */}
-      <div {...{ className: "grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4" }}>
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
-          <CardHeader {...{ className: "flex flex-row items-center justify-between space-y-0 pb-2" }}>
-            <CardTitle {...{ className: "text-sm font-medium" }}>Total Submissions</CardTitle>
-            <FileText {...{ className: "h-4 w-4 text-gray-600" }} />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Submissions</CardTitle>
+            <FileText className="h-4 w-4 text-gray-600" />
           </CardHeader>
           <CardContent>
-            <div {...{ className: "text-2xl font-bold" }}>{summary?.totalSubmissions || 0}</div>
-            <p {...{ className: "text-xs text-gray-600" }}>All form types</p>
+            <div className="text-2xl font-bold">{summary?.totalSubmissions || 0}</div>
+            <p className="text-xs text-gray-600">All form types</p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader {...{ className: "flex flex-row items-center justify-between space-y-0 pb-2" }}>
-            <CardTitle {...{ className: "text-sm font-medium" }}>Valid Forms</CardTitle>
-            <CheckCircle {...{ className: "h-4 w-4 text-green-600" }} />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Valid Forms</CardTitle>
+            <CheckCircle className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div {...{ className: "text-2xl font-bold text-green-600" }}>{summary?.validSubmissions || 0}</div>
-            <p {...{ className: "text-xs text-gray-600" }}>
+            <div className="text-2xl font-bold text-green-600">{summary?.validSubmissions || 0}</div>
+            <p className="text-xs text-gray-600">
               {summary?.validationRate ? `${summary.validationRate.toFixed(1)}% validation rate` : 'No data'}
             </p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader {...{ className: "flex flex-row items-center justify-between space-y-0 pb-2" }}>
-            <CardTitle {...{ className: "text-sm font-medium" }}>Pending Review</CardTitle>
-            <Clock {...{ className: "h-4 w-4 text-yellow-600" }} />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Pending Review</CardTitle>
+            <Clock className="h-4 w-4 text-yellow-600" />
           </CardHeader>
           <CardContent>
-            <div {...{ className: "text-2xl font-bold text-yellow-600" }}>{summary?.pendingSubmissions || 0}</div>
-            <p {...{ className: "text-xs text-gray-600" }}>Awaiting validation</p>
+            <div className="text-2xl font-bold text-yellow-600">{summary?.pendingSubmissions || 0}</div>
+            <p className="text-xs text-gray-600">Awaiting validation</p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader {...{ className: "flex flex-row items-center justify-between space-y-0 pb-2" }}>
-            <CardTitle {...{ className: "text-sm font-medium" }}>Residence Forms</CardTitle>
-            <AlertCircle {...{ className: "h-4 w-4 text-green-600" }} />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Residence Forms</CardTitle>
+            <AlertCircle className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div {...{ className: "text-2xl font-bold text-green-600" }}>{summary?.residenceForms || 0}</div>
-            <p {...{ className: "text-xs text-gray-600" }}>
+            <div className="text-2xl font-bold text-green-600">{summary?.residenceForms || 0}</div>
+            <p className="text-xs text-gray-600">
               {summary?.officeForms || 0} office forms
             </p>
           </CardContent>
@@ -203,7 +203,7 @@ export const FormSubmissionsTable: React.FC = () => {
       </div>
 
       {/* Charts Section */}
-      <div {...{ className: "grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-2" }}>
+      <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-2">
         {/* Validation Status Chart */}
         <Card>
           <CardHeader>
@@ -260,7 +260,7 @@ export const FormSubmissionsTable: React.FC = () => {
       {/* Detailed Table */}
       <Card>
         <CardHeader>
-          <CardTitle {...{ className: "text-base sm:text-lg" }}>Recent Form Submissions</CardTitle>
+          <CardTitle className="text-base sm:text-lg">Recent Form Submissions</CardTitle>
           <CardDescription>
             {submissions.length > 0
               ? `Showing ${submissions.length} recent submission${submissions.length === 1 ? '' : 's'}`
@@ -268,18 +268,18 @@ export const FormSubmissionsTable: React.FC = () => {
             }
           </CardDescription>
         </CardHeader>
-        <CardContent {...{ className: "p-0" }}>
+        <CardContent className="p-0">
           {/* Responsive table wrapper */}
-          <div {...{ className: "overflow-x-auto" }}>
+          <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead {...{ className: "whitespace-nowrap" }}>Form Type</TableHead>
-                  <TableHead {...{ className: "whitespace-nowrap" }}>Case</TableHead>
-                  <TableHead {...{ className: "whitespace-nowrap hidden sm:table-cell" }}>Agent</TableHead>
-                  <TableHead {...{ className: "whitespace-nowrap" }}>Status</TableHead>
-                  <TableHead {...{ className: "whitespace-nowrap hidden md:table-cell" }}>Submitted</TableHead>
-                  <TableHead {...{ className: "whitespace-nowrap hidden lg:table-cell" }}>Attachments</TableHead>
+                  <TableHead className="whitespace-nowrap">Form Type</TableHead>
+                  <TableHead className="whitespace-nowrap">Case</TableHead>
+                  <TableHead className="whitespace-nowrap hidden sm:table-cell">Agent</TableHead>
+                  <TableHead className="whitespace-nowrap">Status</TableHead>
+                  <TableHead className="whitespace-nowrap hidden md:table-cell">Submitted</TableHead>
+                  <TableHead className="whitespace-nowrap hidden lg:table-cell">Attachments</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -288,17 +288,17 @@ export const FormSubmissionsTable: React.FC = () => {
                     <TableRow key={index}>
                       {Array.from({ length: 6 }).map((_, cellIndex) => (
                         <TableCell key={cellIndex}>
-                          <div {...{ className: "h-4 bg-slate-100 dark:bg-slate-800/60 rounded animate-pulse" }} />
+                          <div className="h-4 bg-slate-100 dark:bg-slate-800/60 rounded animate-pulse" />
                         </TableCell>
                       ))}
                     </TableRow>
                   ))
                 ) : submissions.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} {...{ className: "text-center py-8" }}>
-                      <FileText {...{ className: "mx-auto h-12 w-12 text-gray-600" }} />
-                      <h3 {...{ className: "mt-4 text-lg font-semibold" }}>No submissions found</h3>
-                      <p {...{ className: "text-gray-600" }}>
+                    <TableCell colSpan={6} className="text-center py-8">
+                      <FileText className="mx-auto h-12 w-12 text-gray-600" />
+                      <h3 className="mt-4 text-lg font-semibold">No submissions found</h3>
+                      <p className="text-gray-600">
                         Form submissions will appear here once agents start submitting data.
                       </p>
                     </TableCell>
@@ -306,35 +306,35 @@ export const FormSubmissionsTable: React.FC = () => {
                 ) : (
                   submissions.map((submission, index) => (
                     <TableRow key={`${submission.case_id}-${index}`}>
-                      <TableCell {...{ className: "whitespace-nowrap" }}>
-                        <Badge {...{ className: getFormTypeColor(submission.form_type) }}>
+                      <TableCell className="whitespace-nowrap">
+                        <Badge className={getFormTypeColor(submission.form_type)}>
                           {submission.form_type}
                         </Badge>
                       </TableCell>
                       <TableCell>
                         <div>
-                          <div {...{ className: "font-medium" }}>#{submission.caseNumber || 'N/A'}</div>
-                          <div {...{ className: "text-sm text-gray-600 truncate max-w-[150px]" }}>{submission.customerName}</div>
+                          <div className="font-medium">#{submission.caseNumber || 'N/A'}</div>
+                          <div className="text-sm text-gray-600 truncate max-w-[150px]">{submission.customerName}</div>
                         </div>
                       </TableCell>
-                      <TableCell {...{ className: "hidden sm:table-cell" }}>
+                      <TableCell className="hidden sm:table-cell">
                         <div>
-                          <div {...{ className: "font-medium" }}>{submission.agentName || 'Unknown'}</div>
-                          <div {...{ className: "text-sm text-gray-600" }}>{submission.employeeId}</div>
+                          <div className="font-medium">{submission.agentName || 'Unknown'}</div>
+                          <div className="text-sm text-gray-600">{submission.employeeId}</div>
                         </div>
                       </TableCell>
-                      <TableCell {...{ className: "whitespace-nowrap" }}>
-                        <Badge {...{ className: getValidationStatusColor(submission.validation_status) }}>
+                      <TableCell className="whitespace-nowrap">
+                        <Badge className={getValidationStatusColor(submission.validation_status)}>
                           {submission.validation_status}
                         </Badge>
                       </TableCell>
-                      <TableCell {...{ className: "hidden md:table-cell whitespace-nowrap" }}>
-                        <div {...{ className: "text-sm" }}>
+                      <TableCell className="hidden md:table-cell whitespace-nowrap">
+                        <div className="text-sm">
                           {formatDistanceToNow(new Date(submission.submitted_at), { addSuffix: true })}
                         </div>
                       </TableCell>
-                      <TableCell {...{ className: "hidden lg:table-cell" }}>
-                        <div {...{ className: "text-sm" }}>
+                      <TableCell className="hidden lg:table-cell">
+                        <div className="text-sm">
                           {submission.attachmentCount || 0} files
                         </div>
                       </TableCell>
@@ -350,21 +350,21 @@ export const FormSubmissionsTable: React.FC = () => {
             const { total, limit } = submissionsData.data.pagination;
             const totalPages = Math.ceil(total / limit);
             return (
-              <div {...{ className: "flex flex-col sm:flex-row items-center justify-between gap-4 p-4 border-t" }}>
-                <div {...{ className: "text-sm text-gray-600 text-center sm:text-left" }}>
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 border-t">
+                <div className="text-sm text-gray-600 text-center sm:text-left">
                   Showing {submissions.length} of {total} submissions
                 </div>
-                <div {...{ className: "flex items-center gap-2 flex-wrap justify-center" }}>
+                <div className="flex items-center gap-2 flex-wrap justify-center">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                     disabled={currentPage === 1}
-                    {...{ className: "min-w-20" }}
+                    className="min-w-20"
                   >
                     Previous
                   </Button>
-                  <div {...{ className: "text-sm px-2" }}>
+                  <div className="text-sm px-2">
                     Page {currentPage} of {totalPages}
                   </div>
                   <Button
@@ -372,7 +372,7 @@ export const FormSubmissionsTable: React.FC = () => {
                     size="sm"
                     onClick={() => setCurrentPage(prev => prev + 1)}
                     disabled={currentPage >= totalPages}
-                    {...{ className: "min-w-20" }}
+                    className="min-w-20"
                   >
                     Next
                   </Button>

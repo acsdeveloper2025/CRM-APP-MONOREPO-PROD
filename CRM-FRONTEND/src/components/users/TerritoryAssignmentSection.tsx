@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { MapPin } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/Card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/components/Tabs';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Atom } from 'react-loading-indicators';
 import { usePincodes } from '@/hooks/useLocations';
 import {
@@ -148,13 +148,13 @@ export const TerritoryAssignmentSection: React.FC<TerritoryAssignmentSectionProp
     return (
       <Card>
         <CardHeader>
-          <CardTitle {...{ className: "flex items-center gap-2" }}>
-            <MapPin {...{ className: "h-5 w-5 text-emerald-600" }} />
+          <CardTitle className="flex items-center gap-2">
+            <MapPin className="h-5 w-5 text-emerald-600" />
             Territory Assignments
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div {...{ className: "flex justify-center items-center py-12" }}>
+          <div className="flex justify-center items-center py-12">
             <Atom color="#10B981" size="medium" />
           </div>
         </CardContent>
@@ -167,8 +167,8 @@ export const TerritoryAssignmentSection: React.FC<TerritoryAssignmentSectionProp
   return (
     <Card>
       <CardHeader>
-        <CardTitle {...{ className: "flex items-center gap-2" }}>
-          <MapPin {...{ className: "h-5 w-5 text-emerald-600" }} />
+        <CardTitle className="flex items-center gap-2">
+          <MapPin className="h-5 w-5 text-emerald-600" />
           Territory Assignments
         </CardTitle>
         <CardDescription>
@@ -181,7 +181,7 @@ export const TerritoryAssignmentSection: React.FC<TerritoryAssignmentSectionProp
           value={activeTab}
           onValueChange={(v) => setActiveTab(v as 'pincodes' | 'areas' | 'summary')}
         >
-          <TabsList {...{ className: "grid w-full grid-cols-3" }}>
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="pincodes">Select Pincodes</TabsTrigger>
             <TabsTrigger value="areas" disabled={selectedPincodeIds.size === 0}>
               Select Areas
@@ -189,7 +189,7 @@ export const TerritoryAssignmentSection: React.FC<TerritoryAssignmentSectionProp
             <TabsTrigger value="summary">Summary</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="pincodes" {...{ className: "mt-6" }}>
+          <TabsContent value="pincodes" className="mt-6">
             <PincodeSelectionTab
               pincodes={allPincodes}
               selectedPincodeIds={selectedPincodeIds}
@@ -198,9 +198,9 @@ export const TerritoryAssignmentSection: React.FC<TerritoryAssignmentSectionProp
             />
           </TabsContent>
 
-          <TabsContent value="areas" {...{ className: "mt-6" }}>
+          <TabsContent value="areas" className="mt-6">
             {areasLoading ? (
-              <div {...{ className: "flex justify-center items-center py-12" }}>
+              <div className="flex justify-center items-center py-12">
                 <Atom color="#10B981" size="medium" />
               </div>
             ) : (
@@ -215,7 +215,7 @@ export const TerritoryAssignmentSection: React.FC<TerritoryAssignmentSectionProp
             )}
           </TabsContent>
 
-          <TabsContent value="summary" {...{ className: "mt-6" }}>
+          <TabsContent value="summary" className="mt-6">
             <AssignmentSummary
               savedAssignments={existingAssignments?.pincodeAssignments || []}
               isLoading={assignmentsLoading}
