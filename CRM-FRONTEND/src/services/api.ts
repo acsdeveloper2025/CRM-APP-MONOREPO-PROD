@@ -21,6 +21,33 @@ const processQueue = (error: Error | null, token: string | null = null) => {
   failedQueue = [];
 };
 
+const getErrorCode = (error: unknown): string | undefined => {
+  const data = (error as { response?: { data?: { error?: { code?: string }; code?: string } } })?.response?.data;
+  return data?.error?.code || data?.code;
+};
+
+const shouldAttemptTokenRefresh = (status?: number, errorCode?: string): boolean => {
+  if (status === 401) {
+    return true;
+  }
+
+  if (status !== 403) {
+    return false;
+  }
+
+  return ['INVALID_TOKEN', 'TOKEN_EXPIRED', 'UNAUTHORIZED'].includes(errorCode || '');
+};
+
+const shouldForceLogoutOnRefreshFailure = (error: unknown): boolean => {
+  const status = (error as { response?: { status?: number } })?.response?.status;
+
+  if (!status) {
+    return false;
+  }
+
+  return status === 400 || status === 401 || status === 403;
+};
+
 // -- Enhanced Features Types --
 interface CacheEntry {
   data: unknown;
@@ -190,9 +217,10 @@ class ApiService {
 
         const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
         const status = error.response?.status;
+        const errorCode = getErrorCode(error);
 
-        // Handle 401 Unauthorized OR 403 Forbidden (Session Expiry)
-        if ((status === 401 || status === 403) && !originalRequest._retry) {
+        // Refresh only for real auth expiry cases, not generic permission/business 403s.
+        if (shouldAttemptTokenRefresh(status, errorCode) && !originalRequest._retry) {
           // Prevent infinite loops: sensitive endpoints shouldn't trigger refresh logic
           const url = originalRequest.url || '';
           if (
@@ -234,17 +262,21 @@ class ApiService {
 
             // Call backend refresh endpoint
             // Using a fresh axios instance to avoid interceptors
-            this.incrementActiveRequests(); 
-            const response = await axios.post(`${this.getOptimalApiUrl()}/auth/refresh-token`, {
-              refreshToken,
-            }, {
-              withCredentials: true, // Important for cookies if used
-              headers: {
-                'Content-Type': 'application/json'
-                // NO Authorization header
-              }
-            });
-            this.decrementActiveRequests();
+            this.incrementActiveRequests();
+            let response;
+            try {
+              response = await axios.post(`${this.getOptimalApiUrl()}/auth/refresh-token`, {
+                refreshToken,
+              }, {
+                withCredentials: true, // Important for cookies if used
+                headers: {
+                  'Content-Type': 'application/json'
+                  // NO Authorization header
+                }
+              });
+            } finally {
+              this.decrementActiveRequests();
+            }
 
             // Extract new token
             const data = response.data;
@@ -274,29 +306,18 @@ class ApiService {
             originalRequest.headers.Authorization = `Bearer ${accessToken}`;
             return this.api(originalRequest);
           } catch (refreshError) {
-            // Ensure we decrement if we incremented before manual call
-            // We did decrement in the try block, but if it failed inside axios.post?
-            // The await would throw, so we need to ensure decrement happens. 
-            // Ideally we wrap the raw axios call in try/finally or check logic.
-            // But simplified: the catch block runs. 
-            // We can't easily know if decrement happened. 
-            // Let's assume the raw axios call *might* have thrown before decrement.
-            // Safe to assume activeRequestCount might be off? 
-            // Actually, let's fix the try block logic above to be safe.
-            
             console.error('❌ Token refresh failed:', refreshError);
             isRefreshing = false; // Reset flag on error
             processQueue(refreshError as Error, null);
-            
-            // Notify other tabs to force logout
-            localStorage.setItem(SYNC_KEYS.FORCE_LOGOUT, Date.now().toString());
-            
-            // Clear auth and redirect
-            this.setAccessToken(null);
-            localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
-            localStorage.removeItem(STORAGE_KEYS.USER_DATA);
-            triggerLogout('Your session has expired. Please login again.');
-            
+
+            if (shouldForceLogoutOnRefreshFailure(refreshError)) {
+              localStorage.setItem(SYNC_KEYS.FORCE_LOGOUT, Date.now().toString());
+              this.setAccessToken(null);
+              localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
+              localStorage.removeItem(STORAGE_KEYS.USER_DATA);
+              triggerLogout('Your session has expired. Please login again.');
+            }
+
             return Promise.reject(refreshError);
           }
         }
@@ -673,8 +694,11 @@ class ApiService {
         credentials: 'include', // Enable cookies
       });
   
-      // Handle 401 Unauthorized OR 403 Forbidden (Session Expiry)
-      if (response.status === 401 || response.status === 403) {
+      const responseErrorCode =
+        response.headers.get('x-error-code') ||
+        undefined;
+
+      if (shouldAttemptTokenRefresh(response.status, responseErrorCode)) {
         // Prevent infinite loops: Don't refresh if the failed request was an auth endpoint
         if (url.includes('/auth/login') || url.includes('/auth/refresh-token') || url.includes('/auth/logout')) {
           return response; 
@@ -740,14 +764,14 @@ class ApiService {
         } catch (error) {
             processQueue(error as Error, null);
             isRefreshing = false;
-            
-            // Notify other tabs to force logout
-            localStorage.setItem(SYNC_KEYS.FORCE_LOGOUT, Date.now().toString());
 
-            this.setAccessToken(null);
-            localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
-            localStorage.removeItem(STORAGE_KEYS.USER_DATA);
-            triggerLogout('Your session has expired. Please login again.');
+            if (shouldForceLogoutOnRefreshFailure(error)) {
+              localStorage.setItem(SYNC_KEYS.FORCE_LOGOUT, Date.now().toString());
+              this.setAccessToken(null);
+              localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
+              localStorage.removeItem(STORAGE_KEYS.USER_DATA);
+              triggerLogout('Your session has expired. Please login again.');
+            }
             throw error;
         }
       }
