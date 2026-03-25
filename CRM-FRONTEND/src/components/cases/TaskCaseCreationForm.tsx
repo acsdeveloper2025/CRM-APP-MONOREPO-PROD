@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -246,12 +246,24 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
     );
   };
 
-  const updateTaskValidationState = (taskId: string, nextState: TaskValidationState) => {
-    setTaskValidationState((prev) => ({
-      ...prev,
-      [taskId]: nextState,
-    }));
-  };
+  const updateTaskValidationState = useCallback((taskId: string, nextState: TaskValidationState) => {
+    setTaskValidationState((prev) => {
+      const current = prev[taskId];
+      if (
+        current?.isReady === nextState.isReady &&
+        current?.isLoading === nextState.isLoading &&
+        current?.isValid === nextState.isValid &&
+        current?.message === nextState.message
+      ) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        [taskId]: nextState,
+      };
+    });
+  }, []);
 
   const hasBlockingConfigurationState = tasks.some((task) => {
     const state = taskValidationState[task.id];
