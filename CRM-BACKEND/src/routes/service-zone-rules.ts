@@ -18,12 +18,18 @@ router.use(authenticateToken);
 
 const listValidation = [
   query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
-  query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('Limit must be between 1 and 100'),
+  query('limit')
+    .optional()
+    .isInt({ min: 1, max: 100 })
+    .withMessage('Limit must be between 1 and 100'),
   query('clientId').optional().isInt({ min: 1 }).withMessage('Client ID must be a valid integer'),
   query('productId').optional().isInt({ min: 1 }).withMessage('Product ID must be a valid integer'),
   query('pincodeId').optional().isInt({ min: 1 }).withMessage('Pincode ID must be a valid integer'),
   query('areaId').optional().isInt({ min: 1 }).withMessage('Area ID must be a valid integer'),
-  query('serviceZoneId').optional().isInt({ min: 1 }).withMessage('Service zone ID must be a valid integer'),
+  query('serviceZoneId')
+    .optional()
+    .isInt({ min: 1 })
+    .withMessage('Service zone ID must be a valid integer'),
   query('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
   query('search').optional().isString().withMessage('Search must be a string'),
 ];
@@ -39,7 +45,13 @@ const ruleValidation = [
 router.get('/', listValidation, handleValidationErrors, listServiceZoneRules);
 router.get('/service-zones', handleValidationErrors, listServiceZones);
 
-router.post('/', authorize('settings.manage'), ruleValidation, handleValidationErrors, createServiceZoneRule);
+router.post(
+  '/',
+  authorize('settings.manage'),
+  ruleValidation,
+  handleValidationErrors,
+  createServiceZoneRule
+);
 
 router.put(
   '/:id',

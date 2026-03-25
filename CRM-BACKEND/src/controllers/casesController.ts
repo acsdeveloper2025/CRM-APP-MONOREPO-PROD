@@ -2084,9 +2084,10 @@ export const validateCaseConfiguration = async (req: AuthenticatedRequest, res: 
     }
 
     if (!resolvedPincodeId && resolvedPincodeCode) {
-      const pincodeLookup = await pool.query(`SELECT id, code FROM pincodes WHERE code = $1 LIMIT 1`, [
-        resolvedPincodeCode,
-      ]);
+      const pincodeLookup = await pool.query(
+        `SELECT id, code FROM pincodes WHERE code = $1 LIMIT 1`,
+        [resolvedPincodeCode]
+      );
 
       if (!pincodeLookup.rows[0]) {
         return res.status(400).json({
@@ -2099,9 +2100,10 @@ export const validateCaseConfiguration = async (req: AuthenticatedRequest, res: 
       resolvedPincodeId = Number(pincodeLookup.rows[0].id);
       resolvedPincodeCode = pincodeLookup.rows[0].code;
     } else if (resolvedPincodeId && !resolvedPincodeCode) {
-      const pincodeLookup = await pool.query(`SELECT id, code FROM pincodes WHERE id = $1 LIMIT 1`, [
-        resolvedPincodeId,
-      ]);
+      const pincodeLookup = await pool.query(
+        `SELECT id, code FROM pincodes WHERE id = $1 LIMIT 1`,
+        [resolvedPincodeId]
+      );
 
       if (!pincodeLookup.rows[0]) {
         return res.status(400).json({
@@ -2168,12 +2170,13 @@ export const validateCaseConfiguration = async (req: AuthenticatedRequest, res: 
       clientId,
       productId,
       verificationTypeId,
-      resolvedPincodeId!,
+      resolvedPincodeId,
       areaId,
       preferredRateTypeId
     );
 
-    const effectiveRateTypeId = validationResult.rateTypeId ?? mappedRateTypeId ?? preferredRateTypeId;
+    const effectiveRateTypeId =
+      validationResult.rateTypeId ?? mappedRateTypeId ?? preferredRateTypeId;
 
     res.json({
       success: true,

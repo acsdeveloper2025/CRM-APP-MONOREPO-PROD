@@ -49,7 +49,11 @@ const validateReferences = async (payload: ServiceZoneRulePayload) => {
     };
   }
   if (!zoneRes.rows[0]) {
-    return { ok: false, status: 400, message: 'Selected service zone does not exist or is inactive' };
+    return {
+      ok: false,
+      status: 400,
+      message: 'Selected service zone does not exist or is inactive',
+    };
   }
 
   return { ok: true };
@@ -207,7 +211,8 @@ export const createServiceZoneRule = async (req: AuthenticatedRequest, res: Resp
     if (duplicateRes.rows[0]) {
       return res.status(400).json({
         success: false,
-        message: 'A service zone rule already exists for this exact client/product/pincode/area combination',
+        message:
+          'A service zone rule already exists for this exact client/product/pincode/area combination',
         error: { code: 'DUPLICATE_RULE' },
       });
     }
@@ -217,7 +222,13 @@ export const createServiceZoneRule = async (req: AuthenticatedRequest, res: Resp
         (client_id, product_id, pincode_id, area_id, service_zone_id, is_active, created_at, updated_at)
        VALUES ($1, $2, $3, $4, $5, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
        RETURNING id`,
-      [payload.clientId, payload.productId, payload.pincodeId, payload.areaId, payload.serviceZoneId]
+      [
+        payload.clientId,
+        payload.productId,
+        payload.pincodeId,
+        payload.areaId,
+        payload.serviceZoneId,
+      ]
     );
 
     res.status(201).json({
@@ -239,7 +250,9 @@ export const updateServiceZoneRule = async (req: AuthenticatedRequest, res: Resp
   try {
     const id = Number(req.params.id);
     const payload = req.body as ServiceZoneRulePayload;
-    const existingRes = await query('SELECT id FROM service_zone_rules WHERE id = $1 LIMIT 1', [id]);
+    const existingRes = await query('SELECT id FROM service_zone_rules WHERE id = $1 LIMIT 1', [
+      id,
+    ]);
     if (!existingRes.rows[0]) {
       return res.status(404).json({
         success: false,
@@ -266,7 +279,8 @@ export const updateServiceZoneRule = async (req: AuthenticatedRequest, res: Resp
     if (duplicateRes.rows[0]) {
       return res.status(400).json({
         success: false,
-        message: 'A service zone rule already exists for this exact client/product/pincode/area combination',
+        message:
+          'A service zone rule already exists for this exact client/product/pincode/area combination',
         error: { code: 'DUPLICATE_RULE' },
       });
     }
@@ -280,7 +294,14 @@ export const updateServiceZoneRule = async (req: AuthenticatedRequest, res: Resp
            service_zone_id = $5,
            updated_at = CURRENT_TIMESTAMP
        WHERE id = $6`,
-      [payload.clientId, payload.productId, payload.pincodeId, payload.areaId, payload.serviceZoneId, id]
+      [
+        payload.clientId,
+        payload.productId,
+        payload.pincodeId,
+        payload.areaId,
+        payload.serviceZoneId,
+        id,
+      ]
     );
 
     res.json({

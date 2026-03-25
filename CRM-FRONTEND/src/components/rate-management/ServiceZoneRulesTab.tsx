@@ -98,14 +98,19 @@ export function ServiceZoneRulesTab() {
   });
 
   const updateRuleMutation = useMutationWithInvalidation({
-    mutationFn: () =>
-      serviceZoneRulesService.updateRule(editingRule!.id, {
+    mutationFn: () => {
+      if (!editingRule) {
+        throw new Error('No service zone rule selected for update');
+      }
+
+      return serviceZoneRulesService.updateRule(editingRule.id, {
         clientId: Number(formState.clientId),
         productId: Number(formState.productId),
         pincodeId: Number(formState.pincodeId),
         areaId: Number(formState.areaId),
         serviceZoneId: Number(formState.serviceZoneId),
-      }),
+      });
+    },
     invalidateKeys: [['service-zone-rules']],
     successMessage: 'Service zone rule updated successfully',
     errorContext: 'Service Zone Rules',
@@ -127,12 +132,15 @@ export function ServiceZoneRulesTab() {
     errorFallbackMessage: 'Failed to update service zone rule status',
   });
 
-  const clients = clientsResponse?.data || [];
-  const products = productsResponse?.data || [];
-  const pincodes = pincodesResponse?.data || [];
-  const areas = areasResponse?.data || [];
-  const serviceZones = serviceZonesResponse?.data || [];
-  const rules = rulesResponse?.data || [];
+  const clients = useMemo(() => clientsResponse?.data || [], [clientsResponse?.data]);
+  const products = useMemo(() => productsResponse?.data || [], [productsResponse?.data]);
+  const pincodes = useMemo(() => pincodesResponse?.data || [], [pincodesResponse?.data]);
+  const areas = useMemo(() => areasResponse?.data || [], [areasResponse?.data]);
+  const serviceZones = useMemo(
+    () => serviceZonesResponse?.data || [],
+    [serviceZonesResponse?.data]
+  );
+  const rules = useMemo(() => rulesResponse?.data || [], [rulesResponse?.data]);
 
   useEffect(() => {
     if (!formState.pincodeId) {
